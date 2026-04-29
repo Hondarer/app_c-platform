@@ -23,6 +23,8 @@ extern "C"
 
     COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
                                                       const time_t *timep);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm,
+                                                         const time_t *timep);
 
 #ifdef __cplusplus
 }

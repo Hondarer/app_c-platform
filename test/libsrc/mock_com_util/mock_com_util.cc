@@ -33,6 +33,8 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_gmtime(_, _))
         .WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_localtime(_, _))
+        .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_rename(_, _))
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_fclose(_))
@@ -149,6 +151,10 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return());
     ON_CALL(*this, com_util_get_realtime_utc(_, _))
         .WillByDefault(Return());
+    ON_CALL(*this, com_util_format_realtime_iso8601_local(_, _, _, _))
+        .WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_format_realtime_iso8601_utc(_, _, _, _))
+        .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_get_realtime_deadline_ms(_, _))
         .WillByDefault(Return());
 

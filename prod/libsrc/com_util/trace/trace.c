@@ -789,7 +789,7 @@ static int should_output(com_util_trace_level_t msg_level, com_util_trace_level_
     return (int)msg_level <= (int)threshold;
 }
 
-#define STDERR_TS_BUF_SIZE 24
+#define STDERR_TS_BUF_SIZE (COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1)
 
 /**
  *******************************************************************************
@@ -803,23 +803,11 @@ static void write_stderr_entry(com_util_trace_level_t level, const char *msg)
     char ts[STDERR_TS_BUF_SIZE];
     static const char lc_table[] = {'C', 'E', 'W', 'I', 'V', 'D'};
     char lc;
-    struct tm utc_tm;
+    int64_t tv_sec;
     int32_t tv_nsec;
 
-    com_util_get_realtime_utc(&utc_tm, &tv_nsec);
-
-#if defined(COMPILER_GCC)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-#endif /* COMPILER_GCC */
-    snprintf(ts, sizeof(ts),
-             "%04d-%02d-%02d %02d:%02d:%02d.%03d",
-             utc_tm.tm_year + 1900, utc_tm.tm_mon + 1, utc_tm.tm_mday,
-             utc_tm.tm_hour, utc_tm.tm_min, utc_tm.tm_sec,
-             (int)(tv_nsec / 1000000));
-#if defined(COMPILER_GCC)
-#pragma GCC diagnostic pop
-#endif /* COMPILER_GCC */
+    com_util_get_realtime(&tv_sec, &tv_nsec);
+    (void)com_util_format_realtime_iso8601_local(ts, sizeof(ts), tv_sec, tv_nsec);
 
     lc = ((int)level >= 0 && (int)level < (int)COM_UTIL_TRACE_LEVEL_NONE) ? lc_table[(int)level] : 'D';
     fprintf(stderr, "%s %c %s\n", ts, lc, msg);

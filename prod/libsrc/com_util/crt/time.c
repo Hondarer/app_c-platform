@@ -28,3 +28,28 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
     return 0;
 #endif /* PLATFORM_ */
 }
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm,
+                                                     const time_t *timep)
+{
+    if (local_tm == NULL || timep == NULL)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    if (localtime_r(timep, local_tm) == NULL)
+    {
+        memset(local_tm, 0, sizeof(*local_tm));
+        return -1;
+    }
+    return 0;
+#elif defined(PLATFORM_WINDOWS)
+    if (localtime_s(local_tm, timep) != 0)
+    {
+        memset(local_tm, 0, sizeof(*local_tm));
+        return -1;
+    }
+    return 0;
+#endif /* PLATFORM_ */
+}

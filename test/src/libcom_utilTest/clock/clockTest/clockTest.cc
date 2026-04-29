@@ -21,6 +21,17 @@ static void expect_tm_equal(const struct tm *actual, const struct tm *expected)
     EXPECT_EQ(expected->tm_sec, actual->tm_sec);
 }
 
+static void set_tm(struct tm *tm_value, int year, int month, int day, int hour, int min, int sec)
+{
+    memset(tm_value, 0, sizeof(*tm_value));
+    tm_value->tm_year = year - 1900;
+    tm_value->tm_mon = month - 1;
+    tm_value->tm_mday = day;
+    tm_value->tm_hour = hour;
+    tm_value->tm_min = min;
+    tm_value->tm_sec = sec;
+}
+
 #if defined(PLATFORM_WINDOWS)
 static FILETIME to_filetime(int64_t tv_sec, int32_t tv_nsec)
 {
@@ -271,6 +282,114 @@ TEST_F(clockTest, realtime_utc_zeroes_tm_when_com_util_gmtime_fails)
     // Assert
     expect_tm_equal(&actual_tm, &expected_tm); // [確認_異常系] - UTC 分解結果がすべて 0 に初期化されること。
     EXPECT_EQ(expected_nsec, actual_nsec);     // [確認_異常系] - ナノ秒部は取得済みの値 246800000 を保持すること。
+}
+
+TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
+{
+    const int64_t tv_sec = 1712297228LL;
+    const int32_t tv_nsec = 246800000;
+    char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
+    struct tm local_tm;
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+
+    set_tm(&local_tm, 2024, 4, 5, 15, 7, 8);
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *timep)
+        {
+            EXPECT_EQ((time_t)tv_sec, *timep);
+            *tm_value = local_tm;
+            return 0;
+        });
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *timep)
+        {
+            EXPECT_EQ((time_t)tv_sec, *timep);
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_STREQ("2024-04-05T15:07:08.246+09:00", actual);
+}
+
+TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
+{
+    const int64_t tv_sec = 1712297228LL;
+    const int32_t tv_nsec = 135000000;
+    char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
+    struct tm local_tm;
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+
+    set_tm(&local_tm, 2024, 4, 5, 0, 37, 8);
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = local_tm;
+            return 0;
+        });
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_STREQ("2024-04-05T00:37:08.135-05:30", actual);
+}
+
+TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
+{
+    const int64_t tv_sec = 1712297228LL;
+    const int32_t tv_nsec = 987000000;
+    char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *timep)
+        {
+            EXPECT_EQ((time_t)tv_sec, *timep);
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual);
+}
+
+TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
+{
+    char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
+
+    EXPECT_EQ(-1, com_util_format_realtime_iso8601_local(actual, sizeof(actual), 0, 1000000000));
+    EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual);
+}
+
+TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
+{
+    const int64_t tv_sec = 1712297228LL;
+    char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
+    Mock_com_util mock_com_util;
+
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce([&](struct tm *tm_value, const time_t *timep)
+        {
+            EXPECT_EQ((time_t)tv_sec, *timep);
+            EXPECT_NE((struct tm *)NULL, tm_value);
+            return -1;
+        });
+
+    EXPECT_EQ(-1, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), tv_sec, 123000000));
+    EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual);
 }
 
 // 実時刻 deadline 計算でナノ秒 overflow がない場合にそのまま加算されることの確認

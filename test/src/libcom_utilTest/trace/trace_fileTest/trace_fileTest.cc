@@ -5,6 +5,7 @@
 #include <string>
 #include <cstring>
 #include <ctime>
+#include <cstdio>
 
 using testing::_;
 using testing::AtLeast;
@@ -23,15 +24,9 @@ static void set_valid_deadline(struct timespec *abs_timeout)
     abs_timeout->tv_nsec = 0;
 }
 
-static void set_fixed_utc(struct tm *utc_tm, int32_t *tv_nsec)
+static void set_fixed_realtime(int64_t *tv_sec, int32_t *tv_nsec)
 {
-    memset(utc_tm, 0, sizeof(*utc_tm));
-    utc_tm->tm_year = 126;
-    utc_tm->tm_mon = 3;
-    utc_tm->tm_mday = 26;
-    utc_tm->tm_hour = 3;
-    utc_tm->tm_min = 4;
-    utc_tm->tm_sec = 5;
+    *tv_sec = 1714100645LL;
     *tv_nsec = 678000000;
 }
 
@@ -62,9 +57,14 @@ protected:
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) {
                 set_valid_deadline(abs_timeout);
             });
-        ON_CALL(mock_, com_util_get_realtime_utc(_, _))
-            .WillByDefault([](struct tm *utc_tm, int32_t *tv_nsec) {
-                set_fixed_utc(utc_tm, tv_nsec);
+        ON_CALL(mock_, com_util_get_realtime(_, _))
+            .WillByDefault([](int64_t *tv_sec, int32_t *tv_nsec) {
+                set_fixed_realtime(tv_sec, tv_nsec);
+            });
+        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _, _))
+            .WillByDefault([](char *buf, size_t buf_size, int64_t, int32_t) {
+                snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
+                return 0;
             });
         ON_CALL(mock_, com_util_file_open(_, _, _))
             .WillByDefault(Return(0));
@@ -128,7 +128,7 @@ TEST_F(trace_fileTest, test_write_formats_info_line)
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce([](com_util_file_t *, const void *buf, size_t len) {
             std::string actual((const char *)buf, len);
-            EXPECT_EQ("2026-04-26 03:04:05.678 I hello\n", actual);
+            EXPECT_EQ("2026-04-26T03:04:05.678+09:00 I hello\n", actual);
             return 0;
         }); // [Pre-Assert確認_正常系] - INFO 行が期待フォーマットで書き込まれること。
 
@@ -153,7 +153,7 @@ TEST_F(trace_fileTest, test_write_formats_debug_marker)
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce([](com_util_file_t *, const void *buf, size_t len) {
             std::string actual((const char *)buf, len);
-            EXPECT_EQ("2026-04-26 03:04:05.678 D debug line\n", actual);
+            EXPECT_EQ("2026-04-26T03:04:05.678+09:00 D debug line\n", actual);
             return 0;
         }); // [Pre-Assert確認_正常系] - DEBUG 行が D marker で書き込まれること。
 

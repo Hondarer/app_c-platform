@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include <ctime>
+#include <cstdio>
 #include <cstdint>
 
 #include "tracer_internal.h"
@@ -29,15 +30,9 @@ static void set_valid_deadline(struct timespec *abs_timeout)
     abs_timeout->tv_nsec = 0;
 }
 
-static void set_fixed_utc(struct tm *utc_tm, int32_t *tv_nsec)
+static void set_fixed_realtime(int64_t *tv_sec, int32_t *tv_nsec)
 {
-    memset(utc_tm, 0, sizeof(*utc_tm));
-    utc_tm->tm_year = 126;
-    utc_tm->tm_mon = 3;
-    utc_tm->tm_mday = 26;
-    utc_tm->tm_hour = 3;
-    utc_tm->tm_min = 4;
-    utc_tm->tm_sec = 5;
+    *tv_sec = 1714100645LL;
     *tv_nsec = 678000000;
 }
 
@@ -64,9 +59,14 @@ protected:
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) {
                 set_valid_deadline(abs_timeout);
             });
-        ON_CALL(mock_, com_util_get_realtime_utc(_, _))
-            .WillByDefault([](struct tm *utc_tm, int32_t *tv_nsec) {
-                set_fixed_utc(utc_tm, tv_nsec);
+        ON_CALL(mock_, com_util_get_realtime(_, _))
+            .WillByDefault([](int64_t *tv_sec, int32_t *tv_nsec) {
+                set_fixed_realtime(tv_sec, tv_nsec);
+            });
+        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _, _))
+            .WillByDefault([](char *buf, size_t buf_size, int64_t, int32_t) {
+                snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
+                return 0;
             });
         ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _))
             .WillByDefault(Return(file_handle_));
@@ -447,8 +447,8 @@ TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
-    EXPECT_NE(std::string::npos, captured.find("2026-04-26 03:04:05.678 V verbose to stderr")); // [確認_正常系] - VERBOSE 行が V で出力されること。
-    EXPECT_NE(std::string::npos, captured.find("2026-04-26 03:04:05.678 D debug to stderr"));   // [確認_正常系] - DEBUG 行が D で出力されること。
+    EXPECT_NE(std::string::npos, captured.find("2026-04-26T03:04:05.678+09:00 V verbose to stderr")); // [確認_正常系] - VERBOSE 行が V で出力されること。
+    EXPECT_NE(std::string::npos, captured.find("2026-04-26T03:04:05.678+09:00 D debug to stderr"));   // [確認_正常系] - DEBUG 行が D で出力されること。
 
     // Cleanup
     com_util_tracer_dispose(handle);

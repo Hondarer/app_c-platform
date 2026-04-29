@@ -33,8 +33,8 @@
 /** ファイル書き込みロック取得のタイムアウト (ミリ秒)。 */
 #define FILE_LOCK_TIMEOUT_MS 100
 
-/** タイムスタンプ部分の文字数 ("YYYY-MM-DD HH:MM:SS.mmm" = 23 文字)。 */
-#define TRACE_FILE_TS_LEN 23
+/** タイムスタンプ部分の文字数 ("YYYY-MM-DDTHH:MM:SS.sss+09:00" = 29 文字)。 */
+#define TRACE_FILE_TS_LEN COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN
 
 /** ローテーションパスのサフィックス最大長 (".999\0" = 5 文字)。 */
 #define TRACE_FILE_SUFFIX_MAX 5
@@ -89,31 +89,17 @@ static char level_char(int level)
 }
 
 /**
- *  @brief  現在時刻を "YYYY-MM-DD HH:MM:SS.mmm" (UTC) 形式でバッファへ書き込む。
+ *  @brief  現在時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファへ書き込む。
  *  @param  buf      書き込み先バッファ。
  *  @param  buf_size バッファサイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
  */
 static void format_timestamp(char *buf, int buf_size)
 {
-    struct tm utc_tm;
+    int64_t tv_sec;
     int32_t tv_nsec;
 
-    com_util_get_realtime_utc(&utc_tm, &tv_nsec);
-
-    /* -Wformat-truncation の抑制: com_util_get_realtime_utc() が返す tm 構造体の各フィールドは
-     * UTC 分解済みの正規化値であり (tm_mon: 0-11, tm_mday: 1-31 等)、出力は常に
-     * 23 文字以内に収まる。GCC は int 型の理論上の最大範囲 [-2147483648, 2147483647]
-     * を使って静的検証するため false positive が発生する。pragma はその誤報を局所的に
-     * 抑制する。 */
-    #if defined(COMPILER_GCC)
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wformat-truncation"
-    #endif /* COMPILER_GCC */
-    snprintf(buf, (size_t)buf_size, "%04d-%02d-%02d %02d:%02d:%02d.%03d", utc_tm.tm_year + 1900, utc_tm.tm_mon + 1,
-             utc_tm.tm_mday, utc_tm.tm_hour, utc_tm.tm_min, utc_tm.tm_sec, (int)(tv_nsec / 1000000));
-    #if defined(COMPILER_GCC)
-        #pragma GCC diagnostic pop
-    #endif /* COMPILER_GCC */
+    com_util_get_realtime(&tv_sec, &tv_nsec);
+    (void)com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, tv_sec, tv_nsec);
 }
 
 /**

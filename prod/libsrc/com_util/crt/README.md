@@ -25,7 +25,7 @@ Linux と Windows では、ファイルパス、セキュア関数、ワイド�
 - `com_util/crt/file.h`: 書き込み用低レベルファイルハンドル、`open`、`write`、`size`、`close`
 - `com_util/crt/unistd.h`: `access`、`access_fmt`、`COM_UTIL_ACCESS_FMT_*`
 - `com_util/crt/string.h`: 安全な文字列コピー/連結、`sscanf` 抽象
-- `com_util/crt/time.h`: UTC 時刻変換
+- `com_util/crt/time.h`: UTC / local 時刻変換
 - `com_util/crt/path.h`: `PLATFORM_PATH_MAX`
 
 ## 実装方針

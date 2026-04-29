@@ -49,6 +49,7 @@ public:
     MOCK_METHOD(int,    com_util_sscanf,  (const char *, const char *, va_list));
     MOCK_METHOD(int,    com_util_vsscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int,    com_util_gmtime, (struct tm *, const time_t *));
+    MOCK_METHOD(int,    com_util_localtime, (struct tm *, const time_t *));
 
     // crt - stdio
     MOCK_METHOD(int,    com_util_rename,  (const char *, const char *));
@@ -131,6 +132,8 @@ public:
     MOCK_METHOD(void, com_util_get_monotonic, (int64_t *, int32_t *));
     MOCK_METHOD(void, com_util_get_realtime, (int64_t *, int32_t *));
     MOCK_METHOD(void, com_util_get_realtime_utc, (struct tm *, int32_t *));
+    MOCK_METHOD(int, com_util_format_realtime_iso8601_local, (char *, size_t, int64_t, int32_t));
+    MOCK_METHOD(int, com_util_format_realtime_iso8601_utc, (char *, size_t, int64_t, int32_t));
     MOCK_METHOD(void, com_util_get_realtime_deadline_ms, (uint64_t, struct timespec *));
 
     // console

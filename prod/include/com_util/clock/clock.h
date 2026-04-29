@@ -45,6 +45,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util_export.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -190,9 +191,73 @@ extern "C"
         com_util_get_realtime(&session_sec, &session_nsec);
         // session_sec / session_nsec を構造体に保存して識別子として使用する
      *  @endcode
-     *******************************************************************************
+    *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
+
+    /**
+     *******************************************************************************
+     *  @def            COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN
+     *  @brief          com_util_format_realtime_iso8601_local() が返す時刻文字列の長さ。
+     *
+     *  書式は `YYYY-MM-DDTHH:MM:SS.sss+09:00` です。\n
+     *  値は null 終端を含まない文字数です。
+     *******************************************************************************
+     */
+#define COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN 29
+
+    /**
+     *******************************************************************************
+     *  @def            COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN
+     *  @brief          com_util_format_realtime_iso8601_utc() が返す時刻文字列の長さ。
+     *
+     *  書式は `YYYY-MM-DDTHH:MM:SS.sssZ` です。\n
+     *  値は null 終端を含まない文字数です。
+     *******************************************************************************
+     */
+#define COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN 24
+
+    /**
+     *******************************************************************************
+     *  @brief          UTC 基準の実時刻をローカル時刻の ISO8601 文字列へ整形します。
+     *  @param[out]     buf      出力先バッファ。
+     *  @param[in]      buf_size 出力先バッファサイズ。
+     *  @param[in]      tv_sec   Unix epoch からの経過秒。
+     *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @return         成功時 0、失敗時 -1。
+     *
+     *  @details
+     *  com_util_get_realtime() が返す UTC 基準の時刻値を、
+     *  ローカル時刻の `YYYY-MM-DDTHH:MM:SS.sss+09:00` 形式へ変換します。\n
+     *  バッファが十分な場合の必要サイズは
+     *  COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1 です。
+     *
+     *  @note           失敗時は `0000-00-00T00:00:00.000+00:00` を格納しようと試みます。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API
+    com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec);
+
+    /**
+     *******************************************************************************
+     *  @brief          UTC 基準の実時刻を UTC の ISO8601 文字列へ整形します。
+     *  @param[out]     buf      出力先バッファ。
+     *  @param[in]      buf_size 出力先バッファサイズ。
+     *  @param[in]      tv_sec   Unix epoch からの経過秒。
+     *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @return         成功時 0、失敗時 -1。
+     *
+     *  @details
+     *  com_util_get_realtime() が返す UTC 基準の時刻値を、
+     *  UTC の `YYYY-MM-DDTHH:MM:SS.sssZ` 形式へ変換します。\n
+     *  バッファが十分な場合の必要サイズは
+     *  COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1 です。
+     *
+     *  @note           失敗時は `0000-00-00T00:00:00.000Z` を格納しようと試みます。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API
+    com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec);
 
     /**
      *******************************************************************************
