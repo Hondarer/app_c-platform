@@ -24,6 +24,7 @@
 #define COM_UTIL_SYM_LOADER_H
 
 #include <com_util/base/platform.h>
+#include <com_util/sync/sync.h>
 #include <com_util_export.h>
 
 #if defined(PLATFORM_LINUX)
@@ -36,7 +37,6 @@
 
 #if defined(PLATFORM_LINUX)
     #include <dlfcn.h>
-    #include <pthread.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_ */
@@ -79,14 +79,8 @@ extern "C"
         COM_UTIL_MODULE_HANDLE handle;                     /**< キャッシュ済みハンドル (NULL = 未ロード)。 */
         void *func_ptr;                                    /**< キャッシュ済み関数ポインタ (NULL = 未取得)。 */
         int resolved;                                      /**< 解決済フラグ (0 = 未解決)。 */
-        int padding;                                       /**< パディング。 */
-#ifdef DOXYGEN
-        void *lock_obj; /**< ロード処理を保護する排他制御オブジェクト。Linux は mutex、Windows は SRW ロック。 */
-#elif defined(PLATFORM_LINUX)
-        pthread_mutex_t mutex; /**< ロード処理を保護する mutex (Linux)。 */
-#elif defined(PLATFORM_WINDOWS)
-        SRWLOCK lock; /**< ロード処理を保護する SRW ロック (Windows)。 */
-#endif /* PLATFORM_ */
+        volatile int32_t lock_state;                       /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
+        com_util_mutex_t lock;                             /**< ロード処理を保護するミューテックス。 */
     } com_util_sym_loader_entry_t;
 
 /**
@@ -97,11 +91,9 @@ extern "C"
  *  @param[in]      type    格納する関数ポインタの型 (例: sample_func_t)。
  */
 #ifdef DOXYGEN
-    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, NULL}
-#elif defined(PLATFORM_LINUX)
-    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, PTHREAD_MUTEX_INITIALIZER}
-#elif defined(PLATFORM_WINDOWS)
-    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, SRWLOCK_INIT}
+    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, {0}}
+#else
+    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, {0}}
 #endif
 
     /**

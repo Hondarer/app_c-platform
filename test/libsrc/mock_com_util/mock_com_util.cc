@@ -159,12 +159,61 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return());
 
     // sync
+    ON_CALL(*this, com_util_mutex_init(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_mutex_lock(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_mutex_timedlock(_, _))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_mutex_unlock(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_mutex_destroy(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_condvar_init(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_condvar_wait(_, _))
+        .WillByDefault(Return(0));
     ON_CALL(*this, com_util_condvar_timedwait(_, _, _))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_condvar_signal(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_condvar_broadcast(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_condvar_destroy(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_init(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_lock_shared(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_timedlock_shared(_, _))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_lock_exclusive(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_unlock_shared(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_unlock_exclusive(_))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, com_util_rwlock_destroy(_))
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_thread_create(_, _, _))
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_thread_join(_))
         .WillByDefault(Return());
+    ON_CALL(*this, com_util_thread_join_timed(_, _))
+        .WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_thread_detach(_))
+        .WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_call_once(_, _))
+        .WillByDefault(Invoke([](com_util_once_flag_t *flag, com_util_once_func_t func) {
+            if ((flag != nullptr) && (flag->state == 0))
+            {
+                flag->state = 1;
+                if (func != nullptr)
+                {
+                    func();
+                }
+            }
+        }));
 
     // runtime - module_info
     ON_CALL(*this, com_util_module_get_path(_, _, _))

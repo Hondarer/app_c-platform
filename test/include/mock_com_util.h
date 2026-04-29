@@ -138,9 +138,29 @@ public:
     MOCK_METHOD(void, com_util_console_dispose, ());
 
     // sync
+    MOCK_METHOD(int,  com_util_mutex_init, (com_util_mutex_t *));
+    MOCK_METHOD(int,  com_util_mutex_lock, (com_util_mutex_t *));
+    MOCK_METHOD(int,  com_util_mutex_timedlock, (com_util_mutex_t *, uint32_t));
+    MOCK_METHOD(int,  com_util_mutex_unlock, (com_util_mutex_t *));
+    MOCK_METHOD(int,  com_util_mutex_destroy, (com_util_mutex_t *));
+    MOCK_METHOD(int,  com_util_condvar_init, (com_util_condvar_t *));
+    MOCK_METHOD(int,  com_util_condvar_wait, (com_util_condvar_t *, com_util_mutex_t *));
     MOCK_METHOD(int,  com_util_condvar_timedwait, (com_util_condvar_t *, com_util_mutex_t *, uint32_t));
+    MOCK_METHOD(int,  com_util_condvar_signal, (com_util_condvar_t *));
+    MOCK_METHOD(int,  com_util_condvar_broadcast, (com_util_condvar_t *));
+    MOCK_METHOD(int,  com_util_condvar_destroy, (com_util_condvar_t *));
+    MOCK_METHOD(int,  com_util_rwlock_init, (com_util_rwlock_t *));
+    MOCK_METHOD(int,  com_util_rwlock_lock_shared, (com_util_rwlock_t *));
+    MOCK_METHOD(int,  com_util_rwlock_timedlock_shared, (com_util_rwlock_t *, uint32_t));
+    MOCK_METHOD(int,  com_util_rwlock_lock_exclusive, (com_util_rwlock_t *));
+    MOCK_METHOD(int,  com_util_rwlock_unlock_shared, (com_util_rwlock_t *));
+    MOCK_METHOD(int,  com_util_rwlock_unlock_exclusive, (com_util_rwlock_t *));
+    MOCK_METHOD(int,  com_util_rwlock_destroy, (com_util_rwlock_t *));
     MOCK_METHOD(int,  com_util_thread_create, (com_util_thread_t *, com_util_thread_func_t, void *));
     MOCK_METHOD(void, com_util_thread_join, (com_util_thread_t *));
+    MOCK_METHOD(int,  com_util_thread_join_timed, (com_util_thread_t *, uint32_t));
+    MOCK_METHOD(int,  com_util_thread_detach, (com_util_thread_t *));
+    MOCK_METHOD(void, com_util_call_once, (com_util_once_flag_t *, com_util_once_func_t));
 
     // runtime - module_info
     MOCK_METHOD(int, com_util_module_get_path,     (char *, size_t, const void *));

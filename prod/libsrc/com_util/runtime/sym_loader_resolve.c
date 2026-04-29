@@ -23,7 +23,57 @@
 
 #include <com_util/runtime/sym_loader.h>
 #include <com_util/crt/string.h>
+#if defined(PLATFORM_LINUX)
+    #include <sched.h>
+#endif /* PLATFORM_LINUX */
 #include <string.h>
+
+static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
+{
+#if defined(PLATFORM_LINUX)
+    int32_t expected = 0;
+
+    if (__atomic_compare_exchange_n(&fobj->lock_state, &expected, 1, 0,
+                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    {
+        if (com_util_mutex_init(&fobj->lock) != 0)
+        {
+            __atomic_store_n(&fobj->lock_state, -1, __ATOMIC_RELEASE);
+            return -1;
+        }
+        __atomic_store_n(&fobj->lock_state, 2, __ATOMIC_RELEASE);
+        return 0;
+    }
+
+    while ((expected = __atomic_load_n(&fobj->lock_state, __ATOMIC_ACQUIRE)) == 1)
+    {
+        sched_yield();
+    }
+
+    return (expected == 2) ? 0 : -1;
+#elif defined(PLATFORM_WINDOWS)
+    LONG expected;
+
+    expected = InterlockedCompareExchange((volatile LONG *)&fobj->lock_state, 1, 0);
+    if (expected == 0)
+    {
+        if (com_util_mutex_init(&fobj->lock) != 0)
+        {
+            InterlockedExchange((volatile LONG *)&fobj->lock_state, -1);
+            return -1;
+        }
+        InterlockedExchange((volatile LONG *)&fobj->lock_state, 2);
+        return 0;
+    }
+
+    while ((expected = InterlockedCompareExchange((volatile LONG *)&fobj->lock_state, 2, 2)) == 1)
+    {
+        SwitchToThread();
+    }
+
+    return (expected == 2) ? 0 : -1;
+#endif /* PLATFORM_ */
+}
 
 /* doxygen コメントは、ヘッダに記載 */
 COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
@@ -51,17 +101,18 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
     }
 #endif /* COMPILER_GCC */
 
-    /* ロード処理を排他制御する。
-     * ロック取得後に再度 resolved を確認し、他スレッドが先にロードを
-     * 完了していた場合は処理をスキップする (double-checked locking)。 */
-#if defined(PLATFORM_LINUX)
-    if (pthread_mutex_lock(&fobj->mutex) != 0)
+    if (ensure_entry_lock_initialized(fobj) != 0)
     {
         return NULL;
     }
-#elif defined(PLATFORM_WINDOWS)
-    AcquireSRWLockExclusive(&fobj->lock);
-#endif /* PLATFORM_ */
+
+    /* ロード処理を排他制御する。
+     * ロック取得後に再度 resolved を確認し、他スレッドが先にロードを
+     * 完了していた場合は処理をスキップする (double-checked locking)。 */
+    if (com_util_mutex_lock(&fobj->lock) != 0)
+    {
+        return NULL;
+    }
 
     if (fobj->resolved == 0)
     {
@@ -148,11 +199,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
     }
 
 unlock:
-#if defined(PLATFORM_LINUX)
-    pthread_mutex_unlock(&fobj->mutex);
-#elif defined(PLATFORM_WINDOWS)
-    ReleaseSRWLockExclusive(&fobj->lock);
-#endif /* PLATFORM_ */
+    com_util_mutex_unlock(&fobj->lock);
 
     return fobj->func_ptr;
 }

@@ -14,6 +14,7 @@
  *******************************************************************************
  */
 #include <com_util/clock/clock.h>
+#include <com_util/sync/sync.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/trace_file.h>
 #include <stdlib.h>
@@ -46,15 +47,16 @@ TRACELOGGING_DEFINE_PROVIDER(
 
 static volatile LONG s_trace_ref = 0;
 static com_util_etw_provider_t *s_etw_handle = NULL;
-static SRWLOCK s_registry_lock = SRWLOCK_INIT;
+static com_util_mutex_t s_registry_lock;
+static com_util_once_flag_t s_registry_lock_once = {0};
 
 #elif defined(PLATFORM_LINUX)
 
-#include <pthread.h>
 #include <syslog.h>
 #include <unistd.h>
 
-static pthread_mutex_t s_registry_lock = PTHREAD_MUTEX_INITIALIZER;
+static com_util_mutex_t s_registry_lock;
+static com_util_once_flag_t s_registry_lock_once = {0};
 
 #endif /* PLATFORM_ */
 
@@ -86,11 +88,7 @@ struct com_util_tracer
 
     com_util_trace_file_sink_t *file_handle;
 
-#if defined(PLATFORM_LINUX)
-    pthread_rwlock_t config_rwlock;
-#elif defined(PLATFORM_WINDOWS)
-    SRWLOCK config_rwlock;
-#endif /* PLATFORM_ */
+    com_util_rwlock_t config_rwlock;
 
     com_util_trace_level_t os_level;
     com_util_trace_level_t file_level;
@@ -98,9 +96,7 @@ struct com_util_tracer
     volatile int running;
     volatile int lifecycle_state;
 
-#if defined(PLATFORM_LINUX)
     int config_rwlock_initialized;
-#endif /* PLATFORM_LINUX */
 };
 
 struct trace_registry
@@ -113,6 +109,11 @@ struct trace_registry
 
 static struct trace_registry s_trace_registry = {0};
 
+static void init_registry_lock(void)
+{
+    (void)com_util_mutex_init(&s_registry_lock);
+}
+
 /**
  *******************************************************************************
  *  @brief          レジストリの排他ロックを取得する。
@@ -120,11 +121,8 @@ static struct trace_registry s_trace_registry = {0};
  */
 static void registry_lock(void)
 {
-#if defined(PLATFORM_LINUX)
-    pthread_mutex_lock(&s_registry_lock);
-#elif defined(PLATFORM_WINDOWS)
-    AcquireSRWLockExclusive(&s_registry_lock);
-#endif /* PLATFORM_ */
+    com_util_call_once(&s_registry_lock_once, init_registry_lock);
+    com_util_mutex_lock(&s_registry_lock);
 }
 
 /**
@@ -134,11 +132,7 @@ static void registry_lock(void)
  */
 static void registry_unlock(void)
 {
-#if defined(PLATFORM_LINUX)
-    pthread_mutex_unlock(&s_registry_lock);
-#elif defined(PLATFORM_WINDOWS)
-    ReleaseSRWLockExclusive(&s_registry_lock);
-#endif /* PLATFORM_ */
+    com_util_mutex_unlock(&s_registry_lock);
 }
 
 /**
@@ -396,11 +390,7 @@ static const char *get_process_basename(char *buf, size_t buf_size)
  */
 static void config_lock_exclusive(com_util_tracer_t *handle)
 {
-#if defined(PLATFORM_LINUX)
-    pthread_rwlock_wrlock(&handle->config_rwlock);
-#elif defined(PLATFORM_WINDOWS)
-    AcquireSRWLockExclusive(&handle->config_rwlock);
-#endif /* PLATFORM_ */
+    com_util_rwlock_lock_exclusive(&handle->config_rwlock);
 }
 
 /**
@@ -411,11 +401,7 @@ static void config_lock_exclusive(com_util_tracer_t *handle)
  */
 static void config_unlock_exclusive(com_util_tracer_t *handle)
 {
-#if defined(PLATFORM_LINUX)
-    pthread_rwlock_unlock(&handle->config_rwlock);
-#elif defined(PLATFORM_WINDOWS)
-    ReleaseSRWLockExclusive(&handle->config_rwlock);
-#endif /* PLATFORM_ */
+    com_util_rwlock_unlock_exclusive(&handle->config_rwlock);
 }
 
 #define LOCK_TIMEOUT_MS 100
@@ -429,22 +415,7 @@ static void config_unlock_exclusive(com_util_tracer_t *handle)
  */
 static int config_lock_shared_timed(com_util_tracer_t *handle)
 {
-#if defined(PLATFORM_LINUX)
-    struct timespec abs_timeout;
-    com_util_get_realtime_deadline_ms(LOCK_TIMEOUT_MS, &abs_timeout);
-    return (pthread_rwlock_timedrdlock(&handle->config_rwlock, &abs_timeout) == 0) ? 0 : -1;
-#elif defined(PLATFORM_WINDOWS)
-    uint64_t deadline = com_util_get_monotonic_ms() + (uint64_t)LOCK_TIMEOUT_MS;
-    while (!TryAcquireSRWLockShared(&handle->config_rwlock))
-    {
-        if (com_util_get_monotonic_ms() >= deadline)
-        {
-            return -1;
-        }
-        SwitchToThread();
-    }
-    return 0;
-#endif /* PLATFORM_ */
+    return (com_util_rwlock_timedlock_shared(&handle->config_rwlock, LOCK_TIMEOUT_MS) == 0) ? 0 : -1;
 }
 
 /**
@@ -455,11 +426,7 @@ static int config_lock_shared_timed(com_util_tracer_t *handle)
  */
 static void config_unlock_shared(com_util_tracer_t *handle)
 {
-#if defined(PLATFORM_LINUX)
-    pthread_rwlock_unlock(&handle->config_rwlock);
-#elif defined(PLATFORM_WINDOWS)
-    ReleaseSRWLockShared(&handle->config_rwlock);
-#endif /* PLATFORM_ */
+    com_util_rwlock_unlock_shared(&handle->config_rwlock);
 }
 
 /**
@@ -542,7 +509,7 @@ static void trace_handle_release_normal(com_util_tracer_t *handle)
     com_util_syslog_sink_dispose(handle->syslog_handle);
     if (handle->config_rwlock_initialized)
     {
-        pthread_rwlock_destroy(&handle->config_rwlock);
+        com_util_rwlock_destroy(&handle->config_rwlock);
     }
 #elif defined(PLATFORM_WINDOWS)
     if (InterlockedDecrement(&s_trace_ref) == 0)
@@ -582,8 +549,7 @@ static void trace_handle_release_on_unload(com_util_tracer_t *handle)
 }
 
 /* doxygen コメントは、ヘッダに記載 */
-    COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API
-    com_util_tracer_create(void)
+COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 {
     com_util_tracer_t *handle;
     char path_buf[256];
@@ -623,7 +589,7 @@ static void trace_handle_release_on_unload(com_util_tracer_t *handle)
         handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
 
-        if (pthread_rwlock_init(&handle->config_rwlock, NULL) != 0)
+        if (com_util_rwlock_init(&handle->config_rwlock) != 0)
         {
             com_util_syslog_sink_dispose(sp);
             free(handle);
@@ -648,16 +614,23 @@ static void trace_handle_release_on_unload(com_util_tracer_t *handle)
             return NULL;
         }
 
-        handle->identifier      = 0;
-        handle->service_name    = svc;
-        handle->os_level        = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
-        handle->file_level      = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
-        handle->file_handle     = NULL;
-        handle->stderr_level    = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
-        handle->running         = 0;
-        handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
+        handle->identifier                = 0;
+        handle->service_name              = svc;
+        handle->os_level                  = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
+        handle->file_level                = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
+        handle->file_handle               = NULL;
+        handle->stderr_level              = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
+        handle->running                   = 0;
+        handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
+        handle->config_rwlock_initialized = 0;
 
-        InitializeSRWLock(&handle->config_rwlock);
+        if (com_util_rwlock_init(&handle->config_rwlock) != 0)
+        {
+            free(handle->service_name);
+            free(handle);
+            return NULL;
+        }
+        handle->config_rwlock_initialized = 1;
 
         if (InterlockedIncrement(&s_trace_ref) == 1)
         {
@@ -677,7 +650,6 @@ static void trace_handle_release_on_unload(com_util_tracer_t *handle)
     {
 #if defined(PLATFORM_LINUX)
         com_util_syslog_sink_dispose(handle->syslog_handle);
-        pthread_rwlock_destroy(&handle->config_rwlock);
 #elif defined(PLATFORM_WINDOWS)
         if (InterlockedDecrement(&s_trace_ref) == 0)
         {
@@ -686,6 +658,10 @@ static void trace_handle_release_on_unload(com_util_tracer_t *handle)
         }
         free(handle->service_name);
 #endif /* PLATFORM_ */
+        if (handle->config_rwlock_initialized)
+        {
+            com_util_rwlock_destroy(&handle->config_rwlock);
+        }
         free(handle);
         return NULL;
     }

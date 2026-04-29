@@ -17,17 +17,13 @@
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/sync/sync.h>
 #include <com_util/trace/trace_file.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "trace_file_internal.h"
-
-#if defined(PLATFORM_LINUX)
-    #include <limits.h>
-    #include <pthread.h>
-#endif /* PLATFORM_LINUX */
 
 /* ===== 内部定数 ===== */
 
@@ -60,22 +56,12 @@ struct com_util_trace_file_sink
     int generations;
     /** 低レベルファイル I/O ハンドル。 */
     com_util_file_t file;
-
-#if defined(PLATFORM_LINUX)
     /** スレッド安全のための mutex。 */
-    pthread_mutex_t mutex;
+    com_util_mutex_t mutex;
     /** mutex が初期化済みかどうかのフラグ。 */
     int mutex_initialized;
     /** 構造体のサイズをアライメント境界に揃えるためのパディング。 */
     int _pad_struct_end;
-#elif defined(PLATFORM_WINDOWS)
-    /** スレッド安全のためのクリティカルセクション。 */
-    CRITICAL_SECTION cs;
-    /** cs が初期化済みかどうかのフラグ。 */
-    int cs_initialized;
-    /** 構造体のサイズをアライメント境界に揃えるためのパディング。 */
-    int _pad_struct_end;
-#endif /* PLATFORM_ */
 };
 
 /* ===== 内部ヘルパー関数 ===== */
@@ -267,36 +253,23 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
     handle->current_bytes = 0;
     com_util_file_init(&handle->file);
 
-    /* プラットフォームごとの同期プリミティブを初期化する */
-#if defined(PLATFORM_LINUX)
+    /* 同期プリミティブを初期化する */
     handle->mutex_initialized = 0;
-    if (pthread_mutex_init(&handle->mutex, NULL) != 0)
+    if (com_util_mutex_init(&handle->mutex) != 0)
     {
         free(handle->path);
         free(handle);
         return NULL;
     }
     handle->mutex_initialized = 1;
-#elif defined(PLATFORM_WINDOWS)
-    handle->cs_initialized = 0;
-    InitializeCriticalSectionAndSpinCount(&handle->cs, 1000);
-    handle->cs_initialized = 1;
-#endif /* PLATFORM_ */
 
     /* ファイルを開く; 失敗したらリソースを解放して NULL を返す */
     if (open_file(handle) != 0)
     {
-#if defined(PLATFORM_LINUX)
         if (handle->mutex_initialized)
         {
-            pthread_mutex_destroy(&handle->mutex);
+            com_util_mutex_destroy(&handle->mutex);
         }
-#elif defined(PLATFORM_WINDOWS)
-        if (handle->cs_initialized)
-        {
-            DeleteCriticalSection(&handle->cs);
-        }
-#endif /* PLATFORM_ */
         free(handle->path);
         free(handle);
         return NULL;
@@ -335,28 +308,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* ロック取得 (タイムアウト付き) */
-#if defined(PLATFORM_LINUX)
+    if (com_util_mutex_timedlock(&handle->mutex, FILE_LOCK_TIMEOUT_MS) != 0)
     {
-        struct timespec abs_timeout;
-        com_util_get_realtime_deadline_ms(FILE_LOCK_TIMEOUT_MS, &abs_timeout);
-        if (pthread_mutex_timedlock(&handle->mutex, &abs_timeout) != 0)
-        {
-            return -1;
-        }
+        return -1;
     }
-#elif defined(PLATFORM_WINDOWS)
-    {
-        uint64_t deadline = com_util_get_monotonic_ms() + (uint64_t)FILE_LOCK_TIMEOUT_MS;
-        while (!TryEnterCriticalSection(&handle->cs))
-        {
-            if (com_util_get_monotonic_ms() >= deadline)
-            {
-                return -1;
-            }
-            SwitchToThread();
-        }
-    }
-#endif /* PLATFORM_ */
 
     /* ファイルへ書き込む (FILE_FLAG_WRITE_THROUGH / O_DSYNC により自動フラッシュ) */
     ret = com_util_file_write(&handle->file, buf, (size_t)len);
@@ -377,11 +332,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* ロック解放 */
-#if defined(PLATFORM_LINUX)
-    pthread_mutex_unlock(&handle->mutex);
-#elif defined(PLATFORM_WINDOWS)
-    LeaveCriticalSection(&handle->cs);
-#endif /* PLATFORM_ */
+    com_util_mutex_unlock(&handle->mutex);
 
     return ret;
 }
@@ -396,19 +347,11 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trac
 
     close_file(handle);
 
-#if defined(PLATFORM_LINUX)
     if (handle->mutex_initialized)
     {
-        pthread_mutex_destroy(&handle->mutex);
+        com_util_mutex_destroy(&handle->mutex);
         handle->mutex_initialized = 0;
     }
-#elif defined(PLATFORM_WINDOWS)
-    if (handle->cs_initialized)
-    {
-        DeleteCriticalSection(&handle->cs);
-        handle->cs_initialized = 0;
-    }
-#endif /* PLATFORM_ */
 
     free(handle->path);
     free(handle);
@@ -424,17 +367,10 @@ void com_util_trace_file_sink_dispose_on_unload(com_util_trace_file_sink_t *hand
 
     close_file(handle);
 
-#if defined(PLATFORM_LINUX)
     if (handle->mutex_initialized)
     {
-        pthread_mutex_destroy(&handle->mutex);
+        com_util_mutex_destroy(&handle->mutex);
     }
-#elif defined(PLATFORM_WINDOWS)
-    if (handle->cs_initialized)
-    {
-        DeleteCriticalSection(&handle->cs);
-    }
-#endif /* PLATFORM_ */
 
     free(handle->path);
     free(handle);

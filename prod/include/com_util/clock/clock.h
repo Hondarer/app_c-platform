@@ -33,7 +33,7 @@
  *  - **現在の UTC を分解済みで扱う** → com_util_get_realtime_utc() を使用する。\n
  *    ログのタイムスタンプ書式化など、年月日時分秒に分解して扱う用途に使用する。
  *  - **実時刻 deadline を作る** → com_util_get_realtime_deadline_ms() を使用する。\n
- *    `pthread_mutex_timedlock()` など絶対時刻 deadline を要求する API へ渡す値を生成する。
+ *    sync 実装や OS 変換層で absolute deadline を要求する API へ渡す値を生成する。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -230,8 +230,8 @@ extern "C"
      *
      *  @details
      *  現在の実時刻を取得し、指定ミリ秒を加算した absolute deadline を返します。\n
-     *  `pthread_mutex_timedlock()` や `pthread_rwlock_timedrdlock()` など、
-     *  絶対時刻を要求する API の入力生成に使用します。
+     *  sync 実装や OS 変換層のように absolute deadline を要求する API の
+     *  入力生成に使用します。
      *
      *  @par            スレッド セーフティ
      *  本関数はスレッドセーフです。
@@ -242,10 +242,10 @@ extern "C"
      *
      *  使用例:
      *  @code{.c}
-        struct timespec deadline;
-
-        com_util_get_realtime_deadline_ms(100, &deadline);
-        pthread_mutex_timedlock(&mutex, &deadline);
+     *  struct timespec deadline;
+     *
+     *  com_util_get_realtime_deadline_ms(100, &deadline);
+     *  // absolute deadline を要求する同期 API へ渡す
      *  @endcode
      *******************************************************************************
      */

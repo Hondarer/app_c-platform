@@ -4,6 +4,7 @@
 
     #include <com_util/base/windows_sdk.h>
     #include <com_util/crt/string.h>
+    #include <com_util/sync/sync.h>
     #include <evntcons.h>
     #include <evntrace.h>
     #pragma comment(lib, "Advapi32.lib")
@@ -25,7 +26,7 @@ struct com_util_etw_session
     /** トレース処理ハンドル。 */
     TRACEHANDLE trace_handle;
     /** ProcessTrace ワーカースレッド。 */
-    HANDLE thread_handle;
+    com_util_thread_t thread_handle;
     /** イベント受信コールバック。 */
     com_util_etw_event_callback_t callback;
     /** コールバックに渡すユーザーデータ。 */
@@ -142,12 +143,12 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 /**
  *  @brief  ProcessTrace ワーカースレッド関数。
  */
-static DWORD WINAPI trace_thread_proc(LPVOID param)
+static void trace_thread_proc(void *param)
 {
     com_util_etw_session_t *session = (com_util_etw_session_t *)param;
 
     ProcessTrace(&session->trace_handle, 1, NULL, NULL);
-    return 0;
+    return;
 }
 
 /**
@@ -322,8 +323,7 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
         goto cleanup;
     }
 
-    session->thread_handle = CreateThread(NULL, 0, trace_thread_proc, session, 0, NULL);
-    if (session->thread_handle == NULL)
+    if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != 0)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
         goto cleanup;
@@ -366,8 +366,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session
     /* ワーカースレッド join */
     if (session->thread_handle != NULL)
     {
-        WaitForSingleObject(session->thread_handle, INFINITE);
-        CloseHandle(session->thread_handle);
+        com_util_thread_join(&session->thread_handle);
     }
 
     /* トレースハンドルクローズ */

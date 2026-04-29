@@ -29,9 +29,9 @@ Windows SDK の型や API が必要な場合は、`<windows.h>` を直接取り�
 
 想定する利用例は次のようなヘッダーやソースです。
 
-- 同期プリミティブで `CRITICAL_SECTION` や `HANDLE` を使うヘッダー
+- 同期プリミティブやスレッド抽象の基盤になる Windows 型を使うヘッダー
 - `MAX_PATH` を参照するヘッダー
-- `HMODULE` や `SRWLOCK` を公開型に含むヘッダー
+- `HMODULE` や `com_util/sync/sync.h` の基盤型を参照するヘッダー
 - `DllMain` や `OutputDebugStringW` を使うヘッダー
 
 ## このヘッダーが必要な理由

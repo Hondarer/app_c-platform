@@ -1,0 +1,27 @@
+#include <testfw.h>
+#include <mock_com_util.h>
+
+WEAK_ATR int com_util_thread_detach(com_util_thread_t *thread)
+{
+    int rtc = -1;
+
+    if (_mock_com_util != nullptr)
+    {
+        rtc = _mock_com_util->com_util_thread_detach(thread);
+    }
+
+    if (getTraceLevel() > TRACE_NONE)
+    {
+        printf("  > %s 0x%p", __func__, (void *)thread);
+        if (getTraceLevel() >= TRACE_DETAIL)
+        {
+            printf(" -> %d\n", rtc);
+        }
+        else
+        {
+            printf("\n");
+        }
+    }
+
+    return rtc;
+}

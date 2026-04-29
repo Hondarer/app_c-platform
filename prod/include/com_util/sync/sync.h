@@ -7,13 +7,8 @@
  *  @version        1.0.0
  *
  *  @details
- *  OS ごとに異なるミューテックス・条件変数・スレッド API を共通インターフェースで
- *  抽象化します。\n
- *
- *  | OS      | ミューテックス           | 条件変数             | スレッド       |
- *  | ------- | ------------------------ | -------------------- | -------------- |
- *  | Linux   | pthread_mutex_t          | pthread_cond_t       | pthread_t      |
- *  | Windows | CRITICAL_SECTION         | CONDITION_VARIABLE   | HANDLE         |
+ *  OS ごとに異なるミューテックス・条件変数・リードライトロック・スレッド API を
+ *  共通インターフェースで抽象化します。\n
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -36,78 +31,34 @@
     /** ミューテックス型。 */
     typedef pthread_mutex_t com_util_mutex_t;
     /** 条件変数型。 */
-    typedef pthread_cond_t  com_util_condvar_t;
+    typedef pthread_cond_t com_util_condvar_t;
+    /** リードライトロック型。 */
+    typedef pthread_rwlock_t com_util_rwlock_t;
     /** スレッドハンドル型。 */
-    typedef pthread_t       com_util_thread_t;
-    /** スレッド関数ポインタ型。 */
-    typedef void *(*com_util_thread_func_t)(void *);
+    typedef pthread_t com_util_thread_t;
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
     /** ミューテックス型。 */
-    typedef CRITICAL_SECTION   com_util_mutex_t;
+    typedef CRITICAL_SECTION com_util_mutex_t;
     /** 条件変数型。 */
     typedef CONDITION_VARIABLE com_util_condvar_t;
+    /** リードライトロック型。 */
+    typedef SRWLOCK com_util_rwlock_t;
     /** スレッドハンドル型。 */
-    typedef HANDLE             com_util_thread_t;
-    /** スレッド関数ポインタ型。 */
-    typedef DWORD (WINAPI *com_util_thread_func_t)(LPVOID);
+    typedef HANDLE com_util_thread_t;
 #endif /* PLATFORM_ */
 
-/* ============================================================
- * ミューテックス マクロ
- * ============================================================ */
-#if defined(PLATFORM_LINUX)
-    /** ミューテックスを初期化する。 */
-    #define COM_UTIL_MUTEX_INIT(m)     pthread_mutex_init((m), NULL)
-    /** ミューテックスをロックする。 */
-    #define COM_UTIL_MUTEX_LOCK(m)     pthread_mutex_lock(m)
-    /** ミューテックスをアンロックする。 */
-    #define COM_UTIL_MUTEX_UNLOCK(m)   pthread_mutex_unlock(m)
-    /** ミューテックスを破棄する。 */
-    #define COM_UTIL_MUTEX_DESTROY(m)  pthread_mutex_destroy(m)
-#elif defined(PLATFORM_WINDOWS)
-    #define COM_UTIL_MUTEX_INIT(m)     InitializeCriticalSection(m)
-    #define COM_UTIL_MUTEX_LOCK(m)     EnterCriticalSection(m)
-    #define COM_UTIL_MUTEX_UNLOCK(m)   LeaveCriticalSection(m)
-    #define COM_UTIL_MUTEX_DESTROY(m)  DeleteCriticalSection(m)
-#endif /* PLATFORM_ */
+/** スレッド関数ポインタ型。 */
+typedef void (*com_util_thread_func_t)(void *);
 
-/* ============================================================
- * 条件変数 マクロ
- * ============================================================ */
-#if defined(PLATFORM_LINUX)
-    /** 条件変数を初期化する。 */
-    #define COM_UTIL_COND_INIT(c)      pthread_cond_init((c), NULL)
-    /** 条件変数を待機する。呼び出し前にミューテックスを取得しておく必要がある。 */
-    #define COM_UTIL_COND_WAIT(c, m)   pthread_cond_wait((c), (m))
-    /** 条件変数に1スレッドへシグナルを送る。 */
-    #define COM_UTIL_COND_SIGNAL(c)    pthread_cond_signal(c)
-    /** 条件変数に全スレッドへシグナルを送る。 */
-    #define COM_UTIL_COND_BROADCAST(c) pthread_cond_broadcast(c)
-    /** 条件変数を破棄する。 */
-    #define COM_UTIL_COND_DESTROY(c)   pthread_cond_destroy(c)
-#elif defined(PLATFORM_WINDOWS)
-    #define COM_UTIL_COND_INIT(c)      InitializeConditionVariable(c)
-    #define COM_UTIL_COND_WAIT(c, m)   SleepConditionVariableCS((c), (m), INFINITE)
-    #define COM_UTIL_COND_SIGNAL(c)    WakeConditionVariable(c)
-    #define COM_UTIL_COND_BROADCAST(c) WakeAllConditionVariable(c)
-    #define COM_UTIL_COND_DESTROY(c)   ((void)0) /* Windows は破棄不要 */
-#endif /* PLATFORM_ */
+/** call_once 状態。静的領域では 0 初期化して用いる。 */
+typedef struct
+{
+    volatile int32_t state;
+} com_util_once_flag_t;
 
-/* ============================================================
- * スレッド関数マクロ
- * ============================================================ */
-#if defined(PLATFORM_LINUX)
-    /** スレッド関数定義マクロ (static void *name(void *arg) に展開)。 */
-    #define COM_UTIL_THREAD_FUNC(name) static void *name(void *arg)
-    /** スレッド関数末尾の return 文マクロ。 */
-    #define COM_UTIL_THREAD_RETURN     return NULL
-#elif defined(PLATFORM_WINDOWS)
-    /** スレッド関数定義マクロ (static DWORD WINAPI name(LPVOID arg) に展開)。 */
-    #define COM_UTIL_THREAD_FUNC(name) static DWORD WINAPI name(LPVOID arg)
-    /** スレッド関数末尾の return 文マクロ。 */
-    #define COM_UTIL_THREAD_RETURN     return 0
-#endif /* PLATFORM_ */
+/** call_once で 1 回だけ呼び出される関数ポインタ型。 */
+typedef void (*com_util_once_func_t)(void);
 
 /* ============================================================
  * extern 関数宣言 (.c で実装)
@@ -116,6 +67,60 @@
 extern "C"
 {
 #endif /* __cplusplus */
+
+/**
+ *  @brief  ミューテックスを初期化する。
+ *  @param[out]  mtx  初期化対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_mutex_init(com_util_mutex_t *mtx);
+
+/**
+ *  @brief  ミューテックスをロックする。
+ *  @param[in,out]  mtx  取得対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_mutex_lock(com_util_mutex_t *mtx);
+
+/**
+ *  @brief  タイムアウト付きでミューテックスを取得する。
+ *  @param[in,out]  mtx         取得対象。
+ *  @param[in]      timeout_ms  タイムアウト (ミリ秒)。
+ *  @return  0: 成功、非 0: 失敗またはタイムアウト。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_mutex_timedlock(com_util_mutex_t *mtx,
+                                                          uint32_t          timeout_ms);
+
+/**
+ *  @brief  ミューテックスをアンロックする。
+ *  @param[in,out]  mtx  解放対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_mutex_unlock(com_util_mutex_t *mtx);
+
+/**
+ *  @brief  ミューテックスを破棄する。
+ *  @param[in,out]  mtx  破棄対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_mutex_destroy(com_util_mutex_t *mtx);
+
+/**
+ *  @brief  条件変数を初期化する。
+ *  @param[out]  cv  初期化対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_init(com_util_condvar_t *cv);
+
+/**
+ *  @brief  条件変数を待機する。
+ *          呼び出し前にミューテックスを取得しておく必要がある。
+ *  @param[in]  cv   条件変数。
+ *  @param[in]  mtx  保護ミューテックス (取得済みであること)。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_wait(com_util_condvar_t *cv,
+                                                       com_util_mutex_t   *mtx);
 
 /**
  *  @brief  タイムアウト付き条件変数待機。
@@ -128,6 +133,78 @@ extern "C"
 COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_timedwait(com_util_condvar_t *cv,
                                                             com_util_mutex_t   *mtx,
                                                             uint32_t            timeout_ms);
+
+/**
+ *  @brief  条件変数に 1 スレッドへシグナルを送る。
+ *  @param[in,out]  cv  条件変数。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_signal(com_util_condvar_t *cv);
+
+/**
+ *  @brief  条件変数に全スレッドへシグナルを送る。
+ *  @param[in,out]  cv  条件変数。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_broadcast(com_util_condvar_t *cv);
+
+/**
+ *  @brief  条件変数を破棄する。
+ *  @param[in,out]  cv  破棄対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_condvar_destroy(com_util_condvar_t *cv);
+
+/**
+ *  @brief  リードライトロックを初期化する。
+ *  @param[out]  rwlock  初期化対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_init(com_util_rwlock_t *rwlock);
+
+/**
+ *  @brief  リードライトロックの共有ロックを取得する。
+ *  @param[in,out]  rwlock  取得対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock);
+
+/**
+ *  @brief  タイムアウト付きで共有ロックを取得する。
+ *  @param[in,out]  rwlock      取得対象。
+ *  @param[in]      timeout_ms  タイムアウト (ミリ秒)。
+ *  @return  0: 成功、非 0: 失敗またはタイムアウト。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_timedlock_shared(com_util_rwlock_t *rwlock,
+                                                                  uint32_t           timeout_ms);
+
+/**
+ *  @brief  リードライトロックの排他ロックを取得する。
+ *  @param[in,out]  rwlock  取得対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock);
+
+/**
+ *  @brief  共有ロックを解放する。
+ *  @param[in,out]  rwlock  解放対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock);
+
+/**
+ *  @brief  排他ロックを解放する。
+ *  @param[in,out]  rwlock  解放対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwlock);
+
+/**
+ *  @brief  リードライトロックを破棄する。
+ *  @param[in,out]  rwlock  破棄対象。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rwlock_destroy(com_util_rwlock_t *rwlock);
 
 /**
  *  @brief  スレッドを生成する。
@@ -143,9 +220,32 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_thread_create(com_util_thread_t     *t
 /**
  *  @brief  スレッドの終了を待機し、ハンドルを解放する。
  *  @param[in,out]  thread  スレッドハンドルへのポインタ。
- *                          Windows では解放後に NULL を書き込む。
  */
 COM_UTIL_EXPORT void COM_UTIL_API com_util_thread_join(com_util_thread_t *thread);
+
+/**
+ *  @brief  タイムアウト付きでスレッドの終了を待機する。
+ *  @param[in,out]  thread      スレッドハンドルへのポインタ。
+ *  @param[in]      timeout_ms  タイムアウト (ミリ秒)。
+ *  @return  0: 成功、1: タイムアウト、-1: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_thread_join_timed(com_util_thread_t *thread,
+                                                            uint32_t           timeout_ms);
+
+/**
+ *  @brief  スレッドハンドルの待機責務を放棄して解放する。
+ *  @param[in,out]  thread  スレッドハンドルへのポインタ。
+ *  @return  0: 成功、非 0: 失敗。
+ */
+COM_UTIL_EXPORT int COM_UTIL_API com_util_thread_detach(com_util_thread_t *thread);
+
+/**
+ *  @brief  指定関数を 1 回だけ呼び出す。
+ *  @param[in,out]  flag  call_once 状態。静的領域では 0 初期化して用いる。
+ *  @param[in]      func  1 回だけ実行する関数。
+ */
+COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag_t *flag,
+                                                     com_util_once_func_t  func);
 
 #ifdef __cplusplus
 }

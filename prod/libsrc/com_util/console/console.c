@@ -15,6 +15,7 @@
 #if defined(PLATFORM_WINDOWS)
 
 #include <com_util/base/windows_sdk.h>
+#include <com_util/sync/sync.h>
 #include <io.h>      /* _open_osfhandle, _dup, _dup2, _close, _fileno */
 #include <fcntl.h>   /* _O_WRONLY, _O_BINARY */
 #include <stdio.h>   /* FILE, setvbuf, fflush, stdout, stderr */
@@ -28,7 +29,7 @@ typedef struct {
     HANDLE orig_handle; /* DuplicateHandle で保存した元の Windows ハンドル */
     HANDLE pipe_read;   /* 匿名パイプの読み取り端 */
     int    orig_crt_fd; /* _dup で保存した元の CRT ファイルディスクリプタ */
-    HANDLE thread;      /* 読み取りスレッドハンドル */
+    com_util_thread_t thread; /* 読み取りスレッドハンドル */
     LONG   active;      /* 初期化済みフラグ (InterlockedExchange で操作) */
 } stream_state_t;
 
@@ -83,7 +84,7 @@ static int utf8_complete_length(const char *buf, int len)
  *   - パイプ / ファイル: WriteFile で UTF-8 バイト列をそのまま転送。
  * マルチバイト文字の途中で分割された場合は次回の読み取りまで末尾バイトを保留する。
  */
-static DWORD WINAPI reader_thread_proc(LPVOID param)
+static void reader_thread_proc(void *param)
 {
     stream_state_t *s = (stream_state_t *)param;
     char    buf[READ_BUF_SIZE];
@@ -136,7 +137,7 @@ static DWORD WINAPI reader_thread_proc(LPVOID param)
         }
     }
 
-    return 0;
+    return;
 }
 
 /* ===== ストリーム初期化 / 解放 ===== */
@@ -150,7 +151,7 @@ static DWORD WINAPI reader_thread_proc(LPVOID param)
  *   3. _dup で元 CRT FD を保存
  *   4. _open_osfhandle + _dup2 で crt_stream を書き込み端に向ける
  *   5. setvbuf で CRT バッファを無効化
- *   6. CreateThread で読み取りスレッドを起動
+ *   6. com_util_thread_create で読み取りスレッドを起動
  */
 static int init_stream(stream_state_t *s, DWORD std_handle_id, FILE *crt_stream)
 {
@@ -211,8 +212,7 @@ static int init_stream(stream_state_t *s, DWORD std_handle_id, FILE *crt_stream)
     setvbuf(crt_stream, NULL, _IONBF, 0);
 
     /* 読み取りスレッドを起動 */
-    s->thread = CreateThread(NULL, 0, reader_thread_proc, s, 0, NULL);
-    if (s->thread == NULL) {
+    if (com_util_thread_create(&s->thread, reader_thread_proc, s) != 0) {
         /* 差し替えを元に戻す (_dup2 で書き込み端の複製も閉じる) */
         _dup2(s->orig_crt_fd, _fileno(crt_stream));
         _close(s->orig_crt_fd);
@@ -232,7 +232,7 @@ static int init_stream(stream_state_t *s, DWORD std_handle_id, FILE *crt_stream)
  * 処理順:
  *   1. fflush で CRT バッファを吐き出す
  *   2. _dup2 で crt_stream を元の FD に戻す → パイプ書き込み端を閉じて EOF を送出
- *   3. WaitForSingleObject でスレッド終了を待つ
+ *   3. com_util_thread_join_timed でスレッド終了を待つ
  *   4. ハンドルを解放する
  */
 static void dispose_stream(stream_state_t *s, FILE *crt_stream)
@@ -248,11 +248,13 @@ static void dispose_stream(stream_state_t *s, FILE *crt_stream)
     _close(s->orig_crt_fd);
 
     /* スレッド終了を最大 5 秒待つ */
-    WaitForSingleObject(s->thread, 5000);
+    if (com_util_thread_join_timed(&s->thread, 5000) != 0)
+    {
+        com_util_thread_detach(&s->thread);
+    }
 
     CloseHandle(s->pipe_read);
     CloseHandle(s->orig_handle);
-    CloseHandle(s->thread);
 
     s->orig_crt_fd = -1;
     s->pipe_read   = NULL;
@@ -262,7 +264,7 @@ static void dispose_stream(stream_state_t *s, FILE *crt_stream)
 
 /*
  * DLL アンロードコンテキスト向けのストリーム解放関数。
- * dispose_stream との違い: WaitForSingleObject のタイムアウトを 500ms に短縮。
+ * dispose_stream との違い: com_util_thread_join_timed のタイムアウトを 500ms に短縮。
  * プロセス終了時 (process_terminating=1) は呼び出し元がスキップするため不要。
  *
  * パイプ閉鎖後に reader スレッドが ReadFile から返るまでの時間は通常ごく短い。
@@ -277,11 +279,13 @@ static void dispose_stream_on_unload(stream_state_t *s, FILE *crt_stream)
     _dup2(s->orig_crt_fd, _fileno(crt_stream));
     _close(s->orig_crt_fd);
 
-    WaitForSingleObject(s->thread, 500);
+    if (com_util_thread_join_timed(&s->thread, 500) != 0)
+    {
+        com_util_thread_detach(&s->thread);
+    }
 
     CloseHandle(s->pipe_read);
     CloseHandle(s->orig_handle);
-    CloseHandle(s->thread);
 
     s->orig_crt_fd = -1;
     s->pipe_read   = NULL;
