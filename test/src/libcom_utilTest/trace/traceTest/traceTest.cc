@@ -6,9 +6,7 @@
 #include <ctime>
 #include <cstdint>
 
-extern "C" {
 #include "tracer_internal.h"
-}
 
 #if defined(PLATFORM_LINUX)
     #include <syslog.h>

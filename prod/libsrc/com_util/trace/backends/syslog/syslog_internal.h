@@ -22,6 +22,11 @@
 #if defined(PLATFORM_LINUX)
     #include <com_util/trace/syslog.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 /**
  *******************************************************************************
  *  @brief          ライブラリアンロード時に syslog プロバイダハンドルを解放します。
@@ -37,6 +42,10 @@
  *******************************************************************************
  */
 void com_util_syslog_sink_dispose_on_unload(com_util_syslog_sink_t *handle);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* PLATFORM_LINUX */
 

@@ -19,6 +19,11 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 /**
  *******************************************************************************
  *  @brief          ライブラリアンロード時に全トレースハンドルを解放します。
@@ -51,5 +56,9 @@ size_t trace_registry_count(void);
  *******************************************************************************
  */
 size_t trace_registry_capacity(void);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* COM_UTIL_TRACER_INTERNAL_H */

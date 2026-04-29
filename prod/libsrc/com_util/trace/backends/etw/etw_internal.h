@@ -22,6 +22,11 @@
 #if defined(PLATFORM_WINDOWS)
     #include <com_util/trace/etw.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 /**
  *******************************************************************************
  *  @brief          ライブラリアンロード時に ETW プロバイダハンドルを解放します。
@@ -40,6 +45,10 @@
  *******************************************************************************
  */
 void com_util_etw_provider_dispose_on_unload(com_util_etw_provider_t *handle, int process_terminating);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* PLATFORM_WINDOWS */
 
