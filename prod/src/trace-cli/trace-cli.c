@@ -18,6 +18,7 @@
 #include "trace-cli.h"
 
 #include <com_util/console/console.h>
+#include <com_util/crt/string.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -548,8 +549,7 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
         return -1;
     }
 
-    strncpy(buffer, line, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
+    (void)com_util_strncpy(buffer, sizeof(buffer), line, sizeof(buffer) - 1U);
     trim_right(buffer);
 
     cursor = buffer;
