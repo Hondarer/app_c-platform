@@ -31,7 +31,7 @@
     #ifndef _GNU_SOURCE
         #define _GNU_SOURCE
     #endif /* _GNU_SOURCE */
-#endif /* PLATFORM_LINUX */
+#endif     /* PLATFORM_LINUX */
 
 #include <stddef.h>
 
@@ -73,14 +73,14 @@ extern "C"
      */
     typedef struct
     {
-        const char *func_key;                              /**< この関数インスタンスの識別キー。 */
-        char lib_name[COM_UTIL_SYM_LOADER_NAME_MAX];      /**< 拡張子なしライブラリ名。[0]=='\0' = 未設定。 */
-        char func_name[COM_UTIL_SYM_LOADER_NAME_MAX];     /**< 関数シンボル名。[0]=='\0' = 未設定。 */
-        COM_UTIL_MODULE_HANDLE handle;                     /**< キャッシュ済みハンドル (NULL = 未ロード)。 */
-        void *func_ptr;                                    /**< キャッシュ済み関数ポインタ (NULL = 未取得)。 */
-        int resolved;                                      /**< 解決済フラグ (0 = 未解決)。 */
-        volatile int32_t lock_state;                       /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
-        com_util_mutex_t lock;                             /**< ロード処理を保護するミューテックス。 */
+        const char *func_key;                         /**< この関数インスタンスの識別キー。 */
+        char lib_name[COM_UTIL_SYM_LOADER_NAME_MAX];  /**< 拡張子なしライブラリ名。[0]=='\0' = 未設定。 */
+        char func_name[COM_UTIL_SYM_LOADER_NAME_MAX]; /**< 関数シンボル名。[0]=='\0' = 未設定。 */
+        COM_UTIL_MODULE_HANDLE handle;                /**< キャッシュ済みハンドル (NULL = 未ロード)。 */
+        void *func_ptr;                               /**< キャッシュ済み関数ポインタ (NULL = 未取得)。 */
+        int resolved;                                 /**< 解決済フラグ (0 = 未解決)。 */
+        volatile int32_t lock_state;                  /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
+        com_util_mutex_t lock;                        /**< ロード処理を保護するミューテックス。 */
     } com_util_sym_loader_entry_t;
 
 /**
@@ -90,11 +90,11 @@ extern "C"
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
  *  @param[in]      type    格納する関数ポインタの型 (例: sample_func_t)。
  */
-#ifdef DOXYGEN
-    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, {0}}
-#else
-    #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, {0}}
-#endif
+#define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) \
+    { \
+        (key), {0}, {0}, NULL, NULL, 0, 0, \
+        {{0}} \
+    }
 
     /**
      *******************************************************************************
@@ -135,8 +135,7 @@ extern "C"
      *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array,
-                                                                const size_t fobj_length,
-                                                                const char *configpath);
+                                                               const size_t fobj_length, const char *configpath);
 
     /**
      *******************************************************************************
@@ -146,8 +145,8 @@ extern "C"
      *  @param[in]      fobj_length 配列の要素数。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
-        com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array,
+                                                                  const size_t fobj_length);
 
     /**
      *******************************************************************************
@@ -158,8 +157,8 @@ extern "C"
      *  @return         すべてのエントリが正常に解決されている場合は 0、1 つでも失敗している場合は -1。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array,
+                                                              const size_t fobj_length);
 
 #ifdef __cplusplus
 }
