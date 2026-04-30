@@ -5,6 +5,8 @@
 
 #include "prompt_internal.h"
 
+#include <com_util/crt/string.h>
+
 #include <stdarg.h>
 
 /* ================================================================
@@ -39,6 +41,7 @@ static void history_add(com_util_prompt_t *p,
                         com_util_prompt_ctx_t *ctx,
                         const char *line)
 {
+    size_t line_size;
     size_t slot;
     /* 直前と同じ行は追加しない */
     if (ctx->count > 0)
@@ -62,10 +65,11 @@ static void history_add(com_util_prompt_t *p,
         ctx->count++;
     }
     slot = HIST_IDX(ctx, ctx->count - 1);
-    ctx->entries[slot] = (char *)malloc(strlen(line) + 1);
+    line_size = strlen(line) + 1;
+    ctx->entries[slot] = (char *)malloc(line_size);
     if (ctx->entries[slot] != NULL)
     {
-        strcpy(ctx->entries[slot], line);
+        (void)com_util_strcpy(ctx->entries[slot], line_size, line);
     }
 }
 

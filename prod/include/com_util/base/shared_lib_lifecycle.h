@@ -24,7 +24,7 @@
 #define SHARED_LIB_LIFECYCLE_H
 
 #include <com_util/base/platform.h>
-#include <stdlib.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_LINUX)
     #include <stdio.h>
@@ -61,11 +61,6 @@
      */
     #define DLLMAIN_COM_UTIL_INFO_MSG(msg)
 #else /* !DOXYGEN */
-static int dllmain_com_util_info_msg_enabled__(void)
-{
-    return getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG") != NULL;
-}
-
     #if defined(PLATFORM_LINUX)
 /**
  *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信する。
@@ -81,7 +76,7 @@ static void dllmain_syslog_send__(const char *msg)
     int fd;
     int n;
 
-    if (!dllmain_com_util_info_msg_enabled__())
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0) != 0)
     {
         return;
     }
@@ -124,7 +119,7 @@ static void dllmain_output_debug_msg__(const char *msg)
     wchar_t buf[1024];
     int len;
 
-    if (!dllmain_com_util_info_msg_enabled__())
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0) != 0)
     {
         return;
     }

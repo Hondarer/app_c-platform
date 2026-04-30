@@ -36,9 +36,6 @@ typedef struct
 } com_util_prompt_ctx_t;
 
 /* ---- メインハンドル（不透明型の実体） ---- */
-/* struct termios (60 バイト) を含むため構造体末尾に 4 バイトのパディングが入る */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpadded"
 struct com_util_prompt_t
 {
     /* 編集バッファ（readline_at 呼び出しごとに初期化） */
@@ -61,15 +58,20 @@ struct com_util_prompt_t
     int is_tty;
 
 #if defined(PLATFORM_LINUX)
+    /* struct termios は 4 バイトアライン・60 バイト。raw_active 後に 4 バイトの
+     * 末尾パディングが必要なため、明示メンバーで定義する。 */
     struct termios orig_term;
     int            raw_active;
+    char           _pad[4]; /* 構造体末尾 8 バイトアライン用パディング */
 #elif defined(PLATFORM_WINDOWS)
+    /* HANDLE は 8 バイトアライン。is_tty (int) との間に 4 バイトのパディングが
+     * 必要なため、明示メンバーで定義する。 */
+    char   _pad[4]; /* HANDLE 前の 8 バイトアライン用パディング */
     HANDLE stdin_handle;
     DWORD  orig_in_mode;
     int    raw_active;
 #endif
 };
-#pragma GCC diagnostic pop
 
 /* ---- プラットフォーム抽象インターフェース（各 _platform.c で実装） ---- */
 

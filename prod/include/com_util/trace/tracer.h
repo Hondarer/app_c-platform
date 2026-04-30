@@ -504,14 +504,35 @@ extern "C"
      (strrchr((f), '\\') ? strrchr((f), '\\') + 1 : (f)))
 
 /**
+ *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパー。
+ *  @param[in]      handle     com_util_tracer_create の戻り値。
+ *  @param[in]      level      トレースレベル (com_util_trace_level_t)。
+ *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+ *  @param[in]      file       出力に付与するソースファイル名。
+ *  @param[in]      line       出力に付与するソース行番号。
+ *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
+ *  @return         成功 0 / 失敗 -1。
+ *  @internal
+ */
+static inline int _com_util_tracer_write_with_source(
+    com_util_tracer_t *handle, com_util_trace_level_t level,
+    const com_util_realtime_timestamp_t *timestamp, const char *file, int line, const char *message)
+{
+    if (message != NULL)
+    {
+        return _com_util_tracer_writef(handle, level, timestamp, "[%s:%d] %s", file, line, message);
+    }
+
+    return _com_util_tracer_writef(handle, level, timestamp, "[%s:%d]", file, line);
+}
+
+/**
  *  @def            com_util_tracer_write(handle, level, timestamp, message)
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write マクロ。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
-    ((message) != NULL ? \
-         _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] %s", \
-                                 _com_util_tracer_basename(__FILE__), __LINE__, (message)) : \
-         _com_util_tracer_write((handle), (level), (timestamp), (message)))
+    _com_util_tracer_write_with_source((handle), (level), (timestamp), \
+                                       _com_util_tracer_basename(__FILE__), __LINE__, (message))
 
 /**
  *  @def            com_util_tracer_writef(handle, level, timestamp, fmt, ...)

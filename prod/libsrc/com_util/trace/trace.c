@@ -769,6 +769,7 @@ static int write_to_provider(com_util_tracer_t *handle, com_util_trace_level_t l
 #if defined(PLATFORM_LINUX)
     return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
 #elif defined(PLATFORM_WINDOWS)
+    (void)timestamp;
     return com_util_etw_provider_write(s_etw_handle, to_etw_level(level),
                               handle->service_name, msg);
 #endif /* PLATFORM_ */

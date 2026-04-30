@@ -9,6 +9,7 @@
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/string.h>
 #include <com_util/crt/unistd.h>
@@ -51,6 +52,7 @@ public:
     MOCK_METHOD(int,    com_util_vsscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int,    com_util_gmtime, (struct tm *, const time_t *));
     MOCK_METHOD(int,    com_util_localtime, (struct tm *, const time_t *));
+    MOCK_METHOD(int,    com_util_getenv, (const char *, char *, size_t));
 
     // crt - stdio
     MOCK_METHOD(int,    com_util_rename,  (const char *, const char *));

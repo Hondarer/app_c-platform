@@ -247,6 +247,34 @@ TEST_F(traceTest, test_macro_write_passes_explicit_timestamp)
     com_util_tracer_dispose(handle);
 }
 
+// 公開マクロが NULL メッセージでもソース位置だけを backend へ渡すことの確認
+TEST_F(traceTest, test_macro_write_with_null_message_emits_source_location_only)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("^\\[traceTest\\.cc:[0-9]+\\]$")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - NULL メッセージでも公開マクロが source location を付けて backend へ渡すこと。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("^\\[traceTest\\.cc:\\d+\\]$")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - NULL メッセージでも公開マクロが source location だけを ETW backend へ渡すこと。
+#endif
+
+    // Act
+    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL); // [手順] - NULL メッセージで公開マクロを呼ぶ。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - NULL メッセージでも公開マクロ呼び出しが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
 // started 状態で INFO 出力が OS backend へ送られることの確認
 TEST_F(traceTest, test_write_routes_info_to_os_backend)
 {

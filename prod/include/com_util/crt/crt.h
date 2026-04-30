@@ -21,6 +21,7 @@
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/file.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/string.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/unistd.h>

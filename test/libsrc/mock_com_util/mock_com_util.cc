@@ -35,6 +35,8 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_localtime(_, _))
         .WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_getenv(_, _, _))
+        .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_rename(_, _))
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_fclose(_))
