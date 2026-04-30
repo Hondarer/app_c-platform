@@ -3,10 +3,10 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-WEAK_ATR int com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                        const com_util_realtime_timestamp_t *timestamp,
-                                        const void *data, size_t size,
-                                        const char *format, ...)
+WEAK_ATR int _com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                         const com_util_realtime_timestamp_t *timestamp,
+                                         const void *data, size_t size,
+                                         const char *format, ...)
 {
     int rtc = 0;
 
@@ -18,7 +18,7 @@ WEAK_ATR int com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trac
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_write_hexf(
+        rtc = _mock_com_util->_com_util_tracer_write_hexf(
             handle, level, timestamp, data, size, label);
     }
 

@@ -918,8 +918,8 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
-                          const com_util_realtime_timestamp_t *timestamp, const char *message)
+    _com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
+                           const com_util_realtime_timestamp_t *timestamp, const char *message)
 {
     const char *msg;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -961,8 +961,8 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
-                           const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
+    _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                            const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
 {
     va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1089,9 +1089,9 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
-                              const com_util_realtime_timestamp_t *timestamp,
-                              const void *data, size_t size, const char *message)
+    _com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
+                               const com_util_realtime_timestamp_t *timestamp,
+                               const void *data, size_t size, const char *message)
 {
     int ret;
 
@@ -1120,9 +1120,9 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                               const com_util_realtime_timestamp_t *timestamp,
-                               const void *data, size_t size, const char *format, ...)
+    _com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                const com_util_realtime_timestamp_t *timestamp,
+                                const void *data, size_t size, const char *format, ...)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;

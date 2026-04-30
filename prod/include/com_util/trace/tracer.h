@@ -62,7 +62,7 @@
 #include <stddef.h>
 /* int64_t (com_util_tracer_set_name で使用) */
 #include <inttypes.h>
-/* strrchr (_COM_UTIL_TRACER_BASENAME マクロで使用) */
+/* strrchr (_com_util_tracer_basename マクロで使用) */
 #include <string.h>
 #include <com_util/base/platform.h>
 #include <com_util/clock/clock.h>
@@ -318,7 +318,7 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @brief          トレースメッセージを書き込む。
+     *  @brief          トレースメッセージを書き込む低レベル関数。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
@@ -330,12 +330,12 @@ extern "C"
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
-                              const com_util_realtime_timestamp_t *timestamp, const char *message);
+        _com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
+                               const com_util_realtime_timestamp_t *timestamp, const char *message);
 
     /**
      *******************************************************************************
-     *  @brief          printf 形式でトレースメッセージを書き込む。
+     *  @brief          printf 形式でトレースメッセージを書き込む低レベル関数。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
@@ -348,12 +348,12 @@ extern "C"
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
-                               const com_util_realtime_timestamp_t *timestamp, const char *format, ...);
+        _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                const com_util_realtime_timestamp_t *timestamp, const char *format, ...);
 
     /**
      *******************************************************************************
-     *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む。
+     *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む低レベル関数。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
@@ -367,13 +367,13 @@ extern "C"
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                  const com_util_realtime_timestamp_t *timestamp,
-                                  const void *data, size_t size, const char *message);
+        _com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                   const com_util_realtime_timestamp_t *timestamp,
+                                   const void *data, size_t size, const char *message);
 
     /**
      *******************************************************************************
-     *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む (printf 形式ラベル)。
+     *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む低レベル関数 (printf 形式ラベル)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
@@ -388,9 +388,9 @@ extern "C"
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                   const com_util_realtime_timestamp_t *timestamp,
-                                   const void *data, size_t size, const char *format, ...);
+        _com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                    const com_util_realtime_timestamp_t *timestamp,
+                                    const void *data, size_t size, const char *format, ...);
 
     /**
      *******************************************************************************
@@ -495,80 +495,48 @@ extern "C"
 /* ===== ソース位置自動付与マクロ ===== */
 
 /**
- *  @def            _COM_UTIL_TRACER_BASENAME(f)
+ *  @def            _com_util_tracer_basename(f)
  *  @brief          ファイルパスからベースネームを取り出す内部ヘルパーマクロ。
  *  @internal
  */
-#define _COM_UTIL_TRACER_BASENAME(f) \
+#define _com_util_tracer_basename(f) \
     (strrchr((f), PLATFORM_PATH_SEP_CHR) ? strrchr((f), PLATFORM_PATH_SEP_CHR) + 1 : \
      (strrchr((f), '\\') ? strrchr((f), '\\') + 1 : (f)))
 
 /**
- *  @def            COM_UTIL_TRACER_WRITE(handle, level, message)
- *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write ラッパーマクロ。
+ *  @def            com_util_tracer_write(handle, level, timestamp, message)
+ *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write マクロ。
  */
-#define COM_UTIL_TRACER_WRITE(handle, level, message) \
-    com_util_tracer_writef((handle), (level), NULL, "[%s:%d] %s", \
-                 _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, (message))
+#define com_util_tracer_write(handle, level, timestamp, message) \
+    ((message) != NULL ? \
+         _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] %s", \
+                                 _com_util_tracer_basename(__FILE__), __LINE__, (message)) : \
+         _com_util_tracer_write((handle), (level), (timestamp), (message)))
 
 /**
- *  @def            COM_UTIL_TRACER_WRITEF(handle, level, fmt, ...)
- *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_writef ラッパーマクロ。
+ *  @def            com_util_tracer_writef(handle, level, timestamp, fmt, ...)
+ *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_writef マクロ。
  */
-#define COM_UTIL_TRACER_WRITEF(handle, level, fmt, ...) \
-    com_util_tracer_writef((handle), (level), NULL, "[%s:%d] " fmt, \
-                 _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, ##__VA_ARGS__)
+#define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
+    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, \
+                            _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /**
- *  @def            COM_UTIL_TRACER_WRITE_HEX(handle, level, data, size, message)
- *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hex ラッパーマクロ。
+ *  @def            com_util_tracer_write_hex(handle, level, timestamp, data, size, message)
+ *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hex マクロ。
  */
-#define COM_UTIL_TRACER_WRITE_HEX(handle, level, data, size, message) \
-    com_util_tracer_write_hexf((handle), (level), NULL, (data), (size), "[%s:%d]%s%s", \
-                     _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, \
-                     (message) ? " " : "", \
-                     (message) ? (message) : "")
+#define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
+    _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
+                                _com_util_tracer_basename(__FILE__), __LINE__, \
+                                ((message) != NULL && (message)[0] != '\0') ? " " : "", \
+                                (message) != NULL ? (message) : "")
 
 /**
- *  @def            COM_UTIL_TRACER_WRITE_HEXF(handle, level, data, size, fmt, ...)
- *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hexf ラッパーマクロ。
+ *  @def            com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...)
+ *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロ。
  */
-#define COM_UTIL_TRACER_WRITE_HEXF(handle, level, data, size, fmt, ...) \
-    com_util_tracer_write_hexf((handle), (level), NULL, (data), (size), "[%s:%d] " fmt, \
-                     _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, ##__VA_ARGS__)
-
-/**
- *  @def            COM_UTIL_TRACER_WRITE_TS(handle, level, timestamp, message)
- *  @brief          ソースファイル名と行番号を自動付与し、明示タイムスタンプ付きで com_util_tracer_write を呼び出す。
- */
-#define COM_UTIL_TRACER_WRITE_TS(handle, level, timestamp, message) \
-    com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] %s", \
-                 _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, (message))
-
-/**
- *  @def            COM_UTIL_TRACER_WRITEF_TS(handle, level, timestamp, fmt, ...)
- *  @brief          ソースファイル名と行番号を自動付与し、明示タイムスタンプ付きで com_util_tracer_writef を呼び出す。
- */
-#define COM_UTIL_TRACER_WRITEF_TS(handle, level, timestamp, fmt, ...) \
-    com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, \
-                 _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, ##__VA_ARGS__)
-
-/**
- *  @def            COM_UTIL_TRACER_WRITE_HEX_TS(handle, level, timestamp, data, size, message)
- *  @brief          ソースファイル名と行番号を自動付与し、明示タイムスタンプ付きで com_util_tracer_write_hex を呼び出す。
- */
-#define COM_UTIL_TRACER_WRITE_HEX_TS(handle, level, timestamp, data, size, message) \
-    com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
-                     _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, \
-                     (message) ? " " : "", \
-                     (message) ? (message) : "")
-
-/**
- *  @def            COM_UTIL_TRACER_WRITE_HEXF_TS(handle, level, timestamp, data, size, fmt, ...)
- *  @brief          ソースファイル名と行番号を自動付与し、明示タイムスタンプ付きで com_util_tracer_write_hexf を呼び出す。
- */
-#define COM_UTIL_TRACER_WRITE_HEXF_TS(handle, level, timestamp, data, size, fmt, ...) \
-    com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
-                     _COM_UTIL_TRACER_BASENAME(__FILE__), __LINE__, ##__VA_ARGS__)
+#define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \
+    _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
+                                _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #endif /* COM_UTIL_TRACER_H */

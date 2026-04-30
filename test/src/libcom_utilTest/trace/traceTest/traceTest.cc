@@ -16,6 +16,7 @@
 using testing::_;
 using testing::AtLeast;
 using testing::HasSubstr;
+using testing::MatchesRegex;
 using testing::NiceMock;
 using testing::NotNull;
 using testing::Return;
@@ -183,6 +184,70 @@ TEST_F(traceTest, test_registry_tracks_and_expands)
 }
 
 // started 状態で INFO 出力が OS backend へ送られることの確認
+TEST_F(traceTest, test_macro_write_prefixes_source_location)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] macro message")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] macro message")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
+#endif
+
+    // Act
+    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "macro message"); // [手順] - 公開マクロ経由で INFO を書き込む。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 公開マクロ経由の書き込みが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// 公開マクロが明示タイムスタンプを backend へ渡すことの確認
+TEST_F(traceTest, test_macro_write_passes_explicit_timestamp)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    com_util_realtime_timestamp_t timestamp = make_fixed_timestamp();
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] explicit macro timestamp")))
+        .WillOnce([&timestamp](com_util_syslog_sink_t *, int,
+                               const com_util_realtime_timestamp_t *actual_timestamp,
+                               const char *) {
+            EXPECT_EQ(timestamp.tv_sec, actual_timestamp->tv_sec);
+            EXPECT_EQ(timestamp.tv_nsec, actual_timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_正常系] - 公開マクロ経由でも明示タイムスタンプがそのまま渡ること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] explicit macro timestamp")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロ経由でも ETW backend へメッセージが渡ること。
+#endif
+
+    // Act
+    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                       "explicit macro timestamp"); // [手順] - 明示タイムスタンプ付きで公開マクロを呼ぶ。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 明示タイムスタンプ付きの公開マクロ呼び出しが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 状態で INFO 出力が OS backend へ送られることの確認
 TEST_F(traceTest, test_write_routes_info_to_os_backend)
 {
     // Arrange
@@ -204,7 +269,7 @@ TEST_F(traceTest, test_write_routes_info_to_os_backend)
 #endif
 
     // Act
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "test message"); // [手順] - INFO メッセージを書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "test message"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -239,8 +304,8 @@ TEST_F(traceTest, test_write_routes_explicit_timestamp_to_os_backend)
 #endif
 
     // Act
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
-                                       "explicit timestamp"); // [手順] - 明示タイムスタンプ付き INFO を書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                        "explicit timestamp"); // [手順] - 明示タイムスタンプ付き INFO を書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -256,8 +321,8 @@ TEST_F(traceTest, test_write_is_null_safe)
     com_util_tracer_t *handle = create_logger();
 
     // Act
-    int null_handle_result = com_util_tracer_write(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "ignored"); // [手順] - NULL ハンドルで書き込む。
-    int null_message_result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL);    // [手順] - NULL メッセージで書き込む。
+    int null_handle_result = _com_util_tracer_write(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "ignored"); // [手順] - NULL ハンドルで書き込む。
+    int null_message_result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL);    // [手順] - NULL メッセージで書き込む。
 
     // Assert
     EXPECT_EQ(0, null_handle_result);   // [確認_異常系] - NULL ハンドルで 0 が返ること。
@@ -301,7 +366,7 @@ TEST_F(traceTest, test_write_truncates_utf8_boundary)
 #endif
 
     // Act
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, msg); // [手順] - UTF-8 境界を跨ぐ長いメッセージを書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, msg); // [手順] - UTF-8 境界を跨ぐ長いメッセージを書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 切り詰め後も書き込みが成功すること。
@@ -328,7 +393,7 @@ TEST_F(traceTest, test_writef_formats_message)
 #endif
 
     // Act
-    int result = com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "user=%s count=%d", "alice", 42); // [手順] - writef を呼び出す。
+    int result = _com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "user=%s count=%d", "alice", 42); // [手順] - writef を呼び出す。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -356,7 +421,7 @@ TEST_F(traceTest, test_write_hex_formats_payload)
 #endif
 
     // Act
-    int result = com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "Data"); // [手順] - ラベル付き HEX 書き込みを行う。
+    int result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "Data"); // [手順] - ラベル付き HEX 書き込みを行う。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -402,7 +467,7 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0)); // [手順] - file trace を有効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "file info"); // [手順] - INFO メッセージを書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "file info"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - file backend 経由の書き込みが成功すること。
@@ -436,7 +501,7 @@ TEST_F(traceTest, test_explicit_timestamp_is_shared_by_file_and_stderr)
 
     // Act
     testing::internal::CaptureStderr();
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp, "explicit ts"); // [手順] - 明示タイムスタンプ付きで書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp, "explicit ts"); // [手順] - 明示タイムスタンプ付きで書き込む。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
@@ -459,7 +524,7 @@ TEST_F(traceTest, test_write_without_file_path_skips_file_backend)
     EXPECT_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).Times(0); // [Pre-Assert確認_正常系] - file sink へは 1 回も送られないこと。
 
     // Act
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL, "no file output"); // [手順] - file path 未設定のまま書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL, "no file output"); // [手順] - file path 未設定のまま書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - file 無効でもエラーにならないこと。
@@ -490,7 +555,7 @@ TEST_F(traceTest, test_set_name_with_identifier_updates_backend_name)
     ASSERT_EQ(0, com_util_tracer_start(handle));
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, StrEq("worker-2"), StrEq("running as worker-2")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ETW サービス名が worker-2 に更新されること。
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker-2"));
+    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker-2"));
 #endif
 
     // Cleanup
@@ -513,7 +578,7 @@ TEST_F(traceTest, test_os_level_none_suppresses_output)
 #endif
 
     // Act
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL, "suppressed"); // [手順] - OS level NONE のまま書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL, "suppressed"); // [手順] - OS level NONE のまま書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 出力抑止でもエラーにならないこと。
@@ -533,8 +598,8 @@ TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
 
     // Act
     testing::internal::CaptureStderr();
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL, "verbose to stderr")); // [手順] - VERBOSE を stderr へ出力する。
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL, "debug to stderr"));     // [手順] - DEBUG を stderr へ出力する。
+    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL, "verbose to stderr")); // [手順] - VERBOSE を stderr へ出力する。
+    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL, "debug to stderr"));     // [手順] - DEBUG を stderr へ出力する。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
@@ -578,7 +643,7 @@ TEST_F(traceTest, test_invalid_explicit_timestamp_falls_back_and_returns_minus_o
 
     // Act
     testing::internal::CaptureStderr();
-    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, "invalid ts"); // [手順] - 不正タイムスタンプで書き込む。
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, "invalid ts"); // [手順] - 不正タイムスタンプで書き込む。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
@@ -611,8 +676,8 @@ TEST_F(traceTest, test_write_hex_invalid_explicit_timestamp_falls_back_and_retur
         }); // [Pre-Assert確認_異常系] - HEX 書き込みでも代替時刻が file backend へ渡ること。
 
     // Act
-    int result = com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
-                                           data, sizeof(data), "Data"); // [手順] - 不正タイムスタンプ付きで HEX 書き込みを行う。
+    int result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            data, sizeof(data), "Data"); // [手順] - 不正タイムスタンプ付きで HEX 書き込みを行う。
 
     // Assert
     EXPECT_EQ(-1, result); // [確認_異常系] - HEX 書き込みでも代替出力後に -1 を返すこと。
@@ -629,10 +694,10 @@ TEST_F(traceTest, test_write_fails_when_stopped)
     unsigned char data[] = {0x01, 0x02};
 
     // Act
-    int write_result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped message"); // [手順] - stopped 状態で write を呼ぶ。
-    int writef_result = com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped %s", "msg"); // [手順] - stopped 状態で writef を呼ぶ。
-    int hex_result = com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex"); // [手順] - stopped 状態で write_hex を呼ぶ。
-    int hexf_result = com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex %d", 1); // [手順] - stopped 状態で write_hexf を呼ぶ。
+    int write_result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped message"); // [手順] - stopped 状態で write を呼ぶ。
+    int writef_result = _com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped %s", "msg"); // [手順] - stopped 状態で writef を呼ぶ。
+    int hex_result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex"); // [手順] - stopped 状態で write_hex を呼ぶ。
+    int hexf_result = _com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex %d", 1); // [手順] - stopped 状態で write_hexf を呼ぶ。
 
     // Assert
     EXPECT_EQ(-1, write_result);  // [確認_異常系] - stopped 状態の write が失敗すること。

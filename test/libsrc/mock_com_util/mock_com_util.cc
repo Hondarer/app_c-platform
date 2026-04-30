@@ -117,13 +117,13 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_tracer_stop(_))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write(_, _, _, _))
+    ON_CALL(*this, _com_util_tracer_write(_, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write_hex(_, _, _, _, _, _))
+    ON_CALL(*this, _com_util_tracer_write_hex(_, _, _, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_writef(_, _, _, _))
+    ON_CALL(*this, _com_util_tracer_writef(_, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write_hexf(_, _, _, _, _, _))
+    ON_CALL(*this, _com_util_tracer_write_hexf(_, _, _, _, _, _))
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_tracer_set_name(_, _, _))
         .WillByDefault(Return(0));

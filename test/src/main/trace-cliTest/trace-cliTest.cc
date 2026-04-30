@@ -152,7 +152,7 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
     // Arrange
     session_.handle = handle_; // [状態] - started 済み handle 相当の session を用意する。
     EXPECT_CALL(mock_com_util_,
-                com_util_tracer_write_hex(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, _, 3U, StrEq("payload bytes")))
+                _com_util_tracer_write_hex(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, _, 3U, StrEq("payload bytes")))
         .WillOnce([](com_util_tracer_t *, com_util_trace_level_t, const com_util_realtime_timestamp_t *, const void *data,
                      size_t size, const char *) {
             const unsigned char *bytes = static_cast<const unsigned char *>(data);
@@ -177,8 +177,8 @@ TEST_F(trace_cliTest, process_line_writef_uses_message_as_single_string)
     // Arrange
     session_.handle = handle_; // [状態] - started 済み handle 相当の session を用意する。
     EXPECT_CALL(mock_com_util_,
-                com_util_tracer_writef(handle_, COM_UTIL_TRACE_LEVEL_DEBUG, nullptr,
-                                       StrEq("message with spaces")))
+                _com_util_tracer_writef(handle_, COM_UTIL_TRACE_LEVEL_DEBUG, nullptr,
+                                        StrEq("message with spaces")))
         .WillOnce(Return(0)); // [Pre-Assert確認] - writef が行末までを 1 つの文字列として受け取ること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
         .WillOnce(Return(0)); // [Pre-Assert確認] - writef の戻り値が表示されること。
@@ -265,7 +265,7 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
         .WillOnce(Return(COM_UTIL_TRACER_STATE_STOPPED)); // [Pre-Assert確認] - prompt が状態遷移に応じた getter を参照すること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_start(handle_))
         .WillOnce(Return(0)); // [Pre-Assert確認] - start コマンドで tracer が開始されること。
-    EXPECT_CALL(mock_com_util_, com_util_tracer_write(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, StrEq("hello world")))
+    EXPECT_CALL(mock_com_util_, _com_util_tracer_write(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, StrEq("hello world")))
         .WillOnce(Return(0)); // [Pre-Assert確認] - write コマンドで message がそのまま渡されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_stop(handle_))
         .WillOnce(Return(0)); // [Pre-Assert確認] - stop コマンドで tracer が停止されること。

@@ -120,6 +120,7 @@ OS トレースのしきい値を設定します。
 ### `com_util_tracer_write` / `com_util_tracer_writef`
 
 通常のトレースメッセージを書き込みます。  
+公開名の `com_util_tracer_write*()` は source location (`[file:line]`) を自動付与する関数風マクロです。  
 `timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
 明示タイムスタンプが不正な場合も出力自体は継続し、内部で現在時刻へ代替します。この場合の戻り値は `-1` です。
 
@@ -128,6 +129,8 @@ OS トレースのしきい値を設定します。
 バイナリデータを HEX テキストとして書き込みます。  
 通信データやバッファ内容を確認したいときに使います。  
 タイムスタンプ引数の扱いは `com_util_tracer_write` / `com_util_tracer_writef` と同じです。
+
+source location を付けずに生のメッセージを書き込みたい場合は、低レベル関数 `_com_util_tracer_write*()` を直接呼びます。
 
 ## 使い方
 

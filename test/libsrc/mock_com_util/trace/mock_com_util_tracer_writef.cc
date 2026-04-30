@@ -3,8 +3,8 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-WEAK_ATR int com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                    const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
+WEAK_ATR int _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                     const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
 {
     int rtc = 0;
 
@@ -16,7 +16,7 @@ WEAK_ATR int com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_le
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_writef(handle, level, timestamp, buf);
+        rtc = _mock_com_util->_com_util_tracer_writef(handle, level, timestamp, buf);
     }
 
     if (getTraceLevel() > TRACE_NONE)

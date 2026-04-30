@@ -104,18 +104,18 @@ public:
     MOCK_METHOD(int, com_util_tracer_stop, (com_util_tracer_t *));
 
     // 書き込み (固定引数版)
-    MOCK_METHOD(int, com_util_tracer_write,
+    MOCK_METHOD(int, _com_util_tracer_write,
                 (com_util_tracer_t *, com_util_trace_level_t, const com_util_realtime_timestamp_t *,
                  const char *));
-    MOCK_METHOD(int, com_util_tracer_write_hex, (com_util_tracer_t *, com_util_trace_level_t,
-                                      const com_util_realtime_timestamp_t *,
-                                      const void *, size_t, const char *));
+    MOCK_METHOD(int, _com_util_tracer_write_hex, (com_util_tracer_t *, com_util_trace_level_t,
+                                                  const com_util_realtime_timestamp_t *,
+                                                  const void *, size_t, const char *));
 
     // 書き込み (可変引数対応: vsnprintf 展開後の文字列を受け取る代替メソッド)
-    MOCK_METHOD(int, com_util_tracer_writef,
+    MOCK_METHOD(int, _com_util_tracer_writef,
                 (com_util_tracer_t *, com_util_trace_level_t,
                  const com_util_realtime_timestamp_t *, const char *));
-    MOCK_METHOD(int, com_util_tracer_write_hexf,
+    MOCK_METHOD(int, _com_util_tracer_write_hexf,
                 (com_util_tracer_t *, com_util_trace_level_t, const com_util_realtime_timestamp_t *,
                  const void *, size_t, const char *));
 
