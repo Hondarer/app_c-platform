@@ -197,7 +197,7 @@ TEST_F(traceTest, test_macro_write_prefixes_source_location)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
-                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] macro message")))
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] macro message")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
 #endif
 
@@ -232,7 +232,7 @@ TEST_F(traceTest, test_macro_write_passes_explicit_timestamp)
         }); // [Pre-Assert確認_正常系] - 公開マクロ経由でも明示タイムスタンプがそのまま渡ること。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
-                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] explicit macro timestamp")))
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] explicit macro timestamp")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロ経由でも ETW backend へメッセージが渡ること。
 #endif
 
