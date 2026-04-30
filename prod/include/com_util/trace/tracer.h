@@ -323,6 +323,8 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
+     *                             戻り値は -1 を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。
      *  @return         成功 0 / 失敗 -1。
      *******************************************************************************
@@ -338,6 +340,8 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
+     *                             戻り値は -1 を返します。
      *  @param[in]      format   printf 形式のフォーマット文字列。
      *  @param[in]      ...      フォーマット文字列に対応する可変長引数。
      *  @return         成功 0 / 失敗 -1。
@@ -354,6 +358,8 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
+     *                             戻り値は -1 を返します。
      *  @param[in]      data     バイナリデータへのポインタ。
      *  @param[in]      size     バイナリデータのバイト数。
      *  @param[in]      message  HEX データの手前に付与するラベル文字列。NULL 可。
@@ -372,6 +378,8 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
+     *                             戻り値は -1 を返します。
      *  @param[in]      data     バイナリデータへのポインタ。
      *  @param[in]      size     バイナリデータのバイト数。
      *  @param[in]      format   printf 形式のフォーマット文字列 (ラベル)。NULL 可。

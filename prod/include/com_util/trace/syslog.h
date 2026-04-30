@@ -43,6 +43,8 @@ extern "C"
      *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    syslog severity 値。
      *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻。NULL の場合は時刻を付与しない。
+     *                             不正な明示タイムスタンプが渡された場合は現在時刻へ代替し、
+     *                             出力は継続しつつ戻り値は -1 を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
      */

@@ -545,23 +545,36 @@ TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
     com_util_tracer_dispose(handle);
 }
 
-// 不正な明示タイムスタンプ指定時に全出力先が抑止されることの確認
-TEST_F(traceTest, test_invalid_explicit_timestamp_fails_before_any_output)
+// 不正な明示タイムスタンプ指定時に現在時刻へ代替して各出力先へ書き込みつつ -1 を返すことの確認
+TEST_F(traceTest, test_invalid_explicit_timestamp_falls_back_and_returns_minus_one)
 {
     // Arrange
     com_util_tracer_t *handle = create_logger();
     com_util_realtime_timestamp_t invalid_timestamp = {1714100645LL, 1000000000, 0};
 
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0));
     ASSERT_EQ(0, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
     ASSERT_EQ(0, com_util_tracer_start(handle));
 
-    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(0); // [Pre-Assert確認_異常系] - 明示タイムスタンプ指定時は内部取得しないこと。
+    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では syslog backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("invalid ts")))
+        .WillOnce([](com_util_syslog_sink_t *, int, const com_util_realtime_timestamp_t *timestamp, const char *) {
+            EXPECT_EQ(1714100645LL, timestamp->tv_sec);
+            EXPECT_EQ(678000000, timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_異常系] - syslog backend へ代替時刻で渡ること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では ETW backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, _, StrEq("invalid ts")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - ETW backend への出力は継続すること。
 #endif
-    EXPECT_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では file backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
+                                                      StrEq("invalid ts")))
+        .WillOnce([](com_util_trace_file_sink_t *, int, const com_util_realtime_timestamp_t *timestamp, const char *) {
+            EXPECT_EQ(1714100645LL, timestamp->tv_sec);
+            EXPECT_EQ(678000000, timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_異常系] - file backend へ代替時刻で渡ること。
 
     // Act
     testing::internal::CaptureStderr();
@@ -569,8 +582,40 @@ TEST_F(traceTest, test_invalid_explicit_timestamp_fails_before_any_output)
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
-    EXPECT_EQ(-1, result); // [確認_異常系] - 不正タイムスタンプ指定で失敗すること。
-    EXPECT_TRUE(captured.empty()); // [確認_異常系] - stderr にも何も出力しないこと。
+    EXPECT_EQ(-1, result); // [確認_異常系] - 代替出力後も -1 を返すこと。
+    EXPECT_NE(std::string::npos, captured.find("2026-04-26T03:04:05.678+09:00 I invalid ts")); // [確認_異常系] - stderr も代替時刻で出力すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// 不正な明示タイムスタンプ指定時に write_hex でも現在時刻へ代替して -1 を返すことの確認
+TEST_F(traceTest, test_write_hex_invalid_explicit_timestamp_falls_back_and_returns_minus_one)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    com_util_realtime_timestamp_t invalid_timestamp = {1714100645LL, 1000000000, 0};
+    unsigned char data[] = {0x48, 0x69};
+
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
+                                                      StrEq("Data: 48 69")))
+        .WillOnce([](com_util_trace_file_sink_t *, int, const com_util_realtime_timestamp_t *timestamp, const char *) {
+            EXPECT_EQ(1714100645LL, timestamp->tv_sec);
+            EXPECT_EQ(678000000, timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_異常系] - HEX 書き込みでも代替時刻が file backend へ渡ること。
+
+    // Act
+    int result = com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                           data, sizeof(data), "Data"); // [手順] - 不正タイムスタンプ付きで HEX 書き込みを行う。
+
+    // Assert
+    EXPECT_EQ(-1, result); // [確認_異常系] - HEX 書き込みでも代替出力後に -1 を返すこと。
 
     // Cleanup
     com_util_tracer_dispose(handle);

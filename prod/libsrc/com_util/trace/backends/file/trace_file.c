@@ -89,31 +89,65 @@ static char level_char(int level)
 }
 
 /**
- *  @brief  現在時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファへ書き込む。
- *  @param  buf      書き込み先バッファ。
- *  @param  buf_size バッファサイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
- *  @param  timestamp 使用する実時刻。NULL の場合は現在時刻を取得する。
+ *  @brief  タイムスタンプが有効範囲か判定する。
+ */
+static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+{
+    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
+}
+
+/**
+ *  @brief  使用するタイムスタンプを解決する。
+ *  @param  timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
+ *  @param  resolved       解決後のタイムスタンプ格納先。
+ *  @param  fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
  *  @return 成功 0 / 失敗 -1。
  */
-static int format_timestamp(char *buf, int buf_size, const com_util_realtime_timestamp_t *timestamp)
+static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
+                             com_util_realtime_timestamp_t *resolved,
+                             int *fallback_used)
 {
-    com_util_realtime_timestamp_t resolved;
+    if (resolved == NULL)
+    {
+        return -1;
+    }
+    if (fallback_used != NULL)
+    {
+        *fallback_used = 0;
+    }
 
     if (timestamp != NULL)
     {
-        resolved = *timestamp;
-    }
-    else
-    {
-        com_util_get_realtime(&resolved.tv_sec, &resolved.tv_nsec);
+        if (timestamp_is_valid(timestamp))
+        {
+            *resolved = *timestamp;
+            return 0;
+        }
+        if (fallback_used != NULL)
+        {
+            *fallback_used = 1;
+        }
     }
 
-    if (resolved.tv_nsec < 0 || resolved.tv_nsec >= 1000000000)
+    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
+    return timestamp_is_valid(resolved) ? 0 : -1;
+}
+
+/**
+ *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファへ書き込む。
+ *  @param  buf      書き込み先バッファ。
+ *  @param  buf_size バッファサイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
+ *  @param  resolved 使用する実時刻。
+ *  @return 成功 0 / 失敗 -1。
+ */
+static int format_timestamp(char *buf, int buf_size, const com_util_realtime_timestamp_t *resolved)
+{
+    if (!timestamp_is_valid(resolved))
     {
         return -1;
     }
 
-    return com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, resolved.tv_sec, resolved.tv_nsec);
+    return com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, resolved->tv_sec, resolved->tv_nsec);
 }
 
 /**
@@ -285,6 +319,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
 {
     char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
+    com_util_realtime_timestamp_t resolved;
+    int fallback_used = 0;
     int len;
     int ret;
 
@@ -294,7 +330,11 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* タイムスタンプはロック外で取得する (共有状態へのアクセスなし) */
-    if (format_timestamp(ts, (int)sizeof(ts), timestamp) != 0)
+    if (resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+    {
+        return -1;
+    }
+    if (format_timestamp(ts, (int)sizeof(ts), &resolved) != 0)
     {
         return -1;
     }
@@ -339,7 +379,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     /* ロック解放 */
     com_util_mutex_unlock(&handle->mutex);
 
-    return ret;
+    return (ret != 0 || fallback_used) ? -1 : 0;
 }
 
 /* doxygen コメントは、ヘッダに記載 */

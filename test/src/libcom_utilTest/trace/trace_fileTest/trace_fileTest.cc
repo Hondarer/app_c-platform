@@ -223,22 +223,27 @@ TEST_F(trace_fileTest, test_write_returns_minus_one_on_file_error)
     com_util_trace_file_sink_dispose(handle);
 }
 
-// 不正な明示タイムスタンプ指定時に低レベル書き込みを呼ばず -1 を返すことの確認
-TEST_F(trace_fileTest, test_write_rejects_invalid_explicit_timestamp)
+// 不正な明示タイムスタンプ指定時に現在時刻へ代替して書き込みつつ -1 を返すことの確認
+TEST_F(trace_fileTest, test_write_falls_back_from_invalid_explicit_timestamp)
 {
     // Arrange
     com_util_trace_file_sink_t *handle = com_util_trace_file_sink_create("trace.log", 0, 0);
     com_util_realtime_timestamp_t invalid_timestamp = {1714100645LL, 1000000000, 0};
     ASSERT_NE((com_util_trace_file_sink_t *)NULL, handle);
 
-    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(0); // [Pre-Assert確認_異常系] - 明示タイムスタンプ指定時は現在時刻を取得しないこと。
-    EXPECT_CALL(mock_, com_util_file_write(_, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では低レベル書き込みを呼ばないこと。
+    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
+    EXPECT_CALL(mock_, com_util_file_write(_, _, _))
+        .WillOnce([](com_util_file_t *, const void *buf, size_t len) {
+            std::string actual((const char *)buf, len);
+            EXPECT_EQ("2026-04-26T03:04:05.678+09:00 I invalid\n", actual);
+            return 0;
+        }); // [Pre-Assert確認_異常系] - 代替時刻で低レベル書き込みを行うこと。
 
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, "invalid"); // [手順] - 不正タイムスタンプで書き込む。
 
     // Assert
-    EXPECT_EQ(-1, result); // [確認_異常系] - 不正タイムスタンプ指定で失敗すること。
+    EXPECT_EQ(-1, result); // [確認_異常系] - 代替出力後も -1 を返すこと。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);

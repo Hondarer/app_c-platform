@@ -106,6 +106,63 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
     tzset();
 }
 
+// 不正な明示タイムスタンプ指定時に現在時刻へ代替して出力しつつ -1 を返すことの確認
+TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_timestamp)
+{
+    int pipe_fds[2];
+    char fd_text[32];
+    char actual[256];
+    char expected[256];
+    ssize_t nread;
+    const char *saved_tz = getenv("TZ");
+    const char *saved_fd = getenv("SYSLOG_TEST_FD");
+    std::string saved_tz_value = saved_tz != NULL ? saved_tz : "";
+    std::string saved_fd_value = saved_fd != NULL ? saved_fd : "";
+    com_util_realtime_timestamp_t invalid_timestamp = {1714100645LL, 1000000000, 0};
+
+    ASSERT_EQ(0, pipe(pipe_fds));
+    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1));
+    tzset();
+    snprintf(fd_text, sizeof(fd_text), "%d", pipe_fds[1]);
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text, 1));
+
+    com_util_syslog_sink_t *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink_t *)NULL, handle);
+
+    EXPECT_EQ(-1, com_util_syslog_sink_write(handle, LOG_INFO, &invalid_timestamp, "invalid ts"));
+
+    close(pipe_fds[1]);
+    pipe_fds[1] = -1;
+    nread = read(pipe_fds[0], actual, sizeof(actual) - 1);
+    ASSERT_GT(nread, 0);
+    actual[nread] = '\0';
+
+    snprintf(expected, sizeof(expected), "<14>syslog_test[%d]: invalid ts\n",
+             (int)getpid());
+    EXPECT_NE(std::string::npos, std::string(actual).find(expected)); // [確認_異常系] - syslog 本文が出力されること。
+    EXPECT_NE('<', actual[0]); // [確認_異常系] - 先頭にタイムスタンプが付与されること。
+
+    com_util_syslog_sink_dispose(handle);
+    close(pipe_fds[0]);
+    if (saved_fd != NULL)
+    {
+        setenv("SYSLOG_TEST_FD", saved_fd_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("SYSLOG_TEST_FD");
+    }
+    if (saved_tz != NULL)
+    {
+        setenv("TZ", saved_tz_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("TZ");
+    }
+    tzset();
+}
+
 // NULL 引数が安全に無視されることの確認
 TEST_F(trace_syslogTest, test_null_arguments_are_safe)
 {

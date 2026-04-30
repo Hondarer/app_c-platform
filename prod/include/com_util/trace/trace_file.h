@@ -73,6 +73,8 @@ extern "C"
      *  @param[in]      handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    トレースレベル。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
+     *                             戻り値は -1 を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
      */

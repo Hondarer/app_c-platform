@@ -799,21 +799,29 @@ static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
 }
 
 static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
-                             com_util_realtime_timestamp_t *resolved)
+                             com_util_realtime_timestamp_t *resolved,
+                             int *fallback_used)
 {
     if (resolved == NULL)
     {
         return -1;
     }
+    if (fallback_used != NULL)
+    {
+        *fallback_used = 0;
+    }
 
     if (timestamp != NULL)
     {
-        if (!timestamp_is_valid(timestamp))
+        if (timestamp_is_valid(timestamp))
         {
-            return -1;
+            *resolved = *timestamp;
+            return 0;
         }
-        *resolved = *timestamp;
-        return 0;
+        if (fallback_used != NULL)
+        {
+            *fallback_used = 1;
+        }
     }
 
     com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
@@ -862,6 +870,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 {
     int os_result = 0;
     int file_result = 0;
+    int timestamp_fallback_used = 0;
     int needs_text_timestamp;
     com_util_realtime_timestamp_t resolved;
     const com_util_realtime_timestamp_t *effective_timestamp = NULL;
@@ -877,7 +886,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 
     if (needs_text_timestamp)
     {
-        if (resolve_timestamp(timestamp, &resolved) != 0)
+        if (resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
         {
             return -1;
         }
@@ -904,7 +913,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
         write_stderr_entry(level, ts, msg);
     }
 
-    return (os_result != 0 || file_result != 0) ? -1 : 0;
+    return (timestamp_fallback_used || os_result != 0 || file_result != 0) ? -1 : 0;
 }
 
 /* doxygen コメントは、ヘッダに記載 */

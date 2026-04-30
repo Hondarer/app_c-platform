@@ -91,6 +91,61 @@ struct com_util_syslog_sink
 
 /**
  *******************************************************************************
+ *  @brief  タイムスタンプが有効範囲か判定する。
+ *******************************************************************************
+ */
+static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+{
+    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
+}
+
+/**
+ *******************************************************************************
+ *  @brief  syslog 出力に使用するタイムスタンプを解決する。
+ *  @param[in]      timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
+ *  @param[out]     resolved       解決後のタイムスタンプ格納先。
+ *  @param[out]     fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
+ *  @return         成功時 0、解決失敗時 -1。
+ *******************************************************************************
+ */
+static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
+                             com_util_realtime_timestamp_t *resolved,
+                             int *fallback_used)
+{
+    if (timestamp == NULL)
+    {
+        if (fallback_used != NULL)
+        {
+            *fallback_used = 0;
+        }
+        return 0;
+    }
+    if (resolved == NULL)
+    {
+        return -1;
+    }
+    if (fallback_used != NULL)
+    {
+        *fallback_used = 0;
+    }
+
+    if (timestamp_is_valid(timestamp))
+    {
+        *resolved = *timestamp;
+        return 0;
+    }
+
+    if (fallback_used != NULL)
+    {
+        *fallback_used = 1;
+    }
+
+    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
+    return timestamp_is_valid(resolved) ? 0 : -1;
+}
+
+/**
+ *******************************************************************************
  *  @brief  バックオフ値を次段階に進める。ロック保持中に呼ぶこと。
  *******************************************************************************
  */
@@ -203,8 +258,11 @@ COM_UTIL_EXPORT int COM_UTIL_API
     char buf[SYSLOG_BUF_SIZE];
     char debug_buf[SYSLOG_DEBUG_BUF_SIZE];
     char timestamp_text[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
+    com_util_realtime_timestamp_t resolved;
+    const com_util_realtime_timestamp_t *effective_timestamp = NULL;
     struct sockaddr_un sa;
     const char *test_fd_str;
+    int fallback_used = 0;
     int prio;
     int n;
     int debug_len;
@@ -213,6 +271,14 @@ COM_UTIL_EXPORT int COM_UTIL_API
     if (handle == NULL || message == NULL)
     {
         return 0;
+    }
+    if (resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+    {
+        return -1;
+    }
+    if (timestamp != NULL)
+    {
+        effective_timestamp = &resolved;
     }
 
     /* syslog priority = (facility & ~7) | (severity & 7) */
@@ -234,14 +300,15 @@ COM_UTIL_EXPORT int COM_UTIL_API
     test_fd_str = getenv("SYSLOG_TEST_FD");
     if (test_fd_str != NULL)
     {
-        if (timestamp != NULL &&
+        if (effective_timestamp != NULL &&
             com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text),
-                                                   timestamp->tv_sec, timestamp->tv_nsec) == 0)
+                                                   effective_timestamp->tv_sec,
+                                                   effective_timestamp->tv_nsec) == 0)
         {
             debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
             if (debug_len < 0)
             {
-                return 0;
+                return -1;
             }
             if ((size_t)debug_len >= sizeof(debug_buf))
             {
@@ -256,7 +323,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
             buf[n] = '\n';
             (void)syslog_test_fd_write__(buf, (size_t)(n + 1));
         }
-        return 0;
+        return fallback_used ? -1 : 0;
     }
 
     memset(&sa, 0, sizeof(sa));
@@ -272,7 +339,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
         if (handle->fd < 0)
         {
             com_util_mutex_unlock(&handle->reconnect_lock);
-            return 0; /* drop */
+            return fallback_used ? -1 : 0; /* drop */
         }
     }
 
@@ -287,19 +354,19 @@ COM_UTIL_EXPORT int COM_UTIL_API
         {
             /* 送信バッファ満杯: drop のみ、再接続不要 */
             com_util_mutex_unlock(&handle->reconnect_lock);
-            return 0;
+            return fallback_used ? -1 : 0;
         }
         /* その他エラー (ENOENT, ECONNREFUSED 等): ソケットを閉じてバックオフ */
         close_and_backoff_locked(handle);
         com_util_mutex_unlock(&handle->reconnect_lock);
-        return 0; /* drop */
+        return fallback_used ? -1 : 0; /* drop */
     }
 
     /* 送信成功: バックオフをリセット */
     handle->backoff_sec = BACKOFF_INIT_SEC;
 
     com_util_mutex_unlock(&handle->reconnect_lock);
-    return 0;
+    return fallback_used ? -1 : 0;
 }
 
 /* doxygen コメントは、ヘッダに記載 */
