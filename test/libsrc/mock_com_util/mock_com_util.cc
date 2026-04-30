@@ -117,13 +117,13 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_tracer_stop(_))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write(_, _, _))
+    ON_CALL(*this, com_util_tracer_write(_, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write_hex(_, _, _, _, _))
+    ON_CALL(*this, com_util_tracer_write_hex(_, _, _, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_writef(_, _, _))
+    ON_CALL(*this, com_util_tracer_writef(_, _, _, _))
         .WillByDefault(Return(0));
-    ON_CALL(*this, com_util_tracer_write_hexf(_, _, _, _, _))
+    ON_CALL(*this, com_util_tracer_write_hexf(_, _, _, _, _, _))
         .WillByDefault(Return(0));
     ON_CALL(*this, com_util_tracer_set_name(_, _, _))
         .WillByDefault(Return(0));
@@ -242,7 +242,7 @@ Mock_com_util::Mock_com_util()
     // trace - log_file_sink
     ON_CALL(*this, com_util_trace_file_sink_create(_, _, _))
         .WillByDefault(Return(nullptr));
-    ON_CALL(*this, com_util_trace_file_sink_write(_, _, _))
+    ON_CALL(*this, com_util_trace_file_sink_write(_, _, _, _))
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_trace_file_sink_dispose(_))
         .WillByDefault(Return());

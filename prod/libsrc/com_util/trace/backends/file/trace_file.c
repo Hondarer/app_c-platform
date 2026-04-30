@@ -92,14 +92,28 @@ static char level_char(int level)
  *  @brief  現在時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファへ書き込む。
  *  @param  buf      書き込み先バッファ。
  *  @param  buf_size バッファサイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
+ *  @param  timestamp 使用する実時刻。NULL の場合は現在時刻を取得する。
+ *  @return 成功 0 / 失敗 -1。
  */
-static void format_timestamp(char *buf, int buf_size)
+static int format_timestamp(char *buf, int buf_size, const com_util_realtime_timestamp_t *timestamp)
 {
-    int64_t tv_sec;
-    int32_t tv_nsec;
+    com_util_realtime_timestamp_t resolved;
 
-    com_util_get_realtime(&tv_sec, &tv_nsec);
-    (void)com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, tv_sec, tv_nsec);
+    if (timestamp != NULL)
+    {
+        resolved = *timestamp;
+    }
+    else
+    {
+        com_util_get_realtime(&resolved.tv_sec, &resolved.tv_nsec);
+    }
+
+    if (resolved.tv_nsec < 0 || resolved.tv_nsec >= 1000000000)
+    {
+        return -1;
+    }
+
+    return com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, resolved.tv_sec, resolved.tv_nsec);
 }
 
 /**
@@ -265,7 +279,9 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
 }
 
 /* doxygen コメントは、ヘッダに記載 */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level, const char *message)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
+                                                                const com_util_realtime_timestamp_t *timestamp,
+                                                                const char *message)
 {
     char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
@@ -278,7 +294,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* タイムスタンプはロック外で取得する (共有状態へのアクセスなし) */
-    format_timestamp(ts, (int)sizeof(ts));
+    if (format_timestamp(ts, (int)sizeof(ts), timestamp) != 0)
+    {
+        return -1;
+    }
 
     /* 1 行全体をスタックバッファへフォーマットする (syscall 回数を最小化) */
     len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, level_char(level), message);

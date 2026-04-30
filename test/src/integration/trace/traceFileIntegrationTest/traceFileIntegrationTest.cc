@@ -21,8 +21,8 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
     // Act
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_INFO, 0, 0)); // [手順] - file trace を有効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, "file error message")); // [手順] - ERROR 行を書き込む。
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, "file info message"));   // [手順] - INFO 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL, "file error message")); // [手順] - ERROR 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "file info message"));   // [手順] - INFO 行を書き込む。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -49,8 +49,8 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
     // Act
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_ERROR, 0, 0)); // [手順] - file level を ERROR に設定する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, "should be in file"));      // [手順] - ERROR 行を書き込む。
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_WARNING, "should not be in file")); // [手順] - WARNING 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL, "should be in file"));      // [手順] - ERROR 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_WARNING, NULL, "should not be in file")); // [手順] - WARNING 行を書き込む。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -77,8 +77,8 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     // Act
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_DEBUG, 0, 0)); // [手順] - file level を DEBUG に設定する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, "verbose in debug file")); // [手順] - VERBOSE 行を書き込む。
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, "debug in debug file"));      // [手順] - DEBUG 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL, "verbose in debug file")); // [手順] - VERBOSE 行を書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL, "debug in debug file"));      // [手順] - DEBUG 行を書き込む。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -105,11 +105,11 @@ TEST_F(traceFileIntegrationTest, test_null_path_disables_file_trace)
     // Act
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_INFO, 0, 0)); // [手順] - file trace を有効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, "before disable")); // [手順] - 無効化前に 1 行書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL, "before disable")); // [手順] - 無効化前に 1 行書き込む。
     ASSERT_EQ(0, com_util_tracer_stop(handle));
     ASSERT_EQ(0, com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_INFO, 0, 0)); // [手順] - NULL path で file trace を無効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, "after disable")); // [手順] - 無効化後に 1 行書き込む。
+    EXPECT_EQ(0, com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL, "after disable")); // [手順] - 無効化後に 1 行書き込む。
     com_util_tracer_dispose(handle);
 
     // Assert

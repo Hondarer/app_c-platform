@@ -119,7 +119,8 @@ OS トレースのしきい値を設定します。
 
 ### `com_util_tracer_write` / `com_util_tracer_writef`
 
-通常のトレースメッセージを書き込みます。
+通常のトレースメッセージを書き込みます。  
+`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力にその時刻を使います。
 
 ### `com_util_tracer_write_hex` / `com_util_tracer_write_hexf`
 
@@ -143,8 +144,8 @@ int main(void)
     com_util_tracer_set_name(tracer, "myapp", 0);
     com_util_tracer_start(tracer);
 
-    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, "application started");
-    com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, "retry=%d", 3);
+    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "application started");
+    com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, NULL, "retry=%d", 3);
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
@@ -166,7 +167,7 @@ com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
 com_util_tracer_set_stderr_level(tracer, COM_UTIL_TRACE_LEVEL_CRITICAL);
 com_util_tracer_start(tracer);
 
-com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, "service ready");
+com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
 
 com_util_tracer_dispose(tracer);
 ```

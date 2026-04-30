@@ -841,11 +841,11 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
 
         if (strcmp(command, "write") == 0)
         {
-            rc = com_util_tracer_write(session->handle, level, message);
+            rc = com_util_tracer_write(session->handle, level, NULL, message);
         }
         else
         {
-            rc = com_util_tracer_writef(session->handle, level, "%s", message);
+            rc = com_util_tracer_writef(session->handle, level, NULL, "%s", message);
         }
         printf("rc=%d\n", rc);
         return 0;
@@ -891,11 +891,11 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
 
         if (strcmp(command, "write-hex") == 0)
         {
-            rc = com_util_tracer_write_hex(session->handle, level, data, size, label);
+            rc = com_util_tracer_write_hex(session->handle, level, NULL, data, size, label);
         }
         else
         {
-            rc = com_util_tracer_write_hexf(session->handle, level, data, size, "%s",
+            rc = com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s",
                                             (label != NULL) ? label : "");
         }
         printf("rc=%d\n", rc);

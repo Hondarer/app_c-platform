@@ -791,26 +791,58 @@ static int should_output(com_util_trace_level_t msg_level, com_util_trace_level_
 
 #define STDERR_TS_BUF_SIZE (COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1)
 
+static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+{
+    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
+}
+
+static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
+                             com_util_realtime_timestamp_t *resolved)
+{
+    if (resolved == NULL)
+    {
+        return -1;
+    }
+
+    if (timestamp != NULL)
+    {
+        if (!timestamp_is_valid(timestamp))
+        {
+            return -1;
+        }
+        *resolved = *timestamp;
+        return 0;
+    }
+
+    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
+    return timestamp_is_valid(resolved) ? 0 : -1;
+}
+
+static int format_local_timestamp(char *buf, size_t buf_size,
+                                  const com_util_realtime_timestamp_t *timestamp)
+{
+    if (!timestamp_is_valid(timestamp))
+    {
+        return -1;
+    }
+    return com_util_format_realtime_iso8601_local(buf, buf_size, timestamp->tv_sec, timestamp->tv_nsec);
+}
+
 /**
  *******************************************************************************
  *  @brief          タイムスタンプとトレースレベルを付加して stderr にエントリを書き込む。
  *  @param[in]      level  トレースレベル。
+ *  @param[in]      timestamp_text  事前整形済みタイムスタンプ文字列。
  *  @param[in]      msg    書き込むメッセージ文字列。
  *******************************************************************************
  */
-static void write_stderr_entry(com_util_trace_level_t level, const char *msg)
+static void write_stderr_entry(com_util_trace_level_t level, const char *timestamp_text, const char *msg)
 {
-    char ts[STDERR_TS_BUF_SIZE];
     static const char lc_table[] = {'C', 'E', 'W', 'I', 'V', 'D'};
     char lc;
-    int64_t tv_sec;
-    int32_t tv_nsec;
-
-    com_util_get_realtime(&tv_sec, &tv_nsec);
-    (void)com_util_format_realtime_iso8601_local(ts, sizeof(ts), tv_sec, tv_nsec);
 
     lc = ((int)level >= 0 && (int)level < (int)COM_UTIL_TRACE_LEVEL_NONE) ? lc_table[(int)level] : 'D';
-    fprintf(stderr, "%s %c %s\n", ts, lc, msg);
+    fprintf(stderr, "%s %c %s\n", timestamp_text, lc, msg);
 }
 
 /**
@@ -818,14 +850,39 @@ static void write_stderr_entry(com_util_trace_level_t level, const char *msg)
  *  @brief          OS プロバイダ・ファイル・stderr の各出力先にメッセージを書き込む。
  *  @param[in]      handle  書き込み先のトレースプロバイダハンドル。
  *  @param[in]      level   トレースレベル。
- *  @param[in]      msg     書き込むメッセージ文字列。
+ *  @param[in]      timestamp  書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
+ *  @param[in]      msg        書き込むメッセージ文字列。
  *  @return         全出力先で成功時 0、いずれかで失敗時 -1。
  *******************************************************************************
  */
-static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level, const char *msg)
+static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
+                      const com_util_realtime_timestamp_t *timestamp, const char *msg)
 {
-    int os_result   = 0;
+    int os_result = 0;
     int file_result = 0;
+    int needs_text_timestamp;
+    com_util_realtime_timestamp_t resolved;
+    const com_util_realtime_timestamp_t *effective_timestamp = NULL;
+    char ts[STDERR_TS_BUF_SIZE];
+
+    needs_text_timestamp =
+        (handle->file_handle != NULL && should_output(level, handle->file_level)) ||
+        should_output(level, handle->stderr_level) ||
+        timestamp != NULL;
+
+    if (needs_text_timestamp)
+    {
+        if (resolve_timestamp(timestamp, &resolved) != 0)
+        {
+            return -1;
+        }
+        effective_timestamp = &resolved;
+
+        if (format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
+        {
+            return -1;
+        }
+    }
 
     if (should_output(level, handle->os_level))
     {
@@ -834,12 +891,12 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level, c
 
     if (handle->file_handle != NULL && should_output(level, handle->file_level))
     {
-        file_result = com_util_trace_file_sink_write(handle->file_handle, (int)level, msg);
+        file_result = com_util_trace_file_sink_write(handle->file_handle, (int)level, effective_timestamp, msg);
     }
 
     if (should_output(level, handle->stderr_level))
     {
-        write_stderr_entry(level, msg);
+        write_stderr_entry(level, ts, msg);
     }
 
     return (os_result != 0 || file_result != 0) ? -1 : 0;
@@ -847,7 +904,8 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level, c
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level, const char *message)
+    com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
+                          const com_util_realtime_timestamp_t *timestamp, const char *message)
 {
     const char *msg;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -882,14 +940,15 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level, c
         msg = buf;
     }
 
-    ret = write_dual(handle, level, msg);
+    ret = write_dual(handle, level, timestamp, msg);
     config_unlock_shared(handle);
     return ret;
 }
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level, const char *format, ...)
+    com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                           const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
 {
     va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -917,7 +976,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level, c
     vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
 
-    ret = write_dual(handle, level, buf);
+    ret = write_dual(handle, level, timestamp, buf);
     config_unlock_shared(handle);
     return ret;
 }
@@ -937,6 +996,7 @@ static const char hex_chars[] = "0123456789ABCDEF";
  *******************************************************************************
  */
 static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t level,
+                          const com_util_realtime_timestamp_t *timestamp,
                           const void *data, size_t size, const char *label)
 {
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -960,7 +1020,7 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
             size_t copy_len = lbl_len < MAX_BODY ? lbl_len : MAX_BODY;
             memcpy(buf, label, copy_len);
             buf[copy_len] = '\0';
-            return write_dual(handle, level, buf);
+            return write_dual(handle, level, timestamp, buf);
         }
         memcpy(buf, label, lbl_len);
         buf[lbl_len] = ':';
@@ -977,7 +1037,7 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
         if (remaining < ELLIPSIS_LEN)
         {
             buf[pos] = '\0';
-            return write_dual(handle, level, buf);
+            return write_dual(handle, level, timestamp, buf);
         }
         max_data_bytes = (remaining - ELLIPSIS_LEN) / 3;
         if (max_data_bytes == 0)
@@ -985,7 +1045,7 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
             memcpy(buf + pos, "...", ELLIPSIS_LEN);
             pos += ELLIPSIS_LEN;
             buf[pos] = '\0';
-            return write_dual(handle, level, buf);
+            return write_dual(handle, level, timestamp, buf);
         }
         size = max_data_bytes;
     }
@@ -1009,13 +1069,14 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
     }
     buf[pos] = '\0';
 
-    return write_dual(handle, level, buf);
+    return write_dual(handle, level, timestamp, buf);
 }
 
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
     com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
-                    const void *data, size_t size, const char *message)
+                              const com_util_realtime_timestamp_t *timestamp,
+                              const void *data, size_t size, const char *message)
 {
     int ret;
 
@@ -1037,7 +1098,7 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
         return -1;
     }
 
-    ret = hex_write_impl(handle, level, data, size, message);
+    ret = hex_write_impl(handle, level, timestamp, data, size, message);
     config_unlock_shared(handle);
     return ret;
 }
@@ -1045,7 +1106,8 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
 /* doxygen コメントは、ヘッダに記載 */
     COM_UTIL_EXPORT int COM_UTIL_API
     com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                     const void *data, size_t size, const char *format, ...)
+                               const com_util_realtime_timestamp_t *timestamp,
+                               const void *data, size_t size, const char *format, ...)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;
@@ -1074,11 +1136,11 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
         va_start(args, format);
         vsnprintf(label, sizeof(label), format, args);
         va_end(args);
-        ret = hex_write_impl(handle, level, data, size, label);
+        ret = hex_write_impl(handle, level, timestamp, data, size, label);
     }
     else
     {
-        ret = hex_write_impl(handle, level, data, size, NULL);
+        ret = hex_write_impl(handle, level, timestamp, data, size, NULL);
     }
 
     config_unlock_shared(handle);

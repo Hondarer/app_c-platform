@@ -2,19 +2,20 @@
 #include <mock_com_util.h>
 
 WEAK_ATR int com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
-                             const void *data, size_t size, const char *message)
+                                       const com_util_realtime_timestamp_t *timestamp,
+                                       const void *data, size_t size, const char *message)
 {
     int rtc = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_write_hex(handle, level, data, size, message);
+        rtc = _mock_com_util->com_util_tracer_write_hex(handle, level, timestamp, data, size, message);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, %d, 0x%p, %zu, %s", __func__,
-               (void *)handle, (int)level, data, size, message);
+        printf("  > %s 0x%p, %d, 0x%p, 0x%p, %zu, %s", __func__,
+               (void *)handle, (int)level, (void *)timestamp, data, size, message);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

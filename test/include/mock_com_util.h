@@ -104,15 +104,20 @@ public:
     MOCK_METHOD(int, com_util_tracer_stop, (com_util_tracer_t *));
 
     // 書き込み (固定引数版)
-    MOCK_METHOD(int, com_util_tracer_write, (com_util_tracer_t *, com_util_trace_level_t, const char *));
+    MOCK_METHOD(int, com_util_tracer_write,
+                (com_util_tracer_t *, com_util_trace_level_t, const com_util_realtime_timestamp_t *,
+                 const char *));
     MOCK_METHOD(int, com_util_tracer_write_hex, (com_util_tracer_t *, com_util_trace_level_t,
+                                      const com_util_realtime_timestamp_t *,
                                       const void *, size_t, const char *));
 
     // 書き込み (可変引数対応: vsnprintf 展開後の文字列を受け取る代替メソッド)
     MOCK_METHOD(int, com_util_tracer_writef,
-                (com_util_tracer_t *, com_util_trace_level_t, const char *));
+                (com_util_tracer_t *, com_util_trace_level_t,
+                 const com_util_realtime_timestamp_t *, const char *));
     MOCK_METHOD(int, com_util_tracer_write_hexf,
-                (com_util_tracer_t *, com_util_trace_level_t, const void *, size_t, const char *));
+                (com_util_tracer_t *, com_util_trace_level_t, const com_util_realtime_timestamp_t *,
+                 const void *, size_t, const char *));
 
     // 設定
     MOCK_METHOD(int, com_util_tracer_set_name, (com_util_tracer_t *, const char *, int64_t));
@@ -178,7 +183,9 @@ public:
 
     // trace - log_file_sink
     MOCK_METHOD(com_util_trace_file_sink_t *, com_util_trace_file_sink_create, (const char *, size_t, int));
-    MOCK_METHOD(int,  com_util_trace_file_sink_write,   (com_util_trace_file_sink_t *, int, const char *));
+    MOCK_METHOD(int,  com_util_trace_file_sink_write,
+                (com_util_trace_file_sink_t *, int, const com_util_realtime_timestamp_t *,
+                 const char *));
     MOCK_METHOD(void, com_util_trace_file_sink_dispose, (com_util_trace_file_sink_t *));
 
 #if defined(PLATFORM_LINUX)

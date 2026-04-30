@@ -55,7 +55,7 @@ com_util_tracer_t *tracer = com_util_tracer_create();
 com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
                            COM_UTIL_TRACE_LEVEL_INFO, 0, 0);
 com_util_tracer_start(tracer);
-com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, "service ready");
+com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
 com_util_tracer_dispose(tracer);
 ```
 
@@ -64,6 +64,7 @@ com_util_tracer_dispose(tracer);
 ## backend 単体の役割
 
 `com_util/trace/trace_file.h` は、ファイル出力だけを独立して扱いたいときの lower layer です。  
+`com_util_trace_file_sink_write()` へ明示タイムスタンプを渡すと、外部で確定した時刻をそのままファイル行頭へ反映できます。  
 ただし、このリポジトリの通常利用では `trace.h` から設定する使い方を前提にしています。
 
 ## 注意点

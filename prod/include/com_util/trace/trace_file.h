@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <com_util/base/platform.h>
+#include <com_util/clock/clock.h>
 #include <com_util_export.h>
 #include <com_util/trace/tracer.h>
 
@@ -71,12 +72,14 @@ extern "C"
      *
      *  @param[in]      handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    トレースレベル。
+     *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
      */
     COM_UTIL_EXPORT int COM_UTIL_API
         com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
-                                  const char *message);
+                                       const com_util_realtime_timestamp_t *timestamp,
+                                       const char *message);
 
     /**
      *  @brief          ファイルトレースプロバイダを終了する。

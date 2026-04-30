@@ -30,6 +30,15 @@ static void set_fixed_realtime(int64_t *tv_sec, int32_t *tv_nsec)
     *tv_nsec = 678000000;
 }
 
+static com_util_realtime_timestamp_t make_fixed_timestamp(void)
+{
+    com_util_realtime_timestamp_t timestamp;
+    timestamp.tv_sec = 1714100645LL;
+    timestamp.tv_nsec = 678000000;
+    timestamp.reserved = 0;
+    return timestamp;
+}
+
 static uint32_t open_flags_default(void)
 {
     return COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
@@ -133,7 +142,7 @@ TEST_F(trace_fileTest, test_write_formats_info_line)
         }); // [Pre-Assert確認_正常系] - INFO 行が期待フォーマットで書き込まれること。
 
     // Act
-    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, "hello"); // [手順] - INFO 行を書き込む。
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "hello"); // [手順] - INFO 行を書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -158,10 +167,36 @@ TEST_F(trace_fileTest, test_write_formats_debug_marker)
         }); // [Pre-Assert確認_正常系] - DEBUG 行が D marker で書き込まれること。
 
     // Act
-    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, "debug line"); // [手順] - DEBUG 行を書き込む。
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL, "debug line"); // [手順] - DEBUG 行を書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+
+// 明示タイムスタンプ指定時に内部の現在時刻取得を行わずに書き込むことの確認
+TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock)
+{
+    // Arrange
+    com_util_trace_file_sink_t *handle = com_util_trace_file_sink_create("trace.log", 0, 0);
+    com_util_realtime_timestamp_t timestamp = make_fixed_timestamp();
+    ASSERT_NE((com_util_trace_file_sink_t *)NULL, handle);
+
+    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻を取得しないこと。
+    EXPECT_CALL(mock_, com_util_file_write(_, _, _))
+        .WillOnce([](com_util_file_t *, const void *buf, size_t len) {
+            std::string actual((const char *)buf, len);
+            EXPECT_EQ("2026-04-26T03:04:05.678+09:00 I explicit hello\n", actual);
+            return 0;
+        }); // [Pre-Assert確認_正常系] - 明示タイムスタンプがそのまま書式化されること。
+
+    // Act
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp, "explicit hello"); // [手順] - 明示タイムスタンプ付きで書き込む。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 明示タイムスタンプ付き書き込みが成功すること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -179,10 +214,31 @@ TEST_F(trace_fileTest, test_write_returns_minus_one_on_file_error)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 低レベル書き込みが -1 を返すこと。
 
     // Act
-    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, "write error"); // [手順] - 書き込み失敗を発生させる。
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "write error"); // [手順] - 書き込み失敗を発生させる。
 
     // Assert
     EXPECT_EQ(-1, result); // [確認_異常系] - com_util_trace_file_sink_write が -1 を返すこと。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+
+// 不正な明示タイムスタンプ指定時に低レベル書き込みを呼ばず -1 を返すことの確認
+TEST_F(trace_fileTest, test_write_rejects_invalid_explicit_timestamp)
+{
+    // Arrange
+    com_util_trace_file_sink_t *handle = com_util_trace_file_sink_create("trace.log", 0, 0);
+    com_util_realtime_timestamp_t invalid_timestamp = {1714100645LL, 1000000000, 0};
+    ASSERT_NE((com_util_trace_file_sink_t *)NULL, handle);
+
+    EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(0); // [Pre-Assert確認_異常系] - 明示タイムスタンプ指定時は現在時刻を取得しないこと。
+    EXPECT_CALL(mock_, com_util_file_write(_, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では低レベル書き込みを呼ばないこと。
+
+    // Act
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, "invalid"); // [手順] - 不正タイムスタンプで書き込む。
+
+    // Assert
+    EXPECT_EQ(-1, result); // [確認_異常系] - 不正タイムスタンプ指定で失敗すること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -218,7 +274,7 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
     ASSERT_NE((com_util_trace_file_sink_t *)NULL, handle);
 
     // Act
-    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込み後にローテーションが完了すること。

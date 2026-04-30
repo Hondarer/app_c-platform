@@ -4,8 +4,9 @@
 #include <mock_com_util.h>
 
 WEAK_ATR int com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                              const void *data, size_t size,
-                              const char *format, ...)
+                                        const com_util_realtime_timestamp_t *timestamp,
+                                        const void *data, size_t size,
+                                        const char *format, ...)
 {
     int rtc = 0;
 
@@ -18,13 +19,13 @@ WEAK_ATR int com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trac
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_tracer_write_hexf(
-            handle, level, data, size, label);
+            handle, level, timestamp, data, size, label);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, %d, 0x%p, %zu, %s", __func__,
-               (void *)handle, (int)level, data, size, label);
+        printf("  > %s 0x%p, %d, 0x%p, 0x%p, %zu, %s", __func__,
+               (void *)handle, (int)level, (void *)timestamp, data, size, label);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);
