@@ -756,9 +756,10 @@ static size_t utf8_safe_truncate(const char *s, size_t pos)
 /**
  *******************************************************************************
  *  @brief          OS トレースプロバイダ (ETW または syslog) にメッセージを書き込む。
- *  @param[in]      handle  書き込み先のトレースプロバイダハンドル。
- *  @param[in]      level   トレースレベル。
- *  @param[in]      msg     書き込むメッセージ文字列。
+ *  @param[in]      handle      書き込み先のトレースプロバイダハンドル。
+ *  @param[in]      level       トレースレベル。
+ *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
+ *  @param[in]      msg         書き込むメッセージ文字列。
  *  @return         成功時 0、失敗時 -1。
  *******************************************************************************
  */
@@ -991,13 +992,14 @@ static const char hex_chars[] = "0123456789ABCDEF";
 /**
  *******************************************************************************
  *  @brief          16 進ダンプメッセージを構築して出力先に書き込む内部実装。
- *  @param[in]      handle  書き込み先のトレースプロバイダハンドル。
- *  @param[in]      level   トレースレベル。
- *  @param[in]      data    ダンプ対象のバイト列。
- *  @param[in]      size    バイト列のサイズ。
- *  @param[in]      label   メッセージに付加するラベル (NULL 可)。
+ *  @param[in]      handle      書き込み先のトレースプロバイダハンドル。
+ *  @param[in]      level       トレースレベル。
+ *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
+ *  @param[in]      data        ダンプ対象のバイト列。
+ *  @param[in]      size        バイト列のサイズ。
+ *  @param[in]      label       メッセージに付加するラベル (NULL 可)。
  *  @return         成功時 0、失敗時 -1。
- *******************************************************************************
+*******************************************************************************
  */
 static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t level,
                           const com_util_realtime_timestamp_t *timestamp,
