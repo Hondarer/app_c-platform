@@ -19,6 +19,7 @@
 
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
+#include <com_util/prompt/prompt.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -289,11 +290,6 @@ static const char *session_prompt_state_to_name(const trace_cli_session_t *sessi
     return session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED
         ? "disposed"
         : "uncreated";
-}
-
-static void trace_cli_print_prompt(const trace_cli_session_t *session)
-{
-    printf("trace-cli[%s]> ", session_prompt_state_to_name(session));
 }
 
 static int parse_size_value(const char *token, size_t *value)
@@ -911,6 +907,7 @@ int main(int argc, char *argv[])
 {
     trace_cli_session_t session;
     char line[TRACE_CLI_LINE_MAX];
+    com_util_prompt_t *prompt;
 
     com_util_console_init();
 
@@ -922,21 +919,25 @@ int main(int argc, char *argv[])
     }
 
     trace_cli_session_init(&session);
+    prompt = com_util_prompt_create(0);
     trace_cli_print_help();
 
     while (!session.exit_requested)
     {
-        trace_cli_print_prompt(&session);
-        fflush(stdout);
-
-        if (fgets(line, sizeof(line), stdin) == NULL)
+        if (com_util_prompt_readline_fmt(prompt, line, sizeof(line),
+                                         "trace-cli[%s]> ",
+                                         session_prompt_state_to_name(&session)) == 0)
         {
             break;
         }
-
+        if (line[0] == '\0')
+        {
+            continue;
+        }
         trace_cli_process_line(&session, line);
     }
 
     trace_cli_session_dispose(&session);
+    com_util_prompt_dispose(prompt);
     return EXIT_SUCCESS;
 }
