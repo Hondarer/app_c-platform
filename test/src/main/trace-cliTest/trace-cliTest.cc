@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <string>
+#include <cerrno>
 #include <cstring>
 #include <cstdint>
 
@@ -37,6 +38,30 @@ static char *copy_line(char *dst, int size, const char *src)
     return dst;
 }
 
+static int emulate_com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count)
+{
+    size_t len;
+
+    if (dest == NULL || dest_size == 0U || src == NULL)
+    {
+        return EINVAL;
+    }
+
+    len = strlen(src);
+    if (len > count)
+    {
+        len = count;
+    }
+    if (len >= dest_size)
+    {
+        len = dest_size - 1U;
+    }
+
+    memcpy(dest, src, len);
+    dest[len] = '\0';
+    return 0;
+}
+
 } // namespace
 
 class trace_cliTest : public Test
@@ -51,6 +76,8 @@ protected:
     void SetUp() override
     {
         trace_cli_session_init(&session_);
+        ON_CALL(mock_com_util_, com_util_strncpy(_, _, _, _))
+            .WillByDefault(emulate_com_util_strncpy);
         ON_CALL(mock_stdio_, printf(_, _, _, _))
             .WillByDefault(Return(0));
         ON_CALL(mock_stdio_, fprintf(_, _, _, _, _))
