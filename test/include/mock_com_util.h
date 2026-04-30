@@ -191,7 +191,8 @@ public:
 #if defined(PLATFORM_LINUX)
     // trace - syslog_sink (Linux only)
     MOCK_METHOD(com_util_syslog_sink_t *, com_util_syslog_sink_create, (const char *, int));
-    MOCK_METHOD(int,  com_util_syslog_sink_write,   (com_util_syslog_sink_t *, int, const char *));
+    MOCK_METHOD(int,  com_util_syslog_sink_write,
+                (com_util_syslog_sink_t *, int, const com_util_realtime_timestamp_t *, const char *));
     MOCK_METHOD(int,  com_util_syslog_sink_rename,  (com_util_syslog_sink_t *, const char *));
     MOCK_METHOD(void, com_util_syslog_sink_dispose, (com_util_syslog_sink_t *));
 #endif /* PLATFORM_LINUX */

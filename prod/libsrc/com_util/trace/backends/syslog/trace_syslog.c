@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <com_util/clock/clock.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/syslog.h>
 #include "syslog_internal.h"
@@ -54,6 +55,9 @@
 
 /** メッセージバッファサイズ (RFC 3164 推奨最大長)。 */
 #define SYSLOG_BUF_SIZE  2048
+
+/** SYSLOG_TEST_FD 向けバッファサイズ。timestamp と改行を加味する。 */
+#define SYSLOG_DEBUG_BUF_SIZE (SYSLOG_BUF_SIZE + COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 4)
 
 /**
  *  @brief  syslog プロバイダハンドル構造体 (内部定義)。
@@ -192,12 +196,18 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
 
 /* doxygen コメントは、ヘッダに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level, const char *message)
+    com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level,
+                               const com_util_realtime_timestamp_t *timestamp,
+                               const char *message)
 {
     char buf[SYSLOG_BUF_SIZE];
+    char debug_buf[SYSLOG_DEBUG_BUF_SIZE];
+    char timestamp_text[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     struct sockaddr_un sa;
+    const char *test_fd_str;
     int prio;
     int n;
+    int debug_len;
     ssize_t sent;
 
     if (handle == NULL || message == NULL)
@@ -221,9 +231,31 @@ COM_UTIL_EXPORT int COM_UTIL_API
     }
 
     /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない */
-    buf[n] = '\n';
-    if (syslog_test_fd_write__(buf, (size_t)(n + 1)))
+    test_fd_str = getenv("SYSLOG_TEST_FD");
+    if (test_fd_str != NULL)
     {
+        if (timestamp != NULL &&
+            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text),
+                                                   timestamp->tv_sec, timestamp->tv_nsec) == 0)
+        {
+            debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
+            if (debug_len < 0)
+            {
+                return 0;
+            }
+            if ((size_t)debug_len >= sizeof(debug_buf))
+            {
+                debug_buf[sizeof(debug_buf) - 2] = '\n';
+                debug_buf[sizeof(debug_buf) - 1] = '\0';
+                debug_len = (int)(sizeof(debug_buf) - 1);
+            }
+            (void)syslog_test_fd_write__(debug_buf, (size_t)debug_len);
+        }
+        else
+        {
+            buf[n] = '\n';
+            (void)syslog_test_fd_write__(buf, (size_t)(n + 1));
+        }
         return 0;
     }
 

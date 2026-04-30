@@ -120,7 +120,7 @@ OS トレースのしきい値を設定します。
 ### `com_util_tracer_write` / `com_util_tracer_writef`
 
 通常のトレースメッセージを書き込みます。  
-`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力にその時刻を使います。
+`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。
 
 ### `com_util_tracer_write_hex` / `com_util_tracer_write_hexf`
 

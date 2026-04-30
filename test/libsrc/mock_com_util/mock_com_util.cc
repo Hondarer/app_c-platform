@@ -251,7 +251,7 @@ Mock_com_util::Mock_com_util()
     // trace - syslog_sink (Linux only)
     ON_CALL(*this, com_util_syslog_sink_create(_, _))
         .WillByDefault(Return(nullptr));
-    ON_CALL(*this, com_util_syslog_sink_write(_, _, _))
+    ON_CALL(*this, com_util_syslog_sink_write(_, _, _, _))
         .WillByDefault(Return(-1));
     ON_CALL(*this, com_util_syslog_sink_rename(_, _))
         .WillByDefault(Return(-1));

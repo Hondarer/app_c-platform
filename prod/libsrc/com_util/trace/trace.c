@@ -762,10 +762,11 @@ static size_t utf8_safe_truncate(const char *s, size_t pos)
  *  @return         成功時 0、失敗時 -1。
  *******************************************************************************
  */
-static int write_to_provider(com_util_tracer_t *handle, com_util_trace_level_t level, const char *msg)
+static int write_to_provider(com_util_tracer_t *handle, com_util_trace_level_t level,
+                             const com_util_realtime_timestamp_t *timestamp, const char *msg)
 {
 #if defined(PLATFORM_LINUX)
-    return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), msg);
+    return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
 #elif defined(PLATFORM_WINDOWS)
     return com_util_etw_provider_write(s_etw_handle, to_etw_level(level),
                               handle->service_name, msg);
@@ -868,6 +869,9 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
     needs_text_timestamp =
         (handle->file_handle != NULL && should_output(level, handle->file_level)) ||
         should_output(level, handle->stderr_level) ||
+#if defined(PLATFORM_LINUX)
+        should_output(level, handle->os_level) ||
+#endif
         timestamp != NULL;
 
     if (needs_text_timestamp)
@@ -886,7 +890,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 
     if (should_output(level, handle->os_level))
     {
-        os_result = write_to_provider(handle, level, msg);
+        os_result = write_to_provider(handle, level, effective_timestamp, msg);
     }
 
     if (handle->file_handle != NULL && should_output(level, handle->file_level))

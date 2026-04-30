@@ -87,7 +87,7 @@ protected:
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _))
             .WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _))
+        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _))
             .WillByDefault(Return(0));
         ON_CALL(mock_, com_util_syslog_sink_rename(_, _))
             .WillByDefault(Return(0));
@@ -191,8 +191,13 @@ TEST_F(traceTest, test_write_routes_info_to_os_backend)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, StrEq("test message")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が syslog backend へ 1 回送られること。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("test message")))
+        .WillOnce([](com_util_syslog_sink_t *, int, const com_util_realtime_timestamp_t *timestamp,
+                     const char *) {
+            EXPECT_EQ(1714100645LL, timestamp->tv_sec);
+            EXPECT_EQ(678000000, timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_正常系] - INFO が解決済み時刻付きで syslog backend へ 1 回送られること。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("test message")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が ETW backend へ 1 回送られること。
@@ -200,6 +205,42 @@ TEST_F(traceTest, test_write_routes_info_to_os_backend)
 
     // Act
     int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "test message"); // [手順] - INFO メッセージを書き込む。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// 明示タイムスタンプ付き INFO 出力が OS backend へ渡ることの確認
+TEST_F(traceTest, test_write_routes_explicit_timestamp_to_os_backend)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    com_util_realtime_timestamp_t timestamp = make_fixed_timestamp();
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  StrEq("explicit timestamp")))
+        .WillOnce([&timestamp](com_util_syslog_sink_t *, int,
+                               const com_util_realtime_timestamp_t *actual_timestamp,
+                               const char *) {
+            EXPECT_EQ(timestamp.tv_sec, actual_timestamp->tv_sec);
+            EXPECT_EQ(timestamp.tv_nsec, actual_timestamp->tv_nsec);
+            return 0;
+        }); // [Pre-Assert確認_正常系] - 明示タイムスタンプが syslog backend へそのまま渡ること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   StrEq("explicit timestamp")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定でも ETW backend へメッセージが渡ること。
+#endif
+
+    // Act
+    int result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                       "explicit timestamp"); // [手順] - 明示タイムスタンプ付き INFO を書き込む。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
@@ -241,8 +282,11 @@ TEST_F(traceTest, test_write_truncates_utf8_boundary)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, _))
-        .WillOnce([](com_util_syslog_sink_t *, int, const char *actual) {
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), _))
+        .WillOnce([](com_util_syslog_sink_t *, int, const com_util_realtime_timestamp_t *timestamp,
+                     const char *actual) {
+            EXPECT_EQ(1714100645LL, timestamp->tv_sec);
+            EXPECT_EQ(678000000, timestamp->tv_nsec);
             EXPECT_EQ((size_t)1021, strlen(actual));
             EXPECT_EQ(std::string(1021, 'A'), std::string(actual));
             return 0;
@@ -275,8 +319,9 @@ TEST_F(traceTest, test_writef_formats_message)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, StrEq("user=alice count=42")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - format 展開後の文字列が backend へ渡ること。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  StrEq("user=alice count=42")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - format 展開後の文字列が時刻付きで backend へ渡ること。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("user=alice count=42")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - format 展開後の文字列が backend へ渡ること。
@@ -302,8 +347,9 @@ TEST_F(traceTest, test_write_hex_formats_payload)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, StrEq("Data: 48 65 6C 6C 6F")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX テキストが backend へ渡ること。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  StrEq("Data: 48 65 6C 6C 6F")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX テキストが時刻付きで backend へ渡ること。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("Data: 48 65 6C 6C 6F")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX テキストが backend へ渡ること。
@@ -461,7 +507,7 @@ TEST_F(traceTest, test_os_level_none_suppresses_output)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _)).Times(0); // [Pre-Assert確認_正常系] - syslog backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).Times(0); // [Pre-Assert確認_正常系] - syslog backend が呼ばれないこと。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).Times(0); // [Pre-Assert確認_正常系] - ETW backend が呼ばれないこと。
 #endif
@@ -511,7 +557,7 @@ TEST_F(traceTest, test_invalid_explicit_timestamp_fails_before_any_output)
 
     EXPECT_CALL(mock_, com_util_get_realtime(_, _)).Times(0); // [Pre-Assert確認_異常系] - 明示タイムスタンプ指定時は内部取得しないこと。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では syslog backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では syslog backend が呼ばれないこと。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - 不正時刻では ETW backend が呼ばれないこと。
 #endif

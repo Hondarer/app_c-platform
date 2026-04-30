@@ -2,6 +2,7 @@
 #define COM_UTIL_SYSLOG_H
 
 #include <com_util/base/platform.h>
+#include <com_util/clock/clock.h>
 #include <com_util_export.h>
 
 /**
@@ -41,11 +42,14 @@ extern "C"
      *
      *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    syslog severity 値。
+     *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻。NULL の場合は時刻を付与しない。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level, const char *message);
+        com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level,
+                                   const com_util_realtime_timestamp_t *timestamp,
+                                   const char *message);
 
     /**
      *  @brief          syslog プロバイダの識別子を変更する。
