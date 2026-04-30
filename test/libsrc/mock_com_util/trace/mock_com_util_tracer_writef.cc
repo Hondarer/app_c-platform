@@ -21,7 +21,7 @@ WEAK_ATR int com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_le
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, %d, 0x%p, %s", __func__, (void *)handle, (int)level, (void *)timestamp, buf);
+        printf("  > %s 0x%p, %d, 0x%p, %s", __func__, (void *)handle, (int)level, (const void *)timestamp, buf);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

@@ -25,7 +25,7 @@ WEAK_ATR int com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trac
     if (getTraceLevel() > TRACE_NONE)
     {
         printf("  > %s 0x%p, %d, 0x%p, 0x%p, %zu, %s", __func__,
-               (void *)handle, (int)level, (void *)timestamp, data, size, label);
+               (void *)handle, (int)level, (const void *)timestamp, data, size, label);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);
