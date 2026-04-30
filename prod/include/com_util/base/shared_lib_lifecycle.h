@@ -24,6 +24,7 @@
 #define SHARED_LIB_LIFECYCLE_H
 
 #include <com_util/base/platform.h>
+#include <stdlib.h>
 
 #if defined(PLATFORM_LINUX)
     #include <stdio.h>
@@ -43,6 +44,8 @@
      *  @details        `DllMain` および constructor / destructor コンテキストでは
      *                  使用できる API が制限されるため、このマクロは制約下でも比較的
      *                  安全な最小限の出力経路を提供します。\n
+     *                  環境変数 `ENABLE_DLLMAIN_COM_UTIL_INFO_MSG` が設定されている
+     *                  場合にのみ出力します。未設定時は何も出力しません。\n
      *                  Linux では、環境変数 `SYSLOG_TEST_FD` が設定されていれば
      *                  その FD に RFC 3164 形式のメッセージを書き込みます。
      *                  設定されていない場合は `/dev/log` へ UNIX ドメイン SOCK_DGRAM で
@@ -58,6 +61,11 @@
      */
     #define DLLMAIN_COM_UTIL_INFO_MSG(msg)
 #else /* !DOXYGEN */
+static int dllmain_com_util_info_msg_enabled__(void)
+{
+    return getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG") != NULL;
+}
+
     #if defined(PLATFORM_LINUX)
 /**
  *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信する。
@@ -72,6 +80,11 @@ static void dllmain_syslog_send__(const char *msg)
     struct sockaddr_un sa;
     int fd;
     int n;
+
+    if (!dllmain_com_util_info_msg_enabled__())
+    {
+        return;
+    }
 
     /* priority 14 = facility LOG_USER(1<<3) | severity LOG_INFO(6) */
     n = snprintf(buf, sizeof(buf), "<14>com_util[%d]: %s", (int)getpid(), msg);
@@ -109,7 +122,14 @@ static void dllmain_syslog_send__(const char *msg)
 static void dllmain_output_debug_msg__(const char *msg)
 {
     wchar_t buf[1024];
-    int len = MultiByteToWideChar(CP_UTF8, 0, msg, -1, NULL, 0);
+    int len;
+
+    if (!dllmain_com_util_info_msg_enabled__())
+    {
+        return;
+    }
+
+    len = MultiByteToWideChar(CP_UTF8, 0, msg, -1, NULL, 0);
     if (len <= 0)
         return;
     if (len <= 1024)
