@@ -240,22 +240,28 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
     int argc = 1;
     const char *argv[] = {"trace-cli"}; // [状態] - 引数なしで対話モード起動する。
     std::vector<std::string> lines = {
-        "create\n",
-        "start\n",
-        "write INFO hello world\n",
-        "stop\n",
-        "dispose\n",
-        "exit\n",
+        "create",
+        "start",
+        "write INFO hello world",
+        "stop",
+        "dispose",
+        "exit",
     };
     size_t index = 0U;
+    com_util_prompt_t *prompt_handle =
+        reinterpret_cast<com_util_prompt_t *>(static_cast<uintptr_t>(0x5678));
 
     testing::Sequence io_seq;
 
     EXPECT_CALL(mock_com_util_, com_util_console_init())
         .WillOnce(Return()); // [Pre-Assert確認] - main() 起動時に console 初期化が呼ばれること。
+    EXPECT_CALL(mock_com_util_, com_util_prompt_create(_))
+        .WillOnce(Return(prompt_handle)); // [Pre-Assert確認] - main() 起動時に prompt が生成されること。
+    EXPECT_CALL(mock_com_util_, com_util_prompt_dispose(prompt_handle))
+        .WillOnce(Return()); // [Pre-Assert確認] - main() 終了時に prompt が解放されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(_))
         .Times(AnyNumber())
-        .WillRepeatedly(Return()); // [Pre-Assert確認] - dispose 呼び出しのうち、対象外の NULL は許容すること。
+        .WillRepeatedly(Return()); // [Pre-Assert確認] - 後処理で発生する NULL dispose は許容すること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_create())
         .WillOnce(Return(handle_)); // [Pre-Assert確認] - create コマンドで tracer handle が生成されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_get_state(handle_))
@@ -271,51 +277,34 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
         .WillOnce(Return(0)); // [Pre-Assert確認] - stop コマンドで tracer が停止されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(handle_))
         .WillOnce(Return()); // [Pre-Assert確認] - dispose コマンドで保持中 handle が解放されること。
-    EXPECT_CALL(mock_stdio_, fgets(_, _, _, _, _, _))
-        .Times(AtLeast(1))
-        .WillRepeatedly([&](const char *, int, const char *, char *buf, int size, FILE *) -> char * {
+    EXPECT_CALL(mock_com_util_, _com_util_prompt_readline_fmt(prompt_handle, _, _, _, _, _, _))
+        .WillRepeatedly([&](com_util_prompt_t *, char *buf, size_t buf_size,
+                            const char *, int, const char *, va_list) -> int {
             if (index >= lines.size())
             {
-                return NULL;
+                return 0;
             }
-            return copy_line(buf, size, lines[index++].c_str());
+            copy_line(buf, (int)buf_size, lines[index++].c_str());
+            return 1;
         }); // [Pre-Assert確認] - REPL 入力が順に main() へ供給されること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(0)); // [Pre-Assert確認] - help を含むその他の stdout 出力は許容すること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[uncreated]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - 初回 prompt が uncreated であること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=created\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - create 結果が出力されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[stopped]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - create 後 prompt が stopped であること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - start の戻り値が rc=0 として表示されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[started]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - start 後 prompt が started であること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - write の戻り値が rc=0 として表示されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[started]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - write 後も prompt が started であること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - stop の戻り値が rc=0 として表示されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[stopped]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - stop 後 prompt が stopped であること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=disposed\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - dispose 結果が出力されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("trace-cli[disposed]> ")))
-        .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - dispose 後 prompt が disposed であること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv);

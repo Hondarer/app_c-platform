@@ -22,6 +22,7 @@
 #include <com_util/trace/trace_file.h>
 #include <com_util/trace/syslog.h>
 #include <com_util/trace/etw.h>
+#include <com_util/prompt/prompt.h>
 
 class Mock_com_util
 {
@@ -207,6 +208,14 @@ public:
                 (const char *, const char *, com_util_etw_event_callback_t, void *, int *));
     MOCK_METHOD(void, com_util_etw_session_stop, (com_util_etw_session_t *));
 #endif /* PLATFORM_WINDOWS */
+
+    // prompt
+    MOCK_METHOD(com_util_prompt_t *, com_util_prompt_create, (size_t));
+    MOCK_METHOD(void, com_util_prompt_dispose, (com_util_prompt_t *));
+    MOCK_METHOD(int, _com_util_prompt_readline,
+                (com_util_prompt_t *, char *, size_t, const char *, const char *, int));
+    MOCK_METHOD(int, _com_util_prompt_readline_fmt,
+                (com_util_prompt_t *, char *, size_t, const char *, int, const char *, va_list));
 
     Mock_com_util();
     ~Mock_com_util();

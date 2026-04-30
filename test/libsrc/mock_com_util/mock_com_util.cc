@@ -239,6 +239,16 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_sym_loader_info(_, _))
         .WillByDefault(Return(-1));
 
+    // prompt
+    ON_CALL(*this, com_util_prompt_create(_))
+        .WillByDefault(Return(nullptr));
+    ON_CALL(*this, com_util_prompt_dispose(_))
+        .WillByDefault(Return());
+    ON_CALL(*this, _com_util_prompt_readline(_, _, _, _, _, _))
+        .WillByDefault(Return(0));
+    ON_CALL(*this, _com_util_prompt_readline_fmt(_, _, _, _, _, _, _))
+        .WillByDefault(Return(0));
+
     // trace - log_file_sink
     ON_CALL(*this, com_util_trace_file_sink_create(_, _, _))
         .WillByDefault(Return(nullptr));
