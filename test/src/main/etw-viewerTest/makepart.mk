@@ -11,9 +11,5 @@ USE_WRAP_MAIN := 1
 INCDIR += \
 	$(MYAPP_DIR)/prod/src/etw-viewer
 
-# mock_com_util の検索パス
-LIBSDIR += \
-	$(MYAPP_DIR)/test/lib
-
 # ライブラリの指定
 LIBS += mock_com_util mock_libc

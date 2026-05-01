@@ -69,6 +69,8 @@ protected:
     }
 };
 
+#if defined(PLATFORM_WINDOWS)
+
 TEST_F(etw_viewerTest, parse_args_accepts_pid_filter)
 {
     // Arrange
@@ -233,8 +235,6 @@ TEST_F(etw_viewerTest, main_rejects_invalid_arguments)
     // Assert
     EXPECT_NE(0, rc); // [確認_異常系] - 不正引数で失敗終了すること。
 }
-
-#if defined(PLATFORM_WINDOWS)
 
 TEST_F(etw_viewerTest, main_stops_when_access_is_denied)
 {
