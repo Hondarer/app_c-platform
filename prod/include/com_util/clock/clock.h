@@ -213,7 +213,6 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @def            COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN
      *  @brief          com_util_format_realtime_iso8601_local() が返す時刻文字列の長さ。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sss+09:00` です。\n
@@ -224,7 +223,6 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @def            COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN
      *  @brief          com_util_format_realtime_iso8601_utc() が返す時刻文字列の長さ。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sssZ` です。\n

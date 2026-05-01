@@ -33,8 +33,8 @@
 
 #ifdef DOXYGEN
     /**
-     *  @def            PLATFORM_PATH_MAX
      *  @brief          OS 固有のパス最大長。
+     *                  Linux では PATH_MAX、Windows では MAX_PATH に対応する値を使用する。
      */
     #define PLATFORM_PATH_MAX 4096
 #else /* !DOXYGEN */
@@ -48,12 +48,10 @@
 #endif     /* DOXYGEN */
 
 /**
- *  @def            PLATFORM_PATH_SEP
  *  @brief          ファイルパス区切り文字列。全プラットフォームで `"/"` に統一します。
  */
 #define PLATFORM_PATH_SEP "/"
 /**
- *  @def            PLATFORM_PATH_SEP_CHR
  *  @brief          ファイルパス区切り文字 (char 型)。全プラットフォームで `'/'` に統一します。
  */
 #define PLATFORM_PATH_SEP_CHR '/'
@@ -64,7 +62,6 @@
     COM_UTIL_PATH_CONCAT_COUNT_IMPL(__VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
 /**
- *  @def            com_util_path_concat(path_out, path_size, errno_out, ...)
  *  @brief          パス断片を指定順にそのまま連結します。
  *
  *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。

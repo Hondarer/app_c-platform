@@ -30,7 +30,6 @@ typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
 /* ===== プロバイダ定義マクロ ===== */
 
 /**
- *  @def            COM_UTIL_ETW_DEFINE_PROVIDER(var, name, guid)
  *  @brief          ETW プロバイダを定義するマクロ。
  *  @details        呼び出し元の .c ファイルのファイルスコープに 1 回だけ記述します。\n
  *                  TRACELOGGING_DEFINE_PROVIDER(var, name, guid) に展開します。

@@ -46,14 +46,13 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
- *  @def            COM_UTIL_MODULE_HANDLE
- *  @brief          Linux/Windows 共通のモジュールハンドル型。
- *  @details        sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
- *                  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
- *                  `HMODULE` を表します。
- */
 #ifdef DOXYGEN
+    /**
+     *  @brief          Linux/Windows 共通のモジュールハンドル型。
+     *  @details        sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
+     *                  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
+     *                  `HMODULE` を表します。
+     */
     #define COM_UTIL_MODULE_HANDLE void *
 #elif defined(PLATFORM_LINUX)
     #define COM_UTIL_MODULE_HANDLE void *
@@ -84,7 +83,6 @@ extern "C"
     } com_util_sym_loader_entry_t;
 
 /**
- *  @def            COM_UTIL_SYM_LOADER_ENTRY_INIT
  *  @brief          com_util_sym_loader_entry_t 静的変数の初期化マクロ。
  *
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
@@ -107,7 +105,6 @@ extern "C"
     COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj);
 
 /**
- *  @def            com_util_sym_loader_resolve_as
  *  @brief          拡張関数ポインタを返す。
  *
  *  @param[in]      fobj com_util_sym_loader_entry_t へのポインタ。

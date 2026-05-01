@@ -25,7 +25,6 @@
 /* ===== 設定定数 ===== */
 
 /**
- *  @def            COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES
  *  @brief          トレースファイル 1 世代あたりの既定最大サイズ (バイト)。
  *  @details        この値を超えるとローテーションが実行されます。\n
  *                  com_util_trace_file_sink_create の max_bytes に 0 を指定した場合に使用されます。
@@ -33,7 +32,6 @@
 #define COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES  ((size_t)(10 * 1024 * 1024))
 
 /**
- *  @def            COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS
  *  @brief          保持するトレースファイル世代数の既定値。
  *  @details        ローテーション時に path.1 〜 path.N のファイルを保持します。\n
  *                  com_util_trace_file_sink_create の generations に 0 以下を指定した場合に使用されます。

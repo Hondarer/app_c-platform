@@ -81,13 +81,11 @@
 #if defined(PLATFORM_WINDOWS)
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
  *  @brief          com_util_tracer_create が使用するデフォルト ETW プロバイダ名。
  */
 #define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "Company.Product"
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID
  *  @brief          デフォルト ETW プロバイダの GUID (TraceLogging タプル形式)。
  *
  *  TRACELOGGING_DEFINE_PROVIDER で使用する形式です。
@@ -96,7 +94,6 @@
     (0xc3a7b5d1, 0x4e2f, 0x4a89, 0x96, 0xc8, 0xd7, 0xe9, 0xf1, 0xa2, 0xb3, 0xc4)
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR
  *  @brief          デフォルト ETW プロバイダの GUID (文字列形式)。
  *
  *  com_util_etw_session_start に渡す場合など、文字列形式の GUID が
@@ -110,7 +107,6 @@
 /* ===== メッセージ長制限 ===== */
 
 /**
- *  @def            COM_UTIL_TRACER_MESSAGE_MAX_BYTES
  *  @brief          com_util_tracer_write が受け付けるメッセージの最大バイト数 (null 終端含む)。
  *
  *  ETW (約 65,000 バイト) と syslog (RFC 3164: 1,024 バイト) の
@@ -121,7 +117,6 @@
 #define COM_UTIL_TRACER_MESSAGE_MAX_BYTES 1024
 
 /**
- *  @def            COM_UTIL_TRACER_HEX_MAX_DATA_BYTES
  *  @brief          com_util_tracer_write_hex がラベルなしで HEX 出力できるバイナリデータの最大バイト数。
  *
  *  1 バイトあたり 3 文字 (HH + スペース) を消費し、最終バイトは 2 文字です。\n
@@ -143,7 +138,7 @@
  *  COM_UTIL_TRACE_LEVEL_DEBUG は ETW / syslog では COM_UTIL_TRACE_LEVEL_VERBOSE と同じ詳細度で扱われます。
  *
  *  | com_util_trace_level          | ETW Level         | syslog severity |
- *  | --------------------------- | ----------------- | --------------- |
+ *  | ----------------------------- | ----------------- | --------------- |
  *  | COM_UTIL_TRACE_LEVEL_CRITICAL | Critical (1)      | LOG_CRIT (2)    |
  *  | COM_UTIL_TRACE_LEVEL_ERROR    | Error (2)         | LOG_ERR (3)     |
  *  | COM_UTIL_TRACE_LEVEL_WARNING  | Warning (3)       | LOG_WARNING (4) |
@@ -176,7 +171,6 @@ typedef enum com_util_tracer_state_t
 /* ===== デフォルトトレースレベル ===== */
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_OS_LEVEL
  *  @brief          com_util_tracer_create() が設定する OS トレース (ETW / syslog) のデフォルトレベル。
  *
  *  ユーザーが com_util_tracer_set_os_level() で変更するまで有効な初期値です。
@@ -184,7 +178,6 @@ typedef enum com_util_tracer_state_t
 #define COM_UTIL_TRACER_DEFAULT_OS_LEVEL   COM_UTIL_TRACE_LEVEL_INFO
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_FILE_LEVEL
  *  @brief          com_util_tracer_create() が設定するファイルトレースのデフォルトレベル。
  *
  *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。
@@ -192,7 +185,6 @@ typedef enum com_util_tracer_state_t
 #define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_ERROR
 
 /**
- *  @def            COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL
  *  @brief          com_util_tracer_create() が設定する stderr トレースのデフォルトレベル。
  *
  *  ユーザーが com_util_tracer_set_stderr_level() で変更するまで有効な初期値です。\n
@@ -495,7 +487,6 @@ extern "C"
 /* ===== ソース位置自動付与マクロ ===== */
 
 /**
- *  @def            _com_util_tracer_basename(f)
  *  @brief          ファイルパスからベースネームを取り出す内部ヘルパーマクロ。
  *  @internal
  */
@@ -527,7 +518,6 @@ static inline int _com_util_tracer_write_with_source(
 }
 
 /**
- *  @def            com_util_tracer_write(handle, level, timestamp, message)
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write マクロ。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
@@ -535,7 +525,6 @@ static inline int _com_util_tracer_write_with_source(
                                        _com_util_tracer_basename(__FILE__), __LINE__, (message))
 
 /**
- *  @def            com_util_tracer_writef(handle, level, timestamp, fmt, ...)
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_writef マクロ。
  */
 #define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
@@ -543,7 +532,6 @@ static inline int _com_util_tracer_write_with_source(
                             _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /**
- *  @def            com_util_tracer_write_hex(handle, level, timestamp, data, size, message)
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hex マクロ。
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
@@ -553,7 +541,6 @@ static inline int _com_util_tracer_write_with_source(
                                 (message) != NULL ? (message) : "")
 
 /**
- *  @def            com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...)
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロ。
  */
 #define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \

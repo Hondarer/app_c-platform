@@ -39,7 +39,6 @@
 
 #ifdef DOXYGEN
     /**
-     *  @def            DLLMAIN_COM_UTIL_INFO_MSG
      *  @brief          ロード/アンロードコンテキスト向けの診断メッセージ出力マクロ。
      *  @details        `DllMain` および constructor / destructor コンテキストでは
      *                  使用できる API が制限されるため、このマクロは制約下でも比較的
