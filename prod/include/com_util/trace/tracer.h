@@ -182,7 +182,7 @@ typedef enum com_util_tracer_state_t
  *
  *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。
  */
-#define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_ERROR
+#define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_INFO
 
 /**
  *  @brief          com_util_tracer_create() が設定する stderr トレースのデフォルトレベル。
