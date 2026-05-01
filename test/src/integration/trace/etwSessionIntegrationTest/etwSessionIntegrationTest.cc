@@ -23,14 +23,32 @@ COM_UTIL_ETW_DEFINE_PROVIDER(
 struct EventCollector
 {
     std::mutex mtx;
-    std::vector<std::pair<int, std::string>> events;
+    struct EventRecord
+    {
+        int level;
+        uint32_t process_id;
+        bool has_service;
+        int64_t timestamp_100ns;
+        std::string event_name;
+        std::string service;
+        std::string message;
+    };
+    std::vector<EventRecord> events;
 };
 
-static void collect_callback(int level, const char *message, void *context)
+static void collect_callback(const com_util_etw_event_t *event, void *context)
 {
     EventCollector *collector = static_cast<EventCollector *>(context);
     std::lock_guard<std::mutex> lock(collector->mtx);
-    collector->events.emplace_back(level, message ? message : "");
+    ASSERT_NE((const com_util_etw_event_t *)NULL, event);
+    collector->events.push_back(EventCollector::EventRecord{
+        event->level,
+        event->process_id,
+        event->service != nullptr,
+        event->timestamp_100ns,
+        event->event_name ? event->event_name : "",
+        event->service ? event->service : "",
+        event->message ? event->message : ""});
 }
 
 static int s_session_counter = 0;
@@ -111,9 +129,13 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     bool found = false;
     for (const auto &evt : collector.events)
     {
-        if (evt.second == "hello world")
+        if (evt.message == "hello world")
         {
-            EXPECT_EQ(4, evt.first); // [確認_正常系] - INFO レベルで受信されること。
+            EXPECT_EQ(4, evt.level); // [確認_正常系] - INFO レベルで受信されること。
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
+            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
         }
@@ -144,9 +166,13 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
     bool found = false;
     for (const auto &evt : collector.events)
     {
-        if (evt.second == msg)
+        if (evt.message == msg)
         {
-            EXPECT_EQ(3, evt.first); // [確認_正常系] - WARNING レベルで受信されること。
+            EXPECT_EQ(3, evt.level); // [確認_正常系] - WARNING レベルで受信されること。
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
+            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
         }
@@ -180,9 +206,13 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
     bool found = false;
     for (const auto &evt : collector.events)
     {
-        if (evt.second == msg)
+        if (evt.message == msg)
         {
-            EXPECT_EQ(2, evt.first); // [確認_正常系] - ERROR レベルで受信されること。
+            EXPECT_EQ(2, evt.level); // [確認_正常系] - ERROR レベルで受信されること。
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
+            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
         }
@@ -220,31 +250,43 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
 
     for (const auto &evt : collector.events)
     {
-        if (evt.second == "critical_msg")
+        if (evt.message == "critical_msg")
         {
-            EXPECT_EQ(1, evt.first);
+            EXPECT_EQ(1, evt.level);
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id);
+            EXPECT_EQ("Trace", evt.event_name);
             saw_critical = true;
         }
-        else if (evt.second == "error_msg")
+        else if (evt.message == "error_msg")
         {
-            EXPECT_EQ(2, evt.first);
+            EXPECT_EQ(2, evt.level);
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id);
+            EXPECT_EQ("Trace", evt.event_name);
             saw_error = true;
         }
-        else if (evt.second == "warning_msg")
+        else if (evt.message == "warning_msg")
         {
-            EXPECT_EQ(3, evt.first);
+            EXPECT_EQ(3, evt.level);
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id);
+            EXPECT_EQ("Trace", evt.event_name);
             saw_warning = true;
         }
-        else if (evt.second == "info_msg")
+        else if (evt.message == "info_msg")
         {
-            EXPECT_EQ(4, evt.first);
+            EXPECT_EQ(4, evt.level);
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id);
+            EXPECT_EQ("Trace", evt.event_name);
             saw_info = true;
         }
-        else if (evt.second == "verbose_msg")
+        else if (evt.message == "verbose_msg")
         {
-            EXPECT_EQ(5, evt.first);
+            EXPECT_EQ(5, evt.level);
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id);
+            EXPECT_EQ("Trace", evt.event_name);
             saw_verbose = true;
         }
+        EXPECT_FALSE(evt.has_service); // [確認_正常系] - 既存ケースでは Service なしで受信されること。
+        EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - 各イベントに ETW タイムスタンプが設定されること。
     }
 
     EXPECT_TRUE(saw_critical); // [確認_正常系] - CRITICAL が受信されること。
@@ -275,14 +317,54 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
     bool found = false;
     for (const auto &evt : collector.events)
     {
-        if (evt.second.empty())
+        if (evt.message.empty())
         {
-            EXPECT_EQ(5, evt.first); // [確認_正常系] - 空文字列が VERBOSE で受信されること。
+            EXPECT_EQ(5, evt.level); // [確認_正常系] - 空文字列が VERBOSE で受信されること。
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
+            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
         }
     }
     EXPECT_TRUE(found) << "Expected empty-string event not found";
+
+    com_util_etw_provider_dispose(handle);
+}
+
+TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
+{
+    std::string session_name = make_session_name();
+    EventCollector collector;
+
+    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+
+    com_util_etw_session_t *session = com_util_etw_session_start(
+        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+
+    Sleep(200);
+    com_util_etw_provider_write(handle, 4, "worker-1", "service_msg"); // [手順] - Service と Message を持つイベントを書き込む。
+    com_util_etw_session_stop(session);
+
+    bool found = false;
+    for (const auto &evt : collector.events)
+    {
+        if (evt.message == "service_msg")
+        {
+            EXPECT_EQ(4, evt.level); // [確認_正常系] - INFO レベルで受信されること。
+            EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
+            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
+            EXPECT_TRUE(evt.has_service); // [確認_正常系] - Service フィールドが受信されること。
+            EXPECT_EQ("worker-1", evt.service); // [確認_正常系] - Service 名が復元されること。
+            EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
+            found = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found) << "Expected event with service field not found";
 
     com_util_etw_provider_dispose(handle);
 }

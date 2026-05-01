@@ -7,7 +7,9 @@
     #include <com_util/sync/sync.h>
     #include <evntcons.h>
     #include <evntrace.h>
+    #include <tdh.h>
     #pragma comment(lib, "Advapi32.lib")
+    #pragma comment(lib, "Tdh.lib")
     #include <com_util/trace/etw.h>
     #include <stdio.h>
     #include <stdlib.h>
@@ -101,6 +103,243 @@ static int guid_equal(const GUID *a, const GUID *b)
 }
 
 /**
+ *  @brief  TRACE_EVENT_INFO を取得する。
+ *  @return 成功時は確保済みポインタ。失敗時は NULL。
+ */
+static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
+{
+    TRACE_EVENT_INFO *info = NULL;
+    ULONG size = 0;
+    ULONG status;
+
+    status = TdhGetEventInformation(pEvent, 0, NULL, NULL, &size);
+    if (status != ERROR_INSUFFICIENT_BUFFER || size == 0)
+    {
+        return NULL;
+    }
+
+    info = (TRACE_EVENT_INFO *)malloc(size);
+    if (info == NULL)
+    {
+        return NULL;
+    }
+
+    status = TdhGetEventInformation(pEvent, 0, NULL, info, &size);
+    if (status != ERROR_SUCCESS)
+    {
+        free(info);
+        return NULL;
+    }
+
+    return info;
+}
+
+/**
+ *  @brief  TRACE_EVENT_INFO からイベント名を取得する。
+ *  @return イベント名。取得できない場合は NULL。
+ */
+static const wchar_t *get_event_name(const TRACE_EVENT_INFO *info)
+{
+    if (info == NULL || info->EventNameOffset == 0)
+    {
+        return NULL;
+    }
+
+    return (const wchar_t *)((const unsigned char *)info + info->EventNameOffset);
+}
+
+/**
+ *  @brief  ワイド文字列を UTF-8 へ変換する。
+ *  @return 成功時は確保済み UTF-8 文字列。失敗時は NULL。
+ */
+static char *dup_utf8_from_wide(const wchar_t *text)
+{
+    int utf8_len;
+    char *utf8_text;
+
+    if (text == NULL)
+    {
+        return NULL;
+    }
+
+    utf8_len = WideCharToMultiByte(CP_UTF8, 0, text, -1, NULL, 0, NULL, NULL);
+    if (utf8_len <= 0)
+    {
+        return NULL;
+    }
+
+    utf8_text = (char *)malloc((size_t)utf8_len);
+    if (utf8_text == NULL)
+    {
+        return NULL;
+    }
+
+    if (WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8_text, utf8_len, NULL, NULL) <= 0)
+    {
+        free(utf8_text);
+        return NULL;
+    }
+
+    return utf8_text;
+}
+
+/**
+ *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読む。
+ *  @return 成功 0 / 失敗 -1。
+ */
+static int read_ansi_string_field(const unsigned char *cursor, USHORT remaining,
+                                  const char **out_text, USHORT *out_consumed)
+{
+    USHORT i;
+
+    if (cursor == NULL || out_text == NULL || out_consumed == NULL)
+    {
+        return -1;
+    }
+
+    for (i = 0; i < remaining; i++)
+    {
+        if (cursor[i] == '\0')
+        {
+            *out_text = (const char *)cursor;
+            *out_consumed = (USHORT)(i + 1U);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ *  @brief  UserData 上の uint32 値を 1 つ読む。
+ *  @return 成功 0 / 失敗 -1。
+ */
+static int read_uint32_field(const unsigned char *cursor, USHORT remaining,
+                             uint32_t *out_value, USHORT *out_consumed)
+{
+    if (cursor == NULL || out_value == NULL || out_consumed == NULL || remaining < 4U)
+    {
+        return -1;
+    }
+
+    *out_value = (uint32_t)cursor[0]
+               | ((uint32_t)cursor[1] << 8)
+               | ((uint32_t)cursor[2] << 16)
+               | ((uint32_t)cursor[3] << 24);
+    *out_consumed = 4U;
+    return 0;
+}
+
+/**
+ *  @brief  TraceLogging payload から Service / Message を復元する。
+ *  @details TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
+ *           Service / Message が存在しないイベントは out_* を NULL のまま返す。
+ */
+static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info,
+                                 const char **out_service, const char **out_message,
+                                 uint32_t *out_process_id)
+{
+    const unsigned char *cursor;
+    USHORT remaining;
+    ULONG count;
+    ULONG i;
+
+    if (out_service != NULL)
+    {
+        *out_service = NULL;
+    }
+    if (out_message != NULL)
+    {
+        *out_message = NULL;
+    }
+    if (out_process_id != NULL)
+    {
+        *out_process_id = 0U;
+    }
+    if (pEvent == NULL || out_message == NULL)
+    {
+        return;
+    }
+
+    if (pEvent->UserData == NULL || pEvent->UserDataLength == 0)
+    {
+        return;
+    }
+
+    if (info == NULL || info->TopLevelPropertyCount == 0)
+    {
+        return;
+    }
+
+    cursor = (const unsigned char *)pEvent->UserData;
+    remaining = pEvent->UserDataLength;
+    count = info->TopLevelPropertyCount;
+
+    for (i = 0; i < count && remaining > 0; i++)
+    {
+        const EVENT_PROPERTY_INFO *prop;
+        const wchar_t *name;
+        const char *text;
+        uint32_t process_id_value;
+        USHORT consumed;
+
+        prop = &info->EventPropertyInfoArray[i];
+        if ((prop->Flags & PropertyStruct) != 0)
+        {
+            continue;
+        }
+        if (prop->NameOffset == 0)
+        {
+            continue;
+        }
+        name = (const wchar_t *)((const unsigned char *)info + prop->NameOffset);
+        if (name == NULL)
+        {
+            continue;
+        }
+
+        if (prop->nonStructType.InType == TDH_INTYPE_ANSISTRING)
+        {
+            if (read_ansi_string_field(cursor, remaining, &text, &consumed) != 0)
+            {
+                break;
+            }
+
+            if (wcscmp(name, L"Service") == 0)
+            {
+                if (out_service != NULL)
+                {
+                    *out_service = text;
+                }
+            }
+            else if (wcscmp(name, L"Message") == 0)
+            {
+                *out_message = text;
+            }
+        }
+        else if (prop->nonStructType.InType == TDH_INTYPE_UINT32)
+        {
+            if (read_uint32_field(cursor, remaining, &process_id_value, &consumed) != 0)
+            {
+                break;
+            }
+
+            if (wcscmp(name, L"ProcessId") == 0 && out_process_id != NULL)
+            {
+                *out_process_id = process_id_value;
+            }
+        }
+        else
+        {
+            break;
+        }
+
+        cursor += consumed;
+        remaining = (USHORT)(remaining - consumed);
+    }
+}
+
+/**
  *  @brief  ETW イベントレコードコールバック (ProcessTrace から呼ばれる)。
  *
  *  プロバイダ GUID でフィルタリングし、UserData を null 終端文字列として読み取る。
@@ -109,8 +348,13 @@ static int guid_equal(const GUID *a, const GUID *b)
 static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 {
     com_util_etw_session_t *session;
+    com_util_etw_event_t event;
+    TRACE_EVENT_INFO *info;
+    const wchar_t *event_name_w;
+    char *event_name_utf8;
+    const char *service;
     const char *message;
-    int level;
+    uint32_t payload_process_id;
 
     if (pEvent == NULL)
     {
@@ -129,15 +373,32 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
         return;
     }
 
-    level = pEvent->EventHeader.EventDescriptor.Level;
-
-    message = NULL;
-    if (pEvent->UserData != NULL && pEvent->UserDataLength > 0)
+    info = get_trace_event_info(pEvent);
+    event_name_w = get_event_name(info);
+    if (event_name_w == NULL || wcscmp(event_name_w, L"Trace") != 0)
     {
-        message = (const char *)pEvent->UserData;
+        free(info);
+        return;
     }
+    event_name_utf8 = dup_utf8_from_wide(event_name_w);
 
-    session->callback(level, message, session->context);
+    service = NULL;
+    message = NULL;
+    payload_process_id = 0U;
+    extract_event_fields(pEvent, info, &service, &message, &payload_process_id);
+    free(info);
+
+    event.level = pEvent->EventHeader.EventDescriptor.Level;
+    event.process_id = payload_process_id != 0U
+                     ? payload_process_id
+                     : pEvent->EventHeader.ProcessId;
+    event.event_name = event_name_utf8;
+    event.service = service;
+    event.message = message;
+    event.timestamp_100ns = pEvent->EventHeader.TimeStamp.QuadPart;
+
+    session->callback(&event, session->context);
+    free(event_name_utf8);
 }
 
 /**

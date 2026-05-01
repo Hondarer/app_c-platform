@@ -1,0 +1,387 @@
+/**
+ *******************************************************************************
+ *  @file           etw-viewer.c
+ *  @brief          com_util ETW provider のリアルタイム viewer。
+ *  @author         Tetsuo Honda
+ *  @date           2026/05/01
+ *  @version        1.0.0
+ *
+ *  @details
+ *  Windows 上で com_util の ETW provider を購読し、受信イベントを stdout に表示します。
+ *  既定では com_util tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
+ *
+ *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
+ *
+ *******************************************************************************
+ */
+
+#include "etw-viewer.h"
+
+#include <com_util/base/platform.h>
+#include <com_util/clock/clock.h>
+#include <com_util/console/console.h>
+#include <com_util/crt/string.h>
+#include <signal.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+#if defined(PLATFORM_WINDOWS)
+#include <com_util/base/windows_sdk.h>
+#include <com_util/trace/etw.h>
+#include <com_util/trace/tracer.h>
+#endif
+
+#define ETW_VIEWER_WAIT_MS 200U
+#define ETW_VIEWER_DEFAULT_TAG COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
+
+static volatile sig_atomic_t g_stop_requested = 0;
+
+static int parse_process_id_arg(const char *text, uint32_t *out_process_id)
+{
+    char *endptr;
+    unsigned long value;
+
+    if (text == NULL || out_process_id == NULL || text[0] == '\0')
+    {
+        return -1;
+    }
+
+    errno = 0;
+    value = strtoul(text, &endptr, 10);
+    if (errno != 0 || endptr == text || *endptr != '\0' || value > UINT32_MAX)
+    {
+        return -1;
+    }
+
+    *out_process_id = (uint32_t)value;
+    return 0;
+}
+
+void etw_viewer_options_init(etw_viewer_options_t *options)
+{
+    if (options == NULL)
+    {
+        return;
+    }
+
+    options->process_id_filter = 0U;
+    options->has_process_id_filter = 0;
+}
+
+int etw_viewer_parse_args(int argc, char *argv[], etw_viewer_options_t *options)
+{
+    int i;
+
+    if (argc <= 0 || argv == NULL || options == NULL)
+    {
+        return -1;
+    }
+
+    etw_viewer_options_init(options);
+
+    for (i = 1; i < argc; i++)
+    {
+        const char *arg = argv[i];
+
+        if (strcmp(arg, "--pid") == 0)
+        {
+            if ((i + 1) >= argc || parse_process_id_arg(argv[i + 1], &options->process_id_filter) != 0)
+            {
+                return -1;
+            }
+            options->has_process_id_filter = 1;
+            i++;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer, size_t buffer_size)
+{
+    int written;
+
+    if (buffer == NULL || buffer_size == 0U)
+    {
+        return -1;
+    }
+
+    written = snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id);
+    if (written < 0 || (size_t)written >= buffer_size)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+const char *etw_viewer_level_name(int level)
+{
+    switch (level)
+    {
+    case 1:
+        return "CRITICAL";
+    case 2:
+        return "ERROR";
+    case 3:
+        return "WARNING";
+    case 4:
+        return "INFO";
+    case 5:
+        return "VERBOSE";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static char etw_viewer_priority_letter(int level)
+{
+    switch (level)
+    {
+    case 1:
+        return 'C';
+    case 2:
+        return 'E';
+    case 3:
+        return 'W';
+    case 4:
+        return 'I';
+    case 5:
+        return 'V';
+    default:
+        return 'U';
+    }
+}
+
+void etw_viewer_print_usage(const char *argv0, int is_windows)
+{
+    const char *name = (argv0 != NULL) ? argv0 : "etw-viewer";
+
+    (void)is_windows;
+    fprintf(stderr, "使用方法: %s [--pid <process-id>]\n", name);
+}
+
+int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_t buffer_size)
+{
+#if defined(PLATFORM_WINDOWS)
+    static const int64_t filetime_unix_epoch_100ns = 116444736000000000LL;
+    int64_t unix_100ns;
+    int64_t tv_sec;
+    int32_t tv_nsec;
+
+    if (buffer == NULL || buffer_size == 0U)
+    {
+        return -1;
+    }
+    if (timestamp_100ns < filetime_unix_epoch_100ns)
+    {
+        return -1;
+    }
+
+    unix_100ns = timestamp_100ns - filetime_unix_epoch_100ns;
+    tv_sec = unix_100ns / 10000000LL;
+    tv_nsec = (int32_t)((unix_100ns % 10000000LL) * 100LL);
+    return com_util_format_realtime_iso8601_local(buffer, buffer_size, tv_sec, tv_nsec);
+#else
+    int written;
+    written = snprintf(buffer, buffer_size, "%" PRId64, timestamp_100ns);
+    if (written < 0 || (size_t)written >= buffer_size)
+    {
+        return -1;
+    }
+    return 0;
+#endif
+}
+
+void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
+{
+    char timestamp_text[64];
+    const char *timestamp_value;
+    const char *tag;
+    const char *message;
+    const etw_viewer_context_t *viewer_context = (const etw_viewer_context_t *)context;
+
+    if (event == NULL)
+    {
+        return;
+    }
+    if (event->event_name == NULL || strcmp(event->event_name, "Trace") != 0)
+    {
+        return;
+    }
+    if (event->message == NULL)
+    {
+        return;
+    }
+    if (viewer_context != NULL && viewer_context->has_process_id_filter
+        && event->process_id != viewer_context->process_id_filter)
+    {
+        return;
+    }
+
+    tag = (event->service != NULL && event->service[0] != '\0') ? event->service : ETW_VIEWER_DEFAULT_TAG;
+    message = event->message;
+    if (etw_viewer_format_timestamp_utc(event->timestamp_100ns, timestamp_text, sizeof(timestamp_text)) != 0)
+    {
+        timestamp_value = "(invalid-timestamp)";
+    }
+    else
+    {
+        timestamp_value = timestamp_text;
+    }
+
+    printf("%s <%c>%s[%" PRIu32 "]: %s\n",
+           timestamp_value,
+           etw_viewer_priority_letter(event->level),
+           tag,
+           event->process_id,
+           message);
+    fflush(stdout);
+}
+
+#if defined(PLATFORM_WINDOWS)
+
+static BOOL WINAPI etw_viewer_console_ctrl_handler(DWORD ctrl_type)
+{
+    if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT
+        || ctrl_type == CTRL_CLOSE_EVENT || ctrl_type == CTRL_SHUTDOWN_EVENT)
+    {
+        g_stop_requested = 1;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void print_access_error(void)
+{
+    fprintf(stderr,
+            "ETW session の開始権限がありません。Administrators または "
+            "\"Performance Log Users\" が必要です。\n");
+}
+
+static void print_start_error(int status, const char *session_name)
+{
+    if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+    {
+        print_access_error();
+    }
+    else if (status == COM_UTIL_ETW_SESSION_ERR_PARAM)
+    {
+        fprintf(stderr, "ETW session の開始に失敗しました。内部パラメータが不正です。\n");
+    }
+    else
+    {
+        fprintf(stderr,
+                "ETW session の開始に失敗しました。session=\"%s\" provider=\"%s\"\n",
+                session_name,
+                COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    etw_viewer_options_t options;
+    etw_viewer_context_t viewer_context;
+    com_util_etw_session_t *session;
+    int status;
+    int exit_code = EXIT_FAILURE;
+    char session_name[ETW_VIEWER_SESSION_NAME_MAX];
+
+    com_util_console_init();
+
+    if (etw_viewer_parse_args(argc, argv, &options) != 0)
+    {
+        etw_viewer_print_usage((argc > 0) ? argv[0] : "etw-viewer", 1);
+        goto cleanup;
+    }
+
+    if (etw_viewer_build_default_session_name(
+            (unsigned long)GetCurrentProcessId(),
+            session_name,
+            sizeof(session_name)) != 0)
+    {
+        fprintf(stderr, "既定 session 名の生成に失敗しました。\n");
+        goto cleanup;
+    }
+
+    viewer_context.process_id_filter = options.process_id_filter;
+    viewer_context.has_process_id_filter = options.has_process_id_filter;
+
+    status = com_util_etw_session_check_access();
+    if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+    {
+        print_access_error();
+        goto cleanup;
+    }
+    if (status != COM_UTIL_ETW_SESSION_OK)
+    {
+        fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
+        goto cleanup;
+    }
+
+    if (!SetConsoleCtrlHandler(etw_viewer_console_ctrl_handler, TRUE))
+    {
+        fprintf(stderr, "Ctrl+C handler の設定に失敗しました。\n");
+        goto cleanup;
+    }
+
+    session = com_util_etw_session_start(
+        session_name,
+        COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
+        etw_viewer_handle_event,
+        &viewer_context,
+        &status);
+    if (session == NULL)
+    {
+        print_start_error(status, session_name);
+        goto cleanup_with_handler;
+    }
+
+    printf("session=%s provider=%s\n", session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
+    if (options.has_process_id_filter)
+    {
+        printf("filter.pid=%" PRIu32 "\n", options.process_id_filter);
+    }
+    printf("Ctrl+C で終了します。\n");
+    fflush(stdout);
+
+    while (!g_stop_requested)
+    {
+        Sleep(ETW_VIEWER_WAIT_MS);
+    }
+
+    com_util_etw_session_stop(session);
+    exit_code = EXIT_SUCCESS;
+
+cleanup_with_handler:
+    SetConsoleCtrlHandler(etw_viewer_console_ctrl_handler, FALSE);
+cleanup:
+    com_util_console_dispose();
+    return exit_code;
+}
+
+#else
+
+int main(int argc, char *argv[])
+{
+    int exit_code = EXIT_FAILURE;
+
+    (void)argc;
+    (void)argv;
+
+    com_util_console_init();
+    etw_viewer_print_usage((argc > 0) ? argv[0] : "etw-viewer", 0);
+    fprintf(stderr, "ETW viewer is supported only on Windows.\n");
+    com_util_console_dispose();
+    return exit_code;
+}
+
+#endif /* PLATFORM_WINDOWS */

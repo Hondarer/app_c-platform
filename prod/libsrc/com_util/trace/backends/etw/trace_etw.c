@@ -77,6 +77,8 @@ COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
 static void write_trace_event(com_util_etw_provider_ref_t ref, int level,
                                const char *service, const char *message)
 {
+    uint32_t process_id = (uint32_t)GetCurrentProcessId();
+
     if (service != NULL)
     {
         switch (level)
@@ -85,31 +87,36 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, int level,
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(1),
                 TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 2:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(2),
                 TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 3:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(3),
                 TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 4:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(4),
                 TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         default:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(5),
                 TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         }
     }
@@ -120,27 +127,32 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, int level,
         case 1:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(1),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 2:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(2),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 3:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(3),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 4:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(4),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         default:
             TraceLoggingWrite(ref, "Trace",
                 TraceLoggingLevel(5),
-                TraceLoggingString(message, "Message"));
+                TraceLoggingString(message, "Message"),
+                TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         }
     }

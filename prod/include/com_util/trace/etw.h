@@ -3,6 +3,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util_export.h>
+#include <stdint.h>
 
 /**
  *  @file           etw.h
@@ -12,6 +13,36 @@
  *                  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
  *                  中でのみ使用してください。
  */
+
+/**
+ *  @struct         com_util_etw_event_t
+ *  @brief          ETW consumer が受け取るイベント情報。
+ *  @details        event_name / service / message は callback 呼び出し中のみ有効なポインタです。
+ */
+typedef struct com_util_etw_event_t
+{
+    /** イベントレベル (1-5)。 */
+    int level;
+    /** イベント発行元のプロセス ID。 */
+    uint32_t process_id;
+    /** イベント名。取得できない場合は NULL。 */
+    const char *event_name;
+    /** Service フィールド。存在しない場合は NULL。 */
+    const char *service;
+    /** Message フィールド。存在しない場合は NULL。 */
+    const char *message;
+    /** ETW が付与したタイムスタンプ。EVENT_HEADER::TimeStamp の生値 (100ns 単位)。 */
+    int64_t timestamp_100ns;
+} com_util_etw_event_t;
+
+/**
+ *  @typedef        com_util_etw_event_callback_t
+ *  @brief          ETW イベント受信コールバック型。
+ *
+ *  @param[in]      event    受信イベント。callback 呼び出し中のみ参照可能。
+ *  @param[in]      context  com_util_etw_session_start に渡したユーザーデータ。
+ */
+typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event_t *event, void *context);
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -98,16 +129,6 @@ extern "C"
     #define COM_UTIL_ETW_SESSION_ERR_SYSTEM -3
 
     /** @} */
-
-    /**
-     *  @typedef        com_util_etw_event_callback_t
-     *  @brief          ETW イベント受信コールバック型。
-     *
-     *  @param[in]      level    イベントレベル (1-5)。
-     *  @param[in]      message  null 終端 UTF-8 文字列。NULL の場合があります。
-     *  @param[in]      context  com_util_etw_session_start に渡したユーザーデータ。
-     */
-    typedef void (*com_util_etw_event_callback_t)(int level, const char *message, void *context);
 
     /** ETW セッションハンドル (不透明型)。 */
     typedef struct com_util_etw_session com_util_etw_session_t;
