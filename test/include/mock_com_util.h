@@ -129,6 +129,15 @@ public:
                 (com_util_tracer_t *, const char *, com_util_trace_level_t, size_t, int));
     MOCK_METHOD(int, com_util_tracer_set_stderr_level, (com_util_tracer_t *, com_util_trace_level_t));
 
+    // フック
+    MOCK_METHOD(com_util_tracer_hook_entry_t *, com_util_tracer_set_hook,
+                (com_util_tracer_t *, com_util_tracer_hook_fn_t, void *));
+    MOCK_METHOD(void, com_util_tracer_remove_hook,
+                (com_util_tracer_t *, com_util_tracer_hook_entry_t *));
+    MOCK_METHOD(void, com_util_tracer_call_next_hook,
+                (com_util_tracer_hook_entry_t *, com_util_tracer_t *, com_util_trace_level_t,
+                 const com_util_realtime_timestamp_t *, const char *));
+
     // 取得
     MOCK_METHOD(com_util_tracer_state_t, com_util_tracer_get_state, (com_util_tracer_t *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_os_level, (com_util_tracer_t *));

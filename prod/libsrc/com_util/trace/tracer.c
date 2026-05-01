@@ -74,6 +74,16 @@ enum trace_handle_state
 };
 
 /**
+ *  @brief  トレースフックエントリ構造体 (内部定義)。
+ */
+struct com_util_tracer_hook_entry
+{
+    com_util_tracer_hook_fn_t fn;
+    void                     *context;
+    struct com_util_tracer_hook_entry *next;
+};
+
+/**
  *  @brief  トレースプロバイダハンドル構造体 (内部定義)。
  */
 struct com_util_tracer
@@ -97,6 +107,8 @@ struct com_util_tracer
     volatile int lifecycle_state;
 
     int config_rwlock_initialized;
+
+    com_util_tracer_hook_entry_t *hook_head;
 };
 
 struct trace_registry
@@ -499,11 +511,21 @@ static int stop_handle_for_cleanup(com_util_tracer_t *handle)
  */
 static void trace_handle_release_normal(com_util_tracer_t *handle)
 {
+    com_util_tracer_hook_entry_t *hook;
+    com_util_tracer_hook_entry_t *next;
+
     if (handle->file_handle != NULL)
     {
         com_util_trace_file_sink_dispose(handle->file_handle);
         handle->file_handle = NULL;
     }
+
+    for (hook = handle->hook_head; hook != NULL; hook = next)
+    {
+        next = hook->next;
+        free(hook);
+    }
+    handle->hook_head = NULL;
 
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink_dispose(handle->syslog_handle);
@@ -588,6 +610,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
         handle->running                   = 0;
         handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
+        handle->hook_head                 = NULL;
 
         if (com_util_rwlock_init(&handle->config_rwlock) != 0)
         {
@@ -623,6 +646,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
         handle->running                   = 0;
         handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
+        handle->hook_head                 = NULL;
 
         if (com_util_rwlock_init(&handle->config_rwlock) != 0)
         {
@@ -883,6 +907,7 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
 #if defined(PLATFORM_LINUX)
         should_output(level, handle->os_level) ||
 #endif
+        handle->hook_head != NULL ||
         timestamp != NULL;
 
     if (needs_text_timestamp)
@@ -912,6 +937,15 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
     if (should_output(level, handle->stderr_level))
     {
         write_stderr_entry(level, ts, msg);
+    }
+
+    if (handle->hook_head != NULL)
+    {
+        com_util_tracer_hook_entry_t *head = handle->hook_head;
+        if (head->fn != NULL)
+        {
+            head->fn(head->next, handle, level, effective_timestamp, msg, head->context);
+        }
     }
 
     return (timestamp_fallback_used || os_result != 0 || file_result != 0) ? -1 : 0;
@@ -1432,4 +1466,87 @@ void trace_registry_dispose_all_on_unload(int process_terminating)
 #endif /* PLATFORM_WINDOWS */
 
     free(items);
+}
+
+/* doxygen コメントは、ヘッダに記載 */
+    COM_UTIL_EXPORT com_util_tracer_hook_entry_t *COM_UTIL_API
+    com_util_tracer_set_hook(com_util_tracer_t *handle,
+                             com_util_tracer_hook_fn_t fn,
+                             void *context)
+{
+    com_util_tracer_hook_entry_t *entry;
+
+    if (!handle_is_active(handle) || fn == NULL)
+    {
+        return NULL;
+    }
+
+    entry = (com_util_tracer_hook_entry_t *)malloc(sizeof(com_util_tracer_hook_entry_t));
+    if (entry == NULL)
+    {
+        return NULL;
+    }
+
+    config_lock_exclusive(handle);
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    {
+        config_unlock_exclusive(handle);
+        free(entry);
+        return NULL;
+    }
+
+    entry->fn      = fn;
+    entry->context = context;
+    entry->next    = handle->hook_head;
+    handle->hook_head = entry;
+
+    config_unlock_exclusive(handle);
+    return entry;
+}
+
+/* doxygen コメントは、ヘッダに記載 */
+    COM_UTIL_EXPORT void COM_UTIL_API
+    com_util_tracer_remove_hook(com_util_tracer_t *handle,
+                                com_util_tracer_hook_entry_t *hook_entry)
+{
+    com_util_tracer_hook_entry_t **pp;
+
+    if (!handle_is_active(handle) || hook_entry == NULL)
+    {
+        return;
+    }
+
+    config_lock_exclusive(handle);
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    {
+        config_unlock_exclusive(handle);
+        return;
+    }
+
+    for (pp = &handle->hook_head; *pp != NULL; pp = &(*pp)->next)
+    {
+        if (*pp == hook_entry)
+        {
+            *pp = hook_entry->next;
+            free(hook_entry);
+            break;
+        }
+    }
+
+    config_unlock_exclusive(handle);
+}
+
+/* doxygen コメントは、ヘッダに記載 */
+    COM_UTIL_EXPORT void COM_UTIL_API
+    com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
+                                   com_util_tracer_t *handle,
+                                   com_util_trace_level_t level,
+                                   const com_util_realtime_timestamp_t *timestamp,
+                                   const char *message)
+{
+    if (prev == NULL || prev->fn == NULL)
+    {
+        return;
+    }
+    prev->fn(prev->next, handle, level, timestamp, message, prev->context);
 }

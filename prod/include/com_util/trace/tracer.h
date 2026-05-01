@@ -197,6 +197,50 @@ typedef enum com_util_tracer_state_t
 /** トレースプロバイダハンドル (不透明型)。 */
 typedef struct com_util_tracer com_util_tracer_t;
 
+/* ===== フック (コールバック) ===== */
+
+/**
+ *  @brief  トレースフックエントリ (不透明型)。
+ *
+ *  com_util_tracer_set_hook が返す不透明ハンドル。\n
+ *  com_util_tracer_remove_hook および com_util_tracer_call_next_hook に渡して使用します。
+ */
+typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry_t;
+
+/**
+ *  @brief  トレースフックのコールバック関数型。
+ *
+ *  @param[in]  prev      チェーン継続に使う前エントリ。com_util_tracer_call_next_hook に渡します。
+ *  @param[in]  handle    trace を行った tracer ハンドル。
+ *  @param[in]  level     trace レベル (COM_UTIL_TRACE_LEVEL_NONE を含む全レベル)。
+ *  @param[in]  timestamp 解決済みタイムスタンプ (常に有効)。
+ *  @param[in]  message   解決済みメッセージ文字列。
+ *  @param[in]  context   com_util_tracer_set_hook で渡したコンテキスト。
+ *
+ *  @par        チェーン例
+ *  @code{.c}
+    void my_hook(com_util_tracer_hook_entry_t *prev,
+                 com_util_tracer_t *handle,
+                 com_util_trace_level_t level,
+                 const com_util_realtime_timestamp_t *timestamp,
+                 const char *message, void *context)
+    {
+        // 独自処理
+        printf("hook: %s\n", message);
+        // 前のフックへ継続 (省略すると以降のチェーンは呼ばれない)
+        com_util_tracer_call_next_hook(prev, handle, level, timestamp, message);
+    }
+ *  @endcode
+ */
+typedef void (*com_util_tracer_hook_fn_t)(
+    com_util_tracer_hook_entry_t            *prev,
+    com_util_tracer_t                       *handle,
+    com_util_trace_level_t                   level,
+    const com_util_realtime_timestamp_t     *timestamp,
+    const char                              *message,
+    void                                    *context
+);
+
 /* ===== API 関数 ===== */
 
 #ifdef __cplusplus
@@ -479,6 +523,83 @@ extern "C"
      */
     COM_UTIL_EXPORT void COM_UTIL_API
         com_util_tracer_dispose(com_util_tracer_t *handle);
+
+    /**
+     *******************************************************************************
+     *  @brief          トレースフックを登録する。
+     *
+     *  フックはプロセス内コールバックとして動作し、
+     *  _com_util_tracer_write 系関数を経由したすべての trace 呼び出しを受信できます。\n
+     *  フィルタ条件はなく、COM_UTIL_TRACE_LEVEL_NONE で要求された呼び出しも含め
+     *  すべての trace イベントが通知されます。\n
+     *  タイムスタンプは解決済みの状態でコールバックに渡されます。\n
+     *  複数のフックを登録した場合はチェーンとして順次呼び出されます。
+     *  コールバック内で com_util_tracer_call_next_hook を呼ぶことでチェーンを継続できます。\n
+     *  本関数は stopped 状態でのみ有効です。
+     *
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
+     *  @param[in]      fn       コールバック関数。NULL は無効。
+     *  @param[in]      context  コールバックに渡す任意のコンテキスト。NULL 可。
+     *  @return         成功時: 登録したフックエントリ (com_util_tracer_remove_hook に使用)。
+     *                  失敗時 (handle/fn が NULL、started 状態、メモリ不足): NULL。
+     *
+     *  @par            使用例
+     *  @code{.c}
+        com_util_tracer_hook_entry_t *entry =
+            com_util_tracer_set_hook(tracer, my_hook, NULL);
+        com_util_tracer_start(tracer);
+        // ... trace 処理 ...
+        com_util_tracer_stop(tracer);
+        com_util_tracer_remove_hook(tracer, entry);
+     *  @endcode
+     *
+     *  @par            スレッド セーフティ
+     *  本関数は stopped 状態でスレッドセーフです。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT com_util_tracer_hook_entry_t *COM_UTIL_API
+        com_util_tracer_set_hook(com_util_tracer_t *handle,
+                                 com_util_tracer_hook_fn_t fn,
+                                 void *context);
+
+    /**
+     *******************************************************************************
+     *  @brief          登録済みトレースフックを解除する。
+     *
+     *  com_util_tracer_set_hook で登録したフックを解除し、エントリのメモリを解放します。\n
+     *  本関数は stopped 状態でのみ有効です。
+     *
+     *  @param[in]      handle      com_util_tracer_create の戻り値。
+     *  @param[in]      hook_entry  com_util_tracer_set_hook の戻り値。NULL は無視。
+     *
+     *  @par            スレッド セーフティ
+     *  本関数は stopped 状態でスレッドセーフです。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API
+        com_util_tracer_remove_hook(com_util_tracer_t *handle,
+                                    com_util_tracer_hook_entry_t *hook_entry);
+
+    /**
+     *******************************************************************************
+     *  @brief          フックチェーンを継続する。
+     *
+     *  コールバック内から呼び出し、前のフックへ処理を継続させます。\n
+     *  @p prev が NULL の場合は何もしません (チェーン末端)。
+     *
+     *  @param[in]      prev       コールバックに渡された @c prev 引数。
+     *  @param[in]      handle     trace を行った tracer ハンドル。
+     *  @param[in]      level      trace レベル。
+     *  @param[in]      timestamp  解決済みタイムスタンプ。
+     *  @param[in]      message    解決済みメッセージ文字列。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API
+        com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
+                                       com_util_tracer_t *handle,
+                                       com_util_trace_level_t level,
+                                       const com_util_realtime_timestamp_t *timestamp,
+                                       const char *message);
 
 #ifdef __cplusplus
 }
