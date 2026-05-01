@@ -23,13 +23,13 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#include "tracer_internal.h"
-#include "backends/file/trace_file_internal.h"
+#include <com_util/trace/tracer_internal.h>
+#include <com_util/trace/backends/file/trace_file_internal.h>
 
 #if defined(PLATFORM_LINUX)
-#include "backends/syslog/syslog_internal.h"
+#include <com_util/trace/backends/syslog/syslog_internal.h>
 #elif defined(PLATFORM_WINDOWS)
-#include "backends/etw/etw_internal.h"
+#include <com_util/trace/backends/etw/etw_internal.h>
 #endif /* PLATFORM_ */
 
 /* ===== Windows: TraceLogging プロバイダ定義 ===== */

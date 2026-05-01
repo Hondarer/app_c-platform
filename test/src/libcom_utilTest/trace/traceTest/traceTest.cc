@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <cstdint>
 
-#include "tracer_internal.h"
+#include <com_util/trace/tracer_internal.h>
 
 #if defined(PLATFORM_LINUX)
     #include <syslog.h>

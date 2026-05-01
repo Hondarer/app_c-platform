@@ -3,7 +3,7 @@
  *  @brief          プロンプトヘルパー Linux 実装（termios raw mode）。
  */
 
-#include "prompt_internal.h"
+#include <com_util/prompt/prompt_internal.h>
 
 #if defined(PLATFORM_LINUX)
 

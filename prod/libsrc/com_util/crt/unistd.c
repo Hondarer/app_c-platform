@@ -1,7 +1,7 @@
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/path.h>
 
-#include "crt_internal.h"
+#include <com_util/crt/crt_internal.h>
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path,
                                                   int         mode)

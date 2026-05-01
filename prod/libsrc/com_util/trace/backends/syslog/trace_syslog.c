@@ -41,7 +41,7 @@
 #include <com_util/clock/clock.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/syslog.h>
-#include "syslog_internal.h"
+#include <com_util/trace/backends/syslog/syslog_internal.h>
 #include <com_util/test/syslog_test.h>
 
 /** /dev/log への UNIX ドメインソケットパス。 */

@@ -1,4 +1,4 @@
-#include "path_format_internal.h"
+#include <com_util/crt/path_format.h>
 
 #include <errno.h>
 #include <stdio.h>

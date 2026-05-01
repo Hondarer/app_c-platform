@@ -3,7 +3,7 @@
 
 #if defined(PLATFORM_LINUX)
 
-#include <syslog_internal.h>
+#include <com_util/trace/backends/syslog/syslog_internal.h>
 
 void com_util_syslog_sink_dispose_on_unload(com_util_syslog_sink_t *handle)
 {

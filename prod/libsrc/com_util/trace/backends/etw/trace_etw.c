@@ -23,7 +23,7 @@
 #include <com_util/trace/etw.h>
 #include <stdlib.h>
 
-#include "etw_internal.h"
+#include <com_util/trace/backends/etw/etw_internal.h>
 
 /**
  *  @brief  ETW プロバイダハンドル構造体 (内部定義)。

@@ -1,7 +1,7 @@
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
 
-#include "path_format_internal.h"
+#include <com_util/crt/path_format.h>
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(int flags,
                                                      int mode,

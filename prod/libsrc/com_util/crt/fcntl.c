@@ -1,7 +1,7 @@
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
 
-#include "crt_internal.h"
+#include <com_util/crt/crt_internal.h>
 
 #if defined(PLATFORM_LINUX)
     #include <unistd.h>

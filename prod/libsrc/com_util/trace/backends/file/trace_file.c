@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "trace_file_internal.h"
+#include <com_util/trace/backends/file/trace_file_internal.h>
 
 /* ===== 内部定数 ===== */
 

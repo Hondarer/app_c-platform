@@ -3,7 +3,7 @@
  *  @brief          プロンプトヘルパー共通実装。
  */
 
-#include "prompt_internal.h"
+#include <com_util/prompt/prompt_internal.h>
 
 #include <com_util/crt/string.h>
 

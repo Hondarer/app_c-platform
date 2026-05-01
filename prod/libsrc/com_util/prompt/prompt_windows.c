@@ -3,7 +3,7 @@
  *  @brief          プロンプトヘルパー Windows 実装（SetConsoleMode VT 入力）。
  */
 
-#include "prompt_internal.h"
+#include <com_util/prompt/prompt_internal.h>
 
 #if defined(PLATFORM_WINDOWS)
 

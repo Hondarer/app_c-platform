@@ -1,10 +1,7 @@
 # テスト対象のソースファイル
 TEST_SRCS := \
-	$(MYAPP_DIR)/prod/libsrc/com_util/crt/path_format_internal.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/crt/path_format.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/crt/sys_stat_format.c
-
-INCDIR += \
-	$(MYAPP_DIR)/prod/libsrc/com_util/crt
 
 LIBSDIR += \
 	$(MYAPP_DIR)/test/lib

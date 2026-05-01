@@ -1,7 +1,7 @@
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/path.h>
 
-#include "path_format_internal.h"
+#include <com_util/crt/path_format.h>
 
 #include <errno.h>
 
