@@ -29,13 +29,15 @@
 #include <errno.h>
 
 #if defined(PLATFORM_WINDOWS)
-#include <com_util/base/windows_sdk.h>
-#include <com_util/trace/etw.h>
-#include <com_util/trace/tracer.h>
-#endif
 
-#define ETW_VIEWER_WAIT_MS 200U
-#define ETW_VIEWER_DEFAULT_TAG COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
+    #include <com_util/base/windows_sdk.h>
+    #include <com_util/trace/etw.h>
+    #include <com_util/trace/tracer.h>
+
+    #define ETW_VIEWER_WAIT_MS     200U
+    #define ETW_VIEWER_DEFAULT_TAG COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
+
+    #define EXIT_ACCESS_DENIED 2
 
 static volatile sig_atomic_t g_stop_requested = 0;
 
@@ -170,7 +172,6 @@ void etw_viewer_print_usage(const char *argv0, int is_windows)
 
 int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_t buffer_size)
 {
-#if defined(PLATFORM_WINDOWS)
     static const int64_t filetime_unix_epoch_100ns = 116444736000000000LL;
     int64_t unix_100ns;
     int64_t tv_sec;
@@ -189,15 +190,6 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
     tv_sec = unix_100ns / 10000000LL;
     tv_nsec = (int32_t)((unix_100ns % 10000000LL) * 100LL);
     return com_util_format_realtime_iso8601_local(buffer, buffer_size, tv_sec, tv_nsec);
-#else
-    int written;
-    written = snprintf(buffer, buffer_size, "%" PRId64, timestamp_100ns);
-    if (written < 0 || (size_t)written >= buffer_size)
-    {
-        return -1;
-    }
-    return 0;
-#endif
 }
 
 void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
@@ -220,8 +212,8 @@ void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
     {
         return;
     }
-    if (viewer_context != NULL && viewer_context->has_process_id_filter
-        && event->process_id != viewer_context->process_id_filter)
+    if (viewer_context != NULL && viewer_context->has_process_id_filter &&
+        event->process_id != viewer_context->process_id_filter)
     {
         return;
     }
@@ -237,21 +229,15 @@ void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
         timestamp_value = timestamp_text;
     }
 
-    printf("%s <%c>%s[%" PRIu32 "]: %s\n",
-           timestamp_value,
-           etw_viewer_priority_letter(event->level),
-           tag,
-           event->process_id,
-           message);
+    printf("%s <%c>%s[%" PRIu32 "]: %s\n", timestamp_value, etw_viewer_priority_letter(event->level), tag,
+           event->process_id, message);
     fflush(stdout);
 }
 
-#if defined(PLATFORM_WINDOWS)
-
 static BOOL WINAPI etw_viewer_console_ctrl_handler(DWORD ctrl_type)
 {
-    if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT
-        || ctrl_type == CTRL_CLOSE_EVENT || ctrl_type == CTRL_SHUTDOWN_EVENT)
+    if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT || ctrl_type == CTRL_CLOSE_EVENT ||
+        ctrl_type == CTRL_SHUTDOWN_EVENT)
     {
         g_stop_requested = 1;
         return TRUE;
@@ -262,11 +248,10 @@ static BOOL WINAPI etw_viewer_console_ctrl_handler(DWORD ctrl_type)
 
 static void print_access_error(void)
 {
-    fprintf(stderr,
-            "ETW session の開始権限がありません。Administrators または "
-            "\"Performance Log Users\" が必要です。\n"
-            "対処方法: net localgroup \"Performance Log Users\" %%USERNAME%% /add\n"
-            "          この操作後にサインアウト/サインインが必要です。\n");
+    fprintf(stderr, "ETW session の開始権限がありません。Administrators または "
+                    "\"Performance Log Users\" が必要です。\n"
+                    "対処方法: net localgroup \"Performance Log Users\" %%USERNAME%% /add\n"
+                    "          この操作後にサインアウト/サインインが必要です。\n");
     fflush(stderr);
 }
 
@@ -282,9 +267,7 @@ static void print_start_error(int status, const char *session_name)
     }
     else
     {
-        fprintf(stderr,
-                "ETW session の開始に失敗しました。session=\"%s\" provider=\"%s\"\n",
-                session_name,
+        fprintf(stderr, "ETW session の開始に失敗しました。session=\"%s\" provider=\"%s\"\n", session_name,
                 COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
     }
 }
@@ -306,10 +289,8 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    if (etw_viewer_build_default_session_name(
-            (unsigned long)GetCurrentProcessId(),
-            session_name,
-            sizeof(session_name)) != 0)
+    if (etw_viewer_build_default_session_name((unsigned long)GetCurrentProcessId(), session_name,
+                                              sizeof(session_name)) != 0)
     {
         fprintf(stderr, "既定 session 名の生成に失敗しました。\n");
         goto cleanup;
@@ -322,7 +303,7 @@ int main(int argc, char *argv[])
     if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
     {
         print_access_error();
-        exit_code = 2;
+        exit_code = EXIT_ACCESS_DENIED;
         goto cleanup;
     }
     if (status != COM_UTIL_ETW_SESSION_OK)
@@ -337,17 +318,13 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    session = com_util_etw_session_start(
-        session_name,
-        COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
-        etw_viewer_handle_event,
-        &viewer_context,
-        &status);
+    session = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
+                                         etw_viewer_handle_event, &viewer_context, &status);
     if (session == NULL)
     {
         if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
         {
-            exit_code = 2;
+            exit_code = EXIT_ACCESS_DENIED;
         }
         print_start_error(status, session_name);
         goto cleanup_with_handler;
@@ -372,24 +349,19 @@ int main(int argc, char *argv[])
 cleanup_with_handler:
     SetConsoleCtrlHandler(etw_viewer_console_ctrl_handler, FALSE);
 cleanup:
-    com_util_console_dispose();
     return exit_code;
 }
 
-#else
+#elif defined(PLATFORM_LINUX)
 
 int main(int argc, char *argv[])
 {
-    int exit_code = EXIT_FAILURE;
-
     (void)argc;
     (void)argv;
 
     com_util_console_init();
-    etw_viewer_print_usage((argc > 0) ? argv[0] : "etw-viewer", 0);
     fprintf(stderr, "ETW viewer is supported only on Windows.\n");
-    com_util_console_dispose();
-    return exit_code;
+    return EXIT_FAILURE;
 }
 
-#endif /* PLATFORM_WINDOWS */
+#endif /* PLATFORM_ */
