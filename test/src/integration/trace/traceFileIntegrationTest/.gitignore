@@ -2,7 +2,7 @@
 /file.c
 /stdio.c
 /time.c
-/trace.c
 /trace_etw.c
 /trace_file.c
 /trace_syslog.c
+/tracer.c

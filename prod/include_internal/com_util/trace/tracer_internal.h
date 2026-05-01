@@ -6,7 +6,7 @@
  *  @date           2026/04/03
  *  @version        1.0.0
  *
- *  trace.c が公開する内部関数を宣言します。
+ *  tracer.c が公開する内部関数を宣言します。
  *  このヘッダーはモジュール内部でのみ使用します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
