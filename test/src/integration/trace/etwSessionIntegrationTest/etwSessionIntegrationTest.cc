@@ -103,8 +103,10 @@ protected:
     {
         int status = com_util_etw_session_check_access();
         ASSERT_NE(COM_UTIL_ETW_SESSION_ERR_ACCESS, status)
-            << "ETW session requires 'Performance Log Users' group membership.\n"
-               "Run: net localgroup \"Performance Log Users\" %USERNAME% /add";
+            << "ETW session の開始権限がありません。Administrators または "
+               "\"Performance Log Users\" が必要です。\n"
+               "対処方法: net localgroup \"Performance Log Users\" %USERNAME% /add\n"
+               "          この操作後にサインアウト/サインインが必要です。";
         ASSERT_EQ(COM_UTIL_ETW_SESSION_OK, status)
             << "com_util_etw_session_check_access failed (status=" << status << ")";
     }

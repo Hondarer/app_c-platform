@@ -264,7 +264,10 @@ static void print_access_error(void)
 {
     fprintf(stderr,
             "ETW session の開始権限がありません。Administrators または "
-            "\"Performance Log Users\" が必要です。\n");
+            "\"Performance Log Users\" が必要です。\n"
+            "対処方法: net localgroup \"Performance Log Users\" %%USERNAME%% /add\n"
+            "          この操作後にサインアウト/サインインが必要です。\n");
+    fflush(stderr);
 }
 
 static void print_start_error(int status, const char *session_name)
@@ -319,6 +322,7 @@ int main(int argc, char *argv[])
     if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
     {
         print_access_error();
+        exit_code = 2;
         goto cleanup;
     }
     if (status != COM_UTIL_ETW_SESSION_OK)
@@ -341,6 +345,10 @@ int main(int argc, char *argv[])
         &status);
     if (session == NULL)
     {
+        if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+        {
+            exit_code = 2;
+        }
         print_start_error(status, session_name);
         goto cleanup_with_handler;
     }
