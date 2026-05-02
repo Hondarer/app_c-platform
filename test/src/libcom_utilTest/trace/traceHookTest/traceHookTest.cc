@@ -56,10 +56,10 @@ struct HookRecord
 {
     com_util_tracer_hook_entry_t *prev;
     com_util_tracer_t            *handle;
-    com_util_trace_level_t        level;
     com_util_realtime_timestamp_t timestamp;
     std::string                   message;
     void                         *context;
+    com_util_trace_level_t        level;
 };
 
 static std::vector<HookRecord> g_hook_records;
@@ -84,17 +84,6 @@ static void recording_hook(com_util_tracer_hook_entry_t *prev,
     rec.message = (message != NULL) ? message : "";
     rec.context = context;
     g_hook_records.push_back(rec);
-}
-
-static void chaining_hook(com_util_tracer_hook_entry_t *prev,
-                          com_util_tracer_t *handle,
-                          com_util_trace_level_t level,
-                          const com_util_realtime_timestamp_t *timestamp,
-                          const char *message,
-                          void *context)
-{
-    recording_hook(prev, handle, level, timestamp, message, context);
-    com_util_tracer_call_next_hook(prev, handle, level, timestamp, message);
 }
 
 } // namespace
