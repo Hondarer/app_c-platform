@@ -1,11 +1,24 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+void delegate_real_com_util_file_init(com_util_file_t *file)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_file_init)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_file_init"));
+
+    real_fn(file);
+}
+
 WEAK_ATR void com_util_file_init(com_util_file_t *file)
 {
     if (_mock_com_util != nullptr)
     {
         _mock_com_util->com_util_file_init(file);
+    }
+    else
+    {
+        delegate_real_com_util_file_init(file);
     }
 
     if (getTraceLevel() > TRACE_NONE)

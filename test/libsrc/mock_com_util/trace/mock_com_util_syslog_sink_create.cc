@@ -3,6 +3,15 @@
 
 #if defined(PLATFORM_LINUX)
 
+com_util_syslog_sink_t *delegate_real_com_util_syslog_sink_create(const char *ident, int facility)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_syslog_sink_create)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_create"));
+
+    return real_fn(ident, facility);
+}
+
 WEAK_ATR com_util_syslog_sink_t *com_util_syslog_sink_create(const char *ident, int facility)
 {
     com_util_syslog_sink_t *rtc = nullptr;
@@ -10,6 +19,10 @@ WEAK_ATR com_util_syslog_sink_t *com_util_syslog_sink_create(const char *ident, 
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_syslog_sink_create(ident, facility);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_syslog_sink_create(ident, facility);
     }
 
     if (getTraceLevel() > TRACE_NONE)

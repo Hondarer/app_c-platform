@@ -3,6 +3,16 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real__com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                     const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&_com_util_tracer_writef)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_tracer_writef"));
+
+    return real_fn(handle, level, timestamp, "%s", format);
+}
+
 WEAK_ATR int _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
                                      const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
 {
@@ -17,6 +27,10 @@ WEAK_ATR int _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_l
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->_com_util_tracer_writef(handle, level, timestamp, buf);
+    }
+    else
+    {
+        rtc = delegate_real__com_util_tracer_writef(handle, level, timestamp, buf);
     }
 
     if (getTraceLevel() > TRACE_NONE)

@@ -3,16 +3,34 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_vopen_fmt(int flags, int mode, const char *format, va_list args)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_vopen_fmt)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vopen_fmt"));
+
+    return real_fn(flags, mode, format, args);
+}
+
 WEAK_ATR int com_util_vopen_fmt(int flags, int mode, const char *format, va_list args)
 {
     int rtc = -1;
 
     char buf[4096];
-    vsnprintf(buf, sizeof(buf), format, args);
+    {
+        va_list args_copy;
+        va_copy(args_copy, args);
+        vsnprintf(buf, sizeof(buf), format, args_copy);
+        va_end(args_copy);
+    }
 
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_vopen_fmt(flags, mode, buf);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_vopen_fmt(flags, mode, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)

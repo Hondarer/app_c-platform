@@ -3,6 +3,15 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+int delegate_real_com_util_etw_provider_write(com_util_etw_provider_t *handle, int level, const char *service, const char *message)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_etw_provider_write)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_write"));
+
+    return real_fn(handle, level, service, message);
+}
+
 WEAK_ATR int com_util_etw_provider_write(com_util_etw_provider_t *handle, int level, const char *service, const char *message)
 {
     int rtc = -1;
@@ -10,6 +19,10 @@ WEAK_ATR int com_util_etw_provider_write(com_util_etw_provider_t *handle, int le
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_etw_provider_write(handle, level, service, message);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_etw_provider_write(handle, level, service, message);
     }
 
     if (getTraceLevel() > TRACE_NONE)

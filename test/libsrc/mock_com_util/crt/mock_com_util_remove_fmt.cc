@@ -3,6 +3,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_remove_fmt(const char *format, ...)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_remove_fmt)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_remove_fmt"));
+
+    return real_fn("%s", format);
+}
+
 WEAK_ATR int com_util_remove_fmt(const char *format, ...)
 {
     int rtc = -1;
@@ -16,6 +25,10 @@ WEAK_ATR int com_util_remove_fmt(const char *format, ...)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_remove_fmt(buf);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_remove_fmt(buf);
     }
 
     if (getTraceLevel() > TRACE_NONE)

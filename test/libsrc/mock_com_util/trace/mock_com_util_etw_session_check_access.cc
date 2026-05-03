@@ -3,6 +3,15 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+int delegate_real_com_util_etw_session_check_access(void)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_etw_session_check_access)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_check_access"));
+
+    return real_fn();
+}
+
 WEAK_ATR int com_util_etw_session_check_access(void)
 {
     int rtc = -1;
@@ -10,6 +19,10 @@ WEAK_ATR int com_util_etw_session_check_access(void)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_etw_session_check_access();
+    }
+    else
+    {
+        rtc = delegate_real_com_util_etw_session_check_access();
     }
 
     if (getTraceLevel() > TRACE_NONE)

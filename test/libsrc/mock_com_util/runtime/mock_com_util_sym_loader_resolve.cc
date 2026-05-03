@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+void *delegate_real_com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_sym_loader_resolve)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_sym_loader_resolve"));
+
+    return real_fn(fobj);
+}
+
 WEAK_ATR void *com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
 {
     void *rtc = nullptr;
@@ -8,6 +17,10 @@ WEAK_ATR void *com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_sym_loader_resolve(fobj);
+    }
+    else
+    {
+        delegate_real_com_util_sym_loader_resolve(fobj);
     }
 
     if (getTraceLevel() > TRACE_NONE)

@@ -1,6 +1,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
+                                  com_util_trace_level_t level, size_t max_bytes,
+                                  int generations)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_tracer_set_file_level)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_file_level"));
+
+    return real_fn(handle, path, level, max_bytes, generations);
+}
+
 WEAK_ATR int com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
                                   com_util_trace_level_t level, size_t max_bytes,
                                   int generations)
@@ -11,6 +22,10 @@ WEAK_ATR int com_util_tracer_set_file_level(com_util_tracer_t *handle, const cha
     {
         rtc = _mock_com_util->com_util_tracer_set_file_level(handle, path, level, max_bytes,
                                                      generations);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_tracer_set_file_level(handle, path, level, max_bytes, generations);
     }
 
     if (getTraceLevel() > TRACE_NONE)

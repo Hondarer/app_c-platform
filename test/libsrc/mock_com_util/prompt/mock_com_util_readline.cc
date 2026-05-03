@@ -1,6 +1,16 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real__com_util_prompt_readline(com_util_prompt_t *p, char *buf, size_t buf_size,
+                                        const char *prompt_str, const char *file, int line)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&_com_util_prompt_readline)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_prompt_readline"));
+
+    return real_fn(p, buf, buf_size, prompt_str, file, line);
+}
+
 WEAK_ATR int _com_util_prompt_readline(com_util_prompt_t *p, char *buf, size_t buf_size,
                                         const char *prompt_str, const char *file, int line)
 {
@@ -9,6 +19,10 @@ WEAK_ATR int _com_util_prompt_readline(com_util_prompt_t *p, char *buf, size_t b
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->_com_util_prompt_readline(p, buf, buf_size, prompt_str, file, line);
+    }
+    else
+    {
+        rtc = delegate_real__com_util_prompt_readline(p, buf, buf_size, prompt_str, file, line);
     }
 
     if (getTraceLevel() > TRACE_NONE)

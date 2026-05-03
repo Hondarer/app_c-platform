@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+size_t delegate_real_com_util_fread(void *ptr, size_t size, size_t count, FILE *stream)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_fread)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fread"));
+
+    return real_fn(ptr, size, count, stream);
+}
+
 WEAK_ATR size_t com_util_fread(void *ptr, size_t size, size_t count, FILE *stream)
 {
     size_t rtc = 0;
@@ -8,6 +17,10 @@ WEAK_ATR size_t com_util_fread(void *ptr, size_t size, size_t count, FILE *strea
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_fread(ptr, size, count, stream);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_fread(ptr, size, count, stream);
     }
 
     if (getTraceLevel() > TRACE_NONE)

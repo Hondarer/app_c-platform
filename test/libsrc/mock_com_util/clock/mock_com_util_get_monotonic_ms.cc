@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+uint64_t delegate_real_com_util_get_monotonic_ms(void)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_get_monotonic_ms)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_monotonic_ms"));
+
+    return real_fn();
+}
+
 WEAK_ATR uint64_t com_util_get_monotonic_ms(void)
 {
     uint64_t rtc = 0;
@@ -8,6 +17,10 @@ WEAK_ATR uint64_t com_util_get_monotonic_ms(void)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_get_monotonic_ms();
+    }
+    else
+    {
+        rtc = delegate_real_com_util_get_monotonic_ms();
     }
 
     if (getTraceLevel() > TRACE_NONE)

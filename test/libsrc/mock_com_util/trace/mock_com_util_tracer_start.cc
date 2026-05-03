@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_tracer_start(com_util_tracer_t *handle)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_tracer_start)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_start"));
+
+    return real_fn(handle);
+}
+
 WEAK_ATR int com_util_tracer_start(com_util_tracer_t *handle)
 {
     int rtc = 0;
@@ -8,6 +17,10 @@ WEAK_ATR int com_util_tracer_start(com_util_tracer_t *handle)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_tracer_start(handle);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_tracer_start(handle);
     }
 
     if (getTraceLevel() > TRACE_NONE)

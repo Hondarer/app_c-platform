@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_localtime)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_localtime"));
+
+    return real_fn(local_tm, timep);
+}
+
 WEAK_ATR int com_util_localtime(struct tm *local_tm, const time_t *timep)
 {
     int rtc = -1;
@@ -8,6 +17,10 @@ WEAK_ATR int com_util_localtime(struct tm *local_tm, const time_t *timep)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_localtime(local_tm, timep);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_localtime(local_tm, timep);
     }
 
     if (getTraceLevel() > TRACE_NONE)

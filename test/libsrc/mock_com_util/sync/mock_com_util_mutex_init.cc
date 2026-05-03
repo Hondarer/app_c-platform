@@ -1,6 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
+int delegate_real_com_util_mutex_init(com_util_mutex_t *mtx)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_mutex_init)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_mutex_init"));
+
+    return real_fn(mtx);
+}
+
 WEAK_ATR int com_util_mutex_init(com_util_mutex_t *mtx)
 {
     int rtc = 0;
@@ -8,6 +17,10 @@ WEAK_ATR int com_util_mutex_init(com_util_mutex_t *mtx)
     if (_mock_com_util != nullptr)
     {
         rtc = _mock_com_util->com_util_mutex_init(mtx);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_mutex_init(mtx);
     }
 
     if (getTraceLevel() > TRACE_NONE)
