@@ -60,6 +60,7 @@ struct HookRecord
     std::string                   message;
     void                         *context;
     com_util_trace_level_t        level;
+    uint32_t                      padding;
 };
 
 static std::vector<HookRecord> g_hook_records;
@@ -79,7 +80,8 @@ static void recording_hook(com_util_tracer_hook_entry_t *prev,
     HookRecord rec;
     rec.prev    = prev;
     rec.handle  = handle;
-    rec.level   = level;
+    rec.level    = level;
+    rec.padding = 0;
     rec.timestamp = *timestamp;
     rec.message = (message != NULL) ? message : "";
     rec.context = context;
