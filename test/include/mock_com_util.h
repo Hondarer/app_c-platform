@@ -25,7 +25,10 @@
 #include <com_util/trace/etw.h>
 #include <com_util/prompt/prompt.h>
 
+inline constexpr char kLibComUtilName[] = "libcom_util" TESTFW_SHARED_LIBRARY_EXTENSION;
+
 extern int delegate_real_com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
+extern int delegate_real_com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 
 class Mock_com_util
 {

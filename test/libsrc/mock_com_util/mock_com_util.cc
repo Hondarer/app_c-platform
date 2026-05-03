@@ -6,7 +6,7 @@ Mock_com_util *_mock_com_util = nullptr;
 Mock_com_util::Mock_com_util()
 {
     ON_CALL(*this, com_util_compress(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_compress));
-    ON_CALL(*this, com_util_decompress(_, _, _, _)).WillByDefault(Return(-1));
+    ON_CALL(*this, com_util_decompress(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_decompress));
     ON_CALL(*this, com_util_encrypt(_, _, _, _, _, _, _, _)).WillByDefault(Return(-1));
     ON_CALL(*this, com_util_decrypt(_, _, _, _, _, _, _, _)).WillByDefault(Return(-1));
     ON_CALL(*this, com_util_passphrase_to_key(_, _, _)).WillByDefault(Return(-1));
