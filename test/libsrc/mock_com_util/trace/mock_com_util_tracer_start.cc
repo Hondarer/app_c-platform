@@ -10,7 +10,7 @@ int delegate_real_com_util_tracer_start(com_util_tracer_t *handle)
     return real_fn(handle);
 }
 
-WEAK_ATR int com_util_tracer_start(com_util_tracer_t *handle)
+MOCK_WEAK_IMPL(int, com_util_tracer_start, com_util_tracer_t *handle)
 {
     int rtc = 0;
 

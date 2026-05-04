@@ -10,7 +10,7 @@ void delegate_real_com_util_sym_loader_init(com_util_sym_loader_entry_t *const *
     real_fn(fobj_array, fobj_length, configpath);
 }
 
-WEAK_ATR void com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length, const char *configpath)
+MOCK_WEAK_IMPL(void, com_util_sym_loader_init, com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length, const char *configpath)
 {
     if (_mock_com_util != nullptr)
     {

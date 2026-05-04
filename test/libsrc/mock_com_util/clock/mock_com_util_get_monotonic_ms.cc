@@ -10,7 +10,7 @@ uint64_t delegate_real_com_util_get_monotonic_ms(void)
     return real_fn();
 }
 
-WEAK_ATR uint64_t com_util_get_monotonic_ms(void)
+MOCK_WEAK_IMPL(uint64_t, com_util_get_monotonic_ms, void)
 {
     uint64_t rtc = 0;
 

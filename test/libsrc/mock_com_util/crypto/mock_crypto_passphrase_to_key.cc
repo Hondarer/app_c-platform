@@ -11,7 +11,7 @@ int delegate_real_com_util_passphrase_to_key(uint8_t *key, const uint8_t *passph
     return real_fn(key, passphrase, passphrase_len);
 }
 
-WEAK_ATR int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase,
+MOCK_WEAK_IMPL(int, com_util_passphrase_to_key, uint8_t *key, const uint8_t *passphrase,
                                         size_t passphrase_len)
 {
     int rtc = -1;

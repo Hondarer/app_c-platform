@@ -12,7 +12,7 @@ int delegate_real_com_util_vstat_fmt(com_util_file_stat_t *buf, const char *form
     return real_fn(buf, format, args);
 }
 
-WEAK_ATR int com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args)
+MOCK_WEAK_IMPL(int, com_util_vstat_fmt, com_util_file_stat_t *buf, const char *format, va_list args)
 {
     int rtc = -1;
 

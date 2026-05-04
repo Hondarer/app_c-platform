@@ -10,7 +10,7 @@ int delegate_real_com_util_remove(const char *path)
     return real_fn(path);
 }
 
-WEAK_ATR int com_util_remove(const char *path)
+MOCK_WEAK_IMPL(int, com_util_remove, const char *path)
 {
     int rtc = -1;
 

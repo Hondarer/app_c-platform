@@ -10,7 +10,7 @@ int delegate_real_com_util_tracer_set_os_level(com_util_tracer_t *handle, com_ut
     return real_fn(handle, level);
 }
 
-WEAK_ATR int com_util_tracer_set_os_level(com_util_tracer_t *handle, com_util_trace_level_t level)
+MOCK_WEAK_IMPL(int, com_util_tracer_set_os_level, com_util_tracer_t *handle, com_util_trace_level_t level)
 {
     int rtc = 0;
 

@@ -11,7 +11,7 @@ com_util_tracer_hook_entry_t *delegate_real_com_util_tracer_set_hook(
     return real_fn(handle, fn, context);
 }
 
-WEAK_ATR com_util_tracer_hook_entry_t *com_util_tracer_set_hook(
+MOCK_WEAK_IMPL(com_util_tracer_hook_entry_t *, com_util_tracer_set_hook,
     com_util_tracer_t *handle, com_util_tracer_hook_fn_t fn, void *context)
 {
     com_util_tracer_hook_entry_t *entry = nullptr;

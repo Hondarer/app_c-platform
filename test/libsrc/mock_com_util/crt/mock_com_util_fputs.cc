@@ -10,7 +10,7 @@ int delegate_real_com_util_fputs(const char *str, FILE *stream)
     return real_fn(str, stream);
 }
 
-WEAK_ATR int com_util_fputs(const char *str, FILE *stream)
+MOCK_WEAK_IMPL(int, com_util_fputs, const char *str, FILE *stream)
 {
     int rtc = -1;
 

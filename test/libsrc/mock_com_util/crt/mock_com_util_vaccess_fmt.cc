@@ -12,7 +12,7 @@ int delegate_real_com_util_vaccess_fmt(int mode, const char *format, va_list arg
     return real_fn(mode, format, args);
 }
 
-WEAK_ATR int com_util_vaccess_fmt(int mode, const char *format, va_list args)
+MOCK_WEAK_IMPL(int, com_util_vaccess_fmt, int mode, const char *format, va_list args)
 {
     int rtc = -1;
 

@@ -10,7 +10,7 @@ int delegate_real_com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t
     return real_fn(cv, mtx);
 }
 
-WEAK_ATR int com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t *mtx)
+MOCK_WEAK_IMPL(int, com_util_condvar_wait, com_util_condvar_t *cv, com_util_mutex_t *mtx)
 {
     int rtc = 0;
 

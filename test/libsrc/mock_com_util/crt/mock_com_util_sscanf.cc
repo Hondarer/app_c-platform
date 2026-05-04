@@ -10,7 +10,7 @@ int delegate_real_com_util_sscanf(const char *buffer, const char *format, va_lis
     return real_fn(buffer, format, args);
 }
 
-WEAK_ATR int com_util_sscanf(const char *buffer, const char *format, ...)
+MOCK_WEAK_IMPL(int, com_util_sscanf, const char *buffer, const char *format, ...)
 {
     int rtc = 0;
     va_list args;

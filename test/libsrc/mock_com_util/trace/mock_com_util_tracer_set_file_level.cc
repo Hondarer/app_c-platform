@@ -12,7 +12,7 @@ int delegate_real_com_util_tracer_set_file_level(com_util_tracer_t *handle, cons
     return real_fn(handle, path, level, max_bytes, generations);
 }
 
-WEAK_ATR int com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
+MOCK_WEAK_IMPL(int, com_util_tracer_set_file_level, com_util_tracer_t *handle, const char *path,
                                   com_util_trace_level_t level, size_t max_bytes,
                                   int generations)
 {

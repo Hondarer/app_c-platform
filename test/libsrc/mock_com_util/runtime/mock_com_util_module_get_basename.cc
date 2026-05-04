@@ -10,7 +10,7 @@ int delegate_real_com_util_module_get_basename(char *out_basename, size_t out_ba
     return real_fn(out_basename, out_basename_sz, func_addr);
 }
 
-WEAK_ATR int com_util_module_get_basename(char *out_basename, size_t out_basename_sz, const void *func_addr)
+MOCK_WEAK_IMPL(int, com_util_module_get_basename, char *out_basename, size_t out_basename_sz, const void *func_addr)
 {
     int rtc = -1;
 

@@ -17,7 +17,7 @@ com_util_etw_session_t *delegate_real_com_util_etw_session_start(
     return real_fn(session_name, provider_guid_str, callback, context, out_status);
 }
 
-WEAK_ATR com_util_etw_session_t *com_util_etw_session_start(
+MOCK_WEAK_IMPL(com_util_etw_session_t *, com_util_etw_session_start,
     const char *session_name,
     const char *provider_guid_str,
     com_util_etw_event_callback_t callback,

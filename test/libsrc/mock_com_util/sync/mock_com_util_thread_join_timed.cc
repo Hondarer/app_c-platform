@@ -10,7 +10,7 @@ int delegate_real_com_util_thread_join_timed(com_util_thread_t *thread, uint32_t
     return real_fn(thread, timeout_ms);
 }
 
-WEAK_ATR int com_util_thread_join_timed(com_util_thread_t *thread, uint32_t timeout_ms)
+MOCK_WEAK_IMPL(int, com_util_thread_join_timed, com_util_thread_t *thread, uint32_t timeout_ms)
 {
     int rtc = -1;
 

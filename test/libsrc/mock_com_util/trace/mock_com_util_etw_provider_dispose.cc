@@ -12,7 +12,7 @@ void delegate_real_com_util_etw_provider_dispose(com_util_etw_provider_t *handle
     real_fn(handle);
 }
 
-WEAK_ATR void com_util_etw_provider_dispose(com_util_etw_provider_t *handle)
+MOCK_WEAK_IMPL(void, com_util_etw_provider_dispose, com_util_etw_provider_t *handle)
 {
     if (_mock_com_util != nullptr)
     {

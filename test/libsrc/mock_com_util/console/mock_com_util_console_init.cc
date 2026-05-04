@@ -10,7 +10,7 @@ void delegate_real_com_util_console_init(void)
     real_fn();
 }
 
-WEAK_ATR void com_util_console_init(void)
+MOCK_WEAK_IMPL(void, com_util_console_init, void)
 {
     if (_mock_com_util != nullptr)
     {

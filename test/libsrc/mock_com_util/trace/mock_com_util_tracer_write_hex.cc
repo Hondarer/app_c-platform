@@ -12,7 +12,7 @@ int delegate_real__com_util_tracer_write_hex(com_util_tracer_t *handle, com_util
     return real_fn(handle, level, timestamp, data, size, message);
 }
 
-WEAK_ATR int _com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
+MOCK_WEAK_IMPL(int, _com_util_tracer_write_hex, com_util_tracer_t *handle, com_util_trace_level_t level,
                                         const com_util_realtime_timestamp_t *timestamp,
                                         const void *data, size_t size, const char *message)
 {

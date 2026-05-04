@@ -12,7 +12,7 @@ int delegate_real_com_util_mkdir_fmt(const char *format, ...)
     return real_fn("%s", format);
 }
 
-WEAK_ATR int com_util_mkdir_fmt(const char *format, ...)
+MOCK_WEAK_IMPL(int, com_util_mkdir_fmt, const char *format, ...)
 {
     int rtc = -1;
 

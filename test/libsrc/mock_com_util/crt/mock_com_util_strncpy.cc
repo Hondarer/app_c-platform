@@ -10,7 +10,7 @@ int delegate_real_com_util_strncpy(char *dest, size_t dest_size, const char *src
     return real_fn(dest, dest_size, src, count);
 }
 
-WEAK_ATR int com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count)
+MOCK_WEAK_IMPL(int, com_util_strncpy, char *dest, size_t dest_size, const char *src, size_t count)
 {
     int rtc = -1;
 

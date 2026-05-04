@@ -10,7 +10,7 @@ int delegate_real_com_util_feof(FILE *stream)
     return real_fn(stream);
 }
 
-WEAK_ATR int com_util_feof(FILE *stream)
+MOCK_WEAK_IMPL(int, com_util_feof, FILE *stream)
 {
     int rtc = 0;
 

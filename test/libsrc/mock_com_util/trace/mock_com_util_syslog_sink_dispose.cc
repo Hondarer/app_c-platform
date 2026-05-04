@@ -12,7 +12,7 @@ void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle)
     real_fn(handle);
 }
 
-WEAK_ATR void com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle)
+MOCK_WEAK_IMPL(void, com_util_syslog_sink_dispose, com_util_syslog_sink_t *handle)
 {
     if (_mock_com_util != nullptr)
     {

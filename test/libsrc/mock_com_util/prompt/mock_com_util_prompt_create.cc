@@ -10,7 +10,7 @@ com_util_prompt_t *delegate_real_com_util_prompt_create(size_t history_max)
     return real_fn(history_max);
 }
 
-WEAK_ATR com_util_prompt_t *com_util_prompt_create(size_t history_max)
+MOCK_WEAK_IMPL(com_util_prompt_t *, com_util_prompt_create, size_t history_max)
 {
     com_util_prompt_t *rtc = nullptr;
 

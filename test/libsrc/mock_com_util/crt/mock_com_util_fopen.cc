@@ -10,7 +10,7 @@ FILE *delegate_real_com_util_fopen(const char *path, const char *modes, int *err
     return real_fn(path, modes, errno_out);
 }
 
-WEAK_ATR FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
+MOCK_WEAK_IMPL(FILE *, com_util_fopen, const char *path, const char *modes, int *errno_out)
 {
     FILE *fp = nullptr;
 

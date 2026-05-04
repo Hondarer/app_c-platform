@@ -12,7 +12,7 @@ int delegate_real_com_util_vopen_fmt(int flags, int mode, const char *format, va
     return real_fn(flags, mode, format, args);
 }
 
-WEAK_ATR int com_util_vopen_fmt(int flags, int mode, const char *format, va_list args)
+MOCK_WEAK_IMPL(int, com_util_vopen_fmt, int flags, int mode, const char *format, va_list args)
 {
     int rtc = -1;
 

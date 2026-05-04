@@ -10,7 +10,7 @@ com_util_tracer_t *delegate_real_com_util_tracer_create(void)
     return real_fn();
 }
 
-WEAK_ATR com_util_tracer_t *com_util_tracer_create(void)
+MOCK_WEAK_IMPL(com_util_tracer_t *, com_util_tracer_create, void)
 {
     com_util_tracer_t *handle = nullptr;
 

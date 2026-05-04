@@ -12,7 +12,7 @@ int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink_t *han
     return real_fn(handle, level, timestamp, message);
 }
 
-WEAK_ATR int com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
+MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink_t *handle, int level,
                                             const com_util_realtime_timestamp_t *timestamp,
                                             const char *message)
 {

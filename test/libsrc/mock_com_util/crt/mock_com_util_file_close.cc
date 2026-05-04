@@ -10,7 +10,7 @@ void delegate_real_com_util_file_close(com_util_file_t *file)
     real_fn(file);
 }
 
-WEAK_ATR void com_util_file_close(com_util_file_t *file)
+MOCK_WEAK_IMPL(void, com_util_file_close, com_util_file_t *file)
 {
     if (_mock_com_util != nullptr)
     {

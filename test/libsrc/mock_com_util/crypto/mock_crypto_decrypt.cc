@@ -13,7 +13,7 @@ int delegate_real_com_util_decrypt(uint8_t *dst, size_t *dst_len,
     return real_fn(dst, dst_len, src, src_len, key, nonce, aad, aad_len);
 }
 
-WEAK_ATR int com_util_decrypt(uint8_t *dst, size_t *dst_len,
+MOCK_WEAK_IMPL(int, com_util_decrypt, uint8_t *dst, size_t *dst_len,
                               const uint8_t *src, size_t src_len,
                               const uint8_t *key, const uint8_t *nonce,
                               const uint8_t *aad, size_t aad_len)

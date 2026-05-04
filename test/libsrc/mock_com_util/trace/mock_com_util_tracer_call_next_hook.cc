@@ -14,7 +14,7 @@ void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *
     real_fn(prev, handle, level, timestamp, message);
 }
 
-WEAK_ATR void com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
+MOCK_WEAK_IMPL(void, com_util_tracer_call_next_hook, com_util_tracer_hook_entry_t *prev,
                                               com_util_tracer_t *handle,
                                               com_util_trace_level_t level,
                                               const com_util_realtime_timestamp_t *timestamp,

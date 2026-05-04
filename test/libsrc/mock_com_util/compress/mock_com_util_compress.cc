@@ -11,7 +11,7 @@ int delegate_real_com_util_compress(uint8_t *dst, size_t *dst_len,
     return real_compress(dst, dst_len, src, src_len);
 }
 
-WEAK_ATR int com_util_compress(uint8_t *dst, size_t *dst_len,
+MOCK_WEAK_IMPL(int, com_util_compress, uint8_t *dst, size_t *dst_len,
                                const uint8_t *src, size_t src_len)
 {
     int rtc = -1;

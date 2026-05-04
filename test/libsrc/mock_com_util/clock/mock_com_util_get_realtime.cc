@@ -10,7 +10,7 @@ void delegate_real_com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
     real_fn(tv_sec, tv_nsec);
 }
 
-WEAK_ATR void com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
+MOCK_WEAK_IMPL(void, com_util_get_realtime, int64_t *tv_sec, int32_t *tv_nsec)
 {
     if (_mock_com_util != nullptr)
     {

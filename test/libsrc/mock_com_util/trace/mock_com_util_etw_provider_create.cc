@@ -12,7 +12,7 @@ com_util_etw_provider_t *delegate_real_com_util_etw_provider_create(com_util_etw
     return real_fn(provider_ref);
 }
 
-WEAK_ATR com_util_etw_provider_t *com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
+MOCK_WEAK_IMPL(com_util_etw_provider_t *, com_util_etw_provider_create, com_util_etw_provider_ref_t provider_ref)
 {
     com_util_etw_provider_t *rtc = nullptr;
 

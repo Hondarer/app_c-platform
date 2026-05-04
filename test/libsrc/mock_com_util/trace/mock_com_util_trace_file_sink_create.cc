@@ -10,7 +10,7 @@ com_util_trace_file_sink_t *delegate_real_com_util_trace_file_sink_create(const 
     return real_fn(path, max_bytes, generations);
 }
 
-WEAK_ATR com_util_trace_file_sink_t *com_util_trace_file_sink_create(const char *path, size_t max_bytes, int generations)
+MOCK_WEAK_IMPL(com_util_trace_file_sink_t *, com_util_trace_file_sink_create, const char *path, size_t max_bytes, int generations)
 {
     com_util_trace_file_sink_t *rtc = nullptr;
 

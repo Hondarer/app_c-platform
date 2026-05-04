@@ -10,7 +10,7 @@ void delegate_real_com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct
     real_fn(timeout_ms, abs_timeout);
 }
 
-WEAK_ATR void com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout)
+MOCK_WEAK_IMPL(void, com_util_get_realtime_deadline_ms, uint64_t timeout_ms, struct timespec *abs_timeout)
 {
     if (_mock_com_util != nullptr)
     {

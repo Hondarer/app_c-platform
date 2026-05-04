@@ -11,7 +11,7 @@ int delegate_real_com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t
     return real_fn(dest, dest_size, src);
 }
 
-WEAK_ATR int com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src)
+MOCK_WEAK_IMPL(int, com_util_wcscpy, wchar_t *dest, size_t dest_size, const wchar_t *src)
 {
     int rtc = -1;
 

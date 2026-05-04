@@ -12,7 +12,7 @@ int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, co
     return real_fn(handle, new_ident);
 }
 
-WEAK_ATR int com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, const char *new_ident)
+MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink_t *handle, const char *new_ident)
 {
     int rtc = -1;
 

@@ -10,7 +10,7 @@ void delegate_real_com_util_call_once(com_util_once_flag_t *flag, com_util_once_
     real_fn(flag, func);
 }
 
-WEAK_ATR void com_util_call_once(com_util_once_flag_t *flag, com_util_once_func_t func)
+MOCK_WEAK_IMPL(void, com_util_call_once, com_util_once_flag_t *flag, com_util_once_func_t func)
 {
     if (_mock_com_util != nullptr)
     {

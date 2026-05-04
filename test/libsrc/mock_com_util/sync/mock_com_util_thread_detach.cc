@@ -10,7 +10,7 @@ int delegate_real_com_util_thread_detach(com_util_thread_t *thread)
     return real_fn(thread);
 }
 
-WEAK_ATR int com_util_thread_detach(com_util_thread_t *thread)
+MOCK_WEAK_IMPL(int, com_util_thread_detach, com_util_thread_t *thread)
 {
     int rtc = -1;
 

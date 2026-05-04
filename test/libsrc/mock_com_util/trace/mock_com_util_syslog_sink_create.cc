@@ -12,7 +12,7 @@ com_util_syslog_sink_t *delegate_real_com_util_syslog_sink_create(const char *id
     return real_fn(ident, facility);
 }
 
-WEAK_ATR com_util_syslog_sink_t *com_util_syslog_sink_create(const char *ident, int facility)
+MOCK_WEAK_IMPL(com_util_syslog_sink_t *, com_util_syslog_sink_create, const char *ident, int facility)
 {
     com_util_syslog_sink_t *rtc = nullptr;
 

@@ -10,7 +10,7 @@ int delegate_real_com_util_condvar_timedwait(com_util_condvar_t *cv, com_util_mu
     return real_fn(cv, mtx, timeout_ms);
 }
 
-WEAK_ATR int com_util_condvar_timedwait(com_util_condvar_t *cv, com_util_mutex_t *mtx, uint32_t timeout_ms)
+MOCK_WEAK_IMPL(int, com_util_condvar_timedwait, com_util_condvar_t *cv, com_util_mutex_t *mtx, uint32_t timeout_ms)
 {
     int rtc = 0;
 

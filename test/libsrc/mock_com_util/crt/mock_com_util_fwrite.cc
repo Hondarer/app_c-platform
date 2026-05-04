@@ -10,7 +10,7 @@ size_t delegate_real_com_util_fwrite(const void *ptr, size_t size, size_t count,
     return real_fn(ptr, size, count, stream);
 }
 
-WEAK_ATR size_t com_util_fwrite(const void *ptr, size_t size, size_t count, FILE *stream)
+MOCK_WEAK_IMPL(size_t, com_util_fwrite, const void *ptr, size_t size, size_t count, FILE *stream)
 {
     size_t rtc = 0;
 

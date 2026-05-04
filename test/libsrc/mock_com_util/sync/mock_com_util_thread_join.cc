@@ -10,7 +10,7 @@ void delegate_real_com_util_thread_join(com_util_thread_t *thread)
     real_fn(thread);
 }
 
-WEAK_ATR void com_util_thread_join(com_util_thread_t *thread)
+MOCK_WEAK_IMPL(void, com_util_thread_join, com_util_thread_t *thread)
 {
     if (_mock_com_util != nullptr)
     {

@@ -10,7 +10,7 @@ char *delegate_real_com_util_fgets(char *buf, int size, FILE *stream)
     return real_fn(buf, size, stream);
 }
 
-WEAK_ATR char *com_util_fgets(char *buf, int size, FILE *stream)
+MOCK_WEAK_IMPL(char *, com_util_fgets, char *buf, int size, FILE *stream)
 {
     char *rtc = nullptr;
 

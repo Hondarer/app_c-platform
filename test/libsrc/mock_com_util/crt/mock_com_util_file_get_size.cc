@@ -10,7 +10,7 @@ int delegate_real_com_util_file_get_size(com_util_file_t *file, size_t *size_out
     return real_fn(file, size_out);
 }
 
-WEAK_ATR int com_util_file_get_size(com_util_file_t *file, size_t *size_out)
+MOCK_WEAK_IMPL(int, com_util_file_get_size, com_util_file_t *file, size_t *size_out)
 {
     int rtc = -1;
 

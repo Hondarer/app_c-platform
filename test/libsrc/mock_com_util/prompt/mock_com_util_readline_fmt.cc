@@ -14,7 +14,7 @@ int delegate_real__com_util_prompt_readline_fmt(com_util_prompt_t *p, char *buf,
     return real_fn(p, buf, buf_size, prompt, file, line);
 }
 
-WEAK_ATR int _com_util_prompt_readline_fmt(com_util_prompt_t *p, char *buf, size_t buf_size,
+MOCK_WEAK_IMPL(int, _com_util_prompt_readline_fmt, com_util_prompt_t *p, char *buf, size_t buf_size,
                                             const char *file, int line, const char *fmt, ...)
 {
     int rtc = 0;

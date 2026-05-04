@@ -11,7 +11,7 @@ int delegate_real__com_util_tracer_write(com_util_tracer_t *handle, com_util_tra
     return real_fn(handle, level, timestamp, message);
 }
 
-WEAK_ATR int _com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
+MOCK_WEAK_IMPL(int, _com_util_tracer_write, com_util_tracer_t *handle, com_util_trace_level_t level,
                                     const com_util_realtime_timestamp_t *timestamp, const char *message)
 {
     int rtc = 0;

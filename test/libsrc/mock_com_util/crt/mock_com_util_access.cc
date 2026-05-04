@@ -10,7 +10,7 @@ int delegate_real_com_util_access(const char *path, int mode)
     return real_fn(path, mode);
 }
 
-WEAK_ATR int com_util_access(const char *path, int mode)
+MOCK_WEAK_IMPL(int, com_util_access, const char *path, int mode)
 {
     int rtc = -1;
 

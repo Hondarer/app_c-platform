@@ -12,7 +12,7 @@ int delegate_real_com_util_tracer_set_name(com_util_tracer_t *handle, const char
     return real_fn(handle, name, identifier);
 }
 
-WEAK_ATR int com_util_tracer_set_name(com_util_tracer_t *handle, const char *name,
+MOCK_WEAK_IMPL(int, com_util_tracer_set_name, com_util_tracer_t *handle, const char *name,
                                int64_t identifier)
 {
     int rtc = 0;

@@ -10,7 +10,7 @@ int delegate_real_com_util_file_write(com_util_file_t *file, const void *buf, si
     return real_fn(file, buf, len);
 }
 
-WEAK_ATR int com_util_file_write(com_util_file_t *file, const void *buf, size_t len)
+MOCK_WEAK_IMPL(int, com_util_file_write, com_util_file_t *file, const void *buf, size_t len)
 {
     int rtc = -1;
 

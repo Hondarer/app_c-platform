@@ -11,7 +11,7 @@ int64_t delegate_real_com_util_ftell(FILE *stream)
     return real_fn(stream);
 }
 
-WEAK_ATR int64_t com_util_ftell(FILE *stream)
+MOCK_WEAK_IMPL(int64_t, com_util_ftell, FILE *stream)
 {
     int64_t rtc = -1;
 

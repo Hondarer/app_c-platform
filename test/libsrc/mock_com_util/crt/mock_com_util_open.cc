@@ -10,7 +10,7 @@ int delegate_real_com_util_open(const char *path, int flags, int mode)
     return real_fn(path, flags, mode);
 }
 
-WEAK_ATR int com_util_open(const char *path, int flags, int mode)
+MOCK_WEAK_IMPL(int, com_util_open, const char *path, int flags, int mode)
 {
     int rtc = -1;
 

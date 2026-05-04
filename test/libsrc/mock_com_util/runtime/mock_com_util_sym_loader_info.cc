@@ -10,7 +10,7 @@ int delegate_real_com_util_sym_loader_info(com_util_sym_loader_entry_t *const *f
     return real_fn(fobj_array, fobj_length);
 }
 
-WEAK_ATR int com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length)
+MOCK_WEAK_IMPL(int, com_util_sym_loader_info, com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length)
 {
     int rtc = -1;
 

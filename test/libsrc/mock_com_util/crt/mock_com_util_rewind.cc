@@ -10,7 +10,7 @@ void delegate_real_com_util_rewind(FILE *stream)
     real_fn(stream);
 }
 
-WEAK_ATR void com_util_rewind(FILE *stream)
+MOCK_WEAK_IMPL(void, com_util_rewind, FILE *stream)
 {
     if (_mock_com_util != nullptr)
     {

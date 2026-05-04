@@ -10,7 +10,7 @@ void *delegate_real_com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fob
     return real_fn(fobj);
 }
 
-WEAK_ATR void *com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
+MOCK_WEAK_IMPL(void *, com_util_sym_loader_resolve, com_util_sym_loader_entry_t *fobj)
 {
     void *rtc = nullptr;
 

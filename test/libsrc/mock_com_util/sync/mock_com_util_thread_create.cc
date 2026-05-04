@@ -10,7 +10,7 @@ int delegate_real_com_util_thread_create(com_util_thread_t *thread, com_util_thr
     return real_fn(thread, func, arg);
 }
 
-WEAK_ATR int com_util_thread_create(com_util_thread_t *thread, com_util_thread_func_t func, void *arg)
+MOCK_WEAK_IMPL(int, com_util_thread_create, com_util_thread_t *thread, com_util_thread_func_t func, void *arg)
 {
     int rtc = -1;
 

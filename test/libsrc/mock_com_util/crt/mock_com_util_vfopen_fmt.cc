@@ -12,7 +12,7 @@ FILE *delegate_real_com_util_vfopen_fmt(const char *modes, int *errno_out, const
     return real_fn(modes, errno_out, format, args);
 }
 
-WEAK_ATR FILE *com_util_vfopen_fmt(const char *modes, int *errno_out, const char *format, va_list args)
+MOCK_WEAK_IMPL(FILE *, com_util_vfopen_fmt, const char *modes, int *errno_out, const char *format, va_list args)
 {
     FILE *rtc = nullptr;
 

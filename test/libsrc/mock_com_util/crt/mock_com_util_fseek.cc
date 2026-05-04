@@ -11,7 +11,7 @@ int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence)
     return real_fn(stream, offset, whence);
 }
 
-WEAK_ATR int com_util_fseek(FILE *stream, int64_t offset, int whence)
+MOCK_WEAK_IMPL(int, com_util_fseek, FILE *stream, int64_t offset, int whence)
 {
     int rtc = -1;
 

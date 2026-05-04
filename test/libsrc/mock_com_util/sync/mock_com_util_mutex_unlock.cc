@@ -10,7 +10,7 @@ int delegate_real_com_util_mutex_unlock(com_util_mutex_t *mtx)
     return real_fn(mtx);
 }
 
-WEAK_ATR int com_util_mutex_unlock(com_util_mutex_t *mtx)
+MOCK_WEAK_IMPL(int, com_util_mutex_unlock, com_util_mutex_t *mtx)
 {
     int rtc = 0;
 

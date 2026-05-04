@@ -11,7 +11,7 @@ int delegate_real_com_util_format_realtime_iso8601_local(char *buf, size_t buf_s
     return real_fn(buf, buf_size, tv_sec, tv_nsec);
 }
 
-WEAK_ATR int com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
+MOCK_WEAK_IMPL(int, com_util_format_realtime_iso8601_local, char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
 {
     int rtc = -1;
 

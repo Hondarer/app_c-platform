@@ -10,7 +10,7 @@ int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size)
     return real_fn(name, buf, buf_size);
 }
 
-WEAK_ATR int com_util_getenv(const char *name, char *buf, size_t buf_size)
+MOCK_WEAK_IMPL(int, com_util_getenv, const char *name, char *buf, size_t buf_size)
 {
     int rtc = -1;
 

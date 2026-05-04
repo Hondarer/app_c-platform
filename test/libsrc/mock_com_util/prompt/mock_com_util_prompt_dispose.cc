@@ -10,7 +10,7 @@ void delegate_real_com_util_prompt_dispose(com_util_prompt_t *prompt)
     real_fn(prompt);
 }
 
-WEAK_ATR void com_util_prompt_dispose(com_util_prompt_t *prompt)
+MOCK_WEAK_IMPL(void, com_util_prompt_dispose, com_util_prompt_t *prompt)
 {
     if (_mock_com_util != nullptr)
     {

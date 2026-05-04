@@ -10,7 +10,7 @@ void delegate_real_com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec
     real_fn(utc_tm, tv_nsec);
 }
 
-WEAK_ATR void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
+MOCK_WEAK_IMPL(void, com_util_get_realtime_utc, struct tm *utc_tm, int32_t *tv_nsec)
 {
     if (_mock_com_util != nullptr)
     {

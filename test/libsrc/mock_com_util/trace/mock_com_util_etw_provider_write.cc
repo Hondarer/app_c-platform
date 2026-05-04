@@ -12,7 +12,7 @@ int delegate_real_com_util_etw_provider_write(com_util_etw_provider_t *handle, i
     return real_fn(handle, level, service, message);
 }
 
-WEAK_ATR int com_util_etw_provider_write(com_util_etw_provider_t *handle, int level, const char *service, const char *message)
+MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider_t *handle, int level, const char *service, const char *message)
 {
     int rtc = -1;
 

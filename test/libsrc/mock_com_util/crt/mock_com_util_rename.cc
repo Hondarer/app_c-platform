@@ -10,7 +10,7 @@ int delegate_real_com_util_rename(const char *oldpath, const char *newpath)
     return real_fn(oldpath, newpath);
 }
 
-WEAK_ATR int com_util_rename(const char *oldpath, const char *newpath)
+MOCK_WEAK_IMPL(int, com_util_rename, const char *oldpath, const char *newpath)
 {
     int rtc = -1;
 
