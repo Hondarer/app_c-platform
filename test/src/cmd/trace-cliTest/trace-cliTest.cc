@@ -78,6 +78,8 @@ protected:
         trace_cli_session_init(&session_);
         ON_CALL(mock_com_util_, com_util_strncpy(_, _, _, _))
             .WillByDefault(emulate_com_util_strncpy);
+        ON_CALL(mock_com_util_, com_util_tracer_dispose(_))
+            .WillByDefault(Return());
         ON_CALL(mock_stdio_, printf(_, _, _, _))
             .WillByDefault(Return(0));
         ON_CALL(mock_stdio_, fprintf(_, _, _, _, _))
