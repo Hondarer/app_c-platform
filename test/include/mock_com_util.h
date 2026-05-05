@@ -1,9 +1,21 @@
 #ifndef MOCK_UTIL_H
 #define MOCK_UTIL_H
 
+#include <com_util/base/platform.h>
 #include <testfw.h>
 #include <stdint.h>
 #include <time.h>
+
+#if defined(COMPILER_MSVC)
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vopen_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vremove_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vmkdir_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vstat_fmt")
+#endif /* COMPILER_MSVC */
+
 #include <com_util/compress/compress.h>
 #include <com_util/crypto/crypto.h>
 #include <com_util/crt/fcntl.h>

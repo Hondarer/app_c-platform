@@ -2,16 +2,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-#if defined(COMPILER_MSVC)
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vopen_fmt")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vremove_fmt")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vmkdir_fmt")
-#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vstat_fmt")
-#endif /* COMPILER_MSVC */
-
 Mock_com_util *_mock_com_util = nullptr;
 
 Mock_com_util::Mock_com_util()
