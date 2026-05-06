@@ -7,4 +7,4 @@ endif
 
 # 生成されるライブラリを動的ライブラリ (shared) とする
 # 未指定の場合 (デフォルト) は static
-LIB_TYPE = shared
+LIB_TYPE = both
