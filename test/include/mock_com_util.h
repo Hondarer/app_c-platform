@@ -14,6 +14,7 @@
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vremove_fmt")
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vmkdir_fmt")
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vstat_fmt")
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_console_dispose_on_shutdown")
 #endif /* COMPILER_MSVC */
 
 #include <com_util/compress/compress.h>
