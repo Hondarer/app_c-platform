@@ -29,6 +29,7 @@
 #include <com_util/trace/tracer.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
+#include <com_util/console/console_internal.h>
 #include <com_util/sync/sync.h>
 #include <com_util/runtime/module.h>
 #include <com_util/runtime/sym_loader.h>
@@ -144,6 +145,7 @@ extern void delegate_real_com_util_get_realtime_deadline_ms(uint64_t timeout_ms,
 // console
 extern void delegate_real_com_util_console_init(void);
 extern void delegate_real_com_util_console_dispose(void);
+extern void delegate_real_com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event, void *context);
 
 // sync
 extern int delegate_real_com_util_mutex_init(com_util_mutex_t *mtx);
@@ -335,6 +337,7 @@ class Mock_com_util
     // console
     MOCK_METHOD(void, com_util_console_init, ());
     MOCK_METHOD(void, com_util_console_dispose, ());
+    MOCK_METHOD(void, com_util_console_dispose_on_shutdown, (const com_util_shutdown_event_t *, void *));
 
     // sync
     MOCK_METHOD(int, com_util_mutex_init, (com_util_mutex_t *));

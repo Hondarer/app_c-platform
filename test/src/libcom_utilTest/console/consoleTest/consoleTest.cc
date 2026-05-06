@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <com_util/console/console.h>
 #include <com_util/console/console_internal.h>
 #include <stdio.h>
@@ -7,6 +8,18 @@
 
 class consoleTest : public Test
 {
+  protected:
+    NiceMock<Mock_com_util> mock_;
+
+    void SetUp() override
+    {
+        _mock_com_util = &mock_;
+    }
+
+    void TearDown() override
+    {
+        _mock_com_util = nullptr;
+    }
 };
 
 /* ===== 共通テスト (Windows / Linux 両方) ===== */
