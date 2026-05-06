@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compress_linux.c
- *  @brief          Linux 向け圧縮・解凍モジュール (zlib)。
+ *  @brief          Linux 向け圧縮・展開モジュール (zlib)。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0
@@ -94,7 +94,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_
         return -1;
     }
 
-    /* raw DEFLATE を解凍 */
+    /* raw DEFLATE を展開 */
     memset(&z, 0, sizeof(z));
     z.next_in = (Bytef *)(uintptr_t)(src + COM_UTIL_COMPRESS_HEADER_SIZE);
     z.avail_in = (uInt)(src_len - COM_UTIL_COMPRESS_HEADER_SIZE);

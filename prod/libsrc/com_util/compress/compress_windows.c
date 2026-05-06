@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compress_windows.c
- *  @brief          Windows 向け圧縮・解凍モジュール (Compression API)。
+ *  @brief          Windows 向け圧縮・展開モジュール (Compression API)。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0
@@ -11,13 +11,13 @@
  *
  *  - **圧縮**: `MSZIP | COMPRESS_RAW` (Block Mode) で圧縮し、先頭に付加される
  *    2 バイトの MSZIP ブロック署名 (CK = 0x43 0x4B) を除去して raw DEFLATE を得ます。
- *  - **解凍**: `MSZIP | COMPRESS_RAW` の Decompress は常にエラー 605 を返す
+ *  - **展開**: `MSZIP | COMPRESS_RAW` の Decompress は常にエラー 605 を返す
  *    既知の問題があるため、代わりに MSZIP ストリーミング形式ヘッダーを手動構築して
  *    ストリーミング Decompressor に渡します。ヘッダーの CRC バイト (offset 6) は
  *    Windows Compression API の内部仕様に従い算出します。
  *
  *  これにより Linux 実装 (zlib, windowBits = -15) と同一の raw DEFLATE フォーマットを
- *  維持し、クロスプラットフォームに対応した圧縮・解凍処理を行います。
+ *  維持し、クロスプラットフォームに対応した圧縮・展開処理を行います。
  *
  *  @note           Cabinet.lib のリンクが必要です。
  *
@@ -219,7 +219,7 @@ int com_util_decompress(uint8_t       *dst,
     /* raw DEFLATE データ */
     memcpy(tmp + 30, src + COM_UTIL_COMPRESS_HEADER_SIZE, raw_deflate_len);
 
-    /* MSZIP ストリーミング Decompressor で解凍 */
+    /* MSZIP ストリーミング Decompressor で展開 */
     if (!CreateDecompressor(COMPRESS_ALGORITHM_MSZIP, NULL, &h))
     {
         free(tmp);

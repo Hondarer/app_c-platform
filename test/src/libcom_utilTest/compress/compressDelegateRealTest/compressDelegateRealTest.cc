@@ -39,7 +39,7 @@ class compressDelegateRealTest : public Test
 {
 };
 
-// mock 未注入時に本物の libcom_util へ移譲して圧縮・解凍できることの確認
+// mock 未注入時に本物の libcom_util へ移譲して圧縮・展開できることの確認
 TEST_F(compressDelegateRealTest, compress_and_decompress_delegate_to_real_when_mock_is_not_attached)
 {
     // Arrange
@@ -53,7 +53,7 @@ TEST_F(compressDelegateRealTest, compress_and_decompress_delegate_to_real_when_m
     // [確認_正常系] - mock 未注入時でも本物の libcom_util へ移譲して round-trip に成功すること。
 }
 
-// mock 注入済みでも既定動作では本物の libcom_util へ移譲して圧縮・解凍できることの確認
+// mock 注入済みでも既定動作では本物の libcom_util へ移譲して圧縮・展開できることの確認
 TEST_F(compressDelegateRealTest, default_behavior_delegates_to_real_when_mock_is_attached)
 {
     // Arrange
