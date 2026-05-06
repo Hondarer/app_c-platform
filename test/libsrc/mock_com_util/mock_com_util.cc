@@ -148,6 +148,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_sym_loader_info(_, _)).WillByDefault(Invoke(delegate_real_com_util_sym_loader_info));
 
     // runtime - shutdown
+    ON_CALL(*this, com_util_shutdown_register(_, _)).WillByDefault(Invoke(delegate_real_com_util_shutdown_register));
     ON_CALL(*this, com_util_shutdown_request_register(_, _)).WillByDefault(Invoke(delegate_real_com_util_shutdown_request_register));
 
     // trace - log_file_sink

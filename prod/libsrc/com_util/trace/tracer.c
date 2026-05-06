@@ -122,6 +122,8 @@ struct trace_registry
 static struct trace_registry s_trace_registry = {0};
 static com_util_once_flag_t s_trace_shutdown_once = {0};
 
+static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void *context);
+
 static void init_registry_lock(void)
 {
     (void)com_util_mutex_init(&s_registry_lock);
@@ -129,8 +131,13 @@ static void init_registry_lock(void)
 
 static void register_trace_shutdown_callback(void)
 {
-    (void)com_util_shutdown_register(
-        (com_util_shutdown_callback_t)trace_registry_dispose_all_on_shutdown, NULL);
+    (void)com_util_shutdown_register(trace_shutdown_callback, NULL);
+}
+
+static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void *context)
+{
+    (void)context;
+    trace_registry_dispose_all_on_shutdown(event);
 }
 
 /**

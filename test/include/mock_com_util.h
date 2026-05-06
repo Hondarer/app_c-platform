@@ -182,6 +182,7 @@ extern void delegate_real_com_util_sym_loader_dispose(com_util_sym_loader_entry_
 extern int delegate_real_com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length);
 
 // runtime - shutdown
+extern int delegate_real_com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context);
 extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context);
 
 // trace - trace_file_sink
@@ -372,6 +373,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_sym_loader_info, (com_util_sym_loader_entry_t *const *, size_t));
 
     // runtime - shutdown
+    MOCK_METHOD(int, com_util_shutdown_register, (com_util_shutdown_callback_t, void *));
     MOCK_METHOD(int, com_util_shutdown_request_register, (com_util_shutdown_callback_t, void *));
 
     // trace - trace_file_sink
