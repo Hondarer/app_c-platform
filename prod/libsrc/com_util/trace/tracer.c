@@ -120,10 +120,17 @@ struct trace_registry
 };
 
 static struct trace_registry s_trace_registry = {0};
+static com_util_once_flag_t s_trace_shutdown_once = {0};
 
 static void init_registry_lock(void)
 {
     (void)com_util_mutex_init(&s_registry_lock);
+}
+
+static void register_trace_shutdown_callback(void)
+{
+    (void)com_util_shutdown_register(
+        (com_util_shutdown_callback_t)trace_registry_dispose_all_on_shutdown, NULL);
 }
 
 /**
@@ -552,16 +559,16 @@ static void trace_handle_release_normal(com_util_tracer_t *handle)
  *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
  *******************************************************************************
  */
-static void trace_handle_release_on_unload(com_util_tracer_t *handle)
+static void trace_handle_release_on_shutdown(com_util_tracer_t *handle)
 {
     if (handle->file_handle != NULL)
     {
-        com_util_trace_file_sink_dispose_on_unload(handle->file_handle);
+        com_util_trace_file_sink_dispose_on_shutdown(handle->file_handle);
         handle->file_handle = NULL;
     }
 
 #if defined(PLATFORM_LINUX)
-    com_util_syslog_sink_dispose_on_unload(handle->syslog_handle);
+    com_util_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
 #elif defined(PLATFORM_WINDOWS)
     free(handle->service_name);
 #endif /* PLATFORM_ */
@@ -576,6 +583,8 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
     com_util_tracer_t *handle;
     char path_buf[256];
     const char *effective_name;
+
+    com_util_call_once(&s_trace_shutdown_once, register_trace_shutdown_callback);
 
     if (s_trace_registry.shutdown_started)
     {
@@ -1419,17 +1428,13 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
     trace_handle_release_normal(handle);
 }
 
-void trace_registry_dispose_all_on_unload(int process_terminating)
+void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *event)
 {
     com_util_tracer_t **items;
     size_t count;
     size_t i;
 
-#if defined(PLATFORM_LINUX)
-    (void)process_terminating;
-#endif /* PLATFORM_LINUX */
-
-    if (s_trace_registry.shutdown_started)
+    if (event == NULL || s_trace_registry.shutdown_started)
     {
         return;
     }
@@ -1453,13 +1458,13 @@ void trace_registry_dispose_all_on_unload(int process_terminating)
 
         handle->lifecycle_state = TRACE_HANDLE_DISPOSING;
         handle->running = 0;
-        trace_handle_release_on_unload(handle);
+        trace_handle_release_on_shutdown(handle);
     }
 
 #if defined(PLATFORM_WINDOWS)
     if (s_etw_handle != NULL)
     {
-        com_util_etw_provider_dispose_on_unload(s_etw_handle, process_terminating);
+        com_util_etw_provider_dispose_on_shutdown(s_etw_handle, event);
         s_etw_handle = NULL;
     }
     s_trace_ref = 0;

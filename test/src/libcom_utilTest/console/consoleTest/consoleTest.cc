@@ -18,45 +18,57 @@ TEST_F(consoleTest, test_init_succeeds)
     com_util_console_init(); // [手順] - コンソールヘルパーを初期化する。
 }
 
-// init 後に dispose_on_unload(0) がクラッシュしないことの確認
-TEST_F(consoleTest, test_dispose_on_unload_after_init)
+// init 後に dispose_on_shutdown() がクラッシュしないことの確認
+TEST_F(consoleTest, test_dispose_on_shutdown_after_init)
 {
     // Arrange
     com_util_console_init();
+    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
+                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - クラッシュしないことを確認
-    com_util_console_dispose_on_unload(0); // [手順] - 正常に初期化した後で dispose_on_unload(0) を呼ぶ。
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 正常終了イベントで dispose_on_shutdown() を呼ぶ。
 }
 
-// init なしで dispose_on_unload(0) を呼んでも安全なことの確認
-TEST_F(consoleTest, test_dispose_on_unload_without_init)
+// init なしで dispose_on_shutdown() を呼んでも安全なことの確認
+TEST_F(consoleTest, test_dispose_on_shutdown_without_init)
 {
+    // Arrange
+    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
+                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+
     // Act & Assert - クラッシュしないことを確認
-    com_util_console_dispose_on_unload(0); // [手順] - init を呼ばずに dispose_on_unload(0) を呼ぶ。安全に何もしないこと。
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼ぶ。安全に何もしないこと。
 }
 
-// dispose_on_unload(0) を 2 回呼んでも安全なことの確認
-TEST_F(consoleTest, test_double_dispose_on_unload)
+// dispose_on_shutdown() を 2 回呼んでも安全なことの確認
+TEST_F(consoleTest, test_double_dispose_on_shutdown)
 {
     // Arrange
     com_util_console_init();
+    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
+                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - 2 回呼んでもクラッシュしないことを確認
-    com_util_console_dispose_on_unload(0); // [手順] - 1 回目の dispose_on_unload(0)。
-    com_util_console_dispose_on_unload(0); // [手順] - 2 回目の dispose_on_unload(0)。安全に何もしないこと。
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown()。
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 2 回目の dispose_on_shutdown()。安全に何もしないこと。
 }
 
-// init 後に dispose_on_unload(1) が安全に何もしないことの確認
-TEST_F(consoleTest, test_dispose_on_unload_process_terminating)
+// init 後に終了中イベントの dispose_on_shutdown() が安全に何もしないことの確認
+TEST_F(consoleTest, test_dispose_on_shutdown_process_terminating)
 {
     // Arrange
     com_util_console_init();
+    com_util_shutdown_event_t terminating_event = {COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING,
+                                                   COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event_t normal_event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
+                                              COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
-    // Act & Assert - process_terminating=1 は何もしないこと (クラッシュしないことを確認)
-    com_util_console_dispose_on_unload(1); // [手順] - プロセス終了を模擬。何もしないこと。
+    // Act & Assert - 終了中イベントでは何もしないこと (クラッシュしないことを確認)
+    com_util_console_dispose_on_shutdown(&terminating_event, NULL); // [手順] - 終了中イベントを模擬。何もしないこと。
 
-    // Cleanup - init 状態を解放する (process_terminating=0 で明示的にクリーンアップ)
-    com_util_console_dispose_on_unload(0);
+    // Cleanup - init 状態を解放する (通常終了イベントで明示的にクリーンアップ)
+    com_util_console_dispose_on_shutdown(&normal_event, NULL);
 }
 
 // init 後に printf / fprintf を呼んでもクラッシュしないことの確認

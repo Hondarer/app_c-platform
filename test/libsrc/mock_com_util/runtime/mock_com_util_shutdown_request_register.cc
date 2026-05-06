@@ -1,0 +1,40 @@
+#include <testfw.h>
+#include <mock_com_util.h>
+
+int delegate_real_com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&com_util_shutdown_request_register)>(
+            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_shutdown_request_register"));
+
+    return real_fn(callback, context);
+}
+
+MOCK_WEAK_IMPL(int, com_util_shutdown_request_register, com_util_shutdown_callback_t callback, void *context)
+{
+    int rtc = -1;
+
+    if (_mock_com_util != nullptr)
+    {
+        rtc = _mock_com_util->com_util_shutdown_request_register(callback, context);
+    }
+    else
+    {
+        rtc = delegate_real_com_util_shutdown_request_register(callback, context);
+    }
+
+    if (getTraceLevel() > TRACE_NONE)
+    {
+        printf("  > %s", __func__);
+        if (getTraceLevel() >= TRACE_DETAIL)
+        {
+            printf(" -> %d\n", rtc);
+        }
+        else
+        {
+            printf("\n");
+        }
+    }
+
+    return rtc;
+}

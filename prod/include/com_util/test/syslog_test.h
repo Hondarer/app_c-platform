@@ -8,7 +8,8 @@
  *
  *  テスト実行時に環境変数 `SYSLOG_TEST_FD` が設定されていれば、
  *  syslog 経路のメッセージをその FD に書き込みます。\n
- *  `shared_lib_lifecycle.h` および `trace_syslog.c` からインクルードして使用します。
+ *  `shared_lib_lifecycle.h` を利用する外部モジュール、および `trace_syslog.c` から
+ *  インクルードして使用します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

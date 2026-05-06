@@ -32,6 +32,7 @@
 #include <com_util/sync/sync.h>
 #include <com_util/runtime/module.h>
 #include <com_util/runtime/sym_loader.h>
+#include <com_util/runtime/shutdown.h>
 #include <com_util/trace/trace_file.h>
 #include <com_util/trace/syslog.h>
 #include <com_util/trace/etw.h>
@@ -179,6 +180,9 @@ extern int delegate_real_com_util_sym_loader_is_default(com_util_sym_loader_entr
 extern void delegate_real_com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length, const char *configpath);
 extern void delegate_real_com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length);
 extern int delegate_real_com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array, size_t fobj_length);
+
+// runtime - shutdown
+extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context);
 
 // trace - trace_file_sink
 extern com_util_trace_file_sink_t *delegate_real_com_util_trace_file_sink_create(const char *path, size_t max_bytes, int generations);
@@ -366,6 +370,9 @@ class Mock_com_util
     MOCK_METHOD(void, com_util_sym_loader_init, (com_util_sym_loader_entry_t *const *, size_t, const char *));
     MOCK_METHOD(void, com_util_sym_loader_dispose, (com_util_sym_loader_entry_t *const *, size_t));
     MOCK_METHOD(int, com_util_sym_loader_info, (com_util_sym_loader_entry_t *const *, size_t));
+
+    // runtime - shutdown
+    MOCK_METHOD(int, com_util_shutdown_request_register, (com_util_shutdown_callback_t, void *));
 
     // trace - trace_file_sink
     MOCK_METHOD(com_util_trace_file_sink_t *, com_util_trace_file_sink_create, (const char *, size_t, int));

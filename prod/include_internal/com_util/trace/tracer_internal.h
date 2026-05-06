@@ -18,6 +18,7 @@
 #define COM_UTIL_TRACER_INTERNAL_H
 
 #include <stddef.h>
+#include <com_util/runtime/shutdown.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -26,12 +27,10 @@ extern "C"
 
 /**
  *******************************************************************************
- *  @brief          ライブラリアンロード時に全トレースハンドルを解放します。
- *  @param[in]      process_terminating プロセス終了による呼び出しの場合は 1、
- *                  明示的なアンロードの場合は 0 を指定します。
+ *  @brief          shutdown フェーズで全トレースハンドルを解放します。
+ *  @param[in]      event shutdown イベント情報。
  *
- *  @par            DLL ロード/アンロードコンテキスト
- *  本関数は DllMain および constructor/destructor から呼び出し可能です。\n
+ *  @details        本関数は終了フェーズ向けの安全側解放を行います。\n
  *  内部でレジストリロックを取得しません。
  *  呼び出し前に、すべてのスレッドが trace API
  *  (com_util_tracer_create / com_util_tracer_dispose / com_util_tracer_write 等) の
@@ -39,7 +38,7 @@ extern "C"
  *  並行してトレース API が呼ばれた場合は未定義動作になります。
  *******************************************************************************
  */
-void trace_registry_dispose_all_on_unload(int process_terminating);
+void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *event);
 
 /**
  *******************************************************************************

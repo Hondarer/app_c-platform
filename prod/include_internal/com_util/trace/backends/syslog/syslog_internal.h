@@ -29,19 +29,17 @@ extern "C"
 
 /**
  *******************************************************************************
- *  @brief          ライブラリアンロード時に syslog プロバイダハンドルを解放します。
+ *  @brief          shutdown フェーズで syslog プロバイダハンドルを解放します。
  *  @param[in]      handle 解放する syslog プロバイダハンドル。
  *
- *  @par            DLL ロード/アンロードコンテキスト
- *  本関数は constructor/destructor から呼び出し可能です。\n
- *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
+ *  @details        reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
  *  呼び出し時点で com_util_syslog_sink_write() を実行中のスレッドが存在する場合は
  *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_unload() 経由で呼ばれるため、
+ *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
  *  呼び出し側がスレッドの静止を保証します。
  *******************************************************************************
  */
-void com_util_syslog_sink_dispose_on_unload(com_util_syslog_sink_t *handle);
+void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle);
 
 #ifdef __cplusplus
 }

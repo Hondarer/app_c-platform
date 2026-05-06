@@ -187,14 +187,15 @@ COM_UTIL_EXPORT void COM_UTIL_API
 }
 
 /* doxygen コメントは、ヘッダに記載 */
-void com_util_etw_provider_dispose_on_unload(com_util_etw_provider_t *handle, int process_terminating)
+void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider_t *handle,
+                                               const com_util_shutdown_event_t *event)
 {
     if (handle == NULL)
     {
         return;
     }
 
-    if (!process_terminating)
+    if (event == NULL || event->reason == COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT)
     {
         TraceLoggingUnregister(handle->provider_ref);
     }

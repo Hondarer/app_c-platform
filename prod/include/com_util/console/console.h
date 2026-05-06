@@ -48,7 +48,7 @@ extern "C"
      *                  本関数はプログラム開始時に一度だけ呼び出すことを想定しています。\n
      *                  初期化に失敗した場合は stderr に警告を出力し、何もせずに返ります。
      *
-     *  @note           リソースはライブラリアンロード時に自動解放されます。
+     *  @note           初回利用時に shutdown コールバックが自動登録されます。\n
      *                  明示的に解放する場合は @c com_util_console_dispose を呼び出してください。
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void);

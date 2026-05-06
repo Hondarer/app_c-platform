@@ -419,7 +419,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
 }
 
 /* doxygen コメントは、ヘッダに記載 */
-void com_util_syslog_sink_dispose_on_unload(com_util_syslog_sink_t *handle)
+void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle)
 {
     if (handle == NULL)
     {

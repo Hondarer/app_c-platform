@@ -5,7 +5,7 @@
 
 #include <com_util/trace/backends/syslog/syslog_internal.h>
 
-void com_util_syslog_sink_dispose_on_unload(com_util_syslog_sink_t *handle)
+void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle)
 {
     (void)handle;
 }

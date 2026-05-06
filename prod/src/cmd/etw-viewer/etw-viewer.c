@@ -21,6 +21,7 @@
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
+#include <com_util/runtime/shutdown.h>
 #include <signal.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -40,6 +41,13 @@
     #define EXIT_ACCESS_DENIED 2
 
 static volatile sig_atomic_t g_stop_requested = 0;
+
+static void etw_viewer_shutdown_request_callback(const com_util_shutdown_event_t *event, void *context)
+{
+    (void)event;
+    (void)context;
+    g_stop_requested = 1;
+}
 
 static int parse_process_id_arg(const char *text, uint32_t *out_process_id)
 {
@@ -234,18 +242,6 @@ void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
     fflush(stdout);
 }
 
-static BOOL WINAPI etw_viewer_console_ctrl_handler(DWORD ctrl_type)
-{
-    if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT || ctrl_type == CTRL_CLOSE_EVENT ||
-        ctrl_type == CTRL_SHUTDOWN_EVENT)
-    {
-        g_stop_requested = 1;
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
 static void print_access_error(void)
 {
     fprintf(stderr, "ETW session の開始権限がありません。Administrators または "
@@ -282,6 +278,7 @@ int main(int argc, char *argv[])
     char session_name[ETW_VIEWER_SESSION_NAME_MAX];
 
     com_util_console_init();
+    g_stop_requested = 0;
 
     if (etw_viewer_parse_args(argc, argv, &options) != 0)
     {
@@ -312,9 +309,9 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    if (!SetConsoleCtrlHandler(etw_viewer_console_ctrl_handler, TRUE))
+    if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != 0)
     {
-        fprintf(stderr, "Ctrl+C handler の設定に失敗しました。\n");
+        fprintf(stderr, "終了要求 callback の登録に失敗しました。\n");
         goto cleanup;
     }
 
@@ -327,7 +324,7 @@ int main(int argc, char *argv[])
             exit_code = EXIT_ACCESS_DENIED;
         }
         print_start_error(status, session_name);
-        goto cleanup_with_handler;
+        goto cleanup;
     }
 
     printf("session=%s provider=%s\n", session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
@@ -346,8 +343,6 @@ int main(int argc, char *argv[])
     com_util_etw_session_stop(session);
     exit_code = EXIT_SUCCESS;
 
-cleanup_with_handler:
-    SetConsoleCtrlHandler(etw_viewer_console_ctrl_handler, FALSE);
 cleanup:
     return exit_code;
 }

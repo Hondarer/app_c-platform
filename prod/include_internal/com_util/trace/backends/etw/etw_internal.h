@@ -21,6 +21,7 @@
 
 #if defined(PLATFORM_WINDOWS)
     #include <com_util/trace/etw.h>
+    #include <com_util/runtime/shutdown.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -29,22 +30,20 @@ extern "C"
 
 /**
  *******************************************************************************
- *  @brief          ライブラリアンロード時に ETW プロバイダハンドルを解放します。
+ *  @brief          shutdown フェーズで ETW プロバイダハンドルを解放します。
  *  @param[in]      handle 解放する ETW プロバイダハンドル。
- *  @param[in]      process_terminating プロセス終了による呼び出しの場合は 1、
- *                  明示的なアンロードの場合は 0 を指定します。
+ *  @param[in]      event shutdown イベント情報。
  *
- *  @par            DLL ロード/アンロードコンテキスト
- *  本関数は DllMain から呼び出し可能です。\n
- *  **process_terminating=1**: free() のみ実行するため常に安全です。\n
- *  **process_terminating=0**: TraceLoggingUnregister() を呼び出します。
+ *  @details        `process_terminating` 相当のイベントでは free() のみ実行します。\n
+ *  通常終了では TraceLoggingUnregister() を呼び出します。
  *  呼び出し時点で com_util_etw_provider_write() を実行中のスレッドが存在する場合は
  *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_unload() 経由で呼ばれるため、
+ *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
  *  呼び出し側がスレッドの静止を保証します。
  *******************************************************************************
  */
-void com_util_etw_provider_dispose_on_unload(com_util_etw_provider_t *handle, int process_terminating);
+void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider_t *handle,
+                                               const com_util_shutdown_event_t *event);
 
 #ifdef __cplusplus
 }

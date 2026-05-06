@@ -1,0 +1,5 @@
+/mock_com_util_etw_provider_dispose_on_unload.cc
+/mock_com_util_syslog_sink_dispose_on_unload.cc
+/mock_com_util_trace_file_sink_dispose_on_unload.cc
+/shutdown.c
+/tracer.c

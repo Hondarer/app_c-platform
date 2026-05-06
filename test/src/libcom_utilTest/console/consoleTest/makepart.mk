@@ -1,6 +1,7 @@
 # テスト対象のソースファイル
 TEST_SRCS := \
-	$(MYAPP_DIR)/prod/libsrc/com_util/console/console.c
+	$(MYAPP_DIR)/prod/libsrc/com_util/console/console.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/runtime/shutdown.c
 
 # ライブラリの検索パス
 LIBSDIR += \
