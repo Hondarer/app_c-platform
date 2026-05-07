@@ -27,6 +27,8 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_gmtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_gmtime));
     ON_CALL(*this, com_util_localtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_localtime));
     ON_CALL(*this, com_util_getenv(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
+    ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
+    ON_CALL(*this, com_util_paths_equal(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
 
     // crt - stdio
     ON_CALL(*this, com_util_rename(_, _)).WillByDefault(Invoke(delegate_real_com_util_rename));

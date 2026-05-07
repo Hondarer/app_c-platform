@@ -21,21 +21,18 @@
  */
 
 #include <com_util/runtime/module.h>
+#include <com_util/crt/crt_internal.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/string.h>
+#include <errno.h>
 #if defined(PLATFORM_LINUX)
     #include <dlfcn.h>
-    #include <limits.h>
     #include <stddef.h>
     #include <stdint.h>
-    #include <stdio.h>
-    #include <stdlib.h>
     #include <string.h>
-    #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <stddef.h>
     #include <stdint.h>
-    #include <stdio.h>
     #include <string.h>
 #endif /* PLATFORM_ */
 
@@ -180,7 +177,7 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
 {
     Dl_info info;
     const char *p;
-    char resolved[PLATFORM_PATH_MAX];
+    int err = 0;
 
     if (!out_path || out_path_sz == 0 || !func_addr)
         return MYLIB_EINVAL;
@@ -195,67 +192,15 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
     if (p[0] == '\0')
         return MYLIB_EFAIL;
 
-    /* realpath() は symlink 解決と絶対化を行います。 */
-    /* ロード後にファイルが移動/削除される等で失敗する場合があるため、その場合はフォールバックします。 */
-    if (realpath(p, resolved) != NULL)
+    if (com_util_path_get_full(out_path, out_path_sz, &err, p) == 0)
     {
-        return copy_str(out_path, out_path_sz, resolved);
+        return MYLIB_OK;
     }
 
-    /* すでに絶対パスならそのまま返す (正規化はできない) */
-    if (p[0] == PLATFORM_PATH_SEP_CHR)
-    {
-        return copy_str(out_path, out_path_sz, p);
-    }
-
-    /* 相対パスなら CWD と結合して絶対化を試みる */
-    {
-        char cwd[PLATFORM_PATH_MAX];
-        char joined[PLATFORM_PATH_MAX];
-
-        if (getcwd(cwd, sizeof(cwd)) == NULL)
-            return MYLIB_EFAIL;
-        if (snprintf(joined, sizeof(joined), "%s" PLATFORM_PATH_SEP "%s", cwd, p) <= 0)
-            return MYLIB_EFAIL;
-
-        if (realpath(joined, resolved) != NULL)
-        {
-            return copy_str(out_path, out_path_sz, resolved);
-        }
-
-        /* 最後の手段: 結合した絶対パス文字列 (正規化なし) */
-        return copy_str(out_path, out_path_sz, joined);
-    }
+    return (err == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
 }
 
 #elif defined(PLATFORM_WINDOWS)
-
-/**
- *******************************************************************************
- *  @brief          Windows ワイド文字列 (UTF-16) を UTF-8 に変換します。
- *
- *  @param[in]      w         入力 (UTF-16、NULL 終端)。
- *  @param[out]     out_u8    出力 (UTF-8、NULL 終端)。
- *  @param[in]      out_u8_sz 出力バッファサイズ[byte]。
- *  @return         get_lib_info_status_t
- *******************************************************************************
- */
-static get_lib_info_status_t narrow_utf8(const wchar_t *w, char *out_u8, size_t out_u8_sz)
-{
-    int need;
-    if (!w || !out_u8 || out_u8_sz == 0)
-        return MYLIB_EINVAL;
-
-    need = WideCharToMultiByte(CP_UTF8, 0, w, -1, NULL, 0, NULL, NULL);
-    if (need <= 0)
-        return MYLIB_EFAIL;
-    if ((size_t)need > out_u8_sz)
-        return MYLIB_ENOBUFS;
-
-    if (WideCharToMultiByte(CP_UTF8, 0, w, -1, out_u8, (int)out_u8_sz, NULL, NULL) <= 0)
-        return MYLIB_EFAIL;
-    return MYLIB_OK;
-}
 
 /**
  *******************************************************************************
@@ -288,24 +233,10 @@ static get_lib_info_status_t get_self_path_w(wchar_t *out_w, size_t out_w_cap, c
         return MYLIB_EFAIL;
     }
     buf[n] = L'\0';
-
-    /* GetModuleFileNameW は通常フルパスを返しますが、念のため GetFullPathNameW で正規化します。 */
-    /* (失敗した場合は buf をそのまま返す) */
-    {
-        wchar_t full[PLATFORM_PATH_MAX];
-        DWORD m = GetFullPathNameW(buf, (DWORD)(sizeof(full) / sizeof(full[0])), full, NULL);
-        if (m == 0 || m >= (DWORD)(sizeof(full) / sizeof(full[0])))
-        {
-            if (wcslen(buf) + 1 > out_w_cap)
-                return MYLIB_ENOBUFS;
-            (void)com_util_wcscpy(out_w, out_w_cap, buf);
-            return MYLIB_OK;
-        }
-        if (wcslen(full) + 1 > out_w_cap)
-            return MYLIB_ENOBUFS;
-        (void)com_util_wcscpy(out_w, out_w_cap, full);
-        return MYLIB_OK;
-    }
+    if (wcslen(buf) + 1 > out_w_cap)
+        return MYLIB_ENOBUFS;
+    (void)com_util_wcscpy(out_w, out_w_cap, buf);
+    return MYLIB_OK;
 }
 
 #endif /* PLATFORM_ */
@@ -317,6 +248,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *out_path, const 
     return (int)get_self_path_posix(out_path, out_path_sz, func_addr);
 #elif defined(PLATFORM_WINDOWS)
     wchar_t wpath[PLATFORM_PATH_MAX];
+    char utf8_path[PLATFORM_PATH_MAX];
+    int err = 0;
     get_lib_info_status_t st = get_self_path_w(wpath, (size_t)(sizeof(wpath) / sizeof(wpath[0])), func_addr);
     if (st != MYLIB_OK)
     {
@@ -324,7 +257,19 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *out_path, const 
             out_path[0] = '\0';
         return st;
     }
-    return (int)narrow_utf8(wpath, out_path, out_path_sz);
+    if (com_util_wpath_to_utf8(utf8_path, sizeof(utf8_path), wpath) < 0)
+    {
+        if (out_path && out_path_sz)
+            out_path[0] = '\0';
+        return MYLIB_ENOBUFS;
+    }
+    if (com_util_path_get_full(out_path, out_path_sz, &err, utf8_path) != 0)
+    {
+        if (out_path && out_path_sz)
+            out_path[0] = '\0';
+        return (err == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
+    }
+    return MYLIB_OK;
 #endif /* PLATFORM_ */
 }
 

@@ -27,6 +27,7 @@
 #include <com_util/crt/string.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/file.h>
+#include <com_util/crt/path.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
@@ -62,6 +63,8 @@ extern int delegate_real_com_util_vsscanf(const char *buffer, const char *format
 extern int delegate_real_com_util_gmtime(struct tm *utc_tm, const time_t *timep);
 extern int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep);
 extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size);
+extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, int *errno_out, const char *path);
+extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
 
 // crt - stdio
 extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath);
@@ -244,6 +247,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_gmtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_localtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t));
+    MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, int *, const char *));
+    MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *));
 
     // crt - stdio
     MOCK_METHOD(int, com_util_rename, (const char *, const char *));

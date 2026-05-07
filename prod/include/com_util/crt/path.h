@@ -95,6 +95,40 @@ extern "C"
     COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path);
 
     /**
+     *  @brief          パスを絶対化し、区切り文字を '/' に正規化して返します。
+     *  @param[out]     path_out    絶対化済みパス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @details
+     *  相対パスはカレントディレクトリ基準で絶対化します。\n
+     *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
+     *  '.' / '..' を解消した絶対パス文字列を返します。\n
+     *  Windows では GetFullPathNameW() により絶対化し、返却値は常に
+     *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char   *path_out,
+                                                             size_t  path_size,
+                                                             int    *errno_out,
+                                                             const char *path);
+
+    /**
+     *  @brief          2 つのパスが同じ実体を指すか比較します。
+     *  @param[in]      lhs        比較対象の 1 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @param[in]      rhs        比較対象の 2 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @return         一致時は 1、不一致時は 0、失敗時は -1 を返します。
+     *
+     *  @details
+     *  内部でそれぞれのパスに対して com_util_path_get_full() を呼び、絶対化と
+     *  区切り文字正規化を行ったうえで比較します。\n
+     *  Windows ではファイルシステムの慣習に合わせて大小文字を区別せず比較します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
+
+    /**
      *  @brief          プラットフォームの一時ディレクトリのパスを取得します。
      *  @param[out]     path_out    一時ディレクトリの絶対パス (UTF-8) の格納先。
      *                              末尾パス区切り文字 (@ref PLATFORM_PATH_SEP_CHR) は付きません。
