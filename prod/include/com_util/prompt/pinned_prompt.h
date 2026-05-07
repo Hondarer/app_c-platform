@@ -1,0 +1,154 @@
+/**
+ *******************************************************************************
+ *  @file           pinned_prompt.h
+ *  @brief          Pinned prompt API for command-oriented CLIs.
+ *  @author         Tetsuo Honda
+ *  @date           2026/05/08
+ *  @version        0.1.0
+ *
+ *  @details
+ *  This API keeps a single-line prompt at the bottom of the terminal and writes
+ *  application output above it.  The API is experimental and may change while
+ *  the command-line interaction model is being refined.
+ *
+ *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
+ *
+ *******************************************************************************
+ */
+
+#ifndef COM_UTIL_PINNED_PROMPT_H
+#define COM_UTIL_PINNED_PROMPT_H
+
+#include <stddef.h>
+
+#include <com_util/base/compiler.h>
+#include <com_util/base/platform.h>
+#include <com_util/prompt/prompt.h>
+#include <com_util_export.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
+/**
+ *  @brief  Pinned prompt handle.
+ */
+typedef struct com_util_pinned_prompt_t com_util_pinned_prompt_t;
+
+/**
+ *  @brief  Output channel used by com_util_pinned_prompt_write().
+ */
+typedef enum
+{
+    COM_UTIL_PINNED_PROMPT_STDOUT = 0,
+    COM_UTIL_PINNED_PROMPT_STDERR = 1
+} com_util_pinned_prompt_channel_t;
+
+/**
+ *  @brief  Pinned prompt creation options.
+ */
+typedef struct
+{
+    /**
+     *  @brief  Reserved for future flags. Set to 0.
+     */
+    unsigned int flags;
+
+    /**
+     *  @brief  Reserved for structure alignment. Set to 0.
+     */
+    unsigned int reserved;
+
+    /**
+     *  @brief  History entry count. 0 uses COM_UTIL_PROMPT_HISTORY_DEFAULT.
+     */
+    size_t history_max;
+} com_util_pinned_prompt_options_t;
+
+/**
+ *  @brief      Create a pinned prompt.
+ *  @param[in]  options  Creation options. NULL uses default options.
+ *  @return     Non-NULL handle on success, NULL on failure.
+ */
+COM_UTIL_EXPORT com_util_pinned_prompt_t *COM_UTIL_API
+com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
+
+/**
+ *  @brief      Dispose a pinned prompt.
+ *  @param[in]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
+ */
+COM_UTIL_EXPORT void COM_UTIL_API
+com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
+
+/**
+ *  @brief      Read one command line with a bottom-fixed prompt.
+ *  @param[in]  screen      Pinned prompt handle.
+ *  @param[out] buf         Destination buffer. The terminating newline is not included.
+ *  @param[in]  buf_size    Destination buffer size.
+ *  @param[in]  prompt_str  Prompt string. NULL is treated as an empty string.
+ *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
+                                char                     *buf,
+                                size_t                    buf_size,
+                                const char               *prompt_str);
+
+/**
+ *  @brief      Read one command line with a formatted bottom-fixed prompt.
+ *  @param[in]  screen    Pinned prompt handle.
+ *  @param[out] buf       Destination buffer. The terminating newline is not included.
+ *  @param[in]  buf_size  Destination buffer size.
+ *  @param[in]  fmt       printf style format string. NULL is treated as an empty string.
+ *  @param[in]  ...       Format arguments.
+ *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
+                                    char                     *buf,
+                                    size_t                    buf_size,
+                                    const char               *fmt,
+                                    ...)
+#if defined(COMPILER_GCC)
+    __attribute__((format(printf, 4, 5)))
+#endif /* COMPILER_GCC */
+    ;
+
+/**
+ *  @brief      Write output above the bottom-fixed prompt.
+ *  @param[in]  screen   Pinned prompt handle.
+ *  @param[in]  channel  Output channel.
+ *  @param[in]  data     Data to write. NULL is allowed only when size is 0.
+ *  @param[in]  size     Data size in bytes.
+ *  @return     Number of bytes written to the target stream.
+ */
+COM_UTIL_EXPORT size_t COM_UTIL_API
+com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
+                             com_util_pinned_prompt_channel_t  channel,
+                             const void                       *data,
+                             size_t                            size);
+
+/**
+ *  @brief      Write formatted output above the bottom-fixed prompt.
+ *  @param[in]  screen   Pinned prompt handle.
+ *  @param[in]  channel  Output channel.
+ *  @param[in]  fmt      printf style format string. NULL is treated as an empty string.
+ *  @param[in]  ...      Format arguments.
+ *  @return     Number of bytes written to the target stream.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
+                              com_util_pinned_prompt_channel_t  channel,
+                              const char                       *fmt,
+                              ...)
+#if defined(COMPILER_GCC)
+    __attribute__((format(printf, 3, 4)))
+#endif /* COMPILER_GCC */
+    ;
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* COM_UTIL_PINNED_PROMPT_H */
