@@ -8,7 +8,6 @@
     #include <evntcons.h>
     #include <evntrace.h>
     #include <tdh.h>
-    #pragma comment(lib, "Advapi32.lib")
     #pragma comment(lib, "Tdh.lib")
     #include <com_util/trace/etw.h>
     #include <stdio.h>

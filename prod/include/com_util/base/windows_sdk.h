@@ -28,6 +28,8 @@
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
+    #pragma comment(lib, "ws2_32.lib")
+    #pragma comment(lib, "Advapi32.lib")
     #ifdef byte
         #undef byte /* C++17 std::byte と Windows SDK byte typedef の競合を解消 */
     #endif /* byte */

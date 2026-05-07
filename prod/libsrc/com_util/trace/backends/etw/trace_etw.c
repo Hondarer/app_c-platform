@@ -19,7 +19,6 @@
 
 #include <com_util/base/windows_sdk.h>
 #include <TraceLoggingProvider.h>
-#pragma comment(lib, "Advapi32.lib")
 #include <com_util/trace/etw.h>
 #include <stdlib.h>
 

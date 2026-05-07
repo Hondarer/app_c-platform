@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include <com_util/base/windows_sdk.h>
-#pragma comment(lib, "ws2_32.lib")
 #include <compressapi.h>
 #pragma comment(lib, "Cabinet.lib")
 
