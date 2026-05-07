@@ -30,7 +30,6 @@
 #include <com_util/trace/tracer.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
-#include <com_util/console/console_internal.h>
 #include <com_util/sync/sync.h>
 #include <com_util/runtime/module.h>
 #include <com_util/runtime/sym_loader.h>

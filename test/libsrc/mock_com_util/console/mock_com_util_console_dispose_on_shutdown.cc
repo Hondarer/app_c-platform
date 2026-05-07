@@ -1,5 +1,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#include <com_util/console/console_internal.h>
 
 void delegate_real_com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event, void *context)
 {
