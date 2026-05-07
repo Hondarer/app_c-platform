@@ -207,6 +207,24 @@ TEST_F(trace_cliTest, process_line_get_os_level_calls_api_with_null_handle)
     EXPECT_EQ(0, rc); // [確認] - get-os-level が正常に処理されること。
 }
 
+TEST_F(trace_cliTest, process_line_help_prints_command_list)
+{
+    // Arrange
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, _))
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(0)); // [Pre-Assert確認] - help の複数行 stdout 出力を許容すること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("trace-cli")))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - help 見出しが stdout に出力されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("write-hexf")))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - コマンド一覧が stdout に出力されること。
+
+    // Act
+    int rc = trace_cli_process_line(&session_, "help");
+
+    // Assert
+    EXPECT_EQ(0, rc); // [確認] - help が正常に処理されること。
+}
+
 TEST_F(trace_cliTest, process_line_quit_requests_exit)
 {
     // Act

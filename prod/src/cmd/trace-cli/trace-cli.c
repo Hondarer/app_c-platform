@@ -534,6 +534,11 @@ void trace_cli_print_help(void)
     printf("hex は 01ABFF または \"01 AB FF\" の形式で指定できます。\n");
 }
 
+static void print_interactive_hint(void)
+{
+    printf("help でコマンド一覧を表示します。exit で終了します。\n");
+}
+
 int trace_cli_process_line(trace_cli_session_t *session, const char *line)
 {
     char buffer[TRACE_CLI_LINE_MAX];
@@ -920,7 +925,7 @@ int main(int argc, char *argv[])
 
     trace_cli_session_init(&session);
     prompt = com_util_prompt_create(0);
-    trace_cli_print_help();
+    print_interactive_hint();
 
     while (!session.exit_requested)
     {
