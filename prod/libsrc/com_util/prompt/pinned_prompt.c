@@ -143,6 +143,60 @@ static size_t utf8_expected_length(unsigned char c)
     return 0U;
 }
 
+static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
+{
+    unsigned char first_byte;
+    unsigned int code_point;
+
+    if (pos >= len)
+        return 0U;
+
+    first_byte = (unsigned char)buf[pos];
+
+    if ((first_byte & 0x80U) == 0U) {
+        return 1U;
+    }
+
+    if ((first_byte & 0xE0U) == 0xC0U && pos + 1U < len) {
+        code_point = ((unsigned int)(first_byte & 0x1FU) << 6U) |
+                     (unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU);
+        if (code_point >= 0x0300U && code_point <= 0x036FU)
+            return 0U;
+        return 1U;
+    }
+
+    if ((first_byte & 0xF0U) == 0xE0U && pos + 2U < len) {
+        code_point = ((unsigned int)(first_byte & 0x0FU) << 12U) |
+                     ((unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU) << 6U) |
+                     (unsigned int)((unsigned char)buf[pos + 2U] & 0x3FU);
+
+        if (code_point >= 0x4E00U && code_point <= 0x9FFFU)
+            return 2U;
+        if (code_point >= 0x3040U && code_point <= 0x309FU)
+            return 2U;
+        if (code_point >= 0x30A0U && code_point <= 0x30FFU)
+            return 2U;
+        if (code_point >= 0x3400U && code_point <= 0x4DBFU)
+            return 2U;
+        if (code_point >= 0x20000U && code_point <= 0x2A6DFU)
+            return 2U;
+        return 1U;
+    }
+
+    if ((first_byte & 0xF8U) == 0xF0U && pos + 3U < len) {
+        code_point = ((unsigned int)(first_byte & 0x07U) << 18U) |
+                     ((unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU) << 12U) |
+                     ((unsigned int)((unsigned char)buf[pos + 2U] & 0x3FU) << 6U) |
+                     (unsigned int)((unsigned char)buf[pos + 3U] & 0x3FU);
+
+        if (code_point >= 0x20000U && code_point <= 0x2FFFFU)
+            return 2U;
+        return 1U;
+    }
+
+    return 1U;
+}
+
 static int utf8_is_char_complete_before(const char *buf, size_t len, size_t pos)
 {
     unsigned char first_byte;
@@ -178,36 +232,40 @@ static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len,
 {
     size_t pos;
     size_t cols;
+    size_t char_width;
 
     pos = start;
     cols = 0U;
     while (pos < len && cols < max_cols)
     {
+        char_width = utf8_char_display_width(buf, len, pos);
+        if (cols + char_width > max_cols)
+            break;
+        cols += char_width;
         pos = utf8_next_boundary(buf, len, pos);
-        cols++;
     }
     return pos - start;
 }
 
-static size_t pinned_prompt_count_chars_between(const char *buf, size_t len,
-                                         size_t start, size_t end)
+static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
+                                            size_t start, size_t end)
 {
     size_t pos;
-    size_t count;
+    size_t width;
 
     if (end > len)
-    {
         end = len;
-    }
+    
     pos = start;
-    count = 0U;
+    width = 0U;
     while (pos < end)
     {
+        width += utf8_char_display_width(buf, len, pos);
         pos = utf8_next_boundary(buf, len, pos);
-        count++;
     }
-    return count;
+    return width;
 }
+
 
 static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel_t channel)
 {
@@ -504,7 +562,7 @@ static void pinned_prompt_adjust_view(com_util_pinned_prompt_t *screen)
     {
         screen->view_start = screen->cursor;
     }
-    cursor_cols = pinned_prompt_count_chars_between(screen->edit_buf,
+    cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
                                              screen->edit_len,
                                              screen->view_start,
                                              screen->cursor);
@@ -513,7 +571,7 @@ static void pinned_prompt_adjust_view(com_util_pinned_prompt_t *screen)
         screen->view_start = utf8_next_boundary(screen->edit_buf,
                                                 screen->edit_len,
                                                 screen->view_start);
-        cursor_cols = pinned_prompt_count_chars_between(screen->edit_buf,
+        cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
                                                  screen->edit_len,
                                                  screen->view_start,
                                                  screen->cursor);
@@ -544,7 +602,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
                                               screen->edit_len,
                                               screen->view_start,
                                               input_cols);
-    cursor_cols = pinned_prompt_count_chars_between(screen->edit_buf,
+    cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
                                              screen->edit_len,
                                              screen->view_start,
                                              screen->cursor);
