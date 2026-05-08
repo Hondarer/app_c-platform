@@ -130,19 +130,6 @@ static size_t utf8_sanitize_boundary(const char *buf, size_t len, size_t pos)
     return pos;
 }
 
-static size_t utf8_expected_length(unsigned char c)
-{
-    if ((c & 0x80U) == 0U)
-        return 1U;
-    if ((c & 0xE0U) == 0xC0U)
-        return 2U;
-    if ((c & 0xF0U) == 0xE0U)
-        return 3U;
-    if ((c & 0xF8U) == 0xF0U)
-        return 4U;
-    return 0U;
-}
-
 static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
 {
     unsigned char first_byte;
@@ -195,36 +182,6 @@ static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
     }
 
     return 1U;
-}
-
-static int utf8_is_char_complete_before(const char *buf, size_t len, size_t pos)
-{
-    unsigned char first_byte;
-    size_t first_byte_pos;
-    size_t expected;
-    size_t i;
-
-    if (pos == 0U) return 1;
-    if (pos > len) return 0;
-
-    first_byte_pos = pos - 1U;
-    while (first_byte_pos > 0U && utf8_is_continuation((unsigned char)buf[first_byte_pos]))
-        first_byte_pos--;
-
-    first_byte = (unsigned char)buf[first_byte_pos];
-    expected = utf8_expected_length(first_byte);
-
-    if (first_byte_pos + expected != pos) {
-        return 0;
-    }
-
-    for (i = 1U; i < expected; i++) {
-        if (first_byte_pos + i >= len || !utf8_is_continuation((unsigned char)buf[first_byte_pos + i])) {
-            return 0;
-        }
-    }
-
-    return 1;
 }
 
 static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len,
