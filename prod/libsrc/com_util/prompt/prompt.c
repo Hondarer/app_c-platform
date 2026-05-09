@@ -26,6 +26,7 @@ typedef enum
     KEY_HOME,
     KEY_END,
     KEY_CTRL_C,
+    KEY_CLEAR,
     KEY_UNKNOWN,
     KEY_EOF,
 } prompt_key_t;
@@ -118,6 +119,11 @@ static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
     {
         /* ESC シーケンス */
         int c2 = prompt_platform_read_char_nb(p);
+        /* 単独の ESC (次の文字が来なければ) は行消去とする */
+        if (c2 == -1)
+        {
+            return KEY_CLEAR;
+        }
         if (c2 == '[')
         {
             int c3 = prompt_platform_read_char_nb(p);
@@ -512,6 +518,14 @@ int _com_util_prompt_readline(com_util_prompt_t *p,
 
         case KEY_DOWN:
             history_browse_next(p, ctx, prompt_str);
+            break;
+        case KEY_CLEAR:
+            /* Clear current edit line (ESC 単押し) */
+            p->edit_len = 0;
+            p->edit_buf[0] = '\0';
+            p->cursor = 0;
+            ctx->browse_idx = -1;
+            redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
             break;
 
         case KEY_CHAR:
