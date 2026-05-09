@@ -51,6 +51,11 @@ struct com_util_pinned_prompt_t
     char   *prompt_buf;
     char   *fmt_buf;
 
+    char   *status_top_left;
+    char   *status_top_right;
+    char   *status_bottom_left;
+    char   *status_bottom_right;
+
     size_t  edit_len;
     size_t  edit_cap;
     size_t  cursor;
@@ -61,11 +66,19 @@ struct com_util_pinned_prompt_t
     size_t  prompt_cap;
     size_t  fmt_cap;
 
+    size_t  status_top_left_cap;
+    size_t  status_top_right_cap;
+    size_t  status_bottom_left_cap;
+    size_t  status_bottom_right_cap;
+
     int mutex_active;
     int browse_idx;
     int is_tty;
     int raw_active;
     int prompt_visible;
+    int status_top_enabled;
+    int status_bottom_enabled;
+    int status_dirty;
     int cols;
     int rows;
 
@@ -535,6 +548,74 @@ static void pinned_prompt_adjust_view(com_util_pinned_prompt_t *screen)
     }
 }
 
+static void pinned_prompt_render_separator(com_util_pinned_prompt_t *screen, int row)
+{
+    int i;
+    int separator_width;
+
+    (void)printf("\033[%d;1H\033[2K", row);
+    separator_width = screen->cols - 1;
+    for (i = 0; i < separator_width; i++)
+    {
+        (void)fputc('-', stdout);
+    }
+}
+
+static void pinned_prompt_render_status_line(com_util_pinned_prompt_t *screen,
+                                             int                        row,
+                                             const char                *left_content,
+                                             const char                *right_content)
+{
+    size_t left_len;
+    size_t right_len;
+    size_t left_width;
+    size_t right_width;
+    size_t middle_spaces;
+    int    i;
+    int    line_width;
+
+    left_len = cstr_len(left_content);
+    right_len = cstr_len(right_content);
+
+    left_width = pinned_prompt_display_width_between(left_content, left_len, 0U, left_len);
+    right_width = pinned_prompt_display_width_between(right_content, right_len, 0U, right_len);
+
+    (void)printf("\033[%d;1H\033[2K", row);
+
+    line_width = screen->cols - 1;
+
+    if (left_content != NULL && left_len > 0U)
+    {
+        (void)fputs(left_content, stdout);
+    }
+
+    if (left_width + right_width < (size_t)line_width)
+    {
+        middle_spaces = (size_t)line_width - left_width - right_width;
+        for (i = 0; i < (int)middle_spaces; i++)
+        {
+            (void)fputc(' ', stdout);
+        }
+    }
+
+    if (right_content != NULL && right_len > 0U)
+    {
+        (void)fputs(right_content, stdout);
+    }
+}
+
+static int pinned_prompt_calc_prompt_row(com_util_pinned_prompt_t *screen)
+{
+    int row;
+
+    row = screen->rows;
+    if (screen->status_bottom_enabled)
+    {
+        row -= 2;
+    }
+    return row;
+}
+
 static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 {
     size_t prompt_cols;
@@ -542,6 +623,11 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
     size_t visible_bytes;
     size_t cursor_cols;
     size_t cursor_col;
+    int    prompt_row;
+    int    top_status_row;
+    int    top_sep_row;
+    int    bottom_sep_row;
+    int    bottom_status_row;
 
     if (!screen->is_tty || !screen->prompt_visible)
     {
@@ -550,6 +636,8 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 
     pinned_prompt_update_size(screen);
     pinned_prompt_adjust_view(screen);
+
+    prompt_row = pinned_prompt_calc_prompt_row(screen);
 
     prompt_cols = cstr_len(screen->prompt_buf);
     input_cols = (size_t)screen->cols > prompt_cols + 1U
@@ -569,13 +657,41 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
         cursor_col = (size_t)screen->cols;
     }
 
-    (void)printf("\033[%d;1H\033[2K", screen->rows);
+    (void)printf("\033[?25l");
+
+    if (screen->status_dirty)
+    {
+        if (screen->status_top_enabled)
+        {
+            top_status_row = prompt_row - 3;
+            top_sep_row = prompt_row - 2;
+            pinned_prompt_render_status_line(screen, top_status_row,
+                                             screen->status_top_left,
+                                             screen->status_top_right);
+            pinned_prompt_render_separator(screen, top_sep_row);
+        }
+
+        if (screen->status_bottom_enabled)
+        {
+            bottom_sep_row = prompt_row + 1;
+            bottom_status_row = prompt_row + 2;
+            pinned_prompt_render_separator(screen, bottom_sep_row);
+            pinned_prompt_render_status_line(screen, bottom_status_row,
+                                             screen->status_bottom_left,
+                                             screen->status_bottom_right);
+        }
+
+        screen->status_dirty = 0;
+    }
+
+    (void)printf("\033[%d;1H\033[2K", prompt_row);
     (void)fputs(screen->prompt_buf != NULL ? screen->prompt_buf : "", stdout);
     if (visible_bytes > 0U)
     {
         (void)fwrite(screen->edit_buf + screen->view_start, 1U, visible_bytes, stdout);
     }
-    (void)printf("\033[%d;%zuH", screen->rows, cursor_col);
+
+    (void)printf("\033[%d;%zuH\033[?25h", prompt_row, cursor_col);
     (void)fflush(stdout);
 }
 
@@ -927,8 +1043,14 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->saved_line = (char *)malloc(screen->edit_cap);
     screen->history = (char **)calloc(screen->history_max, sizeof(char *));
     screen->prompt_buf = (char *)malloc(1U);
+    screen->status_top_left = (char *)malloc(1U);
+    screen->status_top_right = (char *)malloc(1U);
+    screen->status_bottom_left = (char *)malloc(1U);
+    screen->status_bottom_right = (char *)malloc(1U);
     if (screen->edit_buf == NULL || screen->saved_line == NULL ||
-        screen->history == NULL || screen->prompt_buf == NULL)
+        screen->history == NULL || screen->prompt_buf == NULL ||
+        screen->status_top_left == NULL || screen->status_top_right == NULL ||
+        screen->status_bottom_left == NULL || screen->status_bottom_right == NULL)
     {
         com_util_pinned_prompt_dispose(screen);
         return NULL;
@@ -937,6 +1059,15 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->saved_line[0] = '\0';
     screen->prompt_buf[0] = '\0';
     screen->prompt_cap = 1U;
+    screen->status_top_left[0] = '\0';
+    screen->status_top_left_cap = 1U;
+    screen->status_top_right[0] = '\0';
+    screen->status_top_right_cap = 1U;
+    screen->status_bottom_left[0] = '\0';
+    screen->status_bottom_left_cap = 1U;
+    screen->status_bottom_right[0] = '\0';
+    screen->status_bottom_right_cap = 1U;
+    screen->status_dirty = 1;
 
     return screen;
 }
@@ -966,6 +1097,10 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     free(screen->saved_line);
     free(screen->prompt_buf);
     free(screen->fmt_buf);
+    free(screen->status_top_left);
+    free(screen->status_top_right);
+    free(screen->status_bottom_left);
+    free(screen->status_bottom_right);
     if (screen->mutex_active)
     {
         (void)com_util_mutex_destroy(&screen->mutex);
@@ -1203,4 +1338,128 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
     written = com_util_pinned_prompt_write(screen, channel, buf, (size_t)needed);
     free(buf);
     return (int)written;
+}
+
+int com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t                 *screen,
+                                         com_util_pinned_prompt_status_position_t  position,
+                                         int                                       enable)
+{
+    if (screen == NULL)
+    {
+        return -1;
+    }
+
+    pinned_prompt_lock(screen);
+    if (position == COM_UTIL_PINNED_PROMPT_STATUS_TOP)
+    {
+        screen->status_top_enabled = enable ? 1 : 0;
+    }
+    else if (position == COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM)
+    {
+        screen->status_bottom_enabled = enable ? 1 : 0;
+    }
+    else
+    {
+        pinned_prompt_unlock(screen);
+        return -1;
+    }
+    screen->status_dirty = 1;
+    pinned_prompt_render_locked(screen);
+    pinned_prompt_unlock(screen);
+    return 0;
+}
+
+static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char *content)
+{
+    size_t len;
+    char  *new_buf;
+
+    len = cstr_len(content);
+    if (len + 1U > *cap)
+    {
+        new_buf = (char *)realloc(*buf, len + 1U);
+        if (new_buf == NULL)
+        {
+            return -1;
+        }
+        *buf = new_buf;
+        *cap = len + 1U;
+    }
+    if (content != NULL)
+    {
+        (void)com_util_strcpy(*buf, *cap, content);
+    }
+    else
+    {
+        (*buf)[0] = '\0';
+    }
+    return 0;
+}
+
+int com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *screen,
+                                      com_util_pinned_prompt_status_position_t  position,
+                                      com_util_pinned_prompt_status_align_t     align,
+                                      const char                               *content)
+{
+    int rc;
+
+    if (screen == NULL)
+    {
+        return -1;
+    }
+
+    pinned_prompt_lock(screen);
+    if (position == COM_UTIL_PINNED_PROMPT_STATUS_TOP)
+    {
+        if (align == COM_UTIL_PINNED_PROMPT_STATUS_LEFT)
+        {
+            rc = pinned_prompt_set_status_content(&screen->status_top_left,
+                                                  &screen->status_top_left_cap,
+                                                  content);
+        }
+        else if (align == COM_UTIL_PINNED_PROMPT_STATUS_RIGHT)
+        {
+            rc = pinned_prompt_set_status_content(&screen->status_top_right,
+                                                  &screen->status_top_right_cap,
+                                                  content);
+        }
+        else
+        {
+            pinned_prompt_unlock(screen);
+            return -1;
+        }
+    }
+    else if (position == COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM)
+    {
+        if (align == COM_UTIL_PINNED_PROMPT_STATUS_LEFT)
+        {
+            rc = pinned_prompt_set_status_content(&screen->status_bottom_left,
+                                                  &screen->status_bottom_left_cap,
+                                                  content);
+        }
+        else if (align == COM_UTIL_PINNED_PROMPT_STATUS_RIGHT)
+        {
+            rc = pinned_prompt_set_status_content(&screen->status_bottom_right,
+                                                  &screen->status_bottom_right_cap,
+                                                  content);
+        }
+        else
+        {
+            pinned_prompt_unlock(screen);
+            return -1;
+        }
+    }
+    else
+    {
+        pinned_prompt_unlock(screen);
+        return -1;
+    }
+
+    if (rc == 0)
+    {
+        screen->status_dirty = 1;
+        pinned_prompt_render_locked(screen);
+    }
+    pinned_prompt_unlock(screen);
+    return rc;
 }

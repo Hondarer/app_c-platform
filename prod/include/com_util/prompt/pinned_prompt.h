@@ -46,6 +46,24 @@ typedef enum
 } com_util_pinned_prompt_channel_t;
 
 /**
+ *  @brief  Status area position.
+ */
+typedef enum
+{
+    COM_UTIL_PINNED_PROMPT_STATUS_TOP = 0,
+    COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM = 1
+} com_util_pinned_prompt_status_position_t;
+
+/**
+ *  @brief  Status area alignment.
+ */
+typedef enum
+{
+    COM_UTIL_PINNED_PROMPT_STATUS_LEFT = 0,
+    COM_UTIL_PINNED_PROMPT_STATUS_RIGHT = 1
+} com_util_pinned_prompt_status_align_t;
+
+/**
  *  @brief  Pinned prompt creation options.
  */
 typedef struct
@@ -146,6 +164,32 @@ com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
     __attribute__((format(printf, 3, 4)))
 #endif /* COMPILER_GCC */
     ;
+
+/**
+ *  @brief      Enable or disable status area.
+ *  @param[in]  screen    Pinned prompt handle.
+ *  @param[in]  position  Status area position (top or bottom).
+ *  @param[in]  enable    Non-zero to enable, zero to disable.
+ *  @return     0 on success, -1 on failure.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t                 *screen,
+                                     com_util_pinned_prompt_status_position_t  position,
+                                     int                                       enable);
+
+/**
+ *  @brief      Set status area content.
+ *  @param[in]  screen    Pinned prompt handle.
+ *  @param[in]  position  Status area position (top or bottom).
+ *  @param[in]  align     Alignment (left or right).
+ *  @param[in]  content   Content string. NULL clears the content.
+ *  @return     0 on success, -1 on failure.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *screen,
+                                  com_util_pinned_prompt_status_position_t  position,
+                                  com_util_pinned_prompt_status_align_t     align,
+                                  const char                               *content);
 
 #ifdef __cplusplus
 }

@@ -91,6 +91,12 @@ static void print_help(com_util_pinned_prompt_t *screen)
                                   "  stop stdout   stop stdout tick output\n"
                                   "  stop stderr   stop stderr tick output\n"
                                   "  stop all      stop all tick output\n"
+                                  "  status show [top|bottom|all]    show status area(s)\n"
+                                  "  status hide [top|bottom|all]    hide status area(s)\n"
+                                  "  status set-top-left TEXT    set top-left status\n"
+                                  "  status set-top-right TEXT   set top-right status\n"
+                                  "  status set-bottom-left TEXT    set bottom-left status\n"
+                                  "  status set-bottom-right TEXT   set bottom-right status\n"
                                   "  exit, quit    exit pinned-prompt\n");
 }
 
@@ -316,6 +322,127 @@ static void process_stop(pinned_prompt_cli_session_t *session, const char *arg)
     worker_stop(worker, 1);
 }
 
+static void process_status(pinned_prompt_cli_session_t *session, const char *arg)
+{
+    char *subcmd;
+    char *subarg;
+    char  arg_copy[PINNED_PROMPT_CLI_LINE_MAX];
+
+    if (arg == NULL)
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                      "usage: status show|hide|set-top-left|set-top-right|set-bottom-left|set-bottom-right\n");
+        return;
+    }
+
+    (void)com_util_strcpy(arg_copy, sizeof(arg_copy), arg);
+    (void)split_command(arg_copy, &subcmd, &subarg);
+
+    if (strcmp(subcmd, "show") == 0)
+    {
+        if (subarg == NULL || strcmp(subarg, "all") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        1);
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        1);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "status areas enabled\n");
+        }
+        else if (strcmp(subarg, "top") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        1);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "top status area enabled\n");
+        }
+        else if (strcmp(subarg, "bottom") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        1);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "bottom status area enabled\n");
+        }
+        else
+        {
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                          "usage: status show [top|bottom|all]\n");
+        }
+    }
+    else if (strcmp(subcmd, "hide") == 0)
+    {
+        if (subarg == NULL || strcmp(subarg, "all") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        0);
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        0);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "status areas disabled\n");
+        }
+        else if (strcmp(subarg, "top") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        0);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "top status area disabled\n");
+        }
+        else if (strcmp(subarg, "bottom") == 0)
+        {
+            (void)com_util_pinned_prompt_status_enable(session->screen,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        0);
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                          "bottom status area disabled\n");
+        }
+        else
+        {
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                          "usage: status hide [top|bottom|all]\n");
+        }
+    }
+    else if (strcmp(subcmd, "set-top-left") == 0)
+    {
+        (void)com_util_pinned_prompt_status_set(session->screen,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_LEFT,
+                                                subarg);
+    }
+    else if (strcmp(subcmd, "set-top-right") == 0)
+    {
+        (void)com_util_pinned_prompt_status_set(session->screen,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_RIGHT,
+                                                subarg);
+    }
+    else if (strcmp(subcmd, "set-bottom-left") == 0)
+    {
+        (void)com_util_pinned_prompt_status_set(session->screen,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_LEFT,
+                                                subarg);
+    }
+    else if (strcmp(subcmd, "set-bottom-right") == 0)
+    {
+        (void)com_util_pinned_prompt_status_set(session->screen,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_RIGHT,
+                                                subarg);
+    }
+    else
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                      "unknown status subcommand: %s\n", subcmd);
+    }
+}
+
 static void process_line(pinned_prompt_cli_session_t *session, char *line)
 {
     char original_line[PINNED_PROMPT_CLI_LINE_MAX];
@@ -349,6 +476,10 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     else if (strcmp(command, "stop") == 0)
     {
         process_stop(session, arg);
+    }
+    else if (strcmp(command, "status") == 0)
+    {
+        process_status(session, arg);
     }
     else if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)
     {
