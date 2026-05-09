@@ -41,6 +41,18 @@ typedef enum
     PINNED_PROMPT_KEY_EOF
 } pinned_prompt_key_t;
 
+typedef struct
+{
+    int prompt_row;
+    int top_status_row;
+    int prompt_sep_row;
+    int bottom_sep_row;
+    int bottom_status_row;
+    int main_bottom_row;
+    int show_top_status;
+    int show_bottom_status;
+} pinned_prompt_layout_t;
+
 struct com_util_pinned_prompt_t
 {
     com_util_mutex_t mutex;
@@ -84,9 +96,11 @@ struct com_util_pinned_prompt_t
 
 #if defined(PLATFORM_LINUX)
     struct termios orig_term;
+    char           padding[4];
 #elif defined(PLATFORM_WINDOWS)
     HANDLE stdin_handle;
     DWORD  orig_in_mode;
+    char   padding[4];
 #endif
 };
 
@@ -604,16 +618,65 @@ static void pinned_prompt_render_status_line(com_util_pinned_prompt_t *screen,
     }
 }
 
-static int pinned_prompt_calc_prompt_row(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_calc_layout(com_util_pinned_prompt_t *screen,
+                                      pinned_prompt_layout_t   *layout)
+{
+    int rows;
+    int first_control_row;
+
+    rows = screen->rows > 0 ? screen->rows : 1;
+
+    layout->show_bottom_status = screen->status_bottom_enabled && rows >= 3;
+    layout->prompt_row = layout->show_bottom_status ? rows - 2 : rows;
+    layout->prompt_sep_row = layout->prompt_row - 1;
+
+    layout->show_top_status = screen->status_top_enabled && layout->prompt_row >= 4;
+    if (layout->show_top_status)
+    {
+        layout->top_status_row = layout->prompt_sep_row - 1;
+        first_control_row = layout->top_status_row;
+    }
+    else
+    {
+        layout->top_status_row = 0;
+        first_control_row = layout->prompt_sep_row;
+    }
+    layout->main_bottom_row = first_control_row - 1;
+
+    if (layout->show_bottom_status)
+    {
+        layout->bottom_sep_row = layout->prompt_row + 1;
+        layout->bottom_status_row = layout->prompt_row + 2;
+    }
+    else
+    {
+        layout->bottom_sep_row = 0;
+        layout->bottom_status_row = 0;
+    }
+
+    if (layout->prompt_row < 1)
+    {
+        layout->prompt_row = 1;
+    }
+    if (layout->prompt_sep_row < 1)
+    {
+        layout->prompt_sep_row = 1;
+    }
+    if (layout->main_bottom_row < 1)
+    {
+        layout->main_bottom_row = 1;
+    }
+}
+
+static void pinned_prompt_clear_control_area(com_util_pinned_prompt_t       *screen,
+                                             const pinned_prompt_layout_t   *layout)
 {
     int row;
 
-    row = screen->rows;
-    if (screen->status_bottom_enabled)
+    for (row = layout->main_bottom_row + 1; row <= screen->rows; row++)
     {
-        row -= 2;
+        (void)printf("\033[%d;1H\033[2K", row);
     }
-    return row;
 }
 
 static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
@@ -623,11 +686,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
     size_t visible_bytes;
     size_t cursor_cols;
     size_t cursor_col;
-    int    prompt_row;
-    int    top_status_row;
-    int    top_sep_row;
-    int    bottom_sep_row;
-    int    bottom_status_row;
+    pinned_prompt_layout_t layout;
 
     if (!screen->is_tty || !screen->prompt_visible)
     {
@@ -636,8 +695,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 
     pinned_prompt_update_size(screen);
     pinned_prompt_adjust_view(screen);
-
-    prompt_row = pinned_prompt_calc_prompt_row(screen);
+    pinned_prompt_calc_layout(screen, &layout);
 
     prompt_cols = cstr_len(screen->prompt_buf);
     input_cols = (size_t)screen->cols > prompt_cols + 1U
@@ -661,48 +719,53 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 
     if (screen->status_dirty)
     {
-        if (screen->status_top_enabled)
-        {
-            top_status_row = prompt_row - 3;
-            top_sep_row = prompt_row - 2;
-            pinned_prompt_render_status_line(screen, top_status_row,
-                                             screen->status_top_left,
-                                             screen->status_top_right);
-            pinned_prompt_render_separator(screen, top_sep_row);
-        }
+        pinned_prompt_clear_control_area(screen, &layout);
 
-        if (screen->status_bottom_enabled)
+        if ((!screen->status_top_enabled || layout.show_top_status) &&
+            (!screen->status_bottom_enabled || layout.show_bottom_status))
         {
-            bottom_sep_row = prompt_row + 1;
-            bottom_status_row = prompt_row + 2;
-            pinned_prompt_render_separator(screen, bottom_sep_row);
-            pinned_prompt_render_status_line(screen, bottom_status_row,
-                                             screen->status_bottom_left,
-                                             screen->status_bottom_right);
+            screen->status_dirty = 0;
         }
-
-        screen->status_dirty = 0;
     }
 
-    (void)printf("\033[%d;1H\033[2K", prompt_row);
+    if (layout.show_top_status)
+    {
+        pinned_prompt_render_status_line(screen, layout.top_status_row,
+                                         screen->status_top_left,
+                                         screen->status_top_right);
+    }
+    pinned_prompt_render_separator(screen, layout.prompt_sep_row);
+
+    if (layout.show_bottom_status)
+    {
+        pinned_prompt_render_separator(screen, layout.bottom_sep_row);
+        pinned_prompt_render_status_line(screen, layout.bottom_status_row,
+                                         screen->status_bottom_left,
+                                         screen->status_bottom_right);
+    }
+
+    (void)printf("\033[%d;1H\033[2K", layout.prompt_row);
     (void)fputs(screen->prompt_buf != NULL ? screen->prompt_buf : "", stdout);
     if (visible_bytes > 0U)
     {
         (void)fwrite(screen->edit_buf + screen->view_start, 1U, visible_bytes, stdout);
     }
 
-    (void)printf("\033[%d;%zuH\033[?25h", prompt_row, cursor_col);
+    (void)printf("\033[%d;%zuH\033[?25h", layout.prompt_row, cursor_col);
     (void)fflush(stdout);
 }
 
 static void pinned_prompt_hide_prompt_locked(com_util_pinned_prompt_t *screen)
 {
+    pinned_prompt_layout_t layout;
+
     if (!screen->is_tty || !screen->prompt_visible)
     {
         return;
     }
     pinned_prompt_update_size(screen);
-    (void)printf("\033[%d;1H\033[2K", screen->rows);
+    pinned_prompt_calc_layout(screen, &layout);
+    (void)printf("\033[%d;1H\033[2K", layout.prompt_row);
     (void)fflush(stdout);
 }
 
@@ -716,20 +779,44 @@ static void pinned_prompt_finish_prompt_locked(com_util_pinned_prompt_t *screen)
     screen->prompt_visible = 0;
 }
 
-static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_cleanup_terminal_locked(com_util_pinned_prompt_t *screen)
 {
+    pinned_prompt_layout_t layout;
+
     if (!screen->is_tty)
     {
         return;
     }
+
+    pinned_prompt_update_size(screen);
+    pinned_prompt_calc_layout(screen, &layout);
+    (void)printf("\033[r");
+    pinned_prompt_clear_control_area(screen, &layout);
+    (void)printf("\033[%d;1H\033[?25h", layout.prompt_row);
+    (void)fflush(stdout);
+    screen->prompt_visible = 0;
+}
+
+static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt_t *screen)
+{
+    pinned_prompt_layout_t layout;
+
+    if (!screen->is_tty)
+    {
+        return;
+    }
+    pinned_prompt_update_size(screen);
+    pinned_prompt_calc_layout(screen, &layout);
     if (screen->prompt_visible)
     {
         pinned_prompt_hide_prompt_locked(screen);
-        return;
     }
 
-    pinned_prompt_update_size(screen);
-    (void)printf("\033[%d;1H\033[2K", screen->rows);
+    if (layout.main_bottom_row < screen->rows)
+    {
+        (void)printf("\033[1;%dr", layout.main_bottom_row);
+    }
+    (void)printf("\033[%d;1H\033[2K", layout.main_bottom_row);
     (void)fflush(stdout);
 }
 
@@ -1081,7 +1168,7 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
         return;
     }
     pinned_prompt_lock(screen);
-    pinned_prompt_finish_prompt_locked(screen);
+    pinned_prompt_cleanup_terminal_locked(screen);
     pinned_prompt_platform_leave_raw(screen);
     pinned_prompt_unlock(screen);
 
@@ -1179,9 +1266,14 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             break;
         }
         case PINNED_PROMPT_KEY_EOF:
-        case PINNED_PROMPT_KEY_CTRL_C:
             buf[0] = '\0';
             pinned_prompt_finish_prompt_locked(screen);
+            result = 0;
+            done = 1;
+            break;
+        case PINNED_PROMPT_KEY_CTRL_C:
+            buf[0] = '\0';
+            pinned_prompt_cleanup_terminal_locked(screen);
             result = 0;
             done = 1;
             break;
@@ -1294,6 +1386,7 @@ size_t com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
         (void)fputc('\n', out);
     }
     (void)fflush(out);
+    (void)printf("\033[r");
     pinned_prompt_render_locked(screen);
     pinned_prompt_unlock(screen);
 
