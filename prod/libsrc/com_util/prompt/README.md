@@ -34,6 +34,8 @@
 - `history_max == 0` は `COM_UTIL_PROMPT_HISTORY_DEFAULT` を使います。
 - `com_util_pinned_prompt_readline()` は Enter で 1、EOF または Ctrl+C で 0 を返します。
 - `com_util_pinned_prompt_write()` と `com_util_pinned_prompt_printf()` は、入力中でも呼び出せます。
+- API から出力する文字列では ANSI CSI SGR (`ESC [ ... m`) による着色を利用できます。
+- ステータス行の配置計算では ANSI CSI SGR を表示幅 0 として扱います。
 - 描画操作は pinned prompt ハンドル内の mutex で直列化します。
 - 非 TTY では固定描画を行わず、通常の `fgets()` / `fwrite()` 相当に戻ります。
 - Windows では利用側が `com_util_console_init()` を呼ぶ前提です。ただし、呼び忘れても問題が起きにくいように create 時にも防御的に呼び出します。

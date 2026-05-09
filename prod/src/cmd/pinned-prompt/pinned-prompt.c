@@ -74,6 +74,51 @@ static int split_command(char *line, char **command, char **arg)
     return 0;
 }
 
+static void decode_cli_escapes(char *s)
+{
+    char *read_pos;
+    char *write_pos;
+
+    if (s == NULL)
+    {
+        return;
+    }
+
+    read_pos = s;
+    write_pos = s;
+    while (*read_pos != '\0')
+    {
+        if (*read_pos == '\\')
+        {
+            read_pos++;
+            if (*read_pos == 'e' || *read_pos == 'E')
+            {
+                *write_pos = '\033';
+                write_pos++;
+                read_pos++;
+                continue;
+            }
+            if (*read_pos == '\\')
+            {
+                *write_pos = '\\';
+                write_pos++;
+                read_pos++;
+                continue;
+            }
+            *write_pos = '\\';
+            write_pos++;
+            if (*read_pos == '\0')
+            {
+                break;
+            }
+        }
+        *write_pos = *read_pos;
+        write_pos++;
+        read_pos++;
+    }
+    *write_pos = '\0';
+}
+
 static void print_usage(const char *argv0)
 {
     fprintf(stderr, "使用方法: %s\n", argv0);
@@ -85,7 +130,7 @@ static void print_help(com_util_pinned_prompt_t *screen)
     com_util_pinned_prompt_printf(screen, COM_UTIL_PINNED_PROMPT_STDOUT,
                                   "commands:\n"
                                   "  help          show this help\n"
-                                  "  echo TEXT     write TEXT to stdout\n"
+                                  "  echo TEXT     write TEXT to stdout (\\e emits ESC)\n"
                                   "  start stdout  start stdout tick output\n"
                                   "  start stderr  start stderr tick output\n"
                                   "  stop stdout   stop stdout tick output\n"
@@ -93,10 +138,10 @@ static void print_help(com_util_pinned_prompt_t *screen)
                                   "  stop all      stop all tick output\n"
                                   "  status show [top|bottom|all]    show status area(s)\n"
                                   "  status hide [top|bottom|all]    hide status area(s)\n"
-                                  "  status set-top-left TEXT    set top-left status\n"
-                                  "  status set-top-right TEXT   set top-right status\n"
-                                  "  status set-bottom-left TEXT    set bottom-left status\n"
-                                  "  status set-bottom-right TEXT   set bottom-right status\n"
+                                  "  status set-top-left TEXT    set top-left status (\\e emits ESC)\n"
+                                  "  status set-top-right TEXT   set top-right status (\\e emits ESC)\n"
+                                  "  status set-bottom-left TEXT    set bottom-left status (\\e emits ESC)\n"
+                                  "  status set-bottom-right TEXT   set bottom-right status (\\e emits ESC)\n"
                                   "  exit, quit    exit pinned-prompt\n");
 }
 
@@ -466,6 +511,7 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     }
     else if (strcmp(command, "echo") == 0)
     {
+        decode_cli_escapes(arg);
         com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
                                       "%s\n", arg != NULL ? arg : "");
     }
@@ -479,6 +525,7 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     }
     else if (strcmp(command, "status") == 0)
     {
+        decode_cli_escapes(arg);
         process_status(session, arg);
     }
     else if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)

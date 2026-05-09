@@ -139,6 +139,7 @@ com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
  *  @param[in]  channel  Output channel.
  *  @param[in]  data     Data to write. NULL is allowed only when size is 0.
  *  @param[in]  size     Data size in bytes.
+ *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
  *  @return     Number of bytes written to the target stream.
  */
 COM_UTIL_EXPORT size_t COM_UTIL_API
@@ -153,6 +154,7 @@ com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
  *  @param[in]  channel  Output channel.
  *  @param[in]  fmt      printf style format string. NULL is treated as an empty string.
  *  @param[in]  ...      Format arguments.
+ *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
  *  @return     Number of bytes written to the target stream.
  */
 COM_UTIL_EXPORT int COM_UTIL_API
@@ -183,6 +185,8 @@ com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t                 *s
  *  @param[in]  position  Status area position (top or bottom).
  *  @param[in]  align     Alignment (left or right).
  *  @param[in]  content   Content string. NULL clears the content.
+ *  @note       ANSI CSI SGR escape sequences are passed through for coloring and
+ *              counted as display width 0 for status layout.
  *  @return     0 on success, -1 on failure.
  */
 COM_UTIL_EXPORT int COM_UTIL_API

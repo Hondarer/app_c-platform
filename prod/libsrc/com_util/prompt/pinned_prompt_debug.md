@@ -98,6 +98,43 @@ pinned-prompt>
 btm
 ```
 
+ANSI SGR 着色確認:
+
+```text
+echo \e[31mred\e[0m
+status show top
+status set-top-left \e[31mERROR\e[0m
+status set-top-right RIGHT
+status show bottom
+status set-bottom-left \e[1;32mOK\e[0m
+status set-top-left \e[38;2;255;0;0mTRUE\e[0m
+```
+
+期待する表示:
+
+- `red`、`ERROR`、`TRUE` が赤、`OK` が明るい緑で表示されること。
+- `RIGHT` の位置が、左側 status の SGR バイト数ではなく可視文字幅で決まること。
+- `\e[31BROKEN` のように SGR ではないシーケンスは、幅 0 の着色指定として扱われないこと。
+
+着色のコツ:
+
+- CLI から入力する場合は、実 ESC 文字ではなく `\e` を使う。`pinned-prompt` が `\e` / `\E` を ESC に変換して API に渡す。
+- 色を付けた区間の末尾には `\e[0m` を付ける。付け忘れると、それ以降の status、separator、prompt まで同じ属性で表示される場合がある。
+- 左右 status を同時に使うときは、色指定を含む側だけでなく反対側の位置も確認する。SGR は表示幅 0 として扱われるため、右寄せ位置は見えている文字数で決まる。
+- `\e[31m`、`\e[1;32m`、`\e[38;2;255;0;0m`、`\e[48;5;196m` のような `ESC [ ... m` 形式だけを着色用 SGR として扱う。カーソル移動や画面消去などの制御シーケンスは status 文字列に混ぜない。
+- `echo` は通常出力 API の確認、`status set-*` は status の描画とレイアウト計算の確認に使う。
+
+入力クリア確認:
+
+```text
+partial input
+```
+
+Enter を押さずに Esc キーを押し、`pinned-prompt>` の入力内容が空になることを確認する。
+
+その後、別のコマンドを入力して Enter を押し、Esc 前の文字列が実行されないことを確認する。
+Esc は入力中の編集行だけを消去し、履歴そのものは削除しない。確認する場合は、先に `echo hist` を実行して履歴に追加し、次の入力中に Esc を押した後、上キーで `echo hist` が再表示されることを確認する。
+
 ## worker 出力の確認
 
 入力途中に通常出力が流れても、入力中の内容と status / separator / prompt が維持されることを確認する。

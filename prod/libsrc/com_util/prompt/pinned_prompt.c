@@ -37,6 +37,7 @@ typedef enum
     PINNED_PROMPT_KEY_HOME,
     PINNED_PROMPT_KEY_END,
     PINNED_PROMPT_KEY_CTRL_C,
+    PINNED_PROMPT_KEY_CLEAR,
     PINNED_PROMPT_KEY_UNKNOWN,
     PINNED_PROMPT_KEY_EOF
 } pinned_prompt_key_t;
@@ -211,17 +212,57 @@ static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
     return 1U;
 }
 
+static size_t ansi_sgr_sequence_len(const char *buf, size_t len, size_t pos)
+{
+    size_t i;
+
+    if (pos + 2U >= len || (unsigned char)buf[pos] != 0x1BU || buf[pos + 1U] != '[')
+    {
+        return 0U;
+    }
+
+    i = pos + 2U;
+    while (i < len)
+    {
+        unsigned char ch;
+
+        ch = (unsigned char)buf[i];
+        if (ch == 'm')
+        {
+            return i - pos + 1U;
+        }
+        if ((ch >= 0x30U && ch <= 0x3FU) || (ch >= 0x20U && ch <= 0x2FU))
+        {
+            i++;
+            continue;
+        }
+        return 0U;
+    }
+    return 0U;
+}
+
 static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len,
                                         size_t start, size_t max_cols)
 {
     size_t pos;
     size_t cols;
     size_t char_width;
+    size_t sgr_len;
 
     pos = start;
     cols = 0U;
-    while (pos < len && cols < max_cols)
+    while (pos < len)
     {
+        sgr_len = ansi_sgr_sequence_len(buf, len, pos);
+        if (sgr_len > 0U)
+        {
+            pos += sgr_len;
+            continue;
+        }
+        if (cols >= max_cols)
+        {
+            break;
+        }
         char_width = utf8_char_display_width(buf, len, pos);
         if (cols + char_width > max_cols)
             break;
@@ -236,6 +277,7 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
 {
     size_t pos;
     size_t width;
+    size_t sgr_len;
 
     if (end > len)
         end = len;
@@ -244,6 +286,12 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
     width = 0U;
     while (pos < end)
     {
+        sgr_len = ansi_sgr_sequence_len(buf, end, pos);
+        if (sgr_len > 0U)
+        {
+            pos += sgr_len;
+            continue;
+        }
         width += utf8_char_display_width(buf, len, pos);
         pos = utf8_next_boundary(buf, len, pos);
     }
@@ -847,6 +895,10 @@ static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *scre
     if (c == 0x1B)
     {
         c2 = pinned_prompt_platform_read_char_nb(screen);
+        if (c2 == -1)
+        {
+            return PINNED_PROMPT_KEY_CLEAR;
+        }
         if (c2 == '[')
         {
             c3 = pinned_prompt_platform_read_char_nb(screen);
@@ -935,6 +987,15 @@ static void pinned_prompt_set_edit_line(com_util_pinned_prompt_t *screen, const 
     screen->edit_len = len;
     screen->cursor = len;
     screen->view_start = 0U;
+}
+
+static void pinned_prompt_clear_edit_line(com_util_pinned_prompt_t *screen)
+{
+    screen->edit_len = 0U;
+    screen->edit_buf[0] = '\0';
+    screen->cursor = 0U;
+    screen->view_start = 0U;
+    screen->browse_idx = -1;
 }
 
 static void pinned_prompt_history_prev(com_util_pinned_prompt_t *screen)
@@ -1276,6 +1337,10 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             pinned_prompt_cleanup_terminal_locked(screen);
             result = 0;
             done = 1;
+            break;
+        case PINNED_PROMPT_KEY_CLEAR:
+            pinned_prompt_clear_edit_line(screen);
+            pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_BACKSPACE:
             pinned_prompt_backspace(screen);
