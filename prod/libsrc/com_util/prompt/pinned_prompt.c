@@ -54,13 +54,22 @@ typedef struct
     int show_bottom_status;
 } pinned_prompt_layout_t;
 
+typedef struct
+{
+    const char *file;
+    char      **entries;
+    char       *saved_line;
+    size_t      count;
+    size_t      head;
+    int         line;
+    int         browse_idx;
+} pinned_prompt_history_ctx_t;
+
 struct com_util_pinned_prompt_t
 {
     com_util_mutex_t mutex;
 
     char   *edit_buf;
-    char  **history;
-    char   *saved_line;
     char   *prompt_buf;
     char   *fmt_buf;
 
@@ -74,18 +83,19 @@ struct com_util_pinned_prompt_t
     size_t  cursor;
     size_t  view_start;
     size_t  history_max;
-    size_t  history_count;
-    size_t  history_head;
     size_t  prompt_cap;
     size_t  fmt_cap;
+    size_t  history_ctx_count;
+    size_t  history_ctx_cap;
 
     size_t  status_top_left_cap;
     size_t  status_top_right_cap;
     size_t  status_bottom_left_cap;
     size_t  status_bottom_right_cap;
 
+    pinned_prompt_history_ctx_t *history_contexts;
+
     int mutex_active;
-    int browse_idx;
     int is_tty;
     int raw_active;
     int prompt_visible;
@@ -94,6 +104,7 @@ struct com_util_pinned_prompt_t
     int status_dirty;
     int cols;
     int rows;
+    int reserved;
 
 #if defined(PLATFORM_LINUX)
     struct termios orig_term;
@@ -105,7 +116,7 @@ struct com_util_pinned_prompt_t
 #endif
 };
 
-#define PINNED_PROMPT_HIST_IDX(s, i) (((s)->history_head + (i)) % (s)->history_max)
+#define PINNED_PROMPT_HIST_IDX(s, ctx, i) (((ctx)->head + (i)) % (s)->history_max)
 
 static size_t cstr_len(const char *s)
 {
@@ -933,40 +944,95 @@ static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *scre
     return PINNED_PROMPT_KEY_UNKNOWN;
 }
 
-static void pinned_prompt_history_add(com_util_pinned_prompt_t *screen, const char *line)
+static pinned_prompt_history_ctx_t *pinned_prompt_find_or_create_history_ctx(
+    com_util_pinned_prompt_t *screen,
+    const char               *file,
+    int                       line)
+{
+    size_t i;
+    pinned_prompt_history_ctx_t *ctx;
+
+    for (i = 0U; i < screen->history_ctx_count; i++)
+    {
+        if (screen->history_contexts[i].file == file && screen->history_contexts[i].line == line)
+        {
+            return &screen->history_contexts[i];
+        }
+    }
+
+    if (screen->history_ctx_count == screen->history_ctx_cap)
+    {
+        size_t new_cap;
+        pinned_prompt_history_ctx_t *new_contexts;
+
+        new_cap = screen->history_ctx_cap != 0U ? screen->history_ctx_cap * 2U : 4U;
+        new_contexts = (pinned_prompt_history_ctx_t *)realloc(
+            screen->history_contexts, new_cap * sizeof(*new_contexts));
+        if (new_contexts == NULL)
+        {
+            return NULL;
+        }
+        screen->history_contexts = new_contexts;
+        screen->history_ctx_cap = new_cap;
+    }
+
+    ctx = &screen->history_contexts[screen->history_ctx_count++];
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->file = file;
+    ctx->line = line;
+    ctx->entries = (char **)calloc(screen->history_max, sizeof(char *));
+    ctx->saved_line = (char *)malloc(screen->edit_cap);
+    ctx->browse_idx = -1;
+
+    if (ctx->entries == NULL || ctx->saved_line == NULL)
+    {
+        free(ctx->entries);
+        free(ctx->saved_line);
+        ctx->entries = NULL;
+        ctx->saved_line = NULL;
+        screen->history_ctx_count--;
+        return NULL;
+    }
+    ctx->saved_line[0] = '\0';
+    return ctx;
+}
+
+static void pinned_prompt_history_add(com_util_pinned_prompt_t    *screen,
+                                      pinned_prompt_history_ctx_t *ctx,
+                                      const char                  *line)
 {
     size_t len;
     size_t slot;
 
-    if (screen->history_max == 0U || line == NULL || line[0] == '\0')
+    if (screen->history_max == 0U || ctx == NULL || line == NULL || line[0] == '\0')
     {
         return;
     }
-    if (screen->history_count > 0U)
+    if (ctx->count > 0U)
     {
-        slot = PINNED_PROMPT_HIST_IDX(screen, screen->history_count - 1U);
-        if (screen->history[slot] != NULL && strcmp(screen->history[slot], line) == 0)
+        slot = PINNED_PROMPT_HIST_IDX(screen, ctx, ctx->count - 1U);
+        if (ctx->entries[slot] != NULL && strcmp(ctx->entries[slot], line) == 0)
         {
             return;
         }
     }
-    if (screen->history_count == screen->history_max)
+    if (ctx->count == screen->history_max)
     {
-        free(screen->history[screen->history_head]);
-        screen->history[screen->history_head] = NULL;
-        screen->history_head = (screen->history_head + 1U) % screen->history_max;
+        free(ctx->entries[ctx->head]);
+        ctx->entries[ctx->head] = NULL;
+        ctx->head = (ctx->head + 1U) % screen->history_max;
     }
     else
     {
-        screen->history_count++;
+        ctx->count++;
     }
 
-    slot = PINNED_PROMPT_HIST_IDX(screen, screen->history_count - 1U);
+    slot = PINNED_PROMPT_HIST_IDX(screen, ctx, ctx->count - 1U);
     len = strlen(line) + 1U;
-    screen->history[slot] = (char *)malloc(len);
-    if (screen->history[slot] != NULL)
+    ctx->entries[slot] = (char *)malloc(len);
+    if (ctx->entries[slot] != NULL)
     {
-        (void)com_util_strcpy(screen->history[slot], len, line);
+        (void)com_util_strcpy(ctx->entries[slot], len, line);
     }
 }
 
@@ -989,59 +1055,65 @@ static void pinned_prompt_set_edit_line(com_util_pinned_prompt_t *screen, const 
     screen->view_start = 0U;
 }
 
-static void pinned_prompt_clear_edit_line(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_clear_edit_line(com_util_pinned_prompt_t    *screen,
+                                          pinned_prompt_history_ctx_t *ctx)
 {
     screen->edit_len = 0U;
     screen->edit_buf[0] = '\0';
     screen->cursor = 0U;
     screen->view_start = 0U;
-    screen->browse_idx = -1;
+    if (ctx != NULL)
+    {
+        ctx->browse_idx = -1;
+    }
 }
 
-static void pinned_prompt_history_prev(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_history_prev(com_util_pinned_prompt_t    *screen,
+                                       pinned_prompt_history_ctx_t *ctx)
 {
     const char *entry;
     size_t      slot;
 
-    if (screen->history_count == 0U)
+    if (ctx == NULL || ctx->count == 0U)
     {
         return;
     }
-    if (screen->browse_idx == -1)
+    if (ctx->browse_idx == -1)
     {
-        (void)com_util_strcpy(screen->saved_line, screen->edit_cap, screen->edit_buf);
-        screen->browse_idx = (int)screen->history_count - 1;
+        (void)com_util_strcpy(ctx->saved_line, screen->edit_cap, screen->edit_buf);
+        ctx->browse_idx = (int)ctx->count - 1;
     }
-    else if (screen->browse_idx > 0)
+    else if (ctx->browse_idx > 0)
     {
-        screen->browse_idx--;
+        ctx->browse_idx--;
     }
     else
     {
         return;
     }
-    slot = PINNED_PROMPT_HIST_IDX(screen, (size_t)screen->browse_idx);
-    entry = screen->history[slot];
+    slot = PINNED_PROMPT_HIST_IDX(screen, ctx, (size_t)ctx->browse_idx);
+    entry = ctx->entries[slot];
     if (entry != NULL)
     {
         pinned_prompt_set_edit_line(screen, entry);
     }
 }
 
-static void pinned_prompt_history_next(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_history_next(com_util_pinned_prompt_t    *screen,
+                                       pinned_prompt_history_ctx_t *ctx)
 {
     const char *entry;
     size_t      slot;
 
-    if (screen->browse_idx == -1)
+    if (ctx == NULL || ctx->browse_idx == -1)
     {
         return;
     }
-    if (screen->browse_idx < (int)screen->history_count - 1)
+    if (ctx->browse_idx < (int)ctx->count - 1)
     {
-        screen->browse_idx++;
-        slot = PINNED_PROMPT_HIST_IDX(screen, (size_t)screen->browse_idx);
-        entry = screen->history[slot];
+        ctx->browse_idx++;
+        slot = PINNED_PROMPT_HIST_IDX(screen, ctx, (size_t)ctx->browse_idx);
+        entry = ctx->entries[slot];
         if (entry != NULL)
         {
             pinned_prompt_set_edit_line(screen, entry);
@@ -1049,8 +1121,8 @@ static void pinned_prompt_history_next(com_util_pinned_prompt_t *screen)
     }
     else
     {
-        pinned_prompt_set_edit_line(screen, screen->saved_line);
-        screen->browse_idx = -1;
+        pinned_prompt_set_edit_line(screen, ctx->saved_line);
+        ctx->browse_idx = -1;
     }
 }
 
@@ -1176,7 +1248,6 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     }
     screen->history_max = history_max;
     screen->edit_cap = COM_UTIL_PROMPT_LINE_MAX;
-    screen->browse_idx = -1;
     screen->is_tty = pinned_prompt_platform_is_tty();
     pinned_prompt_update_size(screen);
 
@@ -1188,15 +1259,12 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->mutex_active = 1;
 
     screen->edit_buf = (char *)malloc(screen->edit_cap);
-    screen->saved_line = (char *)malloc(screen->edit_cap);
-    screen->history = (char **)calloc(screen->history_max, sizeof(char *));
     screen->prompt_buf = (char *)malloc(1U);
     screen->status_top_left = (char *)malloc(1U);
     screen->status_top_right = (char *)malloc(1U);
     screen->status_bottom_left = (char *)malloc(1U);
     screen->status_bottom_right = (char *)malloc(1U);
-    if (screen->edit_buf == NULL || screen->saved_line == NULL ||
-        screen->history == NULL || screen->prompt_buf == NULL ||
+    if (screen->edit_buf == NULL || screen->prompt_buf == NULL ||
         screen->status_top_left == NULL || screen->status_top_right == NULL ||
         screen->status_bottom_left == NULL || screen->status_bottom_right == NULL)
     {
@@ -1204,7 +1272,6 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
         return NULL;
     }
     screen->edit_buf[0] = '\0';
-    screen->saved_line[0] = '\0';
     screen->prompt_buf[0] = '\0';
     screen->prompt_cap = 1U;
     screen->status_top_left[0] = '\0';
@@ -1223,6 +1290,7 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
 void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
 {
     size_t i;
+    size_t j;
 
     if (screen == NULL)
     {
@@ -1233,16 +1301,26 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     pinned_prompt_platform_leave_raw(screen);
     pinned_prompt_unlock(screen);
 
-    if (screen->history != NULL)
+    if (screen->history_contexts != NULL)
     {
-        for (i = 0U; i < screen->history_max; i++)
+        for (i = 0U; i < screen->history_ctx_count; i++)
         {
-            free(screen->history[i]);
+            pinned_prompt_history_ctx_t *ctx;
+
+            ctx = &screen->history_contexts[i];
+            if (ctx->entries != NULL)
+            {
+                for (j = 0U; j < screen->history_max; j++)
+                {
+                    free(ctx->entries[j]);
+                }
+            }
+            free(ctx->entries);
+            free(ctx->saved_line);
         }
     }
-    free(screen->history);
+    free(screen->history_contexts);
     free(screen->edit_buf);
-    free(screen->saved_line);
     free(screen->prompt_buf);
     free(screen->fmt_buf);
     free(screen->status_top_left);
@@ -1256,13 +1334,16 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     free(screen);
 }
 
-int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
-                                    char                     *buf,
-                                    size_t                    buf_size,
-                                    const char               *prompt_str)
+int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
+                                     char                     *buf,
+                                     size_t                    buf_size,
+                                     const char               *prompt_str,
+                                     const char               *file,
+                                     int                       line)
 {
     int done;
     int result;
+    pinned_prompt_history_ctx_t *history_ctx;
 
     if (screen == NULL || buf == NULL || buf_size == 0U)
     {
@@ -1282,6 +1363,13 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
     }
 
     pinned_prompt_lock(screen);
+    history_ctx = pinned_prompt_find_or_create_history_ctx(screen, file, line);
+    if (history_ctx == NULL)
+    {
+        pinned_prompt_unlock(screen);
+        pinned_prompt_platform_leave_raw(screen);
+        return 0;
+    }
     if (pinned_prompt_set_prompt(screen, prompt_str) != 0)
     {
         pinned_prompt_unlock(screen);
@@ -1292,7 +1380,7 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
     screen->edit_buf[0] = '\0';
     screen->cursor = 0U;
     screen->view_start = 0U;
-    screen->browse_idx = -1;
+    history_ctx->browse_idx = -1;
     screen->prompt_visible = 1;
     pinned_prompt_render_locked(screen);
     pinned_prompt_unlock(screen);
@@ -1320,7 +1408,7 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
                 memcpy(buf, screen->edit_buf, copy);
             }
             buf[copy] = '\0';
-            pinned_prompt_history_add(screen, screen->edit_buf);
+            pinned_prompt_history_add(screen, history_ctx, screen->edit_buf);
             pinned_prompt_finish_prompt_locked(screen);
             result = 1;
             done = 1;
@@ -1339,7 +1427,7 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             done = 1;
             break;
         case PINNED_PROMPT_KEY_CLEAR:
-            pinned_prompt_clear_edit_line(screen);
+            pinned_prompt_clear_edit_line(screen, history_ctx);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_BACKSPACE:
@@ -1367,11 +1455,11 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_UP:
-            pinned_prompt_history_prev(screen);
+            pinned_prompt_history_prev(screen, history_ctx);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_DOWN:
-            pinned_prompt_history_next(screen);
+            pinned_prompt_history_next(screen, history_ctx);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_CHAR:
@@ -1390,11 +1478,13 @@ int com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
     return result;
 }
 
-int com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
-                                        char                     *buf,
-                                        size_t                    buf_size,
-                                        const char               *fmt,
-                                        ...)
+int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
+                                         char                     *buf,
+                                         size_t                    buf_size,
+                                         const char               *file,
+                                         int                       line,
+                                         const char               *fmt,
+                                         ...)
 {
     va_list ap;
     int     rc;
@@ -1408,9 +1498,9 @@ int com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
     va_end(ap);
     if (rc != 0)
     {
-        return com_util_pinned_prompt_readline(screen, buf, buf_size, "");
+        return _com_util_pinned_prompt_readline(screen, buf, buf_size, "", file, line);
     }
-    return com_util_pinned_prompt_readline(screen, buf, buf_size, screen->fmt_buf);
+    return _com_util_pinned_prompt_readline(screen, buf, buf_size, screen->fmt_buf, file, line);
 }
 
 size_t com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,

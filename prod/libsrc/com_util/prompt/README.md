@@ -33,6 +33,7 @@
 - `com_util_pinned_prompt_create(NULL)` は既定設定で pinned prompt ハンドルを作成します。
 - `history_max == 0` は `COM_UTIL_PROMPT_HISTORY_DEFAULT` を使います。
 - `com_util_pinned_prompt_readline()` は Enter で 1、EOF または Ctrl+C で 0 を返します。
+- 履歴リングは `com_util_pinned_prompt_readline()` / `com_util_pinned_prompt_readline_fmt()` の呼び出し元ごとに分かれます。
 - `com_util_pinned_prompt_write()` と `com_util_pinned_prompt_printf()` は、入力中でも呼び出せます。
 - API から出力する文字列では ANSI CSI SGR (`ESC [ ... m`) による着色を利用できます。
 - ステータス行の配置計算では ANSI CSI SGR を表示幅 0 として扱います。

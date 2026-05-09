@@ -131,6 +131,9 @@ static void print_help(com_util_pinned_prompt_t *screen)
                                   "commands:\n"
                                   "  help          show this help\n"
                                   "  echo TEXT     write TEXT to stdout (\\e emits ESC)\n"
+                                  "  read primary  read one line with primary history\n"
+                                  "  read secondary read one line with secondary history\n"
+                                  "  read formatted read one line with formatted prompt\n"
                                   "  start stdout  start stdout tick output\n"
                                   "  start stderr  start stderr tick output\n"
                                   "  stop stdout   stop stdout tick output\n"
@@ -488,6 +491,70 @@ static void process_status(pinned_prompt_cli_session_t *session, const char *arg
     }
 }
 
+static int read_primary_history(com_util_pinned_prompt_t *screen,
+                                char                     *buf,
+                                size_t                    buf_size)
+{
+    return com_util_pinned_prompt_readline(screen, buf, buf_size, "primary> ");
+}
+
+static int read_secondary_history(com_util_pinned_prompt_t *screen,
+                                  char                     *buf,
+                                  size_t                    buf_size)
+{
+    return com_util_pinned_prompt_readline(screen, buf, buf_size, "secondary> ");
+}
+
+static int read_formatted_history(com_util_pinned_prompt_t *screen,
+                                  char                     *buf,
+                                  size_t                    buf_size)
+{
+    return com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, "%s> ", "formatted");
+}
+
+static void process_read(pinned_prompt_cli_session_t *session, const char *arg)
+{
+    char buf[PINNED_PROMPT_CLI_LINE_MAX];
+    int  rc;
+
+    if (arg == NULL)
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                      "usage: read primary|secondary|formatted\n");
+        return;
+    }
+
+    if (strcmp(arg, "primary") == 0)
+    {
+        rc = read_primary_history(session->screen, buf, sizeof(buf));
+    }
+    else if (strcmp(arg, "secondary") == 0)
+    {
+        rc = read_secondary_history(session->screen, buf, sizeof(buf));
+    }
+    else if (strcmp(arg, "formatted") == 0)
+    {
+        rc = read_formatted_history(session->screen, buf, sizeof(buf));
+    }
+    else
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+                                      "usage: read primary|secondary|formatted\n");
+        return;
+    }
+
+    if (rc)
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                      "read %s: %s\n", arg, buf);
+    }
+    else
+    {
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+                                      "read %s cancelled\n", arg);
+    }
+}
+
 static void process_line(pinned_prompt_cli_session_t *session, char *line)
 {
     char original_line[PINNED_PROMPT_CLI_LINE_MAX];
@@ -527,6 +594,10 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     {
         decode_cli_escapes(arg);
         process_status(session, arg);
+    }
+    else if (strcmp(command, "read") == 0)
+    {
+        process_read(session, arg);
     }
     else if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)
     {

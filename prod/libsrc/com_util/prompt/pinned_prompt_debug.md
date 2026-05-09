@@ -135,6 +135,34 @@ Enter を押さずに Esc キーを押し、`pinned-prompt>` の入力内容が�
 その後、別のコマンドを入力して Enter を押し、Esc 前の文字列が実行されないことを確認する。
 Esc は入力中の編集行だけを消去し、履歴そのものは削除しない。確認する場合は、先に `echo hist` を実行して履歴に追加し、次の入力中に Esc を押した後、上キーで `echo hist` が再表示されることを確認する。
 
+呼び出し元別履歴リング確認:
+
+```text
+read primary
+p1
+read secondary
+s1
+read primary
+```
+
+3 回目の `read primary` で `primary>` が表示されたら、上キーを押して `p1` だけが再表示されることを確認する。Enter で確定してから、次を実行する。
+
+```text
+read secondary
+```
+
+`secondary>` が表示されたら、上キーを押して `s1` だけが再表示されることを確認する。`read primary` と `read secondary` は別の呼び出し元から `com_util_pinned_prompt_readline()` を呼ぶため、同じ `screen` でも履歴リングが分かれる。
+
+`com_util_pinned_prompt_readline_fmt()` 経由も確認する。
+
+```text
+read formatted
+f1
+read formatted
+```
+
+2 回目の `read formatted` で `formatted>` が表示されたら、上キーを押して `f1` が再表示されることを確認する。
+
 ## worker 出力の確認
 
 入力途中に通常出力が流れても、入力中の内容と status / separator / prompt が維持されることを確認する。

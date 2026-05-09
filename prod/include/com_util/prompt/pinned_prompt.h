@@ -107,11 +107,8 @@ com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
  *  @param[in]  prompt_str  Prompt string. NULL is treated as an empty string.
  *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
  */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
-                                char                     *buf,
-                                size_t                    buf_size,
-                                const char               *prompt_str);
+#define com_util_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
+    _com_util_pinned_prompt_readline((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
 
 /**
  *  @brief      Read one command line with a formatted bottom-fixed prompt.
@@ -122,14 +119,33 @@ com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
  *  @param[in]  ...       Format arguments.
  *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
  */
+#define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
+    _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
+
+/**
+ *  @brief  com_util_pinned_prompt_readline() implementation.
+ */
 COM_UTIL_EXPORT int COM_UTIL_API
-com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
-                                    char                     *buf,
-                                    size_t                    buf_size,
-                                    const char               *fmt,
-                                    ...)
+_com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
+                                 char                     *buf,
+                                 size_t                    buf_size,
+                                 const char               *prompt_str,
+                                 const char               *file,
+                                 int                       line);
+
+/**
+ *  @brief  com_util_pinned_prompt_readline_fmt() implementation.
+ */
+COM_UTIL_EXPORT int COM_UTIL_API
+_com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
+                                     char                     *buf,
+                                     size_t                    buf_size,
+                                     const char               *file,
+                                     int                       line,
+                                     const char               *fmt,
+                                     ...)
 #if defined(COMPILER_GCC)
-    __attribute__((format(printf, 4, 5)))
+    __attribute__((format(printf, 6, 7)))
 #endif /* COMPILER_GCC */
     ;
 
