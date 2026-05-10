@@ -5,10 +5,36 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #if defined(PLATFORM_LINUX)
+    #include <unistd.h>
     #include <sys/wait.h>
+    static void make_test_interprocess_path(char *buf, size_t size, const char *tag)
+    {
+        snprintf(buf, size, "/tmp/com_util_%s_%ld.lock", tag, (long)getpid());
+    }
+    #define TEST_INTERPROCESS_UNLINK(path) unlink(path)
+#elif defined(PLATFORM_WINDOWS)
+    #include <process.h>
+    #include <io.h>
+    #include <com_util/base/windows_sdk.h>
+    static void make_test_interprocess_path(char *buf, size_t size, const char *tag)
+    {
+        char tmp_dir[256];
+        DWORD len = GetTempPathA((DWORD)sizeof(tmp_dir), tmp_dir);
+        if (len == 0)
+        {
+            tmp_dir[0] = '.';
+            tmp_dir[1] = '\0';
+            len = 1;
+        }
+        while (len > 0 && (tmp_dir[len - 1] == '\\' || tmp_dir[len - 1] == '/'))
+        {
+            tmp_dir[--len] = '\0';
+        }
+        snprintf(buf, size, "%s/com_util_%s_%ld.lock", tmp_dir, tag, (long)_getpid());
+    }
+    #define TEST_INTERPROCESS_UNLINK(path) _unlink(path)
 #endif
 
 TEST(SyncLocalLockTest, TryLockReportsBusyWhenAlreadyLocked)
@@ -103,7 +129,7 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_lock_%ld.lock", (long)getpid());
+    make_test_interprocess_path(path, sizeof(path), "interprocess_lock");
     com_util_interprocess_lock_t *lock = NULL;
     com_util_interprocess_lock_t *restored = NULL;
     unsigned char descriptor[512];
@@ -128,14 +154,14 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(restored);
     com_util_interprocess_lock_destroy(lock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 
 TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_lock_kind_%ld.lock", (long)getpid());
+    make_test_interprocess_path(path, sizeof(path), "interprocess_lock_kind");
     com_util_interprocess_rwlock_t *rwlock = NULL;
     com_util_interprocess_lock_t *lock = NULL;
     unsigned char descriptor[512];
@@ -155,14 +181,14 @@ TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
     EXPECT_EQ(NULL, lock);
 
     com_util_interprocess_rwlock_destroy(rwlock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 
 TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_rwlock_%ld.lock", (long)getpid()); // [状態] - テスト用 lock file パスを用意する。
+    make_test_interprocess_path(path, sizeof(path), "interprocess_rwlock"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_rwlock_t *lock = NULL;
     com_util_interprocess_rwlock_t *restored = NULL;
     unsigned char descriptor[512];
@@ -187,14 +213,14 @@ TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(restored);
     com_util_interprocess_rwlock_destroy(lock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 
 TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_rwlock_size_%ld.lock", (long)getpid()); // [状態] - テスト用 lock file パスを用意する。
+    make_test_interprocess_path(path, sizeof(path), "interprocess_rwlock_size"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_rwlock_t *lock = NULL;
     size_t descriptor_size = 0U;
 
@@ -210,7 +236,7 @@ TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
     EXPECT_GT(descriptor_size, 20U);                               // [確認_正常系] - descriptor に必要なサイズが返ること。
 
     com_util_interprocess_rwlock_destroy(lock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 
 TEST(SyncInterprocessRwlockTest, CorruptDescriptorIsRejected)
@@ -234,7 +260,7 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_lock_fork_%ld.lock", (long)getpid());
+    make_test_interprocess_path(path, sizeof(path), "interprocess_lock_fork");
     com_util_interprocess_lock_t *lock = NULL;
 
     // Pre-Assert
@@ -266,14 +292,14 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
 
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(lock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 
 TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
 {
     // Arrange
     char path[256];
-    snprintf(path, sizeof(path), "/tmp/com_util_interprocess_rwlock_fork_%ld.lock", (long)getpid());
+    make_test_interprocess_path(path, sizeof(path), "interprocess_rwlock_fork");
     com_util_interprocess_rwlock_t *lock = NULL;
 
     // Pre-Assert
@@ -305,6 +331,6 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
 
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
-    unlink(path);
+    TEST_INTERPROCESS_UNLINK(path);
 }
 #endif /* PLATFORM_LINUX */
