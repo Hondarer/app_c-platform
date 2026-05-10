@@ -79,7 +79,7 @@ extern "C"
         void *func_ptr;                               /**< キャッシュ済み関数ポインタ (NULL = 未取得)。 */
         int resolved;                                 /**< 解決済フラグ (0 = 未解決)。 */
         volatile int32_t lock_state;                  /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
-        com_util_mutex_t *lock;                       /**< ロード処理を保護するミューテックス。 */
+        com_util_local_lock_t *lock;                       /**< ロード処理を保護するミューテックス。 */
     } com_util_sym_loader_entry_t;
 
 /**

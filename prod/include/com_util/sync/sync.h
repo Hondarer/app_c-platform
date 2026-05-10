@@ -45,14 +45,15 @@ typedef enum
 
 typedef enum
 {
-    COM_UTIL_APP_LOCK_BACKEND_LOCK_FILE = 1
-} com_util_app_lock_backend_t;
+    COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE = 1
+} com_util_interprocess_sync_backend_t;
 
-typedef struct com_util_mutex com_util_mutex_t;
+typedef struct com_util_local_lock com_util_local_lock_t;
 typedef struct com_util_condvar com_util_condvar_t;
-typedef struct com_util_rwlock com_util_rwlock_t;
+typedef struct com_util_local_rwlock com_util_local_rwlock_t;
 typedef struct com_util_thread com_util_thread_t;
-typedef struct com_util_app_lock com_util_app_lock_t;
+typedef struct com_util_interprocess_lock com_util_interprocess_lock_t;
+typedef struct com_util_interprocess_rwlock com_util_interprocess_rwlock_t;
 
 /** スレッド関数ポインタ型。 */
 typedef void (*com_util_thread_func_t)(void *);
@@ -66,19 +67,19 @@ typedef struct
 } com_util_once_flag_t;
 
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_mutex_create(com_util_mutex_t **mtx);
+com_util_local_lock_create(com_util_local_lock_t **mtx);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_mutex_lock(com_util_mutex_t *mtx, uint32_t timeout_ms);
+com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_mutex_try_lock(com_util_mutex_t *mtx);
+com_util_local_lock_try_lock(com_util_local_lock_t *mtx);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_mutex_unlock(com_util_mutex_t *mtx);
-COM_UTIL_EXPORT void COM_UTIL_API com_util_mutex_destroy(com_util_mutex_t *mtx);
+com_util_local_lock_unlock(com_util_local_lock_t *mtx);
+COM_UTIL_EXPORT void COM_UTIL_API com_util_local_lock_destroy(com_util_local_lock_t *mtx);
 
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
 com_util_condvar_create(com_util_condvar_t **cv);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t *mtx, uint32_t timeout_ms);
+com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx, uint32_t timeout_ms);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
 com_util_condvar_signal(com_util_condvar_t *cv);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
@@ -86,20 +87,20 @@ com_util_condvar_broadcast(com_util_condvar_t *cv);
 COM_UTIL_EXPORT void COM_UTIL_API com_util_condvar_destroy(com_util_condvar_t *cv);
 
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_create(com_util_rwlock_t **rwlock);
+com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock, uint32_t timeout_ms);
+com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_try_lock_shared(com_util_rwlock_t *rwlock);
+com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock, uint32_t timeout_ms);
+com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_try_lock_exclusive(com_util_rwlock_t *rwlock);
+com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock_t *rwlock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock);
+com_util_local_rwlock_unlock_shared(com_util_local_rwlock_t *rwlock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwlock);
-COM_UTIL_EXPORT void COM_UTIL_API com_util_rwlock_destroy(com_util_rwlock_t *rwlock);
+com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock_t *rwlock);
+COM_UTIL_EXPORT void COM_UTIL_API com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock);
 
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
 com_util_thread_create(com_util_thread_t **thread, com_util_thread_func_t func, void *arg);
@@ -108,26 +109,40 @@ com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms);
 COM_UTIL_EXPORT void COM_UTIL_API com_util_thread_detach(com_util_thread_t *thread);
 
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_create(const char *identity, com_util_app_lock_t **lock);
+com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock_t **lock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_open(const char *identity, com_util_app_lock_t **lock);
+com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                             com_util_interprocess_lock_t **lock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
-                                    com_util_app_lock_t **lock);
+com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock_t *lock,
+                                             void *descriptor, size_t *descriptor_size);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_export_descriptor(const com_util_app_lock_t *lock, void *descriptor,
-                                    size_t *descriptor_size);
+com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, uint32_t timeout_ms);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_lock_shared(com_util_app_lock_t *lock, uint32_t timeout_ms);
+com_util_interprocess_lock_try_lock(com_util_interprocess_lock_t *lock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_try_lock_shared(com_util_app_lock_t *lock);
+com_util_interprocess_lock_unlock(com_util_interprocess_lock_t *lock);
+COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock);
+
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_lock_exclusive(com_util_app_lock_t *lock, uint32_t timeout_ms);
+com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock_t **lock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_try_lock_exclusive(com_util_app_lock_t *lock);
+com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                               com_util_interprocess_rwlock_t **lock);
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_app_lock_unlock(com_util_app_lock_t *lock);
-COM_UTIL_EXPORT void COM_UTIL_API com_util_app_lock_destroy(com_util_app_lock_t *lock);
+com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock_t *lock,
+                                               void *descriptor, size_t *descriptor_size);
+COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
+com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
+com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *lock);
+COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
+com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
+com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock_t *lock);
+COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
+com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock);
+COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock);
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag_t *flag,
                                                      com_util_once_func_t func);

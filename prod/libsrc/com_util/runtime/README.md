@@ -157,13 +157,13 @@ int sample_func(int a, int b, int *result)
 
 - `module_info` は Win32 API ベースで DLL パスを取得する
 - `sym_loader` は `.dll` を内部で補完してロードする
-- ロックは `com_util_mutex_t` を使う
+- ロックは `com_util_local_lock_t` を使う
 
 ### Linux / 非 Windows
 
 - `module_info` は `dladdr()` ベースで `.so` の位置を特定する
 - `sym_loader` は `.so` を内部で補完してロードする
-- ロックは `com_util_mutex_t` を使う
+- ロックは `com_util_local_lock_t` を使う
 
 ## 注意点
 

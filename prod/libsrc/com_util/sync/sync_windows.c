@@ -16,13 +16,15 @@
     #include <com_util/base/windows_sdk.h>
     #include <com_util/sync/sync.h>
 
-#define APP_LOCK_DESCRIPTOR_HEADER_SIZE 20U
-#define APP_LOCK_RANGE_LOW 1U
-#define APP_LOCK_RANGE_HIGH 0U
+#define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
+#define INTERPROCESS_SYNC_RANGE_LOW 1U
+#define INTERPROCESS_SYNC_RANGE_HIGH 0U
+#define INTERPROCESS_SYNC_KIND_LOCK 1U
+#define INTERPROCESS_SYNC_KIND_RWLOCK 2U
 
-struct com_util_mutex
+struct com_util_local_lock
 {
-    CRITICAL_SECTION native;
+    SRWLOCK native;
 };
 
 struct com_util_condvar
@@ -30,7 +32,7 @@ struct com_util_condvar
     CONDITION_VARIABLE native;
 };
 
-struct com_util_rwlock
+struct com_util_local_rwlock
 {
     CRITICAL_SECTION mutex;
     CONDITION_VARIABLE readers_cv;
@@ -45,7 +47,14 @@ struct com_util_thread
     HANDLE native;
 };
 
-struct com_util_app_lock
+struct com_util_interprocess_lock
+{
+    HANDLE handle;
+    char *identity;
+    int locked;
+};
+
+struct com_util_interprocess_rwlock
 {
     HANDLE handle;
     char *identity;
@@ -97,9 +106,9 @@ static char *dup_string(const char *s)
 }
 
 static com_util_sync_result_t app_lock_open_identity(const char *identity,
-                                                     com_util_app_lock_t **lock)
+                                                     com_util_interprocess_rwlock_t **lock)
 {
-    com_util_app_lock_t *new_lock;
+    com_util_interprocess_rwlock_t *new_lock;
     HANDLE handle;
     char *identity_copy;
 
@@ -120,7 +129,7 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity,
         CloseHandle(handle);
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-    new_lock = (com_util_app_lock_t *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_rwlock_t *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         free(identity_copy);
@@ -133,7 +142,44 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity,
     return COM_UTIL_SYNC_OK;
 }
 
-static com_util_sync_result_t app_lock_take(com_util_app_lock_t *lock, DWORD flags,
+static com_util_sync_result_t interprocess_lock_open_identity(
+    const char *identity, com_util_interprocess_lock_t **lock)
+{
+    com_util_interprocess_lock_t *new_lock;
+    HANDLE handle;
+    char *identity_copy;
+
+    if (identity == NULL || identity[0] == '\0' || lock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    handle = CreateFileA(identity, GENERIC_READ | GENERIC_WRITE,
+                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                         NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (handle == INVALID_HANDLE_VALUE)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    identity_copy = dup_string(identity);
+    if (identity_copy == NULL)
+    {
+        CloseHandle(handle);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    new_lock = (com_util_interprocess_lock_t *)calloc(1, sizeof(*new_lock));
+    if (new_lock == NULL)
+    {
+        free(identity_copy);
+        CloseHandle(handle);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    new_lock->handle = handle;
+    new_lock->identity = identity_copy;
+    *lock = new_lock;
+    return COM_UTIL_SYNC_OK;
+}
+
+static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock, DWORD flags,
                                             uint32_t timeout_ms)
 {
     ULONGLONG deadline;
@@ -148,7 +194,7 @@ static com_util_sync_result_t app_lock_take(com_util_app_lock_t *lock, DWORD fla
     do
     {
         if (LockFileEx(lock->handle, flags | LOCKFILE_FAIL_IMMEDIATELY, 0,
-                       APP_LOCK_RANGE_LOW, APP_LOCK_RANGE_HIGH, &ov))
+                       INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
         {
             lock->locked = 1;
             return COM_UTIL_SYNC_OK;
@@ -167,29 +213,59 @@ static com_util_sync_result_t app_lock_take(com_util_app_lock_t *lock, DWORD fla
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
-com_util_sync_result_t com_util_mutex_create(com_util_mutex_t **mtx)
+static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock_t *lock,
+                                                     uint32_t timeout_ms)
 {
-    com_util_mutex_t *new_mtx;
+    ULONGLONG deadline;
+    OVERLAPPED ov;
+
+    if (lock == NULL || lock->locked)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    deadline = GetTickCount64() + (ULONGLONG)timeout_ms;
+    memset(&ov, 0, sizeof(ov));
+    do
+    {
+        if (LockFileEx(lock->handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                       0, INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
+        {
+            lock->locked = 1;
+            return COM_UTIL_SYNC_OK;
+        }
+        if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+        {
+            return COM_UTIL_SYNC_BUSY;
+        }
+        if (GetLastError() != ERROR_LOCK_VIOLATION)
+        {
+            return COM_UTIL_SYNC_SYSTEM_ERROR;
+        }
+        Sleep(1);
+    } while (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER || GetTickCount64() < deadline);
+
+    return COM_UTIL_SYNC_TIMEOUT;
+}
+
+com_util_sync_result_t com_util_local_lock_create(com_util_local_lock_t **mtx)
+{
+    com_util_local_lock_t *new_mtx;
 
     if (mtx == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_mtx = (com_util_mutex_t *)calloc(1, sizeof(*new_mtx));
+    new_mtx = (com_util_local_lock_t *)calloc(1, sizeof(*new_mtx));
     if (new_mtx == NULL)
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-    if (!InitializeCriticalSectionAndSpinCount(&new_mtx->native, 1000))
-    {
-        free(new_mtx);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
-    }
+    InitializeSRWLock(&new_mtx->native);
     *mtx = new_mtx;
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_mutex_lock(com_util_mutex_t *mtx, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms)
 {
     ULONGLONG deadline;
 
@@ -199,13 +275,13 @@ com_util_sync_result_t com_util_mutex_lock(com_util_mutex_t *mtx, uint32_t timeo
     }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
-        EnterCriticalSection(&mtx->native);
+        AcquireSRWLockExclusive(&mtx->native);
         return COM_UTIL_SYNC_OK;
     }
     deadline = GetTickCount64() + (ULONGLONG)timeout_ms;
     do
     {
-        if (TryEnterCriticalSection(&mtx->native))
+        if (TryAcquireSRWLockExclusive(&mtx->native))
         {
             return COM_UTIL_SYNC_OK;
         }
@@ -218,28 +294,24 @@ com_util_sync_result_t com_util_mutex_lock(com_util_mutex_t *mtx, uint32_t timeo
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
-com_util_sync_result_t com_util_mutex_try_lock(com_util_mutex_t *mtx)
+com_util_sync_result_t com_util_local_lock_try_lock(com_util_local_lock_t *mtx)
 {
-    return com_util_mutex_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
+    return com_util_local_lock_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_mutex_unlock(com_util_mutex_t *mtx)
+com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock_t *mtx)
 {
     if (mtx == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    LeaveCriticalSection(&mtx->native);
+    ReleaseSRWLockExclusive(&mtx->native);
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_mutex_destroy(com_util_mutex_t *mtx)
+void com_util_local_lock_destroy(com_util_local_lock_t *mtx)
 {
-    if (mtx != NULL)
-    {
-        DeleteCriticalSection(&mtx->native);
-        free(mtx);
-    }
+    free(mtx);
 }
 
 com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
@@ -260,7 +332,7 @@ com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t *mtx,
+com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx,
                                              uint32_t timeout_ms)
 {
     DWORD wait_ms;
@@ -270,7 +342,7 @@ com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_mu
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
     wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
-    if (SleepConditionVariableCS(&cv->native, &mtx->native, wait_ms))
+    if (SleepConditionVariableSRW(&cv->native, &mtx->native, wait_ms, 0))
     {
         return COM_UTIL_SYNC_OK;
     }
@@ -302,15 +374,15 @@ void com_util_condvar_destroy(com_util_condvar_t *cv)
     free(cv);
 }
 
-com_util_sync_result_t com_util_rwlock_create(com_util_rwlock_t **rwlock)
+com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock)
 {
-    com_util_rwlock_t *new_lock;
+    com_util_local_rwlock_t *new_lock;
 
     if (rwlock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_lock = (com_util_rwlock_t *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_local_rwlock_t *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
@@ -322,7 +394,7 @@ com_util_sync_result_t com_util_rwlock_create(com_util_rwlock_t **rwlock)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
 {
     DWORD wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
 
@@ -349,12 +421,12 @@ com_util_sync_result_t com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock, ui
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_rwlock_try_lock_shared(com_util_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock)
 {
-    return com_util_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
+    return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
 {
     DWORD wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
 
@@ -385,12 +457,12 @@ com_util_sync_result_t com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock,
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_rwlock_try_lock_exclusive(com_util_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock_t *rwlock)
 {
-    return com_util_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
+    return com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock_t *rwlock)
 {
     if (rwlock == NULL)
     {
@@ -411,7 +483,7 @@ com_util_sync_result_t com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock_t *rwlock)
 {
     if (rwlock == NULL)
     {
@@ -436,7 +508,7 @@ com_util_sync_result_t com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwloc
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_rwlock_destroy(com_util_rwlock_t *rwlock)
+void com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock)
 {
     if (rwlock != NULL)
     {
@@ -507,17 +579,136 @@ void com_util_thread_detach(com_util_thread_t *thread)
     }
 }
 
-com_util_sync_result_t com_util_app_lock_create(const char *identity, com_util_app_lock_t **lock)
+com_util_sync_result_t com_util_interprocess_lock_open(const char *identity,
+                                                       com_util_interprocess_lock_t **lock)
+{
+    return interprocess_lock_open_identity(identity, lock);
+}
+
+com_util_sync_result_t com_util_interprocess_lock_export_descriptor(
+    const com_util_interprocess_lock_t *lock, void *descriptor, size_t *descriptor_size)
+{
+    uint8_t *out;
+    size_t identity_len;
+    size_t required;
+
+    if (lock == NULL || descriptor_size == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    identity_len = strlen(lock->identity);
+    required = INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + identity_len;
+    if (descriptor == NULL || *descriptor_size < required)
+    {
+        *descriptor_size = required;
+        return COM_UTIL_SYNC_BUFFER_TOO_SMALL;
+    }
+    out = (uint8_t *)descriptor;
+    memcpy(out, "CULK", 4);
+    out[4] = 1U;
+    out[5] = INTERPROCESS_SYNC_KIND_LOCK;
+    out[6] = (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE;
+    out[7] = 0U;
+    out[8] = (uint8_t)(identity_len & 0xffU);
+    out[9] = (uint8_t)((identity_len >> 8) & 0xffU);
+    out[10] = (uint8_t)((identity_len >> 16) & 0xffU);
+    out[11] = (uint8_t)((identity_len >> 24) & 0xffU);
+    memset(out + 12, 0, 8);
+    memcpy(out + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
+    *descriptor_size = required;
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_interprocess_lock_import_descriptor(
+    const void *descriptor, size_t descriptor_size, com_util_interprocess_lock_t **lock)
+{
+    const uint8_t *in = (const uint8_t *)descriptor;
+    uint32_t identity_len;
+    char *identity;
+    com_util_sync_result_t result;
+
+    if (descriptor == NULL || lock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE
+        || memcmp(in, "CULK", 4) != 0
+        || in[4] != 1U
+        || in[5] != INTERPROCESS_SYNC_KIND_LOCK
+        || in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
+    {
+        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+    }
+    identity_len = (uint32_t)in[8]
+        | ((uint32_t)in[9] << 8)
+        | ((uint32_t)in[10] << 16)
+        | ((uint32_t)in[11] << 24);
+    if (identity_len == 0
+        || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
+    {
+        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+    }
+    identity = (char *)malloc((size_t)identity_len + 1U);
+    if (identity == NULL)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    memcpy(identity, in + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, identity_len);
+    identity[identity_len] = '\0';
+    result = interprocess_lock_open_identity(identity, lock);
+    free(identity);
+    return result;
+}
+
+com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock,
+                                                       uint32_t timeout_ms)
+{
+    return interprocess_lock_take(lock, timeout_ms);
+}
+
+com_util_sync_result_t com_util_interprocess_lock_try_lock(com_util_interprocess_lock_t *lock)
+{
+    return com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_lock_t *lock)
+{
+    OVERLAPPED ov;
+
+    if (lock == NULL || !lock->locked)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    memset(&ov, 0, sizeof(ov));
+    if (!UnlockFileEx(lock->handle, 0, INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    lock->locked = 0;
+    return COM_UTIL_SYNC_OK;
+}
+
+void com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock)
+{
+    if (lock != NULL)
+    {
+        if (lock->locked)
+        {
+            (void)com_util_interprocess_lock_unlock(lock);
+        }
+        CloseHandle(lock->handle);
+        free(lock->identity);
+        free(lock);
+    }
+}
+
+com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity,
+                                                         com_util_interprocess_rwlock_t **lock)
 {
     return app_lock_open_identity(identity, lock);
 }
 
-com_util_sync_result_t com_util_app_lock_open(const char *identity, com_util_app_lock_t **lock)
-{
-    return app_lock_open_identity(identity, lock);
-}
-
-com_util_sync_result_t com_util_app_lock_export_descriptor(const com_util_app_lock_t *lock,
+com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock_t *lock,
                                                            void *descriptor,
                                                            size_t *descriptor_size)
 {
@@ -530,7 +721,7 @@ com_util_sync_result_t com_util_app_lock_export_descriptor(const com_util_app_lo
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
     identity_len = strlen(lock->identity);
-    required = APP_LOCK_DESCRIPTOR_HEADER_SIZE + identity_len;
+    required = INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + identity_len;
     if (descriptor == NULL || *descriptor_size < required)
     {
         *descriptor_size = required;
@@ -539,22 +730,22 @@ com_util_sync_result_t com_util_app_lock_export_descriptor(const com_util_app_lo
     out = (uint8_t *)descriptor;
     memcpy(out, "CULK", 4);
     out[4] = 1U;
-    out[5] = (uint8_t)COM_UTIL_APP_LOCK_BACKEND_LOCK_FILE;
-    out[6] = 1U;
+    out[5] = INTERPROCESS_SYNC_KIND_RWLOCK;
+    out[6] = (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE;
     out[7] = 0U;
     out[8] = (uint8_t)(identity_len & 0xffU);
     out[9] = (uint8_t)((identity_len >> 8) & 0xffU);
     out[10] = (uint8_t)((identity_len >> 16) & 0xffU);
     out[11] = (uint8_t)((identity_len >> 24) & 0xffU);
     memset(out + 12, 0, 8);
-    memcpy(out + APP_LOCK_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
+    memcpy(out + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
     *descriptor_size = required;
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_app_lock_import_descriptor(const void *descriptor,
+com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor,
                                                            size_t descriptor_size,
-                                                           com_util_app_lock_t **lock)
+                                                           com_util_interprocess_rwlock_t **lock)
 {
     const uint8_t *in = (const uint8_t *)descriptor;
     uint32_t identity_len;
@@ -565,10 +756,11 @@ com_util_sync_result_t com_util_app_lock_import_descriptor(const void *descripto
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    if (descriptor_size < APP_LOCK_DESCRIPTOR_HEADER_SIZE
+    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE
         || memcmp(in, "CULK", 4) != 0
         || in[4] != 1U
-        || in[5] != (uint8_t)COM_UTIL_APP_LOCK_BACKEND_LOCK_FILE)
+        || in[5] != INTERPROCESS_SYNC_KIND_RWLOCK
+        || in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
@@ -577,7 +769,7 @@ com_util_sync_result_t com_util_app_lock_import_descriptor(const void *descripto
         | ((uint32_t)in[10] << 16)
         | ((uint32_t)in[11] << 24);
     if (identity_len == 0
-        || descriptor_size != APP_LOCK_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
+        || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
@@ -586,36 +778,36 @@ com_util_sync_result_t com_util_app_lock_import_descriptor(const void *descripto
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-    memcpy(identity, in + APP_LOCK_DESCRIPTOR_HEADER_SIZE, identity_len);
+    memcpy(identity, in + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, identity_len);
     identity[identity_len] = '\0';
     result = app_lock_open_identity(identity, lock);
     free(identity);
     return result;
 }
 
-com_util_sync_result_t com_util_app_lock_lock_shared(com_util_app_lock_t *lock,
+com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock,
                                                      uint32_t timeout_ms)
 {
     return app_lock_take(lock, 0U, timeout_ms);
 }
 
-com_util_sync_result_t com_util_app_lock_try_lock_shared(com_util_app_lock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *lock)
 {
-    return com_util_app_lock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
+    return com_util_interprocess_rwlock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_app_lock_lock_exclusive(com_util_app_lock_t *lock,
+com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock,
                                                         uint32_t timeout_ms)
 {
     return app_lock_take(lock, LOCKFILE_EXCLUSIVE_LOCK, timeout_ms);
 }
 
-com_util_sync_result_t com_util_app_lock_try_lock_exclusive(com_util_app_lock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock_t *lock)
 {
-    return com_util_app_lock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
+    return com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_app_lock_unlock(com_util_app_lock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock)
 {
     OVERLAPPED ov;
 
@@ -624,7 +816,7 @@ com_util_sync_result_t com_util_app_lock_unlock(com_util_app_lock_t *lock)
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
     memset(&ov, 0, sizeof(ov));
-    if (!UnlockFileEx(lock->handle, 0, APP_LOCK_RANGE_LOW, APP_LOCK_RANGE_HIGH, &ov))
+    if (!UnlockFileEx(lock->handle, 0, INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
@@ -632,13 +824,13 @@ com_util_sync_result_t com_util_app_lock_unlock(com_util_app_lock_t *lock)
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_app_lock_destroy(com_util_app_lock_t *lock)
+void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock)
 {
     if (lock != NULL)
     {
         if (lock->locked)
         {
-            (void)com_util_app_lock_unlock(lock);
+            (void)com_util_interprocess_rwlock_unlock(lock);
         }
         CloseHandle(lock->handle);
         free(lock->identity);

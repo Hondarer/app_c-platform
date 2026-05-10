@@ -13,7 +13,7 @@
 
 typedef struct
 {
-    com_util_mutex_t *mutex;
+    com_util_local_lock_t *mutex;
     com_util_condvar_t *condvar;
     com_util_thread_t *thread;
 
@@ -165,13 +165,13 @@ static int worker_ensure_sync(pinned_prompt_cli_worker_t *worker)
     {
         return 0;
     }
-    if (com_util_mutex_create(&worker->mutex) != 0)
+    if (com_util_local_lock_create(&worker->mutex) != 0)
     {
         return -1;
     }
     if (com_util_condvar_create(&worker->condvar) != 0)
     {
-        (void)com_util_mutex_destroy(worker->mutex);
+        (void)com_util_local_lock_destroy(worker->mutex);
         return -1;
     }
     worker->sync_initialized = 1;
@@ -184,7 +184,7 @@ static void worker_thread_proc(void *arg)
     int stop;
 
     worker = (pinned_prompt_cli_worker_t *)arg;
-    (void)com_util_mutex_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
+    (void)com_util_local_lock_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     for (;;)
     {
         if (worker->stop_requested)
@@ -200,7 +200,7 @@ static void worker_thread_proc(void *arg)
 
         worker->tick_count++;
         stop = worker->stop_requested;
-        (void)com_util_mutex_unlock(worker->mutex);
+        (void)com_util_local_lock_unlock(worker->mutex);
 
         if (!stop)
         {
@@ -210,10 +210,10 @@ static void worker_thread_proc(void *arg)
                                           (unsigned long long)worker->tick_count);
         }
 
-        (void)com_util_mutex_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
+        (void)com_util_local_lock_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     }
     worker->thread_running = 0;
-    (void)com_util_mutex_unlock(worker->mutex);
+    (void)com_util_local_lock_unlock(worker->mutex);
 }
 
 static void worker_start(pinned_prompt_cli_worker_t *worker)
@@ -231,7 +231,7 @@ static void worker_start(pinned_prompt_cli_worker_t *worker)
 
     started = 0;
     failed = 0;
-    (void)com_util_mutex_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
+    (void)com_util_local_lock_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     running = worker->thread_running;
     if (!running)
     {
@@ -247,7 +247,7 @@ static void worker_start(pinned_prompt_cli_worker_t *worker)
             failed = 1;
         }
     }
-    (void)com_util_mutex_unlock(worker->mutex);
+    (void)com_util_local_lock_unlock(worker->mutex);
 
     if (running)
     {
@@ -280,14 +280,14 @@ static void worker_stop(pinned_prompt_cli_worker_t *worker, int announce)
         return;
     }
 
-    (void)com_util_mutex_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
+    (void)com_util_local_lock_lock(worker->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     running = worker->thread_running;
     if (running)
     {
         worker->stop_requested = 1;
         (void)com_util_condvar_signal(worker->condvar);
     }
-    (void)com_util_mutex_unlock(worker->mutex);
+    (void)com_util_local_lock_unlock(worker->mutex);
 
     if (running)
     {
@@ -311,7 +311,7 @@ static void worker_dispose(pinned_prompt_cli_worker_t *worker)
     {
         worker_stop(worker, 0);
         (void)com_util_condvar_destroy(worker->condvar);
-        (void)com_util_mutex_destroy(worker->mutex);
+        (void)com_util_local_lock_destroy(worker->mutex);
         worker->sync_initialized = 0;
     }
 }
