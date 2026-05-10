@@ -14,3 +14,14 @@ ifdef PLATFORM_LINUX
         CXXFLAGS += -fno-var-tracking-assignments
     endif
 endif
+
+ifdef PLATFORM_WINDOWS
+    # mock_com_util::Mock_com_util() コンストラクタが多数の ON_CALL を持つため、COFF オブジェクトの
+    # セクション数上限（65535）を超え、以下のエラーが発生することがある。
+    #
+    # fatal error C1128: セクションの数がオブジェクト ファイル形式の制限を超えています:
+    #                    /bigobj と共にコンパイルしてください
+    #
+    # /bigobj により、セクション数の上限を 65535 から約 4G に引き上げて回避する。
+    CXXFLAGS += /bigobj
+endif
