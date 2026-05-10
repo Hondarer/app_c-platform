@@ -7,7 +7,7 @@
  *  @version        1.0.0
  *
  *  @details
- *  対話的な1行入力を提供します。\n
+ *  対話的な 1 行入力を提供します。\n
  *  TTY（対話端末）では以下のキー操作が有効です：
  *  - 上/下矢印キー : 入力履歴を遡る/進む
  *  - 左/右矢印キー : カーソル移動
@@ -25,7 +25,7 @@
 
     int main(void) {
         char buf[256];
-        com_util_prompt_t *prompt = com_util_prompt_create(0);
+        com_util_prompt_t *prompt = com_util_prompt_create(NULL);
         while (com_util_prompt_readline(prompt, buf, sizeof(buf), ">> ")) {
             printf("入力: %s\n", buf);
         }
@@ -70,9 +70,9 @@ extern "C"
 #define COM_UTIL_PROMPT_HISTORY_DEFAULT 64
 
 /**
- *  @brief  1 行の最大バイト数（NUL 終端含む）。
+ *  @brief  入力バッファの既定最大バイト数（NUL 終端含む）。
  */
-#define COM_UTIL_PROMPT_LINE_MAX 4096
+#define COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT 4096
 
 /**
  *  @brief  プロンプトハンドルの不透明型。
@@ -80,13 +80,46 @@ extern "C"
 typedef struct com_util_prompt_t com_util_prompt_t;
 
 /**
+ *  @brief  プロンプト生成オプション。
+ */
+typedef struct
+{
+    /**
+     *  @brief  将来拡張用フラグ。現時点では 0 を指定する。
+     */
+    unsigned int flags;
+
+    /**
+     *  @brief  構造体配置の予約領域。現時点では 0 を指定する。
+     */
+    unsigned int reserved;
+
+    /**
+     *  @brief  各コンテキストの履歴エントリ数上限。
+     *          0 を指定すると @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用する。
+     */
+    size_t history_max;
+
+    /**
+     *  @brief  入力編集バッファの初期バイト数（NUL 終端含む）。
+     *          0 を指定すると実装既定値を使用する。
+     */
+    size_t input_initial_capacity;
+
+    /**
+     *  @brief  入力編集バッファの最大バイト数（NUL 終端含む）。
+     *          0 を指定すると @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用する。
+     */
+    size_t input_max_bytes;
+} com_util_prompt_options_t;
+
+/**
  *  @brief      プロンプトハンドルを生成する。
- *  @param[in]  history_max  各コンテキストの履歴エントリ数上限。
- *                           0 を指定すると @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用する。
+ *  @param[in]  options  生成オプション。NULL の場合は既定設定を使用する。
  *  @return     成功時は非 NULL ハンドル、失敗時は NULL。
  */
 COM_UTIL_EXPORT com_util_prompt_t *COM_UTIL_API
-com_util_prompt_create(size_t history_max);
+com_util_prompt_create(const com_util_prompt_options_t *options);
 
 /**
  *  @brief      プロンプトハンドルを解放する。
@@ -105,7 +138,7 @@ com_util_prompt_dispose(com_util_prompt_t *prompt);
  *  @return     入力確定時は 1、EOF / Ctrl+C 時は 0。
  */
 #define com_util_prompt_readline(p, buf, buf_size, prompt_str) \
-    _com_util_prompt_readline((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
+    com_util_prompt_readline_at((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
 
 /**
  *  @brief      printf スタイルのフォーマットでプロンプトを表示して 1 行入力を受け取る。
@@ -118,32 +151,32 @@ com_util_prompt_dispose(com_util_prompt_t *prompt);
  *  @details    プロンプト文字列バッファはハンドル内に保持し、必要に応じて自動拡張します。
  */
 #define com_util_prompt_readline_fmt(p, buf, buf_size, fmt, ...) \
-    _com_util_prompt_readline_fmt((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
-
-/* ---- 内部実装関数（直接呼び出し不要） ---- */
+    com_util_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
 /**
- *  @brief  com_util_prompt_readline() の内部実装関数。
+ *  @brief      呼び出し元を明示して 1 行入力を受け取る。
+ *  @details    通常は com_util_prompt_readline() を使用する。
  */
 COM_UTIL_EXPORT int COM_UTIL_API
-_com_util_prompt_readline(com_util_prompt_t *prompt,
-                           char              *buf,
-                           size_t             buf_size,
-                           const char        *prompt_str,
-                           const char        *file,
-                           int                line);
+com_util_prompt_readline_at(com_util_prompt_t *prompt,
+                            char              *buf,
+                            size_t             buf_size,
+                            const char        *prompt_str,
+                            const char        *file,
+                            int                line);
 
 /**
- *  @brief  com_util_prompt_readline_fmt() の内部実装関数。
+ *  @brief      呼び出し元を明示して printf スタイルのプロンプトを表示する。
+ *  @details    通常は com_util_prompt_readline_fmt() を使用する。
  */
 COM_UTIL_EXPORT int COM_UTIL_API
-_com_util_prompt_readline_fmt(com_util_prompt_t *p,
-                               char              *buf,
-                               size_t             buf_size,
-                               const char        *file,
-                               int                line,
-                               const char        *fmt,
-                               ...)
+com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
+                                char              *buf,
+                                size_t             buf_size,
+                                const char        *file,
+                                int                line,
+                                const char        *fmt,
+                                ...)
 #if defined(COMPILER_GCC)
     __attribute__((format(printf, 6, 7)))
 #endif /* COMPILER_GCC */

@@ -41,8 +41,8 @@ typedef struct com_util_pinned_prompt_t com_util_pinned_prompt_t;
  */
 typedef enum
 {
-    COM_UTIL_PINNED_PROMPT_STDOUT = 0,
-    COM_UTIL_PINNED_PROMPT_STDERR = 1
+    COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT = 0,
+    COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR = 1
 } com_util_pinned_prompt_channel_t;
 
 /**
@@ -50,8 +50,8 @@ typedef enum
  */
 typedef enum
 {
-    COM_UTIL_PINNED_PROMPT_STATUS_TOP = 0,
-    COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM = 1
+    COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP = 0,
+    COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM = 1
 } com_util_pinned_prompt_status_position_t;
 
 /**
@@ -59,8 +59,8 @@ typedef enum
  */
 typedef enum
 {
-    COM_UTIL_PINNED_PROMPT_STATUS_LEFT = 0,
-    COM_UTIL_PINNED_PROMPT_STATUS_RIGHT = 1
+    COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT = 0,
+    COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT = 1
 } com_util_pinned_prompt_status_align_t;
 
 /**
@@ -79,9 +79,9 @@ typedef struct
     unsigned int reserved;
 
     /**
-     *  @brief  History entry count. 0 uses COM_UTIL_PROMPT_HISTORY_DEFAULT.
+     *  @brief  Input and history options.
      */
-    size_t history_max;
+    com_util_prompt_options_t input;
 } com_util_pinned_prompt_options_t;
 
 /**
@@ -157,6 +157,7 @@ _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
  *  @param[in]  size     Data size in bytes.
  *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
  *  @return     Number of bytes written to the target stream.
+ *  @details    The function writes exactly the supplied bytes and does not add a newline.
  */
 COM_UTIL_EXPORT size_t COM_UTIL_API
 com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,

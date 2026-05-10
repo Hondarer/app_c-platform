@@ -127,7 +127,7 @@ static void print_usage(const char *argv0)
 
 static void print_help(com_util_pinned_prompt_t *screen)
 {
-    com_util_pinned_prompt_printf(screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+    com_util_pinned_prompt_printf(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                   "commands:\n"
                                   "  help          show this help\n"
                                   "  echo TEXT     write TEXT to stdout (\\e emits ESC)\n"
@@ -225,7 +225,7 @@ static void worker_start(pinned_prompt_cli_worker_t *worker)
 
     if (worker_ensure_sync(worker) != 0)
     {
-        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "failed to initialize %s worker\n", worker->name);
         return;
     }
@@ -252,17 +252,17 @@ static void worker_start(pinned_prompt_cli_worker_t *worker)
 
     if (running)
     {
-        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "%s worker already running\n", worker->name);
     }
     else if (started)
     {
-        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "%s worker started\n", worker->name);
     }
     else if (failed)
     {
-        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "failed to start %s worker\n", worker->name);
     }
 }
@@ -275,7 +275,7 @@ static void worker_stop(pinned_prompt_cli_worker_t *worker, int announce)
     {
         if (announce)
         {
-            com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "%s worker not running\n", worker->name);
         }
         return;
@@ -295,13 +295,13 @@ static void worker_stop(pinned_prompt_cli_worker_t *worker, int announce)
         com_util_thread_join(&worker->thread);
         if (announce)
         {
-            com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "%s worker stopped\n", worker->name);
         }
     }
     else if (announce)
     {
-        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(worker->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "%s worker not running\n", worker->name);
     }
 }
@@ -342,7 +342,7 @@ static void process_start(pinned_prompt_cli_session_t *session, const char *arg)
     worker = find_worker(session, arg);
     if (worker == NULL)
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "usage: start stdout|stderr\n");
         return;
     }
@@ -363,7 +363,7 @@ static void process_stop(pinned_prompt_cli_session_t *session, const char *arg)
     worker = find_worker(session, arg);
     if (worker == NULL)
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "usage: stop stdout|stderr|all\n");
         return;
     }
@@ -378,7 +378,7 @@ static void process_status(pinned_prompt_cli_session_t *session, const char *arg
 
     if (arg == NULL)
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "usage: status show|hide|set-top-left|set-top-right|set-bottom-left|set-bottom-right\n");
         return;
     }
@@ -391,33 +391,33 @@ static void process_status(pinned_prompt_cli_session_t *session, const char *arg
         if (subarg == NULL || strcmp(subarg, "all") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
                                                         1);
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
                                                         1);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "status areas enabled\n");
         }
         else if (strcmp(subarg, "top") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
                                                         1);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "top status area enabled\n");
         }
         else if (strcmp(subarg, "bottom") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
                                                         1);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "bottom status area enabled\n");
         }
         else
         {
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                           "usage: status show [top|bottom|all]\n");
         }
     }
@@ -426,67 +426,67 @@ static void process_status(pinned_prompt_cli_session_t *session, const char *arg
         if (subarg == NULL || strcmp(subarg, "all") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
                                                         0);
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
                                                         0);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "status areas disabled\n");
         }
         else if (strcmp(subarg, "top") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_TOP,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
                                                         0);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "top status area disabled\n");
         }
         else if (strcmp(subarg, "bottom") == 0)
         {
             (void)com_util_pinned_prompt_status_enable(session->screen,
-                                                        COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
+                                                        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
                                                         0);
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                           "bottom status area disabled\n");
         }
         else
         {
-            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                           "usage: status hide [top|bottom|all]\n");
         }
     }
     else if (strcmp(subcmd, "set-top-left") == 0)
     {
         (void)com_util_pinned_prompt_status_set(session->screen,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_TOP,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_LEFT,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT,
                                                 subarg);
     }
     else if (strcmp(subcmd, "set-top-right") == 0)
     {
         (void)com_util_pinned_prompt_status_set(session->screen,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_TOP,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_RIGHT,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT,
                                                 subarg);
     }
     else if (strcmp(subcmd, "set-bottom-left") == 0)
     {
         (void)com_util_pinned_prompt_status_set(session->screen,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_LEFT,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT,
                                                 subarg);
     }
     else if (strcmp(subcmd, "set-bottom-right") == 0)
     {
         (void)com_util_pinned_prompt_status_set(session->screen,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_BOTTOM,
-                                                COM_UTIL_PINNED_PROMPT_STATUS_RIGHT,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
+                                                COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT,
                                                 subarg);
     }
     else
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "unknown status subcommand: %s\n", subcmd);
     }
 }
@@ -519,7 +519,7 @@ static void process_read(pinned_prompt_cli_session_t *session, const char *arg)
 
     if (arg == NULL)
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "usage: read primary|secondary|formatted\n");
         return;
     }
@@ -538,19 +538,19 @@ static void process_read(pinned_prompt_cli_session_t *session, const char *arg)
     }
     else
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "usage: read primary|secondary|formatted\n");
         return;
     }
 
     if (rc)
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "read %s: %s\n", arg, buf);
     }
     else
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "read %s cancelled\n", arg);
     }
 }
@@ -569,7 +569,7 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
         return;
     }
 
-    com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+    com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                   "echo: %s\n", original_line);
 
     if (strcmp(command, "help") == 0)
@@ -579,7 +579,7 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     else if (strcmp(command, "echo") == 0)
     {
         decode_cli_escapes(arg);
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDOUT,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
                                       "%s\n", arg != NULL ? arg : "");
     }
     else if (strcmp(command, "start") == 0)
@@ -605,7 +605,7 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     }
     else
     {
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_STDERR,
+        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR,
                                       "unknown command: %s\n", command);
     }
 }
@@ -621,9 +621,9 @@ static int session_init(pinned_prompt_cli_session_t *session)
     }
 
     worker_init(&session->stdout_worker, session->screen,
-                COM_UTIL_PINNED_PROMPT_STDOUT, "stdout");
+                COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, "stdout");
     worker_init(&session->stderr_worker, session->screen,
-                COM_UTIL_PINNED_PROMPT_STDERR, "stderr");
+                COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR, "stderr");
     return 0;
 }
 

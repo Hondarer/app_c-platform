@@ -39,9 +39,10 @@ typedef struct
 struct com_util_prompt_t
 {
     /* 編集バッファ（readline_at 呼び出しごとに初期化） */
-    char   *edit_buf;   /* 編集中の行バッファ（LINE_MAX バイト） */
+    char   *edit_buf;   /* 編集中の入力バッファ */
     size_t  edit_len;   /* 現在の文字数（NUL 除く） */
     size_t  edit_cap;   /* edit_buf の容量 */
+    size_t  input_max_bytes; /* edit_buf の最大容量 */
     size_t  cursor;     /* カーソル位置（バイトオフセット、0〜edit_len） */
 
     /* 履歴コンテキスト管理 */

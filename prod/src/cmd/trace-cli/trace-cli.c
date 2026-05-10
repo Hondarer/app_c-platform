@@ -924,7 +924,7 @@ int main(int argc, char *argv[])
     }
 
     trace_cli_session_init(&session);
-    prompt = com_util_prompt_create(0);
+    prompt = com_util_prompt_create(NULL);
     print_interactive_hint();
 
     while (!session.exit_requested)

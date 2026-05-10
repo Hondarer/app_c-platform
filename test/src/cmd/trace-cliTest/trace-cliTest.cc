@@ -297,7 +297,7 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
         .WillOnce(Return(0)); // [Pre-Assert確認] - stop コマンドで tracer が停止されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(handle_))
         .WillOnce(Return()); // [Pre-Assert確認] - dispose コマンドで保持中 handle が解放されること。
-    EXPECT_CALL(mock_com_util_, _com_util_prompt_readline_fmt(prompt_handle, _, _, _, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_prompt_readline_fmt_at(prompt_handle, _, _, _, _, _, _))
         .WillRepeatedly([&](com_util_prompt_t *, char *buf, size_t buf_size,
                             const char *, int, const char *, va_list) -> int {
             if (index >= lines.size())

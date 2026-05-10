@@ -179,8 +179,16 @@ Mock_com_util::Mock_com_util()
     // prompt
     ON_CALL(*this, com_util_prompt_create(_)).WillByDefault(Invoke(delegate_real_com_util_prompt_create));
     ON_CALL(*this, com_util_prompt_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_prompt_dispose));
-    ON_CALL(*this, _com_util_prompt_readline(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real__com_util_prompt_readline));
-    ON_CALL(*this, _com_util_prompt_readline_fmt(_, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real__com_util_prompt_readline_fmt));
+    ON_CALL(*this, com_util_prompt_readline_at(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_prompt_readline_at));
+    ON_CALL(*this, com_util_prompt_readline_fmt_at(_, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_prompt_readline_fmt_at));
+    ON_CALL(*this, com_util_pinned_prompt_create(_)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_create));
+    ON_CALL(*this, com_util_pinned_prompt_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_dispose));
+    ON_CALL(*this, _com_util_pinned_prompt_readline(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real__com_util_pinned_prompt_readline));
+    ON_CALL(*this, _com_util_pinned_prompt_readline_fmt(_, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real__com_util_pinned_prompt_readline_fmt));
+    ON_CALL(*this, com_util_pinned_prompt_write(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_write));
+    ON_CALL(*this, com_util_pinned_prompt_printf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_printf));
+    ON_CALL(*this, com_util_pinned_prompt_status_enable(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_status_enable));
+    ON_CALL(*this, com_util_pinned_prompt_status_set(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_status_set));
 
     _mock_com_util = this;
 }

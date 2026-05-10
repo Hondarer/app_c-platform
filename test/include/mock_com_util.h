@@ -39,6 +39,7 @@
 #include <com_util/trace/syslog.h>
 #include <com_util/trace/etw.h>
 #include <com_util/prompt/prompt.h>
+#include <com_util/prompt/pinned_prompt.h>
 
 inline constexpr char kLibComUtilName[] = "libcom_util" TESTFW_SHARED_LIBRARY_EXTENSION;
 
@@ -214,10 +215,18 @@ extern void delegate_real_com_util_etw_session_stop(com_util_etw_session_t *sess
 #endif /* PLATFORM_WINDOWS */
 
 // prompt
-extern com_util_prompt_t *delegate_real_com_util_prompt_create(size_t history_max);
+extern com_util_prompt_t *delegate_real_com_util_prompt_create(const com_util_prompt_options_t *options);
 extern void delegate_real_com_util_prompt_dispose(com_util_prompt_t *prompt);
-extern int delegate_real__com_util_prompt_readline(com_util_prompt_t *p, char *buf, size_t buf_size, const char *prompt_str, const char *file, int line);
-extern int delegate_real__com_util_prompt_readline_fmt(com_util_prompt_t *p, char *buf, size_t buf_size, const char *file, int line, const char *fmt, va_list args);
+extern int delegate_real_com_util_prompt_readline_at(com_util_prompt_t *p, char *buf, size_t buf_size, const char *prompt_str, const char *file, int line);
+extern int delegate_real_com_util_prompt_readline_fmt_at(com_util_prompt_t *p, char *buf, size_t buf_size, const char *file, int line, const char *fmt, va_list args);
+extern com_util_pinned_prompt_t *delegate_real_com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
+extern void delegate_real_com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
+extern int delegate_real__com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen, char *buf, size_t buf_size, const char *prompt_str, const char *file, int line);
+extern int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen, char *buf, size_t buf_size, const char *file, int line, const char *fmt, va_list args);
+extern size_t delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt_t *screen, com_util_pinned_prompt_channel_t channel, const void *data, size_t size);
+extern int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt_t *screen, com_util_pinned_prompt_channel_t channel, const char *fmt, ...);
+extern int delegate_real_com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position, int enable);
+extern int delegate_real_com_util_pinned_prompt_status_set(com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position, com_util_pinned_prompt_status_align_t align, const char *content);
 
 class Mock_com_util
 {
@@ -411,11 +420,26 @@ class Mock_com_util
 #endif /* PLATFORM_WINDOWS */
 
     // prompt
-    MOCK_METHOD(com_util_prompt_t *, com_util_prompt_create, (size_t));
+    MOCK_METHOD(com_util_prompt_t *, com_util_prompt_create, (const com_util_prompt_options_t *));
     MOCK_METHOD(void, com_util_prompt_dispose, (com_util_prompt_t *));
-    MOCK_METHOD(int, _com_util_prompt_readline, (com_util_prompt_t *, char *, size_t, const char *, const char *, int));
-    MOCK_METHOD(int, _com_util_prompt_readline_fmt,
+    MOCK_METHOD(int, com_util_prompt_readline_at, (com_util_prompt_t *, char *, size_t, const char *, const char *, int));
+    MOCK_METHOD(int, com_util_prompt_readline_fmt_at,
                 (com_util_prompt_t *, char *, size_t, const char *, int, const char *, va_list));
+    MOCK_METHOD(com_util_pinned_prompt_t *, com_util_pinned_prompt_create, (const com_util_pinned_prompt_options_t *));
+    MOCK_METHOD(void, com_util_pinned_prompt_dispose, (com_util_pinned_prompt_t *));
+    MOCK_METHOD(int, _com_util_pinned_prompt_readline,
+                (com_util_pinned_prompt_t *, char *, size_t, const char *, const char *, int));
+    MOCK_METHOD(int, _com_util_pinned_prompt_readline_fmt,
+                (com_util_pinned_prompt_t *, char *, size_t, const char *, int, const char *, va_list));
+    MOCK_METHOD(size_t, com_util_pinned_prompt_write,
+                (com_util_pinned_prompt_t *, com_util_pinned_prompt_channel_t, const void *, size_t));
+    MOCK_METHOD(int, com_util_pinned_prompt_printf,
+                (com_util_pinned_prompt_t *, com_util_pinned_prompt_channel_t, const char *));
+    MOCK_METHOD(int, com_util_pinned_prompt_status_enable,
+                (com_util_pinned_prompt_t *, com_util_pinned_prompt_status_position_t, int));
+    MOCK_METHOD(int, com_util_pinned_prompt_status_set,
+                (com_util_pinned_prompt_t *, com_util_pinned_prompt_status_position_t,
+                 com_util_pinned_prompt_status_align_t, const char *));
 
     Mock_com_util();
     ~Mock_com_util();
