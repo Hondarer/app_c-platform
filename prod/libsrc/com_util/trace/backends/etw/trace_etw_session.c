@@ -27,7 +27,7 @@ struct com_util_etw_session
     /** トレース処理ハンドル。 */
     TRACEHANDLE trace_handle;
     /** ProcessTrace ワーカースレッド。 */
-    com_util_thread_t thread_handle;
+    com_util_thread_t *thread_handle;
     /** イベント受信コールバック。 */
     com_util_etw_event_callback_t callback;
     /** コールバックに渡すユーザーデータ。 */
@@ -626,7 +626,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session
     /* ワーカースレッド join */
     if (session->thread_handle != NULL)
     {
-        com_util_thread_join(&session->thread_handle);
+        com_util_thread_join(session->thread_handle, COM_UTIL_SYNC_WAIT_FOREVER);
     }
 
     /* トレースハンドルクローズ */

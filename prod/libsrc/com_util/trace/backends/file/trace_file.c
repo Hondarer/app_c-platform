@@ -57,7 +57,7 @@ struct com_util_trace_file_sink
     /** 低レベルファイル I/O ハンドル。 */
     com_util_file_t file;
     /** スレッド安全のための mutex。 */
-    com_util_mutex_t mutex;
+    com_util_mutex_t *mutex;
     /** mutex が初期化済みかどうかのフラグ。 */
     int mutex_initialized;
     /** 構造体のサイズをアライメント境界に揃えるためのパディング。 */
@@ -289,7 +289,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
 
     /* 同期プリミティブを初期化する */
     handle->mutex_initialized = 0;
-    if (com_util_mutex_init(&handle->mutex) != 0)
+    if (com_util_mutex_create(&handle->mutex) != 0)
     {
         free(handle->path);
         free(handle);
@@ -302,7 +302,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
     {
         if (handle->mutex_initialized)
         {
-            com_util_mutex_destroy(&handle->mutex);
+            com_util_mutex_destroy(handle->mutex);
         }
         free(handle->path);
         free(handle);
@@ -353,7 +353,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* ロック取得 (タイムアウト付き) */
-    if (com_util_mutex_timedlock(&handle->mutex, FILE_LOCK_TIMEOUT_MS) != 0)
+    if (com_util_mutex_lock(handle->mutex, FILE_LOCK_TIMEOUT_MS) != 0)
     {
         return -1;
     }
@@ -377,7 +377,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
 
     /* ロック解放 */
-    com_util_mutex_unlock(&handle->mutex);
+    com_util_mutex_unlock(handle->mutex);
 
     return (ret != 0 || fallback_used) ? -1 : 0;
 }
@@ -394,7 +394,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trac
 
     if (handle->mutex_initialized)
     {
-        com_util_mutex_destroy(&handle->mutex);
+        com_util_mutex_destroy(handle->mutex);
         handle->mutex_initialized = 0;
     }
 
@@ -414,7 +414,7 @@ void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink_t *ha
 
     if (handle->mutex_initialized)
     {
-        com_util_mutex_destroy(&handle->mutex);
+        com_util_mutex_destroy(handle->mutex);
     }
 
     free(handle->path);

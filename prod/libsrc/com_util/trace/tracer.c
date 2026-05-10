@@ -46,7 +46,7 @@ TRACELOGGING_DEFINE_PROVIDER(
 
 static volatile LONG s_trace_ref = 0;
 static com_util_etw_provider_t *s_etw_handle = NULL;
-static com_util_mutex_t s_registry_lock;
+static com_util_mutex_t *s_registry_lock;
 static com_util_once_flag_t s_registry_lock_once = {0};
 
 #elif defined(PLATFORM_LINUX)
@@ -54,7 +54,7 @@ static com_util_once_flag_t s_registry_lock_once = {0};
 #include <syslog.h>
 #include <unistd.h>
 
-static com_util_mutex_t s_registry_lock;
+static com_util_mutex_t *s_registry_lock;
 static com_util_once_flag_t s_registry_lock_once = {0};
 
 #endif /* PLATFORM_ */
@@ -97,7 +97,7 @@ struct com_util_tracer
 
     com_util_trace_file_sink_t *file_handle;
 
-    com_util_rwlock_t config_rwlock;
+    com_util_rwlock_t *config_rwlock;
 
     com_util_trace_level_t os_level;
     com_util_trace_level_t file_level;
@@ -125,7 +125,7 @@ static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void
 
 static void init_registry_lock(void)
 {
-    (void)com_util_mutex_init(&s_registry_lock);
+    (void)com_util_mutex_create(&s_registry_lock);
 }
 
 static void register_trace_shutdown_callback(void)
@@ -147,7 +147,7 @@ static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void
 static void registry_lock(void)
 {
     com_util_call_once(&s_registry_lock_once, init_registry_lock);
-    com_util_mutex_lock(&s_registry_lock);
+    com_util_mutex_lock(s_registry_lock, COM_UTIL_SYNC_WAIT_FOREVER);
 }
 
 /**
@@ -157,7 +157,7 @@ static void registry_lock(void)
  */
 static void registry_unlock(void)
 {
-    com_util_mutex_unlock(&s_registry_lock);
+    com_util_mutex_unlock(s_registry_lock);
 }
 
 /**
@@ -415,7 +415,7 @@ static const char *get_process_basename(char *buf, size_t buf_size)
  */
 static void config_lock_exclusive(com_util_tracer_t *handle)
 {
-    com_util_rwlock_lock_exclusive(&handle->config_rwlock);
+    com_util_rwlock_lock_exclusive(handle->config_rwlock, COM_UTIL_SYNC_WAIT_FOREVER);
 }
 
 /**
@@ -426,7 +426,7 @@ static void config_lock_exclusive(com_util_tracer_t *handle)
  */
 static void config_unlock_exclusive(com_util_tracer_t *handle)
 {
-    com_util_rwlock_unlock_exclusive(&handle->config_rwlock);
+    com_util_rwlock_unlock_exclusive(handle->config_rwlock);
 }
 
 #define LOCK_TIMEOUT_MS 100
@@ -440,7 +440,7 @@ static void config_unlock_exclusive(com_util_tracer_t *handle)
  */
 static int config_lock_shared_timed(com_util_tracer_t *handle)
 {
-    return (com_util_rwlock_timedlock_shared(&handle->config_rwlock, LOCK_TIMEOUT_MS) == 0) ? 0 : -1;
+    return (com_util_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == 0) ? 0 : -1;
 }
 
 /**
@@ -451,7 +451,7 @@ static int config_lock_shared_timed(com_util_tracer_t *handle)
  */
 static void config_unlock_shared(com_util_tracer_t *handle)
 {
-    com_util_rwlock_unlock_shared(&handle->config_rwlock);
+    com_util_rwlock_unlock_shared(handle->config_rwlock);
 }
 
 /**
@@ -544,7 +544,7 @@ static void trace_handle_release_normal(com_util_tracer_t *handle)
     com_util_syslog_sink_dispose(handle->syslog_handle);
     if (handle->config_rwlock_initialized)
     {
-        com_util_rwlock_destroy(&handle->config_rwlock);
+        com_util_rwlock_destroy(handle->config_rwlock);
     }
 #elif defined(PLATFORM_WINDOWS)
     if (InterlockedDecrement(&s_trace_ref) == 0)
@@ -627,7 +627,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
         handle->config_rwlock_initialized = 0;
         handle->hook_head                 = NULL;
 
-        if (com_util_rwlock_init(&handle->config_rwlock) != 0)
+        if (com_util_rwlock_create(&handle->config_rwlock) != 0)
         {
             com_util_syslog_sink_dispose(sp);
             free(handle);
@@ -663,7 +663,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
         handle->config_rwlock_initialized = 0;
         handle->hook_head                 = NULL;
 
-        if (com_util_rwlock_init(&handle->config_rwlock) != 0)
+        if (com_util_rwlock_create(&handle->config_rwlock) != 0)
         {
             free(handle->service_name);
             free(handle);
@@ -699,7 +699,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 #endif /* PLATFORM_ */
         if (handle->config_rwlock_initialized)
         {
-            com_util_rwlock_destroy(&handle->config_rwlock);
+            com_util_rwlock_destroy(handle->config_rwlock);
         }
         free(handle);
         return NULL;

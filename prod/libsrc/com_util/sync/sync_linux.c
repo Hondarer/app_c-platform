@@ -2,12 +2,6 @@
  *******************************************************************************
  *  @file           sync_linux.c
  *  @brief          Linux 向けスレッド・同期プリミティブ実装。
- *  @author         Tetsuo Honda
- *  @date           2026/04/20
- *  @version        1.0.0
- *
- *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
- *
  *******************************************************************************
  */
 
@@ -20,12 +14,53 @@
 #if defined(PLATFORM_LINUX)
 
     #include <errno.h>
+    #include <fcntl.h>
+    #include <pthread.h>
     #include <sched.h>
     #include <stdlib.h>
     #include <string.h>
+    #include <sys/file.h>
     #include <time.h>
+    #include <unistd.h>
 
     #include <com_util/sync/sync.h>
+
+#define APP_LOCK_DESCRIPTOR_MAGIC 0x4b4c5543U
+#define APP_LOCK_DESCRIPTOR_VERSION 1U
+#define APP_LOCK_DESCRIPTOR_HEADER_SIZE 20U
+
+struct com_util_mutex
+{
+    pthread_mutex_t native;
+};
+
+struct com_util_condvar
+{
+    pthread_cond_t native;
+};
+
+struct com_util_rwlock
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t  readers_cv;
+    pthread_cond_t  writers_cv;
+    uint32_t        active_readers;
+    uint32_t        waiting_writers;
+    int             writer_active;
+    int             _pad_struct_end;
+};
+
+struct com_util_thread
+{
+    pthread_t native;
+};
+
+struct com_util_app_lock
+{
+    char *identity;
+    int  fd;
+    int  locked;
+};
 
 struct com_util_thread_start_ctx
 {
@@ -33,9 +68,17 @@ struct com_util_thread_start_ctx
     void                  *arg;
 };
 
-static void add_timeout_ms(struct timespec *abs_ts, uint32_t timeout_ms)
+static uint64_t monotonic_ms(void)
 {
-    clock_gettime(CLOCK_REALTIME, abs_ts);
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ((uint64_t)ts.tv_sec * 1000U) + ((uint64_t)ts.tv_nsec / 1000000U);
+}
+
+static void monotonic_deadline(struct timespec *abs_ts, uint32_t timeout_ms)
+{
+    clock_gettime(CLOCK_MONOTONIC, abs_ts);
     abs_ts->tv_sec += (time_t)(timeout_ms / 1000U);
     abs_ts->tv_nsec += (long)((timeout_ms % 1000U) * 1000000UL);
     if (abs_ts->tv_nsec >= 1000000000L)
@@ -45,212 +88,704 @@ static void add_timeout_ms(struct timespec *abs_ts, uint32_t timeout_ms)
     }
 }
 
-static void clear_thread_handle(com_util_thread_t *thread)
+static int cond_init_monotonic(pthread_cond_t *cond)
 {
-    memset(thread, 0, sizeof(*thread));
+    pthread_condattr_t attr;
+    int                rc;
+
+    rc = pthread_condattr_init(&attr);
+    if (rc != 0)
+    {
+        return rc;
+    }
+    rc = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+    if (rc == 0)
+    {
+        rc = pthread_cond_init(cond, &attr);
+    }
+    pthread_condattr_destroy(&attr);
+    return rc;
+}
+
+static com_util_sync_result_t map_wait_rc(int rc)
+{
+    if (rc == 0)
+    {
+        return COM_UTIL_SYNC_OK;
+    }
+    if (rc == ETIMEDOUT)
+    {
+        return COM_UTIL_SYNC_TIMEOUT;
+    }
+    if (rc == EBUSY || rc == EAGAIN || rc == EACCES)
+    {
+        return COM_UTIL_SYNC_BUSY;
+    }
+    return COM_UTIL_SYNC_SYSTEM_ERROR;
 }
 
 static void *thread_start_proc(void *opaque)
 {
     struct com_util_thread_start_ctx *ctx = (struct com_util_thread_start_ctx *)opaque;
-    com_util_thread_func_t            func;
-    void                             *arg;
+    com_util_thread_func_t            func = ctx->func;
+    void                             *arg = ctx->arg;
 
-    func = ctx->func;
-    arg = ctx->arg;
     free(ctx);
-
     func(arg);
     return NULL;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_mutex_init(com_util_mutex_t *mtx)
+static com_util_sync_result_t app_lock_open_identity(const char *identity,
+                                                     com_util_app_lock_t **lock)
 {
-    return pthread_mutex_init(mtx, NULL);
-}
+    com_util_app_lock_t *new_lock;
+    int                  fd;
+    char                *identity_copy;
 
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_mutex_lock(com_util_mutex_t *mtx)
-{
-    return pthread_mutex_lock(mtx);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_mutex_timedlock(com_util_mutex_t *mtx, uint32_t timeout_ms)
-{
-    struct timespec abs_ts;
-
-    add_timeout_ms(&abs_ts, timeout_ms);
-    return pthread_mutex_timedlock(mtx, &abs_ts);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_mutex_unlock(com_util_mutex_t *mtx)
-{
-    return pthread_mutex_unlock(mtx);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_mutex_destroy(com_util_mutex_t *mtx)
-{
-    return pthread_mutex_destroy(mtx);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_init(com_util_condvar_t *cv)
-{
-    return pthread_cond_init(cv, NULL);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t *mtx)
-{
-    return pthread_cond_wait(cv, mtx);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_timedwait(com_util_condvar_t *cv, com_util_mutex_t *mtx,
-                               uint32_t timeout_ms)
-{
-    struct timespec abs_ts;
-
-    add_timeout_ms(&abs_ts, timeout_ms);
-    return pthread_cond_timedwait(cv, mtx, &abs_ts);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_signal(com_util_condvar_t *cv)
-{
-    return pthread_cond_signal(cv);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_broadcast(com_util_condvar_t *cv)
-{
-    return pthread_cond_broadcast(cv);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_condvar_destroy(com_util_condvar_t *cv)
-{
-    return pthread_cond_destroy(cv);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_init(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_init(rwlock, NULL);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_rdlock(rwlock);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_timedlock_shared(com_util_rwlock_t *rwlock, uint32_t timeout_ms)
-{
-    struct timespec abs_ts;
-
-    add_timeout_ms(&abs_ts, timeout_ms);
-    return pthread_rwlock_timedrdlock(rwlock, &abs_ts);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_wrlock(rwlock);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_unlock(rwlock);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_unlock(rwlock);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_rwlock_destroy(com_util_rwlock_t *rwlock)
-{
-    return pthread_rwlock_destroy(rwlock);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_thread_create(com_util_thread_t *thread,
-                           com_util_thread_func_t func, void *arg)
-{
-    struct com_util_thread_start_ctx *ctx;
-    int                               rc;
-
-    ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
-    if (ctx == NULL)
+    if (identity == NULL || identity[0] == '\0' || lock == NULL)
     {
-        return -1;
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
 
+    fd = open(identity, O_RDWR | O_CREAT | O_CLOEXEC, 0666);
+    if (fd < 0)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+
+    identity_copy = strdup(identity);
+    if (identity_copy == NULL)
+    {
+        close(fd);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+
+    new_lock = (com_util_app_lock_t *)calloc(1, sizeof(*new_lock));
+    if (new_lock == NULL)
+    {
+        free(identity_copy);
+        close(fd);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+
+    new_lock->fd = fd;
+    new_lock->identity = identity_copy;
+    *lock = new_lock;
+    return COM_UTIL_SYNC_OK;
+}
+
+static com_util_sync_result_t app_lock_take(com_util_app_lock_t *lock, int operation,
+                                            uint32_t timeout_ms)
+{
+    uint64_t     deadline;
+
+    if (lock == NULL || lock->locked)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        while (flock(lock->fd, operation) != 0)
+        {
+            if (errno != EINTR)
+            {
+                return COM_UTIL_SYNC_SYSTEM_ERROR;
+            }
+        }
+        lock->locked = 1;
+        return COM_UTIL_SYNC_OK;
+    }
+
+    deadline = monotonic_ms() + timeout_ms;
+    do
+    {
+        if (flock(lock->fd, operation | LOCK_NB) == 0)
+        {
+            lock->locked = 1;
+            return COM_UTIL_SYNC_OK;
+        }
+        if (errno != EWOULDBLOCK && errno != EINTR)
+        {
+            return COM_UTIL_SYNC_SYSTEM_ERROR;
+        }
+        if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+        {
+            return COM_UTIL_SYNC_BUSY;
+        }
+        {
+            struct timespec sleep_ts = {0, 1000000L};
+            nanosleep(&sleep_ts, NULL);
+        }
+    } while (monotonic_ms() < deadline);
+
+    return COM_UTIL_SYNC_TIMEOUT;
+}
+
+com_util_sync_result_t com_util_mutex_create(com_util_mutex_t **mtx)
+{
+    com_util_mutex_t *new_mtx;
+
+    if (mtx == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    new_mtx = (com_util_mutex_t *)calloc(1, sizeof(*new_mtx));
+    if (new_mtx == NULL)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    if (pthread_mutex_init(&new_mtx->native, NULL) != 0)
+    {
+        free(new_mtx);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    *mtx = new_mtx;
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_mutex_lock(com_util_mutex_t *mtx, uint32_t timeout_ms)
+{
+    uint64_t deadline;
+
+    if (mtx == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        return map_wait_rc(pthread_mutex_lock(&mtx->native));
+    }
+    if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+    {
+        return map_wait_rc(pthread_mutex_trylock(&mtx->native));
+    }
+    deadline = monotonic_ms() + timeout_ms;
+    do
+    {
+        int rc = pthread_mutex_trylock(&mtx->native);
+        if (rc == 0)
+        {
+            return COM_UTIL_SYNC_OK;
+        }
+        if (rc != EBUSY)
+        {
+            return COM_UTIL_SYNC_SYSTEM_ERROR;
+        }
+        {
+            struct timespec sleep_ts = {0, 1000000L};
+            nanosleep(&sleep_ts, NULL);
+        }
+    } while (monotonic_ms() < deadline);
+    return COM_UTIL_SYNC_TIMEOUT;
+}
+
+com_util_sync_result_t com_util_mutex_try_lock(com_util_mutex_t *mtx)
+{
+    return com_util_mutex_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_mutex_unlock(com_util_mutex_t *mtx)
+{
+    if (mtx == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    return map_wait_rc(pthread_mutex_unlock(&mtx->native));
+}
+
+void com_util_mutex_destroy(com_util_mutex_t *mtx)
+{
+    if (mtx != NULL)
+    {
+        pthread_mutex_destroy(&mtx->native);
+        free(mtx);
+    }
+}
+
+com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
+{
+    com_util_condvar_t *new_cv;
+
+    if (cv == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    new_cv = (com_util_condvar_t *)calloc(1, sizeof(*new_cv));
+    if (new_cv == NULL)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    if (cond_init_monotonic(&new_cv->native) != 0)
+    {
+        free(new_cv);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    *cv = new_cv;
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_mutex_t *mtx,
+                                             uint32_t timeout_ms)
+{
+    struct timespec abs_ts;
+
+    if (cv == NULL || mtx == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        return map_wait_rc(pthread_cond_wait(&cv->native, &mtx->native));
+    }
+    monotonic_deadline(&abs_ts, timeout_ms);
+    return map_wait_rc(pthread_cond_timedwait(&cv->native, &mtx->native, &abs_ts));
+}
+
+com_util_sync_result_t com_util_condvar_signal(com_util_condvar_t *cv)
+{
+    if (cv == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    return map_wait_rc(pthread_cond_signal(&cv->native));
+}
+
+com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar_t *cv)
+{
+    if (cv == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    return map_wait_rc(pthread_cond_broadcast(&cv->native));
+}
+
+void com_util_condvar_destroy(com_util_condvar_t *cv)
+{
+    if (cv != NULL)
+    {
+        pthread_cond_destroy(&cv->native);
+        free(cv);
+    }
+}
+
+com_util_sync_result_t com_util_rwlock_create(com_util_rwlock_t **rwlock)
+{
+    com_util_rwlock_t *new_lock;
+
+    if (rwlock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    new_lock = (com_util_rwlock_t *)calloc(1, sizeof(*new_lock));
+    if (new_lock == NULL)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    if (pthread_mutex_init(&new_lock->mutex, NULL) != 0
+        || cond_init_monotonic(&new_lock->readers_cv) != 0
+        || cond_init_monotonic(&new_lock->writers_cv) != 0)
+    {
+        pthread_mutex_destroy(&new_lock->mutex);
+        pthread_cond_destroy(&new_lock->readers_cv);
+        pthread_cond_destroy(&new_lock->writers_cv);
+        free(new_lock);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    *rwlock = new_lock;
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_rwlock_lock_shared(com_util_rwlock_t *rwlock, uint32_t timeout_ms)
+{
+    struct timespec abs_ts;
+    int             rc = 0;
+
+    if (rwlock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    pthread_mutex_lock(&rwlock->mutex);
+    if (timeout_ms != COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        monotonic_deadline(&abs_ts, timeout_ms);
+    }
+    while (rwlock->writer_active || rwlock->waiting_writers > 0)
+    {
+        if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+        {
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_BUSY;
+        }
+        rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+            ? pthread_cond_wait(&rwlock->readers_cv, &rwlock->mutex)
+            : pthread_cond_timedwait(&rwlock->readers_cv, &rwlock->mutex, &abs_ts);
+        if (rc == ETIMEDOUT)
+        {
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_TIMEOUT;
+        }
+        if (rc != 0)
+        {
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_SYSTEM_ERROR;
+        }
+    }
+    rwlock->active_readers++;
+    pthread_mutex_unlock(&rwlock->mutex);
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_rwlock_try_lock_shared(com_util_rwlock_t *rwlock)
+{
+    return com_util_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_rwlock_lock_exclusive(com_util_rwlock_t *rwlock, uint32_t timeout_ms)
+{
+    struct timespec abs_ts;
+    int             rc = 0;
+
+    if (rwlock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    pthread_mutex_lock(&rwlock->mutex);
+    rwlock->waiting_writers++;
+    if (timeout_ms != COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        monotonic_deadline(&abs_ts, timeout_ms);
+    }
+    while (rwlock->writer_active || rwlock->active_readers > 0)
+    {
+        if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+        {
+            rwlock->waiting_writers--;
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_BUSY;
+        }
+        rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+            ? pthread_cond_wait(&rwlock->writers_cv, &rwlock->mutex)
+            : pthread_cond_timedwait(&rwlock->writers_cv, &rwlock->mutex, &abs_ts);
+        if (rc == ETIMEDOUT)
+        {
+            rwlock->waiting_writers--;
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_TIMEOUT;
+        }
+        if (rc != 0)
+        {
+            rwlock->waiting_writers--;
+            pthread_mutex_unlock(&rwlock->mutex);
+            return COM_UTIL_SYNC_SYSTEM_ERROR;
+        }
+    }
+    rwlock->waiting_writers--;
+    rwlock->writer_active = 1;
+    pthread_mutex_unlock(&rwlock->mutex);
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_rwlock_try_lock_exclusive(com_util_rwlock_t *rwlock)
+{
+    return com_util_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_rwlock_unlock_shared(com_util_rwlock_t *rwlock)
+{
+    if (rwlock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    pthread_mutex_lock(&rwlock->mutex);
+    if (rwlock->active_readers == 0)
+    {
+        pthread_mutex_unlock(&rwlock->mutex);
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    rwlock->active_readers--;
+    if (rwlock->active_readers == 0 && rwlock->waiting_writers > 0)
+    {
+        pthread_cond_signal(&rwlock->writers_cv);
+    }
+    pthread_mutex_unlock(&rwlock->mutex);
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_rwlock_unlock_exclusive(com_util_rwlock_t *rwlock)
+{
+    if (rwlock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    pthread_mutex_lock(&rwlock->mutex);
+    if (!rwlock->writer_active)
+    {
+        pthread_mutex_unlock(&rwlock->mutex);
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    rwlock->writer_active = 0;
+    if (rwlock->waiting_writers > 0)
+    {
+        pthread_cond_signal(&rwlock->writers_cv);
+    }
+    else
+    {
+        pthread_cond_broadcast(&rwlock->readers_cv);
+    }
+    pthread_mutex_unlock(&rwlock->mutex);
+    return COM_UTIL_SYNC_OK;
+}
+
+void com_util_rwlock_destroy(com_util_rwlock_t *rwlock)
+{
+    if (rwlock != NULL)
+    {
+        pthread_mutex_destroy(&rwlock->mutex);
+        pthread_cond_destroy(&rwlock->readers_cv);
+        pthread_cond_destroy(&rwlock->writers_cv);
+        free(rwlock);
+    }
+}
+
+com_util_sync_result_t com_util_thread_create(com_util_thread_t **thread,
+                                              com_util_thread_func_t func, void *arg)
+{
+    struct com_util_thread_start_ctx *ctx;
+    com_util_thread_t                *new_thread;
+    int                               rc;
+
+    if (thread == NULL || func == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    new_thread = (com_util_thread_t *)calloc(1, sizeof(*new_thread));
+    ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
+    if (new_thread == NULL || ctx == NULL)
+    {
+        free(new_thread);
+        free(ctx);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
     ctx->func = func;
     ctx->arg = arg;
-    rc = pthread_create(thread, NULL, thread_start_proc, ctx);
+    rc = pthread_create(&new_thread->native, NULL, thread_start_proc, ctx);
     if (rc != 0)
     {
         free(ctx);
+        free(new_thread);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-
-    return rc;
+    *thread = new_thread;
+    return COM_UTIL_SYNC_OK;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
-void com_util_thread_join(com_util_thread_t *thread)
-{
-    pthread_join(*thread, NULL);
-    clear_thread_handle(thread);
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_thread_join_timed(com_util_thread_t *thread, uint32_t timeout_ms)
+com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms)
 {
     struct timespec abs_ts;
     int             rc;
 
-    add_timeout_ms(&abs_ts, timeout_ms);
-    rc = pthread_timedjoin_np(*thread, NULL, &abs_ts);
-    if (rc == 0)
+    if (thread == NULL)
     {
-        clear_thread_handle(thread);
-        return 0;
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        rc = pthread_join(thread->native, NULL);
+    }
+    else
+    {
+        uint64_t deadline = monotonic_ms() + timeout_ms;
+        do
+        {
+            rc = pthread_tryjoin_np(thread->native, NULL);
+            if (rc == 0)
+            {
+                break;
+            }
+            if (rc != EBUSY)
+            {
+                break;
+            }
+            if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
+            {
+                break;
+            }
+            abs_ts.tv_sec = 0;
+            abs_ts.tv_nsec = 1000000L;
+            nanosleep(&abs_ts, NULL);
+        } while (monotonic_ms() < deadline);
+        if (rc == EBUSY)
+        {
+            rc = ETIMEDOUT;
+        }
     }
     if (rc == ETIMEDOUT)
     {
-        return 1;
+        return COM_UTIL_SYNC_TIMEOUT;
     }
-    return -1;
-}
-
-/* doxygen コメントは、ヘッダに記載 */
-int com_util_thread_detach(com_util_thread_t *thread)
-{
-    int rc;
-
-    rc = pthread_detach(*thread);
-    if (rc == 0)
+    if (rc != 0)
     {
-        clear_thread_handle(thread);
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-    return rc;
+    free(thread);
+    return COM_UTIL_SYNC_OK;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
-void com_util_call_once(com_util_once_flag_t *flag, com_util_once_func_t func)
+void com_util_thread_detach(com_util_thread_t *thread)
+{
+    if (thread != NULL)
+    {
+        pthread_detach(thread->native);
+        free(thread);
+    }
+}
+
+com_util_sync_result_t com_util_app_lock_create(const char *identity, com_util_app_lock_t **lock)
+{
+    return app_lock_open_identity(identity, lock);
+}
+
+com_util_sync_result_t com_util_app_lock_open(const char *identity, com_util_app_lock_t **lock)
+{
+    return app_lock_open_identity(identity, lock);
+}
+
+com_util_sync_result_t com_util_app_lock_export_descriptor(const com_util_app_lock_t *lock,
+                                                           void *descriptor,
+                                                           size_t *descriptor_size)
+{
+    uint8_t *out;
+    size_t   identity_len;
+    size_t   required;
+
+    if (lock == NULL || descriptor_size == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    identity_len = strlen(lock->identity);
+    required = APP_LOCK_DESCRIPTOR_HEADER_SIZE + identity_len;
+    if (descriptor == NULL || *descriptor_size < required)
+    {
+        *descriptor_size = required;
+        return COM_UTIL_SYNC_BUFFER_TOO_SMALL;
+    }
+
+    out = (uint8_t *)descriptor;
+    memcpy(out, "CULK", 4);
+    out[4] = APP_LOCK_DESCRIPTOR_VERSION;
+    out[5] = (uint8_t)COM_UTIL_APP_LOCK_BACKEND_LOCK_FILE;
+    out[6] = 1U;
+    out[7] = 0U;
+    out[8] = (uint8_t)(identity_len & 0xffU);
+    out[9] = (uint8_t)((identity_len >> 8) & 0xffU);
+    out[10] = (uint8_t)((identity_len >> 16) & 0xffU);
+    out[11] = (uint8_t)((identity_len >> 24) & 0xffU);
+    memset(out + 12, 0, 8);
+    memcpy(out + APP_LOCK_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
+    *descriptor_size = required;
+    return COM_UTIL_SYNC_OK;
+}
+
+com_util_sync_result_t com_util_app_lock_import_descriptor(const void *descriptor,
+                                                           size_t descriptor_size,
+                                                           com_util_app_lock_t **lock)
+{
+    const uint8_t *in = (const uint8_t *)descriptor;
+    uint32_t       identity_len;
+    char          *identity;
+    com_util_sync_result_t result;
+
+    if (descriptor == NULL || lock == NULL)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (descriptor_size < APP_LOCK_DESCRIPTOR_HEADER_SIZE
+        || memcmp(in, "CULK", 4) != 0
+        || in[4] != APP_LOCK_DESCRIPTOR_VERSION
+        || in[5] != (uint8_t)COM_UTIL_APP_LOCK_BACKEND_LOCK_FILE)
+    {
+        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+    }
+    identity_len = (uint32_t)in[8]
+        | ((uint32_t)in[9] << 8)
+        | ((uint32_t)in[10] << 16)
+        | ((uint32_t)in[11] << 24);
+    if (identity_len == 0
+        || descriptor_size != APP_LOCK_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
+    {
+        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+    }
+    identity = (char *)malloc((size_t)identity_len + 1U);
+    if (identity == NULL)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    memcpy(identity, in + APP_LOCK_DESCRIPTOR_HEADER_SIZE, identity_len);
+    identity[identity_len] = '\0';
+    result = app_lock_open_identity(identity, lock);
+    free(identity);
+    return result;
+}
+
+com_util_sync_result_t com_util_app_lock_lock_shared(com_util_app_lock_t *lock,
+                                                     uint32_t timeout_ms)
+{
+    return app_lock_take(lock, LOCK_SH, timeout_ms);
+}
+
+com_util_sync_result_t com_util_app_lock_try_lock_shared(com_util_app_lock_t *lock)
+{
+    return com_util_app_lock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_app_lock_lock_exclusive(com_util_app_lock_t *lock,
+                                                        uint32_t timeout_ms)
+{
+    return app_lock_take(lock, LOCK_EX, timeout_ms);
+}
+
+com_util_sync_result_t com_util_app_lock_try_lock_exclusive(com_util_app_lock_t *lock)
+{
+    return com_util_app_lock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
+}
+
+com_util_sync_result_t com_util_app_lock_unlock(com_util_app_lock_t *lock)
+{
+    if (lock == NULL || !lock->locked)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
+    if (flock(lock->fd, LOCK_UN) != 0)
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
+    lock->locked = 0;
+    return COM_UTIL_SYNC_OK;
+}
+
+void com_util_app_lock_destroy(com_util_app_lock_t *lock)
+{
+    if (lock != NULL)
+    {
+        if (lock->locked)
+        {
+            (void)com_util_app_lock_unlock(lock);
+        }
+        close(lock->fd);
+        free(lock->identity);
+        free(lock);
+    }
+}
+
+void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
 {
     int32_t expected = 0;
 
+    if (flag == NULL || func == NULL)
+    {
+        return;
+    }
     if (__atomic_compare_exchange_n(&flag->state, &expected, 1, 0,
                                     __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
     {

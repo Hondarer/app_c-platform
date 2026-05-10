@@ -70,7 +70,7 @@ typedef struct
 
 struct com_util_pinned_prompt_t
 {
-    com_util_mutex_t mutex;
+    com_util_mutex_t *mutex;
 
     char   *edit_buf;
     char   *prompt_buf;
@@ -277,7 +277,7 @@ static void pinned_prompt_lock(com_util_pinned_prompt_t *screen)
 {
     if (screen != NULL && screen->mutex_active)
     {
-        (void)com_util_mutex_lock(&screen->mutex);
+        (void)com_util_mutex_lock(screen->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     }
 }
 
@@ -285,7 +285,7 @@ static void pinned_prompt_unlock(com_util_pinned_prompt_t *screen)
 {
     if (screen != NULL && screen->mutex_active)
     {
-        (void)com_util_mutex_unlock(&screen->mutex);
+        (void)com_util_mutex_unlock(screen->mutex);
     }
 }
 
@@ -1218,7 +1218,7 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->is_tty = pinned_prompt_platform_is_tty();
     pinned_prompt_update_size(screen);
 
-    if (com_util_mutex_init(&screen->mutex) != 0)
+    if (com_util_mutex_create(&screen->mutex) != 0)
     {
         free(screen);
         return NULL;
@@ -1296,7 +1296,7 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     free(screen->status_bottom_right);
     if (screen->mutex_active)
     {
-        (void)com_util_mutex_destroy(&screen->mutex);
+        (void)com_util_mutex_destroy(screen->mutex);
     }
     free(screen);
 }

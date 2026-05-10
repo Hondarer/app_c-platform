@@ -114,28 +114,37 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_console_dispose()).WillByDefault(Invoke(delegate_real_com_util_console_dispose));
 
     // sync
-    ON_CALL(*this, com_util_mutex_init(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_init));
-    ON_CALL(*this, com_util_mutex_lock(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_lock));
-    ON_CALL(*this, com_util_mutex_timedlock(_, _)).WillByDefault(Invoke(delegate_real_com_util_mutex_timedlock));
+    ON_CALL(*this, com_util_mutex_create(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_create));
+    ON_CALL(*this, com_util_mutex_lock(_, _)).WillByDefault(Invoke(delegate_real_com_util_mutex_lock));
+    ON_CALL(*this, com_util_mutex_try_lock(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_try_lock));
     ON_CALL(*this, com_util_mutex_unlock(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_unlock));
     ON_CALL(*this, com_util_mutex_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_mutex_destroy));
-    ON_CALL(*this, com_util_condvar_init(_)).WillByDefault(Invoke(delegate_real_com_util_condvar_init));
-    ON_CALL(*this, com_util_condvar_wait(_, _)).WillByDefault(Invoke(delegate_real_com_util_condvar_wait));
-    ON_CALL(*this, com_util_condvar_timedwait(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_condvar_timedwait));
+    ON_CALL(*this, com_util_condvar_create(_)).WillByDefault(Invoke(delegate_real_com_util_condvar_create));
+    ON_CALL(*this, com_util_condvar_wait(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_condvar_wait));
     ON_CALL(*this, com_util_condvar_signal(_)).WillByDefault(Invoke(delegate_real_com_util_condvar_signal));
     ON_CALL(*this, com_util_condvar_broadcast(_)).WillByDefault(Invoke(delegate_real_com_util_condvar_broadcast));
     ON_CALL(*this, com_util_condvar_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_condvar_destroy));
-    ON_CALL(*this, com_util_rwlock_init(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_init));
-    ON_CALL(*this, com_util_rwlock_lock_shared(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_lock_shared));
-    ON_CALL(*this, com_util_rwlock_timedlock_shared(_, _)).WillByDefault(Invoke(delegate_real_com_util_rwlock_timedlock_shared));
-    ON_CALL(*this, com_util_rwlock_lock_exclusive(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_lock_exclusive));
+    ON_CALL(*this, com_util_rwlock_create(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_create));
+    ON_CALL(*this, com_util_rwlock_lock_shared(_, _)).WillByDefault(Invoke(delegate_real_com_util_rwlock_lock_shared));
+    ON_CALL(*this, com_util_rwlock_try_lock_shared(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_try_lock_shared));
+    ON_CALL(*this, com_util_rwlock_lock_exclusive(_, _)).WillByDefault(Invoke(delegate_real_com_util_rwlock_lock_exclusive));
+    ON_CALL(*this, com_util_rwlock_try_lock_exclusive(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_try_lock_exclusive));
     ON_CALL(*this, com_util_rwlock_unlock_shared(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_unlock_shared));
     ON_CALL(*this, com_util_rwlock_unlock_exclusive(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_unlock_exclusive));
     ON_CALL(*this, com_util_rwlock_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_rwlock_destroy));
     ON_CALL(*this, com_util_thread_create(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_thread_create));
-    ON_CALL(*this, com_util_thread_join(_)).WillByDefault(Invoke(delegate_real_com_util_thread_join));
-    ON_CALL(*this, com_util_thread_join_timed(_, _)).WillByDefault(Invoke(delegate_real_com_util_thread_join_timed));
+    ON_CALL(*this, com_util_thread_join(_, _)).WillByDefault(Invoke(delegate_real_com_util_thread_join));
     ON_CALL(*this, com_util_thread_detach(_)).WillByDefault(Invoke(delegate_real_com_util_thread_detach));
+    ON_CALL(*this, com_util_app_lock_create(_, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_create));
+    ON_CALL(*this, com_util_app_lock_open(_, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_open));
+    ON_CALL(*this, com_util_app_lock_import_descriptor(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_import_descriptor));
+    ON_CALL(*this, com_util_app_lock_export_descriptor(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_export_descriptor));
+    ON_CALL(*this, com_util_app_lock_lock_shared(_, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_lock_shared));
+    ON_CALL(*this, com_util_app_lock_try_lock_shared(_)).WillByDefault(Invoke(delegate_real_com_util_app_lock_try_lock_shared));
+    ON_CALL(*this, com_util_app_lock_lock_exclusive(_, _)).WillByDefault(Invoke(delegate_real_com_util_app_lock_lock_exclusive));
+    ON_CALL(*this, com_util_app_lock_try_lock_exclusive(_)).WillByDefault(Invoke(delegate_real_com_util_app_lock_try_lock_exclusive));
+    ON_CALL(*this, com_util_app_lock_unlock(_)).WillByDefault(Invoke(delegate_real_com_util_app_lock_unlock));
+    ON_CALL(*this, com_util_app_lock_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_app_lock_destroy));
     ON_CALL(*this, com_util_call_once(_, _)).WillByDefault(Invoke(delegate_real_com_util_call_once));
 
     // runtime - module_info

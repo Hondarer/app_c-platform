@@ -30,7 +30,7 @@ typedef struct shutdown_callback_entry
 
 static shutdown_callback_entry_t *s_shutdown_callbacks = NULL;
 static shutdown_callback_entry_t *s_shutdown_request_callbacks = NULL;
-static com_util_mutex_t s_shutdown_lock;
+static com_util_mutex_t *s_shutdown_lock;
 static com_util_once_flag_t s_shutdown_lock_once = {0};
 static com_util_once_flag_t s_shutdown_hook_once = {0};
 static volatile int s_shutdown_started = 0;
@@ -40,18 +40,18 @@ static volatile int s_exit_code_valid = 0;
 
 static void init_shutdown_lock(void)
 {
-    (void)com_util_mutex_init(&s_shutdown_lock);
+    (void)com_util_mutex_create(&s_shutdown_lock);
 }
 
 static void shutdown_lock(void)
 {
     com_util_call_once(&s_shutdown_lock_once, init_shutdown_lock);
-    com_util_mutex_lock(&s_shutdown_lock);
+    com_util_mutex_lock(s_shutdown_lock, COM_UTIL_SYNC_WAIT_FOREVER);
 }
 
 static void shutdown_unlock(void)
 {
-    com_util_mutex_unlock(&s_shutdown_lock);
+    com_util_mutex_unlock(s_shutdown_lock);
 }
 
 static com_util_shutdown_event_t make_normal_exit_event(void)

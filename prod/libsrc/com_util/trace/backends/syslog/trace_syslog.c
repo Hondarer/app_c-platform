@@ -71,7 +71,7 @@ struct com_util_syslog_sink
      *  fd・next_connect・backoff_sec を保護する mutex。
      *  sendto() は MSG_DONTWAIT で即時返るため、ロック保持中に実行する。
      */
-    com_util_mutex_t reconnect_lock;
+    com_util_mutex_t *reconnect_lock;
 
     /** 次回接続試行を許可する最早時刻 (time_t)。reconnect_lock で保護。 */
     time_t next_connect;
@@ -233,7 +233,7 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
     handle->backoff_sec      = BACKOFF_INIT_SEC;
     handle->lock_initialized = 0;
 
-    if (com_util_mutex_init(&handle->reconnect_lock) != 0)
+    if (com_util_mutex_create(&handle->reconnect_lock) != 0)
     {
         free(handle->ident);
         free(handle);
@@ -242,9 +242,9 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
     handle->lock_initialized = 1;
 
     /* 初回接続を試みる (失敗しても構わない) */
-    com_util_mutex_lock(&handle->reconnect_lock);
+    com_util_mutex_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
     try_open_socket_locked(handle);
-    com_util_mutex_unlock(&handle->reconnect_lock);
+    com_util_mutex_unlock(handle->reconnect_lock);
 
     return handle;
 }
@@ -330,7 +330,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     sa.sun_family = AF_UNIX;
     strncpy(sa.sun_path, DEVLOG_PATH, sizeof(sa.sun_path) - 1);
 
-    com_util_mutex_lock(&handle->reconnect_lock);
+    com_util_mutex_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
 
     /* ソケットが無ければ低頻度で再接続を試みる */
     if (handle->fd < 0)
@@ -338,7 +338,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
         try_open_socket_locked(handle);
         if (handle->fd < 0)
         {
-            com_util_mutex_unlock(&handle->reconnect_lock);
+            com_util_mutex_unlock(handle->reconnect_lock);
             return fallback_used ? -1 : 0; /* drop */
         }
     }
@@ -353,19 +353,19 @@ COM_UTIL_EXPORT int COM_UTIL_API
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
             /* 送信バッファ満杯: drop のみ、再接続不要 */
-            com_util_mutex_unlock(&handle->reconnect_lock);
+            com_util_mutex_unlock(handle->reconnect_lock);
             return fallback_used ? -1 : 0;
         }
         /* その他エラー (ENOENT, ECONNREFUSED 等): ソケットを閉じてバックオフ */
         close_and_backoff_locked(handle);
-        com_util_mutex_unlock(&handle->reconnect_lock);
+        com_util_mutex_unlock(handle->reconnect_lock);
         return fallback_used ? -1 : 0; /* drop */
     }
 
     /* 送信成功: バックオフをリセット */
     handle->backoff_sec = BACKOFF_INIT_SEC;
 
-    com_util_mutex_unlock(&handle->reconnect_lock);
+    com_util_mutex_unlock(handle->reconnect_lock);
     return fallback_used ? -1 : 0;
 }
 
@@ -384,7 +384,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
     }
     if (handle->lock_initialized)
     {
-        com_util_mutex_destroy(&handle->reconnect_lock);
+        com_util_mutex_destroy(handle->reconnect_lock);
     }
     free(handle->ident);
     free(handle);
@@ -410,10 +410,10 @@ COM_UTIL_EXPORT int COM_UTIL_API
     }
     memcpy(dup, new_ident, len);
 
-    com_util_mutex_lock(&handle->reconnect_lock);
+    com_util_mutex_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
     free(handle->ident);
     handle->ident = dup;
-    com_util_mutex_unlock(&handle->reconnect_lock);
+    com_util_mutex_unlock(handle->reconnect_lock);
 
     return 0;
 }
@@ -432,7 +432,7 @@ void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle)
     }
     if (handle->lock_initialized)
     {
-        com_util_mutex_destroy(&handle->reconnect_lock);
+        com_util_mutex_destroy(handle->reconnect_lock);
     }
     free(handle->ident);
     free(handle);
