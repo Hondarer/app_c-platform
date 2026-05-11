@@ -17,7 +17,14 @@ static int com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *
     }
 
     n = MultiByteToWideChar(CP_UTF8, 0, utf8_path, -1, wbuf, (int)wbuf_count);
-    return (n <= 0) ? -1 : n;
+    if (n <= 0)
+    {
+        return -1;
+    }
+    else
+    {
+        return n;
+    }
 }
 
 static int com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath)

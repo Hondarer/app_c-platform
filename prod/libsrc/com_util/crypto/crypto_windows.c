@@ -78,7 +78,14 @@ static int bcrypt_aes_gcm(BOOL           is_encrypt,
     auth_info.pbNonce    = (PUCHAR)nonce;
     auth_info.cbNonce    = (ULONG)COM_UTIL_CRYPTO_NONCE_SIZE;
     auth_info.pbAuthData = (PUCHAR)aad;
-    auth_info.cbAuthData = (aad != NULL) ? (ULONG)aad_len : 0U;
+    if (aad != NULL)
+    {
+        auth_info.cbAuthData = (ULONG)aad_len;
+    }
+    else
+    {
+        auth_info.cbAuthData = 0U;
+    }
     auth_info.pbTag      = (PUCHAR)tag;
     auth_info.cbTag      = tag_len;
 
@@ -135,7 +142,15 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len,
     {
         /* BCrypt は src=NULL を受け付けないため、空バッファを用意する */
         static const uint8_t empty_src[1] = { 0 };
-        const uint8_t *actual_src = (src != NULL) ? src : empty_src;
+        const uint8_t *actual_src;
+        if (src != NULL)
+        {
+            actual_src = src;
+        }
+        else
+        {
+            actual_src = empty_src;
+        }
 
         if (bcrypt_aes_gcm(TRUE,
                            dst, &enc_len,
@@ -197,8 +212,24 @@ int com_util_passphrase_to_key(uint8_t *key,
     BCRYPT_HASH_HANDLE h_hash = NULL;
     NTSTATUS           status;
     static const uint8_t empty[1] = { 0 };
-    const uint8_t *data = (passphrase != NULL) ? passphrase : empty;
-    ULONG          data_len = (passphrase != NULL) ? (ULONG)passphrase_len : 0UL;
+    const uint8_t *data;
+    ULONG          data_len;
+    if (passphrase != NULL)
+    {
+        data = passphrase;
+    }
+    else
+    {
+        data = empty;
+    }
+    if (passphrase != NULL)
+    {
+        data_len = (ULONG)passphrase_len;
+    }
+    else
+    {
+        data_len = 0UL;
+    }
 
     if (key == NULL || (passphrase == NULL && passphrase_len > 0))
     {
@@ -231,7 +262,14 @@ int com_util_passphrase_to_key(uint8_t *key,
     BCryptDestroyHash(h_hash);
     BCryptCloseAlgorithmProvider(h_alg, 0);
 
-    return BCRYPT_SUCCESS(status) ? 0 : -1;
+    if (BCRYPT_SUCCESS(status))
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 #endif /* PLATFORM_WINDOWS */

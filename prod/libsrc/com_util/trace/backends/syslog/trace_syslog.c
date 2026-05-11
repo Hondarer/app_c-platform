@@ -141,7 +141,14 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
     }
 
     com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    return timestamp_is_valid(resolved) ? 0 : -1;
+    if (timestamp_is_valid(resolved))
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 /**
@@ -153,7 +160,14 @@ static void advance_backoff(com_util_syslog_sink_t *h)
 {
     int next = h->backoff_sec * 2;
 
-    h->backoff_sec = (next > BACKOFF_MAX_SEC) ? BACKOFF_MAX_SEC : next;
+    if (next > BACKOFF_MAX_SEC)
+    {
+        h->backoff_sec = BACKOFF_MAX_SEC;
+    }
+    else
+    {
+        h->backoff_sec = next;
+    }
 }
 
 /**
@@ -323,7 +337,14 @@ COM_UTIL_EXPORT int COM_UTIL_API
             buf[n] = '\n';
             (void)syslog_test_fd_write__(buf, (size_t)(n + 1));
         }
-        return fallback_used ? -1 : 0;
+        if (fallback_used)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     memset(&sa, 0, sizeof(sa));
@@ -339,7 +360,14 @@ COM_UTIL_EXPORT int COM_UTIL_API
         if (handle->fd < 0)
         {
             com_util_local_lock_unlock(handle->reconnect_lock);
-            return fallback_used ? -1 : 0; /* drop */
+            if (fallback_used)
+            {
+                return -1;
+            }
+            else
+            {
+                return 0; /* drop */
+            }
         }
     }
 
@@ -354,19 +382,40 @@ COM_UTIL_EXPORT int COM_UTIL_API
         {
             /* 送信バッファ満杯: drop のみ、再接続不要 */
             com_util_local_lock_unlock(handle->reconnect_lock);
-            return fallback_used ? -1 : 0;
+            if (fallback_used)
+            {
+                return -1;
+            }
+            else
+            {
+                return 0;
+            }
         }
         /* その他エラー (ENOENT, ECONNREFUSED 等): ソケットを閉じてバックオフ */
         close_and_backoff_locked(handle);
         com_util_local_lock_unlock(handle->reconnect_lock);
-        return fallback_used ? -1 : 0; /* drop */
+        if (fallback_used)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0; /* drop */
+        }
     }
 
     /* 送信成功: バックオフをリセット */
     handle->backoff_sec = BACKOFF_INIT_SEC;
 
     com_util_local_lock_unlock(handle->reconnect_lock);
-    return fallback_used ? -1 : 0;
+    if (fallback_used)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 /* doxygen コメントは、ヘッダに記載 */

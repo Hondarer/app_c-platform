@@ -121,7 +121,14 @@ int com_util_compress(uint8_t       *dst,
     }
 
     /* データ全体を単一ブロックとして処理する */
-    block_size = (src_len > 32768U) ? (ULONG)src_len : 32768U;
+    if (src_len > 32768U)
+    {
+        block_size = (ULONG)src_len;
+    }
+    else
+    {
+        block_size = 32768U;
+    }
     (void)SetCompressorInformation(h,
                                    COMPRESS_INFORMATION_CLASS_BLOCK_SIZE,
                                    &block_size,

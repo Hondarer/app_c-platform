@@ -130,7 +130,14 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
     }
 
     com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    return timestamp_is_valid(resolved) ? 0 : -1;
+    if (timestamp_is_valid(resolved))
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 /**
@@ -282,8 +289,22 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
     }
     memcpy(handle->path, path, path_len + 1);
 
-    handle->max_bytes = (max_bytes > 0) ? max_bytes : COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES;
-    handle->generations = (generations > 0) ? generations : COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS;
+    if (max_bytes > 0)
+    {
+        handle->max_bytes = max_bytes;
+    }
+    else
+    {
+        handle->max_bytes = COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES;
+    }
+    if (generations > 0)
+    {
+        handle->generations = generations;
+    }
+    else
+    {
+        handle->generations = COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS;
+    }
     handle->current_bytes = 0;
     com_util_file_init(&handle->file);
 
@@ -379,7 +400,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     /* ロック解放 */
     com_util_local_lock_unlock(handle->mutex);
 
-    return (ret != 0 || fallback_used) ? -1 : 0;
+    if (ret != 0 || fallback_used)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 /* doxygen コメントは、ヘッダに記載 */

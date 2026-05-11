@@ -341,12 +341,26 @@ com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_lo
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        wait_ms = INFINITE;
+    }
+    else
+    {
+        wait_ms = (DWORD)timeout_ms;
+    }
     if (SleepConditionVariableSRW(&cv->native, &mtx->native, wait_ms, 0))
     {
         return COM_UTIL_SYNC_OK;
     }
-    return (GetLastError() == ERROR_TIMEOUT) ? COM_UTIL_SYNC_TIMEOUT : COM_UTIL_SYNC_SYSTEM_ERROR;
+    if (GetLastError() == ERROR_TIMEOUT)
+    {
+        return COM_UTIL_SYNC_TIMEOUT;
+    }
+    else
+    {
+        return COM_UTIL_SYNC_SYSTEM_ERROR;
+    }
 }
 
 com_util_sync_result_t com_util_condvar_signal(com_util_condvar_t *cv)
@@ -396,7 +410,15 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rw
 
 com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
 {
-    DWORD wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
+    DWORD wait_ms;
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        wait_ms = INFINITE;
+    }
+    else
+    {
+        wait_ms = (DWORD)timeout_ms;
+    }
 
     if (rwlock == NULL)
     {
@@ -413,7 +435,14 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t
         if (!SleepConditionVariableCS(&rwlock->readers_cv, &rwlock->mutex, wait_ms))
         {
             LeaveCriticalSection(&rwlock->mutex);
-            return (GetLastError() == ERROR_TIMEOUT) ? COM_UTIL_SYNC_TIMEOUT : COM_UTIL_SYNC_SYSTEM_ERROR;
+            if (GetLastError() == ERROR_TIMEOUT)
+            {
+                return COM_UTIL_SYNC_TIMEOUT;
+            }
+            else
+            {
+                return COM_UTIL_SYNC_SYSTEM_ERROR;
+            }
         }
     }
     rwlock->active_readers++;
@@ -428,7 +457,15 @@ com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlo
 
 com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
 {
-    DWORD wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
+    DWORD wait_ms;
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        wait_ms = INFINITE;
+    }
+    else
+    {
+        wait_ms = (DWORD)timeout_ms;
+    }
 
     if (rwlock == NULL)
     {
@@ -448,7 +485,14 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
         {
             rwlock->waiting_writers--;
             LeaveCriticalSection(&rwlock->mutex);
-            return (GetLastError() == ERROR_TIMEOUT) ? COM_UTIL_SYNC_TIMEOUT : COM_UTIL_SYNC_SYSTEM_ERROR;
+            if (GetLastError() == ERROR_TIMEOUT)
+            {
+                return COM_UTIL_SYNC_TIMEOUT;
+            }
+            else
+            {
+                return COM_UTIL_SYNC_SYSTEM_ERROR;
+            }
         }
     }
     rwlock->waiting_writers--;
@@ -559,7 +603,14 @@ com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, uint32_t 
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    wait_ms = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER) ? INFINITE : (DWORD)timeout_ms;
+    if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+    {
+        wait_ms = INFINITE;
+    }
+    else
+    {
+        wait_ms = (DWORD)timeout_ms;
+    }
     status = WaitForSingleObject(thread->native, wait_ms);
     if (status == WAIT_OBJECT_0)
     {

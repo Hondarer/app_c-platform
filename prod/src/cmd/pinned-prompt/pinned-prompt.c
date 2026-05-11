@@ -70,7 +70,14 @@ static int split_command(char *line, char **command, char **arg)
         cursor++;
     }
     cursor = skip_spaces(cursor);
-    *arg = (*cursor != '\0') ? cursor : NULL;
+    if (*cursor != '\0')
+    {
+        *arg = cursor;
+    }
+    else
+    {
+        *arg = NULL;
+    }
     return 0;
 }
 
@@ -578,8 +585,19 @@ static void process_line(pinned_prompt_cli_session_t *session, char *line)
     else if (strcmp(command, "echo") == 0)
     {
         decode_cli_escapes(arg);
-        com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
-                                      "%s\n", arg != NULL ? arg : "");
+        {
+            const char *echo_str;
+            if (arg != NULL)
+            {
+                echo_str = arg;
+            }
+            else
+            {
+                echo_str = "";
+            }
+            com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT,
+                                          "%s\n", echo_str);
+        }
     }
     else if (strcmp(command, "start") == 0)
     {

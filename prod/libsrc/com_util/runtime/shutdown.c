@@ -59,10 +59,22 @@ static com_util_shutdown_event_t make_normal_exit_event(void)
     com_util_shutdown_event_t event;
 
     event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
-    event.code_kind = s_exit_code_valid
-        ? COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE
-        : COM_UTIL_SHUTDOWN_CODE_KIND_NONE;
-    event.code = s_exit_code_valid ? s_exit_code : 0;
+    if (s_exit_code_valid)
+    {
+        event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE;
+    }
+    else
+    {
+        event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_NONE;
+    }
+    if (s_exit_code_valid)
+    {
+        event.code = s_exit_code;
+    }
+    else
+    {
+        event.code = 0;
+    }
     return event;
 }
 
@@ -193,10 +205,14 @@ static BOOL WINAPI shutdown_console_ctrl_handler(DWORD ctrl_type)
     int handled = 0;
     int request_result;
 
-    event.reason =
-        (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT)
-            ? COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT
-            : COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING;
+    if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT)
+    {
+        event.reason = COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT;
+    }
+    else
+    {
+        event.reason = COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING;
+    }
     event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_CONSOLE_CTRL_TYPE;
     event.code = (int)ctrl_type;
 

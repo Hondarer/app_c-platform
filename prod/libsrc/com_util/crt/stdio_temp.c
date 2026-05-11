@@ -123,7 +123,15 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix,
         }
 
         {
-            const char *pfx = (prefix != NULL && prefix[0] != '\0') ? prefix : "cu_";
+            const char *pfx;
+            if (prefix != NULL && prefix[0] != '\0')
+            {
+                pfx = prefix;
+            }
+            else
+            {
+                pfx = "cu_";
+            }
             err = mbstowcs_s(&converted, wprefix, sizeof(wprefix) / sizeof(wprefix[0]), pfx, _TRUNCATE);
             /* STRUNCATE: 4 文字以上の prefix が COM_UTIL_TEMP_PREFIX_MAX に切り詰められた場合。正常扱い。 */
             if (err != 0 && err != STRUNCATE)

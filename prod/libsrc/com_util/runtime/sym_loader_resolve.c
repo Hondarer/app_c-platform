@@ -50,7 +50,14 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
         sched_yield();
     }
 
-    return (expected == 2) ? 0 : -1;
+    if (expected == 2)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 #elif defined(PLATFORM_WINDOWS)
     LONG expected;
 
@@ -71,7 +78,14 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
         SwitchToThread();
     }
 
-    return (expected == 2) ? 0 : -1;
+    if (expected == 2)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 #endif /* PLATFORM_ */
 }
 

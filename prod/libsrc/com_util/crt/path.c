@@ -47,9 +47,23 @@ static int com_util_compare_normalized_paths(const char *lhs, const char *rhs)
         lhs++;
         rhs++;
     }
-    return (*lhs == '\0' && *rhs == '\0') ? 1 : 0;
+    if (*lhs == '\0' && *rhs == '\0')
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 #else
-    return (strcmp(lhs, rhs) == 0) ? 1 : 0;
+    if (strcmp(lhs, rhs) == 0)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 #endif
 }
 

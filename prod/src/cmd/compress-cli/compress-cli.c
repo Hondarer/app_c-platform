@@ -354,7 +354,15 @@ int compress_cli_parse_args(int argc, char *argv[], compress_cli_options_t *opti
 
 void compress_cli_print_usage(const char *argv0)
 {
-    const char *name = (argv0 != NULL) ? argv0 : "compress-cli";
+    const char *name;
+    if (argv0 != NULL)
+    {
+        name = argv0;
+    }
+    else
+    {
+        name = "compress-cli";
+    }
 
     fprintf(stderr, "使用方法: %s --compress <input> <output>\n", name);
     fprintf(stderr, "          %s --decompress <input> <output>\n", name);
@@ -370,7 +378,16 @@ int main(int argc, char *argv[])
 
     if (compress_cli_parse_args(argc, argv, &options) != 0)
     {
-        compress_cli_print_usage((argc > 0) ? argv[0] : "compress-cli");
+        const char *print_usage_arg;
+        if (argc > 0)
+        {
+            print_usage_arg = argv[0];
+        }
+        else
+        {
+            print_usage_arg = "compress-cli";
+        }
+        compress_cli_print_usage(print_usage_arg);
         return EXIT_FAILURE;
     }
 
@@ -385,14 +402,37 @@ int main(int argc, char *argv[])
 
     if (options.mode == COMPRESS_CLI_MODE_COMPRESS)
     {
-        return (compress_cli_run_compress(input_full, output_full) == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+        if (compress_cli_run_compress(input_full, output_full) == 0)
+        {
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            return EXIT_FAILURE;
+        }
     }
 
     if (options.mode == COMPRESS_CLI_MODE_DECOMPRESS)
     {
-        return (compress_cli_run_decompress(input_full, output_full) == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+        if (compress_cli_run_decompress(input_full, output_full) == 0)
+        {
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            return EXIT_FAILURE;
+        }
     }
 
-    compress_cli_print_usage((argc > 0) ? argv[0] : "compress-cli");
+    const char *print_usage_arg;
+    if (argc > 0)
+    {
+        print_usage_arg = argv[0];
+    }
+    else
+    {
+        print_usage_arg = "compress-cli";
+    }
+    compress_cli_print_usage(print_usage_arg);
     return EXIT_FAILURE;
 }

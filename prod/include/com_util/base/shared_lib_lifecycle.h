@@ -143,8 +143,32 @@ static void dllmain_output_debug_msg__(const char *msg)
         while (msg[byte_pos] != '\0')
         {
             unsigned char c = (unsigned char)msg[byte_pos];
-            int cb = (c < 0x80u) ? 1 : (c < 0xE0u) ? 2 : (c < 0xF0u) ? 3 : 4;
-            int cw = (cb == 4) ? 2 : 1; /* U+10000 以上はサロゲートペアで 2 wchar */
+            int cb;
+            if (c < 0x80u)
+            {
+                cb = 1;
+            }
+            else if (c < 0xE0u)
+            {
+                cb = 2;
+            }
+            else if (c < 0xF0u)
+            {
+                cb = 3;
+            }
+            else
+            {
+                cb = 4;
+            }
+            int cw; /* U+10000 以上はサロゲートペアで 2 wchar */
+            if (cb == 4)
+            {
+                cw = 2;
+            }
+            else
+            {
+                cw = 1;
+            }
             if (wc_count + cw > 1019)
                 break;
             wc_count += cw;
@@ -232,7 +256,18 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
         break;
     case DLL_PROCESS_DETACH:
         DLLMAIN_COM_UTIL_INFO_MSG("shared_lib_lifecycle: onUnload enter");
-        onUnload((lpvReserved != NULL) ? 1 : 0);
+        {
+            int process_terminating;
+            if (lpvReserved != NULL)
+            {
+                process_terminating = 1;
+            }
+            else
+            {
+                process_terminating = 0;
+            }
+            onUnload(process_terminating);
+        }
         DLLMAIN_COM_UTIL_INFO_MSG("shared_lib_lifecycle: onUnload leave");
         break;
     default:

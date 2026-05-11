@@ -74,7 +74,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
         }
 
         file->handle = open(path, open_flags, 0644);
-        return file_is_open(file) ? 0 : -1;
+        if (file_is_open(file))
+        {
+            return 0;
+        }
+        else
+        {
+            return -1;
+        }
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -104,7 +111,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
 
         if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0u)
         {
-            creation_disposition = ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u) ? CREATE_ALWAYS : OPEN_ALWAYS;
+            if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u)
+            {
+                creation_disposition = CREATE_ALWAYS;
+            }
+            else
+            {
+                creation_disposition = OPEN_ALWAYS;
+            }
         }
         else if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u)
         {
@@ -182,7 +196,15 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
 
         while (remaining > 0u)
         {
-            DWORD chunk = (remaining > (size_t)UINT32_MAX) ? UINT32_MAX : (DWORD)remaining;
+            DWORD chunk;
+            if (remaining > (size_t)UINT32_MAX)
+            {
+                chunk = UINT32_MAX;
+            }
+            else
+            {
+                chunk = (DWORD)remaining;
+            }
             DWORD written = 0;
 
             if (!WriteFile(file->handle, cursor, chunk, &written, NULL) || written == 0u)

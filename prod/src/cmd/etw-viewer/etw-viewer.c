@@ -172,7 +172,15 @@ static char etw_viewer_priority_letter(int level)
 
 void etw_viewer_print_usage(const char *argv0, int is_windows)
 {
-    const char *name = (argv0 != NULL) ? argv0 : "etw-viewer";
+    const char *name;
+    if (argv0 != NULL)
+    {
+        name = argv0;
+    }
+    else
+    {
+        name = "etw-viewer";
+    }
 
     (void)is_windows;
     fprintf(stderr, "使用方法: %s [--pid <process-id>]\n", name);
@@ -226,7 +234,14 @@ void etw_viewer_handle_event(const com_util_etw_event_t *event, void *context)
         return;
     }
 
-    tag = (event->service != NULL && event->service[0] != '\0') ? event->service : ETW_VIEWER_DEFAULT_TAG;
+    if (event->service != NULL && event->service[0] != '\0')
+    {
+        tag = event->service;
+    }
+    else
+    {
+        tag = ETW_VIEWER_DEFAULT_TAG;
+    }
     message = event->message;
     if (etw_viewer_format_timestamp_utc(event->timestamp_100ns, timestamp_text, sizeof(timestamp_text)) != 0)
     {
@@ -282,7 +297,16 @@ int main(int argc, char *argv[])
 
     if (etw_viewer_parse_args(argc, argv, &options) != 0)
     {
-        etw_viewer_print_usage((argc > 0) ? argv[0] : "etw-viewer", 1);
+        const char *print_usage_arg;
+        if (argc > 0)
+        {
+            print_usage_arg = argv[0];
+        }
+        else
+        {
+            print_usage_arg = "etw-viewer";
+        }
+        etw_viewer_print_usage(print_usage_arg, 1);
         goto cleanup;
     }
 

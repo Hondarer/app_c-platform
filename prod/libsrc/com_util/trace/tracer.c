@@ -371,7 +371,14 @@ static const char *get_process_basename(char *buf, size_t buf_size)
     buf[len] = '\0';
 
     slash = strrchr(buf, PLATFORM_PATH_SEP_CHR);
-    return slash ? slash + 1 : buf;
+    if (slash)
+    {
+        return slash + 1;
+    }
+    else
+    {
+        return buf;
+    }
 }
 
 #elif defined(PLATFORM_WINDOWS)
@@ -402,7 +409,14 @@ static const char *get_process_basename(char *buf, size_t buf_size)
     {
         sep = strrchr(buf, '/');
     }
-    return sep ? sep + 1 : buf;
+    if (sep)
+    {
+        return sep + 1;
+    }
+    else
+    {
+        return buf;
+    }
 }
 
 #endif /* PLATFORM_ */
@@ -440,7 +454,14 @@ static void config_unlock_exclusive(com_util_tracer_t *handle)
  */
 static int config_lock_shared_timed(com_util_tracer_t *handle)
 {
-    return (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == 0) ? 0 : -1;
+    if (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 /**
@@ -469,7 +490,14 @@ static char *build_effective_name(const char *name, int64_t identifier)
     const char *base;
     char *result;
 
-    base = (name != NULL) ? name : get_process_basename(path_buf, sizeof(path_buf));
+    if (name != NULL)
+    {
+        base = name;
+    }
+    else
+    {
+        base = get_process_basename(path_buf, sizeof(path_buf));
+    }
 
     if (identifier == 0)
     {
@@ -865,7 +893,14 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
     }
 
     com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    return timestamp_is_valid(resolved) ? 0 : -1;
+    if (timestamp_is_valid(resolved))
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 static int format_local_timestamp(char *buf, size_t buf_size,
@@ -891,7 +926,14 @@ static void write_stderr_entry(com_util_trace_level_t level, const char *timesta
     static const char lc_table[] = {'C', 'E', 'W', 'I', 'V', 'D'};
     char lc;
 
-    lc = ((int)level >= 0 && (int)level < (int)COM_UTIL_TRACE_LEVEL_NONE) ? lc_table[(int)level] : 'D';
+    if ((int)level >= 0 && (int)level < (int)COM_UTIL_TRACE_LEVEL_NONE)
+    {
+        lc = lc_table[(int)level];
+    }
+    else
+    {
+        lc = 'D';
+    }
     fprintf(stderr, "%s %c %s\n", timestamp_text, lc, msg);
 }
 
@@ -963,7 +1005,14 @@ static int write_dual(com_util_tracer_t *handle, com_util_trace_level_t level,
         }
     }
 
-    return (timestamp_fallback_used || os_result != 0 || file_result != 0) ? -1 : 0;
+    if (timestamp_fallback_used || os_result != 0 || file_result != 0)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 /* doxygen コメントは、ヘッダに記載 */
@@ -1082,7 +1131,15 @@ static int hex_write_impl(com_util_tracer_t *handle, com_util_trace_level_t leve
         size_t lbl_len = strlen(label);
         if (lbl_len + 2 >= MAX_BODY)
         {
-            size_t copy_len = lbl_len < MAX_BODY ? lbl_len : MAX_BODY;
+            size_t copy_len;
+            if (lbl_len < MAX_BODY)
+            {
+                copy_len = lbl_len;
+            }
+            else
+            {
+                copy_len = MAX_BODY;
+            }
             memcpy(buf, label, copy_len);
             buf[copy_len] = '\0';
             return write_dual(handle, level, timestamp, buf);

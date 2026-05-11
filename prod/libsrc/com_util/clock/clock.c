@@ -54,10 +54,36 @@ static void clock_write_fallback(char *buf, size_t buf_size, const char *fallbac
 static int64_t clock_days_from_civil(int year, unsigned month, unsigned day)
 {
     int adjusted_year = year - (month <= 2);
-    int era = (adjusted_year >= 0 ? adjusted_year : adjusted_year - 399) / 400;
-    unsigned yoe = (unsigned)(adjusted_year - era * 400);
-    unsigned doy = (153 * (month + (month > 2 ? (unsigned)-3 : 9)) + 2) / 5 + day - 1;
-    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    int era_base;
+    int era;
+    unsigned yoe;
+    unsigned month_offset;
+    unsigned doy;
+    unsigned doe;
+
+    if (adjusted_year >= 0)
+    {
+        era_base = adjusted_year;
+    }
+    else
+    {
+        era_base = adjusted_year - 399;
+    }
+    era = era_base / 400;
+
+    yoe = (unsigned)(adjusted_year - era * 400);
+
+    if (month > 2)
+    {
+        month_offset = (unsigned)-3;
+    }
+    else
+    {
+        month_offset = 9;
+    }
+    doy = (153 * (month + month_offset) + 2) / 5 + day - 1;
+
+    doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
 
     return (int64_t)era * 146097 + (int64_t)doe - 719468;
 }

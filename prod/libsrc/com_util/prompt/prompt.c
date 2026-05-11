@@ -84,8 +84,17 @@ static void history_add(com_util_prompt_t *p,
 static void redisplay(const char *prompt_str,
                       const char *buf, size_t len, size_t cursor)
 {
+    const char *prompt_str_out;
     putchar('\r');
-    fputs(prompt_str ? prompt_str : "", stdout);
+    if (prompt_str)
+    {
+        prompt_str_out = prompt_str;
+    }
+    else
+    {
+        prompt_str_out = "";
+    }
+    fputs(prompt_str_out, stdout);
     fwrite(buf, 1, len, stdout);
     fputs("\033[0K", stdout); /* 行末クリア */
     if (len > cursor)
@@ -141,17 +150,38 @@ static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
             case '1':
             {
                 int c4 = prompt_platform_read_char_nb(p);
-                return (c4 == '~') ? KEY_HOME : KEY_UNKNOWN;
+                if (c4 == '~')
+                {
+                    return KEY_HOME;
+                }
+                else
+                {
+                    return KEY_UNKNOWN;
+                }
             }
             case '3':
             {
                 int c4 = prompt_platform_read_char_nb(p);
-                return (c4 == '~') ? KEY_DELETE : KEY_UNKNOWN;
+                if (c4 == '~')
+                {
+                    return KEY_DELETE;
+                }
+                else
+                {
+                    return KEY_UNKNOWN;
+                }
             }
             case '4':
             {
                 int c4 = prompt_platform_read_char_nb(p);
-                return (c4 == '~') ? KEY_END : KEY_UNKNOWN;
+                if (c4 == '~')
+                {
+                    return KEY_END;
+                }
+                else
+                {
+                    return KEY_UNKNOWN;
+                }
             }
             default:
                 return KEY_UNKNOWN;
@@ -289,8 +319,17 @@ static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
     /* 新規作成 */
     if (p->ctx_count == p->ctx_cap)
     {
-        size_t new_cap = p->ctx_cap ? p->ctx_cap * 2 : 4;
-        com_util_prompt_ctx_t *new_contexts = (com_util_prompt_ctx_t *)realloc(
+        size_t new_cap;
+        com_util_prompt_ctx_t *new_contexts;
+        if (p->ctx_cap)
+        {
+            new_cap = p->ctx_cap * 2;
+        }
+        else
+        {
+            new_cap = 4;
+        }
+        new_contexts = (com_util_prompt_ctx_t *)realloc(
             p->contexts, new_cap * sizeof(com_util_prompt_ctx_t));
         if (new_contexts == NULL)
         {
@@ -331,15 +370,30 @@ com_util_prompt_t *com_util_prompt_create(const com_util_prompt_options_t *optio
     size_t history_max;
     size_t input_initial_capacity;
     size_t input_max_bytes;
+    size_t opt_history_max;
+    size_t opt_input_initial_capacity;
+    size_t opt_input_max_bytes;
 
     if (p == NULL)
     {
         return NULL;
     }
 
-    com_util_prompt_edit_resolve_options(options != NULL ? options->history_max : 0U,
-                                         options != NULL ? options->input_initial_capacity : 0U,
-                                         options != NULL ? options->input_max_bytes : 0U,
+    if (options != NULL)
+    {
+        opt_history_max            = options->history_max;
+        opt_input_initial_capacity = options->input_initial_capacity;
+        opt_input_max_bytes        = options->input_max_bytes;
+    }
+    else
+    {
+        opt_history_max            = 0U;
+        opt_input_initial_capacity = 0U;
+        opt_input_max_bytes        = 0U;
+    }
+    com_util_prompt_edit_resolve_options(opt_history_max,
+                                         opt_input_initial_capacity,
+                                         opt_input_max_bytes,
                                          PROMPT_INPUT_INITIAL_DEFAULT,
                                          &history_max,
                                          &input_initial_capacity,
@@ -458,7 +512,15 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
             putchar('\n');
             fflush(stdout);
             {
-                size_t copy = (p->edit_len < buf_size - 1) ? p->edit_len : buf_size - 1;
+                size_t copy;
+                if (p->edit_len < buf_size - 1)
+                {
+                    copy = p->edit_len;
+                }
+                else
+                {
+                    copy = buf_size - 1;
+                }
                 memcpy(buf, p->edit_buf, copy);
                 buf[copy] = '\0';
             }
@@ -581,6 +643,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
 {
     va_list ap;
     int needed;
+    const char *fmt_str;
 
     if (p == NULL)
     {
@@ -598,11 +661,19 @@ int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
         }
     }
 
+    if (fmt)
+    {
+        fmt_str = fmt;
+    }
+    else
+    {
+        fmt_str = "";
+    }
     for (;;)
     {
         va_start(ap, fmt);
         needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap,
-                           fmt ? fmt : "", ap);
+                           fmt_str, ap);
         va_end(ap);
 
         if (needed < 0)

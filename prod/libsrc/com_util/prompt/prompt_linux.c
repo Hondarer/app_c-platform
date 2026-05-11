@@ -64,7 +64,14 @@ int prompt_platform_read_char(com_util_prompt_t *p)
         n = read(STDIN_FILENO, &c, 1);
     } while (n < 0 && errno == EINTR);
 
-    return (n == 1) ? (int)c : -1;
+    if (n == 1)
+    {
+        return (int)c;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 int prompt_platform_read_char_nb(com_util_prompt_t *p)

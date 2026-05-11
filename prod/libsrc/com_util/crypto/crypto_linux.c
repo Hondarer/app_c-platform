@@ -230,14 +230,25 @@ int com_util_passphrase_to_key(uint8_t *key,
         return -1;
     }
 
-    if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1
-        || EVP_DigestUpdate(ctx,
-                            (passphrase != NULL) ? passphrase : (const uint8_t *)"",
-                            passphrase_len) != 1
-        || EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
     {
-        EVP_MD_CTX_free(ctx);
-        return -1;
+        const uint8_t *pass_data;
+        if (passphrase != NULL)
+        {
+            pass_data = passphrase;
+        }
+        else
+        {
+            pass_data = (const uint8_t *)"";
+        }
+        if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1
+            || EVP_DigestUpdate(ctx,
+                                pass_data,
+                                passphrase_len) != 1
+            || EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
+        {
+            EVP_MD_CTX_free(ctx);
+            return -1;
+        }
     }
 
     EVP_MD_CTX_free(ctx);

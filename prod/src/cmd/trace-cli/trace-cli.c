@@ -896,8 +896,17 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
         }
         else
         {
+            const char *label_str;
+            if (label != NULL)
+            {
+                label_str = label;
+            }
+            else
+            {
+                label_str = "";
+            }
             rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s",
-                                             (label != NULL) ? label : "");
+                                             label_str);
         }
         printf("rc=%d\n", rc);
         free(data);

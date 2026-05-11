@@ -188,7 +188,14 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
         return MYLIB_EFAIL;
     }
 
-    p = info.dli_fname ? info.dli_fname : "";
+    if (info.dli_fname)
+    {
+        p = info.dli_fname;
+    }
+    else
+    {
+        p = "";
+    }
     if (p[0] == '\0')
         return MYLIB_EFAIL;
 
@@ -197,7 +204,14 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
         return MYLIB_OK;
     }
 
-    return (err == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
+    if (err == ENAMETOOLONG)
+    {
+        return MYLIB_ENOBUFS;
+    }
+    else
+    {
+        return MYLIB_EFAIL;
+    }
 }
 
 #elif defined(PLATFORM_WINDOWS)
@@ -267,7 +281,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *out_path, const 
     {
         if (out_path && out_path_sz)
             out_path[0] = '\0';
-        return (err == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
+        if (err == ENAMETOOLONG)
+        {
+            return MYLIB_ENOBUFS;
+        }
+        else
+        {
+            return MYLIB_EFAIL;
+        }
     }
     return MYLIB_OK;
 #endif /* PLATFORM_ */
