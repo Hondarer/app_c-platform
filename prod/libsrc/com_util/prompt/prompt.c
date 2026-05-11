@@ -30,6 +30,7 @@ typedef enum
     KEY_END,
     KEY_CTRL_C,
     KEY_CLEAR,
+    KEY_RESIZE,
     KEY_UNKNOWN,
     KEY_EOF,
 } prompt_key_t;
@@ -114,6 +115,10 @@ static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
     if (c == -1)
     {
         return KEY_EOF;
+    }
+    if (c == -2)
+    {
+        return KEY_RESIZE;
     }
     if (c == '\r' || c == '\n')
     {
@@ -624,6 +629,10 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
                 p->edit_len++;
                 redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
             }
+            break;
+
+        case KEY_RESIZE:
+            redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
             break;
 
         case KEY_UNKNOWN:

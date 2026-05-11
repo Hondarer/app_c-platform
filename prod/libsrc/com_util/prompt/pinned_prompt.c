@@ -19,6 +19,7 @@
 
 #if defined(PLATFORM_LINUX)
     #include <errno.h>
+    #include <signal.h>
     #include <sys/ioctl.h>
     #include <sys/select.h>
     #include <termios.h>
@@ -41,6 +42,7 @@ typedef enum
     PINNED_PROMPT_KEY_END,
     PINNED_PROMPT_KEY_CTRL_C,
     PINNED_PROMPT_KEY_CLEAR,
+    PINNED_PROMPT_KEY_RESIZE,
     PINNED_PROMPT_KEY_UNKNOWN,
     PINNED_PROMPT_KEY_EOF
 } pinned_prompt_key_t;
@@ -108,7 +110,7 @@ struct com_util_pinned_prompt_t
     int status_dirty;
     int cols;
     int rows;
-    int reserved;
+    int prev_main_bottom_row; /* 前回描画時の main_bottom_row（9999=未設定） */
 
 #if defined(PLATFORM_LINUX)
     struct termios orig_term;
@@ -305,6 +307,16 @@ static void pinned_prompt_unlock(com_util_pinned_prompt_t *screen)
 
 #if defined(PLATFORM_LINUX)
 
+static volatile sig_atomic_t s_pinned_resize_pending     = 0;
+static struct sigaction       s_pinned_prev_sigwinch;
+static int                    s_pinned_sigwinch_installed = 0;
+
+static void pinned_prompt_sigwinch_handler(int sig)
+{
+    (void)sig;
+    s_pinned_resize_pending = 1;
+}
+
 static int pinned_prompt_platform_is_tty(void)
 {
     return isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
@@ -326,7 +338,8 @@ static void pinned_prompt_platform_get_size(int *cols, int *rows)
 
 static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
 {
-    struct termios raw;
+    struct termios   raw;
+    struct sigaction sa;
 
     if (screen->raw_active)
     {
@@ -341,9 +354,19 @@ static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
     raw.c_iflag &= ~((tcflag_t)(ICRNL | IXON));
     raw.c_cc[VMIN] = 1;
     raw.c_cc[VTIME] = 0;
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == 0)
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) != 0)
     {
-        screen->raw_active = 1;
+        return;
+    }
+    screen->raw_active = 1;
+
+    if (!s_pinned_sigwinch_installed)
+    {
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = pinned_prompt_sigwinch_handler;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGWINCH, &sa, &s_pinned_prev_sigwinch);
+        s_pinned_sigwinch_installed = 1;
     }
 }
 
@@ -355,6 +378,12 @@ static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
     }
     (void)tcsetattr(STDIN_FILENO, TCSAFLUSH, &screen->orig_term);
     screen->raw_active = 0;
+
+    if (s_pinned_sigwinch_installed)
+    {
+        sigaction(SIGWINCH, &s_pinned_prev_sigwinch, NULL);
+        s_pinned_sigwinch_installed = 0;
+    }
 }
 
 static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
@@ -363,17 +392,22 @@ static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
     ssize_t       n;
 
     (void)screen;
-    do
+    for (;;)
     {
         n = read(STDIN_FILENO, &c, 1);
-    } while (n < 0 && errno == EINTR);
-
-    if (n == 1)
-    {
-        return (int)c;
-    }
-    else
-    {
+        if (n == 1)
+        {
+            return (int)c;
+        }
+        if (n < 0 && errno == EINTR)
+        {
+            if (s_pinned_resize_pending)
+            {
+                s_pinned_resize_pending = 0;
+                return -2; /* リサイズ通知 */
+            }
+            continue;
+        }
         return -1;
     }
 }
@@ -465,9 +499,19 @@ static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
 
 static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
 {
+    DWORD result;
     DWORD n_read;
     char  ch;
 
+    result = WaitForSingleObject(screen->stdin_handle, 100U);
+    if (result == WAIT_TIMEOUT)
+    {
+        return -2; /* リサイズチェック用タイムアウト */
+    }
+    if (result != WAIT_OBJECT_0)
+    {
+        return -1;
+    }
     if (!ReadFile(screen->stdin_handle, &ch, 1, &n_read, NULL) || n_read == 0U)
     {
         return -1;
@@ -737,11 +781,18 @@ static void pinned_prompt_calc_layout(com_util_pinned_prompt_t *screen,
 static void pinned_prompt_clear_control_area(com_util_pinned_prompt_t       *screen,
                                              const pinned_prompt_layout_t   *layout)
 {
-    int row;
+    int clear_from;
 
-    for (row = layout->main_bottom_row + 1; row <= screen->rows; row++)
+    clear_from = layout->main_bottom_row;
+    if (screen->prev_main_bottom_row < clear_from)
     {
-        (void)printf("\033[%d;1H\033[2K", row);
+        clear_from = screen->prev_main_bottom_row;
+    }
+    clear_from++;
+
+    if (clear_from <= screen->rows)
+    {
+        (void)printf("\033[%d;1H\033[J", clear_from);
     }
 }
 
@@ -831,6 +882,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 
     (void)printf("\033[%d;%zuH\033[?25h", layout.prompt_row, cursor_col);
     (void)fflush(stdout);
+    screen->prev_main_bottom_row = layout.main_bottom_row;
 }
 
 static void pinned_prompt_hide_prompt_locked(com_util_pinned_prompt_t *screen)
@@ -909,6 +961,10 @@ static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *scre
     if (c == -1)
     {
         return PINNED_PROMPT_KEY_EOF;
+    }
+    if (c == -2)
+    {
+        return PINNED_PROMPT_KEY_RESIZE;
     }
     if (c == '\r' || c == '\n')
     {
@@ -1349,7 +1405,8 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->status_bottom_left_cap = 1U;
     screen->status_bottom_right[0] = '\0';
     screen->status_bottom_right_cap = 1U;
-    screen->status_dirty = 1;
+    screen->status_dirty          = 1;
+    screen->prev_main_bottom_row  = 9999;
 
     return screen;
 }
@@ -1538,6 +1595,11 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             break;
         case PINNED_PROMPT_KEY_CHAR:
             pinned_prompt_insert_byte(screen, ch);
+            pinned_prompt_render_locked(screen);
+            break;
+        case PINNED_PROMPT_KEY_RESIZE:
+            pinned_prompt_update_size(screen);
+            screen->status_dirty = 1;
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_UNKNOWN:

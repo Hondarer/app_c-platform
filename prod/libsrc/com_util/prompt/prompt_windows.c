@@ -58,8 +58,19 @@ void prompt_platform_leave_raw(com_util_prompt_t *p)
 
 int prompt_platform_read_char(com_util_prompt_t *p)
 {
+    DWORD result;
     DWORD n_read;
     char  ch;
+
+    result = WaitForSingleObject(p->stdin_handle, 100U);
+    if (result == WAIT_TIMEOUT)
+    {
+        return -2; /* リサイズチェック用タイムアウト */
+    }
+    if (result != WAIT_OBJECT_0)
+    {
+        return -1;
+    }
     if (!ReadFile(p->stdin_handle, &ch, 1, &n_read, NULL) || n_read == 0)
     {
         return -1;

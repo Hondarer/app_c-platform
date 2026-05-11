@@ -8,6 +8,17 @@
 #if defined(PLATFORM_LINUX)
 
 #include <errno.h>
+#include <signal.h>
+
+static volatile sig_atomic_t s_resize_pending     = 0;
+static struct sigaction       s_prev_sigwinch;
+static int                    s_sigwinch_installed = 0;
+
+static void prompt_sigwinch_handler(int sig)
+{
+    (void)sig;
+    s_resize_pending = 1;
+}
 
 int prompt_platform_is_tty(void)
 {
@@ -16,7 +27,9 @@ int prompt_platform_is_tty(void)
 
 void prompt_platform_enter_raw(com_util_prompt_t *p)
 {
-    struct termios raw;
+    struct termios   raw;
+    struct sigaction sa;
+
     if (p->raw_active)
     {
         return;
@@ -37,9 +50,19 @@ void prompt_platform_enter_raw(com_util_prompt_t *p)
     raw.c_cc[VMIN]  = 1;
     raw.c_cc[VTIME] = 0;
 
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == 0)
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) != 0)
     {
-        p->raw_active = 1;
+        return;
+    }
+    p->raw_active = 1;
+
+    if (!s_sigwinch_installed)
+    {
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = prompt_sigwinch_handler;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGWINCH, &sa, &s_prev_sigwinch);
+        s_sigwinch_installed = 1;
     }
 }
 
@@ -51,25 +74,36 @@ void prompt_platform_leave_raw(com_util_prompt_t *p)
     }
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &p->orig_term);
     p->raw_active = 0;
+
+    if (s_sigwinch_installed)
+    {
+        sigaction(SIGWINCH, &s_prev_sigwinch, NULL);
+        s_sigwinch_installed = 0;
+    }
 }
 
 int prompt_platform_read_char(com_util_prompt_t *p)
 {
     unsigned char c;
-    ssize_t n;
+    ssize_t       n;
     (void)p;
 
-    do
+    for (;;)
     {
         n = read(STDIN_FILENO, &c, 1);
-    } while (n < 0 && errno == EINTR);
-
-    if (n == 1)
-    {
-        return (int)c;
-    }
-    else
-    {
+        if (n == 1)
+        {
+            return (int)c;
+        }
+        if (n < 0 && errno == EINTR)
+        {
+            if (s_resize_pending)
+            {
+                s_resize_pending = 0;
+                return -2; /* リサイズ通知 */
+            }
+            continue;
+        }
         return -1;
     }
 }
