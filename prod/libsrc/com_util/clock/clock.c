@@ -166,7 +166,7 @@ static int clock_format_iso8601_local_from_tm(char *buf, size_t buf_size, const 
     return 0;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 uint64_t com_util_get_monotonic_ms(void)
 {
 #if defined(PLATFORM_LINUX)
@@ -178,7 +178,7 @@ uint64_t com_util_get_monotonic_ms(void)
 #endif /* PLATFORM_ */
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 void com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec)
 {
 #if defined(PLATFORM_LINUX)
@@ -193,7 +193,7 @@ void com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec)
 #endif /* PLATFORM_ */
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 void com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
 {
 #if defined(PLATFORM_LINUX)
@@ -212,7 +212,7 @@ void com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
 #endif /* PLATFORM_ */
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 {
     int64_t realtime_sec;
@@ -228,7 +228,7 @@ void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
     }
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
 com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
 {
@@ -257,7 +257,7 @@ com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_se
     return 0;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
 com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
 {
@@ -282,7 +282,7 @@ com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec,
     return 0;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 void com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout)
 {
     int64_t deadline_sec;

@@ -214,7 +214,7 @@ static void try_open_socket_locked(com_util_syslog_sink_t *h)
     /* バックオフは送信成功時にリセットする */
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
     com_util_syslog_sink_create(const char *ident, int facility)
 {
@@ -263,7 +263,7 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
     return handle;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
     com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level,
                                const com_util_realtime_timestamp_t *timestamp,
@@ -418,7 +418,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     }
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT void COM_UTIL_API
     com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle)
 {
@@ -439,7 +439,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
     free(handle);
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
     com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, const char *new_ident)
 {
@@ -467,7 +467,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     return 0;
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle)
 {
     if (handle == NULL)

@@ -89,7 +89,7 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
 #endif /* PLATFORM_ */
 }
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
 {
 #if defined(PLATFORM_LINUX)

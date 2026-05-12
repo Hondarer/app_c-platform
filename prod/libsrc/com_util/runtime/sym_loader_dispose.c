@@ -13,7 +13,7 @@
 
 #include <com_util/runtime/sym_loader.h>
 
-/* doxygen コメントは、ヘッダに記載 */
+/* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT void COM_UTIL_API
     com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length)
 {
