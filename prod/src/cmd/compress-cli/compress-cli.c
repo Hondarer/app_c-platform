@@ -18,6 +18,16 @@ static uint32_t compress_cli_read_u32_be(const uint8_t *data)
          | (uint32_t)data[3];
 }
 
+static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
+{
+    if (file != NULL)
+    {
+        (void)com_util_fclose(file);
+    }
+    free(data);
+    return -1;
+}
+
 static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *size_out)
 {
     FILE *file = NULL;
@@ -45,26 +55,26 @@ static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *
     if (com_util_fseek(file, 0, SEEK_END) != 0)
     {
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
-        goto fail;
+        return compress_cli_read_file_fail(file, data);
     }
 
     file_size_i64 = com_util_ftell(file);
     if (file_size_i64 < 0)
     {
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
-        goto fail;
+        return compress_cli_read_file_fail(file, data);
     }
     if ((uint64_t)file_size_i64 > (uint64_t)SIZE_MAX)
     {
         fprintf(stderr, "入力ファイルが大きすぎます: %s\n", path);
-        goto fail;
+        return compress_cli_read_file_fail(file, data);
     }
     file_size = (size_t)file_size_i64;
 
     if (com_util_fseek(file, 0, SEEK_SET) != 0)
     {
         fprintf(stderr, "入力ファイルの先頭へ戻せません: %s\n", path);
-        goto fail;
+        return compress_cli_read_file_fail(file, data);
     }
 
     if (file_size > 0u)
@@ -73,14 +83,14 @@ static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *
         if (data == NULL)
         {
             fprintf(stderr, "入力バッファの確保に失敗しました。\n");
-            goto fail;
+            return compress_cli_read_file_fail(file, data);
         }
 
         read_count = com_util_fread(data, 1u, file_size, file);
         if (read_count != file_size)
         {
             fprintf(stderr, "入力ファイルの読み込みに失敗しました: %s\n", path);
-            goto fail;
+            return compress_cli_read_file_fail(file, data);
         }
     }
 
@@ -88,20 +98,12 @@ static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *
     {
         file = NULL;
         fprintf(stderr, "入力ファイルのクローズに失敗しました: %s\n", path);
-        goto fail;
+        return compress_cli_read_file_fail(file, data);
     }
 
     *data_out = data;
     *size_out = file_size;
     return 0;
-
-fail:
-    if (file != NULL)
-    {
-        (void)com_util_fclose(file);
-    }
-    free(data);
-    return -1;
 }
 
 static int compress_cli_write_file(const char *path, const uint8_t *data, size_t size)
@@ -183,6 +185,13 @@ static int compress_cli_resolve_paths(const compress_cli_options_t *options,
     return 0;
 }
 
+static int compress_cli_run_compress_return(uint8_t *input_data, uint8_t *compressed_data, int rc)
+{
+    free(compressed_data);
+    free(input_data);
+    return rc;
+}
+
 static int compress_cli_run_compress(const char *input_path, const char *output_path)
 {
     uint8_t *input_data = NULL;
@@ -200,17 +209,17 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
     if (input_size == 0u)
     {
         fprintf(stderr, "空ファイルは圧縮できません: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
     if ((uint64_t)input_size > UINT32_MAX)
     {
         fprintf(stderr, "入力ファイルが大きすぎます: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
     if (input_size > (SIZE_MAX - COM_UTIL_COMPRESS_HEADER_SIZE) / 2u)
     {
         fprintf(stderr, "圧縮出力バッファのサイズ計算に失敗しました。\n");
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
 
     compressed_capacity = input_size * 2u + COM_UTIL_COMPRESS_HEADER_SIZE;
@@ -223,25 +232,27 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
     if (compressed_data == NULL)
     {
         fprintf(stderr, "圧縮バッファの確保に失敗しました。\n");
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
 
     compressed_size = compressed_capacity;
     if (com_util_compress(compressed_data, &compressed_size, input_data, input_size) != 0)
     {
         fprintf(stderr, "圧縮に失敗しました: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
 
     if (compress_cli_write_file(output_path, compressed_data, compressed_size) != 0)
     {
-        goto cleanup;
+        return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
 
-    rc = 0;
+    return compress_cli_run_compress_return(input_data, compressed_data, 0);
+}
 
-cleanup:
-    free(compressed_data);
+static int compress_cli_run_decompress_return(uint8_t *input_data, uint8_t *decompressed_data, int rc)
+{
+    free(decompressed_data);
     free(input_data);
     return rc;
 }
@@ -263,47 +274,42 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     if (input_size <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダのみ、または空です: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     expected_size = compress_cli_read_u32_be(input_data);
     if (expected_size <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダの元サイズが小さすぎます: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     decompressed_data = (uint8_t *)malloc((size_t)expected_size);
     if (decompressed_data == NULL)
     {
         fprintf(stderr, "展開バッファの確保に失敗しました。\n");
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     decompressed_size = (size_t)expected_size;
     if (com_util_decompress(decompressed_data, &decompressed_size, input_data, input_size) != 0)
     {
         fprintf(stderr, "展開に失敗しました: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     if (decompressed_size != (size_t)expected_size)
     {
         fprintf(stderr, "展開後サイズがヘッダ値と一致しません: %s\n", input_path);
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     if (compress_cli_write_file(output_path, decompressed_data, decompressed_size) != 0)
     {
-        goto cleanup;
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
-    rc = 0;
-
-cleanup:
-    free(decompressed_data);
-    free(input_data);
-    return rc;
+    return compress_cli_run_decompress_return(input_data, decompressed_data, 0);
 }
 
 void compress_cli_options_init(compress_cli_options_t *options)

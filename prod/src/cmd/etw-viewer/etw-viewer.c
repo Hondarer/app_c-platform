@@ -307,14 +307,14 @@ int main(int argc, char *argv[])
             print_usage_arg = "etw-viewer";
         }
         etw_viewer_print_usage(print_usage_arg, 1);
-        goto cleanup;
+        return exit_code;
     }
 
     if (etw_viewer_build_default_session_name((unsigned long)GetCurrentProcessId(), session_name,
                                               sizeof(session_name)) != 0)
     {
         fprintf(stderr, "既定 session 名の生成に失敗しました。\n");
-        goto cleanup;
+        return exit_code;
     }
 
     viewer_context.process_id_filter = options.process_id_filter;
@@ -325,18 +325,18 @@ int main(int argc, char *argv[])
     {
         print_access_error();
         exit_code = EXIT_ACCESS_DENIED;
-        goto cleanup;
+        return exit_code;
     }
     if (status != COM_UTIL_ETW_SESSION_OK)
     {
         fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
-        goto cleanup;
+        return exit_code;
     }
 
     if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != 0)
     {
         fprintf(stderr, "終了要求 callback の登録に失敗しました。\n");
-        goto cleanup;
+        return exit_code;
     }
 
     session = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
             exit_code = EXIT_ACCESS_DENIED;
         }
         print_start_error(status, session_name);
-        goto cleanup;
+        return exit_code;
     }
 
     printf("session=%s provider=%s\n", session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
@@ -367,7 +367,6 @@ int main(int argc, char *argv[])
     com_util_etw_session_stop(session);
     exit_code = EXIT_SUCCESS;
 
-cleanup:
     return exit_code;
 }
 

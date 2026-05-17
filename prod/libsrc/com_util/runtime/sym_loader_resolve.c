@@ -89,6 +89,12 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
 #endif /* PLATFORM_ */
 }
 
+static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry_t *fobj)
+{
+    com_util_local_lock_unlock(fobj->lock);
+    return fobj->func_ptr;
+}
+
 /* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
 {
@@ -139,7 +145,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #else /* !COMPILER_GCC */
             fobj->resolved = 2;
 #endif /* COMPILER_GCC */
-            goto unlock;
+            return unlock_entry_and_return_func_ptr(fobj);
         }
         if (fobj->lib_name[0] == '\0' || fobj->func_name[0] == '\0')
         {
@@ -148,7 +154,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #else /* !COMPILER_GCC */
             fobj->resolved = -1; /* resolved=-1: 定義なし (定義ファイル不存在、定義行が不存在) */
 #endif /* COMPILER_GCC */
-            goto unlock;
+            return unlock_entry_and_return_func_ptr(fobj);
         }
         if (strlen(fobj->lib_name) + strlen(ext) >= COM_UTIL_SYM_LOADER_NAME_MAX)
         {
@@ -157,7 +163,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #else /* !COMPILER_GCC */
             fobj->resolved = -2; /* resolved=-2: 名称長さオーバー */
 #endif /* COMPILER_GCC */
-            goto unlock;
+            return unlock_entry_and_return_func_ptr(fobj);
         }
         (void)com_util_strcpy(lib_with_ext, sizeof(lib_with_ext), fobj->lib_name);
         (void)com_util_strcat(lib_with_ext, sizeof(lib_with_ext), ext);
@@ -174,7 +180,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #else /* !COMPILER_GCC */
             fobj->resolved = -3; /* resolved=-3: ライブラリオープンエラー */
 #endif /* COMPILER_GCC */
-            goto unlock;
+            return unlock_entry_and_return_func_ptr(fobj);
         }
 
         /* func_ptr を書き込んでから resolved を release-store する。
@@ -212,8 +218,5 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #endif /* COMPILER_GCC */
     }
 
-unlock:
-    com_util_local_lock_unlock(fobj->lock);
-
-    return fobj->func_ptr;
+    return unlock_entry_and_return_func_ptr(fobj);
 }

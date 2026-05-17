@@ -4,7 +4,8 @@ C プロジェクト向けの汎用ユーティリティ群を提供するライ
 
 ## Doxygen (API 仕様書、モジュール仕様書)
 
-- [doxygen](../../../pages/doxygen/com_util/index.html)
+<!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
+- [doxygen](../../../doxygen/com_util/index.html)
 
 ## 単一ファイル版 Doxygen (API 仕様書、モジュール仕様書)
 
