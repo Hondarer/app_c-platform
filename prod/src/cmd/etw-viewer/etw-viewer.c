@@ -22,6 +22,7 @@
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
 #include <com_util/runtime/shutdown.h>
+#include <com_util/sync/sync.h>
 #include <signal.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -361,7 +362,7 @@ int main(int argc, char *argv[])
 
     while (!g_stop_requested)
     {
-        Sleep(ETW_VIEWER_WAIT_MS);
+        com_util_sleep_ms(ETW_VIEWER_WAIT_MS);
     }
 
     com_util_etw_session_stop(session);

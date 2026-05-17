@@ -147,6 +147,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_destroy(com_util_
 COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag_t *flag,
                                                      com_util_once_func_t func);
 
+COM_UTIL_EXPORT void COM_UTIL_API com_util_sleep_ms(uint32_t ms);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -907,4 +907,13 @@ void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
     }
 }
 
+void com_util_sleep_ms(uint32_t ms)
+{
+    if (ms == 0U)
+    {
+        return;
+    }
+    Sleep((DWORD)ms);
+}
+
 #endif /* PLATFORM_WINDOWS */

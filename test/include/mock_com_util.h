@@ -190,6 +190,7 @@ extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_try_loc
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock);
 extern void delegate_real_com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock);
 extern void delegate_real_com_util_call_once(com_util_once_flag_t *flag, com_util_once_func_t func);
+extern void delegate_real_com_util_sleep_ms(uint32_t ms);
 
 // runtime - module_info
 extern int delegate_real_com_util_module_get_path(char *out_path, size_t out_path_sz, const void *func_addr);
@@ -407,6 +408,7 @@ class Mock_com_util
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_unlock, (com_util_interprocess_rwlock_t *));
     MOCK_METHOD(void, com_util_interprocess_rwlock_destroy, (com_util_interprocess_rwlock_t *));
     MOCK_METHOD(void, com_util_call_once, (com_util_once_flag_t *, com_util_once_func_t));
+    MOCK_METHOD(void, com_util_sleep_ms, (uint32_t));
 
     // runtime - module_info
     MOCK_METHOD(int, com_util_module_get_path, (char *, size_t, const void *));

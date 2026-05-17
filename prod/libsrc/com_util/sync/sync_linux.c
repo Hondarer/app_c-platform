@@ -1014,6 +1014,23 @@ void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
     }
 }
 
+void com_util_sleep_ms(uint32_t ms)
+{
+    struct timespec req;
+    struct timespec rem;
+
+    if (ms == 0U)
+    {
+        return;
+    }
+    req.tv_sec  = (time_t)(ms / 1000U);
+    req.tv_nsec = (long)((ms % 1000U) * 1000000UL);
+    while (nanosleep(&req, &rem) == -1 && errno == EINTR)
+    {
+        req = rem;
+    }
+}
+
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)
     #pragma warning(disable : 4206)
 #endif /* PLATFORM_ */

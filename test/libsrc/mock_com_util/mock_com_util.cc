@@ -152,6 +152,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_interprocess_rwlock_unlock(_)).WillByDefault(Invoke(delegate_real_com_util_interprocess_rwlock_unlock));
     ON_CALL(*this, com_util_interprocess_rwlock_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_interprocess_rwlock_destroy));
     ON_CALL(*this, com_util_call_once(_, _)).WillByDefault(Invoke(delegate_real_com_util_call_once));
+    ON_CALL(*this, com_util_sleep_ms(_)).WillByDefault(Invoke(delegate_real_com_util_sleep_ms));
 
     // runtime - module_info
     ON_CALL(*this, com_util_module_get_path(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_module_get_path));

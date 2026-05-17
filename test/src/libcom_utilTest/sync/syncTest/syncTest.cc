@@ -7,6 +7,7 @@
 #include <string.h>
 
 #if defined(PLATFORM_LINUX)
+    #include <time.h>
     #include <unistd.h>
     #include <sys/wait.h>
     static void make_test_interprocess_path(char *buf, size_t size, const char *tag)
@@ -14,10 +15,20 @@
         snprintf(buf, size, "/tmp/com_util_%s_%ld.lock", tag, (long)getpid());
     }
     #define TEST_INTERPROCESS_UNLINK(path) unlink(path)
+    static uint64_t test_monotonic_ms(void)
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+    }
 #elif defined(PLATFORM_WINDOWS)
     #include <process.h>
     #include <io.h>
     #include <com_util/base/windows_sdk.h>
+    static uint64_t test_monotonic_ms(void)
+    {
+        return (uint64_t)GetTickCount64();
+    }
     static void make_test_interprocess_path(char *buf, size_t size, const char *tag)
     {
         char tmp_dir[256];
@@ -334,3 +345,35 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
     TEST_INTERPROCESS_UNLINK(path);
 }
 #endif /* PLATFORM_LINUX */
+
+TEST(SyncSleepMsTest, ZeroReturnsImmediately)
+{
+    // Arrange
+    uint64_t before = test_monotonic_ms(); // [状態] - 呼び出し前の単調増加時刻を取得する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sleep_ms(0U); // [手順] - 待機時間 0 ms で呼び出す。
+    uint64_t after = test_monotonic_ms(); // [手順] - 呼び出し後の単調増加時刻を取得する。
+
+    // Assert
+    EXPECT_LT(after - before, 100U); // [確認_正常系] - 0 ms 指定で即時に戻ること。
+}
+
+TEST(SyncSleepMsTest, ElapsesAtLeastSpecifiedDuration)
+{
+    // Arrange
+    const uint32_t target_ms = 50U; // [状態] - 待機指示値。
+    uint64_t before = test_monotonic_ms(); // [状態] - 呼び出し前の単調増加時刻を取得する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sleep_ms(target_ms); // [手順] - 指定ミリ秒待機する。
+    uint64_t after = test_monotonic_ms(); // [手順] - 呼び出し後の単調増加時刻を取得する。
+
+    // Assert
+    // Windows の GetTickCount64 は ~15 ms 精度のため余裕を持って判定する。
+    EXPECT_GE(after - before, (uint64_t)target_ms - 15U); // [確認_正常系] - 指定ミリ秒以上経過していること。
+}
