@@ -34,7 +34,7 @@
 #define COM_UTIL_FILE_OPEN_SHARE_DELETE      (1 << 5) /**< 他プロセスからの削除を許可する。 */
 
 /**
- *  @brief  ファイルハンドルの抽象化構造体 (Linux: fd、Windows: HANDLE を保持)。
+ *  @brief  ファイルハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。
  */
 typedef struct com_util_file
 {
