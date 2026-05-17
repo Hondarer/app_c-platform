@@ -54,6 +54,25 @@ static void zero_bytes(void *ptr, size_t size)
     }
 }
 
+static com_util_etw_session_t *dispose_session_and_return_null(com_util_etw_session_t *session)
+{
+    if (session != NULL)
+    {
+        if (session->trace_handle != INVALID_PROCESSTRACE_HANDLE)
+        {
+            CloseTrace(session->trace_handle);
+        }
+        if (session->session_handle != 0)
+        {
+            ControlTraceW(session->session_handle, NULL, session->properties, EVENT_TRACE_CONTROL_STOP);
+        }
+        free(session->session_name_w);
+        free(session->properties);
+        free(session);
+    }
+    return NULL;
+}
+
 /**
  *  @brief  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" をパースする。
  *  @return 成功 0 / 失敗 -1。
@@ -519,7 +538,7 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     if (session->session_name_w == NULL)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
     MultiByteToWideChar(CP_UTF8, 0, session_name, -1, session->session_name_w, name_len_w);
 
@@ -529,7 +548,7 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     if (session->properties == NULL)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     /* リアルタイムセッションを開始 */
@@ -547,14 +566,14 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     {
         session->session_handle = 0;
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_ACCESS);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     if (status != ERROR_SUCCESS)
     {
         session->session_handle = 0;
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     /* プロバイダを有効化 */
@@ -564,7 +583,7 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     if (status != ERROR_SUCCESS)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     /* トレースをオープンしワーカースレッドを起動 */
@@ -580,34 +599,17 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     if (session->trace_handle == INVALID_PROCESSTRACE_HANDLE)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != 0)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
-        goto cleanup;
+        return dispose_session_and_return_null(session);
     }
 
     set_status(out_status, COM_UTIL_ETW_SESSION_OK);
     return session;
-
-cleanup:
-    if (session != NULL)
-    {
-        if (session->trace_handle != INVALID_PROCESSTRACE_HANDLE)
-        {
-            CloseTrace(session->trace_handle);
-        }
-        if (session->session_handle != 0)
-        {
-            ControlTraceW(session->session_handle, NULL, session->properties, EVENT_TRACE_CONTROL_STOP);
-        }
-        free(session->session_name_w);
-        free(session->properties);
-        free(session);
-    }
-    return NULL;
 }
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session_t *session)
