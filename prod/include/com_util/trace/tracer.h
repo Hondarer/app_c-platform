@@ -610,6 +610,7 @@ extern "C"
 /**
  *  @brief          ファイルパスからベースネームを取り出す内部ヘルパーマクロ。
  *  @internal
+ *  @note           式文脈で展開されるマクロのため、三項演算子を使用しています。
  */
 #define _com_util_tracer_basename(f) \
     (strrchr((f), PLATFORM_PATH_SEP_CHR) ? strrchr((f), PLATFORM_PATH_SEP_CHR) + 1 : \
@@ -654,6 +655,7 @@ static inline int _com_util_tracer_write_with_source(
 
 /**
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hex マクロ。
+ *  @note           式文脈で展開されるマクロのため、三項演算子を使用しています。
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
