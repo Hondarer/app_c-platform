@@ -354,17 +354,32 @@ TEST(SyncSleepMsTest, ZeroReturnsImmediately)
     // Pre-Assert
 
     // Act
-    com_util_sleep_ms(0U); // [手順] - 待機時間 0 ms で呼び出す。
+    com_util_sleep_ms(0); // [手順] - 待機時間 0 ms で呼び出す。
     uint64_t after = test_monotonic_ms(); // [手順] - 呼び出し後の単調増加時刻を取得する。
 
     // Assert
     EXPECT_LT(after - before, 100U); // [確認_正常系] - 0 ms 指定で即時に戻ること。
 }
 
+TEST(SyncSleepMsTest, NegativeReturnsImmediately)
+{
+    // Arrange
+    uint64_t before = test_monotonic_ms(); // [状態] - 呼び出し前の単調増加時刻を取得する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sleep_ms(-1); // [手順] - 負の待機時間で呼び出す。
+    uint64_t after = test_monotonic_ms(); // [手順] - 呼び出し後の単調増加時刻を取得する。
+
+    // Assert
+    EXPECT_LT(after - before, 100U); // [確認_異常系] - 負値指定で即時に戻ること (no-op)。
+}
+
 TEST(SyncSleepMsTest, ElapsesAtLeastSpecifiedDuration)
 {
     // Arrange
-    const uint32_t target_ms = 50U; // [状態] - 待機指示値。
+    const int target_ms = 50; // [状態] - 待機指示値。
     uint64_t before = test_monotonic_ms(); // [状態] - 呼び出し前の単調増加時刻を取得する。
 
     // Pre-Assert
@@ -376,4 +391,22 @@ TEST(SyncSleepMsTest, ElapsesAtLeastSpecifiedDuration)
     // Assert
     // Windows の GetTickCount64 は ~15 ms 精度のため余裕を持って判定する。
     EXPECT_GE(after - before, (uint64_t)target_ms - 15U); // [確認_正常系] - 指定ミリ秒以上経過していること。
+}
+
+TEST(SyncLocalLockTest, NegativeTimeoutReturnsInvalidArgument)
+{
+    // Arrange
+    com_util_local_lock_t *lock = NULL;
+
+    // Pre-Assert
+
+    // Act
+    com_util_sync_result_t create_result = com_util_local_lock_create(&lock);
+    com_util_sync_result_t lock_result = com_util_local_lock_lock(lock, -1); // [手順] - 負のタイムアウトを指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);
+    EXPECT_EQ(COM_UTIL_SYNC_INVALID_ARGUMENT, lock_result); // [確認_異常系] - 負値で INVALID_ARGUMENT を返すこと。
+
+    com_util_local_lock_destroy(lock);
 }

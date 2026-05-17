@@ -37,8 +37,8 @@ struct com_util_local_rwlock
     CRITICAL_SECTION mutex;
     CONDITION_VARIABLE readers_cv;
     CONDITION_VARIABLE writers_cv;
-    uint32_t active_readers;
-    uint32_t waiting_writers;
+    unsigned int active_readers;
+    unsigned int waiting_writers;
     int writer_active;
 };
 
@@ -180,7 +180,7 @@ static com_util_sync_result_t interprocess_lock_open_identity(
 }
 
 static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock, DWORD flags,
-                                            uint32_t timeout_ms)
+                                            int timeout_ms)
 {
     ULONGLONG deadline;
     OVERLAPPED ov;
@@ -214,7 +214,7 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock
 }
 
 static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock_t *lock,
-                                                     uint32_t timeout_ms)
+                                                     int timeout_ms)
 {
     ULONGLONG deadline;
     OVERLAPPED ov;
@@ -265,11 +265,11 @@ com_util_sync_result_t com_util_local_lock_create(com_util_local_lock_t **mtx)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, int timeout_ms)
 {
     ULONGLONG deadline;
 
-    if (mtx == NULL)
+    if (mtx == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -333,11 +333,11 @@ com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
 }
 
 com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx,
-                                             uint32_t timeout_ms)
+                                             int timeout_ms)
 {
     DWORD wait_ms;
 
-    if (cv == NULL || mtx == NULL)
+    if (cv == NULL || mtx == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -408,9 +408,14 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rw
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms)
 {
     DWORD wait_ms;
+
+    if (rwlock == NULL || timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
         wait_ms = INFINITE;
@@ -418,11 +423,6 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t
     else
     {
         wait_ms = (DWORD)timeout_ms;
-    }
-
-    if (rwlock == NULL)
-    {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
     EnterCriticalSection(&rwlock->mutex);
     while (rwlock->writer_active || rwlock->waiting_writers > 0)
@@ -455,9 +455,14 @@ com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlo
     return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms)
 {
     DWORD wait_ms;
+
+    if (rwlock == NULL || timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
         wait_ms = INFINITE;
@@ -465,11 +470,6 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
     else
     {
         wait_ms = (DWORD)timeout_ms;
-    }
-
-    if (rwlock == NULL)
-    {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
     EnterCriticalSection(&rwlock->mutex);
     rwlock->waiting_writers++;
@@ -594,12 +594,12 @@ com_util_sync_result_t com_util_thread_create(com_util_thread_t **thread,
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms)
+com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, int timeout_ms)
 {
     DWORD status;
     DWORD wait_ms;
 
-    if (thread == NULL)
+    if (thread == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -712,8 +712,12 @@ com_util_sync_result_t com_util_interprocess_lock_import_descriptor(
 }
 
 com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock,
-                                                       uint32_t timeout_ms)
+                                                       int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return interprocess_lock_take(lock, timeout_ms);
 }
 
@@ -837,8 +841,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void
 }
 
 com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock,
-                                                     uint32_t timeout_ms)
+                                                     int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return app_lock_take(lock, 0U, timeout_ms);
 }
 
@@ -848,8 +856,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_int
 }
 
 com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock,
-                                                        uint32_t timeout_ms)
+                                                        int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return app_lock_take(lock, LOCKFILE_EXCLUSIVE_LOCK, timeout_ms);
 }
 
@@ -907,9 +919,9 @@ void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
     }
 }
 
-void com_util_sleep_ms(uint32_t ms)
+void com_util_sleep_ms(int ms)
 {
-    if (ms == 0U)
+    if (ms <= 0)
     {
         return;
     }

@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-void delegate_real_com_util_sleep_ms(uint32_t ms)
+void delegate_real_com_util_sleep_ms(int ms)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_sleep_ms)>(
@@ -10,7 +10,7 @@ void delegate_real_com_util_sleep_ms(uint32_t ms)
     real_fn(ms);
 }
 
-MOCK_WEAK_IMPL(void, com_util_sleep_ms, uint32_t ms)
+MOCK_WEAK_IMPL(void, com_util_sleep_ms, int ms)
 {
     if (_mock_com_util != nullptr)
     {
@@ -23,6 +23,6 @@ MOCK_WEAK_IMPL(void, com_util_sleep_ms, uint32_t ms)
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %u\n", __func__, (unsigned)ms);
+        printf("  > %s %d\n", __func__, ms);
     }
 }

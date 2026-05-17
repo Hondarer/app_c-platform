@@ -153,44 +153,44 @@ extern void delegate_real_com_util_console_dispose_on_shutdown(const com_util_sh
 
 // sync
 extern com_util_sync_result_t delegate_real_com_util_local_lock_create(com_util_local_lock_t **mtx);
-extern com_util_sync_result_t delegate_real_com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_local_lock_lock(com_util_local_lock_t *mtx, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_local_lock_try_lock(com_util_local_lock_t *mtx);
 extern com_util_sync_result_t delegate_real_com_util_local_lock_unlock(com_util_local_lock_t *mtx);
 extern void delegate_real_com_util_local_lock_destroy(com_util_local_lock_t *mtx);
 extern com_util_sync_result_t delegate_real_com_util_condvar_create(com_util_condvar_t **cv);
-extern com_util_sync_result_t delegate_real_com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_condvar_signal(com_util_condvar_t *cv);
 extern com_util_sync_result_t delegate_real_com_util_condvar_broadcast(com_util_condvar_t *cv);
 extern void delegate_real_com_util_condvar_destroy(com_util_condvar_t *cv);
 extern com_util_sync_result_t delegate_real_com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock);
-extern com_util_sync_result_t delegate_real_com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock);
-extern com_util_sync_result_t delegate_real_com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock_t *rwlock);
 extern com_util_sync_result_t delegate_real_com_util_local_rwlock_unlock_shared(com_util_local_rwlock_t *rwlock);
 extern com_util_sync_result_t delegate_real_com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock_t *rwlock);
 extern void delegate_real_com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock);
 extern com_util_sync_result_t delegate_real_com_util_thread_create(com_util_thread_t **thread, com_util_thread_func_t func, void *arg);
-extern com_util_sync_result_t delegate_real_com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_thread_join(com_util_thread_t *thread, int timeout_ms);
 extern void delegate_real_com_util_thread_detach(com_util_thread_t *thread);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock_t **lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size, com_util_interprocess_lock_t **lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock_t *lock, void *descriptor, size_t *descriptor_size);
-extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_try_lock(com_util_interprocess_lock_t *lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_lock_unlock(com_util_interprocess_lock_t *lock);
 extern void delegate_real_com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock_t **lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size, com_util_interprocess_rwlock_t **lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock_t *lock, void *descriptor, size_t *descriptor_size);
-extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *lock);
-extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, int timeout_ms);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock_t *lock);
 extern com_util_sync_result_t delegate_real_com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock);
 extern void delegate_real_com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock);
 extern void delegate_real_com_util_call_once(com_util_once_flag_t *flag, com_util_once_func_t func);
-extern void delegate_real_com_util_sleep_ms(uint32_t ms);
+extern void delegate_real_com_util_sleep_ms(int ms);
 
 // runtime - module_info
 extern int delegate_real_com_util_module_get_path(char *out_path, size_t out_path_sz, const void *func_addr);
@@ -371,44 +371,44 @@ class Mock_com_util
 
     // sync
     MOCK_METHOD(com_util_sync_result_t, com_util_local_lock_create, (com_util_local_lock_t **));
-    MOCK_METHOD(com_util_sync_result_t, com_util_local_lock_lock, (com_util_local_lock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_local_lock_lock, (com_util_local_lock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_lock_try_lock, (com_util_local_lock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_lock_unlock, (com_util_local_lock_t *));
     MOCK_METHOD(void, com_util_local_lock_destroy, (com_util_local_lock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_condvar_create, (com_util_condvar_t **));
-    MOCK_METHOD(com_util_sync_result_t, com_util_condvar_wait, (com_util_condvar_t *, com_util_local_lock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_condvar_wait, (com_util_condvar_t *, com_util_local_lock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_condvar_signal, (com_util_condvar_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_condvar_broadcast, (com_util_condvar_t *));
     MOCK_METHOD(void, com_util_condvar_destroy, (com_util_condvar_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_create, (com_util_local_rwlock_t **));
-    MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_lock_shared, (com_util_local_rwlock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_lock_shared, (com_util_local_rwlock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_try_lock_shared, (com_util_local_rwlock_t *));
-    MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_lock_exclusive, (com_util_local_rwlock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_lock_exclusive, (com_util_local_rwlock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_try_lock_exclusive, (com_util_local_rwlock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_unlock_shared, (com_util_local_rwlock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_local_rwlock_unlock_exclusive, (com_util_local_rwlock_t *));
     MOCK_METHOD(void, com_util_local_rwlock_destroy, (com_util_local_rwlock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_thread_create, (com_util_thread_t **, com_util_thread_func_t, void *));
-    MOCK_METHOD(com_util_sync_result_t, com_util_thread_join, (com_util_thread_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_thread_join, (com_util_thread_t *, int));
     MOCK_METHOD(void, com_util_thread_detach, (com_util_thread_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_open, (const char *, com_util_interprocess_lock_t **));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_import_descriptor, (const void *, size_t, com_util_interprocess_lock_t **));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_export_descriptor, (const com_util_interprocess_lock_t *, void *, size_t *));
-    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_lock, (com_util_interprocess_lock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_lock, (com_util_interprocess_lock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_try_lock, (com_util_interprocess_lock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_lock_unlock, (com_util_interprocess_lock_t *));
     MOCK_METHOD(void, com_util_interprocess_lock_destroy, (com_util_interprocess_lock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_open, (const char *, com_util_interprocess_rwlock_t **));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_import_descriptor, (const void *, size_t, com_util_interprocess_rwlock_t **));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_export_descriptor, (const com_util_interprocess_rwlock_t *, void *, size_t *));
-    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_lock_shared, (com_util_interprocess_rwlock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_lock_shared, (com_util_interprocess_rwlock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_try_lock_shared, (com_util_interprocess_rwlock_t *));
-    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_lock_exclusive, (com_util_interprocess_rwlock_t *, uint32_t));
+    MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_lock_exclusive, (com_util_interprocess_rwlock_t *, int));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_try_lock_exclusive, (com_util_interprocess_rwlock_t *));
     MOCK_METHOD(com_util_sync_result_t, com_util_interprocess_rwlock_unlock, (com_util_interprocess_rwlock_t *));
     MOCK_METHOD(void, com_util_interprocess_rwlock_destroy, (com_util_interprocess_rwlock_t *));
     MOCK_METHOD(void, com_util_call_once, (com_util_once_flag_t *, com_util_once_func_t));
-    MOCK_METHOD(void, com_util_sleep_ms, (uint32_t));
+    MOCK_METHOD(void, com_util_sleep_ms, (int));
 
     // runtime - module_info
     MOCK_METHOD(int, com_util_module_get_path, (char *, size_t, const void *));

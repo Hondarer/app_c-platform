@@ -36,7 +36,7 @@
     #include <com_util/trace/etw.h>
     #include <com_util/trace/tracer.h>
 
-    #define ETW_VIEWER_WAIT_MS     200U
+    #define ETW_VIEWER_WAIT_MS     200
     #define ETW_VIEWER_DEFAULT_TAG COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
 
     #define EXIT_ACCESS_DENIED 2

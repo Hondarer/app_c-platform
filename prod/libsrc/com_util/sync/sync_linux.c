@@ -46,8 +46,8 @@ struct com_util_local_rwlock
     pthread_mutex_t mutex;
     pthread_cond_t  readers_cv;
     pthread_cond_t  writers_cv;
-    uint32_t        active_readers;
-    uint32_t        waiting_writers;
+    unsigned int    active_readers;
+    unsigned int    waiting_writers;
     int             writer_active;
     int             _pad_struct_end;
 };
@@ -85,11 +85,14 @@ static uint64_t monotonic_ms(void)
     return ((uint64_t)ts.tv_sec * 1000U) + ((uint64_t)ts.tv_nsec / 1000000U);
 }
 
-static void monotonic_deadline(struct timespec *abs_ts, uint32_t timeout_ms)
+static void monotonic_deadline(struct timespec *abs_ts, int timeout_ms)
 {
+    /* 呼び出し元で負値チェック済みのため、unsigned int として演算する。 */
+    unsigned int ms = (unsigned int)timeout_ms;
+
     clock_gettime(CLOCK_MONOTONIC, abs_ts);
-    abs_ts->tv_sec += (time_t)(timeout_ms / 1000U);
-    abs_ts->tv_nsec += (long)((timeout_ms % 1000U) * 1000000UL);
+    abs_ts->tv_sec += (time_t)(ms / 1000U);
+    abs_ts->tv_nsec += (long)((ms % 1000U) * 1000000UL);
     if (abs_ts->tv_nsec >= 1000000000L)
     {
         abs_ts->tv_sec++;
@@ -223,7 +226,7 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
 }
 
 static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock, int operation,
-                                            uint32_t timeout_ms)
+                                            int timeout_ms)
 {
     uint64_t     deadline;
 
@@ -271,7 +274,7 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock
 }
 
 static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock_t *lock,
-                                                     uint32_t timeout_ms)
+                                                     int timeout_ms)
 {
     uint64_t deadline;
 
@@ -340,11 +343,11 @@ com_util_sync_result_t com_util_local_lock_create(com_util_local_lock_t **mtx)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, int timeout_ms)
 {
     uint64_t deadline;
 
-    if (mtx == NULL)
+    if (mtx == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -422,11 +425,11 @@ com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
 }
 
 com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx,
-                                             uint32_t timeout_ms)
+                                             int timeout_ms)
 {
     struct timespec abs_ts;
 
-    if (cv == NULL || mtx == NULL)
+    if (cv == NULL || mtx == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -492,12 +495,12 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rw
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
     int             rc = 0;
 
-    if (rwlock == NULL)
+    if (rwlock == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -537,12 +540,12 @@ com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlo
     return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
     int             rc = 0;
 
-    if (rwlock == NULL)
+    if (rwlock == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -676,12 +679,12 @@ com_util_sync_result_t com_util_thread_create(com_util_thread_t **thread,
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms)
+com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, int timeout_ms)
 {
     struct timespec abs_ts;
     int             rc;
 
-    if (thread == NULL)
+    if (thread == NULL || timeout_ms < 0)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
@@ -820,8 +823,12 @@ com_util_sync_result_t com_util_interprocess_lock_import_descriptor(
 }
 
 com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock,
-                                                       uint32_t timeout_ms)
+                                                       int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return interprocess_lock_take(lock, timeout_ms);
 }
 
@@ -943,8 +950,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void
 }
 
 com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock,
-                                                     uint32_t timeout_ms)
+                                                     int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return app_lock_take(lock, LOCK_SH, timeout_ms);
 }
 
@@ -954,8 +965,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_int
 }
 
 com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock,
-                                                        uint32_t timeout_ms)
+                                                        int timeout_ms)
 {
+    if (timeout_ms < 0)
+    {
+        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+    }
     return app_lock_take(lock, LOCK_EX, timeout_ms);
 }
 
@@ -1014,17 +1029,19 @@ void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
     }
 }
 
-void com_util_sleep_ms(uint32_t ms)
+void com_util_sleep_ms(int ms)
 {
     struct timespec req;
     struct timespec rem;
+    unsigned int    ums;
 
-    if (ms == 0U)
+    if (ms <= 0)
     {
         return;
     }
-    req.tv_sec  = (time_t)(ms / 1000U);
-    req.tv_nsec = (long)((ms % 1000U) * 1000000UL);
+    ums = (unsigned int)ms;
+    req.tv_sec  = (time_t)(ums / 1000U);
+    req.tv_nsec = (long)((ums % 1000U) * 1000000UL);
     while (nanosleep(&req, &rem) == -1 && errno == EINTR)
     {
         req = rem;

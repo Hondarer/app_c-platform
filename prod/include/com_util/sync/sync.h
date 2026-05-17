@@ -18,6 +18,7 @@
 #ifndef COM_UTIL_SYNC_H
 #define COM_UTIL_SYNC_H
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -28,8 +29,8 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-#define COM_UTIL_SYNC_WAIT_FOREVER UINT32_MAX /**< タイムアウトなしで待機する (UINT32_MAX)。 */
-#define COM_UTIL_SYNC_NO_WAIT 0U              /**< 即時リターン (タイムアウト 0 ms)。 */
+#define COM_UTIL_SYNC_WAIT_FOREVER INT_MAX /**< タイムアウトなしで待機する (INT_MAX)。 */
+#define COM_UTIL_SYNC_NO_WAIT 0            /**< 即時リターン (タイムアウト 0 ms)。 */
 
 /** @brief 同期操作の結果コード。 */
 typedef enum
@@ -80,11 +81,13 @@ com_util_local_lock_create(com_util_local_lock_t **mtx);
  *  @param[in,out]  mtx        対象のミューテックス。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_local_lock_lock(com_util_local_lock_t *mtx, uint32_t timeout_ms);
+com_util_local_lock_lock(com_util_local_lock_t *mtx, int timeout_ms);
 /**
  *  @brief          ミューテックスをノンブロッキングでロック試行します。
  *  @param[in,out]  mtx  対象のミューテックス。NULL を渡してはなりません。
@@ -118,11 +121,13 @@ com_util_condvar_create(com_util_condvar_t **cv);
  *  @param[in,out]  mtx        待機中にアンロックするミューテックス。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx, uint32_t timeout_ms);
+com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx, int timeout_ms);
 /**
  *  @brief          待機中のスレッドを 1 つ起床させます。
  *  @param[in,out]  cv  対象の条件変数。NULL を渡してはなりません。
@@ -155,11 +160,13 @@ com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock);
  *  @param[in,out]  rwlock     対象の読み書きロック。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
+com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms);
 /**
  *  @brief          共有 (読み取り) ロックをノンブロッキングで取得試行します。
  *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
@@ -172,11 +179,13 @@ com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock);
  *  @param[in,out]  rwlock     対象の読み書きロック。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, uint32_t timeout_ms);
+com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms);
 /**
  *  @brief          排他 (書き込み) ロックをノンブロッキングで取得試行します。
  *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
@@ -218,11 +227,13 @@ com_util_thread_create(com_util_thread_t **thread, com_util_thread_func_t func, 
  *  @param[in,out]  thread     対象のスレッドハンドル。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_thread_join(com_util_thread_t *thread, uint32_t timeout_ms);
+com_util_thread_join(com_util_thread_t *thread, int timeout_ms);
 /**
  *  @brief          スレッドを切り離します。切り離し後はリソースを自動解放します。
  *  @param[in,out]  thread  切り離すスレッドハンドル。NULL を渡してはなりません。
@@ -264,11 +275,13 @@ com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock_t 
  *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, uint32_t timeout_ms);
+com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, int timeout_ms);
 /**
  *  @brief          プロセス横断ミューテックスをノンブロッキングでロック試行します。
  *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
@@ -324,11 +337,13 @@ com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwloc
  *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, int timeout_ms);
 /**
  *  @brief          プロセス横断共有 (読み取り) ロックをノンブロッキングで取得試行します。
  *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
@@ -341,11 +356,13 @@ com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *loc
  *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
  *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
  *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
+ *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
  *  @return         @ref COM_UTIL_SYNC_OK 、@ref COM_UTIL_SYNC_TIMEOUT 、
+ *                  @ref COM_UTIL_SYNC_INVALID_ARGUMENT 、
  *                  @ref COM_UTIL_SYNC_SYSTEM_ERROR のいずれかを返します。
  */
 COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, uint32_t timeout_ms);
+com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, int timeout_ms);
 /**
  *  @brief          プロセス横断排他 (書き込み) ロックをノンブロッキングで取得試行します。
  *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
@@ -377,9 +394,9 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag_t *flag,
 
 /**
  *  @brief      指定時間だけ現在のスレッドをスリープします。
- *  @param[in]  ms  スリープする時間 (ms)。0 を渡した場合は即時リターンします。
+ *  @param[in]  ms  スリープする時間 (ms)。0 以下の値を渡した場合は即時リターンします (no-op)。
  */
-COM_UTIL_EXPORT void COM_UTIL_API com_util_sleep_ms(uint32_t ms);
+COM_UTIL_EXPORT void COM_UTIL_API com_util_sleep_ms(int ms);
 
 #ifdef __cplusplus
 }
