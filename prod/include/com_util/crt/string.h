@@ -24,23 +24,59 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+    /**
+     *  @brief          バッファサイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当)。
+     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
+     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest,
                                                       size_t dest_size,
                                                       const char *src);
 
+    /**
+     *  @brief          バッファサイズ付き安全 strncpy (`strncpy_s` 相当)。
+     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
+     *  @param[in]      count      コピーする最大文字数。
+     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest,
                                                        size_t dest_size,
                                                        const char *src,
                                                        size_t count);
 
+    /**
+     *  @brief          バッファサイズ付き安全 strcat (`strcat_s` / `strlcat` 相当)。
+     *  @param[in,out]  dest       連結先バッファ。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      src        連結する文字列。NULL を渡してはなりません。
+     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest,
                                                       size_t dest_size,
                                                       const char *src);
 
+    /**
+     *  @brief          バッファサイズ付き安全 wcscpy (`wcscpy_s` 相当)。
+     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。
+     *  @param[in]      src        コピー元ワイド文字列。NULL を渡してはなりません。
+     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest,
                                                       size_t   dest_size,
                                                       const wchar_t *src);
 
+    /**
+     *  @brief          `sscanf` / `sscanf_s` のラッパー。
+     *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[out]     ...     変換結果の格納先。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer,
                                                       const char *format,
                                                       ...)
@@ -49,6 +85,13 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          `com_util_sscanf` の `va_list` 版。
+     *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer,
                                                        const char *format,
                                                        va_list args)

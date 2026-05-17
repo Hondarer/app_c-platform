@@ -31,54 +31,171 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+    /**
+     *  @brief          UTF-8 パスでファイルを開きます (`fopen` ラッパー)。
+     *  @param[in]      path       開くファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[in]      modes      fopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @return         成功時は FILE*、失敗時は NULL を返します。
+     */
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out);
 
+    /**
+     *  @brief          UTF-8 パスのファイルを削除します (`remove` / `_wremove` ラッパー)。
+     *  @param[in]      path  削除するファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path);
 
+    /**
+     *  @brief          UTF-8 パスのファイルを改名します (`rename` / `_wrename` ラッパー)。
+     *  @param[in]      oldpath  変更前のパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[in]      newpath  変更後のパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath);
 
+    /**
+     *  @brief          ストリームを閉じます (`fclose` ラッパー)。
+     *  @param[in]      stream  閉じるストリーム。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は EOF を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream);
 
+    /**
+     *  @brief          ストリームからデータを読み取ります (`fread` ラッパー)。
+     *  @param[out]     ptr     読み取ったデータの格納先。NULL を渡してはなりません。
+     *  @param[in]      size    各要素のサイズ (バイト)。
+     *  @param[in]      count   読み取る要素数。
+     *  @param[in,out]  stream  読み取り元のストリーム。NULL を渡してはなりません。
+     *  @return         読み取った要素数を返します。
+     */
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *ptr, size_t size, size_t count, FILE *stream);
 
+    /**
+     *  @brief          ストリームへデータを書き込みます (`fwrite` ラッパー)。
+     *  @param[in]      ptr     書き込むデータ。NULL を渡してはなりません。
+     *  @param[in]      size    各要素のサイズ (バイト)。
+     *  @param[in]      count   書き込む要素数。
+     *  @param[in,out]  stream  書き込み先のストリーム。NULL を渡してはなりません。
+     *  @return         書き込んだ要素数を返します。
+     */
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr, size_t size, size_t count, FILE *stream);
 
+    /**
+     *  @brief          ストリームから 1 行読み取ります (`fgets` ラッパー)。
+     *  @param[out]     buf     読み取ったデータの格納先。NULL を渡してはなりません。
+     *  @param[in]      size    @p buf のサイズ (バイト)。
+     *  @param[in,out]  stream  読み取り元のストリーム。NULL を渡してはなりません。
+     *  @return         成功時は @p buf、EOF またはエラー時は NULL を返します。
+     */
     COM_UTIL_EXPORT char *COM_UTIL_API com_util_fgets(char *buf, int size, FILE *stream);
 
+    /**
+     *  @brief          ストリームへ文字列を書き込みます (`fputs` ラッパー)。
+     *  @param[in]      str     書き込む文字列。NULL を渡してはなりません。
+     *  @param[in,out]  stream  書き込み先のストリーム。NULL を渡してはなりません。
+     *  @return         成功時は非負値、失敗時は EOF を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fputs(const char *str, FILE *stream);
 
+    /**
+     *  @brief          ストリームへ書式化出力します (`fprintf` ラッパー)。
+     *  @param[in,out]  stream  出力先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      ...     書式引数。
+     *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 2, 3)))
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          ストリームへ書式化出力します (`com_util_fprintf` の `va_list` 版)。
+     *  @param[in,out]  stream  出力先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *format, va_list args)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 2, 0)))
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          ストリームのバッファをフラッシュします (`fflush` ラッパー)。
+     *  @param[in,out]  stream  フラッシュするストリーム。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は EOF を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fflush(FILE *stream);
 
+    /**
+     *  @brief          ストリームの EOF フラグを確認します (`feof` ラッパー)。
+     *  @param[in]      stream  確認するストリーム。NULL を渡してはなりません。
+     *  @return         EOF フラグが立っている場合は非 0、それ以外は 0 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_feof(FILE *stream);
 
+    /**
+     *  @brief          ストリームのエラーフラグを確認します (`ferror` ラッパー)。
+     *  @param[in]      stream  確認するストリーム。NULL を渡してはなりません。
+     *  @return         エラーフラグが立っている場合は非 0、それ以外は 0 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_ferror(FILE *stream);
 
+    /**
+     *  @brief          ストリームの EOF・エラーフラグをクリアします (`clearerr` ラッパー)。
+     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_clearerr(FILE *stream);
 
+    /**
+     *  @brief          ストリーム位置を先頭に戻します (`rewind` ラッパー)。
+     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_rewind(FILE *stream);
 
+    /**
+     *  @brief          ストリーム位置を移動します (64bit 対応 `fseek` ラッパー)。
+     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     *  @param[in]      offset  移動量 (バイト)。
+     *  @param[in]      whence  基点 (SEEK_SET、SEEK_CUR、SEEK_END)。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, int64_t offset, int whence);
 
+    /**
+     *  @brief          ストリームの現在位置を取得します (64bit 対応 `ftell` ラッパー)。
+     *  @param[in]      stream  対象のストリーム。NULL を渡してはなりません。
+     *  @return         成功時は現在位置 (バイト)、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_ftell(FILE *stream);
 
+    /**
+     *  @brief          書式指定パスでファイルを開きます。
+     *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @param[in]      format     パスを構築する printf 形式の書式文字列。
+     *  @param[in]      ...        書式引数。
+     *  @return         成功時は FILE*、失敗時は NULL を返します。
+     */
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 3, 4)))
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスでファイルを開きます (`com_util_fopen_fmt` の `va_list` 版)。
+     *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @param[in]      format     パスを構築する printf 形式の書式文字列。
+     *  @param[in]      args       書式引数リスト。
+     *  @return         成功時は FILE*、失敗時は NULL を返します。
+     */
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes, int *errno_out, const char *format,
                                                            va_list args)
 #if defined(COMPILER_GCC)
@@ -86,12 +203,24 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスのファイルを削除します。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      ...     書式引数。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_remove_fmt(const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 1, 2)))
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスのファイルを削除します (`com_util_remove_fmt` の `va_list` 版)。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format, va_list args)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 1, 0)))

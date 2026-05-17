@@ -21,7 +21,13 @@
 
 #ifndef COM_UTIL_FILE_STAT_T_DEFINED
 #define COM_UTIL_FILE_STAT_T_DEFINED
-#if defined(PLATFORM_LINUX)
+#ifdef DOXYGEN
+    /**
+     *  @brief  プラットフォーム固有のファイル情報構造体
+     *          (Linux: `struct stat`、Windows: `struct _stat64`)。
+     */
+    typedef struct stat com_util_file_stat_t;
+#elif defined(PLATFORM_LINUX)
 typedef struct stat com_util_file_stat_t;
 #elif defined(PLATFORM_WINDOWS)
 typedef struct _stat64 com_util_file_stat_t;
@@ -33,11 +39,29 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+    /**
+     *  @brief          UTF-8 パスのファイル情報を取得します (`stat` / `_wstat64` ラッパー)。
+     *  @param[out]     buf   ファイル情報の格納先。NULL を渡してはなりません。
+     *  @param[in]      path  対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf,
                                                     const char       *path);
 
+    /**
+     *  @brief          UTF-8 パスのディレクトリを作成します (`mkdir` / `_wmkdir` ラッパー)。
+     *  @param[in]      path  作成するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir(const char *path);
 
+    /**
+     *  @brief          書式指定パスのファイル情報を取得します。
+     *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      ...     書式引数。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf,
                                                         const char       *format,
                                                         ...)
@@ -46,6 +70,13 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスのファイル情報を取得します (`com_util_stat_fmt` の `va_list` 版)。
+     *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf,
                                                          const char       *format,
                                                          va_list           args)
@@ -54,12 +85,24 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスのディレクトリを作成します。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      ...     書式引数。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir_fmt(const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 1, 2)))
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          書式指定パスのディレクトリを作成します (`com_util_mkdir_fmt` の `va_list` 版)。
+     *  @param[in]      format  パスを構築する printf 形式の書式文字列。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format,
                                                           va_list     args)
 #if defined(COMPILER_GCC)
