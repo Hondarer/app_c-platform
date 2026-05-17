@@ -23,7 +23,7 @@ typedef struct com_util_etw_event_t
 {
     /** イベントレベル (1-5)。 */
     int level;
-    /** イベント発行元のプロセス ID。 */
+    /** イベント発行元のプロセス ID (Windows DWORD 互換のためコーディング規範の例外として uint32_t を維持)。 */
     uint32_t process_id;
     /** イベント名。取得できない場合は NULL。 */
     const char *event_name;

@@ -111,7 +111,7 @@ extern int delegate_real_com_util_vmkdir_fmt(const char *format, va_list args);
 
 // crt - file
 extern void delegate_real_com_util_file_init(com_util_file_t *file);
-extern int delegate_real_com_util_file_open(com_util_file_t *file, const char *path, uint32_t flags);
+extern int delegate_real_com_util_file_open(com_util_file_t *file, const char *path, int flags);
 extern int delegate_real_com_util_file_write(com_util_file_t *file, const void *buf, size_t len);
 extern int delegate_real_com_util_file_get_size(com_util_file_t *file, size_t *size_out);
 extern void delegate_real_com_util_file_close(com_util_file_t *file);
@@ -319,7 +319,7 @@ class Mock_com_util
 
     // crt - file
     MOCK_METHOD(void, com_util_file_init, (com_util_file_t *));
-    MOCK_METHOD(int, com_util_file_open, (com_util_file_t *, const char *, uint32_t));
+    MOCK_METHOD(int, com_util_file_open, (com_util_file_t *, const char *, int));
     MOCK_METHOD(int, com_util_file_write, (com_util_file_t *, const void *, size_t));
     MOCK_METHOD(int, com_util_file_get_size, (com_util_file_t *, size_t *));
     MOCK_METHOD(void, com_util_file_close, (com_util_file_t *));

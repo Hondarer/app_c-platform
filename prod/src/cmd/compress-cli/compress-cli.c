@@ -211,6 +211,7 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
         fprintf(stderr, "空ファイルは圧縮できません: %s\n", input_path);
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
+    /* 圧縮ヘッダーで NBO 4 バイトとして元サイズを格納するため、コーディング規範の例外として UINT32_MAX 上限を維持する。 */
     if ((uint64_t)input_size > UINT32_MAX)
     {
         fprintf(stderr, "入力ファイルが大きすぎます: %s\n", input_path);

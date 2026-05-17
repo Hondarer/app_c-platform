@@ -66,6 +66,8 @@ typedef void (*com_util_once_func_t)(void);
 /** call_once 状態。静的領域では 0 初期化して用いる。 */
 typedef struct
 {
+    /* state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
+       コーディング規範の例外として固定幅型 int32_t を維持する。 */
     volatile int32_t state;
 } com_util_once_flag_t;
 

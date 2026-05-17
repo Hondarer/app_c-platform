@@ -39,9 +39,9 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file_t *file)
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
                                                             const char             *path,
-                                                            uint32_t                flags)
+                                                            int                     flags)
 {
-    if (file == NULL || path == NULL)
+    if (file == NULL || path == NULL || flags < 0)
     {
         return -1;
     }
@@ -52,19 +52,19 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
     {
         int open_flags = O_WRONLY;
 
-        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0)
         {
             open_flags |= O_CREAT;
         }
-        if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0)
         {
             open_flags |= O_TRUNC;
         }
-        if ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0)
         {
             open_flags |= O_APPEND;
         }
-        if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
         {
 #if defined(O_DSYNC)
             open_flags |= O_DSYNC;
@@ -96,22 +96,22 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
             return -1;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_SHARE_READ) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_SHARE_READ) != 0)
         {
             share_mode |= FILE_SHARE_READ;
         }
-        if ((flags & COM_UTIL_FILE_OPEN_SHARE_DELETE) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_SHARE_DELETE) != 0)
         {
             share_mode |= FILE_SHARE_DELETE;
         }
-        if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
         {
             file_flags |= FILE_FLAG_WRITE_THROUGH;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0)
         {
-            if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u)
+            if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0)
             {
                 creation_disposition = CREATE_ALWAYS;
             }
@@ -120,7 +120,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
                 creation_disposition = OPEN_ALWAYS;
             }
         }
-        else if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0u)
+        else if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0)
         {
             creation_disposition = TRUNCATE_EXISTING;
         }
@@ -141,7 +141,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
             return -1;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0u)
+        if ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0)
         {
             pos.QuadPart = 0;
             if (!SetFilePointerEx(file->handle, pos, NULL, FILE_END))
@@ -197,6 +197,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
         while (remaining > 0u)
         {
             DWORD chunk;
+            /* WriteFile の DWORD 境界に合わせるため、コーディング規範の例外として UINT32_MAX を維持する。 */
             if (remaining > (size_t)UINT32_MAX)
             {
                 chunk = UINT32_MAX;

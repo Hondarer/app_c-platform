@@ -66,6 +66,8 @@ extern "C"
     typedef struct com_util_realtime_timestamp
     {
         int64_t tv_sec;  /**< Unix epoch (1970-01-01T00:00:00Z) からの経過秒。 */
+        /* tv_nsec / reserved は POSIX struct timespec::tv_nsec (long) との境界キャストに用いるため、
+           コーディング規範の例外として固定幅型 int32_t を維持する。 */
         int32_t tv_nsec; /**< ナノ秒部 (0 以上 999,999,999 以下)。 */
         int32_t reserved; /**< 将来拡張用。呼び出し側は 0 を指定する。 */
     } com_util_realtime_timestamp_t;

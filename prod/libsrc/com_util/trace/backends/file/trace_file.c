@@ -163,7 +163,7 @@ static int format_timestamp(char *buf, int buf_size, const com_util_realtime_tim
  */
 static int open_file(com_util_trace_file_sink_t *p)
 {
-    uint32_t flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
                      COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ |
                      COM_UTIL_FILE_OPEN_SHARE_DELETE;
 
@@ -188,7 +188,7 @@ static int open_file(com_util_trace_file_sink_t *p)
  */
 static int open_file_truncate(com_util_trace_file_sink_t *p)
 {
-    uint32_t flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
+    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
                      COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
                      COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
 
