@@ -39,6 +39,10 @@ extern "C"
      *  @return         0:         変数が設定されており、@p buf が NULL でない場合は値をコピー済み。
      *  @return         -1:        変数が未設定。
      *  @return         ERANGE:    @p buf が NULL でなく、バッファが値を格納するのに不足。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  環境変数の読み取りのみを行います。他スレッドが同時に環境変数を変更する場合は、呼び出し側で同期してください。
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, size_t buf_size);

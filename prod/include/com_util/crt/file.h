@@ -26,12 +26,12 @@
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_WINDOWS */
 
-#define COM_UTIL_FILE_OPEN_CREATE            (1 << 0) /**< ファイルが存在しない場合に新規作成する。 */
-#define COM_UTIL_FILE_OPEN_TRUNCATE          (1 << 1) /**< 既存ファイルを開く際に内容を切り詰める。 */
-#define COM_UTIL_FILE_OPEN_APPEND            (1 << 2) /**< 書き込みをファイル末尾に追記する。 */
-#define COM_UTIL_FILE_OPEN_WRITE_THROUGH     (1 << 3) /**< 書き込みをバッファリングせずディスクに直接書き出す。 */
-#define COM_UTIL_FILE_OPEN_SHARE_READ        (1 << 4) /**< 他プロセスからの読み取り共有を許可する。 */
-#define COM_UTIL_FILE_OPEN_SHARE_DELETE      (1 << 5) /**< 他プロセスからの削除を許可する。 */
+#define COM_UTIL_FILE_OPEN_CREATE        (1 << 0) /**< ファイルが存在しない場合に新規作成する。 */
+#define COM_UTIL_FILE_OPEN_TRUNCATE      (1 << 1) /**< 既存ファイルを開く際に内容を切り詰める。 */
+#define COM_UTIL_FILE_OPEN_APPEND        (1 << 2) /**< 書き込みをファイル末尾に追記する。 */
+#define COM_UTIL_FILE_OPEN_WRITE_THROUGH (1 << 3) /**< 書き込みをバッファリングせずディスクに直接書き出す。 */
+#define COM_UTIL_FILE_OPEN_SHARE_READ    (1 << 4) /**< 他プロセスからの読み取り共有を許可する。 */
+#define COM_UTIL_FILE_OPEN_SHARE_DELETE  (1 << 5) /**< 他プロセスからの削除を許可する。 */
 
 /**
  *  @brief  ファイルハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。
@@ -51,47 +51,72 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
+     *******************************************************************************
      *  @brief          `com_util_file_t` 構造体を無効状態に初期化します。
      *  @param[out]     file  初期化対象の構造体。NULL を渡してはなりません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file_t *file);
 
     /**
+     *******************************************************************************
      *  @brief          UTF-8 パスでファイルを開きます。
      *  @param[out]     file   オープン結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープンフラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
      *                         負値を渡した場合は -1 を返します。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
-                                                                const char             *path,
-                                                                int                     flags);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file, const char *path, int flags);
 
     /**
+     *******************************************************************************
      *  @brief          ファイルにバイト列を書き込みます。
      *  @param[in,out]  file  書き込み対象のファイル。NULL を渡してはなりません。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file への並行書き込みは呼び出し側で同期してください。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
-                                                                 const void             *buf,
-                                                                 size_t                  len);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file, const void *buf, size_t len);
 
     /**
+     *******************************************************************************
      *  @brief          ファイルサイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(com_util_file_t *file,
-                                                                    size_t                 *size_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(com_util_file_t *file, size_t *size_out);
 
     /**
+     *******************************************************************************
      *  @brief          ファイルを閉じます。
      *                  `com_util_file_init()` で初期化済みの無効ハンドルには何もしません。
      *  @param[in,out]  file  閉じるファイル。NULL を渡してはなりません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
+     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file_t *file);
 

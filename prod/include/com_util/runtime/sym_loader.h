@@ -80,8 +80,8 @@ extern "C"
         int resolved;                                 /**< 解決済フラグ (0 = 未解決)。 */
         /* lock_state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
            コーディング規範の例外として固定幅型 int32_t を維持する。 */
-        volatile int32_t lock_state;                  /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
-        com_util_local_lock_t *lock;                       /**< ロード処理を保護するミューテックス。 */
+        volatile int32_t lock_state; /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
+        com_util_local_lock_t *lock; /**< ロード処理を保護するミューテックス。 */
     } com_util_sym_loader_entry_t;
 
 /**
@@ -90,11 +90,7 @@ extern "C"
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
  *  @param[in]      type    格納する関数ポインタの型 (例: sample_func_t)。
  */
-#define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) \
-    { \
-        (key), {0}, {0}, NULL, NULL, 0, 0, \
-        NULL \
-    }
+#define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, NULL}
 
     /**
      *******************************************************************************
@@ -102,6 +98,10 @@ extern "C"
      *
      *  @param[in,out]  fobj com_util_sym_loader_entry_t へのポインタ。
      *  @return         成功時 void * (関数ポインタ)、失敗時 NULL。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  ロックフリーの fast path と per-entry mutex による double-checked locking で排他制御しており、複数スレッドから同時に呼び出せます。
      *******************************************************************************
      */
     COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj);
@@ -120,6 +120,10 @@ extern "C"
      *
      *  @param[in]      fobj com_util_sym_loader_entry_t へのポインタ。
      *  @return         明示的デフォルトの場合は 1、それ以外は 0。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で com_util_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry_t *fobj);
@@ -131,6 +135,10 @@ extern "C"
      *  @param[in]      fobj_array  com_util_sym_loader_entry_t ポインタ配列。
      *  @param[in]      fobj_length 配列の要素数。
      *  @param[in]      configpath  定義ファイルのパス。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  DLL ロード直後のシングル スレッド フェーズで呼び出してください。複数スレッドから同時に @p fobj_array の同一エントリへ書き込むと競合が発生します。
      *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array,
@@ -142,6 +150,10 @@ extern "C"
      *
      *  @param[in]      fobj_array  com_util_sym_loader_entry_t ポインタ配列。
      *  @param[in]      fobj_length 配列の要素数。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  DllMain / destructor コンテキストのシングル スレッド フェーズで呼び出してください。他スレッドが resolve を実行中の場合、解放と競合します。
      *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array,
@@ -154,6 +166,10 @@ extern "C"
      *  @param[in]      fobj_array      com_util_sym_loader_entry_t ポインタ配列。
      *  @param[in]      fobj_length     配列の要素数。
      *  @return         すべてのエントリが正常に解決されている場合は 0、1 つでも失敗している場合は -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で com_util_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
      *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array,

@@ -74,60 +74,70 @@ extern "C"
  */
 #define COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT 4096
 
-/**
- *  @brief  プロンプトハンドルの不透明型。
- */
-typedef struct com_util_prompt_t com_util_prompt_t;
-
-/**
- *  @brief  プロンプト生成オプション。
- */
-typedef struct
-{
     /**
-     *  @brief  将来拡張用フラグ。現時点では 0 を指定する。
+     *  @brief  プロンプトハンドルの不透明型。
      */
-    unsigned int flags;
+    typedef struct com_util_prompt_t com_util_prompt_t;
 
     /**
-     *  @brief  構造体配置の予約領域。現時点では 0 を指定する。
+     *  @brief  プロンプト生成オプション。
      */
-    unsigned int reserved;
+    typedef struct
+    {
+        /**
+         *  @brief  将来拡張用フラグ。現時点では 0 を指定する。
+         */
+        unsigned int flags;
+
+        /**
+         *  @brief  構造体配置の予約領域。現時点では 0 を指定する。
+         */
+        unsigned int reserved;
+
+        /**
+         *  @brief  各コンテキストの履歴エントリ数上限。
+         *          0 を指定すると @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用する。
+         */
+        size_t history_max;
+
+        /**
+         *  @brief  入力編集バッファの初期バイト数（NUL 終端含む）。
+         *          0 を指定すると実装既定値を使用する。
+         */
+        size_t input_initial_capacity;
+
+        /**
+         *  @brief  入力編集バッファの最大バイト数（NUL 終端含む）。
+         *          0 を指定すると @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用する。
+         */
+        size_t input_max_bytes;
+    } com_util_prompt_options_t;
 
     /**
-     *  @brief  各コンテキストの履歴エントリ数上限。
-     *          0 を指定すると @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用する。
+     *******************************************************************************
+     *  @brief      プロンプトハンドルを生成する。
+     *  @param[in]  options  生成オプション。NULL の場合は既定設定を使用する。
+     *  @return     成功時は非 NULL ハンドル、失敗時は NULL。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *******************************************************************************
      */
-    size_t history_max;
+    COM_UTIL_EXPORT com_util_prompt_t *COM_UTIL_API com_util_prompt_create(const com_util_prompt_options_t *options);
 
     /**
-     *  @brief  入力編集バッファの初期バイト数（NUL 終端含む）。
-     *          0 を指定すると実装既定値を使用する。
+     *******************************************************************************
+     *  @brief      プロンプトハンドルを解放する。
+     *  @param[in]  prompt  com_util_prompt_create() が返したハンドル。NULL 可。
+     *  @details    raw モード中の場合はターミナル設定を復元してから解放する。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  解放対象の @p prompt を他スレッドが使用していないことを呼び出し側で保証してください。
+     *******************************************************************************
      */
-    size_t input_initial_capacity;
-
-    /**
-     *  @brief  入力編集バッファの最大バイト数（NUL 終端含む）。
-     *          0 を指定すると @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用する。
-     */
-    size_t input_max_bytes;
-} com_util_prompt_options_t;
-
-/**
- *  @brief      プロンプトハンドルを生成する。
- *  @param[in]  options  生成オプション。NULL の場合は既定設定を使用する。
- *  @return     成功時は非 NULL ハンドル、失敗時は NULL。
- */
-COM_UTIL_EXPORT com_util_prompt_t *COM_UTIL_API
-com_util_prompt_create(const com_util_prompt_options_t *options);
-
-/**
- *  @brief      プロンプトハンドルを解放する。
- *  @param[in]  prompt  com_util_prompt_create() が返したハンドル。NULL 可。
- *  @details    raw モード中の場合はターミナル設定を復元してから解放する。
- */
-COM_UTIL_EXPORT void COM_UTIL_API
-com_util_prompt_dispose(com_util_prompt_t *prompt);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_prompt_dispose(com_util_prompt_t *prompt);
 
 /**
  *  @brief      固定プロンプト文字列を表示して 1 行入力を受け取る。
@@ -153,34 +163,29 @@ com_util_prompt_dispose(com_util_prompt_t *prompt);
 #define com_util_prompt_readline_fmt(p, buf, buf_size, fmt, ...) \
     com_util_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
-/**
- *  @brief      呼び出し元を明示して 1 行入力を受け取る。
- *  @details    通常は com_util_prompt_readline() を使用する。
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_prompt_readline_at(com_util_prompt_t *prompt,
-                            char              *buf,
-                            size_t             buf_size,
-                            const char        *prompt_str,
-                            const char        *file,
-                            int                line);
+    /**
+     *******************************************************************************
+     *  @brief      呼び出し元を明示して 1 行入力を受け取る。
+     *  @details    通常は com_util_prompt_readline() を使用する。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一 @p prompt への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_at(com_util_prompt_t *prompt, char *buf, size_t buf_size,
+                                                                 const char *prompt_str, const char *file, int line);
 
-/**
- *  @brief      呼び出し元を明示して printf スタイルのプロンプトを表示する。
- *  @details    通常は com_util_prompt_readline_fmt() を使用する。
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
-                                char              *buf,
-                                size_t             buf_size,
-                                const char        *file,
-                                int                line,
-                                const char        *fmt,
-                                ...)
+    /**
+     *  @brief      呼び出し元を明示して printf スタイルのプロンプトを表示する。
+     *  @details    通常は com_util_prompt_readline_fmt() を使用する。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt_t *p, char *buf, size_t buf_size,
+                                                                     const char *file, int line, const char *fmt, ...)
 #if defined(COMPILER_GCC)
-    __attribute__((format(printf, 6, 7)))
+        __attribute__((format(printf, 6, 7)))
 #endif /* COMPILER_GCC */
-    ;
+        ;
 
 #ifdef __cplusplus
 }

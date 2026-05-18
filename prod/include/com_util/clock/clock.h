@@ -65,10 +65,10 @@ extern "C"
      */
     typedef struct com_util_realtime_timestamp
     {
-        int64_t tv_sec;  /**< Unix epoch (1970-01-01T00:00:00Z) からの経過秒。 */
+        int64_t tv_sec; /**< Unix epoch (1970-01-01T00:00:00Z) からの経過秒。 */
         /* tv_nsec / reserved は POSIX struct timespec::tv_nsec (long) との境界キャストに用いるため、
            コーディング規範の例外として固定幅型 int32_t を維持する。 */
-        int32_t tv_nsec; /**< ナノ秒部 (0 以上 999,999,999 以下)。 */
+        int32_t tv_nsec;  /**< ナノ秒部 (0 以上 999,999,999 以下)。 */
         int32_t reserved; /**< 将来拡張用。呼び出し側は 0 を指定する。 */
     } com_util_realtime_timestamp_t;
 
@@ -209,7 +209,7 @@ extern "C"
         com_util_get_realtime(&session_sec, &session_nsec);
         // session_sec / session_nsec を構造体に保存して識別子として使用する
      *  @endcode
-    *******************************************************************************
+     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
 
@@ -249,10 +249,14 @@ extern "C"
      *  COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1 です。
      *
      *  @note           失敗時は `0000-00-00T00:00:00.000+00:00` を格納しようと試みます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec,
+                                                                            int32_t tv_nsec);
 
     /**
      *******************************************************************************
@@ -270,10 +274,14 @@ extern "C"
      *  COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1 です。
      *
      *  @note           失敗時は `0000-00-00T00:00:00.000Z` を格納しようと試みます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec,
+                                                                          int32_t tv_nsec);
 
     /**
      *******************************************************************************
@@ -330,7 +338,8 @@ extern "C"
      *  @endcode
      *******************************************************************************
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime_deadline_ms(uint64_t timeout_ms,
+                                                                        struct timespec *abs_timeout);
 
 #ifdef __cplusplus
 }

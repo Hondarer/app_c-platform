@@ -56,8 +56,9 @@
  */
 #define PLATFORM_PATH_SEP_CHR '/'
 
-#define COM_UTIL_PATH_CONCAT_COUNT_IMPL(_1,  _2,  _3,  _4,  _5,  _6,  _7,  _8, \
-                                        _9,  _10, _11, _12, _13, _14, _15, _16, count, ...) count
+#define COM_UTIL_PATH_CONCAT_COUNT_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, count, \
+                                        ...) \
+    count
 #define COM_UTIL_PATH_CONCAT_COUNT(...) \
     COM_UTIL_PATH_CONCAT_COUNT_IMPL(__VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
@@ -82,6 +83,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
+     *******************************************************************************
      *  @brief          パス文字列内の '\\' を '/' に正規化します (インプレース)。
      *  @param[in,out]  path  正規化対象のパス文字列 (UTF-8)。NULL を渡してはなりません。
      *  @return         path を返します (連鎖呼び出し用)。
@@ -91,10 +93,16 @@ extern "C"
      *  使用します。\n
      *  本ライブラリが出力するパス (@p path_out 等) はすでに @ref PLATFORM_PATH_SEP (`"/"`) に
      *  正規化済みのため、本関数を呼び出す必要はありません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p path を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *******************************************************************************
      */
     COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path);
 
     /**
+     *******************************************************************************
      *  @brief          パスを絶対化し、区切り文字を '/' に正規化して返します。
      *  @param[out]     path_out    絶対化済みパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
@@ -108,13 +116,17 @@ extern "C"
      *  '.' / '..' を解消した絶対パス文字列を返します。\n
      *  Windows では GetFullPathNameW() により絶対化し、返却値は常に
      *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると解決結果が不定になります。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char   *path_out,
-                                                             size_t  path_size,
-                                                             int    *errno_out,
-                                                             const char *path);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, size_t path_size, int *errno_out,
+                                                            const char *path);
 
     /**
+     *******************************************************************************
      *  @brief          2 つのパスが同じ実体を指すか比較します。
      *  @param[in]      lhs        比較対象の 1 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @param[in]      rhs        比較対象の 2 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
@@ -125,10 +137,16 @@ extern "C"
      *  内部でそれぞれのパスに対して com_util_path_get_full() を呼び、絶対化と
      *  区切り文字正規化を行ったうえで比較します。\n
      *  Windows ではファイルシステムの慣習に合わせて大小文字を区別せず比較します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると比較結果が不定になります。
+     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
 
     /**
+     *******************************************************************************
      *  @brief          プラットフォームの一時ディレクトリのパスを取得します。
      *  @param[out]     path_out    一時ディレクトリの絶対パス (UTF-8) の格納先。
      *                              末尾パス区切り文字 (@ref PLATFORM_PATH_SEP_CHR) は付きません。
@@ -142,12 +160,16 @@ extern "C"
      *  Windows 環境では @c GetTempPathW() で取得したパスを UTF-8 に変換して使用します。\n
      *  出力パスは常に @ref PLATFORM_PATH_SEP (`"/"`) 区切りで正規化されており、末尾の区切り文字は含まれません。\n
      *  ファイルパスを構築する際は @ref PLATFORM_PATH_SEP を挟んでください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char   *path_out,
-                                                            size_t  path_size,
-                                                            int    *errno_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, size_t path_size, int *errno_out);
 
     /**
+     *******************************************************************************
      *  @brief          パス断片を指定順にそのまま連結します。
      *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
@@ -160,12 +182,14 @@ extern "C"
      *  断片は自動補正せず、そのまま連結されます。\n
      *  いずれかの断片が NULL、または @p part_count が 0 の場合は EINVAL を返します。\n
      *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char   *path_out,
-                                                             size_t  path_size,
-                                                             int    *errno_out,
-                                                             size_t  part_count,
-                                                             ...);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, size_t path_size, int *errno_out,
+                                                            size_t part_count, ...);
 
 #ifdef __cplusplus
 }

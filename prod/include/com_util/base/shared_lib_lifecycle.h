@@ -193,6 +193,10 @@ static void dllmain_output_debug_msg__(const char *msg)
  *******************************************************************************
  *  @brief          ライブラリロード時に呼び出されます。
  *  @details        インクルード元の .c ファイルでこの関数を定義してください。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフではありません。\n
+ *  ローダーコンテキストの単一スレッドから呼び出されます。
  *******************************************************************************
  */
 static void onLoad(void);
@@ -203,6 +207,10 @@ static void onLoad(void);
  *  @param[in]      process_terminating プロセス終了による呼び出しの場合は 1、
  *                  明示的なアンロードまたは通常の destructor の場合は 0。
  *  @details        インクルード元の .c ファイルでこの関数を定義してください。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフではありません。\n
+ *  ローダーコンテキストの単一スレッドから呼び出されます。
  *******************************************************************************
  */
 static void onUnload(int process_terminating);
@@ -212,6 +220,10 @@ static void onUnload(int process_terminating);
 /**
  *******************************************************************************
  *  @brief          Linux constructor 属性によるライブラリロードフック。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフではありません。\n
+ *  constructor コンテキストの単一スレッドから呼び出されます。
  *******************************************************************************
  */
 __attribute__((constructor)) static void dllmain_on_load__(void)
@@ -224,6 +236,10 @@ __attribute__((constructor)) static void dllmain_on_load__(void)
 /**
  *******************************************************************************
  *  @brief          Linux destructor 属性によるライブラリアンロードフック。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフではありません。\n
+ *  destructor コンテキストの単一スレッドから呼び出されます。
  *******************************************************************************
  */
 __attribute__((destructor)) static void dllmain_on_unload__(void)
@@ -242,6 +258,10 @@ __attribute__((destructor)) static void dllmain_on_unload__(void)
  *  @param[in]      fdwReason 呼び出し理由 (DLL_PROCESS_ATTACH など)。
  *  @param[in]      lpvReserved 予約。プロセス終了時は非 NULL。
  *  @return         常に TRUE を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフではありません。\n
+ *  OS がローダーロックを保持した状態で単一スレッドから呼び出します。
  *******************************************************************************
  */
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)

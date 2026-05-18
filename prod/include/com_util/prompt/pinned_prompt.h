@@ -31,73 +31,84 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
- *  @brief  Pinned prompt handle.
- */
-typedef struct com_util_pinned_prompt_t com_util_pinned_prompt_t;
-
-/**
- *  @brief  Output channel used by com_util_pinned_prompt_write().
- */
-typedef enum
-{
-    COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT = 0,
-    COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR = 1
-} com_util_pinned_prompt_channel_t;
-
-/**
- *  @brief  Status area position.
- */
-typedef enum
-{
-    COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP = 0,
-    COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM = 1
-} com_util_pinned_prompt_status_position_t;
-
-/**
- *  @brief  Status area alignment.
- */
-typedef enum
-{
-    COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT = 0,
-    COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT = 1
-} com_util_pinned_prompt_status_align_t;
-
-/**
- *  @brief  Pinned prompt creation options.
- */
-typedef struct
-{
     /**
-     *  @brief  Reserved for future flags. Set to 0.
+     *  @brief  Pinned prompt handle.
      */
-    unsigned int flags;
+    typedef struct com_util_pinned_prompt_t com_util_pinned_prompt_t;
 
     /**
-     *  @brief  Reserved for structure alignment. Set to 0.
+     *  @brief  Output channel used by com_util_pinned_prompt_write().
      */
-    unsigned int reserved;
+    typedef enum
+    {
+        COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT = 0,
+        COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR = 1
+    } com_util_pinned_prompt_channel_t;
 
     /**
-     *  @brief  Input and history options.
+     *  @brief  Status area position.
      */
-    com_util_prompt_options_t input;
-} com_util_pinned_prompt_options_t;
+    typedef enum
+    {
+        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP = 0,
+        COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM = 1
+    } com_util_pinned_prompt_status_position_t;
 
-/**
- *  @brief      Create a pinned prompt.
- *  @param[in]  options  Creation options. NULL uses default options.
- *  @return     Non-NULL handle on success, NULL on failure.
- */
-COM_UTIL_EXPORT com_util_pinned_prompt_t *COM_UTIL_API
-com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
+    /**
+     *  @brief  Status area alignment.
+     */
+    typedef enum
+    {
+        COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT = 0,
+        COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT = 1
+    } com_util_pinned_prompt_status_align_t;
 
-/**
- *  @brief      Dispose a pinned prompt.
- *  @param[in]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
- */
-COM_UTIL_EXPORT void COM_UTIL_API
-com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
+    /**
+     *  @brief  Pinned prompt creation options.
+     */
+    typedef struct
+    {
+        /**
+         *  @brief  Reserved for future flags. Set to 0.
+         */
+        unsigned int flags;
+
+        /**
+         *  @brief  Reserved for structure alignment. Set to 0.
+         */
+        unsigned int reserved;
+
+        /**
+         *  @brief  Input and history options.
+         */
+        com_util_prompt_options_t input;
+    } com_util_pinned_prompt_options_t;
+
+    /**
+     *******************************************************************************
+     *  @brief      Create a pinned prompt.
+     *  @param[in]  options  Creation options. NULL uses default options.
+     *  @return     Non-NULL handle on success, NULL on failure.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT com_util_pinned_prompt_t *COM_UTIL_API
+    com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
+
+    /**
+     *******************************************************************************
+     *  @brief      Dispose a pinned prompt.
+     *  @param[in]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  解放対象の @p screen を他スレッドが使用していないことを呼び出し側で保証してください。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
 
 /**
  *  @brief      Read one command line with a bottom-fixed prompt.
@@ -122,95 +133,102 @@ com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
 #define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
     _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
-/**
- *  @brief  com_util_pinned_prompt_readline() implementation.
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-_com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
-                                 char                     *buf,
-                                 size_t                    buf_size,
-                                 const char               *prompt_str,
-                                 const char               *file,
-                                 int                       line);
+    /**
+     *******************************************************************************
+     *  @brief  com_util_pinned_prompt_readline() implementation.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen, char *buf,
+                                                                      size_t buf_size, const char *prompt_str,
+                                                                      const char *file, int line);
 
-/**
- *  @brief  com_util_pinned_prompt_readline_fmt() implementation.
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-_com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
-                                     char                     *buf,
-                                     size_t                    buf_size,
-                                     const char               *file,
-                                     int                       line,
-                                     const char               *fmt,
-                                     ...)
+    /**
+     *  @brief  com_util_pinned_prompt_readline_fmt() implementation.
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen, char *buf,
+                                                                          size_t buf_size, const char *file, int line,
+                                                                          const char *fmt, ...)
 #if defined(COMPILER_GCC)
-    __attribute__((format(printf, 6, 7)))
+        __attribute__((format(printf, 6, 7)))
 #endif /* COMPILER_GCC */
-    ;
+        ;
 
-/**
- *  @brief      Write output above the bottom-fixed prompt.
- *  @param[in]  screen   Pinned prompt handle.
- *  @param[in]  channel  Output channel.
- *  @param[in]  data     Data to write. NULL is allowed only when size is 0.
- *  @param[in]  size     Data size in bytes.
- *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
- *  @return     Number of bytes written to the target stream.
- *  @details    The function writes exactly the supplied bytes and does not add a newline.
- */
-COM_UTIL_EXPORT size_t COM_UTIL_API
-com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
-                             com_util_pinned_prompt_channel_t  channel,
-                             const void                       *data,
-                             size_t                            size);
+    /**
+     *******************************************************************************
+     *  @brief      Write output above the bottom-fixed prompt.
+     *  @param[in]  screen   Pinned prompt handle.
+     *  @param[in]  channel  Output channel.
+     *  @param[in]  data     Data to write. NULL is allowed only when size is 0.
+     *  @param[in]  size     Data size in bytes.
+     *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
+     *  @return     Number of bytes written to the target stream.
+     *  @details    The function writes exactly the supplied bytes and does not add a newline.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt_t *screen,
+                                                                     com_util_pinned_prompt_channel_t channel,
+                                                                     const void *data, size_t size);
 
-/**
- *  @brief      Write formatted output above the bottom-fixed prompt.
- *  @param[in]  screen   Pinned prompt handle.
- *  @param[in]  channel  Output channel.
- *  @param[in]  fmt      printf style format string. NULL is treated as an empty string.
- *  @param[in]  ...      Format arguments.
- *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
- *  @return     Number of bytes written to the target stream.
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
-                              com_util_pinned_prompt_channel_t  channel,
-                              const char                       *fmt,
-                              ...)
+    /**
+     *  @brief      Write formatted output above the bottom-fixed prompt.
+     *  @param[in]  screen   Pinned prompt handle.
+     *  @param[in]  channel  Output channel.
+     *  @param[in]  fmt      printf style format string. NULL is treated as an empty string.
+     *  @param[in]  ...      Format arguments.
+     *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
+     *  @return     Number of bytes written to the target stream.
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_printf(com_util_pinned_prompt_t *screen,
+                                                                   com_util_pinned_prompt_channel_t channel,
+                                                                   const char *fmt, ...)
 #if defined(COMPILER_GCC)
-    __attribute__((format(printf, 3, 4)))
+        __attribute__((format(printf, 3, 4)))
 #endif /* COMPILER_GCC */
-    ;
+        ;
 
-/**
- *  @brief      Enable or disable status area.
- *  @param[in]  screen    Pinned prompt handle.
- *  @param[in]  position  Status area position (top or bottom).
- *  @param[in]  enable    Non-zero to enable, zero to disable.
- *  @return     0 on success, -1 on failure.
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t                 *screen,
-                                     com_util_pinned_prompt_status_position_t  position,
-                                     int                                       enable);
+    /**
+     *******************************************************************************
+     *  @brief      Enable or disable status area.
+     *  @param[in]  screen    Pinned prompt handle.
+     *  @param[in]  position  Status area position (top or bottom).
+     *  @param[in]  enable    Non-zero to enable, zero to disable.
+     *  @return     0 on success, -1 on failure.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_enable(
+        com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position, int enable);
 
-/**
- *  @brief      Set status area content.
- *  @param[in]  screen    Pinned prompt handle.
- *  @param[in]  position  Status area position (top or bottom).
- *  @param[in]  align     Alignment (left or right).
- *  @param[in]  content   Content string. NULL clears the content.
- *  @note       ANSI CSI SGR escape sequences are passed through for coloring and
- *              counted as display width 0 for status layout.
- *  @return     0 on success, -1 on failure.
- */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *screen,
-                                  com_util_pinned_prompt_status_position_t  position,
-                                  com_util_pinned_prompt_status_align_t     align,
-                                  const char                               *content);
+    /**
+     *******************************************************************************
+     *  @brief      Set status area content.
+     *  @param[in]  screen    Pinned prompt handle.
+     *  @param[in]  position  Status area position (top or bottom).
+     *  @param[in]  align     Alignment (left or right).
+     *  @param[in]  content   Content string. NULL clears the content.
+     *  @note       ANSI CSI SGR escape sequences are passed through for coloring and
+     *              counted as display width 0 for status layout.
+     *  @return     0 on success, -1 on failure.
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_set(
+        com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position,
+        com_util_pinned_prompt_status_align_t align, const char *content);
 
 #ifdef __cplusplus
 }

@@ -28,7 +28,7 @@
     #define COM_UTIL_ACCESS_FMT_F_OK 0 /**< ファイルの存在確認 (F_OK 相当)。 */
     #define COM_UTIL_ACCESS_FMT_R_OK 4 /**< 読み取り可能確認 (R_OK 相当)。 */
     #define COM_UTIL_ACCESS_FMT_W_OK 2 /**< 書き込み可能確認 (W_OK 相当)。 */
-#else /* !DOXYGEN */
+#else                                  /* !DOXYGEN */
     #if defined(PLATFORM_LINUX)
         #define COM_UTIL_ACCESS_FMT_F_OK F_OK
         #define COM_UTIL_ACCESS_FMT_R_OK R_OK
@@ -46,13 +46,18 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
+     *******************************************************************************
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー)。
      *  @param[in]      path  確認対象のファイルパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      mode  確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path,
-                                                      int         mode);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, int mode);
 
     /**
      *  @brief          書式指定パスのアクセス確認。
@@ -61,9 +66,7 @@ extern "C"
      *  @param[in]      ...     書式引数。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(int mode,
-                                                          const char *format,
-                                                          ...)
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(int mode, const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 2, 3)))
 #endif /* COMPILER_GCC */
@@ -76,9 +79,7 @@ extern "C"
      *  @param[in]      args    書式引数リスト。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(int mode,
-                                                           const char *format,
-                                                           va_list args)
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(int mode, const char *format, va_list args)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 2, 0)))
 #endif /* COMPILER_GCC */

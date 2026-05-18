@@ -51,72 +51,73 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
- *******************************************************************************
- *  @brief          AES-256-GCM でデータを暗号化します。
- *  @param[out]     dst      暗号化後データを格納するバッファ。\n
- *                           内容: [暗号文: src_len バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]\n
- *                           dst == src の in-place 暗号化も可能。
- *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。\n
- *                           出力: 書き込んだバイト数 (= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。
- *  @param[in]      src      平文データへのポインタ。
- *  @param[in]      src_len  平文データのバイト数。
- *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
- *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
- *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
- *  @param[in]      aad_len  AAD のバイト数。
- *  @return         成功時は 0、失敗時は -1 を返します。
- *******************************************************************************
- */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_encrypt(uint8_t       *dst,
-                                              size_t        *dst_len,
-                                              const uint8_t *src,
-                                              size_t         src_len,
-                                              const uint8_t *key,
-                                              const uint8_t *nonce,
-                                              const uint8_t *aad,
-                                              size_t         aad_len);
+    /**
+     *******************************************************************************
+     *  @brief          AES-256-GCM でデータを暗号化します。
+     *  @param[out]     dst      暗号化後データを格納するバッファ。\n
+     *                           内容: [暗号文: src_len バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]\n
+     *                           dst == src の in-place 暗号化も可能。
+     *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。\n
+     *                           出力: 書き込んだバイト数 (= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。
+     *  @param[in]      src      平文データへのポインタ。
+     *  @param[in]      src_len  平文データのバイト数。
+     *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
+     *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
+     *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
+     *  @param[in]      aad_len  AAD のバイト数。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
+                                                      const uint8_t *key, const uint8_t *nonce, const uint8_t *aad,
+                                                      size_t aad_len);
 
-/**
- *******************************************************************************
- *  @brief          AES-256-GCM でデータを復号し、認証タグを検証します。
- *  @param[out]     dst      復号後データを格納するバッファ。
- *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。\n
- *                           出力: 書き込んだバイト数 (= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。
- *  @param[in]      src      暗号化データへのポインタ。\n
- *                           内容: [暗号文: src_len - COM_UTIL_CRYPTO_TAG_SIZE バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]
- *  @param[in]      src_len  暗号化データのバイト数 (タグを含む)。>= COM_UTIL_CRYPTO_TAG_SIZE。
- *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
- *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
- *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
- *  @param[in]      aad_len  AAD のバイト数。
- *  @return         成功 (認証タグ検証 OK) 時は 0、失敗 (認証タグ不一致含む) 時は -1 を返します。
- *******************************************************************************
- */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_decrypt(uint8_t       *dst,
-                                              size_t        *dst_len,
-                                              const uint8_t *src,
-                                              size_t         src_len,
-                                              const uint8_t *key,
-                                              const uint8_t *nonce,
-                                              const uint8_t *aad,
-                                              size_t         aad_len);
+    /**
+     *******************************************************************************
+     *  @brief          AES-256-GCM でデータを復号し、認証タグを検証します。
+     *  @param[out]     dst      復号後データを格納するバッファ。
+     *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。\n
+     *                           出力: 書き込んだバイト数 (= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。
+     *  @param[in]      src      暗号化データへのポインタ。\n
+     *                           内容: [暗号文: src_len - COM_UTIL_CRYPTO_TAG_SIZE バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]
+     *  @param[in]      src_len  暗号化データのバイト数 (タグを含む)。>= COM_UTIL_CRYPTO_TAG_SIZE。
+     *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
+     *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
+     *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
+     *  @param[in]      aad_len  AAD のバイト数。
+     *  @return         成功 (認証タグ検証 OK) 時は 0、失敗 (認証タグ不一致含む) 時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
+                                                      const uint8_t *key, const uint8_t *nonce, const uint8_t *aad,
+                                                      size_t aad_len);
 
-/**
- *******************************************************************************
- *  @brief          任意のパスフレーズを SHA-256 ハッシュにより AES-256 鍵に変換します。
- *  @details
- *  入力バイト列の SHA-256 ダイジェストをそのまま鍵として使用します。\n
- *  送受信の双方で同一のパスフレーズを指定すれば、同一の鍵が導出されます。
- *  @param[out]     key             出力鍵バッファ (COM_UTIL_CRYPTO_KEY_SIZE = 32 バイト)。
- *  @param[in]      passphrase      パスフレーズへのポインタ (任意のバイト列)。
- *  @param[in]      passphrase_len  パスフレーズの長さ (バイト)。0 の場合も有効。
- *  @return         成功時は 0、失敗時は -1 を返します。
- *******************************************************************************
- */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_passphrase_to_key(uint8_t       *key,
-                                                        const uint8_t *passphrase,
-                                                        size_t         passphrase_len);
+    /**
+     *******************************************************************************
+     *  @brief          任意のパスフレーズを SHA-256 ハッシュにより AES-256 鍵に変換します。
+     *  @details
+     *  入力バイト列の SHA-256 ダイジェストをそのまま鍵として使用します。\n
+     *  送受信の双方で同一のパスフレーズを指定すれば、同一の鍵が導出されます。
+     *  @param[out]     key             出力鍵バッファ (COM_UTIL_CRYPTO_KEY_SIZE = 32 バイト)。
+     *  @param[in]      passphrase      パスフレーズへのポインタ (任意のバイト列)。
+     *  @param[in]      passphrase_len  パスフレーズの長さ (バイト)。0 の場合も有効。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase,
+                                                                size_t passphrase_len);
 
 #ifdef __cplusplus
 }

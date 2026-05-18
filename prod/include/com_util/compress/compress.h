@@ -42,38 +42,42 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
- *******************************************************************************
- *  @brief          データを圧縮します。
- *  @param[out]     dst      圧縮後データを格納するバッファ。
- *                           先頭 4 バイトに元サイズ (NBO) が書き込まれます。
- *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
- *                           出力: 書き込んだバイト数。
- *  @param[in]      src      圧縮前データへのポインタ。
- *  @param[in]      src_len  圧縮前データのバイト数。
- *  @return         成功時は 0、失敗時は -1 を返します。
- *******************************************************************************
- */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_compress(uint8_t       *dst,
-                                                   size_t        *dst_len,
-                                                   const uint8_t *src,
-                                                   size_t         src_len);
+    /**
+     *******************************************************************************
+     *  @brief          データを圧縮します。
+     *  @param[out]     dst      圧縮後データを格納するバッファ。
+     *                           先頭 4 バイトに元サイズ (NBO) が書き込まれます。
+     *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
+     *                           出力: 書き込んだバイト数。
+     *  @param[in]      src      圧縮前データへのポインタ。
+     *  @param[in]      src_len  圧縮前データのバイト数。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
+                                                       size_t src_len);
 
-/**
- *******************************************************************************
- *  @brief          圧縮データを展開します。
- *  @param[out]     dst      展開後データを格納するバッファ。
- *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
- *                           出力: 書き込んだバイト数。
- *  @param[in]      src      圧縮後データへのポインタ (先頭 4 バイトは元サイズ)。
- *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
- *  @return         成功時は 0、失敗時は -1 を返します。
- *******************************************************************************
- */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_decompress(uint8_t       *dst,
-                                                     size_t        *dst_len,
-                                                     const uint8_t *src,
-                                                     size_t         src_len);
+    /**
+     *******************************************************************************
+     *  @brief          圧縮データを展開します。
+     *  @param[out]     dst      展開後データを格納するバッファ。
+     *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
+     *                           出力: 書き込んだバイト数。
+     *  @param[in]      src      圧縮後データへのポインタ (先頭 4 バイトは元サイズ)。
+     *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *******************************************************************************
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
+                                                         size_t src_len);
 
 #ifdef __cplusplus
 }

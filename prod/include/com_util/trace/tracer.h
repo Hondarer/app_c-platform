@@ -71,36 +71,35 @@
 
 /* 内部で使用するプラットフォーム固有ヘッダー */
 #if defined(PLATFORM_LINUX)
-#include <com_util/trace/syslog.h>
+    #include <com_util/trace/syslog.h>
 #elif defined(PLATFORM_WINDOWS)
-#include <com_util/trace/etw.h>
+    #include <com_util/trace/etw.h>
 #endif /* PLATFORM_ */
 
 /* ===== デフォルトプロバイダ定義 (Windows) ===== */
 
 #if defined(PLATFORM_WINDOWS)
 
-/**
- *  @brief          com_util_tracer_create が使用するデフォルト ETW プロバイダ名。
- */
-#define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "Company.Product"
+    /**
+     *  @brief          com_util_tracer_create が使用するデフォルト ETW プロバイダ名。
+     */
+    #define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "Company.Product"
 
-/**
- *  @brief          デフォルト ETW プロバイダの GUID (TraceLogging タプル形式)。
- *
- *  TRACELOGGING_DEFINE_PROVIDER で使用する形式です。
- */
-#define COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID \
-    (0xc3a7b5d1, 0x4e2f, 0x4a89, 0x96, 0xc8, 0xd7, 0xe9, 0xf1, 0xa2, 0xb3, 0xc4)
+    /**
+     *  @brief          デフォルト ETW プロバイダの GUID (TraceLogging タプル形式)。
+     *
+     *  TRACELOGGING_DEFINE_PROVIDER で使用する形式です。
+     */
+    #define COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID \
+        (0xc3a7b5d1, 0x4e2f, 0x4a89, 0x96, 0xc8, 0xd7, 0xe9, 0xf1, 0xa2, 0xb3, 0xc4)
 
-/**
- *  @brief          デフォルト ETW プロバイダの GUID (文字列形式)。
- *
- *  com_util_etw_session_start に渡す場合など、文字列形式の GUID が
- *  必要な場面で使用します。
- */
-#define COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR \
-    "c3a7b5d1-4e2f-4a89-96c8-d7e9f1a2b3c4"
+    /**
+     *  @brief          デフォルト ETW プロバイダの GUID (文字列形式)。
+     *
+     *  com_util_etw_session_start に渡す場合など、文字列形式の GUID が
+     *  必要な場面で使用します。
+     */
+    #define COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR "c3a7b5d1-4e2f-4a89-96c8-d7e9f1a2b3c4"
 
 #endif /* PLATFORM_WINDOWS */
 
@@ -149,12 +148,12 @@
 typedef enum com_util_trace_level_t
 {
     COM_UTIL_TRACE_LEVEL_CRITICAL = 0, /**< 致命的エラー。 */
-    COM_UTIL_TRACE_LEVEL_ERROR    = 1, /**< エラー。 */
-    COM_UTIL_TRACE_LEVEL_WARNING  = 2, /**< 警告。 */
-    COM_UTIL_TRACE_LEVEL_INFO     = 3, /**< 情報。 */
-    COM_UTIL_TRACE_LEVEL_VERBOSE  = 4, /**< 詳細な診断情報。 */
-    COM_UTIL_TRACE_LEVEL_DEBUG    = 5, /**< 最も詳細な診断情報。 */
-    COM_UTIL_TRACE_LEVEL_NONE     = 6  /**< 出力しない。 */
+    COM_UTIL_TRACE_LEVEL_ERROR = 1,    /**< エラー。 */
+    COM_UTIL_TRACE_LEVEL_WARNING = 2,  /**< 警告。 */
+    COM_UTIL_TRACE_LEVEL_INFO = 3,     /**< 情報。 */
+    COM_UTIL_TRACE_LEVEL_VERBOSE = 4,  /**< 詳細な診断情報。 */
+    COM_UTIL_TRACE_LEVEL_DEBUG = 5,    /**< 最も詳細な診断情報。 */
+    COM_UTIL_TRACE_LEVEL_NONE = 6      /**< 出力しない。 */
 } com_util_trace_level_t;
 
 /**
@@ -163,9 +162,9 @@ typedef enum com_util_trace_level_t
  */
 typedef enum com_util_tracer_state_t
 {
-    COM_UTIL_TRACER_STATE_STOPPED  = 0, /**< 作成済みで停止中。 */
-    COM_UTIL_TRACER_STATE_STARTED  = 1, /**< 作成済みで実行中。 */
-    COM_UTIL_TRACER_STATE_DISPOSED = 2  /**< 利用不可または解放済み。 */
+    COM_UTIL_TRACER_STATE_STOPPED = 0, /**< 作成済みで停止中。 */
+    COM_UTIL_TRACER_STATE_STARTED = 1, /**< 作成済みで実行中。 */
+    COM_UTIL_TRACER_STATE_DISPOSED = 2 /**< 利用不可または解放済み。 */
 } com_util_tracer_state_t;
 
 /* ===== デフォルトトレースレベル ===== */
@@ -175,7 +174,7 @@ typedef enum com_util_tracer_state_t
  *
  *  ユーザーが com_util_tracer_set_os_level() で変更するまで有効な初期値です。
  */
-#define COM_UTIL_TRACER_DEFAULT_OS_LEVEL   COM_UTIL_TRACE_LEVEL_INFO
+#define COM_UTIL_TRACER_DEFAULT_OS_LEVEL COM_UTIL_TRACE_LEVEL_INFO
 
 /**
  *  @brief          com_util_tracer_create() が設定するファイルトレースのデフォルトレベル。
@@ -208,6 +207,7 @@ typedef struct com_util_tracer com_util_tracer_t;
 typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry_t;
 
 /**
+ *******************************************************************************
  *  @brief  トレースフックのコールバック関数型。
  *
  *  @param[in]  prev      チェーン継続に使う前エントリ。com_util_tracer_call_next_hook に渡します。
@@ -231,15 +231,15 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry_t;
         com_util_tracer_call_next_hook(prev, handle, level, timestamp, message);
     }
  *  @endcode
+ *
+ *  @par            スレッド セーフ
+ *  コールバックは複数スレッドから同時に呼び出される可能性があります。\n
+ *  コールバックの実装者は再入性を確保してください。
+ *******************************************************************************
  */
-typedef void (*com_util_tracer_hook_fn_t)(
-    com_util_tracer_hook_entry_t            *prev,
-    com_util_tracer_t                       *handle,
-    com_util_trace_level_t                   level,
-    const com_util_realtime_timestamp_t     *timestamp,
-    const char                              *message,
-    void                                    *context
-);
+typedef void (*com_util_tracer_hook_fn_t)(com_util_tracer_hook_entry_t *prev, com_util_tracer_t *handle,
+                                          com_util_trace_level_t level, const com_util_realtime_timestamp_t *timestamp,
+                                          const char *message, void *context);
 
 /* ===== API 関数 ===== */
 
@@ -283,8 +283,7 @@ extern "C"
      *  複数スレッドから独立したハンドルを取得するために並行して呼び出すことができます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API
-        com_util_tracer_create(void);
+    COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void);
 
     /**
      *******************************************************************************
@@ -308,8 +307,7 @@ extern "C"
      *  @see            com_util_tracer_stop
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_start(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -333,8 +331,7 @@ extern "C"
      *  @see            com_util_tracer_start
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_stop(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_stop(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -347,10 +344,13 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。NULL 可。
      *  @return         現在の状態 (com_util_tracer_state_t)。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  返される状態は取得時点のスナップショットです。呼び出し直後に状態が変化する場合があります。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API
-        com_util_tracer_get_state(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API com_util_tracer_get_state(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -363,11 +363,15 @@ extern "C"
      *                             戻り値は -1 を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        _com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
-                               const com_util_realtime_timestamp_t *timestamp, const char *message);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                                            const com_util_realtime_timestamp_t *timestamp,
+                                                            const char *message);
 
     /**
      *******************************************************************************
@@ -381,11 +385,15 @@ extern "C"
      *  @param[in]      format   printf 形式のフォーマット文字列。
      *  @param[in]      ...      フォーマット文字列に対応する可変長引数。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                const com_util_realtime_timestamp_t *timestamp, const char *format, ...);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                                             const com_util_realtime_timestamp_t *timestamp,
+                                                             const char *format, ...);
 
     /**
      *******************************************************************************
@@ -400,12 +408,15 @@ extern "C"
      *  @param[in]      size     バイナリデータのバイト数。
      *  @param[in]      message  HEX データの手前に付与するラベル文字列。NULL 可。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        _com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                   const com_util_realtime_timestamp_t *timestamp,
-                                   const void *data, size_t size, const char *message);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                                                const com_util_realtime_timestamp_t *timestamp,
+                                                                const void *data, size_t size, const char *message);
 
     /**
      *******************************************************************************
@@ -421,12 +432,17 @@ extern "C"
      *  @param[in]      format   printf 形式のフォーマット文字列 (ラベル)。NULL 可。
      *  @param[in]      ...      フォーマット文字列に対応する可変長引数。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        _com_util_tracer_write_hexf(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                    const com_util_realtime_timestamp_t *timestamp,
-                                    const void *data, size_t size, const char *format, ...);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer_t *handle,
+                                                                 com_util_trace_level_t level,
+                                                                 const com_util_realtime_timestamp_t *timestamp,
+                                                                 const void *data, size_t size, const char *format,
+                                                                 ...);
 
     /**
      *******************************************************************************
@@ -436,10 +452,14 @@ extern "C"
      *  @param[in]      name        ベース識別名。NULL で自プロセス名を使用。
      *  @param[in]      identifier  アプリケーション管理識別番号 (0 以上)。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_set_name(com_util_tracer_t *handle, const char *name, int64_t identifier);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer_t *handle, const char *name,
+                                                              int64_t identifier);
 
     /**
      *******************************************************************************
@@ -447,10 +467,13 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルドレベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  返される値は取得時点のスナップショットです。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-        com_util_tracer_get_os_level(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -459,10 +482,14 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルドレベル (com_util_trace_level_t)。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_set_os_level(com_util_tracer_t *handle, com_util_trace_level_t level);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer_t *handle,
+                                                                  com_util_trace_level_t level);
 
     /**
      *******************************************************************************
@@ -470,10 +497,13 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルドレベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  返される値は取得時点のスナップショットです。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-        com_util_tracer_get_file_level(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -485,11 +515,15 @@ extern "C"
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
-                             com_util_trace_level_t level, size_t max_bytes, int generations);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
+                                                                    com_util_trace_level_t level, size_t max_bytes,
+                                                                    int generations);
 
     /**
      *******************************************************************************
@@ -497,10 +531,13 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルドレベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  返される値は取得時点のスナップショットです。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-        com_util_tracer_get_stderr_level(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_stderr_level(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -509,20 +546,27 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルドレベル (com_util_trace_level_t)。
      *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-        com_util_tracer_set_stderr_level(com_util_tracer_t *handle, com_util_trace_level_t level);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_tracer_t *handle,
+                                                                      com_util_trace_level_t level);
 
     /**
      *******************************************************************************
      *  @brief          トレースプロバイダを終了し、リソースを解放する。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。NULL は無視。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
-        com_util_tracer_dispose(com_util_tracer_t *handle);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer_t *handle);
 
     /**
      *******************************************************************************
@@ -557,10 +601,9 @@ extern "C"
      *  本関数は stopped 状態でスレッドセーフです。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT com_util_tracer_hook_entry_t *COM_UTIL_API
-        com_util_tracer_set_hook(com_util_tracer_t *handle,
-                                 com_util_tracer_hook_fn_t fn,
-                                 void *context);
+    COM_UTIL_EXPORT com_util_tracer_hook_entry_t *COM_UTIL_API com_util_tracer_set_hook(com_util_tracer_t *handle,
+                                                                                        com_util_tracer_hook_fn_t fn,
+                                                                                        void *context);
 
     /**
      *******************************************************************************
@@ -576,9 +619,8 @@ extern "C"
      *  本関数は stopped 状態でスレッドセーフです。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
-        com_util_tracer_remove_hook(com_util_tracer_t *handle,
-                                    com_util_tracer_hook_entry_t *hook_entry);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_remove_hook(com_util_tracer_t *handle,
+                                                                  com_util_tracer_hook_entry_t *hook_entry);
 
     /**
      *******************************************************************************
@@ -592,14 +634,17 @@ extern "C"
      *  @param[in]      level      trace レベル。
      *  @param[in]      timestamp  解決済みタイムスタンプ。
      *  @param[in]      message    解決済みメッセージ文字列。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  フック コールバック内から複数スレッドで同時に呼び出せます。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
-        com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
-                                       com_util_tracer_t *handle,
-                                       com_util_trace_level_t level,
-                                       const com_util_realtime_timestamp_t *timestamp,
-                                       const char *message);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
+                                                                     com_util_tracer_t *handle,
+                                                                     com_util_trace_level_t level,
+                                                                     const com_util_realtime_timestamp_t *timestamp,
+                                                                     const char *message);
 
 #ifdef __cplusplus
 }
@@ -613,10 +658,11 @@ extern "C"
  *  @note           式文脈で展開されるマクロのため、三項演算子を使用しています。
  */
 #define _com_util_tracer_basename(f) \
-    (strrchr((f), PLATFORM_PATH_SEP_CHR) ? strrchr((f), PLATFORM_PATH_SEP_CHR) + 1 : \
-     (strrchr((f), '\\') ? strrchr((f), '\\') + 1 : (f)))
+    (strrchr((f), PLATFORM_PATH_SEP_CHR) ? strrchr((f), PLATFORM_PATH_SEP_CHR) + 1 \
+                                         : (strrchr((f), '\\') ? strrchr((f), '\\') + 1 : (f)))
 
 /**
+ *******************************************************************************
  *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパー。
  *  @param[in]      handle     com_util_tracer_create の戻り値。
  *  @param[in]      level      トレースレベル (com_util_trace_level_t)。
@@ -626,10 +672,15 @@ extern "C"
  *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
  *  @return         成功 0 / 失敗 -1。
  *  @internal
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部で _com_util_tracer_writef に委譲しており、複数スレッドから同時に呼び出せます。
+ *******************************************************************************
  */
-static inline int _com_util_tracer_write_with_source(
-    com_util_tracer_t *handle, com_util_trace_level_t level,
-    const com_util_realtime_timestamp_t *timestamp, const char *file, int line, const char *message)
+static inline int _com_util_tracer_write_with_source(com_util_tracer_t *handle, com_util_trace_level_t level,
+                                                     const com_util_realtime_timestamp_t *timestamp, const char *file,
+                                                     int line, const char *message)
 {
     if (message != NULL)
     {
@@ -643,25 +694,24 @@ static inline int _com_util_tracer_write_with_source(
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write マクロ。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
-    _com_util_tracer_write_with_source((handle), (level), (timestamp), \
-                                       _com_util_tracer_basename(__FILE__), __LINE__, (message))
+    _com_util_tracer_write_with_source((handle), (level), (timestamp), _com_util_tracer_basename(__FILE__), __LINE__, \
+                                       (message))
 
 /**
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_writef マクロ。
  */
 #define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
-    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, \
-                            _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
+    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, _com_util_tracer_basename(__FILE__), \
+                            __LINE__, ##__VA_ARGS__)
 
 /**
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hex マクロ。
  *  @note           式文脈で展開されるマクロのため、三項演算子を使用しています。
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
-    _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
-                                _com_util_tracer_basename(__FILE__), __LINE__, \
-                                ((message) != NULL && (message)[0] != '\0') ? " " : "", \
-                                (message) != NULL ? (message) : "")
+    _com_util_tracer_write_hexf( \
+        (handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", _com_util_tracer_basename(__FILE__), __LINE__, \
+        ((message) != NULL && (message)[0] != '\0') ? " " : "", (message) != NULL ? (message) : "")
 
 /**
  *  @brief          ソースファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロ。
