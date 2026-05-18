@@ -278,7 +278,7 @@ extern "C"
        com_util_tracer_dispose(tracer);
      *  @endcode
      *
-     *  @par            スレッド セーフティ
+     *  @par            スレッド セーフ
      *  本関数はスレッドセーフです。\n
      *  複数スレッドから独立したハンドルを取得するために並行して呼び出すことができます。
      *******************************************************************************
@@ -299,7 +299,7 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         成功 0 / 失敗 -1。
      *
-     *  @par            スレッド セーフティ
+     *  @par            スレッド セーフ
      *  本関数はスレッドセーフです。\n
      *  内部で排他制御を行います。
      *
@@ -324,7 +324,7 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         成功 0 / 失敗 -1。
      *
-     *  @par            スレッド セーフティ
+     *  @par            スレッド セーフ
      *  本関数はスレッドセーフです。\n
      *  内部で排他制御を行います。
      *
@@ -553,7 +553,7 @@ extern "C"
         com_util_tracer_remove_hook(tracer, entry);
      *  @endcode
      *
-     *  @par            スレッド セーフティ
+     *  @par            スレッド セーフ
      *  本関数は stopped 状態でスレッドセーフです。
      *******************************************************************************
      */
@@ -572,7 +572,7 @@ extern "C"
      *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      hook_entry  com_util_tracer_set_hook の戻り値。NULL は無視。
      *
-     *  @par            スレッド セーフティ
+     *  @par            スレッド セーフ
      *  本関数は stopped 状態でスレッドセーフです。
      *******************************************************************************
      */
