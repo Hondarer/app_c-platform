@@ -25,7 +25,7 @@ MOCK_WEAK_IMPL(int, com_util_file_get_size, const com_util_file_t *file, size_t 
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, 0x%p", __func__, (void *)file, (void *)size_out);
+        printf("  > %s 0x%p, 0x%p", __func__, (const void *)file, (void *)size_out);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);
