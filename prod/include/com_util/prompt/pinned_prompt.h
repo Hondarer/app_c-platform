@@ -85,7 +85,6 @@ extern "C"
     } com_util_pinned_prompt_options_t;
 
     /**
-     *******************************************************************************
      *  @brief      Create a pinned prompt.
      *  @param[in]  options  Creation options. NULL uses default options.
      *  @return     Non-NULL handle on success, NULL on failure.
@@ -93,20 +92,17 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT com_util_pinned_prompt_t *COM_UTIL_API
     com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
 
     /**
-     *******************************************************************************
      *  @brief      Dispose a pinned prompt.
      *  @param[in,out]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p screen を他スレッドが使用していないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
 
@@ -134,13 +130,11 @@ extern "C"
     _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
-     *******************************************************************************
      *  @brief  com_util_pinned_prompt_readline() implementation.
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen, char *buf,
                                                                       size_t buf_size, const char *prompt_str,
@@ -158,7 +152,6 @@ extern "C"
         ;
 
     /**
-     *******************************************************************************
      *  @brief          Write output above the bottom-fixed prompt.
      *  @param[in,out]  screen   Pinned prompt handle.
      *  @param[in]      channel  Output channel.
@@ -171,7 +164,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt_t *screen,
                                                                      com_util_pinned_prompt_channel_t channel,
@@ -195,7 +187,6 @@ extern "C"
         ;
 
     /**
-     *******************************************************************************
      *  @brief          Enable or disable status area.
      *  @param[in,out]  screen    Pinned prompt handle.
      *  @param[in]      position  Status area position (top or bottom).
@@ -205,13 +196,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_enable(
         com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position, int enable);
 
     /**
-     *******************************************************************************
      *  @brief          Set status area content.
      *  @param[in,out]  screen    Pinned prompt handle.
      *  @param[in]      position  Status area position (top or bottom).
@@ -224,7 +213,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_set(
         com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position,

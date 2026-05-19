@@ -64,14 +64,12 @@ COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
 }
 
 /**
- *******************************************************************************
  *  @brief          ETW イベントを書き込む内部関数。
  *  @details        service が NULL の場合は Service フィールドを含めない。
  *  @param[in]      ref     TraceLogging プロバイダ参照。
  *  @param[in]      level   トレースレベル (1=Critical 〜 5=Verbose)。
  *  @param[in]      service サービス名 (NULL 可)。NULL の場合 Service フィールドを省略。
  *  @param[in]      message メッセージ文字列。
- *******************************************************************************
  */
 static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
                                const char *service, const char *message)

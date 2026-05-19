@@ -28,7 +28,6 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          syslog プロバイダを初期化する。
      *
      *  @param[in]      ident     syslog メッセージに付与される識別子文字列。
@@ -38,12 +37,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API com_util_syslog_sink_create(const char *ident, int facility);
 
     /**
-     *******************************************************************************
      *  @brief          syslog へ UTF-8 メッセージを書き込む。
      *
      *  @param[in,out]  handle   com_util_syslog_sink_create の戻り値。NULL は無視。
@@ -57,14 +54,12 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部の reconnect_lock で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level,
                                                                 const com_util_realtime_timestamp_t *timestamp,
                                                                 const char *message);
 
     /**
-     *******************************************************************************
      *  @brief          syslog プロバイダの識別子を変更する。
      *
      *  @param[in,out]  handle     com_util_syslog_sink_create の戻り値。NULL は -1 を返す。
@@ -74,12 +69,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部の reconnect_lock で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, const char *new_ident);
 
     /**
-     *******************************************************************************
      *  @brief          syslog プロバイダを終了する。
      *
      *  @param[in,out]  handle   com_util_syslog_sink_create の戻り値。NULL は無視。
@@ -87,7 +80,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle);
 

@@ -90,9 +90,7 @@ struct com_util_syslog_sink
 };
 
 /**
- *******************************************************************************
  *  @brief  タイムスタンプが有効範囲か判定する。
- *******************************************************************************
  */
 static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
 {
@@ -100,13 +98,11 @@ static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
 }
 
 /**
- *******************************************************************************
  *  @brief  syslog 出力に使用するタイムスタンプを解決する。
  *  @param[in]      timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
  *  @param[out]     resolved       解決後のタイムスタンプ格納先。
  *  @param[out]     fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
  *  @return         成功時 0、解決失敗時 -1。
- *******************************************************************************
  */
 static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
                              com_util_realtime_timestamp_t *resolved,
@@ -152,9 +148,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
 }
 
 /**
- *******************************************************************************
  *  @brief  バックオフ値を次段階に進める。ロック保持中に呼ぶこと。
- *******************************************************************************
  */
 static void advance_backoff(com_util_syslog_sink_t *h)
 {
@@ -171,9 +165,7 @@ static void advance_backoff(com_util_syslog_sink_t *h)
 }
 
 /**
- *******************************************************************************
  *  @brief  fd を閉じてバックオフを進める。ロック保持中に呼ぶこと。
- *******************************************************************************
  */
 static void close_and_backoff_locked(com_util_syslog_sink_t *h)
 {
@@ -187,10 +179,8 @@ static void close_and_backoff_locked(com_util_syslog_sink_t *h)
 }
 
 /**
- *******************************************************************************
  *  @brief  バックオフ期間を経過していればソケットを開く試みを行う。
  *          ロック保持中に呼ぶこと。
- *******************************************************************************
  */
 static void try_open_socket_locked(com_util_syslog_sink_t *h)
 {

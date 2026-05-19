@@ -43,7 +43,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          データを圧縮します。
      *  @param[out]     dst      圧縮後データを格納するバッファ。
      *                           先頭 4 バイトに元サイズ (NBO) が書き込まれます。
@@ -56,13 +55,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
                                                        size_t src_len);
 
     /**
-     *******************************************************************************
      *  @brief          圧縮データを展開します。
      *  @param[out]     dst      展開後データを格納するバッファ。
      *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
@@ -74,7 +71,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
                                                          size_t src_len);

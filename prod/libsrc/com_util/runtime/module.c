@@ -37,9 +37,7 @@
 #endif /* PLATFORM_ */
 
 /**
- *******************************************************************************
  *  @brief          内部関数の戻り値(ステータス)。
- *******************************************************************************
  */
 typedef enum get_lib_info_status_t
 {
@@ -54,14 +52,12 @@ typedef enum get_lib_info_status_t
 } get_lib_info_status_t;
 
 /**
- *******************************************************************************
  *  @brief          文字列を安全にコピーします (UTF-8 想定だが単なる byte 列として扱う)。
  *
  *  @param[out]     dst    出力バッファ。
  *  @param[in]      dst_sz 出力バッファサイズ[byte]。
  *  @param[in]      src    入力文字列 (NULL 終端)。
  *  @return         get_lib_info_status_t
- *******************************************************************************
  */
 static get_lib_info_status_t copy_str(char *dst, size_t dst_sz, const char *src)
 {
@@ -81,12 +77,10 @@ static get_lib_info_status_t copy_str(char *dst, size_t dst_sz, const char *src)
 }
 
 /**
- *******************************************************************************
  *  @brief          パス文字列からファイル名部分 (最後の区切り文字以降) を返します。
  *
  *  @param[in]      path パス。
  *  @return         const char* ファイル名部分へのポインタ (元の文字列内)。
- *******************************************************************************
  */
 static const char *get_ilename_part(const char *path)
 {
@@ -105,7 +99,6 @@ static const char *get_ilename_part(const char *path)
 }
 
 /**
- *******************************************************************************
  *  @brief          拡張子を取り除きます (その場で書き換え)。
  *
  *  @details        - Linux: ".so." が含まれる場合はそこから先を削除 (例: libx.so.1.2.3 -> libx)
@@ -113,7 +106,6 @@ static const char *get_ilename_part(const char *path)
  *                  - その他: 最後の '.' 以降を削除 (一般的な拡張子扱い)
  *
  *  @param[in,out]  s 対象文字列 (NULL 終端)。
- *******************************************************************************
  */
 static void strip_extension_inplace(char *s)
 {
@@ -161,7 +153,6 @@ static void strip_extension_inplace(char *s)
 #if defined(PLATFORM_LINUX)
 
 /**
- *******************************************************************************
  *  @brief          .so 自身の絶対パスを取得します (Linux/Unix)。
  *
  *  dladdr() に指定された関数アドレスを渡して所属共有オブジェクトを取得し、\n
@@ -171,7 +162,6 @@ static void strip_extension_inplace(char *s)
  *  @param[in]      out_path_sz 出力バッファサイズ[byte]。
  *  @param[in]      func_addr   所属モジュールを特定するための関数アドレス。
  *  @return         get_lib_info_status_t
- *******************************************************************************
  */
 static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path_sz, const void *func_addr)
 {
@@ -217,14 +207,12 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *******************************************************************************
  *  @brief          DLL 自身の絶対パス (ワイド文字列) を取得します。
  *
  *  @param[out]     out_w     出力 (UTF-16、NULL 終端)。
  *  @param[in]      out_w_cap 出力バッファサイズ[wchar_t 個数]。
  *  @param[in]      func_addr 所属モジュールを特定するための関数アドレス。
  *  @return         get_lib_info_status_t
- *******************************************************************************
  */
 static get_lib_info_status_t get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_addr)
 {

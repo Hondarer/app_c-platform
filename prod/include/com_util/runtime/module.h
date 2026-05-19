@@ -30,7 +30,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          関数アドレスが属するモジュールのフルパスを取得します。
      *  @param[out]     out_path      フルパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
@@ -40,13 +39,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *out_path, size_t out_path_sz,
                                                               const void *func_addr);
 
     /**
-     *******************************************************************************
      *  @brief          関数アドレスが属するモジュールのベース名を取得します。
      *  @param[out]     out_basename      ベース名 (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_basename_sz   @p out_basename のサイズ (バイト)。0 を渡してはなりません。
@@ -56,7 +53,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_basename(char *out_basename, size_t out_basename_sz,
                                                                   const void *func_addr);

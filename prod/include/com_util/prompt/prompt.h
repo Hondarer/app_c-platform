@@ -114,7 +114,6 @@ extern "C"
     } com_util_prompt_options_t;
 
     /**
-     *******************************************************************************
      *  @brief      プロンプトハンドルを生成する。
      *  @param[in]  options  生成オプション。NULL の場合は既定設定を使用する。
      *  @return     成功時は非 NULL ハンドル、失敗時は NULL。
@@ -122,12 +121,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT com_util_prompt_t *COM_UTIL_API com_util_prompt_create(const com_util_prompt_options_t *options);
 
     /**
-     *******************************************************************************
      *  @brief      プロンプトハンドルを解放する。
      *  @param[in,out]  prompt  com_util_prompt_create() が返したハンドル。NULL 可。
      *  @details        raw モード中の場合はターミナル設定を復元してから解放する。
@@ -135,7 +132,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p prompt を他スレッドが使用していないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_prompt_dispose(com_util_prompt_t *prompt);
 
@@ -164,14 +160,12 @@ extern "C"
     com_util_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
-     *******************************************************************************
      *  @brief      呼び出し元を明示して 1 行入力を受け取る。
      *  @details    通常は com_util_prompt_readline() を使用する。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p prompt への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_at(com_util_prompt_t *prompt, char *buf, size_t buf_size,
                                                                  const char *prompt_str, const char *file, int line);

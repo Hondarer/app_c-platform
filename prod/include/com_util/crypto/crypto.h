@@ -52,7 +52,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          AES-256-GCM でデータを暗号化します。
      *  @param[out]     dst      暗号化後データを格納するバッファ。\n
      *                           内容: [暗号文: src_len バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]\n
@@ -70,14 +69,12 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
                                                       const uint8_t *key, const uint8_t *nonce, const uint8_t *aad,
                                                       size_t aad_len);
 
     /**
-     *******************************************************************************
      *  @brief          AES-256-GCM でデータを復号し、認証タグを検証します。
      *  @param[out]     dst      復号後データを格納するバッファ。
      *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。\n
@@ -94,14 +91,12 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
                                                       const uint8_t *key, const uint8_t *nonce, const uint8_t *aad,
                                                       size_t aad_len);
 
     /**
-     *******************************************************************************
      *  @brief          任意のパスフレーズを SHA-256 ハッシュにより AES-256 鍵に変換します。
      *  @details
      *  入力バイト列の SHA-256 ダイジェストをそのまま鍵として使用します。\n
@@ -114,7 +109,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase,
                                                                 size_t passphrase_len);

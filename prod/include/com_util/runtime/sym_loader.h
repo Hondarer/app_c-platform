@@ -63,12 +63,10 @@ extern "C"
 #define COM_UTIL_SYM_LOADER_NAME_MAX 256 /**< lib_name / func_name 配列の最大長 (終端 '\0' を含む)。 */
 
     /**
-     *******************************************************************************
      *  @brief          関数ポインタキャッシュエントリ。
      *
      *  @details        ライブラリ名・関数名・ハンドル・関数ポインタおよび排他制御用ロックを管理します。\n
      *                  静的変数として定義する場合は COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで初期化してください。
-     *******************************************************************************
      */
     typedef struct
     {
@@ -93,7 +91,6 @@ extern "C"
 #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, NULL}
 
     /**
-     *******************************************************************************
      *  @brief          拡張関数ポインタを返す (内部用)。
      *
      *  @param[in,out]  fobj com_util_sym_loader_entry_t へのポインタ。
@@ -102,7 +99,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  ロックフリーの fast path と per-entry mutex による double-checked locking で排他制御しており、複数スレッドから同時に呼び出せます。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj);
 
@@ -115,7 +111,6 @@ extern "C"
 #define com_util_sym_loader_resolve_as(fobj, type) ((type)com_util_sym_loader_resolve(fobj))
 
     /**
-     *******************************************************************************
      *  @brief          com_util_sym_loader_entry_t が明示的デフォルトかどうかを返す。
      *
      *  @param[in]      fobj com_util_sym_loader_entry_t へのポインタ。
@@ -124,12 +119,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部で com_util_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry_t *fobj);
 
     /**
-     *******************************************************************************
      *  @brief          com_util_sym_loader_entry_t ポインタ配列を初期化する。
      *
      *  @param[in,out]  fobj_array  com_util_sym_loader_entry_t ポインタ配列。
@@ -139,13 +132,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  DLL ロード直後のシングル スレッド フェーズで呼び出してください。複数スレッドから同時に @p fobj_array の同一エントリへ書き込むと競合が発生します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array,
                                                                const size_t fobj_length, const char *configpath);
 
     /**
-     *******************************************************************************
      *  @brief          com_util_sym_loader_entry_t ポインタ配列を解放する。
      *
      *  @param[in,out]  fobj_array  com_util_sym_loader_entry_t ポインタ配列。
@@ -154,13 +145,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  DllMain / destructor コンテキストのシングル スレッド フェーズで呼び出してください。他スレッドが resolve を実行中の場合、解放と競合します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array,
                                                                   const size_t fobj_length);
 
     /**
-     *******************************************************************************
      *  @brief          com_util_sym_loader_entry_t ポインタ配列の内容を標準出力に表示する。
      *
      *  @param[in]      fobj_array      com_util_sym_loader_entry_t ポインタ配列。
@@ -170,7 +159,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部で com_util_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array,
                                                               const size_t fobj_length);

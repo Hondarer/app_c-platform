@@ -36,7 +36,6 @@ typedef struct com_util_etw_event_t
 } com_util_etw_event_t;
 
 /**
- *******************************************************************************
  *  @typedef        com_util_etw_event_callback_t
  *  @brief          ETW イベント受信コールバック型。
  *
@@ -46,7 +45,6 @@ typedef struct com_util_etw_event_t
  *  @par            スレッド セーフ
  *  コールバックは ETW ワーカースレッドから呼び出されます。\n
  *  コールバックの実装者は再入性を確保してください。
- *******************************************************************************
  */
 typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event_t *event, void *context);
 
@@ -90,7 +88,6 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          ETW プロバイダを登録する。
      *
      *  @param[in]      provider_ref  COM_UTIL_ETW_DEFINE_PROVIDER で定義した変数。
@@ -99,13 +96,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
     com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref);
 
     /**
-     *******************************************************************************
      *  @brief          ETW プロバイダへ UTF-8 メッセージを書き込む。
      *
      *  @param[in,out]  handle   com_util_etw_provider_create の戻り値。NULL は無視。
@@ -117,13 +112,11 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  TraceLoggingWrite は複数スレッドからの同時呼び出しをサポートしています。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provider_t *handle, int level,
                                                                  const char *service, const char *message);
 
     /**
-     *******************************************************************************
      *  @brief          ETW プロバイダの登録を解除する。
      *
      *  @param[in,out]  handle   com_util_etw_provider_create の戻り値。NULL は無視。
@@ -131,7 +124,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_provider_dispose(com_util_etw_provider_t *handle);
 
@@ -155,7 +147,6 @@ extern "C"
     typedef struct com_util_etw_session com_util_etw_session_t;
 
     /**
-     *******************************************************************************
      *  @brief          ETW セッション開始に必要な権限があるか検査する。
      *
      *  @return         COM_UTIL_ETW_SESSION_OK / COM_UTIL_ETW_SESSION_ERR_ACCESS /
@@ -164,12 +155,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void);
 
     /**
-     *******************************************************************************
      *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダを購読する。
      *
      *  @param[in]      session_name       セッション名 (システム全体で一意にすること)。
@@ -182,14 +171,12 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したセッションを生成します。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API
     com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
                                com_util_etw_event_callback_t callback, void *context, int *out_status);
 
     /**
-     *******************************************************************************
      *  @brief          ETW セッションを停止し、リソースを解放する。
      *
      *  @param[in,out]  session  com_util_etw_session_start の戻り値。NULL は無視。
@@ -197,7 +184,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p session への並行呼び出しは未定義動作です。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session_t *session);
 

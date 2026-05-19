@@ -22,7 +22,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          `gmtime_r` / `gmtime_s` のラッパー。UTC 時刻をスレッドセーフに変換します。
      *  @param[out]     utc_tm  変換結果の格納先。NULL を渡してはなりません。
      *  @param[in]      timep   変換するエポック秒へのポインタ。
@@ -32,12 +31,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  スレッドセーフな gmtime_r / gmtime_s を使用しており、内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm, const time_t *timep);
 
     /**
-     *******************************************************************************
      *  @brief          `localtime_r` / `localtime_s` のラッパー。ローカル時刻をスレッドセーフに変換します。
      *  @param[out]     local_tm  変換結果の格納先。NULL を渡してはなりません。
      *  @param[in]      timep     変換するエポック秒へのポインタ。
@@ -47,7 +44,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  スレッドセーフな localtime_r / localtime_s を使用しており、内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm, const time_t *timep);
 

@@ -24,7 +24,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          UTF-8 パスでファイルディスクリプタを開きます (`open` / `_wopen` ラッパー)。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープンフラグ (O_RDONLY、O_WRONLY、O_RDWR など)。
@@ -34,7 +33,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path, int flags, int mode);
 

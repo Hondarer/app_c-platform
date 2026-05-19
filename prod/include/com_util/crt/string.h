@@ -25,7 +25,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          バッファサイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当)。
      *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
@@ -35,12 +34,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, size_t dest_size, const char *src);
 
     /**
-     *******************************************************************************
      *  @brief          バッファサイズ付き安全 strncpy (`strncpy_s` 相当)。
      *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
@@ -51,12 +48,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 
     /**
-     *******************************************************************************
      *  @brief          バッファサイズ付き安全 strcat (`strcat_s` / `strlcat` 相当)。
      *  @param[in,out]  dest       連結先バッファ。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
@@ -66,12 +61,10 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, size_t dest_size, const char *src);
 
     /**
-     *******************************************************************************
      *  @brief          バッファサイズ付き安全 wcscpy (`wcscpy_s` 相当)。
      *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。
@@ -81,7 +74,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 

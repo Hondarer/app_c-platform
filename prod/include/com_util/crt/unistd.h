@@ -46,7 +46,6 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *******************************************************************************
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー)。
      *  @param[in]      path  確認対象のファイルパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      mode  確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
@@ -55,7 +54,6 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
-     *******************************************************************************
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, int mode);
 
