@@ -69,7 +69,7 @@ extern "C"
 
     /**
      *  @brief          ストリームを閉じます (`fclose` ラッパー)。
-     *  @param[in,out]  stream  閉じるストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  閉じるストリーム。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は EOF を返します。
      *
      *  @par            スレッド セーフ
@@ -83,7 +83,7 @@ extern "C"
      *  @param[out]     ptr     読み取ったデータの格納先。NULL を渡してはなりません。
      *  @param[in]      size    各要素のサイズ (バイト)。
      *  @param[in]      count   読み取る要素数。
-     *  @param[in,out]  stream  読み取り元のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  読み取り元のストリーム。NULL を渡してはなりません。
      *  @return         読み取った要素数を返します。
      *
      *  @par            スレッド セーフ
@@ -97,7 +97,7 @@ extern "C"
      *  @param[in]      ptr     書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      size    各要素のサイズ (バイト)。
      *  @param[in]      count   書き込む要素数。
-     *  @param[in,out]  stream  書き込み先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  書き込み先のストリーム。NULL を渡してはなりません。
      *  @return         書き込んだ要素数を返します。
      *
      *  @par            スレッド セーフ
@@ -110,7 +110,7 @@ extern "C"
      *  @brief          ストリームから 1 行読み取ります (`fgets` ラッパー)。
      *  @param[out]     buf     読み取ったデータの格納先。NULL を渡してはなりません。
      *  @param[in]      size    @p buf のサイズ (バイト)。
-     *  @param[in,out]  stream  読み取り元のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  読み取り元のストリーム。NULL を渡してはなりません。
      *  @return         成功時は @p buf、EOF またはエラー時は NULL を返します。
      *
      *  @par            スレッド セーフ
@@ -122,7 +122,7 @@ extern "C"
     /**
      *  @brief          ストリームへ文字列を書き込みます (`fputs` ラッパー)。
      *  @param[in]      str     書き込む文字列。NULL を渡してはなりません。
-     *  @param[in,out]  stream  書き込み先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  書き込み先のストリーム。NULL を渡してはなりません。
      *  @return         成功時は非負値、失敗時は EOF を返します。
      *
      *  @par            スレッド セーフ
@@ -133,7 +133,7 @@ extern "C"
 
     /**
      *  @brief          ストリームへ書式化出力します (`fprintf` ラッパー)。
-     *  @param[in,out]  stream  出力先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  出力先のストリーム。NULL を渡してはなりません。
      *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      ...     書式引数。
      *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
@@ -146,7 +146,7 @@ extern "C"
 
     /**
      *  @brief          ストリームへ書式化出力します (`com_util_fprintf` の `va_list` 版)。
-     *  @param[in,out]  stream  出力先のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  出力先のストリーム。NULL を渡してはなりません。
      *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      args    書式引数リスト。
      *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
@@ -159,7 +159,7 @@ extern "C"
 
     /**
      *  @brief          ストリームのバッファをフラッシュします (`fflush` ラッパー)。
-     *  @param[in,out]  stream  フラッシュするストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  フラッシュするストリーム。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は EOF を返します。
      *
      *  @par            スレッド セーフ
@@ -192,7 +192,7 @@ extern "C"
 
     /**
      *  @brief          ストリームの EOF・エラーフラグをクリアします (`clearerr` ラッパー)。
-     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  対象のストリーム。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -202,7 +202,7 @@ extern "C"
 
     /**
      *  @brief          ストリーム位置を先頭に戻します (`rewind` ラッパー)。
-     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  対象のストリーム。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -212,7 +212,7 @@ extern "C"
 
     /**
      *  @brief          ストリーム位置を移動します (64bit 対応 `fseek` ラッパー)。
-     *  @param[in,out]  stream  対象のストリーム。NULL を渡してはなりません。
+     *  @param[in]      stream  対象のストリーム。NULL を渡してはなりません。
      *  @param[in]      offset  移動量 (バイト)。
      *  @param[in]      whence  基点 (SEEK_SET、SEEK_CUR、SEEK_END)。
      *  @return         成功時は 0、失敗時は -1 を返します。

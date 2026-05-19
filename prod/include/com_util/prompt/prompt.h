@@ -126,7 +126,7 @@ extern "C"
 
     /**
      *  @brief      プロンプトハンドルを解放する。
-     *  @param[in,out]  prompt  com_util_prompt_create() が返したハンドル。NULL 可。
+     *  @param[in]      prompt  com_util_prompt_create() が返したハンドル。NULL 可。
      *  @details        raw モード中の場合はターミナル設定を復元してから解放する。
      *
      *  @par            スレッド セーフ
@@ -137,7 +137,7 @@ extern "C"
 
 /**
  *  @brief      固定プロンプト文字列を表示して 1 行入力を受け取る。
- *  @param[in,out]  p           ハンドル。
+ *  @param[in]      p           ハンドル。
  *  @param[out]     buf         入力結果を格納するバッファ（末尾の改行は含まない）。
  *  @param[in]      buf_size    バッファのサイズ（バイト）。
  *  @param[in]      prompt_str  表示するプロンプト文字列。NULL の場合は "" として扱う。
@@ -148,7 +148,7 @@ extern "C"
 
 /**
  *  @brief      printf スタイルのフォーマットでプロンプトを表示して 1 行入力を受け取る。
- *  @param[in,out]  p        ハンドル。
+ *  @param[in]      p        ハンドル。
  *  @param[out]     buf      入力結果を格納するバッファ（末尾の改行は含まない）。
  *  @param[in]      buf_size バッファのサイズ（バイト）。
  *  @param[in]      fmt      printf 形式のフォーマット文字列。NULL の場合は "" として扱う。

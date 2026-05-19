@@ -43,7 +43,7 @@ extern "C"
     /**
      *  @brief          syslog へ UTF-8 メッセージを書き込む。
      *
-     *  @param[in,out]  handle   com_util_syslog_sink_create の戻り値。NULL は無視。
+     *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    syslog severity 値。
      *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻。NULL の場合は時刻を付与しない。
      *                             不正な明示タイムスタンプが渡された場合は現在時刻へ代替し、
@@ -62,7 +62,7 @@ extern "C"
     /**
      *  @brief          syslog プロバイダの識別子を変更する。
      *
-     *  @param[in,out]  handle     com_util_syslog_sink_create の戻り値。NULL は -1 を返す。
+     *  @param[in]      handle     com_util_syslog_sink_create の戻り値。NULL は -1 を返す。
      *  @param[in]      new_ident  新しい識別子文字列。NULL は -1 を返す。
      *  @return         成功 0 / 失敗 -1。
      *
@@ -75,7 +75,7 @@ extern "C"
     /**
      *  @brief          syslog プロバイダを終了する。
      *
-     *  @param[in,out]  handle   com_util_syslog_sink_create の戻り値。NULL は無視。
+     *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

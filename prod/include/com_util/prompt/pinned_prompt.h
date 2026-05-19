@@ -98,7 +98,7 @@ extern "C"
 
     /**
      *  @brief      Dispose a pinned prompt.
-     *  @param[in,out]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
+     *  @param[in]      screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -108,7 +108,7 @@ extern "C"
 
 /**
  *  @brief      Read one command line with a bottom-fixed prompt.
- *  @param[in,out]  screen      Pinned prompt handle.
+ *  @param[in]      screen      Pinned prompt handle.
  *  @param[out]     buf         Destination buffer. The terminating newline is not included.
  *  @param[in]      buf_size    Destination buffer size.
  *  @param[in]      prompt_str  Prompt string. NULL is treated as an empty string.
@@ -119,7 +119,7 @@ extern "C"
 
 /**
  *  @brief      Read one command line with a formatted bottom-fixed prompt.
- *  @param[in,out]  screen    Pinned prompt handle.
+ *  @param[in]      screen    Pinned prompt handle.
  *  @param[out]     buf       Destination buffer. The terminating newline is not included.
  *  @param[in]      buf_size  Destination buffer size.
  *  @param[in]      fmt       printf style format string. NULL is treated as an empty string.
@@ -153,7 +153,7 @@ extern "C"
 
     /**
      *  @brief          Write output above the bottom-fixed prompt.
-     *  @param[in,out]  screen   Pinned prompt handle.
+     *  @param[in]      screen   Pinned prompt handle.
      *  @param[in]      channel  Output channel.
      *  @param[in]      data     Data to write. NULL is allowed only when size is 0.
      *  @param[in]      size     Data size in bytes.
@@ -171,7 +171,7 @@ extern "C"
 
     /**
      *  @brief          Write formatted output above the bottom-fixed prompt.
-     *  @param[in,out]  screen   Pinned prompt handle.
+     *  @param[in]      screen   Pinned prompt handle.
      *  @param[in]      channel  Output channel.
      *  @param[in]      fmt      printf style format string. NULL is treated as an empty string.
      *  @param[in]      ...      Format arguments.
@@ -188,7 +188,7 @@ extern "C"
 
     /**
      *  @brief          Enable or disable status area.
-     *  @param[in,out]  screen    Pinned prompt handle.
+     *  @param[in]      screen    Pinned prompt handle.
      *  @param[in]      position  Status area position (top or bottom).
      *  @param[in]      enable    Non-zero to enable, zero to disable.
      *  @return     0 on success, -1 on failure.
@@ -202,7 +202,7 @@ extern "C"
 
     /**
      *  @brief          Set status area content.
-     *  @param[in,out]  screen    Pinned prompt handle.
+     *  @param[in]      screen    Pinned prompt handle.
      *  @param[in]      position  Status area position (top or bottom).
      *  @param[in]      align     Alignment (left or right).
      *  @param[in]      content   Content string. NULL clears the content.

@@ -290,7 +290,7 @@ extern "C"
      *  com_util_tracer_set_stderr_level) は使用できなくなります (-1 を返します)。\n
      *  すでに started 状態の場合は何もせず 0 を返します (冪等)。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ
@@ -312,7 +312,7 @@ extern "C"
      *  com_util_tracer_set_stderr_level) がスレッド安全に使用できるようになります。\n
      *  すでに stopped 状態の場合は何もせず 0 を返します (冪等)。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ
@@ -345,7 +345,7 @@ extern "C"
     /**
      *  @brief          トレースメッセージを書き込む低レベル関数。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
@@ -364,7 +364,7 @@ extern "C"
     /**
      *  @brief          printf 形式でトレースメッセージを書き込む低レベル関数。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
@@ -384,7 +384,7 @@ extern "C"
     /**
      *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む低レベル関数。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
@@ -405,7 +405,7 @@ extern "C"
     /**
      *  @brief          バイナリデータを HEX テキスト形式でトレースに書き込む低レベル関数 (printf 形式ラベル)。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    トレースレベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
@@ -429,7 +429,7 @@ extern "C"
     /**
      *  @brief          トレースプロバイダの識別名と識別番号を設定する。
      *
-     *  @param[in,out]  handle      com_util_tracer_create の戻り値。
+     *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      name        ベース識別名。NULL で自プロセス名を使用。
      *  @param[in]      identifier  アプリケーション管理識別番号 (0 以上)。
      *  @return         成功 0 / 失敗 -1。
@@ -456,7 +456,7 @@ extern "C"
     /**
      *  @brief          OS トレースのスレッショルドレベルを設定する。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルドレベル (com_util_trace_level_t)。
      *  @return         成功 0 / 失敗 -1。
      *
@@ -482,7 +482,7 @@ extern "C"
     /**
      *  @brief          ファイルトレースの出力先と設定を変更する。
      *
-     *  @param[in,out]  handle       com_util_tracer_create の戻り値。
+     *  @param[in]      handle       com_util_tracer_create の戻り値。
      *  @param[in]      path         出力ファイルパス。NULL でファイルトレースを無効化。
      *  @param[in]      level        ファイルトレースのスレッショルドレベル。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
@@ -512,7 +512,7 @@ extern "C"
     /**
      *  @brief          stderr トレースのスレッショルドレベルを設定する。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルドレベル (com_util_trace_level_t)。
      *  @return         成功 0 / 失敗 -1。
      *
@@ -526,7 +526,7 @@ extern "C"
     /**
      *  @brief          トレースプロバイダを終了し、リソースを解放する。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。NULL は無視。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -546,7 +546,7 @@ extern "C"
      *  コールバック内で com_util_tracer_call_next_hook を呼ぶことでチェーンを継続できます。\n
      *  本関数は stopped 状態でのみ有効です。
      *
-     *  @param[in,out]  handle   com_util_tracer_create の戻り値。
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      fn       コールバック関数。NULL は無効。
      *  @param[in]      context  コールバックに渡す任意のコンテキスト。NULL 可。
      *  @return         成功時: 登録したフックエントリ (com_util_tracer_remove_hook に使用)。
@@ -575,8 +575,8 @@ extern "C"
      *  com_util_tracer_set_hook で登録したフックを解除し、エントリのメモリを解放します。\n
      *  本関数は stopped 状態でのみ有効です。
      *
-     *  @param[in,out]  handle      com_util_tracer_create の戻り値。
-     *  @param[in,out]  hook_entry  com_util_tracer_set_hook の戻り値。NULL は無視。
+     *  @param[in]      handle      com_util_tracer_create の戻り値。
+     *  @param[in]      hook_entry  com_util_tracer_set_hook の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数は stopped 状態でスレッドセーフです。
@@ -659,7 +659,7 @@ static inline const char *_com_util_tracer_hex_msg(const char *message)
 
 /**
  *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパー。
- *  @param[in,out]  handle     com_util_tracer_create の戻り値。
+ *  @param[in]      handle     com_util_tracer_create の戻り値。
  *  @param[in]      level      トレースレベル (com_util_trace_level_t)。
  *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
  *  @param[in]      file       出力に付与するソースファイル名。

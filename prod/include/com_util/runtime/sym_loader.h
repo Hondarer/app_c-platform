@@ -93,7 +93,7 @@ extern "C"
     /**
      *  @brief          拡張関数ポインタを返す (内部用)。
      *
-     *  @param[in,out]  fobj com_util_sym_loader_entry_t へのポインタ。
+     *  @param[in]      fobj com_util_sym_loader_entry_t へのポインタ。
      *  @return         成功時 void * (関数ポインタ)、失敗時 NULL。
      *
      *  @par            スレッド セーフ
@@ -125,7 +125,7 @@ extern "C"
     /**
      *  @brief          com_util_sym_loader_entry_t ポインタ配列を初期化する。
      *
-     *  @param[in,out]  fobj_array  com_util_sym_loader_entry_t ポインタ配列。
+     *  @param[in]      fobj_array  com_util_sym_loader_entry_t ポインタ配列。
      *  @param[in]      fobj_length 配列の要素数。
      *  @param[in]      configpath  定義ファイルのパス。
      *
@@ -139,7 +139,7 @@ extern "C"
     /**
      *  @brief          com_util_sym_loader_entry_t ポインタ配列を解放する。
      *
-     *  @param[in,out]  fobj_array  com_util_sym_loader_entry_t ポインタ配列。
+     *  @param[in]      fobj_array  com_util_sym_loader_entry_t ポインタ配列。
      *  @param[in]      fobj_length 配列の要素数。
      *
      *  @par            スレッド セーフ

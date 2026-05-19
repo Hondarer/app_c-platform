@@ -84,7 +84,7 @@ extern "C"
 
     /**
      *  @brief          ミューテックスをロックします。
-     *  @param[in,out]  mtx        対象のミューテックス。NULL を渡してはなりません。
+     *  @param[in]      mtx        対象のミューテックス。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -101,7 +101,7 @@ extern "C"
 
     /**
      *  @brief          ミューテックスをノンブロッキングでロック試行します。
-     *  @param[in,out]  mtx  対象のミューテックス。NULL を渡してはなりません。
+     *  @param[in]      mtx  対象のミューテックス。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -112,7 +112,7 @@ extern "C"
 
     /**
      *  @brief          ミューテックスをアンロックします。
-     *  @param[in,out]  mtx  対象のミューテックス。NULL を渡してはなりません。
+     *  @param[in]      mtx  対象のミューテックス。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -123,7 +123,7 @@ extern "C"
 
     /**
      *  @brief          ミューテックスを破棄します。
-     *  @param[in,out]  mtx  破棄するミューテックス。NULL を渡してはなりません。
+     *  @param[in]      mtx  破棄するミューテックス。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッドセーフではありません。\n
@@ -144,8 +144,8 @@ extern "C"
 
     /**
      *  @brief          条件変数を待機します (@p mtx を atomically アンロック後に待機し、シグナル受信後に再ロック)。
-     *  @param[in,out]  cv         対象の条件変数。NULL を渡してはなりません。
-     *  @param[in,out]  mtx        待機中にアンロックするミューテックス。NULL を渡してはなりません。
+     *  @param[in]      cv         対象の条件変数。NULL を渡してはなりません。
+     *  @param[in]      mtx        待機中にアンロックするミューテックス。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -163,7 +163,7 @@ extern "C"
 
     /**
      *  @brief          待機中のスレッドを 1 つ起床させます。
-     *  @param[in,out]  cv  対象の条件変数。NULL を渡してはなりません。
+     *  @param[in]      cv  対象の条件変数。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -174,7 +174,7 @@ extern "C"
 
     /**
      *  @brief          待機中のすべてのスレッドを起床させます。
-     *  @param[in,out]  cv  対象の条件変数。NULL を渡してはなりません。
+     *  @param[in]      cv  対象の条件変数。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -185,7 +185,7 @@ extern "C"
 
     /**
      *  @brief          条件変数を破棄します。
-     *  @param[in,out]  cv  破棄する条件変数。NULL を渡してはなりません。
+     *  @param[in]      cv  破棄する条件変数。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッドセーフではありません。\n
@@ -206,7 +206,7 @@ extern "C"
 
     /**
      *  @brief          共有 (読み取り) ロックを取得します。
-     *  @param[in,out]  rwlock     対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock     対象の読み書きロック。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -223,7 +223,7 @@ extern "C"
 
     /**
      *  @brief          共有 (読み取り) ロックをノンブロッキングで取得試行します。
-     *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -235,7 +235,7 @@ extern "C"
 
     /**
      *  @brief          排他 (書き込み) ロックを取得します。
-     *  @param[in,out]  rwlock     対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock     対象の読み書きロック。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -252,7 +252,7 @@ extern "C"
 
     /**
      *  @brief          排他 (書き込み) ロックをノンブロッキングで取得試行します。
-     *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -264,7 +264,7 @@ extern "C"
 
     /**
      *  @brief          共有 (読み取り) ロックを解放します。
-     *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -276,7 +276,7 @@ extern "C"
 
     /**
      *  @brief          排他 (書き込み) ロックを解放します。
-     *  @param[in,out]  rwlock  対象の読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -288,7 +288,7 @@ extern "C"
 
     /**
      *  @brief          読み書きロックを破棄します。
-     *  @param[in,out]  rwlock  破棄する読み書きロック。NULL を渡してはなりません。
+     *  @param[in]      rwlock  破棄する読み書きロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッドセーフではありません。\n
@@ -312,7 +312,7 @@ extern "C"
 
     /**
      *  @brief          スレッドの終了を待機します。
-     *  @param[in,out]  thread     対象のスレッドハンドル。NULL を渡してはなりません。
+     *  @param[in]      thread     対象のスレッドハンドル。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -328,7 +328,7 @@ extern "C"
 
     /**
      *  @brief          スレッドを切り離します。切り離し後はリソースを自動解放します。
-     *  @param[in,out]  thread  切り離すスレッドハンドル。NULL を渡してはなりません。
+     *  @param[in]      thread  切り離すスレッドハンドル。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  同一 @p thread に対する並行呼び出しはスレッドセーフではありません。\n
@@ -381,7 +381,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断ミューテックスをロックします。
-     *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock       対象のロック。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -398,7 +398,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断ミューテックスをノンブロッキングでロック試行します。
-     *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -410,7 +410,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断ミューテックスをアンロックします。
-     *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -422,7 +422,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断ミューテックスを破棄します。
-     *  @param[in,out]  lock  破棄するロック。NULL を渡してはなりません。
+     *  @param[in]      lock  破棄するロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッドセーフではありません。\n
@@ -475,7 +475,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断共有 (読み取り) ロックを取得します。
-     *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock       対象のロック。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -492,7 +492,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断共有 (読み取り) ロックをノンブロッキングで取得試行します。
-     *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -504,7 +504,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断排他 (書き込み) ロックを取得します。
-     *  @param[in,out]  lock       対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock       対象のロック。NULL を渡してはなりません。
      *  @param[in]      timeout_ms タイムアウト (ms)。@ref COM_UTIL_SYNC_WAIT_FOREVER または
      *                             @ref COM_UTIL_SYNC_NO_WAIT も指定可能です。
      *                             負値を渡した場合は @ref COM_UTIL_SYNC_INVALID_ARGUMENT を返します。
@@ -521,7 +521,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断排他 (書き込み) ロックをノンブロッキングで取得試行します。
-     *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_BUSY を返します。
      *
      *  @par            スレッド セーフ
@@ -533,7 +533,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断読み書きロックを解放します。
-     *  @param[in,out]  lock  対象のロック。NULL を渡してはなりません。
+     *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_SYNC_OK または @ref COM_UTIL_SYNC_SYSTEM_ERROR を返します。
      *
      *  @par            スレッド セーフ
@@ -545,7 +545,7 @@ extern "C"
 
     /**
      *  @brief          プロセス横断読み書きロックを破棄します。
-     *  @param[in,out]  lock  破棄するロック。NULL を渡してはなりません。
+     *  @param[in]      lock  破棄するロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッドセーフではありません。\n
@@ -555,7 +555,7 @@ extern "C"
 
     /**
      *  @brief          @p func をプロセス内で 1 回だけ呼び出します。
-     *  @param[in,out]  flag  呼び出し状態を管理するフラグ。静的領域で 0 初期化して使用してください。
+     *  @param[in]      flag  呼び出し状態を管理するフラグ。静的領域で 0 初期化して使用してください。
      *                        NULL を渡してはなりません。
      *  @param[in]      func  1 回だけ実行する関数。NULL を渡してはなりません。
      *

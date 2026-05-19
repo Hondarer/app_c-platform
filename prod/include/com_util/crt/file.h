@@ -77,7 +77,7 @@ extern "C"
 
     /**
      *  @brief          ファイルにバイト列を書き込みます。
-     *  @param[in,out]  file  書き込み対象のファイル。NULL を渡してはなりません。
+     *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
      *  @return         成功時は 0、失敗時は -1 を返します。
@@ -103,7 +103,7 @@ extern "C"
     /**
      *  @brief          ファイルを閉じます。
      *                  `com_util_file_init()` で初期化済みの無効ハンドルには何もしません。
-     *  @param[in,out]  file  閉じるファイル。NULL を渡してはなりません。
+     *  @param[in]      file  閉じるファイル。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
