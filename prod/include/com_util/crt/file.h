@@ -65,7 +65,8 @@ extern "C"
     /**
      *******************************************************************************
      *  @brief          UTF-8 パスでファイルを開きます。
-     *  @param[out]     file   オープン結果の格納先。NULL を渡してはなりません。
+     *  @param[in,out]  file   オープン結果の格納先。NULL を渡してはなりません。
+     *                         既にオープン済みの場合は先にクローズしてから開き直します。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープンフラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
      *                         負値を渡した場合は -1 を返します。
@@ -105,7 +106,7 @@ extern "C"
      *  内部に共有状態を持ちません。
      *******************************************************************************
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(com_util_file_t *file, size_t *size_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file_t *file, size_t *size_out);
 
     /**
      *******************************************************************************

@@ -44,7 +44,7 @@ struct com_util_etw_session
  *  @brief  メモリ領域をゼロクリアする (memset 代替)。
  *  @note   testfw が memset をモックするため、直接ゼロ代入で初期化する。
  */
-static void zero_bytes(void *ptr, size_t size)
+static void zero_bytes(void *ptr, const size_t size)
 {
     unsigned char *p = (unsigned char *)ptr;
     size_t i;
@@ -205,7 +205,7 @@ static char *dup_utf8_from_wide(const wchar_t *text)
  *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読む。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_ansi_string_field(const unsigned char *cursor, USHORT remaining,
+static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining,
                                   const char **out_text, USHORT *out_consumed)
 {
     USHORT i;
@@ -232,7 +232,7 @@ static int read_ansi_string_field(const unsigned char *cursor, USHORT remaining,
  *  @brief  UserData 上の uint32 値を 1 つ読む。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_uint32_field(const unsigned char *cursor, USHORT remaining,
+static int read_uint32_field(const unsigned char *cursor, const USHORT remaining,
                              uint32_t *out_value, USHORT *out_consumed)
 {
     if (cursor == NULL || out_value == NULL || out_consumed == NULL || remaining < 4U)

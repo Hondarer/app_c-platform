@@ -3,11 +3,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-int com_util_vformat_path(char *path,
-                          size_t path_size,
-                          const char *format,
-                          va_list args,
-                          int *error_out)
+int com_util_vformat_path(char *path, const size_t path_size, const char *format, va_list args, int *error_out)
 {
     int written;
 

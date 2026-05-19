@@ -3,10 +3,7 @@
 
 #include <com_util/crt/path_format.h>
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(int flags,
-                                                     int mode,
-                                                     const char *format,
-                                                     va_list args)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(const int flags, const int mode, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -18,12 +15,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(int flags,
     return com_util_open(filename, flags, mode);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_open_fmt(int flags,
-                                                    int mode,
-                                                    const char *format,
-                                                    ...)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_open_fmt(const int flags, const int mode, const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);

@@ -30,25 +30,26 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-#include <stdlib.h>
-#include <string.h>
+    #include <stdlib.h>
+    #include <string.h>
 
-#include <com_util/base/windows_sdk.h>
-#include <compressapi.h>
-#pragma comment(lib, "Cabinet.lib")
+    #include <com_util/base/windows_sdk.h>
+    #include <compressapi.h>
+    #pragma comment(lib, "Cabinet.lib")
 
-#include <com_util/compress/compress.h>
+    #include <com_util/compress/compress.h>
 
 /*
  * 標準 CRC-32 (IEEE 802.3, polynomial 0xEDB88320) の継続計算。
  * prev: 前回の crc32 結果 (初回は任意の seed を渡す)。
  */
-static uint32_t mszip_crc32(uint32_t prev, const uint8_t *buf, size_t len)
+static uint32_t mszip_crc32(const uint32_t prev, const uint8_t *buf, const size_t len)
 {
     uint32_t crc = ~prev;
-    while (len--)
+    size_t remaining = len;
+    while (remaining--)
     {
-        int      i;
+        int i;
         uint32_t b = *buf++;
         crc ^= b;
         for (i = 0; i < 8; i++)
@@ -67,12 +68,12 @@ static uint32_t mszip_crc32(uint32_t prev, const uint8_t *buf, size_t len)
  * 単一チャンク (orig_len <= 32768) の場合、total_len == first_chunk_len のため
  * orig_len を 2 回使用する。
  */
-static uint8_t mszip_crc_byte(uint64_t orig_len)
+static uint8_t mszip_crc_byte(const uint64_t orig_len)
 {
     /* seed = CRC32(magic_prefix) = 0xE73FDBAD */
     static const uint32_t SEED = 0xE73FDBADu;
 
-    uint8_t  data[17];
+    uint8_t data[17];
     uint32_t crc;
 
     data[0] = 0x02u; /* COMPRESS_ALGORITHM_MSZIP */
@@ -84,16 +85,13 @@ static uint8_t mszip_crc_byte(uint64_t orig_len)
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-int com_util_compress(uint8_t       *dst,
-                      size_t        *dst_len,
-                      const uint8_t *src,
-                      size_t         src_len)
+int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
     COMPRESSOR_HANDLE h;
-    uint32_t          orig_len_nbo;
-    SIZE_T            cmp_len;
-    ULONG             block_size;
-    BOOL              ok;
+    uint32_t orig_len_nbo;
+    SIZE_T cmp_len;
+    ULONG block_size;
+    BOOL ok;
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
     {
@@ -129,18 +127,11 @@ int com_util_compress(uint8_t       *dst,
     {
         block_size = 32768U;
     }
-    (void)SetCompressorInformation(h,
-                                   COMPRESS_INFORMATION_CLASS_BLOCK_SIZE,
-                                   &block_size,
-                                   sizeof(block_size));
+    (void)SetCompressorInformation(h, COMPRESS_INFORMATION_CLASS_BLOCK_SIZE, &block_size, sizeof(block_size));
 
     /* dst+4 に [CK(2B)][raw DEFLATE] を書き込む */
-    ok = Compress(h,
-                  src,
-                  (SIZE_T)src_len,
-                  dst + COM_UTIL_COMPRESS_HEADER_SIZE,
-                  (SIZE_T)(*dst_len - COM_UTIL_COMPRESS_HEADER_SIZE),
-                  &cmp_len);
+    ok = Compress(h, src, (SIZE_T)src_len, dst + COM_UTIL_COMPRESS_HEADER_SIZE,
+                  (SIZE_T)(*dst_len - COM_UTIL_COMPRESS_HEADER_SIZE), &cmp_len);
     CloseCompressor(h);
 
     if (!ok || cmp_len < 2U)
@@ -149,32 +140,26 @@ int com_util_compress(uint8_t       *dst,
     }
 
     /* CK(2B) を除去: [CK][raw DEFLATE] → [raw DEFLATE] */
-    memmove(dst + COM_UTIL_COMPRESS_HEADER_SIZE,
-            dst + COM_UTIL_COMPRESS_HEADER_SIZE + 2U,
-            (size_t)(cmp_len - 2U));
+    memmove(dst + COM_UTIL_COMPRESS_HEADER_SIZE, dst + COM_UTIL_COMPRESS_HEADER_SIZE + 2U, (size_t)(cmp_len - 2U));
 
     *dst_len = COM_UTIL_COMPRESS_HEADER_SIZE + (size_t)(cmp_len - 2U);
     return 0;
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-int com_util_decompress(uint8_t       *dst,
-                        size_t        *dst_len,
-                        const uint8_t *src,
-                        size_t         src_len)
+int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
     DECOMPRESSOR_HANDLE h;
-    uint32_t            orig_len_nbo;
-    uint64_t            orig_len;
-    size_t              raw_deflate_len;
-    size_t              tmp_len;
-    uint8_t            *tmp;
-    SIZE_T              out_len;
-    uint32_t            chunk_size;
-    BOOL                ok;
+    uint32_t orig_len_nbo;
+    uint64_t orig_len;
+    size_t raw_deflate_len;
+    size_t tmp_len;
+    uint8_t *tmp;
+    SIZE_T out_len;
+    uint32_t chunk_size;
+    BOOL ok;
 
-    if (dst == NULL || dst_len == NULL || src == NULL
-        || src_len <= COM_UTIL_COMPRESS_HEADER_SIZE)
+    if (dst == NULL || dst_len == NULL || src == NULL || src_len <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
         return -1;
     }
@@ -199,20 +184,24 @@ int com_util_decompress(uint8_t       *dst,
      *   [24B header] [4B chunk_size] [2B CK] [raw DEFLATE]
      */
     tmp_len = 24U + 4U + 2U + raw_deflate_len;
-    tmp     = (uint8_t *)malloc(tmp_len);
+    tmp = (uint8_t *)malloc(tmp_len);
     if (tmp == NULL)
     {
         return -1;
     }
 
     /* ヘッダー: magic (4B) + header_size (2B) + crc_byte (1B) + algo_id (1B) */
-    tmp[0] = 0x0Au; tmp[1] = 0x51u; tmp[2] = 0xE5u; tmp[3] = 0xC0u;
-    tmp[4] = 0x18u; tmp[5] = 0x00u;
+    tmp[0] = 0x0Au;
+    tmp[1] = 0x51u;
+    tmp[2] = 0xE5u;
+    tmp[3] = 0xC0u;
+    tmp[4] = 0x18u;
+    tmp[5] = 0x00u;
     tmp[6] = mszip_crc_byte(orig_len);
     tmp[7] = 0x02u; /* COMPRESS_ALGORITHM_MSZIP */
 
     /* total_decompressed_len (8B LE) × 2 */
-    memcpy(tmp + 8,  &orig_len, 8);
+    memcpy(tmp + 8, &orig_len, 8);
     memcpy(tmp + 16, &orig_len, 8);
 
     /* chunk_size: CK(2B) + raw DEFLATE のサイズ */
@@ -220,7 +209,8 @@ int com_util_decompress(uint8_t       *dst,
     memcpy(tmp + 24, &chunk_size, 4);
 
     /* CK プレフィックス */
-    tmp[28] = 0x43u; tmp[29] = 0x4Bu;
+    tmp[28] = 0x43u;
+    tmp[29] = 0x4Bu;
 
     /* raw DEFLATE データ */
     memcpy(tmp + 30, src + COM_UTIL_COMPRESS_HEADER_SIZE, raw_deflate_len);
@@ -232,12 +222,7 @@ int com_util_decompress(uint8_t       *dst,
         return -1;
     }
 
-    ok = Decompress(h,
-                    tmp,
-                    (SIZE_T)tmp_len,
-                    dst,
-                    (SIZE_T)*dst_len,
-                    &out_len);
+    ok = Decompress(h, tmp, (SIZE_T)tmp_len, dst, (SIZE_T)*dst_len, &out_len);
     CloseDecompressor(h);
     free(tmp);
 

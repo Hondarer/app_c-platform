@@ -10,16 +10,16 @@
     #include <unistd.h>
 #endif
 
-static int com_util_copy_path_text(char *path_out,
-                                   size_t path_size,
-                                   int *errno_out,
-                                   const char *text)
+static int com_util_copy_path_text(char *path_out, const size_t path_size, int *errno_out, const char *text)
 {
     size_t len;
 
     if (path_out == NULL || path_size == 0u || text == NULL)
     {
-        if (errno_out != NULL) { *errno_out = EINVAL; }
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
         return -1;
     }
 
@@ -27,7 +27,10 @@ static int com_util_copy_path_text(char *path_out,
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+        if (errno_out != NULL)
+        {
+            *errno_out = ENAMETOOLONG;
+        }
         return -1;
     }
 
@@ -136,10 +139,7 @@ static void com_util_normalize_absolute_posix_path(char *path)
     path[write_idx] = '\0';
 }
 
-static int com_util_build_absolute_posix_path(char *path_out,
-                                              size_t path_size,
-                                              int *errno_out,
-                                              const char *path)
+static int com_util_build_absolute_posix_path(char *path_out, const size_t path_size, int *errno_out, const char *path)
 {
     int written;
 
@@ -149,7 +149,10 @@ static int com_util_build_absolute_posix_path(char *path_out,
         {
             path_out[0] = '\0';
         }
-        if (errno_out != NULL) { *errno_out = EINVAL; }
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
         return -1;
     }
 
@@ -167,7 +170,10 @@ static int com_util_build_absolute_posix_path(char *path_out,
             {
                 path_out[0] = '\0';
             }
-            if (errno_out != NULL) { *errno_out = errno; }
+            if (errno_out != NULL)
+            {
+                *errno_out = errno;
+            }
             return -1;
         }
 
@@ -178,7 +184,10 @@ static int com_util_build_absolute_posix_path(char *path_out,
             {
                 path_out[0] = '\0';
             }
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
     }
@@ -187,10 +196,7 @@ static int com_util_build_absolute_posix_path(char *path_out,
 }
 #endif /* PLATFORM_LINUX */
 
-static int com_util_vpath_concat_n(char *path_out,
-                                   size_t path_size,
-                                   int *errno_out,
-                                   size_t part_count,
+static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *errno_out, const size_t part_count,
                                    va_list args)
 {
     size_t required_size = 1u;
@@ -200,7 +206,10 @@ static int com_util_vpath_concat_n(char *path_out,
 
     if (path_out == NULL || path_size == 0u || part_count == 0u)
     {
-        if (errno_out != NULL) { *errno_out = EINVAL; }
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
         return -1;
     }
 
@@ -214,7 +223,10 @@ static int com_util_vpath_concat_n(char *path_out,
         if (part == NULL)
         {
             va_end(args_copy);
-            if (errno_out != NULL) { *errno_out = EINVAL; }
+            if (errno_out != NULL)
+            {
+                *errno_out = EINVAL;
+            }
             return -1;
         }
 
@@ -222,7 +234,10 @@ static int com_util_vpath_concat_n(char *path_out,
         if (part_len > path_size - required_size)
         {
             va_end(args_copy);
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
         required_size += part_len;
@@ -254,10 +269,8 @@ COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path)
     return path;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char   *path_out,
-                                                         size_t  path_size,
-                                                         int    *errno_out,
-                                                         const char *path)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, const size_t path_size, int *errno_out,
+                                                        const char *path)
 {
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
@@ -265,7 +278,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char   *path_out,
         {
             path_out[0] = '\0';
         }
-        if (errno_out != NULL) { *errno_out = EINVAL; }
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
         return -1;
     }
 
@@ -307,31 +323,40 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char   *path_out,
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), normalized_input) < 0)
         {
             path_out[0] = '\0';
-            if (errno_out != NULL) { *errno_out = EINVAL; }
+            if (errno_out != NULL)
+            {
+                *errno_out = EINVAL;
+            }
             return -1;
         }
 
-        needed = GetFullPathNameW(wpath,
-                                  (DWORD)(sizeof(wfull) / sizeof(wfull[0])),
-                                  wfull,
-                                  NULL);
+        needed = GetFullPathNameW(wpath, (DWORD)(sizeof(wfull) / sizeof(wfull[0])), wfull, NULL);
         if (needed == 0u)
         {
             path_out[0] = '\0';
-            if (errno_out != NULL) { *errno_out = (int)GetLastError(); }
+            if (errno_out != NULL)
+            {
+                *errno_out = (int)GetLastError();
+            }
             return -1;
         }
         if (needed >= (DWORD)(sizeof(wfull) / sizeof(wfull[0])))
         {
             path_out[0] = '\0';
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
 
         if (com_util_wpath_to_utf8(path_out, path_size, wfull) < 0)
         {
             path_out[0] = '\0';
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
     }
@@ -347,35 +372,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const cha
 
     if (com_util_path_get_full(lhs_full, sizeof(lhs_full), &err, lhs) != 0)
     {
-        if (errno_out != NULL) { *errno_out = err; }
+        if (errno_out != NULL)
+        {
+            *errno_out = err;
+        }
         return -1;
     }
 
     err = 0;
     if (com_util_path_get_full(rhs_full, sizeof(rhs_full), &err, rhs) != 0)
     {
-        if (errno_out != NULL) { *errno_out = err; }
+        if (errno_out != NULL)
+        {
+            *errno_out = err;
+        }
         return -1;
     }
 
     return com_util_compare_normalized_paths(lhs_full, rhs_full);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char   *path_out,
-                                                        size_t  path_size,
-                                                        int    *errno_out)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out)
 {
     if (path_out == NULL || path_size == 0u)
     {
-        if (errno_out != NULL) { *errno_out = EINVAL; }
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
         return -1;
     }
 
 #if defined(PLATFORM_LINUX)
     {
         const char *tmpdir = getenv("TMPDIR");
-        size_t      len;
-        int         n;
+        size_t len;
+        int n;
 
         if (tmpdir == NULL || tmpdir[0] == '\0')
         {
@@ -383,12 +415,18 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char   *path_out,
         }
 
         len = strlen(tmpdir);
-        while (len > 1u && tmpdir[len - 1u] == PLATFORM_PATH_SEP_CHR) { --len; }
+        while (len > 1u && tmpdir[len - 1u] == PLATFORM_PATH_SEP_CHR)
+        {
+            --len;
+        }
 
         n = snprintf(path_out, path_size, "%.*s", (int)len, tmpdir);
         if (n < 0 || (size_t)n >= path_size)
         {
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
         return 0;
@@ -396,19 +434,25 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char   *path_out,
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wdir[PLATFORM_PATH_MAX];
-        DWORD   dwret;
-        size_t  len;
+        DWORD dwret;
+        size_t len;
 
         dwret = GetTempPathW((DWORD)(sizeof(wdir) / sizeof(wdir[0])), wdir);
         if (dwret == 0u || dwret >= (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
         {
-            if (errno_out != NULL) { *errno_out = (int)GetLastError(); }
+            if (errno_out != NULL)
+            {
+                *errno_out = (int)GetLastError();
+            }
             return -1;
         }
 
         if (com_util_wpath_to_utf8(path_out, path_size, wdir) < 0)
         {
-            if (errno_out != NULL) { *errno_out = ENAMETOOLONG; }
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
             return -1;
         }
 
@@ -423,11 +467,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char   *path_out,
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char   *path_out,
-                                                         size_t  path_size,
-                                                         int    *errno_out,
-                                                         size_t  part_count,
-                                                         ...)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, const size_t path_size, int *errno_out,
+                                                        const size_t part_count, ...)
 {
     int result;
     va_list args;

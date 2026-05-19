@@ -108,7 +108,7 @@ extern "C"
      *******************************************************************************
      *  @brief          ETW プロバイダへ UTF-8 メッセージを書き込む。
      *
-     *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
+     *  @param[in,out]  handle   com_util_etw_provider_create の戻り値。NULL は無視。
      *  @param[in]      level    イベントレベル (1=CRITICAL / 2=ERROR / 3=WARNING / 4=INFO / 5=VERBOSE)。
      *  @param[in]      service  サービス名。NULL の場合は Service フィールドなしで書き込む。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
@@ -126,7 +126,7 @@ extern "C"
      *******************************************************************************
      *  @brief          ETW プロバイダの登録を解除する。
      *
-     *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
+     *  @param[in,out]  handle   com_util_etw_provider_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -192,7 +192,7 @@ extern "C"
      *******************************************************************************
      *  @brief          ETW セッションを停止し、リソースを解放する。
      *
-     *  @param[in]      session  com_util_etw_session_start の戻り値。NULL は無視。
+     *  @param[in,out]  session  com_util_etw_session_start の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

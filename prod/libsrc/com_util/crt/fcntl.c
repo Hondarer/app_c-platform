@@ -9,9 +9,7 @@
     #include <share.h>
 #endif /* PLATFORM_ */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path,
-                                                int         flags,
-                                                int         mode)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path, const int flags, const int mode)
 {
     if (path == NULL)
     {
@@ -23,7 +21,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path,
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
-        int     fd = -1;
+        int fd = -1;
         errno_t err;
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)

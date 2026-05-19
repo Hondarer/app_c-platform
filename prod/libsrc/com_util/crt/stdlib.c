@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, size_t buf_size)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, const size_t buf_size)
 {
     if (name == NULL)
     {
@@ -32,7 +32,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, si
     }
 #elif defined(PLATFORM_WINDOWS)
     {
-        char  *val     = NULL;
+        char *val = NULL;
         size_t val_len = 0;
 
         if (_dupenv_s(&val, &val_len, name) != 0 || val == NULL)

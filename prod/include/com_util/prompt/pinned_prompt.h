@@ -101,7 +101,7 @@ extern "C"
     /**
      *******************************************************************************
      *  @brief      Dispose a pinned prompt.
-     *  @param[in]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
+     *  @param[in,out]  screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -112,10 +112,10 @@ extern "C"
 
 /**
  *  @brief      Read one command line with a bottom-fixed prompt.
- *  @param[in]  screen      Pinned prompt handle.
- *  @param[out] buf         Destination buffer. The terminating newline is not included.
- *  @param[in]  buf_size    Destination buffer size.
- *  @param[in]  prompt_str  Prompt string. NULL is treated as an empty string.
+ *  @param[in,out]  screen      Pinned prompt handle.
+ *  @param[out]     buf         Destination buffer. The terminating newline is not included.
+ *  @param[in]      buf_size    Destination buffer size.
+ *  @param[in]      prompt_str  Prompt string. NULL is treated as an empty string.
  *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
  */
 #define com_util_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
@@ -123,11 +123,11 @@ extern "C"
 
 /**
  *  @brief      Read one command line with a formatted bottom-fixed prompt.
- *  @param[in]  screen    Pinned prompt handle.
- *  @param[out] buf       Destination buffer. The terminating newline is not included.
- *  @param[in]  buf_size  Destination buffer size.
- *  @param[in]  fmt       printf style format string. NULL is treated as an empty string.
- *  @param[in]  ...       Format arguments.
+ *  @param[in,out]  screen    Pinned prompt handle.
+ *  @param[out]     buf       Destination buffer. The terminating newline is not included.
+ *  @param[in]      buf_size  Destination buffer size.
+ *  @param[in]      fmt       printf style format string. NULL is treated as an empty string.
+ *  @param[in]      ...       Format arguments.
  *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
  */
 #define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
@@ -159,11 +159,11 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @brief      Write output above the bottom-fixed prompt.
-     *  @param[in]  screen   Pinned prompt handle.
-     *  @param[in]  channel  Output channel.
-     *  @param[in]  data     Data to write. NULL is allowed only when size is 0.
-     *  @param[in]  size     Data size in bytes.
+     *  @brief          Write output above the bottom-fixed prompt.
+     *  @param[in,out]  screen   Pinned prompt handle.
+     *  @param[in]      channel  Output channel.
+     *  @param[in]      data     Data to write. NULL is allowed only when size is 0.
+     *  @param[in]      size     Data size in bytes.
      *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
      *  @return     Number of bytes written to the target stream.
      *  @details    The function writes exactly the supplied bytes and does not add a newline.
@@ -178,11 +178,11 @@ extern "C"
                                                                      const void *data, size_t size);
 
     /**
-     *  @brief      Write formatted output above the bottom-fixed prompt.
-     *  @param[in]  screen   Pinned prompt handle.
-     *  @param[in]  channel  Output channel.
-     *  @param[in]  fmt      printf style format string. NULL is treated as an empty string.
-     *  @param[in]  ...      Format arguments.
+     *  @brief          Write formatted output above the bottom-fixed prompt.
+     *  @param[in,out]  screen   Pinned prompt handle.
+     *  @param[in]      channel  Output channel.
+     *  @param[in]      fmt      printf style format string. NULL is treated as an empty string.
+     *  @param[in]      ...      Format arguments.
      *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
      *  @return     Number of bytes written to the target stream.
      */
@@ -196,10 +196,10 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @brief      Enable or disable status area.
-     *  @param[in]  screen    Pinned prompt handle.
-     *  @param[in]  position  Status area position (top or bottom).
-     *  @param[in]  enable    Non-zero to enable, zero to disable.
+     *  @brief          Enable or disable status area.
+     *  @param[in,out]  screen    Pinned prompt handle.
+     *  @param[in]      position  Status area position (top or bottom).
+     *  @param[in]      enable    Non-zero to enable, zero to disable.
      *  @return     0 on success, -1 on failure.
      *
      *  @par            スレッド セーフ
@@ -212,11 +212,11 @@ extern "C"
 
     /**
      *******************************************************************************
-     *  @brief      Set status area content.
-     *  @param[in]  screen    Pinned prompt handle.
-     *  @param[in]  position  Status area position (top or bottom).
-     *  @param[in]  align     Alignment (left or right).
-     *  @param[in]  content   Content string. NULL clears the content.
+     *  @brief          Set status area content.
+     *  @param[in,out]  screen    Pinned prompt handle.
+     *  @param[in]      position  Status area position (top or bottom).
+     *  @param[in]      align     Alignment (left or right).
+     *  @param[in]      content   Content string. NULL clears the content.
      *  @note       ANSI CSI SGR escape sequences are passed through for coloring and
      *              counted as display width 0 for status layout.
      *  @return     0 on success, -1 on failure.

@@ -285,7 +285,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     return result;
 }
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(int code)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(const int code)
 {
     s_exit_code = code;
     s_exit_code_valid = 1;

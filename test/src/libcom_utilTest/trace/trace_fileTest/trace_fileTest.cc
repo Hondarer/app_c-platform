@@ -78,7 +78,7 @@ protected:
         ON_CALL(mock_, com_util_file_open(_, _, _))
             .WillByDefault(Return(0));
         ON_CALL(mock_, com_util_file_get_size(_, _))
-            .WillByDefault([](com_util_file_t *, size_t *size_out) {
+            .WillByDefault([](const com_util_file_t *, size_t *size_out) {
                 *size_out = 0;
                 return 0;
             });
@@ -110,7 +110,7 @@ TEST_F(trace_fileTest, test_create_opens_file_with_default_flags)
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 既定 open flags でファイルを開くこと。
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
-        .WillOnce([](com_util_file_t *, size_t *size_out) {
+        .WillOnce([](const com_util_file_t *, size_t *size_out) {
             *size_out = 123;
             return 0;
         }); // [Pre-Assert確認_正常系] - 既存サイズ取得が 1 回呼ばれること。
@@ -258,7 +258,7 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0));
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
-        .WillOnce([](com_util_file_t *, size_t *size_out) {
+        .WillOnce([](const com_util_file_t *, size_t *size_out) {
             *size_out = 0;
             return 0;
         });

@@ -69,7 +69,7 @@ struct com_util_trace_file_sink
 /**
  *  @brief  トレースレベル整数をレベル文字に変換する。
  */
-static char level_char(int level)
+static char level_char(const int level)
 {
     switch (level)
     {
@@ -147,7 +147,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
  *  @param  resolved 使用する実時刻。
  *  @return 成功 0 / 失敗 -1。
  */
-static int format_timestamp(char *buf, int buf_size, const com_util_realtime_timestamp_t *resolved)
+static int format_timestamp(char *buf, const int buf_size, const com_util_realtime_timestamp_t *resolved)
 {
     if (!timestamp_is_valid(resolved))
     {
@@ -255,8 +255,8 @@ static void rotate_file(com_util_trace_file_sink_t *p)
 /* ===== 公開 API ===== */
 
 /* doxygen コメントは、ヘッダーに記載 */
-COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sink_create(const char *path, size_t max_bytes,
-                                                                           int generations)
+COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sink_create(const char *path, const size_t max_bytes,
+                                                                           const int generations)
 {
     com_util_trace_file_sink_t *handle;
     size_t path_len;
@@ -334,7 +334,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
+COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, const int level,
                                                                 const com_util_realtime_timestamp_t *timestamp,
                                                                 const char *message)
 {

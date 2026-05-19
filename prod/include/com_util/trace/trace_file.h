@@ -76,7 +76,7 @@ extern "C"
      *******************************************************************************
      *  @brief          ファイルへトレースメッセージを書き込む。
      *
-     *  @param[in]      handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
+     *  @param[in,out]  handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    トレースレベル。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
@@ -97,7 +97,7 @@ extern "C"
      *******************************************************************************
      *  @brief          ファイルトレースプロバイダを終了する。
      *
-     *  @param[in]      handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
+     *  @param[in,out]  handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

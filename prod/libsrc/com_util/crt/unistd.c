@@ -3,8 +3,7 @@
 
 #include <com_util/crt/crt_internal.h>
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path,
-                                                  int         mode)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, const int mode)
 {
     if (path == NULL)
     {

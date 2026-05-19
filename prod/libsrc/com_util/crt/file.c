@@ -222,8 +222,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(com_util_file_t *file,
-                                                                size_t                 *size_out)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file_t *file, size_t *size_out)
 {
     if (!file_is_open(file) || size_out == NULL)
     {

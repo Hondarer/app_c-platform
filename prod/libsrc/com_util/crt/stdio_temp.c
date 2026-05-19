@@ -18,11 +18,8 @@
 /* prefix の有効文字数上限 (Windows GetTempFileNameW の制約に準拠) */
 #define COM_UTIL_TEMP_PREFIX_MAX 3u
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix,
-                                                        const char *modes,
-                                                        char       *path_out,
-                                                        size_t      path_size,
-                                                        int        *errno_out)
+COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
+                                                       const size_t path_size, int *errno_out)
 {
     if (modes == NULL || path_out == NULL || path_size == 0u)
     {
@@ -35,12 +32,12 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix,
 
 #if defined(PLATFORM_LINUX)
     {
-        const char *tmpdir   = getenv("TMPDIR");
-        char        pfx_buf[COM_UTIL_TEMP_PREFIX_MAX + 1u];
+        const char *tmpdir = getenv("TMPDIR");
+        char pfx_buf[COM_UTIL_TEMP_PREFIX_MAX + 1u];
         const char *pfx;
-        int         fd;
-        FILE       *fp;
-        int         n;
+        int fd;
+        FILE *fp;
+        int n;
 
         if (prefix != NULL)
         {
@@ -76,7 +73,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix,
         }
 
         errno = 0;
-        fd    = mkstemp(path_out);
+        fd = mkstemp(path_out);
         if (fd == -1)
         {
             if (errno_out != NULL)
@@ -106,11 +103,11 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix,
         wchar_t wfile[MAX_PATH];
         wchar_t wprefix[COM_UTIL_TEMP_PREFIX_MAX + 1u];
         wchar_t wmodes[64];
-        FILE   *fp = NULL;
+        FILE *fp = NULL;
         errno_t err;
-        size_t  converted;
-        DWORD   dwret;
-        UINT    uret;
+        size_t converted;
+        DWORD dwret;
+        UINT uret;
 
         dwret = GetTempPathW((DWORD)(sizeof(wdir) / sizeof(wdir[0])), wdir);
         if (dwret == 0u || dwret > (DWORD)(sizeof(wdir) / sizeof(wdir[0])))

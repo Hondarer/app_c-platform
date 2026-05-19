@@ -3,9 +3,7 @@
 
 #include <com_util/crt/path_format.h>
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(int mode,
-                                                       const char *format,
-                                                       va_list args)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(const int mode, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -17,11 +15,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(int mode,
     return com_util_access(filename, mode);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(int mode,
-                                                      const char *format,
-                                                      ...)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(const int mode, const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);

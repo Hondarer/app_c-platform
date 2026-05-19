@@ -4,9 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest,
-                                                  size_t dest_size,
-                                                  const char *src)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, const size_t dest_size, const char *src)
 {
     size_t len;
 
@@ -26,10 +24,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest,
     return 0;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest,
-                                                   size_t dest_size,
-                                                   const char *src,
-                                                   size_t count)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, const size_t dest_size, const char *src,
+                                                  const size_t count)
 {
     size_t len;
 
@@ -53,9 +49,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest,
     return 0;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest,
-                                                  size_t dest_size,
-                                                  const char *src)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, const size_t dest_size, const char *src)
 {
     size_t dest_len;
     size_t src_len;
@@ -86,9 +80,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest,
     return 0;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest,
-                                                  size_t   dest_size,
-                                                  const wchar_t *src)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
 {
     size_t len;
 
@@ -108,16 +100,12 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest,
     return 0;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer,
-                                                   const char *format,
-                                                   va_list args)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer, const char *format, va_list args)
 {
     return vsscanf(buffer, format, args);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer,
-                                                  const char *format,
-                                                  ...)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer, const char *format, ...)
 {
     va_list args;
     int result;

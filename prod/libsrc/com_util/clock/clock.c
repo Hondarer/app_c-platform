@@ -35,13 +35,13 @@
 static const char s_iso8601_local_fallback[] = "0000-00-00T00:00:00.000+00:00";
 static const char s_iso8601_utc_fallback[] = "0000-00-00T00:00:00.000Z";
 
-static void clock_fill_timespec(struct timespec *ts, int64_t tv_sec, int32_t tv_nsec)
+static void clock_fill_timespec(struct timespec *ts, const int64_t tv_sec, const int32_t tv_nsec)
 {
     ts->tv_sec = (time_t)tv_sec;
     ts->tv_nsec = (long)tv_nsec;
 }
 
-static void clock_write_fallback(char *buf, size_t buf_size, const char *fallback)
+static void clock_write_fallback(char *buf, const size_t buf_size, const char *fallback)
 {
     if (buf == NULL || buf_size == 0)
     {
@@ -51,7 +51,7 @@ static void clock_write_fallback(char *buf, size_t buf_size, const char *fallbac
     snprintf(buf, buf_size, "%s", fallback);
 }
 
-static int64_t clock_days_from_civil(int year, unsigned month, unsigned day)
+static int64_t clock_days_from_civil(const int year, const unsigned month, const unsigned day)
 {
     int adjusted_year = year - (month <= 2);
     int era_base;
@@ -101,10 +101,9 @@ static int clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *
         return -1;
     }
 
-    local_days = clock_days_from_civil(local_tm->tm_year + 1900, (unsigned)local_tm->tm_mon + 1,
-                                       (unsigned)local_tm->tm_mday);
-    utc_days = clock_days_from_civil(utc_tm->tm_year + 1900, (unsigned)utc_tm->tm_mon + 1,
-                                     (unsigned)utc_tm->tm_mday);
+    local_days =
+        clock_days_from_civil(local_tm->tm_year + 1900, (unsigned)local_tm->tm_mon + 1, (unsigned)local_tm->tm_mday);
+    utc_days = clock_days_from_civil(utc_tm->tm_year + 1900, (unsigned)utc_tm->tm_mon + 1, (unsigned)utc_tm->tm_mday);
     local_seconds = local_tm->tm_hour * 3600 + local_tm->tm_min * 60 + local_tm->tm_sec;
     utc_seconds = utc_tm->tm_hour * 3600 + utc_tm->tm_min * 60 + utc_tm->tm_sec;
     delta_seconds = (local_days - utc_days) * SEC_PER_DAY + (local_seconds - utc_seconds);
@@ -113,7 +112,8 @@ static int clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *
     return 0;
 }
 
-static int clock_format_iso8601_utc_from_tm(char *buf, size_t buf_size, const struct tm *utc_tm, int32_t tv_nsec)
+static int clock_format_iso8601_utc_from_tm(char *buf, const size_t buf_size, const struct tm *utc_tm,
+                                            const int32_t tv_nsec)
 {
     if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1) || utc_tm == NULL)
     {
@@ -121,21 +121,22 @@ static int clock_format_iso8601_utc_from_tm(char *buf, size_t buf_size, const st
     }
 
 #if defined(COMPILER_GCC)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif /* COMPILER_GCC */
     snprintf(buf, buf_size, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ", utc_tm->tm_year + 1900, utc_tm->tm_mon + 1,
              utc_tm->tm_mday, utc_tm->tm_hour, utc_tm->tm_min, utc_tm->tm_sec, (int)(tv_nsec / 1000000));
 #if defined(COMPILER_GCC)
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif /* COMPILER_GCC */
     return 0;
 }
 
-static int clock_format_iso8601_local_from_tm(char *buf, size_t buf_size, const struct tm *local_tm,
-                                              int32_t tv_nsec, int offset_minutes)
+static int clock_format_iso8601_local_from_tm(char *buf, const size_t buf_size, const struct tm *local_tm,
+                                              const int32_t tv_nsec, const int offset_minutes)
 {
     char offset_sign;
+    int abs_offset_minutes;
     int offset_hours;
     int offset_mins;
 
@@ -144,24 +145,28 @@ static int clock_format_iso8601_local_from_tm(char *buf, size_t buf_size, const 
         return -1;
     }
 
-    offset_sign = '+';
     if (offset_minutes < 0)
     {
         offset_sign = '-';
-        offset_minutes = -offset_minutes;
+        abs_offset_minutes = -offset_minutes;
     }
-    offset_hours = offset_minutes / 60;
-    offset_mins = offset_minutes % 60;
+    else
+    {
+        offset_sign = '+';
+        abs_offset_minutes = offset_minutes;
+    }
+    offset_hours = abs_offset_minutes / 60;
+    offset_mins = abs_offset_minutes % 60;
 
 #if defined(COMPILER_GCC)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif /* COMPILER_GCC */
     snprintf(buf, buf_size, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%c%02d:%02d", local_tm->tm_year + 1900,
              local_tm->tm_mon + 1, local_tm->tm_mday, local_tm->tm_hour, local_tm->tm_min, local_tm->tm_sec,
              (int)(tv_nsec / 1000000), offset_sign, offset_hours, offset_mins);
 #if defined(COMPILER_GCC)
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif /* COMPILER_GCC */
     return 0;
 }
@@ -229,8 +234,8 @@ void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size,
+                                                                        const int64_t tv_sec, const int32_t tv_nsec)
 {
     time_t realtime_time;
     struct tm local_tm;
@@ -245,8 +250,7 @@ com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_se
 
     realtime_time = (time_t)tv_sec;
 
-    if (com_util_localtime(&local_tm, &realtime_time) != 0 ||
-        com_util_gmtime(&utc_tm, &realtime_time) != 0 ||
+    if (com_util_localtime(&local_tm, &realtime_time) != 0 || com_util_gmtime(&utc_tm, &realtime_time) != 0 ||
         clock_utc_offset_minutes(&local_tm, &utc_tm, &offset_minutes) != 0 ||
         clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, tv_nsec, offset_minutes) != 0)
     {
@@ -258,8 +262,8 @@ com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_se
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-COM_UTIL_EXPORT int COM_UTIL_API
-com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size,
+                                                                      const int64_t tv_sec, const int32_t tv_nsec)
 {
     time_t realtime_time;
     struct tm utc_tm;
@@ -283,7 +287,7 @@ com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec,
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-void com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout)
+void com_util_get_realtime_deadline_ms(const uint64_t timeout_ms, struct timespec *abs_timeout)
 {
     int64_t deadline_sec;
     int32_t deadline_nsec;

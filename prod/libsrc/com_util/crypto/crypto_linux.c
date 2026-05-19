@@ -28,19 +28,15 @@
     #include <com_util/crypto/crypto.h>
 
 /* doxygen コメントは、ヘッダーに記載 */
-int com_util_encrypt(uint8_t *dst, size_t *dst_len,
-                 const uint8_t *src, size_t src_len,
-                 const uint8_t *key,
-                 const uint8_t *nonce,
-                 const uint8_t *aad, size_t aad_len)
+int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
+                     const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
 {
     EVP_CIPHER_CTX *ctx;
-    int             outl;
-    int             final_len;
+    int outl;
+    int final_len;
 
-    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0)
-        || key == NULL || nonce == NULL
-        || *dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
+    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0) || key == NULL || nonce == NULL ||
+        *dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
     {
         return -1;
     }
@@ -58,8 +54,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len,
     }
 
     /* ノンス長を 12 バイトに設定 (デフォルトと同一だが明示する) */
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
-                            (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
         return -1;
@@ -100,9 +95,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len,
     }
 
     /* GCM 認証タグ (16 バイト) を暗号文の直後に書き込む */
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG,
-                            (int)COM_UTIL_CRYPTO_TAG_SIZE,
-                            dst + src_len) != 1)
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int)COM_UTIL_CRYPTO_TAG_SIZE, dst + src_len) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
         return -1;
@@ -115,19 +108,16 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len,
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-int com_util_decrypt(uint8_t *dst, size_t *dst_len,
-                 const uint8_t *src, size_t src_len,
-                 const uint8_t *key,
-                 const uint8_t *nonce,
-                 const uint8_t *aad, size_t aad_len){
+int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
+                     const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
+{
     EVP_CIPHER_CTX *ctx;
-    size_t          plain_len;
-    int             outl;
-    int             final_len;
+    size_t plain_len;
+    int outl;
+    int final_len;
 
-    if (dst == NULL || dst_len == NULL || src == NULL
-        || src_len < COM_UTIL_CRYPTO_TAG_SIZE
-        || key == NULL || nonce == NULL)
+    if (dst == NULL || dst_len == NULL || src == NULL || src_len < COM_UTIL_CRYPTO_TAG_SIZE || key == NULL ||
+        nonce == NULL)
     {
         return -1;
     }
@@ -151,8 +141,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len,
         return -1;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
-                            (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
         return -1;
@@ -190,8 +179,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len,
     {
         uint8_t tag_buf[COM_UTIL_CRYPTO_TAG_SIZE];
         memcpy(tag_buf, src + plain_len, COM_UTIL_CRYPTO_TAG_SIZE);
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG,
-                                (int)COM_UTIL_CRYPTO_TAG_SIZE, tag_buf) != 1)
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, (int)COM_UTIL_CRYPTO_TAG_SIZE, tag_buf) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
             return -1;
@@ -212,11 +200,9 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len,
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
-int com_util_passphrase_to_key(uint8_t *key,
-                           const uint8_t *passphrase,
-                           size_t passphrase_len)
+int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const size_t passphrase_len)
 {
-    EVP_MD_CTX  *ctx;
+    EVP_MD_CTX *ctx;
     unsigned int out_len = COM_UTIL_CRYPTO_KEY_SIZE;
 
     if (key == NULL || (passphrase == NULL && passphrase_len > 0))
@@ -240,11 +226,8 @@ int com_util_passphrase_to_key(uint8_t *key,
         {
             pass_data = (const uint8_t *)"";
         }
-        if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1
-            || EVP_DigestUpdate(ctx,
-                                pass_data,
-                                passphrase_len) != 1
-            || EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
+        if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1 || EVP_DigestUpdate(ctx, pass_data, passphrase_len) != 1 ||
+            EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
         {
             EVP_MD_CTX_free(ctx);
             return -1;

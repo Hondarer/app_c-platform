@@ -73,7 +73,7 @@ COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
  *  @param[in]      message メッセージ文字列。
  *******************************************************************************
  */
-static void write_trace_event(com_util_etw_provider_ref_t ref, int level,
+static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
                                const char *service, const char *message)
 {
     uint32_t process_id = (uint32_t)GetCurrentProcessId();
@@ -159,7 +159,7 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, int level,
 
 /* doxygen コメントは、ヘッダーに記載 */
 COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_etw_provider_write(com_util_etw_provider_t *handle, int level,
+    com_util_etw_provider_write(com_util_etw_provider_t *handle, const int level,
                        const char *service, const char *message)
 {
     if (handle == NULL || message == NULL)

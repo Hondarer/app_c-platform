@@ -13,9 +13,7 @@
     #include <wchar.h>
 #endif /* PLATFORM_ */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path,
-                                                   const char *modes,
-                                                   int        *errno_out)
+COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out)
 {
     if (path == NULL || modes == NULL)
     {
@@ -30,7 +28,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path,
     {
         FILE *fp;
         errno = 0;
-        fp    = fopen(path, modes);
+        fp = fopen(path, modes);
         if (fp == NULL && errno_out != NULL)
         {
             *errno_out = errno;
@@ -39,11 +37,11 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path,
     }
 #elif defined(PLATFORM_WINDOWS)
     {
-        wchar_t  wpath[PLATFORM_PATH_MAX];
-        wchar_t  wmodes[64];
-        FILE    *fp  = NULL;
-        errno_t  err;
-        size_t   converted;
+        wchar_t wpath[PLATFORM_PATH_MAX];
+        wchar_t wmodes[64];
+        FILE *fp = NULL;
+        errno_t err;
+        size_t converted;
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
@@ -102,8 +100,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath,
-                                                  const char *newpath)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath)
 {
     if (oldpath == NULL || newpath == NULL)
     {
@@ -141,40 +138,30 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream)
     return fclose(stream);
 }
 
-COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void  *ptr,
-                                                    size_t size,
-                                                    size_t count,
-                                                    FILE  *stream)
+COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *ptr, const size_t size, const size_t count, FILE *stream)
 {
     return fread(ptr, size, count, stream);
 }
 
-COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr,
-                                                     size_t      size,
-                                                     size_t      count,
-                                                     FILE       *stream)
+COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr, const size_t size, const size_t count,
+                                                    FILE *stream)
 {
     return fwrite(ptr, size, count, stream);
 }
 
-COM_UTIL_EXPORT char *COM_UTIL_API com_util_fgets(char *buf,
-                                                   int   size,
-                                                   FILE *stream)
+COM_UTIL_EXPORT char *COM_UTIL_API com_util_fgets(char *buf, const int size, FILE *stream)
 {
     return fgets(buf, size, stream);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fputs(const char *str,
-                                                 FILE       *stream)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_fputs(const char *str, FILE *stream)
 {
     return fputs(str, stream);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE       *stream,
-                                                   const char *format,
-                                                   ...)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);
@@ -184,9 +171,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE       *stream,
     return result;
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE       *stream,
-                                                    const char *format,
-                                                    va_list     args)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *format, va_list args)
 {
 #if defined(PLATFORM_WINDOWS)
     return vfprintf_s(stream, format, args);
@@ -220,9 +205,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_rewind(FILE *stream)
     rewind(stream);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE   *stream,
-                                                 int64_t offset,
-                                                 int     whence)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, const int64_t offset, const int whence)
 {
 #if defined(PLATFORM_LINUX)
     return fseeko(stream, (off_t)offset, whence);
