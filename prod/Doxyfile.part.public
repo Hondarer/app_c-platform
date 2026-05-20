@@ -33,7 +33,7 @@
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "Document of com_util"
+PROJECT_NAME           = "Document of com_util (public)"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -57,7 +57,8 @@ PROJECT_NUMBER         = "1.0.0"
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = .
+INPUT                  = include \
+                         ./README.md
 
 # If the USE_MDFILE_AS_MAINPAGE tag refers to the name of a markdown file that
 # is part of the input, its contents will be placed on the main page
@@ -70,4 +71,4 @@ USE_MDFILE_AS_MAINPAGE = ./README.md
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             = .
+IMAGE_PATH             = include

@@ -57,17 +57,31 @@ int main(void) {
 make -C app/com_util test
 ```
 
-## Doxygen (API 仕様書、モジュール仕様書)
+## API 仕様書
+
+### Doxygen
 
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
-- [doxygen](../../../doxygen/com_util/index.html)
+- [doxygen](../../../doxygen/com_util_public/index.html)
 
-## 単一ファイル版 Doxygen (API 仕様書、モジュール仕様書)
+### 単一ファイル版
 
-- [com_util](doxybook2/Pages/README.md)
-    - [ファイルとページの一覧](doxybook2/index_files_and_pages.md)
-    - [カテゴリの一覧](doxybook2/index_groups.md)
+- [com_util (public)](doxybook2_public/Pages/README.md)
+    - [ファイルとページの一覧](doxybook2_public/index_files_and_pages.md)
+
+## モジュール仕様書
+
+### Doxygen
+
+<!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
+- [doxygen](../../../doxygen/com_util_internal/index.html)
+
+### 単一ファイル版
+
+- [com_util (internal)](doxybook2_internal/Pages/README.md)
+    - [ファイルとページの一覧](doxybook2_internal/index_files_and_pages.md)
+    - [カテゴリの一覧](doxybook2_internal/index_groups.md)
 
 ## 関連ドキュメント
 
-\toc depth=-1 exclude-basedir=true exclude="doxybook2/*"
+\toc depth=-1 exclude-basedir=true exclude="doxybook2_public/*" exclude="doxybook2_internal/*"
