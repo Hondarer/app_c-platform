@@ -33,7 +33,7 @@ extern "C"
  *  @param[in]      handle 解放する ETW プロバイダハンドル。
  *  @param[in]      event shutdown イベント情報。
  *
- *  @details        `process_terminating` 相当のイベントでは free() のみ実行します。\n
+ *  `process_terminating` 相当のイベントでは free() のみ実行します。\n
  *  通常終了では TraceLoggingUnregister() を呼び出します。
  *  呼び出し時点で com_util_etw_provider_write() を実行中のスレッドが存在する場合は
  *  未定義動作になります。

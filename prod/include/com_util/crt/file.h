@@ -5,7 +5,6 @@
  *  @author         Tetsuo Honda
  *  @date           2026/04/24
  *
- *  @details
  *  Windows の HANDLE ベース I/O と Linux の fd ベース I/O を共通化し、
  *  UTF-8 パスを受け取る低レベル書き込み用 API を提供します。
  *

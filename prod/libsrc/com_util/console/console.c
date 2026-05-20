@@ -1,9 +1,10 @@
 /**
  *  @file           console.c
  *  @brief          コンソール UTF-8 ヘルパー実装。
- *  @details        Windows 環境: コンソールのコードページを UTF-8 に設定し、
- *                  printf 等の標準出力が UTF-8 文字列を正しく表示できるようにします。\n
- *                  Linux 環境: com_util_console_init / com_util_console_dispose は no-op です。
+ *
+ *  Windows 環境: コンソールのコードページを UTF-8 に設定し、
+ *  printf 等の標準出力が UTF-8 文字列を正しく表示できるようにします。\n
+ *  Linux 環境: com_util_console_init / com_util_console_dispose は no-op です。
  */
 
 #include <com_util/console/console.h>

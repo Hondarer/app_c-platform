@@ -4,10 +4,11 @@
 /**
  *  @file           trace_file.h
  *  @brief          ファイルベーストレースプロバイダライブラリ。
- *  @details        トレースメッセージをローテーション付きテキストファイルへ同期書き込みする
- *                  クロスプラットフォームプロバイダです。\n
- *                  com_util_etw_provider (Windows ETW) および com_util_syslog_sink (Linux syslog) と
- *                  同じ init / write / dispose インターフェースを提供します。
+ *
+ *  トレースメッセージをローテーション付きテキストファイルへ同期書き込みする
+ *  クロスプラットフォームプロバイダです。\n
+ *  com_util_etw_provider (Windows ETW) および com_util_syslog_sink (Linux syslog) と
+ *  同じ init / write / dispose インターフェースを提供します。
  *
  *  @par            出力フォーマット
  *  @code
@@ -26,15 +27,17 @@
 
 /**
  *  @brief          トレースファイル 1 世代あたりの既定最大サイズ (バイト)。
- *  @details        この値を超えるとローテーションが実行されます。\n
- *                  com_util_trace_file_sink_create の max_bytes に 0 を指定した場合に使用されます。
+ *
+ *  この値を超えるとローテーションが実行されます。\n
+ *  com_util_trace_file_sink_create の max_bytes に 0 を指定した場合に使用されます。
  */
 #define COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES ((size_t)(10 * 1024 * 1024))
 
 /**
  *  @brief          保持するトレースファイル世代数の既定値。
- *  @details        ローテーション時に path.1 〜 path.N のファイルを保持します。\n
- *                  com_util_trace_file_sink_create の generations に 0 以下を指定した場合に使用されます。
+ *
+ *  ローテーション時に path.1 〜 path.N のファイルを保持します。\n
+ *  com_util_trace_file_sink_create の generations に 0 以下を指定した場合に使用されます。
  */
 #define COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 5
 
@@ -52,10 +55,11 @@ extern "C"
 
     /**
      *  @brief          ファイルトレースプロバイダを初期化する。
-     *  @details        指定されたファイルパスへの書き込みを開始します。\n
-     *                  ファイルが存在する場合は追記します。存在しない場合は新規作成します。\n
-     *                  max_bytes に 0 を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES を使用します。\n
-     *                  generations に 0 以下を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS を使用します。
+     *
+     *  指定されたファイルパスへの書き込みを開始します。\n
+     *  ファイルが存在する場合は追記します。存在しない場合は新規作成します。\n
+     *  max_bytes に 0 を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES を使用します。\n
+     *  generations に 0 以下を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS を使用します。
      *
      *  @param[in]      path         出力ファイルパス。NULL の場合は NULL を返します。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。

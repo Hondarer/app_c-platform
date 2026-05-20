@@ -6,7 +6,6 @@
  *  @date           2026/04/30
  *  @version        1.0.0
  *
- *  @details
  *  対話的な 1 行入力を提供します。\n
  *  TTY（対話端末）では以下のキー操作が有効です：
  *  - 上/下矢印キー : 入力履歴を遡る/進む
@@ -127,7 +126,8 @@ extern "C"
     /**
      *  @brief      プロンプトハンドルを解放する。
      *  @param[in]      prompt  com_util_prompt_create() が返したハンドル。NULL 可。
-     *  @details        raw モード中の場合はターミナル設定を復元してから解放する。
+     *
+     *  raw モード中の場合はターミナル設定を復元してから解放する。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -154,14 +154,16 @@ extern "C"
  *  @param[in]      fmt      printf 形式のフォーマット文字列。NULL の場合は "" として扱う。
  *  @param[in]      ...      フォーマット引数。
  *  @return     入力確定時は 1、EOF / Ctrl+C 時は 0。
- *  @details    プロンプト文字列バッファはハンドル内に保持し、必要に応じて自動拡張します。
+ *
+ *  プロンプト文字列バッファはハンドル内に保持し、必要に応じて自動拡張します。
  */
 #define com_util_prompt_readline_fmt(p, buf, buf_size, fmt, ...) \
     com_util_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
      *  @brief      呼び出し元を明示して 1 行入力を受け取る。
-     *  @details    通常は com_util_prompt_readline() を使用する。
+     *
+     *  通常は com_util_prompt_readline() を使用する。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -172,7 +174,8 @@ extern "C"
 
     /**
      *  @brief      呼び出し元を明示して printf スタイルのプロンプトを表示する。
-     *  @details    通常は com_util_prompt_readline_fmt() を使用する。
+     *
+     *  通常は com_util_prompt_readline_fmt() を使用する。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt_t *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)

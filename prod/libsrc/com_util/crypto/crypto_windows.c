@@ -6,7 +6,6 @@
  *  @date           2026/03/12
  *  @version        1.0.0
  *
- *  @details
  *  Windows CNG (Cryptography Next Generation) の BCrypt API を使用して
  *  AES-256-GCM 暗号化・復号を実装します。\n
  *  Linux 実装 (OpenSSL) と同一の wire フォーマット ([暗号文][GCM タグ 16B]) を使用するため、

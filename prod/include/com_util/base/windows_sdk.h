@@ -6,7 +6,6 @@
  *  @date           2026/04/20
  *  @version        1.0.0
  *
- *  @details
  *  com_util の公開ヘッダーから Windows SDK を参照する際の正本です。
  *  winsock2.h / ws2tcpip.h を windows.h より先に取り込むことで、
  *  winsock.h との衝突を防ぎます。

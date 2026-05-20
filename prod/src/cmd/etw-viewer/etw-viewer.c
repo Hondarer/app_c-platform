@@ -6,7 +6,6 @@
  *  @date           2026/05/01
  *  @version        1.0.0
  *
- *  @details
  *  Windows 上で com_util の ETW provider を購読し、受信イベントを stdout に表示します。
  *  既定では com_util tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
  *

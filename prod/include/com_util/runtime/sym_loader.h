@@ -49,9 +49,10 @@ extern "C"
 #ifdef DOXYGEN
     /**
      *  @brief          Linux/Windows 共通のモジュールハンドル型。
-     *  @details        sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
-     *                  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
-     *                  `HMODULE` を表します。
+     *
+     *  sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
+     *  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
+     *  `HMODULE` を表します。
      */
     #define COM_UTIL_MODULE_HANDLE void *
 #elif defined(PLATFORM_LINUX)
@@ -65,8 +66,8 @@ extern "C"
     /**
      *  @brief          関数ポインタキャッシュエントリ。
      *
-     *  @details        ライブラリ名・関数名・ハンドル・関数ポインタおよび排他制御用ロックを管理します。\n
-     *                  静的変数として定義する場合は COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで初期化してください。
+     *  ライブラリ名・関数名・ハンドル・関数ポインタおよび排他制御用ロックを管理します。\n
+     *  静的変数として定義する場合は COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで初期化してください。
      */
     typedef struct
     {

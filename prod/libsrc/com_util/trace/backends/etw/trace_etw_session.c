@@ -250,8 +250,9 @@ static int read_uint32_field(const unsigned char *cursor, const USHORT remaining
 
 /**
  *  @brief  TraceLogging payload から Service / Message を復元する。
- *  @details TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
- *           Service / Message が存在しないイベントは out_* を NULL のまま返す。
+ *
+ *  TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
+ *  Service / Message が存在しないイベントは out_* を NULL のまま返す。
  */
 static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info,
                                  const char **out_service, const char **out_message,

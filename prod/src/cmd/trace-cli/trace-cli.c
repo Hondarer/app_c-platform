@@ -6,7 +6,6 @@
  *  @date           2026/04/28
  *  @version        1.0.0
  *
- *  @details
  *  `com_util/trace/tracer.h` の公開 API を対話的に呼び出すための確認用 CLI です。\n
  *  起動後に interactive CLI として動作し、1 セッションにつき 1 個の tracer handle を保持します。
  *

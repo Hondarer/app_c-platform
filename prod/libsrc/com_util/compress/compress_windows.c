@@ -6,7 +6,6 @@
  *  @date           2026/03/05
  *  @version        1.0.0
  *
- *  @details
  *  Windows 8 以降の Compression API を使用して raw DEFLATE ストリームを生成します。\n
  *
  *  - **圧縮**: `MSZIP | COMPRESS_RAW` (Block Mode) で圧縮し、先頭に付加される

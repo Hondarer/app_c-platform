@@ -42,18 +42,19 @@
 #ifdef DOXYGEN
     /**
      *  @brief          ロード/アンロードコンテキスト向けの診断メッセージ出力マクロ。
-     *  @details        `DllMain` および constructor / destructor コンテキストでは
-     *                  使用できる API が制限されるため、このマクロは制約下でも比較的
-     *                  安全な最小限の出力経路を提供します。\n
-     *                  環境変数 `ENABLE_DLLMAIN_COM_UTIL_INFO_MSG` が設定されている
-     *                  場合にのみ出力します。未設定時は何も出力しません。\n
-     *                  Linux では、環境変数 `SYSLOG_TEST_FD` が設定されていれば
-     *                  その FD に RFC 3164 形式のメッセージを書き込みます。
-     *                  設定されていない場合は `/dev/log` へ UNIX ドメイン SOCK_DGRAM で
-     *                  RFC 3164 形式のメッセージを `MSG_DONTWAIT` で送信します。
-     *                  送信に失敗した場合はメッセージを drop します。\n
-     *                  Windows では `MultiByteToWideChar` で UTF-8 変換後に
-     *                  `OutputDebugStringW(...)` を使用します。
+     *
+     *  `DllMain` および constructor / destructor コンテキストでは
+     *  使用できる API が制限されるため、このマクロは制約下でも比較的
+     *  安全な最小限の出力経路を提供します。\n
+     *  環境変数 `ENABLE_DLLMAIN_COM_UTIL_INFO_MSG` が設定されている
+     *  場合にのみ出力します。未設定時は何も出力しません。\n
+     *  Linux では、環境変数 `SYSLOG_TEST_FD` が設定されていれば
+     *  その FD に RFC 3164 形式のメッセージを書き込みます。
+     *  設定されていない場合は `/dev/log` へ UNIX ドメイン SOCK_DGRAM で
+     *  RFC 3164 形式のメッセージを `MSG_DONTWAIT` で送信します。
+     *  送信に失敗した場合はメッセージを drop します。\n
+     *  Windows では `MultiByteToWideChar` で UTF-8 変換後に
+     *  `OutputDebugStringW(...)` を使用します。
      *
      *  @param[in]      msg 出力する null 終端 UTF-8 文字列。
      *
@@ -65,7 +66,7 @@
     #if defined(PLATFORM_LINUX)
 /**
  *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信する。
- *  @details
+ *
  *  constructor / destructor コンテキストでも安全に使用できるよう、
  *  syslog() API は使用しない。毎回ソケットを開いて即時送信し、
  *  失敗時は drop する。priority = LOG_USER(8) | LOG_INFO(6) = 14。
@@ -191,7 +192,8 @@ static void dllmain_output_debug_msg__(const char *msg)
 
 /**
  *  @brief          ライブラリロード時に呼び出されます。
- *  @details        インクルード元の .c ファイルでこの関数を定義してください。
+ *
+ *  インクルード元の .c ファイルでこの関数を定義してください。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
@@ -203,7 +205,8 @@ static void onLoad(void);
  *  @brief          ライブラリアンロード時に呼び出されます。
  *  @param[in]      process_terminating プロセス終了による呼び出しの場合は 1、
  *                  明示的なアンロードまたは通常の destructor の場合は 0。
- *  @details        インクルード元の .c ファイルでこの関数を定義してください。
+ *
+ *  インクルード元の .c ファイルでこの関数を定義してください。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n

@@ -5,7 +5,6 @@
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
- *  @details
  *  C 標準ファイル I/O 関数をプラットフォーム差異なしで使用できるラッパーを提供します。\n
  *  ファイルパスを受け取る関数は UTF-8 文字列として扱い、Windows では内部で
  *  Unicode (_W 系関数) に変換します。\n
@@ -300,7 +299,6 @@ extern "C"
      *  @param[out]     errno_out    エラー詳細の格納先。NULL 可。
      *  @return         成功時はオープンされた FILE*、失敗時は NULL を返します。
      *
-     *  @details
      *  Linux 環境では TMPDIR (未設定なら "/tmp") に "<prefix>XXXXXX" のテンプレートで
      *  mkstemp() によりファイルを atomic に作成し、その fd を fdopen(@p modes) で FILE* に
      *  変換します。\n

@@ -101,9 +101,9 @@ static const char *get_ilename_part(const char *path)
 /**
  *  @brief          拡張子を取り除きます (その場で書き換え)。
  *
- *  @details        - Linux: ".so." が含まれる場合はそこから先を削除 (例: libx.so.1.2.3 -> libx)
- *                  - Linux: 末尾が ".so" の場合は削除 (例: libx.so -> libx)
- *                  - その他: 最後の '.' 以降を削除 (一般的な拡張子扱い)
+ *  - Linux: ".so." が含まれる場合はそこから先を削除 (例: libx.so.1.2.3 -> libx)
+ *  - Linux: 末尾が ".so" の場合は削除 (例: libx.so -> libx)
+ *  - その他: 最後の '.' 以降を削除 (一般的な拡張子扱い)
  *
  *  @param[in,out]  s 対象文字列 (NULL 終端)。
  */

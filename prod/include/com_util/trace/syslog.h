@@ -8,9 +8,10 @@
 /**
  *  @file           syslog.h
  *  @brief          syslog ヘルパーライブラリ。
- *  @details        Linux syslog (RFC5424 系実装) のラッパー関数群を提供します。\n
- *                  Linux 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_LINUX) の
- *                  中でのみ使用してください。
+ *
+ *  Linux syslog (RFC5424 系実装) のラッパー関数群を提供します。\n
+ *  Linux 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_LINUX) の
+ *  中でのみ使用してください。
  */
 
 #if defined(PLATFORM_LINUX)

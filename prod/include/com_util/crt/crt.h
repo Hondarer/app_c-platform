@@ -5,7 +5,6 @@
  *  @author         Tetsuo Honda
  *  @date           2026/04/24
  *
- *  @details
  *  `com_util/crt` 配下の公開ヘッダーをまとめて取り込む標準入口です。\n
  *  CRT 抽象 API を広く利用する場合は、本ヘッダーの利用を推奨します。
  *

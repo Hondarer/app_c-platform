@@ -29,7 +29,7 @@ extern "C"
  *  @brief          shutdown フェーズで全トレースハンドルを解放します。
  *  @param[in]      event shutdown イベント情報。
  *
- *  @details        本関数は終了フェーズ向けの安全側解放を行います。\n
+ *  本関数は終了フェーズ向けの安全側解放を行います。\n
  *  内部でレジストリロックを取得しません。
  *  呼び出し前に、すべてのスレッドが trace API
  *  (com_util_tracer_create / com_util_tracer_dispose / com_util_tracer_write 等) の

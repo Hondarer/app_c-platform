@@ -6,7 +6,6 @@
  *  @date           2026/04/19
  *  @version        1.0.0
  *
- *  @details
  *  OS ごとに異なるクロック API を共通インターフェースで抽象化します。\n
  *  単調増加クロック、実時刻クロック、UTC 分解、絶対 deadline 生成を提供します。
  *
@@ -57,7 +56,6 @@ extern "C"
     /**
      *  @brief          UTC 基準の実時刻を保持する構造体。
      *
-     *  @details
      *  com_util_get_realtime() が返す値を、そのまま構造体として保持するための公開型です。\n
      *  ログのタイムスタンプやセッション開始時刻など、実時刻を外部から受け渡したい用途で使用します。
      */
@@ -74,7 +72,6 @@ extern "C"
      *  @brief          単調増加クロックの現在値をミリ秒単位で返します。
      *  @return         単調増加クロックのミリ秒値。
      *
-     *  @details
      *  OS の単調増加クロック (CLOCK_MONOTONIC 相当) を読み取り、ミリ秒に変換して返します。\n
      *  タイムアウト判定・差分計算など ms 精度で十分な用途に使用します。\n
      *  より高い精度が必要な場合は com_util_get_monotonic() を使用してください。
@@ -116,7 +113,6 @@ extern "C"
      *  @param[out]     tv_sec  秒部 (符号付き 64 ビット整数)。
      *  @param[out]     tv_nsec ナノ秒部 (0 以上 999,999,999 以下)。
      *
-     *  @details
      *  OS の単調増加クロック (CLOCK_MONOTONIC 相当) をナノ秒精度で返します。\n
      *  受信タイムスタンプ・高精度な経過時間測定など μs 以下の精度が必要な用途に使用します。
      *
@@ -163,7 +159,6 @@ extern "C"
      *  @param[out]     tv_sec  Unix epoch (1970-01-01T00:00:00Z) からの経過秒 (符号付き 64 ビット整数)。
      *  @param[out]     tv_nsec ナノ秒部 (0 以上 999,999,999 以下)。
      *
-     *  @details
      *  OS の実時刻クロック (CLOCK_REALTIME 相当) を読み取り、
      *  Unix epoch (1970-01-01T00:00:00Z) からの経過時間として返します。\n
      *  セッション識別子・ログのタイムスタンプなどカレンダー時刻として意味を持つ値を記録する場合に使用します。
@@ -229,7 +224,6 @@ extern "C"
      *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
      *  @return         成功時 0、失敗時 -1。
      *
-     *  @details
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
      *  ローカル時刻の `YYYY-MM-DDTHH:MM:SS.sss+09:00` 形式へ変換します。\n
      *  バッファが十分な場合の必要サイズは
@@ -252,7 +246,6 @@ extern "C"
      *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
      *  @return         成功時 0、失敗時 -1。
      *
-     *  @details
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
      *  UTC の `YYYY-MM-DDTHH:MM:SS.sssZ` 形式へ変換します。\n
      *  バッファが十分な場合の必要サイズは
@@ -272,7 +265,6 @@ extern "C"
      *  @param[out]     utc_tm  UTC の年月日時分秒を受け取る `struct tm`。
      *  @param[out]     tv_nsec ナノ秒部 (0 以上 999,999,999 以下)。
      *
-     *  @details
      *  現在の実時刻を取得し、UTC の分解済み時刻へ変換して返します。\n
      *  ログのタイムスタンプ生成など、カレンダー時刻を文字列化する用途を想定します。
      *
@@ -298,7 +290,6 @@ extern "C"
      *  @param[in]      timeout_ms  現在時刻へ加算するタイムアウト値 (ミリ秒)。
      *  @param[out]     abs_timeout absolute deadline を受け取る `struct timespec`。
      *
-     *  @details
      *  現在の実時刻を取得し、指定ミリ秒を加算した absolute deadline を返します。\n
      *  sync 実装や OS 変換層のように absolute deadline を要求する API の
      *  入力生成に使用します。

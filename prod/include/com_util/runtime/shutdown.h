@@ -5,7 +5,6 @@
  *  @author         Tetsuo Honda
  *  @date           2026/05/06
  *
- *  @details
  *  通常終了時の cleanup callback と、補足可能な終了要求の request callback を提供します。\n
  *  いずれも登録したコールバックは LIFO 順で 1 回だけ実行されます。\n
  *  `atexit()` 経路では C 標準の制約により `exit(code)` の引数を直接取得できません。\n

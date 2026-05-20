@@ -29,8 +29,8 @@ extern "C"
  *  @param[in]      event   shutdown イベント情報。
  *  @param[in]      context 登録時に渡した任意のコンテキスト (未使用)。
  *
- *  @details        通常終了ではストリームを元に戻してスレッド終了を待機します。\n
- *                  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
+ *  通常終了ではストリームを元に戻してスレッド終了を待機します。\n
+ *  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
  */
 void com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event, void *context);
 

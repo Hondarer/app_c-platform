@@ -6,7 +6,6 @@
  *  @date           2026/03/05
  *  @version        1.0.0
  *
- *  @details
  *  zlib の deflate/inflate を raw DEFLATE (windowBits = -15) モードで使用します。\n
  *  Windows 実装 (MSZIP | COMPRESS_RAW) と同一フォーマットを出力するため、
  *  クロスプラットフォーム通信に対応します。

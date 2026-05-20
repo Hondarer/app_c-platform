@@ -6,7 +6,6 @@
  *  @date           2026/05/08
  *  @version        0.1.0
  *
- *  @details
  *  This API keeps a single-line prompt at the bottom of the terminal and writes
  *  application output above it.  The API is experimental and may change while
  *  the command-line interaction model is being refined.
@@ -159,7 +158,8 @@ extern "C"
      *  @param[in]      size     Data size in bytes.
      *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
      *  @return     Number of bytes written to the target stream.
-     *  @details    The function writes exactly the supplied bytes and does not add a newline.
+     *
+     *  The function writes exactly the supplied bytes and does not add a newline.
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

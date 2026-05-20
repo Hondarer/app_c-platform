@@ -207,9 +207,10 @@ static void close_file(com_util_trace_file_sink_t *p)
 
 /**
  *  @brief  トレースファイルをローテーションする。
- *  @details ロック保持中から呼ばれる。\n
- *           リネームに失敗した場合はその世代でカスケードを打ち切り、
- *           呼び出し元をブロックせずに続行する (ベストエフォート)。
+ *
+ *  ロック保持中から呼ばれる。\n
+ *  リネームに失敗した場合はその世代でカスケードを打ち切り、
+ *  呼び出し元をブロックせずに続行する (ベストエフォート)。
  */
 static void rotate_file(com_util_trace_file_sink_t *p)
 {

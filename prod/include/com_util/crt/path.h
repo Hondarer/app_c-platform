@@ -5,7 +5,6 @@
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
- *  @details
  *  プラットフォームに依存せず使用できるパス関連の定数と API を提供します。
  *
  *  **パスセパレータ方針**\n
@@ -70,7 +69,6 @@
  *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。
  *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
  *
- *  @details
  *  断片は自動補正せず、そのまま連結されます。\n
  *  パス区切り文字が必要な場合は @ref PLATFORM_PATH_SEP を明示的に指定してください。
  */
@@ -87,7 +85,6 @@ extern "C"
      *  @param[in,out]  path  正規化対象のパス文字列 (UTF-8)。NULL を渡してはなりません。
      *  @return         path を返します (連鎖呼び出し用)。
      *
-     *  @details
      *  環境変数や設定ファイルから読み取ったパスに Windows スタイルの '\\' が含まれる場合に
      *  使用します。\n
      *  本ライブラリが出力するパス (@p path_out 等) はすでに @ref PLATFORM_PATH_SEP (`"/"`) に
@@ -107,7 +104,6 @@ extern "C"
      *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
-     *  @details
      *  相対パスはカレントディレクトリ基準で絶対化します。\n
      *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
      *  '.' / '..' を解消した絶対パス文字列を返します。\n
@@ -128,7 +124,6 @@ extern "C"
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @return         一致時は 1、不一致時は 0、失敗時は -1 を返します。
      *
-     *  @details
      *  内部でそれぞれのパスに対して com_util_path_get_full() を呼び、絶対化と
      *  区切り文字正規化を行ったうえで比較します。\n
      *  Windows ではファイルシステムの慣習に合わせて大小文字を区別せず比較します。
@@ -148,7 +143,6 @@ extern "C"
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
-     *  @details
      *  Linux 環境では環境変数 @c TMPDIR を参照し、未設定または空の場合は @c "/tmp" を使用します。\n
      *  Windows 環境では @c GetTempPathW() で取得したパスを UTF-8 に変換して使用します。\n
      *  出力パスは常に @ref PLATFORM_PATH_SEP (`"/"`) 区切りで正規化されており、末尾の区切り文字は含まれません。\n
@@ -169,7 +163,6 @@ extern "C"
      *  @param[in]      ...         連結する UTF-8 文字列断片。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
-     *  @details
      *  断片は自動補正せず、そのまま連結されます。\n
      *  いずれかの断片が NULL、または @p part_count が 0 の場合は EINVAL を返します。\n
      *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。

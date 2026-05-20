@@ -8,16 +8,18 @@
 /**
  *  @file           etw.h
  *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリ。
- *  @details        TraceLogging ベースの ETW プロバイダを簡易に操作するための
- *                  ヘルパー関数群を提供します。\n
- *                  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
- *                  中でのみ使用してください。
+ *
+ *  TraceLogging ベースの ETW プロバイダを簡易に操作するための
+ *  ヘルパー関数群を提供します。\n
+ *  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
+ *  中でのみ使用してください。
  */
 
 /**
  *  @struct         com_util_etw_event_t
  *  @brief          ETW consumer が受け取るイベント情報。
- *  @details        event_name / service / message は callback 呼び出し中のみ有効なポインタです。
+ *
+ *  event_name / service / message は callback 呼び出し中のみ有効なポインタです。
  */
 typedef struct com_util_etw_event_t
 {
@@ -57,7 +59,8 @@ typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event_t *event,
 /**
  *  @typedef        com_util_etw_provider_ref_t
  *  @brief          プロバイダ参照型。
- *  @details        TraceLoggingHProvider (TraceLoggingProvider.h が定義する型) と同等です。
+ *
+ *  TraceLoggingHProvider (TraceLoggingProvider.h が定義する型) と同等です。
  */
 struct _tlgProvider_t;
 typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
@@ -66,8 +69,9 @@ typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
 
     /**
      *  @brief          ETW プロバイダを定義するマクロ。
-     *  @details        呼び出し元の .c ファイルのファイルスコープに 1 回だけ記述します。\n
-     *                  TRACELOGGING_DEFINE_PROVIDER(var, name, guid) に展開します。
+     *
+     *  呼び出し元の .c ファイルのファイルスコープに 1 回だけ記述します。\n
+     *  TRACELOGGING_DEFINE_PROVIDER(var, name, guid) に展開します。
      *
      *  @param          var   プロバイダ変数名 (com_util_etw_provider_ref_t 型)
      *  @param          name  プロバイダ名 (文字列リテラル)

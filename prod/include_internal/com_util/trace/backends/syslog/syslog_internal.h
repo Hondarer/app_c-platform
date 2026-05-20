@@ -31,7 +31,7 @@ extern "C"
  *  @brief          shutdown フェーズで syslog プロバイダハンドルを解放します。
  *  @param[in]      handle 解放する syslog プロバイダハンドル。
  *
- *  @details        reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
+ *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
  *  呼び出し時点で com_util_syslog_sink_write() を実行中のスレッドが存在する場合は
  *  未定義動作になります。
  *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
