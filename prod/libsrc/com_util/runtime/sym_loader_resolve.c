@@ -95,7 +95,7 @@ static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry_t *fobj)
     return fobj->func_ptr;
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
 {

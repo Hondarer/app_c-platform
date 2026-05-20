@@ -33,7 +33,7 @@ struct com_util_etw_provider
     com_util_etw_provider_ref_t provider_ref;
 };
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
     com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
@@ -156,7 +156,7 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
     }
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API
     com_util_etw_provider_write(com_util_etw_provider_t *handle, const int level,
@@ -172,7 +172,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     return 0;
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API
     com_util_etw_provider_dispose(com_util_etw_provider_t *handle)
@@ -186,7 +186,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
     free(handle);
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider_t *handle,
                                                const com_util_shutdown_event_t *event)

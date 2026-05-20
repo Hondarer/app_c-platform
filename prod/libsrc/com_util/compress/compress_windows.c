@@ -84,7 +84,7 @@ static uint8_t mszip_crc_byte(const uint64_t orig_len)
     return (uint8_t)(crc & 0xFFu);
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
@@ -147,7 +147,7 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
     return 0;
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {

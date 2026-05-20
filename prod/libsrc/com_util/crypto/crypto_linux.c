@@ -27,7 +27,7 @@
 
     #include <com_util/crypto/crypto.h>
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
                      const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
@@ -108,7 +108,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     return 0;
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
                      const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
@@ -201,7 +201,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     return 0;
 }
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const size_t passphrase_len)
 {

@@ -45,7 +45,7 @@ _Static_assert(SYMBOL_LOADER_NAME_WIDTH == COM_UTIL_SYM_LOADER_NAME_MAX - 1,
 
 #define CONFIG_SCAN_FMT CONFIG_SCAN_NAME " " CONFIG_SCAN_NAME " " CONFIG_SCAN_NAME
 
-/* doxygen コメントは、ヘッダーに記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length,
                                                      const char *configpath)
