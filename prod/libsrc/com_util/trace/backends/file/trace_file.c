@@ -255,6 +255,7 @@ static void rotate_file(com_util_trace_file_sink_t *p)
 /* ===== 公開 API ===== */
 
 /* doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sink_create(const char *path, const size_t max_bytes,
                                                                            const int generations)
 {
@@ -334,6 +335,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, const int level,
                                                                 const com_util_realtime_timestamp_t *timestamp,
                                                                 const char *message)
@@ -411,6 +413,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink_t *handle)
 {
     if (handle == NULL)
@@ -431,6 +434,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trac
 }
 
 /* doxygen コメントは、ヘッダーに記載 */
+
 void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink_t *handle)
 {
     if (handle == NULL)

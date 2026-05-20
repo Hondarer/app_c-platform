@@ -14,6 +14,7 @@
 #include <com_util/runtime/sym_loader.h>
 
 /* doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry_t *fobj)
 {
     if (fobj->resolved == 0)
