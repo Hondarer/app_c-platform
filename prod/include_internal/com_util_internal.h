@@ -1,17 +1,20 @@
 /**
  *******************************************************************************
  *  @file           com_util_internal.h
- *  @brief          com_util ライブラリの内部傘ヘッダー (内部 API ひとまとめ、実装出力ヘッダーを除く)。
+ *  @brief          com_util ライブラリの公開 + 内部アンブレラ ヘッダー。
  *  @author         Tetsuo Honda
  *  @date           2026/05/21
  *  @version        1.0.0
  *
- *  com_util ライブラリの内部ヘッダーを 1 つにまとめます。\n
- *  ライブラリ内部実装から `<com_util_internal.h>` 1 行で全内部 API にアクセスできます。
+ *  com_util ライブラリの内部ヘッダーを 1 つにまとめたヘッダーです。\n
+ *  利用者は `#include <com_util_internal.h>` で本ライブラリの全公開 + 全内部 API にアクセスできます。
+ *
+ *  アンブレラ ヘッダーは利便性と引き換えにコンパイル時間がかかります。\n
+ *  個別ヘッダーを利用するか、アンブレラ ヘッダーを利用するかは利用者にて選択してください。
  *
  *  @par            除外ヘッダー
  *  以下のヘッダーはインクルードされた翻訳単位に実装コードを出力するため、
- *  この傘ヘッダーには含まれていません。必要な場合は個別にインクルードしてください。
+ *  このアンブレラ ヘッダーには含まれていません。必要な場合は個別にインクルードしてください。
  *  - `<com_util/crt/crt_internal.h>` :
  *    Windows 限定で `static` 関数 `com_util_utf8_to_wpath()` /
  *    `com_util_wpath_to_utf8()` を定義します。
@@ -23,6 +26,8 @@
 
 #ifndef COM_UTIL_INTERNAL_H
 #define COM_UTIL_INTERNAL_H
+
+#include <com_util.h> /* 内部 API で公開定数、公開型、公開関数などに依存している可能性を考慮 */
 
 #include <com_util/console/console_internal.h>
 

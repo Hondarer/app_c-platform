@@ -1,17 +1,20 @@
 /**
  *******************************************************************************
  *  @file           com_util.h
- *  @brief          com_util ライブラリの傘ヘッダー (公開 API ひとまとめ、実装出力ヘッダーを除く)。
+ *  @brief          com_util ライブラリのアンブレラ ヘッダー。
  *  @author         Tetsuo Honda
  *  @date           2026/05/21
  *  @version        1.0.0
  *
- *  com_util ライブラリの公開ヘッダーを 1 つにまとめます。\n
- *  利用者は `<com_util.h>` 1 行で本ライブラリの全公開 API にアクセスできます。
+ *  com_util ライブラリの公開ヘッダーを 1 つにまとめたヘッダーです。\n
+ *  利用者は `#include <com_util.h>` で本ライブラリの全公開 API にアクセスできます。
+ *
+ *  アンブレラ ヘッダーは利便性と引き換えにコンパイル時間がかかります。\n
+ *  個別ヘッダーを利用するか、アンブレラ ヘッダーを利用するかは利用者にて選択してください。
  *
  *  @par            除外ヘッダー
  *  以下のヘッダーはインクルードされた翻訳単位に実装コードを出力するため、
- *  この傘ヘッダーには含まれていません。必要な場合は個別にインクルードしてください。
+ *  このアンブレラ ヘッダーには含まれていません。必要な場合は個別にインクルードしてください。
  *  - `<com_util/base/shared_lib_lifecycle.h>` :
  *    `__attribute__((constructor))` / `DllMain` を定義し、
  *    利用側に `onLoad()` / `onUnload()` の実装を要求します。
@@ -30,8 +33,6 @@
 #include <com_util/base/platform.h>
 #include <com_util/base/dll_exports.h>
 #include <com_util/base/windows_sdk.h>
-
-#include <com_util/com_util_export.h>
 
 #include <com_util/clock/clock.h>
 #include <com_util/compress/compress.h>
