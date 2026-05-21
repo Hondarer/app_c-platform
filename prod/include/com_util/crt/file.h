@@ -19,7 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <com_util/base/platform.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #if defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>

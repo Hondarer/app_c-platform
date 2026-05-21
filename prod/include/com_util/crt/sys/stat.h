@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #ifndef COM_UTIL_FILE_STAT_T_DEFINED
     #define COM_UTIL_FILE_STAT_T_DEFINED

@@ -56,7 +56,7 @@
 #include <stddef.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/compiler.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #ifdef __cplusplus
 extern "C"

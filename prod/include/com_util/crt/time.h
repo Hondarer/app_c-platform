@@ -14,7 +14,7 @@
 #define COM_UTIL_CRT_TIME_H
 
 #include <time.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #ifdef __cplusplus
 extern "C"

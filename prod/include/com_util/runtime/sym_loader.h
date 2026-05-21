@@ -25,7 +25,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/sync/sync.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #if defined(PLATFORM_LINUX)
     #ifndef _GNU_SOURCE

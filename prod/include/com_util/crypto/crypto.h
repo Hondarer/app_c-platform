@@ -33,7 +33,7 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 #include <stddef.h>
 #include <stdint.h>
 

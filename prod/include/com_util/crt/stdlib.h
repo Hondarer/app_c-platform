@@ -17,7 +17,7 @@
 #define COM_UTIL_CRT_STDLIB_H
 
 #include <stddef.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #ifdef __cplusplus
 extern "C"

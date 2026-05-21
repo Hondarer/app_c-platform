@@ -27,7 +27,7 @@
 #define COM_UTIL_CRT_PATH_H
 
 #include <com_util/base/platform.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 #include <stddef.h>
 
 #ifdef DOXYGEN

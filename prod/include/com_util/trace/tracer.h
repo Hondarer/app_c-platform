@@ -67,7 +67,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/path.h>
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 /* 内部で使用するプラットフォーム固有ヘッダー */
 #if defined(PLATFORM_LINUX)

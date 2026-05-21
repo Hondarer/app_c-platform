@@ -21,7 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <com_util_export.h>
+#include <com_util/com_util_export.h>
 
 #ifdef __cplusplus
 extern "C"
