@@ -7,7 +7,7 @@
  *  @date           2026/02/23
  *  @version        1.0.0
  *
- *  Linux(gcc) では dladdr() で共有オブジェクトを特定し、realpath() で可能な限り正規化 (絶対化・symlink 解決) します。
+ *  Linux(GCC) では dladdr() で共有オブジェクトを特定し、realpath() で可能な限り正規化 (絶対化・symlink 解決) します。
  *  Windows(MSVC) では GetModuleHandleEx() で DLL の HMODULE を得て、GetModuleFileNameW() でパスを取得します。
  *
  *  @note           - 「絶対パス」は OS/ローダの情報とファイルシステム状態に依存します。
