@@ -26,7 +26,7 @@ Windows 10 1903 以降では UTF-8 マニフェストと併用することによ
 
 ## 代表 API
 
-### `com_util_console_init`
+### com_util_console_init
 
 コンソールヘルパーを初期化します。
 
@@ -35,7 +35,7 @@ Windows 10 1903 以降では UTF-8 マニフェストと併用することによ
 - 二重呼び出し時は追加の初期化を行わない
 - 初期化失敗時は警告を出して復旧不能な状態にはしない
 
-### `com_util_console_dispose`
+### com_util_console_dispose
 
 コンソールヘルパーを終了し、関連リソースを解放します。
 

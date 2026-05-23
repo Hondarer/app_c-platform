@@ -42,7 +42,7 @@ when_to_use: |
 - 実関数の weak wrapper は、未注入時に `delegate_real_<func>` を呼び、mock 注入時は Mock クラスの指定を優先します。
 - Mock クラス側で個別指定がない場合は `ON_CALL` の既定動作により再び `delegate_real_<func>` が使われます。
 
-## `v*` 系関数（va_list 版）の ON_CALL 設定
+## v* 系関数（va_list 版）の ON_CALL 設定
 
 `com_util_vaccess_fmt` などの `v*` 関数は、実際の API では `va_list` を受け取りますが、
 MOCK_METHOD は対応する非 `v` 版と同じシグネチャ（`va_list` なしの整形済み文字列）で定義されています。
@@ -125,7 +125,7 @@ class Mock_com_util
 これにより、テストコードが `mock_com_util.h` をインクルードする時点でリンカーへの指示が確定し、
 実ファイルから v* 関数が呼び出される統合テストや実装テストでもリンク成功が保証されます。
 
-## モックの弱参照対応 (`MOCK_WEAK_IMPL`)
+## モックの弱参照対応 (MOCK_WEAK_IMPL)
 
 モックにはデフォルトで全関数を定義しておき、テストで必要なソースファイルはテストの際に個別に `TEST_SRCS` で与えます。
 この際、Linux, Windows のそれぞれで弱参照を実現する必要があるため、`MOCK_WEAK_IMPL` マクロでプラットフォーム別の弱参照を抽象化しています。

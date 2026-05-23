@@ -84,47 +84,47 @@ OS 標準のトレース基盤へ送ります。
 
 ## 代表 API
 
-### `com_util_tracer_create`
+### com_util_tracer_create
 
 トレースハンドルを作成します。  
 初期名は実行ファイル名で、取得できない場合は `"unknown"` になります。
 
-### `com_util_tracer_set_name`
+### com_util_tracer_set_name
 
 識別名を設定します。  
 複数インスタンスを識別したい場合は識別番号付きの名前を使えます。
 
-### `com_util_tracer_set_os_level`
+### com_util_tracer_set_os_level
 
 OS トレースのしきい値を設定します。
 
-### `com_util_tracer_set_file_level`
+### com_util_tracer_set_file_level
 
 ファイル出力先、ファイル用しきい値、最大サイズ、世代数を設定します。  
 ファイル出力を使う場合の入口です。
 
-### `com_util_tracer_set_stderr_level`
+### com_util_tracer_set_stderr_level
 
 `stderr` 出力のしきい値を設定します。
 
-### `com_util_tracer_start` / `com_util_tracer_stop`
+### com_util_tracer_start / com_util_tracer_stop
 
 出力の開始と停止を行います。  
 設定変更は stopped 中、書き込みは started 中に行います。
 
-### `com_util_tracer_get_state`
+### com_util_tracer_get_state
 
 現在の handle 状態を返します。  
 `create` 直後と `stop` 後は `STOPPED`、`start` 後は `STARTED`、`NULL` または利用不可状態は `DISPOSED` です。
 
-### `com_util_tracer_write` / `com_util_tracer_writef`
+### com_util_tracer_write / com_util_tracer_writef
 
 通常のトレースメッセージを書き込みます。  
 公開名の `com_util_tracer_write*()` は source location (`[file:line]`) を自動付与する関数風マクロです。  
 `timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
 明示タイムスタンプが不正な場合も出力自体は継続し、内部で現在時刻へ代替します。この場合の戻り値は `-1` です。
 
-### `com_util_tracer_write_hex` / `com_util_tracer_write_hexf`
+### com_util_tracer_write_hex / com_util_tracer_write_hexf
 
 バイナリデータを HEX テキストとして書き込みます。  
 通信データやバッファ内容を確認したいときに使います。  

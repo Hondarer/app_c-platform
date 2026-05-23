@@ -23,12 +23,12 @@ Windows でトレースを OS 標準のイベント基盤へ流し、外部の E
 
 ## 代表的な使いどころ
 
-### `trace.h` から使う場合
+### trace.h から使う場合
 
 通常はこちらです。  
 `com_util_tracer_set_os_level()` で OS トレースを有効にし、`com_util_tracer_start()` 後に書き込みます。
 
-### `etw.h` を直接使う場合
+### etw.h を直接使う場合
 
 ETW セッションの consumer 側をテストしたい場合や、ETW 固有の provider / session API を明示的に使いたい場合に限ります。
 

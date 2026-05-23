@@ -1,4 +1,4 @@
-# `platform.h` / `compiler.h` コーディングガイドライン
+# platform.h / compiler.h コーディングガイドライン
 
 ## 概要
 
@@ -11,7 +11,7 @@ C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッ
 
 ## 基本ルール
 
-### OS 判定は `PLATFORM_*` を使う
+### OS 判定は PLATFORM_* を使う
 
 - Linux 判定: `PLATFORM_LINUX`
 - Windows 判定: `PLATFORM_WINDOWS`
@@ -46,7 +46,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 #endif /* PLATFORM_WINDOWS */
 ```
 
-### CPU 判定は `ARCH_*` を使う
+### CPU 判定は ARCH_* を使う
 
 - x64 判定: `ARCH_X64`
 - x86 判定: `ARCH_X86`
@@ -54,7 +54,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 
 アーキテクチャ差異が必要な場合も、`__x86_64__` や `_M_X64` は利用側で直接判定しません。
 
-### コンパイラ判定は `COMPILER_*` を使う
+### コンパイラ判定は COMPILER_* を使う
 
 - GCC 判定: `COMPILER_GCC`
 - MSVC 判定: `COMPILER_MSVC`
@@ -81,7 +81,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 
 `__forceinline` や `__attribute__((noinline))` を利用側へ直接書きません。
 
-### `platform.h` を基本入口にする
+### platform.h を基本入口にする
 
 OS 判定とコンパイラ判定の両方が関係する可能性があるコードでは、原則として `#include <com_util/base/platform.h>` を使います。
 
@@ -278,7 +278,7 @@ int linux_only_feature_start(void);
 
 ## コンパイラ依存構文のルール
 
-### GCC 向けの属性は `COMPILER_GCC` で囲う
+### GCC 向けの属性は COMPILER_GCC で囲う
 
 `__attribute__((format(...)))` や `#pragma GCC diagnostic` は GCC 専用構文です。
 

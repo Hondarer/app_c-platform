@@ -21,7 +21,7 @@ Linux の標準ログ経路へトレースを流し、systemd / rsyslog など�
 - 通常は `com_util_tracer_set_os_level()` と `com_util_tracer_write()` 系から透過的に利用される
 - `COM_UTIL_TRACE_LEVEL_VERBOSE` と `COM_UTIL_TRACE_LEVEL_DEBUG` はどちらも `LOG_DEBUG` に集約される
 
-## `trace` から見た役割
+## trace から見た役割
 
 Linux では OS トレース先が syslog になります。  
 そのため `trace.h` の利用者は、Windows では ETW、Linux では syslog へ出ることだけ意識すれば十分です。

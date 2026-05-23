@@ -15,7 +15,7 @@
 
 ## 構成
 
-### `module_info`
+### module_info
 
 `module_info` は、指定した関数アドレスが属するモジュールの情報を取得する機能です。
 
@@ -24,7 +24,7 @@
 
 典型的には、ロード中の共有ライブラリ自身の名前から設定ファイル名やログ識別子を組み立てる用途で使います。
 
-### `sym_loader`
+### sym_loader
 
 `sym_loader` は、設定ファイルで指定した `lib_name` / `func_name` を使って関数ポインタを解決する機構です。  
 オーバーライド可能な関数や、実行環境によって差し替える関数の呼び出しに向いています。
@@ -38,7 +38,7 @@
 
 ## 設計の要点
 
-### `module_info`
+### module_info
 
 `module_info` は、関数アドレスを手掛かりにして所属モジュールを特定します。
 
@@ -48,7 +48,7 @@
 
 そのため、設定ファイル名を `<basename>_extdef.txt` のように組み立てる用途と相性が良い構成です。
 
-### `sym_loader`
+### sym_loader
 
 `sym_loader` は、`func_key` ごとの解決情報を `com_util_sym_loader_entry_t` に保持します。  
 初回解決時にライブラリロードとシンボル探索を行い、その結果をキャッシュします。
@@ -58,7 +58,7 @@
 - 解決処理は内部ロックで保護される
 - 1 度解決した結果はエントリ内へ保持される
 
-## `sym_loader` の利用手順
+## sym_loader の利用手順
 
 ### 1. エントリを静的定義する
 
@@ -114,7 +114,7 @@ sample_func sample_override sample_func_impl
 
 ## 使い方
 
-### `module_info`
+### module_info
 
 共有ライブラリ自身の basename を取得して、設定ファイル名を組み立てる例です。
 
@@ -127,7 +127,7 @@ if (com_util_module_get_basename(basename, sizeof(basename), (const void *)onLoa
 }
 ```
 
-### `sym_loader`
+### sym_loader
 
 関数を外部実装へ委譲できるようにする基本形です。
 
