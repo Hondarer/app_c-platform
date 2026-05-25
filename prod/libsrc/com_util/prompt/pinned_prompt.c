@@ -171,8 +171,6 @@ static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
             return 2U;
         if (code_point >= 0x3400U && code_point <= 0x4DBFU)
             return 2U;
-        if (code_point >= 0x20000U && code_point <= 0x2A6DFU)
-            return 2U;
         return 1U;
     }
 

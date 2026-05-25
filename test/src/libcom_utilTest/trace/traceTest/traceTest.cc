@@ -458,6 +458,38 @@ TEST_F(traceTest, test_write_hex_formats_payload)
     com_util_tracer_dispose(handle);
 }
 
+// HEX 書き込みでデータ本体を出力できない残り長の場合に省略記号だけが付与されることの確認
+TEST_F(traceTest, test_write_hex_appends_ellipsis_when_only_ellipsis_fits)
+{
+    // Arrange
+    com_util_tracer_t *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+    unsigned char data[] = {0x48, 0x69};
+    std::string label(COM_UTIL_TRACER_MESSAGE_MAX_BYTES - 6, 'L');
+    std::string expected = label + ": ...";
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  StrEq(expected.c_str())))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX データ本体なしで省略記号だけが backend へ渡ること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected.c_str())))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX データ本体なしで省略記号だけが backend へ渡ること。
+#endif
+
+    // Act
+    int result =
+        _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+                                   label.c_str()); // [手順] - 省略記号だけが収まるラベル長で HEX 書き込みを行う。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
 // started 中は設定関数が失敗することの確認
 TEST_F(traceTest, test_config_fails_when_started)
 {

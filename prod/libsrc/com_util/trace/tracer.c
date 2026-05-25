@@ -1125,6 +1125,11 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
         max_data_bytes = (remaining - ELLIPSIS_LEN) / 3;
         if (max_data_bytes == 0)
         {
+            if (pos > (MAX_BODY - ELLIPSIS_LEN))
+            {
+                buf[pos] = '\0';
+                return write_dual(handle, level, timestamp, buf);
+            }
             memcpy(buf + pos, "...", ELLIPSIS_LEN);
             pos += ELLIPSIS_LEN;
             buf[pos] = '\0';
