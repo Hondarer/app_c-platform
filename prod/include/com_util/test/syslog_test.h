@@ -59,8 +59,8 @@ static int syslog_test_fd_write__(const char *buf, size_t nbytes)
     return 1;
 }
 
-#endif /* PLATFORM_LINUX */
-
 /** @} */
+
+#endif /* PLATFORM_LINUX */
 
 #endif /* SYSLOG_TEST_H */
