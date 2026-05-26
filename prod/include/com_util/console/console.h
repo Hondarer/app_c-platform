@@ -1,9 +1,3 @@
-#ifndef COM_UTIL_CONSOLE_H
-#define COM_UTIL_CONSOLE_H
-
-#include <com_util/base/platform.h>
-#include <com_util/com_util_export.h>
-
 /**
  *  @file           console.h
  *  @brief          コンソール UTF-8 ヘルパー API。
@@ -28,6 +22,18 @@
         return 0;
     }
  *  @endcode
+ */
+
+#ifndef COM_UTIL_CONSOLE_H
+#define COM_UTIL_CONSOLE_H
+
+#include <com_util/base/platform.h>
+#include <com_util/com_util_export.h>
+
+
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
  */
 
 /* ===== API 関数 ===== */
@@ -76,5 +82,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_CONSOLE_H */

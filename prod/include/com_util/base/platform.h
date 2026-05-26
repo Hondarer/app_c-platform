@@ -37,6 +37,11 @@
 
 #include "compiler.h"
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef DOXYGEN
     #define PLATFORM_WINDOWS        /**< Windows の場合に定義されます。 */
     #define PLATFORM_LINUX          /**< Linux の場合に定義されます。 */
@@ -72,5 +77,7 @@
         #define ARCH_NAME "Unknown"
     #endif
 #endif /* DOXYGEN */
+
+/** @} */
 
 #endif /* PLATFORM_H */

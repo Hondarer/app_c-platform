@@ -42,6 +42,11 @@
 
 #include <com_util/base/platform.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifndef DOXYGEN
     #ifndef COM_UTIL_DLL_PP_CAT_IMPL__
         #define COM_UTIL_DLL_PP_CAT_IMPL__(a, b) a##b
@@ -108,3 +113,5 @@
         #define COM_UTIL_DLL_API(prefix)
     #endif /* PLATFORM_ */
 #endif     /* DOXYGEN */
+
+/** @} */

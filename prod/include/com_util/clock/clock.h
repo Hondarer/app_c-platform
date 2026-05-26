@@ -48,6 +48,11 @@
 #include <stdint.h>
 #include <time.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -315,5 +320,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* CLOCK_H */

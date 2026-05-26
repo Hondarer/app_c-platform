@@ -23,6 +23,11 @@
 #include <com_util/com_util_export.h>
 #include <com_util/trace/tracer.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 /* ===== 設定定数 ===== */
 
 /**
@@ -107,5 +112,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_TRACE_FILE_H */

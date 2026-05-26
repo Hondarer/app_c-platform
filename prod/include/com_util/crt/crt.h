@@ -16,6 +16,11 @@
 #ifndef COM_UTIL_CRT_CRT_H
 #define COM_UTIL_CRT_CRT_H
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #include <com_util/crt/path.h>
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/file.h>
@@ -25,5 +30,7 @@
 #include <com_util/crt/time.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/sys/stat.h>
+
+/** @} */
 
 #endif /* COM_UTIL_CRT_CRT_H */

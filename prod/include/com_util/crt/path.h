@@ -47,6 +47,11 @@
 #endif     /* DOXYGEN */
 
 /**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
+/**
  *  @brief          ファイルパス区切り文字列。全プラットフォームで `"/"` に統一します。
  */
 #define PLATFORM_PATH_SEP "/"
@@ -177,5 +182,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_CRT_PATH_H */

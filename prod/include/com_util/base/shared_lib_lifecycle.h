@@ -39,6 +39,11 @@
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_ */
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef DOXYGEN
     /**
      *  @brief          ロード/アンロードコンテキスト向けの診断メッセージ出力マクロ。
@@ -290,5 +295,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 }
 
 #endif /* PLATFORM_ */
+
+/** @} */
 
 #endif /* SHARED_LIB_LIFECYCLE_H */

@@ -41,6 +41,11 @@
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_ */
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -167,5 +172,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_SYM_LOADER_H */

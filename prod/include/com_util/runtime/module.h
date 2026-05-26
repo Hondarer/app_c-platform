@@ -24,6 +24,11 @@
 #include <stddef.h>
 #include <com_util/com_util_export.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -60,5 +65,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_MODULE_H */

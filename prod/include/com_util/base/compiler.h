@@ -50,6 +50,11 @@
 #ifndef COMPILER_H
 #define COMPILER_H
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef DOXYGEN
     #define COMPILER_GCC            /**< GCC コンパイラの場合に定義されます。 */
     #define COMPILER_MSVC           /**< MSVC コンパイラの場合に定義されます。 */
@@ -87,5 +92,7 @@
         #define NO_INLINE
     #endif /* COMPILER_ */
 #endif /* DOXYGEN */
+
+/** @} */
 
 #endif /* COMPILER_H */

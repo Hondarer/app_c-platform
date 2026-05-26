@@ -62,19 +62,21 @@ make -C app/com_util test
 ### Doxygen
 
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
-- [doxygen](../../../doxygen/com_util_public/index.html)
+- [com_util (public)](../../../doxygen/com_util_public/index.html)
+    - [公開 API (com_util)](../../../doxygen/com_util_public/group__COM__UTIL__PUBLIC__API.html)
 
 ### 単一ファイル版
 
 - [com_util (public)](doxybook2_public/Pages/README.md)
-    - [ファイルとページの一覧](doxybook2_public/index_files_and_pages.md)
+    - [公開 API (com_util)](doxybook2_public/Modules/group__COM__UTIL__PUBLIC__API.html)
 
 ## モジュール仕様書
 
 ### Doxygen
 
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
-- [doxygen](../../../doxygen/com_util_internal/index.html)
+- [com_util (internal)](../../../doxygen/com_util_internal/index.html)
+    - [ファイルの一覧](../../../doxygen/com_util_internal/files.html)
 
 ### 単一ファイル版
 

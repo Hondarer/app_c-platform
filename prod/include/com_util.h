@@ -29,6 +29,11 @@
 #ifndef COM_UTIL_H
 #define COM_UTIL_H
 
+/**
+ *  @defgroup       COM_UTIL_PUBLIC_API 公開 API (com_util)
+ *  @brief          com_util ライブラリの公開 API です。
+ */
+
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/dll_exports.h>

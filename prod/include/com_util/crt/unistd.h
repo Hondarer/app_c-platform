@@ -24,6 +24,11 @@
     #include <io.h>
 #endif /* PLATFORM_ */
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef DOXYGEN
     #define COM_UTIL_ACCESS_FMT_F_OK 0 /**< ファイルの存在確認 (F_OK 相当)。 */
     #define COM_UTIL_ACCESS_FMT_R_OK 4 /**< 読み取り可能確認 (R_OK 相当)。 */
@@ -86,5 +91,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_CRT_UNISTD_H */

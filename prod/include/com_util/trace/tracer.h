@@ -76,6 +76,11 @@
     #include <com_util/trace/etw.h>
 #endif /* PLATFORM_ */
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 /* ===== デフォルトプロバイダ定義 (Windows) ===== */
 
 #if defined(PLATFORM_WINDOWS)
@@ -712,5 +717,7 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer_t *handle, 
 #define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
                                 _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
+
+/** @} */
 
 #endif /* COM_UTIL_TRACER_H */

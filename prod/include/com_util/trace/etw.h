@@ -6,6 +6,11 @@
 #include <stdint.h>
 
 /**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
+/**
  *  @file           etw.h
  *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリ。
  *
@@ -196,5 +201,7 @@ extern "C"
     #endif /* __cplusplus */
 
 #endif /* PLATFORM_WINDOWS */
+
+/** @} */
 
 #endif /* COM_UTIL_ETW_H */

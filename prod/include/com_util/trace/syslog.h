@@ -6,6 +6,11 @@
 #include <com_util/com_util_export.h>
 
 /**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
+/**
  *  @file           syslog.h
  *  @brief          syslog ヘルパーライブラリ。
  *
@@ -89,5 +94,7 @@ extern "C"
     #endif /* __cplusplus */
 
 #endif /* PLATFORM_LINUX */
+
+/** @} */
 
 #endif /* COM_UTIL_SYSLOG_H */

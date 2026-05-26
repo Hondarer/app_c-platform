@@ -37,7 +37,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 /** @defgroup COM_UTIL_CRYPTO 暗号化定数 (AES-256-GCM)
+ *  @ingroup        COM_UTIL_PUBLIC_API
  *  @{
  */
 #define COM_UTIL_CRYPTO_KEY_SIZE   32U /**< AES-256-GCM 鍵サイズ (バイト)。 */
@@ -116,5 +122,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* CRYPTO_H */

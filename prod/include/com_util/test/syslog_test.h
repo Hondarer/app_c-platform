@@ -27,6 +27,11 @@
 #include <unistd.h>
 
 /**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
+/**
  *  @brief          SYSLOG_TEST_FD 環境変数が設定されていれば、その FD にバッファを書き込む。
  *
  *  テスト用パイプ FD への送信のみを行います。\n
@@ -55,5 +60,7 @@ static int syslog_test_fd_write__(const char *buf, size_t nbytes)
 }
 
 #endif /* PLATFORM_LINUX */
+
+/** @} */
 
 #endif /* SYSLOG_TEST_H */

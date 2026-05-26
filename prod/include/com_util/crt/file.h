@@ -25,6 +25,11 @@
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_WINDOWS */
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #define COM_UTIL_FILE_OPEN_CREATE        (1 << 0) /**< ファイルが存在しない場合に新規作成する。 */
 #define COM_UTIL_FILE_OPEN_TRUNCATE      (1 << 1) /**< 既存ファイルを開く際に内容を切り詰める。 */
 #define COM_UTIL_FILE_OPEN_APPEND        (1 << 2) /**< 書き込みをファイル末尾に追記する。 */
@@ -113,5 +118,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_CRT_FILE_H */

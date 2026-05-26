@@ -20,6 +20,11 @@
 
 #include <com_util/base/platform.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #if defined(PLATFORM_WINDOWS)
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
@@ -33,5 +38,7 @@
         #undef byte /* C++17 std::byte と Windows SDK byte typedef の競合を解消 */
     #endif /* byte */
 #endif /* PLATFORM_WINDOWS */
+
+/** @} */
 
 #endif /* COM_UTIL_WINDOWS_SDK_H */

@@ -14,6 +14,11 @@
 #ifndef COM_UTIL_EXPORT_H
 #define COM_UTIL_EXPORT_H
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifdef DOXYGEN
 
     /**
@@ -52,5 +57,7 @@
     #define COM_UTIL_API    COM_UTIL_DLL_API(COM_UTIL)
 
 #endif /* DOXYGEN */
+
+/** @} */
 
 #endif /* COM_UTIL_EXPORT_H */

@@ -33,6 +33,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 /** 圧縮ペイロード先頭に付加する元サイズフィールドのバイト数。 */
 #define COM_UTIL_COMPRESS_HEADER_SIZE 4U
 
@@ -77,5 +82,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COMPRESS_H */

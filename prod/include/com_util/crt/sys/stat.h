@@ -19,6 +19,11 @@
 #include <com_util/base/platform.h>
 #include <com_util/com_util_export.h>
 
+/**
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @{
+ */
+
 #ifndef COM_UTIL_FILE_STAT_T_DEFINED
     #define COM_UTIL_FILE_STAT_T_DEFINED
     #ifdef DOXYGEN
@@ -115,5 +120,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/** @} */
 
 #endif /* COM_UTIL_CRT_SYS_STAT_H */
