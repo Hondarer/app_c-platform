@@ -300,10 +300,10 @@ extern "C"
      *  @return         成功時はオープンされた FILE*、失敗時は NULL を返します。
      *
      *  Linux 環境では TMPDIR (未設定なら "/tmp") に "<prefix>XXXXXX" のテンプレートで
-     *  mkstemp() によりファイルを atomic に作成し、その fd を fdopen(@p modes) で FILE* に
+     *  mkostemp() によりファイルを atomic に作成し、その fd を fdopen(@p modes) で FILE* に
      *  変換します。\n
      *  @p modes に "w"/"w+" を指定しても fdopen() の仕様上ファイルの切り詰めは発生しません。
-     *  mkstemp() が新規作成したファイルは常に空のため、実用上の影響はありません。\n
+     *  mkostemp() が新規作成したファイルは常に空のため、実用上の影響はありません。\n
      *  Windows 環境では GetTempPathW + GetTempFileNameW でユニーク名を生成し、
      *  _wfopen_s() で指定モードにて開きます。@p path_out は wchar→UTF-8 変換した結果が
      *  格納されます。\n

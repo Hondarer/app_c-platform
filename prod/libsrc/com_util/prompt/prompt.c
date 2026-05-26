@@ -48,6 +48,12 @@ static void history_add(com_util_prompt_t *p,
 {
     size_t line_size;
     size_t slot;
+
+    if (p == NULL || ctx == NULL || line == NULL || line[0] == '\0' || p->history_max == 0U)
+    {
+        return;
+    }
+
     /* 直前と同じ行は追加しない */
     if (ctx->count > 0)
     {

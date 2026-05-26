@@ -64,11 +64,13 @@ static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
         return compress_cli_read_file_fail(file, data);
     }
-    if ((uint64_t)file_size_i64 > (uint64_t)SIZE_MAX)
+#if SIZE_MAX < INT64_MAX
+    if (file_size_i64 > (int64_t)SIZE_MAX)
     {
         fprintf(stderr, "入力ファイルが大きすぎます: %s\n", path);
         return compress_cli_read_file_fail(file, data);
     }
+#endif
     file_size = (size_t)file_size_i64;
 
     if (com_util_fseek(file, 0, SEEK_SET) != 0)
@@ -217,11 +219,13 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
         fprintf(stderr, "入力ファイルが大きすぎます: %s\n", input_path);
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
+#if SIZE_MAX <= UINT32_MAX
     if (input_size > (SIZE_MAX - COM_UTIL_COMPRESS_HEADER_SIZE) / 2u)
     {
         fprintf(stderr, "圧縮出力バッファのサイズ計算に失敗しました。\n");
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
+#endif
 
     compressed_capacity = input_size * 2u + COM_UTIL_COMPRESS_HEADER_SIZE;
     if (compressed_capacity < 256u)

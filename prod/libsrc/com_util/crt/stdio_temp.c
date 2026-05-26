@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/path.h>
 
@@ -8,6 +10,7 @@
 #include <string.h>
 
 #if defined(PLATFORM_LINUX)
+    #include <fcntl.h>
     #include <stdlib.h>
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
@@ -73,7 +76,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix, const
         }
 
         errno = 0;
-        fd = mkstemp(path_out);
+        fd = mkostemp(path_out, O_CLOEXEC);
         if (fd == -1)
         {
             if (errno_out != NULL)

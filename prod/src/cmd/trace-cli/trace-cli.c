@@ -360,13 +360,17 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
         return 0;
     }
 
-    if (digits > 0U)
+    if (digits == 0U)
     {
-        buf = (unsigned char *)malloc(digits / 2U);
-        if (buf == NULL)
-        {
-            return 0;
-        }
+        *data = NULL;
+        *size = 0U;
+        return 1;
+    }
+
+    buf = (unsigned char *)malloc(digits / 2U);
+    if (buf == NULL)
+    {
+        return 0;
     }
 
     for (p = text; *p != '\0'; p++)
