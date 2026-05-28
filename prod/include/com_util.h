@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           com_util.h
- *  @brief          com_util ライブラリのアンブレラ ヘッダー。
+ *  @brief          com_util ライブラリの公開アンブレラ ヘッダー。
  *  @author         Tetsuo Honda
  *  @date           2026/05/21
  *  @version        1.0.0
@@ -23,8 +23,13 @@
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
+ *  @hideincludedbygraph
+ *
  *******************************************************************************
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #ifndef COM_UTIL_H
 #define COM_UTIL_H
