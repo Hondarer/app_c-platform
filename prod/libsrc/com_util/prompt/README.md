@@ -2,7 +2,7 @@
 
 ## 目的
 
-`prompt` は対話的な入力編集と履歴を扱う共通入力 API です。
+`prompt` は対話的な入力編集と履歴を扱う共通入力 API です。  
 `pinned_prompt` は、chat-style TUI / console chat interface に見られる「入力プロンプトを画面最下段に表示し、アプリケーション出力をその上に表示する」画面制御を `com_util` で扱うための試験的 API です。
 
 `com_util_prompt_t` は 1 行入力と履歴を扱います。`pinned_prompt` はその上位の利用形態として、入力中のプロンプト再描画、専用出力 API、ステータス表示、リサイズ後の再描画をまとめます。
@@ -32,7 +32,7 @@
 公開ヘッダーは `com_util/prompt/pinned_prompt.h` です。
 
 - `com_util_pinned_prompt_create(NULL)` は既定設定で pinned prompt ハンドルを作成します。
-- `com_util_prompt_options_t` と `com_util_pinned_prompt_options_t.input` は、履歴数、入力バッファ初期容量、入力バッファ最大容量を指定します。
+- `com_util_prompt_options_t` と `com_util_pinned_prompt_options_t.input` は、履歴数、入力バッファー初期容量、入力バッファー最大容量を指定します。
 - `history_max == 0` は `COM_UTIL_PROMPT_HISTORY_DEFAULT` を使います。
 - `input_max_bytes == 0` は `COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT` を使います。
 - `com_util_pinned_prompt_readline()` は Enter で 1、EOF または Ctrl+C で 0 を返します。
@@ -48,7 +48,7 @@
 
 ## 複数行入力の設計メモ
 
-複数行入力は `readline` の意味を変えず、別 API として追加する方針です。
+複数行入力は `readline` の意味を変えず、別 API として追加する方針です。  
 `readline` は「Enter で 1 行を確定する」契約を維持し、複数行 API は確定キー、改行キー、返却メモリの所有権を明示します。
 
 候補となる宣言案:
@@ -63,7 +63,7 @@ int com_util_prompt_read_text_at(com_util_prompt_t *prompt,
                                  int line);
 ```
 
-`com_util_prompt_input_t` は固定長 `char *` ではなく、入力本文、長さ、行数、確定理由を保持できる結果型にします。
+`com_util_prompt_input_t` は固定長 `char *` ではなく、入力本文、長さ、行数、確定理由を保持できる結果型にします。  
 `pinned_prompt` では画面下部に複数行編集領域を予約できるよう、プロンプト行、編集行、ステータス行を同じ layout 計算で扱う必要があります。
 
 ## 手動評価シナリオ

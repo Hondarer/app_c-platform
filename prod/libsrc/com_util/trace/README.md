@@ -1,7 +1,7 @@
 # trace - クロスプラットフォーム トレース基盤
 
 `trace` は、Windows と Linux の両方で同じコードからトレースを出力するためのユーティリティです。  
-`com_util/trace/tracer.h` を唯一の入口として、OS トレース、ファイル、`stderr` を共通のトレースレベルで扱えます。
+`com_util/trace/tracer.h` を唯一の入口として、OS トレース、ファイル、`stderr` を共通のトレース レベルで扱えます。
 
 ## 目的
 
@@ -27,7 +27,7 @@ started 中は設定変更できず、設定を変える場合は一度 `com_uti
 `com_util_tracer_dispose()` は started / stopped のどちらからでも呼べます。  
 `com_util_tracer_get_state()` を使うと、handle が `started` / `stopped` / `disposed` のどれかを確認できます。
 
-## トレースレベル
+## トレース レベル
 
 共通レベルは `COM_UTIL_TRACE_LEVEL_CRITICAL` から `COM_UTIL_TRACE_LEVEL_DEBUG` までの 6 段階で、`COM_UTIL_TRACE_LEVEL_NONE` はその出力先を無効化します。
 
@@ -39,7 +39,7 @@ started 中は設定変更できず、設定を変える場合は一度 `com_uti
 - `COM_UTIL_TRACE_LEVEL_DEBUG`: 最も詳細な診断情報
 - `COM_UTIL_TRACE_LEVEL_NONE`: 出力しない
 
-Windows ETW と Linux syslog には `VERBOSE` より細かい標準レベルがないため、`COM_UTIL_TRACE_LEVEL_DEBUG` は
+Windows ETW と Linux syslog には `VERBOSE` より細かい標準レベルがないため、`COM_UTIL_TRACE_LEVEL_DEBUG` は  
 OS トレースでは `COM_UTIL_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
 一方でファイルと `stderr` では `DEBUG` を独立したレベル文字で区別します。
 
@@ -69,7 +69,7 @@ OS 標準のトレース基盤へ送ります。
 
 ### ファイル
 
-ローカルファイルへ 1 行ずつ追記します。  
+ローカル ファイルへ 1 行ずつ追記します。  
 サイズ上限に達すると `path`, `path.1`, `path.2` の形式でローテーションします。
 
 ### stderr
@@ -86,7 +86,7 @@ OS 標準のトレース基盤へ送ります。
 
 ### com_util_tracer_create
 
-トレースハンドルを作成します。  
+トレース ハンドルを作成します。  
 初期名は実行ファイル名で、取得できない場合は `"unknown"` になります。
 
 ### com_util_tracer_set_name
@@ -119,15 +119,15 @@ OS トレースのしきい値を設定します。
 
 ### com_util_tracer_write / com_util_tracer_writef
 
-通常のトレースメッセージを書き込みます。  
+通常のトレース メッセージを書き込みます。  
 公開名の `com_util_tracer_write*()` は source location (`[file:line]`) を自動付与する関数風マクロです。  
 `timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
 明示タイムスタンプが不正な場合も出力自体は継続し、内部で現在時刻へ代替します。この場合の戻り値は `-1` です。
 
 ### com_util_tracer_write_hex / com_util_tracer_write_hexf
 
-バイナリデータを HEX テキストとして書き込みます。  
-通信データやバッファ内容を確認したいときに使います。  
+バイナリ データを HEX テキストとして書き込みます。  
+通信データやバッファー内容を確認したいときに使います。  
 タイムスタンプ引数の扱いは `com_util_tracer_write` / `com_util_tracer_writef` と同じです。
 
 source location を付けずに生のメッセージを書き込みたい場合は、低レベル関数 `_com_util_tracer_write*()` を直接呼びます。
@@ -184,7 +184,7 @@ com_util_tracer_dispose(tracer);
 ### Windows
 
 - OS トレースは ETW を使う
-- `trace` 上位では ETW プロバイダ登録を共有する
+- `trace` 上位では ETW プロバイダー登録を共有する
 - `stderr` とファイルは共通の書式で扱う
 
 ### Linux
@@ -198,7 +198,7 @@ com_util_tracer_dispose(tracer);
 - 設定関数は stopped 状態でのみ使えます
 - メッセージ長には共通上限があり、長文は安全な範囲で切り詰められます
 - HEX 出力も上限があり、収まらない場合は末尾を省略します
-- ファイル出力はローカルファイルシステム向けです
+- ファイル出力はローカル ファイル システム向けです
 - backend 固有の制約は各 backend README を参照してください
 
 ## backend ドキュメント

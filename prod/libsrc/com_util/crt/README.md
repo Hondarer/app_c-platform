@@ -2,12 +2,12 @@
 
 `crt` は、標準 C / CRT API のプラットフォーム差異を吸収するためのレイヤーです。  
 標準入口は `com_util/crt/crt.h` です。  
-公開ヘッダーは標準ヘッダー名と対応するように `com_util/crt/*.h` に分割しており、
+公開ヘッダーは標準ヘッダー名と対応するように `com_util/crt/*.h` に分割しており、  
 必要に応じて個別に取り込むこともできます。
 
 ## 目的
 
-Linux と Windows では、ファイルパス、セキュア関数、ワイド文字 API、時刻変換などの扱いが異なります。  
+Linux と Windows では、ファイル パス、セキュア関数、ワイド文字 API、時刻変換などの扱いが異なります。  
 このモジュールは、呼び出し側が同じ `com_util_*` API を使えるように、その差異を集約します。
 
 - UTF-8 パスを Windows ではワイド文字 API に変換する
@@ -22,7 +22,7 @@ Linux と Windows では、ファイルパス、セキュア関数、ワイド�
 - `com_util/crt/stdio.h`: `FILE *` 操作、`remove`、`rename`、`fopen_fmt`、`remove_fmt`
 - `com_util/crt/sys/stat.h`: `stat`、`mkdir`、`stat_fmt`、`mkdir_fmt`
 - `com_util/crt/fcntl.h`: `open`、`open_fmt`
-- `com_util/crt/file.h`: 書き込み用低レベルファイルハンドル、`open`、`write`、`size`、`close`
+- `com_util/crt/file.h`: 書き込み用低レベル ファイル ハンドル、`open`、`write`、`size`、`close`
 - `com_util/crt/unistd.h`: `access`、`access_fmt`、`COM_UTIL_ACCESS_FMT_*`
 - `com_util/crt/string.h`: 安全な文字列コピー/連結、`sscanf` 抽象
 - `com_util/crt/time.h`: UTC / local 時刻変換
@@ -33,7 +33,7 @@ Linux と Windows では、ファイルパス、セキュア関数、ワイド�
 基礎 API とフォーマット付き API は別の実装ファイルに分けます。  
 これは、フォーマット付き API のテストで下位の `com_util_fopen` や `com_util_stat` をモックできるようにするためです。
 
-`*_fmt` API は、内部で `vsnprintf` によりパスを `PLATFORM_PATH_MAX` のバッファへ展開し、対応する基礎 API を呼び出します。
+`*_fmt` API は、内部で `vsnprintf` によりパスを `PLATFORM_PATH_MAX` のバッファーへ展開し、対応する基礎 API を呼び出します。
 
 ## 使用例
 

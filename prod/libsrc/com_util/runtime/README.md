@@ -26,12 +26,12 @@
 
 ### sym_loader
 
-`sym_loader` は、設定ファイルで指定した `lib_name` / `func_name` を使って関数ポインタを解決する機構です。  
+`sym_loader` は、設定ファイルで指定した `lib_name` / `func_name` を使って関数ポインターを解決する機構です。  
 オーバーライド可能な関数や、実行環境によって差し替える関数の呼び出しに向いています。
 
 - `COM_UTIL_SYM_LOADER_ENTRY_INIT`: 静的エントリ初期化
 - `com_util_sym_loader_init`: 設定ファイル読み込み
-- `com_util_sym_loader_resolve_as`: 型付きで関数ポインタ取得
+- `com_util_sym_loader_resolve_as`: 型付きで関数ポインター取得
 - `com_util_sym_loader_is_default`: 明示的デフォルト設定か確認
 - `com_util_sym_loader_info`: 現在状態のダンプ
 - `com_util_sym_loader_dispose`: 後始末
@@ -51,7 +51,7 @@
 ### sym_loader
 
 `sym_loader` は、`func_key` ごとの解決情報を `com_util_sym_loader_entry_t` に保持します。  
-初回解決時にライブラリロードとシンボル探索を行い、その結果をキャッシュします。
+初回解決時にライブラリ ロードとシンボル探索を行い、その結果をキャッシュします。
 
 - Linux では `dlopen` / `dlsym`
 - Windows では `LoadLibrary` / `GetProcAddress`
@@ -60,14 +60,14 @@
 
 ## sym_loader の利用手順
 
-### 1. エントリを静的定義する
+### エントリを静的定義する
 
 ```c
 static com_util_sym_loader_entry_t sfo_sample_func =
     COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", sample_func_t);
 ```
 
-### 2. エントリ配列を用意する
+### エントリ配列を用意する
 
 ```c
 com_util_sym_loader_entry_t *const fobj_array[] = {
@@ -75,13 +75,13 @@ com_util_sym_loader_entry_t *const fobj_array[] = {
 };
 ```
 
-### 3. ロード時に設定ファイルを読む
+### ロード時に設定ファイルを読む
 
 ```c
 com_util_sym_loader_init(fobj_array, fobj_length, configpath);
 ```
 
-### 4. 呼び出し時に型付きで解決する
+### 呼び出し時に型付きで解決する
 
 ```c
 sample_func_t fp = com_util_sym_loader_resolve_as(&sfo_sample_func, sample_func_t);
@@ -90,7 +90,7 @@ if (fp != NULL) {
 }
 ```
 
-### 5. アンロード時に解放する
+### アン ロード時に解放する
 
 ```c
 com_util_sym_loader_dispose(fobj_array, fobj_length);

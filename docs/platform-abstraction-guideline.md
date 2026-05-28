@@ -21,7 +21,7 @@ C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッ
 
 OS 分岐が必要なコードでは、まず `#include <com_util/base/platform.h>` を追加し、`PLATFORM_*` ベースで分岐します。
 
-原則、`Linux -> Windows` の順で分岐するようにしてください。
+原則、`Linux -> Windows` の順で分岐するようにしてください。  
 ただし、ファイル全体が Windows 向け実装を意図している場合は、`#if defined(PLATFORM_WINDOWS)` を先頭にします。
 
 ```c
@@ -52,7 +52,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 - x86 判定: `ARCH_X86`
 - 未知の環境: `ARCH_UNKNOWN`
 
-アーキテクチャ差異が必要な場合も、`__x86_64__` や `_M_X64` は利用側で直接判定しません。
+アーキテクチャー差異が必要な場合も、`__x86_64__` や `_M_X64` は利用側で直接判定しません。
 
 ### コンパイラ判定は COMPILER_* を使う
 
@@ -60,7 +60,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 - MSVC 判定: `COMPILER_MSVC`
 - 未知の処理系: `COMPILER_UNKNOWN`
 
-`__GNUC__` や `_MSC_VER` は `compiler.h` の内部で扱い、利用側では `COMPILER_*` だけを利用します。
+`__GNUC__` や `_MSC_VER` は `compiler.h` の内部で扱い、利用側では `COMPILER_*` だけを利用します。  
 `COMPILER_*` の分岐順は、`GCC -> MSVC` とします。
 
 ```c
@@ -124,7 +124,7 @@ OS 判定とコンパイラ判定の両方が関係する可能性があるコ�
 
 この書き方を使う場面:
 
-- OS ごとに include するシステムヘッダーが違う
+- OS ごとに include するシステム ヘッダーが違う
 - typedef だけが違う
 - 呼び出す API 名だけが違う
 - テストのモック名だけが違う
@@ -202,14 +202,14 @@ int feature_start(void)
 #endif /* PLATFORM_ */
 ```
 
-MSVC では、中身のない翻訳単位に対して C4206 ("translation unit is empty") を出すことがあります。
+MSVC では、中身のない翻訳単位に対して C4206 ("translation unit is empty") を検出します。  
 そのため、片側専用ファイルでも、別 OS のビルドで同じソース一覧を使う場合は `#elif defined(...) && defined(COMPILER_MSVC)` を併記してください。
 
 判断目安:
 
 - 依存ヘッダーが大きく違う
 - 関数本体の大半が分岐で占められる
-- Linux と Windows で別のシステムモデルを使う
+- Linux と Windows で別のシステム モデルを使う
 
 ### 分岐の軸を混ぜない
 
@@ -219,16 +219,16 @@ OS 差異は `PLATFORM_*`、コンパイラ差異は `COMPILER_*` で書きま�
 
 分岐順も軸ごとに扱いを分けます。
 
-- `PLATFORM_*`:
+- `PLATFORM_*`:  
   原則は `Linux -> Windows`。ただし、ファイル全体が Windows 向け実装なら Windows を先頭にする
-- `COMPILER_*`:
+- `COMPILER_*`:  
   `GCC -> MSVC` とする
 
 判断目安:
 
-- システム API、パス、ソケット、スレッド、ファイル操作の違い:
+- システム API、パス、ソケット、スレッド、ファイル操作の違い:  
   `PLATFORM_*`
-- pragma、attribute、警告抑制、関数属性の違い:
+- pragma、attribute、警告抑制、関数属性の違い:  
   `COMPILER_*`
 
 ## 公開ヘッダーのルール
@@ -257,7 +257,7 @@ MYLIB_EXPORT int MYLIB_API mylib_open(void);
 #define MYLIB_API    COM_UTIL_DLL_API(MYLIB)
 ```
 
-makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、
+makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、  
 このワークスペースでは GCC / Clang / MSVC が暗黙に `1` を与える前提で扱います。
 
 ### 単一プラットフォーム専用 API はヘッダー全体で限定する
@@ -282,7 +282,7 @@ int linux_only_feature_start(void);
 
 `__attribute__((format(...)))` や `#pragma GCC diagnostic` は GCC 専用構文です。
 
-ヘッダーやテストへ書く場合も、必ず `COMPILER_GCC` でガードします。
+ヘッダーやテストへ書く場合も、必ず `COMPILER_GCC` でガードします。  
 コンパイラ差異を書くときは、ファイルの主題が Windows 寄りでも GCC 優先で並べます。
 
 ```c
@@ -301,7 +301,7 @@ Windows であっても GCC 系を使う可能性、Linux であっても将来�
 
 属性や pragma の差異は、OS ではなくコンパイラで判断してください。
 
-## テストコードのルール
+## テスト コードのルール
 
 ### モック差異は吸収マクロや helper に限定する
 
@@ -317,24 +317,24 @@ Windows であっても GCC 系を使う可能性、Linux であっても将来�
 #endif /* PLATFORM_ */
 ```
 
-### 非対応環境のテストは明示的に skip する
+### 非対応環境のテストはテストそのものを無視する
 
-片側プラットフォーム専用のテストは、反対側で無理に疑似実行せず、`GTEST_SKIP()` を使って「対象外」であることを明示します。
+片側プラットフォーム専用のテストは、反対側で無理に疑似実行せず、`#if defined(PLATFORM_)` を使ってコンパイル段階で除外します。  
+`GTEST_SKIP()` は使用しません。
 
 ```c
+#if defined(PLATFORM_LINUX)
+// Linux 専用のテスト
 TEST(featureTest, linux_only_behavior)
 {
-#if !defined(PLATFORM_LINUX)
-    GTEST_SKIP() << "Linux 専用のテストです";
-#else
     /* Linux 向け確認 */
-#endif /* PLATFORM_LINUX */
 }
+#endif /* PLATFORM_LINUX */
 ```
 
-### OS API を直接書く処理はテストヘルパーへ限定する
+### OS API を直接書く処理はテスト ヘルパーへ限定する
 
-一時ファイル作成やパス操作のように OS API を呼び分ける必要がある場合、テストケース本体ではなく helper で扱います。
+一時ファイル作成やパス操作のように OS API を呼び分ける必要がある場合、テスト ケース本体ではなく helper で扱います。
 
 ```c
 static std::string make_temp_config_path(void)
@@ -361,4 +361,4 @@ static std::string make_temp_config_path(void)
 - 大きい差異なのに 1 ファイル内の条件分岐が過剰になっていないか
 - 公開ヘッダーで export / calling convention を独自実装していないか
 - 単一プラットフォーム専用 API を無条件で include / 呼び出ししていないか
-- 非対応プラットフォームのテストが `GTEST_SKIP()` で明示されているか
+- 非対応プラットフォームのテストは `#if defined(PLATFORM_)` で除外されているか
