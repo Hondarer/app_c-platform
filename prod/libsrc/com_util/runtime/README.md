@@ -90,7 +90,7 @@ if (fp != NULL) {
 }
 ```
 
-### アン ロード時に解放する
+### アンロード時に解放する
 
 ```c
 com_util_sym_loader_dispose(fobj_array, fobj_length);

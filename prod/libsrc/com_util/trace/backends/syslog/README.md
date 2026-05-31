@@ -34,7 +34,7 @@ Linux では OS トレース先が syslog になります。
 ## 注意点
 
 - Linux 専用です
-- `syslog()` 自体にはタイムアウト制御手段がありません
+- `syslog()` 自体にはタイムアウト制御手段がありません  
   現代の systemd / rsyslog 環境では大きな問題になりにくい一方、旧来の `SOCK_STREAM` ベース環境ではブロッキングの懸念があります  
   その懸念がある場合は、OS トレースを `COM_UTIL_TRACE_LEVEL_NONE` にしてファイル backend を主経路にする運用を検討してください
 
