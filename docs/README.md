@@ -67,7 +67,7 @@ make -C app/com_util test
 
 ### 単一ファイル版
 
-- [com_util (public)](doxybook2_public/Pages/README.md)
+- [com_util (public)](doxybook2_public/Files/README.md)
     - [公開 API (com_util)](doxybook2_public/Modules/group__COM__UTIL__PUBLIC__API.html)
 
 ## モジュール仕様書
@@ -80,8 +80,8 @@ make -C app/com_util test
 
 ### 単一ファイル版
 
-- [com_util (internal)](doxybook2_internal/Pages/README.md)
-    - [ファイルとページの一覧](doxybook2_internal/index_files_and_pages.md)
+- [com_util (internal)](doxybook2_internal/Files/README.md)
+    - [ファイルの一覧](doxybook2_internal/index_files.md)
     - [カテゴリの一覧](doxybook2_internal/index_groups.md)
 
 ## 関連ドキュメント
