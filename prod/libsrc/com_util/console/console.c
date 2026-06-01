@@ -1,9 +1,9 @@
 /**
  *  @file           console.c
- *  @brief          コンソール UTF-8 ヘルパー実装。
+ *  @brief          Windows コンソール設定ヘルパー実装。
  *
- *  Windows 環境: コンソールのコードページを UTF-8 に設定し、
- *  printf 等の標準出力が UTF-8 文字列を正しく表示できるようにします。\n
+ *  Windows 環境: 接続先コンソールの入出力コードページを UTF-8 に設定し、
+ *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
  *  Linux 環境: com_util_console_init / com_util_console_dispose は no-op です。
  */
 
@@ -19,7 +19,7 @@
 #include <com_util/sync/sync.h>
 #include <stdio.h>   /* stdout, stderr */
 
-/* 初期化前の状態を保存 */
+/* 初期化前のコンソール状態を保存 */
 static UINT s_orig_output_cp = 0;
 static UINT s_orig_input_cp = 0;
 static DWORD s_orig_stdout_mode = 0;
@@ -53,7 +53,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         return;
     }
 
-    /* コンソールのコードページを UTF-8 に設定 (既に UTF-8 なら変更しない) */
+    /* コンソールの入出力コードページを UTF-8 に設定 (既に UTF-8 なら変更しない) */
     current_cp = GetConsoleCP();
     if (current_cp != CP_UTF8)
     {
@@ -131,7 +131,7 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event
     (void)context;
     if (event == NULL || event->reason != COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT) return;
 
-    /* stdout/stderr をフラッシュしてからコードページを戻す */
+    /* stdout/stderr をフラッシュしてからコンソール状態を戻す */
     fflush(stdout);
     fflush(stderr);
 

@@ -1,28 +1,28 @@
-# console - コンソール UTF-8 ヘルパー
+# console - Windows コンソール設定ヘルパー
 
-`console` は、Windows と Linux の両方で文字コード安全なコンソール アプリケーションを作るためのユーティリティです。
+`console` は、Windows と Linux の両方で同じ呼び出しコードを使えるコンソール初期化ユーティリティです。
 
 ## 目的
 
-Windows では UTF-8 マニフェストだけでは、コンソール出力やパイプ経由の出力で文字化けや扱いの差異が残ることがあります。  
-このモジュールは `stdout` と `stderr` を透過的に扱い、呼び出し側が通常の `printf` / `fprintf` を使ったまま UTF-8 出力を維持できるようにします。
+Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによりプロセスの ANSI コード ページ (ACP) を UTF-8 にできます。これにより、`argv`、CRT narrow API、Win32 `-A` API を UTF-8 前提で扱えます。
 
-- Windows のコンソール (TTY) には `WriteConsoleW` 経由で UTF-16 として出力
-- パイプやファイルには UTF-8 バイト列をそのまま転送
+一方、接続先コンソールにはプロセス ACP とは別に入力コード ページと出力コード ページがあります。このモジュールは、Windows のコンソール設定をアプリケーションの UTF-8 前提に合わせ、ANSI エスケープ シーケンスによる色やカーソル制御を使えるようにします。
+
+- コンソール入力コード ページを UTF-8 に設定
+- コンソール出力コード ページを UTF-8 に設定
+- stdout / stderr の Virtual Terminal Processing を有効化
 - Linux では `com_util_console_init` / `com_util_console_dispose` は no-op
-- `stdin` には介入せず、既存の入力コードをそのまま利用可能
 
 ## 設計の要点
 
-このモジュールは、CRT の `printf` / `fprintf` を置き換えずに活用する方針です。  
-Windows では内部パイプとバックグラウンド スレッドで `stdout` / `stderr` をフックし、出力先に応じて書き戻し方式を切り替えます。
+このモジュールは、CRT の `printf` / `fprintf` を置き換えません。stdout がコンソール (TTY) である場合にのみ、接続先コンソールの状態を確認し、必要な設定を行います。
 
-- コンソール出力時は UTF-8 を UTF-16 に変換して `WriteConsoleW` で出力
-- パイプやファイル出力時は UTF-8 をそのまま `WriteFile` で転送
-- `stdin` は差し替えない
+- すでに UTF-8 のコード ページは変更しない
+- 変更前のコード ページとコンソール モードは保存し、通常終了時に復元する
+- パイプやファイルへのリダイレクトでは初期化処理を行わない
+- stdin / stdout / stderr のハンドルは変更しない
 
-`stdin` を差し替えないのは、Windows コンソールの行編集機能や `SetConsoleMode`、`_getch()` など既存の入力手段を壊さないためです。  
-Windows 10 1903 以降では UTF-8 マニフェストと併用することにより、CRT の入力関数も UTF-8 を前提に扱えます。
+`activeCodePage=UTF-8` マニフェストはプロセス ACP を UTF-8 にする設定です。コンソールの入力コード ページ / 出力コード ページは別の状態であるため、このモジュールでは `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` を引き続き使用します。
 
 ## 代表 API
 
@@ -30,16 +30,16 @@ Windows 10 1903 以降では UTF-8 マニフェストと併用することによ
 
 コンソール ヘルパーを初期化します。
 
-- Windows では `stdout` / `stderr` の差し替えと読み取りスレッドの起動を行う
+- Windows ではコンソール入出力コード ページと VT 処理を設定する
 - Linux では何もしない
 - 二重呼び出し時は追加の初期化を行わない
-- 初期化失敗時は警告を出して復旧不能な状態にはしない
+- stdout がコンソールでない場合は何もしない
 
 ### com_util_console_dispose
 
-コンソール ヘルパーを終了し、関連リソースを解放します。
+コンソール ヘルパーを終了し、変更した状態を元に戻します。
 
-- Windows では差し替えた `stdout` / `stderr` を元に戻す
+- Windows では変更前のコンソール入出力コード ページとコンソール モードを復元する
 - Linux では何もしない
 - 未初期化時や複数回呼び出しでも安全
 - 通常はライブラリ アンロード時の自動解放に任せられる
@@ -75,10 +75,10 @@ int main(void)
 
 ### Windows
 
-- `stdout` と `stderr` を内部パイプに差し替える
-- 出力先がコンソールなら `WriteConsoleW` を使う
-- 出力先がパイプやファイルなら UTF-8 をそのまま流す
-- `stdin` は差し替えない
+- stdout がコンソールである場合にのみ初期化する
+- `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` でコンソール入出力コード ページを UTF-8 にする
+- stdout / stderr の `ENABLE_VIRTUAL_TERMINAL_PROCESSING` を有効化する
+- 変更前の状態を通常終了時に復元する
 
 ### Linux / 非 Windows
 
@@ -87,6 +87,18 @@ int main(void)
 
 ## 注意点
 
-- このモジュールが扱うのは出力方向 (`stdout` / `stderr`) が中心です
-- 入力方向の UTF-8 対応は UTF-8 マニフェストに依存しますので、UTF-8 マニフェストを設定してください
-- Windows 10 1903 未満は、CRT 入力がシステム コード ページ依存になるためサポート対象外です
+- Windows では `activeCodePage=UTF-8` マニフェストを併用してください
+- このモジュールは stdout / stderr のハンドルを変更しません
+- Windows 10 1903 未満はサポート対象外です
+
+## 参考リンク
+
+- Microsoft Learn: Use UTF-8 code pages in Windows apps
+  https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page
+  確認日: 2026-06-01。
+- Microsoft Learn: Console Code Pages
+  https://learn.microsoft.com/en-us/windows/console/console-code-pages
+  確認日: 2026-06-01。
+- Microsoft Learn: SetConsoleOutputCP function
+  https://learn.microsoft.com/en-us/windows/console/setconsoleoutputcp
+  確認日: 2026-06-01。

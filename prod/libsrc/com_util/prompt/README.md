@@ -43,7 +43,7 @@
 - ステータス行の配置計算では ANSI CSI SGR を表示幅 0 として扱います。
 - 描画操作は pinned prompt ハンドル内の mutex で直列化します。
 - 非 TTY では固定描画を行わず、通常の `fgets()` / `fwrite()` 相当に戻ります。
-- Windows では利用側が `com_util_console_init()` を呼ぶ前提です。ただし、呼び忘れても問題が起きにくいように create 時にも防御的に呼び出します。
+- Windows では利用側が `activeCodePage=UTF-8` マニフェストを設定し、`com_util_console_init()` を呼ぶ前提です。ただし、呼び忘れても問題が起きにくいように create 時にも防御的に呼び出します。
 - この API は試験的 API です。機能仕様の見直しに合わせて関数、型、挙動を変更する可能性があります。
 
 ## 複数行入力の設計メモ
