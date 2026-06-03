@@ -1,18 +1,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real__com_util_tracer_write(com_util_tracer_t *handle, com_util_trace_level_t level,
-                                    const com_util_realtime_timestamp_t *timestamp, const char *message)
+int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level_t level,
+                                         const com_util_realtime_timestamp *timestamp, const char *message)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&_com_util_tracer_write)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_tracer_write"));
+    static auto real_fn = reinterpret_cast<decltype(&_com_util_tracer_write)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_tracer_write"));
 
     return real_fn(handle, level, timestamp, message);
 }
 
-MOCK_WEAK_IMPL(int, _com_util_tracer_write, com_util_tracer_t *handle, com_util_trace_level_t level,
-                                    const com_util_realtime_timestamp_t *timestamp, const char *message)
+MOCK_WEAK_IMPL(int, _com_util_tracer_write, com_util_tracer *handle, com_util_trace_level_t level,
+               const com_util_realtime_timestamp *timestamp, const char *message)
 {
     int rtc = 0;
 

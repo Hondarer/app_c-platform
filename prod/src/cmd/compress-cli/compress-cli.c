@@ -12,10 +12,7 @@
 
 static uint32_t compress_cli_read_u32_be(const uint8_t *data)
 {
-    return ((uint32_t)data[0] << 24)
-         | ((uint32_t)data[1] << 16)
-         | ((uint32_t)data[2] << 8)
-         | (uint32_t)data[3];
+    return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
 }
 
 static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
@@ -148,11 +145,8 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
     return 0;
 }
 
-static int compress_cli_resolve_paths(const compress_cli_options_t *options,
-                                      char *input_full,
-                                      size_t input_full_size,
-                                      char *output_full,
-                                      size_t output_full_size)
+static int compress_cli_resolve_paths(const compress_cli_options *options, char *input_full, size_t input_full_size,
+                                      char *output_full, size_t output_full_size)
 {
     int err = 0;
     int path_cmp;
@@ -317,7 +311,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     return compress_cli_run_decompress_return(input_data, decompressed_data, 0);
 }
 
-void compress_cli_options_init(compress_cli_options_t *options)
+void compress_cli_options_init(compress_cli_options *options)
 {
     if (options == NULL)
     {
@@ -329,7 +323,7 @@ void compress_cli_options_init(compress_cli_options_t *options)
     options->output_path = NULL;
 }
 
-int compress_cli_parse_args(int argc, char *argv[], compress_cli_options_t *options)
+int compress_cli_parse_args(int argc, char *argv[], compress_cli_options *options)
 {
     if (argc != 4 || argv == NULL || options == NULL)
     {
@@ -354,8 +348,8 @@ int compress_cli_parse_args(int argc, char *argv[], compress_cli_options_t *opti
     options->input_path = argv[2];
     options->output_path = argv[3];
 
-    if (options->input_path == NULL || options->output_path == NULL
-        || options->input_path[0] == '\0' || options->output_path[0] == '\0')
+    if (options->input_path == NULL || options->output_path == NULL || options->input_path[0] == '\0' ||
+        options->output_path[0] == '\0')
     {
         return -1;
     }
@@ -381,7 +375,7 @@ void compress_cli_print_usage(const char *argv0)
 
 int main(int argc, char *argv[])
 {
-    compress_cli_options_t options;
+    compress_cli_options options;
     char input_full[PLATFORM_PATH_MAX];
     char output_full[PLATFORM_PATH_MAX];
 
@@ -402,11 +396,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    if (compress_cli_resolve_paths(&options,
-                                   input_full,
-                                   sizeof(input_full),
-                                   output_full,
-                                   sizeof(output_full)) != 0)
+    if (compress_cli_resolve_paths(&options, input_full, sizeof(input_full), output_full, sizeof(output_full)) != 0)
     {
         return EXIT_FAILURE;
     }

@@ -18,7 +18,7 @@
 
 typedef enum
 {
-    KEY_CHAR      = 0,
+    KEY_CHAR = 0,
     KEY_ENTER,
     KEY_BACKSPACE,
     KEY_DELETE,
@@ -42,9 +42,7 @@ typedef enum
 /* インデックス計算: oldest=0, newest=count-1 */
 #define HIST_IDX(ctx, i) (((ctx)->head + (i)) % p->history_max)
 
-static void history_add(com_util_prompt_t *p,
-                        com_util_prompt_ctx_t *ctx,
-                        const char *line)
+static void history_add(com_util_prompt *p, com_util_prompt_ctx *ctx, const char *line)
 {
     size_t line_size;
     size_t slot;
@@ -58,8 +56,7 @@ static void history_add(com_util_prompt_t *p,
     if (ctx->count > 0)
     {
         size_t newest_idx = HIST_IDX(ctx, ctx->count - 1);
-        if (ctx->entries[newest_idx] != NULL &&
-            strcmp(ctx->entries[newest_idx], line) == 0)
+        if (ctx->entries[newest_idx] != NULL && strcmp(ctx->entries[newest_idx], line) == 0)
         {
             return;
         }
@@ -88,8 +85,7 @@ static void history_add(com_util_prompt_t *p,
  * 画面再描画
  * ================================================================ */
 
-static void redisplay(const char *prompt_str,
-                      const char *buf, size_t len, size_t cursor)
+static void redisplay(const char *prompt_str, const char *buf, size_t len, size_t cursor)
 {
     const char *prompt_str_out;
     putchar('\r');
@@ -115,7 +111,7 @@ static void redisplay(const char *prompt_str,
  * エスケープシーケンス解析
  * ================================================================ */
 
-static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
+static prompt_key_t read_key(com_util_prompt *p, int *out_ch)
 {
     int c = prompt_platform_read_char(p);
     if (c == -1)
@@ -152,12 +148,18 @@ static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
             int c3 = prompt_platform_read_char_nb(p);
             switch (c3)
             {
-            case 'A': return KEY_UP;
-            case 'B': return KEY_DOWN;
-            case 'C': return KEY_RIGHT;
-            case 'D': return KEY_LEFT;
-            case 'H': return KEY_HOME;
-            case 'F': return KEY_END;
+            case 'A':
+                return KEY_UP;
+            case 'B':
+                return KEY_DOWN;
+            case 'C':
+                return KEY_RIGHT;
+            case 'D':
+                return KEY_LEFT;
+            case 'H':
+                return KEY_HOME;
+            case 'F':
+                return KEY_END;
             case '1':
             {
                 int c4 = prompt_platform_read_char_nb(p);
@@ -213,9 +215,7 @@ static prompt_key_t read_key(com_util_prompt_t *p, int *out_ch)
  * 履歴ブラウズ
  * ================================================================ */
 
-static void history_browse_prev(com_util_prompt_t *p,
-                                com_util_prompt_ctx_t *ctx,
-                                const char *prompt_str)
+static void history_browse_prev(com_util_prompt *p, com_util_prompt_ctx *ctx, const char *prompt_str)
 {
     const char *entry;
     size_t len;
@@ -254,13 +254,11 @@ static void history_browse_prev(com_util_prompt_t *p,
     memcpy(p->edit_buf, entry, len);
     p->edit_buf[len] = '\0';
     p->edit_len = len;
-    p->cursor   = len;
+    p->cursor = len;
     redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
 }
 
-static void history_browse_next(com_util_prompt_t *p,
-                                com_util_prompt_ctx_t *ctx,
-                                const char *prompt_str)
+static void history_browse_next(com_util_prompt *p, com_util_prompt_ctx *ctx, const char *prompt_str)
 {
     if (ctx->browse_idx == -1)
     {
@@ -284,7 +282,7 @@ static void history_browse_next(com_util_prompt_t *p,
         memcpy(p->edit_buf, entry, len);
         p->edit_buf[len] = '\0';
         p->edit_len = len;
-        p->cursor   = len;
+        p->cursor = len;
     }
     else
     {
@@ -300,9 +298,9 @@ static void history_browse_next(com_util_prompt_t *p,
         }
         memcpy(p->edit_buf, ctx->saved_line, len);
         p->edit_buf[len] = '\0';
-        p->edit_len      = len;
-        p->cursor        = len;
-        ctx->browse_idx  = -1;
+        p->edit_len = len;
+        p->cursor = len;
+        ctx->browse_idx = -1;
     }
     redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
 }
@@ -311,12 +309,10 @@ static void history_browse_next(com_util_prompt_t *p,
  * コンテキスト管理
  * ================================================================ */
 
-static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
-                                                  const char *file,
-                                                  int line)
+static com_util_prompt_ctx *find_or_create_ctx(com_util_prompt *p, const char *file, int line)
 {
     size_t i;
-    com_util_prompt_ctx_t *ctx;
+    com_util_prompt_ctx *ctx;
 
     /* 既存コンテキストを検索 */
     for (i = 0; i < p->ctx_count; i++)
@@ -331,7 +327,7 @@ static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
     if (p->ctx_count == p->ctx_cap)
     {
         size_t new_cap;
-        com_util_prompt_ctx_t *new_contexts;
+        com_util_prompt_ctx *new_contexts;
         if (p->ctx_cap)
         {
             new_cap = p->ctx_cap * 2;
@@ -340,21 +336,20 @@ static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
         {
             new_cap = 4;
         }
-        new_contexts = (com_util_prompt_ctx_t *)realloc(
-            p->contexts, new_cap * sizeof(com_util_prompt_ctx_t));
+        new_contexts = (com_util_prompt_ctx *)realloc(p->contexts, new_cap * sizeof(com_util_prompt_ctx));
         if (new_contexts == NULL)
         {
             return NULL;
         }
         p->contexts = new_contexts;
-        p->ctx_cap  = new_cap;
+        p->ctx_cap = new_cap;
     }
 
     ctx = &p->contexts[p->ctx_count++];
     memset(ctx, 0, sizeof(*ctx));
-    ctx->file       = file;
-    ctx->line       = line;
-    ctx->entries    = (char **)calloc(p->history_max, sizeof(char *));
+    ctx->file = file;
+    ctx->line = line;
+    ctx->entries = (char **)calloc(p->history_max, sizeof(char *));
     ctx->saved_line = (char *)malloc(p->input_max_bytes);
     ctx->browse_idx = -1;
 
@@ -362,7 +357,7 @@ static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
     {
         free(ctx->entries);
         free(ctx->saved_line);
-        ctx->entries    = NULL;
+        ctx->entries = NULL;
         ctx->saved_line = NULL;
         p->ctx_count--;
         return NULL;
@@ -375,9 +370,9 @@ static com_util_prompt_ctx_t *find_or_create_ctx(com_util_prompt_t *p,
  * 公開 API
  * ================================================================ */
 
-com_util_prompt_t *com_util_prompt_create(const com_util_prompt_options_t *options)
+com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
 {
-    com_util_prompt_t *p = (com_util_prompt_t *)calloc(1, sizeof(*p));
+    com_util_prompt *p = (com_util_prompt *)calloc(1, sizeof(*p));
     size_t history_max;
     size_t input_initial_capacity;
     size_t input_max_bytes;
@@ -392,28 +387,24 @@ com_util_prompt_t *com_util_prompt_create(const com_util_prompt_options_t *optio
 
     if (options != NULL)
     {
-        opt_history_max            = options->history_max;
+        opt_history_max = options->history_max;
         opt_input_initial_capacity = options->input_initial_capacity;
-        opt_input_max_bytes        = options->input_max_bytes;
+        opt_input_max_bytes = options->input_max_bytes;
     }
     else
     {
-        opt_history_max            = 0U;
+        opt_history_max = 0U;
         opt_input_initial_capacity = 0U;
-        opt_input_max_bytes        = 0U;
+        opt_input_max_bytes = 0U;
     }
-    com_util_prompt_edit_resolve_options(opt_history_max,
-                                         opt_input_initial_capacity,
-                                         opt_input_max_bytes,
-                                         PROMPT_INPUT_INITIAL_DEFAULT,
-                                         &history_max,
-                                         &input_initial_capacity,
+    com_util_prompt_edit_resolve_options(opt_history_max, opt_input_initial_capacity, opt_input_max_bytes,
+                                         PROMPT_INPUT_INITIAL_DEFAULT, &history_max, &input_initial_capacity,
                                          &input_max_bytes);
 
     p->history_max = history_max;
     p->input_max_bytes = input_max_bytes;
-    p->edit_cap    = input_initial_capacity;
-    p->edit_buf    = (char *)malloc(p->edit_cap);
+    p->edit_cap = input_initial_capacity;
+    p->edit_buf = (char *)malloc(p->edit_cap);
     if (p->edit_buf == NULL)
     {
         free(p);
@@ -424,7 +415,7 @@ com_util_prompt_t *com_util_prompt_create(const com_util_prompt_options_t *optio
     return p;
 }
 
-void com_util_prompt_dispose(com_util_prompt_t *prompt)
+void com_util_prompt_dispose(com_util_prompt *prompt)
 {
     size_t i;
     if (prompt == NULL)
@@ -438,7 +429,7 @@ void com_util_prompt_dispose(com_util_prompt_t *prompt)
     for (i = 0; i < prompt->ctx_count; i++)
     {
         size_t j;
-        com_util_prompt_ctx_t *ctx = &prompt->contexts[i];
+        com_util_prompt_ctx *ctx = &prompt->contexts[i];
         for (j = 0; j < prompt->history_max; j++)
         {
             free(ctx->entries[j]);
@@ -452,14 +443,10 @@ void com_util_prompt_dispose(com_util_prompt_t *prompt)
     free(prompt);
 }
 
-int com_util_prompt_readline_at(com_util_prompt_t *p,
-                                char              *buf,
-                                size_t             buf_size,
-                                const char        *prompt_str,
-                                const char        *file,
-                                int                line)
+int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, const char *prompt_str,
+                                const char *file, int line)
 {
-    com_util_prompt_ctx_t *ctx;
+    com_util_prompt_ctx *ctx;
 
     if (p == NULL || buf == NULL || buf_size == 0)
     {
@@ -505,9 +492,9 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
     prompt_platform_enter_raw(p);
 
     /* 編集バッファ初期化 */
-    p->edit_len     = 0;
-    p->edit_buf[0]  = '\0';
-    p->cursor       = 0;
+    p->edit_len = 0;
+    p->edit_buf[0] = '\0';
+    p->cursor = 0;
     ctx->browse_idx = -1;
 
     redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
@@ -554,9 +541,7 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
             if (p->cursor > 0)
             {
                 size_t prev = com_util_prompt_edit_utf8_prev_boundary(p->edit_buf, p->cursor);
-                memmove(p->edit_buf + prev,
-                        p->edit_buf + p->cursor,
-                        p->edit_len - p->cursor + 1);
+                memmove(p->edit_buf + prev, p->edit_buf + p->cursor, p->edit_len - p->cursor + 1);
                 p->edit_len -= p->cursor - prev;
                 p->cursor = prev;
                 redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
@@ -567,9 +552,7 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
             if (p->cursor < p->edit_len)
             {
                 size_t next = com_util_prompt_edit_utf8_next_boundary(p->edit_buf, p->edit_len, p->cursor);
-                memmove(p->edit_buf + p->cursor,
-                        p->edit_buf + next,
-                        p->edit_len - next + 1);
+                memmove(p->edit_buf + p->cursor, p->edit_buf + next, p->edit_len - next + 1);
                 p->edit_len -= next - p->cursor;
                 p->edit_buf[p->edit_len] = '\0';
                 redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
@@ -625,11 +608,10 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
             break;
 
         case KEY_CHAR:
-            if (com_util_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, p->edit_len + 2U) == 0)
+            if (com_util_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes,
+                                                     p->edit_len + 2U) == 0)
             {
-                memmove(p->edit_buf + p->cursor + 1,
-                        p->edit_buf + p->cursor,
-                        p->edit_len - p->cursor + 1);
+                memmove(p->edit_buf + p->cursor + 1, p->edit_buf + p->cursor, p->edit_len - p->cursor + 1);
                 p->edit_buf[p->cursor] = (char)ch;
                 p->cursor++;
                 p->edit_len++;
@@ -648,13 +630,8 @@ int com_util_prompt_readline_at(com_util_prompt_t *p,
     }
 }
 
-int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
-                                    char              *buf,
-                                    size_t             buf_size,
-                                    const char        *file,
-                                    int                line,
-                                    const char        *fmt,
-                                    ...)
+int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_size, const char *file, int line,
+                                    const char *fmt, ...)
 {
     va_list ap;
     int needed;
@@ -687,8 +664,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
     for (;;)
     {
         va_start(ap, fmt);
-        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap,
-                           fmt_str, ap);
+        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
         va_end(ap);
 
         if (needed < 0)
@@ -703,7 +679,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
         /* バッファ不足: 必要サイズへ拡張して再試行 */
         {
             size_t new_cap = (size_t)needed + 1U;
-            char  *new_buf = (char *)realloc(p->prompt_fmt_buf, new_cap);
+            char *new_buf = (char *)realloc(p->prompt_fmt_buf, new_cap);
             if (new_buf == NULL)
             {
                 p->prompt_fmt_buf[p->prompt_fmt_cap - 1U] = '\0'; /* 切り捨てて続行 */
@@ -714,6 +690,5 @@ int com_util_prompt_readline_fmt_at(com_util_prompt_t *p,
         }
     }
 
-    return com_util_prompt_readline_at(p, buf, buf_size,
-                                       p->prompt_fmt_buf, file, line);
+    return com_util_prompt_readline_at(p, buf, buf_size, p->prompt_fmt_buf, file, line);
 }

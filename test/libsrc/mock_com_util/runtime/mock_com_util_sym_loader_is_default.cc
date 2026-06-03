@@ -1,16 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_sym_loader_is_default(com_util_sym_loader_entry_t *fobj)
+int delegate_real_com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_sym_loader_is_default)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_sym_loader_is_default"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_sym_loader_is_default)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_sym_loader_is_default"));
 
     return real_fn(fobj);
 }
 
-MOCK_WEAK_IMPL(int, com_util_sym_loader_is_default, com_util_sym_loader_entry_t *fobj)
+MOCK_WEAK_IMPL(int, com_util_sym_loader_is_default, com_util_sym_loader_entry *fobj)
 {
     int rtc = 0;
 

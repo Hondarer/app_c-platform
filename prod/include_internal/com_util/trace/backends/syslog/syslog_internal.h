@@ -22,12 +22,12 @@
 #if defined(PLATFORM_LINUX)
     #include <com_util/trace/syslog.h>
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 extern "C"
 {
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
-/**
+    /**
  *  @brief          shutdown フェーズで syslog プロバイダハンドルを解放します。
  *  @param[in]      handle 解放する syslog プロバイダハンドル。
  *
@@ -37,11 +37,11 @@ extern "C"
  *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
  *  呼び出し側がスレッドの静止を保証します。
  */
-void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle);
+    void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle);
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
 #endif /* PLATFORM_LINUX */
 

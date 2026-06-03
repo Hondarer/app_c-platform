@@ -3,16 +3,15 @@
 
 #if defined(PLATFORM_LINUX)
 
-void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle)
+void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_syslog_sink_dispose)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_dispose"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_syslog_sink_dispose)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_dispose"));
 
     real_fn(handle);
 }
 
-MOCK_WEAK_IMPL(void, com_util_syslog_sink_dispose, com_util_syslog_sink_t *handle)
+MOCK_WEAK_IMPL(void, com_util_syslog_sink_dispose, com_util_syslog_sink *handle)
 {
     if (_mock_com_util != nullptr)
     {

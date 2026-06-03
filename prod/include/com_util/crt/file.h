@@ -47,7 +47,7 @@ typedef struct com_util_file
 #elif defined(PLATFORM_WINDOWS)
     HANDLE handle;
 #endif /* PLATFORM_ */
-} com_util_file_t;
+} com_util_file;
 
 #ifdef __cplusplus
 extern "C"
@@ -55,14 +55,14 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          `com_util_file_t` 構造体を無効状態に初期化します。
+     *  @brief          `com_util_file` 構造体を無効状態に初期化します。
      *  @param[out]     file  初期化対象の構造体。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file_t *file);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file);
 
     /**
      *  @brief          UTF-8 パスでファイルを開きます。
@@ -77,7 +77,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file, const char *path, int flags);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags);
 
     /**
      *  @brief          ファイルにバイト列を書き込みます。
@@ -90,7 +90,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file への並行書き込みは呼び出し側で同期してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file, const void *buf, size_t len);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len);
 
     /**
      *  @brief          ファイルサイズを取得します。
@@ -102,7 +102,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file_t *file, size_t *size_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out);
 
     /**
      *  @brief          ファイルを閉じます。
@@ -113,7 +113,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file_t *file);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file);
 
 #ifdef __cplusplus
 }

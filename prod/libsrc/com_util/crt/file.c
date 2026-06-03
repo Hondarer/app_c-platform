@@ -9,7 +9,7 @@
     #include <unistd.h>
 #endif /* PLATFORM_LINUX */
 
-static int file_is_open(const com_util_file_t *file)
+static int file_is_open(const com_util_file *file)
 {
     if (file == NULL)
     {
@@ -23,7 +23,7 @@ static int file_is_open(const com_util_file_t *file)
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file_t *file)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file)
 {
     if (file == NULL)
     {
@@ -37,9 +37,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file_t *file)
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
-                                                            const char             *path,
-                                                            int                     flags)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags)
 {
     if (file == NULL || path == NULL || flags < 0)
     {
@@ -66,11 +64,11 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
         }
         if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
         {
-#if defined(O_DSYNC)
+    #if defined(O_DSYNC)
             open_flags |= O_DSYNC;
-#elif defined(O_SYNC)
+    #elif defined(O_SYNC)
             open_flags |= O_SYNC;
-#endif /* sync flag */
+    #endif /* sync flag */
         }
 
         file->handle = open(path, open_flags, 0644);
@@ -86,9 +84,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
-        DWORD   share_mode = 0;
-        DWORD   creation_disposition;
-        DWORD   file_flags = FILE_ATTRIBUTE_NORMAL;
+        DWORD share_mode = 0;
+        DWORD creation_disposition;
+        DWORD file_flags = FILE_ATTRIBUTE_NORMAL;
         LARGE_INTEGER pos;
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
@@ -129,13 +127,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
             creation_disposition = OPEN_EXISTING;
         }
 
-        file->handle = CreateFileW(wpath,
-                                   GENERIC_WRITE,
-                                   share_mode,
-                                   NULL,
-                                   creation_disposition,
-                                   file_flags,
-                                   NULL);
+        file->handle = CreateFileW(wpath, GENERIC_WRITE, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
             return -1;
@@ -156,9 +148,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file_t *file,
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
-                                                             const void             *buf,
-                                                             size_t                  len)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len)
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
@@ -173,7 +163,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
 #if defined(PLATFORM_LINUX)
     {
         const char *cursor = (const char *)buf;
-        size_t      remaining = len;
+        size_t remaining = len;
 
         while (remaining > 0u)
         {
@@ -192,7 +182,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
 #elif defined(PLATFORM_WINDOWS)
     {
         const char *cursor = (const char *)buf;
-        size_t      remaining = len;
+        size_t remaining = len;
 
         while (remaining > 0u)
         {
@@ -222,7 +212,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file_t *file,
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file_t *file, size_t *size_out)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out)
 {
     if (!file_is_open(file) || size_out == NULL)
     {
@@ -256,7 +246,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file_t *f
 #endif /* PLATFORM_ */
 }
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file_t *file)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file)
 {
     if (file == NULL)
     {

@@ -25,7 +25,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
+    /**
  *  @brief          shutdown フェーズで全トレースハンドルを解放します。
  *  @param[in]      event shutdown イベント情報。
  *
@@ -36,19 +36,19 @@ extern "C"
  *  呼び出しを完了している必要があります。
  *  並行してトレース API が呼ばれた場合は未定義動作になります。
  */
-void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *event);
+    void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event);
 
-/**
+    /**
  *  @brief          現在アクティブなトレースハンドルの数を返します。
  *  @return         アクティブなハンドルの数。
  */
-size_t trace_registry_count(void);
+    size_t trace_registry_count(void);
 
-/**
+    /**
  *  @brief          トレースハンドルレジストリの現在の容量を返します。
  *  @return         レジストリの容量 (確保済みのスロット数)。
  */
-size_t trace_registry_capacity(void);
+    size_t trace_registry_capacity(void);
 
 #ifdef __cplusplus
 }

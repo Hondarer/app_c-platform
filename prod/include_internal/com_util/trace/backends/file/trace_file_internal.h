@@ -24,7 +24,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/**
+    /**
  *  @brief          shutdown フェーズでファイルプロバイダハンドルを解放します。
  *  @param[in]      handle 解放するファイルプロバイダハンドル。
  *
@@ -34,7 +34,7 @@ extern "C"
  *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
  *  呼び出し側がスレッドの静止を保証します。
  */
-void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink_t *handle);
+    void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *handle);
 
 #ifdef __cplusplus
 }

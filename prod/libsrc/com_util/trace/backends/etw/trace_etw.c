@@ -17,12 +17,12 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-#include <com_util/base/windows_sdk.h>
-#include <TraceLoggingProvider.h>
-#include <com_util/trace/etw.h>
-#include <stdlib.h>
+    #include <com_util/base/windows_sdk.h>
+    #include <TraceLoggingProvider.h>
+    #include <com_util/trace/etw.h>
+    #include <stdlib.h>
 
-#include <com_util/trace/backends/etw/etw_internal.h>
+    #include <com_util/trace/backends/etw/etw_internal.h>
 
 /**
  *  @brief  ETW プロバイダハンドル構造体 (内部定義)。
@@ -35,10 +35,10 @@ struct com_util_etw_provider
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
-    com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
+COM_UTIL_EXPORT com_util_etw_provider *COM_UTIL_API
+com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
 {
-    com_util_etw_provider_t *handle;
+    com_util_etw_provider *handle;
     TLG_STATUS status;
 
     if (provider_ref == NULL)
@@ -46,7 +46,7 @@ COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
         return NULL;
     }
 
-    handle = (com_util_etw_provider_t *)malloc(sizeof(com_util_etw_provider_t));
+    handle = (com_util_etw_provider *)malloc(sizeof(com_util_etw_provider));
     if (handle == NULL)
     {
         return NULL;
@@ -74,8 +74,8 @@ COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
  *  @param[in]      service サービス名 (NULL 可)。NULL の場合 Service フィールドを省略。
  *  @param[in]      message メッセージ文字列。
  */
-static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
-                               const char *service, const char *message)
+static void write_trace_event(com_util_etw_provider_ref_t ref, const int level, const char *service,
+                              const char *message)
 {
     uint32_t process_id = (uint32_t)GetCurrentProcessId();
 
@@ -84,39 +84,24 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
         switch (level)
         {
         case 1:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(1),
-                TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(1), TraceLoggingString(service, "Service"),
+                              TraceLoggingString(message, "Message"), TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 2:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(2),
-                TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(2), TraceLoggingString(service, "Service"),
+                              TraceLoggingString(message, "Message"), TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 3:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(3),
-                TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(3), TraceLoggingString(service, "Service"),
+                              TraceLoggingString(message, "Message"), TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 4:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(4),
-                TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(4), TraceLoggingString(service, "Service"),
+                              TraceLoggingString(message, "Message"), TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         default:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(5),
-                TraceLoggingString(service, "Service"),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(5), TraceLoggingString(service, "Service"),
+                              TraceLoggingString(message, "Message"), TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         }
     }
@@ -125,34 +110,24 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
         switch (level)
         {
         case 1:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(1),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(1), TraceLoggingString(message, "Message"),
+                              TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 2:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(2),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(2), TraceLoggingString(message, "Message"),
+                              TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 3:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(3),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(3), TraceLoggingString(message, "Message"),
+                              TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         case 4:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(4),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(4), TraceLoggingString(message, "Message"),
+                              TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         default:
-            TraceLoggingWrite(ref, "Trace",
-                TraceLoggingLevel(5),
-                TraceLoggingString(message, "Message"),
-                TraceLoggingUInt32(process_id, "ProcessId"));
+            TraceLoggingWrite(ref, "Trace", TraceLoggingLevel(5), TraceLoggingString(message, "Message"),
+                              TraceLoggingUInt32(process_id, "ProcessId"));
             break;
         }
     }
@@ -160,9 +135,8 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, const int level,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_etw_provider_write(com_util_etw_provider_t *handle, const int level,
-                       const char *service, const char *message)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provider *handle, const int level,
+                                                             const char *service, const char *message)
 {
     if (handle == NULL || message == NULL)
     {
@@ -176,8 +150,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_etw_provider_dispose(com_util_etw_provider_t *handle)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_provider_dispose(com_util_etw_provider *handle)
 {
     if (handle == NULL)
     {
@@ -190,8 +163,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider_t *handle,
-                                               const com_util_shutdown_event_t *event)
+void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider *handle, const com_util_shutdown_event *event)
 {
     if (handle == NULL)
     {

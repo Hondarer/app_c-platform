@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_info.c
- *  @brief          com_util_sym_loader_entry_t ポインタ配列の内容を標準出力に表示します。
+ *  @brief          com_util_sym_loader_entry ポインタ配列の内容を標準出力に表示します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
@@ -19,15 +19,15 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_sym_loader_info(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array,
+                                                          const size_t fobj_length)
 {
     int rtc = 0;
     size_t fobj_index;
 
     for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
     {
-        com_util_sym_loader_entry_t *fobj = fobj_array[fobj_index];
+        com_util_sym_loader_entry *fobj = fobj_array[fobj_index];
 
         if (fobj->resolved == 0)
         {

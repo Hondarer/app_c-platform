@@ -2,23 +2,21 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-#include <com_util/base/windows_sdk.h>
-#include <TraceLoggingProvider.h>
-#include <testfw.h>
-#include <com_util/trace/etw.h>
+    #include <com_util/base/windows_sdk.h>
+    #include <TraceLoggingProvider.h>
+    #include <testfw.h>
+    #include <com_util/trace/etw.h>
 
-#include <mutex>
-#include <vector>
-#include <string>
-#include <utility>
-#include <cstdio>
+    #include <mutex>
+    #include <vector>
+    #include <string>
+    #include <utility>
+    #include <cstdio>
 
-COM_UTIL_ETW_DEFINE_PROVIDER(
-    s_test_provider,
-    "EtwSessionTest",
-    (0x0dfe6031, 0x5678, 0x4688, 0xae, 0xe8, 0x61, 0x13, 0x40, 0x99, 0x7c, 0xaa));
+COM_UTIL_ETW_DEFINE_PROVIDER(s_test_provider, "EtwSessionTest",
+                             (0x0dfe6031, 0x5678, 0x4688, 0xae, 0xe8, 0x61, 0x13, 0x40, 0x99, 0x7c, 0xaa));
 
-#define TEST_PROVIDER_GUID "0dfe6031-5678-4688-aee8-611340997caa"
+    #define TEST_PROVIDER_GUID "0dfe6031-5678-4688-aee8-611340997caa"
 
 struct EventCollector
 {
@@ -36,19 +34,15 @@ struct EventCollector
     std::vector<EventRecord> events;
 };
 
-static void collect_callback(const com_util_etw_event_t *event, void *context)
+static void collect_callback(const com_util_etw_event *event, void *context)
 {
     EventCollector *collector = static_cast<EventCollector *>(context);
     std::lock_guard<std::mutex> lock(collector->mtx);
-    ASSERT_NE((const com_util_etw_event_t *)NULL, event);
-    collector->events.push_back(EventCollector::EventRecord{
-        event->level,
-        event->process_id,
-        event->service != nullptr,
-        event->timestamp_100ns,
-        event->event_name ? event->event_name : "",
-        event->service ? event->service : "",
-        event->message ? event->message : ""});
+    ASSERT_NE((const com_util_etw_event *)NULL, event);
+    collector->events.push_back(
+        EventCollector::EventRecord{event->level, event->process_id, event->service != nullptr, event->timestamp_100ns,
+                                    event->event_name ? event->event_name : "", event->service ? event->service : "",
+                                    event->message ? event->message : ""});
 }
 
 static int s_session_counter = 0;
@@ -56,8 +50,7 @@ static int s_session_counter = 0;
 static std::string make_session_name()
 {
     char buf[128];
-    snprintf(buf, sizeof(buf), "EtwSessionTest_%lu_%d",
-             (unsigned long)GetCurrentProcessId(), ++s_session_counter);
+    snprintf(buf, sizeof(buf), "EtwSessionTest_%lu_%d", (unsigned long)GetCurrentProcessId(), ++s_session_counter);
     return std::string(buf);
 }
 
@@ -74,16 +67,15 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
 {
     int status = COM_UTIL_ETW_SESSION_OK;
 
-    EXPECT_EQ((com_util_etw_session_t *)NULL,
-        com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL, &status));
+    EXPECT_EQ((com_util_etw_session *)NULL,
+              com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL, &status));
     EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - session_name NULL で PARAM が返ること。
 
-    EXPECT_EQ((com_util_etw_session_t *)NULL,
-        com_util_etw_session_start("test", NULL, collect_callback, NULL, &status));
+    EXPECT_EQ((com_util_etw_session *)NULL, com_util_etw_session_start("test", NULL, collect_callback, NULL, &status));
     EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - provider_guid NULL で PARAM が返ること。
 
-    EXPECT_EQ((com_util_etw_session_t *)NULL,
-        com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL, &status));
+    EXPECT_EQ((com_util_etw_session *)NULL,
+              com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL, &status));
     EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - callback NULL で PARAM が返ること。
 }
 
@@ -91,14 +83,14 @@ TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
 {
     int status = COM_UTIL_ETW_SESSION_OK;
 
-    EXPECT_EQ((com_util_etw_session_t *)NULL,
-        com_util_etw_session_start("test", "not-a-guid", collect_callback, NULL, &status));
+    EXPECT_EQ((com_util_etw_session *)NULL,
+              com_util_etw_session_start("test", "not-a-guid", collect_callback, NULL, &status));
     EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - 不正 GUID で PARAM が返ること。
 }
 
 class etwSessionSubscribeIntegrationTest : public Test
 {
-protected:
+  protected:
     void SetUp() override
     {
         int status = com_util_etw_session_check_access();
@@ -117,12 +109,12 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     std::string session_name = make_session_name();
     EventCollector collector;
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
     com_util_etw_provider_write(handle, 4, NULL, "hello world"); // [手順] - ASCII メッセージを書き込む。
@@ -133,10 +125,10 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     {
         if (evt.message == "hello world")
         {
-            EXPECT_EQ(4, evt.level); // [確認_正常系] - INFO レベルで受信されること。
+            EXPECT_EQ(4, evt.level);                                    // [確認_正常系] - INFO レベルで受信されること。
             EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
-            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
-            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_EQ("Trace", evt.event_name);                         // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service);              // [確認_正常系] - Service なしで受信されること。
             EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
@@ -154,12 +146,12 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
     const char *msg = "\xe8\xa8\x88\xe7\xae\x97\xe7\xb5\x90\xe6\x9e\x9c: "
                       "\xe6\x88\x90\xe5\x8a\x9f";
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
     com_util_etw_provider_write(handle, 3, NULL, msg); // [手順] - 日本語 UTF-8 メッセージを書き込む。
@@ -172,8 +164,8 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
         {
             EXPECT_EQ(3, evt.level); // [確認_正常系] - WARNING レベルで受信されること。
             EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
-            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
-            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_EQ("Trace", evt.event_name);                         // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service);              // [確認_正常系] - Service なしで受信されること。
             EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
@@ -194,12 +186,12 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
                       "\xf0\x9f\x8c\x8d"
                       " World";
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
     com_util_etw_provider_write(handle, 2, NULL, msg); // [手順] - 混在 UTF-8 メッセージを書き込む。
@@ -212,8 +204,8 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
         {
             EXPECT_EQ(2, evt.level); // [確認_正常系] - ERROR レベルで受信されること。
             EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
-            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
-            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_EQ("Trace", evt.event_name);                         // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service);              // [確認_正常系] - Service なしで受信されること。
             EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
@@ -229,12 +221,12 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
     std::string session_name = make_session_name();
     EventCollector collector;
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
     com_util_etw_provider_write(handle, 1, NULL, "critical_msg"); // [手順] - CRITICAL を書き込む。
@@ -287,7 +279,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
             EXPECT_EQ("Trace", evt.event_name);
             saw_verbose = true;
         }
-        EXPECT_FALSE(evt.has_service); // [確認_正常系] - 既存ケースでは Service なしで受信されること。
+        EXPECT_FALSE(evt.has_service);              // [確認_正常系] - 既存ケースでは Service なしで受信されること。
         EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - 各イベントに ETW タイムスタンプが設定されること。
     }
 
@@ -305,12 +297,12 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
     std::string session_name = make_session_name();
     EventCollector collector;
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
     com_util_etw_provider_write(handle, 5, NULL, ""); // [手順] - 空文字列を書き込む。
@@ -323,8 +315,8 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
         {
             EXPECT_EQ(5, evt.level); // [確認_正常系] - 空文字列が VERBOSE で受信されること。
             EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
-            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
-            EXPECT_FALSE(evt.has_service); // [確認_正常系] - Service なしで受信されること。
+            EXPECT_EQ("Trace", evt.event_name);                         // [確認_正常系] - イベント名が受信されること。
+            EXPECT_FALSE(evt.has_service);              // [確認_正常系] - Service なしで受信されること。
             EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
@@ -340,15 +332,16 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     std::string session_name = make_session_name();
     EventCollector collector;
 
-    com_util_etw_provider_t *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider_t *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session_t *session = com_util_etw_session_start(
-        session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
-    ASSERT_NE((com_util_etw_session_t *)NULL, session);
+    com_util_etw_session *session =
+        com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector, NULL);
+    ASSERT_NE((com_util_etw_session *)NULL, session);
 
     Sleep(200);
-    com_util_etw_provider_write(handle, 4, "worker-1", "service_msg"); // [手順] - Service と Message を持つイベントを書き込む。
+    com_util_etw_provider_write(handle, 4, "worker-1",
+                                "service_msg"); // [手順] - Service と Message を持つイベントを書き込む。
     com_util_etw_session_stop(session);
 
     bool found = false;
@@ -356,11 +349,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     {
         if (evt.message == "service_msg")
         {
-            EXPECT_EQ(4, evt.level); // [確認_正常系] - INFO レベルで受信されること。
+            EXPECT_EQ(4, evt.level);                                    // [確認_正常系] - INFO レベルで受信されること。
             EXPECT_EQ((uint32_t)GetCurrentProcessId(), evt.process_id); // [確認_正常系] - 発行元 PID が受信されること。
-            EXPECT_EQ("Trace", evt.event_name); // [確認_正常系] - イベント名が受信されること。
-            EXPECT_TRUE(evt.has_service); // [確認_正常系] - Service フィールドが受信されること。
-            EXPECT_EQ("worker-1", evt.service); // [確認_正常系] - Service 名が復元されること。
+            EXPECT_EQ("Trace", evt.event_name);                         // [確認_正常系] - イベント名が受信されること。
+            EXPECT_TRUE(evt.has_service);               // [確認_正常系] - Service フィールドが受信されること。
+            EXPECT_EQ("worker-1", evt.service);         // [確認_正常系] - Service 名が復元されること。
             EXPECT_NE((int64_t)0, evt.timestamp_100ns); // [確認_正常系] - ETW タイムスタンプが設定されること。
             found = true;
             break;
@@ -373,7 +366,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
 
 #elif defined(PLATFORM_LINUX)
 
-#include <testfw.h>
+    #include <testfw.h>
 
 TEST(etwSessionIntegrationTest, not_supported)
 {

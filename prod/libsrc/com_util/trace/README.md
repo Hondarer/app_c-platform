@@ -121,7 +121,7 @@ OS トレースのしきい値を設定します。
 
 通常のトレース メッセージを書き込みます。  
 公開名の `com_util_tracer_write*()` は source location (`[file:line]`) を自動付与する関数風マクロです。  
-`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp_t` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
+`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
 明示タイムスタンプが不正な場合も出力自体は継続し、内部で現在時刻へ代替します。この場合の戻り値は `-1` です。
 
 ### com_util_tracer_write_hex / com_util_tracer_write_hexf
@@ -141,7 +141,7 @@ source location を付けずに生のメッセージを書き込みたい場合�
 
 int main(void)
 {
-    com_util_tracer_t *tracer = com_util_tracer_create();
+    com_util_tracer *tracer = com_util_tracer_create();
     if (tracer == NULL) {
         return 1;
     }
@@ -163,7 +163,7 @@ int main(void)
 ```c
 #include <com_util/trace/tracer.h>
 
-com_util_tracer_t *tracer = com_util_tracer_create();
+com_util_tracer *tracer = com_util_tracer_create();
 
 com_util_tracer_set_name(tracer, "myapp", 0);
 com_util_tracer_set_os_level(tracer, COM_UTIL_TRACE_LEVEL_WARNING);

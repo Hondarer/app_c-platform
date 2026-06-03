@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_is_default.c
- *  @brief          com_util_sym_loader_entry_t が明示的デフォルトかどうかを返します。
+ *  @brief          com_util_sym_loader_entry が明示的デフォルトかどうかを返します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
@@ -15,7 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry_t *fobj)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj)
 {
     if (fobj->resolved == 0)
     {

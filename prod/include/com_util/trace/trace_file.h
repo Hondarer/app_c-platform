@@ -49,7 +49,7 @@
 /* ===== 不透明ハンドル型 ===== */
 
 /** ファイルトレースプロバイダハンドル (不透明型)。 */
-typedef struct com_util_trace_file_sink com_util_trace_file_sink_t;
+typedef struct com_util_trace_file_sink com_util_trace_file_sink;
 
 /* ===== API 関数 ===== */
 
@@ -75,9 +75,9 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
      */
-    COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
-                                                                                             size_t max_bytes,
-                                                                                             int generations);
+    COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
+                                                                                           size_t max_bytes,
+                                                                                           int generations);
 
     /**
      *  @brief          ファイルへトレースメッセージを書き込む。
@@ -94,8 +94,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の mutex で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
-                                                                    const com_util_realtime_timestamp_t *timestamp,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
+                                                                    const com_util_realtime_timestamp *timestamp,
                                                                     const char *message);
 
     /**
@@ -107,7 +107,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink_t *handle);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle);
 
 #ifdef __cplusplus
 }

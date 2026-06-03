@@ -25,11 +25,11 @@
 
     #include <com_util/sync/sync.h>
 
-#define INTERPROCESS_SYNC_DESCRIPTOR_MAGIC 0x4b4c5543U
-#define INTERPROCESS_SYNC_DESCRIPTOR_VERSION 1U
-#define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
-#define INTERPROCESS_SYNC_KIND_LOCK 1U
-#define INTERPROCESS_SYNC_KIND_RWLOCK 2U
+    #define INTERPROCESS_SYNC_DESCRIPTOR_MAGIC       0x4b4c5543U
+    #define INTERPROCESS_SYNC_DESCRIPTOR_VERSION     1U
+    #define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
+    #define INTERPROCESS_SYNC_KIND_LOCK              1U
+    #define INTERPROCESS_SYNC_KIND_RWLOCK            2U
 
 struct com_util_local_lock
 {
@@ -44,12 +44,12 @@ struct com_util_condvar
 struct com_util_local_rwlock
 {
     pthread_mutex_t mutex;
-    pthread_cond_t  readers_cv;
-    pthread_cond_t  writers_cv;
-    unsigned int    active_readers;
-    unsigned int    waiting_writers;
-    int             writer_active;
-    int             _pad_struct_end;
+    pthread_cond_t readers_cv;
+    pthread_cond_t writers_cv;
+    unsigned int active_readers;
+    unsigned int waiting_writers;
+    int writer_active;
+    int _pad_struct_end;
 };
 
 struct com_util_thread
@@ -60,21 +60,21 @@ struct com_util_thread
 struct com_util_interprocess_lock
 {
     char *identity;
-    int  fd;
-    int  locked;
+    int fd;
+    int locked;
 };
 
 struct com_util_interprocess_rwlock
 {
     char *identity;
-    int  fd;
-    int  locked;
+    int fd;
+    int locked;
 };
 
 struct com_util_thread_start_ctx
 {
     com_util_thread_func_t func;
-    void                  *arg;
+    void *arg;
 };
 
 static uint64_t monotonic_ms(void)
@@ -103,7 +103,7 @@ static void monotonic_deadline(struct timespec *abs_ts, int timeout_ms)
 static int cond_init_monotonic(pthread_cond_t *cond)
 {
     pthread_condattr_t attr;
-    int                rc;
+    int rc;
 
     rc = pthread_condattr_init(&attr);
     if (rc != 0)
@@ -139,20 +139,19 @@ static com_util_sync_result_t map_wait_rc(int rc)
 static void *thread_start_proc(void *opaque)
 {
     struct com_util_thread_start_ctx *ctx = (struct com_util_thread_start_ctx *)opaque;
-    com_util_thread_func_t            func = ctx->func;
-    void                             *arg = ctx->arg;
+    com_util_thread_func_t func = ctx->func;
+    void *arg = ctx->arg;
 
     free(ctx);
     func(arg);
     return NULL;
 }
 
-static com_util_sync_result_t app_lock_open_identity(const char *identity,
-                                                     com_util_interprocess_rwlock_t **lock)
+static com_util_sync_result_t app_lock_open_identity(const char *identity, com_util_interprocess_rwlock **lock)
 {
-    com_util_interprocess_rwlock_t *new_lock;
-    int                  fd;
-    char                *identity_copy;
+    com_util_interprocess_rwlock *new_lock;
+    int fd;
+    char *identity_copy;
 
     if (identity == NULL || identity[0] == '\0' || lock == NULL)
     {
@@ -172,7 +171,7 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity,
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
 
-    new_lock = (com_util_interprocess_rwlock_t *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_rwlock *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         free(identity_copy);
@@ -186,12 +185,11 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity,
     return COM_UTIL_SYNC_OK;
 }
 
-static com_util_sync_result_t interprocess_lock_open_identity(const char *identity,
-                                                             com_util_interprocess_lock_t **lock)
+static com_util_sync_result_t interprocess_lock_open_identity(const char *identity, com_util_interprocess_lock **lock)
 {
-    com_util_interprocess_lock_t *new_lock;
-    int                           fd;
-    char                         *identity_copy;
+    com_util_interprocess_lock *new_lock;
+    int fd;
+    char *identity_copy;
 
     if (identity == NULL || identity[0] == '\0' || lock == NULL)
     {
@@ -211,7 +209,7 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
 
-    new_lock = (com_util_interprocess_lock_t *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_lock *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         free(identity_copy);
@@ -225,10 +223,9 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
     return COM_UTIL_SYNC_OK;
 }
 
-static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock, int operation,
-                                            int timeout_ms)
+static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock *lock, int operation, int timeout_ms)
 {
-    uint64_t     deadline;
+    uint64_t deadline;
 
     if (lock == NULL || lock->locked)
     {
@@ -273,8 +270,7 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock_t *lock
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
-static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock_t *lock,
-                                                     int timeout_ms)
+static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock *lock, int timeout_ms)
 {
     uint64_t deadline;
 
@@ -321,15 +317,15 @@ static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock_
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
-com_util_sync_result_t com_util_local_lock_create(com_util_local_lock_t **mtx)
+com_util_sync_result_t com_util_local_lock_create(com_util_local_lock **mtx)
 {
-    com_util_local_lock_t *new_mtx;
+    com_util_local_lock *new_mtx;
 
     if (mtx == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_mtx = (com_util_local_lock_t *)calloc(1, sizeof(*new_mtx));
+    new_mtx = (com_util_local_lock *)calloc(1, sizeof(*new_mtx));
     if (new_mtx == NULL)
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
@@ -343,7 +339,7 @@ com_util_sync_result_t com_util_local_lock_create(com_util_local_lock_t **mtx)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, int timeout_ms)
+com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
 {
     uint64_t deadline;
 
@@ -379,12 +375,12 @@ com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock_t *mtx, int 
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
-com_util_sync_result_t com_util_local_lock_try_lock(com_util_local_lock_t *mtx)
+com_util_sync_result_t com_util_local_lock_try_lock(com_util_local_lock *mtx)
 {
     return com_util_local_lock_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock_t *mtx)
+com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock *mtx)
 {
     if (mtx == NULL)
     {
@@ -393,7 +389,7 @@ com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock_t *mtx)
     return map_wait_rc(pthread_mutex_unlock(&mtx->native));
 }
 
-void com_util_local_lock_destroy(com_util_local_lock_t *mtx)
+void com_util_local_lock_destroy(com_util_local_lock *mtx)
 {
     if (mtx != NULL)
     {
@@ -402,15 +398,15 @@ void com_util_local_lock_destroy(com_util_local_lock_t *mtx)
     }
 }
 
-com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
+com_util_sync_result_t com_util_condvar_create(com_util_condvar **cv)
 {
-    com_util_condvar_t *new_cv;
+    com_util_condvar *new_cv;
 
     if (cv == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_cv = (com_util_condvar_t *)calloc(1, sizeof(*new_cv));
+    new_cv = (com_util_condvar *)calloc(1, sizeof(*new_cv));
     if (new_cv == NULL)
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
@@ -424,8 +420,7 @@ com_util_sync_result_t com_util_condvar_create(com_util_condvar_t **cv)
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_local_lock_t *mtx,
-                                             int timeout_ms)
+com_util_sync_result_t com_util_condvar_wait(com_util_condvar *cv, com_util_local_lock *mtx, int timeout_ms)
 {
     struct timespec abs_ts;
 
@@ -441,7 +436,7 @@ com_util_sync_result_t com_util_condvar_wait(com_util_condvar_t *cv, com_util_lo
     return map_wait_rc(pthread_cond_timedwait(&cv->native, &mtx->native, &abs_ts));
 }
 
-com_util_sync_result_t com_util_condvar_signal(com_util_condvar_t *cv)
+com_util_sync_result_t com_util_condvar_signal(com_util_condvar *cv)
 {
     if (cv == NULL)
     {
@@ -450,7 +445,7 @@ com_util_sync_result_t com_util_condvar_signal(com_util_condvar_t *cv)
     return map_wait_rc(pthread_cond_signal(&cv->native));
 }
 
-com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar_t *cv)
+com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar *cv)
 {
     if (cv == NULL)
     {
@@ -459,7 +454,7 @@ com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar_t *cv)
     return map_wait_rc(pthread_cond_broadcast(&cv->native));
 }
 
-void com_util_condvar_destroy(com_util_condvar_t *cv)
+void com_util_condvar_destroy(com_util_condvar *cv)
 {
     if (cv != NULL)
     {
@@ -468,22 +463,21 @@ void com_util_condvar_destroy(com_util_condvar_t *cv)
     }
 }
 
-com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock)
+com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
 {
-    com_util_local_rwlock_t *new_lock;
+    com_util_local_rwlock *new_lock;
 
     if (rwlock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_lock = (com_util_local_rwlock_t *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_local_rwlock *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         return COM_UTIL_SYNC_SYSTEM_ERROR;
     }
-    if (pthread_mutex_init(&new_lock->mutex, NULL) != 0
-        || cond_init_monotonic(&new_lock->readers_cv) != 0
-        || cond_init_monotonic(&new_lock->writers_cv) != 0)
+    if (pthread_mutex_init(&new_lock->mutex, NULL) != 0 || cond_init_monotonic(&new_lock->readers_cv) != 0 ||
+        cond_init_monotonic(&new_lock->writers_cv) != 0)
     {
         pthread_mutex_destroy(&new_lock->mutex);
         pthread_cond_destroy(&new_lock->readers_cv);
@@ -495,10 +489,10 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock_t **rw
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
-    int             rc = 0;
+    int rc = 0;
 
     if (rwlock == NULL || timeout_ms < 0)
     {
@@ -517,8 +511,8 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t
             return COM_UTIL_SYNC_BUSY;
         }
         rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
-            ? pthread_cond_wait(&rwlock->readers_cv, &rwlock->mutex)
-            : pthread_cond_timedwait(&rwlock->readers_cv, &rwlock->mutex, &abs_ts);
+                 ? pthread_cond_wait(&rwlock->readers_cv, &rwlock->mutex)
+                 : pthread_cond_timedwait(&rwlock->readers_cv, &rwlock->mutex, &abs_ts);
         if (rc == ETIMEDOUT)
         {
             pthread_mutex_unlock(&rwlock->mutex);
@@ -535,15 +529,15 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock_t
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms)
+com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
-    int             rc = 0;
+    int rc = 0;
 
     if (rwlock == NULL || timeout_ms < 0)
     {
@@ -564,8 +558,8 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
             return COM_UTIL_SYNC_BUSY;
         }
         rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
-            ? pthread_cond_wait(&rwlock->writers_cv, &rwlock->mutex)
-            : pthread_cond_timedwait(&rwlock->writers_cv, &rwlock->mutex, &abs_ts);
+                 ? pthread_cond_wait(&rwlock->writers_cv, &rwlock->mutex)
+                 : pthread_cond_timedwait(&rwlock->writers_cv, &rwlock->mutex, &abs_ts);
         if (rc == ETIMEDOUT)
         {
             rwlock->waiting_writers--;
@@ -585,12 +579,12 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock)
 {
     if (rwlock == NULL)
     {
@@ -611,7 +605,7 @@ com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock_t *rwlock)
+com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock)
 {
     if (rwlock == NULL)
     {
@@ -636,7 +630,7 @@ com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwl
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock)
+void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
 {
     if (rwlock != NULL)
     {
@@ -647,18 +641,17 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock)
     }
 }
 
-com_util_sync_result_t com_util_thread_create(com_util_thread_t **thread,
-                                              com_util_thread_func_t func, void *arg)
+com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg)
 {
     struct com_util_thread_start_ctx *ctx;
-    com_util_thread_t                *new_thread;
-    int                               rc;
+    com_util_thread *new_thread;
+    int rc;
 
     if (thread == NULL || func == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    new_thread = (com_util_thread_t *)calloc(1, sizeof(*new_thread));
+    new_thread = (com_util_thread *)calloc(1, sizeof(*new_thread));
     ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
     if (new_thread == NULL || ctx == NULL)
     {
@@ -679,10 +672,10 @@ com_util_sync_result_t com_util_thread_create(com_util_thread_t **thread,
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, int timeout_ms)
+com_util_sync_result_t com_util_thread_join(com_util_thread *thread, int timeout_ms)
 {
     struct timespec abs_ts;
-    int             rc;
+    int rc;
 
     if (thread == NULL || timeout_ms < 0)
     {
@@ -731,7 +724,7 @@ com_util_sync_result_t com_util_thread_join(com_util_thread_t *thread, int timeo
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_thread_detach(com_util_thread_t *thread)
+void com_util_thread_detach(com_util_thread *thread)
 {
     if (thread != NULL)
     {
@@ -740,18 +733,17 @@ void com_util_thread_detach(com_util_thread_t *thread)
     }
 }
 
-com_util_sync_result_t com_util_interprocess_lock_open(const char *identity,
-                                                       com_util_interprocess_lock_t **lock)
+com_util_sync_result_t com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock)
 {
     return interprocess_lock_open_identity(identity, lock);
 }
 
-com_util_sync_result_t com_util_interprocess_lock_export_descriptor(
-    const com_util_interprocess_lock_t *lock, void *descriptor, size_t *descriptor_size)
+com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock *lock,
+                                                                    void *descriptor, size_t *descriptor_size)
 {
     uint8_t *out;
-    size_t   identity_len;
-    size_t   required;
+    size_t identity_len;
+    size_t required;
 
     if (lock == NULL || descriptor_size == NULL)
     {
@@ -781,32 +773,26 @@ com_util_sync_result_t com_util_interprocess_lock_export_descriptor(
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_interprocess_lock_import_descriptor(
-    const void *descriptor, size_t descriptor_size, com_util_interprocess_lock_t **lock)
+com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                                                    com_util_interprocess_lock **lock)
 {
     const uint8_t *in = (const uint8_t *)descriptor;
-    uint32_t       identity_len;
-    char          *identity;
+    uint32_t identity_len;
+    char *identity;
     com_util_sync_result_t result;
 
     if (descriptor == NULL || lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE
-        || memcmp(in, "CULK", 4) != 0
-        || in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION
-        || in[5] != INTERPROCESS_SYNC_KIND_LOCK
-        || in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
+    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE || memcmp(in, "CULK", 4) != 0 ||
+        in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION || in[5] != INTERPROCESS_SYNC_KIND_LOCK ||
+        in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
-    identity_len = (uint32_t)in[8]
-        | ((uint32_t)in[9] << 8)
-        | ((uint32_t)in[10] << 16)
-        | ((uint32_t)in[11] << 24);
-    if (identity_len == 0
-        || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
+    identity_len = (uint32_t)in[8] | ((uint32_t)in[9] << 8) | ((uint32_t)in[10] << 16) | ((uint32_t)in[11] << 24);
+    if (identity_len == 0 || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
@@ -822,8 +808,7 @@ com_util_sync_result_t com_util_interprocess_lock_import_descriptor(
     return result;
 }
 
-com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock,
-                                                       int timeout_ms)
+com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
@@ -832,12 +817,12 @@ com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_loc
     return interprocess_lock_take(lock, timeout_ms);
 }
 
-com_util_sync_result_t com_util_interprocess_lock_try_lock(com_util_interprocess_lock_t *lock)
+com_util_sync_result_t com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock)
 {
     return com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_lock_t *lock)
+com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
 {
     if (lock == NULL || !lock->locked)
     {
@@ -851,7 +836,7 @@ com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_l
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock)
+void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
 {
     if (lock != NULL)
     {
@@ -865,19 +850,17 @@ void com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock)
     }
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity,
-                                                         com_util_interprocess_rwlock_t **lock)
+com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock)
 {
     return app_lock_open_identity(identity, lock);
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock_t *lock,
-                                                           void *descriptor,
-                                                           size_t *descriptor_size)
+com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock *lock,
+                                                                      void *descriptor, size_t *descriptor_size)
 {
     uint8_t *out;
-    size_t   identity_len;
-    size_t   required;
+    size_t identity_len;
+    size_t required;
 
     if (lock == NULL || descriptor_size == NULL)
     {
@@ -907,33 +890,26 @@ com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_
     return COM_UTIL_SYNC_OK;
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor,
-                                                           size_t descriptor_size,
-                                                           com_util_interprocess_rwlock_t **lock)
+com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                                                      com_util_interprocess_rwlock **lock)
 {
     const uint8_t *in = (const uint8_t *)descriptor;
-    uint32_t       identity_len;
-    char          *identity;
+    uint32_t identity_len;
+    char *identity;
     com_util_sync_result_t result;
 
     if (descriptor == NULL || lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE
-        || memcmp(in, "CULK", 4) != 0
-        || in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION
-        || in[5] != INTERPROCESS_SYNC_KIND_RWLOCK
-        || in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
+    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE || memcmp(in, "CULK", 4) != 0 ||
+        in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION || in[5] != INTERPROCESS_SYNC_KIND_RWLOCK ||
+        in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
-    identity_len = (uint32_t)in[8]
-        | ((uint32_t)in[9] << 8)
-        | ((uint32_t)in[10] << 16)
-        | ((uint32_t)in[11] << 24);
-    if (identity_len == 0
-        || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
+    identity_len = (uint32_t)in[8] | ((uint32_t)in[9] << 8) | ((uint32_t)in[10] << 16) | ((uint32_t)in[11] << 24);
+    if (identity_len == 0 || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
     {
         return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
     }
@@ -949,8 +925,7 @@ com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void
     return result;
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock,
-                                                     int timeout_ms)
+com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
@@ -959,13 +934,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interpr
     return app_lock_take(lock, LOCK_SH, timeout_ms);
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock,
-                                                        int timeout_ms)
+com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
@@ -974,12 +948,12 @@ com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_inte
     return app_lock_take(lock, LOCK_EX, timeout_ms);
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
-com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock)
+com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
 {
     if (lock == NULL || !lock->locked)
     {
@@ -993,7 +967,7 @@ com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess
     return COM_UTIL_SYNC_OK;
 }
 
-void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock)
+void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
 {
     if (lock != NULL)
     {
@@ -1007,7 +981,7 @@ void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock)
     }
 }
 
-void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
+void com_util_call_once(com_util_once_flag *flag, void (*func)(void))
 {
     int32_t expected = 0;
 
@@ -1015,8 +989,7 @@ void com_util_call_once(com_util_once_flag_t *flag, void (*func)(void))
     {
         return;
     }
-    if (__atomic_compare_exchange_n(&flag->state, &expected, 1, 0,
-                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    if (__atomic_compare_exchange_n(&flag->state, &expected, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
     {
         func();
         __atomic_store_n(&flag->state, 2, __ATOMIC_RELEASE);
@@ -1033,14 +1006,14 @@ void com_util_sleep_ms(int ms)
 {
     struct timespec req;
     struct timespec rem;
-    unsigned int    ums;
+    unsigned int ums;
 
     if (ms <= 0)
     {
         return;
     }
     ums = (unsigned int)ms;
-    req.tv_sec  = (time_t)(ums / 1000U);
+    req.tv_sec = (time_t)(ums / 1000U);
     req.tv_nsec = (long)((ums % 1000U) * 1000000UL);
     while (nanosleep(&req, &rem) == -1 && errno == EINTR)
     {

@@ -3,18 +3,17 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-com_util_etw_provider_t *delegate_real_com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
+com_util_etw_provider *delegate_real_com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_etw_provider_create)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_create"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_etw_provider_create)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_create"));
 
     return real_fn(provider_ref);
 }
 
-MOCK_WEAK_IMPL(com_util_etw_provider_t *, com_util_etw_provider_create, com_util_etw_provider_ref_t provider_ref)
+MOCK_WEAK_IMPL(com_util_etw_provider *, com_util_etw_provider_create, com_util_etw_provider_ref_t provider_ref)
 {
-    com_util_etw_provider_t *rtc = nullptr;
+    com_util_etw_provider *rtc = nullptr;
 
     if (_mock_com_util != nullptr)
     {

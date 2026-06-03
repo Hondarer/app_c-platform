@@ -3,16 +3,17 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-int delegate_real_com_util_etw_provider_write(com_util_etw_provider_t *handle, int level, const char *service, const char *message)
+int delegate_real_com_util_etw_provider_write(com_util_etw_provider *handle, int level, const char *service,
+                                              const char *message)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_etw_provider_write)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_write"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_etw_provider_write)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_write"));
 
     return real_fn(handle, level, service, message);
 }
 
-MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider_t *handle, int level, const char *service, const char *message)
+MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, int level, const char *service,
+               const char *message)
 {
     int rtc = -1;
 

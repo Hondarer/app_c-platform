@@ -47,7 +47,7 @@ typedef enum
     PINNED_PROMPT_KEY_EOF
 } pinned_prompt_key_t;
 
-typedef struct
+typedef struct pinned_prompt_layout
 {
     int prompt_row;
     int top_status_row;
@@ -57,49 +57,49 @@ typedef struct
     int main_bottom_row;
     int show_top_status;
     int show_bottom_status;
-} pinned_prompt_layout_t;
+} pinned_prompt_layout;
 
-typedef struct
+typedef struct pinned_prompt_history_ctx
 {
     const char *file;
-    char      **entries;
-    char       *saved_line;
-    size_t      count;
-    size_t      head;
-    int         line;
-    int         browse_idx;
-} pinned_prompt_history_ctx_t;
+    char **entries;
+    char *saved_line;
+    size_t count;
+    size_t head;
+    int line;
+    int browse_idx;
+} pinned_prompt_history_ctx;
 
-struct com_util_pinned_prompt_t
+struct com_util_pinned_prompt
 {
-    com_util_local_lock_t *mutex;
+    com_util_local_lock *mutex;
 
-    char   *edit_buf;
-    char   *prompt_buf;
-    char   *fmt_buf;
+    char *edit_buf;
+    char *prompt_buf;
+    char *fmt_buf;
 
-    char   *status_top_left;
-    char   *status_top_right;
-    char   *status_bottom_left;
-    char   *status_bottom_right;
+    char *status_top_left;
+    char *status_top_right;
+    char *status_bottom_left;
+    char *status_bottom_right;
 
-    size_t  edit_len;
-    size_t  edit_cap;
-    size_t  cursor;
-    size_t  view_start;
-    size_t  history_max;
-    size_t  input_max_bytes;
-    size_t  prompt_cap;
-    size_t  fmt_cap;
-    size_t  history_ctx_count;
-    size_t  history_ctx_cap;
+    size_t edit_len;
+    size_t edit_cap;
+    size_t cursor;
+    size_t view_start;
+    size_t history_max;
+    size_t input_max_bytes;
+    size_t prompt_cap;
+    size_t fmt_cap;
+    size_t history_ctx_count;
+    size_t history_ctx_cap;
 
-    size_t  status_top_left_cap;
-    size_t  status_top_right_cap;
-    size_t  status_bottom_left_cap;
-    size_t  status_bottom_right_cap;
+    size_t status_top_left_cap;
+    size_t status_top_right_cap;
+    size_t status_bottom_left_cap;
+    size_t status_bottom_right_cap;
 
-    pinned_prompt_history_ctx_t *history_contexts;
+    pinned_prompt_history_ctx *history_contexts;
 
     int mutex_active;
     int is_tty;
@@ -114,11 +114,11 @@ struct com_util_pinned_prompt_t
 
 #if defined(PLATFORM_LINUX)
     struct termios orig_term;
-    char           padding[4];
+    char padding[4];
 #elif defined(PLATFORM_WINDOWS)
     HANDLE stdin_handle;
-    DWORD  orig_in_mode;
-    char   padding[4];
+    DWORD orig_in_mode;
+    char padding[4];
 #endif
 };
 
@@ -146,19 +146,21 @@ static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
 
     first_byte = (unsigned char)buf[pos];
 
-    if ((first_byte & 0x80U) == 0U) {
+    if ((first_byte & 0x80U) == 0U)
+    {
         return 1U;
     }
 
-    if ((first_byte & 0xE0U) == 0xC0U && pos + 1U < len) {
-        code_point = ((unsigned int)(first_byte & 0x1FU) << 6U) |
-                     (unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU);
+    if ((first_byte & 0xE0U) == 0xC0U && pos + 1U < len)
+    {
+        code_point = ((unsigned int)(first_byte & 0x1FU) << 6U) | (unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU);
         if (code_point >= 0x0300U && code_point <= 0x036FU)
             return 0U;
         return 1U;
     }
 
-    if ((first_byte & 0xF0U) == 0xE0U && pos + 2U < len) {
+    if ((first_byte & 0xF0U) == 0xE0U && pos + 2U < len)
+    {
         code_point = ((unsigned int)(first_byte & 0x0FU) << 12U) |
                      ((unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU) << 6U) |
                      (unsigned int)((unsigned char)buf[pos + 2U] & 0x3FU);
@@ -174,7 +176,8 @@ static size_t utf8_char_display_width(const char *buf, size_t len, size_t pos)
         return 1U;
     }
 
-    if ((first_byte & 0xF8U) == 0xF0U && pos + 3U < len) {
+    if ((first_byte & 0xF8U) == 0xF0U && pos + 3U < len)
+    {
         code_point = ((unsigned int)(first_byte & 0x07U) << 18U) |
                      ((unsigned int)((unsigned char)buf[pos + 1U] & 0x3FU) << 12U) |
                      ((unsigned int)((unsigned char)buf[pos + 2U] & 0x3FU) << 6U) |
@@ -217,8 +220,7 @@ static size_t ansi_sgr_sequence_len(const char *buf, size_t len, size_t pos)
     return 0U;
 }
 
-static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len,
-                                        size_t start, size_t max_cols)
+static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len, size_t start, size_t max_cols)
 {
     size_t pos;
     size_t cols;
@@ -248,8 +250,7 @@ static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len,
     return pos - start;
 }
 
-static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
-                                            size_t start, size_t end)
+static size_t pinned_prompt_display_width_between(const char *buf, size_t len, size_t start, size_t end)
 {
     size_t pos;
     size_t width;
@@ -257,7 +258,7 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
 
     if (end > len)
         end = len;
-    
+
     pos = start;
     width = 0U;
     while (pos < end)
@@ -274,7 +275,6 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len,
     return width;
 }
 
-
 static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel_t channel)
 {
     if (channel == COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR)
@@ -287,7 +287,7 @@ static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel_t channel
     }
 }
 
-static void pinned_prompt_lock(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_lock(com_util_pinned_prompt *screen)
 {
     if (screen != NULL && screen->mutex_active)
     {
@@ -295,7 +295,7 @@ static void pinned_prompt_lock(com_util_pinned_prompt_t *screen)
     }
 }
 
-static void pinned_prompt_unlock(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_unlock(com_util_pinned_prompt *screen)
 {
     if (screen != NULL && screen->mutex_active)
     {
@@ -305,9 +305,9 @@ static void pinned_prompt_unlock(com_util_pinned_prompt_t *screen)
 
 #if defined(PLATFORM_LINUX)
 
-static volatile sig_atomic_t s_pinned_resize_pending     = 0;
-static struct sigaction       s_pinned_prev_sigwinch;
-static int                    s_pinned_sigwinch_installed = 0;
+static volatile sig_atomic_t s_pinned_resize_pending = 0;
+static struct sigaction s_pinned_prev_sigwinch;
+static int s_pinned_sigwinch_installed = 0;
 
 static void pinned_prompt_sigwinch_handler(int sig)
 {
@@ -334,9 +334,9 @@ static void pinned_prompt_platform_get_size(int *cols, int *rows)
     *rows = 24;
 }
 
-static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt *screen)
 {
-    struct termios   raw;
+    struct termios raw;
     struct sigaction sa;
 
     if (screen->raw_active)
@@ -368,7 +368,7 @@ static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
     }
 }
 
-static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt *screen)
 {
     if (!screen->raw_active)
     {
@@ -384,10 +384,10 @@ static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
     }
 }
 
-static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char(com_util_pinned_prompt *screen)
 {
     unsigned char c;
-    ssize_t       n;
+    ssize_t n;
 
     (void)screen;
     for (;;)
@@ -410,9 +410,9 @@ static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
     }
 }
 
-static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt *screen)
 {
-    fd_set         fds;
+    fd_set fds;
     struct timeval tv;
 
     FD_ZERO(&fds);
@@ -433,7 +433,7 @@ static int pinned_prompt_platform_is_tty(void)
 {
     HANDLE in_handle;
     HANDLE out_handle;
-    DWORD  mode;
+    DWORD mode;
 
     in_handle = GetStdHandle(STD_INPUT_HANDLE);
     out_handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -446,7 +446,7 @@ static int pinned_prompt_platform_is_tty(void)
 
 static void pinned_prompt_platform_get_size(int *cols, int *rows)
 {
-    HANDLE                     out_handle;
+    HANDLE out_handle;
     CONSOLE_SCREEN_BUFFER_INFO info;
 
     out_handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -460,7 +460,7 @@ static void pinned_prompt_platform_get_size(int *cols, int *rows)
     *rows = 24;
 }
 
-static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt *screen)
 {
     DWORD new_mode;
 
@@ -477,15 +477,15 @@ static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
     {
         return;
     }
-    new_mode = (screen->orig_in_mode | ENABLE_VIRTUAL_TERMINAL_INPUT)
-               & ~((DWORD)(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT));
+    new_mode = (screen->orig_in_mode | ENABLE_VIRTUAL_TERMINAL_INPUT) &
+               ~((DWORD)(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT));
     if (SetConsoleMode(screen->stdin_handle, new_mode))
     {
         screen->raw_active = 1;
     }
 }
 
-static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt *screen)
 {
     if (!screen->raw_active)
     {
@@ -495,11 +495,11 @@ static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
     screen->raw_active = 0;
 }
 
-static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char(com_util_pinned_prompt *screen)
 {
     DWORD result;
     DWORD n_read;
-    char  ch;
+    char ch;
 
     result = WaitForSingleObject(screen->stdin_handle, 100U);
     if (result == WAIT_TIMEOUT)
@@ -517,7 +517,7 @@ static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
     return (unsigned char)ch;
 }
 
-static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt *screen)
 {
     DWORD result;
 
@@ -542,23 +542,23 @@ static void pinned_prompt_platform_get_size(int *cols, int *rows)
     *rows = 24;
 }
 
-static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_enter_raw(com_util_pinned_prompt *screen)
 {
     (void)screen;
 }
 
-static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_platform_leave_raw(com_util_pinned_prompt *screen)
 {
     (void)screen;
 }
 
-static int pinned_prompt_platform_read_char(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char(com_util_pinned_prompt *screen)
 {
     (void)screen;
     return -1;
 }
 
-static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt_t *screen)
+static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt *screen)
 {
     (void)screen;
     return -1;
@@ -566,7 +566,7 @@ static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt_t *screen)
 
 #endif
 
-static void pinned_prompt_update_size(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_update_size(com_util_pinned_prompt *screen)
 {
     int cols;
     int rows;
@@ -590,10 +590,10 @@ static void pinned_prompt_update_size(com_util_pinned_prompt_t *screen)
     }
 }
 
-static int pinned_prompt_set_prompt(com_util_pinned_prompt_t *screen, const char *prompt_str)
+static int pinned_prompt_set_prompt(com_util_pinned_prompt *screen, const char *prompt_str)
 {
     size_t len;
-    char  *new_buf;
+    char *new_buf;
 
     len = cstr_len(prompt_str);
     if (len + 1U > screen->prompt_cap)
@@ -617,7 +617,7 @@ static int pinned_prompt_set_prompt(com_util_pinned_prompt_t *screen, const char
     return 0;
 }
 
-static void pinned_prompt_adjust_view(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_adjust_view(com_util_pinned_prompt *screen)
 {
     size_t prompt_cols;
     size_t input_cols;
@@ -633,30 +633,24 @@ static void pinned_prompt_adjust_view(com_util_pinned_prompt_t *screen)
         input_cols = 1U;
     }
 
-    screen->view_start = com_util_prompt_edit_utf8_sanitize_boundary(screen->edit_buf,
-                                                screen->edit_len,
-                                                screen->view_start);
+    screen->view_start =
+        com_util_prompt_edit_utf8_sanitize_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
     if (screen->cursor < screen->view_start)
     {
         screen->view_start = screen->cursor;
     }
-    cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
-                                             screen->edit_len,
-                                             screen->view_start,
-                                             screen->cursor);
+    cursor_cols =
+        pinned_prompt_display_width_between(screen->edit_buf, screen->edit_len, screen->view_start, screen->cursor);
     while (cursor_cols > input_cols)
     {
-        screen->view_start = com_util_prompt_edit_utf8_next_boundary(screen->edit_buf,
-                                                screen->edit_len,
-                                                screen->view_start);
-        cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
-                                                 screen->edit_len,
-                                                 screen->view_start,
-                                                 screen->cursor);
+        screen->view_start =
+            com_util_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
+        cursor_cols =
+            pinned_prompt_display_width_between(screen->edit_buf, screen->edit_len, screen->view_start, screen->cursor);
     }
 }
 
-static void pinned_prompt_render_separator(com_util_pinned_prompt_t *screen, int row)
+static void pinned_prompt_render_separator(com_util_pinned_prompt *screen, int row)
 {
     int i;
     int separator_width;
@@ -669,18 +663,16 @@ static void pinned_prompt_render_separator(com_util_pinned_prompt_t *screen, int
     }
 }
 
-static void pinned_prompt_render_status_line(com_util_pinned_prompt_t *screen,
-                                             int                        row,
-                                             const char                *left_content,
-                                             const char                *right_content)
+static void pinned_prompt_render_status_line(com_util_pinned_prompt *screen, int row, const char *left_content,
+                                             const char *right_content)
 {
     size_t left_len;
     size_t right_len;
     size_t left_width;
     size_t right_width;
     size_t middle_spaces;
-    int    i;
-    int    line_width;
+    int i;
+    int line_width;
 
     left_len = cstr_len(left_content);
     right_len = cstr_len(right_content);
@@ -712,8 +704,7 @@ static void pinned_prompt_render_status_line(com_util_pinned_prompt_t *screen,
     }
 }
 
-static void pinned_prompt_calc_layout(com_util_pinned_prompt_t *screen,
-                                      pinned_prompt_layout_t   *layout)
+static void pinned_prompt_calc_layout(com_util_pinned_prompt *screen, pinned_prompt_layout *layout)
 {
     int rows;
     int first_control_row;
@@ -776,8 +767,7 @@ static void pinned_prompt_calc_layout(com_util_pinned_prompt_t *screen,
     }
 }
 
-static void pinned_prompt_clear_control_area(com_util_pinned_prompt_t       *screen,
-                                             const pinned_prompt_layout_t   *layout)
+static void pinned_prompt_clear_control_area(com_util_pinned_prompt *screen, const pinned_prompt_layout *layout)
 {
     int clear_from;
 
@@ -794,14 +784,14 @@ static void pinned_prompt_clear_control_area(com_util_pinned_prompt_t       *scr
     }
 }
 
-static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_render_locked(com_util_pinned_prompt *screen)
 {
     size_t prompt_cols;
     size_t input_cols;
     size_t visible_bytes;
     size_t cursor_cols;
     size_t cursor_col;
-    pinned_prompt_layout_t layout;
+    pinned_prompt_layout layout;
 
     if (!screen->is_tty || !screen->prompt_visible)
     {
@@ -821,14 +811,10 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
     {
         input_cols = 1U;
     }
-    visible_bytes = pinned_prompt_visible_bytes_from(screen->edit_buf,
-                                              screen->edit_len,
-                                              screen->view_start,
-                                              input_cols);
-    cursor_cols = pinned_prompt_display_width_between(screen->edit_buf,
-                                             screen->edit_len,
-                                             screen->view_start,
-                                             screen->cursor);
+    visible_bytes =
+        pinned_prompt_visible_bytes_from(screen->edit_buf, screen->edit_len, screen->view_start, input_cols);
+    cursor_cols =
+        pinned_prompt_display_width_between(screen->edit_buf, screen->edit_len, screen->view_start, screen->cursor);
     cursor_col = prompt_cols + cursor_cols + 1U;
     if (cursor_col > (size_t)screen->cols)
     {
@@ -850,8 +836,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
 
     if (layout.show_top_status)
     {
-        pinned_prompt_render_status_line(screen, layout.top_status_row,
-                                         screen->status_top_left,
+        pinned_prompt_render_status_line(screen, layout.top_status_row, screen->status_top_left,
                                          screen->status_top_right);
     }
     pinned_prompt_render_separator(screen, layout.prompt_sep_row);
@@ -859,8 +844,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
     if (layout.show_bottom_status)
     {
         pinned_prompt_render_separator(screen, layout.bottom_sep_row);
-        pinned_prompt_render_status_line(screen, layout.bottom_status_row,
-                                         screen->status_bottom_left,
+        pinned_prompt_render_status_line(screen, layout.bottom_status_row, screen->status_bottom_left,
                                          screen->status_bottom_right);
     }
 
@@ -883,9 +867,9 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt_t *screen)
     screen->prev_main_bottom_row = layout.main_bottom_row;
 }
 
-static void pinned_prompt_hide_prompt_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_hide_prompt_locked(com_util_pinned_prompt *screen)
 {
-    pinned_prompt_layout_t layout;
+    pinned_prompt_layout layout;
 
     if (!screen->is_tty || !screen->prompt_visible)
     {
@@ -897,7 +881,7 @@ static void pinned_prompt_hide_prompt_locked(com_util_pinned_prompt_t *screen)
     (void)fflush(stdout);
 }
 
-static void pinned_prompt_finish_prompt_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_finish_prompt_locked(com_util_pinned_prompt *screen)
 {
     if (!screen->is_tty || !screen->prompt_visible)
     {
@@ -907,9 +891,9 @@ static void pinned_prompt_finish_prompt_locked(com_util_pinned_prompt_t *screen)
     screen->prompt_visible = 0;
 }
 
-static void pinned_prompt_cleanup_terminal_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_cleanup_terminal_locked(com_util_pinned_prompt *screen)
 {
-    pinned_prompt_layout_t layout;
+    pinned_prompt_layout layout;
 
     if (!screen->is_tty)
     {
@@ -925,9 +909,9 @@ static void pinned_prompt_cleanup_terminal_locked(com_util_pinned_prompt_t *scre
     screen->prompt_visible = 0;
 }
 
-static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt *screen)
 {
-    pinned_prompt_layout_t layout;
+    pinned_prompt_layout layout;
 
     if (!screen->is_tty)
     {
@@ -948,7 +932,7 @@ static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt_t *screen
     (void)fflush(stdout);
 }
 
-static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *screen, int *out_ch)
+static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
 {
     int c;
     int c2;
@@ -988,12 +972,18 @@ static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *scre
             c3 = pinned_prompt_platform_read_char_nb(screen);
             switch (c3)
             {
-            case 'A': return PINNED_PROMPT_KEY_UP;
-            case 'B': return PINNED_PROMPT_KEY_DOWN;
-            case 'C': return PINNED_PROMPT_KEY_RIGHT;
-            case 'D': return PINNED_PROMPT_KEY_LEFT;
-            case 'H': return PINNED_PROMPT_KEY_HOME;
-            case 'F': return PINNED_PROMPT_KEY_END;
+            case 'A':
+                return PINNED_PROMPT_KEY_UP;
+            case 'B':
+                return PINNED_PROMPT_KEY_DOWN;
+            case 'C':
+                return PINNED_PROMPT_KEY_RIGHT;
+            case 'D':
+                return PINNED_PROMPT_KEY_LEFT;
+            case 'H':
+                return PINNED_PROMPT_KEY_HOME;
+            case 'F':
+                return PINNED_PROMPT_KEY_END;
             case '1':
                 c4 = pinned_prompt_platform_read_char_nb(screen);
                 if (c4 == '~')
@@ -1029,13 +1019,11 @@ static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt_t *scre
     return PINNED_PROMPT_KEY_UNKNOWN;
 }
 
-static pinned_prompt_history_ctx_t *pinned_prompt_find_or_create_history_ctx(
-    com_util_pinned_prompt_t *screen,
-    const char               *file,
-    int                       line)
+static pinned_prompt_history_ctx *pinned_prompt_find_or_create_history_ctx(com_util_pinned_prompt *screen,
+                                                                           const char *file, int line)
 {
     size_t i;
-    pinned_prompt_history_ctx_t *ctx;
+    pinned_prompt_history_ctx *ctx;
 
     for (i = 0U; i < screen->history_ctx_count; i++)
     {
@@ -1048,7 +1036,7 @@ static pinned_prompt_history_ctx_t *pinned_prompt_find_or_create_history_ctx(
     if (screen->history_ctx_count == screen->history_ctx_cap)
     {
         size_t new_cap;
-        pinned_prompt_history_ctx_t *new_contexts;
+        pinned_prompt_history_ctx *new_contexts;
 
         if (screen->history_ctx_cap != 0U)
         {
@@ -1058,8 +1046,7 @@ static pinned_prompt_history_ctx_t *pinned_prompt_find_or_create_history_ctx(
         {
             new_cap = 4U;
         }
-        new_contexts = (pinned_prompt_history_ctx_t *)realloc(
-            screen->history_contexts, new_cap * sizeof(*new_contexts));
+        new_contexts = (pinned_prompt_history_ctx *)realloc(screen->history_contexts, new_cap * sizeof(*new_contexts));
         if (new_contexts == NULL)
         {
             return NULL;
@@ -1089,9 +1076,7 @@ static pinned_prompt_history_ctx_t *pinned_prompt_find_or_create_history_ctx(
     return ctx;
 }
 
-static void pinned_prompt_history_add(com_util_pinned_prompt_t    *screen,
-                                      pinned_prompt_history_ctx_t *ctx,
-                                      const char                  *line)
+static void pinned_prompt_history_add(com_util_pinned_prompt *screen, pinned_prompt_history_ctx *ctx, const char *line)
 {
     size_t len;
     size_t slot;
@@ -1128,12 +1113,13 @@ static void pinned_prompt_history_add(com_util_pinned_prompt_t    *screen,
     }
 }
 
-static void pinned_prompt_set_edit_line(com_util_pinned_prompt_t *screen, const char *line)
+static void pinned_prompt_set_edit_line(com_util_pinned_prompt *screen, const char *line)
 {
     size_t len;
 
     len = cstr_len(line);
-    if (com_util_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, len + 1U) != 0)
+    if (com_util_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, len + 1U) !=
+        0)
     {
         len = screen->edit_cap - 1U;
     }
@@ -1151,8 +1137,7 @@ static void pinned_prompt_set_edit_line(com_util_pinned_prompt_t *screen, const 
     screen->view_start = 0U;
 }
 
-static void pinned_prompt_clear_edit_line(com_util_pinned_prompt_t    *screen,
-                                          pinned_prompt_history_ctx_t *ctx)
+static void pinned_prompt_clear_edit_line(com_util_pinned_prompt *screen, pinned_prompt_history_ctx *ctx)
 {
     screen->edit_len = 0U;
     screen->edit_buf[0] = '\0';
@@ -1164,11 +1149,10 @@ static void pinned_prompt_clear_edit_line(com_util_pinned_prompt_t    *screen,
     }
 }
 
-static void pinned_prompt_history_prev(com_util_pinned_prompt_t    *screen,
-                                       pinned_prompt_history_ctx_t *ctx)
+static void pinned_prompt_history_prev(com_util_pinned_prompt *screen, pinned_prompt_history_ctx *ctx)
 {
     const char *entry;
-    size_t      slot;
+    size_t slot;
 
     if (ctx == NULL || ctx->count == 0U)
     {
@@ -1195,11 +1179,10 @@ static void pinned_prompt_history_prev(com_util_pinned_prompt_t    *screen,
     }
 }
 
-static void pinned_prompt_history_next(com_util_pinned_prompt_t    *screen,
-                                       pinned_prompt_history_ctx_t *ctx)
+static void pinned_prompt_history_next(com_util_pinned_prompt *screen, pinned_prompt_history_ctx *ctx)
 {
     const char *entry;
-    size_t      slot;
+    size_t slot;
 
     if (ctx == NULL || ctx->browse_idx == -1)
     {
@@ -1222,21 +1205,21 @@ static void pinned_prompt_history_next(com_util_pinned_prompt_t    *screen,
     }
 }
 
-static void pinned_prompt_insert_byte(com_util_pinned_prompt_t *screen, int ch)
+static void pinned_prompt_insert_byte(com_util_pinned_prompt *screen, int ch)
 {
-    if (com_util_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, screen->edit_len + 2U) != 0)
+    if (com_util_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
+                                             screen->edit_len + 2U) != 0)
     {
         return;
     }
-    memmove(screen->edit_buf + screen->cursor + 1U,
-            screen->edit_buf + screen->cursor,
+    memmove(screen->edit_buf + screen->cursor + 1U, screen->edit_buf + screen->cursor,
             screen->edit_len - screen->cursor + 1U);
     screen->edit_buf[screen->cursor] = (char)ch;
     screen->cursor++;
     screen->edit_len++;
 }
 
-static void pinned_prompt_backspace(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_backspace(com_util_pinned_prompt *screen)
 {
     size_t prev;
 
@@ -1245,14 +1228,12 @@ static void pinned_prompt_backspace(com_util_pinned_prompt_t *screen)
         return;
     }
     prev = com_util_prompt_edit_utf8_prev_boundary(screen->edit_buf, screen->cursor);
-    memmove(screen->edit_buf + prev,
-            screen->edit_buf + screen->cursor,
-            screen->edit_len - screen->cursor + 1U);
+    memmove(screen->edit_buf + prev, screen->edit_buf + screen->cursor, screen->edit_len - screen->cursor + 1U);
     screen->edit_len -= screen->cursor - prev;
     screen->cursor = prev;
 }
 
-static void pinned_prompt_delete(com_util_pinned_prompt_t *screen)
+static void pinned_prompt_delete(com_util_pinned_prompt *screen)
 {
     size_t next;
 
@@ -1261,17 +1242,15 @@ static void pinned_prompt_delete(com_util_pinned_prompt_t *screen)
         return;
     }
     next = com_util_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
-    memmove(screen->edit_buf + screen->cursor,
-            screen->edit_buf + next,
-            screen->edit_len - next + 1U);
+    memmove(screen->edit_buf + screen->cursor, screen->edit_buf + next, screen->edit_len - next + 1U);
     screen->edit_len -= next - screen->cursor;
 }
 
-static int pinned_prompt_format_prompt(com_util_pinned_prompt_t *screen, const char *fmt, va_list ap)
+static int pinned_prompt_format_prompt(com_util_pinned_prompt *screen, const char *fmt, va_list ap)
 {
     va_list ap_copy;
-    int     needed;
-    char   *new_buf;
+    int needed;
+    char *new_buf;
 
     if (screen->fmt_buf == NULL)
     {
@@ -1331,16 +1310,16 @@ static int pinned_prompt_readline_fallback(char *buf, size_t buf_size, const cha
     return 1;
 }
 
-com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options)
+com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options)
 {
-    com_util_pinned_prompt_t *screen;
-    size_t                    history_max;
-    size_t                    input_initial_capacity;
-    size_t                    input_max_bytes;
+    com_util_pinned_prompt *screen;
+    size_t history_max;
+    size_t input_initial_capacity;
+    size_t input_max_bytes;
 
     com_util_console_init();
 
-    screen = (com_util_pinned_prompt_t *)calloc(1U, sizeof(*screen));
+    screen = (com_util_pinned_prompt *)calloc(1U, sizeof(*screen));
     if (screen == NULL)
     {
         return NULL;
@@ -1348,23 +1327,14 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
 
     if (options != NULL)
     {
-        com_util_prompt_edit_resolve_options(options->input.history_max,
-                                             options->input.input_initial_capacity,
-                                             options->input.input_max_bytes,
-                                             PINNED_PROMPT_INPUT_INITIAL_DEFAULT,
-                                             &history_max,
-                                             &input_initial_capacity,
-                                             &input_max_bytes);
+        com_util_prompt_edit_resolve_options(options->input.history_max, options->input.input_initial_capacity,
+                                             options->input.input_max_bytes, PINNED_PROMPT_INPUT_INITIAL_DEFAULT,
+                                             &history_max, &input_initial_capacity, &input_max_bytes);
     }
     else
     {
-        com_util_prompt_edit_resolve_options(0U,
-                                             0U,
-                                             0U,
-                                             PINNED_PROMPT_INPUT_INITIAL_DEFAULT,
-                                             &history_max,
-                                             &input_initial_capacity,
-                                             &input_max_bytes);
+        com_util_prompt_edit_resolve_options(0U, 0U, 0U, PINNED_PROMPT_INPUT_INITIAL_DEFAULT, &history_max,
+                                             &input_initial_capacity, &input_max_bytes);
     }
     screen->history_max = history_max;
     screen->input_max_bytes = input_max_bytes;
@@ -1385,9 +1355,8 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->status_top_right = (char *)malloc(1U);
     screen->status_bottom_left = (char *)malloc(1U);
     screen->status_bottom_right = (char *)malloc(1U);
-    if (screen->edit_buf == NULL || screen->prompt_buf == NULL ||
-        screen->status_top_left == NULL || screen->status_top_right == NULL ||
-        screen->status_bottom_left == NULL || screen->status_bottom_right == NULL)
+    if (screen->edit_buf == NULL || screen->prompt_buf == NULL || screen->status_top_left == NULL ||
+        screen->status_top_right == NULL || screen->status_bottom_left == NULL || screen->status_bottom_right == NULL)
     {
         com_util_pinned_prompt_dispose(screen);
         return NULL;
@@ -1403,13 +1372,13 @@ com_util_pinned_prompt_t *com_util_pinned_prompt_create(const com_util_pinned_pr
     screen->status_bottom_left_cap = 1U;
     screen->status_bottom_right[0] = '\0';
     screen->status_bottom_right_cap = 1U;
-    screen->status_dirty          = 1;
-    screen->prev_main_bottom_row  = 9999;
+    screen->status_dirty = 1;
+    screen->prev_main_bottom_row = 9999;
 
     return screen;
 }
 
-void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
+void com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
 {
     size_t i;
     size_t j;
@@ -1427,7 +1396,7 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     {
         for (i = 0U; i < screen->history_ctx_count; i++)
         {
-            pinned_prompt_history_ctx_t *ctx;
+            pinned_prompt_history_ctx *ctx;
 
             ctx = &screen->history_contexts[i];
             if (ctx->entries != NULL)
@@ -1456,16 +1425,12 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
     free(screen);
 }
 
-int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
-                                     char                     *buf,
-                                     size_t                    buf_size,
-                                     const char               *prompt_str,
-                                     const char               *file,
-                                     int                       line)
+int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *prompt_str,
+                                     const char *file, int line)
 {
     int done;
     int result;
-    pinned_prompt_history_ctx_t *history_ctx;
+    pinned_prompt_history_ctx *history_ctx;
 
     if (screen == NULL || buf == NULL || buf_size == 0U)
     {
@@ -1511,7 +1476,7 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
     result = 0;
     while (!done)
     {
-        int          ch;
+        int ch;
         pinned_prompt_key_t key;
 
         ch = 0;
@@ -1572,7 +1537,8 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_RIGHT:
-            screen->cursor = com_util_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
+            screen->cursor =
+                com_util_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_HOME:
@@ -1612,16 +1578,11 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen,
     return result;
 }
 
-int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
-                                         char                     *buf,
-                                         size_t                    buf_size,
-                                         const char               *file,
-                                         int                       line,
-                                         const char               *fmt,
-                                         ...)
+int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *file,
+                                         int line, const char *fmt, ...)
 {
     va_list ap;
-    int     rc;
+    int rc;
 
     if (screen == NULL)
     {
@@ -1637,12 +1598,10 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen,
     return _com_util_pinned_prompt_readline(screen, buf, buf_size, screen->fmt_buf, file, line);
 }
 
-size_t com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
-                                    com_util_pinned_prompt_channel_t  channel,
-                                    const void                       *data,
-                                    size_t                            size)
+size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+                                    const void *data, size_t size)
 {
-    FILE  *out;
+    FILE *out;
     size_t written;
 
     if (screen == NULL || (data == NULL && size != 0U))
@@ -1683,16 +1642,14 @@ size_t com_util_pinned_prompt_write(com_util_pinned_prompt_t         *screen,
     return written;
 }
 
-int com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
-                                  com_util_pinned_prompt_channel_t  channel,
-                                  const char                       *fmt,
-                                  ...)
+int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+                                  const char *fmt, ...)
 {
     va_list ap;
     va_list ap_copy;
-    int     needed;
-    char   *buf;
-    size_t  written;
+    int needed;
+    char *buf;
+    size_t written;
 
     if (screen == NULL)
     {
@@ -1737,9 +1694,8 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt_t         *screen,
     return (int)written;
 }
 
-int com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t                 *screen,
-                                         com_util_pinned_prompt_status_position_t  position,
-                                         int                                       enable)
+int com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
+                                         com_util_pinned_prompt_status_position_t position, int enable)
 {
     if (screen == NULL)
     {
@@ -1783,7 +1739,7 @@ int com_util_pinned_prompt_status_enable(com_util_pinned_prompt_t               
 static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char *content)
 {
     size_t len;
-    char  *new_buf;
+    char *new_buf;
 
     len = cstr_len(content);
     if (len + 1U > *cap)
@@ -1807,10 +1763,8 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
     return 0;
 }
 
-int com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *screen,
-                                      com_util_pinned_prompt_status_position_t  position,
-                                      com_util_pinned_prompt_status_align_t     align,
-                                      const char                               *content)
+int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position,
+                                      com_util_pinned_prompt_status_align_t align, const char *content)
 {
     int rc;
 
@@ -1824,15 +1778,11 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *
     {
         if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_top_left,
-                                                  &screen->status_top_left_cap,
-                                                  content);
+            rc = pinned_prompt_set_status_content(&screen->status_top_left, &screen->status_top_left_cap, content);
         }
         else if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_top_right,
-                                                  &screen->status_top_right_cap,
-                                                  content);
+            rc = pinned_prompt_set_status_content(&screen->status_top_right, &screen->status_top_right_cap, content);
         }
         else
         {
@@ -1844,14 +1794,12 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt_t                 *
     {
         if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_bottom_left,
-                                                  &screen->status_bottom_left_cap,
-                                                  content);
+            rc =
+                pinned_prompt_set_status_content(&screen->status_bottom_left, &screen->status_bottom_left_cap, content);
         }
         else if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_bottom_right,
-                                                  &screen->status_bottom_right_cap,
+            rc = pinned_prompt_set_status_content(&screen->status_bottom_right, &screen->status_bottom_right_cap,
                                                   content);
         }
         else

@@ -1,18 +1,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-com_util_pinned_prompt_t *delegate_real_com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options)
+com_util_pinned_prompt *delegate_real_com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_pinned_prompt_create)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_create"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_create)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_create"));
 
     return real_fn(options);
 }
 
-MOCK_WEAK_IMPL(com_util_pinned_prompt_t *, com_util_pinned_prompt_create, const com_util_pinned_prompt_options_t *options)
+MOCK_WEAK_IMPL(com_util_pinned_prompt *, com_util_pinned_prompt_create, const com_util_pinned_prompt_options *options)
 {
-    com_util_pinned_prompt_t *rtc = nullptr;
+    com_util_pinned_prompt *rtc = nullptr;
 
     if (_mock_com_util != nullptr)
     {

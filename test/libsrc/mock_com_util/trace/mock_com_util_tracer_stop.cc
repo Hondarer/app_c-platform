@@ -1,16 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_tracer_stop(com_util_tracer_t *handle)
+int delegate_real_com_util_tracer_stop(com_util_tracer *handle)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_tracer_stop)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_stop"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_stop)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_stop"));
 
     return real_fn(handle);
 }
 
-MOCK_WEAK_IMPL(int, com_util_tracer_stop, com_util_tracer_t *handle)
+MOCK_WEAK_IMPL(int, com_util_tracer_stop, com_util_tracer *handle)
 {
     int rtc = 0;
 

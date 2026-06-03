@@ -28,13 +28,12 @@
 #endif /* PLATFORM_LINUX */
 #include <string.h>
 
-static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
+static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
 {
 #if defined(PLATFORM_LINUX)
     int32_t expected = 0;
 
-    if (__atomic_compare_exchange_n(&fobj->lock_state, &expected, 1, 0,
-                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    if (__atomic_compare_exchange_n(&fobj->lock_state, &expected, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
     {
         if (com_util_local_lock_create(&fobj->lock) != 0)
         {
@@ -89,7 +88,7 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry_t *fobj)
 #endif /* PLATFORM_ */
 }
 
-static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry_t *fobj)
+static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry *fobj)
 {
     com_util_local_lock_unlock(fobj->lock);
     return fobj->func_ptr;
@@ -97,7 +96,7 @@ static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry_t *fobj)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry_t *fobj)
+COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj)
 {
 #if defined(PLATFORM_LINUX)
     const char *ext = ".so";
@@ -115,7 +114,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
     {
         return __atomic_load_n(&fobj->func_ptr, __ATOMIC_RELAXED);
     }
-#else /* !COMPILER_GCC */
+#else  /* !COMPILER_GCC */
     if (fobj->resolved != 0)
     {
         return fobj->func_ptr;
@@ -143,7 +142,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
              * func_ptr への書き込みなし → release store のみ必要。 */
 #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->resolved, 2, __ATOMIC_RELEASE);
-#else /* !COMPILER_GCC */
+#else  /* !COMPILER_GCC */
             fobj->resolved = 2;
 #endif /* COMPILER_GCC */
             return unlock_entry_and_return_func_ptr(fobj);
@@ -152,7 +151,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
         {
 #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->resolved, -1, __ATOMIC_RELEASE);
-#else /* !COMPILER_GCC */
+#else  /* !COMPILER_GCC */
             fobj->resolved = -1; /* resolved=-1: 定義なし (定義ファイル不存在、定義行が不存在) */
 #endif /* COMPILER_GCC */
             return unlock_entry_and_return_func_ptr(fobj);
@@ -161,7 +160,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
         {
 #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->resolved, -2, __ATOMIC_RELEASE);
-#else /* !COMPILER_GCC */
+#else  /* !COMPILER_GCC */
             fobj->resolved = -2; /* resolved=-2: 名称長さオーバー */
 #endif /* COMPILER_GCC */
             return unlock_entry_and_return_func_ptr(fobj);
@@ -178,7 +177,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
         {
 #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->resolved, -3, __ATOMIC_RELEASE);
-#else /* !COMPILER_GCC */
+#else  /* !COMPILER_GCC */
             fobj->resolved = -3; /* resolved=-3: ライブラリオープンエラー */
 #endif /* COMPILER_GCC */
             return unlock_entry_and_return_func_ptr(fobj);
@@ -189,11 +188,11 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #if defined(PLATFORM_LINUX)
         {
             void *ptr = dlsym(fobj->handle, fobj->func_name);
-#if defined(COMPILER_GCC)
+    #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->func_ptr, ptr, __ATOMIC_RELAXED);
-#else /* !COMPILER_GCC */
+    #else  /* !COMPILER_GCC */
             fobj->func_ptr = ptr;
-#endif /* COMPILER_GCC */
+    #endif /* COMPILER_GCC */
             if (ptr == NULL)
             {
                 dlclose(fobj->handle);
@@ -214,9 +213,9 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 
 #if defined(COMPILER_GCC)
         __atomic_store_n(&fobj->resolved, 1, __ATOMIC_RELEASE); /* resolved=1: 解決済 */
-#else /* !COMPILER_GCC */
+#else                                                           /* !COMPILER_GCC */
         fobj->resolved = 1; /* resolved=1: 解決済 */
-#endif /* COMPILER_GCC */
+#endif                                                          /* COMPILER_GCC */
     }
 
     return unlock_entry_and_return_func_ptr(fobj);

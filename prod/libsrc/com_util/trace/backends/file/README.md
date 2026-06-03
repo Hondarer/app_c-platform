@@ -50,7 +50,7 @@ OS トレースとは別に、アプリケーション自身が追跡しやす�
 ```c
 #include <com_util/trace/tracer.h>
 
-com_util_tracer_t *tracer = com_util_tracer_create();
+com_util_tracer *tracer = com_util_tracer_create();
 
 com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
                            COM_UTIL_TRACE_LEVEL_INFO, 0, 0);

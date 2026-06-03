@@ -17,7 +17,7 @@ Windows でトレースを OS 標準のイベント基盤へ流し、外部の E
 出力イベントは `Trace` イベントとして記録され、主に `Service` と `Message` の情報を持ちます。
 
 - `trace` 上位では OS トレースの出力先として利用される
-- Windows では複数の `com_util_tracer_t` があっても、ETW プロバイダー登録は共有される
+- Windows では複数の `com_util_tracer` があっても、ETW プロバイダー登録は共有される
 - 通常のメッセージ出力は `com_util_tracer_write()` 系から透過的に ETW へ流れる
 - `COM_UTIL_TRACE_LEVEL_VERBOSE` と `COM_UTIL_TRACE_LEVEL_DEBUG` はどちらも ETW Level 5 として扱われる
 

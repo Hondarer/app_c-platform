@@ -3,16 +3,15 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-void delegate_real_com_util_etw_session_stop(com_util_etw_session_t *session)
+void delegate_real_com_util_etw_session_stop(com_util_etw_session *session)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_etw_session_stop)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_stop"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_etw_session_stop)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_stop"));
 
     real_fn(session);
 }
 
-MOCK_WEAK_IMPL(void, com_util_etw_session_stop, com_util_etw_session_t *session)
+MOCK_WEAK_IMPL(void, com_util_etw_session_stop, com_util_etw_session *session)
 {
     if (_mock_com_util != nullptr)
     {

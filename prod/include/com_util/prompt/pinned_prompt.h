@@ -38,7 +38,7 @@ extern "C"
     /**
      *  @brief  Pinned prompt handle.
      */
-    typedef struct com_util_pinned_prompt_t com_util_pinned_prompt_t;
+    typedef struct com_util_pinned_prompt com_util_pinned_prompt;
 
     /**
      *  @brief  Output channel used by com_util_pinned_prompt_write().
@@ -70,7 +70,7 @@ extern "C"
     /**
      *  @brief  Pinned prompt creation options.
      */
-    typedef struct
+    typedef struct com_util_pinned_prompt_options
     {
         /**
          *  @brief  Reserved for future flags. Set to 0.
@@ -85,8 +85,8 @@ extern "C"
         /**
          *  @brief  Input and history options.
          */
-        com_util_prompt_options_t input;
-    } com_util_pinned_prompt_options_t;
+        com_util_prompt_options input;
+    } com_util_pinned_prompt_options;
 
     /**
      *  @brief      Create a pinned prompt.
@@ -97,8 +97,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
      */
-    COM_UTIL_EXPORT com_util_pinned_prompt_t *COM_UTIL_API
-    com_util_pinned_prompt_create(const com_util_pinned_prompt_options_t *options);
+    COM_UTIL_EXPORT com_util_pinned_prompt *COM_UTIL_API
+    com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options);
 
     /**
      *  @brief      Dispose a pinned prompt.
@@ -108,7 +108,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p screen を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen);
 
 /**
  *  @brief      Read one command line with a bottom-fixed prompt.
@@ -140,14 +140,14 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline(com_util_pinned_prompt_t *screen, char *buf,
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf,
                                                                       size_t buf_size, const char *prompt_str,
                                                                       const char *file, int line);
 
     /**
      *  @brief  com_util_pinned_prompt_readline_fmt() implementation.
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen, char *buf,
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf,
                                                                           size_t buf_size, const char *file, int line,
                                                                           const char *fmt, ...)
 #if defined(COMPILER_GCC)
@@ -170,7 +170,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt_t *screen,
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
                                                                      com_util_pinned_prompt_channel_t channel,
                                                                      const void *data, size_t size);
 
@@ -183,7 +183,7 @@ extern "C"
      *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
      *  @return     Number of bytes written to the target stream.
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_printf(com_util_pinned_prompt_t *screen,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
                                                                    com_util_pinned_prompt_channel_t channel,
                                                                    const char *fmt, ...)
 #if defined(COMPILER_GCC)
@@ -203,7 +203,7 @@ extern "C"
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_enable(
-        com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position, int enable);
+        com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position, int enable);
 
     /**
      *  @brief          Set status area content.
@@ -219,9 +219,9 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_set(
-        com_util_pinned_prompt_t *screen, com_util_pinned_prompt_status_position_t position,
-        com_util_pinned_prompt_status_align_t align, const char *content);
+    COM_UTIL_EXPORT int COM_UTIL_API
+    com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position,
+                                      com_util_pinned_prompt_status_align_t align, const char *content);
 
 #ifdef __cplusplus
 }

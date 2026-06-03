@@ -55,9 +55,9 @@ struct com_util_trace_file_sink
     /** 保持する旧世代数。 */
     int generations;
     /** 低レベルファイル I/O ハンドル。 */
-    com_util_file_t file;
+    com_util_file file;
     /** スレッド安全のための mutex。 */
-    com_util_local_lock_t *mutex;
+    com_util_local_lock *mutex;
     /** mutex が初期化済みかどうかのフラグ。 */
     int mutex_initialized;
     /** 構造体のサイズをアライメント境界に揃えるためのパディング。 */
@@ -91,7 +91,7 @@ static char level_char(const int level)
 /**
  *  @brief  タイムスタンプが有効範囲か判定する。
  */
-static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 {
     return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
 }
@@ -103,8 +103,7 @@ static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
  *  @param  fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
  *  @return 成功 0 / 失敗 -1。
  */
-static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
-                             com_util_realtime_timestamp_t *resolved,
+static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
                              int *fallback_used)
 {
     if (resolved == NULL)
@@ -147,7 +146,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
  *  @param  resolved 使用する実時刻。
  *  @return 成功 0 / 失敗 -1。
  */
-static int format_timestamp(char *buf, const int buf_size, const com_util_realtime_timestamp_t *resolved)
+static int format_timestamp(char *buf, const int buf_size, const com_util_realtime_timestamp *resolved)
 {
     if (!timestamp_is_valid(resolved))
     {
@@ -161,11 +160,10 @@ static int format_timestamp(char *buf, const int buf_size, const com_util_realti
  *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
  *  @return 成功 0 / 失敗 -1。
  */
-static int open_file(com_util_trace_file_sink_t *p)
+static int open_file(com_util_trace_file_sink *p)
 {
-    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
-                     COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ |
-                     COM_UTIL_FILE_OPEN_SHARE_DELETE;
+    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
+                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
 
     if (com_util_file_open(&p->file, p->path, flags) != 0)
     {
@@ -186,11 +184,10 @@ static int open_file(com_util_trace_file_sink_t *p)
  *          current_bytes は必ず 0 に設定される。
  *  @return 成功 0 / 失敗 -1。
  */
-static int open_file_truncate(com_util_trace_file_sink_t *p)
+static int open_file_truncate(com_util_trace_file_sink *p)
 {
-    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
-                     COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                     COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE | COM_UTIL_FILE_OPEN_APPEND |
+                COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
 
     p->current_bytes = 0;
 
@@ -200,7 +197,7 @@ static int open_file_truncate(com_util_trace_file_sink_t *p)
 /**
  *  @brief  開いているファイルを閉じる。未開の場合は何もしない (冪等)。
  */
-static void close_file(com_util_trace_file_sink_t *p)
+static void close_file(com_util_trace_file_sink *p)
 {
     com_util_file_close(&p->file);
 }
@@ -212,7 +209,7 @@ static void close_file(com_util_trace_file_sink_t *p)
  *  リネームに失敗した場合はその世代でカスケードを打ち切り、
  *  呼び出し元をブロックせずに続行する (ベストエフォート)。
  */
-static void rotate_file(com_util_trace_file_sink_t *p)
+static void rotate_file(com_util_trace_file_sink *p)
 {
     /* パス構築用スタックバッファ */
     char old_path[PLATFORM_PATH_MAX];
@@ -257,10 +254,11 @@ static void rotate_file(com_util_trace_file_sink_t *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sink_create(const char *path, const size_t max_bytes,
-                                                                           const int generations)
+COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
+                                                                                       const size_t max_bytes,
+                                                                                       const int generations)
 {
-    com_util_trace_file_sink_t *handle;
+    com_util_trace_file_sink *handle;
     size_t path_len;
 
     if (path == NULL)
@@ -276,7 +274,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
         return NULL;
     }
 
-    handle = (com_util_trace_file_sink_t *)malloc(sizeof(com_util_trace_file_sink_t));
+    handle = (com_util_trace_file_sink *)malloc(sizeof(com_util_trace_file_sink));
     if (handle == NULL)
     {
         return NULL;
@@ -337,13 +335,13 @@ COM_UTIL_EXPORT com_util_trace_file_sink_t *COM_UTIL_API com_util_trace_file_sin
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, const int level,
-                                                                const com_util_realtime_timestamp_t *timestamp,
+COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int level,
+                                                                const com_util_realtime_timestamp *timestamp,
                                                                 const char *message)
 {
     char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
-    com_util_realtime_timestamp_t resolved;
+    com_util_realtime_timestamp resolved;
     int fallback_used = 0;
     int len;
     int ret;
@@ -415,7 +413,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink_t *handle)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle)
 {
     if (handle == NULL)
     {
@@ -436,7 +434,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trac
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink_t *handle)
+void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *handle)
 {
     if (handle == NULL)
     {

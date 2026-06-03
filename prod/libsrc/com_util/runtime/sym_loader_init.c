@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_init.c
- *  @brief          設定テキストファイルから com_util_sym_loader_entry_t エントリを読み込む。
+ *  @brief          設定テキストファイルから com_util_sym_loader_entry エントリを読み込む。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
@@ -47,8 +47,8 @@ _Static_assert(SYMBOL_LOADER_NAME_WIDTH == COM_UTIL_SYM_LOADER_NAME_MAX - 1,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length,
-                                                     const char *configpath)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array,
+                                                           const size_t fobj_length, const char *configpath)
 {
     FILE *fp;
     char line[CONFIG_LINE_MAX];
@@ -83,7 +83,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_e
         /* func_key が一致するキャッシュを検索し、配列に書き込む */
         for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
         {
-            com_util_sym_loader_entry_t *cache = fobj_array[fobj_index];
+            com_util_sym_loader_entry *cache = fobj_array[fobj_index];
             if (cache->func_key == NULL || strcmp(cache->func_key, func_key) != 0)
             {
                 continue;

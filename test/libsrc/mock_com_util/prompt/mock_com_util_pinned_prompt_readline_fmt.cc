@@ -2,20 +2,19 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt_t *screen, char *buf, size_t buf_size,
+int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size,
                                                        const char *file, int line, const char *fmt, va_list args)
 {
     char prompt[COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT];
     vsnprintf(prompt, sizeof(prompt), fmt != nullptr ? fmt : "", args);
 
-    static auto real_fn =
-        reinterpret_cast<decltype(&_com_util_pinned_prompt_readline)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_pinned_prompt_readline"));
+    static auto real_fn = reinterpret_cast<decltype(&_com_util_pinned_prompt_readline)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_pinned_prompt_readline"));
 
     return real_fn(screen, buf, buf_size, prompt, file, line);
 }
 
-MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt_t *screen, char *buf, size_t buf_size,
+MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt *screen, char *buf, size_t buf_size,
                const char *file, int line, const char *fmt, ...)
 {
     int rtc = 0;

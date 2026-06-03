@@ -7,7 +7,7 @@
 
 class crt_fileTest : public Test
 {
-protected:
+  protected:
     std::string make_path(const char *name)
     {
         std::string root = findWorkspaceRoot();
@@ -18,7 +18,7 @@ protected:
         return (dir / name).generic_string();
     }
 
-    void write_text_file(const std::string& path, const char *text)
+    void write_text_file(const std::string &path, const char *text)
     {
 #if defined(PLATFORM_LINUX)
         FILE *fp = std::fopen(path.c_str(), "wb");
@@ -32,7 +32,7 @@ protected:
         std::fclose(fp);
     }
 
-    std::string read_text_file(const std::string& path)
+    std::string read_text_file(const std::string &path)
     {
         FILE *fp = NULL;
 #if defined(PLATFORM_LINUX)
@@ -44,7 +44,7 @@ protected:
             return std::string();
         }
 #endif /* PLATFORM_ */
-        char  buf[128];
+        char buf[128];
         size_t n;
         std::string out;
 
@@ -65,7 +65,7 @@ protected:
 
 TEST_F(crt_fileTest, init_and_close_are_safe_for_unopened_handle)
 {
-    com_util_file_t file;
+    com_util_file file;
 
     com_util_file_init(&file);
     com_util_file_close(&file);
@@ -75,17 +75,15 @@ TEST_F(crt_fileTest, init_and_close_are_safe_for_unopened_handle)
 TEST_F(crt_fileTest, append_open_reports_existing_size)
 {
     std::string path = make_path("append_size.log");
-    com_util_file_t file;
+    com_util_file file;
     size_t size = 0;
 
     write_text_file(path, "hello");
     com_util_file_init(&file);
 
-    ASSERT_EQ(0, com_util_file_open(&file,
-                                           path.c_str(),
-                                           COM_UTIL_FILE_OPEN_CREATE |
-                                               COM_UTIL_FILE_OPEN_APPEND |
-                                               COM_UTIL_FILE_OPEN_WRITE_THROUGH));
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+                                        COM_UTIL_FILE_OPEN_WRITE_THROUGH));
     ASSERT_EQ(0, com_util_file_get_size(&file, &size));
     EXPECT_EQ((size_t)5, size);
 
@@ -96,18 +94,15 @@ TEST_F(crt_fileTest, append_open_reports_existing_size)
 TEST_F(crt_fileTest, truncate_open_resets_existing_file_size)
 {
     std::string path = make_path("truncate.log");
-    com_util_file_t file;
+    com_util_file file;
     size_t size = 99;
 
     write_text_file(path, "existing-data");
     com_util_file_init(&file);
 
-    ASSERT_EQ(0, com_util_file_open(&file,
-                                           path.c_str(),
-                                           COM_UTIL_FILE_OPEN_CREATE |
-                                               COM_UTIL_FILE_OPEN_TRUNCATE |
-                                               COM_UTIL_FILE_OPEN_APPEND |
-                                               COM_UTIL_FILE_OPEN_WRITE_THROUGH));
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
+                                        COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH));
     ASSERT_EQ(0, com_util_file_get_size(&file, &size));
     EXPECT_EQ((size_t)0, size);
 
@@ -119,29 +114,24 @@ TEST_F(crt_fileTest, truncate_open_resets_existing_file_size)
 TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
 {
     std::string path = make_path("write_and_reopen.log");
-    com_util_file_t file;
+    com_util_file file;
     size_t size = 0;
 
     std::remove(path.c_str());
     com_util_file_init(&file);
 
-    ASSERT_EQ(0, com_util_file_open(&file,
-                                           path.c_str(),
-                                           COM_UTIL_FILE_OPEN_CREATE |
-                                               COM_UTIL_FILE_OPEN_TRUNCATE |
-                                               COM_UTIL_FILE_OPEN_APPEND |
-                                               COM_UTIL_FILE_OPEN_WRITE_THROUGH));
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
+                                        COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH));
     ASSERT_EQ(0, com_util_file_write(&file, "abc", 3));
     ASSERT_EQ(0, com_util_file_get_size(&file, &size));
     EXPECT_EQ((size_t)3, size);
 
     com_util_file_close(&file);
 
-    ASSERT_EQ(0, com_util_file_open(&file,
-                                           path.c_str(),
-                                           COM_UTIL_FILE_OPEN_CREATE |
-                                               COM_UTIL_FILE_OPEN_APPEND |
-                                               COM_UTIL_FILE_OPEN_WRITE_THROUGH));
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+                                        COM_UTIL_FILE_OPEN_WRITE_THROUGH));
     ASSERT_EQ(0, com_util_file_write(&file, "def", 3));
     com_util_file_close(&file);
 
@@ -151,7 +141,7 @@ TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
 
 TEST_F(crt_fileTest, invalid_arguments_fail)
 {
-    com_util_file_t file;
+    com_util_file file;
     size_t size = 0;
 
     com_util_file_init(&file);

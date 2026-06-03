@@ -29,35 +29,35 @@
 
 #if defined(PLATFORM_LINUX)
 
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+    #include <sys/socket.h>
+    #include <sys/un.h>
+    #include <unistd.h>
+    #include <time.h>
+    #include <errno.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
 
-#include <com_util/clock/clock.h>
-#include <com_util/sync/sync.h>
-#include <com_util/trace/syslog.h>
-#include <com_util/trace/backends/syslog/syslog_internal.h>
-#include <com_util/test/syslog_test.h>
+    #include <com_util/clock/clock.h>
+    #include <com_util/sync/sync.h>
+    #include <com_util/trace/syslog.h>
+    #include <com_util/trace/backends/syslog/syslog_internal.h>
+    #include <com_util/test/syslog_test.h>
 
-/** /dev/log への UNIX ドメインソケットパス。 */
-#define DEVLOG_PATH      "/dev/log"
+    /** /dev/log への UNIX ドメインソケットパス。 */
+    #define DEVLOG_PATH "/dev/log"
 
-/** 初回バックオフ間隔 (秒)。 */
-#define BACKOFF_INIT_SEC  5
+    /** 初回バックオフ間隔 (秒)。 */
+    #define BACKOFF_INIT_SEC 5
 
-/** バックオフ最大間隔 (秒)。 */
-#define BACKOFF_MAX_SEC  60
+    /** バックオフ最大間隔 (秒)。 */
+    #define BACKOFF_MAX_SEC 60
 
-/** メッセージバッファサイズ (RFC 3164 推奨最大長)。 */
-#define SYSLOG_BUF_SIZE  2048
+    /** メッセージバッファサイズ (RFC 3164 推奨最大長)。 */
+    #define SYSLOG_BUF_SIZE 2048
 
-/** SYSLOG_TEST_FD 向けバッファサイズ。timestamp と改行を加味する。 */
-#define SYSLOG_DEBUG_BUF_SIZE (SYSLOG_BUF_SIZE + COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 4)
+    /** SYSLOG_TEST_FD 向けバッファサイズ。timestamp と改行を加味する。 */
+    #define SYSLOG_DEBUG_BUF_SIZE (SYSLOG_BUF_SIZE + COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 4)
 
 /**
  *  @brief  syslog プロバイダハンドル構造体 (内部定義)。
@@ -71,7 +71,7 @@ struct com_util_syslog_sink
      *  fd・next_connect・backoff_sec を保護する mutex。
      *  sendto() は MSG_DONTWAIT で即時返るため、ロック保持中に実行する。
      */
-    com_util_local_lock_t *reconnect_lock;
+    com_util_local_lock *reconnect_lock;
 
     /** 次回接続試行を許可する最早時刻 (time_t)。reconnect_lock で保護。 */
     time_t next_connect;
@@ -92,7 +92,7 @@ struct com_util_syslog_sink
 /**
  *  @brief  タイムスタンプが有効範囲か判定する。
  */
-static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 {
     return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
 }
@@ -104,8 +104,7 @@ static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
  *  @param[out]     fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
  *  @return         成功時 0、解決失敗時 -1。
  */
-static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
-                             com_util_realtime_timestamp_t *resolved,
+static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
                              int *fallback_used)
 {
     if (timestamp == NULL)
@@ -150,7 +149,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
 /**
  *  @brief  バックオフ値を次段階に進める。ロック保持中に呼ぶこと。
  */
-static void advance_backoff(com_util_syslog_sink_t *h)
+static void advance_backoff(com_util_syslog_sink *h)
 {
     int next = h->backoff_sec * 2;
 
@@ -167,7 +166,7 @@ static void advance_backoff(com_util_syslog_sink_t *h)
 /**
  *  @brief  fd を閉じてバックオフを進める。ロック保持中に呼ぶこと。
  */
-static void close_and_backoff_locked(com_util_syslog_sink_t *h)
+static void close_and_backoff_locked(com_util_syslog_sink *h)
 {
     if (h->fd >= 0)
     {
@@ -182,7 +181,7 @@ static void close_and_backoff_locked(com_util_syslog_sink_t *h)
  *  @brief  バックオフ期間を経過していればソケットを開く試みを行う。
  *          ロック保持中に呼ぶこと。
  */
-static void try_open_socket_locked(com_util_syslog_sink_t *h)
+static void try_open_socket_locked(com_util_syslog_sink *h)
 {
     time_t now = time(NULL);
     int fd;
@@ -206,10 +205,9 @@ static void try_open_socket_locked(com_util_syslog_sink_t *h)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
-    com_util_syslog_sink_create(const char *ident, const int facility)
+COM_UTIL_EXPORT com_util_syslog_sink *COM_UTIL_API com_util_syslog_sink_create(const char *ident, const int facility)
 {
-    com_util_syslog_sink_t *handle;
+    com_util_syslog_sink *handle;
     size_t len;
 
     if (ident == NULL)
@@ -217,7 +215,7 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
         return NULL;
     }
 
-    handle = (com_util_syslog_sink_t *)malloc(sizeof(com_util_syslog_sink_t));
+    handle = (com_util_syslog_sink *)malloc(sizeof(com_util_syslog_sink));
     if (handle == NULL)
     {
         return NULL;
@@ -232,10 +230,10 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
     }
     memcpy(handle->ident, ident, len);
 
-    handle->facility         = facility;
-    handle->fd               = -1;
-    handle->next_connect     = 0;
-    handle->backoff_sec      = BACKOFF_INIT_SEC;
+    handle->facility = facility;
+    handle->fd = -1;
+    handle->next_connect = 0;
+    handle->backoff_sec = BACKOFF_INIT_SEC;
     handle->lock_initialized = 0;
 
     if (com_util_local_lock_create(&handle->reconnect_lock) != 0)
@@ -256,16 +254,15 @@ COM_UTIL_EXPORT com_util_syslog_sink_t *COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_syslog_sink_write(com_util_syslog_sink_t *handle, const int level,
-                               const com_util_realtime_timestamp_t *timestamp,
-                               const char *message)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
+                                                            const com_util_realtime_timestamp *timestamp,
+                                                            const char *message)
 {
     char buf[SYSLOG_BUF_SIZE];
     char debug_buf[SYSLOG_DEBUG_BUF_SIZE];
     char timestamp_text[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
-    com_util_realtime_timestamp_t resolved;
-    const com_util_realtime_timestamp_t *effective_timestamp = NULL;
+    com_util_realtime_timestamp resolved;
+    const com_util_realtime_timestamp *effective_timestamp = NULL;
     struct sockaddr_un sa;
     const char *test_fd_str;
     int fallback_used = 0;
@@ -291,8 +288,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     prio = (handle->facility & ~7) | (level & 7);
 
     /* RFC 3164 形式: <PRI>TAG[PID]: MSG */
-    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s",
-                 prio, handle->ident, (int)getpid(), message);
+    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message);
     if (n < 0)
     {
         return 0;
@@ -307,8 +303,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     if (test_fd_str != NULL)
     {
         if (effective_timestamp != NULL &&
-            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text),
-                                                   effective_timestamp->tv_sec,
+            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp->tv_sec,
                                                    effective_timestamp->tv_nsec) == 0)
         {
             debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
@@ -364,9 +359,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
     }
 
     /* sendto は MSG_DONTWAIT で即時返るため、ロック保持中に実行する */
-    sent = sendto(handle->fd, buf, (size_t)n, MSG_DONTWAIT,
-                  (struct sockaddr *)&sa,
-                  (socklen_t)sizeof(sa));
+    sent = sendto(handle->fd, buf, (size_t)n, MSG_DONTWAIT, (struct sockaddr *)&sa, (socklen_t)sizeof(sa));
 
     if (sent < 0)
     {
@@ -412,8 +405,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_syslog_sink_dispose(com_util_syslog_sink_t *handle)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
 {
     if (handle == NULL)
     {
@@ -434,8 +426,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, const char *new_ident)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident)
 {
     char *dup;
     size_t len;
@@ -463,7 +454,7 @@ COM_UTIL_EXPORT int COM_UTIL_API
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink_t *handle)
+void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle)
 {
     if (handle == NULL)
     {

@@ -50,7 +50,7 @@
 
 ### sym_loader
 
-`sym_loader` は、`func_key` ごとの解決情報を `com_util_sym_loader_entry_t` に保持します。  
+`sym_loader` は、`func_key` ごとの解決情報を `com_util_sym_loader_entry` に保持します。  
 初回解決時にライブラリ ロードとシンボル探索を行い、その結果をキャッシュします。
 
 - Linux では `dlopen` / `dlsym`
@@ -63,14 +63,14 @@
 ### エントリを静的定義する
 
 ```c
-static com_util_sym_loader_entry_t sfo_sample_func =
+static com_util_sym_loader_entry sfo_sample_func =
     COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", sample_func_t);
 ```
 
 ### エントリ配列を用意する
 
 ```c
-com_util_sym_loader_entry_t *const fobj_array[] = {
+com_util_sym_loader_entry *const fobj_array[] = {
     &sfo_sample_func,
 };
 ```
@@ -136,7 +136,7 @@ if (com_util_module_get_basename(basename, sizeof(basename), (const void *)onLoa
 
 typedef int (*sample_func_t)(int a, int b, int *result);
 
-static com_util_sym_loader_entry_t sfo_sample_func =
+static com_util_sym_loader_entry sfo_sample_func =
     COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", sample_func_t);
 
 int sample_func(int a, int b, int *result)
@@ -157,13 +157,13 @@ int sample_func(int a, int b, int *result)
 
 - `module_info` は Win32 API ベースで DLL パスを取得する
 - `sym_loader` は `.dll` を内部で補完してロードする
-- ロックは `com_util_local_lock_t` を使う
+- ロックは `com_util_local_lock` を使う
 
 ### Linux / 非 Windows
 
 - `module_info` は `dladdr()` ベースで `.so` の位置を特定する
 - `sym_loader` は `.so` を内部で補完してロードする
-- ロックは `com_util_local_lock_t` を使う
+- ロックは `com_util_local_lock` を使う
 
 ## 注意点
 

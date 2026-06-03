@@ -58,12 +58,12 @@ extern "C"
     /**
      *  @brief          終了イベント情報。
      */
-    typedef struct com_util_shutdown_event_t
+    typedef struct com_util_shutdown_event
     {
         com_util_shutdown_reason_t reason;       /**< 終了理由。 */
         com_util_shutdown_code_kind_t code_kind; /**< `code` の意味。 */
         int code;                                /**< 終了コード、シグナル番号、CTRL 種別。 */
-    } com_util_shutdown_event_t;
+    } com_util_shutdown_event;
 
     /**
      *  @brief          終了コールバック関数型。
@@ -74,7 +74,7 @@ extern "C"
      *  コールバックはシャットダウン ハンドラから 1 スレッドで呼び出されます。\n
      *  コールバック内で再帰的にシャットダウン処理を呼び出さないでください。
      */
-    typedef void (*com_util_shutdown_callback_t)(const com_util_shutdown_event_t *event, void *context);
+    typedef void (*com_util_shutdown_callback_t)(const com_util_shutdown_event *event, void *context);
 
     /**
      *  @brief          終了コールバックを登録する。
@@ -135,7 +135,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event_t *event);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event);
 
     /**
      *  @brief          テスト用に終了要求 callback を同期実行する。
@@ -149,7 +149,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event_t *event);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event);
 
     /**
      *  @brief          テスト用に shutdown ランタイムの内部状態を初期化する。

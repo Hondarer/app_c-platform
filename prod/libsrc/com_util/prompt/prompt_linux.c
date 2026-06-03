@@ -7,12 +7,12 @@
 
 #if defined(PLATFORM_LINUX)
 
-#include <errno.h>
-#include <signal.h>
+    #include <errno.h>
+    #include <signal.h>
 
-static volatile sig_atomic_t s_resize_pending     = 0;
-static struct sigaction       s_prev_sigwinch;
-static int                    s_sigwinch_installed = 0;
+static volatile sig_atomic_t s_resize_pending = 0;
+static struct sigaction s_prev_sigwinch;
+static int s_sigwinch_installed = 0;
 
 static void prompt_sigwinch_handler(int sig)
 {
@@ -25,9 +25,9 @@ int prompt_platform_is_tty(void)
     return isatty(STDIN_FILENO);
 }
 
-void prompt_platform_enter_raw(com_util_prompt_t *p)
+void prompt_platform_enter_raw(com_util_prompt *p)
 {
-    struct termios   raw;
+    struct termios raw;
     struct sigaction sa;
 
     if (p->raw_active)
@@ -47,7 +47,7 @@ void prompt_platform_enter_raw(com_util_prompt_t *p)
      * IXON   : Ctrl+S/Q による出力一時停止を無効 */
     raw.c_lflag &= ~((tcflag_t)(ICANON | ECHO | ISIG));
     raw.c_iflag &= ~((tcflag_t)(ICRNL | IXON));
-    raw.c_cc[VMIN]  = 1;
+    raw.c_cc[VMIN] = 1;
     raw.c_cc[VTIME] = 0;
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) != 0)
@@ -66,7 +66,7 @@ void prompt_platform_enter_raw(com_util_prompt_t *p)
     }
 }
 
-void prompt_platform_leave_raw(com_util_prompt_t *p)
+void prompt_platform_leave_raw(com_util_prompt *p)
 {
     if (!p->raw_active)
     {
@@ -82,10 +82,10 @@ void prompt_platform_leave_raw(com_util_prompt_t *p)
     }
 }
 
-int prompt_platform_read_char(com_util_prompt_t *p)
+int prompt_platform_read_char(com_util_prompt *p)
 {
     unsigned char c;
-    ssize_t       n;
+    ssize_t n;
     (void)p;
 
     for (;;)
@@ -108,7 +108,7 @@ int prompt_platform_read_char(com_util_prompt_t *p)
     }
 }
 
-int prompt_platform_read_char_nb(com_util_prompt_t *p)
+int prompt_platform_read_char_nb(com_util_prompt *p)
 {
     fd_set fds;
     struct timeval tv;
@@ -116,7 +116,7 @@ int prompt_platform_read_char_nb(com_util_prompt_t *p)
 
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
-    tv.tv_sec  = 0;
+    tv.tv_sec = 0;
     tv.tv_usec = 50000; /* 50ms */
 
     if (select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) <= 0)

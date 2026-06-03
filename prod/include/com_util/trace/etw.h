@@ -21,12 +21,12 @@
  */
 
 /**
- *  @struct         com_util_etw_event_t
+ *  @struct         com_util_etw_event
  *  @brief          ETW consumer が受け取るイベント情報。
  *
  *  event_name / service / message は callback 呼び出し中のみ有効なポインタです。
  */
-typedef struct com_util_etw_event_t
+typedef struct com_util_etw_event
 {
     /** イベントレベル (1-5)。 */
     int level;
@@ -40,7 +40,7 @@ typedef struct com_util_etw_event_t
     const char *message;
     /** ETW が付与したタイムスタンプ。EVENT_HEADER::TimeStamp の生値 (100ns 単位)。 */
     int64_t timestamp_100ns;
-} com_util_etw_event_t;
+} com_util_etw_event;
 
 /**
  *  @typedef        com_util_etw_event_callback_t
@@ -53,7 +53,7 @@ typedef struct com_util_etw_event_t
  *  コールバックは ETW ワーカースレッドから呼び出されます。\n
  *  コールバックの実装者は再入性を確保してください。
  */
-typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event_t *event, void *context);
+typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event *event, void *context);
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -87,7 +87,7 @@ typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
 /* ===== 不透明ハンドル型 ===== */
 
 /** ETW プロバイダハンドル (不透明型)。 */
-typedef struct com_util_etw_provider com_util_etw_provider_t;
+typedef struct com_util_etw_provider com_util_etw_provider;
 
     /* ===== API 関数 ===== */
 
@@ -106,7 +106,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_etw_provider_t *COM_UTIL_API
+    COM_UTIL_EXPORT com_util_etw_provider *COM_UTIL_API
     com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref);
 
     /**
@@ -122,7 +122,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  TraceLoggingWrite は複数スレッドからの同時呼び出しをサポートしています。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provider_t *handle, int level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provider *handle, int level,
                                                                  const char *service, const char *message);
 
     /**
@@ -134,7 +134,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_provider_dispose(com_util_etw_provider_t *handle);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_provider_dispose(com_util_etw_provider *handle);
 
     /* ===== セッション (Consumer) API ===== */
 
@@ -153,7 +153,7 @@ extern "C"
     /** @} */
 
     /** ETW セッションハンドル (不透明型)。 */
-    typedef struct com_util_etw_session com_util_etw_session_t;
+    typedef struct com_util_etw_session com_util_etw_session;
 
     /**
      *  @brief          ETW セッション開始に必要な権限があるか検査する。
@@ -181,7 +181,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したセッションを生成します。
      */
-    COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API
+    COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API
     com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
                                com_util_etw_event_callback_t callback, void *context, int *out_status);
 
@@ -194,7 +194,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p session への並行呼び出しは未定義動作です。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session_t *session);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session *session);
 
     #ifdef __cplusplus
 }

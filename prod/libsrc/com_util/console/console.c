@@ -15,9 +15,9 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-#include <com_util/base/windows_sdk.h>
-#include <com_util/sync/sync.h>
-#include <stdio.h>   /* stdout, stderr */
+    #include <com_util/base/windows_sdk.h>
+    #include <com_util/sync/sync.h>
+    #include <stdio.h> /* stdout, stderr */
 
 /* 初期化前のコンソール状態を保存 */
 static UINT s_orig_output_cp = 0;
@@ -25,7 +25,7 @@ static UINT s_orig_input_cp = 0;
 static DWORD s_orig_stdout_mode = 0;
 static DWORD s_orig_stderr_mode = 0;
 static LONG s_initialized = 0;
-static com_util_once_flag_t s_console_shutdown_once = {0};
+static com_util_once_flag s_console_shutdown_once = {0};
 
 static void register_console_shutdown_callback(void)
 {
@@ -43,7 +43,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
     com_util_call_once(&s_console_shutdown_once, register_console_shutdown_callback);
 
     /* 二重初期化を防ぐ */
-    if (InterlockedCompareExchange(&s_initialized, 1, 0)) return;
+    if (InterlockedCompareExchange(&s_initialized, 1, 0))
+        return;
 
     /* stdout がコンソール (TTY) でなければ何もしない */
     h = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -95,7 +96,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
     HANDLE h;
 
     /* initialized を 1 → 0 に変更。戻り値が 0 なら元々未初期化なので何もしない。 */
-    if (!InterlockedCompareExchange(&s_initialized, 0, 1)) return;
+    if (!InterlockedCompareExchange(&s_initialized, 0, 1))
+        return;
 
     /* コンソールモードを元に戻す */
     if (s_orig_stdout_mode != 0)
@@ -126,10 +128,11 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
     }
 }
 
-void com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event, void *context)
+void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
 {
     (void)context;
-    if (event == NULL || event->reason != COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT) return;
+    if (event == NULL || event->reason != COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT)
+        return;
 
     /* stdout/stderr をフラッシュしてからコンソール状態を戻す */
     fflush(stdout);
@@ -142,8 +145,12 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event
 
 /* ===== Linux 実装 (no-op) ===== */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)    {}
+COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void) {}
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void) {}
-void com_util_console_dispose_on_shutdown(const com_util_shutdown_event_t *event, void *context) { (void)event; (void)context; }
+void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
+{
+    (void)event;
+    (void)context;
+}
 
 #endif /* PLATFORM_ */

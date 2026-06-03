@@ -1,18 +1,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_prompt_readline_at(com_util_prompt_t *p, char *buf, size_t buf_size,
-                                              const char *prompt_str, const char *file, int line)
+int delegate_real_com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, const char *prompt_str,
+                                              const char *file, int line)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_prompt_readline_at)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_prompt_readline_at"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_prompt_readline_at)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_prompt_readline_at"));
 
     return real_fn(p, buf, buf_size, prompt_str, file, line);
 }
 
-MOCK_WEAK_IMPL(int, com_util_prompt_readline_at, com_util_prompt_t *p, char *buf, size_t buf_size,
-               const char *prompt_str, const char *file, int line)
+MOCK_WEAK_IMPL(int, com_util_prompt_readline_at, com_util_prompt *p, char *buf, size_t buf_size, const char *prompt_str,
+               const char *file, int line)
 {
     int rtc = 0;
 

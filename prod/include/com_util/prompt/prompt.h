@@ -24,7 +24,7 @@
 
     int main(void) {
         char buf[256];
-        com_util_prompt_t *prompt = com_util_prompt_create(NULL);
+        com_util_prompt *prompt = com_util_prompt_create(NULL);
         while (com_util_prompt_readline(prompt, buf, sizeof(buf), ">> ")) {
             printf("入力: %s\n", buf);
         }
@@ -81,12 +81,12 @@ extern "C"
     /**
      *  @brief  プロンプトハンドルの不透明型。
      */
-    typedef struct com_util_prompt_t com_util_prompt_t;
+    typedef struct com_util_prompt com_util_prompt;
 
     /**
      *  @brief  プロンプト生成オプション。
      */
-    typedef struct
+    typedef struct com_util_prompt_options
     {
         /**
          *  @brief  将来拡張用フラグ。現時点では 0 を指定する。
@@ -115,7 +115,7 @@ extern "C"
          *          0 を指定すると @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用する。
          */
         size_t input_max_bytes;
-    } com_util_prompt_options_t;
+    } com_util_prompt_options;
 
     /**
      *  @brief      プロンプトハンドルを生成する。
@@ -126,7 +126,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
      */
-    COM_UTIL_EXPORT com_util_prompt_t *COM_UTIL_API com_util_prompt_create(const com_util_prompt_options_t *options);
+    COM_UTIL_EXPORT com_util_prompt *COM_UTIL_API com_util_prompt_create(const com_util_prompt_options *options);
 
     /**
      *  @brief      プロンプトハンドルを解放する。
@@ -138,7 +138,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p prompt を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_prompt_dispose(com_util_prompt_t *prompt);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_prompt_dispose(com_util_prompt *prompt);
 
 /**
  *  @brief      固定プロンプト文字列を表示して 1 行入力を受け取る。
@@ -174,7 +174,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p prompt への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_at(com_util_prompt_t *prompt, char *buf, size_t buf_size,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_at(com_util_prompt *prompt, char *buf, size_t buf_size,
                                                                  const char *prompt_str, const char *file, int line);
 
     /**
@@ -182,7 +182,7 @@ extern "C"
      *
      *  通常は com_util_prompt_readline_fmt() を使用する。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt_t *p, char *buf, size_t buf_size,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 6, 7)))

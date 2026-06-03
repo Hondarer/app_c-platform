@@ -23,12 +23,12 @@
     #include <com_util/trace/etw.h>
     #include <com_util/runtime/shutdown.h>
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 extern "C"
 {
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
-/**
+    /**
  *  @brief          shutdown フェーズで ETW プロバイダハンドルを解放します。
  *  @param[in]      handle 解放する ETW プロバイダハンドル。
  *  @param[in]      event shutdown イベント情報。
@@ -40,12 +40,11 @@ extern "C"
  *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
  *  呼び出し側がスレッドの静止を保証します。
  */
-void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider_t *handle,
-                                               const com_util_shutdown_event_t *event);
+    void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider *handle, const com_util_shutdown_event *event);
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
 #endif /* PLATFORM_WINDOWS */
 

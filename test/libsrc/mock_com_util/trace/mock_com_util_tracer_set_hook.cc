@@ -1,20 +1,19 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-com_util_tracer_hook_entry_t *delegate_real_com_util_tracer_set_hook(
-    com_util_tracer_t *handle, com_util_tracer_hook_fn_t fn, void *context)
+com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_tracer *handle,
+                                                                   com_util_tracer_hook_fn_t fn, void *context)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_tracer_set_hook)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_hook"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_set_hook)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_hook"));
 
     return real_fn(handle, fn, context);
 }
 
-MOCK_WEAK_IMPL(com_util_tracer_hook_entry_t *, com_util_tracer_set_hook,
-    com_util_tracer_t *handle, com_util_tracer_hook_fn_t fn, void *context)
+MOCK_WEAK_IMPL(com_util_tracer_hook_entry *, com_util_tracer_set_hook, com_util_tracer *handle,
+               com_util_tracer_hook_fn_t fn, void *context)
 {
-    com_util_tracer_hook_entry_t *entry = nullptr;
+    com_util_tracer_hook_entry *entry = nullptr;
 
     if (_mock_com_util != nullptr)
     {

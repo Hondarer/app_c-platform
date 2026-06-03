@@ -3,16 +3,15 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-void delegate_real_com_util_etw_provider_dispose(com_util_etw_provider_t *handle)
+void delegate_real_com_util_etw_provider_dispose(com_util_etw_provider *handle)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_etw_provider_dispose)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_dispose"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_etw_provider_dispose)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_provider_dispose"));
 
     real_fn(handle);
 }
 
-MOCK_WEAK_IMPL(void, com_util_etw_provider_dispose, com_util_etw_provider_t *handle)
+MOCK_WEAK_IMPL(void, com_util_etw_provider_dispose, com_util_etw_provider *handle)
 {
     if (_mock_com_util != nullptr)
     {

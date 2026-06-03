@@ -27,35 +27,33 @@
 #include <com_util/trace/backends/file/trace_file_internal.h>
 
 #if defined(PLATFORM_LINUX)
-#include <com_util/trace/backends/syslog/syslog_internal.h>
+    #include <com_util/trace/backends/syslog/syslog_internal.h>
 #elif defined(PLATFORM_WINDOWS)
-#include <com_util/trace/backends/etw/etw_internal.h>
+    #include <com_util/trace/backends/etw/etw_internal.h>
 #endif /* PLATFORM_ */
 
 /* ===== Windows: TraceLogging プロバイダ定義 ===== */
 
 #if defined(PLATFORM_WINDOWS)
 
-#include <com_util/base/windows_sdk.h>
-#include <TraceLoggingProvider.h>
+    #include <com_util/base/windows_sdk.h>
+    #include <TraceLoggingProvider.h>
 
-TRACELOGGING_DEFINE_PROVIDER(
-    s_trace_provider_ref,
-    COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME,
-    COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID);
+TRACELOGGING_DEFINE_PROVIDER(s_trace_provider_ref, COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME,
+                             COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID);
 
 static volatile LONG s_trace_ref = 0;
-static com_util_etw_provider_t *s_etw_handle = NULL;
-static com_util_local_lock_t *s_registry_lock;
-static com_util_once_flag_t s_registry_lock_once = {0};
+static com_util_etw_provider *s_etw_handle = NULL;
+static com_util_local_lock *s_registry_lock;
+static com_util_once_flag s_registry_lock_once = {0};
 
 #elif defined(PLATFORM_LINUX)
 
-#include <syslog.h>
-#include <unistd.h>
+    #include <syslog.h>
+    #include <unistd.h>
 
-static com_util_local_lock_t *s_registry_lock;
-static com_util_once_flag_t s_registry_lock_once = {0};
+static com_util_local_lock *s_registry_lock;
+static com_util_once_flag s_registry_lock_once = {0};
 
 #endif /* PLATFORM_ */
 
@@ -78,7 +76,7 @@ enum trace_handle_state
 struct com_util_tracer_hook_entry
 {
     com_util_tracer_hook_fn_t fn;
-    void                     *context;
+    void *context;
     struct com_util_tracer_hook_entry *next;
 };
 
@@ -90,14 +88,14 @@ struct com_util_tracer
     int64_t identifier;
 
 #if defined(PLATFORM_LINUX)
-    com_util_syslog_sink_t *syslog_handle;
+    com_util_syslog_sink *syslog_handle;
 #elif defined(PLATFORM_WINDOWS)
     char *service_name;
 #endif /* PLATFORM_ */
 
-    com_util_trace_file_sink_t *file_handle;
+    com_util_trace_file_sink *file_handle;
 
-    com_util_local_rwlock_t *config_rwlock;
+    com_util_local_rwlock *config_rwlock;
 
     com_util_trace_level_t os_level;
     com_util_trace_level_t file_level;
@@ -107,21 +105,21 @@ struct com_util_tracer
 
     int config_rwlock_initialized;
 
-    com_util_tracer_hook_entry_t *hook_head;
+    com_util_tracer_hook_entry *hook_head;
 };
 
 struct trace_registry
 {
-    com_util_tracer_t **items;
-    size_t             count;
-    size_t             capacity;
-    volatile size_t    shutdown_started;
+    com_util_tracer **items;
+    size_t count;
+    size_t capacity;
+    volatile size_t shutdown_started;
 };
 
 static struct trace_registry s_trace_registry = {0};
-static com_util_once_flag_t s_trace_shutdown_once = {0};
+static com_util_once_flag s_trace_shutdown_once = {0};
 
-static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void *context);
+static void trace_shutdown_callback(const com_util_shutdown_event *event, void *context);
 
 static void init_registry_lock(void)
 {
@@ -133,7 +131,7 @@ static void register_trace_shutdown_callback(void)
     (void)com_util_shutdown_register(trace_shutdown_callback, NULL);
 }
 
-static void trace_shutdown_callback(const com_util_shutdown_event_t *event, void *context)
+static void trace_shutdown_callback(const com_util_shutdown_event *event, void *context)
 {
     (void)context;
     trace_registry_dispose_all_on_shutdown(event);
@@ -162,22 +160,18 @@ static void registry_unlock(void)
  */
 static int registry_expand_locked(void)
 {
-    com_util_tracer_t **new_items;
-    size_t             new_capacity;
+    com_util_tracer **new_items;
+    size_t new_capacity;
 
-    new_capacity = (s_trace_registry.capacity == 0)
-        ? TRACE_REGISTRY_INITIAL_CAPACITY
-        : s_trace_registry.capacity * 2;
+    new_capacity = (s_trace_registry.capacity == 0) ? TRACE_REGISTRY_INITIAL_CAPACITY : s_trace_registry.capacity * 2;
 
-    new_items = (com_util_tracer_t **)realloc(
-        s_trace_registry.items,
-        new_capacity * sizeof(com_util_tracer_t *));
+    new_items = (com_util_tracer **)realloc(s_trace_registry.items, new_capacity * sizeof(com_util_tracer *));
     if (new_items == NULL)
     {
         return -1;
     }
 
-    s_trace_registry.items    = new_items;
+    s_trace_registry.items = new_items;
     s_trace_registry.capacity = new_capacity;
     return 0;
 }
@@ -187,7 +181,7 @@ static int registry_expand_locked(void)
  *  @param[in]      handle  登録するトレースプロバイダハンドル。
  *  @return         成功時 0、シャットダウン中またはメモリ不足時 -1。
  */
-static int registry_register_handle(com_util_tracer_t *handle)
+static int registry_register_handle(com_util_tracer *handle)
 {
     int rc = 0;
 
@@ -217,7 +211,7 @@ static int registry_register_handle(com_util_tracer_t *handle)
  *  @brief          ハンドルをレジストリから削除する。
  *  @param[in]      handle  削除するトレースプロバイダハンドル。
  */
-static void registry_unregister_handle(com_util_tracer_t *handle)
+static void registry_unregister_handle(com_util_tracer *handle)
 {
     size_t i;
 
@@ -262,11 +256,9 @@ size_t trace_registry_capacity(void)
  *  @param[in]      handle  判定対象のトレースプロバイダハンドル。
  *  @return         アクティブの場合 1、それ以外 0。
  */
-static int handle_is_active(const com_util_tracer_t *handle)
+static int handle_is_active(const com_util_tracer *handle)
 {
-    return handle != NULL
-        && handle->lifecycle_state == TRACE_HANDLE_ACTIVE
-        && !s_trace_registry.shutdown_started;
+    return handle != NULL && handle->lifecycle_state == TRACE_HANDLE_ACTIVE && !s_trace_registry.shutdown_started;
 }
 
 /**
@@ -274,7 +266,7 @@ static int handle_is_active(const com_util_tracer_t *handle)
  *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
  *  @return         成功時 0、ハンドルが NULL またはアクティブでない場合 -1。
  */
-static int begin_dispose(com_util_tracer_t *handle)
+static int begin_dispose(com_util_tracer *handle)
 {
     if (handle == NULL || handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
@@ -296,14 +288,21 @@ static int to_syslog_level(const com_util_trace_level_t lv)
 {
     switch (lv)
     {
-    case COM_UTIL_TRACE_LEVEL_CRITICAL: return LOG_CRIT;
-    case COM_UTIL_TRACE_LEVEL_ERROR:    return LOG_ERR;
-    case COM_UTIL_TRACE_LEVEL_WARNING:  return LOG_WARNING;
-    case COM_UTIL_TRACE_LEVEL_INFO:     return LOG_INFO;
-    case COM_UTIL_TRACE_LEVEL_VERBOSE:  return LOG_DEBUG;
-    case COM_UTIL_TRACE_LEVEL_DEBUG:    return LOG_DEBUG;
+    case COM_UTIL_TRACE_LEVEL_CRITICAL:
+        return LOG_CRIT;
+    case COM_UTIL_TRACE_LEVEL_ERROR:
+        return LOG_ERR;
+    case COM_UTIL_TRACE_LEVEL_WARNING:
+        return LOG_WARNING;
+    case COM_UTIL_TRACE_LEVEL_INFO:
+        return LOG_INFO;
+    case COM_UTIL_TRACE_LEVEL_VERBOSE:
+        return LOG_DEBUG;
+    case COM_UTIL_TRACE_LEVEL_DEBUG:
+        return LOG_DEBUG;
     case COM_UTIL_TRACE_LEVEL_NONE:
-    default:                return LOG_DEBUG;
+    default:
+        return LOG_DEBUG;
     }
 }
 
@@ -318,13 +317,20 @@ static int to_etw_level(const com_util_trace_level_t lv)
 {
     switch (lv)
     {
-    case COM_UTIL_TRACE_LEVEL_CRITICAL: return 1;
-    case COM_UTIL_TRACE_LEVEL_ERROR:    return 2;
-    case COM_UTIL_TRACE_LEVEL_WARNING:  return 3;
-    case COM_UTIL_TRACE_LEVEL_INFO:     return 4;
-    case COM_UTIL_TRACE_LEVEL_VERBOSE:  return 5;
-    case COM_UTIL_TRACE_LEVEL_DEBUG:    return 5;
-    default:                return 5;
+    case COM_UTIL_TRACE_LEVEL_CRITICAL:
+        return 1;
+    case COM_UTIL_TRACE_LEVEL_ERROR:
+        return 2;
+    case COM_UTIL_TRACE_LEVEL_WARNING:
+        return 3;
+    case COM_UTIL_TRACE_LEVEL_INFO:
+        return 4;
+    case COM_UTIL_TRACE_LEVEL_VERBOSE:
+        return 5;
+    case COM_UTIL_TRACE_LEVEL_DEBUG:
+        return 5;
+    default:
+        return 5;
     }
 }
 
@@ -403,7 +409,7 @@ static const char *get_process_basename(char *buf, const size_t buf_size)
  *  @brief          設定の排他ロック (書き込みロック) を取得する。
  *  @param[in]      handle  ロック対象のトレースプロバイダハンドル。
  */
-static void config_lock_exclusive(com_util_tracer_t *handle)
+static void config_lock_exclusive(com_util_tracer *handle)
 {
     com_util_local_rwlock_lock_exclusive(handle->config_rwlock, COM_UTIL_SYNC_WAIT_FOREVER);
 }
@@ -412,7 +418,7 @@ static void config_lock_exclusive(com_util_tracer_t *handle)
  *  @brief          設定の排他ロック (書き込みロック) を解放する。
  *  @param[in]      handle  ロック解放対象のトレースプロバイダハンドル。
  */
-static void config_unlock_exclusive(com_util_tracer_t *handle)
+static void config_unlock_exclusive(com_util_tracer *handle)
 {
     com_util_local_rwlock_unlock_exclusive(handle->config_rwlock);
 }
@@ -424,7 +430,7 @@ static void config_unlock_exclusive(com_util_tracer_t *handle)
  *  @param[in]      handle  ロック対象のトレースプロバイダハンドル。
  *  @return         成功時 0、タイムアウト時 -1。
  */
-static int config_lock_shared_timed(com_util_tracer_t *handle)
+static int config_lock_shared_timed(com_util_tracer *handle)
 {
     if (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == 0)
     {
@@ -440,7 +446,7 @@ static int config_lock_shared_timed(com_util_tracer_t *handle)
  *  @brief          設定の共有ロック (読み取りロック) を解放する。
  *  @param[in]      handle  ロック解放対象のトレースプロバイダハンドル。
  */
-static void config_unlock_shared(com_util_tracer_t *handle)
+static void config_unlock_shared(com_util_tracer *handle)
 {
     com_util_local_rwlock_unlock_shared(handle->config_rwlock);
 }
@@ -496,7 +502,7 @@ static char *build_effective_name(const char *name, const int64_t identifier)
  *  @param[in]      handle  停止対象のトレースプロバイダハンドル。
  *  @return         常に 0。
  */
-static int stop_handle_for_cleanup(com_util_tracer_t *handle)
+static int stop_handle_for_cleanup(com_util_tracer *handle)
 {
     config_lock_exclusive(handle);
     if (!handle->running)
@@ -514,10 +520,10 @@ static int stop_handle_for_cleanup(com_util_tracer_t *handle)
  *  @brief          通常のハンドル解放処理を行う。
  *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
  */
-static void trace_handle_release_normal(com_util_tracer_t *handle)
+static void trace_handle_release_normal(com_util_tracer *handle)
 {
-    com_util_tracer_hook_entry_t *hook;
-    com_util_tracer_hook_entry_t *next;
+    com_util_tracer_hook_entry *hook;
+    com_util_tracer_hook_entry *next;
 
     if (handle->file_handle != NULL)
     {
@@ -555,7 +561,7 @@ static void trace_handle_release_normal(com_util_tracer_t *handle)
  *  @brief          アンロード時のハンドル解放処理を行う。
  *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
  */
-static void trace_handle_release_on_shutdown(com_util_tracer_t *handle)
+static void trace_handle_release_on_shutdown(com_util_tracer *handle)
 {
     if (handle->file_handle != NULL)
     {
@@ -575,9 +581,9 @@ static void trace_handle_release_on_shutdown(com_util_tracer_t *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
+COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 {
-    com_util_tracer_t *handle;
+    com_util_tracer *handle;
     char path_buf[256];
     const char *effective_name;
 
@@ -592,7 +598,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 
 #if defined(PLATFORM_LINUX)
     {
-        com_util_syslog_sink_t *sp;
+        com_util_syslog_sink *sp;
 
         sp = com_util_syslog_sink_create(effective_name, LOG_USER);
         if (sp == NULL)
@@ -600,23 +606,23 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
             return NULL;
         }
 
-        handle = (com_util_tracer_t *)malloc(sizeof(com_util_tracer_t));
+        handle = (com_util_tracer *)malloc(sizeof(com_util_tracer));
         if (handle == NULL)
         {
             com_util_syslog_sink_dispose(sp);
             return NULL;
         }
 
-        handle->identifier                = 0;
-        handle->syslog_handle             = sp;
-        handle->os_level                  = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
-        handle->file_level                = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
-        handle->file_handle               = NULL;
-        handle->stderr_level              = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
-        handle->running                   = 0;
-        handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
+        handle->identifier = 0;
+        handle->syslog_handle = sp;
+        handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
+        handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
+        handle->file_handle = NULL;
+        handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
+        handle->running = 0;
+        handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
-        handle->hook_head                 = NULL;
+        handle->hook_head = NULL;
 
         if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
         {
@@ -636,23 +642,23 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
             return NULL;
         }
 
-        handle = (com_util_tracer_t *)malloc(sizeof(com_util_tracer_t));
+        handle = (com_util_tracer *)malloc(sizeof(com_util_tracer));
         if (handle == NULL)
         {
             free(svc);
             return NULL;
         }
 
-        handle->identifier                = 0;
-        handle->service_name              = svc;
-        handle->os_level                  = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
-        handle->file_level                = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
-        handle->file_handle               = NULL;
-        handle->stderr_level              = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
-        handle->running                   = 0;
-        handle->lifecycle_state           = TRACE_HANDLE_ACTIVE;
+        handle->identifier = 0;
+        handle->service_name = svc;
+        handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
+        handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
+        handle->file_handle = NULL;
+        handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
+        handle->running = 0;
+        handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
-        handle->hook_head                 = NULL;
+        handle->hook_head = NULL;
 
         if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
         {
@@ -701,8 +707,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_start(com_util_tracer_t *handle)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
 {
     if (!handle_is_active(handle))
     {
@@ -728,8 +733,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_stop(com_util_tracer_t *handle)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_stop(com_util_tracer *handle)
 {
     if (!handle_is_active(handle))
     {
@@ -741,8 +745,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API
-    com_util_tracer_get_state(com_util_tracer_t *handle)
+COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API com_util_tracer_get_state(com_util_tracer *handle)
 {
     com_util_tracer_state_t state;
 
@@ -760,9 +763,7 @@ COM_UTIL_EXPORT com_util_tracer_t *COM_UTIL_API com_util_tracer_create(void)
         return COM_UTIL_TRACER_STATE_DISPOSED;
     }
 
-    state = handle->running
-        ? COM_UTIL_TRACER_STATE_STARTED
-        : COM_UTIL_TRACER_STATE_STOPPED;
+    state = handle->running ? COM_UTIL_TRACER_STATE_STARTED : COM_UTIL_TRACER_STATE_STOPPED;
     config_unlock_shared(handle);
     return state;
 }
@@ -794,15 +795,14 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
  *  @param[in]      msg         書き込むメッセージ文字列。
  *  @return         成功時 0、失敗時 -1。
  */
-static int write_to_provider(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                             const com_util_realtime_timestamp_t *timestamp, const char *msg)
+static int write_to_provider(com_util_tracer *handle, const com_util_trace_level_t level,
+                             const com_util_realtime_timestamp *timestamp, const char *msg)
 {
 #if defined(PLATFORM_LINUX)
     return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
 #elif defined(PLATFORM_WINDOWS)
     (void)timestamp;
-    return com_util_etw_provider_write(s_etw_handle, to_etw_level(level),
-                              handle->service_name, msg);
+    return com_util_etw_provider_write(s_etw_handle, to_etw_level(level), handle->service_name, msg);
 #endif /* PLATFORM_ */
 }
 
@@ -823,13 +823,12 @@ static int should_output(const com_util_trace_level_t msg_level, const com_util_
 
 #define STDERR_TS_BUF_SIZE (COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1)
 
-static int timestamp_is_valid(const com_util_realtime_timestamp_t *timestamp)
+static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 {
     return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
 }
 
-static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
-                             com_util_realtime_timestamp_t *resolved,
+static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
                              int *fallback_used)
 {
     if (resolved == NULL)
@@ -865,8 +864,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp_t *timestamp,
     }
 }
 
-static int format_local_timestamp(char *buf, const size_t buf_size,
-                                  const com_util_realtime_timestamp_t *timestamp)
+static int format_local_timestamp(char *buf, const size_t buf_size, const com_util_realtime_timestamp *timestamp)
 {
     if (!timestamp_is_valid(timestamp))
     {
@@ -905,25 +903,23 @@ static void write_stderr_entry(const com_util_trace_level_t level, const char *t
  *  @param[in]      msg        書き込むメッセージ文字列。
  *  @return         全出力先で成功時 0、いずれかで失敗時 -1。
  */
-static int write_dual(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                      const com_util_realtime_timestamp_t *timestamp, const char *msg)
+static int write_dual(com_util_tracer *handle, const com_util_trace_level_t level,
+                      const com_util_realtime_timestamp *timestamp, const char *msg)
 {
     int os_result = 0;
     int file_result = 0;
     int timestamp_fallback_used = 0;
     int needs_text_timestamp;
-    com_util_realtime_timestamp_t resolved;
-    const com_util_realtime_timestamp_t *effective_timestamp = NULL;
+    com_util_realtime_timestamp resolved;
+    const com_util_realtime_timestamp *effective_timestamp = NULL;
     char ts[STDERR_TS_BUF_SIZE];
 
-    needs_text_timestamp =
-        (handle->file_handle != NULL && should_output(level, handle->file_level)) ||
-        should_output(level, handle->stderr_level) ||
+    needs_text_timestamp = (handle->file_handle != NULL && should_output(level, handle->file_level)) ||
+                           should_output(level, handle->stderr_level) ||
 #if defined(PLATFORM_LINUX)
-        should_output(level, handle->os_level) ||
+                           should_output(level, handle->os_level) ||
 #endif
-        handle->hook_head != NULL ||
-        timestamp != NULL;
+                           handle->hook_head != NULL || timestamp != NULL;
 
     if (needs_text_timestamp)
     {
@@ -956,7 +952,7 @@ static int write_dual(com_util_tracer_t *handle, const com_util_trace_level_t le
 
     if (handle->hook_head != NULL)
     {
-        com_util_tracer_hook_entry_t *head = handle->hook_head;
+        com_util_tracer_hook_entry *head = handle->hook_head;
         if (head->fn != NULL)
         {
             head->fn(head->next, handle, level, effective_timestamp, msg, head->context);
@@ -975,9 +971,9 @@ static int write_dual(com_util_tracer_t *handle, const com_util_trace_level_t le
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    _com_util_tracer_write(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                           const com_util_realtime_timestamp_t *timestamp, const char *message)
+COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t level,
+                                                        const com_util_realtime_timestamp *timestamp,
+                                                        const char *message)
 {
     const char *msg;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1019,9 +1015,9 @@ static int write_dual(com_util_tracer_t *handle, const com_util_trace_level_t le
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    _com_util_tracer_writef(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                            const com_util_realtime_timestamp_t *timestamp, const char *format, ...)
+COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_t level,
+                                                         const com_util_realtime_timestamp *timestamp,
+                                                         const char *format, ...)
 {
     va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1067,9 +1063,9 @@ static const char hex_chars[] = "0123456789ABCDEF";
  *  @param[in]      label       メッセージに付加するラベル (NULL 可)。
  *  @return         成功時 0、失敗時 -1。
  */
-static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                          const com_util_realtime_timestamp_t *timestamp,
-                          const void *data, const size_t size, const char *label)
+static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t level,
+                          const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
+                          const char *label)
 {
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     const unsigned char *bytes = (const unsigned char *)data;
@@ -1162,10 +1158,9 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    _com_util_tracer_write_hex(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                               const com_util_realtime_timestamp_t *timestamp,
-                               const void *data, const size_t size, const char *message)
+COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level_t level,
+                                                            const com_util_realtime_timestamp *timestamp,
+                                                            const void *data, const size_t size, const char *message)
 {
     int ret;
 
@@ -1194,10 +1189,11 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    _com_util_tracer_write_hexf(com_util_tracer_t *handle, const com_util_trace_level_t level,
-                                const com_util_realtime_timestamp_t *timestamp,
-                                const void *data, const size_t size, const char *format, ...)
+COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle,
+                                                             const com_util_trace_level_t level,
+                                                             const com_util_realtime_timestamp *timestamp,
+                                                             const void *data, const size_t size, const char *format,
+                                                             ...)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;
@@ -1239,8 +1235,8 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_set_name(com_util_tracer_t *handle, const char *name, const int64_t identifier)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handle, const char *name,
+                                                          const int64_t identifier)
 {
     char *effective;
 
@@ -1283,7 +1279,7 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 #elif defined(PLATFORM_WINDOWS)
     free(handle->service_name);
     handle->service_name = effective;
-    handle->identifier   = identifier;
+    handle->identifier = identifier;
     config_unlock_exclusive(handle);
     return 0;
 #endif /* PLATFORM_ */
@@ -1291,8 +1287,7 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-    com_util_tracer_get_os_level(com_util_tracer_t *handle)
+COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1316,8 +1311,8 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_set_os_level(com_util_tracer_t *handle, const com_util_trace_level_t level)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle,
+                                                              const com_util_trace_level_t level)
 {
     if (!handle_is_active(handle))
     {
@@ -1338,8 +1333,7 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-    com_util_tracer_get_file_level(com_util_tracer_t *handle)
+COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1363,9 +1357,9 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_set_file_level(com_util_tracer_t *handle, const char *path,
-                         const com_util_trace_level_t level, const size_t max_bytes, const int generations)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
+                                                                const com_util_trace_level_t level,
+                                                                const size_t max_bytes, const int generations)
 {
     int result = 0;
 
@@ -1403,8 +1397,7 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API
-    com_util_tracer_get_stderr_level(com_util_tracer_t *handle)
+COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_stderr_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1428,8 +1421,8 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_tracer_set_stderr_level(com_util_tracer_t *handle, const com_util_trace_level_t level)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_tracer *handle,
+                                                                  const com_util_trace_level_t level)
 {
     if (!handle_is_active(handle))
     {
@@ -1450,8 +1443,7 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_tracer_dispose(com_util_tracer_t *handle)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer *handle)
 {
     if (handle == NULL)
     {
@@ -1467,9 +1459,9 @@ static int hex_write_impl(com_util_tracer_t *handle, const com_util_trace_level_
     trace_handle_release_normal(handle);
 }
 
-void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *event)
+void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event)
 {
-    com_util_tracer_t **items;
+    com_util_tracer **items;
     size_t count;
     size_t i;
 
@@ -1488,7 +1480,7 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *eve
 
     for (i = 0; i < count; i++)
     {
-        com_util_tracer_t *handle = items[i];
+        com_util_tracer *handle = items[i];
 
         if (handle == NULL || handle->lifecycle_state == TRACE_HANDLE_DISPOSED)
         {
@@ -1514,19 +1506,18 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *eve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT com_util_tracer_hook_entry_t *COM_UTIL_API
-    com_util_tracer_set_hook(com_util_tracer_t *handle,
-                             com_util_tracer_hook_fn_t fn,
-                             void *context)
+COM_UTIL_EXPORT com_util_tracer_hook_entry *COM_UTIL_API com_util_tracer_set_hook(com_util_tracer *handle,
+                                                                                  com_util_tracer_hook_fn_t fn,
+                                                                                  void *context)
 {
-    com_util_tracer_hook_entry_t *entry;
+    com_util_tracer_hook_entry *entry;
 
     if (!handle_is_active(handle) || fn == NULL)
     {
         return NULL;
     }
 
-    entry = (com_util_tracer_hook_entry_t *)malloc(sizeof(com_util_tracer_hook_entry_t));
+    entry = (com_util_tracer_hook_entry *)malloc(sizeof(com_util_tracer_hook_entry));
     if (entry == NULL)
     {
         return NULL;
@@ -1540,9 +1531,9 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *eve
         return NULL;
     }
 
-    entry->fn      = fn;
+    entry->fn = fn;
     entry->context = context;
-    entry->next    = handle->hook_head;
+    entry->next = handle->hook_head;
     handle->hook_head = entry;
 
     config_unlock_exclusive(handle);
@@ -1551,11 +1542,10 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *eve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_tracer_remove_hook(com_util_tracer_t *handle,
-                                com_util_tracer_hook_entry_t *hook_entry)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_remove_hook(com_util_tracer *handle,
+                                                              com_util_tracer_hook_entry *hook_entry)
 {
-    com_util_tracer_hook_entry_t **pp;
+    com_util_tracer_hook_entry **pp;
 
     if (!handle_is_active(handle) || hook_entry == NULL)
     {
@@ -1584,12 +1574,11 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event_t *eve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-    COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_tracer_call_next_hook(com_util_tracer_hook_entry_t *prev,
-                                   com_util_tracer_t *handle,
-                                   const com_util_trace_level_t level,
-                                   const com_util_realtime_timestamp_t *timestamp,
-                                   const char *message)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev,
+                                                                 com_util_tracer *handle,
+                                                                 const com_util_trace_level_t level,
+                                                                 const com_util_realtime_timestamp *timestamp,
+                                                                 const char *message)
 {
     if (prev == NULL || prev->fn == NULL)
     {

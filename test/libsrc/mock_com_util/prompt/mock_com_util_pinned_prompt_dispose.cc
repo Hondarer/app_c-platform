@@ -1,16 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-void delegate_real_com_util_pinned_prompt_dispose(com_util_pinned_prompt_t *screen)
+void delegate_real_com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_pinned_prompt_dispose)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_dispose"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_dispose)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_dispose"));
 
     real_fn(screen);
 }
 
-MOCK_WEAK_IMPL(void, com_util_pinned_prompt_dispose, com_util_pinned_prompt_t *screen)
+MOCK_WEAK_IMPL(void, com_util_pinned_prompt_dispose, com_util_pinned_prompt *screen)
 {
     if (_mock_com_util != nullptr)
     {

@@ -1,16 +1,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-void delegate_real_com_util_file_init(com_util_file_t *file)
+void delegate_real_com_util_file_init(com_util_file *file)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_file_init)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_file_init"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_file_init)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_file_init"));
 
     real_fn(file);
 }
 
-MOCK_WEAK_IMPL(void, com_util_file_init, com_util_file_t *file)
+MOCK_WEAK_IMPL(void, com_util_file_init, com_util_file *file)
 {
     if (_mock_com_util != nullptr)
     {

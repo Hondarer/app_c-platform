@@ -71,7 +71,7 @@ extern "C"
            コーディング規範の例外として固定幅型 int32_t を維持する。 */
         int32_t tv_nsec;  /**< ナノ秒部 (0 以上 999,999,999 以下)。 */
         int32_t reserved; /**< 将来拡張用。呼び出し側は 0 を指定する。 */
-    } com_util_realtime_timestamp_t;
+    } com_util_realtime_timestamp;
 
     /**
      *  @brief          単調増加クロックの現在値をミリ秒単位で返します。

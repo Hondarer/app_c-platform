@@ -1,20 +1,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink_t *handle, int level,
-                                            const com_util_realtime_timestamp_t *timestamp,
-                                            const char *message)
+int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
+                                                 const com_util_realtime_timestamp *timestamp, const char *message)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_trace_file_sink_write)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_trace_file_sink_write"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_trace_file_sink_write)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_trace_file_sink_write"));
 
     return real_fn(handle, level, timestamp, message);
 }
 
-MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink_t *handle, int level,
-                                            const com_util_realtime_timestamp_t *timestamp,
-                                            const char *message)
+MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink *handle, int level,
+               const com_util_realtime_timestamp *timestamp, const char *message)
 {
     int rtc = -1;
 
@@ -29,7 +26,8 @@ MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink_t *
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d 0x%p \"%s\"", __func__, level, (const void *)timestamp, message != nullptr ? message : "(null)");
+        printf("  > %s %d 0x%p \"%s\"", __func__, level, (const void *)timestamp,
+               message != nullptr ? message : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

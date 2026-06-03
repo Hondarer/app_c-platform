@@ -55,12 +55,12 @@ extern "C"
         COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE = 1 /**< ロックファイルを使用するバックエンド。 */
     } com_util_interprocess_sync_backend_t;
 
-    typedef struct com_util_local_lock com_util_local_lock_t;                   /**< プロセス内ミューテックス。 */
-    typedef struct com_util_condvar com_util_condvar_t;                         /**< プロセス内条件変数。 */
-    typedef struct com_util_local_rwlock com_util_local_rwlock_t;               /**< プロセス内読み書きロック。 */
-    typedef struct com_util_thread com_util_thread_t;                           /**< スレッドハンドル。 */
-    typedef struct com_util_interprocess_lock com_util_interprocess_lock_t;     /**< プロセス横断ミューテックス。 */
-    typedef struct com_util_interprocess_rwlock com_util_interprocess_rwlock_t; /**< プロセス横断読み書きロック。 */
+    typedef struct com_util_local_lock com_util_local_lock;                   /**< プロセス内ミューテックス。 */
+    typedef struct com_util_condvar com_util_condvar;                         /**< プロセス内条件変数。 */
+    typedef struct com_util_local_rwlock com_util_local_rwlock;               /**< プロセス内読み書きロック。 */
+    typedef struct com_util_thread com_util_thread;                           /**< スレッドハンドル。 */
+    typedef struct com_util_interprocess_lock com_util_interprocess_lock;     /**< プロセス横断ミューテックス。 */
+    typedef struct com_util_interprocess_rwlock com_util_interprocess_rwlock; /**< プロセス横断読み書きロック。 */
 
     /** スレッド関数ポインタ型。 */
     typedef void (*com_util_thread_func_t)(void *);
@@ -68,12 +68,12 @@ extern "C"
     typedef void (*com_util_once_func_t)(void);
 
     /** call_once 状態。静的領域では 0 初期化して用いる。 */
-    typedef struct
+    typedef struct com_util_once_flag
     {
         /* state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
        コーディング規範の例外として固定幅型 int32_t を維持する。 */
         volatile int32_t state;
-    } com_util_once_flag_t;
+    } com_util_once_flag;
 
     /**
      *  @brief          プロセス内ミューテックスを生成します。
@@ -84,7 +84,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  呼び出しごとに独立したミューテックスを生成し、内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_create(com_util_local_lock_t **mtx);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_create(com_util_local_lock **mtx);
 
     /**
      *  @brief          ミューテックスをロックします。
@@ -100,7 +100,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_lock(com_util_local_lock_t *mtx,
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_lock(com_util_local_lock *mtx,
                                                                                  int timeout_ms);
 
     /**
@@ -112,7 +112,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_try_lock(com_util_local_lock_t *mtx);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_try_lock(com_util_local_lock *mtx);
 
     /**
      *  @brief          ミューテックスをアンロックします。
@@ -123,7 +123,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_unlock(com_util_local_lock_t *mtx);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_lock_unlock(com_util_local_lock *mtx);
 
     /**
      *  @brief          ミューテックスを破棄します。
@@ -133,7 +133,7 @@ extern "C"
      *  本関数はスレッドセーフではありません。\n
      *  破棄対象の @p mtx を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_lock_destroy(com_util_local_lock_t *mtx);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_lock_destroy(com_util_local_lock *mtx);
 
     /**
      *  @brief          条件変数を生成します。
@@ -144,7 +144,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  呼び出しごとに独立した条件変数を生成し、内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_create(com_util_condvar_t **cv);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_create(com_util_condvar **cv);
 
     /**
      *  @brief          条件変数を待機します (@p mtx を atomically アンロック後に待機し、シグナル受信後に再ロック)。
@@ -161,9 +161,8 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p cv を複数スレッドで待機できます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_wait(com_util_condvar_t *cv,
-                                                                              com_util_local_lock_t *mtx,
-                                                                              int timeout_ms);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_wait(com_util_condvar *cv,
+                                                                              com_util_local_lock *mtx, int timeout_ms);
 
     /**
      *  @brief          待機中のスレッドを 1 つ起床させます。
@@ -174,7 +173,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p cv に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_signal(com_util_condvar_t *cv);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_signal(com_util_condvar *cv);
 
     /**
      *  @brief          待機中のすべてのスレッドを起床させます。
@@ -185,7 +184,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p cv に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_broadcast(com_util_condvar_t *cv);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_condvar_broadcast(com_util_condvar *cv);
 
     /**
      *  @brief          条件変数を破棄します。
@@ -195,7 +194,7 @@ extern "C"
      *  本関数はスレッドセーフではありません。\n
      *  破棄対象の @p cv を他スレッドが待機または通知に使用していないことを保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_condvar_destroy(com_util_condvar_t *cv);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_condvar_destroy(com_util_condvar *cv);
 
     /**
      *  @brief          プロセス内読み書きロックを生成します。
@@ -206,7 +205,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  呼び出しごとに独立した読み書きロックを生成し、内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_rwlock_create(com_util_local_rwlock_t **rwlock);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_rwlock_create(com_util_local_rwlock **rwlock);
 
     /**
      *  @brief          共有 (読み取り) ロックを取得します。
@@ -222,8 +221,8 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_lock_shared(com_util_local_rwlock_t *rwlock, int timeout_ms);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock,
+                                                                                          int timeout_ms);
 
     /**
      *  @brief          共有 (読み取り) ロックをノンブロッキングで取得試行します。
@@ -235,7 +234,7 @@ extern "C"
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_try_lock_shared(com_util_local_rwlock_t *rwlock);
+    com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          排他 (書き込み) ロックを取得します。
@@ -252,7 +251,7 @@ extern "C"
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_lock_exclusive(com_util_local_rwlock_t *rwlock, int timeout_ms);
+    com_util_local_rwlock_lock_exclusive(com_util_local_rwlock *rwlock, int timeout_ms);
 
     /**
      *  @brief          排他 (書き込み) ロックをノンブロッキングで取得試行します。
@@ -264,7 +263,7 @@ extern "C"
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock_t *rwlock);
+    com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          共有 (読み取り) ロックを解放します。
@@ -276,7 +275,7 @@ extern "C"
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_unlock_shared(com_util_local_rwlock_t *rwlock);
+    com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          排他 (書き込み) ロックを解放します。
@@ -288,7 +287,7 @@ extern "C"
      *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock_t *rwlock);
+    com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          読み書きロックを破棄します。
@@ -298,7 +297,7 @@ extern "C"
      *  本関数はスレッドセーフではありません。\n
      *  破棄対象の @p rwlock を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_rwlock_destroy(com_util_local_rwlock_t *rwlock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          スレッドを生成して起動します。
@@ -311,7 +310,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  複数スレッドから同時に呼び出して独立したスレッドを生成できます。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_thread_create(com_util_thread_t **thread,
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_thread_create(com_util_thread **thread,
                                                                                com_util_thread_func_t func, void *arg);
 
     /**
@@ -328,7 +327,7 @@ extern "C"
      *  同一 @p thread に対する並行呼び出しはスレッドセーフではありません。\n
      *  join 対象ごとに 1 スレッドだけが待機するように呼び出し側で制御してください。
      */
-    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_thread_join(com_util_thread_t *thread, int timeout_ms);
+    COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_thread_join(com_util_thread *thread, int timeout_ms);
 
     /**
      *  @brief          スレッドを切り離します。切り離し後はリソースを自動解放します。
@@ -338,7 +337,7 @@ extern "C"
      *  同一 @p thread に対する並行呼び出しはスレッドセーフではありません。\n
      *  detach は対象ハンドルごとに 1 回だけ実行してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_thread_detach(com_util_thread_t *thread);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_thread_detach(com_util_thread *thread);
 
     /**
      *  @brief          識別子でプロセス横断ミューテックスを開きます (存在しない場合は生成)。
@@ -351,7 +350,7 @@ extern "C"
      *  同一 @p identity を複数スレッドから同時に指定しても OS の同期プリミティブを安全に取得できます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock_t **lock);
+    com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock);
 
     /**
      *  @brief          エクスポートされたディスクリプタからプロセス横断ミューテックスをインポートします。
@@ -366,7 +365,7 @@ extern "C"
      *  複数スレッドから独立したハンドルを同時にインポートできます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_interprocess_lock_import_descriptor(
-        const void *descriptor, size_t descriptor_size, com_util_interprocess_lock_t **lock);
+        const void *descriptor, size_t descriptor_size, com_util_interprocess_lock **lock);
 
     /**
      *  @brief          プロセス横断ミューテックスをディスクリプタにエクスポートします (プロセス間受け渡し用)。
@@ -381,7 +380,7 @@ extern "C"
      *  共有状態を変更せずにディスクリプタを出力するため、同一 @p lock に対して並行呼び出しできます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_interprocess_lock_export_descriptor(
-        const com_util_interprocess_lock_t *lock, void *descriptor, size_t *descriptor_size);
+        const com_util_interprocess_lock *lock, void *descriptor, size_t *descriptor_size);
 
     /**
      *  @brief          プロセス横断ミューテックスをロックします。
@@ -398,7 +397,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_lock_lock(com_util_interprocess_lock_t *lock, int timeout_ms);
+    com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms);
 
     /**
      *  @brief          プロセス横断ミューテックスをノンブロッキングでロック試行します。
@@ -410,7 +409,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_lock_try_lock(com_util_interprocess_lock_t *lock);
+    com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock);
 
     /**
      *  @brief          プロセス横断ミューテックスをアンロックします。
@@ -422,7 +421,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_lock_unlock(com_util_interprocess_lock_t *lock);
+    com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock);
 
     /**
      *  @brief          プロセス横断ミューテックスを破棄します。
@@ -432,7 +431,7 @@ extern "C"
      *  本関数はスレッドセーフではありません。\n
      *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_lock_destroy(com_util_interprocess_lock_t *lock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock);
 
     /**
      *  @brief          識別子でプロセス横断読み書きロックを開きます (存在しない場合は生成)。
@@ -445,7 +444,7 @@ extern "C"
      *  同一 @p identity を複数スレッドから同時に指定しても OS の同期プリミティブを安全に取得できます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock_t **lock);
+    com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock);
 
     /**
      *  @brief          エクスポートされたディスクリプタからプロセス横断読み書きロックをインポートします。
@@ -460,7 +459,7 @@ extern "C"
      *  複数スレッドから独立したハンドルを同時にインポートできます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_interprocess_rwlock_import_descriptor(
-        const void *descriptor, size_t descriptor_size, com_util_interprocess_rwlock_t **lock);
+        const void *descriptor, size_t descriptor_size, com_util_interprocess_rwlock **lock);
 
     /**
      *  @brief          プロセス横断読み書きロックをディスクリプタにエクスポートします (プロセス間受け渡し用)。
@@ -475,7 +474,7 @@ extern "C"
      *  共有状態を変更せずにディスクリプタを出力するため、同一 @p lock に対して並行呼び出しできます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API com_util_interprocess_rwlock_export_descriptor(
-        const com_util_interprocess_rwlock_t *lock, void *descriptor, size_t *descriptor_size);
+        const com_util_interprocess_rwlock *lock, void *descriptor, size_t *descriptor_size);
 
     /**
      *  @brief          プロセス横断共有 (読み取り) ロックを取得します。
@@ -492,7 +491,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock_t *lock, int timeout_ms);
+    com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock *lock, int timeout_ms);
 
     /**
      *  @brief          プロセス横断共有 (読み取り) ロックをノンブロッキングで取得試行します。
@@ -504,7 +503,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock_t *lock);
+    com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock *lock);
 
     /**
      *  @brief          プロセス横断排他 (書き込み) ロックを取得します。
@@ -521,7 +520,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock_t *lock, int timeout_ms);
+    com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock *lock, int timeout_ms);
 
     /**
      *  @brief          プロセス横断排他 (書き込み) ロックをノンブロッキングで取得試行します。
@@ -533,7 +532,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock_t *lock);
+    com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock);
 
     /**
      *  @brief          プロセス横断読み書きロックを解放します。
@@ -545,7 +544,7 @@ extern "C"
      *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT com_util_sync_result_t COM_UTIL_API
-    com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock_t *lock);
+    com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock);
 
     /**
      *  @brief          プロセス横断読み書きロックを破棄します。
@@ -555,7 +554,7 @@ extern "C"
      *  本関数はスレッドセーフではありません。\n
      *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock_t *lock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock);
 
     /**
      *  @brief          @p func をプロセス内で 1 回だけ呼び出します。
@@ -567,7 +566,7 @@ extern "C"
      *  本関数はスレッドセーフです。\n
      *  同一 @p flag を複数スレッドから同時に指定しても @p func は 1 回だけ実行されます。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag_t *flag, com_util_once_func_t func);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag *flag, com_util_once_func_t func);
 
     /**
      *  @brief      指定時間だけ現在のスレッドをスリープします。

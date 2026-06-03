@@ -10,7 +10,7 @@
 int prompt_platform_is_tty(void)
 {
     HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD  mode;
+    DWORD mode;
     if (h == INVALID_HANDLE_VALUE)
     {
         return 0;
@@ -18,7 +18,7 @@ int prompt_platform_is_tty(void)
     return (GetFileType(h) == FILE_TYPE_CHAR) && GetConsoleMode(h, &mode);
 }
 
-void prompt_platform_enter_raw(com_util_prompt_t *p)
+void prompt_platform_enter_raw(com_util_prompt *p)
 {
     DWORD new_mode;
     if (p->raw_active)
@@ -38,15 +38,15 @@ void prompt_platform_enter_raw(com_util_prompt_t *p)
      * ENABLE_ECHO_INPUT              : エコー無効
      * ENABLE_LINE_INPUT              : 行単位読み取り無効（文字単位に変更）
      * ENABLE_PROCESSED_INPUT         : Ctrl+C をシグナルではなく文字として受け取る */
-    new_mode = (p->orig_in_mode | ENABLE_VIRTUAL_TERMINAL_INPUT)
-               & ~((DWORD)(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT));
+    new_mode = (p->orig_in_mode | ENABLE_VIRTUAL_TERMINAL_INPUT) &
+               ~((DWORD)(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT));
     if (SetConsoleMode(p->stdin_handle, new_mode))
     {
         p->raw_active = 1;
     }
 }
 
-void prompt_platform_leave_raw(com_util_prompt_t *p)
+void prompt_platform_leave_raw(com_util_prompt *p)
 {
     if (!p->raw_active)
     {
@@ -56,11 +56,11 @@ void prompt_platform_leave_raw(com_util_prompt_t *p)
     p->raw_active = 0;
 }
 
-int prompt_platform_read_char(com_util_prompt_t *p)
+int prompt_platform_read_char(com_util_prompt *p)
 {
     DWORD result;
     DWORD n_read;
-    char  ch;
+    char ch;
 
     result = WaitForSingleObject(p->stdin_handle, 100U);
     if (result == WAIT_TIMEOUT)
@@ -78,7 +78,7 @@ int prompt_platform_read_char(com_util_prompt_t *p)
     return (unsigned char)ch;
 }
 
-int prompt_platform_read_char_nb(com_util_prompt_t *p)
+int prompt_platform_read_char_nb(com_util_prompt *p)
 {
     DWORD result = WaitForSingleObject(p->stdin_handle, 50); /* 50ms */
     if (result != WAIT_OBJECT_0)

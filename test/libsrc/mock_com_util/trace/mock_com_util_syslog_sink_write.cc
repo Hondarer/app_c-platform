@@ -3,20 +3,17 @@
 
 #if defined(PLATFORM_LINUX)
 
-int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink_t *handle, int level,
-                                        const com_util_realtime_timestamp_t *timestamp,
-                                        const char *message)
+int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink *handle, int level,
+                                             const com_util_realtime_timestamp *timestamp, const char *message)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_syslog_sink_write)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_write"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_syslog_sink_write)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_write"));
 
     return real_fn(handle, level, timestamp, message);
 }
 
-MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink_t *handle, int level,
-                                        const com_util_realtime_timestamp_t *timestamp,
-                                        const char *message)
+MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, int level,
+               const com_util_realtime_timestamp *timestamp, const char *message)
 {
     int rtc = -1;
 

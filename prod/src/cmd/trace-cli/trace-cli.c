@@ -31,19 +31,13 @@
 #define TRACE_CLI_LINE_MAX 4096
 
 static const char *const g_trace_level_names[] = {
-    "CRITICAL",
-    "ERROR",
-    "WARNING",
-    "INFO",
-    "VERBOSE",
-    "DEBUG",
-    "NONE",
+    "CRITICAL", "ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG", "NONE",
 };
 
 enum trace_cli_prompt_state
 {
     TRACE_CLI_PROMPT_STATE_UNCREATED = 0,
-    TRACE_CLI_PROMPT_STATE_DISPOSED  = 1
+    TRACE_CLI_PROMPT_STATE_DISPOSED = 1
 };
 
 static char *skip_spaces(char *p)
@@ -188,8 +182,7 @@ static char *rest_argument(char **cursor)
 
 static const char *level_to_name(com_util_trace_level_t level)
 {
-    if ((int)level >= 0
-        && (size_t)level < sizeof(g_trace_level_names) / sizeof(g_trace_level_names[0]))
+    if ((int)level >= 0 && (size_t)level < sizeof(g_trace_level_names) / sizeof(g_trace_level_names[0]))
     {
         return g_trace_level_names[(size_t)level];
     }
@@ -251,8 +244,7 @@ static int parse_int_value(const char *token, int *value)
 
     errno = 0;
     parsed = strtol(token, &end, 10);
-    if (errno != 0 || end == token || *end != '\0'
-        || parsed < INT_MIN || parsed > INT_MAX)
+    if (errno != 0 || end == token || *end != '\0' || parsed < INT_MIN || parsed > INT_MAX)
     {
         return 0;
     }
@@ -275,7 +267,7 @@ static const char *tracer_state_to_name(com_util_tracer_state_t state)
     }
 }
 
-static const char *session_prompt_state_to_name(const trace_cli_session_t *session)
+static const char *session_prompt_state_to_name(const trace_cli_session *session)
 {
     if (session == NULL)
     {
@@ -286,9 +278,7 @@ static const char *session_prompt_state_to_name(const trace_cli_session_t *sessi
         return tracer_state_to_name(com_util_tracer_get_state(session->handle));
     }
 
-    return session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED
-        ? "disposed"
-        : "uncreated";
+    return session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED ? "disposed" : "uncreated";
 }
 
 static int parse_size_value(const char *token, size_t *value)
@@ -487,7 +477,7 @@ static void print_command_usage(const char *command)
     }
 }
 
-void trace_cli_session_init(trace_cli_session_t *session)
+void trace_cli_session_init(trace_cli_session *session)
 {
     if (session == NULL)
     {
@@ -499,7 +489,7 @@ void trace_cli_session_init(trace_cli_session_t *session)
     session->exit_requested = 0;
 }
 
-void trace_cli_session_dispose(trace_cli_session_t *session)
+void trace_cli_session_dispose(trace_cli_session *session)
 {
     if (session == NULL)
     {
@@ -542,7 +532,7 @@ static void print_interactive_hint(void)
     printf("help でコマンド一覧を表示します。exit で終了します。\n");
 }
 
-int trace_cli_process_line(trace_cli_session_t *session, const char *line)
+int trace_cli_process_line(trace_cli_session *session, const char *line)
 {
     char buffer[TRACE_CLI_LINE_MAX];
     char *cursor;
@@ -908,8 +898,7 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
             {
                 label_str = "";
             }
-            rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s",
-                                             label_str);
+            rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s", label_str);
         }
         printf("rc=%d\n", rc);
         free(data);
@@ -922,9 +911,9 @@ int trace_cli_process_line(trace_cli_session_t *session, const char *line)
 
 int main(int argc, char *argv[])
 {
-    trace_cli_session_t session;
+    trace_cli_session session;
     char line[TRACE_CLI_LINE_MAX];
-    com_util_prompt_t *prompt;
+    com_util_prompt *prompt;
 
     com_util_console_init();
 
@@ -941,8 +930,7 @@ int main(int argc, char *argv[])
 
     while (!session.exit_requested)
     {
-        if (com_util_prompt_readline_fmt(prompt, line, sizeof(line),
-                                         "trace-cli[%s]> ",
+        if (com_util_prompt_readline_fmt(prompt, line, sizeof(line), "trace-cli[%s]> ",
                                          session_prompt_state_to_name(&session)) == 0)
         {
             break;

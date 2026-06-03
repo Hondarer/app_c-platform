@@ -36,8 +36,7 @@ TEST_F(consoleTest, test_dispose_on_shutdown_after_init)
 {
     // Arrange
     com_util_console_init();
-    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
-                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - クラッシュしないことを確認
     com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 正常終了イベントで dispose_on_shutdown() を呼ぶ。
@@ -47,11 +46,11 @@ TEST_F(consoleTest, test_dispose_on_shutdown_after_init)
 TEST_F(consoleTest, test_dispose_on_shutdown_without_init)
 {
     // Arrange
-    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
-                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - クラッシュしないことを確認
-    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼ぶ。安全に何もしないこと。
+    com_util_console_dispose_on_shutdown(
+        &event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼ぶ。安全に何もしないこと。
 }
 
 // dispose_on_shutdown() を 2 回呼んでも安全なことの確認
@@ -59,12 +58,12 @@ TEST_F(consoleTest, test_double_dispose_on_shutdown)
 {
     // Arrange
     com_util_console_init();
-    com_util_shutdown_event_t event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
-                                       COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - 2 回呼んでもクラッシュしないことを確認
     com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown()。
-    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 2 回目の dispose_on_shutdown()。安全に何もしないこと。
+    com_util_console_dispose_on_shutdown(&event,
+                                         NULL); // [手順] - 2 回目の dispose_on_shutdown()。安全に何もしないこと。
 }
 
 // init 後に終了中イベントの dispose_on_shutdown() が安全に何もしないことの確認
@@ -72,10 +71,9 @@ TEST_F(consoleTest, test_dispose_on_shutdown_process_terminating)
 {
     // Arrange
     com_util_console_init();
-    com_util_shutdown_event_t terminating_event = {COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING,
-                                                   COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
-    com_util_shutdown_event_t normal_event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
-                                              COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event terminating_event = {COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING,
+                                                 COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event normal_event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
     // Act & Assert - 終了中イベントでは何もしないこと (クラッシュしないことを確認)
     com_util_console_dispose_on_shutdown(&terminating_event, NULL); // [手順] - 終了中イベントを模擬。何もしないこと。
@@ -91,8 +89,8 @@ TEST_F(consoleTest, test_write_after_init)
     com_util_console_init();
 
     // Act & Assert - クラッシュしないことを確認
-    printf("consoleTest: stdout\n");           // [手順] - stdout に書き込む。
-    fprintf(stderr, "consoleTest: stderr\n");  // [手順] - stderr に書き込む。
+    printf("consoleTest: stdout\n");          // [手順] - stdout に書き込む。
+    fprintf(stderr, "consoleTest: stderr\n"); // [手順] - stderr に書き込む。
 }
 
 /* ===== Linux NOP テスト ===== */

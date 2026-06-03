@@ -27,7 +27,7 @@ struct com_util_etw_session
     /** トレース処理ハンドル。 */
     TRACEHANDLE trace_handle;
     /** ProcessTrace ワーカースレッド。 */
-    com_util_thread_t *thread_handle;
+    com_util_thread *thread_handle;
     /** イベント受信コールバック。 */
     com_util_etw_event_callback_t callback;
     /** コールバックに渡すユーザーデータ。 */
@@ -54,7 +54,7 @@ static void zero_bytes(void *ptr, const size_t size)
     }
 }
 
-static com_util_etw_session_t *dispose_session_and_return_null(com_util_etw_session_t *session)
+static com_util_etw_session *dispose_session_and_return_null(com_util_etw_session *session)
 {
     if (session != NULL)
     {
@@ -205,8 +205,8 @@ static char *dup_utf8_from_wide(const wchar_t *text)
  *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読む。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining,
-                                  const char **out_text, USHORT *out_consumed)
+static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining, const char **out_text,
+                                  USHORT *out_consumed)
 {
     USHORT i;
 
@@ -232,18 +232,16 @@ static int read_ansi_string_field(const unsigned char *cursor, const USHORT rema
  *  @brief  UserData 上の uint32 値を 1 つ読む。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_uint32_field(const unsigned char *cursor, const USHORT remaining,
-                             uint32_t *out_value, USHORT *out_consumed)
+static int read_uint32_field(const unsigned char *cursor, const USHORT remaining, uint32_t *out_value,
+                             USHORT *out_consumed)
 {
     if (cursor == NULL || out_value == NULL || out_consumed == NULL || remaining < 4U)
     {
         return -1;
     }
 
-    *out_value = (uint32_t)cursor[0]
-               | ((uint32_t)cursor[1] << 8)
-               | ((uint32_t)cursor[2] << 16)
-               | ((uint32_t)cursor[3] << 24);
+    *out_value =
+        (uint32_t)cursor[0] | ((uint32_t)cursor[1] << 8) | ((uint32_t)cursor[2] << 16) | ((uint32_t)cursor[3] << 24);
     *out_consumed = 4U;
     return 0;
 }
@@ -254,9 +252,8 @@ static int read_uint32_field(const unsigned char *cursor, const USHORT remaining
  *  TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
  *  Service / Message が存在しないイベントは out_* を NULL のまま返す。
  */
-static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info,
-                                 const char **out_service, const char **out_message,
-                                 uint32_t *out_process_id)
+static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info, const char **out_service,
+                                 const char **out_message, uint32_t *out_process_id)
 {
     const unsigned char *cursor;
     USHORT remaining;
@@ -366,8 +363,8 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
  */
 static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 {
-    com_util_etw_session_t *session;
-    com_util_etw_event_t event;
+    com_util_etw_session *session;
+    com_util_etw_event event;
     TRACE_EVENT_INFO *info;
     const wchar_t *event_name_w;
     char *event_name_utf8;
@@ -380,7 +377,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
         return;
     }
 
-    session = (com_util_etw_session_t *)pEvent->UserContext;
+    session = (com_util_etw_session *)pEvent->UserContext;
     if (session == NULL || session->callback == NULL)
     {
         return;
@@ -408,9 +405,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
     free(info);
 
     event.level = pEvent->EventHeader.EventDescriptor.Level;
-    event.process_id = payload_process_id != 0U
-                     ? payload_process_id
-                     : pEvent->EventHeader.ProcessId;
+    event.process_id = payload_process_id != 0U ? payload_process_id : pEvent->EventHeader.ProcessId;
     event.event_name = event_name_utf8;
     event.service = service;
     event.message = message;
@@ -425,7 +420,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
  */
 static void trace_thread_proc(void *param)
 {
-    com_util_etw_session_t *session = (com_util_etw_session_t *)param;
+    com_util_etw_session *session = (com_util_etw_session *)param;
 
     ProcessTrace(&session->trace_handle, 1, NULL, NULL);
     return;
@@ -485,12 +480,12 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void)
     return result;
 }
 
-COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(const char *session_name,
-                                                                          const char *provider_guid_str,
-                                                                          com_util_etw_event_callback_t callback,
-                                                                          void *context, int *out_status)
+COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(const char *session_name,
+                                                                              const char *provider_guid_str,
+                                                                              com_util_etw_event_callback_t callback,
+                                                                              void *context, int *out_status)
 {
-    com_util_etw_session_t *session = NULL;
+    com_util_etw_session *session = NULL;
     GUID provider_guid;
     ULONG status;
     int name_len_w;
@@ -517,14 +512,14 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
         return NULL;
     }
 
-    session = (com_util_etw_session_t *)malloc(sizeof(com_util_etw_session_t));
+    session = (com_util_etw_session *)malloc(sizeof(com_util_etw_session));
     if (session == NULL)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
         return NULL;
     }
 
-    zero_bytes(session, sizeof(com_util_etw_session_t));
+    zero_bytes(session, sizeof(com_util_etw_session));
     session->callback = callback;
     session->context = context;
     session->session_handle = 0;
@@ -613,7 +608,7 @@ COM_UTIL_EXPORT com_util_etw_session_t *COM_UTIL_API com_util_etw_session_start(
     return session;
 }
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session_t *session)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session *session)
 {
     if (session == NULL)
     {

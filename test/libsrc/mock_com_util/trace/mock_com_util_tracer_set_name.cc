@@ -2,18 +2,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_tracer_set_name(com_util_tracer_t *handle, const char *name,
-                               int64_t identifier)
+int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_tracer_set_name)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_name"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_set_name)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_name"));
 
     return real_fn(handle, name, identifier);
 }
 
-MOCK_WEAK_IMPL(int, com_util_tracer_set_name, com_util_tracer_t *handle, const char *name,
-                               int64_t identifier)
+MOCK_WEAK_IMPL(int, com_util_tracer_set_name, com_util_tracer *handle, const char *name, int64_t identifier)
 {
     int rtc = 0;
 

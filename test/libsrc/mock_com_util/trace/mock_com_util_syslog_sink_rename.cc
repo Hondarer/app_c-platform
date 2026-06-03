@@ -3,16 +3,15 @@
 
 #if defined(PLATFORM_LINUX)
 
-int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink_t *handle, const char *new_ident)
+int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_syslog_sink_rename)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_rename"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_syslog_sink_rename)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_syslog_sink_rename"));
 
     return real_fn(handle, new_ident);
 }
 
-MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink_t *handle, const char *new_ident)
+MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink *handle, const char *new_ident)
 {
     int rtc = -1;
 

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_dispose.c
- *  @brief          com_util_sym_loader_entry_t ポインタ配列を解放します。
+ *  @brief          com_util_sym_loader_entry ポインタ配列を解放します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
@@ -15,8 +15,8 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API
-    com_util_sym_loader_dispose(com_util_sym_loader_entry_t *const *fobj_array, const size_t fobj_length)
+COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_dispose(com_util_sym_loader_entry *const *fobj_array,
+                                                              const size_t fobj_length)
 {
     size_t fobj_index;
 
@@ -28,7 +28,7 @@ COM_UTIL_EXPORT void COM_UTIL_API
 
     for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
     {
-        com_util_sym_loader_entry_t *cache = fobj_array[fobj_index];
+        com_util_sym_loader_entry *cache = fobj_array[fobj_index];
 
         if (cache->handle == NULL)
         {
