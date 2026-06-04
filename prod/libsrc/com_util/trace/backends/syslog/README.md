@@ -1,3 +1,7 @@
+---
+short-title: "syslog"
+---
+
 # trace backend: syslog
 
 `syslog` backend は、Linux 上で `trace` の OS トレース出力を担当する backend です。  

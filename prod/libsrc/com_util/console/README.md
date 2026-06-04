@@ -1,3 +1,7 @@
+---
+short-title: "console"
+---
+
 # console - Windows コンソール設定ヘルパー
 
 `console` は、Windows と Linux の両方で同じ呼び出しコードを使えるコンソール初期化ユーティリティです。

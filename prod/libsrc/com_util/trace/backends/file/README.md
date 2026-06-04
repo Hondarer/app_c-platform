@@ -1,3 +1,7 @@
+---
+short-title: "file"
+---
+
 # trace backend: file
 
 `file` backend は、`trace` の出力をローカル ファイルへ保存するための backend です。  

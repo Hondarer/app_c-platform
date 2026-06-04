@@ -1,3 +1,7 @@
+---
+short-title: "trace"
+---
+
 # trace - クロスプラットフォーム トレース基盤
 
 `trace` は、Windows と Linux の両方で同じコードからトレースを出力するためのユーティリティです。  

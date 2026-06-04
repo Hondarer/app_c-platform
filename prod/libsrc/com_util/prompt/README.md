@@ -1,3 +1,7 @@
+---
+short-title: "prompt"
+---
+
 # prompt - pinned_prompt
 
 ## 目的

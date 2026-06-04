@@ -1,3 +1,7 @@
+---
+short-title: "etw"
+---
+
 # trace backend: etw
 
 `etw` backend は、Windows 上で `trace` の OS トレース出力を担当する backend です。  
