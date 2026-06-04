@@ -18,7 +18,13 @@
  *  ヘルパー関数群を提供します。\n
  *  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
  *  中でのみ使用してください。
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 /**
  *  @struct         com_util_etw_event

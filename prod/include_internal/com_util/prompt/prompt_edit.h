@@ -1,7 +1,13 @@
 /**
  *  @file           prompt_edit.h
  *  @brief          Prompt edit buffer helper internals.
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #ifndef COM_UTIL_PROMPT_EDIT_H
 #define COM_UTIL_PROMPT_EDIT_H

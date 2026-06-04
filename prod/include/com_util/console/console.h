@@ -21,7 +21,13 @@
         return 0;
     }
  *  @endcode
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #ifndef COM_UTIL_CONSOLE_H
 #define COM_UTIL_CONSOLE_H

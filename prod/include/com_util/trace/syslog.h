@@ -17,7 +17,13 @@
  *  Linux syslog (RFC5424 系実装) のラッパー関数群を提供します。\n
  *  Linux 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_LINUX) の
  *  中でのみ使用してください。
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #if defined(PLATFORM_LINUX)
 

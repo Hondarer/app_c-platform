@@ -1,7 +1,13 @@
 /**
  *  @file           prompt_internal.h
  *  @brief          プロンプトヘルパー内部定義（非公開）。
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #ifndef COM_UTIL_PROMPT_INTERNAL_H
 #define COM_UTIL_PROMPT_INTERNAL_H

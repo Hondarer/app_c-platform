@@ -15,7 +15,13 @@
    2026-03-31 12:34:56.789 I メッセージテキスト
  *  @endcode
  *  レベル文字: C=CRITICAL / E=ERROR / W=WARNING / I=INFO / V=VERBOSE
+ *
+ *  @hideincludedbygraph
+ *
  */
+
+/* NOTE: このヘッダーは多数のソース ファイルから参照されるため、            */
+/*       @hideincludedbygraph によって "Included by" グラフを無効にします。 */
 
 #include <stddef.h>
 #include <com_util/base/platform.h>
