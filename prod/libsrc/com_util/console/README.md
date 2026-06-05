@@ -97,12 +97,12 @@ int main(void)
 
 ## 参考リンク
 
-- Microsoft Learn: Use UTF-8 code pages in Windows apps
-  https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page
+- Microsoft Learn: Use UTF-8 code pages in Windows apps  
+  https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page  
   確認日: 2026-06-01。
-- Microsoft Learn: Console Code Pages
-  https://learn.microsoft.com/en-us/windows/console/console-code-pages
+- Microsoft Learn: Console Code Pages  
+  https://learn.microsoft.com/en-us/windows/console/console-code-pages  
   確認日: 2026-06-01。
-- Microsoft Learn: SetConsoleOutputCP function
-  https://learn.microsoft.com/en-us/windows/console/setconsoleoutputcp
+- Microsoft Learn: SetConsoleOutputCP function  
+  https://learn.microsoft.com/en-us/windows/console/setconsoleoutputcp  
   確認日: 2026-06-01。

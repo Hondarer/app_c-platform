@@ -29,9 +29,9 @@ Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨
 
 - 全参加プロセスが対等。専用デーモンは増やさない。
 - 「ロック ドメイン」 1 つにつき、共有メモリ セグメント 1 個を持つ。
-  - Linux: `shm_open("/com_util_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
-  - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\com_util_lkdomain_<DOMAIN>")` +  
-    `MapViewOfFile`
+    - Linux: `shm_open("/com_util_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
+    - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\com_util_lkdomain_<DOMAIN>")` +  
+      `MapViewOfFile`
 - セグメント内に「マスター ロック (robust)」と「論理ロック表 (数千 entries)」を置く。
 - 待機は条件変数プール (Linux: PROCESS_SHARED `pthread_cond_t` × K 個 /  
   Windows: 名前付き auto-reset Event × K 個) を ID ハッシュで割当て。
@@ -106,10 +106,10 @@ R_MAX, string_pool) は環境変数または初回作成時の hint で決定し
 - `manager_mutex` を `pthread_mutexattr_setpshared(PTHREAD_PROCESS_SHARED)` +  
   `pthread_mutexattr_setrobust(PTHREAD_MUTEX_ROBUST)` で初期化
 - 取得時:
-  - `pthread_mutex_lock(&manager_mutex)`
-  - 返値 `EOWNERDEAD` → 前保持者が死亡。スイープ (後述) を実行し  
-    `pthread_mutex_consistent(&manager_mutex)` で整合化
-  - 返値 `ENOTRECOVERABLE` → セグメント全体を放棄 (新 generation で再作成)
+    - `pthread_mutex_lock(&manager_mutex)`
+    - 返値 `EOWNERDEAD` → 前保持者が死亡。スイープ (後述) を実行し  
+      `pthread_mutex_consistent(&manager_mutex)` で整合化
+    - 返値 `ENOTRECOVERABLE` → セグメント全体を放棄 (新 generation で再作成)
 - 条件変数も `pthread_condattr_setpshared(PTHREAD_PROCESS_SHARED)` で PROCESS_SHARED に。  
   `pthread_condattr_setclock(CLOCK_MONOTONIC)` を併用してタイムアウト計算を `CLOCK_MONOTONIC` に統一  
   (現状の `monotonic_deadline` と整合)
@@ -118,8 +118,8 @@ R_MAX, string_pool) は環境変数または初回作成時の hint で決定し
 
 - `manager_mutex` は名前付き Mutex (`CreateMutexA("Local\\com_util_lkdomain_<DOMAIN>_mutex")`)
 - 取得時:
-  - `WaitForSingleObject(manager_mutex, ms)` の結果が `WAIT_ABANDONED_0` → 前保持者死亡。  
-    スイープ実行後、所有を取って進める (Windows は自動的に正常所有状態に戻る)
+    - `WaitForSingleObject(manager_mutex, ms)` の結果が `WAIT_ABANDONED_0` → 前保持者死亡。  
+      スイープ実行後、所有を取って進める (Windows は自動的に正常所有状態に戻る)
 - 待機は名前付き auto-reset Event のプール (`CreateEventA` で K 個)。  
   公平性: 起床通知時に「全部 set してから cond を再評価」(thundering herd) または  
   「FIFO 待機 ID キューを共有メモリに持ち、特定 Event を狙って set」 のどちらかを選択。  
@@ -136,12 +136,11 @@ R_MAX, string_pool) は環境変数または初回作成時の hint で決定し
 ### Linux
 
 - 第一選択: `pidfd_open(pid, 0)` (Linux 5.3+)
-  - 成功 → `poll({.fd=pidfd, .events=POLLIN}, 1, 0)` で 0 返却 = 生存、  
-    POLLIN 立つ = 終了済
-  - `pidfd_open` 失敗 (`ESRCH`) = 死亡
+    - 成功 → `poll({.fd=pidfd, .events=POLLIN}, 1, 0)` で 0 返却 = 生存、POLLIN 立つ = 終了済
+    - `pidfd_open` 失敗 (`ESRCH`) = 死亡
 - フォールバック (古いカーネル): `/proc/<pid>/stat` から開始時刻 (`starttime` フィールド) を  
   読み、エントリに記録した `writer_serial` (= 開始時刻) と一致するか確認
-  - PID リユース耐性のために `writer_serial` には必ず開始時刻を入れる
+    - PID リユース耐性のために `writer_serial` には必ず開始時刻を入れる
 - 検査結果のキャッシュ: マスター ロック保持中は同一 PID を複数回検査することがあるので  
   一時マップに乗せる (関数呼び出しスタック内のローカル領域)
 
