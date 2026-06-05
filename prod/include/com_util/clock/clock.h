@@ -104,7 +104,7 @@ extern "C"
      *
      *  @note           返す値の絶対値に意味はありません。必ず 2 点間の差分として使用してください。
      *
-     *  @remarks        Windows では GetTickCount64() の分解能がハードウェアに依存し、
+     *  @remark         Windows では GetTickCount64() の分解能がハードウェアに依存し、
      *                  通常 15 ms 程度です。1 ms 未満の精度が必要な場合は
      *                  com_util_get_monotonic() を使用してください。
      *
@@ -148,7 +148,7 @@ extern "C"
      *                  tv_nsec の有効桁は ms 単位 (1,000,000 ns 刻み) になります。
      *                  ms 以上の精度が必要な場合は QueryPerformanceCounter() の利用を検討してください。
      *
-     *  @remarks        ms 精度で十分な場合は com_util_get_monotonic_ms() の使用を推奨します。
+     *  @remark         ms 精度で十分な場合は com_util_get_monotonic_ms() の使用を推奨します。
      *
      *  使用例 (経過ナノ秒を算出):
      *  @code{.c}
