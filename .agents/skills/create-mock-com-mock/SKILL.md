@@ -51,7 +51,7 @@ MOCK_METHOD は対応する非 `v` 版と同じシグネチャ (`va_list` なし
 // 実 API
 int com_util_vaccess_fmt(int mode, const char *format, va_list args);
 
-// MOCK_METHOD — va_list なし（整形済み文字列を受け取る）
+// MOCK_METHOD — va_list なし (整形済み文字列を受け取る)
 MOCK_METHOD(int, com_util_vaccess_fmt, (int, const char *));
 ```
 

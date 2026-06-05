@@ -1,13 +1,13 @@
-# テスト対象のソースファイル
+# テスト対象のソース ファイル
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/src/cmd/trace-cli/trace-cli.c
 
-# エントリーポイントの変更
-# テスト対象のソースファイルにある main() は直接実行されず、
+# エントリ ポイントの変更
+# テスト対象のソース ファイルにある main() は直接実行されず、
 # テストコード内から __real_main() 経由で実行される
 USE_WRAP_MAIN := 1
 
-# テスト対象ソースのローカルヘッダーを参照する
+# テスト対象ソースのローカル ヘッダーを参照する
 INCDIR += \
 	$(MYAPP_DIR)/prod/src/cmd/trace-cli
 

@@ -1,14 +1,14 @@
-# テスト対象のソースファイル
+# テスト対象のソース ファイル
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/src/cmd/etw-viewer/etw-viewer.c \
 	$(MYAPP_DIR)/test/libsrc/mock_com_util/runtime/mock_com_util_shutdown_request_register.cc
 
-# エントリーポイントの変更
-# テスト対象のソースファイルにある main() は直接実行されず、
+# エントリ ポイントの変更
+# テスト対象のソース ファイルにある main() は直接実行されず、
 # テストコード内から __real_main() 経由で実行される
 USE_WRAP_MAIN := 1
 
-# テスト対象ソースのローカルヘッダーを参照する
+# テスト対象ソースのローカル ヘッダーを参照する
 INCDIR += \
 	$(MYAPP_DIR)/prod/src/cmd/etw-viewer
 

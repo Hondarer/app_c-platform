@@ -63,6 +63,6 @@ Linux では OS トレース先が syslog になります。
 `testfw` の `processController` が `preload_lib` オプションと組み合わせてこの仕組みを使用します。
 
 ```c
-/* テストプロセス側でパイプを作成し、書き込み端の FD 番号を環境変数に設定する */
+/* テスト プロセス側でパイプを作成し、書き込み端の FD 番号を環境変数に設定する */
 setenv("SYSLOG_TEST_FD", "<fd_number>", 1);
 ```
