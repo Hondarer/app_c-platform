@@ -74,6 +74,22 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir(const char *path);
 
     /**
+     *  @brief          UTF-8 パスのディレクトリを、欠けている中間ディレクトリも
+     *                  含めて再帰的に作成します (`mkdir -p` 相当)。
+     *  @param[in]      path  作成するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  既に存在するディレクトリは成功として扱います (冪等)。\n
+     *  中間ディレクトリが欠けている場合はすべて生成します。\n
+     *  他プロセスによる競合生成は成功として扱います。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path);
+
+    /**
      *  @brief          書式指定パスのファイル情報を取得します。
      *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。

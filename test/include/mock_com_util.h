@@ -60,6 +60,7 @@ extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *pa
 extern int delegate_real_com_util_open(const char *path, int flags, int mode);
 extern int delegate_real_com_util_access(const char *path, int mode);
 extern int delegate_real_com_util_mkdir(const char *path);
+extern int delegate_real_com_util_makedirs(const char *path);
 extern int delegate_real_com_util_remove(const char *path);
 extern int delegate_real_com_util_sscanf(const char *buffer, const char *format, va_list args);
 extern int delegate_real_com_util_vsscanf(const char *buffer, const char *format, va_list args);
@@ -327,6 +328,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_open, (const char *, int, int));
     MOCK_METHOD(int, com_util_access, (const char *, int));
     MOCK_METHOD(int, com_util_mkdir, (const char *));
+    MOCK_METHOD(int, com_util_makedirs, (const char *));
     MOCK_METHOD(int, com_util_remove, (const char *));
     MOCK_METHOD(int, com_util_sscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int, com_util_vsscanf, (const char *, const char *, va_list));

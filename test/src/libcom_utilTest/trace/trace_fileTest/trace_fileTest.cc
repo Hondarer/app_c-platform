@@ -308,3 +308,24 @@ TEST_F(trace_fileTest, test_dispose_with_null_handle_is_safe)
     // Act & Assert
     com_util_trace_file_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼ぶ。
 }
+
+// パスに区切り文字が含まれる場合に makedirs が親ディレクトリ パスで呼ばれることの確認
+TEST_F(trace_fileTest, test_create_calls_makedirs_for_path_with_separator)
+{
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_makedirs(StrEq("sub")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 親ディレクトリ "sub" で makedirs が呼ばれること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("sub/trace.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 親ディレクトリ生成後にファイルが開かれること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
+
+    // Act
+    com_util_trace_file_sink *handle =
+        com_util_trace_file_sink_create("sub/trace.log", 0, 0); // [手順] - 区切り文字を含むパスで create を呼ぶ。
+
+    // Assert
+    EXPECT_NE((com_util_trace_file_sink *)NULL, handle); // [確認_正常系] - ハンドルが生成されること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}

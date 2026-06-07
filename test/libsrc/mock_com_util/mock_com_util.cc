@@ -21,6 +21,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_open(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_open));
     ON_CALL(*this, com_util_access(_, _)).WillByDefault(Invoke(delegate_real_com_util_access));
     ON_CALL(*this, com_util_mkdir(_)).WillByDefault(Invoke(delegate_real_com_util_mkdir));
+    ON_CALL(*this, com_util_makedirs(_)).WillByDefault(Invoke(delegate_real_com_util_makedirs));
     ON_CALL(*this, com_util_remove(_)).WillByDefault(Invoke(delegate_real_com_util_remove));
     ON_CALL(*this, com_util_sscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_sscanf));
     ON_CALL(*this, com_util_vsscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_vsscanf));

@@ -17,6 +17,7 @@
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/sys/stat.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/trace_file.h>
 #include <stdio.h>
@@ -159,11 +160,25 @@ static int format_timestamp(char *buf, const int buf_size, const com_util_realti
 /**
  *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
  *  @return 成功 0 / 失敗 -1。
+ *
+ *  親ディレクトリが存在しない場合は com_util_makedirs で自動生成する (best-effort)。\n
+ *  生成に失敗しても後続の com_util_file_open の結果で最終判定する。
  */
 static int open_file(com_util_trace_file_sink *p)
 {
+    char dir[PLATFORM_PATH_MAX];
+    char *sep;
     int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
                 COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+
+    /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
+    snprintf(dir, sizeof(dir), "%s", p->path);
+    sep = strrchr(dir, PLATFORM_PATH_SEP_CHR);
+    if (sep != NULL)
+    {
+        *sep = '\0';
+        (void)com_util_makedirs(dir);
+    }
 
     if (com_util_file_open(&p->file, p->path, flags) != 0)
     {

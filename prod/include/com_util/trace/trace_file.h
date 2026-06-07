@@ -69,6 +69,7 @@ extern "C"
      *
      *  指定されたファイル パスへの書き込みを開始します。\n
      *  ファイルが存在する場合は追記します。存在しない場合は新規作成します。\n
+     *  親ディレクトリが存在しない場合は再帰的に自動生成します (`mkdir -p` 相当)。\n
      *  max_bytes に 0 を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES を使用します。\n
      *  generations に 0 以下を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS を使用します。
      *
