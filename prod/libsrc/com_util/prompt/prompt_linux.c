@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_linux.c
- *  @brief          プロンプトヘルパー Linux 実装（termios raw mode）。
+ *  @brief          プロンプト ヘルパー Linux 実装 (termios raw mode)。
  */
 
 #include <com_util/prompt/prompt_internal.h>
@@ -40,8 +40,8 @@ void prompt_platform_enter_raw(com_util_prompt *p)
     }
     raw = p->orig_term;
 
-    /* ICANON : 行単位読み取り無効（文字単位に変更）
-     * ECHO   : エコー無効（自前で再描画）
+    /* ICANON : 行単位読み取り無効 (文字単位に変更)
+     * ECHO   : エコー無効 (自前で再描画)
      * ISIG   : Ctrl+C をシグナルではなく KEY_CTRL_C として受け取る
      * ICRNL  : \r を \n に変換しない
      * IXON   : Ctrl+S/Q による出力一時停止を無効 */

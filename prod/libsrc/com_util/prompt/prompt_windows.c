@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_windows.c
- *  @brief          プロンプトヘルパー Windows 実装（SetConsoleMode VT 入力）。
+ *  @brief          プロンプト ヘルパー Windows 実装 (SetConsoleMode VT 入力)。
  */
 
 #include <com_util/prompt/prompt_internal.h>
@@ -36,7 +36,7 @@ void prompt_platform_enter_raw(com_util_prompt *p)
     }
     /* ENABLE_VIRTUAL_TERMINAL_INPUT : ESC シーケンスを仮想端末入力として受け取る
      * ENABLE_ECHO_INPUT              : エコー無効
-     * ENABLE_LINE_INPUT              : 行単位読み取り無効（文字単位に変更）
+     * ENABLE_LINE_INPUT              : 行単位読み取り無効 (文字単位に変更)
      * ENABLE_PROCESSED_INPUT         : Ctrl+C をシグナルではなく文字として受け取る */
     new_mode = (p->orig_in_mode | ENABLE_VIRTUAL_TERMINAL_INPUT) &
                ~((DWORD)(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT));
@@ -65,7 +65,7 @@ int prompt_platform_read_char(com_util_prompt *p)
     result = WaitForSingleObject(p->stdin_handle, 100U);
     if (result == WAIT_TIMEOUT)
     {
-        return -2; /* リサイズチェック用タイムアウト */
+        return -2; /* リサイズ チェック用タイムアウト */
     }
     if (result != WAIT_OBJECT_0)
     {

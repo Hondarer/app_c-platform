@@ -15,7 +15,7 @@ class trace_syslogTest : public Test
 {
 };
 
-// プロバイダを初期化し、有効なハンドルが返されることの確認
+// プロバイダーを初期化し、有効なハンドルが返されることの確認
 TEST_F(trace_syslogTest, test_init_and_dispose)
 {
     com_util_syslog_sink *handle =

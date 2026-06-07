@@ -1,12 +1,12 @@
 /**
  *******************************************************************************
  *  @file           trace_etw.c
- *  @brief          ETW プロバイダ実装ファイル。
+ *  @brief          ETW プロバイダー実装ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
  *
- *  Windows TraceLogging ベースの ETW プロバイダを提供します。
+ *  Windows TraceLogging ベースの ETW プロバイダーを提供します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -25,11 +25,11 @@
     #include <com_util/trace/backends/etw/etw_internal.h>
 
 /**
- *  @brief  ETW プロバイダハンドル構造体 (内部定義)。
+ *  @brief  ETW プロバイダー ハンドル構造体 (内部定義)。
  */
 struct com_util_etw_provider
 {
-    /** TraceLogging プロバイダ参照。 */
+    /** TraceLogging プロバイダー参照。 */
     com_util_etw_provider_ref_t provider_ref;
 };
 
@@ -69,8 +69,8 @@ com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
  *
  *  service が NULL の場合は Service フィールドを含めない。
  *
- *  @param[in]      ref     TraceLogging プロバイダ参照。
- *  @param[in]      level   トレースレベル (1=Critical 〜 5=Verbose)。
+ *  @param[in]      ref     TraceLogging プロバイダー参照。
+ *  @param[in]      level   トレース レベル (1=Critical 〜 5=Verbose)。
  *  @param[in]      service サービス名 (NULL 可)。NULL の場合 Service フィールドを省略。
  *  @param[in]      message メッセージ文字列。
  */

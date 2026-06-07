@@ -22,26 +22,26 @@
  */
 struct com_util_etw_session
 {
-    /** トレースセッションハンドル。 */
+    /** トレース セッション ハンドル。 */
     TRACEHANDLE session_handle;
     /** トレース処理ハンドル。 */
     TRACEHANDLE trace_handle;
-    /** ProcessTrace ワーカースレッド。 */
+    /** ProcessTrace ワーカー スレッド。 */
     com_util_thread *thread_handle;
     /** イベント受信コールバック。 */
     com_util_etw_event_callback_t callback;
     /** コールバックに渡すユーザーデータ。 */
     void *context;
-    /** セッションプロパティ (可変長)。 */
+    /** セッション プロパティ (可変長)。 */
     EVENT_TRACE_PROPERTIES *properties;
     /** セッション名 (ワイド文字列)。 */
     wchar_t *session_name_w;
-    /** プロバイダ GUID (イベントフィルタリング用)。 */
+    /** プロバイダー GUID (イベント フィルタリング用)。 */
     GUID provider_guid;
 };
 
 /**
- *  @brief  メモリ領域をゼロクリアする (memset 代替)。
+ *  @brief  メモリ領域をゼロ クリアする (memset 代替)。
  *  @note   testfw が memset をモックするため、直接ゼロ代入で初期化する。
  */
 static void zero_bytes(void *ptr, const size_t size)
@@ -122,7 +122,7 @@ static int guid_equal(const GUID *a, const GUID *b)
 
 /**
  *  @brief  TRACE_EVENT_INFO を取得する。
- *  @return 成功時は確保済みポインタ。失敗時は NULL。
+ *  @return 成功時は確保済みポインター。失敗時は NULL。
  */
 static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
 {
@@ -356,9 +356,9 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
 }
 
 /**
- *  @brief  ETW イベントレコードコールバック (ProcessTrace から呼ばれる)。
+ *  @brief  ETW イベント レコード コールバック (ProcessTrace から呼ばれる)。
  *
- *  プロバイダ GUID でフィルタリングし、UserData を null 終端文字列として読み取る。
+ *  プロバイダー GUID でフィルタリングし、UserData を null 終端文字列として読み取る。
  *  TraceLoggingString は UserData に null 終端 ANSI 文字列を直接格納する。
  */
 static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
@@ -383,7 +383,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
         return;
     }
 
-    /* プロバイダ GUID でフィルタリング */
+    /* プロバイダー GUID でフィルタリング */
     if (!guid_equal(&pEvent->EventHeader.ProviderId, &session->provider_guid))
     {
         return;
@@ -416,7 +416,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 }
 
 /**
- *  @brief  ProcessTrace ワーカースレッド関数。
+ *  @brief  ProcessTrace ワーカー スレッド関数。
  */
 static void trace_thread_proc(void *param)
 {
@@ -547,7 +547,7 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
         return dispose_session_and_return_null(session);
     }
 
-    /* リアルタイムセッションを開始 */
+    /* リアルタイム セッションを開始 */
     zero_bytes(session->properties, props_size);
     session->properties->Wnode.BufferSize = (ULONG)props_size;
     session->properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
@@ -572,7 +572,7 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
         return dispose_session_and_return_null(session);
     }
 
-    /* プロバイダを有効化 */
+    /* プロバイダーを有効化 */
     etp.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
     status = EnableTraceEx2(session->session_handle, &provider_guid, EVENT_CONTROL_CODE_ENABLE_PROVIDER, 5,
                             0xFFFFFFFFFFFFFFFF, 0, 0, &etp);
@@ -582,7 +582,7 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
         return dispose_session_and_return_null(session);
     }
 
-    /* トレースをオープンしワーカースレッドを起動 */
+    /* トレースをオープンしワーカー スレッドを起動 */
     {
         EVENT_TRACE_LOGFILEW trace_logfile = {0};
         trace_logfile.LoggerName = session->session_name_w;
@@ -615,19 +615,19 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session
         return;
     }
 
-    /* セッション停止 (バッファフラッシュ → ProcessTrace が残イベントを処理して戻る) */
+    /* セッション停止 (バッファー フラッシュ → ProcessTrace が残イベントを処理して戻る) */
     if (session->session_handle != 0 && session->properties != NULL)
     {
         ControlTraceW(session->session_handle, NULL, session->properties, EVENT_TRACE_CONTROL_STOP);
     }
 
-    /* ワーカースレッド join */
+    /* ワーカー スレッド join */
     if (session->thread_handle != NULL)
     {
         com_util_thread_join(session->thread_handle, COM_UTIL_SYNC_WAIT_FOREVER);
     }
 
-    /* トレースハンドルクローズ */
+    /* トレース ハンドル クローズ */
     if (session->trace_handle != INVALID_PROCESSTRACE_HANDLE)
     {
         CloseTrace(session->trace_handle);

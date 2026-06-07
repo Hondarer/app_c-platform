@@ -102,7 +102,7 @@ class traceTest : public Test
 TEST_F(traceTest, test_init_and_dispose)
 {
     // Arrange & Act
-    com_util_tracer *handle = create_logger(); // [手順] - トレースハンドルを初期化する。
+    com_util_tracer *handle = create_logger(); // [手順] - トレース ハンドルを初期化する。
 
     // Assert
     EXPECT_EQ((size_t)1, trace_registry_count()); // [確認_正常系] - registry に 1 件登録されること。

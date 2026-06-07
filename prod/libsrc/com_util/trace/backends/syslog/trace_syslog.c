@@ -1,12 +1,12 @@
 /**
  *******************************************************************************
  *  @file           trace_syslog.c
- *  @brief          syslog プロバイダ実装ファイル。
+ *  @brief          syslog プロバイダー実装ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
  *
- *  Linux syslog ベースのトレースプロバイダを提供します。\n
+ *  Linux syslog ベースのトレース プロバイダーを提供します。\n
  *  /dev/log への UNIX ドメイン SOCK_DGRAM 送信で実装しています。
  *  send(MSG_DONTWAIT) を使用するため、ソケットが詰まっていても
  *  アプリケーションをブロックしません。送信失敗時はメッセージを
@@ -14,8 +14,8 @@
  *  環境変数 `SYSLOG_TEST_FD` が設定されている場合は /dev/log の代わりに
  *  その FD に RFC 3164 形式のメッセージを書き込みます (テスト用途)。
  *
- *  @par            スレッドセーフティ
- *  本モジュールはスレッドセーフです。\n
+ *  @par            スレッド セーフ
+ *  本モジュールはスレッド セーフです。\n
  *  fd・next_connect・backoff_sec の読み書きはすべて reconnect_lock で
  *  保護しています。sendto() は MSG_DONTWAIT で即時返るため、
  *  ロック保持中に実行しても問題ありません。
@@ -44,7 +44,7 @@
     #include <com_util/trace/backends/syslog/syslog_internal.h>
     #include <com_util/test/syslog_test.h>
 
-    /** /dev/log への UNIX ドメインソケットパス。 */
+    /** /dev/log への UNIX ドメイン ソケット パス。 */
     #define DEVLOG_PATH "/dev/log"
 
     /** 初回バックオフ間隔 (秒)。 */
@@ -53,14 +53,14 @@
     /** バックオフ最大間隔 (秒)。 */
     #define BACKOFF_MAX_SEC 60
 
-    /** メッセージバッファサイズ (RFC 3164 推奨最大長)。 */
+    /** メッセージ バッファー サイズ (RFC 3164 推奨最大長)。 */
     #define SYSLOG_BUF_SIZE 2048
 
-    /** SYSLOG_TEST_FD 向けバッファサイズ。timestamp と改行を加味する。 */
+    /** SYSLOG_TEST_FD 向けバッファー サイズ。timestamp と改行を加味する。 */
     #define SYSLOG_DEBUG_BUF_SIZE (SYSLOG_BUF_SIZE + COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 4)
 
 /**
- *  @brief  syslog プロバイダハンドル構造体 (内部定義)。
+ *  @brief  syslog プロバイダー ハンドル構造体 (内部定義)。
  */
 struct com_util_syslog_sink
 {
@@ -82,7 +82,7 @@ struct com_util_syslog_sink
     /** mutex が初期化済みであることを示すフラグ。 */
     int lock_initialized;
 
-    /** UNIX ドメインソケット fd。未接続時は -1。reconnect_lock で保護。 */
+    /** UNIX ドメイン ソケット fd。未接続時は -1。reconnect_lock で保護。 */
     int fd;
 
     /** 現在のバックオフ間隔 (秒)。reconnect_lock で保護。 */
@@ -365,7 +365,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_write(com_util_syslog_sink
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
-            /* 送信バッファ満杯: drop のみ、再接続不要 */
+            /* 送信バッファー満杯: drop のみ、再接続不要 */
             com_util_local_lock_unlock(handle->reconnect_lock);
             if (fallback_used)
             {

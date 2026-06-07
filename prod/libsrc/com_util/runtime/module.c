@@ -10,10 +10,10 @@
  *  Linux(GCC) では dladdr() で共有オブジェクトを特定し、realpath() で可能な限り正規化 (絶対化・symlink 解決) します。
  *  Windows(MSVC) では GetModuleHandleEx() で DLL の HMODULE を得て、GetModuleFileNameW() でパスを取得します。
  *
- *  @note           - 「絶対パス」は OS/ローダの情報とファイルシステム状態に依存します。
+ *  @note           - 「絶対パス」は OS/ローダーの情報とファイル システム状態に依存します。
  *                    Linux でロード後にファイルが移動/削除される等により realpath()
  *                    が失敗する場合、可能な範囲で絶対化した文字列を返します。
- *                  - Windows は基本的にフルパスが得られますが、古い環境では MAX_PATH 制約が残る場合があります。
+ *                  - Windows は基本的に完全なパスが得られますが、古い環境では MAX_PATH 制約が残る場合があります。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -37,15 +37,15 @@
 #endif /* PLATFORM_ */
 
 /**
- *  @brief          内部関数の戻り値(ステータス)。
+ *  @brief          内部関数の戻り値 (ステータス)。
  */
 typedef enum get_lib_info_status_t
 {
     /** 成功 */
     MYLIB_OK = 0,
-    /** 引数不正 (NULL、サイズ0など) */
+    /** 引数不正 (NULL、サイズ 0 など) */
     MYLIB_EINVAL = -1,
-    /** バッファ不足 (出力が収まらない) */
+    /** バッファー不足 (出力が収まらない) */
     MYLIB_ENOBUFS = -2,
     /** その他の失敗 (取得不能、OS API 失敗など) */
     MYLIB_EFAIL = -3
@@ -54,7 +54,7 @@ typedef enum get_lib_info_status_t
 /**
  *  @brief          文字列を安全にコピーします (UTF-8 想定だが単なる byte 列として扱う)。
  *
- *  @param[out]     dst    出力バッファ。
+ *  @param[out]     dst    出力バッファー。
  *  @param[in]      dst_sz 出力バッファサイズ[byte]。
  *  @param[in]      src    入力文字列 (NULL 終端)。
  *  @return         get_lib_info_status_t
@@ -80,7 +80,7 @@ static get_lib_info_status_t copy_str(char *dst, size_t dst_sz, const char *src)
  *  @brief          パス文字列からファイル名部分 (最後の区切り文字以降) を返します。
  *
  *  @param[in]      path パス。
- *  @return         const char* ファイル名部分へのポインタ (元の文字列内)。
+ *  @return         const char* ファイル名部分へのポインター (元の文字列内)。
  */
 static const char *get_ilename_part(const char *path)
 {

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_dispose.c
- *  @brief          com_util_sym_loader_entry ポインタ配列を解放します。
+ *  @brief          com_util_sym_loader_entry ポインター配列を解放します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0

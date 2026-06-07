@@ -1,12 +1,12 @@
 /**
  *******************************************************************************
  *  @file           trace_file.c
- *  @brief          ファイルトレースプロバイダ実装ファイル。
+ *  @brief          ファイル トレース プロバイダー実装ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
  *
- *  ファイルへのトレースログ書き込みプロバイダを提供します。
+ *  ファイルへのトレース ログ書き込みプロバイダーを提供します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -27,7 +27,7 @@
 
 /* ===== 内部定数 ===== */
 
-/** 1 行分のスタックバッファサイズ。 */
+/** 1 行分のスタック バッファー サイズ。 */
 #define TRACE_FILE_LINE_BUF 1100
 
 /** ファイル書き込みロック取得のタイムアウト (ミリ秒)。 */
@@ -36,17 +36,17 @@
 /** タイムスタンプ部分の文字数 ("YYYY-MM-DDTHH:MM:SS.sss+09:00" = 29 文字)。 */
 #define TRACE_FILE_TS_LEN COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN
 
-/** ローテーションパスのサフィックス最大長 (".999\0" = 5 文字)。 */
+/** ローテーション パスのサフィックス最大長 (".999\0" = 5 文字)。 */
 #define TRACE_FILE_SUFFIX_MAX 5
 
 /* ===== 内部構造体 ===== */
 
 /**
- *  @brief  ファイルトレースプロバイダハンドル構造体 (内部定義)。
+ *  @brief  ファイル トレース プロバイダー ハンドル構造体 (内部定義)。
  */
 struct com_util_trace_file_sink
 {
-    /** ヒープ確保済みファイルパス文字列。 */
+    /** ヒープ確保済みファイル パス文字列。 */
     char *path;
     /** ファイル 1 世代あたりの最大バイト数。 */
     size_t max_bytes;
@@ -54,7 +54,7 @@ struct com_util_trace_file_sink
     size_t current_bytes;
     /** 保持する旧世代数。 */
     int generations;
-    /** 低レベルファイル I/O ハンドル。 */
+    /** 低レベル ファイル I/O ハンドル。 */
     com_util_file file;
     /** スレッド安全のための mutex。 */
     com_util_local_lock *mutex;
@@ -67,7 +67,7 @@ struct com_util_trace_file_sink
 /* ===== 内部ヘルパー関数 ===== */
 
 /**
- *  @brief  トレースレベル整数をレベル文字に変換する。
+ *  @brief  トレース レベル整数をレベル文字に変換する。
  */
 static char level_char(const int level)
 {
@@ -140,9 +140,9 @@ static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_u
 }
 
 /**
- *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファへ書き込む。
- *  @param  buf      書き込み先バッファ。
- *  @param  buf_size バッファサイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
+ *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファーへ書き込む。
+ *  @param  buf      書き込み先バッファー。
+ *  @param  buf_size バッファー サイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
  *  @param  resolved 使用する実時刻。
  *  @return 成功 0 / 失敗 -1。
  */
@@ -203,15 +203,15 @@ static void close_file(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  トレースファイルをローテーションする。
+ *  @brief  トレース ファイルをローテーションする。
  *
  *  ロック保持中から呼ばれる。\n
  *  リネームに失敗した場合はその世代でカスケードを打ち切り、
- *  呼び出し元をブロックせずに続行する (ベストエフォート)。
+ *  呼び出し元をブロックせずに続行する (ベスト エフォート)。
  */
 static void rotate_file(com_util_trace_file_sink *p)
 {
-    /* パス構築用スタックバッファ */
+    /* パス構築用スタック バッファー */
     char old_path[PLATFORM_PATH_MAX];
     char new_path[PLATFORM_PATH_MAX];
     int gen;
@@ -222,7 +222,7 @@ static void rotate_file(com_util_trace_file_sink *p)
     snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations);
     (void)com_util_remove(new_path);
 
-    /* path.(gen-1) → path.gen のカスケードリネーム */
+    /* path.(gen-1) → path.gen のカスケード リネーム */
     for (gen = p->generations; gen >= 1; gen--)
     {
         /* 移動先: path.gen */
@@ -268,7 +268,7 @@ COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_
 
     path_len = strlen(path);
 
-    /* パスが長すぎてローテーションサフィックスを付加できない場合は拒否する */
+    /* パスが長すぎてローテーション サフィックスを付加できない場合は拒否する */
     if (path_len + TRACE_FILE_SUFFIX_MAX >= (size_t)PLATFORM_PATH_MAX)
     {
         return NULL;
@@ -361,7 +361,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
         return -1;
     }
 
-    /* 1 行全体をスタックバッファへフォーマットする (syscall 回数を最小化) */
+    /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
     len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, level_char(level), message);
     if (len <= 0)
     {
@@ -369,7 +369,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
     }
     if (len >= (int)sizeof(buf))
     {
-        /* 切り詰め: バッファ末尾を必ず改行で終端する */
+        /* 切り詰め: バッファー末尾を必ず改行で終端する */
         len = (int)sizeof(buf) - 1;
         buf[len - 1] = '\n';
     }

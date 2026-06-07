@@ -200,14 +200,14 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_s
             });
     EXPECT_CALL(mock_com_util_, com_util_fclose(input_file)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_decompress(_, _, _, _))
-        .Times(0); // [Pre-Assert確認_異常系] - ヘッダ不正時は展開 API を呼ばないこと。
+        .Times(0); // [Pre-Assert確認_異常系] - ヘッダー不正時は展開 API を呼ばないこと。
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("ヘッダの元サイズ"))).WillOnce(Return(0));
 
     // Act
-    int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダ値が小さすぎる入力で展開する。
+    int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダー値が小さすぎる入力で展開する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 不正ヘッダで失敗終了すること。
+    EXPECT_NE(0, rc); // [確認_異常系] - 不正ヘッダーで失敗終了すること。
 }
 
 TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_header)
@@ -251,7 +251,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("展開後サイズがヘッダ値と一致"))).WillOnce(Return(0));
 
     // Act
-    int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダ値と展開後サイズが一致しない入力で展開する。
+    int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダー値と展開後サイズが一致しない入力で展開する。
 
     // Assert
     EXPECT_NE(0, rc); // [確認_異常系] - サイズ不一致で失敗終了すること。

@@ -6,12 +6,12 @@
  *  @date           2026/02/23
  *  @version        1.0.0
  *
- *  com_util_sym_loader_resolve_as はスレッドセーフです。
+ *  com_util_sym_loader_resolve_as はスレッド セーフです。
  *  内部で mutex (Linux) または SRW ロック (Windows) を使用して排他制御します。
  *
  *  @par            double-checked locking とメモリ順序
  *  fast path (ロックなし) の resolved 読み取りには acquire セマンティクスを使用します。
- *  これにより、weakly-ordered アーキテクチャ (ARM64 等) においても
+ *  これにより、weakly-ordered アーキテクチャー (ARM64 等) においても
  *  resolved != 0 が見えた時点で func_ptr の書き込みも可視であることが保証されます。\n
  *  GCC では __atomic_load_n / __atomic_store_n を使用します。\n
  *  MSVC (x86_64) では TSO により load が acquire-ordered のため変更不要です。
@@ -106,7 +106,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
     char lib_with_ext[COM_UTIL_SYM_LOADER_NAME_MAX];
 
     /* ロード完了後は resolved が 0 以外になる。早期リターンで判定する。
-     * ARM64 など weakly-ordered アーキテクチャでのメモリ可視性を保証するため
+     * ARM64 など weakly-ordered アーキテクチャーでのメモリ可視性を保証するため
      * GCC では acquire ロードを使用する。
      * MSVC (x86_64/TSO) では plain load で acquire 相当の保証が得られる。 */
 #if defined(COMPILER_GCC)
@@ -178,7 +178,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #if defined(COMPILER_GCC)
             __atomic_store_n(&fobj->resolved, -3, __ATOMIC_RELEASE);
 #else  /* !COMPILER_GCC */
-            fobj->resolved = -3; /* resolved=-3: ライブラリオープンエラー */
+            fobj->resolved = -3; /* resolved=-3: ライブラリ オープン エラー */
 #endif /* COMPILER_GCC */
             return unlock_entry_and_return_func_ptr(fobj);
         }

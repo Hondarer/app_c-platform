@@ -45,7 +45,7 @@ TEST_F(statfTest, test_buffer_overflow)
     // Arrange
     Mock_com_util mock_com_util;
     com_util_file_stat_t st;
-    // 非常に長いファイル名を生成 (バッファサイズを超える)
+    // 非常に長いファイル名を生成 (バッファー サイズを超える)
     char long_string[5000];
     memset(long_string, 'a', sizeof(long_string) - 1);
     long_string[sizeof(long_string) - 1] = '\0';
@@ -55,7 +55,7 @@ TEST_F(statfTest, test_buffer_overflow)
         .Times(0); // [Pre-Assert確認_異常系] - com_util_stat が呼び出されないこと。
 
     // Act
-    int ret = com_util_stat_fmt(&st, "%s.txt", long_string); // [手順] - バッファサイズを超えるファイル名を指定する。
+    int ret = com_util_stat_fmt(&st, "%s.txt", long_string); // [手順] - バッファー サイズを超えるファイル名を指定する。
 
     // Assert
     EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_stat_fmt から -1 が返されること。
@@ -89,7 +89,7 @@ TEST_F(statfTest, test_successful_call_with_multiple_parameters)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - com_util_stat が正しくフォーマットされたファイル名で呼ばれること。
 
     // Act
-    int ret = com_util_stat_fmt(&st, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_stat_fmt に複数のフォーマットパラメータを指定する。
+    int ret = com_util_stat_fmt(&st, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_stat_fmt に複数のフォーマット パラメーターを指定する。
 
     // Assert
     EXPECT_EQ(0, ret); // [確認_正常系] - com_util_stat_fmt から 0 が返されること。

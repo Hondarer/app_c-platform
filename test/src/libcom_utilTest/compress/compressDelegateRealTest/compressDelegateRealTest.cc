@@ -68,7 +68,7 @@ TEST_F(compressDelegateRealTest, default_behavior_delegates_to_real_when_mock_is
     // [確認_正常系] - Mock_com_util 注入済みでも既定動作は本物の libcom_util へ移譲され、round-trip に成功すること。
 }
 
-// テストコードで指定した期待値が既定の real delegate より優先されることの確認
+// テスト コードで指定した期待値が既定の real delegate より優先されることの確認
 TEST_F(compressDelegateRealTest, expect_call_overrides_default_real_delegate)
 {
     // Arrange
@@ -103,7 +103,7 @@ TEST_F(compressDelegateRealTest, expect_call_overrides_default_real_delegate)
     EXPECT_EQ(0xAA, compressed[0]); // [確認_正常系] - 明示した出力内容が反映されること。
 }
 
-// 実在しないライブラリ名では汎用ローダが失敗情報を返すことの確認
+// 実在しないライブラリ名では汎用ローダーが失敗情報を返すことの確認
 TEST_F(compressDelegateRealTest, try_resolve_returns_diagnostic_when_library_is_missing)
 {
     // Arrange

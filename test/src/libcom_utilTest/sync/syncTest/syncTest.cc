@@ -223,7 +223,7 @@ TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
     com_util_sync_result_t create_result =
         com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
     com_util_sync_result_t export_result = com_util_interprocess_rwlock_export_descriptor(
-        lock, descriptor, &descriptor_size); // [手順] - descriptor をバッファへ出力する。
+        lock, descriptor, &descriptor_size); // [手順] - descriptor をバッファーへ出力する。
     com_util_sync_result_t import_result = com_util_interprocess_rwlock_import_descriptor(
         descriptor, descriptor_size, &restored); // [手順] - descriptor から interprocess rwlock を復元する。
     com_util_sync_result_t exclusive_lock = com_util_interprocess_rwlock_lock_exclusive(
@@ -259,11 +259,11 @@ TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
     com_util_sync_result_t create_result =
         com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
     com_util_sync_result_t export_result = com_util_interprocess_rwlock_export_descriptor(
-        lock, NULL, &descriptor_size); // [手順] - NULL バッファで必要サイズを問い合わせる。
+        lock, NULL, &descriptor_size); // [手順] - NULL バッファーで必要サイズを問い合わせる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_SYNC_OK, create_result); // [確認_正常系] - interprocess rwlock open が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_BUFFER_TOO_SMALL, export_result); // [確認_正常系] - バッファ不足が通知されること。
+    EXPECT_EQ(COM_UTIL_SYNC_BUFFER_TOO_SMALL, export_result); // [確認_正常系] - バッファー不足が通知されること。
     EXPECT_GT(descriptor_size, 20U);                          // [確認_正常系] - descriptor に必要なサイズが返ること。
 
     com_util_interprocess_rwlock_destroy(lock);

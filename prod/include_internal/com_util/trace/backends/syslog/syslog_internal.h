@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           syslog_internal.h
- *  @brief          syslog プロバイダ内部管理関数のヘッダーファイル。
+ *  @brief          syslog プロバイダー内部管理関数のヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -34,8 +34,8 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで syslog プロバイダハンドルを解放します。
- *  @param[in]      handle 解放する syslog プロバイダハンドル。
+ *  @brief          shutdown フェーズで syslog プロバイダー ハンドルを解放します。
+ *  @param[in]      handle 解放する syslog プロバイダー ハンドル。
  *
  *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
  *  呼び出し時点で com_util_syslog_sink_write() を実行中のスレッドが存在する場合は

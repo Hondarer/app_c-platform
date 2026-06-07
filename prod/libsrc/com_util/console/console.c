@@ -2,7 +2,7 @@
  *  @file           console.c
  *  @brief          Windows コンソール設定ヘルパー実装。
  *
- *  Windows 環境: 接続先コンソールの入出力コードページを UTF-8 に設定し、
+ *  Windows 環境: 接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
  *  Linux 環境: com_util_console_init / com_util_console_dispose は no-op です。
  */
@@ -54,7 +54,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         return;
     }
 
-    /* コンソールの入出力コードページを UTF-8 に設定 (既に UTF-8 なら変更しない) */
+    /* コンソールの入出力コード ページを UTF-8 に設定 (すでに UTF-8 なら変更しない) */
     current_cp = GetConsoleCP();
     if (current_cp != CP_UTF8)
     {
@@ -69,7 +69,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         SetConsoleOutputCP(CP_UTF8);
     }
 
-    /* Virtual Terminal Processing を有効化 (ANSI エスケープシーケンス対応) */
+    /* Virtual Terminal Processing を有効化 (ANSI エスケープ シーケンス対応) */
     h = GetStdHandle(STD_OUTPUT_HANDLE);
     if (GetConsoleMode(h, &mode))
     {
@@ -99,7 +99,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
     if (!InterlockedCompareExchange(&s_initialized, 0, 1))
         return;
 
-    /* コンソールモードを元に戻す */
+    /* コンソール モードを元に戻す */
     if (s_orig_stdout_mode != 0)
     {
         h = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -114,7 +114,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
         s_orig_stderr_mode = 0;
     }
 
-    /* コードページを元に戻す */
+    /* コード ページを元に戻す */
     if (s_orig_input_cp != 0)
     {
         SetConsoleCP(s_orig_input_cp);

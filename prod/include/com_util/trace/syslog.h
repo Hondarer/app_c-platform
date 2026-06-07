@@ -29,7 +29,7 @@
 
 /* ===== 不透明ハンドル型 ===== */
 
-/** syslog プロバイダハンドル (不透明型)。 */
+/** syslog プロバイダー ハンドル (不透明型)。 */
 typedef struct com_util_syslog_sink com_util_syslog_sink;
 
     /* ===== API 関数 ===== */
@@ -40,7 +40,7 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *  @brief          syslog プロバイダを初期化する。
+     *  @brief          syslog プロバイダーを初期化する。
      *
      *  @param[in]      ident     syslog メッセージに付与される識別子文字列。
      *  @param[in]      facility  syslog facility 値 (例: LOG_USER, LOG_LOCAL0〜LOG_LOCAL7)。
@@ -72,7 +72,7 @@ extern "C"
                                                                 const char *message);
 
     /**
-     *  @brief          syslog プロバイダの識別子を変更する。
+     *  @brief          syslog プロバイダーの識別子を変更する。
      *
      *  @param[in]      handle     com_util_syslog_sink_create の戻り値。NULL は -1 を返す。
      *  @param[in]      new_ident  新しい識別子文字列。NULL は -1 を返す。
@@ -85,7 +85,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident);
 
     /**
-     *  @brief          syslog プロバイダを終了する。
+     *  @brief          syslog プロバイダーを終了する。
      *
      *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *

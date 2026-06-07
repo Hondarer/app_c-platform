@@ -176,7 +176,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
 
     /* 認証タグを設定 (暗号文の末尾 COM_UTIL_CRYPTO_TAG_SIZE バイト)。
        EVP_CIPHER_CTX_ctrl は void * を要求するため const を外すために
-       ローカルバッファにコピーしてから渡す (-Wcast-qual 回避)。 */
+       ローカル バッファーにコピーしてから渡す (-Wcast-qual 回避)。 */
     {
         uint8_t tag_buf[COM_UTIL_CRYPTO_TAG_SIZE];
         memcpy(tag_buf, src + plain_len, COM_UTIL_CRYPTO_TAG_SIZE);

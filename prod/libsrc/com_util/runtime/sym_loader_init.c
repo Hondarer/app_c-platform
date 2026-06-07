@@ -1,15 +1,15 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_init.c
- *  @brief          設定テキストファイルから com_util_sym_loader_entry エントリを読み込む。
+ *  @brief          設定テキスト ファイルから com_util_sym_loader_entry エントリを読み込みます。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
  *
- *  テキストファイルから func_key / lib_name / func_name を
+ *  テキスト ファイルから func_key / lib_name / func_name を
  *  読み込み、_func_objects 配列の対応エントリに設定します。\n
  *
- *  ファイルフォーマット:\n
+ *  ファイル フォーマット:\n
  *  @code
     # コメント行
     func_key  lib_name  func_name   # 行末コメント
@@ -18,8 +18,8 @@
  *  - '#' で始まる行はコメント行として無視する。\n
  *  - 行中の '#' 以降を行末コメントとして切り捨てる。\n
  *  - com_util_sscanf で func_key / lib_name / func_name の 3 フィールドを解析する。\n
- *  - func_key が一致するキャッシュエントリの lib_name / func_name 配列に
- *    com_util_strncpy で書き込む。
+ *  - func_key が一致するキャッシュ エントリの lib_name / func_name 配列に
+ *    com_util_strncpy で書き込みます。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -31,7 +31,7 @@
 #include <com_util/runtime/sym_loader.h>
 #include <string.h>
 
-/** fgets で読み込む行バッファの最大長 */
+/** fgets で読み込む行バッファーの最大長 */
 #define CONFIG_LINE_MAX 1024
 
 #define STR_IMPL(x) #x

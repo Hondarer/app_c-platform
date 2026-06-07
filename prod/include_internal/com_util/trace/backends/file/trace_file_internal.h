@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_file_internal.h
- *  @brief          ファイルプロバイダ内部管理関数のヘッダーファイル。
+ *  @brief          ファイル プロバイダー内部管理関数のヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -31,8 +31,8 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズでファイルプロバイダハンドルを解放します。
- *  @param[in]      handle 解放するファイルプロバイダハンドル。
+ *  @brief          shutdown フェーズでファイル プロバイダー ハンドルを解放します。
+ *  @param[in]      handle 解放するファイル プロバイダー ハンドル。
  *
  *  内部ミューテックスを取得せずにハンドルを解放します。
  *  呼び出し時点で com_util_trace_file_sink_write() を実行中のスレッドが存在する場合は

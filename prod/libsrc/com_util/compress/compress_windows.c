@@ -58,11 +58,11 @@ static uint32_t mszip_crc32(const uint32_t prev, const uint8_t *buf, const size_
 }
 
 /*
- * MSZIP ストリーミングヘッダーの offset 6 に格納する CRC バイトを計算する。
+ * MSZIP ストリーミング ヘッダーの offset 6 に格納する CRC バイトを計算する。
  *
  * 計算式 (Cabinet.dll より逆解析 / pymszip・bytewitch にて実証):
- *   seed   = CRC32( {0x0A,0x51,0xE5,0xC0,0x18,0x00} )  = 0xE73FDBAD (固定)
- *   byte6  = CRC32( {0x02, orig_len_LE8, orig_len_LE8}, seed ) & 0xFF
+ *   seed   = CRC32({0x0A,0x51,0xE5,0xC0,0x18,0x00})  = 0xE73FDBAD (固定)
+ *   byte6  = CRC32({0x02, orig_len_LE8, orig_len_LE8}, seed) & 0xFF
  *
  * 単一チャンク (orig_len <= 32768) の場合、total_len == first_chunk_len のため
  * orig_len を 2 回使用する。

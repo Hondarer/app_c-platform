@@ -4,7 +4,7 @@
 #include <com_util/console/console_internal.h>
 #include <stdio.h>
 
-/* ===== テストクラス ===== */
+/* ===== テスト クラス ===== */
 
 class consoleTest : public Test
 {
@@ -28,7 +28,7 @@ class consoleTest : public Test
 TEST_F(consoleTest, test_init_succeeds)
 {
     // Act & Assert - クラッシュしないことを確認
-    com_util_console_init(); // [手順] - コンソールヘルパーを初期化する。
+    com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
 }
 
 // init 後に dispose_on_shutdown() がクラッシュしないことの確認

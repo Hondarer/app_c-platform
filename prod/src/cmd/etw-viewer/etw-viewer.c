@@ -61,7 +61,7 @@ static int parse_process_id_arg(const char *text, uint32_t *out_process_id)
 
     errno = 0;
     value = strtoul(text, &endptr, 10);
-    /* プロセスID は Windows DWORD のため、コーディング規範の例外として UINT32_MAX 上限を維持する。 */
+    /* プロセス ID は Windows DWORD のため、コーディング規範の例外として UINT32_MAX 上限を維持する。 */
     if (errno != 0 || endptr == text || *endptr != '\0' || value > UINT32_MAX)
     {
         return -1;

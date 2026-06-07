@@ -14,7 +14,7 @@
  *  @file           etw.h
  *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリ。
  *
- *  TraceLogging ベースの ETW プロバイダを簡易に操作するための
+ *  TraceLogging ベースの ETW プロバイダーを簡易に操作するための
  *  ヘルパー関数群を提供します。\n
  *  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
  *  中でのみ使用してください。
@@ -30,11 +30,11 @@
  *  @struct         com_util_etw_event
  *  @brief          ETW consumer が受け取るイベント情報。
  *
- *  event_name / service / message は callback 呼び出し中のみ有効なポインタです。
+ *  event_name / service / message は callback 呼び出し中のみ有効なポインターです。
  */
 typedef struct com_util_etw_event
 {
-    /** イベントレベル (1-5)。 */
+    /** イベント レベル (1-5)。 */
     int level;
     /** イベント発行元のプロセス ID (Windows DWORD 互換のためコーディング規範の例外として uint32_t を維持)。 */
     uint32_t process_id;
@@ -56,7 +56,7 @@ typedef struct com_util_etw_event
  *  @param[in]      context  com_util_etw_session_start に渡したユーザーデータ。
  *
  *  @par            スレッド セーフ
- *  コールバックは ETW ワーカースレッドから呼び出されます。\n
+ *  コールバックは ETW ワーカー スレッドから呼び出されます。\n
  *  コールバックの実装者は再入性を確保してください。
  */
 typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event *event, void *context);
@@ -65,34 +65,34 @@ typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event *event, v
 
     #include <com_util/base/windows_sdk.h>
 
-/* ===== プロバイダ参照型 ===== */
+/* ===== プロバイダー参照型 ===== */
 
 /**
  *  @typedef        com_util_etw_provider_ref_t
- *  @brief          プロバイダ参照型。
+ *  @brief          プロバイダー参照型。
  *
  *  TraceLoggingHProvider (TraceLoggingProvider.h が定義する型) と同等です。
  */
 struct _tlgProvider_t;
 typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
 
-    /* ===== プロバイダ定義マクロ ===== */
+    /* ===== プロバイダー定義マクロ ===== */
 
     /**
-     *  @brief          ETW プロバイダを定義するマクロ。
+     *  @brief          ETW プロバイダーを定義するマクロ。
      *
-     *  呼び出し元の .c ファイルのファイルスコープに 1 回だけ記述します。\n
+     *  呼び出し元の .c ファイルのファイル スコープに 1 回だけ記述します。\n
      *  TRACELOGGING_DEFINE_PROVIDER(var, name, guid) に展開します。
      *
-     *  @param          var   プロバイダ変数名 (com_util_etw_provider_ref_t 型)
-     *  @param          name  プロバイダ名 (文字列リテラル)
+     *  @param          var   プロバイダー変数名 (com_util_etw_provider_ref_t 型)
+     *  @param          name  プロバイダー名 (文字列リテラル)
      *  @param          guid  GUID (TraceLogging 形式の括弧付き定数タプル)
      */
     #define COM_UTIL_ETW_DEFINE_PROVIDER(var, name, guid) TRACELOGGING_DEFINE_PROVIDER(var, name, guid)
 
 /* ===== 不透明ハンドル型 ===== */
 
-/** ETW プロバイダハンドル (不透明型)。 */
+/** ETW プロバイダー ハンドル (不透明型)。 */
 typedef struct com_util_etw_provider com_util_etw_provider;
 
     /* ===== API 関数 ===== */
@@ -103,7 +103,7 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *  @brief          ETW プロバイダを登録する。
+     *  @brief          ETW プロバイダーを登録する。
      *
      *  @param[in]      provider_ref  COM_UTIL_ETW_DEFINE_PROVIDER で定義した変数。
      *  @return         成功時: ハンドル。失敗時: NULL。
@@ -116,10 +116,10 @@ extern "C"
     com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref);
 
     /**
-     *  @brief          ETW プロバイダへ UTF-8 メッセージを書き込む。
+     *  @brief          ETW プロバイダーへ UTF-8 メッセージを書き込む。
      *
      *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
-     *  @param[in]      level    イベントレベル (1=CRITICAL / 2=ERROR / 3=WARNING / 4=INFO / 5=VERBOSE)。
+     *  @param[in]      level    イベント レベル (1=CRITICAL / 2=ERROR / 3=WARNING / 4=INFO / 5=VERBOSE)。
      *  @param[in]      service  サービス名。NULL の場合は Service フィールドなしで書き込む。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
@@ -132,7 +132,7 @@ extern "C"
                                                                  const char *service, const char *message);
 
     /**
-     *  @brief          ETW プロバイダの登録を解除する。
+     *  @brief          ETW プロバイダーの登録を解除する。
      *
      *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
      *
@@ -144,21 +144,21 @@ extern "C"
 
     /* ===== セッション (Consumer) API ===== */
 
-    /** @name ETW セッションステータスコード */
+    /** @name ETW セッション ステータス コード */
     /** @{ */
 
     /** 成功。 */
     #define COM_UTIL_ETW_SESSION_OK 0
-    /** パラメータエラー (NULL または不正な GUID)。 */
+    /** パラメーター エラー (NULL または不正な GUID)。 */
     #define COM_UTIL_ETW_SESSION_ERR_PARAM -1
     /** 権限不足 (Administrators または Performance Log Users が必要)。 */
     #define COM_UTIL_ETW_SESSION_ERR_ACCESS -2
-    /** その他のシステムエラー。 */
+    /** その他のシステム エラー。 */
     #define COM_UTIL_ETW_SESSION_ERR_SYSTEM -3
 
     /** @} */
 
-    /** ETW セッションハンドル (不透明型)。 */
+    /** ETW セッション ハンドル (不透明型)。 */
     typedef struct com_util_etw_session com_util_etw_session;
 
     /**
@@ -174,14 +174,14 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void);
 
     /**
-     *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダを購読する。
+     *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダーを購読する。
      *
      *  @param[in]      session_name       セッション名 (システム全体で一意にすること)。
      *  @param[in]      provider_guid_str  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"。
      *  @param[in]      callback           イベント受信時に呼ばれるコールバック。
      *  @param[in]      context            コールバックに渡すユーザーデータ。
-     *  @param[out]     out_status         エラーコード出力先 (NULL 可)。
-     *  @return         成功: セッションハンドル / 失敗: NULL。
+     *  @param[out]     out_status         エラー コード出力先 (NULL 可)。
+     *  @return         成功: セッション ハンドル / 失敗: NULL。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

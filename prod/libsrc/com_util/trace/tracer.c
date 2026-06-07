@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           tracer.c
- *  @brief          トレースプロバイダ実装ファイル。
+ *  @brief          トレース プロバイダー実装ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -32,7 +32,7 @@
     #include <com_util/trace/backends/etw/etw_internal.h>
 #endif /* PLATFORM_ */
 
-/* ===== Windows: TraceLogging プロバイダ定義 ===== */
+/* ===== Windows: TraceLogging プロバイダー定義 ===== */
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -71,7 +71,7 @@ enum trace_handle_state
 };
 
 /**
- *  @brief  トレースフックエントリ構造体 (内部定義)。
+ *  @brief  トレース フック エントリ構造体 (内部定義)。
  */
 struct com_util_tracer_hook_entry
 {
@@ -81,7 +81,7 @@ struct com_util_tracer_hook_entry
 };
 
 /**
- *  @brief  トレースプロバイダハンドル構造体 (内部定義)。
+ *  @brief  トレース プロバイダー ハンドル構造体 (内部定義)。
  */
 struct com_util_tracer
 {
@@ -178,7 +178,7 @@ static int registry_expand_locked(void)
 
 /**
  *  @brief          ハンドルをレジストリに登録する。
- *  @param[in]      handle  登録するトレースプロバイダハンドル。
+ *  @param[in]      handle  登録するトレース プロバイダー ハンドル。
  *  @return         成功時 0、シャットダウン中またはメモリ不足時 -1。
  */
 static int registry_register_handle(com_util_tracer *handle)
@@ -209,7 +209,7 @@ static int registry_register_handle(com_util_tracer *handle)
 
 /**
  *  @brief          ハンドルをレジストリから削除する。
- *  @param[in]      handle  削除するトレースプロバイダハンドル。
+ *  @param[in]      handle  削除するトレース プロバイダー ハンドル。
  */
 static void registry_unregister_handle(com_util_tracer *handle)
 {
@@ -253,7 +253,7 @@ size_t trace_registry_capacity(void)
 
 /**
  *  @brief          ハンドルがアクティブか判定する。
- *  @param[in]      handle  判定対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  判定対象のトレース プロバイダー ハンドル。
  *  @return         アクティブの場合 1、それ以外 0。
  */
 static int handle_is_active(const com_util_tracer *handle)
@@ -263,7 +263,7 @@ static int handle_is_active(const com_util_tracer *handle)
 
 /**
  *  @brief          解放処理を開始する。
- *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  *  @return         成功時 0、ハンドルが NULL またはアクティブでない場合 -1。
  */
 static int begin_dispose(com_util_tracer *handle)
@@ -280,8 +280,8 @@ static int begin_dispose(com_util_tracer *handle)
 #if defined(PLATFORM_LINUX)
 
 /**
- *  @brief          トレースレベルを syslog レベルに変換する。
- *  @param[in]      lv  変換元のトレースレベル。
+ *  @brief          トレース レベルを syslog レベルに変換する。
+ *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する syslog レベル値。
  */
 static int to_syslog_level(const com_util_trace_level_t lv)
@@ -309,8 +309,8 @@ static int to_syslog_level(const com_util_trace_level_t lv)
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *  @brief          トレースレベルを ETW レベルに変換する。
- *  @param[in]      lv  変換元のトレースレベル。
+ *  @brief          トレース レベルを ETW レベルに変換する。
+ *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する ETW レベル値。
  */
 static int to_etw_level(const com_util_trace_level_t lv)
@@ -339,10 +339,10 @@ static int to_etw_level(const com_util_trace_level_t lv)
 #if defined(PLATFORM_LINUX)
 
 /**
- *  @brief          プロセスの実行ファイルパスからベース名を取得する。
- *  @param[in,out]  buf       パス文字列を格納するバッファ。
- *  @param[in]      buf_size  バッファのバイト数。
- *  @return         ベース名へのポインタ。失敗時は FALLBACK_NAME。
+ *  @brief          プロセスの実行ファイル パスからベース名を取得する。
+ *  @param[in,out]  buf       パス文字列を格納するバッファー。
+ *  @param[in]      buf_size  バッファーのバイト数。
+ *  @return         ベース名へのポインター。失敗時は FALLBACK_NAME。
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
@@ -370,10 +370,10 @@ static const char *get_process_basename(char *buf, const size_t buf_size)
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *  @brief          プロセスの実行ファイルパスからベース名を取得する。
- *  @param[in,out]  buf       パス文字列を格納するバッファ。
- *  @param[in]      buf_size  バッファのバイト数。
- *  @return         ベース名へのポインタ。失敗時は FALLBACK_NAME。
+ *  @brief          プロセスの実行ファイル パスからベース名を取得する。
+ *  @param[in,out]  buf       パス文字列を格納するバッファー。
+ *  @param[in]      buf_size  バッファーのバイト数。
+ *  @return         ベース名へのポインター。失敗時は FALLBACK_NAME。
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
@@ -407,7 +407,7 @@ static const char *get_process_basename(char *buf, const size_t buf_size)
 
 /**
  *  @brief          設定の排他ロック (書き込みロック) を取得する。
- *  @param[in]      handle  ロック対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  ロック対象のトレース プロバイダー ハンドル。
  */
 static void config_lock_exclusive(com_util_tracer *handle)
 {
@@ -416,7 +416,7 @@ static void config_lock_exclusive(com_util_tracer *handle)
 
 /**
  *  @brief          設定の排他ロック (書き込みロック) を解放する。
- *  @param[in]      handle  ロック解放対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  ロック解放対象のトレース プロバイダー ハンドル。
  */
 static void config_unlock_exclusive(com_util_tracer *handle)
 {
@@ -427,7 +427,7 @@ static void config_unlock_exclusive(com_util_tracer *handle)
 
 /**
  *  @brief          タイムアウト付きで設定の共有ロック (読み取りロック) を取得する。
- *  @param[in]      handle  ロック対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  ロック対象のトレース プロバイダー ハンドル。
  *  @return         成功時 0、タイムアウト時 -1。
  */
 static int config_lock_shared_timed(com_util_tracer *handle)
@@ -444,7 +444,7 @@ static int config_lock_shared_timed(com_util_tracer *handle)
 
 /**
  *  @brief          設定の共有ロック (読み取りロック) を解放する。
- *  @param[in]      handle  ロック解放対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  ロック解放対象のトレース プロバイダー ハンドル。
  */
 static void config_unlock_shared(com_util_tracer *handle)
 {
@@ -453,7 +453,7 @@ static void config_unlock_shared(com_util_tracer *handle)
 
 /**
  *  @brief          識別子を付加した有効名の文字列を構築する。
- *  @param[in]      name        サービス名 (NULL の場合はプロセスベース名を使用)。
+ *  @param[in]      name        サービス名 (NULL の場合はプロセス ベース名を使用)。
  *  @param[in]      identifier  識別子 (0 の場合はサフィックスなし)。
  *  @return         ヒープ確保された有効名文字列。呼び出し元が free すること。
  *                  失敗時は NULL。
@@ -499,7 +499,7 @@ static char *build_effective_name(const char *name, const int64_t identifier)
 
 /**
  *  @brief          クリーンアップのためハンドルのトレース出力を停止する。
- *  @param[in]      handle  停止対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  停止対象のトレース プロバイダー ハンドル。
  *  @return         常に 0。
  */
 static int stop_handle_for_cleanup(com_util_tracer *handle)
@@ -518,7 +518,7 @@ static int stop_handle_for_cleanup(com_util_tracer *handle)
 
 /**
  *  @brief          通常のハンドル解放処理を行う。
- *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  */
 static void trace_handle_release_normal(com_util_tracer *handle)
 {
@@ -559,7 +559,7 @@ static void trace_handle_release_normal(com_util_tracer *handle)
 
 /**
  *  @brief          アンロード時のハンドル解放処理を行う。
- *  @param[in]      handle  解放対象のトレースプロバイダハンドル。
+ *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  */
 static void trace_handle_release_on_shutdown(com_util_tracer *handle)
 {
@@ -788,9 +788,9 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
 }
 
 /**
- *  @brief          OS トレースプロバイダ (ETW または syslog) にメッセージを書き込む。
- *  @param[in]      handle      書き込み先のトレースプロバイダハンドル。
- *  @param[in]      level       トレースレベル。
+ *  @brief          OS トレース プロバイダー (ETW または syslog) にメッセージを書き込む。
+ *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
+ *  @param[in]      level       トレース レベル。
  *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
  *  @param[in]      msg         書き込むメッセージ文字列。
  *  @return         成功時 0、失敗時 -1。
@@ -808,8 +808,8 @@ static int write_to_provider(com_util_tracer *handle, const com_util_trace_level
 
 /**
  *  @brief          メッセージを出力すべきか判定する。
- *  @param[in]      msg_level   出力するメッセージのトレースレベル。
- *  @param[in]      threshold   出力閾値となるトレースレベル。
+ *  @param[in]      msg_level   出力するメッセージのトレース レベル。
+ *  @param[in]      threshold   出力閾値となるトレース レベル。
  *  @return         出力すべき場合 1、出力不要の場合 0。
  */
 static int should_output(const com_util_trace_level_t msg_level, const com_util_trace_level_t threshold)
@@ -874,8 +874,8 @@ static int format_local_timestamp(char *buf, const size_t buf_size, const com_ut
 }
 
 /**
- *  @brief          タイムスタンプとトレースレベルを付加して stderr にエントリを書き込む。
- *  @param[in]      level  トレースレベル。
+ *  @brief          タイムスタンプとトレース レベルを付加して stderr にエントリを書き込む。
+ *  @param[in]      level  トレース レベル。
  *  @param[in]      timestamp_text  事前整形済みタイムスタンプ文字列。
  *  @param[in]      msg    書き込むメッセージ文字列。
  */
@@ -897,8 +897,8 @@ static void write_stderr_entry(const com_util_trace_level_t level, const char *t
 
 /**
  *  @brief          OS プロバイダ・ファイル・stderr の各出力先にメッセージを書き込む。
- *  @param[in]      handle  書き込み先のトレースプロバイダハンドル。
- *  @param[in]      level   トレースレベル。
+ *  @param[in]      handle  書き込み先のトレース プロバイダー ハンドル。
+ *  @param[in]      level   トレース レベル。
  *  @param[in]      timestamp  書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
  *  @param[in]      msg        書き込むメッセージ文字列。
  *  @return         全出力先で成功時 0、いずれかで失敗時 -1。
@@ -1054,9 +1054,9 @@ static const char hex_chars[] = "0123456789ABCDEF";
 #define ELLIPSIS_LEN 3
 
 /**
- *  @brief          16 進ダンプメッセージを構築して出力先に書き込む内部実装。
- *  @param[in]      handle      書き込み先のトレースプロバイダハンドル。
- *  @param[in]      level       トレースレベル。
+ *  @brief          16 進ダンプ メッセージを構築して出力先に書き込む内部実装。
+ *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
+ *  @param[in]      level       トレース レベル。
  *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
  *  @param[in]      data        ダンプ対象のバイト列。
  *  @param[in]      size        バイト列のサイズ。

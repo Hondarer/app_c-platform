@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           console_internal.h
- *  @brief          コンソールヘルパー内部関数のヘッダーファイル。
+ *  @brief          コンソール ヘルパー内部関数のヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/04
  *  @version        1.0.0
@@ -31,7 +31,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズでコンソールヘルパーを解放します。
+ *  @brief          shutdown フェーズでコンソール ヘルパーを解放します。
  *  @param[in]      event   shutdown イベント情報。
  *  @param[in]      context 登録時に渡した任意のコンテキスト (未使用)。
  *

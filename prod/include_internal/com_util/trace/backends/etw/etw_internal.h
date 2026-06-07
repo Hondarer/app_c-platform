@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           etw_internal.h
- *  @brief          ETW プロバイダ内部管理関数のヘッダーファイル。
+ *  @brief          ETW プロバイダー内部管理関数のヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -35,8 +35,8 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで ETW プロバイダハンドルを解放します。
- *  @param[in]      handle 解放する ETW プロバイダハンドル。
+ *  @brief          shutdown フェーズで ETW プロバイダー ハンドルを解放します。
+ *  @param[in]      handle 解放する ETW プロバイダー ハンドル。
  *  @param[in]      event shutdown イベント情報。
  *
  *  `process_terminating` 相当のイベントでは free() のみ実行します。\n

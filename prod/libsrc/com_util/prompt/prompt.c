@@ -1,6 +1,6 @@
 /**
  *  @file           prompt.c
- *  @brief          プロンプトヘルパー共通実装。
+ *  @brief          プロンプト ヘルパー共通実装。
  */
 
 #include <com_util/prompt/prompt_internal.h>
@@ -108,7 +108,7 @@ static void redisplay(const char *prompt_str, const char *buf, size_t len, size_
 }
 
 /* ================================================================
- * エスケープシーケンス解析
+ * エスケープ シーケンス解析
  * ================================================================ */
 
 static prompt_key_t read_key(com_util_prompt *p, int *out_ch)
@@ -202,7 +202,7 @@ static prompt_key_t read_key(com_util_prompt *p, int *out_ch)
         }
         return KEY_UNKNOWN;
     }
-    /* 通常文字（ASCII 印字可能 + UTF-8 マルチバイト先頭バイト） */
+    /* 通常文字 (ASCII 印字可能 + UTF-8 マルチバイト先頭バイト) */
     if (c >= 0x20 || (unsigned char)c >= 0x80)
     {
         *out_ch = c;
@@ -491,7 +491,7 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
     /* raw モードに移行 */
     prompt_platform_enter_raw(p);
 
-    /* 編集バッファ初期化 */
+    /* 編集バッファー初期化 */
     p->edit_len = 0;
     p->edit_buf[0] = '\0';
     p->cursor = 0;
@@ -669,14 +669,14 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
 
         if (needed < 0)
         {
-            p->prompt_fmt_buf[0] = '\0'; /* エンコードエラー: 空にして続行 */
+            p->prompt_fmt_buf[0] = '\0'; /* エンコード エラー: 空にして続行 */
             break;
         }
         if ((size_t)needed < p->prompt_fmt_cap)
         {
             break; /* 成功 */
         }
-        /* バッファ不足: 必要サイズへ拡張して再試行 */
+        /* バッファー不足: 必要サイズへ拡張して再試行 */
         {
             size_t new_cap = (size_t)needed + 1U;
             char *new_buf = (char *)realloc(p->prompt_fmt_buf, new_cap);

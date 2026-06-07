@@ -82,7 +82,7 @@ TEST_F(fopenfTest, test_buffer_overflow)
 {
     // Arrange
     Mock_com_util mock_com_util;
-    // 非常に長いファイル名を生成 (バッファサイズを超える)
+    // 非常に長いファイル名を生成 (バッファー サイズを超える)
     char long_string[5000];
     memset(long_string, 'a', sizeof(long_string) - 1);
     long_string[sizeof(long_string) - 1] = '\0';
@@ -92,7 +92,7 @@ TEST_F(fopenfTest, test_buffer_overflow)
         .Times(0); // [Pre-Assert確認_異常系] - com_util_fopen が呼び出されないこと。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("w", NULL, "%s.txt", long_string); // [手順] - バッファサイズを超えるファイル名を指定する。
+    FILE *fp = com_util_fopen_fmt("w", NULL, "%s.txt", long_string); // [手順] - バッファー サイズを超えるファイル名を指定する。
 
     // Assert
     EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
@@ -102,7 +102,7 @@ TEST_F(fopenfTest, test_buffer_overflow)
 {
     // Arrange
     Mock_com_util mock_com_util;
-    // 非常に長いファイル名を生成 (バッファサイズを超える)
+    // 非常に長いファイル名を生成 (バッファー サイズを超える)
     char long_string[5000];
     memset(long_string, 'a', sizeof(long_string) - 1);
     long_string[sizeof(long_string) - 1] = '\0';
@@ -112,7 +112,7 @@ TEST_F(fopenfTest, test_buffer_overflow)
         .Times(0); // [Pre-Assert確認_異常系] - com_util_fopen が呼び出されないこと。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("w", NULL, "%s.txt", long_string); // [手順] - バッファサイズを超えるファイル名を指定する。
+    FILE *fp = com_util_fopen_fmt("w", NULL, "%s.txt", long_string); // [手順] - バッファー サイズを超えるファイル名を指定する。
 
     // Assert
     EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
@@ -167,7 +167,7 @@ TEST_F(fopenfTest, test_successful_call_with_multiple_parameters)
         .WillOnce(Return(expected_fp)); // [Pre-Assert確認_正常系] - com_util_fopen が正しくフォーマットされたファイル名で呼ばれること。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("w", NULL, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_fopen_fmt に複数のフォーマットパラメータを指定する。
+    FILE *fp = com_util_fopen_fmt("w", NULL, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_fopen_fmt に複数のフォーマット パラメーターを指定する。
 
     // Assert
     EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から fp が返されること。
@@ -184,7 +184,7 @@ TEST_F(fopenfTest, test_successful_call_with_multiple_parameters)
         .WillOnce(Return(expected_fp)); // [Pre-Assert確認_正常系] - com_util_fopen が正しくフォーマットされたファイル名で呼ばれること。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("w", NULL, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_fopen_fmt に複数のフォーマットパラメータを指定する。
+    FILE *fp = com_util_fopen_fmt("w", NULL, "output_%d_%d_%d.txt", 1, 2, 3); // [手順] - com_util_fopen_fmt に複数のフォーマット パラメーターを指定する。
 
     // Assert
     EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から fp が返されること。
@@ -257,7 +257,7 @@ TEST_F(fopenfTest, test_fopen_returns_null_with_errno)
                                                                           // [Pre-Assert手順_異常系] - com_util_fopen から NULL を返し、errno_out に ENOENT を設定する。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("r", &error_code, "nonexistent.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラーコードを取得する。
+    FILE *fp = com_util_fopen_fmt("r", &error_code, "nonexistent.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラー コードを取得する。
 
     // Assert
     EXPECT_EQ((FILE *)NULL, fp);   // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
@@ -276,7 +276,7 @@ TEST_F(fopenfTest, test_fopen_s_returns_error_with_errno)
                                                                           // [Pre-Assert手順_異常系] - com_util_fopen から NULL を返し、errno_out に ENOENT を設定する。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("r", &error_code, "nonexistent.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラーコードを取得する。
+    FILE *fp = com_util_fopen_fmt("r", &error_code, "nonexistent.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラー コードを取得する。
 
     // Assert
     EXPECT_EQ((FILE *)NULL, fp);   // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
@@ -297,7 +297,7 @@ TEST_F(fopenfTest, test_fopen_success_errno_not_set)
         .WillOnce(Return(expected_fp)); // [Pre-Assert確認_正常系] - com_util_fopen が正しくフォーマットされたファイル名で呼ばれること。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("r", &error_code, "success.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラーコードポインタを渡す。
+    FILE *fp = com_util_fopen_fmt("r", &error_code, "success.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラー コード ポインターを渡す。
 
     // Assert
     EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から fp が返されること。
@@ -316,7 +316,7 @@ TEST_F(fopenfTest, test_fopen_s_success_errno_not_set)
         .WillOnce(Return(expected_fp)); // [Pre-Assert確認_正常系] - com_util_fopen が正しくフォーマットされたファイル名で呼ばれること。
 
     // Act
-    FILE *fp = com_util_fopen_fmt("r", &error_code, "success.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラーコードポインタを渡す。
+    FILE *fp = com_util_fopen_fmt("r", &error_code, "success.txt"); // [手順] - com_util_fopen_fmt を呼び出し、エラー コード ポインターを渡す。
 
     // Assert
     EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から fp が返されること。

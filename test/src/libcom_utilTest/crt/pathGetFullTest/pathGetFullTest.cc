@@ -66,7 +66,7 @@ TEST_F(pathGetFullTest, expands_current_directory_to_absolute_path)
     char expected[PLATFORM_PATH_MAX] = {};
 
     // Act
-    assert_path_get_full_success(actual, sizeof(actual), "."); // [手順] - カレントディレクトリを絶対化する。
+    assert_path_get_full_success(actual, sizeof(actual), "."); // [手順] - カレント ディレクトリを絶対化する。
     assert_path_get_full_success(expected, sizeof(expected), actual); // [手順] - 得られた絶対パスを再度正規化する。
 
     // Assert
@@ -99,10 +99,10 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
     int err = 0;
 
     // Act
-    int rc = com_util_path_get_full(path, sizeof(path), &err, "."); // [手順] - 小さすぎる出力バッファで絶対化する。
+    int rc = com_util_path_get_full(path, sizeof(path), &err, "."); // [手順] - 小さすぎる出力バッファーで絶対化する。
 
     // Assert
-    EXPECT_EQ(-1, rc); // [確認_異常系] - バッファ不足で失敗すること。
+    EXPECT_EQ(-1, rc); // [確認_異常系] - バッファー不足で失敗すること。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out に ENAMETOOLONG が返ること。
     EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
 }

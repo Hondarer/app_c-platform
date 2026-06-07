@@ -31,7 +31,7 @@
 /* BCrypt を使用した AES-256-GCM 暗号化の共通実装。
    is_encrypt: TRUE = 暗号化、FALSE = 復号 (タグ検証含む)。
    src/src_len: 暗号化時は平文、復号時は暗号文 (タグを除く)。
-   tag: 暗号化時は出力バッファ、復号時は検証用入力バッファ。 */
+   tag: 暗号化時は出力バッファー、復号時は検証用入力バッファー。 */
 static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, const uint8_t *src,
                           const size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad,
                           const size_t aad_len, uint8_t *tag, const ULONG tag_len)
@@ -118,7 +118,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     enc_len = src_len;
 
     {
-        /* BCrypt は src=NULL を受け付けないため、空バッファを用意する */
+        /* BCrypt は src=NULL を受け付けないため、空バッファーを用意する */
         static const uint8_t empty_src[1] = {0};
         const uint8_t *actual_src;
         if (src != NULL)

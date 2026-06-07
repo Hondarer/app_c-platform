@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_info.c
- *  @brief          com_util_sym_loader_entry ポインタ配列の内容を標準出力に表示します。
+ *  @brief          com_util_sym_loader_entry ポインター配列の内容を標準出力に表示します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0

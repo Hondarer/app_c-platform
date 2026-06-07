@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           tracer_internal.h
- *  @brief          トレースプロバイダ内部管理関数のヘッダーファイル。
+ *  @brief          トレース プロバイダー内部管理関数のヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -32,11 +32,11 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで全トレースハンドルを解放します。
+ *  @brief          shutdown フェーズで全トレース ハンドルを解放します。
  *  @param[in]      event shutdown イベント情報。
  *
  *  本関数は終了フェーズ向けの安全側解放を行います。\n
- *  内部でレジストリロックを取得しません。
+ *  内部でレジストリ ロックを取得しません。
  *  呼び出し前に、すべてのスレッドが trace API
  *  (com_util_tracer_create / com_util_tracer_dispose / com_util_tracer_write 等) の
  *  呼び出しを完了している必要があります。
@@ -45,13 +45,13 @@ extern "C"
     void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event);
 
     /**
- *  @brief          現在アクティブなトレースハンドルの数を返します。
+ *  @brief          現在アクティブなトレース ハンドルの数を返します。
  *  @return         アクティブなハンドルの数。
  */
     size_t trace_registry_count(void);
 
     /**
- *  @brief          トレースハンドルレジストリの現在の容量を返します。
+ *  @brief          トレース ハンドル レジストリの現在の容量を返します。
  *  @return         レジストリの容量 (確保済みのスロット数)。
  */
     size_t trace_registry_capacity(void);

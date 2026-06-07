@@ -110,7 +110,7 @@ struct com_util_pinned_prompt
     int status_dirty;
     int cols;
     int rows;
-    int prev_main_bottom_row; /* 前回描画時の main_bottom_row（9999=未設定） */
+    int prev_main_bottom_row; /* 前回描画時の main_bottom_row (9999=未設定) */
 
 #if defined(PLATFORM_LINUX)
     struct termios orig_term;
@@ -504,7 +504,7 @@ static int pinned_prompt_platform_read_char(com_util_pinned_prompt *screen)
     result = WaitForSingleObject(screen->stdin_handle, 100U);
     if (result == WAIT_TIMEOUT)
     {
-        return -2; /* リサイズチェック用タイムアウト */
+        return -2; /* リサイズ チェック用タイムアウト */
     }
     if (result != WAIT_OBJECT_0)
     {

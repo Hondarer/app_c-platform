@@ -14,7 +14,7 @@ class trace_etwTest : public Test
 {
 };
 
-// プロバイダを登録し、有効なハンドルが返されることの確認
+// プロバイダーを登録し、有効なハンドルが返されることの確認
 TEST_F(trace_etwTest, test_init_and_dispose)
 {
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [手順] - ETW provider を登録する。
