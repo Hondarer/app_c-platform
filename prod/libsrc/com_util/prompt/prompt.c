@@ -6,6 +6,7 @@
 #include <com_util/prompt/prompt_internal.h>
 
 #include <com_util/crt/string.h>
+#include <com_util/crt/unistd.h>
 #include <com_util/prompt/prompt_edit.h>
 
 #include <stdarg.h>
@@ -411,7 +412,7 @@ com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
         return NULL;
     }
     p->edit_buf[0] = '\0';
-    p->is_tty = prompt_platform_is_tty();
+    p->is_tty = com_util_isatty(COM_UTIL_STREAM_STDIN);
     return p;
 }
 

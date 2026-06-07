@@ -82,9 +82,6 @@ struct com_util_prompt
 
 /* ---- プラットフォーム抽象インターフェース (各 _platform.c で実装) ---- */
 
-/* stdin が TTY なら 1 */
-int prompt_platform_is_tty(void);
-
 /* raw モードに移行 */
 void prompt_platform_enter_raw(com_util_prompt *p);
 

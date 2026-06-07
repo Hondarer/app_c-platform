@@ -9,6 +9,7 @@
 
 #include <com_util/console/console.h>
 #include <com_util/console/console_internal.h>
+#include <com_util/crt/unistd.h>
 #include <com_util/runtime/shutdown.h>
 
 /* ===== Windows 実装 ===== */
@@ -47,8 +48,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         return;
 
     /* stdout がコンソール (TTY) でなければ何もしない */
-    h = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (GetFileType(h) != FILE_TYPE_CHAR || !GetConsoleMode(h, &mode))
+    if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
     {
         InterlockedExchange(&s_initialized, 0);
         return;

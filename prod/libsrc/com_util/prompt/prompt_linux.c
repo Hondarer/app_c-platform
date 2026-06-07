@@ -20,11 +20,6 @@ static void prompt_sigwinch_handler(int sig)
     s_resize_pending = 1;
 }
 
-int prompt_platform_is_tty(void)
-{
-    return isatty(STDIN_FILENO);
-}
-
 void prompt_platform_enter_raw(com_util_prompt *p)
 {
     struct termios raw;

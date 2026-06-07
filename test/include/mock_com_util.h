@@ -93,6 +93,7 @@ extern FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *m
                                                int *errno_out);
 
 // crt - unistd
+extern int delegate_real_com_util_isatty(com_util_stream_t stream);
 extern int delegate_real_com_util_access_fmt(int mode, const char *format, ...);
 extern int delegate_real_com_util_vaccess_fmt(int mode, const char *format, va_list args);
 
@@ -358,6 +359,7 @@ class Mock_com_util
     MOCK_METHOD(FILE *, com_util_fopen_temp, (const char *, const char *, char *, size_t, int *));
 
     // crt - unistd
+    MOCK_METHOD(int, com_util_isatty, (com_util_stream_t));
     MOCK_METHOD(int, com_util_access_fmt, (int, const char *));
     MOCK_METHOD(int, com_util_vaccess_fmt, (int, const char *));
 

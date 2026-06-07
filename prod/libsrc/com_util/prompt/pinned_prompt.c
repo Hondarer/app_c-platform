@@ -7,6 +7,7 @@
 
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
+#include <com_util/crt/unistd.h>
 #include <com_util/prompt/prompt_edit.h>
 #include <com_util/sync/sync.h>
 
@@ -317,7 +318,7 @@ static void pinned_prompt_sigwinch_handler(int sig)
 
 static int pinned_prompt_platform_is_tty(void)
 {
-    return isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
+    return com_util_isatty(COM_UTIL_STREAM_STDIN) && com_util_isatty(COM_UTIL_STREAM_STDOUT);
 }
 
 static void pinned_prompt_platform_get_size(int *cols, int *rows)
@@ -431,17 +432,7 @@ static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt *screen)
 
 static int pinned_prompt_platform_is_tty(void)
 {
-    HANDLE in_handle;
-    HANDLE out_handle;
-    DWORD mode;
-
-    in_handle = GetStdHandle(STD_INPUT_HANDLE);
-    out_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (in_handle == INVALID_HANDLE_VALUE || out_handle == INVALID_HANDLE_VALUE)
-    {
-        return 0;
-    }
-    return GetConsoleMode(in_handle, &mode) && GetConsoleMode(out_handle, &mode);
+    return com_util_isatty(COM_UTIL_STREAM_STDIN) && com_util_isatty(COM_UTIL_STREAM_STDOUT);
 }
 
 static void pinned_prompt_platform_get_size(int *cols, int *rows)

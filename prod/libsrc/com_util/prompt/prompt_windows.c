@@ -7,17 +7,6 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-int prompt_platform_is_tty(void)
-{
-    HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD mode;
-    if (h == INVALID_HANDLE_VALUE)
-    {
-        return 0;
-    }
-    return (GetFileType(h) == FILE_TYPE_CHAR) && GetConsoleMode(h, &mode);
-}
-
 void prompt_platform_enter_raw(com_util_prompt *p)
 {
     DWORD new_mode;

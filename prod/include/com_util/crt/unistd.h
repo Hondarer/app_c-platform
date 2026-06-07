@@ -51,10 +51,40 @@
     #endif /* PLATFORM_ */
 #endif     /* DOXYGEN */
 
+/**
+ *  @brief          標準ストリームの種別を表す列挙型。
+ *
+ *  com_util_isatty() の引数に使います。
+ */
+typedef enum com_util_stream
+{
+    COM_UTIL_STREAM_STDIN = 0,  /**< 標準入力 (stdin)。 */
+    COM_UTIL_STREAM_STDOUT = 1, /**< 標準出力 (stdout)。 */
+    COM_UTIL_STREAM_STDERR = 2  /**< 標準エラー出力 (stderr)。 */
+} com_util_stream_t;
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
+
+    /**
+     *  @brief          指定したストリームが端末 (コンソール/TTY) に接続されているかを判定します。
+     *  @param[in]      stream  判定するストリーム (@ref COM_UTIL_STREAM_STDIN 等)。
+     *  @return         端末に接続されている場合は 1、それ以外 (リダイレクト、パイプ、
+     *                  不正な @p stream 値) は 0 を返します。
+     *
+     *  Windows 環境では @c GetFileType が @c FILE_TYPE_CHAR を返し、
+     *  かつ @c GetConsoleMode が成功する場合にのみ 1 を返します。\n
+     *  Linux 環境では POSIX の @c isatty() を使用します。\n
+     *  POSIX の @c isatty() と異なり、引数はファイル ディスクリプタではなく
+     *  ストリーム enum (@ref com_util_stream_t) です。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(com_util_stream_t stream);
 
     /**
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー)。
