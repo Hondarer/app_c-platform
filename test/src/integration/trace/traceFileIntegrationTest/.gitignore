@@ -1,5 +1,6 @@
 /clock.c
 /file.c
+/process.c
 /stdio.c
 /time.c
 /trace_etw.c

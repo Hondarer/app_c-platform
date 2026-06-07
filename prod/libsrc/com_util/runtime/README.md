@@ -28,6 +28,15 @@ short-title: "runtime"
 
 典型的には、ロード中の共有ライブラリ自身の名前から設定ファイル名やログ識別子を組み立てる用途で使います。
 
+### process_info
+
+`process_info` は、現在のプロセスの実行ファイル本体の情報を取得する機能です。
+
+- `com_util_process_get_executable_path`: プロセスの実行ファイル絶対パスを取得する
+
+`com_util_module_get_path()` は関数アドレスが属するモジュールを返すため、Windows では DLL を指しうます。`com_util_process_get_executable_path()` は常にプロセス本体 (`.exe`) のパスを返します。  
+典型的には、サービス登録時の `ExecStart` や SCM の `binPath` 設定に使います。
+
 ### sym_loader
 
 `sym_loader` は、設定ファイルで指定した `lib_name` / `func_name` を使って関数ポインターを解決する機構です。  
@@ -180,4 +189,5 @@ int sample_func(int a, int b, int *result)
 ## 関連ヘッダー
 
 - `com_util/runtime/module.h`: モジュール情報取得
+- `com_util/runtime/process.h`: プロセス情報取得
 - `com_util/runtime/sym_loader.h`: 動的シンボル解決

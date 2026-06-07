@@ -14,6 +14,7 @@
  *******************************************************************************
  */
 #include <com_util/clock/clock.h>
+#include <com_util/runtime/process.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/trace_file.h>
@@ -336,74 +337,31 @@ static int to_etw_level(const com_util_trace_level_t lv)
 
 #endif /* PLATFORM_ */
 
-#if defined(PLATFORM_LINUX)
-
 /**
  *  @brief          プロセスの実行ファイル パスからベース名を取得する。
  *  @param[in,out]  buf       パス文字列を格納するバッファー。
  *  @param[in]      buf_size  バッファーのバイト数。
  *  @return         ベース名へのポインター。失敗時は FALLBACK_NAME。
+ *
+ *  com_util_process_get_executable_path() で取得したパスは UTF-8 で
+ *  セパレーターが '/' に統一されるため、プラットフォーム非依存で処理できる。
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
-    ssize_t len;
-    const char *slash;
-
-    len = readlink("/proc/self/exe", buf, buf_size - 1);
-    if (len <= 0)
-    {
-        return FALLBACK_NAME;
-    }
-    buf[len] = '\0';
-
-    slash = strrchr(buf, PLATFORM_PATH_SEP_CHR);
-    if (slash)
-    {
-        return slash + 1;
-    }
-    else
-    {
-        return buf;
-    }
-}
-
-#elif defined(PLATFORM_WINDOWS)
-
-/**
- *  @brief          プロセスの実行ファイル パスからベース名を取得する。
- *  @param[in,out]  buf       パス文字列を格納するバッファー。
- *  @param[in]      buf_size  バッファーのバイト数。
- *  @return         ベース名へのポインター。失敗時は FALLBACK_NAME。
- */
-static const char *get_process_basename(char *buf, const size_t buf_size)
-{
-    DWORD len;
     const char *sep;
 
-    len = GetModuleFileNameA(NULL, buf, (DWORD)buf_size);
-    if (len == 0 || len >= (DWORD)buf_size)
+    if (com_util_process_get_executable_path(buf, buf_size) != 0)
     {
         return FALLBACK_NAME;
     }
 
-    /* GetModuleFileNameA() は ANSI パスを '\\' で返す。com_util_wpath_to_utf8() 非経由のため
-     * '\\' チェックを先に行い、'/' はフォールバックとして残す。 */
-    sep = strrchr(buf, '\\');
-    if (sep == NULL)
-    {
-        sep = strrchr(buf, '/');
-    }
-    if (sep)
+    sep = strrchr(buf, '/');
+    if (sep != NULL)
     {
         return sep + 1;
     }
-    else
-    {
-        return buf;
-    }
+    return buf;
 }
-
-#endif /* PLATFORM_ */
 
 /**
  *  @brief          設定の排他ロック (書き込みロック) を取得する。

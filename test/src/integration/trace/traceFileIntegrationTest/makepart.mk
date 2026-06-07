@@ -1,6 +1,7 @@
 # テスト対象のソース ファイル
 TEST_SRCS := \
     $(MYAPP_DIR)/prod/libsrc/com_util/trace/tracer.c \
+    $(MYAPP_DIR)/prod/libsrc/com_util/runtime/process.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/clock/clock.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/crt/time.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/crt/file.c \
