@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           shutdown.h
- *  @brief          プロセス終了ハンドリング共通 API。
+ *  @brief          プロセス終了処理共通 API。
  *  @author         Tetsuo Honda
  *  @date           2026/05/06
  *
@@ -77,7 +77,7 @@ extern "C"
      *  @param[in]      context 登録時に渡した任意のコンテキスト。
      *
      *  @par            スレッド セーフ
-     *  コールバックはシャットダウン ハンドラから 1 スレッドで呼び出されます。\n
+     *  コールバックはシャットダウン ハンドラーから 1 スレッドで呼び出されます。\n
      *  コールバック内で再帰的にシャットダウン処理を呼び出さないでください。
      */
     typedef void (*com_util_shutdown_callback_t)(const com_util_shutdown_event *event, void *context);
@@ -90,7 +90,7 @@ extern "C"
      *  shutdown 開始後の登録は失敗します。
      *
      *  @param[in]      callback 実行するコールバック。
-     *  @param[in]      context  コールバックへ渡す任意ポインタ。NULL 可。
+     *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ
@@ -109,7 +109,7 @@ extern "C"
      *  shutdown 開始後または終了要求通知後の登録は失敗します。
      *
      *  @param[in]      callback 実行するコールバック。
-     *  @param[in]      context  コールバックへ渡す任意ポインタ。NULL 可。
+     *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ

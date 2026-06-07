@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compiler.h
- *  @brief          コンパイラ検出および抽象化マクロのヘッダーファイル。
+ *  @brief          コンパイラ検出および抽象化マクロのヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2026/02/06
  *
@@ -66,7 +66,7 @@
     #define COMPILER_MSVC           /**< MSVC コンパイラの場合に定義されます。 */
     #define COMPILER_UNKNOWN        /**< 未知のコンパイラの場合に定義されます。 */
     #define COMPILER_NAME    "name" /**< コンパイラ名の文字列 ("MSVC", "GCC", "Unknown")。 */
-    #define COMPILER_VERSION 0      /**< コンパイラバージョンの数値。 */
+    #define COMPILER_VERSION 0      /**< コンパイラ バージョンの数値。 */
 #else                               /* !DOXYGEN */
     #if defined(_MSC_VER)
         #define COMPILER_MSVC

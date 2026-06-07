@@ -1,11 +1,11 @@
 /**
  *******************************************************************************
  *  @file           platform.h
- *  @brief          プラットフォームおよびアーキテクチャ検出マクロのヘッダーファイル。
+ *  @brief          プラットフォームおよびアーキテクチャー検出マクロのヘッダー ファイル。
  *  @author         Tetsuo Honda
  *  @date           2025/11/22
  *
- *  ビルド対象の OS とプロセッサアーキテクチャを検出し、統一的なマクロを定義します。
+ *  ビルド対象の OS とプロセッサ アーキテクチャーを検出し、統一的なマクロを定義します。
  *
  *  @section        platform_detection プラットフォーム検出マクロ
  *
@@ -17,9 +17,9 @@
  *  | Linux            | PLATFORM_LINUX       | "Linux"             |
  *  | その他           | PLATFORM_UNKNOWN     | "Unknown"           |
  *
- *  @section        arch_detection アーキテクチャ検出マクロ
+ *  @section        arch_detection アーキテクチャー検出マクロ
  *
- *  検出されたアーキテクチャに応じて、以下のマクロを定義します。
+ *  検出されたアーキテクチャーに応じて、以下のマクロを定義します。
  *
  *  | アーキテクチャ | 識別マクロ   | ARCH_NAME |
  *  | -------------- | ------------ | --------- |
@@ -67,10 +67,10 @@
 #endif /* DOXYGEN */
 
 #ifdef DOXYGEN
-    #define ARCH_X64            /**< x86_64 アーキテクチャの場合に定義されます。 */
-    #define ARCH_X86            /**< x86 (32bit) アーキテクチャの場合に定義されます。 */
-    #define ARCH_UNKNOWN        /**< 未知のアーキテクチャの場合に定義されます。 */
-    #define ARCH_NAME    "name" /**< アーキテクチャ名の文字列 ("x64", "x86", "Unknown")。 */
+    #define ARCH_X64            /**< x86_64 アーキテクチャーの場合に定義されます。 */
+    #define ARCH_X86            /**< x86 (32bit) アーキテクチャーの場合に定義されます。 */
+    #define ARCH_UNKNOWN        /**< 未知のアーキテクチャーの場合に定義されます。 */
+    #define ARCH_NAME    "name" /**< アーキテクチャー名の文字列 ("x64", "x86", "Unknown")。 */
 #else                           /* !DOXYGEN */
     #if defined(__x86_64__) || defined(_M_X64)
         #define ARCH_X64

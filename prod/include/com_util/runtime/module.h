@@ -41,8 +41,8 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          関数アドレスが属するモジュールのフルパスを取得します。
-     *  @param[out]     out_path      フルパス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @brief          関数アドレスが属するモジュールの完全なパスを取得します。
+     *  @param[out]     out_path      完全なパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      func_addr     モジュールを特定するための関数アドレス。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は -1 を返します。

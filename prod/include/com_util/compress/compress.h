@@ -44,7 +44,7 @@
  *  @{
  */
 
-/** 圧縮ペイロード先頭に付加する元サイズフィールドのバイト数。 */
+/** 圧縮ペイロード先頭に付加する元サイズ フィールドのバイト数。 */
 #define COM_UTIL_COMPRESS_HEADER_SIZE 4U
 
 #ifdef __cplusplus
@@ -54,11 +54,11 @@ extern "C"
 
     /**
      *  @brief          データを圧縮します。
-     *  @param[out]     dst      圧縮後データを格納するバッファ。
+     *  @param[out]     dst      圧縮後データを格納するバッファー。
      *                           先頭 4 バイトに元サイズ (NBO) が書き込まれます。
-     *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
+     *  @param[in,out]  dst_len  入力: dst のバッファー サイズ。
      *                           出力: 書き込んだバイト数。
-     *  @param[in]      src      圧縮前データへのポインタ。
+     *  @param[in]      src      圧縮前データへのポインター。
      *  @param[in]      src_len  圧縮前データのバイト数。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
@@ -71,10 +71,10 @@ extern "C"
 
     /**
      *  @brief          圧縮データを展開します。
-     *  @param[out]     dst      展開後データを格納するバッファ。
-     *  @param[in,out]  dst_len  入力: dst のバッファサイズ。
+     *  @param[out]     dst      展開後データを格納するバッファー。
+     *  @param[in,out]  dst_len  入力: dst のバッファー サイズ。
      *                           出力: 書き込んだバイト数。
-     *  @param[in]      src      圧縮後データへのポインタ (先頭 4 バイトは元サイズ)。
+     *  @param[in]      src      圧縮後データへのポインター (先頭 4 バイトは元サイズ)。
      *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *

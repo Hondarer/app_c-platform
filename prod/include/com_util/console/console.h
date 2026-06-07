@@ -2,7 +2,7 @@
  *  @file           console.h
  *  @brief          Windows コンソール設定ヘルパー API。
  *
- *  Windows 環境で接続先コンソールの入出力コードページを UTF-8 に設定し、
+ *  Windows 環境で接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
  *  Linux 環境では @c com_util_console_init は何もしません。\n
  *  呼び出し側は @c \#ifdef @c _WIN32 ガード不要でクロスプラットフォームに
@@ -49,10 +49,10 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          コンソールヘルパーを初期化する。
+     *  @brief          コンソール ヘルパーを初期化する。
      *
      *  Windows 環境では stdout がコンソール (TTY) の場合に、
-     *  コンソール入出力コードページを UTF-8 に設定し、
+     *  コンソール入出力コード ページを UTF-8 に設定し、
      *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
      *  Linux 環境では何もしません。\n
      *  本関数はプログラム開始時に一度だけ呼び出すことを想定しています。\n
@@ -69,10 +69,10 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void);
 
     /**
-     *  @brief          コンソールヘルパーを終了し、リソースを解放する。
+     *  @brief          コンソール ヘルパーを終了し、リソースを解放する。
      *
      *  Windows 環境では @c com_util_console_init で変更した
-     *  コンソール入出力コードページとコンソール モードを元に戻します。\n
+     *  コンソール入出力コード ページとコンソール モードを元に戻します。\n
      *  Linux 環境では何もしません。\n
      *                  @c com_util_console_init を呼び出していない場合も安全に呼び出せます。
      *

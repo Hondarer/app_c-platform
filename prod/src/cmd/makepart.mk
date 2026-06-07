@@ -1,7 +1,7 @@
 # 出力ディレクトリ
 OUTPUT_DIR := $(MYAPP_DIR)/prod/cbin
 
-# ライブラリの指定 (static library を利用してポータビリティーを高める)
+# ライブラリの指定 (static library を利用)
 LIBS += com_util_static
 
 ifdef PLATFORM_LINUX

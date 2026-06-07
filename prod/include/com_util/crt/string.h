@@ -36,11 +36,11 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          バッファサイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当)。
-     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @brief          バッファー サイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当)。
+     *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -49,12 +49,12 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, size_t dest_size, const char *src);
 
     /**
-     *  @brief          バッファサイズ付き安全 strncpy (`strncpy_s` 相当)。
-     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @brief          バッファー サイズ付き安全 strncpy (`strncpy_s` 相当)。
+     *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
      *  @param[in]      count      コピーする最大文字数。
-     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -63,11 +63,11 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 
     /**
-     *  @brief          バッファサイズ付き安全 strcat (`strcat_s` / `strlcat` 相当)。
-     *  @param[in,out]  dest       連結先バッファ。NULL を渡してはなりません。
+     *  @brief          バッファー サイズ付き安全 strcat (`strcat_s` / `strlcat` 相当)。
+     *  @param[in,out]  dest       連結先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        連結する文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -76,11 +76,11 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, size_t dest_size, const char *src);
 
     /**
-     *  @brief          バッファサイズ付き安全 wcscpy (`wcscpy_s` 相当)。
-     *  @param[out]     dest       コピー先バッファ。NULL を渡してはなりません。
+     *  @brief          バッファー サイズ付き安全 wcscpy (`wcscpy_s` 相当)。
+     *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。
      *  @param[in]      src        コピー元ワイド文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファ不足時は ERANGE を返します。
+     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

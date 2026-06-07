@@ -47,7 +47,7 @@ extern "C"
      *  @param[in]      buf_size    @p buf のバイト数。@p buf が NULL の場合は無視。
      *  @return         0:         変数が設定されており、@p buf が NULL でない場合は値をコピー済み。
      *  @return         -1:        変数が未設定。
-     *  @return         ERANGE:    @p buf が NULL でなく、バッファが値を格納するのに不足。
+     *  @return         ERANGE:    @p buf が NULL でなく、バッファーが値を格納するのに不足。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

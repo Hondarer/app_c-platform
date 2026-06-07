@@ -1,5 +1,5 @@
 ifdef PLATFORM_LINUX
-    # mock_com_util::Mock_com_util() コンストラクタが多数の ON_CALL を持つため、GCC の
+    # mock_com_util::Mock_com_util() コンストラクターが多数の ON_CALL を持つため、GCC の
     # -fvar-tracking-assignments が内部サイズ制限を超え、以下のメッセージが出力されることがある。
     #
     # mock_com_util.cc:6:1: 備考: 変数追跡サイズ制限が -fvar-tracking-assignments を超過しています。
@@ -16,8 +16,8 @@ ifdef PLATFORM_LINUX
 endif
 
 ifdef PLATFORM_WINDOWS
-    # mock_com_util::Mock_com_util() コンストラクタが多数の ON_CALL を持つため、COFF オブジェクトの
-    # セクション数上限（65535）を超え、以下のエラーが発生することがある。
+    # mock_com_util::Mock_com_util() コンストラクターが多数の ON_CALL を持つため、COFF オブジェクトの
+    # セクション数上限 (65535) を超え、以下のエラーが発生することがある。
     #
     # fatal error C1128: セクションの数がオブジェクト ファイル形式の制限を超えています:
     #                    /bigobj と共にコンパイルしてください

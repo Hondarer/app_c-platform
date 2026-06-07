@@ -53,8 +53,8 @@
  *  @{
  */
 #define COM_UTIL_CRYPTO_KEY_SIZE   32U /**< AES-256-GCM 鍵サイズ (バイト)。 */
-#define COM_UTIL_CRYPTO_NONCE_SIZE 12U /**< AES-256-GCM ノンスサイズ (バイト)。 */
-#define COM_UTIL_CRYPTO_TAG_SIZE   16U /**< AES-256-GCM 認証タグサイズ (バイト)。暗号文の直後に付加する。 */
+#define COM_UTIL_CRYPTO_NONCE_SIZE 12U /**< AES-256-GCM ノンス サイズ (バイト)。 */
+#define COM_UTIL_CRYPTO_TAG_SIZE   16U /**< AES-256-GCM 認証タグ サイズ (バイト)。暗号文の直後に付加する。 */
 /** @} */
 
 #ifdef __cplusplus
@@ -64,16 +64,16 @@ extern "C"
 
     /**
      *  @brief          AES-256-GCM でデータを暗号化します。
-     *  @param[out]     dst      暗号化後データを格納するバッファ。\n
+     *  @param[out]     dst      暗号化後データを格納するバッファー。\n
      *                           内容: [暗号文: src_len バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]\n
      *                           dst == src の in-place 暗号化も可能。
-     *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。\n
+     *  @param[in,out]  dst_len  入力: dst のバッファー サイズ (>= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。\n
      *                           出力: 書き込んだバイト数 (= src_len + COM_UTIL_CRYPTO_TAG_SIZE)。
-     *  @param[in]      src      平文データへのポインタ。
+     *  @param[in]      src      平文データへのポインター。
      *  @param[in]      src_len  平文データのバイト数。
      *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
      *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
-     *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
+     *  @param[in]      aad      追加認証データへのポインター。NULL の場合は AAD なし。
      *  @param[in]      aad_len  AAD のバイト数。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
@@ -87,15 +87,15 @@ extern "C"
 
     /**
      *  @brief          AES-256-GCM でデータを復号し、認証タグを検証します。
-     *  @param[out]     dst      復号後データを格納するバッファ。
-     *  @param[in,out]  dst_len  入力: dst のバッファサイズ (>= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。\n
+     *  @param[out]     dst      復号後データを格納するバッファー。
+     *  @param[in,out]  dst_len  入力: dst のバッファー サイズ (>= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。\n
      *                           出力: 書き込んだバイト数 (= src_len - COM_UTIL_CRYPTO_TAG_SIZE)。
-     *  @param[in]      src      暗号化データへのポインタ。\n
+     *  @param[in]      src      暗号化データへのポインター。\n
      *                           内容: [暗号文: src_len - COM_UTIL_CRYPTO_TAG_SIZE バイト][GCM タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]
      *  @param[in]      src_len  暗号化データのバイト数 (タグを含む)。>= COM_UTIL_CRYPTO_TAG_SIZE。
      *  @param[in]      key      AES-256 鍵 (COM_UTIL_CRYPTO_KEY_SIZE バイト)。
      *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
-     *  @param[in]      aad      追加認証データへのポインタ。NULL の場合は AAD なし。
+     *  @param[in]      aad      追加認証データへのポインター。NULL の場合は AAD なし。
      *  @param[in]      aad_len  AAD のバイト数。
      *  @return         成功 (認証タグ検証 OK) 時は 0、失敗 (認証タグ不一致含む) 時は -1 を返します。
      *
@@ -113,8 +113,8 @@ extern "C"
      *  入力バイト列の SHA-256 ダイジェストをそのまま鍵として使用します。\n
      *  送受信の双方で同一のパスフレーズを指定すれば、同一の鍵が導出されます。
      *
-     *  @param[out]     key             出力鍵バッファ (COM_UTIL_CRYPTO_KEY_SIZE = 32 バイト)。
-     *  @param[in]      passphrase      パスフレーズへのポインタ (任意のバイト列)。
+     *  @param[out]     key             出力鍵バッファー (COM_UTIL_CRYPTO_KEY_SIZE = 32 バイト)。
+     *  @param[in]      passphrase      パスフレーズへのポインター (任意のバイト列)。
      *  @param[in]      passphrase_len  パスフレーズの長さ (バイト)。0 の場合も有効。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *

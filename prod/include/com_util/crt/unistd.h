@@ -58,7 +58,7 @@ extern "C"
 
     /**
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー)。
-     *  @param[in]      path  確認対象のファイルパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[in]      path  確認対象のファイル パス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      mode  確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
      *

@@ -1,18 +1,18 @@
 /**
  *******************************************************************************
  *  @file           shared_lib_lifecycle.h
- *  @brief          共有ライブラリのロード・アンロードフック共通ヘッダー。
+ *  @brief          共有ライブラリのロード・アンロード フック共通ヘッダー。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.1.0
  *
  *  このヘッダーをインクルードした .c ファイルに対して、プラットフォームごとの
- *  ライブラリロード・アンロードフックを提供します。\n
+ *  ライブラリ ロード・アンロード フックを提供します。\n
  *  `com_util` 本体はこの仕組みを使用しません。共有ライブラリ利用者が必要に応じて
  *  外部モジュール側で使用する補助ヘッダーです。
  *
  *  インクルード元の .c ファイルは以下の関数を定義する必要があります。
- *  - onLoad() : ライブラリロード時に呼び出される関数
+ *  - onLoad() : ライブラリ ロード時に呼び出される関数
  *  - onUnload(int process_terminating)
  *      process_terminating = 0: 明示アンロードまたは通常の destructor
  *      process_terminating = 1: Windows のプロセス終了による DETACH
@@ -52,7 +52,7 @@
 
 #ifdef DOXYGEN
     /**
-     *  @brief          ロード/アンロードコンテキスト向けの診断メッセージ出力マクロ。
+     *  @brief          ロード/アンロード コンテキスト向けの診断メッセージ出力マクロ。
      *
      *  `DllMain` および constructor / destructor コンテキストでは
      *  使用できる API が制限されるため、このマクロは制約下でも比較的
@@ -142,7 +142,7 @@ static void dllmain_output_debug_msg__(const char *msg)
         return;
     if (len <= 1024)
     {
-        /* バッファに収まる: そのまま変換 */
+        /* バッファーに収まる: そのまま変換 */
         MultiByteToWideChar(CP_UTF8, 0, msg, -1, buf, 1024);
     }
     else
@@ -172,7 +172,7 @@ static void dllmain_output_debug_msg__(const char *msg)
             {
                 cb = 4;
             }
-            int cw; /* U+10000 以上はサロゲートペアで 2 wchar */
+            int cw; /* U+10000 以上はサロゲート ペアで 2 wchar */
             if (cb == 4)
             {
                 cw = 2;
@@ -202,7 +202,7 @@ static void dllmain_output_debug_msg__(const char *msg)
 #endif     /* DOXYGEN */
 
 /**
- *  @brief          ライブラリロード時に呼び出されます。
+ *  @brief          ライブラリ ロード時に呼び出されます。
  *
  *  インクルード元の .c ファイルでこの関数を定義してください。
  *
@@ -213,7 +213,7 @@ static void dllmain_output_debug_msg__(const char *msg)
 static void onLoad(void);
 
 /**
- *  @brief          ライブラリアンロード時に呼び出されます。
+ *  @brief          ライブラリ アンロード時に呼び出されます。
  *  @param[in]      process_terminating プロセス終了による呼び出しの場合は 1、
  *                  明示的なアンロードまたは通常の destructor の場合は 0。
  *
@@ -228,7 +228,7 @@ static void onUnload(int process_terminating);
 #if defined(PLATFORM_LINUX)
 
 /**
- *  @brief          Linux constructor 属性によるライブラリロードフック。
+ *  @brief          Linux constructor 属性によるライブラリ ロード フック。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
@@ -242,7 +242,7 @@ __attribute__((constructor)) static void dllmain_on_load__(void)
 }
 
 /**
- *  @brief          Linux destructor 属性によるライブラリアンロードフック。
+ *  @brief          Linux destructor 属性によるライブラリ アンロード フック。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
@@ -258,8 +258,8 @@ __attribute__((destructor)) static void dllmain_on_unload__(void)
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *  @brief          Windows DllMain によるライブラリロード/アンロードフック。
- *  @param[in]      hinstDLL DLL のモジュールハンドル。
+ *  @brief          Windows DllMain によるライブラリ ロード/アンロード フック。
+ *  @param[in]      hinstDLL DLL のモジュール ハンドル。
  *  @param[in]      fdwReason 呼び出し理由 (DLL_PROCESS_ATTACH など)。
  *  @param[in]      lpvReserved 予約。プロセス終了時は非 NULL。
  *  @return         常に TRUE を返します。

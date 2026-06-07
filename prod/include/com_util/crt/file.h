@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           file.h
- *  @brief          低レベルファイル I/O 抽象 API。
+ *  @brief          低レベル ファイル I/O 抽象 API。
  *  @author         Tetsuo Honda
  *  @date           2026/04/24
  *
@@ -44,7 +44,7 @@
 #define COM_UTIL_FILE_OPEN_SHARE_DELETE  (1 << 5) /**< 他プロセスからの削除を許可する。 */
 
 /**
- *  @brief  ファイルハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。
+ *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。
  */
 typedef struct com_util_file
 {
@@ -73,9 +73,9 @@ extern "C"
     /**
      *  @brief          UTF-8 パスでファイルを開きます。
      *  @param[in,out]  file   オープン結果の格納先。NULL を渡してはなりません。
-     *                         既にオープン済みの場合は先にクローズしてから開き直します。
+     *                         すでにオープン済みの場合は先にクローズしてから開き直します。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
-     *  @param[in]      flags  オープンフラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
+     *  @param[in]      flags  オープン フラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
      *                         負値を渡した場合は -1 を返します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
@@ -99,7 +99,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len);
 
     /**
-     *  @brief          ファイルサイズを取得します。
+     *  @brief          ファイル サイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は -1 を返します。

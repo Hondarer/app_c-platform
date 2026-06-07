@@ -12,7 +12,7 @@
  *  使用方法:
  *  1. com_util_sym_loader_entry を COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで静的初期化する。
  *  2. com_util_sym_loader_init() でテキスト設定ファイルを読み込む (DllMain/constructor から呼ぶ)。
- *  3. com_util_sym_loader_resolve_as() で関数ポインタを取得して呼び出す。
+ *  3. com_util_sym_loader_resolve_as() で関数ポインターを取得して呼び出す。
  *  4. com_util_sym_loader_dispose() でリソースを解放する (DllMain/destructor から呼ぶ)。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -59,7 +59,7 @@ extern "C"
 
 #ifdef DOXYGEN
     /**
-     *  @brief          Linux/Windows 共通のモジュールハンドル型。
+     *  @brief          Linux/Windows 共通のモジュール ハンドル型。
      *
      *  sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
      *  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
@@ -75,9 +75,9 @@ extern "C"
 #define COM_UTIL_SYM_LOADER_NAME_MAX 256 /**< lib_name / func_name 配列の最大長 (終端 '\0' を含む)。 */
 
     /**
-     *  @brief          関数ポインタキャッシュエントリ。
+     *  @brief          関数ポインター キャッシュ エントリ。
      *
-     *  ライブラリ名・関数名・ハンドル・関数ポインタおよび排他制御用ロックを管理します。\n
+     *  ライブラリ名・関数名・ハンドル・関数ポインターおよび排他制御用ロックを管理します。\n
      *  静的変数として定義する場合は COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで初期化してください。
      */
     typedef struct com_util_sym_loader_entry
@@ -86,7 +86,7 @@ extern "C"
         char lib_name[COM_UTIL_SYM_LOADER_NAME_MAX];  /**< 拡張子なしライブラリ名。[0]=='\0' = 未設定。 */
         char func_name[COM_UTIL_SYM_LOADER_NAME_MAX]; /**< 関数シンボル名。[0]=='\0' = 未設定。 */
         COM_UTIL_MODULE_HANDLE handle;                /**< キャッシュ済みハンドル (NULL = 未ロード)。 */
-        void *func_ptr;                               /**< キャッシュ済み関数ポインタ (NULL = 未取得)。 */
+        void *func_ptr;                               /**< キャッシュ済み関数ポインター (NULL = 未取得)。 */
         int resolved;                                 /**< 解決済フラグ (0 = 未解決)。 */
         /* lock_state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
            コーディング規範の例外として固定幅型 int32_t を維持する。 */
@@ -98,34 +98,34 @@ extern "C"
  *  @brief          com_util_sym_loader_entry 静的変数の初期化マクロ。
  *
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
- *  @param[in]      type    格納する関数ポインタの型 (例: sample_func_t)。
+ *  @param[in]      type    格納する関数ポインターの型 (例: sample_func_t)。
  */
 #define COM_UTIL_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, NULL}
 
     /**
-     *  @brief          拡張関数ポインタを返す (内部用)。
+     *  @brief          拡張関数ポインターを返します (内部用)。
      *
-     *  @param[in]      fobj com_util_sym_loader_entry へのポインタ。
-     *  @return         成功時 void * (関数ポインタ)、失敗時 NULL。
+     *  @param[in]      fobj com_util_sym_loader_entry へのポインター。
+     *  @return         成功時 void * (関数ポインター)、失敗時 NULL。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  ロックフリーの fast path と per-entry mutex による double-checked locking で排他制御しており、複数スレッドから同時に呼び出せます。
+     *  ロック フリーの fast path と per-entry mutex による double-checked locking で排他制御しており、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj);
 
 /**
- *  @brief          拡張関数ポインタを返す。
+ *  @brief          拡張関数ポインターを返します。
  *
- *  @param[in]      fobj com_util_sym_loader_entry へのポインタ。
- *  @param[in]      type COM_UTIL_SYM_LOADER_ENTRY_INIT で指定したものと同じ関数ポインタ型。
+ *  @param[in]      fobj com_util_sym_loader_entry へのポインター。
+ *  @param[in]      type COM_UTIL_SYM_LOADER_ENTRY_INIT で指定したものと同じ関数ポインター型。
  */
 #define com_util_sym_loader_resolve_as(fobj, type) ((type)com_util_sym_loader_resolve(fobj))
 
     /**
-     *  @brief          com_util_sym_loader_entry が明示的デフォルトかどうかを返す。
+     *  @brief          com_util_sym_loader_entry が明示的デフォルトかどうかを返します。
      *
-     *  @param[in]      fobj com_util_sym_loader_entry へのポインタ。
+     *  @param[in]      fobj com_util_sym_loader_entry へのポインター。
      *  @return         明示的デフォルトの場合は 1、それ以外は 0。
      *
      *  @par            スレッド セーフ
@@ -135,9 +135,9 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj);
 
     /**
-     *  @brief          com_util_sym_loader_entry ポインタ配列を初期化する。
+     *  @brief          com_util_sym_loader_entry ポインター配列を初期化します。
      *
-     *  @param[in]      fobj_array  com_util_sym_loader_entry ポインタ配列。
+     *  @param[in]      fobj_array  com_util_sym_loader_entry ポインター配列。
      *  @param[in]      fobj_length 配列の要素数。
      *  @param[in]      configpath  定義ファイルのパス。
      *
@@ -149,9 +149,9 @@ extern "C"
                                                                const size_t fobj_length, const char *configpath);
 
     /**
-     *  @brief          com_util_sym_loader_entry ポインタ配列を解放する。
+     *  @brief          com_util_sym_loader_entry ポインター配列を解放します。
      *
-     *  @param[in]      fobj_array  com_util_sym_loader_entry ポインタ配列。
+     *  @param[in]      fobj_array  com_util_sym_loader_entry ポインター配列。
      *  @param[in]      fobj_length 配列の要素数。
      *
      *  @par            スレッド セーフ
@@ -162,9 +162,9 @@ extern "C"
                                                                   const size_t fobj_length);
 
     /**
-     *  @brief          com_util_sym_loader_entry ポインタ配列の内容を標準出力に表示する。
+     *  @brief          com_util_sym_loader_entry ポインター配列の内容を標準出力に表示します。
      *
-     *  @param[in]      fobj_array      com_util_sym_loader_entry ポインタ配列。
+     *  @param[in]      fobj_array      com_util_sym_loader_entry ポインター配列。
      *  @param[in]      fobj_length     配列の要素数。
      *  @return         すべてのエントリが正常に解決されている場合は 0、1 つでも失敗している場合は -1。
      *
