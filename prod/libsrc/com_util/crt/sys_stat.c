@@ -45,6 +45,7 @@ static int ensure_one_dir(const char *dir)
     return -1;
 }
 
+#if defined(PLATFORM_WINDOWS)
 static int is_ascii_alpha(const char ch)
 {
     if (ch >= 'A' && ch <= 'Z')
@@ -57,11 +58,10 @@ static int is_ascii_alpha(const char ch)
     }
     return 0;
 }
+#endif /* PLATFORM_WINDOWS */
 
 static size_t path_root_prefix_len(const char *path)
 {
-    size_t i;
-
 #if defined(PLATFORM_WINDOWS)
     if (is_ascii_alpha(path[0]) && path[1] == ':' && path[2] == PLATFORM_PATH_SEP_CHR)
     {
@@ -70,7 +70,8 @@ static size_t path_root_prefix_len(const char *path)
 
     if (path[0] == PLATFORM_PATH_SEP_CHR && path[1] == PLATFORM_PATH_SEP_CHR)
     {
-        i = 2u;
+        size_t i = 2u;
+
         while (path[i] != '\0' && path[i] != PLATFORM_PATH_SEP_CHR)
         {
             i++;
