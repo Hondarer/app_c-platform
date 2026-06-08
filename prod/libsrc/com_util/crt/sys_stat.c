@@ -45,10 +45,69 @@ static int ensure_one_dir(const char *dir)
     return -1;
 }
 
+static int is_ascii_alpha(const char ch)
+{
+    if (ch >= 'A' && ch <= 'Z')
+    {
+        return 1;
+    }
+    if (ch >= 'a' && ch <= 'z')
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static size_t path_root_prefix_len(const char *path)
+{
+    size_t i;
+
+#if defined(PLATFORM_WINDOWS)
+    if (is_ascii_alpha(path[0]) && path[1] == ':' && path[2] == PLATFORM_PATH_SEP_CHR)
+    {
+        return 3u;
+    }
+
+    if (path[0] == PLATFORM_PATH_SEP_CHR && path[1] == PLATFORM_PATH_SEP_CHR)
+    {
+        i = 2u;
+        while (path[i] != '\0' && path[i] != PLATFORM_PATH_SEP_CHR)
+        {
+            i++;
+        }
+        if (path[i] == '\0')
+        {
+            return i;
+        }
+        while (path[i] == PLATFORM_PATH_SEP_CHR)
+        {
+            i++;
+        }
+        if (path[i] == '\0')
+        {
+            return i;
+        }
+        while (path[i] != '\0' && path[i] != PLATFORM_PATH_SEP_CHR)
+        {
+            i++;
+        }
+        return i;
+    }
+#endif /* PLATFORM_WINDOWS */
+
+    if (path[0] == PLATFORM_PATH_SEP_CHR)
+    {
+        return 1u;
+    }
+
+    return 0u;
+}
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
 {
     char buf[PLATFORM_PATH_MAX];
     size_t path_len;
+    size_t root_len;
     size_t i;
 
     if (path == NULL || path[0] == '\0')
@@ -65,18 +124,26 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
     /* パスをローカル バッファーに複製する */
     memcpy(buf, path, path_len + 1);
 
-    /* i=1 から開始して先頭 '/' (ルート) や空成分を誤処理しない */
-    for (i = 1; i < path_len; i++)
+#if defined(PLATFORM_WINDOWS)
+    com_util_normalize_path_sep(buf);
+#endif /* PLATFORM_WINDOWS */
+
+    root_len = path_root_prefix_len(buf);
+
+    for (i = root_len; i < path_len; i++)
     {
         if (buf[i] == PLATFORM_PATH_SEP_CHR)
         {
-            /* 中間ディレクトリを一時終端して生成する */
-            buf[i] = '\0';
-            if (ensure_one_dir(buf) != 0)
+            if (i > root_len && buf[i - 1u] != PLATFORM_PATH_SEP_CHR)
             {
-                return -1;
+                /* 中間ディレクトリを一時終端して生成する */
+                buf[i] = '\0';
+                if (ensure_one_dir(buf) != 0)
+                {
+                    return -1;
+                }
+                buf[i] = PLATFORM_PATH_SEP_CHR;
             }
-            buf[i] = PLATFORM_PATH_SEP_CHR;
         }
     }
 
@@ -84,8 +151,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
     return ensure_one_dir(buf);
 }
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf,
-                                                const char       *path)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf, const char *path)
 {
     if (buf == NULL || path == NULL)
     {

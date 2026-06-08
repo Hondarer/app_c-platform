@@ -11,6 +11,21 @@ static void remove_dir(const char *path)
     (void)system(cmd.c_str());
 }
 
+#if defined(PLATFORM_WINDOWS)
+static std::string to_windows_sep(const char *path)
+{
+    std::string result(path);
+    for (char &ch : result)
+    {
+        if (ch == '/')
+        {
+            ch = '\\';
+        }
+    }
+    return result;
+}
+#endif /* PLATFORM_WINDOWS */
+
 class makedirsTest : public Test
 {
 };
@@ -44,16 +59,15 @@ TEST_F(makedirsTest, test_single_level_creates_directory)
     com_util_file_stat_t st;
 
     ASSERT_EQ(0, com_util_get_temp_dir(tmp, sizeof(tmp), NULL));
-    ASSERT_EQ(0, com_util_path_concat(dir, sizeof(dir), NULL, tmp, PLATFORM_PATH_SEP,
-                                      "makedirsTest_single"));
+    ASSERT_EQ(0, com_util_path_concat(dir, sizeof(dir), NULL, tmp, PLATFORM_PATH_SEP, "makedirsTest_single"));
     remove_dir(dir); // 残留物があれば削除
 
     // Act - 新規作成
     int ret = com_util_makedirs(dir); // [手順] - 存在しない単一階層ディレクトリを makedirs で作成する。
 
     // Assert - 作成成功
-    EXPECT_EQ(0, ret);                         // [確認_正常系] - 0 が返ること。
-    EXPECT_EQ(0, com_util_stat(&st, dir));     // [確認_正常系] - ディレクトリが存在すること。
+    EXPECT_EQ(0, ret);                     // [確認_正常系] - 0 が返ること。
+    EXPECT_EQ(0, com_util_stat(&st, dir)); // [確認_正常系] - ディレクトリが存在すること。
 
     // Act - 冪等: 既存ディレクトリへの再呼び出し
     int ret2 = com_util_makedirs(dir); // [手順] - 既存ディレクトリに makedirs を再呼び出しする。
@@ -75,19 +89,54 @@ TEST_F(makedirsTest, test_nested_levels_creates_all_directories)
     com_util_file_stat_t st;
 
     ASSERT_EQ(0, com_util_get_temp_dir(tmp, sizeof(tmp), NULL));
-    ASSERT_EQ(0, com_util_path_concat(root, sizeof(root), NULL, tmp, PLATFORM_PATH_SEP,
-                                      "makedirsTest_root"));
-    ASSERT_EQ(0, com_util_path_concat(nested, sizeof(nested), NULL, root, PLATFORM_PATH_SEP,
-                                      "sub", PLATFORM_PATH_SEP, "leaf"));
+    ASSERT_EQ(0, com_util_path_concat(root, sizeof(root), NULL, tmp, PLATFORM_PATH_SEP, "makedirsTest_root"));
+    ASSERT_EQ(0, com_util_path_concat(nested, sizeof(nested), NULL, root, PLATFORM_PATH_SEP, "sub", PLATFORM_PATH_SEP,
+                                      "leaf"));
     remove_dir(root); // 残留物があれば削除
 
     // Act - 2 階層まとめて作成
     int ret = com_util_makedirs(nested); // [手順] - 中間ディレクトリが欠けた 2 階層パスを makedirs で作成する。
 
     // Assert - リーフを含む全階層が存在すること
-    EXPECT_EQ(0, ret);                              // [確認_正常系] - 0 が返ること。
-    EXPECT_EQ(0, com_util_stat(&st, nested));       // [確認_正常系] - リーフ ディレクトリが存在すること。
+    EXPECT_EQ(0, ret);                        // [確認_正常系] - 0 が返ること。
+    EXPECT_EQ(0, com_util_stat(&st, nested)); // [確認_正常系] - リーフ ディレクトリが存在すること。
 
     // Cleanup
     remove_dir(root);
 }
+
+#if defined(PLATFORM_WINDOWS)
+// Windows スタイル区切りの絶対パスで再帰作成できることの確認
+TEST_F(makedirsTest, test_windows_separator_path_creates_directory)
+{
+    // Arrange
+    char tmp[PLATFORM_PATH_MAX];
+    char root[PLATFORM_PATH_MAX];
+    char nested[PLATFORM_PATH_MAX];
+    com_util_file_stat_t st;
+
+    ASSERT_EQ(0, com_util_get_temp_dir(tmp, sizeof(tmp), NULL));
+    ASSERT_EQ(0, com_util_path_concat(root, sizeof(root), NULL, tmp, PLATFORM_PATH_SEP, "makedirsTest_windows_sep"));
+    ASSERT_EQ(0, com_util_path_concat(nested, sizeof(nested), NULL, root, PLATFORM_PATH_SEP, "sub", PLATFORM_PATH_SEP,
+                                      "leaf"));
+    remove_dir(root); // 残留物があれば削除
+
+    std::string windows_path = to_windows_sep(nested);
+
+    // Act - Windows スタイル区切りの 2 階層パスを作成
+    int ret = com_util_makedirs(windows_path.c_str());
+
+    // Assert - 正規化後のパスでリーフが存在すること
+    EXPECT_EQ(0, ret);
+    EXPECT_EQ(0, com_util_stat(&st, nested));
+
+    // Act - 冪等: 既存ディレクトリへの再呼び出し
+    int ret2 = com_util_makedirs(windows_path.c_str());
+
+    // Assert - 冪等
+    EXPECT_EQ(0, ret2);
+
+    // Cleanup
+    remove_dir(root);
+}
+#endif /* PLATFORM_WINDOWS */

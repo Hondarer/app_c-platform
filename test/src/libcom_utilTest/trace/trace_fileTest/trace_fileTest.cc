@@ -329,3 +329,25 @@ TEST_F(trace_fileTest, test_create_calls_makedirs_for_path_with_separator)
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
 }
+
+#if defined(PLATFORM_WINDOWS)
+// Windows スタイル区切りのパスでも makedirs が親ディレクトリ パスで呼ばれることの確認
+TEST_F(trace_fileTest, test_create_normalizes_windows_separator_for_parent_directory)
+{
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_makedirs(StrEq("sub/dir")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 正規化した親ディレクトリで makedirs が呼ばれること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("sub\\dir\\trace.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 呼び出し元のパス文字列でファイルが開かれること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
+
+    // Act
+    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("sub\\dir\\trace.log", 0, 0);
+
+    // Assert
+    EXPECT_NE((com_util_trace_file_sink *)NULL, handle); // [確認_正常系] - ハンドルが生成されること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+#endif /* PLATFORM_WINDOWS */

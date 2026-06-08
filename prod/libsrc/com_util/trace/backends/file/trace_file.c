@@ -157,6 +157,21 @@ static int format_timestamp(char *buf, const int buf_size, const com_util_realti
     return com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, resolved->tv_sec, resolved->tv_nsec);
 }
 
+#if defined(PLATFORM_WINDOWS)
+static void normalize_path_sep_for_parent(char *path)
+{
+    char *p;
+
+    for (p = path; *p != '\0'; p++)
+    {
+        if (*p == '\\')
+        {
+            *p = PLATFORM_PATH_SEP_CHR;
+        }
+    }
+}
+#endif /* PLATFORM_WINDOWS */
+
 /**
  *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
  *  @return 成功 0 / 失敗 -1。
@@ -173,6 +188,9 @@ static int open_file(com_util_trace_file_sink *p)
 
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
     snprintf(dir, sizeof(dir), "%s", p->path);
+#if defined(PLATFORM_WINDOWS)
+    normalize_path_sep_for_parent(dir);
+#endif /* PLATFORM_WINDOWS */
     sep = strrchr(dir, PLATFORM_PATH_SEP_CHR);
     if (sep != NULL)
     {
