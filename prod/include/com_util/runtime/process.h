@@ -48,6 +48,25 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
 
+    /**
+     *  @brief          管理者/root 権限が必要な処理のため、必要に応じて昇格実行します。
+     *  @param[in]      arguments  昇格実行時に現在の実行ファイルへ渡す引数文字列。NULL 可。
+     *  @param[out]     exit_code  昇格プロセスの終了コード、または 0 の格納先。
+     *  @param[out]     handled    昇格プロセスで処理した場合は 0 以外、現プロセスで継続する場合は 0 の格納先。
+     *  @return         権限確認または昇格プロセス実行が成功した場合は 0、失敗した場合は -1 を返します。
+     *
+     *  Windows では、未昇格の場合に UAC を要求して現在の実行ファイルを @p arguments 付きで
+     *  再起動し、子プロセスの終了まで待機します。すでに昇格済みの場合は何もしません。\n
+     *  Linux では、実効ユーザー ID が root であることを確認します。root でない場合は失敗します。\n
+     *  本関数は権限保証のための API であり、Linux で `sudo` などの外部昇格コマンドは実行しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は内部に共有状態を持ちません。ただし、Windows で UAC を表示するため、
+     *  通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const char *arguments, int *exit_code,
+                                                                             int *handled);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

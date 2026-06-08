@@ -58,6 +58,7 @@
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/unistd.h>
+#include <com_util/crt/wchar_conv.h>
 
 #include <com_util/crypto/crypto.h>
 
@@ -65,6 +66,7 @@
 #include <com_util/prompt/prompt.h>
 
 #include <com_util/runtime/module.h>
+#include <com_util/runtime/process.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/runtime/sym_loader.h>
 

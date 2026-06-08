@@ -1,7 +1,7 @@
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
 
-#include <com_util/crt/crt_internal.h>
+#include <com_util/crt/wchar_conv.h>
 
 #include <stddef.h>
 #include <string.h>

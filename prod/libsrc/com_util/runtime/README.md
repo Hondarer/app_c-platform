@@ -33,9 +33,12 @@ short-title: "runtime"
 `process_info` は、現在のプロセスの実行ファイル本体の情報を取得する機能です。
 
 - `com_util_process_get_executable_path`: プロセスの実行ファイル絶対パスを取得する
+- `com_util_process_run_elevated_if_needed`: 管理者/root 権限が必要な処理のため、必要に応じて昇格実行する
 
 `com_util_module_get_path()` は関数アドレスが属するモジュールを返すため、Windows では DLL を指しうます。`com_util_process_get_executable_path()` は常にプロセス本体 (`.exe`) のパスを返します。  
 典型的には、サービス登録時の `ExecStart` や SCM の `binPath` 設定に使います。
+
+`com_util_process_run_elevated_if_needed()` は、権限が必要な処理の入口で呼び出します。Windows では未昇格の場合に UAC を要求して現在の実行ファイルを再起動し、Linux では実効ユーザー ID が root でなければ失敗します。
 
 ### sym_loader
 
@@ -169,12 +172,14 @@ int sample_func(int a, int b, int *result)
 ### Windows
 
 - `module_info` は Win32 API ベースで DLL パスを取得する
+- `process_info` は UAC を使った昇格再起動に対応する
 - `sym_loader` は `.dll` を内部で補完してロードする
 - ロックは `com_util_local_lock` を使う
 
 ### Linux / 非 Windows
 
 - `module_info` は `dladdr()` ベースで `.so` の位置を特定する
+- `process_info` は root 権限の確認を行う
 - `sym_loader` は `.so` を内部で補完してロードする
 - ロックは `com_util_local_lock` を使う
 

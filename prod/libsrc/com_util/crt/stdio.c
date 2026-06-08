@@ -1,7 +1,7 @@
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/path.h>
 
-#include <com_util/crt/crt_internal.h>
+#include <com_util/crt/wchar_conv.h>
 
 #include <errno.h>
 #include <string.h>

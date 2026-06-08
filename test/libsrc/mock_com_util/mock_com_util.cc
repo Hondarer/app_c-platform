@@ -194,6 +194,10 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_module_get_basename(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_module_get_basename));
 
+    // runtime - process_info
+    ON_CALL(*this, com_util_process_run_elevated_if_needed(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_process_run_elevated_if_needed));
+
     // runtime - sym_loader
     ON_CALL(*this, com_util_sym_loader_resolve(_)).WillByDefault(Invoke(delegate_real_com_util_sym_loader_resolve));
     ON_CALL(*this, com_util_sym_loader_is_default(_))
@@ -223,6 +227,14 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_syslog_sink_rename(_, _)).WillByDefault(Invoke(delegate_real_com_util_syslog_sink_rename));
     ON_CALL(*this, com_util_syslog_sink_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_syslog_sink_dispose));
 #endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_WINDOWS)
+    // crt - wchar_conv (Windows only)
+    ON_CALL(*this, com_util_utf8_to_wpath(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_utf8_to_wpath));
+    ON_CALL(*this, com_util_wpath_to_utf8(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_wpath_to_utf8));
+    ON_CALL(*this, com_util_utf8_to_wstr_alloc(_)).WillByDefault(Invoke(delegate_real_com_util_utf8_to_wstr_alloc));
+    ON_CALL(*this, com_util_wstr_to_utf8_alloc(_)).WillByDefault(Invoke(delegate_real_com_util_wstr_to_utf8_alloc));
+#endif /* PLATFORM_WINDOWS */
 
 #if defined(PLATFORM_WINDOWS)
     // trace - trace_etw (Windows only)

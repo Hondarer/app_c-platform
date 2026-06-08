@@ -33,8 +33,10 @@
 #include <com_util/console/console.h>
 #include <com_util/sync/sync.h>
 #include <com_util/runtime/module.h>
+#include <com_util/runtime/process.h>
 #include <com_util/runtime/sym_loader.h>
 #include <com_util/runtime/shutdown.h>
+#include <com_util/crt/wchar_conv.h>
 #include <com_util/trace/trace_file.h>
 #include <com_util/trace/syslog.h>
 #include <com_util/trace/etw.h>
@@ -235,6 +237,9 @@ extern int delegate_real_com_util_module_get_path(char *out_path, size_t out_pat
 extern int delegate_real_com_util_module_get_basename(char *out_basename, size_t out_basename_sz,
                                                       const void *func_addr);
 
+// runtime - process_info
+extern int delegate_real_com_util_process_run_elevated_if_needed(const char *arguments, int *exit_code, int *handled);
+
 // runtime - sym_loader
 extern void *delegate_real_com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj);
 extern int delegate_real_com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj);
@@ -263,6 +268,14 @@ extern int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink *handle
 extern int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident);
 extern void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink *handle);
 #endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_WINDOWS)
+// crt - wchar_conv (Windows only)
+extern int delegate_real_com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
+extern int delegate_real_com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath);
+extern wchar_t *delegate_real_com_util_utf8_to_wstr_alloc(const char *utf8_text);
+extern char *delegate_real_com_util_wstr_to_utf8_alloc(const wchar_t *wtext);
+#endif /* PLATFORM_WINDOWS */
 
 #if defined(PLATFORM_WINDOWS)
 // trace - etw (Windows only)
@@ -486,6 +499,9 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_module_get_path, (char *, size_t, const void *));
     MOCK_METHOD(int, com_util_module_get_basename, (char *, size_t, const void *));
 
+    // runtime - process_info
+    MOCK_METHOD(int, com_util_process_run_elevated_if_needed, (const char *, int *, int *));
+
     // runtime - sym_loader
     MOCK_METHOD(void *, com_util_sym_loader_resolve, (com_util_sym_loader_entry *));
     MOCK_METHOD(int, com_util_sym_loader_is_default, (com_util_sym_loader_entry *));
@@ -511,6 +527,14 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_syslog_sink_rename, (com_util_syslog_sink *, const char *));
     MOCK_METHOD(void, com_util_syslog_sink_dispose, (com_util_syslog_sink *));
 #endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_WINDOWS)
+    // crt - wchar_conv (Windows only)
+    MOCK_METHOD(int, com_util_utf8_to_wpath, (wchar_t *, size_t, const char *));
+    MOCK_METHOD(int, com_util_wpath_to_utf8, (char *, size_t, const wchar_t *));
+    MOCK_METHOD(wchar_t *, com_util_utf8_to_wstr_alloc, (const char *));
+    MOCK_METHOD(char *, com_util_wstr_to_utf8_alloc, (const wchar_t *));
+#endif /* PLATFORM_WINDOWS */
 
 #if defined(PLATFORM_WINDOWS)
     // trace - trace_etw (Windows only)

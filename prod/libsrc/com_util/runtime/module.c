@@ -21,7 +21,7 @@
  */
 
 #include <com_util/runtime/module.h>
-#include <com_util/crt/crt_internal.h>
+#include <com_util/crt/wchar_conv.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/string.h>
 #include <errno.h>

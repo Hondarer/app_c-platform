@@ -3,6 +3,7 @@
 #if defined(PLATFORM_WINDOWS)
 
     #include <com_util/base/windows_sdk.h>
+    #include <com_util/crt/wchar_conv.h>
     #include <com_util/crt/string.h>
     #include <com_util/sync/sync.h>
     #include <evntcons.h>
@@ -164,41 +165,6 @@ static const wchar_t *get_event_name(const TRACE_EVENT_INFO *info)
     }
 
     return (const wchar_t *)((const unsigned char *)info + info->EventNameOffset);
-}
-
-/**
- *  @brief  ワイド文字列を UTF-8 へ変換する。
- *  @return 成功時は確保済み UTF-8 文字列。失敗時は NULL。
- */
-static char *dup_utf8_from_wide(const wchar_t *text)
-{
-    int utf8_len;
-    char *utf8_text;
-
-    if (text == NULL)
-    {
-        return NULL;
-    }
-
-    utf8_len = WideCharToMultiByte(CP_UTF8, 0, text, -1, NULL, 0, NULL, NULL);
-    if (utf8_len <= 0)
-    {
-        return NULL;
-    }
-
-    utf8_text = (char *)malloc((size_t)utf8_len);
-    if (utf8_text == NULL)
-    {
-        return NULL;
-    }
-
-    if (WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8_text, utf8_len, NULL, NULL) <= 0)
-    {
-        free(utf8_text);
-        return NULL;
-    }
-
-    return utf8_text;
 }
 
 /**
@@ -396,7 +362,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
         free(info);
         return;
     }
-    event_name_utf8 = dup_utf8_from_wide(event_name_w);
+    event_name_utf8 = com_util_wstr_to_utf8_alloc(event_name_w);
 
     service = NULL;
     message = NULL;
@@ -488,7 +454,7 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
     com_util_etw_session *session = NULL;
     GUID provider_guid;
     ULONG status;
-    int name_len_w;
+    size_t name_len_w;
     size_t props_size;
     ENABLE_TRACE_PARAMETERS etp = {0};
 
@@ -499,14 +465,6 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
     }
 
     if (parse_guid(provider_guid_str, &provider_guid) != 0)
-    {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
-        return NULL;
-    }
-
-    /* セッション名をワイド文字列に変換 */
-    name_len_w = MultiByteToWideChar(CP_UTF8, 0, session_name, -1, NULL, 0);
-    if (name_len_w <= 0)
     {
         set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
         return NULL;
@@ -529,17 +487,17 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
     session->session_name_w = NULL;
     session->provider_guid = provider_guid;
 
-    /* ワイド文字列セッション名を確保 */
-    session->session_name_w = (wchar_t *)malloc((size_t)name_len_w * sizeof(wchar_t));
+    /* セッション名をワイド文字列に変換して確保 */
+    session->session_name_w = com_util_utf8_to_wstr_alloc(session_name);
     if (session->session_name_w == NULL)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
         return dispose_session_and_return_null(session);
     }
-    MultiByteToWideChar(CP_UTF8, 0, session_name, -1, session->session_name_w, name_len_w);
+    name_len_w = wcslen(session->session_name_w) + 1;
 
     /* EVENT_TRACE_PROPERTIES を確保 (セッション名領域を含む) */
-    props_size = sizeof(EVENT_TRACE_PROPERTIES) + ((size_t)name_len_w * sizeof(wchar_t));
+    props_size = sizeof(EVENT_TRACE_PROPERTIES) + (name_len_w * sizeof(wchar_t));
     session->properties = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
     if (session->properties == NULL)
     {

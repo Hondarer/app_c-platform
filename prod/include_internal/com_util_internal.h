@@ -12,15 +12,7 @@
  *  アンブレラ ヘッダーは利便性と引き換えにコンパイル時間がかかります。\n
  *  個別ヘッダーを利用するか、アンブレラ ヘッダーを利用するかは利用者にて選択してください。
  *
- *  @par            除外ヘッダー
- *  以下のヘッダーはインクルードされた翻訳単位に実装コードを出力するため、
- *  このアンブレラ ヘッダーには含まれていません。必要な場合は個別にインクルードしてください。
- *  - `<com_util/crt/crt_internal.h>` :
- *    Windows 限定で `static` 関数 `com_util_utf8_to_wpath()` /
- *    `com_util_wpath_to_utf8()` を定義します。
- *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
- *
  *
  *  @hideincludedbygraph
  *
