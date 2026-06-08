@@ -29,7 +29,6 @@
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2025-2026. All rights reserved.
  *
- *
  *  @hideincludedbygraph
  *
  *******************************************************************************
