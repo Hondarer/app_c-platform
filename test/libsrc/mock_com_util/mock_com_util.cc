@@ -197,6 +197,13 @@ Mock_com_util::Mock_com_util()
     // runtime - process_info
     ON_CALL(*this, com_util_process_run_elevated_if_needed(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_process_run_elevated_if_needed));
+    ON_CALL(*this, com_util_process_start(_, _)).WillByDefault(Invoke(delegate_real_com_util_process_start));
+    ON_CALL(*this, com_util_process_wait(_, _)).WillByDefault(Invoke(delegate_real_com_util_process_wait));
+    ON_CALL(*this, com_util_process_get_exit_code(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_process_get_exit_code));
+    ON_CALL(*this, com_util_process_terminate(_)).WillByDefault(Invoke(delegate_real_com_util_process_terminate));
+    ON_CALL(*this, com_util_process_destroy(_)).WillByDefault(Invoke(delegate_real_com_util_process_destroy));
+    ON_CALL(*this, com_util_process_run_sync(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_process_run_sync));
 
     // runtime - sym_loader
     ON_CALL(*this, com_util_sym_loader_resolve(_)).WillByDefault(Invoke(delegate_real_com_util_sym_loader_resolve));

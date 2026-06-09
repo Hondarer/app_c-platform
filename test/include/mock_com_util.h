@@ -239,6 +239,15 @@ extern int delegate_real_com_util_module_get_basename(char *out_basename, size_t
 
 // runtime - process_info
 extern int delegate_real_com_util_process_run_elevated_if_needed(const char *arguments, int *exit_code, int *handled);
+extern com_util_process_result_t delegate_real_com_util_process_start(const com_util_process_options_t *options,
+                                                                      com_util_process **process);
+extern com_util_process_result_t delegate_real_com_util_process_wait(com_util_process *process, int timeout_ms);
+extern com_util_process_result_t delegate_real_com_util_process_get_exit_code(com_util_process *process,
+                                                                              int *exit_code);
+extern com_util_process_result_t delegate_real_com_util_process_terminate(com_util_process *process);
+extern void delegate_real_com_util_process_destroy(com_util_process *process);
+extern com_util_process_result_t delegate_real_com_util_process_run_sync(const com_util_process_options_t *options,
+                                                                         int timeout_ms, int *exit_code);
 
 // runtime - sym_loader
 extern void *delegate_real_com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj);
@@ -501,6 +510,13 @@ class Mock_com_util
 
     // runtime - process_info
     MOCK_METHOD(int, com_util_process_run_elevated_if_needed, (const char *, int *, int *));
+    MOCK_METHOD(com_util_process_result_t, com_util_process_start,
+                (const com_util_process_options_t *, com_util_process **));
+    MOCK_METHOD(com_util_process_result_t, com_util_process_wait, (com_util_process *, int));
+    MOCK_METHOD(com_util_process_result_t, com_util_process_get_exit_code, (com_util_process *, int *));
+    MOCK_METHOD(com_util_process_result_t, com_util_process_terminate, (com_util_process *));
+    MOCK_METHOD(void, com_util_process_destroy, (com_util_process *));
+    MOCK_METHOD(com_util_process_result_t, com_util_process_run_sync, (const com_util_process_options_t *, int, int *));
 
     // runtime - sym_loader
     MOCK_METHOD(void *, com_util_sym_loader_resolve, (com_util_sym_loader_entry *));

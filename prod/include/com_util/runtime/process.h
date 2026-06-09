@@ -18,7 +18,9 @@
 #ifndef COM_UTIL_PROCESS_H
 #define COM_UTIL_PROCESS_H
 
+#include <limits.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -46,6 +48,110 @@ extern "C"
      *  内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
+
+#define COM_UTIL_PROCESS_WAIT_FOREVER INT_MAX /**< タイムアウトなしで待機する (INT_MAX)。 */
+#define COM_UTIL_PROCESS_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */
+
+    /** @brief プロセス操作の結果コード。 */
+    typedef enum
+    {
+        COM_UTIL_PROCESS_OK = 0,               /**< 成功。 */
+        COM_UTIL_PROCESS_TIMEOUT = 1,          /**< タイムアウト。 */
+        COM_UTIL_PROCESS_INVALID_ARGUMENT = 2, /**< 引数が不正。 */
+        COM_UTIL_PROCESS_SYSTEM_ERROR = 3,     /**< OS/システム エラー。 */
+        COM_UTIL_PROCESS_UNSUPPORTED = 4       /**< 操作がサポートされない。 */
+    } com_util_process_result_t;
+
+    /** @brief 子プロセスの標準入出力ハンドルの扱い。 */
+    typedef enum
+    {
+        COM_UTIL_PROCESS_STDIO_INHERIT = 0,      /**< 親プロセスの標準ハンドルを継承します。 */
+        COM_UTIL_PROCESS_STDIO_NULL_DEVICE = 1,  /**< null device へ接続します。 */
+        COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE = 2 /**< native_handle で指定した OS ハンドルを使います。 */
+    } com_util_process_stdio_mode_t;
+
+    /**
+     *  @brief          子プロセスの標準入出力指定。
+     *
+     *  Linux では @p native_handle をファイル ディスクリプタ、Windows では HANDLE として扱います。\n
+     *  呼び出し側が渡した native handle の所有権は移動しません。
+     */
+    typedef struct com_util_process_stdio
+    {
+        com_util_process_stdio_mode_t mode; /**< 標準入出力の扱い。 */
+        intptr_t native_handle;             /**< OS ネイティブ ハンドル。 */
+    } com_util_process_stdio_t;
+
+    /** @brief 子プロセス起動オプション。 */
+    typedef struct com_util_process_options
+    {
+        char *const *argv;                    /**< コマンドと引数の配列 (NULL 終端)。NULL を渡してはなりません。 */
+        char *const *env_overrides;           /**< 追加・上書きする KEY=VALUE 配列 (NULL 終端)。NULL 可。 */
+        const char *working_directory;        /**< 作業ディレクトリ。NULL の場合は親の作業ディレクトリを継承します。 */
+        com_util_process_stdio_t stdin_spec;  /**< stdin 指定。 */
+        com_util_process_stdio_t stdout_spec; /**< stdout 指定。 */
+        com_util_process_stdio_t stderr_spec; /**< stderr 指定。 */
+    } com_util_process_options_t;
+
+    typedef struct com_util_process com_util_process; /**< 子プロセス ハンドル。 */
+
+    /**
+     *  @brief          子プロセスを起動します。
+     *  @param[in]      options  起動オプション。NULL を渡してはなりません。
+     *  @param[out]     process  起動したプロセス ハンドルの格納先。NULL を渡してはなりません。
+     *  @return         結果コードを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  呼び出しごとに独立したプロセス ハンドルを生成します。
+     */
+    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
+    com_util_process_start(const com_util_process_options_t *options, com_util_process **process);
+
+    /**
+     *  @brief          子プロセスの終了を待機します。
+     *  @param[in]      process     対象のプロセス ハンドル。NULL を渡してはなりません。
+     *  @param[in]      timeout_ms  タイムアウト (ms)。@ref COM_UTIL_PROCESS_WAIT_FOREVER または
+     *                              @ref COM_UTIL_PROCESS_NO_WAIT も指定可能です。
+     *  @return         結果コードを返します。
+     */
+    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com_util_process *process,
+                                                                                 int timeout_ms);
+
+    /**
+     *  @brief          子プロセスの終了コードを取得します。
+     *  @param[in]      process    対象のプロセス ハンドル。NULL を渡してはなりません。
+     *  @param[out]     exit_code  終了コードの格納先。NULL を渡してはなりません。
+     *  @return         結果コードを返します。
+     */
+    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit_code(com_util_process *process,
+                                                                                          int *exit_code);
+
+    /**
+     *  @brief          子プロセスを強制終了します。
+     *  @param[in]      process  対象のプロセス ハンドル。NULL を渡してはなりません。
+     *  @return         結果コードを返します。
+     */
+    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminate(com_util_process *process);
+
+    /**
+     *  @brief          子プロセス ハンドルを破棄します。
+     *  @param[in]      process  破棄するプロセス ハンドル。NULL 可。
+     *
+     *  実行中のプロセスは終了しません。\n
+     *  実行中プロセスを終了する場合は、先に com_util_process_terminate() を呼び出してください。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_process_destroy(com_util_process *process);
+
+    /**
+     *  @brief          子プロセスを起動し、終了まで同期的に待機します。
+     *  @param[in]      options     起動オプション。NULL を渡してはなりません。
+     *  @param[in]      timeout_ms  タイムアウト (ms)。
+     *  @param[out]     exit_code   終了コードの格納先。NULL を渡してはなりません。
+     *  @return         結果コードを返します。
+     */
+    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
+    com_util_process_run_sync(const com_util_process_options_t *options, int timeout_ms, int *exit_code);
 
     /**
      *  @brief          管理者/root 権限が必要な処理のため、必要に応じて昇格実行します。
