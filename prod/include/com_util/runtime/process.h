@@ -21,6 +21,7 @@
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <com_util/base/platform.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -80,7 +81,7 @@ extern "C"
     {
         com_util_process_stdio_mode_t mode; /**< 標準入出力の扱い。 */
 #if defined(ARCH_X64)
-        unsigned int pad; /**< 64bit 環境で native_handle のアラインメントを明示する予約領域。 */
+        unsigned int pad; /**< x64 で native_handle のアラインメントを明示する予約領域。 */
 #endif
         intptr_t native_handle; /**< OS ネイティブ ハンドル。 */
     } com_util_process_stdio_t;
