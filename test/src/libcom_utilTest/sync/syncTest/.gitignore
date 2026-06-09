@@ -1,2 +1,4 @@
+/file_api.c
 /sync_linux.c
 /sync_windows.c
+/wchar_conv.c

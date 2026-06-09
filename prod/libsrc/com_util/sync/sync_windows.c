@@ -15,6 +15,7 @@
 
     #include <com_util/base/windows_sdk.h>
     #include <com_util/sync/sync.h>
+    #include <com_util/win32/win32.h>
 
     #define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
     #define INTERPROCESS_SYNC_RANGE_LOW              1U
@@ -115,7 +116,7 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity, com_u
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    handle = CreateFileA(identity, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    handle = CreateFileU(identity, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                          NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
     {
@@ -150,7 +151,7 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    handle = CreateFileA(identity, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    handle = CreateFileU(identity, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                          NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
     {

@@ -26,6 +26,9 @@
 #if defined(PLATFORM_LINUX)
     #include <sched.h>
 #endif /* PLATFORM_LINUX */
+#if defined(PLATFORM_WINDOWS)
+    #include <com_util/win32/win32.h>
+#endif /* PLATFORM_WINDOWS */
 #include <string.h>
 
 static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
@@ -171,7 +174,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 #if defined(PLATFORM_LINUX)
         fobj->handle = dlopen(lib_with_ext, RTLD_LAZY);
 #elif defined(PLATFORM_WINDOWS)
-        fobj->handle = LoadLibrary(lib_with_ext);
+        fobj->handle = LoadLibraryU(lib_with_ext);
 #endif /* PLATFORM_ */
         if (fobj->handle == NULL)
         {
