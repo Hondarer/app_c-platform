@@ -85,8 +85,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const c
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
         DWORD share_mode = 0;
+        DWORD desired_access;
         DWORD creation_disposition;
         DWORD file_flags = FILE_ATTRIBUTE_NORMAL;
+        int use_append_access;
         LARGE_INTEGER pos;
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
@@ -101,6 +103,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const c
         if ((flags & COM_UTIL_FILE_OPEN_SHARE_DELETE) != 0)
         {
             share_mode |= FILE_SHARE_DELETE;
+        }
+        if ((flags & COM_UTIL_FILE_OPEN_SHARE_WRITE) != 0)
+        {
+            share_mode |= FILE_SHARE_WRITE;
         }
         if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
         {
@@ -127,13 +133,28 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const c
             creation_disposition = OPEN_EXISTING;
         }
 
-        file->handle = CreateFileW(wpath, GENERIC_WRITE, share_mode, NULL, creation_disposition, file_flags, NULL);
+        /* APPEND かつ TRUNCATE なしのとき FILE_APPEND_DATA で開くと書き込みが EOF へ原子的に向かう。 */
+        /* FILE_READ_ATTRIBUTES は後続の GetFileSizeEx (com_util_file_get_size) に必要。           */
+        /* TRUNCATE ありの場合は既存ファイルをゼロ化して先頭から書くため GENERIC_WRITE を使う。    */
+        use_append_access = ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0) && ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) == 0);
+        if (use_append_access != 0)
+        {
+            desired_access = FILE_APPEND_DATA | FILE_READ_ATTRIBUTES;
+        }
+        else
+        {
+            desired_access = GENERIC_WRITE;
+        }
+
+        file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
             return -1;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0)
+        /* GENERIC_WRITE 経路の APPEND: 手動で末尾へシークする。 */
+        /* FILE_APPEND_DATA 経路は OS が書き込みを EOF へ原子的に向けるためシーク不要。 */
+        if (use_append_access == 0 && (flags & COM_UTIL_FILE_OPEN_APPEND) != 0)
         {
             pos.QuadPart = 0;
             if (!SetFilePointerEx(file->handle, pos, NULL, FILE_END))

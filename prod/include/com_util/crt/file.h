@@ -41,6 +41,7 @@
 #define COM_UTIL_FILE_OPEN_WRITE_THROUGH (1 << 3) /**< 書き込みをバッファリングせずディスクに直接書き出す。 */
 #define COM_UTIL_FILE_OPEN_SHARE_READ    (1 << 4) /**< 他プロセスからの読み取り共有を許可する。 */
 #define COM_UTIL_FILE_OPEN_SHARE_DELETE  (1 << 5) /**< 他プロセスからの削除を許可する。 */
+#define COM_UTIL_FILE_OPEN_SHARE_WRITE   (1 << 6) /**< 他プロセスからの書き込み共有を許可する。 */
 
 /**
  *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。

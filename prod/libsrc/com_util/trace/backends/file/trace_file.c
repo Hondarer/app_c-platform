@@ -184,7 +184,7 @@ static int open_file(com_util_trace_file_sink *p)
     char dir[PLATFORM_PATH_MAX];
     char *sep;
     int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE | COM_UTIL_FILE_OPEN_SHARE_WRITE;
 
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
     snprintf(dir, sizeof(dir), "%s", p->path);
@@ -220,7 +220,8 @@ static int open_file(com_util_trace_file_sink *p)
 static int open_file_truncate(com_util_trace_file_sink *p)
 {
     int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE | COM_UTIL_FILE_OPEN_APPEND |
-                COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+                COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE |
+                COM_UTIL_FILE_OPEN_SHARE_WRITE;
 
     p->current_bytes = 0;
 
