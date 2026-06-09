@@ -79,7 +79,10 @@ extern "C"
     typedef struct com_util_process_stdio
     {
         com_util_process_stdio_mode_t mode; /**< 標準入出力の扱い。 */
-        intptr_t native_handle;             /**< OS ネイティブ ハンドル。 */
+#if defined(ARCH_X64)
+        unsigned int pad; /**< 64bit 環境で native_handle のアラインメントを明示する予約領域。 */
+#endif
+        intptr_t native_handle; /**< OS ネイティブ ハンドル。 */
     } com_util_process_stdio_t;
 
     /** @brief 子プロセス起動オプション。 */
