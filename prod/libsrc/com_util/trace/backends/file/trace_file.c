@@ -43,6 +43,12 @@
 /** パスに付加するサフィックスの最大長 (".lock\0" = 6 文字 >= ".999\0" = 5 文字)。 */
 #define TRACE_FILE_SUFFIX_MAX 6
 
+/** ファイル オープン失敗時のリトライ回数。 */
+#define TRACE_FILE_OPEN_RETRY_COUNT 3
+
+/** ファイル オープン失敗時のリトライ間隔 (ミリ秒)。 */
+#define TRACE_FILE_OPEN_RETRY_INTERVAL_MS 3000
+
 /* ===== 内部構造体 ===== */
 
 /**
@@ -207,6 +213,31 @@ static int base_open_flags(const com_util_trace_file_sink *p)
 }
 
 /**
+ *  @brief  ファイルを開く。失敗時は一定間隔で再試行する。
+ *  @return 成功 0 / 失敗 -1。
+ */
+static int open_trace_file_with_retry(com_util_file *file, const char *path, const int flags)
+{
+    int retry_count;
+
+    if (com_util_file_open(file, path, flags) == 0)
+    {
+        return 0;
+    }
+
+    for (retry_count = 0; retry_count < TRACE_FILE_OPEN_RETRY_COUNT; retry_count++)
+    {
+        com_util_sleep_ms(TRACE_FILE_OPEN_RETRY_INTERVAL_MS);
+        if (com_util_file_open(file, path, flags) == 0)
+        {
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+/**
  *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
  *  @return 成功 0 / 失敗 -1。
  *
@@ -234,7 +265,7 @@ static int open_file(com_util_trace_file_sink *p)
 
     p->self_id_valid = 0;
 
-    if (com_util_file_open(&p->file, p->path, base_open_flags(p)) != 0)
+    if (open_trace_file_with_retry(&p->file, p->path, base_open_flags(p)) != 0)
     {
         p->current_bytes = 0;
         return -1;
@@ -267,7 +298,7 @@ static int open_file_truncate(com_util_trace_file_sink *p)
 
     p->current_bytes = 0;
 
-    return com_util_file_open(&p->file, p->path, flags);
+    return open_trace_file_with_retry(&p->file, p->path, flags);
 }
 
 /**

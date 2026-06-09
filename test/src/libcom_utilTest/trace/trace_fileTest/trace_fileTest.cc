@@ -167,6 +167,65 @@ TEST_F(trace_fileTest, test_create_opens_file_with_default_flags)
     com_util_trace_file_sink_dispose(handle);
 }
 
+// create のファイル オープンが初回失敗後にリトライされることの確認
+TEST_F(trace_fileTest, test_create_retries_file_open_after_initial_failure)
+{
+    // Pre-Assert
+    InSequence seq;
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - 初回のファイル オープンが失敗すること。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000)).Times(1); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - リトライでファイル オープンが成功すること。
+    EXPECT_CALL(mock_, com_util_file_get_size(_, _))
+        .WillOnce(
+            [](const com_util_file *, size_t *size_out)
+            {
+                *size_out = 0;
+                return 0;
+            });
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
+
+    // Act
+    com_util_trace_file_sink *handle =
+        com_util_trace_file_sink_create("trace.log", 0, 0, 0); // [手順] - 初回 open 失敗後に create を継続する。
+
+    // Assert
+    EXPECT_NE((com_util_trace_file_sink *)NULL, handle); // [確認_正常系] - ハンドルが生成されること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+
+// create のファイル オープンがリトライ上限まで失敗した場合に NULL を返すことの確認
+TEST_F(trace_fileTest, test_create_returns_null_after_file_open_retry_exhausted)
+{
+    // Pre-Assert
+    InSequence seq;
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 初回のファイル オープンが失敗すること。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
+        .Times(1); // [Pre-Assert確認_異常系] - 1 回目のリトライ前に待機すること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 1 回目のリトライが失敗すること。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
+        .Times(1); // [Pre-Assert確認_異常系] - 2 回目のリトライ前に待機すること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 2 回目のリトライが失敗すること。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
+        .Times(1); // [Pre-Assert確認_異常系] - 3 回目のリトライ前に待機すること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 3 回目のリトライが失敗すること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
+
+    // Act
+    com_util_trace_file_sink *handle =
+        com_util_trace_file_sink_create("trace.log", 0, 0, 0); // [手順] - open 失敗を継続させる。
+
+    // Assert
+    EXPECT_EQ((com_util_trace_file_sink *)NULL, handle); // [確認_異常系] - NULL が返ること。
+}
+
 // INFO 行が固定タイムスタンプと I marker で書き込まれることの確認
 TEST_F(trace_fileTest, test_write_formats_info_line)
 {
@@ -492,6 +551,44 @@ TEST_F(trace_fileTest, test_shared_write_reopens_after_external_rotation)
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_正常系] - 旧ハンドルが閉じられること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 新しい path が開き直されること。
+    EXPECT_CALL(mock_, com_util_file_write(_, _, _))
+        .WillOnce(Return(0));                            // [Pre-Assert確認_正常系] - 開き直し後に書き込まれること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
+
+    // Act
+    int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                "after rotate"); // [手順] - 1 行書き込む。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+
+// 共有モードの開き直しでもファイル オープンがリトライされることの確認
+TEST_F(trace_fileTest, test_shared_write_reopen_retries_file_open_after_external_rotation)
+{
+    // Arrange
+    com_util_trace_file_sink *handle =
+        com_util_trace_file_sink_create("trace.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED);
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+
+    // Pre-Assert
+    InSequence seq;
+    EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _))
+        .WillOnce(
+            [](const char *, com_util_file_id *id_out)
+            {
+                set_file_id(id_out, kDefaultFileIndex + 1);
+                return 0;
+            });                                          // [Pre-Assert確認_正常系] - path が別実体を指していること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_正常系] - 旧ハンドルが閉じられること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - 開き直しの初回 open が失敗すること。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000)).Times(1); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - リトライで開き直しが成功すること。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce(Return(0));                            // [Pre-Assert確認_正常系] - 開き直し後に書き込まれること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
