@@ -174,7 +174,8 @@ TEST_F(trace_fileTest, test_create_retries_file_open_after_initial_failure)
     InSequence seq;
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - 初回のファイル オープンが失敗すること。
-    EXPECT_CALL(mock_, com_util_sleep_ms(3000)).Times(1); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
+        .WillOnce(Return()); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - リトライでファイル オープンが成功すること。
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
@@ -205,15 +206,15 @@ TEST_F(trace_fileTest, test_create_returns_null_after_file_open_retry_exhausted)
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 初回のファイル オープンが失敗すること。
     EXPECT_CALL(mock_, com_util_sleep_ms(3000))
-        .Times(1); // [Pre-Assert確認_異常系] - 1 回目のリトライ前に待機すること。
+        .WillOnce(Return()); // [Pre-Assert確認_異常系] - 1 回目のリトライ前に待機すること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 1 回目のリトライが失敗すること。
     EXPECT_CALL(mock_, com_util_sleep_ms(3000))
-        .Times(1); // [Pre-Assert確認_異常系] - 2 回目のリトライ前に待機すること。
+        .WillOnce(Return()); // [Pre-Assert確認_異常系] - 2 回目のリトライ前に待機すること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 2 回目のリトライが失敗すること。
     EXPECT_CALL(mock_, com_util_sleep_ms(3000))
-        .Times(1); // [Pre-Assert確認_異常系] - 3 回目のリトライ前に待機すること。
+        .WillOnce(Return()); // [Pre-Assert確認_異常系] - 3 回目のリトライ前に待機すること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 3 回目のリトライが失敗すること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
@@ -586,7 +587,8 @@ TEST_F(trace_fileTest, test_shared_write_reopen_retries_file_open_after_external
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_正常系] - 旧ハンドルが閉じられること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
         .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - 開き直しの初回 open が失敗すること。
-    EXPECT_CALL(mock_, com_util_sleep_ms(3000)).Times(1); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
+    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
+        .WillOnce(Return()); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - リトライで開き直しが成功すること。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
