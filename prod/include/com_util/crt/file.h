@@ -55,6 +55,22 @@ typedef struct com_util_file
 #endif /* PLATFORM_ */
 } com_util_file;
 
+/**
+ *  @brief  ファイル実体の同一性を表す構造体。
+ *
+ *  同じボリューム上の同じファイル実体であれば、開き直しても同じ値になります。\n
+ *  Linux では stat の st_dev と st_ino、Windows では GetFileInformationByHandle の
+ *  dwVolumeSerialNumber と nFileIndexHigh / nFileIndexLow に対応します。\n
+ *  リネームではファイル実体が変わらないため値は変化せず、
+ *  同一パスにファイルが作り直されたことの検出に使用できます。
+ */
+typedef struct com_util_file_id
+{
+    /* OS のファイル識別子の幅に合わせるため、コーディング規範の例外として uint64_t を使用する。 */
+    uint64_t volume; /**< ボリューム識別子 (Linux は st_dev、Windows は dwVolumeSerialNumber)。 */
+    uint64_t index;  /**< ファイル識別子 (Linux は st_ino、Windows は nFileIndexHigh / nFileIndexLow の連結)。 */
+} com_util_file_id;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -109,6 +125,37 @@ extern "C"
      *  内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out);
+
+    /**
+     *  @brief          開いているファイルの同一性情報を取得します。
+     *  @param[in]      file    対象のファイル。NULL を渡してはなりません。
+     *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  Linux では fstat、Windows では GetFileInformationByHandle で取得します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out);
+
+    /**
+     *  @brief          UTF-8 パスが現在指しているファイルの同一性情報を取得します。
+     *  @param[in]      path    対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時 (パスが存在しない場合を含む) は -1 を返します。
+     *
+     *  `com_util_file_get_id()` の結果と比較することで、開いているファイルが
+     *  そのパスの最新の実体を指しているかを判定できます。\n
+     *  Windows では属性読み取りアクセス (FILE_READ_ATTRIBUTES) で一時的に開いて取得するため、
+     *  他プロセスの共有モードによらず取得できます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out);
 
     /**
      *  @brief          ファイルを閉じます。

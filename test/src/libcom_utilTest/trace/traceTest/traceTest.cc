@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 #include <com_util/trace/tracer.h>
+#include <com_util/trace/trace_file.h>
 #include <string>
 #include <cstring>
 #include <ctime>
@@ -74,7 +75,7 @@ class traceTest : public Test
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
                 });
-        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _)).WillByDefault(Return(file_handle_));
+        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
         ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
 
@@ -502,7 +503,7 @@ TEST_F(traceTest, test_config_fails_when_started)
     int name_result = com_util_tracer_set_name(handle, "running", 0); // [手順] - started 中に set_name を呼ぶ。
     int os_result = com_util_tracer_set_os_level(
         handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started 中に set_os_level を呼ぶ。
-    int file_result = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0,
+    int file_result = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
                                                      0); // [手順] - started 中に set_file_level を呼ぶ。
 
     // Assert
@@ -521,7 +522,7 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
     com_util_tracer *handle = create_logger();
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0))
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - file sink が指定パスで初期化されること。
     EXPECT_CALL(mock_,
                 com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("file info")))
@@ -529,7 +530,7 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
 
     // Act
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0,
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
                                                 0)); // [手順] - file trace を有効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
@@ -537,6 +538,28 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - file backend 経由の書き込みが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// set_file_level の flags が file sink の生成へ引き渡されることの確認
+TEST_F(traceTest, test_set_file_level_passes_flags_to_file_sink)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED))
+        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - flags がそのまま create へ渡ること。
+
+    // Act
+    int result = com_util_tracer_set_file_level(
+        handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
+        COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 共有フラグ付きで set_file_level を呼ぶ。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 設定が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -551,7 +574,7 @@ TEST_F(traceTest, test_explicit_timestamp_is_shared_by_file_and_stderr)
 
     EXPECT_CALL(mock_, com_util_get_realtime(_, _))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻取得を行わないこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0))
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - file sink が初期化されること。
     EXPECT_CALL(
         mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("explicit ts")))
@@ -565,7 +588,7 @@ TEST_F(traceTest, test_explicit_timestamp_is_shared_by_file_and_stderr)
             }); // [Pre-Assert確認_正常系] - file sink へ明示タイムスタンプがそのまま渡ること。
 
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
     ASSERT_EQ(0, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
     ASSERT_EQ(0, com_util_tracer_start(handle));
 
@@ -704,7 +727,7 @@ TEST_F(traceTest, test_invalid_explicit_timestamp_falls_back_and_returns_minus_o
     com_util_tracer *handle = create_logger();
     com_util_realtime_timestamp invalid_timestamp = {1714100645LL, 1000000000, 0};
 
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
     ASSERT_EQ(0, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
     ASSERT_EQ(0, com_util_tracer_start(handle));
 
@@ -758,7 +781,7 @@ TEST_F(traceTest, test_write_hex_invalid_explicit_timestamp_falls_back_and_retur
     unsigned char data[] = {0x48, 0x69};
 
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
     ASSERT_EQ(0, com_util_tracer_start(handle));
 
     EXPECT_CALL(mock_, com_util_get_realtime(_, _))

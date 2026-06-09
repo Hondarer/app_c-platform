@@ -1317,7 +1317,8 @@ COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_lev
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
                                                                 const com_util_trace_level_t level,
-                                                                const size_t max_bytes, const int generations)
+                                                                const size_t max_bytes, const int generations,
+                                                                const int flags)
 {
     int result = 0;
 
@@ -1342,7 +1343,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer 
     handle->file_level = level;
     if (path != NULL)
     {
-        handle->file_handle = com_util_trace_file_sink_create(path, max_bytes, generations);
+        handle->file_handle = com_util_trace_file_sink_create(path, max_bytes, generations, flags);
         if (handle->file_handle == NULL)
         {
             result = -1;

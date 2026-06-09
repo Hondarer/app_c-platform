@@ -37,8 +37,11 @@
 /** タイムスタンプ部分の文字数 ("YYYY-MM-DDTHH:MM:SS.sss+09:00" = 29 文字)。 */
 #define TRACE_FILE_TS_LEN COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN
 
-/** ローテーション パスのサフィックス最大長 (".999\0" = 5 文字)。 */
-#define TRACE_FILE_SUFFIX_MAX 5
+/** ローテーション排他用ロック ファイルのサフィックス。 */
+#define TRACE_FILE_LOCK_SUFFIX ".lock"
+
+/** パスに付加するサフィックスの最大長 (".lock\0" = 6 文字 >= ".999\0" = 5 文字)。 */
+#define TRACE_FILE_SUFFIX_MAX 6
 
 /* ===== 内部構造体 ===== */
 
@@ -49,20 +52,32 @@ struct com_util_trace_file_sink
 {
     /** ヒープ確保済みファイル パス文字列。 */
     char *path;
+    /** ローテーション排他用ロック ファイルのパス文字列 (共有モードのみ非 NULL)。 */
+    char *lock_path;
     /** ファイル 1 世代あたりの最大バイト数。 */
     size_t max_bytes;
-    /** 現ファイルへの書き込み済みバイト数 (インメモリ追跡)。 */
+    /** 現ファイルへの書き込み済みバイト数 (単一プロセス モードのインメモリ追跡)。 */
     size_t current_bytes;
-    /** 保持する旧世代数。 */
-    int generations;
-    /** 低レベル ファイル I/O ハンドル。 */
-    com_util_file file;
     /** スレッド安全のための mutex。 */
     com_util_local_lock *mutex;
+    /** ローテーション排他用プロセス間ロック (共有モードのみ非 NULL)。 */
+    com_util_interprocess_lock *rotate_lock;
+    /** オープン中ファイルの同一性 (共有モードで使用)。 */
+    com_util_file_id self_id;
+    /** 低レベル ファイル I/O ハンドル。 */
+    com_util_file file;
+#if defined(PLATFORM_LINUX)
+    /** Linux で com_util_file (int) の直後を 8 バイト境界に揃えるためのパディング。 */
+    int pad;
+#endif /* PLATFORM_LINUX */
+    /** 保持する旧世代数。 */
+    int generations;
+    /** 共有モードの場合 1 (COM_UTIL_TRACE_FILE_SINK_SHARED 指定時)。 */
+    int shared;
     /** mutex が初期化済みかどうかのフラグ。 */
     int mutex_initialized;
-    /** 構造体のサイズをアライメント境界に揃えるためのパディング。 */
-    int _pad_struct_end;
+    /** self_id が有効かどうかのフラグ。 */
+    int self_id_valid;
 };
 
 /* ===== 内部ヘルパー関数 ===== */
@@ -173,18 +188,37 @@ static void normalize_path_sep_for_parent(char *path)
 #endif /* PLATFORM_WINDOWS */
 
 /**
+ *  @brief  モードに応じた基本オープン フラグを返す。
+ *
+ *  単一プロセス モードでは共有書き込みを許可しない (Windows では OS が単一 writer を強制する)。\n
+ *  SHARE_READ と SHARE_DELETE (外部のログ整理ツール向け) は両モードで許可する。
+ */
+static int base_open_flags(const com_util_trace_file_sink *p)
+{
+    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
+                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+
+    if (p->shared != 0)
+    {
+        flags |= COM_UTIL_FILE_OPEN_SHARE_WRITE;
+    }
+
+    return flags;
+}
+
+/**
  *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
  *  @return 成功 0 / 失敗 -1。
  *
  *  親ディレクトリが存在しない場合は com_util_makedirs で自動生成する (best-effort)。\n
- *  生成に失敗しても後続の com_util_file_open の結果で最終判定する。
+ *  生成に失敗しても後続の com_util_file_open の結果で最終判定する。\n
+ *  共有モードではオープンしたファイルの同一性を self_id にキャッシュする
+ *  (取得失敗時は self_id_valid = 0 とし、次回書き込み時に開き直す)。
  */
 static int open_file(com_util_trace_file_sink *p)
 {
     char dir[PLATFORM_PATH_MAX];
     char *sep;
-    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE | COM_UTIL_FILE_OPEN_SHARE_WRITE;
 
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
     snprintf(dir, sizeof(dir), "%s", p->path);
@@ -198,7 +232,9 @@ static int open_file(com_util_trace_file_sink *p)
         (void)com_util_makedirs(dir);
     }
 
-    if (com_util_file_open(&p->file, p->path, flags) != 0)
+    p->self_id_valid = 0;
+
+    if (com_util_file_open(&p->file, p->path, base_open_flags(p)) != 0)
     {
         p->current_bytes = 0;
         return -1;
@@ -209,23 +245,58 @@ static int open_file(com_util_trace_file_sink *p)
         p->current_bytes = 0;
     }
 
+    if (p->shared != 0)
+    {
+        if (com_util_file_get_id(&p->file, &p->self_id) == 0)
+        {
+            p->self_id_valid = 1;
+        }
+    }
+
     return 0;
 }
 
 /**
- *  @brief  ローテーション後の新規ファイルを空で作成して開く。
+ *  @brief  ローテーション後の新規ファイルを空で作成して開く (単一プロセス モード用)。
  *          current_bytes は必ず 0 に設定される。
  *  @return 成功 0 / 失敗 -1。
  */
 static int open_file_truncate(com_util_trace_file_sink *p)
 {
-    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE | COM_UTIL_FILE_OPEN_APPEND |
-                COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE |
-                COM_UTIL_FILE_OPEN_SHARE_WRITE;
+    int flags = base_open_flags(p) | COM_UTIL_FILE_OPEN_TRUNCATE;
 
     p->current_bytes = 0;
 
     return com_util_file_open(&p->file, p->path, flags);
+}
+
+/**
+ *  @brief  オープン中のファイルが path の現在の実体を指しているか判定する (共有モード用)。
+ *  @return 一致 1 / 不一致または判定不能 0。
+ *
+ *  他プロセスのローテーションで path がリネームされると、自ハンドルは旧世代を指したままになる。\n
+ *  パスの現在の同一性とオープン時にキャッシュした self_id を比較して検出する。
+ */
+static int sink_points_to_current_file(const com_util_trace_file_sink *p)
+{
+    com_util_file_id path_id;
+
+    if (p->self_id_valid == 0)
+    {
+        return 0;
+    }
+
+    if (com_util_file_get_path_id(p->path, &path_id) != 0)
+    {
+        return 0;
+    }
+
+    if (path_id.volume == p->self_id.volume && path_id.index == p->self_id.index)
+    {
+        return 1;
+    }
+
+    return 0;
 }
 
 /**
@@ -281,7 +352,91 @@ static void rotate_file(com_util_trace_file_sink *p)
     }
 
     /* 新規ファイルを作成して開く (失敗しても未オープンのまま続行) */
-    open_file_truncate(p);
+    if (p->shared != 0)
+    {
+        /* 共有モード: リネーム直後に他プロセスの writer が path を再作成して
+           書き込んでいる場合があるため、切り詰めずに追記モードで開く。 */
+        open_file(p);
+    }
+    else
+    {
+        open_file_truncate(p);
+    }
+}
+
+/**
+ *  @brief  共有モードのローテーション判定と実行を行う。
+ *
+ *  ローカル mutex 保持中、書き込み成功直後に呼ばれる。\n
+ *  全プロセス合計の実サイズ (ハンドル基準) が max_bytes 未満なら何もしない。\n
+ *  閾値以上の場合はプロセス間ロックを取得し、ロック下で同一性と実サイズを
+ *  再確認してからローテーションする。他プロセスがローテーション済みの場合は
+ *  開き直すだけにする。\n
+ *  プロセス間ロックの取得に失敗した場合はローテーションを見送る
+ *  (次回書き込み時に再試行するため、肥大化は一時的に留まる)。
+ */
+static void check_rotate_shared(com_util_trace_file_sink *p)
+{
+    size_t real_bytes;
+
+    /* インメモリ集計ではなく実サイズで判定する (複数 writer の合計を反映) */
+    if (com_util_file_get_size(&p->file, &real_bytes) != 0)
+    {
+        return;
+    }
+    if (real_bytes < p->max_bytes)
+    {
+        return;
+    }
+
+    if (com_util_interprocess_lock_lock(p->rotate_lock, FILE_LOCK_TIMEOUT_MS) != COM_UTIL_SYNC_OK)
+    {
+        return;
+    }
+
+    if (sink_points_to_current_file(p) == 0)
+    {
+        /* 他プロセスが先にローテーション済み: 開き直すだけにする */
+        close_file(p);
+        open_file(p);
+    }
+    else
+    {
+        /* ロック下で実サイズを再確認してからローテーションする */
+        if (com_util_file_get_size(&p->file, &real_bytes) == 0 && real_bytes >= p->max_bytes)
+        {
+            rotate_file(p);
+        }
+    }
+
+    com_util_interprocess_lock_unlock(p->rotate_lock);
+}
+
+/**
+ *  @brief  ハンドルが保持する資源を解放する。
+ *
+ *  create 失敗時と dispose 系の共通処理。\n
+ *  未確保 (NULL) のメンバーは何もしない。
+ */
+static void free_sink(com_util_trace_file_sink *p)
+{
+    close_file(p);
+
+    if (p->rotate_lock != NULL)
+    {
+        com_util_interprocess_lock_destroy(p->rotate_lock);
+        p->rotate_lock = NULL;
+    }
+
+    if (p->mutex_initialized != 0)
+    {
+        com_util_local_lock_destroy(p->mutex);
+        p->mutex_initialized = 0;
+    }
+
+    free(p->lock_path);
+    free(p->path);
+    free(p);
 }
 
 /* ===== 公開 API ===== */
@@ -290,19 +445,20 @@ static void rotate_file(com_util_trace_file_sink *p)
 
 COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
                                                                                        const size_t max_bytes,
-                                                                                       const int generations)
+                                                                                       const int generations,
+                                                                                       const int flags)
 {
     com_util_trace_file_sink *handle;
     size_t path_len;
 
-    if (path == NULL)
+    if (path == NULL || flags < 0)
     {
         return NULL;
     }
 
     path_len = strlen(path);
 
-    /* パスが長すぎてローテーション サフィックスを付加できない場合は拒否する */
+    /* パスが長すぎてローテーションやロック ファイルのサフィックスを付加できない場合は拒否する */
     if (path_len + TRACE_FILE_SUFFIX_MAX >= (size_t)PLATFORM_PATH_MAX)
     {
         return NULL;
@@ -314,14 +470,21 @@ COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_
         return NULL;
     }
 
-    /* パス文字列をヒープへ複製する */
-    handle->path = (char *)malloc(path_len + 1);
-    if (handle->path == NULL)
+    /* 失敗パスで free_sink を使えるよう、先にすべてのメンバーを安全な値にする */
+    handle->path = NULL;
+    handle->lock_path = NULL;
+    handle->mutex = NULL;
+    handle->rotate_lock = NULL;
+    handle->mutex_initialized = 0;
+    handle->self_id_valid = 0;
+    handle->current_bytes = 0;
+    com_util_file_init(&handle->file);
+
+    handle->shared = 0;
+    if ((flags & COM_UTIL_TRACE_FILE_SINK_SHARED) != 0)
     {
-        free(handle);
-        return NULL;
+        handle->shared = 1;
     }
-    memcpy(handle->path, path, path_len + 1);
 
     if (max_bytes > 0)
     {
@@ -339,29 +502,49 @@ COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_
     {
         handle->generations = COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS;
     }
-    handle->current_bytes = 0;
-    com_util_file_init(&handle->file);
+
+    /* パス文字列をヒープへ複製する */
+    handle->path = (char *)malloc(path_len + 1);
+    if (handle->path == NULL)
+    {
+        free_sink(handle);
+        return NULL;
+    }
+    memcpy(handle->path, path, path_len + 1);
 
     /* 同期プリミティブを初期化する */
-    handle->mutex_initialized = 0;
     if (com_util_local_lock_create(&handle->mutex) != 0)
     {
-        free(handle->path);
-        free(handle);
+        free_sink(handle);
         return NULL;
     }
     handle->mutex_initialized = 1;
 
     /* ファイルを開く; 失敗したらリソースを解放して NULL を返す */
+    /* (親ディレクトリの自動生成を含むため、ロック ファイルより先に開く) */
     if (open_file(handle) != 0)
     {
-        if (handle->mutex_initialized)
-        {
-            com_util_local_lock_destroy(handle->mutex);
-        }
-        free(handle->path);
-        free(handle);
+        free_sink(handle);
         return NULL;
+    }
+
+    /* 共有モード: ローテーション排他用のプロセス間ロックを開く */
+    if (handle->shared != 0)
+    {
+        handle->lock_path = (char *)malloc(path_len + sizeof(TRACE_FILE_LOCK_SUFFIX));
+        if (handle->lock_path == NULL)
+        {
+            free_sink(handle);
+            return NULL;
+        }
+        snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path, TRACE_FILE_LOCK_SUFFIX);
+
+        if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_SYNC_OK)
+        {
+            handle->rotate_lock = NULL;
+            free_sink(handle);
+            return NULL;
+        }
     }
 
     return handle;
@@ -414,21 +597,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
         return -1;
     }
 
+    /* 共有モード: 他プロセスのローテーションで path の実体が入れ替わっていたら開き直す */
+    if (handle->shared != 0)
+    {
+        if (sink_points_to_current_file(handle) == 0)
+        {
+            close_file(handle);
+            if (open_file(handle) != 0)
+            {
+                com_util_local_lock_unlock(handle->mutex);
+                return -1;
+            }
+        }
+    }
+
     /* ファイルへ書き込む (FILE_FLAG_WRITE_THROUGH / O_DSYNC により自動フラッシュ) */
     ret = com_util_file_write(&handle->file, buf, (size_t)len);
 
     /* 書き込み成功時: サイズを追跡しローテーション閾値を確認する */
     if (ret == 0)
     {
-        /* size_t のオーバーフローを防ぐ (実用上は発生しないが防御的に扱う) */
-        if (handle->current_bytes <= (size_t)-1 - (size_t)len)
+        if (handle->shared != 0)
         {
-            handle->current_bytes += (size_t)len;
+            check_rotate_shared(handle);
         }
-
-        if (handle->current_bytes >= handle->max_bytes)
+        else
         {
-            rotate_file(handle);
+            /* size_t のオーバーフローを防ぐ (実用上は発生しないが防御的に扱う) */
+            if (handle->current_bytes <= (size_t)-1 - (size_t)len)
+            {
+                handle->current_bytes += (size_t)len;
+            }
+
+            if (handle->current_bytes >= handle->max_bytes)
+            {
+                rotate_file(handle);
+            }
         }
     }
 
@@ -454,16 +658,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trac
         return;
     }
 
-    close_file(handle);
-
-    if (handle->mutex_initialized)
-    {
-        com_util_local_lock_destroy(handle->mutex);
-        handle->mutex_initialized = 0;
-    }
-
-    free(handle->path);
-    free(handle);
+    free_sink(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -475,13 +670,5 @@ void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *hand
         return;
     }
 
-    close_file(handle);
-
-    if (handle->mutex_initialized)
-    {
-        com_util_local_lock_destroy(handle->mutex);
-    }
-
-    free(handle->path);
-    free(handle);
+    free_sink(handle);
 }

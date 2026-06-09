@@ -104,8 +104,9 @@ OS トレースのしきい値を設定します。
 
 ### com_util_tracer_set_file_level
 
-ファイル出力先、ファイル用しきい値、最大サイズ、世代数を設定します。  
-ファイル出力を使う場合の入口です。
+ファイル出力先、ファイル用しきい値、最大サイズ、世代数、動作フラグを設定します。  
+ファイル出力を使う場合の入口です。  
+flags に 0 を指定した場合は単一プロセス専用です。`COM_UTIL_TRACE_FILE_SINK_SHARED` を指定すると複数プロセスから同一パスへ書き込めるようになり、ローテーションはロック ファイル `<path>.lock` によるプロセス間排他のもとで実行されます (ロック ファイルは常設で、削除されません)。
 
 ### com_util_tracer_set_stderr_level
 
@@ -172,7 +173,7 @@ com_util_tracer *tracer = com_util_tracer_create();
 com_util_tracer_set_name(tracer, "myapp", 0);
 com_util_tracer_set_os_level(tracer, COM_UTIL_TRACE_LEVEL_WARNING);
 com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
-                           COM_UTIL_TRACE_LEVEL_INFO, 0, 0);
+                           COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0);
 com_util_tracer_set_stderr_level(tracer, COM_UTIL_TRACE_LEVEL_CRITICAL);
 com_util_tracer_start(tracer);
 
@@ -181,7 +182,8 @@ com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
 com_util_tracer_dispose(tracer);
 ```
 
-`max_bytes == 0` は既定値、`generations <= 0` も既定値として扱われます。
+`max_bytes == 0` は既定値、`generations <= 0` も既定値として扱われます。  
+末尾の引数は動作フラグで、0 は単一プロセス専用、`COM_UTIL_TRACE_FILE_SINK_SHARED` は複数プロセス共有です。
 
 ## プラットフォームごとの動作
 

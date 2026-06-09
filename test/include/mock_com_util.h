@@ -121,6 +121,8 @@ extern void delegate_real_com_util_file_init(com_util_file *file);
 extern int delegate_real_com_util_file_open(com_util_file *file, const char *path, int flags);
 extern int delegate_real_com_util_file_write(com_util_file *file, const void *buf, size_t len);
 extern int delegate_real_com_util_file_get_size(const com_util_file *file, size_t *size_out);
+extern int delegate_real_com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out);
+extern int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *id_out);
 extern void delegate_real_com_util_file_close(com_util_file *file);
 
 // trace - tracer
@@ -141,8 +143,8 @@ extern int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, co
 extern int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier);
 extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level_t level);
 extern int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
-                                                        com_util_trace_level_t level, size_t max_bytes,
-                                                        int generations);
+                                                        com_util_trace_level_t level, size_t max_bytes, int generations,
+                                                        int flags);
 extern int delegate_real_com_util_tracer_set_stderr_level(com_util_tracer *handle, com_util_trace_level_t level);
 extern com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_tracer *handle,
                                                                           com_util_tracer_hook_fn_t fn, void *context);
@@ -263,7 +265,7 @@ extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_ca
 
 // trace - trace_file_sink
 extern com_util_trace_file_sink *delegate_real_com_util_trace_file_sink_create(const char *path, size_t max_bytes,
-                                                                               int generations);
+                                                                               int generations, int flags);
 extern int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
                                                         const com_util_realtime_timestamp *timestamp,
                                                         const char *message);
@@ -408,6 +410,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_file_open, (com_util_file *, const char *, int));
     MOCK_METHOD(int, com_util_file_write, (com_util_file *, const void *, size_t));
     MOCK_METHOD(int, com_util_file_get_size, (const com_util_file *, size_t *));
+    MOCK_METHOD(int, com_util_file_get_id, (const com_util_file *, com_util_file_id *));
+    MOCK_METHOD(int, com_util_file_get_path_id, (const char *, com_util_file_id *));
     MOCK_METHOD(void, com_util_file_close, (com_util_file *));
 
     // trace - tracer
@@ -428,7 +432,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_tracer_set_name, (com_util_tracer *, const char *, int64_t));
     MOCK_METHOD(int, com_util_tracer_set_os_level, (com_util_tracer *, com_util_trace_level_t));
     MOCK_METHOD(int, com_util_tracer_set_file_level,
-                (com_util_tracer *, const char *, com_util_trace_level_t, size_t, int));
+                (com_util_tracer *, const char *, com_util_trace_level_t, size_t, int, int));
     MOCK_METHOD(int, com_util_tracer_set_stderr_level, (com_util_tracer *, com_util_trace_level_t));
     MOCK_METHOD(com_util_tracer_hook_entry *, com_util_tracer_set_hook,
                 (com_util_tracer *, com_util_tracer_hook_fn_t, void *));
@@ -530,7 +534,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_shutdown_request_register, (com_util_shutdown_callback_t, void *));
 
     // trace - trace_file_sink
-    MOCK_METHOD(com_util_trace_file_sink *, com_util_trace_file_sink_create, (const char *, size_t, int));
+    MOCK_METHOD(com_util_trace_file_sink *, com_util_trace_file_sink_create, (const char *, size_t, int, int));
     MOCK_METHOD(int, com_util_trace_file_sink_write,
                 (com_util_trace_file_sink *, int, const com_util_realtime_timestamp *, const char *));
     MOCK_METHOD(void, com_util_trace_file_sink_dispose, (com_util_trace_file_sink *));

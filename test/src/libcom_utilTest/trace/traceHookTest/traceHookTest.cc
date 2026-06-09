@@ -114,7 +114,7 @@ class traceHookTest : public Test
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
                 });
-        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _)).WillByDefault(Return(file_handle_));
+        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
         ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
 

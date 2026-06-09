@@ -770,7 +770,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
         {
             path = path_token;
         }
-        rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations);
+        rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
         printf("rc=%d\n", rc);
         return 0;
     }

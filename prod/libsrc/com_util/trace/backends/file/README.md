@@ -47,6 +47,17 @@ OS トレースとは別に、アプリケーション自身が追跡しやす�
 - 最大サイズ: 10 MB
 - 保持世代数: 5
 
+## 複数プロセス共有 (オプトイン)
+
+既定では単一プロセス専用で、出力ファイルは共有書き込み禁止で開かれます。  
+複数プロセスから同一パスへ書き込む場合は、`com_util_trace_file_sink_create()` または `com_util_tracer_set_file_level()` の flags に `COM_UTIL_TRACE_FILE_SINK_SHARED` を指定します。
+
+共有モードでは次のように動作します。
+
+- 各書き込みは OS のアトミック追記で行い、サイズ判定はファイルの実サイズで行います
+- 書き込み前にファイルの同一性を確認し、他プロセスのローテーションで実体が入れ替わっていた場合は開き直します
+- ローテーションはロック ファイル `<path>.lock` によるプロセス間排他のもとで実行します (ロック ファイルは常設で、削除されません)
+
 ## trace からの使い方
 
 通常は `com_util_tracer_set_file_level()` から有効化します。
@@ -57,13 +68,14 @@ OS トレースとは別に、アプリケーション自身が追跡しやす�
 com_util_tracer *tracer = com_util_tracer_create();
 
 com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
-                           COM_UTIL_TRACE_LEVEL_INFO, 0, 0);
+                           COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0);
 com_util_tracer_start(tracer);
 com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
 com_util_tracer_dispose(tracer);
 ```
 
-`max_bytes == 0` の場合は既定サイズ、`generations <= 0` の場合は既定世代数を使います。
+`max_bytes == 0` の場合は既定サイズ、`generations <= 0` の場合は既定世代数を使います。  
+末尾の引数は動作フラグで、0 は単一プロセス専用、`COM_UTIL_TRACE_FILE_SINK_SHARED` は複数プロセス共有です。
 
 ## backend 単体の役割
 

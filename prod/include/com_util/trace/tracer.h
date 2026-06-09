@@ -491,11 +491,18 @@ extern "C"
     /**
      *  @brief          ファイル トレースの出力先と設定を変更する。
      *
+     *  flags は com_util_trace_file_sink_create にそのまま渡されます。\n
+     *  flags に 0 を指定した場合、ファイル トレースは単一プロセス専用になります。\n
+     *  @ref COM_UTIL_TRACE_FILE_SINK_SHARED を指定すると、
+     *  複数プロセスから同一パスへ書き込めるファイル トレースになります。
+     *  詳細は com_util_trace_file_sink_create を参照してください。
+     *
      *  @param[in]      handle       com_util_tracer_create の戻り値。
      *  @param[in]      path         出力ファイル パス。NULL でファイル トレースを無効化。
      *  @param[in]      level        ファイル トレースのスレッショルド レベル。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
+     *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ
@@ -504,7 +511,7 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
                                                                     com_util_trace_level_t level, size_t max_bytes,
-                                                                    int generations);
+                                                                    int generations, int flags);
 
     /**
      *  @brief          stderr トレースの現在のスレッショルド レベルを取得する。

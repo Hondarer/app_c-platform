@@ -267,6 +267,100 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *fil
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
+{
+    if (!file_is_open(file) || id_out == NULL)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    {
+        struct stat st;
+
+        if (fstat(file->handle, &st) != 0)
+        {
+            return -1;
+        }
+
+        id_out->volume = (uint64_t)st.st_dev;
+        id_out->index = (uint64_t)st.st_ino;
+        return 0;
+    }
+#elif defined(PLATFORM_WINDOWS)
+    {
+        BY_HANDLE_FILE_INFORMATION info;
+
+        if (!GetFileInformationByHandle(file->handle, &info))
+        {
+            return -1;
+        }
+
+        id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
+        id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
+        return 0;
+    }
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
+{
+    if (path == NULL || id_out == NULL)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    {
+        struct stat st;
+
+        if (stat(path, &st) != 0)
+        {
+            return -1;
+        }
+
+        id_out->volume = (uint64_t)st.st_dev;
+        id_out->index = (uint64_t)st.st_ino;
+        return 0;
+    }
+#elif defined(PLATFORM_WINDOWS)
+    {
+        wchar_t wpath[PLATFORM_PATH_MAX];
+        HANDLE handle;
+        BY_HANDLE_FILE_INFORMATION info;
+        BOOL got_info;
+
+        if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+        {
+            return -1;
+        }
+
+        /* 属性読み取り専用で開くため、他プロセスの共有モードの影響を受けない。 */
+        handle = CreateFileW(wpath, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (handle == INVALID_HANDLE_VALUE)
+        {
+            return -1;
+        }
+
+        got_info = GetFileInformationByHandle(handle, &info);
+        CloseHandle(handle);
+        if (!got_info)
+        {
+            return -1;
+        }
+
+        id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
+        id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
+        return 0;
+    }
+#endif /* PLATFORM_ */
+}
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file)
 {
     if (file == NULL)

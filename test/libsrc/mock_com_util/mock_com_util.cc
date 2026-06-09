@@ -79,6 +79,8 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_file_open(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_file_open));
     ON_CALL(*this, com_util_file_write(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_file_write));
     ON_CALL(*this, com_util_file_get_size(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_get_size));
+    ON_CALL(*this, com_util_file_get_id(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_get_id));
+    ON_CALL(*this, com_util_file_get_path_id(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_get_path_id));
     ON_CALL(*this, com_util_file_close(_)).WillByDefault(Invoke(delegate_real_com_util_file_close));
 
     // trace - tracer
@@ -95,7 +97,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_tracer_set_name(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_tracer_set_name));
     ON_CALL(*this, com_util_tracer_set_os_level(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_set_os_level));
-    ON_CALL(*this, com_util_tracer_set_file_level(_, _, _, _, _))
+    ON_CALL(*this, com_util_tracer_set_file_level(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_set_file_level));
     ON_CALL(*this, com_util_tracer_set_stderr_level(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_set_stderr_level));
@@ -219,7 +221,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_shutdown_request_register));
 
     // trace - log_file_sink
-    ON_CALL(*this, com_util_trace_file_sink_create(_, _, _))
+    ON_CALL(*this, com_util_trace_file_sink_create(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_trace_file_sink_create));
     ON_CALL(*this, com_util_trace_file_sink_write(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_trace_file_sink_write));

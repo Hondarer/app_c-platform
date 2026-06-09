@@ -111,7 +111,7 @@ TEST_F(trace_cliTest, process_line_set_file_level_accepts_null_keyword)
 {
     // Arrange
     session_.handle = handle_; // [状態] - 既存 handle を持つ session を用意する。
-    EXPECT_CALL(mock_com_util_, com_util_tracer_set_file_level(handle_, nullptr, COM_UTIL_TRACE_LEVEL_INFO, 0U, 0))
+    EXPECT_CALL(mock_com_util_, com_util_tracer_set_file_level(handle_, nullptr, COM_UTIL_TRACE_LEVEL_INFO, 0U, 0, 0))
         .WillOnce(Return(0)); // [Pre-Assert確認] - null keyword が NULL path として渡されること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
         .WillOnce(Return(0)); // [Pre-Assert確認] - set-file-level の戻り値が表示されること。

@@ -153,3 +153,74 @@ TEST_F(crt_fileTest, invalid_arguments_fail)
     EXPECT_EQ(-1, com_util_file_get_size(NULL, &size));
     EXPECT_EQ(-1, com_util_file_get_size(&file, NULL));
 }
+
+TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
+{
+    std::string path = make_path("file_id.log");
+    com_util_file file;
+    com_util_file_id handle_id;
+    com_util_file_id path_id;
+
+    std::remove(path.c_str());
+    com_util_file_init(&file);
+
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+                                        COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ |
+                                        COM_UTIL_FILE_OPEN_SHARE_DELETE | COM_UTIL_FILE_OPEN_SHARE_WRITE));
+    ASSERT_EQ(0, com_util_file_get_id(&file, &handle_id));
+    ASSERT_EQ(0, com_util_file_get_path_id(path.c_str(), &path_id));
+
+    // 同じ実体を指している間は同一性が一致する
+    EXPECT_EQ(handle_id.volume, path_id.volume);
+    EXPECT_EQ(handle_id.index, path_id.index);
+
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
+{
+    std::string path = make_path("file_id_recreate.log");
+    std::string renamed = make_path("file_id_recreate.log.1");
+    com_util_file file;
+    com_util_file_id handle_id;
+    com_util_file_id path_id;
+
+    std::remove(path.c_str());
+    std::remove(renamed.c_str());
+    com_util_file_init(&file);
+
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+                                        COM_UTIL_FILE_OPEN_WRITE_THROUGH | COM_UTIL_FILE_OPEN_SHARE_READ |
+                                        COM_UTIL_FILE_OPEN_SHARE_DELETE | COM_UTIL_FILE_OPEN_SHARE_WRITE));
+    ASSERT_EQ(0, com_util_file_get_id(&file, &handle_id));
+
+    // ローテーション相当の操作: path をリネームして同じ path に別ファイルを作る
+    ASSERT_EQ(0, std::rename(path.c_str(), renamed.c_str()));
+    write_text_file(path, "recreated");
+
+    ASSERT_EQ(0, com_util_file_get_path_id(path.c_str(), &path_id));
+
+    // path は別実体を指すため、開いているハンドルの同一性とは一致しない
+    EXPECT_FALSE(handle_id.volume == path_id.volume && handle_id.index == path_id.index);
+
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+    std::remove(renamed.c_str());
+}
+
+TEST_F(crt_fileTest, file_id_invalid_arguments_fail)
+{
+    com_util_file file;
+    com_util_file_id id;
+
+    com_util_file_init(&file);
+
+    EXPECT_EQ(-1, com_util_file_get_id(&file, &id)); // 未オープンのハンドル
+    EXPECT_EQ(-1, com_util_file_get_id(NULL, &id));
+    EXPECT_EQ(-1, com_util_file_get_path_id(NULL, &id));
+    EXPECT_EQ(-1, com_util_file_get_path_id("crt_fileTest_no_such_file.log", &id)); // 存在しないパス
+    EXPECT_EQ(-1, com_util_file_get_path_id("x", NULL));
+}

@@ -52,6 +52,16 @@
  */
 #define COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 5
 
+/**
+ *  @brief          複数プロセスからの同時書き込みを有効にするフラグ。
+ *
+ *  com_util_trace_file_sink_create の flags に指定します。\n
+ *  指定すると、出力ファイルを共有書き込み可能なモードで開き、
+ *  ローテーションをロック ファイル `<path>.lock` によるプロセス間排他のもとで実行します。\n
+ *  指定しない場合は単一プロセス専用となり、ロック ファイルは作成されません。
+ */
+#define COM_UTIL_TRACE_FILE_SINK_SHARED (1 << 0)
+
 /* ===== 不透明ハンドル型 ===== */
 
 /** ファイル トレース プロバイダー ハンドル (不透明型)。 */
@@ -73,10 +83,24 @@ extern "C"
      *  max_bytes に 0 を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES を使用します。\n
      *  generations に 0 以下を指定した場合は COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS を使用します。
      *
+     *  flags に 0 を指定した場合は単一プロセス専用です。出力ファイルを共有書き込み禁止で開くため、
+     *  Windows では他プロセスが同じファイルを書き込み用に開けません。\n
+     *  flags に @ref COM_UTIL_TRACE_FILE_SINK_SHARED を指定した場合は、
+     *  複数プロセスから同一パスへ書き込めます。このとき:
+     *  - 各書き込みは OS のアトミック追記で行い、サイズ判定はファイルの実サイズで行います。
+     *  - ローテーションはロック ファイル `<path>.lock` によるプロセス間排他のもとで実行します。
+     *    ロック ファイルは常設で、削除されません。
+     *  - ロック ファイルのオープンに失敗した場合は NULL を返します。
+     *
      *  @param[in]      path         出力ファイル パス。NULL の場合は NULL を返します。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下でデフォルト値を使用。
+     *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
+     *                               負値を渡した場合は NULL を返します。
      *  @return         成功時: ハンドル。失敗時: NULL。
+     *
+     *  @warning        追記のアトミック性が保証されないファイルシステム (NFS など) では、
+     *                  共有モードでも行が混入する場合があります。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -84,7 +108,7 @@ extern "C"
      */
     COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
                                                                                            size_t max_bytes,
-                                                                                           int generations);
+                                                                                           int generations, int flags);
 
     /**
      *  @brief          ファイルへトレース メッセージを書き込む。
