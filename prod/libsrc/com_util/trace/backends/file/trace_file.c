@@ -102,6 +102,10 @@ struct sink_registry_entry
     com_util_trace_file_sink *sink;
     /** 参照カウント。0 になったら解放する。 */
     int refcount;
+#if defined(ARCH_X64)
+    /** 明示的アラインメント。 */
+    unsigned int pad;
+#endif /* ARCH_X64 */
 };
 
 struct sink_registry
@@ -256,6 +260,9 @@ static int sink_registry_register_locked(char *key, com_util_trace_file_sink *si
     s_sink_registry.items[s_sink_registry.count].key = key;
     s_sink_registry.items[s_sink_registry.count].sink = sink;
     s_sink_registry.items[s_sink_registry.count].refcount = 1;
+#if defined(ARCH_X64)
+    s_sink_registry.items[s_sink_registry.count].pad = 0;
+#endif /* ARCH_X64 */
     s_sink_registry.count++;
     return 0;
 }
@@ -271,6 +278,9 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
     s_sink_registry.items[s_sink_registry.count].key = NULL;
     s_sink_registry.items[s_sink_registry.count].sink = NULL;
     s_sink_registry.items[s_sink_registry.count].refcount = 0;
+#if defined(ARCH_X64)
+    s_sink_registry.items[s_sink_registry.count].pad = 0;
+#endif /* ARCH_X64 */
 }
 
 /* ===== 内部ヘルパー関数 ===== */
