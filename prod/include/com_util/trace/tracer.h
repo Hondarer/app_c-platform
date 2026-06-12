@@ -182,14 +182,19 @@ typedef enum com_util_tracer_state_t
 /**
  *  @brief          com_util_tracer_create() が設定する OS トレース (ETW / syslog) のデフォルト レベル。
  *
- *  ユーザーが com_util_tracer_set_os_level() で変更するまで有効な初期値です。
+ *  ユーザーが com_util_tracer_set_os_level() で変更するまで有効な初期値です。\n
+ *  デフォルトは COM_UTIL_TRACE_LEVEL_NONE (無効) です。デフォルトの出力先はファイル トレースのみです。
  */
-#define COM_UTIL_TRACER_DEFAULT_OS_LEVEL COM_UTIL_TRACE_LEVEL_INFO
+#define COM_UTIL_TRACER_DEFAULT_OS_LEVEL COM_UTIL_TRACE_LEVEL_NONE
 
 /**
  *  @brief          com_util_tracer_create() が設定するファイル トレースのデフォルト レベル。
  *
- *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。
+ *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。\n
+ *  ファイル トレースはデフォルトで有効であり、com_util_tracer_set_file_level() を呼び出さない場合、
+ *  com_util_tracer_start() 時にデフォルト パス
+ *  (実行ファイルのディレクトリ配下の @c log/{ファイル名}.log。
+ *  ファイル名のデフォルトはプロセス名) へ出力されます。
  */
 #define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_INFO
 
@@ -268,6 +273,19 @@ extern "C"
      *  (@c COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME) を使用します。\n
      *  識別名を変更するには com_util_tracer_set_name を呼び出してください。
      *
+     *  デフォルトの出力先はファイル トレースのみです
+     *  (OS トレースと stderr トレースのデフォルト レベルは COM_UTIL_TRACE_LEVEL_NONE)。\n
+     *  ファイル トレースの出力先はデフォルトで実行ファイルのディレクトリ配下の
+     *  @c log/{ファイル名}.log であり、占有モード、最大
+     *  COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES バイト、
+     *  COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 世代で運用されます。
+     *  ファイル名のデフォルトはプロセス名 (実行ファイルのベース名。Windows は末尾の @c .exe を除く) です。\n
+     *  パスとパラメーターは com_util_tracer_set_file_level で、
+     *  ファイル名とファイル識別は com_util_tracer_set_file_name で変更できます。
+     *
+     *  識別名 (インスタンス名とインスタンス識別) とトレースファイル名 (ファイル名とファイル識別) は
+     *  独立して管理されます。com_util_tracer_set_name はトレースファイル名に影響しません。
+     *
      *  @return         成功時: ハンドル (stopped 状態)。失敗時: NULL。
      *
      *  @post           戻り値のハンドルは stopped 状態です。
@@ -300,6 +318,18 @@ extern "C"
      *  com_util_tracer_set_stderr_level) は使用できなくなります (-1 を返します)。\n
      *  すでに started 状態の場合は何もせず 0 を返します (冪等)。
      *
+     *  ファイル トレースのレベルが COM_UTIL_TRACE_LEVEL_NONE 以外の場合、
+     *  本関数の呼び出し時点の設定 (出力ファイル パス、ファイル名、ファイル識別) で
+     *  トレース ファイルを開きます。\n
+     *  出力ファイル パスの妥当性 (オープン可否) は本関数の戻り値で報告されます。\n
+     *  トレース ファイルを開けなかった場合も started 状態へは遷移し、
+     *  ファイル以外のトレース出力 (OS / stderr / フック) は継続したうえで -1 を返します。
+     *  この場合、com_util_tracer_stop 後に再度本関数を呼び出すとオープンを再試行します。
+     *
+     *  同一プロセス内の複数の tracer が同一パスのトレース ファイルを開いた場合は、
+     *  プロセス内で同一ファイルへの書き込みが調停されるため、占有モードでも併用できます
+     *  (詳細は com_util_trace_file_sink_create を参照)。
+     *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         成功 0 / 失敗 -1。
      *
@@ -308,6 +338,10 @@ extern "C"
      *  内部で排他制御を行います。
      *
      *  @warning        handle が NULL の場合は -1 を返します。
+     *  @warning        別プロセスとの間では占有モードの排他が働くため、同一実行ファイルを複数プロセス
+     *                  起動するとデフォルト パスのオープンが 2 プロセス目以降で失敗する場合があります
+     *                  (Windows)。com_util_tracer_set_file_name のファイル識別、または
+     *                  com_util_tracer_set_file_level の明示パスでプロセスごとにファイルを分けてください。
      *
      *  @see            com_util_tracer_stop
      */
@@ -320,6 +354,8 @@ extern "C"
      *  stopped 状態では出力関数 (com_util_tracer_write 等) は -1 を返し、
      *  設定関数 (com_util_tracer_set_name, com_util_tracer_set_os_level, com_util_tracer_set_file_level,
      *  com_util_tracer_set_stderr_level) がスレッド安全に使用できるようになります。\n
+     *  ファイル トレースが有効な場合、開いていたトレース ファイルを閉じます。
+     *  ファイル トレースの設定は保持され、次回の com_util_tracer_start で改めてファイルを開きます。\n
      *  すでに stopped 状態の場合は何もせず 0 を返します (冪等)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
@@ -436,19 +472,124 @@ extern "C"
                                                                  ...);
 
     /**
-     *  @brief          トレース プロバイダーの識別名と識別番号を設定する。
+     *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定する。
+     *
+     *  OS トレース (syslog ident / ETW サービス名) で使用する識別名を設定します。
+     *  識別名は @c {name} (identifier が 0 の場合) または @c {name}-{identifier} です。\n
+     *  本関数はトレースファイル名には影響しません。トレースファイル名とファイル識別は
+     *  com_util_tracer_set_file_name で独立して設定します。
      *
      *  @param[in]      handle      com_util_tracer_create の戻り値。
-     *  @param[in]      name        ベース識別名。NULL で自プロセス名を使用。
-     *  @param[in]      identifier  アプリケーション管理識別番号 (0 以上)。
+     *  @param[in]      name        インスタンス名。NULL で自プロセス名を使用。
+     *  @param[in]      identifier  インスタンス識別番号 (0 以上)。0 でサフィックスなし。
      *  @return         成功 0 / 失敗 -1。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *
+     *  @see            com_util_tracer_get_name
+     *  @see            com_util_tracer_get_identifier
+     *  @see            com_util_tracer_set_file_name
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handle, const char *name,
                                                               int64_t identifier);
+
+    /**
+     *  @brief          解決済みのインスタンス名 (識別番号サフィックス込み) を取得する。
+     *
+     *  OS トレース (syslog ident / ETW サービス名) で実際に使用される識別名を返します。\n
+     *  com_util_tracer_set_name 未呼び出しの場合は自プロセス名です。
+     *
+     *  @param[in]      handle    com_util_tracer_create の戻り値。
+     *  @param[out]     out       識別名を格納するバッファー。NULL の場合は -1 を返します。
+     *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
+     *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped / started のどちらの状態でも使用できます。
+     *
+     *  @see            com_util_tracer_set_name
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *out, size_t out_size);
+
+    /**
+     *  @brief          インスタンス識別番号を取得する。
+     *
+     *  @param[in]      handle    com_util_tracer_create の戻り値。
+     *  @return         現在のインスタンス識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped / started のどちらの状態でも使用できます。
+     *
+     *  @see            com_util_tracer_set_name
+     */
+    COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tracer *handle);
+
+    /**
+     *  @brief          トレースファイル名とファイル識別を設定する。
+     *
+     *  ファイル トレースのデフォルト パス (実行ファイルのディレクトリ配下の
+     *  @c log/{ファイル名}.log) に使用するファイル名を設定します。
+     *  ファイル名は @c {name} (identifier が 0 の場合) または @c {name}-{identifier} です。\n
+     *  name に NULL を指定した場合はプロセス名 (実行ファイルのベース名。Windows は末尾の
+     *  @c .exe を除く) を使用します。明示設定した名前には @c .exe の除去を適用しません。\n
+     *  本関数は OS トレースの識別名 (com_util_tracer_set_name) には影響しません。\n
+     *  com_util_tracer_set_file_level で出力ファイル パスを明示設定している場合、
+     *  本設定はデフォルト パスの解決に使用されないため効果を持ちません。
+     *
+     *  @param[in]      handle      com_util_tracer_create の戻り値。
+     *  @param[in]      name        ファイル名。NULL でプロセス名を使用。
+     *  @param[in]      identifier  ファイル識別番号 (0 以上)。0 でサフィックスなし。
+     *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *
+     *  @see            com_util_tracer_get_file_name
+     *  @see            com_util_tracer_get_file_identifier
+     *  @see            com_util_tracer_set_file_level
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_name(com_util_tracer *handle, const char *name,
+                                                                   int64_t identifier);
+
+    /**
+     *  @brief          解決済みのトレースファイル名 (ファイル識別サフィックス込み) を取得する。
+     *
+     *  ファイル トレースのデフォルト パスで実際に使用されるファイル名
+     *  (拡張子 @c .log を除く) を返します。\n
+     *  com_util_tracer_set_file_name 未呼び出しの場合はプロセス名
+     *  (実行ファイルのベース名。Windows は末尾の @c .exe を除く) です。
+     *
+     *  @param[in]      handle    com_util_tracer_create の戻り値。
+     *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は -1 を返します。
+     *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
+     *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped / started のどちらの状態でも使用できます。
+     *
+     *  @see            com_util_tracer_set_file_name
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *out, size_t out_size);
+
+    /**
+     *  @brief          ファイル識別番号を取得する。
+     *
+     *  @param[in]      handle    com_util_tracer_create の戻り値。
+     *  @return         現在のファイル識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped / started のどちらの状態でも使用できます。
+     *
+     *  @see            com_util_tracer_set_file_name
+     */
+    COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_util_tracer *handle);
 
     /**
      *  @brief          OS トレースの現在のスレッショルド レベルを取得する。
@@ -491,6 +632,19 @@ extern "C"
     /**
      *  @brief          ファイル トレースの出力先と設定を変更する。
      *
+     *  本関数は設定の記録のみを行い、トレース ファイルは com_util_tracer_start 時に開かれます。\n
+     *  そのため、出力ファイル パスの妥当性 (オープン可否) は本関数ではなく
+     *  com_util_tracer_start の戻り値で報告されます。
+     *
+     *  path に NULL を指定した場合はデフォルト パスを使用します。
+     *  デフォルト パスは実行ファイルのディレクトリ配下の @c log/{ファイル名}.log であり、
+     *  ファイル名は start 時点の設定 (com_util_tracer_set_file_name のファイル名とファイル識別)
+     *  で解決されます。ファイル名のデフォルトはプロセス名です
+     *  (例: @c myapp または Windows の @c myapp.exe → @c log/myapp.log)。\n
+     *  実行ファイル パスの取得に失敗した場合は、カレント ディレクトリからの相対パス
+     *  @c log/{ファイル名}.log へ出力します。\n
+     *  ファイル トレースを無効化するには level に COM_UTIL_TRACE_LEVEL_NONE を指定します。
+     *
      *  flags は com_util_trace_file_sink_create にそのまま渡されます。\n
      *  flags に 0 を指定した場合、ファイル トレースは単一プロセス専用になります。\n
      *  @ref COM_UTIL_TRACE_FILE_SINK_SHARED を指定すると、
@@ -498,8 +652,9 @@ extern "C"
      *  詳細は com_util_trace_file_sink_create を参照してください。
      *
      *  @param[in]      handle       com_util_tracer_create の戻り値。
-     *  @param[in]      path         出力ファイル パス。NULL でファイル トレースを無効化。
+     *  @param[in]      path         出力ファイル パス。NULL でデフォルト パスを使用。
      *  @param[in]      level        ファイル トレースのスレッショルド レベル。
+     *                               COM_UTIL_TRACE_LEVEL_NONE でファイル トレースを無効化。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
      *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。

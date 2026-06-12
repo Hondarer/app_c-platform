@@ -49,6 +49,9 @@
 /** ファイル オープン失敗時のリトライ間隔 (ミリ秒)。 */
 #define TRACE_FILE_OPEN_RETRY_INTERVAL_MS 3000
 
+/** プロセス内 sink レジストリの初期容量。 */
+#define SINK_REGISTRY_INITIAL_CAPACITY 4
+
 /* ===== 内部構造体 ===== */
 
 /**
@@ -85,6 +88,190 @@ struct com_util_trace_file_sink
     /** self_id が有効かどうかのフラグ。 */
     int self_id_valid;
 };
+
+/* ===== プロセス内 sink レジストリ ===== */
+
+/**
+ *  @brief  プロセス内で同一パスの sink を共有するためのレジストリ エントリ。
+ */
+struct sink_registry_entry
+{
+    /** 正規化済みパス文字列 (ヒープ確保)。 */
+    char *key;
+    /** 共有対象の sink。 */
+    com_util_trace_file_sink *sink;
+    /** 参照カウント。0 になったら解放する。 */
+    int refcount;
+};
+
+struct sink_registry
+{
+    struct sink_registry_entry *items;
+    size_t count;
+    size_t capacity;
+};
+
+static struct sink_registry s_sink_registry = {0};
+static com_util_local_lock *s_sink_registry_lock;
+static com_util_once_flag s_sink_registry_lock_once = {0};
+
+static void init_sink_registry_lock(void)
+{
+    (void)com_util_local_lock_create(&s_sink_registry_lock);
+}
+
+/**
+ *  @brief  sink レジストリの排他ロックを取得する。
+ */
+static void sink_registry_lock(void)
+{
+    com_util_call_once(&s_sink_registry_lock_once, init_sink_registry_lock);
+    com_util_local_lock_lock(s_sink_registry_lock, COM_UTIL_SYNC_WAIT_FOREVER);
+}
+
+/**
+ *  @brief  sink レジストリの排他ロックを解放する。
+ */
+static void sink_registry_unlock(void)
+{
+    com_util_local_lock_unlock(s_sink_registry_lock);
+}
+
+/**
+ *  @brief          レジストリ キー用にパスを正規化した文字列を確保する。
+ *  @param[in]      path  対象のファイル パス。
+ *  @return         ヒープ確保された正規化済みパス。呼び出し元が free すること。失敗時 NULL。
+ *
+ *  com_util_path_get_full で絶対化する。絶対化に失敗した場合は元のパス文字列をそのまま使用する。
+ */
+static char *build_registry_key(const char *path)
+{
+    char full[PLATFORM_PATH_MAX];
+    const char *src = path;
+    char *key;
+    size_t len;
+
+    if (com_util_path_get_full(full, sizeof(full), NULL, path) == 0)
+    {
+        src = full;
+    }
+
+    len = strlen(src);
+    key = (char *)malloc(len + 1);
+    if (key == NULL)
+    {
+        return NULL;
+    }
+    memcpy(key, src, len + 1);
+    return key;
+}
+
+/**
+ *  @brief          レジストリ キー同士を比較する。
+ *  @param[in]      lhs  比較する 1 つ目のキー。
+ *  @param[in]      rhs  比較する 2 つ目のキー。
+ *  @return         一致時 1、不一致時 0。
+ *
+ *  Windows ではファイル システムの慣習に合わせて大文字小文字を区別しない。
+ */
+static int registry_key_equals(const char *lhs, const char *rhs)
+{
+#if defined(PLATFORM_WINDOWS)
+    return _stricmp(lhs, rhs) == 0;
+#else  /* PLATFORM_WINDOWS */
+    return strcmp(lhs, rhs) == 0;
+#endif /* PLATFORM_WINDOWS */
+}
+
+/**
+ *  @brief          キーが一致するレジストリ エントリを検索する (ロック保持中)。
+ *  @param[in]      key  検索する正規化済みパス。
+ *  @return         一致したエントリ。見つからない場合 NULL。
+ */
+static struct sink_registry_entry *sink_registry_find_by_key_locked(const char *key)
+{
+    size_t i;
+
+    for (i = 0; i < s_sink_registry.count; i++)
+    {
+        if (registry_key_equals(s_sink_registry.items[i].key, key))
+        {
+            return &s_sink_registry.items[i];
+        }
+    }
+    return NULL;
+}
+
+/**
+ *  @brief          sink ポインターが一致するレジストリ エントリを検索する (ロック保持中)。
+ *  @param[in]      sink  検索する sink。
+ *  @return         一致したエントリ。見つからない場合 NULL。
+ */
+static struct sink_registry_entry *sink_registry_find_by_sink_locked(const com_util_trace_file_sink *sink)
+{
+    size_t i;
+
+    for (i = 0; i < s_sink_registry.count; i++)
+    {
+        if (s_sink_registry.items[i].sink == sink)
+        {
+            return &s_sink_registry.items[i];
+        }
+    }
+    return NULL;
+}
+
+/**
+ *  @brief          sink をレジストリへ登録する (ロック保持中)。
+ *  @param[in]      key   正規化済みパス。成功時はレジストリが所有権を持つ。
+ *  @param[in]      sink  登録する sink。
+ *  @return         成功時 0、メモリ確保失敗時 -1。
+ */
+static int sink_registry_register_locked(char *key, com_util_trace_file_sink *sink)
+{
+    if (s_sink_registry.count == s_sink_registry.capacity)
+    {
+        struct sink_registry_entry *new_items;
+        size_t new_capacity;
+
+        if (s_sink_registry.capacity == 0)
+        {
+            new_capacity = SINK_REGISTRY_INITIAL_CAPACITY;
+        }
+        else
+        {
+            new_capacity = s_sink_registry.capacity * 2;
+        }
+
+        new_items = (struct sink_registry_entry *)realloc(s_sink_registry.items,
+                                                          new_capacity * sizeof(struct sink_registry_entry));
+        if (new_items == NULL)
+        {
+            return -1;
+        }
+        s_sink_registry.items = new_items;
+        s_sink_registry.capacity = new_capacity;
+    }
+
+    s_sink_registry.items[s_sink_registry.count].key = key;
+    s_sink_registry.items[s_sink_registry.count].sink = sink;
+    s_sink_registry.items[s_sink_registry.count].refcount = 1;
+    s_sink_registry.count++;
+    return 0;
+}
+
+/**
+ *  @brief          レジストリ エントリを削除する (ロック保持中)。key の解放は呼び出し元が行う。
+ *  @param[in]      entry  削除するエントリ (レジストリ配列内を指すこと)。
+ */
+static void sink_registry_remove_locked(struct sink_registry_entry *entry)
+{
+    s_sink_registry.count--;
+    *entry = s_sink_registry.items[s_sink_registry.count];
+    s_sink_registry.items[s_sink_registry.count].key = NULL;
+    s_sink_registry.items[s_sink_registry.count].sink = NULL;
+    s_sink_registry.items[s_sink_registry.count].refcount = 0;
+}
 
 /* ===== 内部ヘルパー関数 ===== */
 
@@ -470,30 +657,19 @@ static void free_sink(com_util_trace_file_sink *p)
     free(p);
 }
 
-/* ===== 公開 API ===== */
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
-                                                                                       const size_t max_bytes,
-                                                                                       const int generations,
-                                                                                       const int flags)
+/**
+ *  @brief          新規 sink を生成してファイルを開く (レジストリ登録は行わない)。
+ *  @param[in]      path         出力ファイル パス。
+ *  @param[in]      path_len     path のバイト数。
+ *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。
+ *  @param[in]      generations  保持する旧世代数。0 以下でデフォルト値を使用。
+ *  @param[in]      flags        動作フラグ。
+ *  @return         成功時: ハンドル。失敗時: NULL。
+ */
+static com_util_trace_file_sink *create_new_sink(const char *path, const size_t path_len, const size_t max_bytes,
+                                                 const int generations, const int flags)
 {
     com_util_trace_file_sink *handle;
-    size_t path_len;
-
-    if (path == NULL || flags < 0)
-    {
-        return NULL;
-    }
-
-    path_len = strlen(path);
-
-    /* パスが長すぎてローテーションやロック ファイルのサフィックスを付加できない場合は拒否する */
-    if (path_len + TRACE_FILE_SUFFIX_MAX >= (size_t)PLATFORM_PATH_MAX)
-    {
-        return NULL;
-    }
 
     handle = (com_util_trace_file_sink *)malloc(sizeof(com_util_trace_file_sink));
     if (handle == NULL)
@@ -578,6 +754,86 @@ COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_
         }
     }
 
+    return handle;
+}
+
+/* ===== 公開 API ===== */
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
+                                                                                       const size_t max_bytes,
+                                                                                       const int generations,
+                                                                                       const int flags)
+{
+    com_util_trace_file_sink *handle;
+    struct sink_registry_entry *entry;
+    size_t path_len;
+    int requested_shared = 0;
+    char *key;
+
+    if (path == NULL || flags < 0)
+    {
+        return NULL;
+    }
+
+    path_len = strlen(path);
+
+    /* パスが長すぎてローテーションやロック ファイルのサフィックスを付加できない場合は拒否する */
+    if (path_len + TRACE_FILE_SUFFIX_MAX >= (size_t)PLATFORM_PATH_MAX)
+    {
+        return NULL;
+    }
+
+    if ((flags & COM_UTIL_TRACE_FILE_SINK_SHARED) != 0)
+    {
+        requested_shared = 1;
+    }
+
+    key = build_registry_key(path);
+    if (key == NULL)
+    {
+        return NULL;
+    }
+
+    /* プロセス内で同一パスの sink を共有する (占有モードのプロセス内調停)。
+     * 生成自体もロック内で行い、同一パスの並行生成を直列化する。 */
+    sink_registry_lock();
+
+    entry = sink_registry_find_by_key_locked(key);
+    if (entry != NULL)
+    {
+        /* 占有モードと共有モードの混在は意味的に矛盾するため拒否する */
+        if (entry->sink->shared != requested_shared)
+        {
+            sink_registry_unlock();
+            free(key);
+            return NULL;
+        }
+        entry->refcount++;
+        handle = entry->sink;
+        sink_registry_unlock();
+        free(key);
+        return handle;
+    }
+
+    handle = create_new_sink(path, path_len, max_bytes, generations, flags);
+    if (handle == NULL)
+    {
+        sink_registry_unlock();
+        free(key);
+        return NULL;
+    }
+
+    if (sink_registry_register_locked(key, handle) != 0)
+    {
+        sink_registry_unlock();
+        free_sink(handle);
+        free(key);
+        return NULL;
+    }
+
+    sink_registry_unlock();
     return handle;
 }
 
@@ -684,21 +940,61 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle)
 {
+    struct sink_registry_entry *entry;
+    char *key_to_free = NULL;
+    int should_free = 1;
+
     if (handle == NULL)
     {
         return;
     }
 
-    free_sink(handle);
+    sink_registry_lock();
+    entry = sink_registry_find_by_sink_locked(handle);
+    if (entry != NULL)
+    {
+        entry->refcount--;
+        if (entry->refcount > 0)
+        {
+            should_free = 0;
+        }
+        else
+        {
+            key_to_free = entry->key;
+            sink_registry_remove_locked(entry);
+        }
+    }
+    sink_registry_unlock();
+
+    free(key_to_free);
+    if (should_free)
+    {
+        free_sink(handle);
+    }
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *handle)
 {
+    struct sink_registry_entry *entry;
+
     if (handle == NULL)
     {
         return;
+    }
+
+    /* shutdown 経路ではロックを取得しない (呼び出し側がスレッドの静止を保証する) */
+    entry = sink_registry_find_by_sink_locked(handle);
+    if (entry != NULL)
+    {
+        entry->refcount--;
+        if (entry->refcount > 0)
+        {
+            return;
+        }
+        free(entry->key);
+        sink_registry_remove_locked(entry);
     }
 
     free_sink(handle);

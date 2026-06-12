@@ -767,3 +767,101 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_on_lock_timeout)
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
 }
+
+// 同一プロセス内で同一パスの create が同一ハンドルを共有することの確認 (プロセス内調停)
+TEST_F(trace_fileTest, test_create_same_path_shares_handle_in_single_process)
+{
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ファイル オープンは 1 回だけ行われること。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
+
+    // Act
+    com_util_trace_file_sink *first =
+        com_util_trace_file_sink_create("trace.log", 0, 0, 0); // [手順] - 1 回目の create を呼ぶ。
+    com_util_trace_file_sink *second =
+        com_util_trace_file_sink_create("trace.log", 0, 0, 0); // [手順] - 同一パスで 2 回目の create を呼ぶ。
+
+    // Assert
+    ASSERT_NE((com_util_trace_file_sink *)NULL, first); // [確認_正常系] - 1 回目のハンドルが生成されること。
+    EXPECT_EQ(first, second);                           // [確認_正常系] - 2 回目は同一ハンドルが返ること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(second);
+    com_util_trace_file_sink_dispose(first);
+}
+
+// 参照カウントにより最後の dispose までハンドルが有効であることの確認
+TEST_F(trace_fileTest, test_shared_handle_survives_until_last_dispose)
+{
+    // Arrange
+    com_util_trace_file_sink *first = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
+    com_util_trace_file_sink *second = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
+    ASSERT_NE((com_util_trace_file_sink *)NULL, first);
+    ASSERT_EQ(first, second);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_file_write(_, _, _))
+        .WillOnce(
+            [](com_util_file *, const void *buf, size_t len)
+            {
+                std::string actual((const char *)buf, len);
+                EXPECT_NE(std::string::npos, actual.find("after first dispose"));
+                return 0;
+            }); // [Pre-Assert確認_正常系] - 1 回目の dispose 後も書き込みできること。
+
+    // Act
+    com_util_trace_file_sink_dispose(first); // [手順] - 1 人目の利用者が解放する。
+    int result = com_util_trace_file_sink_write(second, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                "after first dispose"); // [手順] - 2 人目の利用者が書き込む。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 参照が残っている間は書き込みが成功すること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(second);
+}
+
+// 共有モード設定が一致しない同一パスの create が失敗することの確認
+TEST_F(trace_fileTest, test_create_same_path_with_mismatched_shared_flag_returns_null)
+{
+    // Arrange
+    com_util_trace_file_sink *first = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
+    ASSERT_NE((com_util_trace_file_sink *)NULL, first); // [状態] - 占有モードの sink が存在する。
+
+    // Act
+    com_util_trace_file_sink *second = com_util_trace_file_sink_create(
+        "trace.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 同一パスを共有モードで create する。
+
+    // Assert
+    EXPECT_EQ((com_util_trace_file_sink *)NULL, second); // [確認_異常系] - モード不一致では NULL が返ること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(first);
+}
+
+// 異なるパスの create は独立したハンドルを生成することの確認
+TEST_F(trace_fileTest, test_create_different_paths_returns_distinct_handles)
+{
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("first.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 1 つ目のパスでファイルを開くこと。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("second.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 2 つ目のパスでファイルを開くこと。
+    EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(2));
+
+    // Act
+    com_util_trace_file_sink *first =
+        com_util_trace_file_sink_create("first.log", 0, 0, 0); // [手順] - 1 つ目のパスで create を呼ぶ。
+    com_util_trace_file_sink *second =
+        com_util_trace_file_sink_create("second.log", 0, 0, 0); // [手順] - 2 つ目のパスで create を呼ぶ。
+
+    // Assert
+    ASSERT_NE((com_util_trace_file_sink *)NULL, first);  // [確認_正常系] - 1 つ目のハンドルが生成されること。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, second); // [確認_正常系] - 2 つ目のハンドルが生成されること。
+    EXPECT_NE(first, second);                            // [確認_正常系] - 異なるパスでは別ハンドルになること。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(first);
+    com_util_trace_file_sink_dispose(second);
+}

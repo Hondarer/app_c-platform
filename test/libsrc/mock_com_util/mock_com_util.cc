@@ -197,6 +197,8 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_module_get_basename));
 
     // runtime - process_info
+    ON_CALL(*this, com_util_process_get_executable_path(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_process_get_executable_path));
     ON_CALL(*this, com_util_process_run_elevated_if_needed(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_process_run_elevated_if_needed));
     ON_CALL(*this, com_util_process_start(_, _)).WillByDefault(Invoke(delegate_real_com_util_process_start));

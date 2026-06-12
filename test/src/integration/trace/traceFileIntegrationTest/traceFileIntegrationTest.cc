@@ -1,4 +1,6 @@
 #include <testfw.h>
+#include <com_util/crt/path.h>
+#include <com_util/runtime/process.h>
 #include <com_util/trace/tracer.h>
 #include <string>
 
@@ -100,8 +102,8 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     remove(path.c_str());
 }
 
-// NULL path 指定で file trace を無効化できることの確認
-TEST_F(traceFileIntegrationTest, test_null_path_disables_file_trace)
+// level NONE 指定で file trace を無効化できることの確認
+TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
 {
     // Arrange
     std::string ws = findWorkspaceRoot();
@@ -120,8 +122,8 @@ TEST_F(traceFileIntegrationTest, test_null_path_disables_file_trace)
     EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                         "before disable")); // [手順] - 無効化前に 1 行書き込む。
     ASSERT_EQ(0, com_util_tracer_stop(handle));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
-                                                0)); // [手順] - NULL path で file trace を無効化する。
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_NONE, 0, 0,
+                                                0)); // [手順] - level NONE で file trace を無効化する。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                         "after disable")); // [手順] - 無効化後に 1 行書き込む。
@@ -131,6 +133,100 @@ TEST_F(traceFileIntegrationTest, test_null_path_disables_file_trace)
     EXPECT_FILE_EXISTS(path);                                   // [確認_正常系] - 最初の実ファイルが残ること。
     EXPECT_FILE_CONTAINS(path, "before disable");               // [確認_正常系] - 無効化前の行が残ること。
     EXPECT_FALSE(testing::FileContains(path, "after disable")); // [確認_正常系] - 無効化後の行が追加されないこと。
+
+    // Cleanup
+    remove(path.c_str());
+}
+
+namespace
+{
+
+// デフォルト トレースファイルのパス (実行ファイルのディレクトリ + /log/<プロセス名>.log) を導出する
+static std::string build_expected_default_path(void)
+{
+    char exe_path[PLATFORM_PATH_MAX];
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != 0)
+    {
+        return std::string();
+    }
+    std::string full(exe_path);
+    size_t sep_pos = full.rfind(PLATFORM_PATH_SEP_CHR);
+    if (sep_pos == std::string::npos)
+    {
+        return std::string();
+    }
+    std::string dir = full.substr(0, sep_pos);
+    std::string base = full.substr(sep_pos + 1);
+    if (base.size() > 4 && base.compare(base.size() - 4, 4, ".exe") == 0)
+    {
+        base.resize(base.size() - 4); // Windows のプロセス名から .exe を除去する
+    }
+    return dir + PLATFORM_PATH_SEP "log" PLATFORM_PATH_SEP + base + ".log";
+}
+
+} // namespace
+
+// set_file_level 未呼び出しでデフォルト パス (実行ファイルのディレクトリ + /log/<プロセス名>.log) へ
+// 書き込まれることの確認。set_name はトレースファイル名に影響しないことも実証する。
+TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_to_executable)
+{
+    // Arrange
+    std::string path = build_expected_default_path();
+    ASSERT_FALSE(path.empty());
+    remove(path.c_str());
+
+    com_util_tracer *handle = com_util_tracer_create();
+    ASSERT_NE((com_util_tracer *)NULL, handle);
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(0, com_util_tracer_set_name(handle, "default_path_it",
+                                          0)); // [手順] - インスタンス名を設定する (ファイル名には影響しない)。
+
+    // Act
+    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - set_file_level なしで start する。
+    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                        "default path message")); // [手順] - INFO 行を書き込む。
+    com_util_tracer_dispose(handle);
+
+    // Assert
+    EXPECT_FILE_EXISTS(path); // [確認_正常系] - プロセス名のトレースファイルが log/ に生成されること。
+    EXPECT_FILE_CONTAINS(path, "default path message"); // [確認_正常系] - 書き込んだ行が含まれること。
+
+    // Cleanup
+    remove(path.c_str());
+}
+
+// 同一プロセス内の複数 tracer が占有モードのまま同一デフォルト パスへ出力できることの確認 (プロセス内調停)
+TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_process)
+{
+    // Arrange
+    std::string path = build_expected_default_path();
+    ASSERT_FALSE(path.empty());
+    remove(path.c_str());
+
+    com_util_tracer *first = com_util_tracer_create();
+    com_util_tracer *second = com_util_tracer_create();
+    ASSERT_NE((com_util_tracer *)NULL, first);
+    ASSERT_NE((com_util_tracer *)NULL, second);
+    ASSERT_EQ(0, com_util_tracer_set_os_level(first, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(0, com_util_tracer_set_os_level(second, COM_UTIL_TRACE_LEVEL_NONE));
+
+    // Act
+    ASSERT_EQ(0, com_util_tracer_start(first));  // [手順] - 1 つ目の tracer を start する。
+    ASSERT_EQ(0, com_util_tracer_start(second)); // [手順] - 2 つ目も同一デフォルト パスで start する。
+    EXPECT_EQ(0, _com_util_tracer_write(first, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
+                                        "from first tracer")); // [手順] - 1 つ目から書き込む。
+    EXPECT_EQ(0, _com_util_tracer_write(second, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
+                                        "from second tracer")); // [手順] - 2 つ目から書き込む。
+    com_util_tracer_dispose(first);                             // [手順] - 1 つ目を解放する。
+    EXPECT_EQ(0, _com_util_tracer_write(second, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
+                                        "after first dispose")); // [手順] - 解放後も 2 つ目から書き込む。
+    com_util_tracer_dispose(second);
+
+    // Assert
+    EXPECT_FILE_EXISTS(path); // [確認_正常系] - 占有モードでも 2 つ目の start が成功し同一ファイルを共有すること。
+    EXPECT_FILE_CONTAINS(path, "from first tracer");   // [確認_正常系] - 1 つ目の行が含まれること。
+    EXPECT_FILE_CONTAINS(path, "from second tracer");  // [確認_正常系] - 2 つ目の行が含まれること。
+    EXPECT_FILE_CONTAINS(path, "after first dispose"); // [確認_正常系] - 参照が残る間は書き込みが継続できること。
 
     // Cleanup
     remove(path.c_str());

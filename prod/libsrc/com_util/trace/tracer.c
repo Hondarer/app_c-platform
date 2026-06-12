@@ -14,6 +14,7 @@
  *******************************************************************************
  */
 #include <com_util/clock/clock.h>
+#include <com_util/crt/path.h>
 #include <com_util/runtime/process.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/tracer.h>
@@ -90,11 +91,18 @@ struct com_util_tracer
 
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink *syslog_handle;
+    char *effective_name;
 #elif defined(PLATFORM_WINDOWS)
     char *service_name;
 #endif /* PLATFORM_ */
 
     com_util_trace_file_sink *file_handle;
+    char *file_path;
+    char *file_name;
+    int64_t file_identifier;
+    size_t file_max_bytes;
+    int file_generations;
+    int file_flags;
 
     com_util_local_rwlock *config_rwlock;
 
@@ -456,9 +464,138 @@ static char *build_effective_name(const char *name, const int64_t identifier)
 }
 
 /**
+ *  @brief          ハンドルが保持する有効名を取得する。
+ *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
+ *  @return         有効名文字列へのポインター。
+ */
+static const char *tracer_effective_name(const com_util_tracer *handle)
+{
+#if defined(PLATFORM_LINUX)
+    return handle->effective_name;
+#elif defined(PLATFORM_WINDOWS)
+    return handle->service_name;
+#endif /* PLATFORM_ */
+}
+
+#if defined(PLATFORM_WINDOWS)
+/**
+ *  @brief          名前の末尾にある ".exe" を除去する (インプレース)。
+ *  @param[in,out]  name  対象の名前文字列。
+ *
+ *  Windows ではプロセス名 (実行ファイルのベース名) が ".exe" で終わるため、
+ *  トレースファイル名からは除去する。大文字小文字は区別しない。
+ */
+static void strip_exe_suffix(char *name)
+{
+    size_t name_len = strlen(name);
+
+    if (name_len >= 4 && _strnicmp(&name[name_len - 4], ".exe", 4) == 0)
+    {
+        name[name_len - 4] = '\0';
+    }
+}
+#endif /* PLATFORM_WINDOWS */
+
+/**
+ *  @brief          トレースファイル名 (ファイル識別込み) を解決する。
+ *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
+ *  @param[out]     out       解決した名前を格納するバッファー。
+ *  @param[in]      out_size  バッファーのバイト数。
+ *  @return         成功時 0、失敗時 (バッファー不足) -1。
+ *
+ *  ファイル名が未設定 (NULL) の場合はプロセス名 (実行ファイルのベース名) を使用する。
+ *  Windows ではプロセス名末尾の ".exe" を除去する (明示設定された名前には適用しない)。\n
+ *  ファイル識別が 0 以外の場合は "-{ファイル識別}" を付加する。
+ */
+static int resolve_file_name(const com_util_tracer *handle, char *out, const size_t out_size)
+{
+    char name_buf[256];
+    int written;
+
+    if (handle->file_name != NULL)
+    {
+        snprintf(name_buf, sizeof(name_buf), "%s", handle->file_name);
+    }
+    else
+    {
+        char path_buf[256];
+
+        snprintf(name_buf, sizeof(name_buf), "%s", get_process_basename(path_buf, sizeof(path_buf)));
+#if defined(PLATFORM_WINDOWS)
+        strip_exe_suffix(name_buf);
+#endif /* PLATFORM_WINDOWS */
+    }
+
+    if (handle->file_identifier != 0)
+    {
+        written = snprintf(out, out_size, "%s-%" PRId64, name_buf, handle->file_identifier);
+    }
+    else
+    {
+        written = snprintf(out, out_size, "%s", name_buf);
+    }
+    if (written < 0 || (size_t)written >= out_size)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief          ファイル トレースのデフォルト パスを構築する。
+ *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
+ *  @param[out]     out       構築したパスを格納するバッファー。
+ *  @param[in]      out_size  バッファーのバイト数。
+ *  @return         成功時 0、失敗時 -1。
+ *
+ *  実行ファイルのディレクトリ配下の log/{ファイル名}.log を構築する
+ *  (ファイル名は resolve_file_name で解決する)。\n
+ *  実行ファイル パスの取得に失敗した場合はカレント ディレクトリ相対の
+ *  log/{ファイル名}.log にフォールバックする。
+ */
+static int build_default_file_path(const com_util_tracer *handle, char *out, const size_t out_size)
+{
+    char exe_path[PLATFORM_PATH_MAX];
+    char name_buf[280];
+    char *sep;
+    int written;
+
+    if (resolve_file_name(handle, name_buf, sizeof(name_buf)) != 0)
+    {
+        return -1;
+    }
+
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0)
+    {
+        sep = strrchr(exe_path, PLATFORM_PATH_SEP_CHR);
+        if (sep != NULL)
+        {
+            *sep = '\0'; /* バッファーをディレクトリ部分のみに切り詰める */
+            written =
+                snprintf(out, out_size, "%s" PLATFORM_PATH_SEP "log" PLATFORM_PATH_SEP "%s.log", exe_path, name_buf);
+            if (written < 0 || (size_t)written >= out_size)
+            {
+                return -1;
+            }
+            return 0;
+        }
+    }
+
+    written = snprintf(out, out_size, "log" PLATFORM_PATH_SEP "%s.log", name_buf);
+    if (written < 0 || (size_t)written >= out_size)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+/**
  *  @brief          クリーンアップのためハンドルのトレース出力を停止する。
  *  @param[in]      handle  停止対象のトレース プロバイダー ハンドル。
  *  @return         常に 0。
+ *
+ *  ファイル トレースが開いていた場合はトレース ファイルを閉じる。
+ *  ファイル トレースの設定は保持され、次回の start で改めてファイルを開く。
  */
 static int stop_handle_for_cleanup(com_util_tracer *handle)
 {
@@ -470,6 +607,11 @@ static int stop_handle_for_cleanup(com_util_tracer *handle)
     }
 
     handle->running = 0;
+    if (handle->file_handle != NULL)
+    {
+        com_util_trace_file_sink_dispose(handle->file_handle);
+        handle->file_handle = NULL;
+    }
     config_unlock_exclusive(handle);
     return 0;
 }
@@ -496,8 +638,14 @@ static void trace_handle_release_normal(com_util_tracer *handle)
     }
     handle->hook_head = NULL;
 
+    free(handle->file_path);
+    handle->file_path = NULL;
+    free(handle->file_name);
+    handle->file_name = NULL;
+
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink_dispose(handle->syslog_handle);
+    free(handle->effective_name);
     if (handle->config_rwlock_initialized)
     {
         com_util_local_rwlock_destroy(handle->config_rwlock);
@@ -527,8 +675,14 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
         handle->file_handle = NULL;
     }
 
+    free(handle->file_path);
+    handle->file_path = NULL;
+    free(handle->file_name);
+    handle->file_name = NULL;
+
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
+    free(handle->effective_name);
 #elif defined(PLATFORM_WINDOWS)
     free(handle->service_name);
 #endif /* PLATFORM_ */
@@ -573,18 +727,33 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 
         handle->identifier = 0;
         handle->syslog_handle = sp;
+        handle->effective_name = strdup(effective_name);
         handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
         handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
         handle->file_handle = NULL;
+        handle->file_path = NULL;
+        handle->file_name = NULL;
+        handle->file_identifier = 0;
+        handle->file_max_bytes = 0;
+        handle->file_generations = 0;
+        handle->file_flags = 0;
         handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
         handle->running = 0;
         handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
         handle->config_rwlock_initialized = 0;
         handle->hook_head = NULL;
 
+        if (handle->effective_name == NULL)
+        {
+            com_util_syslog_sink_dispose(sp);
+            free(handle);
+            return NULL;
+        }
+
         if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
         {
             com_util_syslog_sink_dispose(sp);
+            free(handle->effective_name);
             free(handle);
             return NULL;
         }
@@ -612,6 +781,12 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
         handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
         handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
         handle->file_handle = NULL;
+        handle->file_path = NULL;
+        handle->file_name = NULL;
+        handle->file_identifier = 0;
+        handle->file_max_bytes = 0;
+        handle->file_generations = 0;
+        handle->file_flags = 0;
         handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
         handle->running = 0;
         handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
@@ -644,6 +819,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
     {
 #if defined(PLATFORM_LINUX)
         com_util_syslog_sink_dispose(handle->syslog_handle);
+        free(handle->effective_name);
 #elif defined(PLATFORM_WINDOWS)
         if (InterlockedDecrement(&s_trace_ref) == 0)
         {
@@ -667,6 +843,8 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
 {
+    int result = 0;
+
     if (!handle_is_active(handle))
     {
         return -1;
@@ -684,9 +862,35 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
         return 0;
     }
 
+    /* ファイル トレースが有効な場合、この時点の設定 (パスと有効名) でトレース ファイルを開く。
+     * 失敗しても started 状態へは遷移し、ファイル以外のトレース出力を継続する (best-effort)。 */
+    if (handle->file_level != COM_UTIL_TRACE_LEVEL_NONE && handle->file_handle == NULL)
+    {
+        const char *path = handle->file_path;
+        char default_path[PLATFORM_PATH_MAX];
+
+        if (path == NULL)
+        {
+            if (build_default_file_path(handle, default_path, sizeof(default_path)) == 0)
+            {
+                path = default_path;
+            }
+        }
+
+        if (path != NULL)
+        {
+            handle->file_handle = com_util_trace_file_sink_create(path, handle->file_max_bytes,
+                                                                  handle->file_generations, handle->file_flags);
+        }
+        if (handle->file_handle == NULL)
+        {
+            result = -1;
+        }
+    }
+
     handle->running = 1;
     config_unlock_exclusive(handle);
-    return 0;
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1224,12 +1428,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handl
 #if defined(PLATFORM_LINUX)
     {
         int rc = com_util_syslog_sink_rename(handle->syslog_handle, effective);
-        free(effective);
         if (rc != 0)
         {
+            free(effective);
             config_unlock_exclusive(handle);
             return -1;
         }
+        free(handle->effective_name);
+        handle->effective_name = effective;
         handle->identifier = identifier;
         config_unlock_exclusive(handle);
         return 0;
@@ -1241,6 +1447,161 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handl
     config_unlock_exclusive(handle);
     return 0;
 #endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t out_size)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+    {
+        return -1;
+    }
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    written = snprintf(out, out_size, "%s", tracer_effective_name(handle));
+    config_unlock_shared(handle);
+
+    if (written < 0 || (size_t)written >= out_size)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tracer *handle)
+{
+    int64_t identifier;
+
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    identifier = handle->identifier;
+    config_unlock_shared(handle);
+    return identifier;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_name(com_util_tracer *handle, const char *name,
+                                                               const int64_t identifier)
+{
+    char *name_copy = NULL;
+
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (identifier < 0)
+    {
+        return -1;
+    }
+
+    /* 失敗時に設定を変更しないよう、名前の複製をロック取得前に確保する */
+    if (name != NULL)
+    {
+#if defined(PLATFORM_LINUX)
+        name_copy = strdup(name);
+#elif defined(PLATFORM_WINDOWS)
+        name_copy = _strdup(name);
+#endif /* PLATFORM_ */
+        if (name_copy == NULL)
+        {
+            return -1;
+        }
+    }
+
+    config_lock_exclusive(handle);
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    {
+        config_unlock_exclusive(handle);
+        free(name_copy);
+        return -1;
+    }
+
+    free(handle->file_name);
+    handle->file_name = name_copy;
+    handle->file_identifier = identifier;
+    config_unlock_exclusive(handle);
+    return 0;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *out,
+                                                               const size_t out_size)
+{
+    int rc;
+
+    if (out == NULL || out_size == 0)
+    {
+        return -1;
+    }
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    rc = resolve_file_name(handle, out, out_size);
+    config_unlock_shared(handle);
+    return rc;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_util_tracer *handle)
+{
+    int64_t identifier;
+
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    identifier = handle->file_identifier;
+    config_unlock_shared(handle);
+    return identifier;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1320,17 +1681,32 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer 
                                                                 const size_t max_bytes, const int generations,
                                                                 const int flags)
 {
-    int result = 0;
+    char *path_copy = NULL;
 
     if (!handle_is_active(handle))
     {
         return -1;
     }
 
+    /* 失敗時に設定を変更しないよう、パスの複製をロック取得前に確保する */
+    if (path != NULL)
+    {
+#if defined(PLATFORM_LINUX)
+        path_copy = strdup(path);
+#elif defined(PLATFORM_WINDOWS)
+        path_copy = _strdup(path);
+#endif /* PLATFORM_ */
+        if (path_copy == NULL)
+        {
+            return -1;
+        }
+    }
+
     config_lock_exclusive(handle);
     if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
     {
         config_unlock_exclusive(handle);
+        free(path_copy);
         return -1;
     }
 
@@ -1340,18 +1716,15 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer 
         handle->file_handle = NULL;
     }
 
+    free(handle->file_path);
+    handle->file_path = path_copy;
     handle->file_level = level;
-    if (path != NULL)
-    {
-        handle->file_handle = com_util_trace_file_sink_create(path, max_bytes, generations, flags);
-        if (handle->file_handle == NULL)
-        {
-            result = -1;
-        }
-    }
+    handle->file_max_bytes = max_bytes;
+    handle->file_generations = generations;
+    handle->file_flags = flags;
 
     config_unlock_exclusive(handle);
-    return result;
+    return 0;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

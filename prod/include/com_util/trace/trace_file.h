@@ -42,7 +42,7 @@
  *  この値を超えるとローテーションが実行されます。\n
  *  com_util_trace_file_sink_create の max_bytes に 0 を指定した場合に使用されます。
  */
-#define COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES ((size_t)(10 * 1024 * 1024))
+#define COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES ((size_t)(1 * 1024 * 1024))
 
 /**
  *  @brief          保持するトレース ファイル世代数の既定値。
@@ -50,7 +50,7 @@
  *  ローテーション時に path.1 〜 path.N のファイルを保持します。\n
  *  com_util_trace_file_sink_create の generations に 0 以下を指定した場合に使用されます。
  */
-#define COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 5
+#define COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 3
 
 /**
  *  @brief          複数プロセスからの同時書き込みを有効にするフラグ。
@@ -92,6 +92,15 @@ extern "C"
      *    ロック ファイルは常設で、削除されません。
      *  - ロック ファイルのオープンに失敗した場合は NULL を返します。
      *
+     *  @par            プロセス内での同一パス共有
+     *  同一プロセス内で同一パス (正規化して比較。Windows は大文字小文字を区別しない) を指定して
+     *  本関数を複数回呼び出した場合、新しいハンドルは生成せず、既存のハンドルを参照カウントで
+     *  共有して返します。書き込みはハンドル内部の mutex で排他されるため、単一プロセス モードでも
+     *  同一プロセス内の複数の利用者が同一ファイルへ安全に出力できます。このとき:
+     *  - max_bytes / generations は最初の生成時の値が有効です (2 回目以降の指定は無視されます)。
+     *  - 既存ハンドルと flags の共有モード設定が一致しない場合は NULL を返します。
+     *  - 解放には利用者ごとに com_util_trace_file_sink_dispose の呼び出しが必要です。
+     *
      *  @param[in]      path         出力ファイル パス。NULL の場合は NULL を返します。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下でデフォルト値を使用。
@@ -104,7 +113,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *  プロセス内レジストリへのアクセスと新規生成は内部ロックで直列化されます。
      */
     COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
                                                                                            size_t max_bytes,
@@ -132,11 +141,14 @@ extern "C"
     /**
      *  @brief          ファイル トレース プロバイダーを終了する。
      *
+     *  ハンドルがプロセス内で共有されている場合は参照カウントを減らし、
+     *  参照カウントが 0 になったときにファイルを閉じてリソースを解放します。
+     *
      *  @param[in]      handle   com_util_trace_file_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  解放対象の @p handle を本呼び出し以降に使用しないことを呼び出し側で保証してください。
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle);
 
