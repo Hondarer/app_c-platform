@@ -14,6 +14,7 @@
  */
 
 #include <com_util/runtime/process.h>
+#include <com_util/console/console_internal.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/wchar_conv.h>
 
@@ -1357,11 +1358,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const c
     {
         SHELLEXECUTEINFOW exec_info;
         char exe_path[PLATFORM_PATH_MAX];
+        char *combined_arguments = NULL;
+        const char *effective_arguments;
         wchar_t *wide_arguments = NULL;
         wchar_t *wide_exe_path;
         com_util_process child_process;
         int child_exit_code;
         int elevated;
+        int inherit_console;
 
         if (is_process_elevated(&elevated) != 0)
         {
@@ -1379,22 +1383,60 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const c
             return -1;
         }
 
+        /* 親にコンソールがある場合のみ、昇格プロセスへ親コンソールを引き継ぐ。
+           昇格プロセス側は com_util_console_attach_parent() で再接続する。 */
+        inherit_console = (GetConsoleWindow() != NULL);
+
+        effective_arguments = arguments;
+        if (inherit_console != 0)
+        {
+            DWORD parent_pid;
+            size_t arg_len;
+            size_t buf_sz;
+
+            parent_pid = GetCurrentProcessId();
+            arg_len = (arguments != NULL) ? strlen(arguments) : 0;
+            /* 区切り空白 + フラグ + '=' + PID (最大 10 桁) + 終端の余裕を確保する */
+            buf_sz = arg_len + strlen(COM_UTIL_CONSOLE_HANDOVER_FLAG) + 32;
+            combined_arguments = (char *)malloc(buf_sz);
+            if (combined_arguments == NULL)
+            {
+                *exit_code = EXIT_FAILURE;
+                return -1;
+            }
+            if (arg_len > 0)
+            {
+                snprintf(combined_arguments, buf_sz, "%s %s=%lu", arguments, COM_UTIL_CONSOLE_HANDOVER_FLAG,
+                         (unsigned long)parent_pid);
+            }
+            else
+            {
+                snprintf(combined_arguments, buf_sz, "%s=%lu", COM_UTIL_CONSOLE_HANDOVER_FLAG,
+                         (unsigned long)parent_pid);
+            }
+            effective_arguments = combined_arguments;
+        }
+
         wide_exe_path = com_util_utf8_to_wstr_alloc(exe_path);
         if (wide_exe_path == NULL)
         {
+            free(combined_arguments);
             *exit_code = EXIT_FAILURE;
             return -1;
         }
-        if (arguments != NULL)
+        if (effective_arguments != NULL)
         {
-            wide_arguments = com_util_utf8_to_wstr_alloc(arguments);
+            wide_arguments = com_util_utf8_to_wstr_alloc(effective_arguments);
             if (wide_arguments == NULL)
             {
+                free(combined_arguments);
                 free(wide_exe_path);
                 *exit_code = EXIT_FAILURE;
                 return -1;
             }
         }
+        free(combined_arguments);
+        combined_arguments = NULL;
 
         ZeroMemory(&exec_info, sizeof(exec_info));
         exec_info.cbSize = sizeof(exec_info);
@@ -1403,7 +1445,16 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const c
         exec_info.lpVerb = L"runas";
         exec_info.lpFile = wide_exe_path;
         exec_info.lpParameters = wide_arguments;
-        exec_info.nShow = SW_SHOWNORMAL;
+        /* コンソール引き継ぎ時は昇格プロセスの一時コンソールを隠す。
+           引き継がない場合は従来どおり通常表示とする。 */
+        if (inherit_console != 0)
+        {
+            exec_info.nShow = SW_HIDE;
+        }
+        else
+        {
+            exec_info.nShow = SW_SHOWNORMAL;
+        }
 
         *handled = 1;
 

@@ -24,7 +24,7 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 - すでに UTF-8 のコード ページは変更しない
 - 変更前のコード ページとコンソール モードは保存し、通常終了時に復元する
 - パイプやファイルへのリダイレクトでは初期化処理を行わない
-- stdin / stdout / stderr のハンドルは変更しない
+- `com_util_console_init` は stdin / stdout / stderr のハンドルを変更しない (昇格時の再接続は `com_util_console_attach_parent` が担当する)
 
 `activeCodePage=UTF-8` マニフェストはプロセス ACP を UTF-8 にする設定です。コンソールの入力コード ページ / 出力コード ページは別の状態であるため、このモジュールでは `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` を引き続き使用します。
 
@@ -47,6 +47,28 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 - Linux では何もしない
 - 未初期化時や複数回呼び出しでも安全
 - 通常はライブラリ アンロード時の自動解放に任せられる
+
+### com_util_console_attach_parent
+
+昇格起動された場合に、親プロセスのコンソールへ再接続します。
+
+- Windows では `com_util_process_run_elevated_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出する
+- `AttachConsole` で親コンソールへ接続し、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へつなぎ直す
+- 検出したフラグは `argv` から取り除き、`argc` を 1 減らす
+- Linux では何もせず 0 を返す
+- プログラム開始直後、引数解析および `com_util_console_init` より前に呼び出す
+
+この関数は次の仕組みで昇格プロセスの出力を元のコンソールに表示します。UAC 昇格 (`ShellExecuteExW` の `runas` 動詞) では昇格プロセスを別セキュリティ コンテキストで生成するため、親のハンドルを継承できません。そこで親プロセス ID をコマンド ラインで渡し、昇格プロセス側が親コンソールへ接続し直します。親側は昇格プロセスの一時コンソールを隠して起動するため、別ウインドウは表示されません。
+
+```{.mermaid caption="昇格時のコンソール引き継ぎ"}
+sequenceDiagram
+    participant P as 親プロセス (未昇格)
+    participant C as 昇格プロセス
+    P->>C: runas + SW_HIDE + 親PIDフラグ
+    C->>C: FreeConsole / AttachConsole(親PID)
+    C->>C: CONOUT$ / CONIN$ を std へ再接続
+    C-->>P: 同一コンソールへ出力
+```
 
 ## 使い方
 
@@ -92,7 +114,7 @@ int main(void)
 ## 注意点
 
 - Windows では `activeCodePage=UTF-8` マニフェストを併用してください
-- このモジュールは stdout / stderr のハンドルを変更しません
+- `com_util_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `com_util_console_attach_parent` を使用してください)
 - Windows 10 1903 未満はサポート対象外です
 
 ## 参考リンク

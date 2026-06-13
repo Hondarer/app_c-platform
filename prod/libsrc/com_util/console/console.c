@@ -18,7 +18,9 @@
 
     #include <com_util/base/windows_sdk.h>
     #include <com_util/sync/sync.h>
-    #include <stdio.h> /* stdout, stderr */
+    #include <stdio.h>  /* stdout, stderr, freopen */
+    #include <stdlib.h> /* strtoul */
+    #include <string.h> /* strncmp, strlen */
 
 /* 初期化前のコンソール状態を保存 */
 static UINT s_orig_output_cp = 0;
@@ -128,6 +130,130 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
     }
 }
 
+/**
+ *  @brief          argv から親コンソール引き継ぎフラグを取り出して除去する。
+ *  @param[in,out]  argc     引数の数へのポインター。
+ *  @param[in,out]  argv     引数配列。
+ *  @param[out]     out_pid  取り出した親プロセス ID の格納先。
+ *  @return         有効なフラグを検出した場合は 1、そうでない場合は 0 を返します。
+ *
+ *  フラグを検出した場合は、PID の解析可否にかかわらず @p argv から取り除き、
+ *  @p argc を 1 減らします。PID が不正な場合は 0 を返します。
+ */
+static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
+{
+    const char *prefix = COM_UTIL_CONSOLE_HANDOVER_FLAG "=";
+    size_t prefix_len;
+    int n;
+    int i;
+    int found;
+    DWORD pid;
+
+    if (argc == NULL || argv == NULL || out_pid == NULL)
+    {
+        return 0;
+    }
+
+    prefix_len = strlen(prefix);
+    n = *argc;
+    found = 0;
+    pid = 0;
+
+    for (i = 1; i < n; i++)
+    {
+        char *endp;
+        unsigned long value;
+        int j;
+
+        if (argv[i] == NULL || strncmp(argv[i], prefix, prefix_len) != 0)
+        {
+            continue;
+        }
+
+        endp = NULL;
+        value = strtoul(argv[i] + prefix_len, &endp, 10);
+        if (endp != argv[i] + prefix_len && *endp == '\0' && value != 0)
+        {
+            pid = (DWORD)value;
+            found = 1;
+        }
+
+        /* フラグを取り除いて後続を前へ詰める (不正値でも除去する) */
+        for (j = i; j < n - 1; j++)
+        {
+            argv[j] = argv[j + 1];
+        }
+        argv[n - 1] = NULL;
+        *argc = n - 1;
+        break;
+    }
+
+    if (found)
+    {
+        *out_pid = pid;
+    }
+    return found;
+}
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
+{
+    DWORD parent_pid;
+    HANDLE h_out;
+    HANDLE h_err;
+    HANDLE h_in;
+
+    parent_pid = 0;
+    if (!extract_handover_pid(argc, argv, &parent_pid))
+    {
+        return 0;
+    }
+
+    /* 昇格時に割り当てられた一時コンソールを切り離し、親コンソールへ接続する */
+    FreeConsole();
+    if (!AttachConsole(parent_pid))
+    {
+        return -1;
+    }
+
+    /* Win32 レベルの標準ハンドルを親コンソールへ付け替える
+       (GetStdHandle / WriteConsole 系や tracer の stderr sink が参照する) */
+    h_out = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                        OPEN_EXISTING, 0, NULL);
+    if (h_out != INVALID_HANDLE_VALUE)
+    {
+        SetStdHandle(STD_OUTPUT_HANDLE, h_out);
+    }
+    h_err = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                        OPEN_EXISTING, 0, NULL);
+    if (h_err != INVALID_HANDLE_VALUE)
+    {
+        SetStdHandle(STD_ERROR_HANDLE, h_err);
+    }
+    h_in = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                       0, NULL);
+    if (h_in != INVALID_HANDLE_VALUE)
+    {
+        SetStdHandle(STD_INPUT_HANDLE, h_in);
+    }
+
+    /* CRT レベルの標準ストリームを親コンソールへ再接続する
+       (printf / fprintf 系が参照する) */
+    if (freopen("CONOUT$", "w", stdout) == NULL)
+    {
+        /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
+    }
+    if (freopen("CONOUT$", "w", stderr) == NULL)
+    {
+        /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
+    }
+    if (freopen("CONIN$", "r", stdin) == NULL)
+    {
+        /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
+    }
+
+    return 1;
+}
+
 void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
 {
     (void)context;
@@ -147,6 +273,12 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void) {}
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void) {}
+COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    return 0;
+}
 void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
 {
     (void)event;

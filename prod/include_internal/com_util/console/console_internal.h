@@ -24,6 +24,15 @@
 
 #include <com_util/runtime/shutdown.h>
 
+/**
+ *  @brief          昇格プロセスへ親コンソール引き継ぎを指示する内部フラグ。
+ *
+ *  com_util_process_run_elevated_if_needed() が昇格プロセスのコマンドラインへ
+ *  `<FLAG>=<親プロセス ID>` の形式で付与し、com_util_console_attach_parent() が
+ *  これを検出して親コンソールへ再接続します。
+ */
+#define COM_UTIL_CONSOLE_HANDOVER_FLAG "--com-util-attach-console"
+
 #ifdef __cplusplus
 extern "C"
 {

@@ -82,6 +82,32 @@ extern "C"
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void);
 
+    /**
+     *  @brief          昇格起動時に親プロセスのコンソールへ再接続する。
+     *  @param[in,out]  argc  引数の数へのポインター。NULL 可。
+     *  @param[in,out]  argv  引数配列。NULL 可。
+     *  @return         親コンソールへ再接続した場合は 1、何もしなかった場合は 0、
+     *                  失敗した場合は -1 を返します。
+     *
+     *  Windows 環境では、com_util_process_run_elevated_if_needed() が UAC 昇格で
+     *  自プロセスを再起動した際に付与する引き継ぎフラグを検出し、親プロセスの
+     *  コンソールへ @c AttachConsole で再接続します。\n
+     *  再接続後、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へ
+     *  つなぎ直すため、昇格プロセスの出力が元のコンソールにそのまま表示されます。\n
+     *  検出した引き継ぎフラグは @p argv から取り除き、@p argc を 1 減らします。\n
+     *  Linux 環境では何もせず 0 を返します。
+     *
+     *  @note           本関数はプログラム開始直後、引数解析および
+     *                  @c com_util_console_init より前に 1 度だけ呼び出してください。\n
+     *                  親プロセスにコンソールが無い場合 (GUI 起動など) は引き継ぎ
+     *                  フラグが付与されないため、本関数は 0 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  プロセス起動直後のシングル スレッド フェーズで呼び出してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
