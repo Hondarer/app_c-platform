@@ -202,6 +202,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     HANDLE h_out;
     HANDLE h_err;
     HANDLE h_in;
+    int attached;
+    int attempt;
 
     parent_pid = 0;
     if (!extract_handover_pid(argc, argv, &parent_pid))
@@ -209,9 +211,22 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
         return 0;
     }
 
-    /* 昇格時に割り当てられた一時コンソールを切り離し、親コンソールへ接続する */
-    FreeConsole();
-    if (!AttachConsole(parent_pid))
+    /* 昇格時に割り当てられた一時コンソールを切り離し、親コンソールへ接続する。
+       昇格直後は子の一時コンソール (conhost) 割り当てが非同期に進むため、
+       自前コンソールへ繋がったままだと AttachConsole が ERROR_ACCESS_DENIED で
+       失敗することがある。割り当てが落ち着くまで有界リトライする。 */
+    attached = 0;
+    for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
+    {
+        FreeConsole();
+        if (AttachConsole(parent_pid))
+        {
+            attached = 1;
+            break;
+        }
+        Sleep(COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS);
+    }
+    if (attached == 0)
     {
         return -1;
     }

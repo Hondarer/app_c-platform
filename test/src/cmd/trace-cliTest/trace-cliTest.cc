@@ -20,6 +20,9 @@ using testing::StrEq;
 namespace
 {
 
+static const char *const kRcSuccessTty = "\033[32mrc=0\033[0m\n";
+static const char *const kRcErrorTty = "\033[31mrc=-1\033[0m\n";
+
 static char *copy_line(char *dst, int size, const char *src)
 {
     size_t len = strlen(src);
@@ -76,6 +79,7 @@ class trace_cliTest : public Test
     {
         trace_cli_session_init(&session_);
         ON_CALL(mock_com_util_, com_util_strncpy(_, _, _, _)).WillByDefault(emulate_com_util_strncpy);
+        ON_CALL(mock_com_util_, com_util_isatty(COM_UTIL_STREAM_STDOUT)).WillByDefault(Return(1));
         ON_CALL(mock_com_util_, com_util_tracer_dispose(_)).WillByDefault(Return());
         ON_CALL(mock_stdio_, printf(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_stdio_, fprintf(_, _, _, _, _)).WillByDefault(Return(0));
@@ -113,14 +117,48 @@ TEST_F(trace_cliTest, process_line_set_file_level_accepts_null_keyword)
     session_.handle = handle_; // [状態] - 既存 handle を持つ session を用意する。
     EXPECT_CALL(mock_com_util_, com_util_tracer_set_file_level(handle_, nullptr, COM_UTIL_TRACE_LEVEL_INFO, 0U, 0, 0))
         .WillOnce(Return(0)); // [Pre-Assert確認] - null keyword が NULL path として渡されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
-        .WillOnce(Return(0)); // [Pre-Assert確認] - set-file-level の戻り値が表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - set-file-level の正常戻り値が緑で表示されること。
 
     // Act
     int rc = trace_cli_process_line(&session_, "set-file-level null INFO");
 
     // Assert
     EXPECT_EQ(0, rc); // [確認] - set-file-level が正常に処理されること。
+}
+
+TEST_F(trace_cliTest, process_line_set_os_level_colors_error_rc)
+{
+    // Arrange
+    session_.handle = handle_; // [状態] - 既存 handle を持つ session を用意する。
+    EXPECT_CALL(mock_com_util_, com_util_tracer_set_os_level(handle_, COM_UTIL_TRACE_LEVEL_INFO))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - tracer API がエラー戻り値を返すこと。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcErrorTty)))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - エラー戻り値が赤で表示されること。
+
+    // Act
+    int rc = trace_cli_process_line(&session_, "set-os-level INFO");
+
+    // Assert
+    EXPECT_EQ(0, rc); // [確認] - コマンド処理自体は継続扱いで完了すること。
+}
+
+TEST_F(trace_cliTest, process_line_set_os_level_keeps_plain_rc_when_stdout_is_not_tty)
+{
+    // Arrange
+    session_.handle = handle_; // [状態] - 既存 handle を持つ session を用意する。
+    EXPECT_CALL(mock_com_util_, com_util_isatty(COM_UTIL_STREAM_STDOUT))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - stdout が TTY ではないこと。
+    EXPECT_CALL(mock_com_util_, com_util_tracer_set_os_level(handle_, COM_UTIL_TRACE_LEVEL_INFO))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - tracer API が正常戻り値を返すこと。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - 非 TTY では ANSI なしで表示されること。
+
+    // Act
+    int rc = trace_cli_process_line(&session_, "set-os-level INFO");
+
+    // Assert
+    EXPECT_EQ(0, rc); // [確認] - set-os-level が正常に処理されること。
 }
 
 TEST_F(trace_cliTest, process_line_dispose_releases_handle)
@@ -160,8 +198,8 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
                 EXPECT_EQ((unsigned char)0xFF, bytes[2]); // [確認] - 3 byte 目が 0xFF であること。
                 return 0;
             }); // [Pre-Assert確認] - quoted hex と label が write-hex に渡されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
-        .WillOnce(Return(0)); // [Pre-Assert確認] - write-hex の戻り値が表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - write-hex の正常戻り値が緑で表示されること。
 
     // Act
     int rc = trace_cli_process_line(&session_, "write-hex INFO \"01 AB FF\" payload bytes");
@@ -177,8 +215,8 @@ TEST_F(trace_cliTest, process_line_writef_uses_message_as_single_string)
     EXPECT_CALL(mock_com_util_, _com_util_tracer_writef(handle_, COM_UTIL_TRACE_LEVEL_DEBUG, nullptr,
                                                         StrEq("message with spaces")))
         .WillOnce(Return(0)); // [Pre-Assert確認] - writef が行末までを 1 つの文字列として受け取ること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
-        .WillOnce(Return(0)); // [Pre-Assert確認] - writef の戻り値が表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - writef の正常戻り値が緑で表示されること。
 
     // Act
     int rc = trace_cli_process_line(&session_, "writef DEBUG message with spaces");
@@ -306,15 +344,15 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=created\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - create 結果が出力されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
         .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - start の戻り値が rc=0 として表示されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - start の戻り値が緑の rc=0 として表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
         .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - write の戻り値が rc=0 として表示されること。
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("rc=0\n")))
+        .WillOnce(Return(0)); // [Pre-Assert確認] - write の戻り値が緑の rc=0 として表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
         .InSequence(io_seq)
-        .WillOnce(Return(0)); // [Pre-Assert確認] - stop の戻り値が rc=0 として表示されること。
+        .WillOnce(Return(0)); // [Pre-Assert確認] - stop の戻り値が緑の rc=0 として表示されること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=disposed\n")))
         .InSequence(io_seq)
         .WillOnce(Return(0)); // [Pre-Assert確認] - dispose 結果が出力されること。

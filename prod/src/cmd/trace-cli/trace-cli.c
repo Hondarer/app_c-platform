@@ -18,6 +18,7 @@
 
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
+#include <com_util/crt/unistd.h>
 #include <com_util/prompt/prompt.h>
 
 #include <ctype.h>
@@ -278,7 +279,12 @@ static const char *session_prompt_state_to_name(const trace_cli_session *session
         return tracer_state_to_name(com_util_tracer_get_state(session->handle));
     }
 
-    return session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED ? "disposed" : "uncreated";
+    if (session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED)
+    {
+        return "disposed";
+    }
+
+    return "uncreated";
 }
 
 static int parse_size_value(const char *token, size_t *value)
@@ -398,6 +404,23 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
 static void print_level_result(com_util_trace_level_t level)
 {
     printf("level=%s(%d)\n", level_to_name(level), (int)level);
+}
+
+static void print_rc_result(int rc)
+{
+    if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
+    {
+        printf("rc=%d\n", rc);
+        return;
+    }
+
+    if (rc == 0)
+    {
+        printf("\x1b[32mrc=%d\x1b[0m\n", rc);
+        return;
+    }
+
+    printf("\x1b[31mrc=%d\x1b[0m\n", rc);
 }
 
 static void print_command_usage(const char *command)
@@ -624,7 +647,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             return -1;
         }
         rc = com_util_tracer_start(session->handle);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -638,7 +661,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             return -1;
         }
         rc = com_util_tracer_stop(session->handle);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -673,7 +696,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             name = name_token;
         }
         rc = com_util_tracer_set_name(session->handle, name, identifier);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -706,7 +729,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             return -1;
         }
         rc = com_util_tracer_set_os_level(session->handle, level);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -771,7 +794,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             path = path_token;
         }
         rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -804,7 +827,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             return -1;
         }
         rc = com_util_tracer_set_stderr_level(session->handle, level);
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -841,7 +864,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
         {
             rc = _com_util_tracer_writef(session->handle, level, NULL, "%s", message);
         }
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         return 0;
     }
 
@@ -900,7 +923,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
             }
             rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s", label_str);
         }
-        printf("rc=%d\n", rc);
+        print_rc_result(rc);
         free(data);
         return 0;
     }

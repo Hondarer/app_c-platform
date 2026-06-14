@@ -96,6 +96,7 @@ struct com_util_tracer
     char *effective_name;
 #elif defined(PLATFORM_WINDOWS)
     char *service_name;
+    char *eventlog_instance_name;
 #endif /* PLATFORM_ */
 
     com_util_trace_file_sink *file_handle;
@@ -463,10 +464,34 @@ static char *build_effective_name(const char *name, const int64_t identifier)
         {
             return NULL;
         }
-        snprintf(result, total, "%s-%" PRId64, base, identifier);
+        snprintf(result, total, "%s_%" PRId64, base, identifier);
         return result;
     }
 }
+
+#if defined(PLATFORM_WINDOWS)
+/**
+ *  @brief          EventLog に渡す元のインスタンス名を構築する。
+ *  @param[in]      name  インスタンス名。NULL の場合はプロセス ベース名を使用。
+ *  @return         ヒープ確保されたインスタンス名。呼び出し元が free すること。
+ */
+static char *build_eventlog_instance_name(const char *name)
+{
+    char path_buf[256];
+    const char *base;
+
+    if (name != NULL)
+    {
+        base = name;
+    }
+    else
+    {
+        base = get_process_basename(path_buf, sizeof(path_buf));
+    }
+
+    return _strdup(base);
+}
+#endif /* PLATFORM_WINDOWS */
 
 /**
  *  @brief          ハンドルが保持する有効名を取得する。
@@ -510,7 +535,7 @@ static void strip_exe_suffix(char *name)
  *
  *  ファイル名が未設定 (NULL) の場合はプロセス名 (実行ファイルのベース名) を使用する。
  *  Windows ではプロセス名末尾の ".exe" を除去する (明示設定された名前には適用しない)。\n
- *  ファイル識別が 0 以外の場合は "-{ファイル識別}" を付加する。
+ *  ファイル識別が 0 以外の場合は "_{ファイル識別}" を付加する。
  */
 static int resolve_file_name(const com_util_tracer *handle, char *out, const size_t out_size)
 {
@@ -533,7 +558,7 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 
     if (handle->file_identifier != 0)
     {
-        written = snprintf(out, out_size, "%s-%" PRId64, name_buf, handle->file_identifier);
+        written = snprintf(out, out_size, "%s_%" PRId64, name_buf, handle->file_identifier);
     }
     else
     {
@@ -592,6 +617,38 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         return -1;
     }
     return 0;
+}
+
+/**
+ *  @brief          指定パラメーターでファイル トレース sink を開いて返す。
+ *  @param[in]      handle       既定パス解決に用いるハンドル (file_name 等を参照)。
+ *  @param[in]      path         出力ファイル パス。NULL の場合は既定パスを解決する。
+ *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。
+ *  @param[in]      generations  保持する旧世代数。
+ *  @param[in]      flags        動作フラグ。
+ *  @return         生成した sink。失敗時 NULL。
+ *
+ *  呼び出し側で config の排他ロックを保持していることを前提とする。
+ *  com_util_tracer_start と com_util_tracer_set_file_level の双方から使用する。
+ */
+static com_util_trace_file_sink *open_file_sink_with(const com_util_tracer *handle, const char *path,
+                                                     const size_t max_bytes, const int generations, const int flags)
+{
+    const char *eff_path = path;
+    char default_path[PLATFORM_PATH_MAX];
+
+    if (eff_path == NULL)
+    {
+        if (build_default_file_path(handle, default_path, sizeof(default_path)) == 0)
+        {
+            eff_path = default_path;
+        }
+    }
+    if (eff_path == NULL)
+    {
+        return NULL;
+    }
+    return com_util_trace_file_sink_create(eff_path, max_bytes, generations, flags);
 }
 
 /**
@@ -663,6 +720,7 @@ static void trace_handle_release_normal(com_util_tracer *handle)
         com_util_eventlog_sink_dispose(s_eventlog_handle);
         s_eventlog_handle = NULL;
     }
+    free(handle->eventlog_instance_name);
     free(handle->service_name);
 #endif /* PLATFORM_ */
 
@@ -691,6 +749,7 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
     com_util_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
     free(handle->effective_name);
 #elif defined(PLATFORM_WINDOWS)
+    free(handle->eventlog_instance_name);
     free(handle->service_name);
 #endif /* PLATFORM_ */
 
@@ -769,22 +828,31 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 #elif defined(PLATFORM_WINDOWS)
     {
         char *svc;
+        char *eventlog_name;
 
         svc = _strdup(effective_name);
         if (svc == NULL)
         {
             return NULL;
         }
+        eventlog_name = _strdup(effective_name);
+        if (eventlog_name == NULL)
+        {
+            free(svc);
+            return NULL;
+        }
 
         handle = (com_util_tracer *)malloc(sizeof(com_util_tracer));
         if (handle == NULL)
         {
+            free(eventlog_name);
             free(svc);
             return NULL;
         }
 
         handle->identifier = 0;
         handle->service_name = svc;
+        handle->eventlog_instance_name = eventlog_name;
         handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
         handle->etw_level = COM_UTIL_TRACER_DEFAULT_ETW_LEVEL;
         handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
@@ -803,6 +871,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 
         if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
         {
+            free(handle->eventlog_instance_name);
             free(handle->service_name);
             free(handle);
             return NULL;
@@ -815,6 +884,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
             if (s_etw_handle == NULL)
             {
                 InterlockedDecrement(&s_trace_ref);
+                free(handle->eventlog_instance_name);
                 free(handle->service_name);
                 free(handle);
                 return NULL;
@@ -840,6 +910,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
             com_util_eventlog_sink_dispose(s_eventlog_handle);
             s_eventlog_handle = NULL;
         }
+        free(handle->eventlog_instance_name);
         free(handle->service_name);
 #endif /* PLATFORM_ */
         if (handle->config_rwlock_initialized)
@@ -880,22 +951,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
      * 失敗しても started 状態へは遷移し、ファイル以外のトレース出力を継続する (best-effort)。 */
     if (handle->file_level != COM_UTIL_TRACE_LEVEL_NONE && handle->file_handle == NULL)
     {
-        const char *path = handle->file_path;
-        char default_path[PLATFORM_PATH_MAX];
-
-        if (path == NULL)
-        {
-            if (build_default_file_path(handle, default_path, sizeof(default_path)) == 0)
-            {
-                path = default_path;
-            }
-        }
-
-        if (path != NULL)
-        {
-            handle->file_handle = com_util_trace_file_sink_create(path, handle->file_max_bytes,
-                                                                  handle->file_generations, handle->file_flags);
-        }
+        handle->file_handle = open_file_sink_with(handle, handle->file_path, handle->file_max_bytes,
+                                                  handle->file_generations, handle->file_flags);
         if (handle->file_handle == NULL)
         {
             result = -1;
@@ -999,7 +1056,8 @@ static int write_os_backends(com_util_tracer *handle, const com_util_trace_level
 
     if (should_output(level, handle->os_level))
     {
-        eventlog_result = com_util_eventlog_sink_write(s_eventlog_handle, (int)level, handle->service_name, msg);
+        eventlog_result = com_util_eventlog_sink_write(s_eventlog_handle, (int)level, handle->file_identifier,
+                                                       handle->eventlog_instance_name, handle->identifier, msg);
     }
 
     if (etw_result != 0 || eventlog_result != 0)
@@ -1480,11 +1538,22 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handl
         return 0;
     }
 #elif defined(PLATFORM_WINDOWS)
-    free(handle->service_name);
-    handle->service_name = effective;
-    handle->identifier = identifier;
-    config_unlock_exclusive(handle);
-    return 0;
+    {
+        char *eventlog_name = build_eventlog_instance_name(name);
+        if (eventlog_name == NULL)
+        {
+            free(effective);
+            config_unlock_exclusive(handle);
+            return -1;
+        }
+        free(handle->eventlog_instance_name);
+        free(handle->service_name);
+        handle->eventlog_instance_name = eventlog_name;
+        handle->service_name = effective;
+        handle->identifier = identifier;
+        config_unlock_exclusive(handle);
+        return 0;
+    }
 #endif /* PLATFORM_ */
 }
 
@@ -1678,7 +1747,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *h
     }
 
     config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
         config_unlock_exclusive(handle);
         return -1;
@@ -1731,7 +1800,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *
     }
 
     config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
         config_unlock_exclusive(handle);
         return -1;
@@ -1801,13 +1870,77 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer 
     }
 
     config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
         config_unlock_exclusive(handle);
         free(path_copy);
         return -1;
     }
 
+    if (handle->running)
+    {
+        /* started 中はレベルを即時反映する。排他ロック下で原子的に切り替えるため、
+         * 旧閾値と新閾値の両方で出力対象となるトレースを取りこぼさない。 */
+
+        /* ケース 1: ファイル出力を無効化する。 */
+        if (level == COM_UTIL_TRACE_LEVEL_NONE)
+        {
+            if (handle->file_handle != NULL)
+            {
+                com_util_trace_file_sink_dispose(handle->file_handle);
+                handle->file_handle = NULL;
+            }
+            free(handle->file_path);
+            handle->file_path = path_copy;
+            handle->file_level = COM_UTIL_TRACE_LEVEL_NONE;
+            handle->file_max_bytes = max_bytes;
+            handle->file_generations = generations;
+            handle->file_flags = flags;
+            config_unlock_exclusive(handle);
+            return 0;
+        }
+
+        /* ケース 2: 構造パラメーターが一致し、既にファイルが開いている場合は閾値のみ変更する。
+         * 再オープンを伴わないため、同一パスの一時的なオープン失敗で稼働中の出力を失わない。 */
+        if (handle->file_handle != NULL &&
+            ((path == NULL && handle->file_path == NULL) ||
+             (path != NULL && handle->file_path != NULL && strcmp(path, handle->file_path) == 0)) &&
+            max_bytes == handle->file_max_bytes && generations == handle->file_generations &&
+            flags == handle->file_flags)
+        {
+            handle->file_level = level;
+            config_unlock_exclusive(handle);
+            free(path_copy);
+            return 0;
+        }
+
+        /* ケース 3: 新パラメーターでファイルを開き直す。先に新 sink を開き、成功時のみ差し替える。
+         * オープン失敗時は旧ハンドルと旧設定を保持して -1 を返す。 */
+        {
+            com_util_trace_file_sink *new_sink = open_file_sink_with(handle, path, max_bytes, generations, flags);
+            if (new_sink == NULL)
+            {
+                config_unlock_exclusive(handle);
+                free(path_copy);
+                return -1;
+            }
+            if (handle->file_handle != NULL)
+            {
+                com_util_trace_file_sink_dispose(handle->file_handle);
+            }
+            handle->file_handle = new_sink;
+            free(handle->file_path);
+            handle->file_path = path_copy;
+            handle->file_level = level;
+            handle->file_max_bytes = max_bytes;
+            handle->file_generations = generations;
+            handle->file_flags = flags;
+            config_unlock_exclusive(handle);
+            return 0;
+        }
+    }
+
+    /* stopped 中は設定を記録するのみ (ファイルのオープンは start に遅延する)。 */
     if (handle->file_handle != NULL)
     {
         com_util_trace_file_sink_dispose(handle->file_handle);
@@ -1860,7 +1993,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_trace
     }
 
     config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
         config_unlock_exclusive(handle);
         return -1;

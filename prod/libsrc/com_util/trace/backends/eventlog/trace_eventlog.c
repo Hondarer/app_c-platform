@@ -19,8 +19,12 @@
 #if defined(PLATFORM_WINDOWS)
 
     #include <com_util/base/windows_sdk.h>
+    #include <com_util/crt/path.h>
     #include <com_util/crt/wchar_conv.h>
+    #include <com_util/runtime/process.h>
+    #include <com_util/sync/sync.h>
     #include <com_util/trace/eventlog.h>
+    #include <inttypes.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <wchar.h>
@@ -31,6 +35,23 @@
     #define EVENTLOG_KEY_PREFIX L"SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\"
 
 /**
+ *  イベント ID の基底値。
+ *
+ *  EventMessageFile と CategoryMessageFile が同一ファイル (eventlog-register.exe) を
+ *  指すため、メッセージ テーブルの ID 空間は 1 つに統合される。カテゴリは Windows 仕様上
+ *  1..CategoryCount に固定配置するため、イベント ID は重複を避けて 0x1000 番台に置く。
+ */
+    #define EVENTLOG_EVENT_ID_NO_IDENTIFIER       0x1001
+    #define EVENTLOG_EVENT_ID_FILE_IDENTIFIER     0x1011
+    #define EVENTLOG_EVENT_ID_INSTANCE_IDENTIFIER 0x1021
+    #define EVENTLOG_EVENT_ID_BOTH_IDENTIFIERS    0x1031
+
+/**
+ *  EventLog に渡す置換文字列数。
+ */
+    #define EVENTLOG_STRING_COUNT 5
+
+/**
  *  @brief  EventLog シンク ハンドル構造体 (内部定義)。
  */
 struct com_util_eventlog_sink
@@ -39,18 +60,26 @@ struct com_util_eventlog_sink
     HANDLE source;
 };
 
+static com_util_once_flag s_executable_path_once = {0};
+static wchar_t s_executable_path[PLATFORM_PATH_MAX] = L"";
+
 /**
  *  @brief          トレース レベルをイベント タイプ・カテゴリ・イベント ID に写像する。
  *  @param[in]      level     トレース レベル (0=CRITICAL 〜 5=DEBUG)。範囲外は Information 扱い。
  *  @param[out]     type      EventLog イベント タイプ (EVENTLOG_*_TYPE)。
  *  @param[out]     category  イベント カテゴリ (レベル毎に分離)。
- *  @param[out]     event_id  イベント ID (レベル毎に分離)。
+ *  @param[in]      has_file_identifier      ファイル識別子がある場合は非 0。
+ *  @param[in]      has_instance_identifier  インスタンス識別子がある場合は非 0。
+ *  @param[out]     event_id                 イベント ID (レベル・表示形式毎に分離)。
  *
  *  分析性を高めるため、同一ソースでもレベル毎にカテゴリとイベント ID を
  *  分けて割り当てます。
  */
-static void map_level(const int level, WORD *type, WORD *category, DWORD *event_id)
+static void map_level(const int level, const int has_file_identifier, const int has_instance_identifier, WORD *type,
+                      WORD *category, DWORD *event_id)
 {
+    DWORD base_id;
+
     switch (level)
     {
     case 0: /* CRITICAL */
@@ -79,13 +108,135 @@ static void map_level(const int level, WORD *type, WORD *category, DWORD *event_
     if (level >= 0 && level < COM_UTIL_EVENTLOG_LEVEL_COUNT)
     {
         *category = (WORD)(level + 1);
-        *event_id = (DWORD)(level + 1);
+        if (has_file_identifier && has_instance_identifier)
+        {
+            base_id = EVENTLOG_EVENT_ID_BOTH_IDENTIFIERS;
+        }
+        else if (has_file_identifier)
+        {
+            base_id = EVENTLOG_EVENT_ID_FILE_IDENTIFIER;
+        }
+        else if (has_instance_identifier)
+        {
+            base_id = EVENTLOG_EVENT_ID_INSTANCE_IDENTIFIER;
+        }
+        else
+        {
+            base_id = EVENTLOG_EVENT_ID_NO_IDENTIFIER;
+        }
+        *event_id = (DWORD)(base_id + level);
     }
     else
     {
         *category = 0;
         *event_id = 0;
     }
+}
+
+/**
+ *  @brief          キャッシュ用のワイド文字列へ安全にコピーする。
+ *  @param[out]     dst        コピー先。
+ *  @param[in]      dst_count  コピー先の要素数。
+ *  @param[in]      src        コピー元。
+ */
+static void copy_wstr(wchar_t *dst, const size_t dst_count, const wchar_t *src)
+{
+    size_t i;
+
+    if (dst == NULL || dst_count == 0)
+    {
+        return;
+    }
+
+    if (src == NULL)
+    {
+        dst[0] = L'\0';
+        return;
+    }
+
+    i = 0;
+    while (i + 1 < dst_count && src[i] != L'\0')
+    {
+        dst[i] = src[i];
+        i++;
+    }
+    dst[i] = L'\0';
+}
+
+/**
+ *  @brief          実行ファイル パスを初回だけ解決し、EventLog 用の UTF-16 文字列としてキャッシュする。
+ *
+ *  パス取得または変換に失敗した場合は空文字列をキャッシュし、以後は再試行しない。
+ */
+static void init_executable_path_cache(void)
+{
+    char path[PLATFORM_PATH_MAX];
+    char *p;
+    wchar_t *wpath;
+
+    s_executable_path[0] = L'\0';
+    if (com_util_process_get_executable_path(path, sizeof(path)) != 0)
+    {
+        return;
+    }
+
+    for (p = path; *p != '\0'; p++)
+    {
+        if (*p == '/')
+        {
+            *p = '\\';
+        }
+    }
+
+    wpath = com_util_utf8_to_wstr_alloc(path);
+    if (wpath == NULL)
+    {
+        return;
+    }
+
+    copy_wstr(s_executable_path, sizeof(s_executable_path) / sizeof(s_executable_path[0]), wpath);
+    free(wpath);
+}
+
+/**
+ *  @brief          キャッシュ済みの実行ファイル パスを取得する。
+ *  @return         実行ファイル パス。取得失敗時は空文字列。
+ */
+static const wchar_t *cached_executable_path(void)
+{
+    com_util_call_once(&s_executable_path_once, init_executable_path_cache);
+    return s_executable_path;
+}
+
+/**
+ *  @brief          識別子を EventData 用文字列に変換する。
+ *  @param[in]      identifier  変換対象の識別子。
+ *  @param[out]     buf         変換先。
+ *  @param[in]      buf_size    変換先のバイト数。
+ *  @return         0 以外の場合は識別子あり、0 の場合は識別子なし。
+ */
+static int format_identifier_string(const int64_t identifier, char *buf, const size_t buf_size)
+{
+    int written;
+
+    if (buf == NULL || buf_size == 0)
+    {
+        return 0;
+    }
+
+    if (identifier == 0)
+    {
+        buf[0] = '\0';
+        return 0;
+    }
+
+    written = snprintf(buf, buf_size, "%" PRId64, identifier);
+    if (written < 0 || (size_t)written >= buf_size)
+    {
+        buf[0] = '\0';
+        return 0;
+    }
+    return 1;
 }
 
 /**
@@ -174,13 +325,21 @@ COM_UTIL_EXPORT com_util_eventlog_sink *COM_UTIL_API com_util_eventlog_sink_crea
 /* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level,
-                                                              const char *instance_name, const char *message)
+                                                              const int64_t file_identifier, const char *instance_name,
+                                                              const int64_t instance_identifier, const char *message)
 {
     WORD type;
     WORD category;
     DWORD event_id;
     wchar_t *wmsg;
-    LPCWSTR strings[1];
+    wchar_t *wfile_id;
+    wchar_t *winstance;
+    wchar_t *winstance_id;
+    LPCWSTR strings[EVENTLOG_STRING_COUNT];
+    char file_id[32];
+    char instance_id[32];
+    int has_file_identifier;
+    int has_instance_identifier;
     BOOL ok;
 
     if (handle == NULL || handle->source == NULL || message == NULL)
@@ -188,42 +347,34 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_
         return 0;
     }
 
-    map_level(level, &type, &category, &event_id);
+    has_file_identifier = format_identifier_string(file_identifier, file_id, sizeof(file_id));
+    has_instance_identifier = format_identifier_string(instance_identifier, instance_id, sizeof(instance_id));
+    map_level(level, has_file_identifier, has_instance_identifier, &type, &category, &event_id);
 
-    if (instance_name != NULL)
+    wmsg = com_util_utf8_to_wstr_alloc(message);
+    wfile_id = com_util_utf8_to_wstr_alloc(file_id);
+    winstance = com_util_utf8_to_wstr_alloc(instance_name != NULL ? instance_name : "");
+    winstance_id = com_util_utf8_to_wstr_alloc(instance_id);
+
+    if (wmsg == NULL || wfile_id == NULL || winstance == NULL || winstance_id == NULL)
     {
-        char *body;
-        int need;
-
-        need = snprintf(NULL, 0, "[%s] %s", instance_name, message);
-        if (need < 0)
-        {
-            return -1;
-        }
-
-        body = (char *)malloc((size_t)need + 1);
-        if (body == NULL)
-        {
-            return -1;
-        }
-
-        snprintf(body, (size_t)need + 1, "[%s] %s", instance_name, message);
-        wmsg = com_util_utf8_to_wstr_alloc(body);
-        free(body);
-    }
-    else
-    {
-        wmsg = com_util_utf8_to_wstr_alloc(message);
-    }
-
-    if (wmsg == NULL)
-    {
+        free(wmsg);
+        free(wfile_id);
+        free(winstance);
+        free(winstance_id);
         return -1;
     }
 
     strings[0] = wmsg;
-    ok = ReportEventW(handle->source, type, category, event_id, NULL, 1, 0, strings, NULL);
+    strings[1] = cached_executable_path();
+    strings[2] = wfile_id;
+    strings[3] = winstance;
+    strings[4] = winstance_id;
+    ok = ReportEventW(handle->source, type, category, event_id, NULL, EVENTLOG_STRING_COUNT, 0, strings, NULL);
     free(wmsg);
+    free(wfile_id);
+    free(winstance);
+    free(winstance_id);
 
     if (!ok)
     {
@@ -266,7 +417,8 @@ void com_util_eventlog_sink_dispose_on_shutdown(com_util_eventlog_sink *handle, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *source_name)
+COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *source_name,
+                                                                   const char *message_file_path)
 {
     wchar_t key_path[512];
     HKEY hkey;
@@ -300,6 +452,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *s
         category_count = COM_UTIL_EVENTLOG_LEVEL_COUNT;
         rc = RegSetValueExW(hkey, L"CategoryCount", 0, REG_DWORD, (const BYTE *)&category_count,
                             (DWORD)sizeof(category_count));
+    }
+
+    /* メッセージ リソース (MESSAGETABLE) を持つファイルの絶対パスが渡された場合は、
+       EventMessageFile / CategoryMessageFile に登録して Event Viewer に解決させる。 */
+    if (rc == ERROR_SUCCESS && message_file_path != NULL)
+    {
+        wchar_t *wpath;
+
+        wpath = com_util_utf8_to_wstr_alloc(message_file_path);
+        if (wpath == NULL)
+        {
+            rc = ERROR_NOT_ENOUGH_MEMORY;
+        }
+        else
+        {
+            DWORD bytes;
+            wchar_t *p;
+
+            /* Event Log サービスは LoadLibraryEx でメッセージ ファイルを読み込むため、
+               パス セパレーターを Windows 慣例の '\\' に変換する。 */
+            for (p = wpath; *p != L'\0'; p++)
+            {
+                if (*p == L'/')
+                {
+                    *p = L'\\';
+                }
+            }
+
+            bytes = (DWORD)((wcslen(wpath) + 1) * sizeof(wchar_t));
+            rc = RegSetValueExW(hkey, L"EventMessageFile", 0, REG_SZ, (const BYTE *)wpath, bytes);
+            if (rc == ERROR_SUCCESS)
+            {
+                rc = RegSetValueExW(hkey, L"CategoryMessageFile", 0, REG_SZ, (const BYTE *)wpath, bytes);
+            }
+            free(wpath);
+        }
     }
 
     RegCloseKey(hkey);

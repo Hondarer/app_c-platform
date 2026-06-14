@@ -43,9 +43,9 @@
    com_util_tracer_start(tracer);
    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as myapp");
    com_util_tracer_stop(tracer);
-   com_util_tracer_set_name(tracer, "myapp", 1); // "myapp-1" として再開
+   com_util_tracer_set_name(tracer, "myapp", 1); // "myapp_1" として再開
    com_util_tracer_start(tracer);
-   com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as myapp-1");
+   com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as myapp_1");
    com_util_tracer_stop(tracer);
    com_util_tracer_dispose(tracer);
  *  @endcode
@@ -309,8 +309,12 @@ extern "C"
      *
      *  @post           戻り値のハンドルは stopped 状態です。
      *                  出力関数を使用するには com_util_tracer_start を呼び出してください。\n
-     *                  stopped 状態では設定関数 (com_util_tracer_set_name, com_util_tracer_set_os_level,
-     *                  com_util_tracer_set_file_level, com_util_tracer_set_stderr_level) をスレッド安全に使用できます。
+     *                  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name,
+     *                  com_util_tracer_set_file_name, com_util_tracer_set_hook, com_util_tracer_remove_hook) は
+     *                  stopped 状態でのみスレッド安全に使用できます。\n
+     *                  レベル設定関数 (com_util_tracer_set_os_level, com_util_tracer_set_etw_level,
+     *                  com_util_tracer_set_file_level, com_util_tracer_set_stderr_level) は
+     *                  stopped / started のどちらでも使用できます。
      *
      *  @par            使用例
      *  @code{.c}
@@ -332,9 +336,12 @@ extern "C"
      *  @brief          トレース プロバイダーを開始する。
      *
      *  ハンドルを実行中 (started) 状態に遷移させます。\n
-     *  started 状態では出力関数 (com_util_tracer_write 等) が有効になり、
-     *  設定関数 (com_util_tracer_set_name, com_util_tracer_set_os_level, com_util_tracer_set_file_level,
-     *  com_util_tracer_set_stderr_level) は使用できなくなります (-1 を返します)。\n
+     *  started 状態では出力関数 (com_util_tracer_write 等) が有効になります。\n
+     *  レベル設定関数 (com_util_tracer_set_os_level, com_util_tracer_set_etw_level,
+     *  com_util_tracer_set_file_level, com_util_tracer_set_stderr_level) は started 状態でも使用でき、
+     *  停止せずに閾値レベルを変更できます。\n
+     *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
+     *  com_util_tracer_set_hook, com_util_tracer_remove_hook) は started 状態では使用できません (-1 / NULL を返します)。\n
      *  すでに started 状態の場合は何もせず 0 を返します (冪等)。
      *
      *  ファイル トレースのレベルが COM_UTIL_TRACE_LEVEL_NONE 以外の場合、
@@ -371,8 +378,9 @@ extern "C"
      *
      *  ハンドルを停止中 (stopped) 状態に遷移させます。\n
      *  stopped 状態では出力関数 (com_util_tracer_write 等) は -1 を返し、
-     *  設定関数 (com_util_tracer_set_name, com_util_tracer_set_os_level, com_util_tracer_set_file_level,
-     *  com_util_tracer_set_stderr_level) がスレッド安全に使用できるようになります。\n
+     *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
+     *  com_util_tracer_set_hook, com_util_tracer_remove_hook) がスレッド安全に使用できるようになります。\n
+     *  レベル設定関数 (com_util_tracer_set_os_level 等) は stopped / started のどちらでも使用できます。\n
      *  ファイル トレースが有効な場合、開いていたトレース ファイルを閉じます。
      *  ファイル トレースの設定は保持され、次回の com_util_tracer_start で改めてファイルを開きます。\n
      *  すでに stopped 状態の場合は何もせず 0 を返します (冪等)。
@@ -495,7 +503,7 @@ extern "C"
      *
      *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
      *  使用する識別名を設定します。
-     *  識別名は @c {name} (identifier が 0 の場合) または @c {name}-{identifier} です。\n
+     *  識別名は @c {name} (identifier が 0 の場合) または @c {name}_{identifier} です。\n
      *  EventLog はソースが com_util 共通のため、本識別名を本文先頭に付与して
      *  インスタンスを判別可能にします。\n
      *  本関数はトレースファイル名には影響しません。トレースファイル名とファイル識別は
@@ -556,7 +564,7 @@ extern "C"
      *
      *  ファイル トレースのデフォルト パス (実行ファイルのディレクトリ配下の
      *  @c log/{ファイル名}.log) に使用するファイル名を設定します。
-     *  ファイル名は @c {name} (identifier が 0 の場合) または @c {name}-{identifier} です。\n
+     *  ファイル名は @c {name} (identifier が 0 の場合) または @c {name}_{identifier} です。\n
      *  name に NULL を指定した場合はプロセス名 (実行ファイルのベース名。Windows は末尾の
      *  @c .exe を除く) を使用します。明示設定した名前には @c .exe の除去を適用しません。\n
      *  本関数は OS トレースの識別名 (com_util_tracer_set_name) には影響しません。\n
@@ -639,7 +647,8 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
+     *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle,
                                                                   com_util_trace_level_t level);
@@ -673,7 +682,8 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
+     *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle,
                                                                    com_util_trace_level_t level);
@@ -721,9 +731,18 @@ extern "C"
      *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
      *  @return         成功 0 / 失敗 -1。
      *
+     *  @par            started 中の即時反映
+     *  started 状態でも呼び出せます。この場合は設定を記録するだけでなく、変更を即座に反映します。\n
+     *  level に COM_UTIL_TRACE_LEVEL_NONE を指定するとファイル出力を停止します。\n
+     *  出力ファイル パスや max_bytes / generations / flags を変更した場合 (または無効状態から
+     *  有効化した場合) は、新しい設定でトレース ファイルを開き直します。新しいファイルのオープンに
+     *  失敗した場合は、開いていたファイルと従来の設定を保持したまま -1 を返します。\n
+     *  パスとパラメーターが現状と一致し、閾値レベルのみを変更する場合はファイルを開き直しません。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
+     *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
                                                                     com_util_trace_level_t level, size_t max_bytes,
@@ -750,7 +769,8 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
+     *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_tracer *handle,
                                                                       com_util_trace_level_t level);

@@ -266,13 +266,12 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_etw_session_stop(_)).WillByDefault(Invoke(delegate_real_com_util_etw_session_stop));
 
     // trace - trace_eventlog (Windows only)
-    ON_CALL(*this, com_util_eventlog_sink_create(_))
-        .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_create));
-    ON_CALL(*this, com_util_eventlog_sink_write(_, _, _, _))
+    ON_CALL(*this, com_util_eventlog_sink_create(_)).WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_create));
+    ON_CALL(*this, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_write));
     ON_CALL(*this, com_util_eventlog_sink_dispose(_))
         .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_dispose));
-    ON_CALL(*this, com_util_eventlog_register_source(_))
+    ON_CALL(*this, com_util_eventlog_register_source(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_eventlog_register_source));
     ON_CALL(*this, com_util_eventlog_unregister_source(_))
         .WillByDefault(Invoke(delegate_real_com_util_eventlog_unregister_source));

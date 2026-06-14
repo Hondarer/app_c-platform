@@ -3,6 +3,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/com_util_export.h>
+#include <inttypes.h>
 
 /**
  *  @ingroup        COM_UTIL_PUBLIC_API
@@ -89,21 +90,27 @@ extern "C"
      *  @param[in]      handle         com_util_eventlog_sink_create の戻り値。NULL は無視。
      *  @param[in]      level          トレース レベル (0=CRITICAL / 1=ERROR / 2=WARNING /
      *                                 3=INFO / 4=VERBOSE / 5=DEBUG)。
-     *  @param[in]      instance_name  インスタンス識別名 (UTF-8)。NULL の場合は付与しない。
-     *                                 ソースが共通のため、本文先頭に @c "[instance_name] " 形式で
-     *                                 付与してインスタンスを判別可能にします。
-     *  @param[in]      message        null 終端 UTF-8 文字列。NULL は無視。
+     *  @param[in]      file_identifier      ファイル識別番号。0 の場合は Event Viewer 表示では省略。
+     *  @param[in]      instance_name        インスタンス名 (UTF-8)。NULL の場合は空文字列。
+     *  @param[in]      instance_identifier  インスタンス識別番号。0 の場合は Event Viewer 表示では省略。
+     *  @param[in]      message              null 終端 UTF-8 文字列。NULL は無視。
      *  @return         成功 0 / 失敗 -1。
      *
      *  level をイベント タイプ (Error / Warning / Information) とイベント ID に
-     *  写像して @c ReportEventW を呼び出します。
+     *  写像して @c ReportEventW を呼び出します。\n
+     *  EventLog の置換文字列は、メッセージ文字列、実行体ファイルパス、ファイル識別子、
+     *  インスタンス名、インスタンス識別子の 5 件です。\n
+     *  Event Viewer の「全般」では、実行体ファイルパス、インスタンス名、メッセージ文字列の
+     *  3 行を表示します。識別子が 0 以外の場合は各行に @c _識別子 を付与します。\n
+     *  実行ファイル絶対パスはプロセス内で初回だけ解決され、以後はキャッシュを使用します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  ReportEventW は複数スレッドからの同時呼び出しをサポートしています。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_sink *handle, int level,
-                                                                  const char *instance_name, const char *message);
+                                                                  int64_t file_identifier, const char *instance_name,
+                                                                  int64_t instance_identifier, const char *message);
 
     /**
      *  @brief          イベント ログ書き込みハンドルを解放する。
@@ -119,12 +126,18 @@ extern "C"
     /**
      *  @brief          共通イベント ソースをレジストリに登録する。
      *
-     *  @param[in]      source_name  イベント ソース名 (UTF-8)。NULL は失敗。
+     *  @param[in]      source_name        イベント ソース名 (UTF-8)。NULL は失敗。
+     *  @param[in]      message_file_path  メッセージ リソース (MESSAGETABLE) を持つファイルの
+     *                                     絶対パス (UTF-8)。NULL の場合は登録しない。
      *  @return         COM_UTIL_EVENTLOG_OK / COM_UTIL_EVENTLOG_ERR_PARAM /
      *                  COM_UTIL_EVENTLOG_ERR_ACCESS / COM_UTIL_EVENTLOG_ERR_SYSTEM。
      *
      *  @c HKLM\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\{source_name}
      *  キーを作成し、TypesSupported と CategoryCount を設定します。\n
+     *  @p message_file_path が非 NULL の場合は EventMessageFile と CategoryMessageFile に
+     *  そのパスを設定します。これにより Event Viewer はメッセージ本文とカテゴリ名を解決し、
+     *  イベント ID の説明が見つからない旨の補完文を表示しなくなります。\n
+     *  @p message_file_path が NULL の場合はメッセージ ファイルを設定しません (補完文が付きます)。\n
      *  HKLM への書き込みには管理者権限が必要です。権限不足の場合は
      *  COM_UTIL_EVENTLOG_ERR_ACCESS を返します。
      *
@@ -132,7 +145,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *source_name);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *source_name,
+                                                                       const char *message_file_path);
 
     /**
      *  @brief          共通イベント ソースの登録を削除する。

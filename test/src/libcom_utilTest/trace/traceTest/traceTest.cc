@@ -99,7 +99,7 @@ class traceTest : public Test
         ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
         ON_CALL(mock_, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
-        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
 #endif
     }
@@ -330,7 +330,7 @@ TEST_F(traceTest, test_etw_and_os_levels_are_independent)
 
     // Pre-Assert: ETW へは送られるが、EventLog へは送られないこと。
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("only etw"))).WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _))
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - os_level=NONE のため EventLog へは送られないこと。
 
     // Act
@@ -363,12 +363,37 @@ TEST_F(traceTest, test_write_routes_info_to_eventlog_backend)
     ASSERT_EQ(0, com_util_tracer_start(handle));
 
     // Pre-Assert: INFO が EventLog backend へ 1 回送られること。
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
-                                                    StrEq("to eventlog")))
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 0, StrEq("myapp"),
+                                                    0, StrEq("to eventlog")))
         .WillOnce(Return(0));
 
     // Act
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "to eventlog");
+
+    // Assert
+    EXPECT_EQ(0, result);
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// EventLog backend へファイル識別子とインスタンス識別子が個別に渡されることの確認 (Windows)
+TEST_F(traceTest, test_write_routes_eventlog_identity_fields)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_name(handle, "worker", 3));
+    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "trace-file", 7));
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert: EventLog へファイル識別子、元のインスタンス名、インスタンス識別子が個別に送られること。
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 7,
+                                                    StrEq("worker"), 3, StrEq("identity fields")))
+        .WillOnce(Return(0));
+
+    // Act
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "identity fields");
 
     // Assert
     EXPECT_EQ(0, result);
@@ -575,8 +600,8 @@ TEST_F(traceTest, test_write_hex_appends_ellipsis_when_only_ellipsis_fits)
     com_util_tracer_dispose(handle);
 }
 
-// started 中は設定関数が失敗することの確認
-TEST_F(traceTest, test_config_fails_when_started)
+// started 中は識別子・ファイル名の設定関数が失敗することの確認
+TEST_F(traceTest, test_identity_config_fails_when_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -584,15 +609,174 @@ TEST_F(traceTest, test_config_fails_when_started)
 
     // Act
     int name_result = com_util_tracer_set_name(handle, "running", 0); // [手順] - started 中に set_name を呼ぶ。
-    int os_result = com_util_tracer_set_os_level(
-        handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started 中に set_os_level を呼ぶ。
-    int file_result = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
-                                                     0); // [手順] - started 中に set_file_level を呼ぶ。
+    int file_name_result =
+        com_util_tracer_set_file_name(handle, "running", 0); // [手順] - started 中に set_file_name を呼ぶ。
 
     // Assert
-    EXPECT_EQ(-1, name_result); // [確認_異常系] - started 中の set_name が失敗すること。
-    EXPECT_EQ(-1, os_result);   // [確認_異常系] - started 中の set_os_level が失敗すること。
-    EXPECT_EQ(-1, file_result); // [確認_異常系] - started 中の set_file_level が失敗すること。
+    EXPECT_EQ(-1, name_result);      // [確認_異常系] - started 中の set_name が失敗すること。
+    EXPECT_EQ(-1, file_name_result); // [確認_異常系] - started 中の set_file_name が失敗すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 中でも os / etw / stderr のレベル変更が成功し反映されることの確認
+TEST_F(traceTest, test_level_change_allowed_when_started)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Act
+    int os_result = com_util_tracer_set_os_level(
+        handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started 中に os レベルを変更する。
+    int etw_result = com_util_tracer_set_etw_level(
+        handle, COM_UTIL_TRACE_LEVEL_WARNING); // [手順] - started 中に etw レベルを変更する。
+    int stderr_result = com_util_tracer_set_stderr_level(
+        handle, COM_UTIL_TRACE_LEVEL_ERROR); // [手順] - started 中に stderr レベルを変更する。
+
+    // Assert
+    EXPECT_EQ(0, os_result);     // [確認_正常系] - started 中の set_os_level が成功すること。
+    EXPECT_EQ(0, etw_result);    // [確認_正常系] - started 中の set_etw_level が成功すること (Linux は no-op で 0)。
+    EXPECT_EQ(0, stderr_result); // [確認_正常系] - started 中の set_stderr_level が成功すること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
+              com_util_tracer_get_os_level(handle)); // [確認_正常系] - 変更後の os レベルが反映されること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_ERROR,
+              com_util_tracer_get_stderr_level(handle)); // [確認_正常系] - 変更後の stderr レベルが反映されること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 中の os レベル引き上げが即座に出力へ反映されることの確認 (連続性)
+TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert: 旧閾値 INFO では VERBOSE は OS backend へ送られない。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose before")))
+        .Times(0); // [Pre-Assert確認_正常系] - 閾値引き上げ前は VERBOSE が backend へ送られないこと。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, _, _, _,
+                                                    HasSubstr("verbose before")))
+        .Times(0); // [Pre-Assert確認_正常系] - 閾値引き上げ前は VERBOSE が EventLog へ送られないこと。
+#endif
+
+    // Act: 引き上げ前の VERBOSE 書き込み。
+    com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL, "verbose before");
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+
+    // Pre-Assert: 停止せずに閾値を VERBOSE へ引き上げると VERBOSE が送られる。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose after")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 閾値引き上げ後は VERBOSE が backend へ送られること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, 0,
+                                                    StrEq("myapp"), 0, HasSubstr("verbose after")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 閾値引き上げ後は VERBOSE が EventLog へ送られること。
+#endif
+
+    // Act: started のまま閾値を引き上げてから VERBOSE を書き込む。
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_VERBOSE));
+    com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL, "verbose after");
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 中の閾値のみ変更では file sink を開き直さないことの確認 (ケース 2)
+TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert: パスとパラメーターが同一で閾値のみ変える場合は再オープンしない。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - 閾値のみ変更では file sink を再生成しないこと。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(_))
+        .Times(0); // [Pre-Assert確認_正常系] - 閾値のみ変更では file sink を破棄しないこと。
+
+    // Act
+    int result = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_VERBOSE, 0, 0, 0);
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - 閾値のみの変更が成功すること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
+              com_util_tracer_get_file_level(handle)); // [確認_正常系] - 変更後の file レベルが反映されること。
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 中にパスを変更すると file sink を開き直すことの確認 (ケース 3)
+TEST_F(traceTest, test_set_file_level_reopen_on_path_change_while_started)
+{
+    // Arrange
+    com_util_trace_file_sink *file_handle2 =
+        reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2300));
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - start 時に初期パスで file sink を開くこと。
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+
+    // Pre-Assert: パス変更時は新パスで開き、旧ハンドルを破棄する。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("other.log"), 0, 0, 0))
+        .WillOnce(Return(file_handle2)); // [Pre-Assert確認_正常系] - 新パスで file sink を開くこと。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(file_handle_))
+        .Times(1); // [Pre-Assert確認_正常系] - 旧 file sink を破棄すること。
+
+    // Act
+    int result = com_util_tracer_set_file_level(handle, "other.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0);
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - パス変更を伴う変更が成功すること。
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
+// started 中に level=NONE を指定するとファイル出力を無効化することの確認 (ケース 1)
+TEST_F(traceTest, test_set_file_level_disable_while_started)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - start 時に file sink を開くこと。
+    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+
+    // Pre-Assert: 無効化では既存ハンドルを破棄し、再オープンしない。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(file_handle_))
+        .Times(1); // [Pre-Assert確認_正常系] - 既存の file sink を破棄すること。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - 無効化では file sink を再生成しないこと。
+
+    // Act
+    int result = com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0);
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - ファイル出力の無効化が成功すること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
+              com_util_tracer_get_file_level(handle)); // [確認_正常系] - file レベルが NONE になること。
+    ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -639,7 +823,7 @@ TEST_F(traceTest, test_set_file_level_passes_flags_to_file_sink)
     // Act
     int result = com_util_tracer_set_file_level(
         handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
-        COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 共有フラグ付きで set_file_level を呼ぶ。
+        COM_UTIL_TRACE_FILE_SINK_SHARED);        // [手順] - 共有フラグ付きで set_file_level を呼ぶ。
     ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start で file sink を生成させる。
 
     // Assert
@@ -750,8 +934,8 @@ TEST_F(traceTest, test_set_name_with_identifier_updates_backend_name)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_rename(os_handle_, StrEq("worker-2")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - syslog ident が worker-2 へ更新されること。
+    EXPECT_CALL(mock_, com_util_syslog_sink_rename(os_handle_, StrEq("worker_2")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - syslog ident が worker_2 へ更新されること。
 #endif
 
     // Act
@@ -763,9 +947,9 @@ TEST_F(traceTest, test_set_name_with_identifier_updates_backend_name)
 #if defined(PLATFORM_WINDOWS)
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
     ASSERT_EQ(0, com_util_tracer_start(handle));
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, StrEq("worker-2"), StrEq("running as worker-2")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ETW サービス名が worker-2 に更新されること。
-    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker-2"));
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, StrEq("worker_2"), StrEq("running as worker_2")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ETW サービス名が worker_2 に更新されること。
+    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker_2"));
 #endif
 
     // Cleanup
@@ -785,7 +969,7 @@ TEST_F(traceTest, test_os_level_none_suppresses_output)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - syslog backend が呼ばれないこと。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _))
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - EventLog backend が呼ばれないこと。
 #endif
 
@@ -1000,7 +1184,7 @@ TEST_F(traceTest, test_set_name_does_not_affect_default_file_path)
     // Arrange
     com_util_tracer *handle = create_logger();
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_name(handle, "worker", 3)); // [手順] - インスタンス名を worker-3 に変更する。
+    ASSERT_EQ(0, com_util_tracer_set_name(handle, "worker", 3)); // [手順] - インスタンス名を worker_3 に変更する。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1020,11 +1204,11 @@ TEST_F(traceTest, test_set_file_name_reflects_to_default_file_path)
     // Arrange
     com_util_tracer *handle = create_logger();
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "custom", 2)); // [手順] - ファイル名を custom-2 に変更する。
+    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "custom", 2)); // [手順] - ファイル名を custom_2 に変更する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/custom-2.log"), 0, 0, 0))
-        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - custom-2 のデフォルト パスを開くこと。
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/custom_2.log"), 0, 0, 0))
+        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - custom_2 のデフォルト パスを開くこと。
 
     // Act & Assert
     ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
@@ -1073,10 +1257,10 @@ TEST_F(traceTest, test_getters_report_instance_and_file_settings_independently)
     ASSERT_EQ(0, com_util_tracer_set_name(handle, "worker", 2));      // [手順] - インスタンス側を設定する。
     ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "custom", 5)); // [手順] - ファイル側を設定する。
     ASSERT_EQ(0, com_util_tracer_get_name(handle, name_buf, sizeof(name_buf)));
-    EXPECT_STREQ("worker-2", name_buf);                   // [確認_正常系] - インスタンス名が識別込みで返ること。
+    EXPECT_STREQ("worker_2", name_buf);                   // [確認_正常系] - インスタンス名が識別込みで返ること。
     EXPECT_EQ(2, com_util_tracer_get_identifier(handle)); // [確認_正常系] - インスタンス識別が返ること。
     ASSERT_EQ(0, com_util_tracer_get_file_name(handle, file_buf, sizeof(file_buf)));
-    EXPECT_STREQ("custom-5", file_buf);                        // [確認_正常系] - ファイル名が識別込みで返ること。
+    EXPECT_STREQ("custom_5", file_buf);                        // [確認_正常系] - ファイル名が識別込みで返ること。
     EXPECT_EQ(5, com_util_tracer_get_file_identifier(handle)); // [確認_正常系] - ファイル識別が返ること。
 
     // Cleanup
@@ -1138,7 +1322,7 @@ TEST_F(traceTest, test_default_file_path_strips_exe_suffix_on_windows)
     ASSERT_EQ(0, com_util_tracer_set_file_name(handle, NULL, 7)); // [手順] - ファイル識別 7 を設定する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp-7.log"), 0, 0, 0))
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
         .WillOnce(
             Return(file_handle_)); // [Pre-Assert確認_正常系] - .exe を除いたプロセス名でデフォルト パスを開くこと。
 

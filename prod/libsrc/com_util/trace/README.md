@@ -29,7 +29,8 @@ Windows では、EventLog とは別に、開発者向けの低オーバーヘッ
 create -> set_name / set_* -> start -> write -> stop -> dispose
 ```
 
-started 中は設定変更できず、設定を変える場合は一度 `com_util_tracer_stop()` で stopped に戻します。  
+トレース レベルの変更 (`com_util_tracer_set_os_level()` 系) は started 中でも行えます。停止せずに閾値を変えられ、変更は排他制御下で原子的に反映されるため、旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。  
+識別子・ファイル名・フックの設定 (`com_util_tracer_set_name()`, `com_util_tracer_set_file_name()`, `com_util_tracer_set_hook()`, `com_util_tracer_remove_hook()`) は stopped 中のみ変更でき、変える場合は一度 `com_util_tracer_stop()` で stopped に戻します。  
 `com_util_tracer_dispose()` は started / stopped のどちらからでも呼べます。  
 `com_util_tracer_get_state()` を使うと、handle が `started` / `stopped` / `disposed` のどれかを確認できます。
 
@@ -134,7 +135,7 @@ flags に 0 を指定した場合は単一プロセス専用です。`COM_UTIL_T
 ### com_util_tracer_start / com_util_tracer_stop
 
 出力の開始と停止を行います。  
-設定変更は stopped 中、書き込みは started 中に行います。
+書き込みは started 中に行います。トレース レベルの変更は started / stopped のどちらでも行え、識別子・ファイル名・フックの設定は stopped 中に行います。
 
 ### com_util_tracer_get_state
 
@@ -222,7 +223,7 @@ com_util_tracer_dispose(tracer);
 
 ## 注意点
 
-- 設定関数は stopped 状態でのみ使えます
+- トレース レベルの設定関数は started / stopped のどちらでも使えます。識別子・ファイル名・フックの設定関数は stopped 状態でのみ使えます
 - メッセージ長には共通上限があり、長文は安全な範囲で切り詰められます
 - HEX 出力も上限があり、収まらない場合は末尾を省略します
 - ファイル出力はローカル ファイル システム向けです

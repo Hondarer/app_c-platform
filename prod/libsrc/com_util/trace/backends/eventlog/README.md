@@ -25,20 +25,24 @@ Windows のアプリケーション イベント ログへ運用ログを流し�
 - Windows では複数の `com_util_tracer` があっても、イベント ソース ハンドルは共有される
 - 通常のメッセージ出力は `com_util_tracer_write()` 系から透過的に EventLog へ流れる (既定は無効)
 - イベント ソースが共通のため、インスタンス識別名を本文先頭に `[name] ` 形式で付与してインスタンスを判別できるようにする
+- `ReportEventW` には置換文字列を 5 件渡し、メッセージ文字列、実行体ファイルパス、ファイル識別子、インスタンス名、インスタンス識別子を EventData に残す
+- 実行ファイル絶対パスは初回書き込み時に 1 度だけ解決し、以後はキャッシュを使用する
 - 分析性を高めるため、レベル毎に異なるイベント タイプ・イベント ID・カテゴリを割り当てる
 
 ### レベルとイベント属性の対応
 
-| トレース レベル | イベント タイプ | イベント ID | カテゴリ |
+| トレース レベル | イベント タイプ | イベント ID (識別子なし) | カテゴリ |
 |---|---|---|---|
-| `CRITICAL` | Error | 1 | 1 |
-| `ERROR` | Error | 2 | 2 |
-| `WARNING` | Warning | 3 | 3 |
-| `INFO` | Information | 4 | 4 |
-| `VERBOSE` | Information | 5 | 5 |
-| `DEBUG` | Information | 6 | 6 |
+| `CRITICAL` | Error | 0x1001 | 1 |
+| `ERROR` | Error | 0x1002 | 2 |
+| `WARNING` | Warning | 0x1003 | 3 |
+| `INFO` | Information | 0x1004 | 4 |
+| `VERBOSE` | Information | 0x1005 | 5 |
+| `DEBUG` | Information | 0x1006 | 6 |
 
-EventLog のイベント タイプは Error / Warning / Information の 3 種のみですが、レベル毎にイベント ID を分けることで、Event Viewer 側でのフィルターや分析を容易にします。
+EventLog のイベント タイプは Error / Warning / Information の 3 種のみですが、レベルと表示形式毎にイベント ID を分けることで、Event Viewer 側でのフィルターや分析を容易にします。
+
+イベント ID は 0x1000 番台に置きます。これは、メッセージ ファイル内でカテゴリ メッセージを 1 から CategoryCount までの ID に固定配置する必要があり、イベント メッセージの ID 空間と分離するためです。ファイル識別子またはインスタンス識別子が 0 以外の場合は、末尾の `_0` を出さないために別のイベント ID を使います。
 
 ## イベント ソースの登録
 
@@ -54,7 +58,9 @@ eventlog-register uninstall   共通イベント ソースの登録を削除す�
 `eventlog-register` は未昇格で起動された場合に UAC を要求して自身を再実行し、昇格プロセスは親コンソールを引き継いで結果を表示します。
 
 ソース未登録でも `ReportEventW` 自体は成功しますが、Event Viewer 上ではソース名の解決が行われません。  
-また本 backend はメッセージ リソース DLL を提供しないため (EventMessageFile 未設定)、Event Viewer ではイベント ID の説明が見つからない旨とともにメッセージ本文が併記されます。
+メッセージ テーブル リソース (MESSAGETABLE) は `eventlog-register.exe` に埋め込んであり、登録時に EventMessageFile と CategoryMessageFile へ自身の絶対パスを設定します。  
+これにより Event Viewer は本文 (`[インスタンス名] メッセージ`) とカテゴリ名のみを表示し、イベント ID の説明が見つからない旨の補完文は表示しません。
+Event Viewer の「全般」では、実行体ファイルパス、インスタンス名、メッセージ文字列の 3 行を表示します。ファイル識別子またはインスタンス識別子が 0 以外の場合は、それぞれ `_識別子` を付与します。イベント XML には 5 件の EventData が記録されるため、ログ収集側は各値を個別に参照できます。
 
 ## 代表的な使いどころ
 
@@ -73,7 +79,7 @@ eventlog-register uninstall   共通イベント ソースの登録を削除す�
 
 - Windows 専用です
 - イベント ソースの登録/削除には管理者権限が必要です
-- メッセージ リソース DLL は提供しないため、Event Viewer の表示にはイベント ID の説明が見つからない旨が併記されます
+- メッセージ テーブル リソースは `eventlog-register.exe` に埋め込み、登録時に EventMessageFile / CategoryMessageFile へ設定します。登録後の Event Viewer は本文とカテゴリ名のみを表示します
 - イベント ログのメッセージ サイズには上限があり、極端に長いメッセージは記録されません
 
 ## 使い分け

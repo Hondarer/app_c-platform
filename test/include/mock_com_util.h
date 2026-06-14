@@ -310,9 +310,10 @@ extern void delegate_real_com_util_etw_session_stop(com_util_etw_session *sessio
 // trace - eventlog (Windows only)
 extern com_util_eventlog_sink *delegate_real_com_util_eventlog_sink_create(const char *source_name);
 extern int delegate_real_com_util_eventlog_sink_write(com_util_eventlog_sink *handle, int level,
-                                                      const char *instance_name, const char *message);
+                                                      int64_t file_identifier, const char *instance_name,
+                                                      int64_t instance_identifier, const char *message);
 extern void delegate_real_com_util_eventlog_sink_dispose(com_util_eventlog_sink *handle);
-extern int delegate_real_com_util_eventlog_register_source(const char *source_name);
+extern int delegate_real_com_util_eventlog_register_source(const char *source_name, const char *message_file_path);
 extern int delegate_real_com_util_eventlog_unregister_source(const char *source_name);
 #endif /* PLATFORM_WINDOWS */
 
@@ -587,9 +588,10 @@ class Mock_com_util
 
     // trace - trace_eventlog (Windows only)
     MOCK_METHOD(com_util_eventlog_sink *, com_util_eventlog_sink_create, (const char *));
-    MOCK_METHOD(int, com_util_eventlog_sink_write, (com_util_eventlog_sink *, int, const char *, const char *));
+    MOCK_METHOD(int, com_util_eventlog_sink_write,
+                (com_util_eventlog_sink *, int, int64_t, const char *, int64_t, const char *));
     MOCK_METHOD(void, com_util_eventlog_sink_dispose, (com_util_eventlog_sink *));
-    MOCK_METHOD(int, com_util_eventlog_register_source, (const char *));
+    MOCK_METHOD(int, com_util_eventlog_register_source, (const char *, const char *));
     MOCK_METHOD(int, com_util_eventlog_unregister_source, (const char *));
 #endif /* PLATFORM_WINDOWS */
 

@@ -43,6 +43,7 @@ void eventlog_register_print_usage(const char *argv0)
 
 #if defined(PLATFORM_WINDOWS)
 
+    #include <com_util/crt/path.h>
     #include <com_util/runtime/process.h>
     #include <com_util/trace/eventlog.h>
 
@@ -114,6 +115,8 @@ static int do_install(void)
     int handled = 0;
     int rc;
     int status;
+    char exe_path[PLATFORM_PATH_MAX];
+    const char *message_file;
 
     rc = ensure_elevated("install", &handled);
     if (rc != 0 || handled != 0)
@@ -121,7 +124,19 @@ static int do_install(void)
         return rc;
     }
 
-    status = com_util_eventlog_register_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
+    /* メッセージ リソースは eventlog-register.exe 自身に埋め込んでいる。
+       自身の絶対パスを EventMessageFile / CategoryMessageFile に登録する。 */
+    message_file = NULL;
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0)
+    {
+        message_file = exe_path;
+    }
+    else
+    {
+        fprintf(stderr, "実行ファイルのパスを取得できませんでした。メッセージ リソースなしで登録します。\n");
+    }
+
+    status = com_util_eventlog_register_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, message_file);
     return report_status(status, "登録");
 }
 

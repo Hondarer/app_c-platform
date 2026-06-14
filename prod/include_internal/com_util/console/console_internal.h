@@ -33,6 +33,23 @@
  */
 #define COM_UTIL_CONSOLE_HANDOVER_FLAG "--com-util-attach-console"
 
+/**
+ *  @brief          昇格時の AttachConsole リトライ回数の上限。
+ *
+ *  UAC 昇格直後は子プロセスの一時コンソール (conhost) 割り当てが非同期に進むため、
+ *  com_util_console_attach_parent() の AttachConsole が一時的に失敗することがあります。
+ *  割り当てが落ち着くまで本回数を上限にリトライします。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS 50
+
+/**
+ *  @brief          昇格時の AttachConsole リトライ間隔 [ms]。
+ *
+ *  COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS と合わせて最悪待ち時間を決めます。
+ *  通常は 1 回目か 2 回目で接続できるため、待ち時間は無視できます。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS 10
+
 #ifdef __cplusplus
 extern "C"
 {
