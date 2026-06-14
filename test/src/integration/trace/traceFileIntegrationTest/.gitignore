@@ -1,5 +1,6 @@
 /clock.c
 /file.c
+/mock_com_util_eventlog_sink_dispose_on_unload.cc
 /process.c
 /stdio.c
 /time.c
