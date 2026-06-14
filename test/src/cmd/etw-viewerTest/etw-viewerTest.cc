@@ -179,7 +179,7 @@ TEST_F(etw_viewerTest, handle_event_prints_message_without_service)
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio_,
-                printf(_, _, _, StrEq("1970-01-01T09:00:00.000+09:00 <W>Company.Product[5678]: degraded\n")))
+                printf(_, _, _, StrEq("1970-01-01T09:00:00.000+09:00 <W>com_util.tracer[5678]: degraded\n")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - Service なしでは既定 tag を使って出力されること。
     EXPECT_CALL(mock_stdio_, fflush(_, _, _, _))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 出力後に flush されること。

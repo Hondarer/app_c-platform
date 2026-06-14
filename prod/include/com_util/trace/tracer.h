@@ -91,9 +91,13 @@
 #if defined(PLATFORM_WINDOWS)
 
     /**
-     *  @brief          com_util_tracer_create が使用するデフォルト ETW プロバイダー名。
+     *  @brief          com_util が使用するデフォルトの OS トレース識別子 (Windows)。
+     *
+     *  com_util_tracer_create が使用する ETW プロバイダー名と、
+     *  EventLog の共通イベント ソース名 (@ref eventlog.h) を兼ねます。\n
+     *  ETW と EventLog で同一の識別子を共用します。
      */
-    #define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "Company.Product"
+    #define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "com_util.tracer"
 
     /**
      *  @brief          デフォルト ETW プロバイダーの GUID (TraceLogging タプル形式)。
