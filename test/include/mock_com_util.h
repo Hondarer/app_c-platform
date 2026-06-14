@@ -172,6 +172,7 @@ extern void delegate_real_com_util_get_realtime_deadline_ms(uint64_t timeout_ms,
 // console
 extern void delegate_real_com_util_console_init(void);
 extern void delegate_real_com_util_console_dispose(void);
+extern int delegate_real_com_util_console_attach_parent(int *argc, char **argv);
 extern void delegate_real_com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
 
 // sync
@@ -458,6 +459,7 @@ class Mock_com_util
     // console
     MOCK_METHOD(void, com_util_console_init, ());
     MOCK_METHOD(void, com_util_console_dispose, ());
+    MOCK_METHOD(int, com_util_console_attach_parent, (int *, char **));
     MOCK_METHOD(void, com_util_console_dispose_on_shutdown, (const com_util_shutdown_event *, void *));
 
     // sync

@@ -127,6 +127,8 @@ Mock_com_util::Mock_com_util()
     // console
     ON_CALL(*this, com_util_console_init()).WillByDefault(Invoke(delegate_real_com_util_console_init));
     ON_CALL(*this, com_util_console_dispose()).WillByDefault(Invoke(delegate_real_com_util_console_dispose));
+    ON_CALL(*this, com_util_console_attach_parent(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_console_attach_parent));
 
     // sync
     ON_CALL(*this, com_util_local_lock_create(_)).WillByDefault(Invoke(delegate_real_com_util_local_lock_create));
