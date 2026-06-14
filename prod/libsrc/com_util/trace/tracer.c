@@ -32,6 +32,7 @@
     #include <com_util/trace/backends/syslog/syslog_internal.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/trace/backends/etw/etw_internal.h>
+    #include <com_util/trace/backends/eventlog/eventlog_internal.h>
 #endif /* PLATFORM_ */
 
 /* ===== Windows: TraceLogging プロバイダー定義 ===== */
@@ -46,6 +47,7 @@ TRACELOGGING_DEFINE_PROVIDER(s_trace_provider_ref, COM_UTIL_TRACER_DEFAULT_PROVI
 
 static volatile LONG s_trace_ref = 0;
 static com_util_etw_provider *s_etw_handle = NULL;
+static com_util_eventlog_sink *s_eventlog_handle = NULL;
 static com_util_local_lock *s_registry_lock;
 static com_util_once_flag s_registry_lock_once = {0};
 
@@ -107,6 +109,9 @@ struct com_util_tracer
     com_util_local_rwlock *config_rwlock;
 
     com_util_trace_level_t os_level;
+#if defined(PLATFORM_WINDOWS)
+    com_util_trace_level_t etw_level;
+#endif /* PLATFORM_WINDOWS */
     com_util_trace_level_t file_level;
     com_util_trace_level_t stderr_level;
     volatile int running;
@@ -655,6 +660,8 @@ static void trace_handle_release_normal(com_util_tracer *handle)
     {
         com_util_etw_provider_dispose(s_etw_handle);
         s_etw_handle = NULL;
+        com_util_eventlog_sink_dispose(s_eventlog_handle);
+        s_eventlog_handle = NULL;
     }
     free(handle->service_name);
 #endif /* PLATFORM_ */
@@ -779,6 +786,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
         handle->identifier = 0;
         handle->service_name = svc;
         handle->os_level = COM_UTIL_TRACER_DEFAULT_OS_LEVEL;
+        handle->etw_level = COM_UTIL_TRACER_DEFAULT_ETW_LEVEL;
         handle->file_level = COM_UTIL_TRACER_DEFAULT_FILE_LEVEL;
         handle->file_handle = NULL;
         handle->file_path = NULL;
@@ -811,6 +819,10 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
                 free(handle);
                 return NULL;
             }
+
+            /* EventLog は OS トレースの既定が無効 (NONE) であり、ソース未登録でも
+               運用に影響しないため、生成失敗は致命的としない (best-effort)。 */
+            s_eventlog_handle = com_util_eventlog_sink_create(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
         }
     }
 #endif /* PLATFORM_ */
@@ -825,6 +837,8 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
         {
             com_util_etw_provider_dispose(s_etw_handle);
             s_etw_handle = NULL;
+            com_util_eventlog_sink_dispose(s_eventlog_handle);
+            s_eventlog_handle = NULL;
         }
         free(handle->service_name);
 #endif /* PLATFORM_ */
@@ -949,22 +963,50 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
     return result;
 }
 
+static int should_output(const com_util_trace_level_t msg_level, const com_util_trace_level_t threshold);
+
 /**
- *  @brief          OS トレース プロバイダー (ETW または syslog) にメッセージを書き込む。
+ *  @brief          OS ネイティブのバックエンドにメッセージを書き込む。
  *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
  *  @param[in]      level       トレース レベル。
  *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
  *  @param[in]      msg         書き込むメッセージ文字列。
  *  @return         成功時 0、失敗時 -1。
+ *
+ *  Linux では os_level で syslog をゲートします。\n
+ *  Windows では ETW を etw_level で、EventLog を os_level で独立してゲートします。
+ *  各レベル判定を内部で行うため、本関数は常に呼び出せます。
  */
-static int write_to_provider(com_util_tracer *handle, const com_util_trace_level_t level,
+static int write_os_backends(com_util_tracer *handle, const com_util_trace_level_t level,
                              const com_util_realtime_timestamp *timestamp, const char *msg)
 {
 #if defined(PLATFORM_LINUX)
-    return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
+    if (should_output(level, handle->os_level))
+    {
+        return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
+    }
+    return 0;
 #elif defined(PLATFORM_WINDOWS)
+    int etw_result = 0;
+    int eventlog_result = 0;
+
     (void)timestamp;
-    return com_util_etw_provider_write(s_etw_handle, to_etw_level(level), handle->service_name, msg);
+
+    if (should_output(level, handle->etw_level))
+    {
+        etw_result = com_util_etw_provider_write(s_etw_handle, to_etw_level(level), handle->service_name, msg);
+    }
+
+    if (should_output(level, handle->os_level))
+    {
+        eventlog_result = com_util_eventlog_sink_write(s_eventlog_handle, (int)level, handle->service_name, msg);
+    }
+
+    if (etw_result != 0 || eventlog_result != 0)
+    {
+        return -1;
+    }
+    return 0;
 #endif /* PLATFORM_ */
 }
 
@@ -1097,10 +1139,7 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
         }
     }
 
-    if (should_output(level, handle->os_level))
-    {
-        os_result = write_to_provider(handle, level, effective_timestamp, msg);
-    }
+    os_result = write_os_backends(handle, level, effective_timestamp, msg);
 
     if (handle->file_handle != NULL && should_output(level, handle->file_level))
     {
@@ -1652,6 +1691,65 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *h
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_etw_level(com_util_tracer *handle)
+{
+#if defined(PLATFORM_WINDOWS)
+    com_util_trace_level_t lv;
+
+    if (!handle_is_active(handle))
+    {
+        return COM_UTIL_TRACE_LEVEL_NONE;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return COM_UTIL_TRACE_LEVEL_NONE;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return COM_UTIL_TRACE_LEVEL_NONE;
+    }
+    lv = handle->etw_level;
+    config_unlock_shared(handle);
+    return lv;
+#else  /* PLATFORM_LINUX */
+    /* Linux では ETW が存在しないため常に NONE を返す。 */
+    (void)handle;
+    return COM_UTIL_TRACE_LEVEL_NONE;
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle,
+                                                               const com_util_trace_level_t level)
+{
+#if defined(PLATFORM_WINDOWS)
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+
+    config_lock_exclusive(handle);
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    {
+        config_unlock_exclusive(handle);
+        return -1;
+    }
+
+    handle->etw_level = level;
+    config_unlock_exclusive(handle);
+    return 0;
+#else  /* PLATFORM_LINUX */
+    /* Linux では ETW が存在しないため何もしない。 */
+    (void)handle;
+    (void)level;
+    return 0;
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
@@ -1829,6 +1927,11 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
     {
         com_util_etw_provider_dispose_on_shutdown(s_etw_handle, event);
         s_etw_handle = NULL;
+    }
+    if (s_eventlog_handle != NULL)
+    {
+        com_util_eventlog_sink_dispose_on_shutdown(s_eventlog_handle, event);
+        s_eventlog_handle = NULL;
     }
     s_trace_ref = 0;
 #endif /* PLATFORM_WINDOWS */

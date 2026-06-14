@@ -40,6 +40,7 @@
 #include <com_util/trace/trace_file.h>
 #include <com_util/trace/syslog.h>
 #include <com_util/trace/etw.h>
+#include <com_util/trace/eventlog.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/pinned_prompt.h>
 
@@ -142,6 +143,7 @@ extern int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, co
                                                      size_t size, const char *format, ...);
 extern int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier);
 extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level_t level);
+extern int delegate_real_com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level_t level);
 extern int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
                                                         com_util_trace_level_t level, size_t max_bytes, int generations,
                                                         int flags);
@@ -155,6 +157,7 @@ extern void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_en
                                                          const char *message);
 extern com_util_tracer_state_t delegate_real_com_util_tracer_get_state(com_util_tracer *handle);
 extern com_util_trace_level_t delegate_real_com_util_tracer_get_os_level(com_util_tracer *handle);
+extern com_util_trace_level_t delegate_real_com_util_tracer_get_etw_level(com_util_tracer *handle);
 extern com_util_trace_level_t delegate_real_com_util_tracer_get_file_level(com_util_tracer *handle);
 extern com_util_trace_level_t delegate_real_com_util_tracer_get_stderr_level(com_util_tracer *handle);
 
@@ -302,6 +305,14 @@ extern com_util_etw_session *delegate_real_com_util_etw_session_start(const char
                                                                       com_util_etw_event_callback_t callback,
                                                                       void *context, int *out_status);
 extern void delegate_real_com_util_etw_session_stop(com_util_etw_session *session);
+
+// trace - eventlog (Windows only)
+extern com_util_eventlog_sink *delegate_real_com_util_eventlog_sink_create(const char *source_name);
+extern int delegate_real_com_util_eventlog_sink_write(com_util_eventlog_sink *handle, int level,
+                                                      const char *instance_name, const char *message);
+extern void delegate_real_com_util_eventlog_sink_dispose(com_util_eventlog_sink *handle);
+extern int delegate_real_com_util_eventlog_register_source(const char *source_name);
+extern int delegate_real_com_util_eventlog_unregister_source(const char *source_name);
 #endif /* PLATFORM_WINDOWS */
 
 // prompt
@@ -433,6 +444,7 @@ class Mock_com_util
                  const char *));
     MOCK_METHOD(int, com_util_tracer_set_name, (com_util_tracer *, const char *, int64_t));
     MOCK_METHOD(int, com_util_tracer_set_os_level, (com_util_tracer *, com_util_trace_level_t));
+    MOCK_METHOD(int, com_util_tracer_set_etw_level, (com_util_tracer *, com_util_trace_level_t));
     MOCK_METHOD(int, com_util_tracer_set_file_level,
                 (com_util_tracer *, const char *, com_util_trace_level_t, size_t, int, int));
     MOCK_METHOD(int, com_util_tracer_set_stderr_level, (com_util_tracer *, com_util_trace_level_t));
@@ -444,6 +456,7 @@ class Mock_com_util
                  const com_util_realtime_timestamp *, const char *));
     MOCK_METHOD(com_util_tracer_state_t, com_util_tracer_get_state, (com_util_tracer *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_os_level, (com_util_tracer *));
+    MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_etw_level, (com_util_tracer *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_file_level, (com_util_tracer *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_stderr_level, (com_util_tracer *));
 
@@ -569,6 +582,13 @@ class Mock_com_util
     MOCK_METHOD(com_util_etw_session *, com_util_etw_session_start,
                 (const char *, const char *, com_util_etw_event_callback_t, void *, int *));
     MOCK_METHOD(void, com_util_etw_session_stop, (com_util_etw_session *));
+
+    // trace - trace_eventlog (Windows only)
+    MOCK_METHOD(com_util_eventlog_sink *, com_util_eventlog_sink_create, (const char *));
+    MOCK_METHOD(int, com_util_eventlog_sink_write, (com_util_eventlog_sink *, int, const char *, const char *));
+    MOCK_METHOD(void, com_util_eventlog_sink_dispose, (com_util_eventlog_sink *));
+    MOCK_METHOD(int, com_util_eventlog_register_source, (const char *));
+    MOCK_METHOD(int, com_util_eventlog_unregister_source, (const char *));
 #endif /* PLATFORM_WINDOWS */
 
     // prompt

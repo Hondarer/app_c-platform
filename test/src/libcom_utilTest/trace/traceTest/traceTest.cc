@@ -60,6 +60,8 @@ class traceTest : public Test
     com_util_syslog_sink *os_handle_ = reinterpret_cast<com_util_syslog_sink *>(static_cast<uintptr_t>(0x1100));
 #elif defined(PLATFORM_WINDOWS)
     com_util_etw_provider *os_handle_ = reinterpret_cast<com_util_etw_provider *>(static_cast<uintptr_t>(0x1100));
+    com_util_eventlog_sink *eventlog_handle_ =
+        reinterpret_cast<com_util_eventlog_sink *>(static_cast<uintptr_t>(0x1300));
 #endif
 
     void SetUp() override
@@ -96,6 +98,9 @@ class traceTest : public Test
         ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
         ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
+        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
 #endif
     }
 
@@ -311,6 +316,67 @@ TEST_F(traceTest, test_write_routes_info_to_os_backend)
     // Cleanup
     com_util_tracer_dispose(handle);
 }
+
+// ETW トレース (etw_level) と OS トレース (os_level) が独立にゲートされることの確認
+TEST_F(traceTest, test_etw_and_os_levels_are_independent)
+{
+#if defined(PLATFORM_WINDOWS)
+    // Arrange: ETW は既定 (VERBOSE) のまま、OS トレース (EventLog) は無効にする。
+    com_util_tracer *handle = create_logger();
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
+              com_util_tracer_get_etw_level(handle)); // [確認_正常系] - ETW は既定で有効 (VERBOSE)。
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert: ETW へは送られるが、EventLog へは送られないこと。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("only etw"))).WillOnce(Return(0));
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - os_level=NONE のため EventLog へは送られないこと。
+
+    // Act
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "only etw");
+
+    // Assert
+    EXPECT_EQ(0, result);
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+#else
+    // Linux では ETW が存在しないため、etw_level は常に NONE を返し、設定は no-op となる。
+    com_util_tracer *handle = create_logger();
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE, com_util_tracer_get_etw_level(handle)); // [確認_正常系] - Linux は常に NONE。
+    EXPECT_EQ(0, com_util_tracer_set_etw_level(handle,
+                                               COM_UTIL_TRACE_LEVEL_WARNING)); // [確認_正常系] - 設定は no-op で成功。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
+              com_util_tracer_get_etw_level(handle)); // [確認_正常系] - 設定後も NONE のまま。
+    com_util_tracer_dispose(handle);
+#endif
+}
+
+#if defined(PLATFORM_WINDOWS)
+// OS トレース (os_level) が EventLog backend へ送られることの確認 (Windows)
+TEST_F(traceTest, test_write_routes_info_to_eventlog_backend)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert: INFO が EventLog backend へ 1 回送られること。
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
+                                                    StrEq("to eventlog")))
+        .WillOnce(Return(0));
+
+    // Act
+    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "to eventlog");
+
+    // Assert
+    EXPECT_EQ(0, result);
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+#endif /* PLATFORM_WINDOWS */
 
 // 明示タイムスタンプ付き INFO 出力が OS backend へ渡ることの確認
 TEST_F(traceTest, test_write_routes_explicit_timestamp_to_os_backend)

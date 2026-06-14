@@ -97,6 +97,8 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_tracer_set_name(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_tracer_set_name));
     ON_CALL(*this, com_util_tracer_set_os_level(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_set_os_level));
+    ON_CALL(*this, com_util_tracer_set_etw_level(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_tracer_set_etw_level));
     ON_CALL(*this, com_util_tracer_set_file_level(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_set_file_level));
     ON_CALL(*this, com_util_tracer_set_stderr_level(_, _))
@@ -107,6 +109,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_tracer_call_next_hook));
     ON_CALL(*this, com_util_tracer_get_state(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_get_state));
     ON_CALL(*this, com_util_tracer_get_os_level(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_get_os_level));
+    ON_CALL(*this, com_util_tracer_get_etw_level(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_get_etw_level));
     ON_CALL(*this, com_util_tracer_get_file_level(_))
         .WillByDefault(Invoke(delegate_real_com_util_tracer_get_file_level));
     ON_CALL(*this, com_util_tracer_get_stderr_level(_))
@@ -260,6 +263,18 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_etw_session_start(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_etw_session_start));
     ON_CALL(*this, com_util_etw_session_stop(_)).WillByDefault(Invoke(delegate_real_com_util_etw_session_stop));
+
+    // trace - trace_eventlog (Windows only)
+    ON_CALL(*this, com_util_eventlog_sink_create(_))
+        .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_create));
+    ON_CALL(*this, com_util_eventlog_sink_write(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_write));
+    ON_CALL(*this, com_util_eventlog_sink_dispose(_))
+        .WillByDefault(Invoke(delegate_real_com_util_eventlog_sink_dispose));
+    ON_CALL(*this, com_util_eventlog_register_source(_))
+        .WillByDefault(Invoke(delegate_real_com_util_eventlog_register_source));
+    ON_CALL(*this, com_util_eventlog_unregister_source(_))
+        .WillByDefault(Invoke(delegate_real_com_util_eventlog_unregister_source));
 #endif /* PLATFORM_WINDOWS */
 
     // prompt

@@ -180,12 +180,27 @@ typedef enum com_util_tracer_state_t
 /* ===== デフォルト トレース レベル ===== */
 
 /**
- *  @brief          com_util_tracer_create() が設定する OS トレース (ETW / syslog) のデフォルト レベル。
+ *  @brief          com_util_tracer_create() が設定する OS トレース (EventLog / syslog) のデフォルト レベル。
  *
- *  ユーザーが com_util_tracer_set_os_level() で変更するまで有効な初期値です。\n
- *  デフォルトは COM_UTIL_TRACE_LEVEL_NONE (無効) です。デフォルトの出力先はファイル トレースのみです。
+ *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。\n
+ *  運用者が参照する OS ネイティブの運用ログであり、ユーザーが
+ *  com_util_tracer_set_os_level() で変更するまで有効な初期値です。\n
+ *  デフォルトは COM_UTIL_TRACE_LEVEL_NONE (無効) です。
  */
 #define COM_UTIL_TRACER_DEFAULT_OS_LEVEL COM_UTIL_TRACE_LEVEL_NONE
+
+/**
+ *  @brief          com_util_tracer_create() が設定する ETW トレースのデフォルト レベル。
+ *
+ *  ETW (Event Tracing for Windows) は開発者向けの低オーバーヘッド診断チャネルであり、
+ *  OS トレース (EventLog) とは独立した軸として制御します。\n
+ *  ETW イベントはコンシューマー (etw-viewer など) が購読したときのみ実体化されるため、
+ *  デフォルトで有効 (COM_UTIL_TRACE_LEVEL_VERBOSE) としています。\n
+ *  ユーザーが com_util_tracer_set_etw_level() で変更するまで有効な初期値です。\n
+ *  本定義は Windows でのみ意味を持ちます。Linux では ETW は存在せず、
+ *  com_util_tracer_set_etw_level() / com_util_tracer_get_etw_level() は何もしません。
+ */
+#define COM_UTIL_TRACER_DEFAULT_ETW_LEVEL COM_UTIL_TRACE_LEVEL_VERBOSE
 
 /**
  *  @brief          com_util_tracer_create() が設定するファイル トレースのデフォルト レベル。
@@ -474,8 +489,11 @@ extern "C"
     /**
      *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定する。
      *
-     *  OS トレース (syslog ident / ETW サービス名) で使用する識別名を設定します。
+     *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
+     *  使用する識別名を設定します。
      *  識別名は @c {name} (identifier が 0 の場合) または @c {name}-{identifier} です。\n
+     *  EventLog はソースが com_util 共通のため、本識別名を本文先頭に付与して
+     *  インスタンスを判別可能にします。\n
      *  本関数はトレースファイル名には影響しません。トレースファイル名とファイル識別は
      *  com_util_tracer_set_file_name で独立して設定します。
      *
@@ -498,7 +516,8 @@ extern "C"
     /**
      *  @brief          解決済みのインスタンス名 (識別番号サフィックス込み) を取得する。
      *
-     *  OS トレース (syslog ident / ETW サービス名) で実際に使用される識別名を返します。\n
+     *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
+     *  実際に使用される識別名を返します。\n
      *  com_util_tracer_set_name 未呼び出しの場合は自プロセス名です。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
@@ -592,7 +611,9 @@ extern "C"
     COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_util_tracer *handle);
 
     /**
-     *  @brief          OS トレースの現在のスレッショルド レベルを取得する。
+     *  @brief          OS トレース (EventLog / syslog) の現在のスレッショルド レベルを取得する。
+     *
+     *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
@@ -604,7 +625,9 @@ extern "C"
     COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer *handle);
 
     /**
-     *  @brief          OS トレースのスレッショルド レベルを設定する。
+     *  @brief          OS トレース (EventLog / syslog) のスレッショルド レベルを設定する。
+     *
+     *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
@@ -616,6 +639,40 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle,
                                                                   com_util_trace_level_t level);
+
+    /**
+     *  @brief          ETW トレースの現在のスレッショルド レベルを取得する。
+     *
+     *  ETW は Windows 専用の独立した診断チャネルです。\n
+     *  Linux では ETW が存在しないため、常に COM_UTIL_TRACE_LEVEL_NONE を返します。
+     *
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
+     *  @return         現在のスレッショルド レベル。handle が NULL 時または Linux では
+     *                  COM_UTIL_TRACE_LEVEL_NONE。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  返される値は取得時点のスナップショットです。
+     */
+    COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_etw_level(com_util_tracer *handle);
+
+    /**
+     *  @brief          ETW トレースのスレッショルド レベルを設定する。
+     *
+     *  ETW は Windows 専用の独立した診断チャネルであり、OS トレース (EventLog) とは
+     *  別の軸として制御します。デフォルトは COM_UTIL_TRACER_DEFAULT_ETW_LEVEL です。\n
+     *  Linux では ETW が存在しないため、本関数は何もせず 0 を返します。
+     *
+     *  @param[in]      handle   com_util_tracer_create の戻り値。
+     *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
+     *  @return         成功 0 / 失敗 -1。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle,
+                                                                   com_util_trace_level_t level);
 
     /**
      *  @brief          ファイル トレースの現在のスレッショルド レベルを取得する。
