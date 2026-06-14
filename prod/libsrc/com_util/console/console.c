@@ -17,8 +17,9 @@
 #if defined(PLATFORM_WINDOWS)
 
     #include <com_util/base/windows_sdk.h>
+    #include <com_util/crt/stdio.h>
     #include <com_util/sync/sync.h>
-    #include <stdio.h>  /* stdout, stderr, freopen */
+    #include <stdio.h>  /* stdout, stderr */
     #include <stdlib.h> /* strtoul */
     #include <string.h> /* strncmp, strlen */
 
@@ -238,15 +239,15 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
 
     /* CRT レベルの標準ストリームを親コンソールへ再接続する
        (printf / fprintf 系が参照する) */
-    if (freopen("CONOUT$", "w", stdout) == NULL)
+    if (com_util_freopen("CONOUT$", "w", stdout, NULL) == NULL)
     {
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
     }
-    if (freopen("CONOUT$", "w", stderr) == NULL)
+    if (com_util_freopen("CONOUT$", "w", stderr, NULL) == NULL)
     {
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
     }
-    if (freopen("CONIN$", "r", stdin) == NULL)
+    if (com_util_freopen("CONIN$", "r", stdin, NULL) == NULL)
     {
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
     }

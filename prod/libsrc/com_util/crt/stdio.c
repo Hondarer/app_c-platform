@@ -77,6 +77,70 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *
 #endif /* PLATFORM_ */
 }
 
+COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out)
+{
+    if (path == NULL || modes == NULL || stream == NULL)
+    {
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
+        return NULL;
+    }
+
+#if defined(PLATFORM_LINUX)
+    {
+        FILE *fp;
+        errno = 0;
+        fp = freopen(path, modes, stream);
+        if (fp == NULL && errno_out != NULL)
+        {
+            *errno_out = errno;
+        }
+        return fp;
+    }
+#elif defined(PLATFORM_WINDOWS)
+    {
+        wchar_t wpath[PLATFORM_PATH_MAX];
+        wchar_t wmodes[64];
+        FILE *fp = NULL;
+        errno_t err;
+        size_t converted;
+
+        if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+        {
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
+            return NULL;
+        }
+
+        err = mbstowcs_s(&converted, wmodes, sizeof(wmodes) / sizeof(wmodes[0]), modes, _TRUNCATE);
+        if (err != 0)
+        {
+            if (errno_out != NULL)
+            {
+                *errno_out = EINVAL;
+            }
+            return NULL;
+        }
+
+        err = _wfreopen_s(&fp, wpath, wmodes, stream);
+        if (err != 0)
+        {
+            if (errno_out != NULL)
+            {
+                *errno_out = (int)err;
+            }
+            return NULL;
+        }
+
+        return fp;
+    }
+#endif /* PLATFORM_ */
+}
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
 {
     if (path == NULL)

@@ -17,6 +17,7 @@ Mock_com_util::Mock_com_util()
 
     // crt
     ON_CALL(*this, com_util_fopen(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fopen));
+    ON_CALL(*this, com_util_freopen(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_freopen));
     ON_CALL(*this, com_util_stat(_, _)).WillByDefault(Invoke(delegate_real_com_util_stat));
     ON_CALL(*this, com_util_open(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_open));
     ON_CALL(*this, com_util_access(_, _)).WillByDefault(Invoke(delegate_real_com_util_access));

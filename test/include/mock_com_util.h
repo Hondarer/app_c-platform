@@ -59,6 +59,7 @@ extern int delegate_real_com_util_passphrase_to_key(uint8_t *key, const uint8_t 
 
 // crt
 extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, int *errno_out);
+extern FILE *delegate_real_com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out);
 extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path);
 extern int delegate_real_com_util_open(const char *path, int flags, int mode);
 extern int delegate_real_com_util_access(const char *path, int mode);
@@ -361,6 +362,7 @@ class Mock_com_util
 
     // crt
     MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, int *));
+    MOCK_METHOD(FILE *, com_util_freopen, (const char *, const char *, FILE *, int *));
     MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, const char *));
     MOCK_METHOD(int, com_util_open, (const char *, int, int));
     MOCK_METHOD(int, com_util_access, (const char *, int));

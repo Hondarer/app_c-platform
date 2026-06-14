@@ -54,6 +54,21 @@ extern "C"
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out);
 
     /**
+     *  @brief          UTF-8 パスでストリームを再オープンします (`freopen` ラッパー)。
+     *  @param[in]      path       再オープンするファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[in]      modes      freopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
+     *  @param[in,out]  stream     再オープン対象のストリーム。NULL を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno 相当の値を格納します。
+     *  @return         成功時は FILE*、失敗時は NULL を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p stream を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char *modes, FILE *stream,
+                                                        int *errno_out);
+
+    /**
      *  @brief          UTF-8 パスのファイルを削除します (`remove` / `_wremove` ラッパー)。
      *  @param[in]      path  削除するファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @return         成功時は 0、失敗時は -1 を返します。
