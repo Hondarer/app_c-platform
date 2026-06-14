@@ -174,7 +174,7 @@ COM_UTIL_EXPORT com_util_eventlog_sink *COM_UTIL_API com_util_eventlog_sink_crea
 /* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level,
-                                                             const char *instance_name, const char *message)
+                                                              const char *instance_name, const char *message)
 {
     WORD type;
     WORD category;

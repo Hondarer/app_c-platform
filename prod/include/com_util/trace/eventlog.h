@@ -103,7 +103,7 @@ extern "C"
      *  ReportEventW は複数スレッドからの同時呼び出しをサポートしています。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_sink *handle, int level,
-                                                                 const char *instance_name, const char *message);
+                                                                  const char *instance_name, const char *message);
 
     /**
      *  @brief          イベント ログ書き込みハンドルを解放する。
