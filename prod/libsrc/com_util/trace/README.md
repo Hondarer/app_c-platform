@@ -9,11 +9,13 @@ short-title: "trace"
 
 ## 目的
 
-アプリケーションから見れば、Windows では ETW、Linux では syslog という違いを意識せずにトレースを書けます。  
-さらに、OS トレースとは別にファイル出力と `stderr` 出力を併用でき、それぞれに独立したしきい値を設定できます。
+アプリケーションから見れば、OS トレース (Windows では EventLog、Linux では syslog) の違いを意識せずにトレースを書けます。  
+OS トレースは運用者が参照する OS ネイティブの運用ログです。  
+さらに、OS トレースとは別にファイル出力と `stderr` 出力を併用でき、それぞれに独立したしきい値を設定できます。  
+Windows では、EventLog とは別に、開発者向けの低オーバーヘッド診断チャネルとして ETW を独立した軸で扱います。
 
 - OS ごとのトレース API 差異を吸収する
-- OS トレース / ファイル / `stderr` を同じハンドルで管理する
+- OS トレース (EventLog / syslog) / ETW / ファイル / `stderr` を同じハンドルで管理する
 - 出力先ごとに `CRITICAL` から `DEBUG` までのしきい値を分けられる
 - 呼び出し側は `trace.h` だけを見ればよい
 
@@ -43,8 +45,9 @@ started 中は設定変更できず、設定を変える場合は一度 `com_uti
 - `COM_UTIL_TRACE_LEVEL_DEBUG`: 最も詳細な診断情報
 - `COM_UTIL_TRACE_LEVEL_NONE`: 出力しない
 
-Windows ETW と Linux syslog には `VERBOSE` より細かい標準レベルがないため、`COM_UTIL_TRACE_LEVEL_DEBUG` は  
-OS トレースでは `COM_UTIL_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
+Linux syslog と Windows ETW には `VERBOSE` より細かい標準レベルがないため、`COM_UTIL_TRACE_LEVEL_DEBUG` は  
+これらでは `COM_UTIL_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
+Windows EventLog はイベント タイプが Error / Warning / Information の 3 種のみのため、`INFO` / `VERBOSE` / `DEBUG` はいずれも Information になりますが、分析性を高めるためレベル毎に異なるイベント ID とカテゴリを割り当てます。  
 一方でファイルと `stderr` では `DEBUG` を独立したレベル文字で区別します。
 
 各出力先は「設定レベル以上に重大なメッセージだけを出す」動作です。
@@ -53,23 +56,34 @@ OS トレースでは `COM_UTIL_TRACE_LEVEL_VERBOSE` と同じ詳細度として
 
 `com_util_tracer_create()` 直後の既定値は次のとおりです。
 
-- OS トレース: `COM_UTIL_TRACE_LEVEL_INFO`
-- ファイル: `COM_UTIL_TRACE_LEVEL_ERROR`
+- OS トレース (EventLog / syslog): `COM_UTIL_TRACE_LEVEL_NONE`
+- ETW (Windows のみ): `COM_UTIL_TRACE_LEVEL_VERBOSE`
+- ファイル: `COM_UTIL_TRACE_LEVEL_INFO`
 - `stderr`: `COM_UTIL_TRACE_LEVEL_NONE`
 
-ただし、ファイル出力はパス未設定のままでは有効になりません。  
-ファイルを使う場合は `com_util_tracer_set_file_level()` で出力先パスを設定します。
+OS トレースは既定で無効です。運用者が EventLog / syslog へ出力したい場合に `com_util_tracer_set_os_level()` で有効化します。  
+ETW は consumer (etw-viewer など) が購読したときのみ実体化される低オーバーヘッド機構のため、既定で有効です。  
+ファイル出力は既定で有効で、`com_util_tracer_set_file_level()` で出力先パスを設定しない場合は `com_util_tracer_start()` 時に既定パス (実行ファイルのディレクトリ配下の `log/{ファイル名}.log`) へ出力されます。
 
 ## 出力先
 
 ### OS トレース
 
-OS 標準のトレース基盤へ送ります。
+OS 標準のログ基盤 (運用者向け) へ送ります。
 
-- Windows: ETW
+- Windows: EventLog (イベント ログ)
 - Linux: syslog
 
-通常は `trace.h` 経由で使い、プラットフォームごとの backend を直接触る必要はありません。
+`com_util_tracer_set_os_level()` でしきい値を設定します (既定は無効)。  
+通常は `trace.h` 経由で使い、プラットフォームごとの backend を直接触る必要はありません。  
+Windows の EventLog はイベント ソースが com_util 全体で共通のため、利用前に `eventlog-register` コマンドでソースを登録します (後述)。
+
+### ETW (Windows のみ)
+
+開発者向けの低オーバーヘッド診断チャネルです。  
+`com_util_tracer_set_etw_level()` でしきい値を設定します (既定は `VERBOSE` で有効)。  
+ETW イベントは consumer (`etw-viewer` など) が購読したときのみ実体化されるため、既定で有効でも通常時のコストは小さく抑えられます。  
+Linux には ETW が存在しないため、`com_util_tracer_set_etw_level()` / `com_util_tracer_get_etw_level()` は何もせず、しきい値は常に `NONE` を返します。
 
 ### ファイル
 
@@ -100,7 +114,12 @@ OS 標準のトレース基盤へ送ります。
 
 ### com_util_tracer_set_os_level
 
-OS トレースのしきい値を設定します。
+OS トレース (Windows は EventLog、Linux は syslog) のしきい値を設定します。
+
+### com_util_tracer_set_etw_level
+
+ETW のしきい値を設定します (Windows のみ)。OS トレースとは独立した軸です。  
+Linux では何もせず、`com_util_tracer_get_etw_level()` は常に `NONE` を返します。
 
 ### com_util_tracer_set_file_level
 
@@ -189,8 +208,10 @@ com_util_tracer_dispose(tracer);
 
 ### Windows
 
-- OS トレースは ETW を使う
-- `trace` 上位では ETW プロバイダー登録を共有する
+- OS トレースは EventLog を使う (運用者向け。既定は無効)
+- ETW は独立した診断チャネルとして使う (既定で有効)
+- EventLog のイベント ソースと ETW プロバイダー登録は、いずれも `trace` 上位でプロセス内共有する
+- EventLog のイベント ソースは `eventlog-register` コマンドで登録/削除する
 - `stderr` とファイルは共通の書式で扱う
 
 ### Linux
@@ -209,6 +230,7 @@ com_util_tracer_dispose(tracer);
 
 ## backend ドキュメント
 
-- `backends/etw/README.md`: Windows ETW backend
+- `backends/eventlog/README.md`: Windows EventLog backend (OS トレース)
+- `backends/etw/README.md`: Windows ETW backend (独立した診断チャネル)
 - `backends/file/README.md`: ファイル backend
-- `backends/syslog/README.md`: Linux syslog backend
+- `backends/syslog/README.md`: Linux syslog backend (OS トレース)

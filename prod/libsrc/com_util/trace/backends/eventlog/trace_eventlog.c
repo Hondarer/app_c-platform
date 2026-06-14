@@ -40,13 +40,13 @@ struct com_util_eventlog_sink
 };
 
 /**
- *  @brief          トレース レベルをイベント タイプ・カテゴリー・イベント ID に写像する。
+ *  @brief          トレース レベルをイベント タイプ・カテゴリ・イベント ID に写像する。
  *  @param[in]      level     トレース レベル (0=CRITICAL 〜 5=DEBUG)。範囲外は Information 扱い。
  *  @param[out]     type      EventLog イベント タイプ (EVENTLOG_*_TYPE)。
- *  @param[out]     category  イベント カテゴリー (レベル毎に分離)。
+ *  @param[out]     category  イベント カテゴリ (レベル毎に分離)。
  *  @param[out]     event_id  イベント ID (レベル毎に分離)。
  *
- *  分析性を高めるため、同一ソースでもレベル毎にカテゴリーとイベント ID を
+ *  分析性を高めるため、同一ソースでもレベル毎にカテゴリとイベント ID を
  *  分けて割り当てます。
  */
 static void map_level(const int level, WORD *type, WORD *category, DWORD *event_id)

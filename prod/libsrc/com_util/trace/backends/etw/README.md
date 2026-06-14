@@ -4,25 +4,27 @@ short-title: "etw"
 
 # trace backend: etw
 
-`etw` backend は、Windows 上で `trace` の OS トレース出力を担当する backend です。  
+`etw` backend は、Windows 上で開発者向けの低オーバーヘッド診断チャネル (ETW) を担当する backend です。  
+OS トレース (運用者向け) は EventLog backend が担当しており、ETW はそれとは独立した軸 (`com_util_tracer_set_etw_level()`) で制御します。  
 通常の利用者は `com_util/trace/tracer.h` を経由して使い、ETW 固有 API が必要な場合だけ `com_util/trace/etw.h` を直接扱います。
 
 ## 目的
 
-Windows でトレースを OS 標準のイベント基盤へ流し、外部の ETW consumer から収集・観測できるようにします。
+Windows でトレースを ETW へ流し、外部の ETW consumer から収集・観測できるようにします。  
+ETW イベントは consumer が購読したときのみ実体化されるため、既定で有効 (`VERBOSE`) でも通常時のコストは小さく抑えられます。
 
-- Windows 標準のトレース経路に統合できる
+- 開発者向けの高頻度な診断トレースを低コストで出せる
 - アプリケーション ログを Event Tracing for Windows へ送れる
-- `trace` 上位からは syslog との差異を意識せずに使える
+- OS トレース (EventLog) とは独立した軸で有効/無効としきい値を設定できる
 
 ## 設計の要点
 
 この backend は TraceLogging ベースで実装されています。  
 出力イベントは `Trace` イベントとして記録され、主に `Service` と `Message` の情報を持ちます。
 
-- `trace` 上位では OS トレースの出力先として利用される
+- `trace` 上位では OS トレース (EventLog) とは別の独立した診断チャネルとして利用される
 - Windows では複数の `com_util_tracer` があっても、ETW プロバイダー登録は共有される
-- 通常のメッセージ出力は `com_util_tracer_write()` 系から透過的に ETW へ流れる
+- 通常のメッセージ出力は `com_util_tracer_write()` 系から透過的に ETW へ流れる (既定で有効)
 - `COM_UTIL_TRACE_LEVEL_VERBOSE` と `COM_UTIL_TRACE_LEVEL_DEBUG` はどちらも ETW Level 5 として扱われる
 
 ## 代表的な使いどころ
@@ -30,7 +32,7 @@ Windows でトレースを OS 標準のイベント基盤へ流し、外部の E
 ### trace.h から使う場合
 
 通常はこちらです。  
-`com_util_tracer_set_os_level()` で OS トレースを有効にし、`com_util_tracer_start()` 後に書き込みます。
+ETW は既定で有効です。しきい値を変えたい場合は `com_util_tracer_set_etw_level()` を使い、`com_util_tracer_start()` 後に書き込みます。
 
 ### etw.h を直接使う場合
 

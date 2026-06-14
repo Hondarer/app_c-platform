@@ -13,7 +13,7 @@ Linux の標準ログ経路へトレースを流し、systemd / rsyslog など�
 
 - Linux 標準のログ基盤に接続できる
 - アプリケーション側は syslog API を直接知らなくてよい
-- `trace` 上位からは Windows ETW と同じ感覚で OS トレースを使える
+- `trace` 上位からは Windows EventLog と同じ感覚で OS トレースを使える
 
 ## 設計の要点
 
@@ -28,7 +28,7 @@ Linux の標準ログ経路へトレースを流し、systemd / rsyslog など�
 ## trace から見た役割
 
 Linux では OS トレース先が syslog になります。  
-そのため `trace.h` の利用者は、Windows では ETW、Linux では syslog へ出ることだけ意識すれば十分です。
+そのため `trace.h` の利用者は、Windows では EventLog、Linux では syslog へ出ることだけ意識すれば十分です。
 
 ## backend 単体の役割
 

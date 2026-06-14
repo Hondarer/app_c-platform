@@ -47,7 +47,7 @@
 /**
  *  @brief          EventLog が扱うトレース レベルの数。
  *
- *  レベル毎にイベント ID とカテゴリーを割り当てるため、登録時の
+ *  レベル毎にイベント ID とカテゴリを割り当てるため、登録時の
  *  CategoryCount に使用します。
  */
 #define COM_UTIL_EVENTLOG_LEVEL_COUNT 6
