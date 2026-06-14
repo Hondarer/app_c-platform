@@ -785,8 +785,8 @@ TEST_F(traceTest, test_os_level_none_suppresses_output)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - syslog backend が呼ばれないこと。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(_, _, _, _))
-        .Times(0); // [Pre-Assert確認_正常系] - ETW backend が呼ばれないこと。
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - EventLog backend が呼ばれないこと。
 #endif
 
     // Act
