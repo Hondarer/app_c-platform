@@ -34,6 +34,11 @@
 ;// 素のコード値に一致させる。イベントのアイコン (Error/Warning/Information) は
 ;// ReportEventW の wType 引数で決まり、ここでの Severity とは独立する。
 ;//
+;// 非英語環境では Event Viewer のカテゴリ解決がシステム ロケールのリソースを要求し、
+;// 本文解決 (FormatMessage) と違って Neutral へフォールバックしない。このため番号 (1) 等で
+;// 表示される。回避策として ja-JP (0x411) の言語版を Neutral と同一文字列で併記する。
+;// see: https://www.veritas.com/support/en_US/article.100027528
+;//
 
 MessageIdTypedef=DWORD
 
@@ -47,6 +52,7 @@ FacilityNames=(
 
 LanguageNames=(
     Neutral=0x0:MSG00001
+    Japanese=0x411:MSG00411
 )
 
 ;// ===== カテゴリ メッセージ (1-6) =====
@@ -58,12 +64,18 @@ SymbolicName=COM_UTIL_EVENTLOG_CAT_CRITICAL
 Language=Neutral
 CRITICAL
 .
+Language=Japanese
+CRITICAL
+.
 
 MessageId=0x2
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_CAT_ERROR
 Language=Neutral
+ERROR
+.
+Language=Japanese
 ERROR
 .
 
@@ -74,12 +86,18 @@ SymbolicName=COM_UTIL_EVENTLOG_CAT_WARNING
 Language=Neutral
 WARNING
 .
+Language=Japanese
+WARNING
+.
 
 MessageId=0x4
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_CAT_INFO
 Language=Neutral
+INFO
+.
+Language=Japanese
 INFO
 .
 
@@ -90,12 +108,18 @@ SymbolicName=COM_UTIL_EVENTLOG_CAT_VERBOSE
 Language=Neutral
 VERBOSE
 .
+Language=Japanese
+VERBOSE
+.
 
 MessageId=0x6
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_CAT_DEBUG
 Language=Neutral
+DEBUG
+.
+Language=Japanese
 DEBUG
 .
 
@@ -108,12 +132,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL
 Language=Neutral
 %2%n%4%n%n%1%0
 .
+Language=Japanese
+%2%n%4%n%n%1%0
+.
 
 MessageId=0x1002
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR
 Language=Neutral
+%2%n%4%n%n%1%0
+.
+Language=Japanese
 %2%n%4%n%n%1%0
 .
 
@@ -124,12 +154,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING
 Language=Neutral
 %2%n%4%n%n%1%0
 .
+Language=Japanese
+%2%n%4%n%n%1%0
+.
 
 MessageId=0x1004
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO
 Language=Neutral
+%2%n%4%n%n%1%0
+.
+Language=Japanese
 %2%n%4%n%n%1%0
 .
 
@@ -140,12 +176,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE
 Language=Neutral
 %2%n%4%n%n%1%0
 .
+Language=Japanese
+%2%n%4%n%n%1%0
+.
 
 MessageId=0x1006
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG
 Language=Neutral
+%2%n%4%n%n%1%0
+.
+Language=Japanese
 %2%n%4%n%n%1%0
 .
 
@@ -158,12 +200,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4%n%n%1%0
+.
 
 MessageId=0x1012
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_FILE
 Language=Neutral
+%2_%3%n%4%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4%n%n%1%0
 .
 
@@ -174,12 +222,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4%n%n%1%0
+.
 
 MessageId=0x1014
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_FILE
 Language=Neutral
+%2_%3%n%4%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4%n%n%1%0
 .
 
@@ -190,12 +244,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4%n%n%1%0
+.
 
 MessageId=0x1016
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_FILE
 Language=Neutral
+%2_%3%n%4%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4%n%n%1%0
 .
 
@@ -208,12 +268,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1022
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_INSTANCE
 Language=Neutral
+%2%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2%n%4_%5%n%n%1%0
 .
 
@@ -224,12 +290,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1024
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_INSTANCE
 Language=Neutral
+%2%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2%n%4_%5%n%n%1%0
 .
 
@@ -240,12 +312,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1026
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_INSTANCE
 Language=Neutral
+%2%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2%n%4_%5%n%n%1%0
 .
 
@@ -258,12 +336,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1032
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_BOTH
 Language=Neutral
+%2_%3%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4_%5%n%n%1%0
 .
 
@@ -274,12 +358,18 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1034
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_BOTH
 Language=Neutral
+%2_%3%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4_%5%n%n%1%0
 .
 
@@ -290,11 +380,17 @@ SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
+Language=Japanese
+%2_%3%n%4_%5%n%n%1%0
+.
 
 MessageId=0x1036
 Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_BOTH
 Language=Neutral
+%2_%3%n%4_%5%n%n%1%0
+.
+Language=Japanese
 %2_%3%n%4_%5%n%n%1%0
 .
