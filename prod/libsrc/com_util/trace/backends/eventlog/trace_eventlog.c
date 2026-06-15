@@ -63,6 +63,16 @@ struct com_util_eventlog_sink
 static com_util_once_flag s_executable_path_once = {0};
 static wchar_t s_executable_path[PLATFORM_PATH_MAX] = L"";
 
+static com_util_once_flag s_user_sid_once = {0};
+/* TOKEN_USER 本体に続けて可変長 SID を格納するため、最大 SID サイズ分を確保する。
+   union により TOKEN_USER の境界整合を保証する。 */
+static union
+{
+    TOKEN_USER token_user;
+    unsigned char bytes[sizeof(TOKEN_USER) + SECURITY_MAX_SID_SIZE];
+} s_user_sid_buffer;
+static PSID s_user_sid = NULL;
+
 /**
  *  @brief          トレース レベルをイベント タイプ・カテゴリ・イベント ID に写像する。
  *  @param[in]      level     トレース レベル (0=CRITICAL 〜 5=DEBUG)。範囲外は Information 扱い。
@@ -206,6 +216,43 @@ static const wchar_t *cached_executable_path(void)
 {
     com_util_call_once(&s_executable_path_once, init_executable_path_cache);
     return s_executable_path;
+}
+
+/**
+ *  @brief          現在のプロセスのユーザー SID を初回だけ取得し、キャッシュする。
+ *
+ *  プロセス トークンから TokenUser 情報を取得し、SID をキャッシュ バッファーへ
+ *  格納する。取得に失敗した場合は s_user_sid を NULL のままとし、以後は再試行しない。
+ */
+static void init_user_sid_cache(void)
+{
+    HANDLE token = NULL;
+    DWORD needed = 0;
+
+    s_user_sid = NULL;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+    {
+        return;
+    }
+
+    if (GetTokenInformation(token, TokenUser, &s_user_sid_buffer, (DWORD)sizeof(s_user_sid_buffer), &needed))
+    {
+        s_user_sid = s_user_sid_buffer.token_user.User.Sid;
+    }
+    CloseHandle(token);
+}
+
+/**
+ *  @brief          キャッシュ済みのプロセス ユーザー SID を取得する。
+ *  @return         ユーザー SID。取得失敗時は NULL。
+ *
+ *  NULL を ReportEventW の lpUserSid に渡すと、Event Viewer の「ユーザー」列は
+ *  未設定 (N/A) となり、従来動作と一致する。
+ */
+static PSID cached_user_sid(void)
+{
+    com_util_call_once(&s_user_sid_once, init_user_sid_cache);
+    return s_user_sid;
 }
 
 /**
@@ -370,7 +417,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_
     strings[2] = wfile_id;
     strings[3] = winstance;
     strings[4] = winstance_id;
-    ok = ReportEventW(handle->source, type, category, event_id, NULL, EVENTLOG_STRING_COUNT, 0, strings, NULL);
+    ok = ReportEventW(handle->source, type, category, event_id, cached_user_sid(), EVENTLOG_STRING_COUNT, 0, strings,
+                      NULL);
     free(wmsg);
     free(wfile_id);
     free(winstance);
