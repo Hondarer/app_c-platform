@@ -1,35 +1,34 @@
-;// eventlog_messages.mc
+﻿;// eventlog_messages.mc
 ;//
-;// Message table for the com_util EventLog backend.
-;// Embedded into eventlog-register.exe; registered as EventMessageFile and
-;// CategoryMessageFile (pointing to the exe itself) at install time.
+;// com_util EventLog backend 用のメッセージ テーブル。
+;// eventlog-register.exe に埋め込み、インストール時に EventMessageFile と
+;// CategoryMessageFile へ (この exe 自身を指す) 絶対パスとして登録する。
 ;//
-;// Category messages : MessageId 0x1-0x6      (level names CRITICAL..DEBUG)
-;// Event messages    : MessageId 0x1001-0x1036
-;// ReportEventW passes five insertion strings:
-;//   %1 message
-;//   %2 executable path
-;//   %3 file identifier
-;//   %4 instance name
-;//   %5 instance identifier
-;// Message text variants omit the underscore when an identifier is empty.
+;// カテゴリ メッセージ : MessageId 0x1-0x6      (レベル名 CRITICAL..DEBUG)
+;// イベント メッセージ : MessageId 0x1001-0x1036
+;// ReportEventW には 5 件の置換文字列を渡す:
+;//   %1 メッセージ
+;//   %2 実行体ファイルパス
+;//   %3 ファイル識別子
+;//   %4 インスタンス名
+;//   %5 インスタンス識別子
+;// 識別子が空のときは末尾のアンダースコアを出さない別パターンを使う。
 ;//
-;// EventMessageFile and CategoryMessageFile point to the same file, so the
-;// message-table ID space is shared. Categories must occupy IDs 1..CategoryCount
-;// per the Windows convention, so event IDs are placed in the 0x1000 range to
-;// avoid collision.
+;// EventMessageFile と CategoryMessageFile は同一ファイルを指すため、
+;// メッセージ テーブルの ID 空間は共有される。カテゴリは Windows の慣例で
+;// 1..CategoryCount に固定配置する必要があるため、イベント ID は衝突を避けて
+;// 0x1000 番台に置く。
 ;//
-;// Keep the IDs in sync with map_level() in trace_eventlog.c:
-;//   no identifiers        : event_id = 0x1001 + level
-;//   file identifier only  : event_id = 0x1011 + level
-;//   instance identifier   : event_id = 0x1021 + level
-;//   both identifiers      : event_id = 0x1031 + level
+;// ID は trace_eventlog.c の map_level() と一致させること:
+;//   識別子なし          : event_id = 0x1001 + level
+;//   ファイル識別子のみ  : event_id = 0x1011 + level
+;//   インスタンス識別子  : event_id = 0x1021 + level
+;//   両方の識別子        : event_id = 0x1031 + level
 ;//   category = level + 1
 ;//
-;// Every entry uses Severity=Success(0) / Facility=App(0) so the composite
-;// message ID equals the raw code value. The event icon (Error/Warning/
-;// Information) is decided by the wType argument of ReportEventW, independent
-;// of the Severity used here.
+;// 全エントリは Severity=Success(0) / Facility=App(0) とし、合成メッセージ ID を
+;// 素のコード値に一致させる。イベントのアイコン (Error/Warning/Information) は
+;// ReportEventW の wType 引数で決まり、ここでの Severity とは独立する。
 ;//
 
 MessageIdTypedef=DWORD
@@ -46,7 +45,7 @@ LanguageNames=(
     Neutral=0x0:MSG00001
 )
 
-;// ===== Category messages (1-6) =====
+;// ===== カテゴリ メッセージ (1-6) =====
 
 MessageId=0x1
 Severity=Success
@@ -96,7 +95,7 @@ Language=Neutral
 DEBUG
 .
 
-;// ===== Event messages: no identifiers (0x1001-0x1006) =====
+;// ===== イベント メッセージ: 識別子なし (0x1001-0x1006) =====
 
 MessageId=0x1001
 Severity=Success
@@ -158,7 +157,7 @@ Language=Neutral
 %1%0
 .
 
-;// ===== Event messages: file identifier only (0x1011-0x1016) =====
+;// ===== イベント メッセージ: ファイル識別子のみ (0x1011-0x1016) =====
 
 MessageId=0x1011
 Severity=Success
@@ -220,7 +219,7 @@ Language=Neutral
 %1%0
 .
 
-;// ===== Event messages: instance identifier only (0x1021-0x1026) =====
+;// ===== イベント メッセージ: インスタンス識別子のみ (0x1021-0x1026) =====
 
 MessageId=0x1021
 Severity=Success
@@ -282,7 +281,7 @@ Language=Neutral
 %1%0
 .
 
-;// ===== Event messages: both identifiers (0x1031-0x1036) =====
+;// ===== イベント メッセージ: 両方の識別子 (0x1031-0x1036) =====
 
 MessageId=0x1031
 Severity=Success
