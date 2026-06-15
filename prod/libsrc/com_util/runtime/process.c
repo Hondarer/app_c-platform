@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1391,13 +1392,17 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const c
         if (inherit_console != 0)
         {
             DWORD parent_pid;
+            unsigned long long parent_console_window;
             size_t arg_len;
             size_t buf_sz;
 
             parent_pid = GetCurrentProcessId();
+            /* 親コンソールの window ハンドルを引き継ぎ、子側が一時コンソールではなく
+               親コンソールへ確実に再接続できたかを確認できるようにする。 */
+            parent_console_window = (unsigned long long)(uintptr_t)GetConsoleWindow();
             arg_len = (arguments != NULL) ? strlen(arguments) : 0;
-            /* 区切り空白 + フラグ + '=' + PID (最大 10 桁) + 終端の余裕を確保する */
-            buf_sz = arg_len + strlen(COM_UTIL_CONSOLE_HANDOVER_FLAG) + 32;
+            /* 区切り空白 + フラグ + '=' + PID (最大 10 桁) + ':' + HWND (最大 20 桁) + 終端の余裕を確保する */
+            buf_sz = arg_len + strlen(COM_UTIL_CONSOLE_HANDOVER_FLAG) + 48;
             combined_arguments = (char *)malloc(buf_sz);
             if (combined_arguments == NULL)
             {
@@ -1406,13 +1411,13 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_elevated_if_needed(const c
             }
             if (arg_len > 0)
             {
-                snprintf(combined_arguments, buf_sz, "%s %s=%lu", arguments, COM_UTIL_CONSOLE_HANDOVER_FLAG,
-                         (unsigned long)parent_pid);
+                snprintf(combined_arguments, buf_sz, "%s %s=%lu:%llu", arguments, COM_UTIL_CONSOLE_HANDOVER_FLAG,
+                         (unsigned long)parent_pid, parent_console_window);
             }
             else
             {
-                snprintf(combined_arguments, buf_sz, "%s=%lu", COM_UTIL_CONSOLE_HANDOVER_FLAG,
-                         (unsigned long)parent_pid);
+                snprintf(combined_arguments, buf_sz, "%s=%lu:%llu", COM_UTIL_CONSOLE_HANDOVER_FLAG,
+                         (unsigned long)parent_pid, parent_console_window);
             }
             effective_arguments = combined_arguments;
         }

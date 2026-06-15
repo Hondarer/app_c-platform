@@ -28,8 +28,11 @@
  *  @brief          昇格プロセスへ親コンソール引き継ぎを指示する内部フラグ。
  *
  *  com_util_process_run_elevated_if_needed() が昇格プロセスのコマンドラインへ
- *  `<FLAG>=<親プロセス ID>` の形式で付与し、com_util_console_attach_parent() が
- *  これを検出して親コンソールへ再接続します。
+ *  `<FLAG>=<親プロセス ID>:<親コンソール window ハンドル>` の形式で付与し、
+ *  com_util_console_attach_parent() がこれを検出して親コンソールへ再接続します。\n
+ *  window ハンドル部は省略可能で、子側は再接続後に GetConsoleWindow() がこの値に
+ *  一致するまで待つことで、一時コンソールではなく親コンソールへ確実に繋がったことを
+ *  確認します。旧形式 (`<FLAG>=<親プロセス ID>`) も後方互換で受理します。
  */
 #define COM_UTIL_CONSOLE_HANDOVER_FLAG "--com-util-attach-console"
 

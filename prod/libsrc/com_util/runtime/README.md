@@ -38,7 +38,7 @@ short-title: "runtime"
 `com_util_module_get_path()` は関数アドレスが属するモジュールを返すため、Windows では DLL を指しうます。`com_util_process_get_executable_path()` は常にプロセス本体 (`.exe`) のパスを返します。  
 典型的には、サービス登録時の `ExecStart` や SCM の `binPath` 設定に使います。
 
-`com_util_process_run_elevated_if_needed()` は、権限が必要な処理の入口で呼び出します。Windows では未昇格の場合に UAC を要求して現在の実行ファイルを再起動し、Linux では実効ユーザー ID が root でなければ失敗します。
+`com_util_process_run_elevated_if_needed()` は、権限が必要な処理の入口で呼び出します。Windows では未昇格の場合に UAC を要求して現在の実行ファイルを再起動し、Linux では実効ユーザー ID が root でなければ失敗します。Windows で親にコンソールがある場合は、昇格プロセスのコマンド ラインへ親プロセス ID と親コンソールの window ハンドルを引き継ぎフラグとして付与します。昇格プロセス側は `com_util_console_attach_parent()` でこれを検出し、親コンソールへ確実に再接続したことを確認したうえで出力を元のコンソールへ戻します。
 
 ### sym_loader
 

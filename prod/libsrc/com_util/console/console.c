@@ -19,8 +19,9 @@
     #include <com_util/base/windows_sdk.h>
     #include <com_util/crt/stdio.h>
     #include <com_util/sync/sync.h>
+    #include <stdint.h> /* uintptr_t */
     #include <stdio.h>  /* stdout, stderr */
-    #include <stdlib.h> /* strtoul */
+    #include <stdlib.h> /* strtoul, strtoull */
     #include <string.h> /* strncmp, strlen */
 
 /* 初期化前のコンソール状態を保存 */
@@ -135,13 +136,16 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
  *  @brief          argv から親コンソール引き継ぎフラグを取り出して除去する。
  *  @param[in,out]  argc     引数の数へのポインター。
  *  @param[in,out]  argv     引数配列。
- *  @param[out]     out_pid  取り出した親プロセス ID の格納先。
+ *  @param[out]     out_pid     取り出した親プロセス ID の格納先。
+ *  @param[out]     out_window  取り出した親コンソール window ハンドルの格納先 (省略時は NULL)。
  *  @return         有効なフラグを検出した場合は 1、そうでない場合は 0 を返します。
  *
- *  フラグを検出した場合は、PID の解析可否にかかわらず @p argv から取り除き、
+ *  フラグの値は `<PID>` または `<PID>:<HWND>` 形式です。@p out_window には HWND を
+ *  復元して格納し、HWND が無い・不正な場合は NULL を格納します。\n
+ *  フラグを検出した場合は、値の解析可否にかかわらず @p argv から取り除き、
  *  @p argc を 1 減らします。PID が不正な場合は 0 を返します。
  */
-static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
+static int extract_handover_args(int *argc, char **argv, DWORD *out_pid, HWND *out_window)
 {
     const char *prefix = COM_UTIL_CONSOLE_HANDOVER_FLAG "=";
     size_t prefix_len;
@@ -149,8 +153,9 @@ static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
     int i;
     int found;
     DWORD pid;
+    HWND window;
 
-    if (argc == NULL || argv == NULL || out_pid == NULL)
+    if (argc == NULL || argv == NULL || out_pid == NULL || out_window == NULL)
     {
         return 0;
     }
@@ -159,6 +164,7 @@ static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
     n = *argc;
     found = 0;
     pid = 0;
+    window = NULL;
 
     for (i = 1; i < n; i++)
     {
@@ -173,10 +179,24 @@ static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
 
         endp = NULL;
         value = strtoul(argv[i] + prefix_len, &endp, 10);
-        if (endp != argv[i] + prefix_len && *endp == '\0' && value != 0)
+        if (endp != argv[i] + prefix_len && (*endp == '\0' || *endp == ':') && value != 0)
         {
             pid = (DWORD)value;
             found = 1;
+
+            /* 区切り ':' に続く HWND を任意で解析する (旧形式の PID のみでも受理する) */
+            if (*endp == ':')
+            {
+                const char *window_text = endp + 1;
+                char *window_endp = NULL;
+                unsigned long long window_value;
+
+                window_value = strtoull(window_text, &window_endp, 10);
+                if (window_endp != window_text && *window_endp == '\0')
+                {
+                    window = (HWND)(uintptr_t)window_value;
+                }
+            }
         }
 
         /* フラグを取り除いて後続を前へ詰める (不正値でも除去する) */
@@ -192,6 +212,7 @@ static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
     if (found)
     {
         *out_pid = pid;
+        *out_window = window;
     }
     return found;
 }
@@ -199,6 +220,7 @@ static int extract_handover_pid(int *argc, char **argv, DWORD *out_pid)
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
 {
     DWORD parent_pid;
+    HWND parent_window;
     HANDLE h_out;
     HANDLE h_err;
     HANDLE h_in;
@@ -206,7 +228,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     int attempt;
 
     parent_pid = 0;
-    if (!extract_handover_pid(argc, argv, &parent_pid))
+    parent_window = NULL;
+    if (!extract_handover_args(argc, argv, &parent_pid, &parent_window))
     {
         return 0;
     }
@@ -214,21 +237,59 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     /* 昇格時に割り当てられた一時コンソールを切り離し、親コンソールへ接続する。
        昇格直後は子の一時コンソール (conhost) 割り当てが非同期に進むため、
        自前コンソールへ繋がったままだと AttachConsole が ERROR_ACCESS_DENIED で
-       失敗することがある。割り当てが落ち着くまで有界リトライする。 */
+       失敗することがある。割り当てが落ち着くまで有界リトライする。\n
+       さらに、AttachConsole が成功しても親コンソールの window ハンドルが取得できる
+       状態になるまでには間がある。親 HWND が判っている場合は GetConsoleWindow() が
+       親 HWND に一致するまで待ち、一時コンソールへ出力が吸われるのを防ぐ。
+       全試行で一致しない場合は、素の AttachConsole 成功を受理してフォールバックする。 */
     attached = 0;
     for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
     {
         FreeConsole();
         if (AttachConsole(parent_pid))
         {
-            attached = 1;
-            break;
+            if (parent_window == NULL || GetConsoleWindow() == parent_window)
+            {
+                attached = 1;
+                break;
+            }
         }
         Sleep(COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS);
     }
-    if (attached == 0)
+    if (attached == 0 && GetConsoleWindow() == NULL)
     {
+        /* HWND 一致が得られず、かつどのコンソールにも繋がっていない場合のみ失敗とする。
+           AttachConsole 自体は成功しているがウインドウ一致だけ得られない場合は、
+           従来動作を下限として付け替えを続行する。 */
         return -1;
+    }
+
+    /* 親コンソールの出力バッファーが使用可能になるまで待つ。AttachConsole 成功直後は
+       conhost の再割り当てが落ち着いておらず、直後の CONOUT$ 書き込みが消えかけの
+       一時コンソールへ吸われて画面に出ないことがある。GetConsoleScreenBufferInfo() が
+       成功する (= 出力可能になった) のを有界リトライで確認してからハンドルを付け替える。 */
+    for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
+    {
+        HANDLE probe;
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        int ready;
+
+        probe = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                            OPEN_EXISTING, 0, NULL);
+        ready = 0;
+        if (probe != INVALID_HANDLE_VALUE)
+        {
+            if (GetConsoleScreenBufferInfo(probe, &info))
+            {
+                ready = 1;
+            }
+            CloseHandle(probe);
+        }
+        if (ready != 0)
+        {
+            break;
+        }
+        Sleep(COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS);
     }
 
     /* Win32 レベルの標準ハンドルを親コンソールへ付け替える
