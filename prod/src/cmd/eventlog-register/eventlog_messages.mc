@@ -102,8 +102,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -112,8 +113,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -122,8 +124,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -132,8 +135,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -142,8 +146,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -152,8 +157,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG
 Language=Neutral
-%2
-%4
+%2%n
+%4%n
+%n
 %1%0
 .
 
@@ -164,8 +170,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -174,8 +181,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -184,8 +192,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -194,8 +203,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -204,8 +214,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -214,8 +225,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_FILE
 Language=Neutral
-%2_%3
-%4
+%2_%3%n
+%4%n
+%n
 %1%0
 .
 
@@ -226,8 +238,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -236,8 +249,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -246,8 +260,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -256,8 +271,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -266,8 +282,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -276,8 +293,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_INSTANCE
 Language=Neutral
-%2
-%4_%5
+%2%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -288,8 +306,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -298,8 +317,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -308,8 +328,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -318,8 +339,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -328,8 +350,9 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
 
@@ -338,7 +361,8 @@ Severity=Success
 Facility=App
 SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_BOTH
 Language=Neutral
-%2_%3
-%4_%5
+%2_%3%n
+%4_%5%n
+%n
 %1%0
 .
