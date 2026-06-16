@@ -30,6 +30,7 @@ static UINT s_orig_input_cp = 0;
 static DWORD s_orig_stdout_mode = 0;
 static DWORD s_orig_stderr_mode = 0;
 static LONG s_initialized = 0;
+static LONG s_attached_parent = 0;
 static com_util_once_flag s_console_shutdown_once = {0};
 
 static void register_console_shutdown_callback(void)
@@ -264,10 +265,12 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
         return -1;
     }
 
-    /* 親コンソールの出力バッファーが使用可能になるまで待つ。AttachConsole 成功直後は
-       conhost の再割り当てが落ち着いておらず、直後の CONOUT$ 書き込みが消えかけの
-       一時コンソールへ吸われて画面に出ないことがある。GetConsoleScreenBufferInfo() が
-       成功する (= 出力可能になった) のを有界リトライで確認してからハンドルを付け替える。 */
+    /* 親コンソールの出力バッファーが使用可能になり、かつ再割り当てが安定するまで待つ。
+       AttachConsole 成功直後は conhost の設定が落ち着いておらず、API 上は出力可能に
+       見えても、直後 (および終了時のバッファー フラッシュ時) の CONOUT$ 書き込みが
+       消えかけの一時コンソールへ吸われて画面に出ないことがある。GetConsoleScreenBufferInfo()
+       の成功を確認しつつ、処理の速いコマンドでも不安定期間を越えられるよう、最低でも
+       COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS 回ぶんの安定待ちを確保してから付け替える。 */
     for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
     {
         HANDLE probe;
@@ -285,7 +288,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
             }
             CloseHandle(probe);
         }
-        if (ready != 0)
+        /* 出力可能になり、かつ最小の安定待ちを満たした場合のみ抜ける。
+           準備未完了の間は安定待ちを越えても待ち続ける。 */
+        if (ready != 0 && attempt + 1 >= COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS)
         {
             break;
         }
@@ -328,6 +333,10 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
     }
 
+    /* 親コンソールへ再接続したことを記録する。終了時のフラッシュ後に conhost が
+       書き込みを処理し終えるのを待ち合わせるために参照する。 */
+    InterlockedExchange(&s_attached_parent, 1);
+
     return 1;
 }
 
@@ -340,6 +349,21 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
     /* stdout/stderr をフラッシュしてからコンソール状態を戻す */
     fflush(stdout);
     fflush(stderr);
+
+    /* 昇格時に親コンソールへ再接続していた場合、終了時フラッシュで書き込んだ内容を
+       conhost が処理し終える前にプロセスが終了すると、内容が画面に出ないことがある。
+       コンソールへの同期 API を 1 度呼び出して直前の書き込みが処理されたことを保証する。 */
+    if (InterlockedCompareExchange(&s_attached_parent, 1, 1) != 0)
+    {
+        HANDLE h_out;
+        CONSOLE_SCREEN_BUFFER_INFO info;
+
+        h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (h_out != NULL && h_out != INVALID_HANDLE_VALUE)
+        {
+            (void)GetConsoleScreenBufferInfo(h_out, &info);
+        }
+    }
 
     com_util_console_dispose();
 }

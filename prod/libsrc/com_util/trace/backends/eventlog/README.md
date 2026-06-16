@@ -62,6 +62,31 @@ eventlog-register uninstall   共通イベント ソースの登録を削除す�
 これにより Event Viewer は本文 (`[インスタンス名] メッセージ`) とカテゴリ名のみを表示し、イベント ID の説明が見つからない旨の補完文は表示しません。
 Event Viewer の「全般」では、実行体ファイルパス、インスタンス名、メッセージ文字列を順に表示し、メッセージ文字列の手前に空行を 1 行入れて区切ります。ファイル識別子またはインスタンス識別子が 0 以外の場合は、それぞれ `_識別子` を付与します。イベント XML には 5 件の EventData が記録されるため、ログ収集側は各値を個別に参照できます。
 
+### カテゴリ名表示の制約
+
+`ReportEventW` で渡すカテゴリは classic Event Log API のカテゴリ番号です。  
+`CategoryMessageFile` にカテゴリ メッセージを登録しているため、PowerShell の `Get-EventLog` では `CategoryNumber=4`、`Category=INFO` のようにカテゴリ名を解決できます。
+
+```powershell
+Get-EventLog -LogName Application -Source 'com_util.tracer' -Newest 1 |
+    Select-Object CategoryNumber, Category, Message |
+    Format-List
+```
+
+一方、Event Viewer GUI の一覧列「タスクのカテゴリ」と `Get-WinEvent` の `TaskDisplayName` は Windows Event Log API 側の task 表示名として扱われます。  
+この backend は manifest provider ではなく classic Event Log source として登録しているため、`Get-WinEvent` では `Task=4`、`TaskDisplayName` は空になり、Event Viewer GUI の一覧では `(4)` のように番号で表示されます。
+
+```powershell
+Get-WinEvent -FilterHashtable @{
+    LogName = 'Application'
+    ProviderName = 'com_util.tracer'
+} -MaxEvents 1 |
+    Select-Object Task, TaskDisplayName, Id, Message |
+    Format-List
+```
+
+この差異は Event Viewer GUI の表示経路の制約として扱います。  
+
 ## 代表的な使いどころ
 
 ### trace.h から使う場合
@@ -80,6 +105,7 @@ Event Viewer の「全般」では、実行体ファイルパス、インスタ�
 - Windows 専用です
 - イベント ソースの登録/削除には管理者権限が必要です
 - メッセージ テーブル リソースは `eventlog-register.exe` に埋め込み、登録時に EventMessageFile / CategoryMessageFile へ設定します。登録後の Event Viewer は本文とカテゴリ名のみを表示します
+- Event Viewer GUI の一覧列「タスクのカテゴリ」は Windows Event Log API 側の task 表示名を使うため、この backend では `(4)` のようにカテゴリ番号で表示されます。カテゴリ名は `Get-EventLog` の `Category` で確認します
 - イベント ログのメッセージ サイズには上限があり、極端に長いメッセージは記録されません
 
 ## 使い分け

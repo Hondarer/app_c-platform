@@ -43,7 +43,7 @@
  *  com_util_console_attach_parent() の AttachConsole が一時的に失敗することがあります。
  *  割り当てが落ち着くまで本回数を上限にリトライします。
  */
-#define COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS 50
+#define COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS 100
 
 /**
  *  @brief          昇格時の AttachConsole リトライ間隔 [ms]。
@@ -52,6 +52,17 @@
  *  通常は 1 回目か 2 回目で接続できるため、待ち時間は無視できます。
  */
 #define COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS 10
+
+/**
+ *  @brief          昇格時の AttachConsole 後に確保する最小の安定待ち回数。
+ *
+ *  AttachConsole が成功し API 上は出力可能に見えても、conhost の再割り当てが
+ *  落ち着くまでには間があります。この間 (および終了時のバッファー フラッシュ時) の
+ *  CONOUT$ 書き込みは、消えかけの一時コンソールへ吸われて画面に出ないことがあります。
+ *  処理量が少なく再接続直後に終了するコマンドでもこの不安定期間を越えられるよう、
+ *  COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS と合わせて最小の安定待ち時間を確保します。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS 20
 
 #ifdef __cplusplus
 extern "C"
