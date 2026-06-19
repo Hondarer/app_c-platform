@@ -9,6 +9,7 @@
 
 #include <com_util/console/console.h>
 #include <com_util/console/console_internal.h>
+#include <com_util/crt/path.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/runtime/shutdown.h>
 
@@ -17,9 +18,12 @@
 #if defined(PLATFORM_WINDOWS)
 
     #include <com_util/base/windows_sdk.h>
-    #include <com_util/crt/stdio.h>
     #include <com_util/sync/sync.h>
+    #include <errno.h>
+    #include <fcntl.h>
+    #include <io.h>
     #include <stdint.h> /* uintptr_t */
+    #include <stdarg.h> /* va_list */
     #include <stdio.h>  /* stdout, stderr */
     #include <stdlib.h> /* strtoul, strtoull */
     #include <string.h> /* strncmp, strlen */
@@ -36,6 +40,168 @@ static com_util_once_flag s_console_shutdown_once = {0};
 static void register_console_shutdown_callback(void)
 {
     (void)com_util_shutdown_register(com_util_console_dispose_on_shutdown, NULL);
+}
+
+/**
+ *  @brief          ストリームの fd を、いったん閉じてから同じ番号へ直接再オープンする。
+ *  @param[in]      handle      再接続先の Win32 ハンドル (CONOUT$ / CONIN$)。
+ *  @param[in]      stream      対象ストリーム (stdout / stderr / stdin)。
+ *  @param[in]      name        診断ログに記録するストリーム名。
+ *  @param[in]      open_flags  `_open_osfhandle` へ渡すフラグ (`_O_TEXT` に加え `_O_RDWR` 等)。
+ *  @return         成功時は 0、失敗時は -1。
+ *
+ *  `freopen` (内部で fd の閉じ直しを行う) や `_dup2` (別の一時 fd を経由する) は、
+ *  いずれも実機調査で原因不明の失敗 (`EACCES` / 2 本目以降の `EBADF`) が再現した。
+ *  本関数は `_close()` で対象 fd を解放した直後に、その場で `_open_osfhandle()` を
+ *  呼ぶだけで `_dup2` を経由しない。fd 解放直後に呼ぶため、CRT の fd 割り当てが
+ *  最小番号から再利用する前提で、解放した番号がそのまま戻ることを期待し、
+ *  異なる番号が返った場合は診断ログに記録する。\n
+ *  @p handle は `DuplicateHandle()` で複製せず、そのまま `_open_osfhandle()` に渡す
+ *  (複製したハンドルでは書き込みが `EACCES` で拒否される事象が実機調査で再現したため)。
+ *  そのため呼び出し後は fd がこのハンドルの所有権を持つことになり、@p handle を
+ *  呼び出し元で別用途に使い続けてはならない。\n
+ *  なお、対象 fd の解放を呼び出し元側でこの関数より早いタイミングに前倒しする変更を
+ *  実機検証したところ、`CreateFileW(CONOUT$)` 自体が全試行で `ERROR_INVALID_HANDLE` に
+ *  なる、より重い回帰が再現したため、解放はこの関数内でこのタイミングのまま行う。
+ */
+static int reopen_crt_std_fd(HANDLE handle, FILE *stream, const char *name, int open_flags)
+{
+    int expected_fd;
+    int new_fd;
+
+    if (handle == NULL || handle == INVALID_HANDLE_VALUE || stream == NULL || name == NULL)
+    {
+        return -1;
+    }
+
+    expected_fd = _fileno(stream);
+    if (expected_fd < 0)
+    {
+        com_util_console_diag_logf("reopen %s _fileno failed", name);
+        return -1;
+    }
+
+    _close(expected_fd);
+
+    new_fd = _open_osfhandle((intptr_t)handle, open_flags);
+    if (new_fd < 0)
+    {
+        com_util_console_diag_logf("reopen %s _open_osfhandle failed errno=%d expected_fd=%d", name, errno,
+                                   expected_fd);
+        return -1;
+    }
+    if (new_fd != expected_fd)
+    {
+        com_util_console_diag_logf("reopen %s unexpected fd new_fd=%d expected_fd=%d", name, new_fd, expected_fd);
+    }
+
+    clearerr(stream);
+    com_util_console_diag_logf("reopen %s success fd=%d", name, new_fd);
+    return 0;
+}
+
+static int console_diag_enabled(void)
+{
+    char value[8];
+    DWORD len;
+
+    len = GetEnvironmentVariableA(COM_UTIL_CONSOLE_ATTACH_DIAG_ENV, value, (DWORD)sizeof(value));
+    if (len == 0 || len >= sizeof(value))
+    {
+        return 0;
+    }
+    if (len == 1 && value[0] == '0')
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
+{
+    static const wchar_t file_name[] = L"com_util_console_attach.log";
+    wchar_t temp_path[PLATFORM_PATH_MAX];
+    DWORD temp_len;
+    errno_t err;
+
+    if (path_out == NULL || path_len == 0)
+    {
+        return -1;
+    }
+
+    temp_len = GetTempPathW((DWORD)(sizeof(temp_path) / sizeof(temp_path[0])), temp_path);
+    if (temp_len == 0 || temp_len >= sizeof(temp_path) / sizeof(temp_path[0]))
+    {
+        return -1;
+    }
+
+    err = _snwprintf_s(path_out, path_len, _TRUNCATE, L"%ls%ls", temp_path, file_name);
+    if (err < 0)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
+{
+    wchar_t path[PLATFORM_PATH_MAX];
+    char line[1024];
+    char message[896];
+    SYSTEMTIME now;
+    HANDLE handle;
+    DWORD written;
+    int prefix_len;
+    int message_len;
+    va_list args;
+
+    if (!console_diag_enabled() || fmt == NULL)
+    {
+        return;
+    }
+    if (build_console_diag_log_path(path, sizeof(path) / sizeof(path[0])) != 0)
+    {
+        return;
+    }
+
+    GetLocalTime(&now);
+    prefix_len =
+        snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ", (unsigned int)now.wYear,
+                 (unsigned int)now.wMonth, (unsigned int)now.wDay, (unsigned int)now.wHour, (unsigned int)now.wMinute,
+                 (unsigned int)now.wSecond, (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
+    if (prefix_len < 0 || prefix_len >= (int)sizeof(line))
+    {
+        return;
+    }
+
+    va_start(args, fmt);
+    message_len = vsnprintf(message, sizeof(message), fmt, args);
+    va_end(args);
+    if (message_len < 0)
+    {
+        return;
+    }
+
+    if (prefix_len + message_len + 2 >= (int)sizeof(line))
+    {
+        message_len = (int)sizeof(line) - prefix_len - 2;
+        if (message_len < 0)
+        {
+            return;
+        }
+    }
+    memcpy(line + prefix_len, message, (size_t)message_len);
+    line[prefix_len + message_len] = '\n';
+    line[prefix_len + message_len + 1] = '\0';
+
+    handle = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
+                         FILE_ATTRIBUTE_NORMAL, NULL);
+    if (handle == INVALID_HANDLE_VALUE)
+    {
+        return;
+    }
+    (void)WriteFile(handle, line, (DWORD)(prefix_len + message_len + 1), &written, NULL);
+    CloseHandle(handle);
 }
 
 /* ===== 公開 API ===== */
@@ -55,6 +221,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
     /* stdout がコンソール (TTY) でなければ何もしない */
     if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
     {
+        com_util_console_diag_logf("console_init isatty=0 skip");
         InterlockedExchange(&s_initialized, 0);
         return;
     }
@@ -81,8 +248,17 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         if (!(mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING))
         {
             s_orig_stdout_mode = mode;
-            SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            if (!SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+            {
+                com_util_console_diag_logf("console_init SetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
+                                           (unsigned long)GetLastError());
+            }
         }
+    }
+    else
+    {
+        com_util_console_diag_logf("console_init GetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
+                                   (unsigned long)GetLastError());
     }
 
     h = GetStdHandle(STD_ERROR_HANDLE);
@@ -91,8 +267,17 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
         if (!(mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING))
         {
             s_orig_stderr_mode = mode;
-            SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            if (!SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+            {
+                com_util_console_diag_logf("console_init SetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
+                                           (unsigned long)GetLastError());
+            }
         }
+    }
+    else
+    {
+        com_util_console_diag_logf("console_init GetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
+                                   (unsigned long)GetLastError());
     }
 }
 
@@ -218,6 +403,37 @@ static int extract_handover_args(int *argc, char **argv, DWORD *out_pid, HWND *o
     return found;
 }
 
+static int extract_diag_arg(int *argc, char **argv)
+{
+    int n;
+    int i;
+
+    if (argc == NULL || argv == NULL)
+    {
+        return 0;
+    }
+
+    n = *argc;
+    for (i = 1; i < n; i++)
+    {
+        int j;
+
+        if (argv[i] == NULL || strcmp(argv[i], COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG) != 0)
+        {
+            continue;
+        }
+
+        for (j = i; j < n - 1; j++)
+        {
+            argv[j] = argv[j + 1];
+        }
+        argv[n - 1] = NULL;
+        *argc = n - 1;
+        return 1;
+    }
+    return 0;
+}
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
 {
     DWORD parent_pid;
@@ -226,13 +442,24 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     HANDLE h_err;
     HANDLE h_in;
     int attached;
+    int attached_once;
     int attempt;
+    int argc_value;
 
     parent_pid = 0;
     parent_window = NULL;
+    if (extract_diag_arg(argc, argv) != 0)
+    {
+        (void)SetEnvironmentVariableA(COM_UTIL_CONSOLE_ATTACH_DIAG_ENV, "1");
+    }
     if (!extract_handover_args(argc, argv, &parent_pid, &parent_window))
     {
         return 0;
+    }
+    argc_value = -1;
+    if (argc != NULL)
+    {
+        argc_value = *argc;
     }
 
     /* 昇格時に割り当てられた一時コンソールを切り離し、親コンソールへ接続する。
@@ -244,12 +471,46 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
        親 HWND に一致するまで待ち、一時コンソールへ出力が吸われるのを防ぐ。
        全試行で一致しない場合は、素の AttachConsole 成功を受理してフォールバックする。 */
     attached = 0;
+    attached_once = 0;
+    com_util_console_diag_logf("attach_parent begin parent_pid=%lu parent_hwnd=0x%p argc=%d", (unsigned long)parent_pid,
+                               (void *)parent_window, argc_value);
     for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
     {
-        FreeConsole();
-        if (AttachConsole(parent_pid))
+        if (attached_once == 0)
         {
-            if (parent_window == NULL || GetConsoleWindow() == parent_window)
+            DWORD free_error;
+
+            SetLastError(ERROR_SUCCESS);
+            (void)FreeConsole();
+            free_error = GetLastError();
+            com_util_console_diag_logf("attempt=%d FreeConsole last_error=%lu", attempt, (unsigned long)free_error);
+
+            if (AttachConsole(parent_pid))
+            {
+                attached_once = 1;
+                com_util_console_diag_logf("attempt=%d AttachConsole success hwnd=0x%p", attempt,
+                                           (void *)GetConsoleWindow());
+                if (parent_window == NULL)
+                {
+                    attached = 1;
+                    break;
+                }
+            }
+            else
+            {
+                DWORD attach_error = GetLastError();
+
+                com_util_console_diag_logf("attempt=%d AttachConsole failed error=%lu", attempt,
+                                           (unsigned long)attach_error);
+            }
+        }
+        else
+        {
+            HWND current_window = GetConsoleWindow();
+
+            com_util_console_diag_logf("attempt=%d attached_once current_hwnd=0x%p parent_hwnd=0x%p", attempt,
+                                       (void *)current_window, (void *)parent_window);
+            if (current_window == parent_window)
             {
                 attached = 1;
                 break;
@@ -257,45 +518,15 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
         }
         Sleep(COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS);
     }
-    if (attached == 0 && GetConsoleWindow() == NULL)
+    if (attached == 0 && attached_once == 0)
     {
-        /* HWND 一致が得られず、かつどのコンソールにも繋がっていない場合のみ失敗とする。
-           AttachConsole 自体は成功しているがウインドウ一致だけ得られない場合は、
-           従来動作を下限として付け替えを続行する。 */
+        /* AttachConsole 自体が一度も成功しなかった場合のみ失敗とする。 */
+        com_util_console_diag_logf("attach_parent failed attached=%d attached_once=%d final_hwnd=0x%p", attached,
+                                   attached_once, (void *)GetConsoleWindow());
         return -1;
     }
-
-    /* 親コンソールの出力バッファーが使用可能になり、かつ再割り当てが安定するまで待つ。
-       AttachConsole 成功直後は conhost の設定が落ち着いておらず、API 上は出力可能に
-       見えても、直後 (および終了時のバッファー フラッシュ時) の CONOUT$ 書き込みが
-       消えかけの一時コンソールへ吸われて画面に出ないことがある。GetConsoleScreenBufferInfo()
-       の成功を確認しつつ、処理の速いコマンドでも不安定期間を越えられるよう、最低でも
-       COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS 回ぶんの安定待ちを確保してから付け替える。 */
-    for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
-    {
-        HANDLE probe;
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        int ready;
-
-        probe = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                            OPEN_EXISTING, 0, NULL);
-        ready = 0;
-        if (probe != INVALID_HANDLE_VALUE)
-        {
-            if (GetConsoleScreenBufferInfo(probe, &info))
-            {
-                ready = 1;
-            }
-            CloseHandle(probe);
-        }
-        /* 出力可能になり、かつ最小の安定待ちを満たした場合のみ抜ける。
-           準備未完了の間は安定待ちを越えても待ち続ける。 */
-        if (ready != 0 && attempt + 1 >= COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS)
-        {
-            break;
-        }
-        Sleep(COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS);
-    }
+    com_util_console_diag_logf("attach_parent proceed attached=%d attached_once=%d final_hwnd=0x%p", attached,
+                               attached_once, (void *)GetConsoleWindow());
 
     /* Win32 レベルの標準ハンドルを親コンソールへ付け替える
        (GetStdHandle / WriteConsole 系や tracer の stderr sink が参照する) */
@@ -304,38 +535,66 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     if (h_out != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_OUTPUT_HANDLE, h_out);
+        com_util_console_diag_logf("SetStdHandle stdout success handle=0x%p", (void *)h_out);
+    }
+    else
+    {
+        DWORD open_error = GetLastError();
+
+        com_util_console_diag_logf("SetStdHandle stdout skipped CreateFileW failed error=%lu",
+                                   (unsigned long)open_error);
     }
     h_err = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                         OPEN_EXISTING, 0, NULL);
     if (h_err != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_ERROR_HANDLE, h_err);
+        com_util_console_diag_logf("SetStdHandle stderr success handle=0x%p", (void *)h_err);
+    }
+    else
+    {
+        DWORD open_error = GetLastError();
+
+        com_util_console_diag_logf("SetStdHandle stderr skipped CreateFileW failed error=%lu",
+                                   (unsigned long)open_error);
     }
     h_in = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
                        0, NULL);
     if (h_in != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_INPUT_HANDLE, h_in);
+        com_util_console_diag_logf("SetStdHandle stdin success handle=0x%p", (void *)h_in);
+    }
+    else
+    {
+        DWORD open_error = GetLastError();
+
+        com_util_console_diag_logf("SetStdHandle stdin skipped CreateFileW failed error=%lu",
+                                   (unsigned long)open_error);
     }
 
-    /* CRT レベルの標準ストリームを親コンソールへ再接続する
-       (printf / fprintf 系が参照する) */
-    if (com_util_freopen("CONOUT$", "w", stdout, NULL) == NULL)
+    /* CRT レベルの標準ストリームを親コンソールへ再接続する (fgets 等の入力で参照する)。
+       printf/fprintf (FILE* 経由) は再接続後に書き込みを拒否することがあるため
+       (README.md 参照)、再接続後の出力には本ファイル末尾の com_util_console_write()
+       (Win32 の WriteConsoleA を直接呼ぶ) を使うこと。本関数による fd の再接続は、
+       fgets 等の入力経路向けに維持している。
+       CONOUT$ / CONIN$ は GENERIC_READ | GENERIC_WRITE で開いているため `_O_RDWR` を渡す。 */
+    if (reopen_crt_std_fd(h_out, stdout, "stdout", _O_TEXT | _O_RDWR) == 0)
     {
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
+        (void)setvbuf(stdout, NULL, _IONBF, 0);
     }
-    if (com_util_freopen("CONOUT$", "w", stderr, NULL) == NULL)
+    if (reopen_crt_std_fd(h_err, stderr, "stderr", _O_TEXT | _O_RDWR) == 0)
     {
         /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
+        (void)setvbuf(stderr, NULL, _IONBF, 0);
     }
-    if (com_util_freopen("CONIN$", "r", stdin, NULL) == NULL)
-    {
-        /* 失敗しても Win32 ハンドルは付け替え済みのため処理を継続する */
-    }
+    (void)reopen_crt_std_fd(h_in, stdin, "stdin", _O_TEXT | _O_RDWR);
 
     /* 親コンソールへ再接続したことを記録する。終了時のフラッシュ後に conhost が
        書き込みを処理し終えるのを待ち合わせるために参照する。 */
     InterlockedExchange(&s_attached_parent, 1);
+    com_util_console_diag_logf("attach_parent end attached=%d attached_once=%d", attached, attached_once);
 
     return 1;
 }
@@ -349,6 +608,8 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
     /* stdout/stderr をフラッシュしてからコンソール状態を戻す */
     fflush(stdout);
     fflush(stderr);
+    com_util_console_diag_logf("dispose_on_shutdown after fflush attached_parent=%ld",
+                               (long)InterlockedCompareExchange(&s_attached_parent, 1, 1));
 
     /* 昇格時に親コンソールへ再接続していた場合、終了時フラッシュで書き込んだ内容を
        conhost が処理し終える前にプロセスが終了すると、内容が画面に出ないことがある。
@@ -362,13 +623,64 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
         if (h_out != NULL && h_out != INVALID_HANDLE_VALUE)
         {
             (void)GetConsoleScreenBufferInfo(h_out, &info);
+            com_util_console_diag_logf("dispose_on_shutdown drain GetConsoleScreenBufferInfo handle=0x%p",
+                                       (void *)h_out);
         }
     }
 
     com_util_console_dispose();
+    com_util_console_diag_logf("dispose_on_shutdown end");
+}
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
+{
+    DWORD std_handle;
+    HANDLE h;
+    DWORD len;
+    DWORD written;
+
+    if (text == NULL)
+    {
+        return -1;
+    }
+    if (stream == COM_UTIL_STREAM_STDOUT)
+    {
+        std_handle = STD_OUTPUT_HANDLE;
+    }
+    else if (stream == COM_UTIL_STREAM_STDERR)
+    {
+        std_handle = STD_ERROR_HANDLE;
+    }
+    else
+    {
+        return -1;
+    }
+
+    h = GetStdHandle(std_handle);
+    if (h == NULL || h == INVALID_HANDLE_VALUE)
+    {
+        return -1;
+    }
+
+    len = (DWORD)strlen(text);
+    if (WriteConsoleA(h, text, len, &written, NULL))
+    {
+        return 0;
+    }
+    /* リダイレクト先がコンソールでない場合 WriteConsoleA は失敗するため WriteFile にフォールバックする */
+    if (WriteFile(h, text, len, &written, NULL))
+    {
+        return 0;
+    }
+
+    com_util_console_diag_logf("console_write failed error=%lu", (unsigned long)GetLastError());
+    return -1;
 }
 
 #elif defined(PLATFORM_LINUX)
+
+    #include <string.h> /* strlen */
+    #include <unistd.h> /* write, STDOUT_FILENO, STDERR_FILENO */
 
 /* ===== Linux 実装 (no-op) ===== */
 
@@ -384,6 +696,49 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 {
     (void)event;
     (void)context;
+}
+COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
+{
+    (void)fmt;
+}
+
+COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
+{
+    int fd;
+    size_t len;
+    const char *cursor;
+
+    if (text == NULL)
+    {
+        return -1;
+    }
+    if (stream == COM_UTIL_STREAM_STDOUT)
+    {
+        fd = STDOUT_FILENO;
+    }
+    else if (stream == COM_UTIL_STREAM_STDERR)
+    {
+        fd = STDERR_FILENO;
+    }
+    else
+    {
+        return -1;
+    }
+
+    cursor = text;
+    len = strlen(text);
+    while (len > 0)
+    {
+        ssize_t written = write(fd, cursor, len);
+
+        if (written < 0)
+        {
+            return -1;
+        }
+        cursor += written;
+        len -= (size_t)written;
+    }
+    return 0;
 }
 
 #endif /* PLATFORM_ */

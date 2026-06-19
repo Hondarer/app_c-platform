@@ -67,20 +67,34 @@ sequenceDiagram
     P->>C: runas + SW_HIDE + 親PID / 親HWND フラグ
     C->>C: FreeConsole / AttachConsole(親PID)
     C->>C: GetConsoleWindow() が親HWND に一致するまで待つ
-    C->>C: 出力バッファー準備完了を待つ
     C->>C: CONOUT$ / CONIN$ を std へ再接続
     C-->>P: 同一コンソールへ出力
 ```
 
 昇格直後は、子プロセスの一時コンソール (conhost) の割り当てが非同期に進みます。子プロセスが自前コンソールへ繋がったままの瞬間に `AttachConsole` を呼ぶと `ERROR_ACCESS_DENIED` で失敗します (`AttachConsole` は呼び出し元がすでにコンソールへ接続済みだと失敗します)。この失敗時は標準ハンドルの付け替えを行わず、かつ直前に `FreeConsole` 済みのため、子プロセスはどのコンソールにも繋がらず出力先を失います。これを避けるため、`FreeConsole` と `AttachConsole` を有界リトライし、割り当てが落ち着くまで数回試行します。通常は 1 回目か 2 回目で接続できます。
 
-`AttachConsole` が成功し、API 上は出力可能に見えても、親コンソールの再割り当てが落ち着くまでには間があります。この間に `CONOUT$` へ書き込むと、消えかけの一時コンソール (非表示) へ出力が吸われて画面に出ないことがあります。`stdout` は `freopen` 後フル バッファリングになり、実際の書き込みはプロセス終了時のフラッシュで起こるため、処理量が少なく再接続直後に終了するコマンドでは、このフラッシュが不安定期間に重なってメッセージだけが表示されない症状が出ます。`uninstall` だけメッセージが出ず `install` は出る、といった差はこれが原因です。これを避けるため、再接続後に次の手順で出力先が安定するのを待ってから標準ハンドルを付け替えます。
-
-- 親コンソール確認: 親 HWND が渡されている場合、`GetConsoleWindow()` が親 HWND に一致するまで有界リトライする。一時コンソールではなく親コンソールへ繋がったことを確認する。全試行で一致しない場合でも、どこかのコンソールへ繋がっていれば従来動作を下限として付け替えを続行する。
-- 安定待ち: `CONOUT$` を開き `GetConsoleScreenBufferInfo()` の成功 (出力可能になったこと) を確認しつつ、処理の速いコマンドでも不安定期間を越えられるよう、最低でも一定回数ぶんの安定待ち (`COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS` 回) を確保してから付け替える。
+- 親コンソール接続: `FreeConsole()` と `AttachConsole()` を有界リトライし、親コンソールへ一度でも接続できるまで待つ。
+- 親コンソール確認: 接続成功後、親 HWND が渡されている場合は `GetConsoleWindow()` が親 HWND に一致するまで有界リトライする。この段階では `FreeConsole()` を再度呼ばず、接続済みの親コンソールを保持する。全試行で一致しない場合でも、`AttachConsole()` 自体が成功していれば従来動作を下限として付け替えを続行する。
 - 終了時ドレイン: 親コンソールへ再接続していた場合、終了時のフラッシュ後にコンソールへの同期 API (`GetConsoleScreenBufferInfo`) を 1 度呼び、直前の書き込みが conhost に処理されてからプロセスが終了するようにする。
 
-これらの待ちはいずれも有界であり、確認に失敗してもコンソールへ繋がっていれば従来動作を下限として付け替えを続行します。
+これらのリトライはいずれも有界であり、確認に失敗してもコンソールへ繋がっていれば従来動作を下限として付け替えを続行します。
+
+### 既知の制限: 再接続後に書き込みが間欠的に拒否される
+
+`AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (失敗するときは何度リトライしても同じエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `com_util_console_write()` (Win32 API を直接呼ぶ) でも同様に発生します。
+
+UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` によるコンソール再接続ではなく、`com_util_process_run_elevated_with_result()` (`app/com_util/prod/libsrc/com_util/runtime/README.md` 参照) を使ってください。こちらは昇格プロセスのコンソールに一切触れず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
+
+再現調査時は、環境変数 `COM_UTIL_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/com_util_console_attach.log` へ再接続の診断ログを追記できます。  
+このログには `FreeConsole` / `AttachConsole` / `GetConsoleWindow` / `CONOUT$` オープン / `reopen` / 終了時ドレインの成否と `GetLastError()` を記録します。
+
+### com_util_console_write
+
+`printf` / `fprintf` (FILE\* 経由) を使わず、`stdout` / `stderr` へ文字列を直接書き込みます。
+
+- Windows では `GetStdHandle` で取得した Win32 ハンドルへ `WriteConsoleA` (失敗時は `WriteFile` にフォールバック) で直接書き込む
+- Linux では対象の fd へ `write()` で直接書き込む
+- `printf` / `fprintf` (FILE\* 経由) は再接続後に書き込みを拒否することがあるため、`com_util_console_attach_parent()` の戻り値が 1 (再接続が発生した) であった場合の出力は、本関数を使うこと
 
 ## 使い方
 
@@ -127,6 +141,8 @@ int main(void)
 
 - Windows では `activeCodePage=UTF-8` マニフェストを併用してください
 - `com_util_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `com_util_console_attach_parent` を使用してください)
+- `com_util_console_attach_parent()` が 1 (再接続発生) を返した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `com_util_console_write()` を使用してください
+- UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` ではなく `com_util_process_run_elevated_with_result()` の使用を検討してください (前述の既知の制限)
 - Windows 10 1903 未満はサポート対象外です
 
 ## 参考リンク

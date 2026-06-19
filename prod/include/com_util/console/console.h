@@ -34,7 +34,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/com_util_export.h>
-
+#include <com_util/crt/unistd.h>
 
 /**
  *  @ingroup        COM_UTIL_PUBLIC_API
@@ -107,6 +107,27 @@ extern "C"
      *  プロセス起動直後のシングル スレッド フェーズで呼び出してください。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv);
+
+    /**
+     *  @brief          stdout / stderr の CRT ストリーム (printf / fprintf) を経由せず、
+     *                  端末へ文字列をそのまま書き込む。
+     *  @param[in]      stream  書き込み先 (@ref COM_UTIL_STREAM_STDOUT または
+     *                  @ref COM_UTIL_STREAM_STDERR)。それ以外は失敗します。
+     *  @param[in]      text    書き込む文字列 (UTF-8)。NULL を渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  Windows 環境では、com_util_console_attach_parent() による昇格後の親コンソール
+     *  再接続直後に、stdout / stderr の CRT ストリーム (FILE*) 経由の printf / fprintf が
+     *  fd 自体は正常であるにもかかわらず書き込みを拒否する事象が実機調査で確認されている。\n
+     *  本関数は @c GetStdHandle で取得した Win32 ハンドルへ @c WriteConsoleA で直接書き込み、
+     *  この問題を回避する。\n
+     *  Linux 環境では対象の fd へ直接書き込む。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text);
 
 #ifdef __cplusplus
 }

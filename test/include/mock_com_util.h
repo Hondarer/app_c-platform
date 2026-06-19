@@ -247,6 +247,10 @@ extern int delegate_real_com_util_module_get_basename(char *out_basename, size_t
 // runtime - process_info
 extern int delegate_real_com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
 extern int delegate_real_com_util_process_run_elevated_if_needed(const char *arguments, int *exit_code, int *handled);
+extern int delegate_real_com_util_process_run_elevated_with_result(const char *arguments, int *exit_code, int *handled,
+                                                                   char *result_message, size_t result_message_size);
+extern int delegate_real_com_util_process_extract_result_target(int *argc, char **argv);
+extern int delegate_real_com_util_process_report_elevated_result(const char *message);
 extern com_util_process_result_t delegate_real_com_util_process_start(const com_util_process_options_t *options,
                                                                       com_util_process **process);
 extern com_util_process_result_t delegate_real_com_util_process_wait(com_util_process *process, int timeout_ms);
@@ -534,6 +538,9 @@ class Mock_com_util
     // runtime - process_info
     MOCK_METHOD(int, com_util_process_get_executable_path, (char *, size_t));
     MOCK_METHOD(int, com_util_process_run_elevated_if_needed, (const char *, int *, int *));
+    MOCK_METHOD(int, com_util_process_run_elevated_with_result, (const char *, int *, int *, char *, size_t));
+    MOCK_METHOD(int, com_util_process_extract_result_target, (int *, char **));
+    MOCK_METHOD(int, com_util_process_report_elevated_result, (const char *));
     MOCK_METHOD(com_util_process_result_t, com_util_process_start,
                 (const com_util_process_options_t *, com_util_process **));
     MOCK_METHOD(com_util_process_result_t, com_util_process_wait, (com_util_process *, int));

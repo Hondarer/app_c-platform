@@ -37,6 +37,27 @@
 #define COM_UTIL_CONSOLE_HANDOVER_FLAG "--com-util-attach-console"
 
 /**
+ *  @brief          コンソール再接続診断ログの有効化環境変数名。
+ *
+ *  値が空文字または "0" 以外のとき、`%TEMP%` 配下へ診断ログを追記します。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_DIAG_ENV "COM_UTIL_CONSOLE_ATTACH_DIAG"
+
+/**
+ *  @brief          コンソール再接続診断ログのファイル名。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_DIAG_FILE "com_util_console_attach.log"
+
+/**
+ *  @brief          昇格子プロセスへ診断ログ有効化を引き継ぐ内部フラグ。
+ *
+ *  親プロセスで診断ログを有効化している場合、昇格子プロセスのコマンドラインへ
+ *  このフラグを追加します。com_util_console_attach_parent() が argv から除去して
+ *  環境変数へ反映します。
+ */
+#define COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG "--com-util-attach-console-diag"
+
+/**
  *  @brief          昇格時の AttachConsole リトライ回数の上限。
  *
  *  UAC 昇格直後は子プロセスの一時コンソール (conhost) 割り当てが非同期に進むため、
@@ -53,17 +74,6 @@
  */
 #define COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS 10
 
-/**
- *  @brief          昇格時の AttachConsole 後に確保する最小の安定待ち回数。
- *
- *  AttachConsole が成功し API 上は出力可能に見えても、conhost の再割り当てが
- *  落ち着くまでには間があります。この間 (および終了時のバッファー フラッシュ時) の
- *  CONOUT$ 書き込みは、消えかけの一時コンソールへ吸われて画面に出ないことがあります。
- *  処理量が少なく再接続直後に終了するコマンドでもこの不安定期間を越えられるよう、
- *  COM_UTIL_CONSOLE_ATTACH_RETRY_INTERVAL_MS と合わせて最小の安定待ち時間を確保します。
- */
-#define COM_UTIL_CONSOLE_ATTACH_SETTLE_ATTEMPTS 20
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -78,6 +88,14 @@ extern "C"
  *  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
  */
     void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
+
+    /**
+ *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
+ *  @param[in]      fmt `printf` 互換の書式文字列。
+ *
+ *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
+ */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...);
 
 #ifdef __cplusplus
 }

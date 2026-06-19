@@ -23,6 +23,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/console/console.h>
+#include <com_util/runtime/process.h>
 #include <com_util/trace/tracer.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,17 +48,29 @@ void eventlog_register_print_usage(const char *argv0)
 #if defined(PLATFORM_WINDOWS)
 
     #include <com_util/crt/path.h>
-    #include <com_util/runtime/process.h>
     #include <com_util/trace/eventlog.h>
+
+/**
+ *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうか。
+ *
+ *  main() で com_util_process_extract_result_target() の戻り値を設定する。\n
+ *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
+ *  com_util_process_report_elevated_result() で呼び出し元プロセスへ報告する。
+ */
+static int s_is_elevated_worker = 0;
 
 /**
  *  @brief          管理者権限を保証する。必要なら UAC 昇格して再実行する。
  *  @param[in]      command  昇格再実行するサブコマンド ("install" / "uninstall")。
  *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納する。
  *  @return         継続可能な場合は 0、失敗時または昇格プロセスの終了コードを返す。
+ *
+ *  昇格プロセスのコンソールは一切引き継がない。昇格プロセス側が報告した結果メッセージは
+ *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示する。
  */
 static int ensure_elevated(const char *command, int *handled)
 {
+    char result_message[256];
     int exit_code;
     int rc;
 
@@ -67,7 +80,8 @@ static int ensure_elevated(const char *command, int *handled)
     }
 
     exit_code = EXIT_FAILURE;
-    rc = com_util_process_run_elevated_if_needed(command, &exit_code, handled);
+    rc =
+        com_util_process_run_elevated_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
     if (rc != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
@@ -76,6 +90,17 @@ static int ensure_elevated(const char *command, int *handled)
 
     if (*handled != 0)
     {
+        if (result_message[0] != '\0')
+        {
+            if (exit_code == EXIT_SUCCESS)
+            {
+                printf("%s", result_message);
+            }
+            else
+            {
+                fprintf(stderr, "%s", result_message);
+            }
+        }
         return exit_code;
     }
     return 0;
@@ -86,26 +111,49 @@ static int ensure_elevated(const char *command, int *handled)
  *  @param[in]      status  com_util_eventlog_register_source / unregister_source の戻り値。
  *  @param[in]      action  操作名 ("登録" / "削除")。
  *  @return         EXIT_SUCCESS / EXIT_FAILURE。
+ *
+ *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
+ *  com_util_process_report_elevated_result() で報告する (ensure_elevated() がそちらで表示する)。
  */
 static int report_status(const int status, const char *action)
 {
+    char message[256];
+
     if (status == COM_UTIL_EVENTLOG_OK)
     {
-        printf("イベント ソース '%s' を%sしました。\n", COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+        (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+                       COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+        if (s_is_elevated_worker != 0)
+        {
+            (void)com_util_process_report_elevated_result(message);
+        }
+        else
+        {
+            printf("%s", message);
+        }
         return EXIT_SUCCESS;
     }
     if (status == COM_UTIL_EVENTLOG_ERR_ACCESS)
     {
-        fprintf(stderr, "アクセスが拒否されました。管理者として実行してください。\n");
-        return EXIT_FAILURE;
+        (void)snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
-    if (status == COM_UTIL_EVENTLOG_ERR_PARAM)
+    else if (status == COM_UTIL_EVENTLOG_ERR_PARAM)
     {
-        fprintf(stderr, "パラメーターが不正です。\n");
-        return EXIT_FAILURE;
+        (void)snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+    }
+    else
+    {
+        (void)snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
     }
 
-    fprintf(stderr, "システム エラーにより%sに失敗しました。\n", action);
+    if (s_is_elevated_worker != 0)
+    {
+        (void)com_util_process_report_elevated_result(message);
+    }
+    else
+    {
+        fprintf(stderr, "%s", message);
+    }
     return EXIT_FAILURE;
 }
 
@@ -210,11 +258,20 @@ int eventlog_register_run(int argc, char *argv[])
  */
 int main(int argc, char *argv[])
 {
-    /* 昇格起動された場合、親コンソールへ再接続して出力を元のコンソールへ戻す。
-       引き継ぎフラグを argv から取り除く必要があるため、引数解析より前に呼び出す。 */
-    com_util_console_attach_parent(&argc, argv);
+    int run_result;
+    int extract_rc;
+
+    /* 昇格ワーカーとして再起動された場合、結果報告先フラグを argv から取り除く。
+       引数解析より前に呼び出す。昇格ワーカーのコンソールは一切引き継がない
+       (ensure_elevated() / report_status() がファイル経由で結果を受け渡す)。 */
+    extract_rc = com_util_process_extract_result_target(&argc, argv);
+#if defined(PLATFORM_WINDOWS)
+    s_is_elevated_worker = extract_rc;
+#else
+    (void)extract_rc;
+#endif
 
     com_util_console_init();
-
-    return eventlog_register_run(argc, argv);
+    run_result = eventlog_register_run(argc, argv);
+    return run_result;
 }
