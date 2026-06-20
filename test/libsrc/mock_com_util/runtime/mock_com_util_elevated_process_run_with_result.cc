@@ -1,28 +1,28 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_process_run_elevated_with_result(const char *arguments, int *exit_code, int *handled,
+int delegate_real_com_util_elevated_process_run_with_result(const char *arguments, int *exit_code, int *handled,
                                                             char *result_message, size_t result_message_size)
 {
-    static auto real_fn = reinterpret_cast<decltype(&com_util_process_run_elevated_with_result)>(
-        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_process_run_elevated_with_result"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_elevated_process_run_with_result)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_elevated_process_run_with_result"));
 
     return real_fn(arguments, exit_code, handled, result_message, result_message_size);
 }
 
-MOCK_WEAK_IMPL(int, com_util_process_run_elevated_with_result, const char *arguments, int *exit_code, int *handled,
+MOCK_WEAK_IMPL(int, com_util_elevated_process_run_with_result, const char *arguments, int *exit_code, int *handled,
                char *result_message, size_t result_message_size)
 {
     int rtc = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_process_run_elevated_with_result(arguments, exit_code, handled, result_message,
+        rtc = _mock_com_util->com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
                                                                         result_message_size);
     }
     else
     {
-        rtc = delegate_real_com_util_process_run_elevated_with_result(arguments, exit_code, handled, result_message,
+        rtc = delegate_real_com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
                                                                       result_message_size);
     }
 

@@ -52,7 +52,7 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 昇格起動された場合に、親プロセスのコンソールへ再接続します。
 
-- Windows では `com_util_process_run_elevated_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出する
+- Windows では `com_util_elevated_process_run_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出する
 - `AttachConsole` で親コンソールへ接続し、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へつなぎ直す
 - 検出したフラグは `argv` から取り除き、`argc` を 1 減らす
 - Linux では何もせず 0 を返す
@@ -83,7 +83,7 @@ sequenceDiagram
 
 `AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (失敗するときは何度リトライしても同じエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `com_util_console_write()` (Win32 API を直接呼ぶ) でも同様に発生します。
 
-UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` によるコンソール再接続ではなく、`com_util_process_run_elevated_with_result()` (`app/com_util/prod/libsrc/com_util/runtime/README.md` 参照) を使ってください。こちらは昇格プロセスのコンソールに一切触れず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
+UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` によるコンソール再接続ではなく、`com_util_elevated_process_run_with_result()` (`app/com_util/prod/libsrc/com_util/runtime/README.md` 参照) を使ってください。こちらは昇格プロセスのコンソールに一切触れず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
 
 再現調査時は、環境変数 `COM_UTIL_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/com_util_console_attach.log` へ再接続の診断ログを追記できます。  
 このログには `FreeConsole` / `AttachConsole` / `GetConsoleWindow` / `CONOUT$` オープン / `reopen` / 終了時ドレインの成否と `GetLastError()` を記録します。

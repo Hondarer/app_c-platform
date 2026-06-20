@@ -89,7 +89,7 @@ extern "C"
      *  @return         親コンソールへ再接続した場合は 1、何もしなかった場合は 0、
      *                  失敗した場合は -1 を返します。
      *
-     *  Windows 環境では、com_util_process_run_elevated_if_needed() が UAC 昇格で
+     *  Windows 環境では、com_util_elevated_process_run_if_needed() が UAC 昇格で
      *  自プロセスを再起動した際に付与する引き継ぎフラグを検出し、親プロセスの
      *  コンソールへ @c AttachConsole で再接続します。\n
      *  再接続後、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へ

@@ -23,6 +23,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/console/console.h>
+#include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/trace/tracer.h>
 #include <stdio.h>
@@ -53,9 +54,9 @@ void eventlog_register_print_usage(const char *argv0)
 /**
  *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうか。
  *
- *  main() で com_util_process_extract_result_target() の戻り値を設定する。\n
+ *  main() で com_util_elevated_process_extract_result_target() の戻り値を設定する。\n
  *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
- *  com_util_process_report_elevated_result() で呼び出し元プロセスへ報告する。
+ *  com_util_elevated_process_report_result() で呼び出し元プロセスへ報告する。
  */
 static int s_is_elevated_worker = 0;
 
@@ -81,7 +82,7 @@ static int ensure_elevated(const char *command, int *handled)
 
     exit_code = EXIT_FAILURE;
     rc =
-        com_util_process_run_elevated_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
+        com_util_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
     if (rc != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
@@ -113,7 +114,7 @@ static int ensure_elevated(const char *command, int *handled)
  *  @return         EXIT_SUCCESS / EXIT_FAILURE。
  *
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
- *  com_util_process_report_elevated_result() で報告する (ensure_elevated() がそちらで表示する)。
+ *  com_util_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
  */
 static int report_status(const int status, const char *action)
 {
@@ -125,7 +126,7 @@ static int report_status(const int status, const char *action)
                        COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
-            (void)com_util_process_report_elevated_result(message);
+            (void)com_util_elevated_process_report_result(message);
         }
         else
         {
@@ -148,7 +149,7 @@ static int report_status(const int status, const char *action)
 
     if (s_is_elevated_worker != 0)
     {
-        (void)com_util_process_report_elevated_result(message);
+        (void)com_util_elevated_process_report_result(message);
     }
     else
     {
@@ -264,7 +265,7 @@ int main(int argc, char *argv[])
     /* 昇格ワーカーとして再起動された場合、結果報告先フラグを argv から取り除く。
        引数解析より前に呼び出す。昇格ワーカーのコンソールは一切引き継がない
        (ensure_elevated() / report_status() がファイル経由で結果を受け渡す)。 */
-    extract_rc = com_util_process_extract_result_target(&argc, argv);
+    extract_rc = com_util_elevated_process_extract_result_target(&argc, argv);
 #if defined(PLATFORM_WINDOWS)
     s_is_elevated_worker = extract_rc;
 #else

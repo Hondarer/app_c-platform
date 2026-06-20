@@ -205,14 +205,16 @@ Mock_com_util::Mock_com_util()
     // runtime - process_info
     ON_CALL(*this, com_util_process_get_executable_path(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_process_get_executable_path));
-    ON_CALL(*this, com_util_process_run_elevated_if_needed(_, _, _))
-        .WillByDefault(Invoke(delegate_real_com_util_process_run_elevated_if_needed));
-    ON_CALL(*this, com_util_process_run_elevated_with_result(_, _, _, _, _))
-        .WillByDefault(Invoke(delegate_real_com_util_process_run_elevated_with_result));
-    ON_CALL(*this, com_util_process_extract_result_target(_, _))
-        .WillByDefault(Invoke(delegate_real_com_util_process_extract_result_target));
-    ON_CALL(*this, com_util_process_report_elevated_result(_))
-        .WillByDefault(Invoke(delegate_real_com_util_process_report_elevated_result));
+    ON_CALL(*this, com_util_elevated_process_is_elevated(_))
+        .WillByDefault(Invoke(delegate_real_com_util_elevated_process_is_elevated));
+    ON_CALL(*this, com_util_elevated_process_run_if_needed(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_elevated_process_run_if_needed));
+    ON_CALL(*this, com_util_elevated_process_run_with_result(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_elevated_process_run_with_result));
+    ON_CALL(*this, com_util_elevated_process_extract_result_target(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_elevated_process_extract_result_target));
+    ON_CALL(*this, com_util_elevated_process_report_result(_))
+        .WillByDefault(Invoke(delegate_real_com_util_elevated_process_report_result));
     ON_CALL(*this, com_util_process_start(_, _)).WillByDefault(Invoke(delegate_real_com_util_process_start));
     ON_CALL(*this, com_util_process_wait(_, _)).WillByDefault(Invoke(delegate_real_com_util_process_wait));
     ON_CALL(*this, com_util_process_get_exit_code(_, _))

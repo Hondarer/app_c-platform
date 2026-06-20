@@ -30,19 +30,27 @@ short-title: "runtime"
 
 ### process_info
 
-`process_info` は、現在のプロセスの実行ファイル本体の情報を取得する機能です。
+`process_info` は、現在のプロセスの実行ファイル本体の情報取得と、Linux/Windows での子プロセス起動を担う機能です。管理者権限確認や昇格起動の責務は持たず、コンソール コンポーネントにも依存しません。
 
 - `com_util_process_get_executable_path`: プロセスの実行ファイル絶対パスを取得する
-- `com_util_process_run_elevated_if_needed`: 管理者/root 権限が必要な処理のため、必要に応じて昇格実行する
-- `com_util_process_run_elevated_with_result`: 同様に昇格実行し、昇格プロセスが報告した結果メッセージを取得する
-- `com_util_process_extract_result_target` / `com_util_process_report_elevated_result`: 昇格プロセス側で結果メッセージを報告する
+- `com_util_process_start` / `com_util_process_wait` / `com_util_process_get_exit_code` / `com_util_process_terminate` / `com_util_process_destroy`: 子プロセスの起動・待機・終了コード取得・強制終了・破棄
+- `com_util_process_run_sync`: 子プロセスを起動し、終了まで同期的に待機する
 
 `com_util_module_get_path()` は関数アドレスが属するモジュールを返すため、Windows では DLL を指しうます。`com_util_process_get_executable_path()` は常にプロセス本体 (`.exe`) のパスを返します。  
 典型的には、サービス登録時の `ExecStart` や SCM の `binPath` 設定に使います。
 
-`com_util_process_run_elevated_if_needed()` は、権限が必要な処理の入口で呼び出します。Windows では未昇格の場合に UAC を要求して現在の実行ファイルを再起動し、Linux では実効ユーザー ID が root でなければ失敗します。Windows で親にコンソールがある場合は、昇格プロセスのコマンド ラインへ親プロセス ID と親コンソールの window ハンドルを引き継ぎフラグとして付与します。昇格プロセス側は `com_util_console_attach_parent()` でこれを検出し、親コンソールへ確実に再接続したことを確認したうえで出力を元のコンソールへ戻します。
+### elevated_process
 
-ただし、UAC 昇格直後の親コンソール再割り当ては、実機調査の結果、`AttachConsole` 後の安定待ちを満たしてもなお間欠的に書き込み不能 (`ERROR_INVALID_HANDLE`) になることがあり、原因を特定できていません。確実に結果を表示したい場合は `com_util_process_run_elevated_with_result()` を使ってください。こちらは昇格プロセスのコンソールを一切引き継がず、結果メッセージを一時ファイル経由で受け渡します。昇格プロセス側は起動直後に `com_util_process_extract_result_target()` を呼び出し、処理結果を `com_util_process_report_elevated_result()` で報告します。呼び出し元プロセス (常に未昇格、かつ自分自身の正常なコンソールを保持している) が、そのメッセージを `printf`/`fprintf` で表示します。
+`elevated_process` は、管理者/root 権限の確認と、必要に応じた昇格プロセスの起動を担う機能です。プロセスの待機・終了コード取得・破棄は `process_info` を再利用しますが、`process_info` 側が `elevated_process` に依存することはありません。
+
+- `com_util_elevated_process_is_elevated`: 現在のプロセスが管理者/root 権限で動作しているかを確認する
+- `com_util_elevated_process_run_if_needed`: 管理者/root 権限が必要な処理のため、必要に応じて昇格実行する
+- `com_util_elevated_process_run_with_result`: 同様に昇格実行し、昇格プロセスが報告した結果メッセージを取得する
+- `com_util_elevated_process_extract_result_target` / `com_util_elevated_process_report_result`: 昇格プロセス側で結果メッセージを報告する
+
+`com_util_elevated_process_run_if_needed()` は、権限が必要な処理の入口で呼び出します。Windows では未昇格の場合に UAC を要求して現在の実行ファイルを再起動し、Linux では実効ユーザー ID が root でなければ失敗します。Windows で親にコンソールがある場合は、昇格プロセスのコマンド ラインへ親プロセス ID と親コンソールの window ハンドルを引き継ぎフラグとして付与します。昇格プロセス側は `com_util_console_attach_parent()` でこれを検出し、親コンソールへ確実に再接続したことを確認したうえで出力を元のコンソールへ戻します。
+
+ただし、UAC 昇格直後の親コンソール再割り当ては、実機調査の結果、`AttachConsole` 後の安定待ちを満たしてもなお間欠的に書き込み不能 (`ERROR_INVALID_HANDLE`) になることがあり、原因を特定できていません。確実に結果を表示したい場合は `com_util_elevated_process_run_with_result()` を使ってください。こちらは昇格プロセスのコンソールを一切引き継がず、結果メッセージを一時ファイル経由で受け渡します。昇格プロセス側は起動直後に `com_util_elevated_process_extract_result_target()` を呼び出し、処理結果を `com_util_elevated_process_report_result()` で報告します。呼び出し元プロセス (常に未昇格、かつ自分自身の正常なコンソールを保持している) が、そのメッセージを `printf`/`fprintf` で表示します。
 
 ### sym_loader
 
