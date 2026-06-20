@@ -1,8 +1,20 @@
+/**
+ *******************************************************************************
+ *  @file           time.c
+ *  @brief          time 系 CRT 抽象 API の実装です。
+ *
+ *  UTC 時刻とローカル時刻への変換をスレッド セーフな OS API へ委譲します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/time.h>
 
 #include <string.h>
 
 #include <com_util/base/platform.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
                                                   const time_t *timep)
@@ -28,6 +40,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
     return 0;
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm,
                                                      const time_t *timep)

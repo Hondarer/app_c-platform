@@ -1,7 +1,19 @@
+/**
+ *******************************************************************************
+ *  @file           path_format.c
+ *  @brief          書式指定された UTF-8 パスを生成する内部 API の実装です。
+ *
+ *  書式処理の結果を検証し、バッファー不足を errno 値へ変換します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/path_format.h>
 
 #include <errno.h>
 #include <stdio.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_vformat_path(char *path, const size_t path_size, const char *format, va_list args, int *error_out)
 {

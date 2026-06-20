@@ -1,9 +1,21 @@
+/**
+ *******************************************************************************
+ *  @file           stdio_format.c
+ *  @brief          書式指定パス対応の stdio API の実装です。
+ *
+ *  共通のパス書式処理を使用してファイルのオープンと削除を行います。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/path_format.h>
 
 #include <errno.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes,
                                                         int        *errno_out,
@@ -34,6 +46,8 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes,
     return com_util_fopen(filename, modes, errno_out);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes,
                                                        int        *errno_out,
                                                        const char *format,
@@ -49,6 +63,8 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes,
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format,
                                                        va_list     args)
 {
@@ -61,6 +77,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format,
 
     return com_util_remove(filename);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_remove_fmt(const char *format, ...)
 {

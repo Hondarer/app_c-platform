@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_syslog.c
- *  @brief          syslog プロバイダー実装ファイル。
+ *  @brief          syslog プロバイダー実装ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -60,7 +60,7 @@
     #define SYSLOG_DEBUG_BUF_SIZE (SYSLOG_BUF_SIZE + COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 4)
 
 /**
- *  @brief  syslog プロバイダー ハンドル構造体 (内部定義)。
+ *  @brief  syslog プロバイダー ハンドル構造体 (内部定義) です。
  */
 struct com_util_syslog_sink
 {
@@ -69,7 +69,7 @@ struct com_util_syslog_sink
 
     /**
      *  fd・next_connect・backoff_sec を保護する mutex。
-     *  sendto() は MSG_DONTWAIT で即時返るため、ロック保持中に実行する。
+     *  sendto() は MSG_DONTWAIT で即時返るため、ロック保持中に実行します。
      */
     com_util_local_lock *reconnect_lock;
 
@@ -90,7 +90,7 @@ struct com_util_syslog_sink
 };
 
 /**
- *  @brief  タイムスタンプが有効範囲か判定する。
+ *  @brief  タイムスタンプが有効範囲か判定します。
  */
 static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 {
@@ -98,7 +98,7 @@ static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 }
 
 /**
- *  @brief  syslog 出力に使用するタイムスタンプを解決する。
+ *  @brief  syslog 出力に使用するタイムスタンプを解決します。
  *  @param[in]      timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
  *  @param[out]     resolved       解決後のタイムスタンプ格納先。
  *  @param[out]     fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
@@ -147,7 +147,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_u
 }
 
 /**
- *  @brief  バックオフ値を次段階に進める。ロック保持中に呼ぶこと。
+ *  @brief  バックオフ値を次段階に進めます。ロック保持中に呼び出してください。
  */
 static void advance_backoff(com_util_syslog_sink *h)
 {
@@ -164,7 +164,7 @@ static void advance_backoff(com_util_syslog_sink *h)
 }
 
 /**
- *  @brief  fd を閉じてバックオフを進める。ロック保持中に呼ぶこと。
+ *  @brief  fd を閉じてバックオフを進めます。ロック保持中に呼び出してください。
  */
 static void close_and_backoff_locked(com_util_syslog_sink *h)
 {
@@ -178,7 +178,7 @@ static void close_and_backoff_locked(com_util_syslog_sink *h)
 }
 
 /**
- *  @brief  バックオフ期間を経過していればソケットを開く試みを行う。
+ *  @brief  バックオフ期間を経過していればソケットを開く試みを行います。
  *          ロック保持中に呼ぶこと。
  */
 static void try_open_socket_locked(com_util_syslog_sink *h)

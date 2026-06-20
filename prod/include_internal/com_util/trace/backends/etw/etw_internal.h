@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           etw_internal.h
- *  @brief          ETW プロバイダー内部管理関数のヘッダー ファイル。
+ *  @brief          ETW プロバイダー内部管理関数のヘッダー ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -34,17 +34,17 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで ETW プロバイダー ハンドルを解放します。
- *  @param[in]      handle 解放する ETW プロバイダー ハンドル。
- *  @param[in]      event shutdown イベント情報。
- *
- *  `process_terminating` 相当のイベントでは free() のみ実行します。\n
- *  通常終了では TraceLoggingUnregister() を呼び出します。
- *  呼び出し時点で com_util_etw_provider_write() を実行中のスレッドが存在する場合は
- *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
- *  呼び出し側がスレッドの静止を保証します。
- */
+     *  @brief          shutdown フェーズで ETW プロバイダー ハンドルを解放します。
+     *  @param[in]      handle 解放する ETW プロバイダー ハンドルです。
+     *  @param[in]      event shutdown イベント情報です。
+     *
+     *  `process_terminating` 相当のイベントでは free() のみ実行します。\n
+     *  通常終了では TraceLoggingUnregister() を呼び出します。
+     *  呼び出し時点で com_util_etw_provider_write() を実行中のスレッドが存在する場合は
+     *  未定義動作になります。
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  呼び出し側がスレッドの静止を保証します。
+     */
     void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider *handle, const com_util_shutdown_event *event);
 
     #ifdef __cplusplus

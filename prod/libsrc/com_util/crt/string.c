@@ -1,8 +1,20 @@
+/**
+ *******************************************************************************
+ *  @file           string.c
+ *  @brief          string 系 CRT 抽象 API の実装です。
+ *
+ *  境界検証付き文字列操作と書式入力のプラットフォーム差異を吸収します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/string.h>
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, const size_t dest_size, const char *src)
 {
@@ -23,6 +35,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, const size_t dest_s
     memcpy(dest, src, len + 1);
     return 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, const size_t dest_size, const char *src,
                                                   const size_t count)
@@ -48,6 +62,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, const size_t dest_
     dest[len] = '\0';
     return 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, const size_t dest_size, const char *src)
 {
@@ -80,6 +96,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, const size_t dest_s
     return 0;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
 {
     size_t len;
@@ -100,10 +118,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, const size_t des
     return 0;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer, const char *format, va_list args)
 {
     return vsscanf(buffer, format, args);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer, const char *format, ...)
 {

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           unistd.h
- *  @brief          unistd/io 系 CRT 抽象 API。
+ *  @brief          unistd/io 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
@@ -51,7 +51,7 @@
 #endif     /* DOXYGEN */
 
 /**
- *  @brief          標準ストリームの種別を表す列挙型。
+ *  @brief          標準ストリームの種別を表す列挙型です。
  *
  *  com_util_isatty() の引数に使います。
  */
@@ -86,7 +86,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(com_util_stream_t stream);
 
     /**
-     *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー)。
+     *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー) です。
      *  @param[in]      path  確認対象のファイル パス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      mode  確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
@@ -98,7 +98,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, int mode);
 
     /**
-     *  @brief          書式指定パスのアクセス確認。
+     *  @brief          書式指定パスのアクセス確認です。
      *  @param[in]      mode    確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
@@ -111,7 +111,7 @@ extern "C"
         ;
 
     /**
-     *  @brief          書式指定パスのアクセス確認 (`com_util_access_fmt` の `va_list` 版)。
+     *  @brief          書式指定パスのアクセス確認 (`com_util_access_fmt` の `va_list` 版) です。
      *  @param[in]      mode    確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。

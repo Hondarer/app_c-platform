@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           time.h
- *  @brief          time 系 CRT 抽象 API。
+ *  @brief          time 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *

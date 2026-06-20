@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           elevated_process.c
- *  @brief          管理者権限確認・昇格プロセス起動 実装。
+ *  @brief          管理者権限確認・昇格プロセス起動 実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/20
  *  @version        1.0.0
@@ -36,10 +36,10 @@
     #pragma comment(lib, "Shell32.lib")
 
 /**
- *  @brief          昇格プロセスへ結果報告先の一時ファイル パスを引き継ぐ内部フラグ。
+ *  @brief          昇格プロセスへ結果報告先の一時ファイル パスを引き継ぐ内部フラグです。
  *
  *  com_util_elevated_process_run_with_result() が昇格プロセスのコマンド ラインへ
- *  `<FLAG>=<一時ファイルの UTF-8 パス>` の形式で付与し、
+ *  `{FLAG}={一時ファイルの UTF-8 パス}` の形式で付与し、
  *  com_util_elevated_process_extract_result_target() がこれを検出して報告先を保持します。
  */
     #define COM_UTIL_PROCESS_RESULT_TARGET_FLAG "--com-util-result-file"
@@ -93,6 +93,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_is_elevated(int *elev
     return -1;
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_if_needed(const char *arguments, int *exit_code,
                                                                          int *handled)
@@ -326,6 +328,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_if_needed(const c
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_with_result(const char *arguments, int *exit_code,
                                                                            int *handled, char *result_message,
                                                                            size_t result_message_size)
@@ -525,6 +529,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_with_result(const
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_extract_result_target(int *argc, char **argv)
 {
 #if defined(PLATFORM_WINDOWS)
@@ -573,6 +579,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_extract_result_target
     return 0;
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_report_result(const char *message)
 {

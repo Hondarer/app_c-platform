@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           wchar_conv.c
- *  @brief          UTF-8 / ワイド文字列変換 API 実装 (Windows 専用)。
+ *  @brief          UTF-8 / ワイド文字列変換 API 実装 (Windows 専用) です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/08
  *  @version        1.0.0
@@ -45,6 +45,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_utf8_to_wpath(wchar_t *wbuf, size_t wb
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_size,
                                                         const wchar_t *wpath)
 {
@@ -72,6 +74,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_si
 
     return n;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT wchar_t *COM_UTIL_API com_util_utf8_to_wstr_alloc(const char *utf8_text)
 {
@@ -103,6 +107,8 @@ COM_UTIL_EXPORT wchar_t *COM_UTIL_API com_util_utf8_to_wstr_alloc(const char *ut
 
     return wtext;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT char *COM_UTIL_API com_util_wstr_to_utf8_alloc(const wchar_t *wtext)
 {

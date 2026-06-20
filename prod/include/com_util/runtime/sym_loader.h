@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader.h
- *  @brief          関数動的解決機構 (symbol loader) の公開 API ヘッダー。
+ *  @brief          関数動的解決機構 (symbol loader) の公開 API ヘッダーです。
  *  @author         c-modenization-kit sample team
  *  @date           2026/03/17
  *  @version        1.0.0
@@ -10,9 +10,9 @@
  *  実行時に動的リンクで関数を解決するキャッシュ機構です。
  *
  *  使用方法:
- *  1. com_util_sym_loader_entry を COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで静的初期化する。
+ *  1. com_util_sym_loader_entry を COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで静的初期化します。
  *  2. com_util_sym_loader_init() でテキスト設定ファイルを読み込む (DllMain/constructor から呼ぶ)。
- *  3. com_util_sym_loader_resolve_as() で関数ポインターを取得して呼び出す。
+ *  3. com_util_sym_loader_resolve_as() で関数ポインターを取得して呼び出します。
  *  4. com_util_sym_loader_dispose() でリソースを解放する (DllMain/destructor から呼ぶ)。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -58,7 +58,7 @@ extern "C"
 
 #ifdef DOXYGEN
     /**
-     *  @brief          Linux/Windows 共通のモジュール ハンドル型。
+     *  @brief          Linux/Windows 共通のモジュール ハンドル型です。
      *
      *  sym_loader が内部で保持する動的ロード済みモジュールの不透明ハンドルです。\n
      *  Linux では `dlopen()` が返す `void *`、Windows では `LoadLibrary()` 系が返す
@@ -74,7 +74,7 @@ extern "C"
 #define COM_UTIL_SYM_LOADER_NAME_MAX 256 /**< lib_name / func_name 配列の最大長 (終端 '\0' を含む)。 */
 
     /**
-     *  @brief          関数ポインター キャッシュ エントリ。
+     *  @brief          関数ポインター キャッシュ エントリです。
      *
      *  ライブラリ名・関数名・ハンドル・関数ポインターおよび排他制御用ロックを管理します。\n
      *  静的変数として定義する場合は COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで初期化してください。
@@ -94,7 +94,7 @@ extern "C"
     } com_util_sym_loader_entry;
 
 /**
- *  @brief          com_util_sym_loader_entry 静的変数の初期化マクロ。
+ *  @brief          com_util_sym_loader_entry 静的変数の初期化マクロです。
  *
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
  *  @param[in]      type    格納する関数ポインターの型 (例: sample_func_t)。

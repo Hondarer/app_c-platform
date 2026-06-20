@@ -1,6 +1,6 @@
 /**
  *  @file           console.h
- *  @brief          Windows コンソール設定ヘルパー API。
+ *  @brief          Windows コンソール設定ヘルパー API です。
  *
  *  Windows 環境で接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
@@ -49,7 +49,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          コンソール ヘルパーを初期化する。
+     *  @brief          コンソール ヘルパーを初期化します。
      *
      *  Windows 環境では stdout がコンソール (TTY) の場合に、
      *  コンソール入出力コード ページを UTF-8 に設定し、
@@ -69,7 +69,7 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void);
 
     /**
-     *  @brief          コンソール ヘルパーを終了し、リソースを解放する。
+     *  @brief          コンソール ヘルパーを終了し、リソースを解放します。
      *
      *  Windows 環境では @c com_util_console_init で変更した
      *  コンソール入出力コード ページとコンソール モードを元に戻します。\n
@@ -83,7 +83,7 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void);
 
     /**
-     *  @brief          昇格起動時に親プロセスのコンソールへ再接続する。
+     *  @brief          昇格起動時に親プロセスのコンソールへ再接続します。
      *  @param[in,out]  argc  引数の数へのポインター。NULL 可。
      *  @param[in,out]  argv  引数配列。NULL 可。
      *  @return         親コンソールへ再接続した場合は 1、何もしなかった場合は 0、
@@ -110,7 +110,7 @@ extern "C"
 
     /**
      *  @brief          stdout / stderr の CRT ストリーム (printf / fprintf) を経由せず、
-     *                  端末へ文字列をそのまま書き込む。
+     *                  端末へ文字列をそのまま書き込みます。
      *  @param[in]      stream  書き込み先 (@ref COM_UTIL_STREAM_STDOUT または
      *                  @ref COM_UTIL_STREAM_STDERR)。それ以外は失敗します。
      *  @param[in]      text    書き込む文字列 (UTF-8)。NULL を渡してはなりません。
@@ -121,7 +121,7 @@ extern "C"
      *  fd 自体は正常であるにもかかわらず書き込みを拒否する事象が実機調査で確認されている。\n
      *  本関数は @c GetStdHandle で取得した Win32 ハンドルへ @c WriteConsoleA で直接書き込み、
      *  この問題を回避する。\n
-     *  Linux 環境では対象の fd へ直接書き込む。
+     *  Linux 環境では対象の fd へ直接書き込みます。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

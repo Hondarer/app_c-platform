@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_etw.c
- *  @brief          ETW プロバイダー実装ファイル。
+ *  @brief          ETW プロバイダー実装ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -25,7 +25,7 @@
     #include <com_util/trace/backends/etw/etw_internal.h>
 
 /**
- *  @brief  ETW プロバイダー ハンドル構造体 (内部定義)。
+ *  @brief  ETW プロバイダー ハンドル構造体 (内部定義) です。
  */
 struct com_util_etw_provider
 {
@@ -65,9 +65,9 @@ com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
 }
 
 /**
- *  @brief          ETW イベントを書き込む内部関数。
+ *  @brief          ETW イベントを書き込む内部関数です。
  *
- *  service が NULL の場合は Service フィールドを含めない。
+ *  service が NULL の場合は Service フィールドを含めありません。
  *
  *  @param[in]      ref     TraceLogging プロバイダー参照。
  *  @param[in]      level   トレース レベル (1=Critical 〜 5=Verbose)。

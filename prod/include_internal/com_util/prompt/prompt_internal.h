@@ -1,6 +1,8 @@
 /**
  *  @file           prompt_internal.h
- *  @brief          プロンプト ヘルパー内部定義 (非公開)。
+ *  @brief          プロンプトの状態とプラットフォーム処理を共有する内部ヘッダーです。
+ *
+ *  入力履歴、UTF-8 編集バッファー、端末の raw モードを管理する内部状態を定義します。
  *
  *  @hideincludedbygraph
  *
@@ -82,16 +84,33 @@ struct com_util_prompt
 
 /* ---- プラットフォーム抽象インターフェース (各 _platform.c で実装) ---- */
 
-/* raw モードに移行 */
+/**
+ *  @brief          端末を 1 バイト単位で入力できる raw モードへ移行します。
+ *  @param[in]      p  プロンプト ハンドルです。
+ *
+ *  移行に成功した場合は @p p の raw モード状態を有効にし、復元用の端末設定を保存します。
+ */
 void prompt_platform_enter_raw(com_util_prompt *p);
 
-/* raw モードを解除して元の設定に戻す */
+/**
+ *  @brief          raw モードを解除して保存済みの端末設定を復元します。
+ *  @param[in]      p  プロンプト ハンドルです。
+ */
 void prompt_platform_leave_raw(com_util_prompt *p);
 
-/* 1 バイトをブロック読み。EOF/エラーは -1 */
+/**
+ *  @brief          標準入力から 1 バイトを待機して読み取ります。
+ *  @param[in]      p  プロンプト ハンドルです。
+ *  @return         読み取った 0 以上のバイト値を返します。EOF または読み取り失敗の場合は -1 を返します。
+ */
 int prompt_platform_read_char(com_util_prompt *p);
 
-/* 1 バイトを最大 50ms 待って読む。タイムアウト/エラーは -1 */
+/**
+ *  @brief          標準入力から 1 バイトを最大 50 ミリ秒待って読み取ります。
+ *  @param[in]      p  プロンプト ハンドルです。
+ *  @return         読み取った 0 以上のバイト値を返します。タイムアウト、EOF、または読み取り失敗の場合は
+ *                  -1 を返します。
+ */
 int prompt_platform_read_char_nb(com_util_prompt *p);
 
 #endif /* COM_UTIL_PROMPT_INTERNAL_H */

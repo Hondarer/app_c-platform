@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           unistd.c
+ *  @brief          unistd 系 CRT 抽象 API の実装です。
+ *
+ *  標準ストリームの端末判定と UTF-8 パスのアクセス確認を提供します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/path.h>
 
@@ -72,6 +82,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(const com_util_stream_t stream)
 
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, const int mode)
 {

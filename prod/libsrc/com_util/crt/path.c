@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           path.c
+ *  @brief          UTF-8 パス操作 API の実装です。
+ *
+ *  絶対パス化、区切り文字の正規化、パス比較、連結、一時ディレクトリ取得を提供します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/path.h>
 #include <com_util/crt/wchar_conv.h>
 #include <ctype.h>
@@ -256,6 +266,8 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
     return 0;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path)
 {
     char *p;
@@ -268,6 +280,8 @@ COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path)
     }
     return path;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, const size_t path_size, int *errno_out,
                                                         const char *path)
@@ -364,6 +378,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, const si
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out)
 {
     char lhs_full[PLATFORM_PATH_MAX];
@@ -391,6 +407,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const cha
 
     return com_util_compare_normalized_paths(lhs_full, rhs_full);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out)
 {
@@ -466,6 +484,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, const siz
     }
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, const size_t path_size, int *errno_out,
                                                         const size_t part_count, ...)

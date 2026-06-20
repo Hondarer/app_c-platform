@@ -1,7 +1,19 @@
+/**
+ *******************************************************************************
+ *  @file           unistd_format.c
+ *  @brief          書式指定パス対応のアクセス確認 API の実装です。
+ *
+ *  共通のパス書式処理を使用して com_util_access() を呼び出します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/path_format.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(const int mode, const char *format, va_list args)
 {
@@ -14,6 +26,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(const int mode, const char
 
     return com_util_access(filename, mode);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(const int mode, const char *format, ...)
 {

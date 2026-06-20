@@ -1,6 +1,6 @@
 /**
  *  @file           prompt.c
- *  @brief          プロンプト ヘルパー共通実装。
+ *  @brief          プロンプト ヘルパー共通実装です。
  */
 
 #include <com_util/prompt/prompt_internal.h>
@@ -371,6 +371,8 @@ static com_util_prompt_ctx *find_or_create_ctx(com_util_prompt *p, const char *f
  * 公開 API
  * ================================================================ */
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
 {
     com_util_prompt *p = (com_util_prompt *)calloc(1, sizeof(*p));
@@ -416,6 +418,8 @@ com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
     return p;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_prompt_dispose(com_util_prompt *prompt)
 {
     size_t i;
@@ -443,6 +447,8 @@ void com_util_prompt_dispose(com_util_prompt *prompt)
     free(prompt->prompt_fmt_buf);
     free(prompt);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, const char *prompt_str,
                                 const char *file, int line)
@@ -630,6 +636,8 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
         }
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_size, const char *file, int line,
                                     const char *fmt, ...)

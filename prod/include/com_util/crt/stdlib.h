@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           stdlib.h
- *  @brief          stdlib 系 CRT 抽象 API。
+ *  @brief          stdlib 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/05/01
  *
@@ -35,18 +35,18 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          環境変数の値を取得する。
+     *  @brief          環境変数の値を取得します。
      *
      *  指定された環境変数が設定されている場合、その値を @p buf に格納して 0 を返す。\n
      *  @p buf に NULL を渡した場合は存在確認のみ行い、値のコピーを省略する。\n
-     *  Windows では @c _dupenv_s を使用して MSVC セキュリティ警告を回避する。
+     *  Windows では @c _dupenv_s を使用して MSVC セキュリティ警告を回避します。
      *
      *  @param[in]      name        環境変数名 (null 終端文字列)。
-     *  @param[out]     buf         値の格納先。NULL を指定すると存在確認のみ行う。
+     *  @param[out]     buf         値の格納先です。NULL を指定すると存在確認のみ行います。
      *  @param[in]      buf_size    @p buf のバイト数。@p buf が NULL の場合は無視。
-     *  @return         0:         変数が設定されており、@p buf が NULL でない場合は値をコピー済み。
-     *  @return         -1:        変数が未設定。
-     *  @return         ERANGE:    @p buf が NULL でなく、バッファーが値を格納するのに不足。
+     *  @return         変数が設定されている場合は 0 を返し、@p buf が NULL でなければ値をコピーします。
+     *  @return         変数が設定されていない場合は -1 を返します。
+     *  @return         @p buf が NULL でなく、値を格納するには不足している場合は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

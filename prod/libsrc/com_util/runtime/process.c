@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           process.c
- *  @brief          プロセス情報取得・子プロセス起動 実装。
+ *  @brief          プロセス情報取得・子プロセス起動 実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/07
  *  @version        1.2.0
@@ -880,6 +880,8 @@ static void close_stdio_handles(HANDLE handles[3])
 }
 #endif /* PLATFORM_ */
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_path, const size_t out_path_sz)
 {
     if (out_path == NULL || out_path_sz == 0)
@@ -924,6 +926,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_
     return -1;
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_start(const com_util_process_options_t *options,
                                                                               com_util_process **process)
@@ -1116,6 +1120,8 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_start(co
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com_util_process *process,
                                                                              const int timeout_ms)
 {
@@ -1226,6 +1232,8 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit_code(com_util_process *process,
                                                                                       int *exit_code)
 {
@@ -1240,6 +1248,8 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit
     *exit_code = process->exit_code;
     return COM_UTIL_PROCESS_OK;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminate(com_util_process *process)
 {
@@ -1269,6 +1279,8 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminat
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_process_destroy(com_util_process *process)
 {
     if (process == NULL)
@@ -1286,6 +1298,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_process_destroy(com_util_process *pro
 }
 
 /* Doxygen コメントは、内部ヘッダー process_internal.h に記載 */
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 {
     com_util_process *new_process;
@@ -1306,6 +1320,8 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 #endif /* PLATFORM_ */
     return new_process;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
 com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms, int *exit_code)

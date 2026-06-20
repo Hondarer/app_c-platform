@@ -1,11 +1,13 @@
 /**
  *  @file           prompt_windows.c
- *  @brief          プロンプト ヘルパー Windows 実装 (SetConsoleMode VT 入力)。
+ *  @brief          プロンプト ヘルパー Windows 実装 (SetConsoleMode VT 入力) です。
  */
 
 #include <com_util/prompt/prompt_internal.h>
 
 #if defined(PLATFORM_WINDOWS)
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void prompt_platform_enter_raw(com_util_prompt *p)
 {
@@ -35,6 +37,8 @@ void prompt_platform_enter_raw(com_util_prompt *p)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void prompt_platform_leave_raw(com_util_prompt *p)
 {
     if (!p->raw_active)
@@ -44,6 +48,8 @@ void prompt_platform_leave_raw(com_util_prompt *p)
     SetConsoleMode(p->stdin_handle, p->orig_in_mode);
     p->raw_active = 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int prompt_platform_read_char(com_util_prompt *p)
 {
@@ -66,6 +72,8 @@ int prompt_platform_read_char(com_util_prompt *p)
     }
     return (unsigned char)ch;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int prompt_platform_read_char_nb(com_util_prompt *p)
 {

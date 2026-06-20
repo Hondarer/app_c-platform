@@ -1,9 +1,21 @@
+/**
+ *******************************************************************************
+ *  @file           stdlib.c
+ *  @brief          stdlib 系 CRT 抽象 API の実装です。
+ *
+ *  環境変数の有無とバッファー不足を共通の戻り値へ変換します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/stdlib.h>
 #include <com_util/base/platform.h>
 
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, const size_t buf_size)
 {

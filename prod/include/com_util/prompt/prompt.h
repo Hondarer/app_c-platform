@@ -1,13 +1,13 @@
 /**
  *******************************************************************************
  *  @file           prompt.h
- *  @brief          汎用プロンプト ヘルパー API。
+ *  @brief          対話的な 1 行入力を提供する汎用プロンプト API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/30
  *  @version        1.0.0
  *
  *  対話的な 1 行入力を提供します。\n
- *  TTY (対話端末) では以下のキー操作が有効です:
+ *  TTY (対話端末) では以下のキー操作を使用できます。
  *  - 上/下矢印キー : 入力履歴を遡る/進む
  *  - 左/右矢印キー : カーソル移動
  *  - Home / End    : 行頭/行末へ移動
@@ -74,58 +74,58 @@ extern "C"
 #endif /* __cplusplus */
 
 /**
- *  @brief  各コンテキストで保持する履歴エントリ数のデフォルト値。
+ *  @brief  各コンテキストで保持する履歴エントリ数の既定値です。
  */
 #define COM_UTIL_PROMPT_HISTORY_DEFAULT 64
 
 /**
- *  @brief  入力バッファーの既定最大バイト数 (NUL 終端含む)。
+ *  @brief  NUL 終端を含む入力バッファーの既定最大バイト数です。
  */
 #define COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT 4096
 
     /**
-     *  @brief  プロンプト ハンドルの不透明型。
+     *  @brief  プロンプトを操作する不透明ハンドルです。
      */
     typedef struct com_util_prompt com_util_prompt;
 
     /**
-     *  @brief  プロンプト生成オプション。
+     *  @brief  プロンプトの生成オプションです。
      */
     typedef struct com_util_prompt_options
     {
         /**
-         *  @brief  将来拡張用フラグ。現時点では 0 を指定する。
+         *  @brief  将来拡張用のフラグです。現時点では 0 を指定してください。
          */
         unsigned int flags;
 
         /**
-         *  @brief  構造体配置の予約領域。現時点では 0 を指定する。
+         *  @brief  構造体配置用の予約領域です。現時点では 0 を指定してください。
          */
         unsigned int reserved;
 
         /**
-         *  @brief  各コンテキストの履歴エントリ数上限。
-         *          0 を指定すると @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用する。
+         *  @brief  各コンテキストで保持する履歴エントリ数の上限です。
+         *          0 の場合は @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用します。
          */
         size_t history_max;
 
         /**
-         *  @brief  入力編集バッファーの初期バイト数 (NUL 終端含む)。
-         *          0 を指定すると実装既定値を使用する。
+         *  @brief  NUL 終端を含む入力編集バッファーの初期バイト数です。
+         *          0 の場合は実装の既定値を使用します。
          */
         size_t input_initial_capacity;
 
         /**
-         *  @brief  入力編集バッファーの最大バイト数 (NUL 終端含む)。
-         *          0 を指定すると @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用する。
+         *  @brief  NUL 終端を含む入力編集バッファーの最大バイト数です。
+         *          0 の場合は @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用します。
          */
         size_t input_max_bytes;
     } com_util_prompt_options;
 
     /**
-     *  @brief      プロンプト ハンドルを生成する。
-     *  @param[in]  options  生成オプション。NULL の場合は既定設定を使用する。
-     *  @return     成功時は非 NULL ハンドル、失敗時は NULL。
+     *  @brief          プロンプト ハンドルを生成します。
+     *  @param[in]      options  生成オプションです。NULL の場合は既定設定を使用します。
+     *  @return         成功時は生成したハンドルを返します。メモリを確保できない場合は NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -134,10 +134,10 @@ extern "C"
     COM_UTIL_EXPORT com_util_prompt *COM_UTIL_API com_util_prompt_create(const com_util_prompt_options *options);
 
     /**
-     *  @brief      プロンプト ハンドルを解放する。
-     *  @param[in]      prompt  com_util_prompt_create() が返したハンドル。NULL 可。
+     *  @brief          プロンプト ハンドルを解放します。
+     *  @param[in]      prompt  com_util_prompt_create() が返したハンドルです。NULL も指定できます。
      *
-     *  raw モード中の場合はターミナル設定を復元してから解放する。
+     *  raw モード中の場合は、端末設定を復元してから解放します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -146,24 +146,26 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_prompt_dispose(com_util_prompt *prompt);
 
 /**
- *  @brief      固定プロンプト文字列を表示して 1 行入力を受け取る。
- *  @param[in]      p           ハンドル。
- *  @param[out]     buf         入力結果を格納するバッファー (末尾の改行は含まない)。
- *  @param[in]      buf_size    バッファーのサイズ (バイト)。
- *  @param[in]      prompt_str  表示するプロンプト文字列。NULL の場合は "" として扱う。
- *  @return     入力確定時は 1、EOF / Ctrl+C 時は 0。
+ *  @brief          固定プロンプト文字列を表示して 1 行入力を受け取ります。
+ *  @param[in]      p           プロンプト ハンドルです。
+ *  @param[out]     buf         入力結果を格納するバッファーです。終端の改行は格納しません。
+ *  @param[in]      buf_size    @p buf のバイト数です。
+ *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+ *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
+ *                  0 を返します。
  */
 #define com_util_prompt_readline(p, buf, buf_size, prompt_str) \
     com_util_prompt_readline_at((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
 
 /**
- *  @brief      printf スタイルのフォーマットでプロンプトを表示して 1 行入力を受け取る。
- *  @param[in]      p        ハンドル。
- *  @param[out]     buf      入力結果を格納するバッファー (末尾の改行は含まない)。
- *  @param[in]      buf_size バッファーのサイズ (バイト)。
- *  @param[in]      fmt      printf 形式のフォーマット文字列。NULL の場合は "" として扱う。
- *  @param[in]      ...      フォーマット引数。
- *  @return     入力確定時は 1、EOF / Ctrl+C 時は 0。
+ *  @brief          printf 形式でプロンプトを生成して 1 行入力を受け取ります。
+ *  @param[in]      p         プロンプト ハンドルです。
+ *  @param[out]     buf       入力結果を格納するバッファーです。終端の改行は格納しません。
+ *  @param[in]      buf_size  @p buf のバイト数です。
+ *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
+ *  @param[in]      ...       @p fmt に対応する書式引数です。
+ *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
+ *                  0 を返します。
  *
  *  プロンプト文字列バッファーはハンドル内に保持し、必要に応じて自動拡張します。
  */
@@ -171,9 +173,17 @@ extern "C"
     com_util_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
-     *  @brief      呼び出し元を明示して 1 行入力を受け取る。
+     *  @brief          呼び出し元を明示して 1 行入力を受け取ります。
      *
-     *  通常は com_util_prompt_readline() を使用する。
+     *  通常は com_util_prompt_readline() を使用してください。
+     *
+     *  @param[in]      prompt      プロンプト ハンドルです。
+     *  @param[out]     buf         入力結果を格納するバッファーです。
+     *  @param[in]      buf_size    @p buf のバイト数です。
+     *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      file        履歴を識別する呼び出し元ファイル名です。
+     *  @param[in]      line        履歴を識別する呼び出し元行番号です。
+     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -183,9 +193,18 @@ extern "C"
                                                                  const char *prompt_str, const char *file, int line);
 
     /**
-     *  @brief      呼び出し元を明示して printf スタイルのプロンプトを表示する。
+     *  @brief          呼び出し元を明示し、printf 形式のプロンプトで 1 行入力を受け取ります。
      *
-     *  通常は com_util_prompt_readline_fmt() を使用する。
+     *  通常は com_util_prompt_readline_fmt() を使用してください。
+     *
+     *  @param[in]      p         プロンプト ハンドルです。
+     *  @param[out]     buf       入力結果を格納するバッファーです。
+     *  @param[in]      buf_size  @p buf のバイト数です。
+     *  @param[in]      file      履歴を識別する呼び出し元ファイル名です。
+     *  @param[in]      line      履歴を識別する呼び出し元行番号です。
+     *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      ...       @p fmt に対応する書式引数です。
+     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)

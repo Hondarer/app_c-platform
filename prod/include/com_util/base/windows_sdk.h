@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           windows_sdk.h
- *  @brief          Windows SDK 共通取り込みヘッダー。
+ *  @brief          Windows SDK 共通取り込みヘッダーです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/20
  *  @version        1.0.0

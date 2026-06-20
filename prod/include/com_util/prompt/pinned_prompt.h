@@ -1,14 +1,13 @@
 /**
  *******************************************************************************
  *  @file           pinned_prompt.h
- *  @brief          Pinned prompt API for command-oriented CLIs.
+ *  @brief          コマンド操作向け固定プロンプト API の公開ヘッダーです。
  *  @author         Tetsuo Honda
  *  @date           2026/05/08
  *  @version        0.1.0
  *
- *  This API keeps a single-line prompt at the bottom of the terminal and writes
- *  application output above it.  The API is experimental and may change while
- *  the command-line interaction model is being refined.
+ *  端末の最下部に 1 行の入力プロンプトを固定し、アプリケーションの出力をその上へ表示します。
+ *  本 API は実験段階であり、コマンド ライン操作モデルの改良に伴って変更される場合があります。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -41,12 +40,12 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief  Pinned prompt handle.
+     *  @brief  固定プロンプトを操作する不透明ハンドルです。
      */
     typedef struct com_util_pinned_prompt com_util_pinned_prompt;
 
     /**
-     *  @brief  Output channel used by com_util_pinned_prompt_write().
+     *  @brief  固定プロンプトの上へ出力するときに使用する出力先です。
      */
     typedef enum
     {
@@ -55,7 +54,7 @@ extern "C"
     } com_util_pinned_prompt_channel_t;
 
     /**
-     *  @brief  Status area position.
+     *  @brief  ステータス領域の表示位置です。
      */
     typedef enum
     {
@@ -64,7 +63,7 @@ extern "C"
     } com_util_pinned_prompt_status_position_t;
 
     /**
-     *  @brief  Status area alignment.
+     *  @brief  ステータス領域内の文字列配置です。
      */
     typedef enum
     {
@@ -73,30 +72,31 @@ extern "C"
     } com_util_pinned_prompt_status_align_t;
 
     /**
-     *  @brief  Pinned prompt creation options.
+     *  @brief  固定プロンプトの生成オプションです。
      */
     typedef struct com_util_pinned_prompt_options
     {
         /**
-         *  @brief  Reserved for future flags. Set to 0.
+         *  @brief  将来拡張用のフラグです。0 を指定してください。
          */
         unsigned int flags;
 
         /**
-         *  @brief  Reserved for structure alignment. Set to 0.
+         *  @brief  構造体配置用の予約領域です。0 を指定してください。
          */
         unsigned int reserved;
 
         /**
-         *  @brief  Input and history options.
+         *  @brief  入力編集と履歴に関するオプションです。
          */
         com_util_prompt_options input;
     } com_util_pinned_prompt_options;
 
     /**
-     *  @brief      Create a pinned prompt.
-     *  @param[in]  options  Creation options. NULL uses default options.
-     *  @return     Non-NULL handle on success, NULL on failure.
+     *  @brief          固定プロンプト ハンドルを生成します。
+     *  @param[in]      options  生成オプションです。NULL の場合は既定値を使用します。
+     *  @return         成功時は生成したハンドルを返します。メモリまたは同期オブジェクトを確保できない場合は
+     *                  NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -106,8 +106,8 @@ extern "C"
     com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options);
 
     /**
-     *  @brief      Dispose a pinned prompt.
-     *  @param[in]      screen  Handle returned by com_util_pinned_prompt_create(). NULL is allowed.
+     *  @brief          固定プロンプト ハンドルを解放します。
+     *  @param[in]      screen  com_util_pinned_prompt_create() が返したハンドルです。NULL も指定できます。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -116,30 +116,42 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen);
 
 /**
- *  @brief      Read one command line with a bottom-fixed prompt.
- *  @param[in]      screen      Pinned prompt handle.
- *  @param[out]     buf         Destination buffer. The terminating newline is not included.
- *  @param[in]      buf_size    Destination buffer size.
- *  @param[in]      prompt_str  Prompt string. NULL is treated as an empty string.
- *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
+ *  @brief          端末下部に固定したプロンプトで 1 行のコマンド入力を受け取ります。
+ *  @param[in]      screen      固定プロンプト ハンドルです。
+ *  @param[out]     buf         入力結果を格納するバッファーです。終端の改行は格納しません。
+ *  @param[in]      buf_size    @p buf のバイト数です。
+ *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+ *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
+ *                  0 を返します。
  */
 #define com_util_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
     _com_util_pinned_prompt_readline((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
 
 /**
- *  @brief      Read one command line with a formatted bottom-fixed prompt.
- *  @param[in]      screen    Pinned prompt handle.
- *  @param[out]     buf       Destination buffer. The terminating newline is not included.
- *  @param[in]      buf_size  Destination buffer size.
- *  @param[in]      fmt       printf style format string. NULL is treated as an empty string.
- *  @param[in]      ...       Format arguments.
- *  @return     1 when a line is accepted, 0 on EOF, Ctrl+C, or invalid arguments.
+ *  @brief          書式指定した固定プロンプトで 1 行のコマンド入力を受け取ります。
+ *  @param[in]      screen    固定プロンプト ハンドルです。
+ *  @param[out]     buf       入力結果を格納するバッファーです。終端の改行は格納しません。
+ *  @param[in]      buf_size  @p buf のバイト数です。
+ *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
+ *  @param[in]      ...       @p fmt に対応する書式引数です。
+ *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
+ *                  0 を返します。
  */
 #define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
     _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
-     *  @brief  com_util_pinned_prompt_readline() implementation.
+     *  @brief          呼び出し元の位置を明示して 1 行のコマンド入力を受け取ります。
+     *
+     *  通常は com_util_pinned_prompt_readline() を使用してください。
+     *
+     *  @param[in]      screen      固定プロンプト ハンドルです。
+     *  @param[out]     buf         入力結果を格納するバッファーです。
+     *  @param[in]      buf_size    @p buf のバイト数です。
+     *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      file        履歴を識別する呼び出し元ファイル名です。
+     *  @param[in]      line        履歴を識別する呼び出し元行番号です。
+     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -150,7 +162,18 @@ extern "C"
                                                                       const char *file, int line);
 
     /**
-     *  @brief  com_util_pinned_prompt_readline_fmt() implementation.
+     *  @brief          呼び出し元の位置とプロンプト書式を明示してコマンド入力を受け取ります。
+     *
+     *  通常は com_util_pinned_prompt_readline_fmt() を使用してください。
+     *
+     *  @param[in]      screen    固定プロンプト ハンドルです。
+     *  @param[out]     buf       入力結果を格納するバッファーです。
+     *  @param[in]      buf_size  @p buf のバイト数です。
+     *  @param[in]      file      履歴を識別する呼び出し元ファイル名です。
+     *  @param[in]      line      履歴を識別する呼び出し元行番号です。
+     *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      ...       @p fmt に対応する書式引数です。
+     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf,
                                                                           size_t buf_size, const char *file, int line,
@@ -161,15 +184,15 @@ extern "C"
         ;
 
     /**
-     *  @brief          Write output above the bottom-fixed prompt.
-     *  @param[in]      screen   Pinned prompt handle.
-     *  @param[in]      channel  Output channel.
-     *  @param[in]      data     Data to write. NULL is allowed only when size is 0.
-     *  @param[in]      size     Data size in bytes.
-     *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
-     *  @return     Number of bytes written to the target stream.
+     *  @brief          端末下部の固定プロンプトより上へデータを書き込みます。
+     *  @param[in]      screen   固定プロンプト ハンドルです。
+     *  @param[in]      channel  書き込み先の標準ストリームです。
+     *  @param[in]      data     書き込むデータです。@p size が 0 の場合に限り NULL も指定できます。
+     *  @param[in]      size     @p data から書き込むバイト数です。
+     *  @return         対象ストリームへ書き込んだバイト数を返します。引数不正の場合は 0 を返します。
      *
-     *  The function writes exactly the supplied bytes and does not add a newline.
+     *  指定されたデータだけを書き込み、改行は付加しません。
+     *  ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -180,13 +203,14 @@ extern "C"
                                                                      const void *data, size_t size);
 
     /**
-     *  @brief          Write formatted output above the bottom-fixed prompt.
-     *  @param[in]      screen   Pinned prompt handle.
-     *  @param[in]      channel  Output channel.
-     *  @param[in]      fmt      printf style format string. NULL is treated as an empty string.
-     *  @param[in]      ...      Format arguments.
-     *  @note       ANSI CSI SGR escape sequences are passed through for coloring.
-     *  @return     Number of bytes written to the target stream.
+     *  @brief          端末下部の固定プロンプトより上へ書式付き文字列を書き込みます。
+     *  @param[in]      screen   固定プロンプト ハンドルです。
+     *  @param[in]      channel  書き込み先の標準ストリームです。
+     *  @param[in]      fmt      printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      ...      @p fmt に対応する書式引数です。
+     *  @return         成功時は対象ストリームへ書き込んだバイト数を返します。引数不正、書式処理失敗、
+     *                  またはメモリ確保失敗の場合は -1 を返します。
+     *  @note           ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
                                                                    com_util_pinned_prompt_channel_t channel,
@@ -197,11 +221,12 @@ extern "C"
         ;
 
     /**
-     *  @brief          Enable or disable status area.
-     *  @param[in]      screen    Pinned prompt handle.
-     *  @param[in]      position  Status area position (top or bottom).
-     *  @param[in]      enable    Non-zero to enable, zero to disable.
-     *  @return     0 on success, -1 on failure.
+     *  @brief          指定位置のステータス領域を有効または無効にします。
+     *  @param[in]      screen    固定プロンプト ハンドルです。
+     *  @param[in]      position  上部または下部のステータス領域を指定します。
+     *  @param[in]      enable    0 以外の場合は有効にし、0 の場合は無効にします。
+     *  @return         成功時は 0 を返します。@p screen が NULL、または @p position が不正な場合は
+     *                  -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -211,14 +236,14 @@ extern "C"
         com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position, int enable);
 
     /**
-     *  @brief          Set status area content.
-     *  @param[in]      screen    Pinned prompt handle.
-     *  @param[in]      position  Status area position (top or bottom).
-     *  @param[in]      align     Alignment (left or right).
-     *  @param[in]      content   Content string. NULL clears the content.
-     *  @note       ANSI CSI SGR escape sequences are passed through for coloring and
-     *              counted as display width 0 for status layout.
-     *  @return     0 on success, -1 on failure.
+     *  @brief          指定位置のステータス領域へ表示内容を設定します。
+     *  @param[in]      screen    固定プロンプト ハンドルです。
+     *  @param[in]      position  上部または下部のステータス領域を指定します。
+     *  @param[in]      align     左寄せまたは右寄せを指定します。
+     *  @param[in]      content   表示する文字列です。NULL の場合は指定位置の内容を消去します。
+     *  @return         成功時は 0 を返します。引数不正またはメモリ確保失敗の場合は -1 を返します。
+     *  @note           ANSI CSI SGR エスケープ シーケンスは色指定としてそのまま出力し、表示幅を
+     *                  0 として配置を計算します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

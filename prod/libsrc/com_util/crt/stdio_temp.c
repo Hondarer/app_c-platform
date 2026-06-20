@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           stdio_temp.c
+ *  @brief          一時ファイル生成 API の実装です。
+ *
+ *  競合しない一時ファイルを生成し、ファイル ストリームと絶対パスを返します。
+ *
+ *******************************************************************************
+ */
+
 #define _GNU_SOURCE
 
 #include <com_util/crt/stdio.h>
@@ -20,6 +30,8 @@
 
 /* prefix の有効文字数上限 (Windows GetTempFileNameW の制約に準拠) */
 #define COM_UTIL_TEMP_PREFIX_MAX 3u
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
                                                        const size_t path_size, int *errno_out)

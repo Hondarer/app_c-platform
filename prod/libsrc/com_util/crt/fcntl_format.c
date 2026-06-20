@@ -1,7 +1,19 @@
+/**
+ *******************************************************************************
+ *  @file           fcntl_format.c
+ *  @brief          書式指定パス対応のファイル記述子オープン API の実装です。
+ *
+ *  共通のパス書式処理を使用して com_util_open() を呼び出します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/path_format.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(const int flags, const int mode, const char *format, va_list args)
 {
@@ -14,6 +26,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(const int flags, const int m
 
     return com_util_open(filename, flags, mode);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_open_fmt(const int flags, const int mode, const char *format, ...)
 {

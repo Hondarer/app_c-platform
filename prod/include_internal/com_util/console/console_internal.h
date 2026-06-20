@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           console_internal.h
- *  @brief          コンソール ヘルパー内部関数のヘッダー ファイル。
+ *  @brief          コンソール ヘルパー内部関数のヘッダー ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/04
  *  @version        1.0.0
@@ -25,31 +25,31 @@
 #include <com_util/runtime/shutdown.h>
 
 /**
- *  @brief          昇格プロセスへ親コンソール引き継ぎを指示する内部フラグ。
+ *  @brief          昇格プロセスへ親コンソール引き継ぎを指示する内部フラグです。
  *
  *  com_util_elevated_process_run_if_needed() が昇格プロセスのコマンドラインへ
- *  `<FLAG>=<親プロセス ID>:<親コンソール window ハンドル>` の形式で付与し、
+ *  `{FLAG}={親プロセス ID}:{親コンソール window ハンドル}` の形式で付与し、
  *  com_util_console_attach_parent() がこれを検出して親コンソールへ再接続します。\n
  *  window ハンドル部は省略可能で、子側は再接続後に GetConsoleWindow() がこの値に
  *  一致するまで待つことで、一時コンソールではなく親コンソールへ確実に繋がったことを
- *  確認します。旧形式 (`<FLAG>=<親プロセス ID>`) も後方互換で受理します。
+ *  確認します。旧形式 (`{FLAG}={親プロセス ID}`) も後方互換で受理します。
  */
 #define COM_UTIL_CONSOLE_HANDOVER_FLAG "--com-util-attach-console"
 
 /**
- *  @brief          コンソール再接続診断ログの有効化環境変数名。
+ *  @brief          コンソール再接続診断ログの有効化環境変数名です。
  *
  *  値が空文字または "0" 以外のとき、`%TEMP%` 配下へ診断ログを追記します。
  */
 #define COM_UTIL_CONSOLE_ATTACH_DIAG_ENV "COM_UTIL_CONSOLE_ATTACH_DIAG"
 
 /**
- *  @brief          コンソール再接続診断ログのファイル名。
+ *  @brief          コンソール再接続診断ログのファイル名です。
  */
 #define COM_UTIL_CONSOLE_ATTACH_DIAG_FILE "com_util_console_attach.log"
 
 /**
- *  @brief          昇格子プロセスへ診断ログ有効化を引き継ぐ内部フラグ。
+ *  @brief          昇格子プロセスへ診断ログ有効化を引き継ぐ内部フラグです。
  *
  *  親プロセスで診断ログを有効化している場合、昇格子プロセスのコマンドラインへ
  *  このフラグを追加します。com_util_console_attach_parent() が argv から除去して
@@ -58,7 +58,7 @@
 #define COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG "--com-util-attach-console-diag"
 
 /**
- *  @brief          昇格時の AttachConsole リトライ回数の上限。
+ *  @brief          昇格時の AttachConsole リトライ回数の上限です。
  *
  *  UAC 昇格直後は子プロセスの一時コンソール (conhost) 割り当てが非同期に進むため、
  *  com_util_console_attach_parent() の AttachConsole が一時的に失敗することがあります。
@@ -67,7 +67,7 @@
 #define COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS 100
 
 /**
- *  @brief          昇格時の AttachConsole リトライ間隔 [ms]。
+ *  @brief          昇格時の AttachConsole リトライ間隔 [ms]です。
  *
  *  COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS と合わせて最悪待ち時間を決めます。
  *  通常は 1 回目か 2 回目で接続できるため、待ち時間は無視できます。
@@ -80,21 +80,21 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズでコンソール ヘルパーを解放します。
- *  @param[in]      event   shutdown イベント情報。
- *  @param[in]      context 登録時に渡した任意のコンテキスト (未使用)。
- *
- *  通常終了ではストリームを元に戻してスレッド終了を待機します。\n
- *  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
- */
+     *  @brief          shutdown フェーズでコンソール ヘルパーを解放します。
+     *  @param[in]      event   shutdown イベント情報です。
+     *  @param[in]      context 登録時に渡した任意のコンテキストです。本関数では使用しません。
+     *
+     *  通常終了ではストリームを元に戻してスレッド終了を待機します。\n
+     *  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
+     */
     void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
 
     /**
- *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
- *  @param[in]      fmt `printf` 互換の書式文字列。
- *
- *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
- */
+     *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
+     *  @param[in]      fmt `printf` 互換の書式文字列です。
+     *
+     *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
+     */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...);
 
 #ifdef __cplusplus

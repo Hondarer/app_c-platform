@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           string.h
- *  @brief          string 系 CRT 抽象 API。
+ *  @brief          string 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
@@ -35,7 +35,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          バッファー サイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当)。
+     *  @brief          バッファー サイズ付き安全 strcpy (`strcpy_s` / `strlcpy` 相当) です。
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
@@ -48,7 +48,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, size_t dest_size, const char *src);
 
     /**
-     *  @brief          バッファー サイズ付き安全 strncpy (`strncpy_s` 相当)。
+     *  @brief          バッファー サイズ付き安全 strncpy (`strncpy_s` 相当) です。
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
@@ -62,7 +62,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 
     /**
-     *  @brief          バッファー サイズ付き安全 strcat (`strcat_s` / `strlcat` 相当)。
+     *  @brief          バッファー サイズ付き安全 strcat (`strcat_s` / `strlcat` 相当) です。
      *  @param[in,out]  dest       連結先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        連結する文字列。NULL を渡してはなりません。
@@ -75,7 +75,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, size_t dest_size, const char *src);
 
     /**
-     *  @brief          バッファー サイズ付き安全 wcscpy (`wcscpy_s` 相当)。
+     *  @brief          バッファー サイズ付き安全 wcscpy (`wcscpy_s` 相当) です。
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。
      *  @param[in]      src        コピー元ワイド文字列。NULL を渡してはなりません。
@@ -88,7 +88,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
     /**
-     *  @brief          `sscanf` / `sscanf_s` のラッパー。
+     *  @brief          `sscanf` / `sscanf_s` のラッパーです。
      *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
      *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[out]     ...     変換結果の格納先。
@@ -101,7 +101,7 @@ extern "C"
         ;
 
     /**
-     *  @brief          `com_util_sscanf` の `va_list` 版。
+     *  @brief          `com_util_sscanf` の `va_list` 版です。
      *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
      *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      args    書式引数リスト。

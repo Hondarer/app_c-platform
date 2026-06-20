@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           service_api.c
- *  @brief          SCM / サービス系 Win32 API UTF-8 ラッパー実装。
+ *  @brief          SCM / サービス系 Win32 API UTF-8 ラッパー実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/09
  *  @version        1.0.0
@@ -53,6 +53,8 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_n
     free(wdatabase);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char *utf8_service_name,
                                                       const char *utf8_display_name, DWORD desired_access,
@@ -131,6 +133,8 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char 
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access)
 {
     SC_HANDLE result;
@@ -147,6 +151,8 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *u
     free(wservice_name);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text)
 {
@@ -180,6 +186,8 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU(const char *utf8_service_name,
                                                                                  LPHANDLER_FUNCTION_EX handler_proc,
                                                                                  LPVOID context)
@@ -198,6 +206,8 @@ COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU
     free(wservice_name);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT BOOL COM_UTIL_API StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
 {

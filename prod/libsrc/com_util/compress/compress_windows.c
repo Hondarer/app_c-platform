@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compress_windows.c
- *  @brief          Windows 向け圧縮・展開モジュール (Compression API)。
+ *  @brief          Windows 向け圧縮・展開モジュール (Compression API) です。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0
@@ -58,14 +58,14 @@ static uint32_t mszip_crc32(const uint32_t prev, const uint8_t *buf, const size_
 }
 
 /*
- * MSZIP ストリーミング ヘッダーの offset 6 に格納する CRC バイトを計算する。
+ * MSZIP ストリーミング ヘッダーの offset 6 に格納する CRC バイトを計算します。
  *
  * 計算式 (Cabinet.dll より逆解析 / pymszip・bytewitch にて実証):
  *   seed   = CRC32({0x0A,0x51,0xE5,0xC0,0x18,0x00})  = 0xE73FDBAD (固定)
  *   byte6  = CRC32({0x02, orig_len_LE8, orig_len_LE8}, seed) & 0xFF
  *
  * 単一チャンク (orig_len <= 32768) の場合、total_len == first_chunk_len のため
- * orig_len を 2 回使用する。
+ * orig_len を 2 回使用します。
  */
 static uint8_t mszip_crc_byte(const uint64_t orig_len)
 {
@@ -109,9 +109,9 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
     memcpy(dst, &orig_len_nbo, COM_UTIL_COMPRESS_HEADER_SIZE);
 
     /*
-     * MSZIP|COMPRESS_RAW で圧縮する。
+     * MSZIP|COMPRESS_RAW で圧縮します。
      * 出力は [CK(2B)][raw DEFLATE] の形式になるため、
-     * CK プレフィックス 2B を除去して raw DEFLATE のみを保存する。
+     * CK プレフィックス 2B を除去して raw DEFLATE のみを保存します。
      */
     if (!CreateCompressor(COMPRESS_ALGORITHM_MSZIP | COMPRESS_RAW, NULL, &h))
     {

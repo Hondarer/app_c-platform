@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compress_linux.c
- *  @brief          Linux 向け圧縮・展開モジュール (zlib)。
+ *  @brief          Linux 向け圧縮・展開モジュール (zlib) です。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0

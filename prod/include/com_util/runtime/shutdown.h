@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           shutdown.h
- *  @brief          プロセス終了処理共通 API。
+ *  @brief          プロセス終了処理共通 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/05/06
  *
@@ -39,7 +39,7 @@ extern "C"
 
     /**
      *  @enum           com_util_shutdown_reason_t
-     *  @brief          終了理由の種別。
+     *  @brief          終了理由の種別です。
      */
     typedef enum com_util_shutdown_reason_t
     {
@@ -50,7 +50,7 @@ extern "C"
 
     /**
      *  @enum           com_util_shutdown_code_kind_t
-     *  @brief          終了イベントに付随する数値コードの意味。
+     *  @brief          終了イベントに付随する数値コードの意味です。
      */
     typedef enum com_util_shutdown_code_kind_t
     {
@@ -61,7 +61,7 @@ extern "C"
     } com_util_shutdown_code_kind_t;
 
     /**
-     *  @brief          終了イベント情報。
+     *  @brief          終了イベント情報です。
      */
     typedef struct com_util_shutdown_event
     {
@@ -71,7 +71,7 @@ extern "C"
     } com_util_shutdown_event;
 
     /**
-     *  @brief          終了コールバック関数型。
+     *  @brief          終了コールバック関数型です。
      *  @param[in]      event   終了イベント情報。
      *  @param[in]      context 登録時に渡した任意のコンテキスト。
      *
@@ -82,7 +82,7 @@ extern "C"
     typedef void (*com_util_shutdown_callback_t)(const com_util_shutdown_event *event, void *context);
 
     /**
-     *  @brief          終了コールバックを登録する。
+     *  @brief          終了コールバックを登録します。
      *
      *  登録済みコールバックは、通常終了または補足可能な終了イベント時に LIFO 順で
      *  1 回だけ実行されます。\n
@@ -90,7 +90,7 @@ extern "C"
      *
      *  @param[in]      callback 実行するコールバック。
      *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -99,7 +99,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context);
 
     /**
-     *  @brief          終了要求 callback を登録する。
+     *  @brief          終了要求 callback を登録します。
      *
      *  `SIGINT` / `SIGTERM` / `CTRL_C_EVENT` など、補足可能な終了要求で
      *  LIFO 順に 1 回だけ実行されます。\n
@@ -109,7 +109,7 @@ extern "C"
      *
      *  @param[in]      callback 実行するコールバック。
      *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -119,7 +119,7 @@ extern "C"
                                                                         void *context);
 
     /**
-     *  @brief          終了コードを記録して `exit(code)` を実行する。
+     *  @brief          終了コードを記録して `exit(code)` を実行します。
      *  @param[in]      code 終了コード。
      *
      *  @par            スレッド セーフ
@@ -129,12 +129,13 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(int code);
 
     /**
-     *  @brief          テスト用に任意の終了イベントを同期実行する。
+     *  @brief          テスト用に任意の終了イベントを同期実行します。
      *
      *  実アプリケーションでは使用しません。登録済みコールバックを 1 回だけ実行します。
      *
      *  @param[in]      event 実行に使用する終了イベント。
-     *  @return         0: 実行した / 1: すでに実行済み / -1: 引数不正。
+     *  @return         コールバックを実行した場合は 0、すでに実行済みの場合は 1、引数不正の場合は
+     *                  -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -143,12 +144,13 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event);
 
     /**
-     *  @brief          テスト用に終了要求 callback を同期実行する。
+     *  @brief          テスト用に終了要求 callback を同期実行します。
      *
      *  実アプリケーションでは使用しません。登録済み request callback を 1 回だけ実行します。
      *
      *  @param[in]      event 実行に使用する終了イベント。
-     *  @return         0: 実行した / 1: すでに実行済み / -1: 引数不正。
+     *  @return         コールバックを実行した場合は 0、すでに実行済みの場合は 1、引数不正の場合は
+     *                  -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -157,7 +159,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event);
 
     /**
-     *  @brief          テスト用に shutdown ランタイムの内部状態を初期化する。
+     *  @brief          テスト用に shutdown ランタイムの内部状態を初期化します。
      *
      *  すでに登録済みの callback は破棄されます。\n
      *  既存モジュール側の `call_once` 状態までは巻き戻しません。

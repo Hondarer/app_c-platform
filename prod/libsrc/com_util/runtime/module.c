@@ -37,7 +37,7 @@
 #endif /* PLATFORM_ */
 
 /**
- *  @brief          内部関数の戻り値 (ステータス)。
+ *  @brief          内部関数の戻り値 (ステータス) です。
  */
 typedef enum get_lib_info_status_t
 {

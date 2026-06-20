@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           etw-viewer.c
- *  @brief          com_util ETW provider のリアルタイム viewer。
+ *  @brief          com_util ETW provider のリアルタイム viewer です。
  *  @author         Tetsuo Honda
  *  @date           2026/05/01
  *  @version        1.0.0

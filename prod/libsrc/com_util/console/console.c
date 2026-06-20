@@ -1,6 +1,6 @@
 /**
  *  @file           console.c
- *  @brief          Windows コンソール設定ヘルパー実装。
+ *  @brief          Windows コンソール設定ヘルパー実装です。
  *
  *  Windows 環境: 接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
@@ -43,7 +43,7 @@ static void register_console_shutdown_callback(void)
 }
 
 /**
- *  @brief          ストリームの fd を、いったん閉じてから同じ番号へ直接再オープンする。
+ *  @brief          ストリームの fd を、いったん閉じてから同じ番号へ直接再オープンします。
  *  @param[in]      handle      再接続先の Win32 ハンドル (CONOUT$ / CONIN$)。
  *  @param[in]      stream      対象ストリーム (stdout / stderr / stdin)。
  *  @param[in]      name        診断ログに記録するストリーム名。
@@ -62,7 +62,7 @@ static void register_console_shutdown_callback(void)
  *  呼び出し元で別用途に使い続けてはならない。\n
  *  なお、対象 fd の解放を呼び出し元側でこの関数より早いタイミングに前倒しする変更を
  *  実機検証したところ、`CreateFileW(CONOUT$)` 自体が全試行で `ERROR_INVALID_HANDLE` に
- *  なる、より重い回帰が再現したため、解放はこの関数内でこのタイミングのまま行う。
+ *  なる、より重い回帰が再現したため、解放はこの関数内でこのタイミングのまま行います。
  */
 static int reopen_crt_std_fd(HANDLE handle, FILE *stream, const char *name, int open_flags)
 {
@@ -143,6 +143,8 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
     return 0;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
 {
     wchar_t path[PLATFORM_PATH_MAX];
@@ -205,6 +207,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ..
 }
 
 /* ===== 公開 API ===== */
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
 {
@@ -281,6 +285,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
 {
     HANDLE h;
@@ -319,14 +325,14 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
 }
 
 /**
- *  @brief          argv から親コンソール引き継ぎフラグを取り出して除去する。
+ *  @brief          argv から親コンソール引き継ぎフラグを取り出して除去します。
  *  @param[in,out]  argc     引数の数へのポインター。
  *  @param[in,out]  argv     引数配列。
  *  @param[out]     out_pid     取り出した親プロセス ID の格納先。
  *  @param[out]     out_window  取り出した親コンソール window ハンドルの格納先 (省略時は NULL)。
  *  @return         有効なフラグを検出した場合は 1、そうでない場合は 0 を返します。
  *
- *  フラグの値は `<PID>` または `<PID>:<HWND>` 形式です。@p out_window には HWND を
+ *  フラグの値は `{PID}` または `{PID}:{HWND}` 形式です。@p out_window には HWND を
  *  復元して格納し、HWND が無い・不正な場合は NULL を格納します。\n
  *  フラグを検出した場合は、値の解析可否にかかわらず @p argv から取り除き、
  *  @p argc を 1 減らします。PID が不正な場合は 0 を返します。
@@ -433,6 +439,8 @@ static int extract_diag_arg(int *argc, char **argv)
     }
     return 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
 {
@@ -599,6 +607,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char 
     return 1;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
 {
     (void)context;
@@ -631,6 +641,8 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
     com_util_console_dispose();
     com_util_console_diag_logf("dispose_on_shutdown end");
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
 {
@@ -684,23 +696,35 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream
 
 /* ===== Linux 実装 (no-op) ===== */
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void) {}
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void) {}
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
 {
     (void)argc;
     (void)argv;
     return 0;
 }
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context)
 {
     (void)event;
     (void)context;
 }
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
 {
     (void)fmt;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
 {

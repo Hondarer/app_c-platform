@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_eventlog.c
- *  @brief          Windows イベント ログ (EventLog) シンク実装ファイル。
+ *  @brief          Windows イベント ログ (EventLog) シンク実装ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0
@@ -52,7 +52,7 @@
     #define EVENTLOG_STRING_COUNT 5
 
 /**
- *  @brief  EventLog シンク ハンドル構造体 (内部定義)。
+ *  @brief  EventLog シンク ハンドル構造体 (内部定義) です。
  */
 struct com_util_eventlog_sink
 {
@@ -74,7 +74,7 @@ static union
 static PSID s_user_sid = NULL;
 
 /**
- *  @brief          トレース レベルをイベント タイプ・カテゴリ・イベント ID に写像する。
+ *  @brief          トレース レベルをイベント タイプ・カテゴリ・イベント ID に写像します。
  *  @param[in]      level     トレース レベル (0=CRITICAL 〜 5=DEBUG)。範囲外は Information 扱い。
  *  @param[out]     type      EventLog イベント タイプ (EVENTLOG_*_TYPE)。
  *  @param[out]     category  イベント カテゴリ (レベル毎に分離)。
@@ -144,7 +144,7 @@ static void map_level(const int level, const int has_file_identifier, const int 
 }
 
 /**
- *  @brief          キャッシュ用のワイド文字列へ安全にコピーする。
+ *  @brief          キャッシュ用のワイド文字列へ安全にコピーします。
  *  @param[out]     dst        コピー先。
  *  @param[in]      dst_count  コピー先の要素数。
  *  @param[in]      src        コピー元。
@@ -174,9 +174,9 @@ static void copy_wstr(wchar_t *dst, const size_t dst_count, const wchar_t *src)
 }
 
 /**
- *  @brief          実行ファイル パスを初回だけ解決し、EventLog 用の UTF-16 文字列としてキャッシュする。
+ *  @brief          実行ファイル パスを初回だけ解決し、EventLog 用の UTF-16 文字列としてキャッシュします。
  *
- *  パス取得または変換に失敗した場合は空文字列をキャッシュし、以後は再試行しない。
+ *  パス取得または変換に失敗した場合は空文字列をキャッシュし、以後は再試行しません。
  */
 static void init_executable_path_cache(void)
 {
@@ -209,7 +209,7 @@ static void init_executable_path_cache(void)
 }
 
 /**
- *  @brief          キャッシュ済みの実行ファイル パスを取得する。
+ *  @brief          キャッシュ済みの実行ファイル パスを取得します。
  *  @return         実行ファイル パス。取得失敗時は空文字列。
  */
 static const wchar_t *cached_executable_path(void)
@@ -219,10 +219,10 @@ static const wchar_t *cached_executable_path(void)
 }
 
 /**
- *  @brief          現在のプロセスのユーザー SID を初回だけ取得し、キャッシュする。
+ *  @brief          現在のプロセスのユーザー SID を初回だけ取得し、キャッシュします。
  *
  *  プロセス トークンから TokenUser 情報を取得し、SID をキャッシュ バッファーへ
- *  格納する。取得に失敗した場合は s_user_sid を NULL のままとし、以後は再試行しない。
+ *  格納する。取得に失敗した場合は s_user_sid を NULL のままとし、以後は再試行しません。
  */
 static void init_user_sid_cache(void)
 {
@@ -243,11 +243,11 @@ static void init_user_sid_cache(void)
 }
 
 /**
- *  @brief          キャッシュ済みのプロセス ユーザー SID を取得する。
+ *  @brief          キャッシュ済みのプロセス ユーザー SID を取得します。
  *  @return         ユーザー SID。取得失敗時は NULL。
  *
  *  NULL を ReportEventW の lpUserSid に渡すと、Event Viewer の「ユーザー」列は
- *  未設定 (N/A) となり、従来動作と一致する。
+ *  未設定 (N/A) となり、従来動作と一致します。
  */
 static PSID cached_user_sid(void)
 {
@@ -256,7 +256,7 @@ static PSID cached_user_sid(void)
 }
 
 /**
- *  @brief          識別子を EventData 用文字列に変換する。
+ *  @brief          識別子を EventData 用文字列に変換します。
  *  @param[in]      identifier  変換対象の識別子。
  *  @param[out]     buf         変換先。
  *  @param[in]      buf_size    変換先のバイト数。
@@ -287,7 +287,7 @@ static int format_identifier_string(const int64_t identifier, char *buf, const s
 }
 
 /**
- *  @brief          イベント ソース名からレジストリ キー パスを組み立てる。
+ *  @brief          イベント ソース名からレジストリ キー パスを組み立てます。
  *  @param[in]      source_name  イベント ソース名 (UTF-8)。
  *  @param[out]     key_path     書き込み先のワイド文字列バッファー。
  *  @param[in]      key_count    key_path の要素数。
@@ -315,7 +315,7 @@ static int build_source_key_path(const char *source_name, wchar_t *key_path, con
 }
 
 /**
- *  @brief          RegCreateKeyExW / RegDeleteKeyW の戻り値をステータス コードに変換する。
+ *  @brief          RegCreateKeyExW / RegDeleteKeyW の戻り値をステータス コードに変換します。
  *  @param[in]      rc  Win32 レジストリ API の戻り値。
  *  @return         COM_UTIL_EVENTLOG_OK / COM_UTIL_EVENTLOG_ERR_ACCESS / COM_UTIL_EVENTLOG_ERR_SYSTEM。
  */

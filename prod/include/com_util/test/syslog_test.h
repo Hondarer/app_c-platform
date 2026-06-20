@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           syslog_test.h
- *  @brief          syslog テスト用ヘルパーヘッダー。
+ *  @brief          syslog テスト用ヘルパーヘッダーです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/05
  *  @version        1.0.0
@@ -37,14 +37,14 @@
  */
 
 /**
- *  @brief          SYSLOG_TEST_FD 環境変数が設定されていれば、その FD にバッファーを書き込む。
+ *  @brief          SYSLOG_TEST_FD 環境変数が設定されていれば、その FD にバッファーを書き込みます。
  *
  *  テスト用パイプ FD への送信のみを行います。\n
  *  呼び出し元は戻り値が 1 の場合、/dev/log への送信をスキップしてください。
  *  @param[in]      buf     送信するバッファー (呼び出し元で整形済みの 1 行分データ)。
  *  @param[in]      nbytes  送信バイト数。
- *  @return         1: テスト FD に書き込んだ (/dev/log への送信をスキップすること)。\n
- *                  0: 環境変数未設定 (通常の /dev/log 送信を続行すること)。
+ *  @return         テスト FD に書き込み、/dev/log への送信を省略する場合は 1 を返します。\n
+ *                  環境変数が未設定で、通常の /dev/log 送信を続行する場合は 0 を返します。
  */
 static int syslog_test_fd_write__(const char *buf, size_t nbytes)
 {

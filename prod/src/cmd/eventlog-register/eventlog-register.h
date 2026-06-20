@@ -7,13 +7,13 @@ extern "C"
 #endif
 
     /**
-     *  @brief          使用方法を標準エラー出力に表示する。
+     *  @brief          使用方法を標準エラー出力に表示します。
      *  @param[in]      argv0  実行ファイル名 (argv[0])。
      */
     void eventlog_register_print_usage(const char *argv0);
 
     /**
-     *  @brief          サブコマンドを解釈し、イベント ソースの登録/削除を実行する。
+     *  @brief          サブコマンドを解釈し、イベント ソースの登録/削除を実行します。
      *  @param[in]      argc  コマンド ライン引数の数。
      *  @param[in]      argv  コマンド ライン引数の配列。
      *  @return         終了コード (EXIT_SUCCESS / EXIT_FAILURE)。

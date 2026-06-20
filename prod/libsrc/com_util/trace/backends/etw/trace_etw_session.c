@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           trace_etw_session.c
+ *  @brief          リアルタイム ETW セッション API の実装です。
+ *
+ *  ETW セッションの開始、イベント データの復元、ワーカー スレッドの停止を管理します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/base/platform.h>
 
 #if defined(PLATFORM_WINDOWS)
@@ -19,7 +29,7 @@
     #endif /* INVALID_PROCESSTRACE_HANDLE */
 
 /**
- *  @brief  ETW セッション構造体 (内部定義)。
+ *  @brief  ETW セッション構造体 (内部定義) です。
  */
 struct com_util_etw_session
 {
@@ -42,8 +52,8 @@ struct com_util_etw_session
 };
 
 /**
- *  @brief  メモリ領域をゼロ クリアする (memset 代替)。
- *  @note   testfw が memset をモックするため、直接ゼロ代入で初期化する。
+ *  @brief  メモリ領域をゼロ クリアする (memset 代替) です。
+ *  @note   testfw が memset をモックするため、直接ゼロ代入で初期化します。
  */
 static void zero_bytes(void *ptr, const size_t size)
 {
@@ -75,7 +85,7 @@ static com_util_etw_session *dispose_session_and_return_null(com_util_etw_sessio
 }
 
 /**
- *  @brief  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" をパースする。
+ *  @brief  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" をパースします。
  *  @return 成功 0 / 失敗 -1。
  */
 static int parse_guid(const char *str, GUID *guid)
@@ -111,7 +121,7 @@ static int parse_guid(const char *str, GUID *guid)
 }
 
 /**
- *  @brief  GUID 一致判定。
+ *  @brief  GUID 一致判定です。
  */
 static int guid_equal(const GUID *a, const GUID *b)
 {
@@ -122,7 +132,7 @@ static int guid_equal(const GUID *a, const GUID *b)
 }
 
 /**
- *  @brief  TRACE_EVENT_INFO を取得する。
+ *  @brief  TRACE_EVENT_INFO を取得します。
  *  @return 成功時は確保済みポインター。失敗時は NULL。
  */
 static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
@@ -154,7 +164,7 @@ static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
 }
 
 /**
- *  @brief  TRACE_EVENT_INFO からイベント名を取得する。
+ *  @brief  TRACE_EVENT_INFO からイベント名を取得します。
  *  @return イベント名。取得できない場合は NULL。
  */
 static const wchar_t *get_event_name(const TRACE_EVENT_INFO *info)
@@ -168,7 +178,7 @@ static const wchar_t *get_event_name(const TRACE_EVENT_INFO *info)
 }
 
 /**
- *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読む。
+ *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読み取ります。
  *  @return 成功 0 / 失敗 -1。
  */
 static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining, const char **out_text,
@@ -195,7 +205,7 @@ static int read_ansi_string_field(const unsigned char *cursor, const USHORT rema
 }
 
 /**
- *  @brief  UserData 上の uint32 値を 1 つ読む。
+ *  @brief  UserData 上の uint32 値を 1 つ読み取ります。
  *  @return 成功 0 / 失敗 -1。
  */
 static int read_uint32_field(const unsigned char *cursor, const USHORT remaining, uint32_t *out_value,
@@ -213,10 +223,10 @@ static int read_uint32_field(const unsigned char *cursor, const USHORT remaining
 }
 
 /**
- *  @brief  TraceLogging payload から Service / Message を復元する。
+ *  @brief  TraceLogging payload から Service / Message を復元します。
  *
  *  TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
- *  Service / Message が存在しないイベントは out_* を NULL のまま返す。
+ *  Service / Message が存在しないイベントは out_* を NULL のまま返します。
  */
 static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info, const char **out_service,
                                  const char **out_message, uint32_t *out_process_id)
@@ -322,10 +332,10 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
 }
 
 /**
- *  @brief  ETW イベント レコード コールバック (ProcessTrace から呼ばれる)。
+ *  @brief  ETW イベント レコード コールバック (ProcessTrace から呼ばれる) です。
  *
- *  プロバイダー GUID でフィルタリングし、UserData を null 終端文字列として読み取る。
- *  TraceLoggingString は UserData に null 終端 ANSI 文字列を直接格納する。
+ *  プロバイダー GUID でフィルタリングし、UserData を null 終端文字列として読み取ります。
+ *  TraceLoggingString は UserData に null 終端 ANSI 文字列を直接格納します。
  */
 static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 {
@@ -382,7 +392,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
 }
 
 /**
- *  @brief  ProcessTrace ワーカー スレッド関数。
+ *  @brief  ProcessTrace ワーカー スレッド関数です。
  */
 static void trace_thread_proc(void *param)
 {
@@ -393,7 +403,7 @@ static void trace_thread_proc(void *param)
 }
 
 /**
- *  @brief  out_status が非 NULL なら値を設定する。
+ *  @brief  out_status が非 NULL なら値を設定します。
  */
 static void set_status(int *out_status, int value)
 {
@@ -402,6 +412,8 @@ static void set_status(int *out_status, int value)
         *out_status = value;
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void)
 {
@@ -445,6 +457,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void)
     free(props);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(const char *session_name,
                                                                               const char *provider_guid_str,
@@ -565,6 +579,8 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
     set_status(out_status, COM_UTIL_ETW_SESSION_OK);
     return session;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session *session)
 {

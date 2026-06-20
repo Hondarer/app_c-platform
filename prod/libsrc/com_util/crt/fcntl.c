@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           fcntl.c
+ *  @brief          UTF-8 パス対応のファイル記述子オープン API の実装です。
+ *
+ *  OS ごとの文字コード変換と open() 呼び出しの差異を吸収します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
 
@@ -8,6 +18,8 @@
 #elif defined(PLATFORM_WINDOWS)
     #include <share.h>
 #endif /* PLATFORM_ */
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path, const int flags, const int mode)
 {

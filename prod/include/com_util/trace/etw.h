@@ -12,7 +12,7 @@
 
 /**
  *  @file           etw.h
- *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリ。
+ *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリです。
  *
  *  TraceLogging ベースの ETW プロバイダーを簡易に操作するための
  *  ヘルパー関数群を提供します。\n
@@ -28,7 +28,7 @@
 
 /**
  *  @struct         com_util_etw_event
- *  @brief          ETW consumer が受け取るイベント情報。
+ *  @brief          ETW consumer が受け取るイベント情報です。
  *
  *  event_name / service / message は callback 呼び出し中のみ有効なポインターです。
  */
@@ -50,7 +50,7 @@ typedef struct com_util_etw_event
 
 /**
  *  @typedef        com_util_etw_event_callback_t
- *  @brief          ETW イベント受信コールバック型。
+ *  @brief          ETW イベント受信コールバック型です。
  *
  *  @param[in]      event    受信イベント。callback 呼び出し中のみ参照可能。
  *  @param[in]      context  com_util_etw_session_start に渡したユーザーデータ。
@@ -69,7 +69,7 @@ typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event *event, v
 
 /**
  *  @typedef        com_util_etw_provider_ref_t
- *  @brief          プロバイダー参照型。
+ *  @brief          プロバイダー参照型です。
  *
  *  TraceLoggingHProvider (TraceLoggingProvider.h が定義する型) と同等です。
  */
@@ -79,7 +79,7 @@ typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;
     /* ===== プロバイダー定義マクロ ===== */
 
     /**
-     *  @brief          ETW プロバイダーを定義するマクロ。
+     *  @brief          ETW プロバイダーを定義するマクロです。
      *
      *  呼び出し元の .c ファイルのファイル スコープに 1 回だけ記述します。\n
      *  TRACELOGGING_DEFINE_PROVIDER(var, name, guid) に展開します。
@@ -103,10 +103,10 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *  @brief          ETW プロバイダーを登録する。
+     *  @brief          ETW プロバイダーを登録します。
      *
      *  @param[in]      provider_ref  COM_UTIL_ETW_DEFINE_PROVIDER で定義した変数。
-     *  @return         成功時: ハンドル。失敗時: NULL。
+     *  @return         成功時はハンドル、失敗時は NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -116,13 +116,13 @@ extern "C"
     com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref);
 
     /**
-     *  @brief          ETW プロバイダーへ UTF-8 メッセージを書き込む。
+     *  @brief          ETW プロバイダーへ UTF-8 メッセージを書き込みます。
      *
      *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
      *  @param[in]      level    イベント レベル (1=CRITICAL / 2=ERROR / 3=WARNING / 4=INFO / 5=VERBOSE)。
-     *  @param[in]      service  サービス名。NULL の場合は Service フィールドなしで書き込む。
+     *  @param[in]      service  サービス名です。NULL の場合は Service フィールドなしで書き込みます。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -132,7 +132,7 @@ extern "C"
                                                                  const char *service, const char *message);
 
     /**
-     *  @brief          ETW プロバイダーの登録を解除する。
+     *  @brief          ETW プロバイダーの登録を解除します。
      *
      *  @param[in]      handle   com_util_etw_provider_create の戻り値。NULL は無視。
      *
@@ -162,10 +162,11 @@ extern "C"
     typedef struct com_util_etw_session com_util_etw_session;
 
     /**
-     *  @brief          ETW セッション開始に必要な権限があるか検査する。
+     *  @brief          ETW セッション開始に必要な権限があるか検査します。
      *
-     *  @return         COM_UTIL_ETW_SESSION_OK / COM_UTIL_ETW_SESSION_ERR_ACCESS /
-     *                  COM_UTIL_ETW_SESSION_ERR_SYSTEM。
+     *  @return         必要な権限がある場合は COM_UTIL_ETW_SESSION_OK、権限不足の場合は
+     *                  COM_UTIL_ETW_SESSION_ERR_ACCESS、検査中にシステム エラーが発生した場合は
+     *                  COM_UTIL_ETW_SESSION_ERR_SYSTEM を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -174,14 +175,15 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void);
 
     /**
-     *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダーを購読する。
+     *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダーを購読します。
      *
      *  @param[in]      session_name       セッション名 (システム全体で一意にすること)。
      *  @param[in]      provider_guid_str  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"。
      *  @param[in]      callback           イベント受信時に呼ばれるコールバック。
      *  @param[in]      context            コールバックに渡すユーザーデータ。
      *  @param[out]     out_status         エラー コード出力先 (NULL 可)。
-     *  @return         成功: セッション ハンドル / 失敗: NULL。
+     *  @return         成功時は開始したセッションのハンドルを返します。失敗時は NULL を返し、
+     *                  @p out_status が NULL でなければエラー コードを格納します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -192,7 +194,7 @@ extern "C"
                                com_util_etw_event_callback_t callback, void *context, int *out_status);
 
     /**
-     *  @brief          ETW セッションを停止し、リソースを解放する。
+     *  @brief          ETW セッションを停止し、リソースを解放します。
      *
      *  @param[in]      session  com_util_etw_session_start の戻り値。NULL は無視。
      *

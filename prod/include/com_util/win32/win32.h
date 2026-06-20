@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           win32.h
- *  @brief          Win32 API UTF-8 ラッパー (U サフィックス)。
+ *  @brief          Win32 API UTF-8 ラッパー (U サフィックス) です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/09
  *  @version        1.0.0
@@ -37,9 +37,10 @@
 /* winsvc.h は WIN32_LEAN_AND_MEAN の対象外のため windows.h 経由で取り込まれる。 */
 
 /**
- *  @brief          StartServiceCtrlDispatcherU 用の UTF-8 サービス エントリー。
- *  @details        終端要素は service_name を NULL にする。\n
- *                  service_proc は W 版シグネチャ (LPSERVICE_MAIN_FUNCTIONW) を使用する。
+ *  @brief          StartServiceCtrlDispatcherU 用の UTF-8 サービス エントリーです。
+ *
+ *  終端要素は service_name を NULL にします。\n
+ *                  service_proc は W 版シグネチャ (LPSERVICE_MAIN_FUNCTIONW) を使用します。
  */
 typedef struct com_util_service_entry_u
 {
@@ -53,7 +54,8 @@ typedef struct com_util_service_entry_u
 
 /**
  *  @brief          ファイルまたは I/O デバイスを作成または開きます (UTF-8 パス版)。
- *  @details        utf8_path を UTF-16 に変換して CreateFileW を呼び出します。\n
+ *
+ *  utf8_path を UTF-16 に変換して CreateFileW を呼び出します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して
  *                  INVALID_HANDLE_VALUE を返します。\n
  *                  それ以外の挙動は CreateFileW と同一です。
@@ -74,11 +76,12 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD des
 
 /**
  *  @brief          名前付きパイプのインスタンスを作成します (UTF-8 名前版)。
- *  @details        utf8_name を UTF-16 に変換して CreateNamedPipeW を呼び出します。\n
+ *
+ *  utf8_name を UTF-16 に変換して CreateNamedPipeW を呼び出します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して
  *                  INVALID_HANDLE_VALUE を返します。\n
  *                  それ以外の挙動は CreateNamedPipeW と同一です。
- *  @param[in]      utf8_name               パイプ名 (UTF-8)。"\\\\.\\pipe\\<name>" 形式。
+ *  @param[in]      utf8_name               パイプ名 (UTF-8) です。"\\\\.\\pipe\\{name}" 形式です。
  *  @param[in]      open_mode               パイプのアクセス モード。
  *  @param[in]      pipe_mode               パイプの種類、読み取りモード、待機モード。
  *  @param[in]      max_instances           最大インスタンス数。
@@ -96,7 +99,8 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWOR
 
 /**
  *  @brief          指定したモジュールのファイルの完全修飾パスを取得します (UTF-8 出力版)。
- *  @details        GetModuleFileNameW でワイド パスを取得し、UTF-8 に変換して utf8_buf に
+ *
+ *  GetModuleFileNameW でワイド パスを取得し、UTF-8 に変換して utf8_buf に
  *                  書き込みます。\n
  *                  パス区切り文字の正規化 (\\\\→/) は行いません。\n
  *                  utf8_buf のサイズが不足する場合は切り詰め、SetLastError(ERROR_INSUFFICIENT_BUFFER)
@@ -113,7 +117,8 @@ COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8
 
 /**
  *  @brief          指定したモジュールをプロセスのアドレス空間にロードします (UTF-8 名前版)。
- *  @details        utf8_file_name を UTF-16 に変換して LoadLibraryW を呼び出します。\n
+ *
+ *  utf8_file_name を UTF-16 に変換して LoadLibraryW を呼び出します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して NULL を返します。\n
  *                  それ以外の挙動は LoadLibraryW と同一です。
  *  @param[in]      utf8_file_name  モジュール ファイルの名前 (UTF-8)。
@@ -129,7 +134,8 @@ COM_UTIL_EXPORT HMODULE COM_UTIL_API LoadLibraryU(const char *utf8_file_name);
 
 /**
  *  @brief          新しいプロセスとそのプライマリ スレッドを作成します (UTF-8 文字列版)。
- *  @details        utf8_application_name / utf8_command_line / utf8_current_directory を
+ *
+ *  utf8_application_name / utf8_command_line / utf8_current_directory を
  *                  UTF-16 に変換して CreateProcessW を呼び出します。NULL 引数は変換せず
  *                  そのまま NULL として渡します。\n
  *                  utf8_command_line は CreateProcessW が内部で変更するため、
@@ -165,7 +171,8 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API CreateProcessU(const char *utf8_application_na
 
 /**
  *  @brief          サービス コントロール マネージャーへの接続を確立します (UTF-8 文字列版)。
- *  @details        utf8_machine_name / utf8_database_name を UTF-16 に変換して
+ *
+ *  utf8_machine_name / utf8_database_name を UTF-16 に変換して
  *                  OpenSCManagerW を呼び出します。NULL 引数は変換せずそのまま渡します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して NULL を返します。\n
  *                  それ以外の挙動は OpenSCManagerW と同一です。
@@ -180,8 +187,9 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_n
                                                       DWORD desired_access);
 
 /**
- *  @brief          サービス オブジェクトを作成してSCM データベースに追加します (UTF-8 文字列版)。
- *  @details        文字列引数を UTF-16 に変換して CreateServiceW を呼び出します。
+ *  @brief          サービス オブジェクトを作成して SCM データベースに追加します (UTF-8 文字列版)。
+ *
+ *  文字列引数を UTF-16 に変換して CreateServiceW を呼び出します。
  *                  NULL の引数は変換せずそのまま渡します。\n
  *                  utf8_dependencies は NULL または単一の依存サービス名のみ対応します。
  *                  二重 NULL 終端のマルチ文字列には対応していません。\n
@@ -214,7 +222,8 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char 
 
 /**
  *  @brief          既存のサービスのハンドルを開きます (UTF-8 名前版)。
- *  @details        utf8_service_name を UTF-16 に変換して OpenServiceW を呼び出します。\n
+ *
+ *  utf8_service_name を UTF-16 に変換して OpenServiceW を呼び出します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して NULL を返します。\n
  *                  それ以外の挙動は OpenServiceW と同一です。
  *  @param[in]      scm                 SCM ハンドル (OpenSCManagerU の戻り値)。
@@ -228,7 +237,8 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *u
 
 /**
  *  @brief          サービスの説明文を変更します (UTF-8 文字列版)。
- *  @details        SERVICE_CONFIG_DESCRIPTION のみ対応します。\n
+ *
+ *  SERVICE_CONFIG_DESCRIPTION のみ対応します。\n
  *                  utf8_text を UTF-16 に変換して SERVICE_DESCRIPTIONW を組み立て、
  *                  ChangeServiceConfig2W を呼び出します。\n
  *                  info_level が SERVICE_CONFIG_DESCRIPTION 以外の場合は
@@ -245,7 +255,8 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD
 
 /**
  *  @brief          拡張サービス コントロール要求を処理する関数を登録します (UTF-8 名前版)。
- *  @details        utf8_service_name を UTF-16 に変換して RegisterServiceCtrlHandlerExW を
+ *
+ *  utf8_service_name を UTF-16 に変換して RegisterServiceCtrlHandlerExW を
  *                  呼び出します。\n
  *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して NULL を返します。\n
  *                  それ以外の挙動は RegisterServiceCtrlHandlerExW と同一です。
@@ -262,7 +273,8 @@ COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU
 
 /**
  *  @brief          サービス プロセスのメイン スレッドを SCM に接続します (UTF-8 テーブル版)。
- *  @details        com_util_service_entry_u テーブルの各 service_name を UTF-16 に変換して
+ *
+ *  com_util_service_entry_u テーブルの各 service_name を UTF-16 に変換して
  *                  SERVICE_TABLE_ENTRYW 配列を組み立て、StartServiceCtrlDispatcherW を
  *                  呼び出します。テーブルの終端要素は service_name を NULL にしてください。\n
  *                  変換失敗時は SetLastError(ERROR_OUTOFMEMORY) を設定して FALSE を返します。\n

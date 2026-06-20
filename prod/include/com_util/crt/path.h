@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           path.h
- *  @brief          CRT 抽象層で使用するパス関連定義。
+ *  @brief          CRT 抽象層で使用するパス関連定義です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
@@ -38,8 +38,8 @@
 
 #ifdef DOXYGEN
     /**
-     *  @brief          OS 固有のパス最大長。
-     *                  Linux では PATH_MAX、Windows では MAX_PATH に対応する値を使用する。
+     *  @brief          OS 固有のパス最大長です。
+     *                  Linux では PATH_MAX、Windows では MAX_PATH に対応する値を使用します。
      */
     #define PLATFORM_PATH_MAX 4096
 #else /* !DOXYGEN */

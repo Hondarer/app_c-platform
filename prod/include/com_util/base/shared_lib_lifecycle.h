@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           shared_lib_lifecycle.h
- *  @brief          共有ライブラリのロード・アンロード フック共通ヘッダー。
+ *  @brief          共有ライブラリのロード・アンロード フック共通ヘッダーです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.1.0
@@ -51,7 +51,7 @@
 
 #ifdef DOXYGEN
     /**
-     *  @brief          ロード/アンロード コンテキスト向けの診断メッセージ出力マクロ。
+     *  @brief          ロード/アンロード コンテキスト向けの診断メッセージ出力マクロです。
      *
      *  `DllMain` および constructor / destructor コンテキストでは
      *  使用できる API が制限されるため、このマクロは制約下でも比較的
@@ -75,7 +75,7 @@
 #else /* !DOXYGEN */
     #if defined(PLATFORM_LINUX)
 /**
- *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信する。
+ *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信します。
  *
  *  constructor / destructor コンテキストでも安全に使用できるよう、
  *  syslog() API は使用しない。毎回ソケットを開いて即時送信し、
@@ -227,7 +227,7 @@ static void onUnload(int process_terminating);
 #if defined(PLATFORM_LINUX)
 
 /**
- *  @brief          Linux constructor 属性によるライブラリ ロード フック。
+ *  @brief          Linux constructor 属性によるライブラリ ロード フックです。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
@@ -241,7 +241,7 @@ __attribute__((constructor)) static void dllmain_on_load__(void)
 }
 
 /**
- *  @brief          Linux destructor 属性によるライブラリ アンロード フック。
+ *  @brief          Linux destructor 属性によるライブラリ アンロード フックです。
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
@@ -257,7 +257,7 @@ __attribute__((destructor)) static void dllmain_on_unload__(void)
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *  @brief          Windows DllMain によるライブラリ ロード/アンロード フック。
+ *  @brief          Windows DllMain によるライブラリ ロード/アンロード フックです。
  *  @param[in]      hinstDLL DLL のモジュール ハンドル。
  *  @param[in]      fdwReason 呼び出し理由 (DLL_PROCESS_ATTACH など)。
  *  @param[in]      lpvReserved 予約。プロセス終了時は非 NULL。

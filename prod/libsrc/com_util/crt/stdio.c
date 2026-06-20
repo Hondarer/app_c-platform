@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           stdio.c
+ *  @brief          stdio 系 CRT 抽象 API の実装です。
+ *
+ *  UTF-8 パスと 64 bit ファイル位置に対応した標準 I/O ラッパーを提供します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/path.h>
 
@@ -12,6 +22,8 @@
     #include <stdlib.h>
     #include <wchar.h>
 #endif /* PLATFORM_ */
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out)
 {
@@ -77,6 +89,8 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out)
 {
     if (path == NULL || modes == NULL || stream == NULL)
@@ -141,6 +155,8 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
 {
     if (path == NULL)
@@ -163,6 +179,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
     }
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath)
 {
@@ -197,15 +215,21 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream)
 {
     return fclose(stream);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *ptr, const size_t size, const size_t count, FILE *stream)
 {
     return fread(ptr, size, count, stream);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr, const size_t size, const size_t count,
                                                     FILE *stream)
@@ -213,15 +237,21 @@ COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr, const size_
     return fwrite(ptr, size, count, stream);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT char *COM_UTIL_API com_util_fgets(char *buf, const int size, FILE *stream)
 {
     return fgets(buf, size, stream);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_fputs(const char *str, FILE *stream)
 {
     return fputs(str, stream);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *format, ...)
 {
@@ -235,6 +265,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *form
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *format, va_list args)
 {
 #if defined(PLATFORM_WINDOWS)
@@ -244,30 +276,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *for
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_fflush(FILE *stream)
 {
     return fflush(stream);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_feof(FILE *stream)
 {
     return feof(stream);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_ferror(FILE *stream)
 {
     return ferror(stream);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_clearerr(FILE *stream)
 {
     clearerr(stream);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_rewind(FILE *stream)
 {
     rewind(stream);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, const int64_t offset, const int whence)
 {
@@ -277,6 +321,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, const int64_t offs
     return _fseeki64(stream, (__int64)offset, whence);
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_ftell(FILE *stream)
 {

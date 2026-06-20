@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           stdio.h
- *  @brief          stdio 系 CRT 抽象 API。
+ *  @brief          stdio 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *
@@ -324,7 +324,7 @@ extern "C"
      *  @param[out]     errno_out    エラー詳細の格納先。NULL 可。
      *  @return         成功時はオープンされた FILE*、失敗時は NULL を返します。
      *
-     *  Linux 環境では TMPDIR (未設定なら "/tmp") に "<prefix>XXXXXX" のテンプレートで
+     *  Linux 環境では TMPDIR (未設定なら "/tmp") に "{prefix}XXXXXX" のテンプレートで
      *  mkostemp() によりファイルを atomic に作成し、その fd を fdopen(@p modes) で FILE* に
      *  変換します。\n
      *  @p modes に "w"/"w+" を指定しても fdopen() の仕様上ファイルの切り詰めは発生しません。

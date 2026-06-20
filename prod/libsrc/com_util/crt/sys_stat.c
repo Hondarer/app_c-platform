@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           sys_stat.c
+ *  @brief          ファイル情報とディレクトリ生成 API の実装です。
+ *
+ *  UTF-8 パスに対応した stat、mkdir、再帰的ディレクトリ生成を提供します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
 
@@ -13,7 +23,7 @@
 #endif /* PLATFORM_ */
 
 /**
- *  @brief  指定されたディレクトリが存在することを確認し、なければ生成する。
+ *  @brief  指定されたディレクトリが存在することを確認し、なければ生成します。
  *  @param[in]  dir  対象ディレクトリのパス (UTF-8)。
  *  @return     成功時は 0、失敗時は -1 を返します。
  *
@@ -104,6 +114,8 @@ static size_t path_root_prefix_len(const char *path)
     return 0u;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
 {
     char buf[PLATFORM_PATH_MAX];
@@ -152,6 +164,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
     return ensure_one_dir(buf);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf, const char *path)
 {
     if (buf == NULL || path == NULL)
@@ -174,6 +188,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf, const 
     }
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir(const char *path)
 {

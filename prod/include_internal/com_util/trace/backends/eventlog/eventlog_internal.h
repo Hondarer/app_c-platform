@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           eventlog_internal.h
- *  @brief          EventLog シンク内部管理関数のヘッダー ファイル。
+ *  @brief          EventLog シンク内部管理関数のヘッダー ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0
@@ -34,17 +34,17 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで EventLog シンク ハンドルを解放します。
- *  @param[in]      handle 解放する EventLog シンク ハンドル。
- *  @param[in]      event shutdown イベント情報。
- *
- *  `process_terminating` 相当のイベントでは free() のみ実行します。\n
- *  通常終了では DeregisterEventSource() を呼び出します。
- *  呼び出し時点で com_util_eventlog_sink_write() を実行中のスレッドが存在する場合は
- *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
- *  呼び出し側がスレッドの静止を保証します。
- */
+     *  @brief          shutdown フェーズで EventLog シンク ハンドルを解放します。
+     *  @param[in]      handle 解放する EventLog シンク ハンドルです。
+     *  @param[in]      event shutdown イベント情報です。
+     *
+     *  `process_terminating` 相当のイベントでは free() のみ実行します。\n
+     *  通常終了では DeregisterEventSource() を呼び出します。
+     *  呼び出し時点で com_util_eventlog_sink_write() を実行中のスレッドが存在する場合は
+     *  未定義動作になります。
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  呼び出し側がスレッドの静止を保証します。
+     */
     void com_util_eventlog_sink_dispose_on_shutdown(com_util_eventlog_sink *handle,
                                                     const com_util_shutdown_event *event);
 

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           file_api.c
- *  @brief          ファイル / パイプ系 Win32 API UTF-8 ラッパー実装。
+ *  @brief          ファイル / パイプ系 Win32 API UTF-8 ラッパー実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/09
  *  @version        1.0.0
@@ -44,6 +44,8 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD des
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
                                                      DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size,
                                                      DWORD default_timeout, LPSECURITY_ATTRIBUTES security_attributes)
@@ -63,6 +65,8 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWOR
     free(wname);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size)
 {

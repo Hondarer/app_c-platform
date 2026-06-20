@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_file_internal.h
- *  @brief          ファイル プロバイダー内部管理関数のヘッダー ファイル。
+ *  @brief          ファイル プロバイダー内部管理関数のヘッダー ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -30,15 +30,15 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズでファイル プロバイダー ハンドルを解放します。
- *  @param[in]      handle 解放するファイル プロバイダー ハンドル。
- *
- *  内部ミューテックスを取得せずにハンドルを解放します。
- *  呼び出し時点で com_util_trace_file_sink_write() を実行中のスレッドが存在する場合は
- *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
- *  呼び出し側がスレッドの静止を保証します。
- */
+     *  @brief          shutdown フェーズでファイル プロバイダー ハンドルを解放します。
+     *  @param[in]      handle 解放するファイル プロバイダー ハンドルです。
+     *
+     *  内部ミューテックスを取得せずにハンドルを解放します。
+     *  呼び出し時点で com_util_trace_file_sink_write() を実行中のスレッドが存在する場合は
+     *  未定義動作になります。
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  呼び出し側がスレッドの静止を保証します。
+     */
     void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *handle);
 
 #ifdef __cplusplus

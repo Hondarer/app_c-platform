@@ -110,7 +110,7 @@ COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_load
 
     /* ロード完了後は resolved が 0 以外になる。早期リターンで判定する。
      * ARM64 など weakly-ordered アーキテクチャーでのメモリ可視性を保証するため
-     * GCC では acquire ロードを使用する。
+     * GCC では acquire ロードを使用します。
      * MSVC (x86_64/TSO) では plain load で acquire 相当の保証が得られる。 */
 #if defined(COMPILER_GCC)
     if (__atomic_load_n(&fobj->resolved, __ATOMIC_ACQUIRE) != 0)

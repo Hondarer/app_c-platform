@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           shutdown.c
- *  @brief          プロセス終了処理共通実装。
+ *  @brief          プロセス終了処理共通実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/05/06
  *
@@ -243,6 +243,8 @@ static void install_shutdown_hooks(void)
 #endif
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
 {
     shutdown_callback_entry *entry;
@@ -284,12 +286,16 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_ca
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(const int code)
 {
     s_exit_code = code;
     s_exit_code_valid = 1;
     exit(code);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_callback_t callback,
                                                                     void *context)
@@ -333,15 +339,21 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shu
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event)
 {
     return invoke_shutdown_callbacks_once(event);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event)
 {
     return invoke_shutdown_request_callbacks_once(event, NULL);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API _com_util_shutdown_reset_for_test(void)
 {

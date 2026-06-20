@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           syslog_internal.h
- *  @brief          syslog プロバイダー内部管理関数のヘッダー ファイル。
+ *  @brief          syslog プロバイダー内部管理関数のヘッダー ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -33,15 +33,15 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
- *  @brief          shutdown フェーズで syslog プロバイダー ハンドルを解放します。
- *  @param[in]      handle 解放する syslog プロバイダー ハンドル。
- *
- *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
- *  呼び出し時点で com_util_syslog_sink_write() を実行中のスレッドが存在する場合は
- *  未定義動作になります。
- *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
- *  呼び出し側がスレッドの静止を保証します。
- */
+     *  @brief          shutdown フェーズで syslog プロバイダー ハンドルを解放します。
+     *  @param[in]      handle 解放する syslog プロバイダー ハンドルです。
+     *
+     *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
+     *  呼び出し時点で com_util_syslog_sink_write() を実行中のスレッドが存在する場合は
+     *  未定義動作になります。
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  呼び出し側がスレッドの静止を保証します。
+     */
     void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle);
 
     #ifdef __cplusplus

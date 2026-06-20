@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           process.h
- *  @brief          プロセス情報取得 API。
+ *  @brief          プロセス情報取得 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/07
  *
@@ -72,7 +72,7 @@ extern "C"
     } com_util_process_stdio_mode_t;
 
     /**
-     *  @brief          子プロセスの標準入出力指定。
+     *  @brief          子プロセスの標準入出力指定です。
      *
      *  Linux では @p native_handle をファイル ディスクリプタ、Windows では HANDLE として扱います。\n
      *  呼び出し側が渡した native handle の所有権は移動しません。

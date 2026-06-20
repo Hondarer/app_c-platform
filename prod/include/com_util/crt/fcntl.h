@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           fcntl.h
- *  @brief          fcntl 系 CRT 抽象 API。
+ *  @brief          fcntl 系 CRT 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *

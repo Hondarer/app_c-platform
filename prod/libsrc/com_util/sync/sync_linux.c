@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sync_linux.c
- *  @brief          Linux 向けスレッド・同期プリミティブ実装。
+ *  @brief          Linux 向けスレッド・同期プリミティブ実装です。
  *******************************************************************************
  */
 
@@ -317,6 +317,8 @@ static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock 
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_local_lock_create(com_util_local_lock **mtx)
 {
     com_util_local_lock *new_mtx;
@@ -338,6 +340,8 @@ com_util_sync_result_t com_util_local_lock_create(com_util_local_lock **mtx)
     *mtx = new_mtx;
     return COM_UTIL_SYNC_OK;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
 {
@@ -375,10 +379,14 @@ com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock *mtx, int ti
     return COM_UTIL_SYNC_TIMEOUT;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_local_lock_try_lock(com_util_local_lock *mtx)
 {
     return com_util_local_lock_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock *mtx)
 {
@@ -389,6 +397,8 @@ com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock *mtx)
     return map_wait_rc(pthread_mutex_unlock(&mtx->native));
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_local_lock_destroy(com_util_local_lock *mtx)
 {
     if (mtx != NULL)
@@ -397,6 +407,8 @@ void com_util_local_lock_destroy(com_util_local_lock *mtx)
         free(mtx);
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_condvar_create(com_util_condvar **cv)
 {
@@ -420,6 +432,8 @@ com_util_sync_result_t com_util_condvar_create(com_util_condvar **cv)
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_condvar_wait(com_util_condvar *cv, com_util_local_lock *mtx, int timeout_ms)
 {
     struct timespec abs_ts;
@@ -436,6 +450,8 @@ com_util_sync_result_t com_util_condvar_wait(com_util_condvar *cv, com_util_loca
     return map_wait_rc(pthread_cond_timedwait(&cv->native, &mtx->native, &abs_ts));
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_condvar_signal(com_util_condvar *cv)
 {
     if (cv == NULL)
@@ -444,6 +460,8 @@ com_util_sync_result_t com_util_condvar_signal(com_util_condvar *cv)
     }
     return map_wait_rc(pthread_cond_signal(&cv->native));
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar *cv)
 {
@@ -454,6 +472,8 @@ com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar *cv)
     return map_wait_rc(pthread_cond_broadcast(&cv->native));
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_condvar_destroy(com_util_condvar *cv)
 {
     if (cv != NULL)
@@ -462,6 +482,8 @@ void com_util_condvar_destroy(com_util_condvar *cv)
         free(cv);
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
 {
@@ -488,6 +510,8 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock **rwlo
     *rwlock = new_lock;
     return COM_UTIL_SYNC_OK;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms)
 {
@@ -529,10 +553,14 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock *
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock *rwlock, int timeout_ms)
 {
@@ -579,10 +607,14 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock)
 {
@@ -604,6 +636,8 @@ com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock
     pthread_mutex_unlock(&rwlock->mutex);
     return COM_UTIL_SYNC_OK;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock)
 {
@@ -630,6 +664,8 @@ com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwl
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
 {
     if (rwlock != NULL)
@@ -640,6 +676,8 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
         free(rwlock);
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg)
 {
@@ -671,6 +709,8 @@ com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util
     *thread = new_thread;
     return COM_UTIL_SYNC_OK;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_thread_join(com_util_thread *thread, int timeout_ms)
 {
@@ -724,6 +764,8 @@ com_util_sync_result_t com_util_thread_join(com_util_thread *thread, int timeout
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_thread_detach(com_util_thread *thread)
 {
     if (thread != NULL)
@@ -733,10 +775,14 @@ void com_util_thread_detach(com_util_thread *thread)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock)
 {
     return interprocess_lock_open_identity(identity, lock);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock *lock,
                                                                     void *descriptor, size_t *descriptor_size)
@@ -773,6 +819,8 @@ com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_ut
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
                                                                     com_util_interprocess_lock **lock)
 {
@@ -808,6 +856,8 @@ com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
@@ -817,10 +867,14 @@ com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_loc
     return interprocess_lock_take(lock, timeout_ms);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock)
 {
     return com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
 {
@@ -836,6 +890,8 @@ com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_l
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
 {
     if (lock != NULL)
@@ -850,10 +906,14 @@ void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock)
 {
     return app_lock_open_identity(identity, lock);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock *lock,
                                                                       void *descriptor, size_t *descriptor_size)
@@ -890,6 +950,8 @@ com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
                                                                       com_util_interprocess_rwlock **lock)
 {
@@ -925,6 +987,8 @@ com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
@@ -934,10 +998,14 @@ com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interpr
     return app_lock_take(lock, LOCK_SH, timeout_ms);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
@@ -948,10 +1016,14 @@ com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_inte
     return app_lock_take(lock, LOCK_EX, timeout_ms);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_sync_result_t com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
 {
@@ -967,6 +1039,8 @@ com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess
     return COM_UTIL_SYNC_OK;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
 {
     if (lock != NULL)
@@ -980,6 +1054,8 @@ void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
         free(lock);
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_call_once(com_util_once_flag *flag, void (*func)(void))
 {
@@ -1001,6 +1077,8 @@ void com_util_call_once(com_util_once_flag *flag, void (*func)(void))
         sched_yield();
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_sleep_ms(int ms)
 {

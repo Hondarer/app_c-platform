@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           eventlog-register.c
- *  @brief          com_util 共通イベント ソースの登録/削除コマンド。
+ *  @brief          com_util 共通イベント ソースの登録/削除コマンドです。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0
@@ -52,22 +52,22 @@ void eventlog_register_print_usage(const char *argv0)
     #include <com_util/trace/eventlog.h>
 
 /**
- *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうか。
+ *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうかです。
  *
  *  main() で com_util_elevated_process_extract_result_target() の戻り値を設定する。\n
  *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
- *  com_util_elevated_process_report_result() で呼び出し元プロセスへ報告する。
+ *  com_util_elevated_process_report_result() で呼び出し元プロセスへ報告します。
  */
 static int s_is_elevated_worker = 0;
 
 /**
- *  @brief          管理者権限を保証する。必要なら UAC 昇格して再実行する。
+ *  @brief          管理者権限を保証します。必要なら UAC 昇格して再実行します。
  *  @param[in]      command  昇格再実行するサブコマンド ("install" / "uninstall")。
- *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納する。
- *  @return         継続可能な場合は 0、失敗時または昇格プロセスの終了コードを返す。
+ *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納します。
+ *  @return         継続可能な場合は 0、失敗時または昇格プロセスの終了コードを返します。
  *
  *  昇格プロセスのコンソールは一切引き継がない。昇格プロセス側が報告した結果メッセージは
- *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示する。
+ *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示します。
  */
 static int ensure_elevated(const char *command, int *handled)
 {
@@ -108,7 +108,7 @@ static int ensure_elevated(const char *command, int *handled)
 }
 
 /**
- *  @brief          イベント ソース API のステータスを表示し、終了コードに変換する。
+ *  @brief          イベント ソース API のステータスを表示し、終了コードに変換します。
  *  @param[in]      status  com_util_eventlog_register_source / unregister_source の戻り値。
  *  @param[in]      action  操作名 ("登録" / "削除")。
  *  @return         EXIT_SUCCESS / EXIT_FAILURE。
@@ -159,7 +159,7 @@ static int report_status(const int status, const char *action)
 }
 
 /**
- *  @brief          共通イベント ソースを登録する。
+ *  @brief          共通イベント ソースを登録します。
  *  @return         EXIT_SUCCESS / EXIT_FAILURE。
  */
 static int do_install(void)
@@ -193,7 +193,7 @@ static int do_install(void)
 }
 
 /**
- *  @brief          共通イベント ソースの登録を削除する。
+ *  @brief          共通イベント ソースの登録を削除します。
  *  @return         EXIT_SUCCESS / EXIT_FAILURE。
  */
 static int do_uninstall(void)
@@ -252,10 +252,10 @@ int eventlog_register_run(int argc, char *argv[])
 #endif /* PLATFORM_ */
 
 /**
- *  @brief          メイン エントリ ポイント。
+ *  @brief          メイン エントリ ポイントです。
  *  @param[in]      argc  コマンド ライン引数の数。
  *  @param[in]      argv  コマンド ライン引数の配列。
- *  @return         正常終了時は 0、異常終了時は 0 以外を返す。
+ *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  */
 int main(int argc, char *argv[])
 {

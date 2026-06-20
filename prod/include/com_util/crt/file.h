@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           file.h
- *  @brief          低レベル ファイル I/O 抽象 API。
+ *  @brief          低レベル ファイル I/O 抽象 API です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/24
  *
@@ -44,7 +44,7 @@
 #define COM_UTIL_FILE_OPEN_SHARE_WRITE   (1 << 6) /**< 他プロセスからの書き込み共有を許可する。 */
 
 /**
- *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持)。
+ *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持) です。
  */
 typedef struct com_util_file
 {
@@ -56,7 +56,7 @@ typedef struct com_util_file
 } com_util_file;
 
 /**
- *  @brief  ファイル実体の同一性を表す構造体。
+ *  @brief  ファイル実体の同一性を表す構造体です。
  *
  *  同じボリューム上の同じファイル実体であれば、開き直しても同じ値になります。\n
  *  Linux では stat の st_dev と st_ino、Windows では GetFileInformationByHandle の

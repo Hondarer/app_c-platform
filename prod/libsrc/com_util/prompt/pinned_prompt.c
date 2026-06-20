@@ -1,6 +1,8 @@
 /**
  *  @file           pinned_prompt.c
- *  @brief          Pinned prompt implementation.
+ *  @brief          端末下部に入力行を固定するプロンプト API の実装です。
+ *
+ *  入力行、履歴、ステータス領域を管理し、アプリケーション出力後に固定領域を再描画します。
  */
 
 #include <com_util/prompt/pinned_prompt.h>
@@ -1301,6 +1303,8 @@ static int pinned_prompt_readline_fallback(char *buf, size_t buf_size, const cha
     return 1;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options)
 {
     com_util_pinned_prompt *screen;
@@ -1369,6 +1373,8 @@ com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prom
     return screen;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
 {
     size_t i;
@@ -1415,6 +1421,8 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
     }
     free(screen);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *prompt_str,
                                      const char *file, int line)
@@ -1569,6 +1577,8 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *file,
                                          int line, const char *fmt, ...)
 {
@@ -1588,6 +1598,8 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *b
     }
     return _com_util_pinned_prompt_readline(screen, buf, buf_size, screen->fmt_buf, file, line);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
                                     const void *data, size_t size)
@@ -1632,6 +1644,8 @@ size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pin
 
     return written;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
                                   const char *fmt, ...)
@@ -1684,6 +1698,8 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     free(buf);
     return (int)written;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
                                          com_util_pinned_prompt_status_position_t position, int enable)
@@ -1753,6 +1769,8 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
     }
     return 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position,
                                       com_util_pinned_prompt_status_align_t align, const char *content)

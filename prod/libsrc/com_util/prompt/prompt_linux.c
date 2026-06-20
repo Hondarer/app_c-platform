@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_linux.c
- *  @brief          プロンプト ヘルパー Linux 実装 (termios raw mode)。
+ *  @brief          プロンプト ヘルパー Linux 実装 (termios raw mode) です。
  */
 
 #include <com_util/prompt/prompt_internal.h>
@@ -19,6 +19,8 @@ static void prompt_sigwinch_handler(int sig)
     (void)sig;
     s_resize_pending = 1;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void prompt_platform_enter_raw(com_util_prompt *p)
 {
@@ -61,6 +63,8 @@ void prompt_platform_enter_raw(com_util_prompt *p)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void prompt_platform_leave_raw(com_util_prompt *p)
 {
     if (!p->raw_active)
@@ -76,6 +80,8 @@ void prompt_platform_leave_raw(com_util_prompt *p)
         s_sigwinch_installed = 0;
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int prompt_platform_read_char(com_util_prompt *p)
 {
@@ -102,6 +108,8 @@ int prompt_platform_read_char(com_util_prompt *p)
         return -1;
     }
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int prompt_platform_read_char_nb(com_util_prompt *p)
 {

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           com_util_export.h
- *  @brief          com_util の Windows DLL エクスポート/呼び出し規約マクロ。
+ *  @brief          com_util の Windows DLL エクスポート/呼び出し規約マクロです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/21
  *  @version        1.0.0
@@ -27,7 +27,7 @@
 #ifdef DOXYGEN
 
     /**
-     *  @brief          DLL エクスポート/インポート制御マクロ。
+     *  @brief          DLL エクスポート/インポート制御マクロです。
      *
      *  ビルド条件に応じて以下の値を取ります。
      *
@@ -42,7 +42,7 @@
     #define COM_UTIL_EXPORT
 
     /**
-     *  @brief          呼び出し規約マクロ。
+     *  @brief          呼び出し規約マクロです。
      *
      *  Windows 環境では `__stdcall` 呼び出し規約を指定します。\n
      *  Linux (非 Windows) 環境では空に展開されます。

@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_edit.c
- *  @brief          Prompt edit buffer helper internals.
+ *  @brief          プロンプトの UTF-8 編集バッファーを管理する内部 API の実装です。
  */
 
 #include <com_util/prompt/prompt_edit.h>
@@ -13,6 +13,8 @@ static int utf8_is_continuation(unsigned char c)
 {
     return (c & 0xC0U) == 0x80U;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 size_t com_util_prompt_edit_utf8_prev_boundary(const char *buf, size_t pos)
 {
@@ -28,6 +30,8 @@ size_t com_util_prompt_edit_utf8_prev_boundary(const char *buf, size_t pos)
     return pos;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 size_t com_util_prompt_edit_utf8_next_boundary(const char *buf, size_t len, size_t pos)
 {
     if (pos >= len)
@@ -42,6 +46,8 @@ size_t com_util_prompt_edit_utf8_next_boundary(const char *buf, size_t len, size
     return pos;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 size_t com_util_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, size_t pos)
 {
     if (pos > len)
@@ -54,6 +60,8 @@ size_t com_util_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, 
     }
     return pos;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes, size_t required)
 {
@@ -93,6 +101,8 @@ int com_util_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_byt
     *cap = new_cap;
     return 0;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_prompt_edit_resolve_options(size_t requested_history_max,
                                           size_t requested_initial_capacity,

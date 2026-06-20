@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           tracer.c
- *  @brief          トレース プロバイダー実装ファイル。
+ *  @brief          トレース プロバイダー実装ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -75,7 +75,7 @@ enum trace_handle_state
 };
 
 /**
- *  @brief  トレース フック エントリ構造体 (内部定義)。
+ *  @brief  トレース フック エントリ構造体 (内部定義) です。
  */
 struct com_util_tracer_hook_entry
 {
@@ -85,7 +85,7 @@ struct com_util_tracer_hook_entry
 };
 
 /**
- *  @brief  トレース プロバイダー ハンドル構造体 (内部定義)。
+ *  @brief  トレース プロバイダー ハンドル構造体 (内部定義) です。
  */
 struct com_util_tracer
 {
@@ -153,7 +153,7 @@ static void trace_shutdown_callback(const com_util_shutdown_event *event, void *
 }
 
 /**
- *  @brief          レジストリの排他ロックを取得する。
+ *  @brief          レジストリの排他ロックを取得します。
  */
 static void registry_lock(void)
 {
@@ -162,7 +162,7 @@ static void registry_lock(void)
 }
 
 /**
- *  @brief          レジストリの排他ロックを解放する。
+ *  @brief          レジストリの排他ロックを解放します。
  */
 static void registry_unlock(void)
 {
@@ -170,7 +170,7 @@ static void registry_unlock(void)
 }
 
 /**
- *  @brief          レジストリを拡張する (ロック保持中)。
+ *  @brief          レジストリを拡張する (ロック保持中) です。
  *  @return         成功時 0、メモリ確保失敗時 -1。
  */
 static int registry_expand_locked(void)
@@ -192,7 +192,7 @@ static int registry_expand_locked(void)
 }
 
 /**
- *  @brief          ハンドルをレジストリに登録する。
+ *  @brief          ハンドルをレジストリに登録します。
  *  @param[in]      handle  登録するトレース プロバイダー ハンドル。
  *  @return         成功時 0、シャットダウン中またはメモリ不足時 -1。
  */
@@ -223,7 +223,7 @@ static int registry_register_handle(com_util_tracer *handle)
 }
 
 /**
- *  @brief          ハンドルをレジストリから削除する。
+ *  @brief          ハンドルをレジストリから削除します。
  *  @param[in]      handle  削除するトレース プロバイダー ハンドル。
  */
 static void registry_unregister_handle(com_util_tracer *handle)
@@ -246,6 +246,8 @@ static void registry_unregister_handle(com_util_tracer *handle)
     registry_unlock();
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 size_t trace_registry_count(void)
 {
     size_t count;
@@ -255,6 +257,8 @@ size_t trace_registry_count(void)
     registry_unlock();
     return count;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 size_t trace_registry_capacity(void)
 {
@@ -267,7 +271,7 @@ size_t trace_registry_capacity(void)
 }
 
 /**
- *  @brief          ハンドルがアクティブか判定する。
+ *  @brief          ハンドルがアクティブか判定します。
  *  @param[in]      handle  判定対象のトレース プロバイダー ハンドル。
  *  @return         アクティブの場合 1、それ以外 0。
  */
@@ -277,7 +281,7 @@ static int handle_is_active(const com_util_tracer *handle)
 }
 
 /**
- *  @brief          解放処理を開始する。
+ *  @brief          解放処理を開始します。
  *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  *  @return         成功時 0、ハンドルが NULL またはアクティブでない場合 -1。
  */
@@ -295,7 +299,7 @@ static int begin_dispose(com_util_tracer *handle)
 #if defined(PLATFORM_LINUX)
 
 /**
- *  @brief          トレース レベルを syslog レベルに変換する。
+ *  @brief          トレース レベルを syslog レベルに変換します。
  *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する syslog レベル値。
  */
@@ -324,7 +328,7 @@ static int to_syslog_level(const com_util_trace_level_t lv)
 #elif defined(PLATFORM_WINDOWS)
 
 /**
- *  @brief          トレース レベルを ETW レベルに変換する。
+ *  @brief          トレース レベルを ETW レベルに変換します。
  *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する ETW レベル値。
  */
@@ -352,13 +356,13 @@ static int to_etw_level(const com_util_trace_level_t lv)
 #endif /* PLATFORM_ */
 
 /**
- *  @brief          プロセスの実行ファイル パスからベース名を取得する。
+ *  @brief          プロセスの実行ファイル パスからベース名を取得します。
  *  @param[in,out]  buf       パス文字列を格納するバッファー。
  *  @param[in]      buf_size  バッファーのバイト数。
  *  @return         ベース名へのポインター。失敗時は FALLBACK_NAME。
  *
  *  com_util_process_get_executable_path() で取得したパスは UTF-8 で
- *  セパレーターが '/' に統一されるため、プラットフォーム非依存で処理できる。
+ *  セパレーターが '/' に統一されるため、プラットフォーム非依存で処理できます。
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
@@ -378,7 +382,7 @@ static const char *get_process_basename(char *buf, const size_t buf_size)
 }
 
 /**
- *  @brief          設定の排他ロック (書き込みロック) を取得する。
+ *  @brief          設定の排他ロック (書き込みロック) を取得します。
  *  @param[in]      handle  ロック対象のトレース プロバイダー ハンドル。
  */
 static void config_lock_exclusive(com_util_tracer *handle)
@@ -387,7 +391,7 @@ static void config_lock_exclusive(com_util_tracer *handle)
 }
 
 /**
- *  @brief          設定の排他ロック (書き込みロック) を解放する。
+ *  @brief          設定の排他ロック (書き込みロック) を解放します。
  *  @param[in]      handle  ロック解放対象のトレース プロバイダー ハンドル。
  */
 static void config_unlock_exclusive(com_util_tracer *handle)
@@ -398,7 +402,7 @@ static void config_unlock_exclusive(com_util_tracer *handle)
 #define LOCK_TIMEOUT_MS 100
 
 /**
- *  @brief          タイムアウト付きで設定の共有ロック (読み取りロック) を取得する。
+ *  @brief          タイムアウト付きで設定の共有ロック (読み取りロック) を取得します。
  *  @param[in]      handle  ロック対象のトレース プロバイダー ハンドル。
  *  @return         成功時 0、タイムアウト時 -1。
  */
@@ -415,7 +419,7 @@ static int config_lock_shared_timed(com_util_tracer *handle)
 }
 
 /**
- *  @brief          設定の共有ロック (読み取りロック) を解放する。
+ *  @brief          設定の共有ロック (読み取りロック) を解放します。
  *  @param[in]      handle  ロック解放対象のトレース プロバイダー ハンドル。
  */
 static void config_unlock_shared(com_util_tracer *handle)
@@ -424,7 +428,7 @@ static void config_unlock_shared(com_util_tracer *handle)
 }
 
 /**
- *  @brief          識別子を付加した有効名の文字列を構築する。
+ *  @brief          識別子を付加した有効名の文字列を構築します。
  *  @param[in]      name        サービス名 (NULL の場合はプロセス ベース名を使用)。
  *  @param[in]      identifier  識別子 (0 の場合はサフィックスなし)。
  *  @return         ヒープ確保された有効名文字列。呼び出し元が free すること。
@@ -471,7 +475,7 @@ static char *build_effective_name(const char *name, const int64_t identifier)
 
 #if defined(PLATFORM_WINDOWS)
 /**
- *  @brief          EventLog に渡す元のインスタンス名を構築する。
+ *  @brief          EventLog に渡す元のインスタンス名を構築します。
  *  @param[in]      name  インスタンス名。NULL の場合はプロセス ベース名を使用。
  *  @return         ヒープ確保されたインスタンス名。呼び出し元が free すること。
  */
@@ -494,7 +498,7 @@ static char *build_eventlog_instance_name(const char *name)
 #endif /* PLATFORM_WINDOWS */
 
 /**
- *  @brief          ハンドルが保持する有効名を取得する。
+ *  @brief          ハンドルが保持する有効名を取得します。
  *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
  *  @return         有効名文字列へのポインター。
  */
@@ -509,11 +513,11 @@ static const char *tracer_effective_name(const com_util_tracer *handle)
 
 #if defined(PLATFORM_WINDOWS)
 /**
- *  @brief          名前の末尾にある ".exe" を除去する (インプレース)。
+ *  @brief          名前の末尾にある ".exe" を除去する (インプレース) です。
  *  @param[in,out]  name  対象の名前文字列。
  *
  *  Windows ではプロセス名 (実行ファイルのベース名) が ".exe" で終わるため、
- *  トレースファイル名からは除去する。大文字小文字は区別しない。
+ *  トレースファイル名からは除去する。大文字小文字は区別しません。
  */
 static void strip_exe_suffix(char *name)
 {
@@ -527,15 +531,15 @@ static void strip_exe_suffix(char *name)
 #endif /* PLATFORM_WINDOWS */
 
 /**
- *  @brief          トレースファイル名 (ファイル識別込み) を解決する。
+ *  @brief          トレースファイル名 (ファイル識別込み) を解決します。
  *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
  *  @param[out]     out       解決した名前を格納するバッファー。
  *  @param[in]      out_size  バッファーのバイト数。
  *  @return         成功時 0、失敗時 (バッファー不足) -1。
  *
- *  ファイル名が未設定 (NULL) の場合はプロセス名 (実行ファイルのベース名) を使用する。
+ *  ファイル名が未設定 (NULL) の場合はプロセス名 (実行ファイルのベース名) を使用します。
  *  Windows ではプロセス名末尾の ".exe" を除去する (明示設定された名前には適用しない)。\n
- *  ファイル識別が 0 以外の場合は "_{ファイル識別}" を付加する。
+ *  ファイル識別が 0 以外の場合は "_{ファイル識別}" を付加します。
  */
 static int resolve_file_name(const com_util_tracer *handle, char *out, const size_t out_size)
 {
@@ -572,7 +576,7 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 }
 
 /**
- *  @brief          ファイル トレースのデフォルト パスを構築する。
+ *  @brief          ファイル トレースのデフォルト パスを構築します。
  *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
  *  @param[out]     out       構築したパスを格納するバッファー。
  *  @param[in]      out_size  バッファーのバイト数。
@@ -581,7 +585,7 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
  *  実行ファイルのディレクトリ配下の log/{ファイル名}.log を構築する
  *  (ファイル名は resolve_file_name で解決する)。\n
  *  実行ファイル パスの取得に失敗した場合はカレント ディレクトリ相対の
- *  log/{ファイル名}.log にフォールバックする。
+ *  log/{ファイル名}.log にフォールバックします。
  */
 static int build_default_file_path(const com_util_tracer *handle, char *out, const size_t out_size)
 {
@@ -620,16 +624,16 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
 }
 
 /**
- *  @brief          指定パラメーターでファイル トレース sink を開いて返す。
+ *  @brief          指定パラメーターでファイル トレース sink を開いて返します。
  *  @param[in]      handle       既定パス解決に用いるハンドル (file_name 等を参照)。
- *  @param[in]      path         出力ファイル パス。NULL の場合は既定パスを解決する。
+ *  @param[in]      path         出力ファイル パス。NULL の場合は既定パスを解決します。
  *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。
  *  @param[in]      generations  保持する旧世代数。
  *  @param[in]      flags        動作フラグ。
  *  @return         生成した sink。失敗時 NULL。
  *
- *  呼び出し側で config の排他ロックを保持していることを前提とする。
- *  com_util_tracer_start と com_util_tracer_set_file_level の双方から使用する。
+ *  呼び出し側で config の排他ロックを保持していることを前提とします。
+ *  com_util_tracer_start と com_util_tracer_set_file_level の双方から使用します。
  */
 static com_util_trace_file_sink *open_file_sink_with(const com_util_tracer *handle, const char *path,
                                                      const size_t max_bytes, const int generations, const int flags)
@@ -652,12 +656,12 @@ static com_util_trace_file_sink *open_file_sink_with(const com_util_tracer *hand
 }
 
 /**
- *  @brief          クリーンアップのためハンドルのトレース出力を停止する。
+ *  @brief          クリーンアップのためハンドルのトレース出力を停止します。
  *  @param[in]      handle  停止対象のトレース プロバイダー ハンドル。
  *  @return         常に 0。
  *
- *  ファイル トレースが開いていた場合はトレース ファイルを閉じる。
- *  ファイル トレースの設定は保持され、次回の start で改めてファイルを開く。
+ *  ファイル トレースが開いていた場合はトレース ファイルを閉じます。
+ *  ファイル トレースの設定は保持され、次回の start で改めてファイルを開きます。
  */
 static int stop_handle_for_cleanup(com_util_tracer *handle)
 {
@@ -679,7 +683,7 @@ static int stop_handle_for_cleanup(com_util_tracer *handle)
 }
 
 /**
- *  @brief          通常のハンドル解放処理を行う。
+ *  @brief          通常のハンドル解放処理を行います。
  *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  */
 static void trace_handle_release_normal(com_util_tracer *handle)
@@ -729,7 +733,7 @@ static void trace_handle_release_normal(com_util_tracer *handle)
 }
 
 /**
- *  @brief          アンロード時のハンドル解放処理を行う。
+ *  @brief          アンロード時のハンドル解放処理を行います。
  *  @param[in]      handle  解放対象のトレース プロバイダー ハンドル。
  */
 static void trace_handle_release_on_shutdown(com_util_tracer *handle)
@@ -1004,7 +1008,7 @@ COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API com_util_tracer_get_state(c
 #define MAX_BODY (COM_UTIL_TRACER_MESSAGE_MAX_BYTES - 1)
 
 /**
- *  @brief          UTF-8 文字境界を考慮して文字列を切り詰める位置を返す。
+ *  @brief          UTF-8 文字境界を考慮して文字列を切り詰める位置を返します。
  *  @param[in]      s    切り詰め対象の UTF-8 文字列。
  *  @param[in]      pos  切り詰め開始位置 (バイト単位)。
  *  @return         文字境界に合わせた切り詰め位置。
@@ -1023,7 +1027,7 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
 static int should_output(const com_util_trace_level_t msg_level, const com_util_trace_level_t threshold);
 
 /**
- *  @brief          OS ネイティブのバックエンドにメッセージを書き込む。
+ *  @brief          OS ネイティブのバックエンドにメッセージを書き込みます。
  *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
  *  @param[in]      level       トレース レベル。
  *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
@@ -1069,7 +1073,7 @@ static int write_os_backends(com_util_tracer *handle, const com_util_trace_level
 }
 
 /**
- *  @brief          メッセージを出力すべきか判定する。
+ *  @brief          メッセージを出力すべきか判定します。
  *  @param[in]      msg_level   出力するメッセージのトレース レベル。
  *  @param[in]      threshold   出力閾値となるトレース レベル。
  *  @return         出力すべき場合 1、出力不要の場合 0。
@@ -1136,7 +1140,7 @@ static int format_local_timestamp(char *buf, const size_t buf_size, const com_ut
 }
 
 /**
- *  @brief          タイムスタンプとトレース レベルを付加して stderr にエントリを書き込む。
+ *  @brief          タイムスタンプとトレース レベルを付加して stderr にエントリを書き込みます。
  *  @param[in]      level  トレース レベル。
  *  @param[in]      timestamp_text  事前整形済みタイムスタンプ文字列。
  *  @param[in]      msg    書き込むメッセージ文字列。
@@ -1158,7 +1162,7 @@ static void write_stderr_entry(const com_util_trace_level_t level, const char *t
 }
 
 /**
- *  @brief          OS プロバイダ・ファイル・stderr の各出力先にメッセージを書き込む。
+ *  @brief          OS プロバイダ・ファイル・stderr の各出力先にメッセージを書き込みます。
  *  @param[in]      handle  書き込み先のトレース プロバイダー ハンドル。
  *  @param[in]      level   トレース レベル。
  *  @param[in]      timestamp  書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
@@ -1313,7 +1317,7 @@ static const char hex_chars[] = "0123456789ABCDEF";
 #define ELLIPSIS_LEN 3
 
 /**
- *  @brief          16 進ダンプ メッセージを構築して出力先に書き込む内部実装。
+ *  @brief          16 進ダンプ メッセージを構築して出力先に書き込む内部実装です。
  *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
  *  @param[in]      level       トレース レベル。
  *  @param[in]      timestamp   書き込みに使用する実時刻。NULL の場合は内部で現在時刻を取得。
@@ -2021,6 +2025,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer *handl
     stop_handle_for_cleanup(handle);
     trace_handle_release_normal(handle);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event)
 {

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_file.c
- *  @brief          ファイル トレース プロバイダー実装ファイル。
+ *  @brief          ファイル トレース プロバイダー実装ファイルです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/03
  *  @version        1.0.0
@@ -55,7 +55,7 @@
 /* ===== 内部構造体 ===== */
 
 /**
- *  @brief  ファイル トレース プロバイダー ハンドル構造体 (内部定義)。
+ *  @brief  ファイル トレース プロバイダー ハンドル構造体 (内部定義) です。
  */
 struct com_util_trace_file_sink
 {
@@ -92,7 +92,7 @@ struct com_util_trace_file_sink
 /* ===== プロセス内 sink レジストリ ===== */
 
 /**
- *  @brief  プロセス内で同一パスの sink を共有するためのレジストリ エントリ。
+ *  @brief  プロセス内で同一パスの sink を共有するためのレジストリ エントリです。
  */
 struct sink_registry_entry
 {
@@ -125,7 +125,7 @@ static void init_sink_registry_lock(void)
 }
 
 /**
- *  @brief  sink レジストリの排他ロックを取得する。
+ *  @brief  sink レジストリの排他ロックを取得します。
  */
 static void sink_registry_lock(void)
 {
@@ -134,7 +134,7 @@ static void sink_registry_lock(void)
 }
 
 /**
- *  @brief  sink レジストリの排他ロックを解放する。
+ *  @brief  sink レジストリの排他ロックを解放します。
  */
 static void sink_registry_unlock(void)
 {
@@ -142,11 +142,11 @@ static void sink_registry_unlock(void)
 }
 
 /**
- *  @brief          レジストリ キー用にパスを正規化した文字列を確保する。
+ *  @brief          レジストリ キー用にパスを正規化した文字列を確保します。
  *  @param[in]      path  対象のファイル パス。
  *  @return         ヒープ確保された正規化済みパス。呼び出し元が free すること。失敗時 NULL。
  *
- *  com_util_path_get_full で絶対化する。絶対化に失敗した場合は元のパス文字列をそのまま使用する。
+ *  com_util_path_get_full で絶対化する。絶対化に失敗した場合は元のパス文字列をそのまま使用します。
  */
 static char *build_registry_key(const char *path)
 {
@@ -171,12 +171,12 @@ static char *build_registry_key(const char *path)
 }
 
 /**
- *  @brief          レジストリ キー同士を比較する。
+ *  @brief          レジストリ キー同士を比較します。
  *  @param[in]      lhs  比較する 1 つ目のキー。
  *  @param[in]      rhs  比較する 2 つ目のキー。
  *  @return         一致時 1、不一致時 0。
  *
- *  Windows ではファイル システムの慣習に合わせて大文字小文字を区別しない。
+ *  Windows ではファイル システムの慣習に合わせて大文字小文字を区別しません。
  */
 static int registry_key_equals(const char *lhs, const char *rhs)
 {
@@ -188,7 +188,7 @@ static int registry_key_equals(const char *lhs, const char *rhs)
 }
 
 /**
- *  @brief          キーが一致するレジストリ エントリを検索する (ロック保持中)。
+ *  @brief          キーが一致するレジストリ エントリを検索する (ロック保持中) です。
  *  @param[in]      key  検索する正規化済みパス。
  *  @return         一致したエントリ。見つからない場合 NULL。
  */
@@ -207,7 +207,7 @@ static struct sink_registry_entry *sink_registry_find_by_key_locked(const char *
 }
 
 /**
- *  @brief          sink ポインターが一致するレジストリ エントリを検索する (ロック保持中)。
+ *  @brief          sink ポインターが一致するレジストリ エントリを検索する (ロック保持中) です。
  *  @param[in]      sink  検索する sink。
  *  @return         一致したエントリ。見つからない場合 NULL。
  */
@@ -226,7 +226,7 @@ static struct sink_registry_entry *sink_registry_find_by_sink_locked(const com_u
 }
 
 /**
- *  @brief          sink をレジストリへ登録する (ロック保持中)。
+ *  @brief          sink をレジストリへ登録する (ロック保持中) です。
  *  @param[in]      key   正規化済みパス。成功時はレジストリが所有権を持つ。
  *  @param[in]      sink  登録する sink。
  *  @return         成功時 0、メモリ確保失敗時 -1。
@@ -268,7 +268,7 @@ static int sink_registry_register_locked(char *key, com_util_trace_file_sink *si
 }
 
 /**
- *  @brief          レジストリ エントリを削除する (ロック保持中)。key の解放は呼び出し元が行う。
+ *  @brief          レジストリ エントリを削除する (ロック保持中)。key の解放は呼び出し元が行います。
  *  @param[in]      entry  削除するエントリ (レジストリ配列内を指すこと)。
  */
 static void sink_registry_remove_locked(struct sink_registry_entry *entry)
@@ -286,7 +286,7 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
 /* ===== 内部ヘルパー関数 ===== */
 
 /**
- *  @brief  トレース レベル整数をレベル文字に変換する。
+ *  @brief  トレース レベル整数をレベル文字に変換します。
  */
 static char level_char(const int level)
 {
@@ -308,7 +308,7 @@ static char level_char(const int level)
 }
 
 /**
- *  @brief  タイムスタンプが有効範囲か判定する。
+ *  @brief  タイムスタンプが有効範囲か判定します。
  */
 static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 {
@@ -316,7 +316,7 @@ static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
 }
 
 /**
- *  @brief  使用するタイムスタンプを解決する。
+ *  @brief  使用するタイムスタンプを解決します。
  *  @param  timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
  *  @param  resolved       解決後のタイムスタンプ格納先。
  *  @param  fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
@@ -359,7 +359,7 @@ static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_u
 }
 
 /**
- *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファーへ書き込む。
+ *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファーへ書き込みます。
  *  @param  buf      書き込み先バッファー。
  *  @param  buf_size バッファー サイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
  *  @param  resolved 使用する実時刻。
@@ -391,10 +391,10 @@ static void normalize_path_sep_for_parent(char *path)
 #endif /* PLATFORM_WINDOWS */
 
 /**
- *  @brief  モードに応じた基本オープン フラグを返す。
+ *  @brief  モードに応じた基本オープン フラグを返します。
  *
  *  単一プロセス モードでは共有書き込みを許可しない (Windows では OS が単一 writer を強制する)。\n
- *  SHARE_READ と SHARE_DELETE (外部のログ整理ツール向け) は両モードで許可する。
+ *  SHARE_READ と SHARE_DELETE (外部のログ整理ツール向け) は両モードで許可します。
  */
 static int base_open_flags(const com_util_trace_file_sink *p)
 {
@@ -410,7 +410,7 @@ static int base_open_flags(const com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  ファイルを開く。失敗時は一定間隔で再試行する。
+ *  @brief  ファイルを開き、失敗時は一定間隔で再試行します。
  *  @return 成功 0 / 失敗 -1。
  */
 static int open_trace_file_with_retry(com_util_file *file, const char *path, const int flags)
@@ -435,7 +435,7 @@ static int open_trace_file_with_retry(com_util_file *file, const char *path, con
 }
 
 /**
- *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化する。
+ *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化します。
  *  @return 成功 0 / 失敗 -1。
  *
  *  親ディレクトリが存在しない場合は com_util_makedirs で自動生成する (best-effort)。\n
@@ -485,8 +485,8 @@ static int open_file(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  ローテーション後の新規ファイルを空で作成して開く (単一プロセス モード用)。
- *          current_bytes は必ず 0 に設定される。
+ *  @brief  ローテーション後の新規ファイルを空で作成して開く (単一プロセス モード用) です。
+ *          current_bytes は必ず 0 に設定されます。
  *  @return 成功 0 / 失敗 -1。
  */
 static int open_file_truncate(com_util_trace_file_sink *p)
@@ -499,11 +499,11 @@ static int open_file_truncate(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  オープン中のファイルが path の現在の実体を指しているか判定する (共有モード用)。
+ *  @brief  オープン中のファイルが path の現在の実体を指しているか判定する (共有モード用) です。
  *  @return 一致 1 / 不一致または判定不能 0。
  *
  *  他プロセスのローテーションで path がリネームされると、自ハンドルは旧世代を指したままになる。\n
- *  パスの現在の同一性とオープン時にキャッシュした self_id を比較して検出する。
+ *  パスの現在の同一性とオープン時にキャッシュした self_id を比較して検出します。
  */
 static int sink_points_to_current_file(const com_util_trace_file_sink *p)
 {
@@ -528,7 +528,7 @@ static int sink_points_to_current_file(const com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  開いているファイルを閉じる。未開の場合は何もしない (冪等)。
+ *  @brief  開いているファイルを閉じます。未開の場合は何もしません (冪等です)。
  */
 static void close_file(com_util_trace_file_sink *p)
 {
@@ -536,7 +536,7 @@ static void close_file(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  トレース ファイルをローテーションする。
+ *  @brief  トレース ファイルをローテーションします。
  *
  *  ロック保持中から呼ばれる。\n
  *  リネームに失敗した場合はその世代でカスケードを打ち切り、
@@ -593,7 +593,7 @@ static void rotate_file(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  共有モードのローテーション判定と実行を行う。
+ *  @brief  共有モードのローテーション判定と実行を行います。
  *
  *  ローカル mutex 保持中、書き込み成功直後に呼ばれる。\n
  *  全プロセス合計の実サイズ (ハンドル基準) が max_bytes 未満なら何もしない。\n
@@ -641,10 +641,10 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  ハンドルが保持する資源を解放する。
+ *  @brief  ハンドルが保持する資源を解放します。
  *
  *  create 失敗時と dispose 系の共通処理。\n
- *  未確保 (NULL) のメンバーは何もしない。
+ *  未確保 (NULL) のメンバーは何もしません。
  */
 static void free_sink(com_util_trace_file_sink *p)
 {
@@ -668,7 +668,7 @@ static void free_sink(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief          新規 sink を生成してファイルを開く (レジストリ登録は行わない)。
+ *  @brief          新規 sink を生成してファイルを開く (レジストリ登録は行わない) です。
  *  @param[in]      path         出力ファイル パス。
  *  @param[in]      path_len     path のバイト数。
  *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。

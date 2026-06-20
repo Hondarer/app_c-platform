@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           tracer.h
- *  @brief          クロスプラットフォーム トレーシング API。
+ *  @brief          クロスプラットフォーム トレーシング API です。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0
@@ -91,7 +91,7 @@
 #if defined(PLATFORM_WINDOWS)
 
     /**
-     *  @brief          com_util が使用するデフォルトの OS トレース識別子 (Windows)。
+     *  @brief          com_util が使用するデフォルトの OS トレース識別子 (Windows) です。
      *
      *  com_util_tracer_create が使用する ETW プロバイダー名と、
      *  EventLog の共通イベント ソース名 (@ref eventlog.h) を兼ねます。\n
@@ -100,7 +100,7 @@
     #define COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME "com_util.tracer"
 
     /**
-     *  @brief          デフォルト ETW プロバイダーの GUID (TraceLogging タプル形式)。
+     *  @brief          デフォルト ETW プロバイダーの GUID (TraceLogging タプル形式) です。
      *
      *  TRACELOGGING_DEFINE_PROVIDER で使用する形式です。
      */
@@ -108,7 +108,7 @@
         (0xc3a7b5d1, 0x4e2f, 0x4a89, 0x96, 0xc8, 0xd7, 0xe9, 0xf1, 0xa2, 0xb3, 0xc4)
 
     /**
-     *  @brief          デフォルト ETW プロバイダーの GUID (文字列形式)。
+     *  @brief          デフォルト ETW プロバイダーの GUID (文字列形式) です。
      *
      *  com_util_etw_session_start に渡す場合など、文字列形式の GUID が
      *  必要な場面で使用します。
@@ -120,7 +120,7 @@
 /* ===== メッセージ長制限 ===== */
 
 /**
- *  @brief          com_util_tracer_write が受け付けるメッセージの最大バイト数 (null 終端含む)。
+ *  @brief          com_util_tracer_write が受け付けるメッセージの最大バイト数 (null 終端含む) です。
  *
  *  ETW (約 65,000 バイト) と syslog (RFC 3164: 1,024 バイト) の
  *  推奨上限のうち小さい方を採用し、クロスプラットフォームでの
@@ -130,7 +130,7 @@
 #define COM_UTIL_TRACER_MESSAGE_MAX_BYTES 1024
 
 /**
- *  @brief          com_util_tracer_write_hex がラベルなしで HEX 出力できるバイナリ データの最大バイト数。
+ *  @brief          com_util_tracer_write_hex がラベルなしで HEX 出力できるバイナリ データの最大バイト数です。
  *
  *  1 バイトあたり 3 文字 (HH + スペース) を消費し、最終バイトは 2 文字です。\n
  *  ラベル (@p message) を指定した場合はラベル長 + セパレータ (": ") 分だけ
@@ -144,7 +144,7 @@
 
 /**
  *  @enum           com_util_trace_level_t
- *  @brief          アプリケーション共通トレース レベル。
+ *  @brief          アプリケーション共通トレース レベルです。
  *
  *  OS 非依存のトレース レベルを定義します。重大度は上から下へ低下します。\n
  *  内部で ETW Level (1-5) および syslog severity へマッピングされます。\n
@@ -172,7 +172,7 @@ typedef enum com_util_trace_level_t
 
 /**
  *  @enum           com_util_tracer_state_t
- *  @brief          tracer handle のライフサイクル状態。
+ *  @brief          tracer handle のライフサイクル状態です。
  */
 typedef enum com_util_tracer_state_t
 {
@@ -184,7 +184,7 @@ typedef enum com_util_tracer_state_t
 /* ===== デフォルト トレース レベル ===== */
 
 /**
- *  @brief          com_util_tracer_create() が設定する OS トレース (EventLog / syslog) のデフォルト レベル。
+ *  @brief          com_util_tracer_create() が設定する OS トレース (EventLog / syslog) のデフォルト レベルです。
  *
  *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。\n
  *  運用者が参照する OS ネイティブの運用ログであり、ユーザーが
@@ -194,7 +194,7 @@ typedef enum com_util_tracer_state_t
 #define COM_UTIL_TRACER_DEFAULT_OS_LEVEL COM_UTIL_TRACE_LEVEL_NONE
 
 /**
- *  @brief          com_util_tracer_create() が設定する ETW トレースのデフォルト レベル。
+ *  @brief          com_util_tracer_create() が設定する ETW トレースのデフォルト レベルです。
  *
  *  ETW (Event Tracing for Windows) は開発者向けの低オーバーヘッド診断チャネルであり、
  *  OS トレース (EventLog) とは独立した軸として制御します。\n
@@ -207,7 +207,7 @@ typedef enum com_util_tracer_state_t
 #define COM_UTIL_TRACER_DEFAULT_ETW_LEVEL COM_UTIL_TRACE_LEVEL_VERBOSE
 
 /**
- *  @brief          com_util_tracer_create() が設定するファイル トレースのデフォルト レベル。
+ *  @brief          com_util_tracer_create() が設定するファイル トレースのデフォルト レベルです。
  *
  *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。\n
  *  ファイル トレースはデフォルトで有効であり、com_util_tracer_set_file_level() を呼び出さない場合、
@@ -218,7 +218,7 @@ typedef enum com_util_tracer_state_t
 #define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_INFO
 
 /**
- *  @brief          com_util_tracer_create() が設定する stderr トレースのデフォルト レベル。
+ *  @brief          com_util_tracer_create() が設定する stderr トレースのデフォルト レベルです。
  *
  *  ユーザーが com_util_tracer_set_stderr_level() で変更するまで有効な初期値です。\n
  *  デフォルトは COM_UTIL_TRACE_LEVEL_NONE (無効) です。
@@ -233,7 +233,7 @@ typedef struct com_util_tracer com_util_tracer;
 /* ===== フック (コールバック) ===== */
 
 /**
- *  @brief  トレース フック エントリ (不透明型)。
+ *  @brief  トレース フック エントリ (不透明型) です。
  *
  *  com_util_tracer_set_hook が返す不透明ハンドル。\n
  *  com_util_tracer_remove_hook および com_util_tracer_call_next_hook に渡して使用します。
@@ -241,7 +241,7 @@ typedef struct com_util_tracer com_util_tracer;
 typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
 
 /**
- *  @brief  トレース フックのコールバック関数型。
+ *  @brief  トレース フックのコールバック関数型です。
  *
  *  @param[in]  prev      チェーン継続に使う前エントリ。com_util_tracer_call_next_hook に渡します。
  *  @param[in]  handle    trace を行った tracer ハンドル。
@@ -281,7 +281,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          トレース プロバイダーを初期化する。
+     *  @brief          トレース プロバイダーを初期化します。
      *
      *  自プロセスの実行ファイル名をデフォルト識別名として初期化します
      *  (例: Linux @c /usr/bin/myapp → @c "myapp",
@@ -305,7 +305,8 @@ extern "C"
      *  識別名 (インスタンス名とインスタンス識別) とトレースファイル名 (ファイル名とファイル識別) は
      *  独立して管理されます。com_util_tracer_set_name はトレースファイル名に影響しません。
      *
-     *  @return         成功時: ハンドル (stopped 状態)。失敗時: NULL。
+     *  @return         成功時は stopped 状態のハンドルを返します。メモリ確保または同期オブジェクトの
+     *                  初期化に失敗した場合は NULL を返します。
      *
      *  @post           戻り値のハンドルは stopped 状態です。
      *                  出力関数を使用するには com_util_tracer_start を呼び出してください。\n
@@ -333,7 +334,7 @@ extern "C"
     COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void);
 
     /**
-     *  @brief          トレース プロバイダーを開始する。
+     *  @brief          トレース プロバイダーを開始します。
      *
      *  ハンドルを実行中 (started) 状態に遷移させます。\n
      *  started 状態では出力関数 (com_util_tracer_write 等) が有効になります。\n
@@ -357,7 +358,7 @@ extern "C"
      *  (詳細は com_util_trace_file_sink_create を参照)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -374,7 +375,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle);
 
     /**
-     *  @brief          トレース プロバイダーを停止する。
+     *  @brief          トレース プロバイダーを停止します。
      *
      *  ハンドルを停止中 (stopped) 状態に遷移させます。\n
      *  stopped 状態では出力関数 (com_util_tracer_write 等) は -1 を返し、
@@ -386,7 +387,7 @@ extern "C"
      *  すでに stopped 状態の場合は何もせず 0 を返します (冪等)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -399,7 +400,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_stop(com_util_tracer *handle);
 
     /**
-     *  @brief          tracer handle の現在状態を取得する。
+     *  @brief          tracer handle の現在状態を取得します。
      *
      *  create 直後および stop 後は stopped、start 後は started を返します。\n
      *  handle が NULL、解放済み、または shutdown 中で利用できない場合は disposed を返します。\n
@@ -416,7 +417,7 @@ extern "C"
     COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API com_util_tracer_get_state(com_util_tracer *handle);
 
     /**
-     *  @brief          トレース メッセージを書き込む低レベル関数。
+     *  @brief          トレース メッセージを書き込む低レベル関数です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
@@ -424,7 +425,7 @@ extern "C"
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
      *                             戻り値は -1 を返します。
      *  @param[in]      message    null 終端 UTF-8 文字列。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -435,7 +436,7 @@ extern "C"
                                                             const char *message);
 
     /**
-     *  @brief          printf 形式でトレース メッセージを書き込む低レベル関数。
+     *  @brief          printf 形式でトレース メッセージを書き込む低レベル関数です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
@@ -444,7 +445,7 @@ extern "C"
      *                             戻り値は -1 を返します。
      *  @param[in]      format     printf 形式のフォーマット文字列。
      *  @param[in]      ...        フォーマット文字列に対応する可変長引数。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -455,7 +456,7 @@ extern "C"
                                                              const char *format, ...);
 
     /**
-     *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数。
+     *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
@@ -465,7 +466,7 @@ extern "C"
      *  @param[in]      data       バイナリ データへのポインター。
      *  @param[in]      size       バイナリ データのバイト数。
      *  @param[in]      message    HEX データの手前に付与するラベル文字列。NULL 可。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -476,7 +477,7 @@ extern "C"
                                                                 const void *data, size_t size, const char *message);
 
     /**
-     *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数 (printf 形式ラベル)。
+     *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数 (printf 形式ラベル) です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
@@ -487,7 +488,7 @@ extern "C"
      *  @param[in]      size       バイナリ データのバイト数。
      *  @param[in]      format     printf 形式のフォーマット文字列 (ラベル)。NULL 可。
      *  @param[in]      ...        フォーマット文字列に対応する可変長引数。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -499,7 +500,7 @@ extern "C"
                                                                  ...);
 
     /**
-     *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定する。
+     *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定します。
      *
      *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
      *  使用する識別名を設定します。
@@ -512,7 +513,7 @@ extern "C"
      *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      name        インスタンス名。NULL で自プロセス名を使用。
      *  @param[in]      identifier  インスタンス識別番号 (0 以上)。0 でサフィックスなし。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -526,7 +527,7 @@ extern "C"
                                                               int64_t identifier);
 
     /**
-     *  @brief          解決済みのインスタンス名 (識別番号サフィックス込み) を取得する。
+     *  @brief          解決済みのインスタンス名 (識別番号サフィックス込み) を取得します。
      *
      *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
      *  実際に使用される識別名を返します。\n
@@ -535,7 +536,7 @@ extern "C"
      *  @param[in]      handle    com_util_tracer_create の戻り値。
      *  @param[out]     out       識別名を格納するバッファー。NULL の場合は -1 を返します。
      *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -546,7 +547,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *out, size_t out_size);
 
     /**
-     *  @brief          インスタンス識別番号を取得する。
+     *  @brief          インスタンス識別番号を取得します。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
      *  @return         現在のインスタンス識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
@@ -560,7 +561,7 @@ extern "C"
     COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tracer *handle);
 
     /**
-     *  @brief          トレースファイル名とファイル識別を設定する。
+     *  @brief          トレースファイル名とファイル識別を設定します。
      *
      *  ファイル トレースのデフォルト パス (実行ファイルのディレクトリ配下の
      *  @c log/{ファイル名}.log) に使用するファイル名を設定します。
@@ -574,7 +575,7 @@ extern "C"
      *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      name        ファイル名。NULL でプロセス名を使用。
      *  @param[in]      identifier  ファイル識別番号 (0 以上)。0 でサフィックスなし。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -588,7 +589,7 @@ extern "C"
                                                                    int64_t identifier);
 
     /**
-     *  @brief          解決済みのトレースファイル名 (ファイル識別サフィックス込み) を取得する。
+     *  @brief          解決済みのトレースファイル名 (ファイル識別サフィックス込み) を取得します。
      *
      *  ファイル トレースのデフォルト パスで実際に使用されるファイル名
      *  (拡張子 @c .log を除く) を返します。\n
@@ -598,7 +599,7 @@ extern "C"
      *  @param[in]      handle    com_util_tracer_create の戻り値。
      *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は -1 を返します。
      *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -609,7 +610,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *out, size_t out_size);
 
     /**
-     *  @brief          ファイル識別番号を取得する。
+     *  @brief          ファイル識別番号を取得します。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
      *  @return         現在のファイル識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
@@ -623,7 +624,7 @@ extern "C"
     COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_util_tracer *handle);
 
     /**
-     *  @brief          OS トレース (EventLog / syslog) の現在のスレッショルド レベルを取得する。
+     *  @brief          OS トレース (EventLog / syslog) の現在のスレッショルド レベルを取得します。
      *
      *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。
      *
@@ -637,13 +638,13 @@ extern "C"
     COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer *handle);
 
     /**
-     *  @brief          OS トレース (EventLog / syslog) のスレッショルド レベルを設定する。
+     *  @brief          OS トレース (EventLog / syslog) のスレッショルド レベルを設定します。
      *
      *  OS トレースは Windows ではイベント ログ (EventLog)、Linux では syslog を指します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -654,7 +655,7 @@ extern "C"
                                                                   com_util_trace_level_t level);
 
     /**
-     *  @brief          ETW トレースの現在のスレッショルド レベルを取得する。
+     *  @brief          ETW トレースの現在のスレッショルド レベルを取得します。
      *
      *  ETW は Windows 専用の独立した診断チャネルです。\n
      *  Linux では ETW が存在しないため、常に COM_UTIL_TRACE_LEVEL_NONE を返します。
@@ -670,7 +671,7 @@ extern "C"
     COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_etw_level(com_util_tracer *handle);
 
     /**
-     *  @brief          ETW トレースのスレッショルド レベルを設定する。
+     *  @brief          ETW トレースのスレッショルド レベルを設定します。
      *
      *  ETW は Windows 専用の独立した診断チャネルであり、OS トレース (EventLog) とは
      *  別の軸として制御します。デフォルトは COM_UTIL_TRACER_DEFAULT_ETW_LEVEL です。\n
@@ -678,7 +679,7 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -689,7 +690,7 @@ extern "C"
                                                                    com_util_trace_level_t level);
 
     /**
-     *  @brief          ファイル トレースの現在のスレッショルド レベルを取得する。
+     *  @brief          ファイル トレースの現在のスレッショルド レベルを取得します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
@@ -701,7 +702,7 @@ extern "C"
     COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer *handle);
 
     /**
-     *  @brief          ファイル トレースの出力先と設定を変更する。
+     *  @brief          ファイル トレースの出力先と設定を変更します。
      *
      *  本関数は設定の記録のみを行い、トレース ファイルは com_util_tracer_start 時に開かれます。\n
      *  そのため、出力ファイル パスの妥当性 (オープン可否) は本関数ではなく
@@ -729,7 +730,7 @@ extern "C"
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
      *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            started 中の即時反映
      *  started 状態でも呼び出せます。この場合は設定を記録するだけでなく、変更を即座に反映します。\n
@@ -749,7 +750,7 @@ extern "C"
                                                                     int generations, int flags);
 
     /**
-     *  @brief          stderr トレースの現在のスレッショルド レベルを取得する。
+     *  @brief          stderr トレースの現在のスレッショルド レベルを取得します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
@@ -761,11 +762,11 @@ extern "C"
     COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_stderr_level(com_util_tracer *handle);
 
     /**
-     *  @brief          stderr トレースのスレッショルド レベルを設定する。
+     *  @brief          stderr トレースのスレッショルド レベルを設定します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -776,7 +777,7 @@ extern "C"
                                                                       com_util_trace_level_t level);
 
     /**
-     *  @brief          トレース プロバイダーを終了し、リソースを解放する。
+     *  @brief          トレース プロバイダーを終了し、リソースを解放します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。NULL は無視。
      *
@@ -787,7 +788,7 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer *handle);
 
     /**
-     *  @brief          トレース フックを登録する。
+     *  @brief          トレース フックを登録します。
      *
      *  フックはプロセス内コールバックとして動作し、
      *  _com_util_tracer_write 系関数を経由したすべての trace 呼び出しを受信できます。\n
@@ -801,8 +802,9 @@ extern "C"
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      fn       コールバック関数。NULL は無効。
      *  @param[in]      context  コールバックに渡す任意のコンテキスト。NULL 可。
-     *  @return         成功時: 登録したフック エントリ (com_util_tracer_remove_hook に使用)。
-     *                  失敗時 (handle/fn が NULL、started 状態、メモリ不足): NULL。
+     *  @return         成功時は com_util_tracer_remove_hook() に渡すフック エントリを返します。
+     *                  @p handle または @p fn が NULL、started 状態、またはメモリ不足の場合は
+     *                  NULL を返します。
      *
      *  @par            使用例
      *  @code{.c}
@@ -822,7 +824,7 @@ extern "C"
                                                                                       void *context);
 
     /**
-     *  @brief          登録済みトレース フックを解除する。
+     *  @brief          登録済みトレース フックを解除します。
      *
      *  com_util_tracer_set_hook で登録したフックを解除し、エントリのメモリを解放します。\n
      *  本関数は stopped 状態でのみ有効です。
@@ -837,7 +839,7 @@ extern "C"
                                                                   com_util_tracer_hook_entry *hook_entry);
 
     /**
-     *  @brief          フック チェーンを継続する。
+     *  @brief          フック チェーンを継続します。
      *
      *  コールバック内から呼び出し、前のフックへ処理を継続させます。\n
      *  @p prev が NULL の場合は何もしません (チェーン末端)。
@@ -865,7 +867,7 @@ extern "C"
 /* ===== ソース位置自動付与マクロ ===== */
 
 /**
- *  @brief          ファイル パスからベース ネームを取り出す内部ヘルパー関数。
+ *  @brief          ファイル パスからベース ネームを取り出す内部ヘルパー関数です。
  *  @internal
  */
 static inline const char *_com_util_tracer_basename(const char *f)
@@ -884,7 +886,7 @@ static inline const char *_com_util_tracer_basename(const char *f)
 }
 
 /**
- *  @brief  HEX 出力用ラベル セパレータを返す内部ヘルパー関数。
+ *  @brief  HEX 出力用ラベル セパレータを返す内部ヘルパー関数です。
  *  @internal
  */
 static inline const char *_com_util_tracer_hex_sep(const char *message)
@@ -897,7 +899,7 @@ static inline const char *_com_util_tracer_hex_sep(const char *message)
 }
 
 /**
- *  @brief  HEX 出力用ラベル文字列を返す内部ヘルパー関数 (NULL ガード)。
+ *  @brief  HEX 出力用ラベル文字列を返す内部ヘルパー関数 (NULL ガード) です。
  *  @internal
  */
 static inline const char *_com_util_tracer_hex_msg(const char *message)
@@ -910,14 +912,14 @@ static inline const char *_com_util_tracer_hex_msg(const char *message)
 }
 
 /**
- *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパー。
+ *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパーです。
  *  @param[in]      handle     com_util_tracer_create の戻り値。
  *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
  *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
  *  @param[in]      file       出力に付与するソース ファイル名。
  *  @param[in]      line       出力に付与するソース行番号。
  *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
- *  @return         成功 0 / 失敗 -1。
+ *  @return         成功時は 0、失敗時は -1 を返します。
  *  @internal
  *
  *  @par            スレッド セーフ
@@ -937,21 +939,21 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, co
 }
 
 /**
- *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write マクロ。
+ *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write マクロです。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
     _com_util_tracer_write_with_source((handle), (level), (timestamp), _com_util_tracer_basename(__FILE__), __LINE__, \
                                        (message))
 
 /**
- *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_writef マクロ。
+ *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_writef マクロです。
  */
 #define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
     _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, _com_util_tracer_basename(__FILE__), \
                             __LINE__, ##__VA_ARGS__)
 
 /**
- *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hex マクロ。
+ *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hex マクロです。
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
@@ -959,7 +961,7 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, co
                                 _com_util_tracer_hex_msg(message))
 
 /**
- *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロ。
+ *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロです。
  */
 #define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \

@@ -12,7 +12,7 @@
 
 /**
  *  @file           syslog.h
- *  @brief          syslog ヘルパーライブラリ。
+ *  @brief          syslog ヘルパーライブラリです。
  *
  *  Linux syslog (RFC5424 系実装) のラッパー関数群を提供します。\n
  *  Linux 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_LINUX) の
@@ -40,11 +40,11 @@ extern "C"
     #endif /* __cplusplus */
 
     /**
-     *  @brief          syslog プロバイダーを初期化する。
+     *  @brief          syslog プロバイダーを初期化します。
      *
      *  @param[in]      ident     syslog メッセージに付与される識別子文字列。
      *  @param[in]      facility  syslog facility 値 (例: LOG_USER, LOG_LOCAL0〜LOG_LOCAL7)。
-     *  @return         成功時: ハンドル。失敗時: NULL。
+     *  @return         成功時はハンドル、失敗時は NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -53,15 +53,15 @@ extern "C"
     COM_UTIL_EXPORT com_util_syslog_sink *COM_UTIL_API com_util_syslog_sink_create(const char *ident, int facility);
 
     /**
-     *  @brief          syslog へ UTF-8 メッセージを書き込む。
+     *  @brief          syslog へ UTF-8 メッセージを書き込みます。
      *
      *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *  @param[in]      level    syslog severity 値。
-     *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻。NULL の場合は時刻を付与しない。
+     *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻です。NULL の場合は時刻を付与しません。
      *                             不正な明示タイムスタンプが渡された場合は現在時刻へ代替し、
      *                             出力は継続しつつ戻り値は -1 を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
-     *  @return         成功 0 / 失敗 -1。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -72,11 +72,11 @@ extern "C"
                                                                 const char *message);
 
     /**
-     *  @brief          syslog プロバイダーの識別子を変更する。
+     *  @brief          syslog プロバイダーの識別子を変更します。
      *
-     *  @param[in]      handle     com_util_syslog_sink_create の戻り値。NULL は -1 を返す。
-     *  @param[in]      new_ident  新しい識別子文字列。NULL は -1 を返す。
-     *  @return         成功 0 / 失敗 -1。
+     *  @param[in]      handle     com_util_syslog_sink_create の戻り値です。NULL の場合は -1 を返します。
+     *  @param[in]      new_ident  新しい識別子文字列です。NULL の場合は -1 を返します。
+     *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -85,7 +85,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident);
 
     /**
-     *  @brief          syslog プロバイダーを終了する。
+     *  @brief          syslog プロバイダーを終了します。
      *
      *  @param[in]      handle   com_util_syslog_sink_create の戻り値。NULL は無視。
      *

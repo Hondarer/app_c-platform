@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           process_api.c
- *  @brief          プロセス系 Win32 API UTF-8 ラッパー実装。
+ *  @brief          プロセス系 Win32 API UTF-8 ラッパー実装です。
  *  @author         Tetsuo Honda
  *  @date           2026/06/09
  *  @version        1.0.0

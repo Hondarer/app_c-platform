@@ -1,7 +1,19 @@
+/**
+ *******************************************************************************
+ *  @file           sys_stat_format.c
+ *  @brief          書式指定パス対応のファイル情報 API の実装です。
+ *
+ *  共通のパス書式処理を使用して stat と mkdir の抽象 API を呼び出します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/path_format.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf,
                                                      const char       *format,
@@ -22,6 +34,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf,
     return com_util_stat(buf, filename);
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf,
                                                     const char       *format,
                                                     ...)
@@ -36,6 +50,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf,
     return result;
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format,
                                                       va_list     args)
 {
@@ -48,6 +64,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format,
 
     return com_util_mkdir(filename);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir_fmt(const char *format, ...)
 {

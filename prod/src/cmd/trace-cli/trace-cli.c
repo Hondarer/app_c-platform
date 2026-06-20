@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace-cli.c
- *  @brief          tracer API の動作確認用対話 CLI。
+ *  @brief          tracer API の動作確認用対話 CLI です。
  *  @author         Tetsuo Honda
  *  @date           2026/04/28
  *  @version        1.0.0

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           clock.h
- *  @brief          プラットフォーム抽象クロック取得ユーティリティ。
+ *  @brief          プラットフォーム抽象クロック取得ユーティリティです。
  *  @author         Tetsuo Honda
  *  @date           2026/04/19
  *  @version        1.0.0
@@ -28,11 +28,11 @@
  *  - **経過時間を測る・タイムアウトを判定する** → com_util_get_monotonic_ms() または com_util_get_monotonic() を使用する。\n
  *    実時刻クロックは NTP 補正でジャンプするため、差分計算が正しく行えない場合がある。
  *  - **実時刻を記録・外部と共有する** → com_util_get_realtime() を使用する。\n
- *    セッション開始時刻・ログのタイムスタンプなど、カレンダー時刻として意味を持つ場合に限定する。
+ *    セッション開始時刻、ログのタイムスタンプなど、カレンダー時刻として意味を持つ場合に限定します。
  *  - **現在の UTC を分解済みで扱う** → com_util_get_realtime_utc() を使用する。\n
- *    ログのタイムスタンプ書式化など、年月日時分秒に分解して扱う用途に使用する。
+ *    ログのタイムスタンプ書式化など、年月日時分秒に分解して扱う用途に使用します。
  *  - **実時刻 deadline を作る** → com_util_get_realtime_deadline_ms() を使用する。\n
- *    sync 実装や OS 変換層で absolute deadline を要求する API へ渡す値を生成する。
+ *    sync 実装や OS 変換層で absolute deadline を要求する API へ渡す値を生成します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -64,7 +64,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          UTC 基準の実時刻を保持する構造体。
+     *  @brief          UTC 基準の実時刻を保持する構造体です。
      *
      *  com_util_get_realtime() が返す値を、そのまま構造体として保持するための公開型です。\n
      *  ログのタイムスタンプやセッション開始時刻など、実時刻を外部から受け渡したい用途で使用します。
@@ -211,7 +211,7 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
 
     /**
-     *  @brief          com_util_format_realtime_iso8601_local() が返す時刻文字列の長さ。
+     *  @brief          com_util_format_realtime_iso8601_local() が返す時刻文字列の長さです。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sss+09:00` です。\n
      *  値は null 終端を含まない文字数です。
@@ -219,7 +219,7 @@ extern "C"
 #define COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN 29
 
     /**
-     *  @brief          com_util_format_realtime_iso8601_utc() が返す時刻文字列の長さ。
+     *  @brief          com_util_format_realtime_iso8601_utc() が返す時刻文字列の長さです。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sssZ` です。\n
      *  値は null 終端を含まない文字数です。

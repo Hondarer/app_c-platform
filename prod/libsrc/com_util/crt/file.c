@@ -1,3 +1,13 @@
+/**
+ *******************************************************************************
+ *  @file           file.c
+ *  @brief          低レベル ファイル I/O 抽象 API の実装です。
+ *
+ *  ファイルのオープン、書き込み、同一性取得、クローズを OS 非依存のインターフェースで提供します。
+ *
+ *******************************************************************************
+ */
+
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
 
@@ -23,6 +33,8 @@ static int file_is_open(const com_util_file *file)
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file)
 {
     if (file == NULL)
@@ -36,6 +48,8 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file)
     file->handle = INVALID_HANDLE_VALUE;
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags)
 {
@@ -169,6 +183,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const c
 #endif /* PLATFORM_ */
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
 COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len)
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
@@ -232,6 +248,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const 
     }
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out)
 {
@@ -360,6 +378,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com
     }
 #endif /* PLATFORM_ */
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
 
 COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file)
 {
