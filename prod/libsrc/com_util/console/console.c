@@ -145,7 +145,7 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
+void com_util_console_diag_logf(const char *fmt, ...)
 {
     wchar_t path[PLATFORM_PATH_MAX];
     char line[1024];
@@ -210,7 +210,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ..
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
+void com_util_console_init(void)
 {
     HANDLE h;
     DWORD mode = 0;
@@ -287,7 +287,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void)
+void com_util_console_dispose(void)
 {
     HANDLE h;
 
@@ -442,7 +442,7 @@ static int extract_diag_arg(int *argc, char **argv)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
+int com_util_console_attach_parent(int *argc, char **argv)
 {
     DWORD parent_pid;
     HWND parent_window;
@@ -644,7 +644,7 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
+int com_util_console_write(com_util_stream_t stream, const char *text)
 {
     DWORD std_handle;
     HANDLE h;
@@ -698,13 +698,13 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_init(void) {}
+void com_util_console_init(void) {}
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_dispose(void) {}
+void com_util_console_dispose(void) {}
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv)
+int com_util_console_attach_parent(int *argc, char **argv)
 {
     (void)argc;
     (void)argv;
@@ -719,14 +719,14 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 }
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...)
+void com_util_console_diag_logf(const char *fmt, ...)
 {
     (void)fmt;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text)
+int com_util_console_write(com_util_stream_t stream, const char *text)
 {
     int fd;
     size_t len;

@@ -268,7 +268,7 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path)
+char *com_util_normalize_path_sep(char *path)
 {
     char *p;
     for (p = path; *p != '\0'; ++p)
@@ -283,8 +283,7 @@ COM_UTIL_EXPORT char *COM_UTIL_API com_util_normalize_path_sep(char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, const size_t path_size, int *errno_out,
-                                                        const char *path)
+int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_out, const char *path)
 {
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
@@ -380,7 +379,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, const si
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out)
+int com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out)
 {
     char lhs_full[PLATFORM_PATH_MAX];
     char rhs_full[PLATFORM_PATH_MAX];
@@ -410,7 +409,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const cha
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out)
+int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out)
 {
     if (path_out == NULL || path_size == 0u)
     {
@@ -487,8 +486,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, const siz
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, const size_t path_size, int *errno_out,
-                                                        const size_t part_count, ...)
+int com_util_path_concat_n(char *path_out, const size_t path_size, int *errno_out, const size_t part_count, ...)
 {
     int result;
     va_list args;

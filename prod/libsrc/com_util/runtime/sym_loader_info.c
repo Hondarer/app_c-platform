@@ -19,8 +19,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array,
-                                                          const size_t fobj_length)
+int com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array, const size_t fobj_length)
 {
     int rtc = 0;
     size_t fobj_index;

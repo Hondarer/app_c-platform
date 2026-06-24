@@ -245,7 +245,7 @@ static void install_shutdown_hooks(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
+int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
 {
     shutdown_callback_entry *entry;
     int result = 0;
@@ -288,7 +288,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_ca
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(const int code)
+void com_util_exit(const int code)
 {
     s_exit_code = code;
     s_exit_code_valid = 1;
@@ -297,8 +297,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_exit(const int code)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_callback_t callback,
-                                                                    void *context)
+int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context)
 {
     shutdown_callback_entry *entry;
     int result = 0;
@@ -341,21 +340,21 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shu
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event)
+int _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event)
 {
     return invoke_shutdown_callbacks_once(event);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event)
+int _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event)
 {
     return invoke_shutdown_request_callbacks_once(event, NULL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API _com_util_shutdown_reset_for_test(void)
+void _com_util_shutdown_reset_for_test(void)
 {
     shutdown_callback_entry *shutdown_entry;
     shutdown_callback_entry *request_entry;

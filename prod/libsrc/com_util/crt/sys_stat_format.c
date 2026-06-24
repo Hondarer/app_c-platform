@@ -15,9 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf,
-                                                     const char       *format,
-                                                     va_list           args)
+int com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -36,11 +34,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf,
-                                                    const char       *format,
-                                                    ...)
+int com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);
@@ -52,8 +48,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format,
-                                                      va_list     args)
+int com_util_vmkdir_fmt(const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -67,9 +62,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir_fmt(const char *format, ...)
+int com_util_mkdir_fmt(const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);

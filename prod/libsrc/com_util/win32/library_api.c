@@ -23,7 +23,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT HMODULE COM_UTIL_API LoadLibraryU(const char *utf8_file_name)
+HMODULE LoadLibraryU(const char *utf8_file_name)
 {
     HMODULE result;
     wchar_t *wfile_name;

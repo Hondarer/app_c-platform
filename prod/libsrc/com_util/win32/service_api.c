@@ -24,8 +24,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_name, const char *utf8_database_name,
-                                                      DWORD desired_access)
+SC_HANDLE OpenSCManagerU(const char *utf8_machine_name, const char *utf8_database_name, DWORD desired_access)
 {
     SC_HANDLE result;
     wchar_t *wmachine = NULL;
@@ -56,13 +55,10 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_n
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char *utf8_service_name,
-                                                      const char *utf8_display_name, DWORD desired_access,
-                                                      DWORD service_type, DWORD start_type, DWORD error_control,
-                                                      const char *utf8_binary_path_name,
-                                                      const char *utf8_load_order_group, LPDWORD tag_id,
-                                                      const char *utf8_dependencies,
-                                                      const char *utf8_service_start_name, const char *utf8_password)
+SC_HANDLE CreateServiceU(SC_HANDLE scm, const char *utf8_service_name, const char *utf8_display_name,
+                         DWORD desired_access, DWORD service_type, DWORD start_type, DWORD error_control,
+                         const char *utf8_binary_path_name, const char *utf8_load_order_group, LPDWORD tag_id,
+                         const char *utf8_dependencies, const char *utf8_service_start_name, const char *utf8_password)
 {
     SC_HANDLE result;
     wchar_t *wservice_name = NULL;
@@ -135,7 +131,7 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access)
+SC_HANDLE OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access)
 {
     SC_HANDLE result;
     wchar_t *wservice_name;
@@ -154,7 +150,7 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *u
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text)
+BOOL ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text)
 {
     BOOL result;
     wchar_t *wtext;
@@ -188,9 +184,8 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU(const char *utf8_service_name,
-                                                                                 LPHANDLER_FUNCTION_EX handler_proc,
-                                                                                 LPVOID context)
+SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerExU(const char *utf8_service_name, LPHANDLER_FUNCTION_EX handler_proc,
+                                                    LPVOID context)
 {
     SERVICE_STATUS_HANDLE result;
     wchar_t *wservice_name;
@@ -209,7 +204,7 @@ COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT BOOL COM_UTIL_API StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
+BOOL StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
 {
     size_t count;
     SERVICE_TABLE_ENTRYW *w_table;

@@ -24,9 +24,9 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode,
-                                                LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition,
-                                                DWORD flags_and_attributes, HANDLE template_file)
+HANDLE CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode,
+                   LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition, DWORD flags_and_attributes,
+                   HANDLE template_file)
 {
     HANDLE result;
     wchar_t *wpath;
@@ -46,9 +46,9 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD des
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
-                                                     DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size,
-                                                     DWORD default_timeout, LPSECURITY_ATTRIBUTES security_attributes)
+HANDLE CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode, DWORD max_instances,
+                        DWORD out_buffer_size, DWORD in_buffer_size, DWORD default_timeout,
+                        LPSECURITY_ATTRIBUTES security_attributes)
 {
     HANDLE result;
     wchar_t *wname;
@@ -68,7 +68,7 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWOR
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size)
+DWORD GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size)
 {
     wchar_t wbuf[32768]; /* 拡張パスの最大長に合わせた固定バッファー */
     DWORD wlen;

@@ -771,10 +771,8 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_create(const char *path,
-                                                                                       const size_t max_bytes,
-                                                                                       const int generations,
-                                                                                       const int flags)
+com_util_trace_file_sink *com_util_trace_file_sink_create(const char *path, const size_t max_bytes,
+                                                          const int generations, const int flags)
 {
     com_util_trace_file_sink *handle;
     struct sink_registry_entry *entry;
@@ -849,9 +847,8 @@ COM_UTIL_EXPORT com_util_trace_file_sink *COM_UTIL_API com_util_trace_file_sink_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int level,
-                                                                const com_util_realtime_timestamp *timestamp,
-                                                                const char *message)
+int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int level,
+                                   const com_util_realtime_timestamp *timestamp, const char *message)
 {
     char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
@@ -948,7 +945,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_f
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle)
+void com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle)
 {
     struct sink_registry_entry *entry;
     char *key_to_free = NULL;

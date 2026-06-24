@@ -205,7 +205,7 @@ static void try_open_socket_locked(com_util_syslog_sink *h)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_syslog_sink *COM_UTIL_API com_util_syslog_sink_create(const char *ident, const int facility)
+com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int facility)
 {
     com_util_syslog_sink *handle;
     size_t len;
@@ -254,9 +254,8 @@ COM_UTIL_EXPORT com_util_syslog_sink *COM_UTIL_API com_util_syslog_sink_create(c
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
-                                                            const com_util_realtime_timestamp *timestamp,
-                                                            const char *message)
+int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
+                               const com_util_realtime_timestamp *timestamp, const char *message)
 {
     char buf[SYSLOG_BUF_SIZE];
     char debug_buf[SYSLOG_DEBUG_BUF_SIZE];
@@ -405,7 +404,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_write(com_util_syslog_sink
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
+void com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
 {
     if (handle == NULL)
     {
@@ -426,7 +425,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_syslog_sink_dispose(com_util_syslog_s
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident)
+int com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident)
 {
     char *dup;
     size_t len;

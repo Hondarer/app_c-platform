@@ -23,12 +23,10 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT BOOL COM_UTIL_API CreateProcessU(const char *utf8_application_name, const char *utf8_command_line,
-                                                 LPSECURITY_ATTRIBUTES process_attributes,
-                                                 LPSECURITY_ATTRIBUTES thread_attributes, BOOL inherit_handles,
-                                                 DWORD creation_flags, LPVOID environment,
-                                                 const char *utf8_current_directory, LPSTARTUPINFOW startup_info,
-                                                 LPPROCESS_INFORMATION process_information)
+BOOL CreateProcessU(const char *utf8_application_name, const char *utf8_command_line,
+                    LPSECURITY_ATTRIBUTES process_attributes, LPSECURITY_ATTRIBUTES thread_attributes,
+                    BOOL inherit_handles, DWORD creation_flags, LPVOID environment, const char *utf8_current_directory,
+                    LPSTARTUPINFOW startup_info, LPPROCESS_INFORMATION process_information)
 {
     BOOL result;
     wchar_t *wapp = NULL;

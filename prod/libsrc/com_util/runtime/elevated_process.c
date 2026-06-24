@@ -49,7 +49,7 @@ static char s_result_target_path[PLATFORM_PATH_MAX] = {0};
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_is_elevated(int *elevated)
+int com_util_elevated_process_is_elevated(int *elevated)
 {
     if (elevated == NULL)
     {
@@ -96,8 +96,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_is_elevated(int *elev
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_if_needed(const char *arguments, int *exit_code,
-                                                                         int *handled)
+int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_code, int *handled)
 {
     if (exit_code == NULL || handled == NULL)
     {
@@ -330,9 +329,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_if_needed(const c
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_with_result(const char *arguments, int *exit_code,
-                                                                           int *handled, char *result_message,
-                                                                           size_t result_message_size)
+int com_util_elevated_process_run_with_result(const char *arguments, int *exit_code, int *handled, char *result_message,
+                                              size_t result_message_size)
 {
     if (exit_code == NULL || handled == NULL)
     {
@@ -531,7 +529,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_run_with_result(const
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_extract_result_target(int *argc, char **argv)
+int com_util_elevated_process_extract_result_target(int *argc, char **argv)
 {
 #if defined(PLATFORM_WINDOWS)
     const char *prefix = COM_UTIL_PROCESS_RESULT_TARGET_FLAG "=";
@@ -582,7 +580,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_extract_result_target
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_elevated_process_report_result(const char *message)
+int com_util_elevated_process_report_result(const char *message)
 {
     if (message == NULL)
     {

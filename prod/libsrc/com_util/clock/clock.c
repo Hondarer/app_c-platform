@@ -239,8 +239,8 @@ void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size,
-                                                                        const int64_t tv_sec, const int32_t tv_nsec)
+int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, const int64_t tv_sec,
+                                           const int32_t tv_nsec)
 {
     time_t realtime_time;
     struct tm local_tm;
@@ -268,8 +268,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *bu
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size,
-                                                                      const int64_t tv_sec, const int32_t tv_nsec)
+int com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const int64_t tv_sec, const int32_t tv_nsec)
 {
     time_t realtime_time;
     struct tm utc_tm;

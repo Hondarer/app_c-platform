@@ -19,7 +19,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(const com_util_stream_t stream)
+int com_util_isatty(const com_util_stream_t stream)
 {
 #if defined(PLATFORM_LINUX)
 
@@ -85,7 +85,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(const com_util_stream_t stream)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_access(const char *path, const int mode)
+int com_util_access(const char *path, const int mode)
 {
     if (path == NULL)
     {

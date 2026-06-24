@@ -17,13 +17,10 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes,
-                                                        int        *errno_out,
-                                                        const char *format,
-                                                        va_list     args)
+FILE *com_util_vfopen_fmt(const char *modes, int *errno_out, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
-    int  format_error;
+    int format_error;
 
     if (modes == NULL)
     {
@@ -48,12 +45,9 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes,
-                                                       int        *errno_out,
-                                                       const char *format,
-                                                       ...)
+FILE *com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...)
 {
-    FILE   *result;
+    FILE *result;
     va_list args;
 
     va_start(args, format);
@@ -65,8 +59,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format,
-                                                       va_list     args)
+int com_util_vremove_fmt(const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -80,9 +73,9 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_remove_fmt(const char *format, ...)
+int com_util_remove_fmt(const char *format, ...)
 {
-    int     result;
+    int result;
     va_list args;
 
     va_start(args, format);

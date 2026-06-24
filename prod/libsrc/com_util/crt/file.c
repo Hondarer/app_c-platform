@@ -35,7 +35,7 @@ static int file_is_open(const com_util_file *file)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file)
+void com_util_file_init(com_util_file *file)
 {
     if (file == NULL)
     {
@@ -51,7 +51,7 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_file_init(com_util_file *file)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags)
+int com_util_file_open(com_util_file *file, const char *path, int flags)
 {
     if (file == NULL || path == NULL || flags < 0)
     {
@@ -185,7 +185,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const c
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len)
+int com_util_file_write(com_util_file *file, const void *buf, size_t len)
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
@@ -251,7 +251,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out)
+int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 {
     if (!file_is_open(file) || size_out == NULL)
     {
@@ -287,7 +287,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *fil
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
+int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 {
     if (!file_is_open(file) || id_out == NULL)
     {
@@ -325,7 +325,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
+int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 {
     if (path == NULL || id_out == NULL)
     {
@@ -381,7 +381,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file)
+void com_util_file_close(com_util_file *file)
 {
     if (file == NULL)
     {

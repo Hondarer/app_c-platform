@@ -763,7 +763,7 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
+com_util_tracer *com_util_tracer_create(void)
 {
     com_util_tracer *handle;
     char path_buf[256];
@@ -930,7 +930,7 @@ COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
+int com_util_tracer_start(com_util_tracer *handle)
 {
     int result = 0;
 
@@ -970,7 +970,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_start(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_stop(com_util_tracer *handle)
+int com_util_tracer_stop(com_util_tracer *handle)
 {
     if (!handle_is_active(handle))
     {
@@ -982,7 +982,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_stop(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_tracer_state_t COM_UTIL_API com_util_tracer_get_state(com_util_tracer *handle)
+com_util_tracer_state_t com_util_tracer_get_state(com_util_tracer *handle)
 {
     com_util_tracer_state_t state;
 
@@ -1234,9 +1234,8 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t level,
-                                                        const com_util_realtime_timestamp *timestamp,
-                                                        const char *message)
+int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t level,
+                           const com_util_realtime_timestamp *timestamp, const char *message)
 {
     const char *msg;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1278,9 +1277,8 @@ COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_t level,
-                                                         const com_util_realtime_timestamp *timestamp,
-                                                         const char *format, ...)
+int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_t level,
+                            const com_util_realtime_timestamp *timestamp, const char *format, ...)
 {
     va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1421,9 +1419,9 @@ static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level_t level,
-                                                            const com_util_realtime_timestamp *timestamp,
-                                                            const void *data, const size_t size, const char *message)
+int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level_t level,
+                               const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
+                               const char *message)
 {
     int ret;
 
@@ -1452,11 +1450,9 @@ COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *han
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle,
-                                                             const com_util_trace_level_t level,
-                                                             const com_util_realtime_timestamp *timestamp,
-                                                             const void *data, const size_t size, const char *format,
-                                                             ...)
+int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level_t level,
+                                const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
+                                const char *format, ...)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;
@@ -1498,8 +1494,7 @@ COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *ha
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handle, const char *name,
-                                                          const int64_t identifier)
+int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const int64_t identifier)
 {
     char *effective;
 
@@ -1563,7 +1558,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_name(com_util_tracer *handl
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t out_size)
+int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t out_size)
 {
     int written;
 
@@ -1596,7 +1591,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handl
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tracer *handle)
+int64_t com_util_tracer_get_identifier(com_util_tracer *handle)
 {
     int64_t identifier;
 
@@ -1620,8 +1615,7 @@ COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tra
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_name(com_util_tracer *handle, const char *name,
-                                                               const int64_t identifier)
+int com_util_tracer_set_file_name(com_util_tracer *handle, const char *name, const int64_t identifier)
 {
     char *name_copy = NULL;
 
@@ -1665,8 +1659,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_name(com_util_tracer *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *out,
-                                                               const size_t out_size)
+int com_util_tracer_get_file_name(com_util_tracer *handle, char *out, const size_t out_size)
 {
     int rc;
 
@@ -1694,7 +1687,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_util_tracer *handle)
+int64_t com_util_tracer_get_file_identifier(com_util_tracer *handle)
 {
     int64_t identifier;
 
@@ -1718,7 +1711,7 @@ COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_file_identifier(com_uti
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer *handle)
+com_util_trace_level_t com_util_tracer_get_os_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1742,8 +1735,7 @@ COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_os_level
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle,
-                                                              const com_util_trace_level_t level)
+int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
     if (!handle_is_active(handle))
     {
@@ -1764,7 +1756,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *h
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_etw_level(com_util_tracer *handle)
+com_util_trace_level_t com_util_tracer_get_etw_level(com_util_tracer *handle)
 {
 #if defined(PLATFORM_WINDOWS)
     com_util_trace_level_t lv;
@@ -1794,8 +1786,7 @@ COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_etw_leve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle,
-                                                               const com_util_trace_level_t level)
+int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
 #if defined(PLATFORM_WINDOWS)
     if (!handle_is_active(handle))
@@ -1823,7 +1814,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer *handle)
+com_util_trace_level_t com_util_tracer_get_file_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1847,10 +1838,8 @@ COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_file_lev
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
-                                                                const com_util_trace_level_t level,
-                                                                const size_t max_bytes, const int generations,
-                                                                const int flags)
+int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, const com_util_trace_level_t level,
+                                   const size_t max_bytes, const int generations, const int flags)
 {
     char *path_copy = NULL;
 
@@ -1964,7 +1953,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_file_level(com_util_tracer 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_stderr_level(com_util_tracer *handle)
+com_util_trace_level_t com_util_tracer_get_stderr_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
@@ -1988,8 +1977,7 @@ COM_UTIL_EXPORT com_util_trace_level_t COM_UTIL_API com_util_tracer_get_stderr_l
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_tracer *handle,
-                                                                  const com_util_trace_level_t level)
+int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
     if (!handle_is_active(handle))
     {
@@ -2010,7 +1998,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_stderr_level(com_util_trace
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer *handle)
+void com_util_tracer_dispose(com_util_tracer *handle)
 {
     if (handle == NULL)
     {
@@ -2080,9 +2068,8 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_tracer_hook_entry *COM_UTIL_API com_util_tracer_set_hook(com_util_tracer *handle,
-                                                                                  com_util_tracer_hook_fn_t fn,
-                                                                                  void *context)
+com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn_t fn,
+                                                     void *context)
 {
     com_util_tracer_hook_entry *entry;
 
@@ -2116,8 +2103,7 @@ COM_UTIL_EXPORT com_util_tracer_hook_entry *COM_UTIL_API com_util_tracer_set_hoo
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_remove_hook(com_util_tracer *handle,
-                                                              com_util_tracer_hook_entry *hook_entry)
+void com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_entry *hook_entry)
 {
     com_util_tracer_hook_entry **pp;
 
@@ -2148,11 +2134,9 @@ COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_remove_hook(com_util_tracer *h
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev,
-                                                                 com_util_tracer *handle,
-                                                                 const com_util_trace_level_t level,
-                                                                 const com_util_realtime_timestamp *timestamp,
-                                                                 const char *message)
+void com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
+                                    const com_util_trace_level_t level, const com_util_realtime_timestamp *timestamp,
+                                    const char *message)
 {
     if (prev == NULL || prev->fn == NULL)
     {

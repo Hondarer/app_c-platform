@@ -35,8 +35,7 @@ struct com_util_etw_provider
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_etw_provider *COM_UTIL_API
-com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
+com_util_etw_provider *com_util_etw_provider_create(com_util_etw_provider_ref_t provider_ref)
 {
     com_util_etw_provider *handle;
     TLG_STATUS status;
@@ -135,8 +134,8 @@ static void write_trace_event(com_util_etw_provider_ref_t ref, const int level, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provider *handle, const int level,
-                                                             const char *service, const char *message)
+int com_util_etw_provider_write(com_util_etw_provider *handle, const int level, const char *service,
+                                const char *message)
 {
     if (handle == NULL || message == NULL)
     {
@@ -150,7 +149,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_provider_write(com_util_etw_provid
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_provider_dispose(com_util_etw_provider *handle)
+void com_util_etw_provider_dispose(com_util_etw_provider *handle)
 {
     if (handle == NULL)
     {

@@ -47,8 +47,8 @@ _Static_assert(SYMBOL_LOADER_NAME_WIDTH == COM_UTIL_SYM_LOADER_NAME_MAX - 1,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array,
-                                                           const size_t fobj_length, const char *configpath)
+void com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array, const size_t fobj_length,
+                              const char *configpath)
 {
     FILE *fp;
     char line[CONFIG_LINE_MAX];

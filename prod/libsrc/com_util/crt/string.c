@@ -16,7 +16,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, const size_t dest_size, const char *src)
+int com_util_strcpy(char *dest, const size_t dest_size, const char *src)
 {
     size_t len;
 
@@ -38,8 +38,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcpy(char *dest, const size_t dest_s
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, const size_t dest_size, const char *src,
-                                                  const size_t count)
+int com_util_strncpy(char *dest, const size_t dest_size, const char *src, const size_t count)
 {
     size_t len;
 
@@ -65,7 +64,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strncpy(char *dest, const size_t dest_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, const size_t dest_size, const char *src)
+int com_util_strcat(char *dest, const size_t dest_size, const char *src)
 {
     size_t dest_len;
     size_t src_len;
@@ -98,7 +97,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, const size_t dest_s
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
+int com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
 {
     size_t len;
 
@@ -120,14 +119,14 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, const size_t des
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer, const char *format, va_list args)
+int com_util_vsscanf(const char *buffer, const char *format, va_list args)
 {
     return vsscanf(buffer, format, args);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer, const char *format, ...)
+int com_util_sscanf(const char *buffer, const char *format, ...)
 {
     va_list args;
     int result;

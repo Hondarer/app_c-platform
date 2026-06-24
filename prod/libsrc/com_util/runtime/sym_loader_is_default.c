@@ -15,7 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj)
+int com_util_sym_loader_is_default(com_util_sym_loader_entry *fobj)
 {
     if (fobj->resolved == 0)
     {

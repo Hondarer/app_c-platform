@@ -25,7 +25,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out)
+FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
 {
     if (path == NULL || modes == NULL)
     {
@@ -91,7 +91,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out)
+FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out)
 {
     if (path == NULL || modes == NULL || stream == NULL)
     {
@@ -157,7 +157,7 @@ COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
+int com_util_remove(const char *path)
 {
     if (path == NULL)
     {
@@ -182,7 +182,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath)
+int com_util_rename(const char *oldpath, const char *newpath)
 {
     if (oldpath == NULL || newpath == NULL)
     {
@@ -217,43 +217,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream)
+int com_util_fclose(FILE *stream)
 {
     return fclose(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *ptr, const size_t size, const size_t count, FILE *stream)
+size_t com_util_fread(void *ptr, const size_t size, const size_t count, FILE *stream)
 {
     return fread(ptr, size, count, stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *ptr, const size_t size, const size_t count,
-                                                    FILE *stream)
+size_t com_util_fwrite(const void *ptr, const size_t size, const size_t count, FILE *stream)
 {
     return fwrite(ptr, size, count, stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT char *COM_UTIL_API com_util_fgets(char *buf, const int size, FILE *stream)
+char *com_util_fgets(char *buf, const int size, FILE *stream)
 {
     return fgets(buf, size, stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fputs(const char *str, FILE *stream)
+int com_util_fputs(const char *str, FILE *stream)
 {
     return fputs(str, stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *format, ...)
+int com_util_fprintf(FILE *stream, const char *format, ...)
 {
     int result;
     va_list args;
@@ -267,7 +266,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fprintf(FILE *stream, const char *form
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *format, va_list args)
+int com_util_vfprintf(FILE *stream, const char *format, va_list args)
 {
 #if defined(PLATFORM_WINDOWS)
     return vfprintf_s(stream, format, args);
@@ -278,42 +277,42 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *for
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fflush(FILE *stream)
+int com_util_fflush(FILE *stream)
 {
     return fflush(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_feof(FILE *stream)
+int com_util_feof(FILE *stream)
 {
     return feof(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_ferror(FILE *stream)
+int com_util_ferror(FILE *stream)
 {
     return ferror(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_clearerr(FILE *stream)
+void com_util_clearerr(FILE *stream)
 {
     clearerr(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_rewind(FILE *stream)
+void com_util_rewind(FILE *stream)
 {
     rewind(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, const int64_t offset, const int whence)
+int com_util_fseek(FILE *stream, const int64_t offset, const int whence)
 {
 #if defined(PLATFORM_LINUX)
     return fseeko(stream, (off_t)offset, whence);
@@ -324,7 +323,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_fseek(FILE *stream, const int64_t offs
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_ftell(FILE *stream)
+int64_t com_util_ftell(FILE *stream)
 {
 #if defined(PLATFORM_LINUX)
     return (int64_t)ftello(stream);

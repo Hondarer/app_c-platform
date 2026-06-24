@@ -415,7 +415,7 @@ static void set_status(int *out_status, int value)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void)
+int com_util_etw_session_check_access(void)
 {
     static const wchar_t probe_name[] = L"EtwUtil_AccessProbe";
     size_t props_size;
@@ -460,10 +460,8 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_check_access(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(const char *session_name,
-                                                                              const char *provider_guid_str,
-                                                                              com_util_etw_event_callback_t callback,
-                                                                              void *context, int *out_status)
+com_util_etw_session *com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
+                                                 com_util_etw_event_callback_t callback, void *context, int *out_status)
 {
     com_util_etw_session *session = NULL;
     GUID provider_guid;
@@ -582,7 +580,7 @@ COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API com_util_etw_session_start(co
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_etw_session_stop(com_util_etw_session *session)
+void com_util_etw_session_stop(com_util_etw_session *session)
 {
     if (session == NULL)
     {

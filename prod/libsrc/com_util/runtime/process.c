@@ -882,7 +882,7 @@ static void close_stdio_handles(HANDLE handles[3])
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_path, const size_t out_path_sz)
+int com_util_process_get_executable_path(char *out_path, const size_t out_path_sz)
 {
     if (out_path == NULL || out_path_sz == 0)
     {
@@ -929,8 +929,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_start(const com_util_process_options_t *options,
-                                                                              com_util_process **process)
+com_util_process_result_t com_util_process_start(const com_util_process_options_t *options, com_util_process **process)
 {
     com_util_process *new_process;
 
@@ -1122,8 +1121,7 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_start(co
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com_util_process *process,
-                                                                             const int timeout_ms)
+com_util_process_result_t com_util_process_wait(com_util_process *process, const int timeout_ms)
 {
     if (process == NULL || timeout_ms < 0)
     {
@@ -1234,8 +1232,7 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit_code(com_util_process *process,
-                                                                                      int *exit_code)
+com_util_process_result_t com_util_process_get_exit_code(com_util_process *process, int *exit_code)
 {
     if (process == NULL || exit_code == NULL)
     {
@@ -1251,7 +1248,7 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminate(com_util_process *process)
+com_util_process_result_t com_util_process_terminate(com_util_process *process)
 {
     if (process == NULL)
     {
@@ -1281,7 +1278,7 @@ COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminat
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_process_destroy(com_util_process *process)
+void com_util_process_destroy(com_util_process *process)
 {
     if (process == NULL)
     {
@@ -1323,8 +1320,8 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
-com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms, int *exit_code)
+com_util_process_result_t com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms,
+                                                    int *exit_code)
 {
     com_util_process *process;
     com_util_process_result_t result;

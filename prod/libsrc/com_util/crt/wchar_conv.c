@@ -24,8 +24,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count,
-                                                        const char *utf8_path)
+int com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path)
 {
     int n;
 
@@ -47,8 +46,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_utf8_to_wpath(wchar_t *wbuf, size_t wb
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_size,
-                                                        const wchar_t *wpath)
+int com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath)
 {
     int n;
 
@@ -77,7 +75,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_si
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT wchar_t *COM_UTIL_API com_util_utf8_to_wstr_alloc(const char *utf8_text)
+wchar_t *com_util_utf8_to_wstr_alloc(const char *utf8_text)
 {
     wchar_t *wtext;
     int wtext_count;
@@ -110,7 +108,7 @@ COM_UTIL_EXPORT wchar_t *COM_UTIL_API com_util_utf8_to_wstr_alloc(const char *ut
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT char *COM_UTIL_API com_util_wstr_to_utf8_alloc(const wchar_t *wtext)
+char *com_util_wstr_to_utf8_alloc(const wchar_t *wtext)
 {
     int utf8_count;
     char *utf8_text;

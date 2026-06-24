@@ -16,8 +16,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
-                                                  const time_t *timep)
+int com_util_gmtime(struct tm *utc_tm, const time_t *timep)
 {
     if (utc_tm == NULL || timep == NULL)
     {
@@ -43,8 +42,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_gmtime(struct tm *utc_tm,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm,
-                                                     const time_t *timep)
+int com_util_localtime(struct tm *local_tm, const time_t *timep)
 {
     if (local_tm == NULL || timep == NULL)
     {

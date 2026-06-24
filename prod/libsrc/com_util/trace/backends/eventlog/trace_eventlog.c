@@ -334,7 +334,7 @@ static int registry_status(const LONG rc)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT com_util_eventlog_sink *COM_UTIL_API com_util_eventlog_sink_create(const char *source_name)
+com_util_eventlog_sink *com_util_eventlog_sink_create(const char *source_name)
 {
     com_util_eventlog_sink *handle;
     wchar_t *wsource;
@@ -371,9 +371,8 @@ COM_UTIL_EXPORT com_util_eventlog_sink *COM_UTIL_API com_util_eventlog_sink_crea
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level,
-                                                              const int64_t file_identifier, const char *instance_name,
-                                                              const int64_t instance_identifier, const char *message)
+int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level, const int64_t file_identifier,
+                                 const char *instance_name, const int64_t instance_identifier, const char *message)
 {
     WORD type;
     WORD category;
@@ -433,7 +432,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_sink_write(com_util_eventlog_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_eventlog_sink_dispose(com_util_eventlog_sink *handle)
+void com_util_eventlog_sink_dispose(com_util_eventlog_sink *handle)
 {
     if (handle == NULL)
     {
@@ -465,8 +464,7 @@ void com_util_eventlog_sink_dispose_on_shutdown(com_util_eventlog_sink *handle, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *source_name,
-                                                                   const char *message_file_path)
+int com_util_eventlog_register_source(const char *source_name, const char *message_file_path)
 {
     wchar_t key_path[512];
     HKEY hkey;
@@ -544,7 +542,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_register_source(const char *s
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_eventlog_unregister_source(const char *source_name)
+int com_util_eventlog_unregister_source(const char *source_name)
 {
     wchar_t key_path[512];
     LONG rc;

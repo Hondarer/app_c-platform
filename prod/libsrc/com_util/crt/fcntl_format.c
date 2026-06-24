@@ -15,7 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(const int flags, const int mode, const char *format, va_list args)
+int com_util_vopen_fmt(const int flags, const int mode, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -29,7 +29,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vopen_fmt(const int flags, const int m
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_open_fmt(const int flags, const int mode, const char *format, ...)
+int com_util_open_fmt(const int flags, const int mode, const char *format, ...)
 {
     int result;
     va_list args;

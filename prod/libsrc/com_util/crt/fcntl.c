@@ -21,7 +21,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_open(const char *path, const int flags, const int mode)
+int com_util_open(const char *path, const int flags, const int mode)
 {
     if (path == NULL)
     {

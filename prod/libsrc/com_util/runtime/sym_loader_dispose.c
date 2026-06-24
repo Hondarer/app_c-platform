@@ -15,8 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void COM_UTIL_API com_util_sym_loader_dispose(com_util_sym_loader_entry *const *fobj_array,
-                                                              const size_t fobj_length)
+void com_util_sym_loader_dispose(com_util_sym_loader_entry *const *fobj_array, const size_t fobj_length)
 {
     size_t fobj_index;
 

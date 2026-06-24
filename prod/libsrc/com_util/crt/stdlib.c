@@ -17,7 +17,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, const size_t buf_size)
+int com_util_getenv(const char *name, char *buf, const size_t buf_size)
 {
     if (name == NULL)
     {

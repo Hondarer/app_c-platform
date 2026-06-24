@@ -33,8 +33,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
-                                                       const size_t path_size, int *errno_out)
+FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out, const size_t path_size, int *errno_out)
 {
     if (modes == NULL || path_out == NULL || path_size == 0u)
     {

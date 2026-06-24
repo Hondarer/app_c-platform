@@ -116,7 +116,7 @@ static size_t path_root_prefix_len(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
+int com_util_makedirs(const char *path)
 {
     char buf[PLATFORM_PATH_MAX];
     size_t path_len;
@@ -166,7 +166,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf, const char *path)
+int com_util_stat(com_util_file_stat_t *buf, const char *path)
 {
     if (buf == NULL || path == NULL)
     {
@@ -191,7 +191,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_stat(com_util_file_stat_t *buf, const 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir(const char *path)
+int com_util_mkdir(const char *path)
 {
     if (path == NULL)
     {

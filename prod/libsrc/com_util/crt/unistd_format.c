@@ -15,7 +15,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(const int mode, const char *format, va_list args)
+int com_util_vaccess_fmt(const int mode, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
 
@@ -29,7 +29,7 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_vaccess_fmt(const int mode, const char
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT int COM_UTIL_API com_util_access_fmt(const int mode, const char *format, ...)
+int com_util_access_fmt(const int mode, const char *format, ...)
 {
     int result;
     va_list args;

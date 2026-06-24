@@ -99,7 +99,7 @@ static void *unlock_entry_and_return_func_ptr(com_util_sym_loader_entry *fobj)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-COM_UTIL_EXPORT void *COM_UTIL_API com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj)
+void *com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj)
 {
 #if defined(PLATFORM_LINUX)
     const char *ext = ".so";
