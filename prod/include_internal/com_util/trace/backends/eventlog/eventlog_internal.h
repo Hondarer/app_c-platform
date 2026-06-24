@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           eventlog_internal.h
- *  @brief          EventLog シンク内部管理関数のヘッダー ファイルです。
+ *  @brief          EventLog シンクを管理する内部インターフェイスを宣言します。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0

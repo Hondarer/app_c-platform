@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           syslog_test.h
- *  @brief          syslog テスト用ヘルパーヘッダーです。
+ *  @brief          syslog のテストを補助する API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/04/05
  *  @version        1.0.0

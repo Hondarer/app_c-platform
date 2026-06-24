@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           unistd.h
- *  @brief          unistd/io 系 CRT 抽象 API です。
+ *  @brief          unistd および io 系の CRT 関数を抽象化する API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *

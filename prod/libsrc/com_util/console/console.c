@@ -1,6 +1,6 @@
 /**
  *  @file           console.c
- *  @brief          Windows コンソール設定ヘルパー実装です。
+ *  @brief          Windows コンソールを設定するヘルパー機能を実装します。
  *
  *  Windows 環境: 接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n

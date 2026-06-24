@@ -12,7 +12,7 @@
 
 /**
  *  @file           eventlog.h
- *  @brief          Windows イベント ログ (EventLog) ヘルパーライブラリです。
+ *  @brief          Windows イベント ログへの出力を補助する API を提供します。
  *
  *  Windows のアプリケーション イベント ログへ書き込むための
  *  ヘルパー関数群と、共通イベント ソースの登録/削除 API を提供します。\n

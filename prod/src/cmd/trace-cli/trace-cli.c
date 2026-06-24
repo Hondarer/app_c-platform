@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace-cli.c
- *  @brief          tracer API の動作確認用対話 CLI です。
+ *  @brief          tracer API の動作を対話的に確認するコマンドを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/04/28
  *  @version        1.0.0

@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_windows.c
- *  @brief          プロンプト ヘルパー Windows 実装 (SetConsoleMode VT 入力) です。
+ *  @brief          SetConsoleMode の VT 入力を使用する Windows 向けプロンプト処理を実装します。
  */
 
 #include <com_util/prompt/prompt_internal.h>

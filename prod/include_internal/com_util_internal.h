@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           com_util_internal.h
- *  @brief          com_util ライブラリの公開 + 内部アンブレラ ヘッダーです。
+ *  @brief          com_util ライブラリの公開 API と内部 API をまとめて取り込みます。
  *  @author         Tetsuo Honda
  *  @date           2026/05/21
  *  @version        1.0.0

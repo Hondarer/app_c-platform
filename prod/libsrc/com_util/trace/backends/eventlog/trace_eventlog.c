@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           trace_eventlog.c
- *  @brief          Windows イベント ログ (EventLog) シンク実装ファイルです。
+ *  @brief          Windows イベント ログへ出力するシンクを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0

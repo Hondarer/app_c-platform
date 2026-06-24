@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           crypto_linux.c
- *  @brief          Linux 向け暗号化・復号モジュール (OpenSSL AES-256-GCM) です。
+ *  @brief          OpenSSL の AES-256-GCM で暗号化および復号する Linux 向け機能を実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/03/12
  *  @version        1.0.0

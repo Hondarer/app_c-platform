@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           crypto_windows.c
- *  @brief          Windows 向け暗号化・復号モジュール (CNG AES-256-GCM) です。
+ *  @brief          CNG の AES-256-GCM で暗号化および復号する Windows 向け機能を実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/03/12
  *  @version        1.0.0

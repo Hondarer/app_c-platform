@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_edit.c
- *  @brief          プロンプトの UTF-8 編集バッファーを管理する内部 API の実装です。
+ *  @brief          プロンプトの UTF-8 編集バッファーを管理する内部 API を実装します。
  */
 
 #include <com_util/prompt/prompt_edit.h>

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sym_loader.h
- *  @brief          関数動的解決機構 (symbol loader) の公開 API ヘッダーです。
+ *  @brief          関数を動的に解決する symbol loader の公開 API を提供します。
  *  @author         c-modenization-kit sample team
  *  @date           2026/03/17
  *  @version        1.0.0

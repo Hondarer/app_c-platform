@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           sys/stat.h
- *  @brief          stat 系 CRT 抽象 API です。
+ *  @brief          stat 系の CRT 関数を抽象化する API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/04/22
  *

@@ -1,6 +1,6 @@
 /**
  *  @file           prompt.c
- *  @brief          プロンプト ヘルパー共通実装です。
+ *  @brief          プロンプト ヘルパーの共通処理を実装します。
  */
 
 #include <com_util/prompt/prompt_internal.h>

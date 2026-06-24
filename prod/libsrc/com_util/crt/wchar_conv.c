@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           wchar_conv.c
- *  @brief          UTF-8 / ワイド文字列変換 API 実装 (Windows 専用) です。
+ *  @brief          Windows で UTF-8 とワイド文字列を相互変換する API を実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/06/08
  *  @version        1.0.0

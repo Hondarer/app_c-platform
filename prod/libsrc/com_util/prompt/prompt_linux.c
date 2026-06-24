@@ -1,6 +1,6 @@
 /**
  *  @file           prompt_linux.c
- *  @brief          プロンプト ヘルパー Linux 実装 (termios raw mode) です。
+ *  @brief          termios の raw mode を使用する Linux 向けプロンプト処理を実装します。
  */
 
 #include <com_util/prompt/prompt_internal.h>

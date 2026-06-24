@@ -12,7 +12,7 @@
 
 /**
  *  @file           etw.h
- *  @brief          ETW (Event Tracing for Windows) ヘルパーライブラリです。
+ *  @brief          ETW を使用したトレースを補助する API を提供します。
  *
  *  TraceLogging ベースの ETW プロバイダーを簡易に操作するための
  *  ヘルパー関数群を提供します。\n

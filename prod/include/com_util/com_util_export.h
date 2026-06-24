@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           com_util_export.h
- *  @brief          com_util の Windows DLL エクスポート/呼び出し規約マクロです。
+ *  @brief          com_util の Windows DLL エクスポートおよび呼び出し規約マクロを定義します。
  *  @author         Tetsuo Honda
  *  @date           2026/04/21
  *  @version        1.0.0

@@ -1,6 +1,6 @@
 /**
  *  @file           console.h
- *  @brief          Windows コンソール設定ヘルパー API です。
+ *  @brief          Windows コンソールを設定するヘルパー API を提供します。
  *
  *  Windows 環境で接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n

@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           compress_windows.c
- *  @brief          Windows 向け圧縮・展開モジュール (Compression API) です。
+ *  @brief          Compression API を使用してデータを圧縮および展開する Windows 向け機能を実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0

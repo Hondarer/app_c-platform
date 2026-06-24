@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           etw-viewer.c
- *  @brief          com_util ETW provider のリアルタイム viewer です。
+ *  @brief          com_util ETW provider のイベントをリアルタイムに表示するコマンドを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/05/01
  *  @version        1.0.0

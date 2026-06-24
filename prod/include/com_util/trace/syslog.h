@@ -12,7 +12,7 @@
 
 /**
  *  @file           syslog.h
- *  @brief          syslog ヘルパーライブラリです。
+ *  @brief          syslog への出力を補助する API を提供します。
  *
  *  Linux syslog (RFC5424 系実装) のラッパー関数群を提供します。\n
  *  Linux 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_LINUX) の
