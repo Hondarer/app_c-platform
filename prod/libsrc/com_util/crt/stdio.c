@@ -19,6 +19,8 @@
 #if defined(PLATFORM_LINUX)
     #include <sys/types.h>
 #elif defined(PLATFORM_WINDOWS)
+    #include <io.h>
+    #include <share.h>
     #include <stdlib.h>
     #include <wchar.h>
 #endif /* PLATFORM_ */
@@ -74,12 +76,16 @@ FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
             return NULL;
         }
 
-        err = _wfopen_s(&fp, wpath, wmodes);
-        if (err != 0)
+        /* Linux の fopen は強制ロックを持たず常に共有可。_wfopen_s は排他オープンとなるため、
+         * 挙動をそろえるために _wfsopen + _SH_DENYNO を採用する。
+         * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fsopen-wfsopen */
+        errno = 0;
+        fp = _wfsopen(wpath, wmodes, _SH_DENYNO);
+        if (fp == NULL)
         {
             if (errno_out != NULL)
             {
-                *errno_out = (int)err;
+                *errno_out = errno;
             }
             return NULL;
         }
@@ -117,9 +123,11 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
         wchar_t wmodes[64];
-        FILE *fp = NULL;
+        FILE *new_fp = NULL;
         errno_t err;
         size_t converted;
+        int new_fd;
+        int old_fd;
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
@@ -140,17 +148,37 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
             return NULL;
         }
 
-        err = _wfreopen_s(&fp, wpath, wmodes, stream);
-        if (err != 0)
+        /* Windows CRT には _fsopen 相当の freopen 版が無いため、共有モードで開いた
+         * 新規 FILE* の fd を _dup2 で既存 stream に複製して FILE* を維持する。
+         * これにより Linux の freopen と同じく共有可能なオープン挙動になる。
+         * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fsopen-wfsopen */
+        errno = 0;
+        new_fp = _wfsopen(wpath, wmodes, _SH_DENYNO);
+        if (new_fp == NULL)
         {
             if (errno_out != NULL)
             {
-                *errno_out = (int)err;
+                *errno_out = errno;
             }
             return NULL;
         }
 
-        return fp;
+        (void)fflush(stream);
+        new_fd = _fileno(new_fp);
+        old_fd = _fileno(stream);
+        if (_dup2(new_fd, old_fd) != 0)
+        {
+            int saved = errno;
+            (void)fclose(new_fp);
+            if (errno_out != NULL)
+            {
+                *errno_out = saved;
+            }
+            return NULL;
+        }
+        (void)fclose(new_fp); /* new_fd を解放。stream は old_fd を介して新ファイルを保持 */
+        clearerr(stream);
+        return stream;
     }
 #endif /* PLATFORM_ */
 }

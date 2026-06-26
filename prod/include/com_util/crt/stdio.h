@@ -47,6 +47,11 @@ extern "C"
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      *
+     *  @par            共有モード
+     *  Linux では `fopen` は強制ロックを持たず常に共有可です。\n
+     *  Windows では内部で `_wfsopen` を `_SH_DENYNO` 指定で呼び出し、他プロセス/スレッドからの
+     *  読み書きを許可します ([com_util_open](@ref com_util_open) と同じ既定です)。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
@@ -60,6 +65,13 @@ extern "C"
      *  @param[in,out]  stream     再オープン対象のストリーム。NULL を渡してはなりません。
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno 相当の値を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
+     *
+     *  @par            共有モード
+     *  Linux では `freopen` は強制ロックを持たず常に共有可です。\n
+     *  Windows では内部で `_wfsopen` を `_SH_DENYNO` 指定で呼び出し、`_dup2` で @p stream の
+     *  ファイル記述子に複製することで、共有可能な新ファイルへの再オープンを実現します。
+     *  FILE* 内部状態のテキスト/バイナリ モード フラグは元の @p stream のまま引き継がれるため、
+     *  再オープン時に異なるモードを指定する用途には推奨しません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -330,10 +342,15 @@ extern "C"
      *  @p modes に "w"/"w+" を指定しても fdopen() の仕様上ファイルの切り詰めは発生しません。
      *  mkostemp() が新規作成したファイルは常に空のため、実用上の影響はありません。\n
      *  Windows 環境では GetTempPathW + GetTempFileNameW でユニーク名を生成し、
-     *  _wfopen_s() で指定モードにて開きます。@p path_out は wchar→UTF-8 変換した結果が
+     *  _wfsopen() で `_SH_DENYNO` を指定して開きます。@p path_out は wchar→UTF-8 変換した結果が
      *  格納されます。\n
      *  呼び出し元は不要になったら com_util_fclose() でクローズし、
      *  必要なら com_util_remove() でファイルを削除する責任があります。
+     *
+     *  @par            共有モード
+     *  Linux では `fdopen` 経由のため強制ロックを持たず常に共有可です。\n
+     *  Windows でも `_wfsopen` を `_SH_DENYNO` 指定で呼び出すため、他プロセス/スレッドからの
+     *  読み書きを許可します ([com_util_fopen](@ref com_util_fopen) と同じ既定です)。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

@@ -24,6 +24,7 @@
     #include <stdlib.h>
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
+    #include <share.h>
     #include <stdlib.h>
     #include <wchar.h>
 #endif /* PLATFORM_ */
@@ -186,13 +187,17 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             return NULL;
         }
 
-        err = _wfopen_s(&fp, wfile, wmodes);
-        if (err != 0)
+        /* Linux 側 (fdopen 経由) と挙動をそろえるため _wfsopen + _SH_DENYNO を採用する。
+         * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fsopen-wfsopen */
+        errno = 0;
+        fp = _wfsopen(wfile, wmodes, _SH_DENYNO);
+        if (fp == NULL)
         {
+            int saved = errno;
             DeleteFileW(wfile);
             if (errno_out != NULL)
             {
-                *errno_out = (int)err;
+                *errno_out = saved;
             }
             return NULL;
         }
