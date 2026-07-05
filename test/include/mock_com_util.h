@@ -33,6 +33,7 @@
 #include <com_util/console/console.h>
 #include <com_util/sync/sync.h>
 #include <com_util/runtime/module.h>
+#include <com_util/runtime/memory_lock.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/sym_loader.h>
@@ -244,6 +245,15 @@ extern void delegate_real_com_util_sleep_ms(int ms);
 extern int delegate_real_com_util_module_get_path(char *out_path, size_t out_path_sz, const void *func_addr);
 extern int delegate_real_com_util_module_get_basename(char *out_basename, size_t out_basename_sz,
                                                       const void *func_addr);
+
+// runtime - memory_lock
+extern com_util_memory_lock_result_t delegate_real_com_util_memory_lock_range(const void *address, size_t size);
+extern com_util_memory_lock_result_t delegate_real_com_util_memory_unlock_range(const void *address, size_t size);
+extern com_util_memory_lock_result_t
+delegate_real_com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
+                                        com_util_memory_lock_scope **scope);
+extern com_util_memory_lock_result_t
+delegate_real_com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
 
 // runtime - process_info
 extern int delegate_real_com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
@@ -536,6 +546,13 @@ class Mock_com_util
     // runtime - module_info
     MOCK_METHOD(int, com_util_module_get_path, (char *, size_t, const void *));
     MOCK_METHOD(int, com_util_module_get_basename, (char *, size_t, const void *));
+
+    // runtime - memory_lock
+    MOCK_METHOD(com_util_memory_lock_result_t, com_util_memory_lock_range, (const void *, size_t));
+    MOCK_METHOD(com_util_memory_lock_result_t, com_util_memory_unlock_range, (const void *, size_t));
+    MOCK_METHOD(com_util_memory_lock_result_t, com_util_memory_lock_self,
+                (const com_util_memory_lock_self_options *, com_util_memory_lock_scope **));
+    MOCK_METHOD(com_util_memory_lock_result_t, com_util_memory_lock_scope_release, (com_util_memory_lock_scope *));
 
     // runtime - process_info
     MOCK_METHOD(int, com_util_process_get_executable_path, (char *, size_t));

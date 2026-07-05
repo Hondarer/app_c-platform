@@ -202,6 +202,14 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_module_get_basename(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_module_get_basename));
 
+    // runtime - memory_lock
+    ON_CALL(*this, com_util_memory_lock_range(_, _)).WillByDefault(Invoke(delegate_real_com_util_memory_lock_range));
+    ON_CALL(*this, com_util_memory_unlock_range(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_memory_unlock_range));
+    ON_CALL(*this, com_util_memory_lock_self(_, _)).WillByDefault(Invoke(delegate_real_com_util_memory_lock_self));
+    ON_CALL(*this, com_util_memory_lock_scope_release(_))
+        .WillByDefault(Invoke(delegate_real_com_util_memory_lock_scope_release));
+
     // runtime - process_info
     ON_CALL(*this, com_util_process_get_executable_path(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_process_get_executable_path));
