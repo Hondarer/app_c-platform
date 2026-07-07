@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/fcntl.h>
+#include <mock_unistd.h>
 
 #include <fcntl.h>
 #include <filesystem>
@@ -177,6 +178,134 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の API を呼び出さずに -1 が返ること。
+}
+
+TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
+{
+    // Arrange
+    Mock_unistd mock_unistd; // [状態] - 下位の lseek / _lseeki64 をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, lseek(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の lseek が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の lseek に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _lseeki64(_, _, _, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int64_t rtc = com_util_lseek(fd_, 0, SEEK_SET); // [手順] - 有効な引数で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+}
+
+TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
+{
+    // Arrange
+    Mock_unistd mock_unistd; // [状態] - 下位の close / _close をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, close(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の close が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の close に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _close(_, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int rtc = com_util_close(fd_); // [手順] - 有効な記述子で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+}
+
+TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
+{
+    // Arrange
+    Mock_unistd mock_unistd; // [状態] - 下位の dup / _dup をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, dup(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の dup が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _dup(_, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int rtc = com_util_dup(fd_); // [手順] - 有効な記述子で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+}
+
+TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
+{
+    // Arrange
+    Mock_unistd mock_unistd; // [状態] - 下位の dup2 / _dup2 をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の dup2 が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup2 に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _dup2(_, _, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int rtc = com_util_dup2(fd_, fd_); // [手順] - 有効な記述子で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+}
+
+TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
+{
+    // Arrange
+    char buf[4];
+    Mock_unistd mock_unistd; // [状態] - 下位の read / _read をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の read が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の read に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _read(_, _, _, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int64_t rtc = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+}
+
+TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
+{
+    // Arrange
+    const char buf[4] = "abc";
+    Mock_unistd mock_unistd; // [状態] - 下位の write / _write をモック化する。
+
+    // Pre-Assert
+#ifndef _WIN32
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の write が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の write に -1 を返させる。
+#else
+    EXPECT_CALL(mock_unistd, _write(_, _, _, _, _, _)).WillOnce(Return(-1));
+#endif
+
+    // Act
+    int64_t rtc = com_util_write(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
 #if defined(PLATFORM_LINUX)
