@@ -427,7 +427,7 @@ static void print_rc_result(int rc)
  *  @brief  CLI コマンド 1 個の定義 (名前・usage・ハンドラー) です。
  *
  *  コマンドの追加は g_commands へのエントリ追加で完結します
- *  (trace_cli_print_help のコマンド一覧はあわせて更新すること)。
+ *  (help のコマンド一覧と usage 表示はテーブルから生成される)。
  */
 struct trace_cli_command
 {
@@ -471,32 +471,6 @@ void trace_cli_session_dispose(trace_cli_session *session)
     com_util_tracer_dispose(session->handle);
     session->handle = NULL;
     session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
-}
-
-void trace_cli_print_help(void)
-{
-    printf("trace-cli: com_util tracer interactive CLI\n");
-    printf("使用可能な level: CRITICAL ERROR WARNING INFO VERBOSE DEBUG NONE\n");
-    printf("コマンド:\n");
-    printf("  help\n");
-    printf("  exit\n");
-    printf("  quit\n");
-    printf("  create\n");
-    printf("  dispose\n");
-    printf("  start\n");
-    printf("  stop\n");
-    printf("  set-name <name|null> [identifier]\n");
-    printf("  get-os-level\n");
-    printf("  set-os-level <level>\n");
-    printf("  get-file-level\n");
-    printf("  set-file-level <path|null> <level> [max-bytes] [generations]\n");
-    printf("  get-stderr-level\n");
-    printf("  set-stderr-level <level>\n");
-    printf("  write <level> <message...>\n");
-    printf("  writef <level> <message...>\n");
-    printf("  write-hex <level> <hex> [label...]\n");
-    printf("  write-hexf <level> <hex> [label...]\n");
-    printf("hex は 01ABFF または \"01 AB FF\" の形式で指定できます。\n");
 }
 
 static void print_interactive_hint(void)
@@ -820,7 +794,7 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     return 0;
 }
 
-/** コマンド テーブル (trace_cli_print_help のコマンド一覧と同順)。 */
+/** コマンド テーブル (help のコマンド一覧はこの順で表示される)。 */
 static const struct trace_cli_command g_commands[] = {
     {"help", "", 1, cmd_help},
     {"exit", "", 1, cmd_exit},
@@ -854,6 +828,20 @@ static const struct trace_cli_command *find_command(const char *name)
         }
     }
     return NULL;
+}
+
+void trace_cli_print_help(void)
+{
+    size_t i;
+
+    printf("trace-cli: com_util tracer interactive CLI\n");
+    printf("使用可能な level: CRITICAL ERROR WARNING INFO VERBOSE DEBUG NONE\n");
+    printf("コマンド:\n");
+    for (i = 0U; i < sizeof(g_commands) / sizeof(g_commands[0]); i++)
+    {
+        printf("  %s%s\n", g_commands[i].name, g_commands[i].usage_args);
+    }
+    printf("hex は 01ABFF または \"01 AB FF\" の形式で指定できます。\n");
 }
 
 int trace_cli_process_line(trace_cli_session *session, const char *line)
