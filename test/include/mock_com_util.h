@@ -72,6 +72,7 @@ extern int delegate_real_com_util_sscanf(const char *buffer, const char *format,
 extern int delegate_real_com_util_vsscanf(const char *buffer, const char *format, va_list args);
 extern int delegate_real_com_util_gmtime(struct tm *utc_tm, const time_t *timep);
 extern int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep);
+extern int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t *timep);
 extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, int *errno_out, const char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
@@ -103,6 +104,12 @@ extern FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *m
 extern int delegate_real_com_util_isatty(com_util_stream_t stream);
 extern int delegate_real_com_util_access_fmt(int mode, const char *format, ...);
 extern int delegate_real_com_util_vaccess_fmt(int mode, const char *format, va_list args);
+extern int64_t delegate_real_com_util_lseek(int fd, int64_t offset, int whence);
+extern int delegate_real_com_util_close(int fd);
+extern int delegate_real_com_util_dup(int fd);
+extern int delegate_real_com_util_dup2(int oldfd, int newfd);
+extern int64_t delegate_real_com_util_read(int fd, void *buf, size_t count);
+extern int64_t delegate_real_com_util_write(int fd, const void *buf, size_t count);
 
 // crt - fcntl
 extern int delegate_real_com_util_open_fmt(int flags, int mode, const char *format, ...);
@@ -390,6 +397,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_vsscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int, com_util_gmtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_localtime, (struct tm *, const time_t *));
+    MOCK_METHOD(int, com_util_ctime, (char *, size_t, const time_t *));
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, int *, const char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *));
@@ -420,6 +428,12 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_isatty, (com_util_stream_t));
     MOCK_METHOD(int, com_util_access_fmt, (int, const char *));
     MOCK_METHOD(int, com_util_vaccess_fmt, (int, const char *));
+    MOCK_METHOD(int64_t, com_util_lseek, (int, int64_t, int));
+    MOCK_METHOD(int, com_util_close, (int));
+    MOCK_METHOD(int, com_util_dup, (int));
+    MOCK_METHOD(int, com_util_dup2, (int, int));
+    MOCK_METHOD(int64_t, com_util_read, (int, void *, size_t));
+    MOCK_METHOD(int64_t, com_util_write, (int, const void *, size_t));
 
     // crt - fcntl
     MOCK_METHOD(int, com_util_open_fmt, (int, int, const char *));

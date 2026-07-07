@@ -24,12 +24,7 @@
     #include <unistd.h>
 
     #include <com_util/sync/sync.h>
-
-    #define INTERPROCESS_SYNC_DESCRIPTOR_MAGIC       0x4b4c5543U
-    #define INTERPROCESS_SYNC_DESCRIPTOR_VERSION     1U
-    #define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
-    #define INTERPROCESS_SYNC_KIND_LOCK              1U
-    #define INTERPROCESS_SYNC_KIND_RWLOCK            2U
+    #include <com_util/sync/sync_descriptor.h>
 
 struct com_util_local_lock
 {
@@ -787,36 +782,13 @@ com_util_sync_result_t com_util_interprocess_lock_open(const char *identity, com
 com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock *lock,
                                                                     void *descriptor, size_t *descriptor_size)
 {
-    uint8_t *out;
-    size_t identity_len;
-    size_t required;
-
-    if (lock == NULL || descriptor_size == NULL)
+    if (lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    identity_len = strlen(lock->identity);
-    required = INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + identity_len;
-    if (descriptor == NULL || *descriptor_size < required)
-    {
-        *descriptor_size = required;
-        return COM_UTIL_SYNC_BUFFER_TOO_SMALL;
-    }
-
-    out = (uint8_t *)descriptor;
-    memcpy(out, "CULK", 4);
-    out[4] = INTERPROCESS_SYNC_DESCRIPTOR_VERSION;
-    out[5] = INTERPROCESS_SYNC_KIND_LOCK;
-    out[6] = (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE;
-    out[7] = 0U;
-    out[8] = (uint8_t)(identity_len & 0xffU);
-    out[9] = (uint8_t)((identity_len >> 8) & 0xffU);
-    out[10] = (uint8_t)((identity_len >> 16) & 0xffU);
-    out[11] = (uint8_t)((identity_len >> 24) & 0xffU);
-    memset(out + 12, 0, 8);
-    memcpy(out + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
-    *descriptor_size = required;
-    return COM_UTIL_SYNC_OK;
+    return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_LOCK,
+                                               (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
+                                               descriptor_size);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -824,33 +796,19 @@ com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_ut
 com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
                                                                     com_util_interprocess_lock **lock)
 {
-    const uint8_t *in = (const uint8_t *)descriptor;
-    uint32_t identity_len;
     char *identity;
     com_util_sync_result_t result;
 
-    if (descriptor == NULL || lock == NULL)
+    if (lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE || memcmp(in, "CULK", 4) != 0 ||
-        in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION || in[5] != INTERPROCESS_SYNC_KIND_LOCK ||
-        in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
+    result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_LOCK,
+                                                 (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
+    if (result != COM_UTIL_SYNC_OK)
     {
-        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+        return result;
     }
-    identity_len = (uint32_t)in[8] | ((uint32_t)in[9] << 8) | ((uint32_t)in[10] << 16) | ((uint32_t)in[11] << 24);
-    if (identity_len == 0 || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
-    {
-        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
-    }
-    identity = (char *)malloc((size_t)identity_len + 1U);
-    if (identity == NULL)
-    {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
-    }
-    memcpy(identity, in + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, identity_len);
-    identity[identity_len] = '\0';
     result = interprocess_lock_open_identity(identity, lock);
     free(identity);
     return result;
@@ -918,36 +876,13 @@ com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity, c
 com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock *lock,
                                                                       void *descriptor, size_t *descriptor_size)
 {
-    uint8_t *out;
-    size_t identity_len;
-    size_t required;
-
-    if (lock == NULL || descriptor_size == NULL)
+    if (lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    identity_len = strlen(lock->identity);
-    required = INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + identity_len;
-    if (descriptor == NULL || *descriptor_size < required)
-    {
-        *descriptor_size = required;
-        return COM_UTIL_SYNC_BUFFER_TOO_SMALL;
-    }
-
-    out = (uint8_t *)descriptor;
-    memcpy(out, "CULK", 4);
-    out[4] = INTERPROCESS_SYNC_DESCRIPTOR_VERSION;
-    out[5] = INTERPROCESS_SYNC_KIND_RWLOCK;
-    out[6] = (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE;
-    out[7] = 0U;
-    out[8] = (uint8_t)(identity_len & 0xffU);
-    out[9] = (uint8_t)((identity_len >> 8) & 0xffU);
-    out[10] = (uint8_t)((identity_len >> 16) & 0xffU);
-    out[11] = (uint8_t)((identity_len >> 24) & 0xffU);
-    memset(out + 12, 0, 8);
-    memcpy(out + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, lock->identity, identity_len);
-    *descriptor_size = required;
-    return COM_UTIL_SYNC_OK;
+    return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_RWLOCK,
+                                               (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
+                                               descriptor_size);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -955,33 +890,19 @@ com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_
 com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
                                                                       com_util_interprocess_rwlock **lock)
 {
-    const uint8_t *in = (const uint8_t *)descriptor;
-    uint32_t identity_len;
     char *identity;
     com_util_sync_result_t result;
 
-    if (descriptor == NULL || lock == NULL)
+    if (lock == NULL)
     {
         return COM_UTIL_SYNC_INVALID_ARGUMENT;
     }
-    if (descriptor_size < INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE || memcmp(in, "CULK", 4) != 0 ||
-        in[4] != INTERPROCESS_SYNC_DESCRIPTOR_VERSION || in[5] != INTERPROCESS_SYNC_KIND_RWLOCK ||
-        in[6] != (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE)
+    result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_RWLOCK,
+                                                 (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
+    if (result != COM_UTIL_SYNC_OK)
     {
-        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
+        return result;
     }
-    identity_len = (uint32_t)in[8] | ((uint32_t)in[9] << 8) | ((uint32_t)in[10] << 16) | ((uint32_t)in[11] << 24);
-    if (identity_len == 0 || descriptor_size != INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE + (size_t)identity_len)
-    {
-        return COM_UTIL_SYNC_CORRUPT_DESCRIPTOR;
-    }
-    identity = (char *)malloc((size_t)identity_len + 1U);
-    if (identity == NULL)
-    {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
-    }
-    memcpy(identity, in + INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE, identity_len);
-    identity[identity_len] = '\0';
     result = app_lock_open_identity(identity, lock);
     free(identity);
     return result;

@@ -18,6 +18,7 @@
 #ifndef COM_UTIL_CRT_TIME_H
 #define COM_UTIL_CRT_TIME_H
 
+#include <stddef.h>
 #include <time.h>
 #include <com_util/com_util_export.h>
 
@@ -56,6 +57,25 @@ extern "C"
      *  スレッド セーフな localtime_r / localtime_s を使用しており、内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_localtime(struct tm *local_tm, const time_t *timep);
+
+    /**
+     *  @brief          `ctime_r` / `ctime_s` のラッパー。エポック秒をローカル時刻の文字列へ変換します。
+     *  @param[out]     buf       変換結果の格納先。NULL を渡してはなりません。
+     *  @param[in]      buf_size  @p buf のサイズ (バイト)。26 以上が必要です。
+     *  @param[in]      timep     変換するエポック秒へのポインター。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  変換結果は `Wed Jul  8 21:49:08 2026\n` 形式 (改行と終端文字を含む) の
+     *  ローカル時刻文字列です。\n
+     *  失敗時は @p buf の全体をゼロ化します (@p buf が NULL の場合を除く)。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  スレッド セーフな ctime_r / ctime_s を使用しており、内部に共有状態を持ちません。
+     *
+     *  @warning        @p timep が NULL の場合、または @p buf_size が 26 未満の場合は失敗します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_ctime(char *buf, size_t buf_size, const time_t *timep);
 
 #ifdef __cplusplus
 }

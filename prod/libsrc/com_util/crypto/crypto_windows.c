@@ -179,26 +179,22 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
     static const uint8_t empty[1] = {0};
     const uint8_t *data;
     ULONG data_len;
+
+    /* 引数検証は Linux 実装 (crypto_linux.c) と同じく関数先頭で行う */
+    if (key == NULL || (passphrase == NULL && passphrase_len > 0))
+    {
+        return -1;
+    }
+
     if (passphrase != NULL)
     {
         data = passphrase;
-    }
-    else
-    {
-        data = empty;
-    }
-    if (passphrase != NULL)
-    {
         data_len = (ULONG)passphrase_len;
     }
     else
     {
+        data = empty;
         data_len = 0UL;
-    }
-
-    if (key == NULL || (passphrase == NULL && passphrase_len > 0))
-    {
-        return -1;
     }
 
     status = BCryptOpenAlgorithmProvider(&h_alg, BCRYPT_SHA256_ALGORITHM, NULL, 0);

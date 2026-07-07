@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+#include <com_util/trace/trace_common.h>
 #include <com_util/trace/tracer_internal.h>
 #include <com_util/trace/backends/file/trace_file_internal.h>
 
@@ -178,7 +179,14 @@ static int registry_expand_locked(void)
     com_util_tracer **new_items;
     size_t new_capacity;
 
-    new_capacity = (s_trace_registry.capacity == 0) ? TRACE_REGISTRY_INITIAL_CAPACITY : s_trace_registry.capacity * 2;
+    if (s_trace_registry.capacity == 0)
+    {
+        new_capacity = TRACE_REGISTRY_INITIAL_CAPACITY;
+    }
+    else
+    {
+        new_capacity = s_trace_registry.capacity * 2;
+    }
 
     new_items = (com_util_tracer **)realloc(s_trace_registry.items, new_capacity * sizeof(com_util_tracer *));
     if (new_items == NULL)
@@ -425,6 +433,104 @@ static int config_lock_shared_timed(com_util_tracer *handle)
 static void config_unlock_shared(com_util_tracer *handle)
 {
     com_util_local_rwlock_unlock_shared(handle->config_rwlock);
+}
+
+/**
+ *  @brief          アクティブ検証と設定の共有ロック取得をまとめて行います。
+ *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
+ *  @return         成功時 0、失敗時 -1。
+ *
+ *  ロック取得前後の 2 回、ハンドルがアクティブであることを検証します
+ *  (ロック待機中に dispose が進行した場合を検出するため)。\n
+ *  成功時は共有ロックを保持したまま戻るため、呼び出し元は
+ *  config_unlock_shared() で解放すること。失敗時はロックを保持しません。
+ */
+static int tracer_enter_shared(com_util_tracer *handle)
+{
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    if (config_lock_shared_timed(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief          started 状態を要求する共有ロック取得を行います。
+ *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
+ *  @return         成功時 0、失敗時 (非アクティブまたは stopped) -1。
+ *
+ *  tracer_enter_shared() の検証に加えて running であることを要求します。
+ *  成功時は共有ロックを保持したまま戻ります。失敗時はロックを保持しません。
+ */
+static int tracer_enter_shared_running(com_util_tracer *handle)
+{
+    if (tracer_enter_shared(handle) != 0)
+    {
+        return -1;
+    }
+    if (!handle->running)
+    {
+        config_unlock_shared(handle);
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief          アクティブ検証と設定の排他ロック取得をまとめて行います。
+ *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
+ *  @return         成功時 0、失敗時 -1。
+ *
+ *  ロック取得前後の 2 回、ハンドルがアクティブであることを検証します
+ *  (ロック待機中に dispose が進行した場合を検出するため)。\n
+ *  成功時は排他ロックを保持したまま戻るため、呼び出し元は
+ *  config_unlock_exclusive() で解放すること。失敗時はロックを保持しません。
+ */
+static int tracer_enter_exclusive(com_util_tracer *handle)
+{
+    if (!handle_is_active(handle))
+    {
+        return -1;
+    }
+    config_lock_exclusive(handle);
+    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    {
+        config_unlock_exclusive(handle);
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief          stopped 状態を要求する排他ロック取得を行います。
+ *  @param[in]      handle  対象のトレース プロバイダー ハンドル。
+ *  @return         成功時 0、失敗時 (非アクティブまたは started) -1。
+ *
+ *  tracer_enter_exclusive() の検証に加えて stopped であることを要求します
+ *  (started 中の変更を許可しない設定 API 向け)。\n
+ *  成功時は排他ロックを保持したまま戻ります。失敗時はロックを保持しません。
+ */
+static int tracer_enter_exclusive_stopped(com_util_tracer *handle)
+{
+    if (tracer_enter_exclusive(handle) != 0)
+    {
+        return -1;
+    }
+    if (handle->running)
+    {
+        config_unlock_exclusive(handle);
+        return -1;
+    }
+    return 0;
 }
 
 /**
@@ -934,15 +1040,8 @@ int com_util_tracer_start(com_util_tracer *handle)
 {
     int result = 0;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
-    }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_exclusive(handle);
         return -1;
     }
     if (handle->running)
@@ -986,21 +1085,19 @@ com_util_tracer_state_t com_util_tracer_get_state(com_util_tracer *handle)
 {
     com_util_tracer_state_t state;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return COM_UTIL_TRACER_STATE_DISPOSED;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return COM_UTIL_TRACER_STATE_DISPOSED;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return COM_UTIL_TRACER_STATE_DISPOSED;
     }
 
-    state = handle->running ? COM_UTIL_TRACER_STATE_STARTED : COM_UTIL_TRACER_STATE_STOPPED;
+    if (handle->running)
+    {
+        state = COM_UTIL_TRACER_STATE_STARTED;
+    }
+    else
+    {
+        state = COM_UTIL_TRACER_STATE_STOPPED;
+    }
     config_unlock_shared(handle);
     return state;
 }
@@ -1089,56 +1186,6 @@ static int should_output(const com_util_trace_level_t msg_level, const com_util_
 
 #define STDERR_TS_BUF_SIZE (COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1)
 
-static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
-{
-    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
-}
-
-static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
-                             int *fallback_used)
-{
-    if (resolved == NULL)
-    {
-        return -1;
-    }
-    if (fallback_used != NULL)
-    {
-        *fallback_used = 0;
-    }
-
-    if (timestamp != NULL)
-    {
-        if (timestamp_is_valid(timestamp))
-        {
-            *resolved = *timestamp;
-            return 0;
-        }
-        if (fallback_used != NULL)
-        {
-            *fallback_used = 1;
-        }
-    }
-
-    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    if (timestamp_is_valid(resolved))
-    {
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
-}
-
-static int format_local_timestamp(char *buf, const size_t buf_size, const com_util_realtime_timestamp *timestamp)
-{
-    if (!timestamp_is_valid(timestamp))
-    {
-        return -1;
-    }
-    return com_util_format_realtime_iso8601_local(buf, buf_size, timestamp->tv_sec, timestamp->tv_nsec);
-}
-
 /**
  *  @brief          タイムスタンプとトレース レベルを付加して stderr にエントリを書き込みます。
  *  @param[in]      level  トレース レベル。
@@ -1147,18 +1194,7 @@ static int format_local_timestamp(char *buf, const size_t buf_size, const com_ut
  */
 static void write_stderr_entry(const com_util_trace_level_t level, const char *timestamp_text, const char *msg)
 {
-    static const char lc_table[] = {'C', 'E', 'W', 'I', 'V', 'D'};
-    char lc;
-
-    if ((int)level >= 0 && (int)level < (int)COM_UTIL_TRACE_LEVEL_NONE)
-    {
-        lc = lc_table[(int)level];
-    }
-    else
-    {
-        lc = 'D';
-    }
-    fprintf(stderr, "%s %c %s\n", timestamp_text, lc, msg);
+    fprintf(stderr, "%s %c %s\n", timestamp_text, trace_level_char(level), msg);
 }
 
 /**
@@ -1189,13 +1225,13 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
 
     if (needs_text_timestamp)
     {
-        if (resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
+        if (trace_resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
         {
             return -1;
         }
         effective_timestamp = &resolved;
 
-        if (format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
+        if (trace_format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
         {
             return -1;
         }
@@ -1246,17 +1282,8 @@ int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t
     {
         return 0;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || !handle->running)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
 
@@ -1288,17 +1315,8 @@ int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_
     {
         return 0;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || !handle->running)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
 
@@ -1429,17 +1447,8 @@ int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_lev
     {
         return 0;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || !handle->running)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
 
@@ -1461,17 +1470,8 @@ int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_le
     {
         return 0;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || !handle->running)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
 
@@ -1498,19 +1498,12 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
 {
     char *effective;
 
-    if (!handle_is_active(handle))
-    {
-        return -1;
-    }
     if (identifier < 0)
     {
         return -1;
     }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (tracer_enter_exclusive_stopped(handle) != 0)
     {
-        config_unlock_exclusive(handle);
         return -1;
     }
 
@@ -1566,17 +1559,8 @@ int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t ou
     {
         return -1;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
     written = snprintf(out, out_size, "%s", tracer_effective_name(handle));
@@ -1595,17 +1579,8 @@ int64_t com_util_tracer_get_identifier(com_util_tracer *handle)
 {
     int64_t identifier;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
     identifier = handle->identifier;
@@ -1642,10 +1617,8 @@ int com_util_tracer_set_file_name(com_util_tracer *handle, const char *name, con
         }
     }
 
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (tracer_enter_exclusive_stopped(handle) != 0)
     {
-        config_unlock_exclusive(handle);
         free(name_copy);
         return -1;
     }
@@ -1667,17 +1640,8 @@ int com_util_tracer_get_file_name(com_util_tracer *handle, char *out, const size
     {
         return -1;
     }
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
     rc = resolve_file_name(handle, out, out_size);
@@ -1691,17 +1655,8 @@ int64_t com_util_tracer_get_file_identifier(com_util_tracer *handle)
 {
     int64_t identifier;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return -1;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return -1;
     }
     identifier = handle->file_identifier;
@@ -1715,17 +1670,8 @@ com_util_trace_level_t com_util_tracer_get_os_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return COM_UTIL_TRACE_LEVEL_NONE;
     }
     lv = handle->os_level;
@@ -1737,15 +1683,8 @@ com_util_trace_level_t com_util_tracer_get_os_level(com_util_tracer *handle)
 
 int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
-    if (!handle_is_active(handle))
+    if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
-    }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_exclusive(handle);
         return -1;
     }
 
@@ -1761,17 +1700,8 @@ com_util_trace_level_t com_util_tracer_get_etw_level(com_util_tracer *handle)
 #if defined(PLATFORM_WINDOWS)
     com_util_trace_level_t lv;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return COM_UTIL_TRACE_LEVEL_NONE;
     }
     lv = handle->etw_level;
@@ -1789,15 +1719,8 @@ com_util_trace_level_t com_util_tracer_get_etw_level(com_util_tracer *handle)
 int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
 #if defined(PLATFORM_WINDOWS)
-    if (!handle_is_active(handle))
+    if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
-    }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_exclusive(handle);
         return -1;
     }
 
@@ -1818,17 +1741,8 @@ com_util_trace_level_t com_util_tracer_get_file_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return COM_UTIL_TRACE_LEVEL_NONE;
     }
     lv = handle->file_level;
@@ -1842,11 +1756,6 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
                                    const size_t max_bytes, const int generations, const int flags)
 {
     char *path_copy = NULL;
-
-    if (!handle_is_active(handle))
-    {
-        return -1;
-    }
 
     /* 失敗時に設定を変更しないよう、パスの複製をロック取得前に確保する */
     if (path != NULL)
@@ -1862,10 +1771,8 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
         }
     }
 
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
+    if (tracer_enter_exclusive(handle) != 0)
     {
-        config_unlock_exclusive(handle);
         free(path_copy);
         return -1;
     }
@@ -1957,17 +1864,8 @@ com_util_trace_level_t com_util_tracer_get_stderr_level(com_util_tracer *handle)
 {
     com_util_trace_level_t lv;
 
-    if (!handle_is_active(handle))
+    if (tracer_enter_shared(handle) != 0)
     {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (config_lock_shared_timed(handle) != 0)
-    {
-        return COM_UTIL_TRACE_LEVEL_NONE;
-    }
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_shared(handle);
         return COM_UTIL_TRACE_LEVEL_NONE;
     }
     lv = handle->stderr_level;
@@ -1979,15 +1877,8 @@ com_util_trace_level_t com_util_tracer_get_stderr_level(com_util_tracer *handle)
 
 int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_trace_level_t level)
 {
-    if (!handle_is_active(handle))
+    if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
-    }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
-    {
-        config_unlock_exclusive(handle);
         return -1;
     }
 
@@ -2084,10 +1975,8 @@ com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, co
         return NULL;
     }
 
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (tracer_enter_exclusive_stopped(handle) != 0)
     {
-        config_unlock_exclusive(handle);
         free(entry);
         return NULL;
     }
@@ -2107,15 +1996,12 @@ void com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_e
 {
     com_util_tracer_hook_entry **pp;
 
-    if (!handle_is_active(handle) || hook_entry == NULL)
+    if (hook_entry == NULL)
     {
         return;
     }
-
-    config_lock_exclusive(handle);
-    if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE || handle->running)
+    if (tracer_enter_exclusive_stopped(handle) != 0)
     {
-        config_unlock_exclusive(handle);
         return;
     }
 

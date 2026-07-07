@@ -28,6 +28,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_vsscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_vsscanf));
     ON_CALL(*this, com_util_gmtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_gmtime));
     ON_CALL(*this, com_util_localtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_localtime));
+    ON_CALL(*this, com_util_ctime(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_ctime));
     ON_CALL(*this, com_util_getenv(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
     ON_CALL(*this, com_util_paths_equal(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
@@ -58,6 +59,12 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_isatty(_)).WillByDefault(Invoke(delegate_real_com_util_isatty));
     ON_CALL(*this, com_util_access_fmt(_, _)).WillByDefault(Invoke(delegate_real_com_util_access_fmt));
     ON_CALL(*this, com_util_vaccess_fmt(_, _)).WillByDefault(Invoke(delegate_real_com_util_access_fmt));
+    ON_CALL(*this, com_util_lseek(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_lseek));
+    ON_CALL(*this, com_util_close(_)).WillByDefault(Invoke(delegate_real_com_util_close));
+    ON_CALL(*this, com_util_dup(_)).WillByDefault(Invoke(delegate_real_com_util_dup));
+    ON_CALL(*this, com_util_dup2(_, _)).WillByDefault(Invoke(delegate_real_com_util_dup2));
+    ON_CALL(*this, com_util_read(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_read));
+    ON_CALL(*this, com_util_write(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_write));
 
     // crt - fcntl
     ON_CALL(*this, com_util_open_fmt(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_open_fmt));

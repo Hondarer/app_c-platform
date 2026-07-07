@@ -41,6 +41,7 @@
     #include <com_util/clock/clock.h>
     #include <com_util/sync/sync.h>
     #include <com_util/trace/syslog.h>
+    #include <com_util/trace/trace_common.h>
     #include <com_util/trace/backends/syslog/syslog_internal.h>
     #include <com_util/test/syslog_test.h>
 
@@ -88,63 +89,6 @@ struct com_util_syslog_sink
     /** 現在のバックオフ間隔 (秒)。reconnect_lock で保護。 */
     int backoff_sec;
 };
-
-/**
- *  @brief  タイムスタンプが有効範囲か判定します。
- */
-static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
-{
-    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
-}
-
-/**
- *  @brief  syslog 出力に使用するタイムスタンプを解決します。
- *  @param[in]      timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
- *  @param[out]     resolved       解決後のタイムスタンプ格納先。
- *  @param[out]     fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
- *  @return         成功時 0、解決失敗時 -1。
- */
-static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
-                             int *fallback_used)
-{
-    if (timestamp == NULL)
-    {
-        if (fallback_used != NULL)
-        {
-            *fallback_used = 0;
-        }
-        return 0;
-    }
-    if (resolved == NULL)
-    {
-        return -1;
-    }
-    if (fallback_used != NULL)
-    {
-        *fallback_used = 0;
-    }
-
-    if (timestamp_is_valid(timestamp))
-    {
-        *resolved = *timestamp;
-        return 0;
-    }
-
-    if (fallback_used != NULL)
-    {
-        *fallback_used = 1;
-    }
-
-    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    if (timestamp_is_valid(resolved))
-    {
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
-}
 
 /**
  *  @brief  バックオフ値を次段階に進めます。ロック保持中に呼び出してください。
@@ -274,12 +218,13 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
     {
         return 0;
     }
-    if (resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
-    {
-        return -1;
-    }
+    /* timestamp が NULL の場合はタイムスタンプなしで送信するため、解決は行わない */
     if (timestamp != NULL)
     {
+        if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+        {
+            return -1;
+        }
         effective_timestamp = &resolved;
     }
 

@@ -381,7 +381,14 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
     free(info);
 
     event.level = pEvent->EventHeader.EventDescriptor.Level;
-    event.process_id = payload_process_id != 0U ? payload_process_id : pEvent->EventHeader.ProcessId;
+    if (payload_process_id != 0U)
+    {
+        event.process_id = payload_process_id;
+    }
+    else
+    {
+        event.process_id = pEvent->EventHeader.ProcessId;
+    }
     event.event_name = event_name_utf8;
     event.service = service;
     event.message = message;

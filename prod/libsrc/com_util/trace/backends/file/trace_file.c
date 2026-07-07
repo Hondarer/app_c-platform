@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <com_util/trace/trace_common.h>
 #include <com_util/trace/backends/file/trace_file_internal.h>
 
 /* ===== 内部定数 ===== */
@@ -284,96 +285,6 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
 }
 
 /* ===== 内部ヘルパー関数 ===== */
-
-/**
- *  @brief  トレース レベル整数をレベル文字に変換します。
- */
-static char level_char(const int level)
-{
-    switch (level)
-    {
-    case COM_UTIL_TRACE_LEVEL_CRITICAL:
-        return 'C';
-    case COM_UTIL_TRACE_LEVEL_ERROR:
-        return 'E';
-    case COM_UTIL_TRACE_LEVEL_WARNING:
-        return 'W';
-    case COM_UTIL_TRACE_LEVEL_INFO:
-        return 'I';
-    case COM_UTIL_TRACE_LEVEL_VERBOSE:
-        return 'V';
-    default:
-        return 'D';
-    }
-}
-
-/**
- *  @brief  タイムスタンプが有効範囲か判定します。
- */
-static int timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
-{
-    return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
-}
-
-/**
- *  @brief  使用するタイムスタンプを解決します。
- *  @param  timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
- *  @param  resolved       解決後のタイムスタンプ格納先。
- *  @param  fallback_used  不正タイムスタンプから現在時刻へ代替した場合 1。
- *  @return 成功 0 / 失敗 -1。
- */
-static int resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
-                             int *fallback_used)
-{
-    if (resolved == NULL)
-    {
-        return -1;
-    }
-    if (fallback_used != NULL)
-    {
-        *fallback_used = 0;
-    }
-
-    if (timestamp != NULL)
-    {
-        if (timestamp_is_valid(timestamp))
-        {
-            *resolved = *timestamp;
-            return 0;
-        }
-        if (fallback_used != NULL)
-        {
-            *fallback_used = 1;
-        }
-    }
-
-    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
-    if (timestamp_is_valid(resolved))
-    {
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
-}
-
-/**
- *  @brief  実時刻を "YYYY-MM-DDTHH:MM:SS.sss+09:00" 形式でバッファーへ書き込みます。
- *  @param  buf      書き込み先バッファー。
- *  @param  buf_size バッファー サイズ (TRACE_FILE_TS_LEN + 1 以上を推奨)。
- *  @param  resolved 使用する実時刻。
- *  @return 成功 0 / 失敗 -1。
- */
-static int format_timestamp(char *buf, const int buf_size, const com_util_realtime_timestamp *resolved)
-{
-    if (!timestamp_is_valid(resolved))
-    {
-        return -1;
-    }
-
-    return com_util_format_realtime_iso8601_local(buf, (size_t)buf_size, resolved->tv_sec, resolved->tv_nsec);
-}
 
 #if defined(PLATFORM_WINDOWS)
 static void normalize_path_sep_for_parent(char *path)
@@ -863,17 +774,17 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* タイムスタンプはロック外で取得する (共有状態へのアクセスなし) */
-    if (resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+    if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
     {
         return -1;
     }
-    if (format_timestamp(ts, (int)sizeof(ts), &resolved) != 0)
+    if (trace_format_local_timestamp(ts, sizeof(ts), &resolved) != 0)
     {
         return -1;
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
-    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, level_char(level), message);
+    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level_t)level), message);
     if (len <= 0)
     {
         return -1;

@@ -19,6 +19,8 @@
 #define COM_UTIL_CRT_UNISTD_H
 
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
 #include <com_util/com_util_export.h>
@@ -84,6 +86,114 @@ extern "C"
      *  内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(com_util_stream_t stream);
+
+    /**
+     *  @brief          ファイル記述子の読み書き位置を移動します (`lseek` / `_lseeki64` ラッパー)。
+     *  @param[in]      fd      対象のファイル記述子。com_util_open() が返した値を渡します。
+     *  @param[in]      offset  @p whence を基準とする移動量 (バイト)。
+     *  @param[in]      whence  基準位置 (@c SEEK_SET、@c SEEK_CUR、@c SEEK_END のいずれか)。
+     *  @return         成功時はファイル先頭からの新しい読み書き位置、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
+     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
+     *
+     *  @warning        @p fd が負の場合、または @p whence が上記以外の場合は、
+     *                  OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_lseek(int fd, int64_t offset, int whence);
+
+    /**
+     *  @brief          ファイル記述子を閉じます (`close` / `_close` ラッパー)。
+     *  @param[in]      fd  閉じるファイル記述子。com_util_open() が返した値を渡します。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p fd を複数スレッドで同時に閉じる操作は
+     *  二重クローズとなるため、呼び出し側で調停してください。
+     *
+     *  @warning        @p fd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_close(int fd);
+
+    /**
+     *  @brief          ファイル記述子を複製します (`dup` / `_dup` ラッパー)。
+     *  @param[in]      fd  複製元のファイル記述子。
+     *  @return         成功時は新しいファイル記述子、失敗時は -1 を返します。
+     *
+     *  複製されたファイル記述子は複製元と読み書き位置を共有します。\n
+     *  不要になったら com_util_close() で閉じてください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *
+     *  @warning        @p fd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_dup(int fd);
+
+    /**
+     *  @brief          ファイル記述子を指定番号へ複製します (`dup2` / `_dup2` ラッパー)。
+     *  @param[in]      oldfd  複製元のファイル記述子。
+     *  @param[in]      newfd  複製先のファイル記述子番号。開いている場合は先に閉じられます。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  POSIX の @c dup2 は成功時に @p newfd を返しますが、
+     *  本関数は Windows の @c _dup2 と挙動を揃えるため、成功時は常に 0 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     *
+     *  @warning        @p oldfd または @p newfd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_dup2(int oldfd, int newfd);
+
+    /**
+     *  @brief          ファイル記述子からデータを読み取ります (`read` / `_read` ラッパー)。
+     *  @param[in]      fd     読み取り元のファイル記述子。
+     *  @param[out]     buf    読み取ったデータの格納先。NULL を渡してはなりません。
+     *  @param[in]      count  読み取る最大バイト数。
+     *  @return         成功時は読み取ったバイト数 (ファイル終端では 0)、失敗時は -1 を返します。
+     *
+     *  要求した @p count より少ないバイト数で戻る場合があります。\n
+     *  Windows 環境では 1 回の呼び出しで読み取れる上限が @c INT_MAX バイトであり、
+     *  それを超える @p count は上限までに切り詰められます。\n
+     *  必要なバイト数に達するまで読み取る場合は、呼び出し側でループしてください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
+     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
+     *
+     *  @warning        @p fd が負の場合、または @p buf が NULL の場合は、
+     *                  OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_read(int fd, void *buf, size_t count);
+
+    /**
+     *  @brief          ファイル記述子へデータを書き込みます (`write` / `_write` ラッパー)。
+     *  @param[in]      fd     書き込み先のファイル記述子。
+     *  @param[in]      buf    書き込むデータ。NULL を渡してはなりません。
+     *  @param[in]      count  書き込むバイト数。
+     *  @return         成功時は書き込んだバイト数、失敗時は -1 を返します。
+     *
+     *  要求した @p count より少ないバイト数で戻る場合があります。\n
+     *  Windows 環境では 1 回の呼び出しで書き込める上限が @c INT_MAX バイトであり、
+     *  それを超える @p count は上限までに切り詰められます。\n
+     *  必要なバイト数を書き終えるまで、呼び出し側でループしてください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
+     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
+     *
+     *  @warning        @p fd が負の場合、または @p buf が NULL の場合は、
+     *                  OS の API を呼び出さずに -1 を返します。
+     */
+    COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_write(int fd, const void *buf, size_t count);
 
     /**
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー) です。

@@ -423,81 +423,30 @@ static void print_rc_result(int rc)
     printf("\x1b[31mrc=%d\x1b[0m\n", rc);
 }
 
-static void print_command_usage(const char *command)
+/**
+ *  @brief  CLI コマンド 1 個の定義 (名前・usage・ハンドラー) です。
+ *
+ *  コマンドの追加は g_commands へのエントリ追加で完結します
+ *  (trace_cli_print_help のコマンド一覧はあわせて更新すること)。
+ */
+struct trace_cli_command
 {
-    if (command == NULL)
-    {
-        return;
-    }
+    /** コマンド名。 */
+    const char *name;
 
-    if (strcmp(command, "create") == 0)
-    {
-        fprintf(stderr, "使用方法: create\n");
-    }
-    else if (strcmp(command, "dispose") == 0)
-    {
-        fprintf(stderr, "使用方法: dispose\n");
-    }
-    else if (strcmp(command, "start") == 0)
-    {
-        fprintf(stderr, "使用方法: start\n");
-    }
-    else if (strcmp(command, "stop") == 0)
-    {
-        fprintf(stderr, "使用方法: stop\n");
-    }
-    else if (strcmp(command, "set-name") == 0)
-    {
-        fprintf(stderr, "使用方法: set-name <name|null> [identifier]\n");
-    }
-    else if (strcmp(command, "get-os-level") == 0)
-    {
-        fprintf(stderr, "使用方法: get-os-level\n");
-    }
-    else if (strcmp(command, "set-os-level") == 0)
-    {
-        fprintf(stderr, "使用方法: set-os-level <level>\n");
-    }
-    else if (strcmp(command, "get-file-level") == 0)
-    {
-        fprintf(stderr, "使用方法: get-file-level\n");
-    }
-    else if (strcmp(command, "set-file-level") == 0)
-    {
-        fprintf(stderr, "使用方法: set-file-level <path|null> <level> [max-bytes] [generations]\n");
-    }
-    else if (strcmp(command, "get-stderr-level") == 0)
-    {
-        fprintf(stderr, "使用方法: get-stderr-level\n");
-    }
-    else if (strcmp(command, "set-stderr-level") == 0)
-    {
-        fprintf(stderr, "使用方法: set-stderr-level <level>\n");
-    }
-    else if (strcmp(command, "write") == 0)
-    {
-        fprintf(stderr, "使用方法: write <level> <message...>\n");
-    }
-    else if (strcmp(command, "writef") == 0)
-    {
-        fprintf(stderr, "使用方法: writef <level> <message...>\n");
-    }
-    else if (strcmp(command, "write-hex") == 0)
-    {
-        fprintf(stderr, "使用方法: write-hex <level> <hex> [label...]\n");
-    }
-    else if (strcmp(command, "write-hexf") == 0)
-    {
-        fprintf(stderr, "使用方法: write-hexf <level> <hex> [label...]\n");
-    }
-    else if (strcmp(command, "help") == 0)
-    {
-        fprintf(stderr, "使用方法: help\n");
-    }
-    else if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)
-    {
-        fprintf(stderr, "使用方法: %s\n", command);
-    }
+    /** usage 表示用の引数説明 (先頭に空白を含む)。引数なしは ""。 */
+    const char *usage_args;
+
+    /** 1 の場合、ディスパッチ側で余剰トークンを拒否する (引数なしコマンド)。 */
+    int no_args;
+
+    /** コマンド本体。成功時 0、終了要求時 1、失敗時 -1 を返す。 */
+    int (*handler)(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor);
+};
+
+static void print_command_usage(const struct trace_cli_command *cmd)
+{
+    fprintf(stderr, "使用方法: %s%s\n", cmd->name, cmd->usage_args);
 }
 
 void trace_cli_session_init(trace_cli_session *session)
@@ -555,11 +504,364 @@ static void print_interactive_hint(void)
     printf("help でコマンド一覧を表示します。exit で終了します。\n");
 }
 
+static int cmd_help(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)session;
+    (void)cmd;
+    (void)cursor;
+    trace_cli_print_help();
+    return 0;
+}
+
+static int cmd_exit(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    session->exit_requested = 1;
+    return 1;
+}
+
+static int cmd_create(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    if (session->handle != NULL)
+    {
+        fprintf(stderr, "エラー: 既存の handle を dispose してから create を実行してください。\n");
+        return -1;
+    }
+    session->handle = com_util_tracer_create();
+    if (session->handle == NULL)
+    {
+        session->prompt_state = TRACE_CLI_PROMPT_STATE_UNCREATED;
+        printf("handle=NULL\n");
+    }
+    else
+    {
+        printf("handle=created\n");
+    }
+    return 0;
+}
+
+static int cmd_dispose(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    com_util_tracer_dispose(session->handle);
+    session->handle = NULL;
+    session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
+    printf("handle=disposed\n");
+    return 0;
+}
+
+static int cmd_start(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    print_rc_result(com_util_tracer_start(session->handle));
+    return 0;
+}
+
+static int cmd_stop(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    print_rc_result(com_util_tracer_stop(session->handle));
+    return 0;
+}
+
+static int cmd_set_name(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *name_token;
+    char *identifier_token;
+    const char *name = NULL;
+    int64_t identifier = 0;
+    int rc;
+
+    name_token = next_token(cursor);
+    if (name_token == NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    identifier_token = next_token(cursor);
+    if (identifier_token != NULL && !parse_int64_value(identifier_token, &identifier))
+    {
+        fprintf(stderr, "エラー: identifier は整数で指定してください。\n");
+        return -1;
+    }
+    if (next_token(cursor) != NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+
+    if (!is_null_keyword(name_token))
+    {
+        name = name_token;
+    }
+    rc = com_util_tracer_set_name(session->handle, name, identifier);
+    print_rc_result(rc);
+    return 0;
+}
+
+static int cmd_get_os_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    print_level_result(com_util_tracer_get_os_level(session->handle));
+    return 0;
+}
+
+static int cmd_set_os_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *level_token;
+    com_util_trace_level_t level;
+
+    level_token = next_token(cursor);
+    if (level_token == NULL || next_token(cursor) != NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    if (!parse_trace_level(level_token, &level))
+    {
+        fprintf(stderr, "エラー: level が不正です。\n");
+        return -1;
+    }
+    print_rc_result(com_util_tracer_set_os_level(session->handle, level));
+    return 0;
+}
+
+static int cmd_get_file_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    print_level_result(com_util_tracer_get_file_level(session->handle));
+    return 0;
+}
+
+static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *path_token;
+    char *level_token;
+    char *max_bytes_token;
+    char *generations_token;
+    const char *path = NULL;
+    com_util_trace_level_t level;
+    size_t max_bytes = 0U;
+    int generations = 0;
+    int rc;
+
+    path_token = next_token(cursor);
+    level_token = next_token(cursor);
+    if (path_token == NULL || level_token == NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    if (!parse_trace_level(level_token, &level))
+    {
+        fprintf(stderr, "エラー: level が不正です。\n");
+        return -1;
+    }
+
+    max_bytes_token = next_token(cursor);
+    if (max_bytes_token != NULL && !parse_size_value(max_bytes_token, &max_bytes))
+    {
+        fprintf(stderr, "エラー: max-bytes は 0 以上の整数で指定してください。\n");
+        return -1;
+    }
+
+    generations_token = next_token(cursor);
+    if (generations_token != NULL && !parse_int_value(generations_token, &generations))
+    {
+        fprintf(stderr, "エラー: generations は整数で指定してください。\n");
+        return -1;
+    }
+
+    if (next_token(cursor) != NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+
+    if (!is_null_keyword(path_token))
+    {
+        path = path_token;
+    }
+    rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
+    print_rc_result(rc);
+    return 0;
+}
+
+static int cmd_get_stderr_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    (void)cmd;
+    (void)cursor;
+    print_level_result(com_util_tracer_get_stderr_level(session->handle));
+    return 0;
+}
+
+static int cmd_set_stderr_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *level_token;
+    com_util_trace_level_t level;
+
+    level_token = next_token(cursor);
+    if (level_token == NULL || next_token(cursor) != NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    if (!parse_trace_level(level_token, &level))
+    {
+        fprintf(stderr, "エラー: level が不正です。\n");
+        return -1;
+    }
+    print_rc_result(com_util_tracer_set_stderr_level(session->handle, level));
+    return 0;
+}
+
+static int cmd_write(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *level_token;
+    char *message;
+    com_util_trace_level_t level;
+    int rc;
+
+    level_token = next_token(cursor);
+    if (level_token == NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    if (!parse_trace_level(level_token, &level))
+    {
+        fprintf(stderr, "エラー: level が不正です。\n");
+        return -1;
+    }
+    message = rest_argument(cursor);
+    if (message == NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+
+    if (strcmp(cmd->name, "write") == 0)
+    {
+        rc = _com_util_tracer_write(session->handle, level, NULL, message);
+    }
+    else
+    {
+        rc = _com_util_tracer_writef(session->handle, level, NULL, "%s", message);
+    }
+    print_rc_result(rc);
+    return 0;
+}
+
+static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
+{
+    char *level_token;
+    char *hex_token;
+    char *label_cursor;
+    char *label;
+    com_util_trace_level_t level;
+    unsigned char *data = NULL;
+    size_t size = 0U;
+    int rc;
+
+    level_token = next_token(cursor);
+    hex_token = next_token(cursor);
+    if (level_token == NULL || hex_token == NULL)
+    {
+        print_command_usage(cmd);
+        return -1;
+    }
+    if (!parse_trace_level(level_token, &level))
+    {
+        fprintf(stderr, "エラー: level が不正です。\n");
+        return -1;
+    }
+    if (!parse_hex_bytes(hex_token, &data, &size))
+    {
+        fprintf(stderr, "エラー: hex は 16 進文字列で指定してください。\n");
+        return -1;
+    }
+
+    label_cursor = *cursor;
+    label = rest_argument(cursor);
+    if (label == NULL && *skip_spaces(label_cursor) != '\0')
+    {
+        free(data);
+        print_command_usage(cmd);
+        return -1;
+    }
+
+    if (strcmp(cmd->name, "write-hex") == 0)
+    {
+        rc = _com_util_tracer_write_hex(session->handle, level, NULL, data, size, label);
+    }
+    else
+    {
+        const char *label_str;
+        if (label != NULL)
+        {
+            label_str = label;
+        }
+        else
+        {
+            label_str = "";
+        }
+        rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s", label_str);
+    }
+    print_rc_result(rc);
+    free(data);
+    return 0;
+}
+
+/** コマンド テーブル (trace_cli_print_help のコマンド一覧と同順)。 */
+static const struct trace_cli_command g_commands[] = {
+    {"help", "", 1, cmd_help},
+    {"exit", "", 1, cmd_exit},
+    {"quit", "", 1, cmd_exit},
+    {"create", "", 1, cmd_create},
+    {"dispose", "", 1, cmd_dispose},
+    {"start", "", 1, cmd_start},
+    {"stop", "", 1, cmd_stop},
+    {"set-name", " <name|null> [identifier]", 0, cmd_set_name},
+    {"get-os-level", "", 1, cmd_get_os_level},
+    {"set-os-level", " <level>", 0, cmd_set_os_level},
+    {"get-file-level", "", 1, cmd_get_file_level},
+    {"set-file-level", " <path|null> <level> [max-bytes] [generations]", 0, cmd_set_file_level},
+    {"get-stderr-level", "", 1, cmd_get_stderr_level},
+    {"set-stderr-level", " <level>", 0, cmd_set_stderr_level},
+    {"write", " <level> <message...>", 0, cmd_write},
+    {"writef", " <level> <message...>", 0, cmd_write},
+    {"write-hex", " <level> <hex> [label...]", 0, cmd_write_hex},
+    {"write-hexf", " <level> <hex> [label...]", 0, cmd_write_hex},
+};
+
+static const struct trace_cli_command *find_command(const char *name)
+{
+    size_t i;
+
+    for (i = 0U; i < sizeof(g_commands) / sizeof(g_commands[0]); i++)
+    {
+        if (strcmp(name, g_commands[i].name) == 0)
+        {
+            return &g_commands[i];
+        }
+    }
+    return NULL;
+}
+
 int trace_cli_process_line(trace_cli_session *session, const char *line)
 {
     char buffer[TRACE_CLI_LINE_MAX];
     char *cursor;
     char *command;
+    const struct trace_cli_command *cmd;
 
     if (session == NULL || line == NULL)
     {
@@ -576,360 +878,20 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
         return 0;
     }
 
-    if (strcmp(command, "help") == 0)
+    cmd = find_command(command);
+    if (cmd == NULL)
     {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        trace_cli_print_help();
-        return 0;
+        fprintf(stderr, "エラー: 不明なコマンドです: %s\n", command);
+        return -1;
     }
 
-    if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)
+    if (cmd->no_args && next_token(&cursor) != NULL)
     {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        session->exit_requested = 1;
-        return 1;
+        print_command_usage(cmd);
+        return -1;
     }
 
-    if (strcmp(command, "create") == 0)
-    {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (session->handle != NULL)
-        {
-            fprintf(stderr, "エラー: 既存の handle を dispose してから create を実行してください。\n");
-            return -1;
-        }
-        session->handle = com_util_tracer_create();
-        if (session->handle == NULL)
-        {
-            session->prompt_state = TRACE_CLI_PROMPT_STATE_UNCREATED;
-            printf("handle=NULL\n");
-        }
-        else
-        {
-            printf("handle=created\n");
-        }
-        return 0;
-    }
-
-    if (strcmp(command, "dispose") == 0)
-    {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        com_util_tracer_dispose(session->handle);
-        session->handle = NULL;
-        session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
-        printf("handle=disposed\n");
-        return 0;
-    }
-
-    if (strcmp(command, "start") == 0)
-    {
-        int rc;
-
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        rc = com_util_tracer_start(session->handle);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "stop") == 0)
-    {
-        int rc;
-
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        rc = com_util_tracer_stop(session->handle);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "set-name") == 0)
-    {
-        char *name_token;
-        char *identifier_token;
-        const char *name = NULL;
-        int64_t identifier = 0;
-        int rc;
-
-        name_token = next_token(&cursor);
-        if (name_token == NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        identifier_token = next_token(&cursor);
-        if (identifier_token != NULL && !parse_int64_value(identifier_token, &identifier))
-        {
-            fprintf(stderr, "エラー: identifier は整数で指定してください。\n");
-            return -1;
-        }
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-
-        if (!is_null_keyword(name_token))
-        {
-            name = name_token;
-        }
-        rc = com_util_tracer_set_name(session->handle, name, identifier);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "get-os-level") == 0)
-    {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        print_level_result(com_util_tracer_get_os_level(session->handle));
-        return 0;
-    }
-
-    if (strcmp(command, "set-os-level") == 0)
-    {
-        char *level_token;
-        com_util_trace_level_t level;
-        int rc;
-
-        level_token = next_token(&cursor);
-        if (level_token == NULL || next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (!parse_trace_level(level_token, &level))
-        {
-            fprintf(stderr, "エラー: level が不正です。\n");
-            return -1;
-        }
-        rc = com_util_tracer_set_os_level(session->handle, level);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "get-file-level") == 0)
-    {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        print_level_result(com_util_tracer_get_file_level(session->handle));
-        return 0;
-    }
-
-    if (strcmp(command, "set-file-level") == 0)
-    {
-        char *path_token;
-        char *level_token;
-        char *max_bytes_token;
-        char *generations_token;
-        const char *path = NULL;
-        com_util_trace_level_t level;
-        size_t max_bytes = 0U;
-        int generations = 0;
-        int rc;
-
-        path_token = next_token(&cursor);
-        level_token = next_token(&cursor);
-        if (path_token == NULL || level_token == NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (!parse_trace_level(level_token, &level))
-        {
-            fprintf(stderr, "エラー: level が不正です。\n");
-            return -1;
-        }
-
-        max_bytes_token = next_token(&cursor);
-        if (max_bytes_token != NULL && !parse_size_value(max_bytes_token, &max_bytes))
-        {
-            fprintf(stderr, "エラー: max-bytes は 0 以上の整数で指定してください。\n");
-            return -1;
-        }
-
-        generations_token = next_token(&cursor);
-        if (generations_token != NULL && !parse_int_value(generations_token, &generations))
-        {
-            fprintf(stderr, "エラー: generations は整数で指定してください。\n");
-            return -1;
-        }
-
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-
-        if (!is_null_keyword(path_token))
-        {
-            path = path_token;
-        }
-        rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "get-stderr-level") == 0)
-    {
-        if (next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        print_level_result(com_util_tracer_get_stderr_level(session->handle));
-        return 0;
-    }
-
-    if (strcmp(command, "set-stderr-level") == 0)
-    {
-        char *level_token;
-        com_util_trace_level_t level;
-        int rc;
-
-        level_token = next_token(&cursor);
-        if (level_token == NULL || next_token(&cursor) != NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (!parse_trace_level(level_token, &level))
-        {
-            fprintf(stderr, "エラー: level が不正です。\n");
-            return -1;
-        }
-        rc = com_util_tracer_set_stderr_level(session->handle, level);
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "write") == 0 || strcmp(command, "writef") == 0)
-    {
-        char *level_token;
-        char *message;
-        com_util_trace_level_t level;
-        int rc;
-
-        level_token = next_token(&cursor);
-        if (level_token == NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (!parse_trace_level(level_token, &level))
-        {
-            fprintf(stderr, "エラー: level が不正です。\n");
-            return -1;
-        }
-        message = rest_argument(&cursor);
-        if (message == NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-
-        if (strcmp(command, "write") == 0)
-        {
-            rc = _com_util_tracer_write(session->handle, level, NULL, message);
-        }
-        else
-        {
-            rc = _com_util_tracer_writef(session->handle, level, NULL, "%s", message);
-        }
-        print_rc_result(rc);
-        return 0;
-    }
-
-    if (strcmp(command, "write-hex") == 0 || strcmp(command, "write-hexf") == 0)
-    {
-        char *level_token;
-        char *hex_token;
-        char *label_cursor;
-        char *label;
-        com_util_trace_level_t level;
-        unsigned char *data = NULL;
-        size_t size = 0U;
-        int rc;
-
-        level_token = next_token(&cursor);
-        hex_token = next_token(&cursor);
-        if (level_token == NULL || hex_token == NULL)
-        {
-            print_command_usage(command);
-            return -1;
-        }
-        if (!parse_trace_level(level_token, &level))
-        {
-            fprintf(stderr, "エラー: level が不正です。\n");
-            return -1;
-        }
-        if (!parse_hex_bytes(hex_token, &data, &size))
-        {
-            fprintf(stderr, "エラー: hex は 16 進文字列で指定してください。\n");
-            return -1;
-        }
-
-        label_cursor = cursor;
-        label = rest_argument(&cursor);
-        if (label == NULL && *skip_spaces(label_cursor) != '\0')
-        {
-            free(data);
-            print_command_usage(command);
-            return -1;
-        }
-
-        if (strcmp(command, "write-hex") == 0)
-        {
-            rc = _com_util_tracer_write_hex(session->handle, level, NULL, data, size, label);
-        }
-        else
-        {
-            const char *label_str;
-            if (label != NULL)
-            {
-                label_str = label;
-            }
-            else
-            {
-                label_str = "";
-            }
-            rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s", label_str);
-        }
-        print_rc_result(rc);
-        free(data);
-        return 0;
-    }
-
-    fprintf(stderr, "エラー: 不明なコマンドです: %s\n", command);
-    return -1;
+    return cmd->handler(session, cmd, &cursor);
 }
 
 int main(int argc, char *argv[])

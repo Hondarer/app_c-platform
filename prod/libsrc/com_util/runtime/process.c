@@ -878,6 +878,39 @@ static void close_stdio_handles(HANDLE handles[3])
         i++;
     }
 }
+
+/**
+ *  @brief  com_util_process_start (Windows) が確保する一時リソースの集合です。
+ *
+ *  ゼロ初期化した状態から任意の時点で release_process_start_resources() へ
+ *  渡せるため、確保段階ごとに解放シーケンスを書き分ける必要がありません。
+ */
+struct process_start_resources
+{
+    wchar_t *command_line;
+    wchar_t *environment_block;
+    wchar_t *working_directory;
+    HANDLE stdio_handles[3];
+    LPPROC_THREAD_ATTRIBUTE_LIST attribute_list;
+    int attribute_list_initialized;
+};
+
+/**
+ *  @brief          com_util_process_start (Windows) の一時リソースをすべて解放します。
+ *  @param[in]      res  解放対象のリソース集合。未確保メンバーは 0/NULL であること。
+ */
+static void release_process_start_resources(struct process_start_resources *res)
+{
+    if (res->attribute_list_initialized)
+    {
+        DeleteProcThreadAttributeList(res->attribute_list);
+    }
+    free(res->attribute_list);
+    close_stdio_handles(res->stdio_handles);
+    free(res->working_directory);
+    free(res->environment_block);
+    free(res->command_line);
+}
 #endif /* PLATFORM_ */
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -997,106 +1030,84 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         STARTUPINFOEXW startup;
         PROCESS_INFORMATION process_info;
         SIZE_T attr_size;
-        HANDLE stdio_handles[3];
         HANDLE inherit_handles[3];
-        wchar_t *command_line;
-        wchar_t *environment_block;
-        wchar_t *working_directory;
+        struct process_start_resources res;
         DWORD create_flags;
         BOOL created;
 
         memset(&startup, 0, sizeof(startup));
         memset(&process_info, 0, sizeof(process_info));
-        memset(stdio_handles, 0, sizeof(stdio_handles));
         memset(inherit_handles, 0, sizeof(inherit_handles));
-        command_line = build_command_line(options->argv);
-        if (command_line == NULL)
+        memset(&res, 0, sizeof(res));
+
+        res.command_line = build_command_line(options->argv);
+        if (res.command_line == NULL)
         {
             return COM_UTIL_PROCESS_SYSTEM_ERROR;
         }
 
-        environment_block = build_environment_block(options->env_overrides);
-        if (options->env_overrides != NULL && environment_block == NULL)
+        res.environment_block = build_environment_block(options->env_overrides);
+        if (options->env_overrides != NULL && res.environment_block == NULL)
         {
-            free(command_line);
+            release_process_start_resources(&res);
             return COM_UTIL_PROCESS_INVALID_ARGUMENT;
         }
 
-        working_directory = NULL;
         if (options->working_directory != NULL)
         {
-            working_directory = com_util_utf8_to_wstr_alloc(options->working_directory);
-            if (working_directory == NULL)
+            res.working_directory = com_util_utf8_to_wstr_alloc(options->working_directory);
+            if (res.working_directory == NULL)
             {
-                free(environment_block);
-                free(command_line);
+                release_process_start_resources(&res);
                 return COM_UTIL_PROCESS_SYSTEM_ERROR;
             }
         }
 
-        if (prepare_stdio_handle(&options->stdin_spec, STD_INPUT_HANDLE, GENERIC_READ, &stdio_handles[0]) != 0 ||
-            prepare_stdio_handle(&options->stdout_spec, STD_OUTPUT_HANDLE, GENERIC_WRITE, &stdio_handles[1]) != 0 ||
-            prepare_stdio_handle(&options->stderr_spec, STD_ERROR_HANDLE, GENERIC_WRITE, &stdio_handles[2]) != 0)
+        if (prepare_stdio_handle(&options->stdin_spec, STD_INPUT_HANDLE, GENERIC_READ, &res.stdio_handles[0]) != 0 ||
+            prepare_stdio_handle(&options->stdout_spec, STD_OUTPUT_HANDLE, GENERIC_WRITE, &res.stdio_handles[1]) != 0 ||
+            prepare_stdio_handle(&options->stderr_spec, STD_ERROR_HANDLE, GENERIC_WRITE, &res.stdio_handles[2]) != 0)
         {
-            close_stdio_handles(stdio_handles);
-            free(working_directory);
-            free(environment_block);
-            free(command_line);
+            release_process_start_resources(&res);
             return COM_UTIL_PROCESS_SYSTEM_ERROR;
         }
 
         startup.StartupInfo.cb = sizeof(startup);
         startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-        startup.StartupInfo.hStdInput = stdio_handles[0];
-        startup.StartupInfo.hStdOutput = stdio_handles[1];
-        startup.StartupInfo.hStdError = stdio_handles[2];
+        startup.StartupInfo.hStdInput = res.stdio_handles[0];
+        startup.StartupInfo.hStdOutput = res.stdio_handles[1];
+        startup.StartupInfo.hStdError = res.stdio_handles[2];
 
         attr_size = 0;
         InitializeProcThreadAttributeList(NULL, 1, 0, &attr_size);
-        startup.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)calloc(1, attr_size);
-        if (startup.lpAttributeList == NULL)
+        res.attribute_list = (LPPROC_THREAD_ATTRIBUTE_LIST)calloc(1, attr_size);
+        if (res.attribute_list == NULL)
         {
-            close_stdio_handles(stdio_handles);
-            free(working_directory);
-            free(environment_block);
-            free(command_line);
+            release_process_start_resources(&res);
             return COM_UTIL_PROCESS_SYSTEM_ERROR;
         }
-        if (!InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &attr_size))
+        if (!InitializeProcThreadAttributeList(res.attribute_list, 1, 0, &attr_size))
         {
-            free(startup.lpAttributeList);
-            close_stdio_handles(stdio_handles);
-            free(working_directory);
-            free(environment_block);
-            free(command_line);
+            release_process_start_resources(&res);
             return COM_UTIL_PROCESS_SYSTEM_ERROR;
         }
+        res.attribute_list_initialized = 1;
+        startup.lpAttributeList = res.attribute_list;
 
-        inherit_handles[0] = stdio_handles[0];
-        inherit_handles[1] = stdio_handles[1];
-        inherit_handles[2] = stdio_handles[2];
+        inherit_handles[0] = res.stdio_handles[0];
+        inherit_handles[1] = res.stdio_handles[1];
+        inherit_handles[2] = res.stdio_handles[2];
         if (!UpdateProcThreadAttribute(startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles,
                                        sizeof(inherit_handles), NULL, NULL))
         {
-            DeleteProcThreadAttributeList(startup.lpAttributeList);
-            free(startup.lpAttributeList);
-            close_stdio_handles(stdio_handles);
-            free(working_directory);
-            free(environment_block);
-            free(command_line);
+            release_process_start_resources(&res);
             return COM_UTIL_PROCESS_SYSTEM_ERROR;
         }
 
         create_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
-        created = CreateProcessW(NULL, command_line, NULL, NULL, TRUE, create_flags, environment_block,
-                                 working_directory, &startup.StartupInfo, &process_info);
+        created = CreateProcessW(NULL, res.command_line, NULL, NULL, TRUE, create_flags, res.environment_block,
+                                 res.working_directory, &startup.StartupInfo, &process_info);
 
-        DeleteProcThreadAttributeList(startup.lpAttributeList);
-        free(startup.lpAttributeList);
-        close_stdio_handles(stdio_handles);
-        free(working_directory);
-        free(environment_block);
-        free(command_line);
+        release_process_start_resources(&res);
 
         if (!created)
         {

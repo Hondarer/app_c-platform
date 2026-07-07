@@ -3,7 +3,8 @@
  *  @file           unistd.c
  *  @brief          unistd 系の CRT 関数を抽象化する API を実装します。
  *
- *  標準ストリームの端末判定と UTF-8 パスのアクセス確認を提供します。
+ *  標準ストリームの端末判定、UTF-8 パスのアクセス確認、
+ *  ファイル記述子の操作 (位置移動、クローズ、複製、読み書き) を提供します。
  *
  *******************************************************************************
  */
@@ -11,9 +12,12 @@
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/path.h>
 
+#include <stdio.h>
+
 #include <com_util/crt/wchar_conv.h>
 
 #if defined(PLATFORM_WINDOWS)
+    #include <limits.h>
     #include <com_util/base/windows_sdk.h>
 #endif /* PLATFORM_WINDOWS */
 
@@ -80,6 +84,148 @@ int com_util_isatty(const com_util_stream_t stream)
     (void)stream;
     return 0;
 
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int64_t com_util_lseek(const int fd, const int64_t offset, const int whence)
+{
+    if (fd < 0)
+    {
+        return -1;
+    }
+
+    /* MSVC の _lseeki64 は不正な whence で invalid parameter handler を起動するため、 */
+    /* OS の API を呼び出す前に検査する。                                              */
+    /* see: https://learn.microsoft.com/cpp/c-runtime-library/reference/lseek-lseeki64 */
+    if (whence != SEEK_SET && whence != SEEK_CUR && whence != SEEK_END)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return (int64_t)lseek(fd, (off_t)offset, whence);
+#elif defined(PLATFORM_WINDOWS)
+    return (int64_t)_lseeki64(fd, offset, whence);
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_close(const int fd)
+{
+    if (fd < 0)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return close(fd);
+#elif defined(PLATFORM_WINDOWS)
+    return _close(fd);
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_dup(const int fd)
+{
+    if (fd < 0)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return dup(fd);
+#elif defined(PLATFORM_WINDOWS)
+    return _dup(fd);
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_dup2(const int oldfd, const int newfd)
+{
+    if (oldfd < 0 || newfd < 0)
+    {
+        return -1;
+    }
+
+    /* POSIX の dup2 は成功時に newfd を、Windows の _dup2 は 0 を返す。 */
+    /* 本関数は成功時 0 に正規化する。                                   */
+#if defined(PLATFORM_LINUX)
+    if (dup2(oldfd, newfd) == -1)
+    {
+        return -1;
+    }
+    return 0;
+#elif defined(PLATFORM_WINDOWS)
+    if (_dup2(oldfd, newfd) != 0)
+    {
+        return -1;
+    }
+    return 0;
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int64_t com_util_read(const int fd, void *buf, const size_t count)
+{
+    if (fd < 0 || buf == NULL)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return (int64_t)read(fd, buf, count);
+#elif defined(PLATFORM_WINDOWS)
+    {
+        unsigned int request;
+
+        /* _read の引数は unsigned int のため、INT_MAX に切り詰める (部分読み取り)。 */
+        if (count > (size_t)INT_MAX)
+        {
+            request = (unsigned int)INT_MAX;
+        }
+        else
+        {
+            request = (unsigned int)count;
+        }
+
+        return (int64_t)_read(fd, buf, request);
+    }
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int64_t com_util_write(const int fd, const void *buf, const size_t count)
+{
+    if (fd < 0 || buf == NULL)
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return (int64_t)write(fd, buf, count);
+#elif defined(PLATFORM_WINDOWS)
+    {
+        unsigned int request;
+
+        /* _write の引数は unsigned int のため、INT_MAX に切り詰める (部分書き込み)。 */
+        if (count > (size_t)INT_MAX)
+        {
+            request = (unsigned int)INT_MAX;
+        }
+        else
+        {
+            request = (unsigned int)count;
+        }
+
+        return (int64_t)_write(fd, buf, request);
+    }
 #endif /* PLATFORM_ */
 }
 

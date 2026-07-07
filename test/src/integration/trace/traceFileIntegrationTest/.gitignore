@@ -4,6 +4,7 @@
 /process.c
 /stdio.c
 /time.c
+/trace_common.c
 /trace_etw.c
 /trace_file.c
 /trace_syslog.c

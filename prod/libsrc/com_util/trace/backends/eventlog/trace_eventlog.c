@@ -399,7 +399,14 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
 
     wmsg = com_util_utf8_to_wstr_alloc(message);
     wfile_id = com_util_utf8_to_wstr_alloc(file_id);
-    winstance = com_util_utf8_to_wstr_alloc(instance_name != NULL ? instance_name : "");
+    if (instance_name != NULL)
+    {
+        winstance = com_util_utf8_to_wstr_alloc(instance_name);
+    }
+    else
+    {
+        winstance = com_util_utf8_to_wstr_alloc("");
+    }
     winstance_id = com_util_utf8_to_wstr_alloc(instance_id);
 
     if (wmsg == NULL || wfile_id == NULL || winstance == NULL || winstance_id == NULL)

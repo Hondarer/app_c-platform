@@ -1,4 +1,5 @@
 /file_api.c
+/sync_descriptor.c
 /sync_linux.c
 /sync_windows.c
 /wchar_conv.c
