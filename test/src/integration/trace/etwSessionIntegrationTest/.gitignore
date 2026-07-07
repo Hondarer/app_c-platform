@@ -1,4 +1,5 @@
 /string.c
+/sync_descriptor.c
 /sync_windows.c
 /trace_etw.c
 /trace_etw_session.c
