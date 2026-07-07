@@ -18,6 +18,7 @@ class fdTest : public Test
   protected:
     std::string path_;
     int fd_ = -1;
+    int pad_ = 0;
 
     void SetUp() override
     {

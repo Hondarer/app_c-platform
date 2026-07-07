@@ -440,6 +440,9 @@ struct trace_cli_command
     /** 1 の場合、ディスパッチ側で余剰トークンを拒否する (引数なしコマンド)。 */
     int no_args;
 
+    /** パディング (handler をポインター境界に揃える)。 */
+    int pad;
+
     /** コマンド本体。成功時 0、終了要求時 1、失敗時 -1 を返す。 */
     int (*handler)(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor);
 };
@@ -796,24 +799,24 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
 
 /** コマンド テーブル (help のコマンド一覧はこの順で表示される)。 */
 static const struct trace_cli_command g_commands[] = {
-    {"help", "", 1, cmd_help},
-    {"exit", "", 1, cmd_exit},
-    {"quit", "", 1, cmd_exit},
-    {"create", "", 1, cmd_create},
-    {"dispose", "", 1, cmd_dispose},
-    {"start", "", 1, cmd_start},
-    {"stop", "", 1, cmd_stop},
-    {"set-name", " <name|null> [identifier]", 0, cmd_set_name},
-    {"get-os-level", "", 1, cmd_get_os_level},
-    {"set-os-level", " <level>", 0, cmd_set_os_level},
-    {"get-file-level", "", 1, cmd_get_file_level},
-    {"set-file-level", " <path|null> <level> [max-bytes] [generations]", 0, cmd_set_file_level},
-    {"get-stderr-level", "", 1, cmd_get_stderr_level},
-    {"set-stderr-level", " <level>", 0, cmd_set_stderr_level},
-    {"write", " <level> <message...>", 0, cmd_write},
-    {"writef", " <level> <message...>", 0, cmd_write},
-    {"write-hex", " <level> <hex> [label...]", 0, cmd_write_hex},
-    {"write-hexf", " <level> <hex> [label...]", 0, cmd_write_hex},
+    {"help", "", 1, 0, cmd_help},
+    {"exit", "", 1, 0, cmd_exit},
+    {"quit", "", 1, 0, cmd_exit},
+    {"create", "", 1, 0, cmd_create},
+    {"dispose", "", 1, 0, cmd_dispose},
+    {"start", "", 1, 0, cmd_start},
+    {"stop", "", 1, 0, cmd_stop},
+    {"set-name", " <name|null> [identifier]", 0, 0, cmd_set_name},
+    {"get-os-level", "", 1, 0, cmd_get_os_level},
+    {"set-os-level", " <level>", 0, 0, cmd_set_os_level},
+    {"get-file-level", "", 1, 0, cmd_get_file_level},
+    {"set-file-level", " <path|null> <level> [max-bytes] [generations]", 0, 0, cmd_set_file_level},
+    {"get-stderr-level", "", 1, 0, cmd_get_stderr_level},
+    {"set-stderr-level", " <level>", 0, 0, cmd_set_stderr_level},
+    {"write", " <level> <message...>", 0, 0, cmd_write},
+    {"writef", " <level> <message...>", 0, 0, cmd_write},
+    {"write-hex", " <level> <hex> [label...]", 0, 0, cmd_write_hex},
+    {"write-hexf", " <level> <hex> [label...]", 0, 0, cmd_write_hex},
 };
 
 static const struct trace_cli_command *find_command(const char *name)
