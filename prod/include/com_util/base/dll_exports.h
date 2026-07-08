@@ -14,7 +14,7 @@
  *  する場合は、対応コンパイラが暗黙に `1` を与える前提で扱います。
  *
  *  例:
- *  @code{.c}
+    @code{.c}
     #ifndef CALC_STATIC
         #define CALC_STATIC 0
     #endif
@@ -24,12 +24,12 @@
     #include <com_util/base/dll_exports.h>
     #define CALC_EXPORT COM_UTIL_DLL_EXPORT(CALC)
     #define CALC_API    COM_UTIL_DLL_API(CALC)
- *  @endcode
+    @endcode
  *
  *  makefile から渡す場合の例:
- *  @code{.mk}
+    @code{.mk}
     CFLAGS += /DCALC_EXPORTS
- *  @endcode
+    @endcode
  *
  *  上記の例では判定に以下のプレフィックス派生マクロを参照します。
  *  - CALC_STATIC

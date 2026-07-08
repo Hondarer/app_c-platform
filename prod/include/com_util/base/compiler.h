@@ -28,7 +28,7 @@
  *  | NO_INLINE    | __attribute__((noinline))             | __declspec(noinline)  | (空)   |
  *
  *  @section        usage 使用例
- *  @code{.c}
+    @code{.c}
     #include "compiler.h"
 
     FORCE_INLINE int fast_add(int a, int b)
@@ -40,7 +40,7 @@
     {
         fprintf(stderr, "%s\n", msg);
     }
- *  @endcode
+    @endcode
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

@@ -10,10 +10,10 @@
  *  読み込み、_func_objects 配列の対応エントリに設定します。\n
  *
  *  ファイル フォーマット:\n
- *  @code
+    @code
     # コメント行
     func_key  lib_name  func_name   # 行末コメント
- *  @endcode
+    @endcode
  *
  *  - '#' で始まる行はコメント行として無視する。\n
  *  - 行中の '#' 以降を行末コメントとして切り捨てる。\n

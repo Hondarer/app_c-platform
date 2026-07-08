@@ -12,7 +12,7 @@
  *  使用します。
  *
  *  @par            アーキテクチャー
- *  @code
+    @code
    Application
          |
          v  tracer.h (共通 API)
@@ -21,10 +21,10 @@
    |           |      |        |
    ETW        syslog File    stderr
    (Windows)  (Linux) (両OS)  (両OS)
- *  @endcode
+    @endcode
  *
  *  @par            使用例 (共通)
- *  @code{.c}
+    @code{.c}
    #include <com_util/trace/tracer.h>
 
    com_util_tracer *tracer = com_util_tracer_create();
@@ -33,10 +33,10 @@
    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "application started");
    com_util_tracer_stop(tracer);
    com_util_tracer_dispose(tracer);
- *  @endcode
+    @endcode
  *
  *  @par            使用例 (設定変更)
- *  @code{.c}
+    @code{.c}
    com_util_tracer *tracer = com_util_tracer_create();
    com_util_tracer_set_name(tracer, "myapp", 0);
    com_util_tracer_set_os_level(tracer, COM_UTIL_TRACE_LEVEL_VERBOSE);
@@ -48,7 +48,7 @@
    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as myapp_1");
    com_util_tracer_stop(tracer);
    com_util_tracer_dispose(tracer);
- *  @endcode
+    @endcode
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -251,7 +251,7 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
  *  @param[in]  context   com_util_tracer_set_hook で渡したコンテキスト。
  *
  *  @par        チェーン例
- *  @code{.c}
+    @code{.c}
     void my_hook(com_util_tracer_hook_entry *prev,
                  com_util_tracer *handle,
                  com_util_trace_level_t level,
@@ -263,7 +263,7 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
         // 前のフックへ継続 (省略すると以降のチェーンは呼ばれない)
         com_util_tracer_call_next_hook(prev, handle, level, timestamp, message);
     }
- *  @endcode
+    @endcode
  *
  *  @par            スレッド セーフ
  *  コールバックは複数スレッドから同時に呼び出される可能性があります。\n
@@ -318,14 +318,14 @@ extern "C"
      *                  stopped / started のどちらでも使用できます。
      *
      *  @par            使用例
-     *  @code{.c}
+        @code{.c}
        com_util_tracer *tracer = com_util_tracer_create();
        com_util_tracer_set_name(tracer, "myapp", 0);
        com_util_tracer_start(tracer);
        com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "application started");
        com_util_tracer_stop(tracer);
        com_util_tracer_dispose(tracer);
-     *  @endcode
+        @endcode
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -807,14 +807,14 @@ extern "C"
      *                  NULL を返します。
      *
      *  @par            使用例
-     *  @code{.c}
+        @code{.c}
         com_util_tracer_hook_entry *entry =
             com_util_tracer_set_hook(tracer, my_hook, NULL);
         com_util_tracer_start(tracer);
         // ... trace 処理 ...
         com_util_tracer_stop(tracer);
         com_util_tracer_remove_hook(tracer, entry);
-     *  @endcode
+        @endcode
      *
      *  @par            スレッド セーフ
      *  本関数は stopped 状態でスレッド セーフです。

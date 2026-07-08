@@ -17,9 +17,9 @@
  *  通信が可能です。
  *
  *  圧縮ペイロードのフォーマット:
- *  @code
+    @code
     [元サイズ: uint32_t (ネットワークバイトオーダー)] [raw DEFLATE データ]
- *  @endcode
+    @endcode
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

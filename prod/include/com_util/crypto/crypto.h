@@ -14,14 +14,14 @@
  *  | Windows | CNG (BCrypt) BCRYPT_AES_ALGORITHM / BCRYPT_SHA256_ALGORITHM | AES-256-GCM / SHA-256 |
  *
  *  暗号化ペイロードのフォーマット:
- *  @code
+    @code
     [暗号文: src_len バイト] [GCM 認証タグ: COM_UTIL_CRYPTO_TAG_SIZE バイト]
- *  @endcode
+    @endcode
  *
  *  ノンス構成 (12 バイト):
- *  @code
+    @code
     [session_id: 4B NBO] [seq_num: 4B NBO] [padding: 4B 0x00]
- *  @endcode
+    @endcode
  *
  *  追加認証データ (AAD): 呼び出し元が任意のバイト列を指定可能。
  *

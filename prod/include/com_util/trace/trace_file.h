@@ -11,9 +11,9 @@
  *  同じ init / write / dispose インターフェースを提供します。
  *
  *  @par            出力フォーマット
- *  @code
+    @code
    2026-03-31 12:34:56.789 I メッセージテキスト
- *  @endcode
+    @endcode
  *  レベル文字: C=CRITICAL / E=ERROR / W=WARNING / I=INFO / V=VERBOSE
  *
  *  @hideincludedbygraph

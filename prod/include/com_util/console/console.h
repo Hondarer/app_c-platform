@@ -9,7 +9,7 @@
  *  使用できます。
  *
  *  @par            使用例
- *  @code{.c}
+    @code{.c}
     #include <com_util/console/console.h>
     #include <stdio.h>
 
@@ -20,7 +20,7 @@
         com_util_console_dispose();
         return 0;
     }
- *  @endcode
+    @endcode
  *
  *  @hideincludedbygraph
  *

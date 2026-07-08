@@ -108,13 +108,13 @@ extern "C"
      *                  com_util_get_monotonic() を使用してください。
      *
      *  使用例:
-     *  @code{.c}
+        @code{.c}
         uint64_t deadline = com_util_get_monotonic_ms() + 500; // 500 ms タイムアウト
         while (com_util_get_monotonic_ms() < deadline)
         {
             // 処理
         }
-     *  @endcode
+        @endcode
      */
     COM_UTIL_EXPORT uint64_t COM_UTIL_API com_util_get_monotonic_ms(void);
 
@@ -150,7 +150,7 @@ extern "C"
      *  @remark         ms 精度で十分な場合は com_util_get_monotonic_ms() の使用を推奨します。
      *
      *  使用例 (経過ナノ秒を算出):
-     *  @code{.c}
+        @code{.c}
         int64_t  sec0, sec1;
         int32_t  nsec0, nsec1;
         int64_t  elapsed_ns;
@@ -160,7 +160,7 @@ extern "C"
         com_util_get_monotonic(&sec1, &nsec1);
 
         elapsed_ns = (sec1 - sec0) * 1000000000LL + (nsec1 - nsec0);
-     *  @endcode
+        @endcode
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec);
 
@@ -200,13 +200,13 @@ extern "C"
      *  @note           Windows では tv_nsec の有効桁は 100 ns 単位 (100 刻み) になります。
      *
      *  使用例 (セッション開始時刻の記録):
-     *  @code{.c}
+        @code{.c}
         int64_t  session_sec;
         int32_t  session_nsec;
 
         com_util_get_realtime(&session_sec, &session_nsec);
         // session_sec / session_nsec を構造体に保存して識別子として使用する
-     *  @endcode
+        @endcode
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
 
@@ -285,13 +285,13 @@ extern "C"
      *  @note           `utc_tm` は UTC であり、ローカル タイムではありません。
      *
      *  使用例:
-     *  @code{.c}
+        @code{.c}
         struct tm utc_tm;
         int32_t   nsec;
 
         com_util_get_realtime_utc(&utc_tm, &nsec);
         // utc_tm と nsec を使って "YYYY-MM-DD HH:MM:SS.mmm" を組み立てる
-     *  @endcode
+        @endcode
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec);
 
@@ -312,12 +312,12 @@ extern "C"
      *                  差分計算には使用しないでください。
      *
      *  使用例:
-     *  @code{.c}
+        @code{.c}
      *  struct timespec deadline;
      *
      *  com_util_get_realtime_deadline_ms(100, &deadline);
      *  // absolute deadline を要求する同期 API へ渡す
-     *  @endcode
+        @endcode
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime_deadline_ms(uint64_t timeout_ms,
                                                                         struct timespec *abs_timeout);

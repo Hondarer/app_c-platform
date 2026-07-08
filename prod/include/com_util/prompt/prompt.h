@@ -19,7 +19,7 @@
  *  TTY でない場合 (パイプ・リダイレクト等) は fgets() にフォールバックします。\n
  *
  *  @par 使用例 (固定プロンプト)
- *  @code{.c}
+    @code{.c}
     #include <com_util/prompt/prompt.h>
 
     int main(void) {
@@ -31,15 +31,15 @@
         com_util_prompt_dispose(prompt);
         return 0;
     }
- *  @endcode
+    @endcode
  *
  *  @par 使用例 (フォーマット プロンプト)
- *  @code{.c}
+    @code{.c}
     while (com_util_prompt_readline_fmt(prompt, buf, sizeof(buf),
                                         "[%s]> ", state_name)) {
         // ...
     }
- *  @endcode
+    @endcode
  *
  *  @par 複数箇所からの使用
  *  同一ハンドルを複数箇所で呼び出すと、呼び出し元のファイル名・行番号ごとに
