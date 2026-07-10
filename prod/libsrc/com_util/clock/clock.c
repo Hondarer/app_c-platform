@@ -35,12 +35,6 @@
 static const char s_iso8601_local_fallback[] = "0000-00-00T00:00:00.000+00:00";
 static const char s_iso8601_utc_fallback[] = "0000-00-00T00:00:00.000Z";
 
-static void clock_fill_timespec(struct timespec *ts, const int64_t tv_sec, const int32_t tv_nsec)
-{
-    ts->tv_sec = (time_t)tv_sec;
-    ts->tv_nsec = (long)tv_nsec;
-}
-
 static void clock_write_fallback(char *buf, const size_t buf_size, const char *fallback)
 {
     if (buf == NULL || buf_size == 0)
@@ -113,7 +107,7 @@ static int clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *
 }
 
 static int clock_format_iso8601_utc_from_tm(char *buf, const size_t buf_size, const struct tm *utc_tm,
-                                            const int32_t tv_nsec)
+                                            const int64_t tv_nsec)
 {
     if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1) || utc_tm == NULL)
     {
@@ -133,7 +127,7 @@ static int clock_format_iso8601_utc_from_tm(char *buf, const size_t buf_size, co
 }
 
 static int clock_format_iso8601_local_from_tm(char *buf, const size_t buf_size, const struct tm *local_tm,
-                                              const int32_t tv_nsec, const int offset_minutes)
+                                              const int64_t tv_nsec, const int offset_minutes)
 {
     char offset_sign;
     int abs_offset_minutes;
@@ -186,37 +180,35 @@ uint64_t com_util_get_monotonic_ms(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec)
+void com_util_get_monotonic(com_util_timespec *ts)
 {
 #if defined(PLATFORM_LINUX)
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    *tv_sec = (int64_t)ts.tv_sec;
-    *tv_nsec = (int32_t)ts.tv_nsec;
+    struct timespec native;
+    clock_gettime(CLOCK_MONOTONIC, &native);
+    com_util_timespec_from_native(&native, ts);
 #elif defined(PLATFORM_WINDOWS)
     ULONGLONG ms = GetTickCount64();
-    *tv_sec = (int64_t)(ms / MSEC_PER_SEC);
-    *tv_nsec = (int32_t)((ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
+    ts->tv_sec = (time_t)(ms / MSEC_PER_SEC);
+    ts->tv_nsec = (int64_t)((ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
+void com_util_get_realtime(com_util_timespec *ts)
 {
 #if defined(PLATFORM_LINUX)
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    *tv_sec = (int64_t)ts.tv_sec;
-    *tv_nsec = (int32_t)ts.tv_nsec;
+    struct timespec native;
+    clock_gettime(CLOCK_REALTIME, &native);
+    com_util_timespec_from_native(&native, ts);
 #elif defined(PLATFORM_WINDOWS)
     FILETIME ft;
     ULARGE_INTEGER uli;
     GetSystemTimeAsFileTime(&ft);
     uli.LowPart = ft.dwLowDateTime;
     uli.HighPart = ft.dwHighDateTime;
-    *tv_sec = (int64_t)(uli.QuadPart / FILETIME_UNITS_PER_SEC) - FILETIME_EPOCH_OFFSET_SEC;
-    *tv_nsec = (int32_t)((uli.QuadPart % FILETIME_UNITS_PER_SEC) * NSEC_PER_FILETIME_UNIT);
+    ts->tv_sec = (time_t)(uli.QuadPart / FILETIME_UNITS_PER_SEC) - FILETIME_EPOCH_OFFSET_SEC;
+    ts->tv_nsec = (int64_t)((uli.QuadPart % FILETIME_UNITS_PER_SEC) * NSEC_PER_FILETIME_UNIT);
 #endif /* PLATFORM_ */
 }
 
@@ -224,40 +216,35 @@ void com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
 
 void com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 {
-    int64_t realtime_sec;
+    com_util_timespec realtime_ts;
 
-    com_util_get_realtime(&realtime_sec, tv_nsec);
+    com_util_get_realtime(&realtime_ts);
+    /* 正規化済みの tv_nsec (0 以上 999,999,999 以下) は int32_t の表現範囲内に収まる */
+    *tv_nsec = (int32_t)realtime_ts.tv_nsec;
 
+    if (com_util_gmtime(utc_tm, &realtime_ts.tv_sec) != 0)
     {
-        time_t realtime_time = (time_t)realtime_sec;
-        if (com_util_gmtime(utc_tm, &realtime_time) != 0)
-        {
-            memset(utc_tm, 0, sizeof(*utc_tm));
-        }
+        memset(utc_tm, 0, sizeof(*utc_tm));
     }
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, const int64_t tv_sec,
-                                           const int32_t tv_nsec)
+int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, const com_util_timespec *timestamp)
 {
-    time_t realtime_time;
     struct tm local_tm;
     struct tm utc_tm;
     int offset_minutes;
 
-    if (tv_nsec < 0 || tv_nsec >= (int32_t)NSEC_PER_SEC)
+    if (timestamp == NULL || timestamp->tv_nsec < 0 || timestamp->tv_nsec >= NSEC_PER_SEC)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
         return -1;
     }
 
-    realtime_time = (time_t)tv_sec;
-
-    if (com_util_localtime(&local_tm, &realtime_time) != 0 || com_util_gmtime(&utc_tm, &realtime_time) != 0 ||
+    if (com_util_localtime(&local_tm, &timestamp->tv_sec) != 0 || com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0 ||
         clock_utc_offset_minutes(&local_tm, &utc_tm, &offset_minutes) != 0 ||
-        clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, tv_nsec, offset_minutes) != 0)
+        clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, timestamp->tv_nsec, offset_minutes) != 0)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
         return -1;
@@ -268,21 +255,18 @@ int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, con
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const int64_t tv_sec, const int32_t tv_nsec)
+int com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const com_util_timespec *timestamp)
 {
-    time_t realtime_time;
     struct tm utc_tm;
 
-    if (tv_nsec < 0 || tv_nsec >= (int32_t)NSEC_PER_SEC)
+    if (timestamp == NULL || timestamp->tv_nsec < 0 || timestamp->tv_nsec >= NSEC_PER_SEC)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_utc_fallback);
         return -1;
     }
 
-    realtime_time = (time_t)tv_sec;
-
-    if (com_util_gmtime(&utc_tm, &realtime_time) != 0 ||
-        clock_format_iso8601_utc_from_tm(buf, buf_size, &utc_tm, tv_nsec) != 0)
+    if (com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0 ||
+        clock_format_iso8601_utc_from_tm(buf, buf_size, &utc_tm, timestamp->tv_nsec) != 0)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_utc_fallback);
         return -1;
@@ -295,19 +279,10 @@ int com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const
 
 void com_util_get_realtime_deadline_ms(const uint64_t timeout_ms, struct timespec *abs_timeout)
 {
-    int64_t deadline_sec;
-    int32_t deadline_nsec;
+    com_util_timespec now;
+    com_util_timespec deadline;
 
-    com_util_get_realtime(&deadline_sec, &deadline_nsec);
-
-    deadline_sec += (int64_t)(timeout_ms / MSEC_PER_SEC);
-    deadline_nsec += (int32_t)((timeout_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
-
-    if (deadline_nsec >= NSEC_PER_SEC)
-    {
-        deadline_sec += 1;
-        deadline_nsec -= (int32_t)NSEC_PER_SEC;
-    }
-
-    clock_fill_timespec(abs_timeout, deadline_sec, deadline_nsec);
+    com_util_get_realtime(&now);
+    com_util_timespec_add_ms(&now, timeout_ms, &deadline);
+    com_util_timespec_to_native(&deadline, abs_timeout);
 }

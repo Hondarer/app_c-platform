@@ -32,7 +32,8 @@ static int emulate_com_util_strncpy(char *dest, size_t dest_size, const char *sr
     return 0;
 }
 
-static int emulate_com_util_format_realtime_iso8601_local(char *dest, size_t dest_size, int64_t tv_sec, int32_t tv_nsec)
+static int emulate_com_util_format_realtime_iso8601_local(char *dest, size_t dest_size,
+                                                          const com_util_timespec *timestamp)
 {
     const char *text;
 
@@ -40,7 +41,7 @@ static int emulate_com_util_format_realtime_iso8601_local(char *dest, size_t des
     {
         return -1;
     }
-    if (tv_sec == 0 && tv_nsec == 0)
+    if (timestamp != nullptr && timestamp->tv_sec == 0 && timestamp->tv_nsec == 0)
     {
         text = "1970-01-01T09:00:00.000+09:00";
     }
@@ -63,7 +64,7 @@ class etw_viewerTest : public Test
     void SetUp() override
     {
         ON_CALL(mock_com_util_, com_util_strncpy(_, _, _, _)).WillByDefault(emulate_com_util_strncpy);
-        ON_CALL(mock_com_util_, com_util_format_realtime_iso8601_local(_, _, _, _))
+        ON_CALL(mock_com_util_, com_util_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(emulate_com_util_format_realtime_iso8601_local);
     }
 };

@@ -191,8 +191,7 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
 {
     static const int64_t filetime_unix_epoch_100ns = 116444736000000000LL;
     int64_t unix_100ns;
-    int64_t tv_sec;
-    int32_t tv_nsec;
+    com_util_timespec ts;
 
     if (buffer == NULL || buffer_size == 0U)
     {
@@ -204,9 +203,9 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
     }
 
     unix_100ns = timestamp_100ns - filetime_unix_epoch_100ns;
-    tv_sec = unix_100ns / 10000000LL;
-    tv_nsec = (int32_t)((unix_100ns % 10000000LL) * 100LL);
-    return com_util_format_realtime_iso8601_local(buffer, buffer_size, tv_sec, tv_nsec);
+    ts.tv_sec = (time_t)(unix_100ns / 10000000LL);
+    ts.tv_nsec = (unix_100ns % 10000000LL) * 100LL;
+    return com_util_format_realtime_iso8601_local(buffer, buffer_size, &ts);
 }
 
 void etw_viewer_handle_event(const com_util_etw_event *event, void *context)

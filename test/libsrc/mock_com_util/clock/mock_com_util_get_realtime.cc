@@ -1,24 +1,24 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-void delegate_real_com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec)
+void delegate_real_com_util_get_realtime(com_util_timespec *ts)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_get_realtime)>(
             resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime"));
 
-    real_fn(tv_sec, tv_nsec);
+    real_fn(ts);
 }
 
-MOCK_WEAK_IMPL(void, com_util_get_realtime, int64_t *tv_sec, int32_t *tv_nsec)
+MOCK_WEAK_IMPL(void, com_util_get_realtime, com_util_timespec *ts)
 {
     if (_mock_com_util != nullptr)
     {
-        _mock_com_util->com_util_get_realtime(tv_sec, tv_nsec);
+        _mock_com_util->com_util_get_realtime(ts);
     }
     else
     {
-        delegate_real_com_util_get_realtime(tv_sec, tv_nsec);
+        delegate_real_com_util_get_realtime(ts);
     }
 
     if (getTraceLevel() > TRACE_NONE)

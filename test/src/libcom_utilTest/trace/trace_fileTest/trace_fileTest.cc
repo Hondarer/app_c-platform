@@ -25,18 +25,17 @@ static void set_valid_deadline(struct timespec *abs_timeout)
     abs_timeout->tv_nsec = 0;
 }
 
-static void set_fixed_realtime(int64_t *tv_sec, int32_t *tv_nsec)
+static void set_fixed_realtime(com_util_timespec *ts)
 {
-    *tv_sec = 1714100645LL;
-    *tv_nsec = 678000000;
+    ts->tv_sec = 1714100645LL;
+    ts->tv_nsec = 678000000;
 }
 
-static com_util_realtime_timestamp make_fixed_timestamp(void)
+static com_util_timespec make_fixed_timestamp(void)
 {
-    com_util_realtime_timestamp timestamp;
+    com_util_timespec timestamp;
     timestamp.tv_sec = 1714100645LL;
     timestamp.tv_nsec = 678000000;
-    timestamp.reserved = 0;
     return timestamp;
 }
 
@@ -77,11 +76,10 @@ class trace_fileTest : public Test
     {
         ON_CALL(mock_, com_util_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_, com_util_get_realtime(_, _))
-            .WillByDefault([](int64_t *tv_sec, int32_t *tv_nsec) { set_fixed_realtime(tv_sec, tv_nsec); });
-        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _, _))
+        ON_CALL(mock_, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
-                [](char *buf, size_t buf_size, int64_t, int32_t)
+                [](char *buf, size_t buf_size, const com_util_timespec *)
                 {
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
@@ -288,10 +286,10 @@ TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock
 {
     // Arrange
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
-    com_util_realtime_timestamp timestamp = make_fixed_timestamp();
+    com_util_timespec timestamp = make_fixed_timestamp();
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
 
-    EXPECT_CALL(mock_, com_util_get_realtime(_, _))
+    EXPECT_CALL(mock_, com_util_get_realtime(_))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻を取得しないこと。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce(
@@ -340,10 +338,10 @@ TEST_F(trace_fileTest, test_write_falls_back_from_invalid_explicit_timestamp)
 {
     // Arrange
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
-    com_util_realtime_timestamp invalid_timestamp = {1714100645LL, 1000000000, 0};
+    com_util_timespec invalid_timestamp = {1714100645LL, 1000000000};
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
 
-    EXPECT_CALL(mock_, com_util_get_realtime(_, _))
+    EXPECT_CALL(mock_, com_util_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce(

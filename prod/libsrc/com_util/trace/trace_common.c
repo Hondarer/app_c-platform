@@ -12,15 +12,14 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int trace_timestamp_is_valid(const com_util_realtime_timestamp *timestamp)
+int trace_timestamp_is_valid(const com_util_timespec *timestamp)
 {
     return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int trace_resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
-                            int *fallback_used)
+int trace_resolve_timestamp(const com_util_timespec *timestamp, com_util_timespec *resolved, int *fallback_used)
 {
     if (resolved == NULL)
     {
@@ -44,7 +43,7 @@ int trace_resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_ut
         }
     }
 
-    com_util_get_realtime(&resolved->tv_sec, &resolved->tv_nsec);
+    com_util_get_realtime(resolved);
     if (trace_timestamp_is_valid(resolved))
     {
         return 0;
@@ -54,13 +53,13 @@ int trace_resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_ut
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int trace_format_local_timestamp(char *buf, const size_t buf_size, const com_util_realtime_timestamp *timestamp)
+int trace_format_local_timestamp(char *buf, const size_t buf_size, const com_util_timespec *timestamp)
 {
     if (!trace_timestamp_is_valid(timestamp))
     {
         return -1;
     }
-    return com_util_format_realtime_iso8601_local(buf, buf_size, timestamp->tv_sec, timestamp->tv_nsec);
+    return com_util_format_realtime_iso8601_local(buf, buf_size, timestamp);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

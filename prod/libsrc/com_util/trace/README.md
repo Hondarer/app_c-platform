@@ -29,7 +29,7 @@ Windows では、EventLog とは別に、開発者向けの低オーバーヘッ
 create -> set_name / set_* -> start -> write -> stop -> dispose
 ```
 
-トレース レベルの変更 (`com_util_tracer_set_os_level()` 系) は started 中でも行えます。停止せずに閾値を変えられ、変更は排他制御下で原子的に反映されるため、旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。  
+トレース レベルの変更 (`com_util_tracer_set_os_level()` 系) は started 中でも行えます。停止せずにしきい値を変えられ、変更は排他制御下で原子的に反映されるため、旧しきい値と新しきい値の両方で出力対象となるトレースを取りこぼしません。  
 識別子・ファイル名・フックの設定 (`com_util_tracer_set_name()`, `com_util_tracer_set_file_name()`, `com_util_tracer_set_hook()`, `com_util_tracer_remove_hook()`) は stopped 中のみ変更でき、変える場合は一度 `com_util_tracer_stop()` で stopped に戻します。  
 `com_util_tracer_dispose()` は started / stopped のどちらからでも呼べます。  
 `com_util_tracer_get_state()` を使うと、handle が `started` / `stopped` / `disposed` のどれかを確認できます。
@@ -146,7 +146,7 @@ flags に 0 を指定した場合は単一プロセス専用です。`COM_UTIL_T
 
 通常のトレース メッセージを書き込みます。  
 公開名の `com_util_tracer_write*()` は source location (`[file:line]`) を自動付与する関数風マクロです。  
-`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_realtime_timestamp` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
+`timestamp` に `NULL` を渡すと内部で現在時刻を取得し、明示した `com_util_timespec` を渡すと file / `stderr` 出力と Linux の `SYSLOG_TEST_FD` デバッグ経路にその時刻を使います。  
 明示タイムスタンプが不正な場合も出力自体は継続し、内部で現在時刻へ代替します。この場合の戻り値は `-1` です。
 
 ### com_util_tracer_write_hex / com_util_tracer_write_hexf

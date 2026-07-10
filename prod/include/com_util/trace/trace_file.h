@@ -135,7 +135,7 @@ extern "C"
      *  内部の mutex で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
-                                                                    const com_util_realtime_timestamp *timestamp,
+                                                                    const com_util_timespec *timestamp,
                                                                     const char *message);
 
     /**

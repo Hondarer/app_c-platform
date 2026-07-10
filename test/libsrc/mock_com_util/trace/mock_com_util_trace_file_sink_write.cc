@@ -2,7 +2,7 @@
 #include <mock_com_util.h>
 
 int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
-                                                 const com_util_realtime_timestamp *timestamp, const char *message)
+                                                 const com_util_timespec *timestamp, const char *message)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_trace_file_sink_write)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_trace_file_sink_write"));
@@ -11,7 +11,7 @@ int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handl
 }
 
 MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink *handle, int level,
-               const com_util_realtime_timestamp *timestamp, const char *message)
+               const com_util_timespec *timestamp, const char *message)
 {
     int rtc = -1;
 

@@ -48,6 +48,7 @@
 #define CLOCK_H
 
 #include <com_util/base/platform.h>
+#include <com_util/clock/timespec.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -62,21 +63,6 @@
 extern "C"
 {
 #endif /* __cplusplus */
-
-    /**
-     *  @brief          UTC 基準の実時刻を保持する構造体です。
-     *
-     *  com_util_get_realtime() が返す値を、そのまま構造体として保持するための公開型です。\n
-     *  ログのタイムスタンプやセッション開始時刻など、実時刻を外部から受け渡したい用途で使用します。
-     */
-    typedef struct com_util_realtime_timestamp
-    {
-        int64_t tv_sec; /**< Unix epoch (1970-01-01T00:00:00Z) からの経過秒。 */
-        /* tv_nsec / reserved は POSIX struct timespec::tv_nsec (long) との境界キャストに用いるため、
-           コーディング規範の例外として固定幅型 int32_t を維持する。 */
-        int32_t tv_nsec;  /**< ナノ秒部 (0 以上 999,999,999 以下)。 */
-        int32_t reserved; /**< 将来拡張用。呼び出し側は 0 を指定する。 */
-    } com_util_realtime_timestamp;
 
     /**
      *  @brief          単調増加クロックの現在値をミリ秒単位で返します。
@@ -119,9 +105,8 @@ extern "C"
     COM_UTIL_EXPORT uint64_t COM_UTIL_API com_util_get_monotonic_ms(void);
 
     /**
-     *  @brief          単調増加クロックの現在値を秒・ナノ秒で返します。
-     *  @param[out]     tv_sec  秒部 (符号付き 64 ビット整数)。
-     *  @param[out]     tv_nsec ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @brief          単調増加クロックの現在値を com_util_timespec で返します。
+     *  @param[out]     ts  単調増加クロックの現在値 (秒部・ナノ秒部) の格納先。
      *
      *  OS の単調増加クロック (CLOCK_MONOTONIC 相当) をナノ秒精度で返します。\n
      *  受信タイムスタンプ・高精度な経過時間測定など μs 以下の精度が必要な用途に使用します。
@@ -149,25 +134,24 @@ extern "C"
      *
      *  @remark         ms 精度で十分な場合は com_util_get_monotonic_ms() の使用を推奨します。
      *
-     *  使用例 (経過ナノ秒を算出):
+     *  使用例 (経過ミリ秒を算出):
         @code{.c}
-        int64_t  sec0, sec1;
-        int32_t  nsec0, nsec1;
-        int64_t  elapsed_ns;
+        com_util_timespec start;
+        com_util_timespec end;
+        int64_t elapsed_ms;
 
-        com_util_get_monotonic(&sec0, &nsec0);
+        com_util_get_monotonic(&start);
         // ... 計測対象の処理 ...
-        com_util_get_monotonic(&sec1, &nsec1);
+        com_util_get_monotonic(&end);
 
-        elapsed_ns = (sec1 - sec0) * 1000000000LL + (nsec1 - nsec0);
+        elapsed_ms = com_util_timespec_diff_ms(&end, &start);
         @endcode
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_monotonic(com_util_timespec *ts);
 
     /**
-     *  @brief          現在時刻を秒・ナノ秒で返します。
-     *  @param[out]     tv_sec  Unix epoch (1970-01-01T00:00:00Z) からの経過秒 (符号付き 64 ビット整数)。
-     *  @param[out]     tv_nsec ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @brief          現在時刻を com_util_timespec で返します。
+     *  @param[out]     ts  Unix epoch (1970-01-01T00:00:00Z) 基準の現在時刻の格納先。
      *
      *  OS の実時刻クロック (CLOCK_REALTIME 相当) を読み取り、
      *  Unix epoch (1970-01-01T00:00:00Z) からの経過時間として返します。\n
@@ -201,14 +185,13 @@ extern "C"
      *
      *  使用例 (セッション開始時刻の記録):
         @code{.c}
-        int64_t  session_sec;
-        int32_t  session_nsec;
+        com_util_timespec session_ts;
 
-        com_util_get_realtime(&session_sec, &session_nsec);
-        // session_sec / session_nsec を構造体に保存して識別子として使用する
+        com_util_get_realtime(&session_ts);
+        // session_ts を構造体に保存して識別子として使用する
         @endcode
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_get_realtime(com_util_timespec *ts);
 
     /**
      *  @brief          com_util_format_realtime_iso8601_local() が返す時刻文字列の長さです。
@@ -228,10 +211,9 @@ extern "C"
 
     /**
      *  @brief          UTC 基準の実時刻をローカル時刻の ISO8601 文字列へ整形します。
-     *  @param[out]     buf      出力先バッファー。
-     *  @param[in]      buf_size 出力先バッファー サイズ。
-     *  @param[in]      tv_sec   Unix epoch からの経過秒。
-     *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @param[out]     buf       出力先バッファー。
+     *  @param[in]      buf_size  出力先バッファー サイズ。
+     *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
      *  @return         成功時 0、失敗時 -1。
      *
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
@@ -245,15 +227,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec,
-                                                                            int32_t tv_nsec);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_local(char *buf, size_t buf_size,
+                                                                            const com_util_timespec *timestamp);
 
     /**
      *  @brief          UTC 基準の実時刻を UTC の ISO8601 文字列へ整形します。
-     *  @param[out]     buf      出力先バッファー。
-     *  @param[in]      buf_size 出力先バッファー サイズ。
-     *  @param[in]      tv_sec   Unix epoch からの経過秒。
-     *  @param[in]      tv_nsec  ナノ秒部 (0 以上 999,999,999 以下)。
+     *  @param[out]     buf       出力先バッファー。
+     *  @param[in]      buf_size  出力先バッファー サイズ。
+     *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
      *  @return         成功時 0、失敗時 -1。
      *
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
@@ -267,8 +248,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec,
-                                                                          int32_t tv_nsec);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size,
+                                                                          const com_util_timespec *timestamp);
 
     /**
      *  @brief          現在時刻を UTC の分解済み時刻とナノ秒で返します。

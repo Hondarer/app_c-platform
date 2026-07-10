@@ -142,15 +142,15 @@ extern void delegate_real_com_util_tracer_dispose(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_start(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_stop(com_util_tracer *handle);
 extern int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level_t level,
-                                                const com_util_realtime_timestamp *timestamp, const char *message);
+                                                const com_util_timespec *timestamp, const char *message);
 extern int delegate_real__com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level_t level,
-                                                    const com_util_realtime_timestamp *timestamp, const void *data,
-                                                    size_t size, const char *message);
+                                                    const com_util_timespec *timestamp, const void *data, size_t size,
+                                                    const char *message);
 extern int delegate_real__com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level_t level,
-                                                 const com_util_realtime_timestamp *timestamp, const char *format, ...);
+                                                 const com_util_timespec *timestamp, const char *format, ...);
 extern int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level_t level,
-                                                     const com_util_realtime_timestamp *timestamp, const void *data,
-                                                     size_t size, const char *format, ...);
+                                                     const com_util_timespec *timestamp, const void *data, size_t size,
+                                                     const char *format, ...);
 extern int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier);
 extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level_t level);
 extern int delegate_real_com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level_t level);
@@ -163,8 +163,7 @@ extern com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_ut
 extern void delegate_real_com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_entry *hook_entry);
 extern void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
                                                          com_util_trace_level_t level,
-                                                         const com_util_realtime_timestamp *timestamp,
-                                                         const char *message);
+                                                         const com_util_timespec *timestamp, const char *message);
 extern com_util_tracer_state_t delegate_real_com_util_tracer_get_state(com_util_tracer *handle);
 extern com_util_trace_level_t delegate_real_com_util_tracer_get_os_level(com_util_tracer *handle);
 extern com_util_trace_level_t delegate_real_com_util_tracer_get_etw_level(com_util_tracer *handle);
@@ -173,13 +172,13 @@ extern com_util_trace_level_t delegate_real_com_util_tracer_get_stderr_level(com
 
 // clock
 extern uint64_t delegate_real_com_util_get_monotonic_ms(void);
-extern void delegate_real_com_util_get_monotonic(int64_t *tv_sec, int32_t *tv_nsec);
-extern void delegate_real_com_util_get_realtime(int64_t *tv_sec, int32_t *tv_nsec);
+extern void delegate_real_com_util_get_monotonic(com_util_timespec *ts);
+extern void delegate_real_com_util_get_realtime(com_util_timespec *ts);
 extern void delegate_real_com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec);
-extern int delegate_real_com_util_format_realtime_iso8601_local(char *buf, size_t buf_size, int64_t tv_sec,
-                                                                int32_t tv_nsec);
-extern int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec,
-                                                              int32_t tv_nsec);
+extern int delegate_real_com_util_format_realtime_iso8601_local(char *buf, size_t buf_size,
+                                                                const com_util_timespec *timestamp);
+extern int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size,
+                                                              const com_util_timespec *timestamp);
 extern void delegate_real_com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout);
 
 // console
@@ -296,15 +295,14 @@ extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_ca
 extern com_util_trace_file_sink *delegate_real_com_util_trace_file_sink_create(const char *path, size_t max_bytes,
                                                                                int generations, int flags);
 extern int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handle, int level,
-                                                        const com_util_realtime_timestamp *timestamp,
-                                                        const char *message);
+                                                        const com_util_timespec *timestamp, const char *message);
 extern void delegate_real_com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle);
 
 #if defined(PLATFORM_LINUX)
 // trace - syslog_sink (Linux only)
 extern com_util_syslog_sink *delegate_real_com_util_syslog_sink_create(const char *ident, int facility);
 extern int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink *handle, int level,
-                                                    const com_util_realtime_timestamp *timestamp, const char *message);
+                                                    const com_util_timespec *timestamp, const char *message);
 extern int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_ident);
 extern void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink *handle);
 #endif /* PLATFORM_LINUX */
@@ -466,14 +464,14 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_tracer_start, (com_util_tracer *));
     MOCK_METHOD(int, com_util_tracer_stop, (com_util_tracer *));
     MOCK_METHOD(int, _com_util_tracer_write,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_realtime_timestamp *, const char *));
+                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const char *));
     MOCK_METHOD(int, _com_util_tracer_write_hex,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_realtime_timestamp *, const void *, size_t,
+                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const void *, size_t,
                  const char *));
     MOCK_METHOD(int, _com_util_tracer_writef,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_realtime_timestamp *, const char *));
+                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const char *));
     MOCK_METHOD(int, _com_util_tracer_write_hexf,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_realtime_timestamp *, const void *, size_t,
+                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const void *, size_t,
                  const char *));
     MOCK_METHOD(int, com_util_tracer_set_name, (com_util_tracer *, const char *, int64_t));
     MOCK_METHOD(int, com_util_tracer_set_os_level, (com_util_tracer *, com_util_trace_level_t));
@@ -485,8 +483,8 @@ class Mock_com_util
                 (com_util_tracer *, com_util_tracer_hook_fn_t, void *));
     MOCK_METHOD(void, com_util_tracer_remove_hook, (com_util_tracer *, com_util_tracer_hook_entry *));
     MOCK_METHOD(void, com_util_tracer_call_next_hook,
-                (com_util_tracer_hook_entry *, com_util_tracer *, com_util_trace_level_t,
-                 const com_util_realtime_timestamp *, const char *));
+                (com_util_tracer_hook_entry *, com_util_tracer *, com_util_trace_level_t, const com_util_timespec *,
+                 const char *));
     MOCK_METHOD(com_util_tracer_state_t, com_util_tracer_get_state, (com_util_tracer *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_os_level, (com_util_tracer *));
     MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_etw_level, (com_util_tracer *));
@@ -495,11 +493,11 @@ class Mock_com_util
 
     // clock
     MOCK_METHOD(uint64_t, com_util_get_monotonic_ms, ());
-    MOCK_METHOD(void, com_util_get_monotonic, (int64_t *, int32_t *));
-    MOCK_METHOD(void, com_util_get_realtime, (int64_t *, int32_t *));
+    MOCK_METHOD(void, com_util_get_monotonic, (com_util_timespec *));
+    MOCK_METHOD(void, com_util_get_realtime, (com_util_timespec *));
     MOCK_METHOD(void, com_util_get_realtime_utc, (struct tm *, int32_t *));
-    MOCK_METHOD(int, com_util_format_realtime_iso8601_local, (char *, size_t, int64_t, int32_t));
-    MOCK_METHOD(int, com_util_format_realtime_iso8601_utc, (char *, size_t, int64_t, int32_t));
+    MOCK_METHOD(int, com_util_format_realtime_iso8601_local, (char *, size_t, const com_util_timespec *));
+    MOCK_METHOD(int, com_util_format_realtime_iso8601_utc, (char *, size_t, const com_util_timespec *));
     MOCK_METHOD(void, com_util_get_realtime_deadline_ms, (uint64_t, struct timespec *));
 
     // console
@@ -597,14 +595,14 @@ class Mock_com_util
     // trace - trace_file_sink
     MOCK_METHOD(com_util_trace_file_sink *, com_util_trace_file_sink_create, (const char *, size_t, int, int));
     MOCK_METHOD(int, com_util_trace_file_sink_write,
-                (com_util_trace_file_sink *, int, const com_util_realtime_timestamp *, const char *));
+                (com_util_trace_file_sink *, int, const com_util_timespec *, const char *));
     MOCK_METHOD(void, com_util_trace_file_sink_dispose, (com_util_trace_file_sink *));
 
 #if defined(PLATFORM_LINUX)
     // trace - syslog_sink (Linux only)
     MOCK_METHOD(com_util_syslog_sink *, com_util_syslog_sink_create, (const char *, int));
     MOCK_METHOD(int, com_util_syslog_sink_write,
-                (com_util_syslog_sink *, int, const com_util_realtime_timestamp *, const char *));
+                (com_util_syslog_sink *, int, const com_util_timespec *, const char *));
     MOCK_METHOD(int, com_util_syslog_sink_rename, (com_util_syslog_sink *, const char *));
     MOCK_METHOD(void, com_util_syslog_sink_dispose, (com_util_syslog_sink *));
 #endif /* PLATFORM_LINUX */

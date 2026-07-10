@@ -26,7 +26,7 @@ extern "C"
      *  @param[in]      timestamp  判定対象のタイムスタンプ。NULL 可。
      *  @return         有効な場合 1、NULL または範囲外の場合 0。
      */
-    int trace_timestamp_is_valid(const com_util_realtime_timestamp *timestamp);
+    int trace_timestamp_is_valid(const com_util_timespec *timestamp);
 
     /**
      *  @brief          トレース出力に使用するタイムスタンプを解決します。
@@ -39,8 +39,7 @@ extern "C"
      *  resolved へ格納します。不正な値からの代替時のみ fallback_used に 1 を
      *  設定します (NULL は代替と見なさない)。
      */
-    int trace_resolve_timestamp(const com_util_realtime_timestamp *timestamp, com_util_realtime_timestamp *resolved,
-                                int *fallback_used);
+    int trace_resolve_timestamp(const com_util_timespec *timestamp, com_util_timespec *resolved, int *fallback_used);
 
     /**
      *  @brief          実時刻を ISO 8601 ローカル時刻文字列としてバッファーへ書き込みます。
@@ -49,7 +48,7 @@ extern "C"
      *  @param[in]      timestamp  使用する実時刻。
      *  @return         成功時 0、タイムスタンプ不正または整形失敗時 -1。
      */
-    int trace_format_local_timestamp(char *buf, size_t buf_size, const com_util_realtime_timestamp *timestamp);
+    int trace_format_local_timestamp(char *buf, size_t buf_size, const com_util_timespec *timestamp);
 
     /**
      *  @brief          トレース レベルをレベル文字に変換します。

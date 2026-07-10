@@ -45,6 +45,7 @@
 #include <com_util/base/windows_sdk.h>
 
 #include <com_util/clock/clock.h>
+#include <com_util/clock/timespec.h>
 #include <com_util/compress/compress.h>
 #include <com_util/console/console.h>
 

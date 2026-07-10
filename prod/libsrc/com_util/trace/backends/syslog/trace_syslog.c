@@ -198,14 +198,14 @@ com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int f
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
-                               const com_util_realtime_timestamp *timestamp, const char *message)
+int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, const com_util_timespec *timestamp,
+                               const char *message)
 {
     char buf[SYSLOG_BUF_SIZE];
     char debug_buf[SYSLOG_DEBUG_BUF_SIZE];
     char timestamp_text[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
-    com_util_realtime_timestamp resolved;
-    const com_util_realtime_timestamp *effective_timestamp = NULL;
+    com_util_timespec resolved;
+    const com_util_timespec *effective_timestamp = NULL;
     struct sockaddr_un sa;
     const char *test_fd_str;
     int fallback_used = 0;
@@ -247,8 +247,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level,
     if (test_fd_str != NULL)
     {
         if (effective_timestamp != NULL &&
-            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp->tv_sec,
-                                                   effective_timestamp->tv_nsec) == 0)
+            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) == 0)
         {
             debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
             if (debug_len < 0)

@@ -2,31 +2,32 @@
 #include <mock_com_util.h>
 #include <inttypes.h>
 
-int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
+int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, const com_util_timespec *timestamp)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_format_realtime_iso8601_utc)>(
             resolveSharedSymbolOrExit(kLibComUtilName, "com_util_format_realtime_iso8601_utc"));
 
-    return real_fn(buf, buf_size, tv_sec, tv_nsec);
+    return real_fn(buf, buf_size, timestamp);
 }
 
-MOCK_WEAK_IMPL(int, com_util_format_realtime_iso8601_utc, char *buf, size_t buf_size, int64_t tv_sec, int32_t tv_nsec)
+MOCK_WEAK_IMPL(int, com_util_format_realtime_iso8601_utc, char *buf, size_t buf_size,
+               const com_util_timespec *timestamp)
 {
     int rtc = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_format_realtime_iso8601_utc(buf, buf_size, tv_sec, tv_nsec);
+        rtc = _mock_com_util->com_util_format_realtime_iso8601_utc(buf, buf_size, timestamp);
     }
     else
     {
-        rtc = delegate_real_com_util_format_realtime_iso8601_utc(buf, buf_size, tv_sec, tv_nsec);
+        rtc = delegate_real_com_util_format_realtime_iso8601_utc(buf, buf_size, timestamp);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, %zu, %" PRId64 ", %" PRId32, __func__, (void *)buf, buf_size, tv_sec, tv_nsec);
+        printf("  > %s 0x%p, %zu, 0x%p", __func__, (void *)buf, buf_size, (const void *)timestamp);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

@@ -68,7 +68,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
     const char *saved_fd = getenv("SYSLOG_TEST_FD");
     std::string saved_tz_value = saved_tz != NULL ? saved_tz : "";
     std::string saved_fd_value = saved_fd != NULL ? saved_fd : "";
-    com_util_realtime_timestamp timestamp = {1412916640LL, 0, 0};
+    com_util_timespec timestamp = {1412916640LL, 0};
 
     ASSERT_EQ(0, pipe(pipe_fds));
     ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1));
@@ -124,7 +124,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
     const char *saved_fd = getenv("SYSLOG_TEST_FD");
     std::string saved_tz_value = saved_tz != NULL ? saved_tz : "";
     std::string saved_fd_value = saved_fd != NULL ? saved_fd : "";
-    com_util_realtime_timestamp invalid_timestamp = {1714100645LL, 1000000000, 0};
+    com_util_timespec invalid_timestamp = {1714100645LL, 1000000000};
 
     ASSERT_EQ(0, pipe(pipe_fds));
     ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1));

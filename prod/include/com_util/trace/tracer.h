@@ -255,7 +255,7 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
     void my_hook(com_util_tracer_hook_entry *prev,
                  com_util_tracer *handle,
                  com_util_trace_level_t level,
-                 const com_util_realtime_timestamp *timestamp,
+                 const com_util_timespec *timestamp,
                  const char *message, void *context)
     {
         // 独自処理
@@ -270,7 +270,7 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
  *  コールバックの実装者は再入性を確保してください。
  */
 typedef void (*com_util_tracer_hook_fn_t)(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                          com_util_trace_level_t level, const com_util_realtime_timestamp *timestamp,
+                                          com_util_trace_level_t level, const com_util_timespec *timestamp,
                                           const char *message, void *context);
 
 /* ===== API 関数 ===== */
@@ -432,8 +432,7 @@ extern "C"
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle, com_util_trace_level_t level,
-                                                            const com_util_realtime_timestamp *timestamp,
-                                                            const char *message);
+                                                            const com_util_timespec *timestamp, const char *message);
 
     /**
      *  @brief          printf 形式でトレース メッセージを書き込む低レベル関数です。
@@ -452,8 +451,8 @@ extern "C"
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level_t level,
-                                                             const com_util_realtime_timestamp *timestamp,
-                                                             const char *format, ...);
+                                                             const com_util_timespec *timestamp, const char *format,
+                                                             ...);
 
     /**
      *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数です。
@@ -473,8 +472,8 @@ extern "C"
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level_t level,
-                                                                const com_util_realtime_timestamp *timestamp,
-                                                                const void *data, size_t size, const char *message);
+                                                                const com_util_timespec *timestamp, const void *data,
+                                                                size_t size, const char *message);
 
     /**
      *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数 (printf 形式ラベル) です。
@@ -495,9 +494,8 @@ extern "C"
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level_t level,
-                                                                 const com_util_realtime_timestamp *timestamp,
-                                                                 const void *data, size_t size, const char *format,
-                                                                 ...);
+                                                                 const com_util_timespec *timestamp, const void *data,
+                                                                 size_t size, const char *format, ...);
 
     /**
      *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定します。
@@ -857,7 +855,7 @@ extern "C"
     COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev,
                                                                      com_util_tracer *handle,
                                                                      com_util_trace_level_t level,
-                                                                     const com_util_realtime_timestamp *timestamp,
+                                                                     const com_util_timespec *timestamp,
                                                                      const char *message);
 
 #ifdef __cplusplus
@@ -927,8 +925,8 @@ static inline const char *_com_util_tracer_hex_msg(const char *message)
  *  内部で _com_util_tracer_writef に委譲しており、複数スレッドから同時に呼び出せます。
  */
 static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, com_util_trace_level_t level,
-                                                     const com_util_realtime_timestamp *timestamp, const char *file,
-                                                     int line, const char *message)
+                                                     const com_util_timespec *timestamp, const char *file, int line,
+                                                     const char *message)
 {
     if (message != NULL)
     {

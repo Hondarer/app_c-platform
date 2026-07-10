@@ -759,11 +759,11 @@ com_util_trace_file_sink *com_util_trace_file_sink_create(const char *path, cons
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int level,
-                                   const com_util_realtime_timestamp *timestamp, const char *message)
+                                   const com_util_timespec *timestamp, const char *message)
 {
     char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
-    com_util_realtime_timestamp resolved;
+    com_util_timespec resolved;
     int fallback_used = 0;
     int len;
     int ret;

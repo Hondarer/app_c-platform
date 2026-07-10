@@ -4,8 +4,8 @@
 #include <mock_com_util.h>
 
 int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level_t level,
-                                              const com_util_realtime_timestamp *timestamp, const void *data,
-                                              size_t size, const char *format, ...)
+                                              const com_util_timespec *timestamp, const void *data, size_t size,
+                                              const char *format, ...)
 {
     static auto real_fn = reinterpret_cast<decltype(&_com_util_tracer_write_hexf)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_tracer_write_hexf"));
@@ -14,7 +14,7 @@ int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, com_util_
 }
 
 MOCK_WEAK_IMPL(int, _com_util_tracer_write_hexf, com_util_tracer *handle, com_util_trace_level_t level,
-               const com_util_realtime_timestamp *timestamp, const void *data, size_t size, const char *format, ...)
+               const com_util_timespec *timestamp, const void *data, size_t size, const char *format, ...)
 {
     int rtc = 0;
 

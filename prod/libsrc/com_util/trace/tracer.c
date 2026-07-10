@@ -1136,7 +1136,7 @@ static int should_output(const com_util_trace_level_t msg_level, const com_util_
  *  各レベル判定を内部で行うため、本関数は常に呼び出せます。
  */
 static int write_os_backends(com_util_tracer *handle, const com_util_trace_level_t level,
-                             const com_util_realtime_timestamp *timestamp, const char *msg)
+                             const com_util_timespec *timestamp, const char *msg)
 {
 #if defined(PLATFORM_LINUX)
     if (should_output(level, handle->os_level))
@@ -1205,15 +1205,15 @@ static void write_stderr_entry(const com_util_trace_level_t level, const char *t
  *  @param[in]      msg        書き込むメッセージ文字列。
  *  @return         全出力先で成功時 0、いずれかで失敗時 -1。
  */
-static int write_dual(com_util_tracer *handle, const com_util_trace_level_t level,
-                      const com_util_realtime_timestamp *timestamp, const char *msg)
+static int write_dual(com_util_tracer *handle, const com_util_trace_level_t level, const com_util_timespec *timestamp,
+                      const char *msg)
 {
     int os_result = 0;
     int file_result = 0;
     int timestamp_fallback_used = 0;
     int needs_text_timestamp;
-    com_util_realtime_timestamp resolved;
-    const com_util_realtime_timestamp *effective_timestamp = NULL;
+    com_util_timespec resolved;
+    const com_util_timespec *effective_timestamp = NULL;
     char ts[STDERR_TS_BUF_SIZE];
 
     needs_text_timestamp = (handle->file_handle != NULL && should_output(level, handle->file_level)) ||
@@ -1271,7 +1271,7 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t level,
-                           const com_util_realtime_timestamp *timestamp, const char *message)
+                           const com_util_timespec *timestamp, const char *message)
 {
     const char *msg;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1305,7 +1305,7 @@ int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_t level,
-                            const com_util_realtime_timestamp *timestamp, const char *format, ...)
+                            const com_util_timespec *timestamp, const char *format, ...)
 {
     va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1343,8 +1343,7 @@ static const char hex_chars[] = "0123456789ABCDEF";
  *  @return         成功時 0、失敗時 -1。
  */
 static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t level,
-                          const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
-                          const char *label)
+                          const com_util_timespec *timestamp, const void *data, const size_t size, const char *label)
 {
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     const unsigned char *bytes = (const unsigned char *)data;
@@ -1438,7 +1437,7 @@ static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level_t level,
-                               const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
+                               const com_util_timespec *timestamp, const void *data, const size_t size,
                                const char *message)
 {
     int ret;
@@ -1460,7 +1459,7 @@ int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_lev
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level_t level,
-                                const com_util_realtime_timestamp *timestamp, const void *data, const size_t size,
+                                const com_util_timespec *timestamp, const void *data, const size_t size,
                                 const char *format, ...)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -2021,7 +2020,7 @@ void com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_e
 /* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                    const com_util_trace_level_t level, const com_util_realtime_timestamp *timestamp,
+                                    const com_util_trace_level_t level, const com_util_timespec *timestamp,
                                     const char *message)
 {
     if (prev == NULL || prev->fn == NULL)

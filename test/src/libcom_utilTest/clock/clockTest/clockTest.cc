@@ -85,8 +85,7 @@ TEST_F(clockTest, monotonic_ms_converts_platform_value)
 TEST_F(clockTest, monotonic_returns_split_platform_value)
 {
     // Arrange
-    int64_t tv_sec = -1;  // [状態] - 秒部の出力先を未更新値 -1 で初期化する。
-    int32_t tv_nsec = -1; // [状態] - ナノ秒部の出力先を未更新値 -1 で初期化する。
+    com_util_timespec actual_ts = {-1, -1}; // [状態] - 出力先を未更新値 {-1, -1} で初期化する。
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 単調増加クロック取得 API が 1 回呼び出されること。
@@ -110,15 +109,15 @@ TEST_F(clockTest, monotonic_returns_split_platform_value)
 #endif
 
     // Act
-    com_util_get_monotonic(&tv_sec, &tv_nsec); // [手順] - com_util_get_monotonic(&tv_sec, &tv_nsec) を呼び出す。
+    com_util_get_monotonic(&actual_ts); // [手順] - com_util_get_monotonic(&actual_ts) を呼び出す。
 
     // Assert
-    EXPECT_EQ(12, tv_sec); // [確認_正常系] - 秒部が 12 であること。
+    EXPECT_EQ(12, actual_ts.tv_sec); // [確認_正常系] - 秒部が 12 であること。
     // [確認_正常系] - ナノ秒部がプラットフォームごとの期待値 (Linux: 345678901, Windows: 345000000) と一致すること。
 #if defined(PLATFORM_LINUX)
-    EXPECT_EQ(345678901, tv_nsec);
+    EXPECT_EQ(345678901, actual_ts.tv_nsec);
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_EQ(345000000, tv_nsec);
+    EXPECT_EQ(345000000, actual_ts.tv_nsec);
 #endif
 }
 
@@ -127,7 +126,7 @@ TEST_F(clockTest, realtime_returns_split_platform_value)
 {
     // Arrange
     const int64_t expected_sec = 1712345678LL; // [状態] - 実時刻の秒部期待値を 1712345678 とする。
-    int64_t tv_sec = -1;                       // [状態] - 秒部の出力先を未更新値 -1 で初期化する。
+    com_util_timespec actual_ts = {-1, -1};    // [状態] - 出力先を未更新値 {-1, -1} で初期化する。
     // [状態] - プラットフォームに応じたナノ秒部期待値を expected_nsec に設定する。
 
     // Pre-Assert
@@ -154,14 +153,14 @@ TEST_F(clockTest, realtime_returns_split_platform_value)
         .WillOnce([&](const char *, const int, const char *, LPFILETIME file_time)
                   { *file_time = to_filetime(expected_sec, expected_nsec); });
 #endif
-    int32_t tv_nsec = -1; // [状態] - ナノ秒部の出力先を未更新値 -1 で初期化する。
 
     // Act
-    com_util_get_realtime(&tv_sec, &tv_nsec); // [手順] - com_util_get_realtime(&tv_sec, &tv_nsec) を呼び出す。
+    com_util_get_realtime(&actual_ts); // [手順] - com_util_get_realtime(&actual_ts) を呼び出す。
 
     // Assert
-    EXPECT_EQ(expected_sec, tv_sec);   // [確認_正常系] - 秒部が期待値と一致すること。
-    EXPECT_EQ(expected_nsec, tv_nsec); // [確認_正常系] - ナノ秒部がプラットフォームに応じた期待値と一致すること。
+    EXPECT_EQ(expected_sec, actual_ts.tv_sec); // [確認_正常系] - 秒部が期待値と一致すること。
+    EXPECT_EQ(expected_nsec,
+              actual_ts.tv_nsec); // [確認_正常系] - ナノ秒部がプラットフォームに応じた期待値と一致すること。
 }
 
 // 実時刻が UTC 分解結果とナノ秒部へ正しく変換されることの確認
@@ -286,8 +285,7 @@ TEST_F(clockTest, realtime_utc_zeroes_tm_when_com_util_gmtime_fails)
 
 TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
 {
-    const int64_t tv_sec = 1712297228LL;
-    const int32_t tv_nsec = 246800000;
+    const com_util_timespec timestamp = {1712297228LL, 246800000LL};
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     struct tm local_tm;
     struct tm utc_tm;
@@ -297,28 +295,29 @@ TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
     set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
 
     EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *timep)
-        {
-            EXPECT_EQ((time_t)tv_sec, *timep);
-            *tm_value = local_tm;
-            return 0;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *timep)
+            {
+                EXPECT_EQ(timestamp.tv_sec, *timep);
+                *tm_value = local_tm;
+                return 0;
+            });
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *timep)
-        {
-            EXPECT_EQ((time_t)tv_sec, *timep);
-            *tm_value = utc_tm;
-            return 0;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *timep)
+            {
+                EXPECT_EQ(timestamp.tv_sec, *timep);
+                *tm_value = utc_tm;
+                return 0;
+            });
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &timestamp));
     EXPECT_STREQ("2024-04-05T15:07:08.246+09:00", actual);
 }
 
 TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
 {
-    const int64_t tv_sec = 1712297228LL;
-    const int32_t tv_nsec = 135000000;
+    const com_util_timespec timestamp = {1712297228LL, 135000000LL};
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     struct tm local_tm;
     struct tm utc_tm;
@@ -340,14 +339,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
             return 0;
         });
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &timestamp));
     EXPECT_STREQ("2024-04-05T00:37:08.135-05:30", actual);
 }
 
 TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
 {
-    const int64_t tv_sec = 1712297228LL;
-    const int32_t tv_nsec = 987000000;
+    const com_util_timespec timestamp = {1712297228LL, 987000000LL};
     char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
     struct tm utc_tm;
     Mock_com_util mock_com_util;
@@ -355,40 +353,43 @@ TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
     set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
 
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *timep)
-        {
-            EXPECT_EQ((time_t)tv_sec, *timep);
-            *tm_value = utc_tm;
-            return 0;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *timep)
+            {
+                EXPECT_EQ(timestamp.tv_sec, *timep);
+                *tm_value = utc_tm;
+                return 0;
+            });
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), tv_sec, tv_nsec));
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), &timestamp));
     EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual);
 }
 
 TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
 {
+    const com_util_timespec invalid_timestamp = {0, 1000000000LL};
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
 
-    EXPECT_EQ(-1, com_util_format_realtime_iso8601_local(actual, sizeof(actual), 0, 1000000000));
+    EXPECT_EQ(-1, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &invalid_timestamp));
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual);
 }
 
 TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
 {
-    const int64_t tv_sec = 1712297228LL;
+    const com_util_timespec timestamp = {1712297228LL, 123000000LL};
     char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
     Mock_com_util mock_com_util;
 
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *timep)
-        {
-            EXPECT_EQ((time_t)tv_sec, *timep);
-            EXPECT_NE((struct tm *)NULL, tm_value);
-            return -1;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *timep)
+            {
+                EXPECT_EQ(timestamp.tv_sec, *timep);
+                EXPECT_NE((struct tm *)NULL, tm_value);
+                return -1;
+            });
 
-    EXPECT_EQ(-1, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), tv_sec, 123000000));
+    EXPECT_EQ(-1, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), &timestamp));
     EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual);
 }
 

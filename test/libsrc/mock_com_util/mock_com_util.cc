@@ -125,12 +125,12 @@ Mock_com_util::Mock_com_util()
 
     // clock
     ON_CALL(*this, com_util_get_monotonic_ms()).WillByDefault(Invoke(delegate_real_com_util_get_monotonic_ms));
-    ON_CALL(*this, com_util_get_monotonic(_, _)).WillByDefault(Invoke(delegate_real_com_util_get_monotonic));
-    ON_CALL(*this, com_util_get_realtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_get_realtime));
+    ON_CALL(*this, com_util_get_monotonic(_)).WillByDefault(Invoke(delegate_real_com_util_get_monotonic));
+    ON_CALL(*this, com_util_get_realtime(_)).WillByDefault(Invoke(delegate_real_com_util_get_realtime));
     ON_CALL(*this, com_util_get_realtime_utc(_, _)).WillByDefault(Invoke(delegate_real_com_util_get_realtime_utc));
-    ON_CALL(*this, com_util_format_realtime_iso8601_local(_, _, _, _))
+    ON_CALL(*this, com_util_format_realtime_iso8601_local(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_format_realtime_iso8601_local));
-    ON_CALL(*this, com_util_format_realtime_iso8601_utc(_, _, _, _))
+    ON_CALL(*this, com_util_format_realtime_iso8601_utc(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_format_realtime_iso8601_utc));
     ON_CALL(*this, com_util_get_realtime_deadline_ms(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_get_realtime_deadline_ms));
