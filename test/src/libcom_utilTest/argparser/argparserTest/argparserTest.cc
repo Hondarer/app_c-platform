@@ -13,6 +13,8 @@ class argparserTest : public Test
   protected:
     argparserTest()
     {
+        // 実体への委譲で shutdown コールバックが登録されると、フィクスチャ破棄後の
+        // atexit で破棄済みモックを参照してアクセス違反となるため、登録を抑止する。
         ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(0));
     }
 
