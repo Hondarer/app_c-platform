@@ -2,6 +2,7 @@
 #include <com_util/argparser/argparser.h>
 #include <mock_stdio.h>
 #include <mock_stdlib.h>
+#include <mock_com_util.h>
 #include <limits.h>
 #include <string.h>
 #include <string>
@@ -9,6 +10,13 @@
 
 class argparserTest : public Test
 {
+  protected:
+    argparserTest()
+    {
+        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(0));
+    }
+
+    NiceMock<Mock_com_util> mock_com_util_;
 };
 
 // テスト用の argv 生成補助 (文字列リテラルを char* に変換する)

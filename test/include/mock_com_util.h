@@ -15,6 +15,10 @@
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vmkdir_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vstat_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_console_dispose_on_shutdown")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_path_basename")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_shutdown_register")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_call_once")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_local_lock_create")
 #endif /* COMPILER_MSVC */
 
 #include <com_util/compress/compress.h>
