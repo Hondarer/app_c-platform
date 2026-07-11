@@ -52,102 +52,41 @@ typedef enum get_lib_info_status_t
 } get_lib_info_status_t;
 
 /**
- *  @brief          文字列を安全にコピーします (UTF-8 想定だが単なる byte 列として扱う)。
+ *  @brief          共有ライブラリ特有の拡張子 (Linux の .so 系) の切り出し位置を求めます。
  *
- *  @param[out]     dst    出力バッファー。
- *  @param[in]      dst_sz 出力バッファサイズ[byte]。
- *  @param[in]      src    入力文字列 (NULL 終端)。
- *  @return         get_lib_info_status_t
+ *  - ".so." が含まれる場合はその位置 (例: libx.so.1.2.3 -> "libx" の直後)
+ *  - 末尾が ".so" の場合はその位置 (例: libx.so -> "libx" の直後)
+ *  - 末尾が ".dylib" の場合はその位置
+ *  - いずれにも該当しない場合は NULL (汎用の com_util_path_strip_extension() に委譲する)
+ *
+ *  @param[in]      s 対象文字列 (basename 済み、NULL 終端)。
+ *  @return         切り出し位置 (@p s 内を指す) または NULL。
  */
-static get_lib_info_status_t copy_str(char *dst, size_t dst_sz, const char *src)
+static const char *find_shared_lib_extension_cut(const char *s)
 {
-    size_t n;
-
-    if (!dst || dst_sz == 0 || !src)
-        return MYLIB_EINVAL;
-    n = strlen(src);
-    if (n + 1 > dst_sz)
-    {
-        if (dst_sz > 0)
-            dst[0] = '\0';
-        return MYLIB_ENOBUFS;
-    }
-    memcpy(dst, src, n + 1);
-    return MYLIB_OK;
-}
-
-/**
- *  @brief          パス文字列からファイル名部分 (最後の区切り文字以降) を返します。
- *
- *  @param[in]      path パス。
- *  @return         const char* ファイル名部分へのポインター (元の文字列内)。
- */
-static const char *get_ilename_part(const char *path)
-{
-    const char *p;
-    const char *last = path;
-
-    if (!path)
-        return "";
-    for (p = path; *p; ++p)
-    {
-        /* コンパイル時 __FILE__ (MSVC は '\\') や外部由来パスを扱う汎用関数のため両セパレータに対応する */
-        if (*p == '/' || *p == '\\')
-            last = p + 1;
-    }
-    return last;
-}
-
-/**
- *  @brief          拡張子を取り除きます (その場で書き換え)。
- *
- *  - Linux: ".so." が含まれる場合はそこから先を削除 (例: libx.so.1.2.3 -> libx)
- *  - Linux: 末尾が ".so" の場合は削除 (例: libx.so -> libx)
- *  - その他: 最後の '.' 以降を削除 (一般的な拡張子扱い)
- *
- *  @param[in,out]  s 対象文字列 (NULL 終端)。
- */
-static void strip_extension_inplace(char *s)
-{
-    char *dot;
-
-    if (!s)
-        return;
-
 #if defined(PLATFORM_LINUX)
+    const char *so_ver = strstr(s, ".so.");
+    size_t len;
+
+    if (so_ver != NULL)
     {
-        char *so_ver = strstr(s, ".so.");
-        if (so_ver)
-        {
-            *so_ver = '\0';
-            return;
-        }
-
-        {
-            size_t len = strlen(s);
-            if (len >= 3 && strcmp(s + (len - 3), ".so") == 0)
-            {
-                s[len - 3] = '\0';
-                return;
-            }
-        }
-
-        {
-            size_t len = strlen(s);
-            if (len >= 6 && strcmp(s + (len - 6), ".dylib") == 0)
-            {
-                s[len - 6] = '\0';
-                return;
-            }
-        }
+        return so_ver;
     }
+
+    len = strlen(s);
+    if (len >= 3 && strcmp(s + (len - 3), ".so") == 0)
+    {
+        return s + (len - 3);
+    }
+    if (len >= 6 && strcmp(s + (len - 6), ".dylib") == 0)
+    {
+        return s + (len - 6);
+    }
+#else
+    (void)s;
 #endif /* PLATFORM_LINUX */
 
-    dot = strrchr(s, '.');
-    if (dot && dot != s)
-    {
-        *dot = '\0';
-    }
+    return NULL;
 }
 
 #if defined(PLATFORM_LINUX)
@@ -290,7 +229,7 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
     get_lib_info_status_t st;
     char path_buf[4096];
     const char *fname;
-    char tmp[1024];
+    const char *shared_lib_cut;
 
     if (!out_basename || out_basename_sz == 0)
         return MYLIB_EINVAL;
@@ -302,22 +241,37 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
         return st;
     }
 
-    fname = get_ilename_part(path_buf);
-    if (!fname || fname[0] == '\0')
+    fname = com_util_path_basename(path_buf);
+    if (fname == NULL || fname[0] == '\0')
     {
         out_basename[0] = '\0';
         return MYLIB_EFAIL;
     }
 
-    /* ファイル名のみをコピーして拡張子を除く */
-    st = copy_str(tmp, sizeof(tmp), fname);
-    if (st != MYLIB_OK)
+    shared_lib_cut = find_shared_lib_extension_cut(fname);
+    if (shared_lib_cut != NULL)
     {
-        out_basename[0] = '\0';
-        return st;
+        size_t len = (size_t)(shared_lib_cut - fname);
+
+        if (len + 1u > out_basename_sz)
+        {
+            out_basename[0] = '\0';
+            return MYLIB_ENOBUFS;
+        }
+        memcpy(out_basename, fname, len);
+        out_basename[len] = '\0';
+        return MYLIB_OK;
     }
 
-    strip_extension_inplace(tmp);
+    {
+        int path_errno = 0;
 
-    return (int)copy_str(out_basename, out_basename_sz, tmp);
+        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_errno, fname) != 0)
+        {
+            out_basename[0] = '\0';
+            return (path_errno == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
+        }
+    }
+
+    return MYLIB_OK;
 }

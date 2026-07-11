@@ -286,21 +286,6 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
 
 /* ===== 内部ヘルパー関数 ===== */
 
-#if defined(PLATFORM_WINDOWS)
-static void normalize_path_sep_for_parent(char *path)
-{
-    char *p;
-
-    for (p = path; *p != '\0'; p++)
-    {
-        if (*p == '\\')
-        {
-            *p = PLATFORM_PATH_SEP_CHR;
-        }
-    }
-}
-#endif /* PLATFORM_WINDOWS */
-
 /**
  *  @brief  モードに応じた基本オープン フラグを返します。
  *
@@ -357,17 +342,10 @@ static int open_trace_file_with_retry(com_util_file *file, const char *path, con
 static int open_file(com_util_trace_file_sink *p)
 {
     char dir[PLATFORM_PATH_MAX];
-    char *sep;
 
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
-    snprintf(dir, sizeof(dir), "%s", p->path);
-#if defined(PLATFORM_WINDOWS)
-    normalize_path_sep_for_parent(dir);
-#endif /* PLATFORM_WINDOWS */
-    sep = strrchr(dir, PLATFORM_PATH_SEP_CHR);
-    if (sep != NULL)
+    if (com_util_path_dirname(dir, sizeof(dir), NULL, p->path) == 0 && strcmp(dir, ".") != 0)
     {
-        *sep = '\0';
         (void)com_util_makedirs(dir);
     }
 

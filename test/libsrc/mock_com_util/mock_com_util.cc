@@ -32,6 +32,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_getenv(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
     ON_CALL(*this, com_util_paths_equal(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
+    ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
 
     // crt - stdio
     ON_CALL(*this, com_util_rename(_, _)).WillByDefault(Invoke(delegate_real_com_util_rename));

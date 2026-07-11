@@ -374,19 +374,12 @@ static int to_etw_level(const com_util_trace_level_t lv)
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
-    const char *sep;
-
     if (com_util_process_get_executable_path(buf, buf_size) != 0)
     {
         return FALLBACK_NAME;
     }
 
-    sep = strrchr(buf, '/');
-    if (sep != NULL)
-    {
-        return sep + 1;
-    }
-    return buf;
+    return com_util_path_basename(buf);
 }
 
 /**
@@ -696,8 +689,9 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 static int build_default_file_path(const com_util_tracer *handle, char *out, const size_t out_size)
 {
     char exe_path[PLATFORM_PATH_MAX];
+    char exe_dir[PLATFORM_PATH_MAX];
     char name_buf[280];
-    char *sep;
+    char log_file_name[288];
     int written;
 
     if (resolve_file_name(handle, name_buf, sizeof(name_buf)) != 0)
@@ -705,28 +699,19 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         return -1;
     }
 
-    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0)
-    {
-        sep = strrchr(exe_path, PLATFORM_PATH_SEP_CHR);
-        if (sep != NULL)
-        {
-            *sep = '\0'; /* バッファーをディレクトリ部分のみに切り詰める */
-            written =
-                snprintf(out, out_size, "%s" PLATFORM_PATH_SEP "log" PLATFORM_PATH_SEP "%s.log", exe_path, name_buf);
-            if (written < 0 || (size_t)written >= out_size)
-            {
-                return -1;
-            }
-            return 0;
-        }
-    }
-
-    written = snprintf(out, out_size, "log" PLATFORM_PATH_SEP "%s.log", name_buf);
-    if (written < 0 || (size_t)written >= out_size)
+    written = snprintf(log_file_name, sizeof(log_file_name), "%s.log", name_buf);
+    if (written < 0 || (size_t)written >= sizeof(log_file_name))
     {
         return -1;
     }
-    return 0;
+
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0 &&
+        com_util_path_dirname(exe_dir, sizeof(exe_dir), NULL, exe_path) == 0 && strcmp(exe_dir, ".") != 0)
+    {
+        return com_util_path_join(out, out_size, NULL, exe_dir, "log", log_file_name);
+    }
+
+    return com_util_path_join(out, out_size, NULL, "log", log_file_name);
 }
 
 /**

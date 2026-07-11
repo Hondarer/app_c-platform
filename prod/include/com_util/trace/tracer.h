@@ -67,8 +67,6 @@
 #include <stddef.h>
 /* int64_t (com_util_tracer_set_name で使用) */
 #include <inttypes.h>
-/* strrchr (_com_util_tracer_basename マクロで使用) */
-#include <string.h>
 #include <com_util/base/platform.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/path.h>
@@ -865,25 +863,6 @@ extern "C"
 /* ===== ソース位置自動付与マクロ ===== */
 
 /**
- *  @brief          ファイル パスからベース ネームを取り出す内部ヘルパー関数です。
- *  @internal
- */
-static inline const char *_com_util_tracer_basename(const char *f)
-{
-    const char *p1 = strrchr(f, PLATFORM_PATH_SEP_CHR);
-    const char *p2 = strrchr(f, '\\');
-    if (p1 != NULL)
-    {
-        return p1 + 1;
-    }
-    if (p2 != NULL)
-    {
-        return p2 + 1;
-    }
-    return f;
-}
-
-/**
  *  @brief  HEX 出力用ラベル セパレータを返す内部ヘルパー関数です。
  *  @internal
  */
@@ -940,14 +919,14 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, co
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write マクロです。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
-    _com_util_tracer_write_with_source((handle), (level), (timestamp), _com_util_tracer_basename(__FILE__), __LINE__, \
+    _com_util_tracer_write_with_source((handle), (level), (timestamp), com_util_path_basename(__FILE__), __LINE__, \
                                        (message))
 
 /**
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_writef マクロです。
  */
 #define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
-    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, _com_util_tracer_basename(__FILE__), \
+    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, com_util_path_basename(__FILE__), \
                             __LINE__, ##__VA_ARGS__)
 
 /**
@@ -955,7 +934,7 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, co
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
-                                _com_util_tracer_basename(__FILE__), __LINE__, _com_util_tracer_hex_sep(message), \
+                                com_util_path_basename(__FILE__), __LINE__, _com_util_tracer_hex_sep(message), \
                                 _com_util_tracer_hex_msg(message))
 
 /**
@@ -963,7 +942,7 @@ static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, co
  */
 #define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \
     _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
-                                _com_util_tracer_basename(__FILE__), __LINE__, ##__VA_ARGS__)
+                                com_util_path_basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /** @} */
 

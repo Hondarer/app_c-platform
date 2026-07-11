@@ -19,6 +19,15 @@
  *  - **外部由来パス**: 環境変数や設定ファイルから取得したパスは
  *    com_util_normalize_path_sep() で正規化できます。
  *
+ *  **basename / dirname / extension 系の例外**\n
+ *  com_util_path_basename() / com_util_path_dirname() / com_util_path_extension() /
+ *  com_util_path_strip_extension() は、コンパイラが生成する `__FILE__` など
+ *  Windows 由来のパス文字列を全プラットフォームで解析できるよう、上記の方針に対する
+ *  例外として `'\\'` も `'/'` と同様にセパレータとして扱います。\n
+ *  Linux でファイル名自体に `'\\'` を含むケースでは、この 4 関数のみ通常の
+ *  パス関数と異なる切り出し結果になる点に注意してください。\n
+ *  com_util_path_join_n() (パス構築系) はこの例外に含まれず、`'\\'` を正規化しません。
+ *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
  *  @hideincludedbygraph
@@ -85,6 +94,20 @@
  */
 #define com_util_path_concat(path_out, path_size, errno_out, ...) \
     com_util_path_concat_n((path_out), (path_size), (errno_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
+
+/**
+ *  @brief          パス断片をパス区切り文字で自動補完しながら連結します。
+ *
+ *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。
+ *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
+ *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。
+ *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
+ *
+ *  com_util_path_concat() と異なり、断片間に @ref PLATFORM_PATH_SEP を自動的に補完します。\n
+ *  詳細は com_util_path_join_n() を参照してください。
+ */
+#define com_util_path_join(path_out, path_size, errno_out, ...) \
+    com_util_path_join_n((path_out), (path_size), (errno_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C"
@@ -184,6 +207,120 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, size_t path_size, int *errno_out,
                                                             size_t part_count, ...);
+
+    /**
+     *  @brief          パスのベース名 (最後のセパレータの次の位置) を指すポインターを返します。
+     *  @param[in]      path  対象パス (UTF-8)。NULL 可。
+     *  @return         @p path 内のベース名先頭を指すポインター。
+     *
+     *  GNU basename() 相当の非破壊動作です。@p path 内を指すポインターを返すため、
+     *  複製やバッファーは必要ありません。\n
+     *  セパレータが見つからない場合は @p path 自身を返します。\n
+     *  末尾がセパレータの場合は終端 `'\0'` を指す空文字列を返します
+     *  (例: `"/opt/bin/"` → `""`)。\n
+     *  @p path が NULL の場合は NULL を返します。\n
+     *  本関数は `'\\'` もセパレータとして扱います。詳細は本ヘッダー冒頭の
+     *  「basename / dirname / extension 系の例外」を参照してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_path_basename(const char *path);
+
+    /**
+     *  @brief          パスの親ディレクトリ部分を取得します。
+     *  @param[out]     path_out   親ディレクトリ パス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  POSIX dirname() 相当の規約で親ディレクトリ部分を求めます。\n
+     *  末尾のセパレータ群を除去したうえで、最後のセパレータより前を返します。\n
+     *  セパレータが見つからない場合は `"."` を返します。\n
+     *  ルート (`"/"`) や `"/name"` のようにセパレータより前が空になる場合は `"/"` を返します。\n
+     *  出力は常に @ref PLATFORM_PATH_SEP (`"/"`) 区切りに正規化されます。\n
+     *  本関数は `'\\'` もセパレータとして扱います。詳細は本ヘッダー冒頭の
+     *  「basename / dirname / extension 系の例外」を参照してください。\n
+     *  いずれかの引数が不正な場合は EINVAL、結果が @p path_out に収まらない場合は
+     *  ENAMETOOLONG を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_dirname(char *path_out, size_t path_size, int *errno_out,
+                                                           const char *path);
+
+    /**
+     *  @brief          パスの拡張子 (ドット込み) を指すポインターを返します。
+     *  @param[in]      path  対象パス (UTF-8)。NULL 可。
+     *  @return         @p path 内の拡張子 (先頭の `'.'` を含む) を指すポインター。
+     *
+     *  ベース名部分のみを対象に、最後の `'.'` 以降を拡張子として返します
+     *  (例: `"a/b.tar.gz"` → `".gz"`)。\n
+     *  ベース名の先頭文字が `'.'` の場合 (ドットファイル、例: `".bashrc"`) はそのドットを
+     *  拡張子とみなしません。\n
+     *  拡張子が見つからない場合は @p path の終端 (`'\0'` を指す空文字列) を返します。\n
+     *  @p path が NULL の場合は NULL を返します。\n
+     *  本関数は `'\\'` もセパレータとして扱います。詳細は本ヘッダー冒頭の
+     *  「basename / dirname / extension 系の例外」を参照してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_path_extension(const char *path);
+
+    /**
+     *  @brief          パスから拡張子を除いた文字列を取得します。
+     *  @param[out]     path_out   拡張子を除いたパス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  com_util_path_extension() が返す拡張子部分を除いて @p path を @p path_out へ
+     *  コピーします。\n
+     *  拡張子が見つからない場合は @p path をそのままコピーします。\n
+     *  本関数は `'\\'` もセパレータとして扱います。詳細は本ヘッダー冒頭の
+     *  「basename / dirname / extension 系の例外」を参照してください。\n
+     *  いずれかの引数が不正な場合は EINVAL、結果が @p path_out に収まらない場合は
+     *  ENAMETOOLONG を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_strip_extension(char *path_out, size_t path_size, int *errno_out,
+                                                                   const char *path);
+
+    /**
+     *  @brief          パス断片をパス区切り文字で自動補完しながら連結します。
+     *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。
+     *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
+     *  @param[in]      ...         連結する UTF-8 文字列断片。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  隣り合う非空断片の間に @ref PLATFORM_PATH_SEP_CHR がちょうど 1 つになるよう
+     *  自動的に補完・重複除去して連結します
+     *  (例: `"a/"` + `"/b"` → `"a/b"`、`"a"` + `"b"` → `"a/b"`)。\n
+     *  空文字列の断片は結合対象から除外されます。\n
+     *  先頭断片が `'/'` から始まる場合、その絶対パスとしての性質は保持されます。\n
+     *  断片の途中にある連続セパレータや `'\\'` は正規化しません。必要な場合は
+     *  事前に com_util_normalize_path_sep() を適用してください。\n
+     *  いずれかの断片が NULL、または @p part_count が 0 の場合は EINVAL を返します。\n
+     *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_join_n(char *path_out, size_t path_size, int *errno_out,
+                                                          size_t part_count, ...);
 
 #ifdef __cplusplus
 }

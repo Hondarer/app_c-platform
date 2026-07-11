@@ -1,3 +1,4 @@
+/path_name.c
 /process.c
 /trace_common.c
 /tracer.c

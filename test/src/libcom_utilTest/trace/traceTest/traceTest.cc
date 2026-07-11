@@ -281,6 +281,62 @@ TEST_F(traceTest, test_macro_write_with_null_message_emits_source_location_only)
     com_util_tracer_dispose(handle);
 }
 
+// 公開マクロが source location にファイルの basename を使うことの確認
+TEST_F(traceTest, test_public_macros_prefix_source_location_with_basename)
+{
+    // Arrange
+    com_util_tracer *handle = create_logger();
+    unsigned char data[] = {0x48, 0x69};
+    ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(0, com_util_tracer_start(handle));
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] direct write")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] value=7")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - writef マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] hex label: 48 69")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write_hex マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+                                                  MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] hex 7: 48 69")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write_hexf マクロが basename を使うこと。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] direct write")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] value=7")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - writef マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] hex label: 48 69")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write_hex マクロが basename を使うこと。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+                                                   MatchesRegex("\\[traceTest\\.cc:\\d+\\] hex 7: 48 69")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - write_hexf マクロが basename を使うこと。
+#endif
+
+    // Act
+    int write_result = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "direct write");
+    int writef_result = com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "value=%d", 7);
+    int hex_result =
+        com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex label");
+    int hexf_result =
+        com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex %d", 7);
+
+    // Assert
+    EXPECT_EQ(0, write_result);  // [確認_正常系] - write マクロの書き込みが成功すること。
+    EXPECT_EQ(0, writef_result); // [確認_正常系] - writef マクロの書き込みが成功すること。
+    EXPECT_EQ(0, hex_result);    // [確認_正常系] - write_hex マクロの書き込みが成功すること。
+    EXPECT_EQ(0, hexf_result);   // [確認_正常系] - write_hexf マクロの書き込みが成功すること。
+
+    // Cleanup
+    com_util_tracer_dispose(handle);
+}
+
 // started 状態で INFO 出力が OS backend へ送られることの確認
 TEST_F(traceTest, test_write_routes_info_to_os_backend)
 {

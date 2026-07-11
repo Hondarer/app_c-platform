@@ -76,6 +76,7 @@ extern int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t
 extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, int *errno_out, const char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
+extern const char *delegate_real_com_util_path_basename(const char *path);
 
 // crt - stdio
 extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath);
@@ -399,6 +400,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, int *, const char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *));
+    MOCK_METHOD(const char *, com_util_path_basename, (const char *));
 
     // crt - stdio
     MOCK_METHOD(int, com_util_rename, (const char *, const char *));
