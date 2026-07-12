@@ -545,7 +545,7 @@ static int argparser_register_positional_core(com_util_argparser *parser, argpar
  *  @brief          文字列を int 値に変換します。
  *  @param[in]      text   変換する文字列。
  *  @param[out]     value  変換結果の格納先。
- *  @return         成功時は @ref COM_UTIL_ARGPARSER_ERROR_NONE、
+ *  @return         成功時は @ref COM_UTIL_ARGPARSER_ERROR_NONE 、
  *                  失敗時は @ref COM_UTIL_ARGPARSER_ERROR_INVALID_INT または
  *                  @ref COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE を返します。
  */
@@ -629,7 +629,7 @@ static argparser_spec *argparser_find_short(const com_util_argparser *parser, co
  *  @param[in,out]  spec    対象の登録項目。
  *  @param[in]      value   書き込む値の文字列。
  *  @param[in]      index   値を取得した argv インデックス。
- *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK、
+ *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK 、
  *                  失敗時は @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返します。
  */
 static int argparser_store_option_value(com_util_argparser *parser, argparser_spec *spec, const char *value,
@@ -688,7 +688,7 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
  *  @param[in]      token             位置引数トークン。
  *  @param[in]      index             トークンの argv インデックス。
  *  @param[in,out]  positional_index  次に割り当てる位置引数の検索開始位置。
- *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK、
+ *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK 、
  *                  失敗時は @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返します。
  */
 static int argparser_store_positional(com_util_argparser *parser, const char *token, const int index,
