@@ -452,7 +452,29 @@ TEST_F(argparserTest, flag_with_value_is_unexpected_value)
     _com_util_argparser_dispose(parser);
 }
 
-// int オプションの各構文 (-c 5 / --count 5 / --count=5 / 負数) の確認
+// フラグへの値指定 (-v=value) がエラーになることの確認
+TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int verbose = 0;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL, &verbose));
+
+    // Act
+    ARGV(cstr("prog"), cstr("-v=1"));
+    int result = _com_util_argparser_parse(parser, argc, argv);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR, result);
+    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE, _com_util_argparser_get_error(parser));
+    EXPECT_STREQ("--verbose", _com_util_argparser_get_error_target(parser));
+    EXPECT_EQ(1, _com_util_argparser_get_error_index(parser));
+
+    _com_util_argparser_dispose(parser);
+}
+
+// int オプションの各構文 (-c 5 / -c=5 / --count 5 / --count=5 / 負数) の確認
 TEST_F(argparserTest, option_int_accepts_all_syntaxes)
 {
     // Arrange
@@ -477,6 +499,11 @@ TEST_F(argparserTest, option_int_accepts_all_syntaxes)
         ARGV(cstr("prog"), cstr("--count=7"));
         EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
         EXPECT_EQ(7, count);
+    }
+    {
+        ARGV(cstr("prog"), cstr("-c=8"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_EQ(8, count);
     }
     {
         // 値位置のトークンは照合しないため負数を渡せる
@@ -568,6 +595,18 @@ TEST_F(argparserTest, option_string_points_into_argv)
     {
         // "--name=" の空値は文字列では受理する
         ARGV(cstr("prog"), cstr("--name="));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("", name);
+    }
+    {
+        // "-n=xyz" は短いオプションの "=" 区切りとして受理する
+        ARGV(cstr("prog"), cstr("-n=xyz"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("xyz", name);
+    }
+    {
+        // "-n=" の空値は文字列では受理する
+        ARGV(cstr("prog"), cstr("-n="));
         EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
         EXPECT_STREQ("", name);
     }

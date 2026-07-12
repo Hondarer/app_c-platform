@@ -12,7 +12,7 @@
  *
  *  以下の構文をサポートします。
  *  - フラグ : `-v` / `--verbose` (出現回数を格納)
- *  - 値付きオプション : `-o {value}` / `--option {value}` / `--option={value}`
+ *  - 値付きオプション : `-o {value}` / `-o={value}` / `--option {value}` / `--option={value}`
  *  - 位置引数 : 登録順に割り当て
  *
  *  短オプションの連結 (`-abc`) と `--` 区切りはサポートしません。
@@ -24,31 +24,48 @@
  *  @par 使用例
     @code{.c}
     #include <com_util/argparser/argparser.h>
+    #include <stdio.h>
+    #include <stdlib.h>
 
-    int main(int argc, char *argv[]) {
-        int help_flag = 0;
-        int count = 1;
+    int main(int argc, char *argv[])
+    {
+        com_util_console_init();
+        com_util_argparser_init("sample program");
+
+        int need_help = 0;
+        int count = 1; // 既定値は解析前に設定する
         const char *input = NULL;
-        char usage[1024];
-        com_util_argparser *parser = _com_util_argparser_create(NULL);
 
-        _com_util_argparser_register_flag(parser, "-h", "--help", "ヘルプを表示する", &help_flag);
-        _com_util_argparser_register_option_int(parser, "-c", "--count", "N", "繰り返し回数",
-                                             0, &count);
-        _com_util_argparser_register_positional_string(parser, "input", "入力ファイル",
-                                                    COM_UTIL_ARGPARSER_REQUIRED, &input);
+        com_util_argparser_register_flag("-h", "--help", "ヘルプを表示する", &need_help);
+        com_util_argparser_register_option_int("-c", "--count", "N", "繰り返し回数", 0, &count);
+        com_util_argparser_register_positional_string("input", "入力ファイル",
+                                                      COM_UTIL_ARGPARSER_REQUIRED, &input);
 
-        if (_com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK) {
-            char message[256];
-            _com_util_argparser_get_error_message(parser, message, sizeof(message));
-            fprintf(stderr, "%s\n", message);
-            _com_util_argparser_get_usage(parser, usage, sizeof(usage), NULL);
-            fprintf(stderr, "%s", usage);
-            _com_util_argparser_dispose(parser);
-            return 1;
+        if (com_util_argparser_get_register_error_count() > 0)
+        { // オプションの登録に失敗した場合 (コーディング エラーの場合)
+            com_util_argparser_print_register_error_messages(stderr);
+            return EXIT_FAILURE;
         }
-        _com_util_argparser_dispose(parser);
-        return 0;
+
+        int parse_result = com_util_argparser_parse(argc, argv);
+
+        if (need_help != 0)
+        {
+            // 必須引数が省略されていても -h, --help を優先する
+            com_util_argparser_print_usage(stdout);
+            return EXIT_SUCCESS;
+        }
+
+        if (parse_result != COM_UTIL_ARGPARSER_OK)
+        {
+            com_util_argparser_print_error_messages(stderr);
+            com_util_argparser_print_usage(stderr);
+            return EXIT_FAILURE;
+        }
+
+        printf("count=%d input=%s\n", count, input);
+
+        return EXIT_SUCCESS;
     }
     @endcode
  *

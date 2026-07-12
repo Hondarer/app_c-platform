@@ -31,7 +31,7 @@ typedef struct argparser_sample_options
     const char *input_path;
     const char *output_path;
     size_t include_count;
-    int help_flag;
+    int need_help;
     int verbose_count;
     int count_value;
     int pad; /* 明示パディング (-Wpadded 対応) */
@@ -44,7 +44,7 @@ typedef struct argparser_sample_options
  */
 static int register_argparser(argparser_sample_options *options)
 {
-    com_util_argparser_register_flag("-h", "--help", "show this help", &options->help_flag);
+    com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
     com_util_argparser_register_flag("-v", "--verbose", "increase verbosity", &options->verbose_count);
     com_util_argparser_register_option_int("-c", "--count", "N", "repeat count", 0, &options->count_value);
     com_util_argparser_register_option_string("-n", "--name", "NAME", "display name", 0, &options->name_value);
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
     int parse_result = com_util_argparser_parse(argc, argv);
 
-    if (options.help_flag != 0)
+    if (options.need_help != 0)
     {
         /* 必須引数が省略されていても -h, --help を優先する */
         com_util_argparser_print_usage(stdout);

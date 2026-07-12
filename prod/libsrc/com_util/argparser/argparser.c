@@ -13,6 +13,7 @@
 
 #include <com_util/argparser/argparser.h>
 
+#include <com_util/base/platform.h>
 #include <com_util/crt/path.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/sync/sync.h>
@@ -69,6 +70,9 @@ typedef struct argparser_spec
 typedef struct argparser_register_error
 {
     int result;   /* 発生した結果コード (OK 以外) */
+#if defined(ARCH_X64)
+    unsigned int pad; /* 明示的アラインメント */
+#endif
     char *target; /* 対象名 (複製)。対象がない場合は NULL */
 } argparser_register_error;
 
@@ -84,6 +88,9 @@ struct com_util_argparser
     int last_error;
     int last_error_index;
     int library_owned;
+#if defined(ARCH_X64)
+    unsigned int pad; /* 明示的アラインメント */
+#endif
     argparser_register_error *register_errors; /* register 系エラーを発生順に積み上げる配列。NULL 可 */
     size_t register_error_count;
     size_t register_error_capacity;
@@ -593,11 +600,12 @@ static argparser_spec *argparser_find_long(const com_util_argparser *parser, con
 
 /**
  *  @brief          短いオプション名でトークンに一致する登録項目を検索します。
- *  @param[in]      parser  対象のハンドル。
- *  @param[in]      token   トークン ("-x" 形式)。
+ *  @param[in]      parser      対象のハンドル。
+ *  @param[in]      token       トークン ("-x" 形式の名前部分を含む文字列)。
+ *  @param[in]      name_len    トークンのうちオプション名として扱う長さ。
  *  @return         一致した登録項目。見つからない場合は NULL を返します。
  */
-static argparser_spec *argparser_find_short(const com_util_argparser *parser, const char *token)
+static argparser_spec *argparser_find_short(const com_util_argparser *parser, const char *token, size_t name_len)
 {
     for (size_t i = 0; i < parser->spec_count; i++)
     {
@@ -606,7 +614,7 @@ static argparser_spec *argparser_find_short(const com_util_argparser *parser, co
         {
             continue;
         }
-        if (strcmp(spec->short_name, token) == 0)
+        if (strlen(spec->short_name) == name_len && strncmp(spec->short_name, token, name_len) == 0)
         {
             return spec;
         }
@@ -1436,11 +1444,18 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
 
         if (token[0] == '-' && token[1] != '\0')
         {
-            /* 短いオプション ("-x")。連結 ("-abc") と "--" は未サポートのため未知扱い */
-            argparser_spec *spec = NULL;
-            if (strlen(token) == 2)
+            /* 短いオプション ("-x" / "-x=value")。連結 ("-abc") と "--" は未サポートのため未知扱い */
+            const char *equal = strchr(token, '=');
+            size_t name_len = strlen(token);
+            if (equal != NULL)
             {
-                spec = argparser_find_short(parser, token);
+                name_len = (size_t)(equal - token);
+            }
+
+            argparser_spec *spec = NULL;
+            if (name_len == 2)
+            {
+                spec = argparser_find_short(parser, token, name_len);
             }
             if (spec == NULL)
             {
@@ -1449,24 +1464,39 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
 
             if (spec->kind == ARGPARSER_SPEC_FLAG)
             {
+                if (equal != NULL)
+                {
+                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE,
+                                               argparser_spec_display_name(spec), i);
+                }
                 (*spec->int_storage)++;
                 spec->found++;
                 continue;
             }
 
-            if ((i + 1) >= argc)
+            const char *value = NULL;
+            int value_index = i;
+            if (equal != NULL)
             {
-                return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE,
-                                           argparser_spec_display_name(spec), i);
+                value = equal + 1;
             }
-            i++;
-            const char *value = argv[i];
-            if (value == NULL)
+            else
             {
-                return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+                if ((i + 1) >= argc)
+                {
+                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE,
+                                               argparser_spec_display_name(spec), i);
+                }
+                i++;
+                value = argv[i];
+                value_index = i;
+                if (value == NULL)
+                {
+                    return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+                }
             }
 
-            int result = argparser_store_option_value(parser, spec, value, i);
+            int result = argparser_store_option_value(parser, spec, value, value_index);
             if (result != COM_UTIL_ARGPARSER_OK)
             {
                 return result;
