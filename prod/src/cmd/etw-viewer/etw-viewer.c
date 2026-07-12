@@ -16,6 +16,7 @@
 
 #include "etw-viewer.h"
 
+#include <com_util/argparser/argparser.h>
 #include <com_util/base/platform.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
@@ -80,39 +81,7 @@ void etw_viewer_options_init(etw_viewer_options *options)
 
     options->process_id_filter = 0U;
     options->has_process_id_filter = 0;
-}
-
-int etw_viewer_parse_args(int argc, char *argv[], etw_viewer_options *options)
-{
-    int i;
-
-    if (argc <= 0 || argv == NULL || options == NULL)
-    {
-        return -1;
-    }
-
-    etw_viewer_options_init(options);
-
-    for (i = 1; i < argc; i++)
-    {
-        const char *arg = argv[i];
-
-        if (strcmp(arg, "--pid") == 0)
-        {
-            if ((i + 1) >= argc || parse_process_id_arg(argv[i + 1], &options->process_id_filter) != 0)
-            {
-                return -1;
-            }
-            options->has_process_id_filter = 1;
-            i++;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    return 0;
+    options->need_help = 0;
 }
 
 int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer, size_t buffer_size)
@@ -169,22 +138,6 @@ static char etw_viewer_priority_letter(int level)
     default:
         return 'U';
     }
-}
-
-void etw_viewer_print_usage(const char *argv0, int is_windows)
-{
-    const char *name;
-    if (argv0 != NULL)
-    {
-        name = argv0;
-    }
-    else
-    {
-        name = "etw-viewer";
-    }
-
-    (void)is_windows;
-    fprintf(stderr, "使用方法: %s [--pid <process-id>]\n", name);
 }
 
 int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_t buffer_size)
@@ -289,32 +242,56 @@ int main(int argc, char *argv[])
     etw_viewer_context viewer_context;
     com_util_etw_session *session;
     int status;
-    int exit_code = EXIT_FAILURE;
     char session_name[ETW_VIEWER_SESSION_NAME_MAX];
+    const char *pid_value = NULL;
 
     com_util_console_init();
     g_stop_requested = 0;
 
-    if (etw_viewer_parse_args(argc, argv, &options) != 0)
+    etw_viewer_options_init(&options);
+
+    com_util_argparser_init("ETW の com_util トレースを表示します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    com_util_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
+
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        const char *print_usage_arg;
-        if (argc > 0)
+        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    int parse_result = com_util_argparser_parse(argc, argv);
+
+    if (options.need_help != 0)
+    {
+        com_util_argparser_print_usage(stdout);
+        return EXIT_SUCCESS;
+    }
+
+    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    {
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    if (pid_value != NULL)
+    {
+        if (parse_process_id_arg(pid_value, &options.process_id_filter) != 0)
         {
-            print_usage_arg = argv[0];
+            com_util_argparser_print_error_messages(stderr);
+            com_util_argparser_print_usage(stderr);
+            return EXIT_FAILURE;
         }
-        else
-        {
-            print_usage_arg = "etw-viewer";
-        }
-        etw_viewer_print_usage(print_usage_arg, 1);
-        return exit_code;
+        options.has_process_id_filter = 1;
     }
 
     if (etw_viewer_build_default_session_name((unsigned long)GetCurrentProcessId(), session_name,
                                               sizeof(session_name)) != 0)
     {
         fprintf(stderr, "既定 session 名の生成に失敗しました。\n");
-        return exit_code;
+        return EXIT_FAILURE;
     }
 
     viewer_context.process_id_filter = options.process_id_filter;
@@ -324,25 +301,25 @@ int main(int argc, char *argv[])
     if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
     {
         print_access_error();
-        exit_code = EXIT_ACCESS_DENIED;
-        return exit_code;
+        return EXIT_ACCESS_DENIED;
     }
     if (status != COM_UTIL_ETW_SESSION_OK)
     {
         fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
-        return exit_code;
+        return EXIT_FAILURE;
     }
 
     if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != 0)
     {
         fprintf(stderr, "終了要求 callback の登録に失敗しました。\n");
-        return exit_code;
+        return EXIT_FAILURE;
     }
 
     session = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
                                          etw_viewer_handle_event, &viewer_context, &status);
     if (session == NULL)
     {
+        int exit_code = EXIT_FAILURE;
         if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
         {
             exit_code = EXIT_ACCESS_DENIED;
@@ -365,9 +342,8 @@ int main(int argc, char *argv[])
     }
 
     com_util_etw_session_stop(session);
-    exit_code = EXIT_SUCCESS;
 
-    return exit_code;
+    return EXIT_SUCCESS;
 }
 
 #elif defined(PLATFORM_LINUX)
@@ -378,7 +354,9 @@ int main(int argc, char *argv[])
     (void)argv;
 
     com_util_console_init();
+
     fprintf(stderr, "ETW viewer is supported only on Windows.\n");
+
     return EXIT_FAILURE;
 }
 

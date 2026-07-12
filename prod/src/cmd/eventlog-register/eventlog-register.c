@@ -21,6 +21,7 @@
 
 #include "eventlog-register.h"
 
+#include <com_util/argparser/argparser.h>
 #include <com_util/base/platform.h>
 #include <com_util/console/console.h>
 #include <com_util/runtime/elevated_process.h>
@@ -29,22 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-void eventlog_register_print_usage(const char *argv0)
-{
-    const char *name = argv0;
-
-    if (name == NULL)
-    {
-        name = "eventlog-register";
-    }
-
-    fprintf(stderr, "使用方法: %s {install|uninstall}\n", name);
-    fprintf(stderr, "  install    com_util 共通イベント ソースを登録します (要管理者権限)。\n");
-    fprintf(stderr, "  uninstall  com_util 共通イベント ソースの登録を削除します (要管理者権限)。\n");
-}
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -64,7 +49,7 @@ static int s_is_elevated_worker = 0;
  *  @brief          管理者権限を保証します。必要なら UAC 昇格して再実行します。
  *  @param[in]      command  昇格再実行するサブコマンド ("install" / "uninstall")。
  *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納します。
- *  @return         継続可能な場合は 0、失敗時または昇格プロセスの終了コードを返します。
+ *  @return         継続可能な場合は 0、異常時は 0 以外を返します。
  *
  *  昇格プロセスのコンソールは一切引き継がない。昇格プロセス側が報告した結果メッセージは
  *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示します。
@@ -77,23 +62,23 @@ static int ensure_elevated(const char *command, int *handled)
 
     if (handled == NULL)
     {
-        return EXIT_FAILURE;
+        return -1;
     }
 
-    exit_code = EXIT_FAILURE;
+    exit_code = 1;
     rc =
         com_util_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
     if (rc != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
-        return EXIT_FAILURE;
+        return -1;
     }
 
     if (*handled != 0)
     {
         if (result_message[0] != '\0')
         {
-            if (exit_code == EXIT_SUCCESS)
+            if (exit_code == 0)
             {
                 printf("%s", result_message);
             }
@@ -102,16 +87,20 @@ static int ensure_elevated(const char *command, int *handled)
                 fprintf(stderr, "%s", result_message);
             }
         }
-        return exit_code;
+        if (exit_code != 0)
+        {
+            return -1;
+        }
+        return 0;
     }
     return 0;
 }
 
 /**
- *  @brief          イベント ソース API のステータスを表示し、終了コードに変換します。
+ *  @brief          イベント ソース API のステータスを表示します。
  *  @param[in]      status  com_util_eventlog_register_source / unregister_source の戻り値。
  *  @param[in]      action  操作名 ("登録" / "削除")。
- *  @return         EXIT_SUCCESS / EXIT_FAILURE。
+ *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  *
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
  *  com_util_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
@@ -132,7 +121,7 @@ static int report_status(const int status, const char *action)
         {
             printf("%s", message);
         }
-        return EXIT_SUCCESS;
+        return 0;
     }
     if (status == COM_UTIL_EVENTLOG_ERR_ACCESS)
     {
@@ -155,12 +144,12 @@ static int report_status(const int status, const char *action)
     {
         fprintf(stderr, "%s", message);
     }
-    return EXIT_FAILURE;
+    return -1;
 }
 
 /**
  *  @brief          共通イベント ソースを登録します。
- *  @return         EXIT_SUCCESS / EXIT_FAILURE。
+ *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  */
 static int do_install(void)
 {
@@ -194,7 +183,7 @@ static int do_install(void)
 
 /**
  *  @brief          共通イベント ソースの登録を削除します。
- *  @return         EXIT_SUCCESS / EXIT_FAILURE。
+ *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  */
 static int do_uninstall(void)
 {
@@ -214,39 +203,32 @@ static int do_uninstall(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int eventlog_register_run(int argc, char *argv[])
+int eventlog_register_run(const char *command)
 {
-    if (argc < 2)
-    {
-        eventlog_register_print_usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    if (strcmp(argv[1], "install") == 0)
+    if (strcmp(command, "install") == 0)
     {
         return do_install();
     }
-    if (strcmp(argv[1], "uninstall") == 0)
+    if (strcmp(command, "uninstall") == 0)
     {
         return do_uninstall();
     }
 
-    fprintf(stderr, "不明なコマンド '%s'\n", argv[1]);
-    eventlog_register_print_usage(argv[0]);
-    return EXIT_FAILURE;
+    /* command は main() の argparser 検証により install/uninstall のいずれかへ確定するため到達しない */
+    return -1;
 }
 
 #else /* PLATFORM_LINUX */
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int eventlog_register_run(int argc, char *argv[])
+int eventlog_register_run(const char *command)
 {
-    (void)argc;
-    (void)argv;
+    (void)command;
 
     fprintf(stderr, "eventlog-register は Windows 専用です。Linux ではイベント ログを使用しません。\n");
-    return EXIT_FAILURE;
+
+    return -1;
 }
 
 #endif /* PLATFORM_ */
@@ -273,6 +255,49 @@ int main(int argc, char *argv[])
 #endif
 
     com_util_console_init();
-    run_result = eventlog_register_run(argc, argv);
-    return run_result;
+
+    int need_help = 0;
+    const char *command = NULL;
+
+    com_util_argparser_init("com_util 共通イベント ソースを登録または削除します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    com_util_argparser_register_positional_string("command", "install または uninstall。", COM_UTIL_ARGPARSER_REQUIRED,
+                                                  &command);
+
+    if (com_util_argparser_get_register_error_count() > 0)
+    {
+        com_util_argparser_print_register_error_messages(stderr);
+        return EXIT_FAILURE;
+    }
+
+    int parse_result = com_util_argparser_parse(argc, argv);
+
+    if (need_help != 0)
+    {
+        com_util_argparser_print_usage(stdout);
+        return EXIT_SUCCESS;
+    }
+
+    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    {
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    if (strcmp(command, "install") != 0 && strcmp(command, "uninstall") != 0)
+    {
+        fprintf(stderr, "不明なコマンド '%s'\n\n", command);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    run_result = eventlog_register_run(command);
+
+    if (run_result != 0)
+    {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }

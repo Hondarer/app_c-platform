@@ -11,7 +11,7 @@ typedef enum compress_cli_mode_t
 typedef struct compress_cli_options
 {
     compress_cli_mode_t mode;
-    int reserved;
+    int need_help;
     const char *input_path;
     const char *output_path;
 } compress_cli_options;
@@ -22,8 +22,6 @@ extern "C"
 #endif
 
     void compress_cli_options_init(compress_cli_options *options);
-    int compress_cli_parse_args(int argc, char *argv[], compress_cli_options *options);
-    void compress_cli_print_usage(const char *argv0);
 
 #ifdef __cplusplus
 }

@@ -1459,6 +1459,33 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
             }
             if (spec == NULL)
             {
+                /* 次の位置引数が整数の場合、負数は短いオプションではなく位置引数として扱う */
+                if (token[1] >= '0' && token[1] <= '9')
+                {
+                    size_t next_positional_index = positional_index;
+                    while (next_positional_index < parser->spec_count)
+                    {
+                        const argparser_spec *next_spec = &parser->specs[next_positional_index];
+                        if (argparser_spec_is_positional(next_spec) != 0)
+                        {
+                            if (next_spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
+                            {
+                                int result = argparser_store_positional(parser, token, i, &positional_index);
+                                if (result != COM_UTIL_ARGPARSER_OK)
+                                {
+                                    return result;
+                                }
+                                break;
+                            }
+                            return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, token, i);
+                        }
+                        next_positional_index++;
+                    }
+                    if (next_positional_index < parser->spec_count)
+                    {
+                        continue;
+                    }
+                }
                 return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, token, i);
             }
 

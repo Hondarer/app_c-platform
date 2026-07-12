@@ -10,6 +10,7 @@
 
 #include "compress-cli.h"
 
+#include <com_util/argparser/argparser.h>
 #include <com_util/base/platform.h>
 #include <com_util/compress/compress.h>
 #include <com_util/console/console.h>
@@ -329,58 +330,9 @@ void compress_cli_options_init(compress_cli_options *options)
     }
 
     options->mode = COMPRESS_CLI_MODE_NONE;
+    options->need_help = 0;
     options->input_path = NULL;
     options->output_path = NULL;
-}
-
-int compress_cli_parse_args(int argc, char *argv[], compress_cli_options *options)
-{
-    if (argc != 4 || argv == NULL || options == NULL)
-    {
-        return -1;
-    }
-
-    compress_cli_options_init(options);
-
-    if (strcmp(argv[1], "--compress") == 0)
-    {
-        options->mode = COMPRESS_CLI_MODE_COMPRESS;
-    }
-    else if (strcmp(argv[1], "--decompress") == 0)
-    {
-        options->mode = COMPRESS_CLI_MODE_DECOMPRESS;
-    }
-    else
-    {
-        return -1;
-    }
-
-    options->input_path = argv[2];
-    options->output_path = argv[3];
-
-    if (options->input_path == NULL || options->output_path == NULL || options->input_path[0] == '\0' ||
-        options->output_path[0] == '\0')
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
-void compress_cli_print_usage(const char *argv0)
-{
-    const char *name;
-    if (argv0 != NULL)
-    {
-        name = argv0;
-    }
-    else
-    {
-        name = "compress-cli";
-    }
-
-    fprintf(stderr, "使用方法: %s --compress <input> <output>\n", name);
-    fprintf(stderr, "          %s --decompress <input> <output>\n", name);
 }
 
 int main(int argc, char *argv[])
@@ -391,18 +343,60 @@ int main(int argc, char *argv[])
 
     com_util_console_init();
 
-    if (compress_cli_parse_args(argc, argv, &options) != 0)
+    compress_cli_options_init(&options);
+
+    int compress_count = 0;
+    int decompress_count = 0;
+
+    com_util_argparser_init("ファイルを圧縮または展開します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    com_util_argparser_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
+    com_util_argparser_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
+    com_util_argparser_register_positional_string("input", "入力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+                                                  &options.input_path);
+    com_util_argparser_register_positional_string("output", "出力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+                                                  &options.output_path);
+
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        const char *print_usage_arg;
-        if (argc > 0)
-        {
-            print_usage_arg = argv[0];
-        }
-        else
-        {
-            print_usage_arg = "compress-cli";
-        }
-        compress_cli_print_usage(print_usage_arg);
+        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    int parse_result = com_util_argparser_parse(argc, argv);
+
+    if (options.need_help != 0)
+    {
+        com_util_argparser_print_usage(stdout);
+        return EXIT_SUCCESS;
+    }
+
+    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    {
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    if ((compress_count + decompress_count) != 1)
+    {
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    if (compress_count == 1 && decompress_count == 0)
+    {
+        options.mode = COMPRESS_CLI_MODE_COMPRESS;
+    }
+    else if (decompress_count == 1 && compress_count == 0)
+    {
+        options.mode = COMPRESS_CLI_MODE_DECOMPRESS;
+    }
+    else
+    {
+        com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -411,39 +405,22 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    int exit_code = EXIT_SUCCESS;
     if (options.mode == COMPRESS_CLI_MODE_COMPRESS)
     {
-        if (compress_cli_run_compress(input_full, output_full) == 0)
+        if (compress_cli_run_compress(input_full, output_full) != 0)
         {
-            return EXIT_SUCCESS;
-        }
-        else
-        {
-            return EXIT_FAILURE;
+            exit_code = EXIT_FAILURE;
         }
     }
 
     if (options.mode == COMPRESS_CLI_MODE_DECOMPRESS)
     {
-        if (compress_cli_run_decompress(input_full, output_full) == 0)
+        if (compress_cli_run_decompress(input_full, output_full) != 0)
         {
-            return EXIT_SUCCESS;
-        }
-        else
-        {
-            return EXIT_FAILURE;
+            exit_code = EXIT_FAILURE;
         }
     }
 
-    const char *print_usage_arg;
-    if (argc > 0)
-    {
-        print_usage_arg = argv[0];
-    }
-    else
-    {
-        print_usage_arg = "compress-cli";
-    }
-    compress_cli_print_usage(print_usage_arg);
-    return EXIT_FAILURE;
+    return exit_code;
 }

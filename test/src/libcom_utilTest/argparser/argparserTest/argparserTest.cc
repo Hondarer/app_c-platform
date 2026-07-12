@@ -569,6 +569,38 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
     _com_util_argparser_dispose(parser);
 }
 
+// 負の位置整数と短いオプションの判別を確認
+TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unknown_options)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int value = 0;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_positional_int(parser, "value", NULL, COM_UTIL_ARGPARSER_REQUIRED, &value));
+
+    // Pre-Assert
+
+    // Act & Assert
+    {
+        ARGV(cstr("prog"), cstr("-42"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_EQ(-42, value);
+    }
+    {
+        ARGV(cstr("prog"), cstr("-2147483649"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE, _com_util_argparser_get_error(parser));
+    }
+    {
+        ARGV(cstr("prog"), cstr("-x"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, _com_util_argparser_get_error(parser));
+    }
+
+    _com_util_argparser_dispose(parser);
+}
+
 // 文字列オプションが argv 内の文字列をそのまま指すことの確認
 TEST_F(argparserTest, option_string_points_into_argv)
 {

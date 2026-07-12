@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdint>
+#include <cstdlib>
 
 using testing::_;
 using testing::AnyNumber;
@@ -269,23 +270,18 @@ TEST_F(trace_cliTest, process_line_quit_requests_exit)
     EXPECT_EQ(1, session_.exit_requested); // [確認] - session に終了要求が保持されること。
 }
 
-TEST_F(trace_cliTest, main_rejects_extra_arguments)
+TEST_F(trace_cliTest, main_prints_usage_on_help)
 {
     // Arrange
     int argc = 2;
-    const char *argv[] = {"trace-cli", "--help"}; // [状態] - 想定外の起動引数を 1 個付与する。
+    const char *argv[] = {"trace-cli", "--help"}; // [状態] - help オプションを指定する。
     EXPECT_CALL(mock_com_util_, com_util_console_init())
         .WillOnce(Return()); // [Pre-Assert確認] - main() 起動時に console 初期化が呼ばれること。
-    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("使用方法: trace-cli")))
-        .WillOnce(Return(0)); // [Pre-Assert確認] - 使用方法が stderr に出力されること。
-    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("help")))
-        .WillOnce(Return(0)); // [Pre-Assert確認] - help への案内が stderr に出力されること。
-
     // Act
     int rc = __real_main(argc, (char **)&argv);
 
     // Assert
-    EXPECT_NE(0, rc); // [確認] - 不正な起動引数で失敗終了すること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認] - help の表示後に正常終了すること。
 }
 
 TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
@@ -361,5 +357,5 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
     int rc = __real_main(argc, (char **)&argv);
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認] - 対話シーケンスが正常終了すること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認] - 対話シーケンスが正常終了すること。
 }

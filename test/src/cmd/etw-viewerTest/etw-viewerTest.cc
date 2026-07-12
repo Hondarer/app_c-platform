@@ -4,10 +4,12 @@
 #include "etw-viewer.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 using testing::_;
 using testing::HasSubstr;
+using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
 using testing::StrEq;
@@ -71,57 +73,46 @@ class etw_viewerTest : public Test
 
 #if defined(PLATFORM_WINDOWS)
 
-TEST_F(etw_viewerTest, parse_args_accepts_pid_filter)
+TEST_F(etw_viewerTest, main_accepts_pid_filter)
 {
     // Arrange
-    etw_viewer_options options{};
-    char arg0[] = "etw-viewer";
-    char arg1[] = "--pid";
-    char arg2[] = "4321";
-    char *argv[] = {arg0, arg1, arg2};
+    int argc = 3;
+    const char *argv[] = {"etw-viewer", "--pid", "4321"}; // [状態] - pid フィルター引数を指定して起動する。
+    etw_viewer_context captured_context{};
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_etw_session_check_access())
+        .WillOnce(Return(COM_UTIL_ETW_SESSION_OK)); // [Pre-Assert確認_正常系] - 権限確認を通過させる。
+    EXPECT_CALL(mock_com_util_, com_util_etw_session_start(_, _, _, _, _))
+        .WillOnce(Invoke([&captured_context](const char *, const char *, com_util_etw_event_callback_t, void *context,
+                                             int *out_status) {
+            captured_context = *static_cast<const etw_viewer_context *>(context);
+            *out_status = COM_UTIL_ETW_SESSION_ERR_PARAM;
+            return static_cast<com_util_etw_session *>(nullptr);
+        })); // [Pre-Assert確認_正常系] - session 開始に渡される context を捕捉し、失敗させて打ち切る。
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - pid フィルター付きで main を呼び出す。
+
+    // Assert
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_正常系] - session 開始失敗のため異常終了すること。
+    EXPECT_EQ(1, captured_context.has_process_id_filter);           // [確認_正常系] - pid フィルター有効が伝わること。
+    EXPECT_EQ((uint32_t)4321, captured_context.process_id_filter); // [確認_正常系] - pid フィルター値が伝わること。
+}
+
+TEST_F(etw_viewerTest, main_rejects_invalid_pid)
+{
+    // Arrange
+    int argc = 3;
+    const char *argv[] = {"etw-viewer", "--pid", "abc"}; // [状態] - 数値でない pid を指定して起動する。
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
 
     // Pre-Assert
 
     // Act
-    int rc = etw_viewer_parse_args(3, argv, &options); // [手順] - pid 引数を解析する。
+    int rc = __real_main(argc, (char **)&argv); // [手順] - 不正な pid で main を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rc);                                     // [確認_正常系] - 引数解析が成功すること。
-    EXPECT_EQ(1, options.has_process_id_filter);          // [確認_正常系] - pid フィルター有効が反映されること。
-    EXPECT_EQ((uint32_t)4321, options.process_id_filter); // [確認_正常系] - pid フィルター値が反映されること。
-}
-
-TEST_F(etw_viewerTest, parse_args_rejects_unknown_option)
-{
-    // Arrange
-    etw_viewer_options options{};
-    char arg0[] = "etw-viewer";
-    char arg1[] = "--unknown";
-    char *argv[] = {arg0, arg1};
-
-    // Pre-Assert
-
-    // Act
-    int rc = etw_viewer_parse_args(2, argv, &options); // [手順] - 未対応オプションを解析する。
-
-    // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 未対応オプションで失敗すること。
-}
-
-TEST_F(etw_viewerTest, parse_args_rejects_invalid_pid)
-{
-    // Arrange
-    etw_viewer_options options{};
-    char arg0[] = "etw-viewer";
-    char arg1[] = "--pid";
-    char arg2[] = "abc";
-    char *argv[] = {arg0, arg1, arg2};
-
-    // Act
-    int rc = etw_viewer_parse_args(3, argv, &options); // [手順] - 不正な pid 引数を解析する。
-
-    // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 数値でない pid は拒否されること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 数値でない pid は拒否されること。
 }
 
 TEST_F(etw_viewerTest, build_default_session_name_formats_process_id)
@@ -230,14 +221,26 @@ TEST_F(etw_viewerTest, main_rejects_invalid_arguments)
     const char *argv[] = {"etw-viewer", "--unknown"}; // [状態] - 未対応オプション付きで起動する。
     EXPECT_CALL(mock_com_util_, com_util_console_init())
         .WillOnce(Return()); // [Pre-Assert確認_正常系] - main 起動時に console 初期化が呼ばれること。
-    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("使用方法: etw-viewer")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 使用方法が表示されること。
-
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - 不正引数で main を呼び出す。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 不正引数で失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 不正引数で失敗終了すること。
+}
+
+TEST_F(etw_viewerTest, main_prints_usage_on_help)
+{
+    // Arrange
+    const char *argv[] = {"etw-viewer", "-h"}; // [状態] - help オプションだけを指定する。
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+
+    // Pre-Assert
+
+    // Act
+    int rc = __real_main(2, (char **)&argv); // [手順] - help オプションで main() を呼び出す。
+
+    // Assert
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - help の表示後に正常終了すること。
 }
 
 TEST_F(etw_viewerTest, main_stops_when_access_is_denied)
@@ -256,7 +259,7 @@ TEST_F(etw_viewerTest, main_stops_when_access_is_denied)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 権限不足の状態で main を呼び出す。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 権限不足で失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 権限不足で失敗終了すること。
 }
 
 #endif

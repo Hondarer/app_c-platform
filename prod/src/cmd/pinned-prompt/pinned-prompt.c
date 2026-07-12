@@ -8,6 +8,7 @@
  *******************************************************************************
  */
 
+#include <com_util/argparser/argparser.h>
 #include <com_util/console/console.h>
 #include <com_util/crt/string.h>
 #include <com_util/prompt/pinned_prompt.h>
@@ -134,12 +135,6 @@ static void decode_cli_escapes(char *s)
         read_pos++;
     }
     *write_pos = '\0';
-}
-
-static void print_usage(const char *argv0)
-{
-    fprintf(stderr, "使用方法: %s\n", argv0);
-    fprintf(stderr, "起動後の対話入力で help を実行してください。\n");
 }
 
 static void print_help(com_util_pinned_prompt *screen)
@@ -636,9 +631,29 @@ int main(int argc, char *argv[])
 
     com_util_console_init();
 
-    if (argc != 1)
+    int need_help = 0;
+
+    com_util_argparser_init("固定プロンプト API を対話的に確認します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        print_usage(argv[0]);
+        com_util_argparser_print_register_error_messages(stderr);
+        return EXIT_FAILURE;
+    }
+
+    int parse_result = com_util_argparser_parse(argc, argv);
+
+    if (need_help != 0)
+    {
+        com_util_argparser_print_usage(stdout);
+        return EXIT_SUCCESS;
+    }
+
+    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    {
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

@@ -2,6 +2,8 @@
 #include <mock_stdio.h>
 #include <mock_com_util.h>
 
+#include <cstdlib>
+
 using testing::_;
 using testing::HasSubstr;
 using testing::NiceMock;
@@ -43,7 +45,7 @@ TEST_F(argparser_sampleTest, main_parses_and_prints_all_kinds)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 全種別の引数で main を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 正常終了すること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 正常終了すること。
 }
 
 // 未知のオプションで失敗終了することの確認
@@ -64,7 +66,7 @@ TEST_F(argparser_sampleTest, main_reports_parse_error_with_usage)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 未知のオプションで main を呼び出す。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 失敗終了すること。
 }
 
 // 必須引数の欠落で失敗終了することの確認 (メッセージ内容の確認は上記コメント参照)
@@ -78,7 +80,7 @@ TEST_F(argparser_sampleTest, main_reports_missing_required)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 引数なしで main を呼び出す。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 失敗終了すること。
 }
 
 // --help 指定時に必須引数が省略されていても正常終了することの確認
@@ -94,5 +96,5 @@ TEST_F(argparser_sampleTest, main_prints_usage_on_help)
     int rc = __real_main(argc, (char **)&argv); // [手順] - --help で main を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 正常終了すること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 正常終了すること。
 }

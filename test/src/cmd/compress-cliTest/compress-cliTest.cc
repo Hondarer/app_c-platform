@@ -5,6 +5,7 @@
 
 #include <cerrno>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 using testing::_;
@@ -51,41 +52,35 @@ class compress_cliTest : public Test
     NiceMock<Mock_com_util> mock_com_util_;
 };
 
-TEST_F(compress_cliTest, parse_args_accepts_compress_mode)
+TEST_F(compress_cliTest, main_rejects_unknown_option)
 {
     // Arrange
-    compress_cli_options options{};
-    char arg0[] = "compress-cli";
-    char arg1[] = "--compress";
-    char arg2[] = "input.bin";
-    char arg3[] = "output.bin";
-    char *argv[] = {arg0, arg1, arg2, arg3};
+    const char *argv[] = {"compress-cli", "--unknown", "input.bin",
+                          "output.bin"}; // [状態] - 未対応オプションを指定する。
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+
+    // Pre-Assert
 
     // Act
-    int rc = compress_cli_parse_args(4, argv, &options); // [手順] - 圧縮モードの引数を解析する。
+    int rc = __real_main(4, (char **)&argv); // [手順] - 未対応オプションで main() を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rc);                                    // [確認_正常系] - 圧縮モードが受理されること。
-    EXPECT_EQ(COMPRESS_CLI_MODE_COMPRESS, options.mode); // [確認_正常系] - 圧縮モードが設定されること。
-    EXPECT_STREQ("input.bin", options.input_path);       // [確認_正常系] - 入力パスが設定されること。
-    EXPECT_STREQ("output.bin", options.output_path);     // [確認_正常系] - 出力パスが設定されること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 未対応オプションは拒否されること。
 }
 
-TEST_F(compress_cliTest, parse_args_rejects_unknown_option)
+TEST_F(compress_cliTest, main_prints_usage_on_help)
 {
     // Arrange
-    compress_cli_options options{};
-    char arg0[] = "compress-cli";
-    char arg1[] = "--unknown";
-    char arg2[] = "input.bin";
-    char arg3[] = "output.bin";
-    char *argv[] = {arg0, arg1, arg2, arg3};
+    const char *argv[] = {"compress-cli", "--help"}; // [状態] - help オプションだけを指定する。
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+
+    // Pre-Assert
 
     // Act
-    int rc = compress_cli_parse_args(4, argv, &options); // [手順] - 未対応オプションを解析する。
+    int rc = __real_main(2, (char **)&argv); // [手順] - help オプションで main() を呼び出す。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 未対応オプションは拒否されること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 必須位置引数なしでも正常終了すること。
 }
 
 TEST_F(compress_cliTest, main_rejects_same_normalized_path)
@@ -109,7 +104,7 @@ TEST_F(compress_cliTest, main_rejects_same_normalized_path)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 正規化後に同一となる入出力パスで起動する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 同一パスは失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 同一パスは失敗終了すること。
 }
 
 TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
@@ -168,7 +163,7 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 圧縮モードで main を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 圧縮成功時は正常終了すること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 圧縮成功時は正常終了すること。
 }
 
 TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_small)
@@ -207,7 +202,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_s
     int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダー値が小さすぎる入力で展開する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 不正ヘッダーで失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 不正ヘッダーで失敗終了すること。
 }
 
 TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_header)
@@ -254,7 +249,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
     int rc = __real_main(argc, (char **)&argv); // [手順] - ヘッダー値と展開後サイズが一致しない入力で展開する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - サイズ不一致で失敗終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - サイズ不一致で失敗終了すること。
 }
 
 TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
@@ -306,7 +301,7 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
     int rc = __real_main(argc, (char **)&argv); // [手順] - 出力書き込み失敗を模擬して展開する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - 書き込み失敗で異常終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 書き込み失敗で異常終了すること。
 }
 
 TEST_F(compress_cliTest, main_fails_when_path_comparison_fails)
@@ -331,5 +326,5 @@ TEST_F(compress_cliTest, main_fails_when_path_comparison_fails)
     int rc = __real_main(argc, (char **)&argv); // [手順] - パス比較 API が失敗する状態で起動する。
 
     // Assert
-    EXPECT_NE(0, rc); // [確認_異常系] - パス比較失敗で異常終了すること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - パス比較失敗で異常終了すること。
 }

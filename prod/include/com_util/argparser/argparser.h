@@ -14,15 +14,15 @@
  *  - フラグ : `-v` / `--verbose` (出現回数を格納)
  *  - 値付きオプション : `-o {value}` / `-o={value}` / `--option {value}` / `--option={value}`
  *  - 位置引数 : 登録順に割り当て
+ *  - 負の位置整数 : 次の位置引数が整数型の場合、`-1` などを位置引数として割り当て
  *
  *  短オプションの連結 (`-abc`) と `--` 区切りはサポートしません。
  *
- *  ダブルクオーテーションの除去とエスケープ (`\"`) の解釈は、シェル (POSIX shell) や
+ *  ダブルクオーテーションの除去とエスケープの解釈は、シェル (POSIX shell) や
  *  C ランタイム (MSVC CRT) が argv を生成する時点で行われます。\n
  *  `--option="a b"` のようにワード中間にクオートがある場合も、シェルはクオートを
  *  除去して `--option=a b` を argv に渡すため、空白を含む値は全構文で同一に取得できます。\n
- *  本 API は argv の文字列を無加工で扱い、クオートの独自解釈は行いません
- *  (値に正当に含まれる `"` を破壊しないため)。\n
+ *  本 API は argv の文字列を無加工で扱い、クオートの独自解釈は行いません。\n
  *  see: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_02 \n
  *  see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
  *
