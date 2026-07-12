@@ -40,19 +40,18 @@ API の詳細な引数説明は同ヘッダーの Doxygen コメントを参照�
 
 int main(int argc, char *argv[])
 {
-    com_util_argparser *parser = com_util_argparser_default(NULL);
+    com_util_argparser_init(NULL);
 
     int count = 1; /* 既定値は解析前に設定する */
     const char *input = NULL;
 
-    com_util_argparser_register_option_int(parser, "-c", "--count", "N", "繰り返し回数", 0, &count);
-    com_util_argparser_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED,
-                                                &input);
+    com_util_argparser_register_option_int("-c", "--count", "N", "繰り返し回数", 0, &count);
+    com_util_argparser_register_positional_string("input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED, &input);
 
-    if (com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
+    if (com_util_argparser_parse(argc, argv) != COM_UTIL_ARGPARSER_OK)
     {
         char message[256];
-        com_util_argparser_get_error_message(parser, message, sizeof(message));
+        com_util_argparser_get_error_message(message, sizeof(message));
         fprintf(stderr, "error: %s\n", message);
         return 1;
     }
@@ -71,27 +70,27 @@ int main(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    com_util_argparser *parser = com_util_argparser_create(NULL);
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
 
     int count = 1; /* 既定値は解析前に設定する */
     const char *input = NULL;
 
-    com_util_argparser_register_option_int(parser, "-c", "--count", "N", "繰り返し回数", 0, &count);
-    com_util_argparser_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED,
-                                                &input);
+    _com_util_argparser_register_option_int(parser, "-c", "--count", "N", "繰り返し回数", 0, &count);
+    _com_util_argparser_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED,
+                                                   &input);
 
-    if (com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
+    if (_com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
     {
         char message[256];
-        com_util_argparser_get_error_message(parser, message, sizeof(message));
+        _com_util_argparser_get_error_message(parser, message, sizeof(message));
         fprintf(stderr, "error: %s\n", message);
-        com_util_argparser_dispose(parser);
+        _com_util_argparser_dispose(parser);
         return 1;
     }
 
     printf("count=%d input=%s\n", count, input);
 
-    com_util_argparser_dispose(parser);
+    _com_util_argparser_dispose(parser);
     return 0;
 }
 ```
@@ -107,7 +106,7 @@ int main(int argc, char *argv[])
 
 `com_util_argparser_parse()` が `COM_UTIL_ARGPARSER_PARSE_ERROR` を返した場合、詳細は次の API で取得します。
 
-- `com_util_argparser_get_error()`: エラー種別 (`com_util_argparser_error_t`)
+- `com_util_argparser_get_error()`: エラー種別 (`int`)
 - `com_util_argparser_get_error_target()`: エラーの対象名 (オプション名や位置引数名)
 - `com_util_argparser_get_error_index()`: エラーを起こした argv のインデックス (該当なしは -1)
 - `com_util_argparser_get_error_message()`: 人間可読の 1 行メッセージを呼び出し側バッファーへ組み立てる
@@ -125,7 +124,7 @@ int main(int argc, char *argv[])
 ```c
 int verbose = 0;
 
-com_util_argparser_register_flag(parser, "-v", "--verbose", "詳細出力を有効にする", &verbose);
+_com_util_argparser_register_flag(parser, "-v", "--verbose", "詳細出力を有効にする", &verbose);
 
 /* "-v -v --verbose" を解析すると verbose == 3 */
 ```
@@ -139,7 +138,7 @@ com_util_argparser_register_flag(parser, "-v", "--verbose", "詳細出力を有�
 ```c
 int port = 0;
 
-com_util_argparser_register_option_int(parser, "-p", "--port", "PORT", "待ち受けポート番号",
+_com_util_argparser_register_option_int(parser, "-p", "--port", "PORT", "待ち受けポート番号",
                                      COM_UTIL_ARGPARSER_REQUIRED, &port);
 ```
 
@@ -154,7 +153,7 @@ com_util_argparser_register_option_int(parser, "-p", "--port", "PORT", "待ち�
 ```c
 const char *name = NULL;
 
-com_util_argparser_register_option_string(parser, "-n", "--name", "NAME", "表示名", 0, &name);
+_com_util_argparser_register_option_string(parser, "-n", "--name", "NAME", "表示名", 0, &name);
 
 /* "--name=alice" を解析すると name は argv 内の "alice" 部分を指す */
 ```
@@ -170,7 +169,7 @@ com_util_argparser_register_option_string(parser, "-n", "--name", "NAME", "表�
 const char *includes[INCLUDE_MAX];
 size_t include_count = 0;
 
-com_util_argparser_register_option_string_array(parser, "-i", "--include", "DIR", "インクルード ディレクトリ", 0,
+_com_util_argparser_register_option_string_array(parser, "-i", "--include", "DIR", "インクルード ディレクトリ", 0,
                                               includes, INCLUDE_MAX, &include_count);
 
 /* "-i dir1 --include=dir2" を解析すると
@@ -184,7 +183,7 @@ int 値の複数回指定には `com_util_argparser_register_option_int_array()`
 int ports[4];
 size_t port_count = 0;
 
-com_util_argparser_register_option_int_array(parser, "-p", "--port", "PORT", "待ち受けポート番号",
+_com_util_argparser_register_option_int_array(parser, "-p", "--port", "PORT", "待ち受けポート番号",
                                            COM_UTIL_ARGPARSER_REQUIRED, ports, 4, &port_count);
 
 /* REQUIRED を付けた場合、1 回も出現しないと MISSING_REQUIRED になる */
@@ -198,8 +197,8 @@ com_util_argparser_register_option_int_array(parser, "-p", "--port", "PORT", "�
 const char *input = NULL;
 const char *output = NULL;
 
-com_util_argparser_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED, &input);
-com_util_argparser_register_positional_string(parser, "output", "出力ファイル", 0, &output);
+_com_util_argparser_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED, &input);
+_com_util_argparser_register_positional_string(parser, "output", "出力ファイル", 0, &output);
 
 /* "in.txt" だけを渡すと input == "in.txt"、output は未変更 (既定値のまま) */
 ```
@@ -218,14 +217,14 @@ com_util_argparser_register_positional_string(parser, "output", "出力ファイ
 ```c
 int help_flag = 0;
 
-com_util_argparser_register_flag(parser, "-h", "--help", "ヘルプを表示する", &help_flag);
+_com_util_argparser_register_flag(parser, "-h", "--help", "ヘルプを表示する", &help_flag);
 
-com_util_argparser_result_t result = com_util_argparser_parse(parser, argc, argv);
+int result = _com_util_argparser_parse(parser, argc, argv);
 
 if (help_flag != 0)
 {
-    com_util_argparser_print_usage(parser, stdout);
-    com_util_argparser_dispose(parser);
+    _com_util_argparser_print_usage(parser, stdout);
+    _com_util_argparser_dispose(parser);
     return 0;
 }
 
@@ -235,7 +234,7 @@ if (result != COM_UTIL_ARGPARSER_OK)
 }
 ```
 
-`com_util_argparser_print_usage()` は、内部で必要サイズを問い合わせてから usage 文字列を組み立て、指定したストリームへ書き出す便利関数です。
+`_com_util_argparser_print_usage()` は、内部で必要サイズを問い合わせてから usage 文字列を組み立て、指定したストリームへ書き出す便利関数です。
 固定長バッファーによる切り詰めは発生しません。
 解析の成否とは独立に、登録が完了していればいつでも呼び出せます。
 
@@ -244,23 +243,23 @@ if (result != COM_UTIL_ARGPARSER_OK)
 解析に失敗した場合の定型的なエラー表示は、`com_util_argparser_print_error_messages()` と `com_util_argparser_print_usage()` の組み合わせでまとめられます。
 
 ```c
-if (com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
+if (_com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
 {
-    com_util_argparser_print_error_messages(parser, stderr);
-    com_util_argparser_print_usage(parser, stderr);
+    _com_util_argparser_print_error_messages(parser, stderr);
+    _com_util_argparser_print_usage(parser, stderr);
 
-    com_util_argparser_dispose(parser);
+    _com_util_argparser_dispose(parser);
     return 1;
 }
 ```
 
-`com_util_argparser_print_error_messages()` は、内部で `com_util_argparser_get_error_message()` を用いてエラー メッセージを組み立て、`"error: {メッセージ}\n"` の形式で書き出したあと、区切りの空行を出力します。
+`_com_util_argparser_print_error_messages()` は、内部で `_com_util_argparser_get_error_message()` を用いてエラー メッセージを組み立て、`"error: {メッセージ}\n"` の形式で書き出したあと、区切りの空行を出力します。
 エラーがない場合や対象がない場合は何も出力しません。
 
 ### usage を文字列として組み立てる場合
 
 出力先ストリームへ直接書き出すのではなく、usage を文字列として自前のバッファーで扱いたい場合は、
-引き続き `com_util_argparser_get_usage()` を使用します。
+引き続き `_com_util_argparser_get_usage()` を使用します。
 
 バッファーが不足する場合は `COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL` が返り、
 バッファーには切り詰めた内容が格納されます。
@@ -269,7 +268,7 @@ if (com_util_argparser_parse(parser, argc, argv) != COM_UTIL_ARGPARSER_OK)
 ```c
 size_t required_size = 0;
 
-com_util_argparser_get_usage(parser, NULL, 0, &required_size);
+_com_util_argparser_get_usage(parser, NULL, 0, &required_size);
 /* required_size バイト分のバッファーを確保してから再度呼び出す */
 ```
 
@@ -279,16 +278,16 @@ com_util_argparser_get_usage(parser, NULL, 0, &required_size);
 テストで複数のコマンド ラインを検証する場合や、対話的に複数回コマンドを受け付ける場合に使えます。
 
 ```c
-com_util_argparser_parse(parser, argc1, argv1);
+_com_util_argparser_parse(parser, argc1, argv1);
 /* ... 1 回目の結果を利用 ... */
 
-com_util_argparser_parse(parser, argc2, argv2);
+_com_util_argparser_parse(parser, argc2, argv2);
 /* ... 2 回目の結果を利用 (フラグと複数値オプションの出現数は自動的にリセットされる) ... */
 ```
 
 値付きオプションと位置引数の格納先は出現時のみ上書きされるため、
 2 回目の解析前に必要であれば呼び出し側で既定値を設定し直してください。
-`com_util_argparser_default()` で取得したハンドルも同様に、`parse()` の度に出現数がリセットされます。
+`_com_util_argparser_default()` で取得したハンドルも同様に、`parse()` の度に出現数がリセットされます。
 
 ## 参考実装
 

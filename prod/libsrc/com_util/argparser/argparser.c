@@ -65,6 +65,13 @@ typedef struct argparser_spec
     size_t found;    /* 解析中の出現回数 */
 } argparser_spec;
 
+/* register 系呼び出しで発生した 1 件のエラー */
+typedef struct argparser_register_error
+{
+    int result;   /* 発生した結果コード (OK 以外) */
+    char *target; /* 対象名 (複製)。対象がない場合は NULL */
+} argparser_register_error;
+
 struct com_util_argparser
 {
     argparser_spec *specs;
@@ -74,10 +81,12 @@ struct com_util_argparser
     char *program_description;   /* 生成オプション指定の説明文。NULL 可 */
     char *resolved_program_name; /* parse が argv[0] から求めたベース名。NULL 可 */
     char *last_error_target;
-    com_util_argparser_error_t last_error;
+    int last_error;
     int last_error_index;
     int library_owned;
-    int pad; /* 明示パディング (-Wpadded 対応) */
+    argparser_register_error *register_errors; /* register 系エラーを発生順に積み上げる配列。NULL 可 */
+    size_t register_error_count;
+    size_t register_error_capacity;
 };
 
 /* ================================================================
@@ -245,8 +254,7 @@ static void argparser_clear_error(com_util_argparser *parser)
  *  @param[in]      index   エラーを起こした argv インデックス。該当なしは -1。
  *  @return         常に @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返します。
  */
-static com_util_argparser_result_t argparser_set_error(com_util_argparser *parser, com_util_argparser_error_t error,
-                                                       const char *target, const int index)
+static int argparser_set_error(com_util_argparser *parser, int error, const char *target, const int index)
 {
     argparser_clear_error(parser);
     parser->last_error = error;
@@ -258,6 +266,54 @@ static com_util_argparser_result_t argparser_set_error(com_util_argparser *parse
 }
 
 /**
+ *  @brief          register 系呼び出しのエラーをハンドルへ積み上げます。
+ *  @param[in,out]  parser              対象のハンドル。NULL の場合は何もしません。
+ *  @param[in]      result              register 呼び出しの結果。@ref COM_UTIL_ARGPARSER_OK の場合は何もしません。
+ *  @param[in]      short_name_or_name  短いオプション名、または位置引数名。NULL 可。
+ *  @param[in]      long_name           長いオプション名。位置引数では使用しません。NULL 可。
+ *
+ *  失敗するたびに 1 件ずつ配列へ追記します。記録用メモリを確保できない場合は記録を諦めます
+ *  (呼び出し元へは result をそのまま返しているため、呼び出し元の動作に影響しません)。
+ */
+static void argparser_record_register_result(com_util_argparser *parser, int result, const char *short_name_or_name,
+                                             const char *long_name)
+{
+    if (parser == NULL || result == COM_UTIL_ARGPARSER_OK)
+    {
+        return;
+    }
+
+    if (parser->register_error_count == parser->register_error_capacity)
+    {
+        size_t new_capacity = parser->register_error_capacity * 2;
+        if (new_capacity == 0)
+        {
+            new_capacity = ARGPARSER_INITIAL_CAPACITY;
+        }
+        argparser_register_error *new_errors =
+            realloc(parser->register_errors, new_capacity * sizeof(argparser_register_error));
+        if (new_errors == NULL)
+        {
+            return;
+        }
+        parser->register_errors = new_errors;
+        parser->register_error_capacity = new_capacity;
+    }
+
+    argparser_register_error *entry = &parser->register_errors[parser->register_error_count];
+    entry->result = result;
+    if (long_name != NULL)
+    {
+        entry->target = argparser_strdup(long_name);
+    }
+    else
+    {
+        entry->target = argparser_strdup(short_name_or_name);
+    }
+    parser->register_error_count++;
+}
+
+/**
  *  @brief          登録名の重複を検査し、登録配列に空きを確保します。
  *  @param[in,out]  parser      対象のハンドル。
  *  @param[in]      short_name  検査する短い名前。NULL 可。
@@ -265,8 +321,7 @@ static com_util_argparser_result_t argparser_set_error(com_util_argparser *parse
  *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
  *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
  */
-static com_util_argparser_result_t argparser_prepare_spec_slot(com_util_argparser *parser, const char *short_name,
-                                                               const char *long_name)
+static int argparser_prepare_spec_slot(com_util_argparser *parser, const char *short_name, const char *long_name)
 {
     for (size_t i = 0; i < parser->spec_count; i++)
     {
@@ -311,9 +366,8 @@ static com_util_argparser_result_t argparser_prepare_spec_slot(com_util_argparse
  *
  *  失敗した場合は複製済みの文字列を解放してから返します。
  */
-static com_util_argparser_result_t argparser_copy_spec_strings(argparser_spec *spec, const char *short_name,
-                                                               const char *long_name, const char *value_name,
-                                                               const char *description)
+static int argparser_copy_spec_strings(argparser_spec *spec, const char *short_name, const char *long_name,
+                                       const char *value_name, const char *description)
 {
     int failed = 0;
 
@@ -359,53 +413,55 @@ static com_util_argparser_result_t argparser_copy_spec_strings(argparser_spec *s
  *  @param[out]     registered   登録した項目の格納先。
  *  @return         登録結果を返します。
  */
-static com_util_argparser_result_t argparser_register_option_core(com_util_argparser *parser, argparser_spec_kind kind,
-                                                                  const char *short_name, const char *long_name,
-                                                                  const char *value_name, const char *description,
-                                                                  const unsigned int flags, argparser_spec **registered)
+static int argparser_register_option_core(com_util_argparser *parser, argparser_spec_kind kind, const char *short_name,
+                                          const char *long_name, const char *value_name, const char *description,
+                                          const unsigned int flags, argparser_spec **registered)
 {
     if (parser == NULL)
     {
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
+
+    int result = COM_UTIL_ARGPARSER_OK;
+
     if (short_name == NULL && long_name == NULL)
     {
-        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
-    if (short_name != NULL && argparser_is_valid_short_name(short_name) == 0)
+    else if (short_name != NULL && argparser_is_valid_short_name(short_name) == 0)
     {
-        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
-    if (long_name != NULL && argparser_is_valid_long_name(long_name) == 0)
+    else if (long_name != NULL && argparser_is_valid_long_name(long_name) == 0)
     {
-        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
-    if ((flags & ~COM_UTIL_ARGPARSER_REQUIRED) != 0u)
+    else if ((flags & ~COM_UTIL_ARGPARSER_REQUIRED) != 0u)
     {
-        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+    else
+    {
+        result = argparser_prepare_spec_slot(parser, short_name, long_name);
+        if (result == COM_UTIL_ARGPARSER_OK)
+        {
+            argparser_spec *spec = &parser->specs[parser->spec_count];
+            memset(spec, 0, sizeof(*spec));
+            spec->kind = kind;
+            spec->flags = flags;
+
+            result = argparser_copy_spec_strings(spec, short_name, long_name, value_name, description);
+            if (result == COM_UTIL_ARGPARSER_OK)
+            {
+                parser->spec_count++;
+                *registered = spec;
+            }
+        }
     }
 
-    com_util_argparser_result_t result = argparser_prepare_spec_slot(parser, short_name, long_name);
-    if (result != COM_UTIL_ARGPARSER_OK)
-    {
-        return result;
-    }
+    argparser_record_register_result(parser, result, short_name, long_name);
 
-    argparser_spec *spec = &parser->specs[parser->spec_count];
-    memset(spec, 0, sizeof(*spec));
-    spec->kind = kind;
-    spec->flags = flags;
-
-    result = argparser_copy_spec_strings(spec, short_name, long_name, value_name, description);
-    if (result != COM_UTIL_ARGPARSER_OK)
-    {
-        return result;
-    }
-
-    parser->spec_count++;
-    *registered = spec;
-
-    return COM_UTIL_ARGPARSER_OK;
+    return result;
 }
 
 /**
@@ -418,54 +474,64 @@ static com_util_argparser_result_t argparser_register_option_core(com_util_argpa
  *  @param[out]     registered   登録した項目の格納先。
  *  @return         登録結果を返します。
  */
-static com_util_argparser_result_t argparser_register_positional_core(com_util_argparser *parser,
-                                                                      argparser_spec_kind kind, const char *name,
-                                                                      const char *description, const unsigned int flags,
-                                                                      argparser_spec **registered)
+static int argparser_register_positional_core(com_util_argparser *parser, argparser_spec_kind kind, const char *name,
+                                              const char *description, const unsigned int flags,
+                                              argparser_spec **registered)
 {
-    if (parser == NULL || name == NULL)
-    {
-        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
-    }
-    if ((flags & ~COM_UTIL_ARGPARSER_REQUIRED) != 0u)
+    if (parser == NULL)
     {
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
-    /* 任意の位置引数の後に必須の位置引数は登録できない (割り当てが曖昧になるため) */
-    if ((flags & COM_UTIL_ARGPARSER_REQUIRED) != 0u)
+    int result = COM_UTIL_ARGPARSER_OK;
+
+    if (name == NULL)
     {
-        for (size_t i = 0; i < parser->spec_count; i++)
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+    else if ((flags & ~COM_UTIL_ARGPARSER_REQUIRED) != 0u)
+    {
+        result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+    else
+    {
+        /* 任意の位置引数の後に必須の位置引数は登録できない (割り当てが曖昧になるため) */
+        if ((flags & COM_UTIL_ARGPARSER_REQUIRED) != 0u)
         {
-            const argparser_spec *spec = &parser->specs[i];
-            if (argparser_spec_is_positional(spec) != 0 && (spec->flags & COM_UTIL_ARGPARSER_REQUIRED) == 0u)
+            for (size_t i = 0; i < parser->spec_count; i++)
             {
-                return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+                const argparser_spec *spec = &parser->specs[i];
+                if (argparser_spec_is_positional(spec) != 0 && (spec->flags & COM_UTIL_ARGPARSER_REQUIRED) == 0u)
+                {
+                    result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+                    break;
+                }
+            }
+        }
+
+        if (result == COM_UTIL_ARGPARSER_OK)
+        {
+            result = argparser_prepare_spec_slot(parser, NULL, NULL);
+            if (result == COM_UTIL_ARGPARSER_OK)
+            {
+                argparser_spec *spec = &parser->specs[parser->spec_count];
+                memset(spec, 0, sizeof(*spec));
+                spec->kind = kind;
+                spec->flags = flags;
+
+                result = argparser_copy_spec_strings(spec, NULL, name, NULL, description);
+                if (result == COM_UTIL_ARGPARSER_OK)
+                {
+                    parser->spec_count++;
+                    *registered = spec;
+                }
             }
         }
     }
 
-    com_util_argparser_result_t result = argparser_prepare_spec_slot(parser, NULL, NULL);
-    if (result != COM_UTIL_ARGPARSER_OK)
-    {
-        return result;
-    }
+    argparser_record_register_result(parser, result, name, NULL);
 
-    argparser_spec *spec = &parser->specs[parser->spec_count];
-    memset(spec, 0, sizeof(*spec));
-    spec->kind = kind;
-    spec->flags = flags;
-
-    result = argparser_copy_spec_strings(spec, NULL, name, NULL, description);
-    if (result != COM_UTIL_ARGPARSER_OK)
-    {
-        return result;
-    }
-
-    parser->spec_count++;
-    *registered = spec;
-
-    return COM_UTIL_ARGPARSER_OK;
+    return result;
 }
 
 /**
@@ -476,7 +542,7 @@ static com_util_argparser_result_t argparser_register_positional_core(com_util_a
  *                  失敗時は @ref COM_UTIL_ARGPARSER_ERROR_INVALID_INT または
  *                  @ref COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE を返します。
  */
-static com_util_argparser_error_t argparser_parse_int(const char *text, int *value)
+static int argparser_parse_int(const char *text, int *value)
 {
     if (text[0] == '\0')
     {
@@ -558,8 +624,8 @@ static argparser_spec *argparser_find_short(const com_util_argparser *parser, co
  *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK、
  *                  失敗時は @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返します。
  */
-static com_util_argparser_result_t argparser_store_option_value(com_util_argparser *parser, argparser_spec *spec,
-                                                                const char *value, const int index)
+static int argparser_store_option_value(com_util_argparser *parser, argparser_spec *spec, const char *value,
+                                        const int index)
 {
     const char *display_name = argparser_spec_display_name(spec);
 
@@ -571,7 +637,7 @@ static com_util_argparser_result_t argparser_store_option_value(com_util_argpars
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT)
         {
-            com_util_argparser_error_t int_error = argparser_parse_int(value, spec->int_storage);
+            int int_error = argparser_parse_int(value, spec->int_storage);
             if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
@@ -590,7 +656,7 @@ static com_util_argparser_result_t argparser_store_option_value(com_util_argpars
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT_ARRAY)
         {
-            com_util_argparser_error_t int_error = argparser_parse_int(value, &spec->int_storage[*spec->count]);
+            int int_error = argparser_parse_int(value, &spec->int_storage[*spec->count]);
             if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
@@ -617,8 +683,8 @@ static com_util_argparser_result_t argparser_store_option_value(com_util_argpars
  *  @return         成功時は @ref COM_UTIL_ARGPARSER_OK、
  *                  失敗時は @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返します。
  */
-static com_util_argparser_result_t argparser_store_positional(com_util_argparser *parser, const char *token,
-                                                              const int index, size_t *positional_index)
+static int argparser_store_positional(com_util_argparser *parser, const char *token, const int index,
+                                      size_t *positional_index)
 {
     while (*positional_index < parser->spec_count)
     {
@@ -631,7 +697,7 @@ static com_util_argparser_result_t argparser_store_positional(com_util_argparser
 
         if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
         {
-            com_util_argparser_error_t int_error = argparser_parse_int(token, spec->int_storage);
+            int int_error = argparser_parse_int(token, spec->int_storage);
             if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
             {
                 return argparser_set_error(parser, int_error, spec->long_name, index);
@@ -913,12 +979,17 @@ static void argparser_dispose_core(com_util_argparser *parser)
     free(parser->program_description);
     free(parser->resolved_program_name);
     free(parser->last_error_target);
+    for (size_t i = 0; i < parser->register_error_count; i++)
+    {
+        free(parser->register_errors[i].target);
+    }
+    free(parser->register_errors);
     free(parser);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_argparser *com_util_argparser_create(const com_util_argparser_options *options)
+com_util_argparser *_com_util_argparser_create(const com_util_argparser_options *options)
 {
     com_util_argparser *parser = calloc(1, sizeof(com_util_argparser));
     if (parser == NULL)
@@ -944,7 +1015,7 @@ com_util_argparser *com_util_argparser_create(const com_util_argparser_options *
 
         if (failed != 0)
         {
-            com_util_argparser_dispose(parser);
+            _com_util_argparser_dispose(parser);
             return NULL;
         }
     }
@@ -952,7 +1023,7 @@ com_util_argparser *com_util_argparser_create(const com_util_argparser_options *
     return parser;
 }
 
-void com_util_argparser_dispose(com_util_argparser *parser)
+void _com_util_argparser_dispose(com_util_argparser *parser)
 {
     if (parser == NULL || parser->library_owned != 0)
     {
@@ -1011,7 +1082,7 @@ static void argparser_default_initialize(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_argparser *com_util_argparser_default(const com_util_argparser_options *options)
+com_util_argparser *_com_util_argparser_default(const com_util_argparser_options *options)
 {
     com_util_call_once(&s_default_initialize_once, argparser_default_initialize);
     if (s_default_lock == NULL)
@@ -1025,7 +1096,7 @@ com_util_argparser *com_util_argparser_default(const com_util_argparser_options 
     }
     if (s_default_parser == NULL)
     {
-        s_default_parser = com_util_argparser_create(options);
+        s_default_parser = _com_util_argparser_create(options);
         if (s_default_parser != NULL)
         {
             s_default_parser->library_owned = 1;
@@ -1037,18 +1108,27 @@ com_util_argparser *com_util_argparser_default(const com_util_argparser_options 
     return parser;
 }
 
-com_util_argparser_result_t com_util_argparser_register_flag(com_util_argparser *parser, const char *short_name,
-                                                             const char *long_name, const char *description,
-                                                             int *storage)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_init(const char *description)
+{
+    com_util_argparser_options options = {0};
+    options.program_description = description;
+    (void)_com_util_argparser_default(&options);
+}
+
+int _com_util_argparser_register_flag(com_util_argparser *parser, const char *short_name, const char *long_name,
+                                      const char *description, int *storage)
 {
     if (storage == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, short_name, long_name);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result = argparser_register_option_core(parser, ARGPARSER_SPEC_FLAG, short_name,
-                                                                        long_name, NULL, description, 0u, &spec);
+    int result = argparser_register_option_core(parser, ARGPARSER_SPEC_FLAG, short_name, long_name, NULL, description,
+                                                0u, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
         return result;
@@ -1058,19 +1138,28 @@ com_util_argparser_result_t com_util_argparser_register_flag(com_util_argparser 
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_register_option_int(com_util_argparser *parser, const char *short_name,
-                                                                   const char *long_name, const char *value_name,
-                                                                   const char *description, const unsigned int flags,
-                                                                   int *storage)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_flag(const char *short_name, const char *long_name, const char *description,
+                                      int *storage)
+{
+    (void)_com_util_argparser_register_flag(_com_util_argparser_default(NULL), short_name, long_name, description,
+                                            storage);
+}
+
+int _com_util_argparser_register_option_int(com_util_argparser *parser, const char *short_name, const char *long_name,
+                                            const char *value_name, const char *description, const unsigned int flags,
+                                            int *storage)
 {
     if (storage == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, short_name, long_name);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result = argparser_register_option_core(
-        parser, ARGPARSER_SPEC_OPTION_INT, short_name, long_name, value_name, description, flags, &spec);
+    int result = argparser_register_option_core(parser, ARGPARSER_SPEC_OPTION_INT, short_name, long_name, value_name,
+                                                description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
         return result;
@@ -1080,19 +1169,28 @@ com_util_argparser_result_t com_util_argparser_register_option_int(com_util_argp
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_register_option_string(com_util_argparser *parser,
-                                                                      const char *short_name, const char *long_name,
-                                                                      const char *value_name, const char *description,
-                                                                      const unsigned int flags, const char **storage)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_option_int(const char *short_name, const char *long_name, const char *value_name,
+                                            const char *description, const unsigned int flags, int *storage)
+{
+    (void)_com_util_argparser_register_option_int(_com_util_argparser_default(NULL), short_name, long_name, value_name,
+                                                  description, flags, storage);
+}
+
+int _com_util_argparser_register_option_string(com_util_argparser *parser, const char *short_name,
+                                               const char *long_name, const char *value_name, const char *description,
+                                               const unsigned int flags, const char **storage)
 {
     if (storage == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, short_name, long_name);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result = argparser_register_option_core(
-        parser, ARGPARSER_SPEC_OPTION_STRING, short_name, long_name, value_name, description, flags, &spec);
+    int result = argparser_register_option_core(parser, ARGPARSER_SPEC_OPTION_STRING, short_name, long_name, value_name,
+                                                description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
         return result;
@@ -1102,19 +1200,29 @@ com_util_argparser_result_t com_util_argparser_register_option_string(com_util_a
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t
-com_util_argparser_register_option_int_array(com_util_argparser *parser, const char *short_name, const char *long_name,
-                                             const char *value_name, const char *description, const unsigned int flags,
-                                             int *storage, const size_t capacity, size_t *count)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_option_string(const char *short_name, const char *long_name, const char *value_name,
+                                               const char *description, const unsigned int flags, const char **storage)
+{
+    (void)_com_util_argparser_register_option_string(_com_util_argparser_default(NULL), short_name, long_name,
+                                                     value_name, description, flags, storage);
+}
+
+int _com_util_argparser_register_option_int_array(com_util_argparser *parser, const char *short_name,
+                                                  const char *long_name, const char *value_name,
+                                                  const char *description, const unsigned int flags, int *storage,
+                                                  const size_t capacity, size_t *count)
 {
     if (storage == NULL || capacity == 0 || count == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, short_name, long_name);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result = argparser_register_option_core(
-        parser, ARGPARSER_SPEC_OPTION_INT_ARRAY, short_name, long_name, value_name, description, flags, &spec);
+    int result = argparser_register_option_core(parser, ARGPARSER_SPEC_OPTION_INT_ARRAY, short_name, long_name,
+                                                value_name, description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
         return result;
@@ -1126,18 +1234,30 @@ com_util_argparser_register_option_int_array(com_util_argparser *parser, const c
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_register_option_string_array(
-    com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
-    const char *description, const unsigned int flags, const char **storage, const size_t capacity, size_t *count)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_option_int_array(const char *short_name, const char *long_name, const char *value_name,
+                                                  const char *description, const unsigned int flags, int *storage,
+                                                  const size_t capacity, size_t *count)
+{
+    (void)_com_util_argparser_register_option_int_array(_com_util_argparser_default(NULL), short_name, long_name,
+                                                        value_name, description, flags, storage, capacity, count);
+}
+
+int _com_util_argparser_register_option_string_array(com_util_argparser *parser, const char *short_name,
+                                                     const char *long_name, const char *value_name,
+                                                     const char *description, const unsigned int flags,
+                                                     const char **storage, const size_t capacity, size_t *count)
 {
     if (storage == NULL || capacity == 0 || count == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, short_name, long_name);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result = argparser_register_option_core(
-        parser, ARGPARSER_SPEC_OPTION_STRING_ARRAY, short_name, long_name, value_name, description, flags, &spec);
+    int result = argparser_register_option_core(parser, ARGPARSER_SPEC_OPTION_STRING_ARRAY, short_name, long_name,
+                                                value_name, description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
         return result;
@@ -1149,17 +1269,28 @@ com_util_argparser_result_t com_util_argparser_register_option_string_array(
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_register_positional_int(com_util_argparser *parser, const char *name,
-                                                                       const char *description,
-                                                                       const unsigned int flags, int *storage)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_option_string_array(const char *short_name, const char *long_name,
+                                                     const char *value_name, const char *description,
+                                                     const unsigned int flags, const char **storage,
+                                                     const size_t capacity, size_t *count)
+{
+    (void)_com_util_argparser_register_option_string_array(_com_util_argparser_default(NULL), short_name, long_name,
+                                                           value_name, description, flags, storage, capacity, count);
+}
+
+int _com_util_argparser_register_positional_int(com_util_argparser *parser, const char *name, const char *description,
+                                                const unsigned int flags, int *storage)
 {
     if (storage == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, name, NULL);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result =
+    int result =
         argparser_register_positional_core(parser, ARGPARSER_SPEC_POSITIONAL_INT, name, description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
@@ -1170,18 +1301,27 @@ com_util_argparser_result_t com_util_argparser_register_positional_int(com_util_
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_register_positional_string(com_util_argparser *parser, const char *name,
-                                                                          const char *description,
-                                                                          const unsigned int flags,
-                                                                          const char **storage)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_positional_int(const char *name, const char *description, const unsigned int flags,
+                                                int *storage)
+{
+    (void)_com_util_argparser_register_positional_int(_com_util_argparser_default(NULL), name, description, flags,
+                                                      storage);
+}
+
+int _com_util_argparser_register_positional_string(com_util_argparser *parser, const char *name,
+                                                   const char *description, const unsigned int flags,
+                                                   const char **storage)
 {
     if (storage == NULL)
     {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, name, NULL);
         return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
     }
 
     argparser_spec *spec = NULL;
-    com_util_argparser_result_t result =
+    int result =
         argparser_register_positional_core(parser, ARGPARSER_SPEC_POSITIONAL_STRING, name, description, flags, &spec);
     if (result != COM_UTIL_ARGPARSER_OK)
     {
@@ -1192,7 +1332,16 @@ com_util_argparser_result_t com_util_argparser_register_positional_string(com_ut
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_parse(com_util_argparser *parser, const int argc, char *const *argv)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_positional_string(const char *name, const char *description, const unsigned int flags,
+                                                   const char **storage)
+{
+    (void)_com_util_argparser_register_positional_string(_com_util_argparser_default(NULL), name, description, flags,
+                                                         storage);
+}
+
+int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *const *argv)
 {
     if (parser == NULL || argc < 1 || argv == NULL)
     {
@@ -1277,7 +1426,7 @@ com_util_argparser_result_t com_util_argparser_parse(com_util_argparser *parser,
                 }
             }
 
-            com_util_argparser_result_t result = argparser_store_option_value(parser, spec, value, value_index);
+            int result = argparser_store_option_value(parser, spec, value, value_index);
             if (result != COM_UTIL_ARGPARSER_OK)
             {
                 return result;
@@ -1317,7 +1466,7 @@ com_util_argparser_result_t com_util_argparser_parse(com_util_argparser *parser,
                 return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
             }
 
-            com_util_argparser_result_t result = argparser_store_option_value(parser, spec, value, i);
+            int result = argparser_store_option_value(parser, spec, value, i);
             if (result != COM_UTIL_ARGPARSER_OK)
             {
                 return result;
@@ -1326,7 +1475,7 @@ com_util_argparser_result_t com_util_argparser_parse(com_util_argparser *parser,
         }
 
         /* 位置引数 ("-" 単独を含む) */
-        com_util_argparser_result_t result = argparser_store_positional(parser, token, i, &positional_index);
+        int result = argparser_store_positional(parser, token, i, &positional_index);
         if (result != COM_UTIL_ARGPARSER_OK)
         {
             return result;
@@ -1351,7 +1500,14 @@ com_util_argparser_result_t com_util_argparser_parse(com_util_argparser *parser,
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_error_t com_util_argparser_get_error(const com_util_argparser *parser)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_argparser_parse(const int argc, char *const *argv)
+{
+    return _com_util_argparser_parse(_com_util_argparser_default(NULL), argc, argv);
+}
+
+int _com_util_argparser_get_error(const com_util_argparser *parser)
 {
     if (parser == NULL)
     {
@@ -1361,7 +1517,14 @@ com_util_argparser_error_t com_util_argparser_get_error(const com_util_argparser
     return parser->last_error;
 }
 
-const char *com_util_argparser_get_error_target(const com_util_argparser *parser)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_argparser_get_error(void)
+{
+    return _com_util_argparser_get_error(_com_util_argparser_default(NULL));
+}
+
+const char *_com_util_argparser_get_error_target(const com_util_argparser *parser)
 {
     if (parser == NULL)
     {
@@ -1371,7 +1534,14 @@ const char *com_util_argparser_get_error_target(const com_util_argparser *parser
     return parser->last_error_target;
 }
 
-int com_util_argparser_get_error_index(const com_util_argparser *parser)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+const char *com_util_argparser_get_error_target(void)
+{
+    return _com_util_argparser_get_error_target(_com_util_argparser_default(NULL));
+}
+
+int _com_util_argparser_get_error_index(const com_util_argparser *parser)
 {
     if (parser == NULL)
     {
@@ -1381,8 +1551,14 @@ int com_util_argparser_get_error_index(const com_util_argparser *parser)
     return parser->last_error_index;
 }
 
-com_util_argparser_result_t com_util_argparser_get_error_message(const com_util_argparser *parser, char *buffer,
-                                                                 const size_t buffer_size)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_argparser_get_error_index(void)
+{
+    return _com_util_argparser_get_error_index(_com_util_argparser_default(NULL));
+}
+
+int _com_util_argparser_get_error_message(const com_util_argparser *parser, char *buffer, const size_t buffer_size)
 {
     if (parser == NULL || buffer == NULL || buffer_size == 0)
     {
@@ -1445,8 +1621,15 @@ com_util_argparser_result_t com_util_argparser_get_error_message(const com_util_
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_get_usage(const com_util_argparser *parser, char *buffer,
-                                                         const size_t buffer_size, size_t *required_size)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_get_error_message(char *buffer, const size_t buffer_size)
+{
+    (void)_com_util_argparser_get_error_message(_com_util_argparser_default(NULL), buffer, buffer_size);
+}
+
+int _com_util_argparser_get_usage(const com_util_argparser *parser, char *buffer, const size_t buffer_size,
+                                  size_t *required_size)
 {
     if (parser == NULL)
     {
@@ -1491,7 +1674,14 @@ com_util_argparser_result_t com_util_argparser_get_usage(const com_util_argparse
     return COM_UTIL_ARGPARSER_OK;
 }
 
-com_util_argparser_result_t com_util_argparser_print_usage(const com_util_argparser *parser, FILE *stream)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_get_usage(char *buffer, const size_t buffer_size, size_t *required_size)
+{
+    (void)_com_util_argparser_get_usage(_com_util_argparser_default(NULL), buffer, buffer_size, required_size);
+}
+
+int _com_util_argparser_print_usage(const com_util_argparser *parser, FILE *stream)
 {
     if (parser == NULL || stream == NULL)
     {
@@ -1499,7 +1689,7 @@ com_util_argparser_result_t com_util_argparser_print_usage(const com_util_argpar
     }
 
     size_t required_size = 0;
-    com_util_argparser_get_usage(parser, NULL, 0, &required_size);
+    _com_util_argparser_get_usage(parser, NULL, 0, &required_size);
 
     char *buffer = malloc(required_size);
     if (buffer == NULL)
@@ -1507,7 +1697,7 @@ com_util_argparser_result_t com_util_argparser_print_usage(const com_util_argpar
         return COM_UTIL_ARGPARSER_OUT_OF_MEMORY;
     }
 
-    com_util_argparser_result_t result = com_util_argparser_get_usage(parser, buffer, required_size, NULL);
+    int result = _com_util_argparser_get_usage(parser, buffer, required_size, NULL);
     if (result == COM_UTIL_ARGPARSER_OK)
     {
         fprintf(stream, "%s", buffer);
@@ -1517,7 +1707,14 @@ com_util_argparser_result_t com_util_argparser_print_usage(const com_util_argpar
     return result;
 }
 
-com_util_argparser_result_t com_util_argparser_print_error_messages(const com_util_argparser *parser, FILE *stream)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_print_usage(FILE *stream)
+{
+    (void)_com_util_argparser_print_usage(_com_util_argparser_default(NULL), stream);
+}
+
+int _com_util_argparser_print_error_messages(const com_util_argparser *parser, FILE *stream)
 {
     if (parser == NULL || stream == NULL)
     {
@@ -1529,7 +1726,7 @@ com_util_argparser_result_t com_util_argparser_print_error_messages(const com_ut
     }
 
     char message[ARGPARSER_ERROR_MESSAGE_BYTES];
-    com_util_argparser_result_t result = com_util_argparser_get_error_message(parser, message, sizeof(message));
+    int result = _com_util_argparser_get_error_message(parser, message, sizeof(message));
     if (result == COM_UTIL_ARGPARSER_OK || result == COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL)
     {
         fprintf(stream, "error: %s\n", message);
@@ -1537,4 +1734,150 @@ com_util_argparser_result_t com_util_argparser_print_error_messages(const com_ut
     fprintf(stream, "\n");
 
     return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_print_error_messages(FILE *stream)
+{
+    (void)_com_util_argparser_print_error_messages(_com_util_argparser_default(NULL), stream);
+}
+
+size_t _com_util_argparser_get_register_error_count(const com_util_argparser *parser)
+{
+    if (parser == NULL)
+    {
+        return 0;
+    }
+
+    return parser->register_error_count;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+size_t com_util_argparser_get_register_error_count(void)
+{
+    return _com_util_argparser_get_register_error_count(_com_util_argparser_default(NULL));
+}
+
+int _com_util_argparser_get_register_error(const com_util_argparser *parser, const size_t index)
+{
+    if (parser == NULL || index >= parser->register_error_count)
+    {
+        return COM_UTIL_ARGPARSER_OK;
+    }
+
+    return parser->register_errors[index].result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_argparser_get_register_error(size_t index)
+{
+    return _com_util_argparser_get_register_error(_com_util_argparser_default(NULL), index);
+}
+
+const char *_com_util_argparser_get_register_error_target(const com_util_argparser *parser, const size_t index)
+{
+    if (parser == NULL || index >= parser->register_error_count)
+    {
+        return NULL;
+    }
+
+    return parser->register_errors[index].target;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+const char *com_util_argparser_get_register_error_target(size_t index)
+{
+    return _com_util_argparser_get_register_error_target(_com_util_argparser_default(NULL), index);
+}
+
+int _com_util_argparser_get_register_error_message(const com_util_argparser *parser, const size_t index, char *buffer,
+                                                   const size_t buffer_size)
+{
+    if (parser == NULL || buffer == NULL || buffer_size == 0 || index >= parser->register_error_count)
+    {
+        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+
+    const char *target = parser->register_errors[index].target;
+    if (target == NULL)
+    {
+        target = "?";
+    }
+
+    /* -Wformat-nonliteral を避けるため、結果コードごとにリテラル書式で組み立てる */
+    int written = 0;
+    switch (parser->register_errors[index].result)
+    {
+    case COM_UTIL_ARGPARSER_INVALID_ARGUMENT:
+        written = snprintf(buffer, buffer_size, "failed to register '%s': invalid argument", target);
+        break;
+    case COM_UTIL_ARGPARSER_OUT_OF_MEMORY:
+        written = snprintf(buffer, buffer_size, "failed to register '%s': out of memory", target);
+        break;
+    case COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION:
+        written = snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
+        break;
+    case COM_UTIL_ARGPARSER_OK:
+    case COM_UTIL_ARGPARSER_PARSE_ERROR:
+    case COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL:
+    default:
+        written = snprintf(buffer, buffer_size, "failed to register '%s'", target);
+        break;
+    }
+
+    if (written < 0)
+    {
+        buffer[0] = '\0';
+        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+    if ((size_t)written >= buffer_size)
+    {
+        return COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL;
+    }
+
+    return COM_UTIL_ARGPARSER_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_get_register_error_message(const size_t index, char *buffer, const size_t buffer_size)
+{
+    (void)_com_util_argparser_get_register_error_message(_com_util_argparser_default(NULL), index, buffer, buffer_size);
+}
+
+int _com_util_argparser_print_register_error_messages(const com_util_argparser *parser, FILE *stream)
+{
+    if (parser == NULL || stream == NULL)
+    {
+        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+
+    int result = COM_UTIL_ARGPARSER_OK;
+
+    for (size_t i = 0; i < parser->register_error_count; i++)
+    {
+        char message[ARGPARSER_ERROR_MESSAGE_BYTES];
+        result = _com_util_argparser_get_register_error_message(parser, i, message, sizeof(message));
+        if (result == COM_UTIL_ARGPARSER_OK || result == COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL)
+        {
+            fprintf(stream, "error: %s\n", message);
+        }
+    }
+    if (parser->register_error_count > 0)
+    {
+        fprintf(stream, "\n");
+    }
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_print_register_error_messages(FILE *stream)
+{
+    (void)_com_util_argparser_print_register_error_messages(_com_util_argparser_default(NULL), stream);
 }

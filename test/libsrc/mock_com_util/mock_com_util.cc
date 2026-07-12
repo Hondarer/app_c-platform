@@ -325,37 +325,88 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_status_set));
 
     // argparser
-    ON_CALL(*this, com_util_argparser_create(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_create));
-    ON_CALL(*this, com_util_argparser_default(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_default));
-    ON_CALL(*this, com_util_argparser_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_dispose));
-    ON_CALL(*this, com_util_argparser_register_flag(_, _, _, _, _))
+    ON_CALL(*this, _com_util_argparser_create(_)).WillByDefault(Invoke(delegate_real__com_util_argparser_create));
+    ON_CALL(*this, _com_util_argparser_default(_)).WillByDefault(Invoke(delegate_real__com_util_argparser_default));
+    ON_CALL(*this, _com_util_argparser_dispose(_)).WillByDefault(Invoke(delegate_real__com_util_argparser_dispose));
+    ON_CALL(*this, _com_util_argparser_register_flag(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_flag));
+    ON_CALL(*this, _com_util_argparser_register_option_int(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_option_int));
+    ON_CALL(*this, _com_util_argparser_register_option_string(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_option_string));
+    ON_CALL(*this, _com_util_argparser_register_option_int_array(_, _, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_option_int_array));
+    ON_CALL(*this, _com_util_argparser_register_option_string_array(_, _, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_option_string_array));
+    ON_CALL(*this, _com_util_argparser_register_positional_int(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_int));
+    ON_CALL(*this, _com_util_argparser_register_positional_string(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_string));
+    ON_CALL(*this, _com_util_argparser_parse(_, _, _)).WillByDefault(Invoke(delegate_real__com_util_argparser_parse));
+    ON_CALL(*this, _com_util_argparser_get_error(_)).WillByDefault(Invoke(delegate_real__com_util_argparser_get_error));
+    ON_CALL(*this, _com_util_argparser_get_error_target(_))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_error_target));
+    ON_CALL(*this, _com_util_argparser_get_error_index(_))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_error_index));
+    ON_CALL(*this, _com_util_argparser_get_error_message(_, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_error_message));
+    ON_CALL(*this, _com_util_argparser_get_usage(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_usage));
+    ON_CALL(*this, _com_util_argparser_print_usage(_, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_print_usage));
+    ON_CALL(*this, _com_util_argparser_print_error_messages(_, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_print_error_messages));
+    ON_CALL(*this, _com_util_argparser_get_register_error(_, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_register_error));
+    ON_CALL(*this, _com_util_argparser_get_register_error_count(_))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_register_error_count));
+    ON_CALL(*this, _com_util_argparser_get_register_error_target(_, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_register_error_target));
+    ON_CALL(*this, _com_util_argparser_get_register_error_message(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_get_register_error_message));
+    ON_CALL(*this, _com_util_argparser_print_register_error_messages(_, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_print_register_error_messages));
+
+    // argparser (省略可能な単一インスタンス API)
+    ON_CALL(*this, com_util_argparser_init(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_init));
+    ON_CALL(*this, com_util_argparser_register_flag(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_flag));
-    ON_CALL(*this, com_util_argparser_register_option_int(_, _, _, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_option_int(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_option_int));
-    ON_CALL(*this, com_util_argparser_register_option_string(_, _, _, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_option_string(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_option_string));
-    ON_CALL(*this, com_util_argparser_register_option_int_array(_, _, _, _, _, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_option_int_array(_, _, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_option_int_array));
-    ON_CALL(*this, com_util_argparser_register_option_string_array(_, _, _, _, _, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_option_string_array(_, _, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_option_string_array));
-    ON_CALL(*this, com_util_argparser_register_positional_int(_, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_positional_int(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_int));
-    ON_CALL(*this, com_util_argparser_register_positional_string(_, _, _, _, _))
+    ON_CALL(*this, com_util_argparser_register_positional_string(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_string));
-    ON_CALL(*this, com_util_argparser_parse(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_argparser_parse));
-    ON_CALL(*this, com_util_argparser_get_error(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_get_error));
-    ON_CALL(*this, com_util_argparser_get_error_target(_))
+    ON_CALL(*this, com_util_argparser_parse(_, _)).WillByDefault(Invoke(delegate_real_com_util_argparser_parse));
+    ON_CALL(*this, com_util_argparser_get_error()).WillByDefault(Invoke(delegate_real_com_util_argparser_get_error));
+    ON_CALL(*this, com_util_argparser_get_error_target())
         .WillByDefault(Invoke(delegate_real_com_util_argparser_get_error_target));
-    ON_CALL(*this, com_util_argparser_get_error_index(_))
+    ON_CALL(*this, com_util_argparser_get_error_index())
         .WillByDefault(Invoke(delegate_real_com_util_argparser_get_error_index));
-    ON_CALL(*this, com_util_argparser_get_error_message(_, _, _))
+    ON_CALL(*this, com_util_argparser_get_error_message(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_get_error_message));
-    ON_CALL(*this, com_util_argparser_get_usage(_, _, _, _))
+    ON_CALL(*this, com_util_argparser_get_usage(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_get_usage));
-    ON_CALL(*this, com_util_argparser_print_usage(_, _))
+    ON_CALL(*this, com_util_argparser_print_usage(_))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_print_usage));
-    ON_CALL(*this, com_util_argparser_print_error_messages(_, _))
+    ON_CALL(*this, com_util_argparser_print_error_messages(_))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_print_error_messages));
+    ON_CALL(*this, com_util_argparser_get_register_error(_))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_get_register_error));
+    ON_CALL(*this, com_util_argparser_get_register_error_count())
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_get_register_error_count));
+    ON_CALL(*this, com_util_argparser_get_register_error_target(_))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_get_register_error_target));
+    ON_CALL(*this, com_util_argparser_get_register_error_message(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_get_register_error_message));
+    ON_CALL(*this, com_util_argparser_print_register_error_messages(_))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_print_register_error_messages));
 
     _mock_com_util = this;
 }
