@@ -614,6 +614,89 @@ TEST_F(argparserTest, option_string_points_into_argv)
     _com_util_argparser_dispose(parser);
 }
 
+// 空白を含む値が全構文 (位置引数 / --param=v / -p=v / --param v / -p v) で同一に取得できることの確認
+// シェルや MSVC CRT のクオート除去後の argv (クオートなしの 1 トークン) を模している
+TEST_F(argparserTest, option_string_accepts_value_with_spaces)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *param = NULL;
+    const char *input = NULL;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_option_string(parser, "-p", "--param", "VALUE", NULL, 0, &param));
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string(parser, "input", NULL, 0, &input));
+
+    // Act & Assert
+    {
+        // command "parameter string" 相当 (位置引数)
+        input = NULL;
+        ARGV(cstr("prog"), cstr("parameter string"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("parameter string", input);
+    }
+    {
+        // command --param="parameter string" 相当
+        param = NULL;
+        ARGV(cstr("prog"), cstr("--param=parameter string"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("parameter string", param);
+    }
+    {
+        // command -p="parameter string" 相当
+        param = NULL;
+        ARGV(cstr("prog"), cstr("-p=parameter string"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("parameter string", param);
+    }
+    {
+        // command --param "parameter string" 相当
+        param = NULL;
+        ARGV(cstr("prog"), cstr("--param"), cstr("parameter string"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("parameter string", param);
+    }
+    {
+        // command -p "parameter string" 相当
+        param = NULL;
+        ARGV(cstr("prog"), cstr("-p"), cstr("parameter string"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("parameter string", param);
+    }
+
+    _com_util_argparser_dispose(parser);
+}
+
+// argv に残存したダブルクオーテーションを除去せず無加工で格納することの確認
+// クオート除去はシェル / C ランタイムの責務であり、本 API は独自解釈しない (値中の正当な " を破壊しないため)
+TEST_F(argparserTest, option_string_stores_argv_verbatim)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *param = NULL;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_option_string(parser, "-p", "--param", "VALUE", NULL, 0, &param));
+
+    // Act & Assert
+    {
+        // 値の両端にクオートが残存した場合はそのまま格納する
+        param = NULL;
+        ARGV(cstr("prog"), cstr("--param=\"quoted value\""));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("\"quoted value\"", param);
+    }
+    {
+        // 値の途中のクオートもそのまま格納する
+        param = NULL;
+        ARGV(cstr("prog"), cstr("-p"), cstr("say \"hi\" now"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_parse(parser, argc, argv));
+        EXPECT_STREQ("say \"hi\" now", param);
+    }
+
+    _com_util_argparser_dispose(parser);
+}
+
 // 位置引数の登録順割り当てと超過エラーの確認
 TEST_F(argparserTest, positional_assignment_and_overflow)
 {

@@ -17,6 +17,15 @@
  *
  *  短オプションの連結 (`-abc`) と `--` 区切りはサポートしません。
  *
+ *  ダブルクオーテーションの除去とエスケープ (`\"`) の解釈は、シェル (POSIX shell) や
+ *  C ランタイム (MSVC CRT) が argv を生成する時点で行われます。\n
+ *  `--option="a b"` のようにワード中間にクオートがある場合も、シェルはクオートを
+ *  除去して `--option=a b` を argv に渡すため、空白を含む値は全構文で同一に取得できます。\n
+ *  本 API は argv の文字列を無加工で扱い、クオートの独自解釈は行いません
+ *  (値に正当に含まれる `"` を破壊しないため)。\n
+ *  see: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_02 \n
+ *  see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
+ *
  *  本 API はエラーを標準出力・標準エラーに出力しません。\n
  *  解析エラーの詳細は _com_util_argparser_get_error() 系 API で取得し、
  *  表示は呼び出し側で行います。
