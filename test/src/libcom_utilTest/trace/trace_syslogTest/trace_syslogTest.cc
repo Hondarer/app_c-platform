@@ -261,7 +261,14 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
 
 TEST(trace_syslogTest, not_supported)
 {
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
     GTEST_SKIP() << "syslog is not supported on this platform";
+
+    // Assert
 }
 
 #endif /* PLATFORM_ */
