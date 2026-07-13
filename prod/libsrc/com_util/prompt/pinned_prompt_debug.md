@@ -35,7 +35,7 @@ git -C /home/user/c-modernization-kit/app/com_util diff --check --
 
 ```bash
 cd /home/user/c-modernization-kit
-app/com_util/prod/bin/pinned-prompt
+app/com_util/prod/cbin/pinned-prompt
 ```
 
 Codex では `exec_command` の `tty: true` で起動し、返された `session_id` に `write_stdin` で入力を送る。
