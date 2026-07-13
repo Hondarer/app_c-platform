@@ -72,6 +72,7 @@ class shutdownTest : public Test
     }
 };
 
+// shutdown callback が登録の逆順 (LIFO) で実行されることの確認
 TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
 {
     // Arrange
@@ -80,11 +81,14 @@ TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
     int third = 3;
     com_util_shutdown_event event =
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE,
-                   7); // [状態] - 終了コード 7 を持つ通常終了イベントを使う。
+                   7); // [状態] - 終了コード 7 を持つ通常終了イベントを用意する。
 
     ASSERT_EQ(0, com_util_shutdown_register(record_callback, &first));
     ASSERT_EQ(0, com_util_shutdown_register(record_callback, &second));
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &third));
+    ASSERT_EQ(0, com_util_shutdown_register(record_callback,
+                                            &third)); // [状態] - 記録用 callback を id 1、2、3 の順に 3 件登録する。
+
+    // Pre-Assert
 
     // Act
     int result =
@@ -103,15 +107,18 @@ TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
     EXPECT_EQ(7, g_last_event.code);   // [確認_正常系] - 終了コード 7 が callback に渡ること。
 }
 
+// 複数回の shutdown 実行でも callback が 1 回だけ実行されることの確認
 TEST_F(shutdownTest, test_multiple_invoke_runs_callbacks_only_once)
 {
     // Arrange
     int id = 1;
     com_util_shutdown_event event =
         make_event(COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
-                   0); // [状態] - 終了中イベントを使う。
+                   0); // [状態] - プロセス終了中イベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &id));
+    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &id)); // [状態] - 記録用 callback を 1 件登録する。
+
+    // Pre-Assert
 
     // Act
     int first_result = _com_util_shutdown_invoke_for_test(&event);  // [手順] - 1 回目の shutdown を実行する。
@@ -126,6 +133,7 @@ TEST_F(shutdownTest, test_multiple_invoke_runs_callbacks_only_once)
     EXPECT_EQ(1, g_call_count);             // [確認_正常系] - callback は 1 回だけ実行されること。
 }
 
+// 終了要求 callback の実行が最終 shutdown を消費しないことの確認
 TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
 {
     // Arrange
@@ -133,16 +141,23 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
     int request_second = 2;
     int final_id = 3;
     com_util_shutdown_event request_event =
-        make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER, 2);
+        make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER,
+                   2); // [状態] - シグナル番号 2 の終了要求イベントを用意する。
     com_util_shutdown_event final_event =
-        make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0);
+        make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
+                   0); // [状態] - 通常終了の最終 shutdown イベントを用意する。
 
     ASSERT_EQ(0, com_util_shutdown_request_register(record_callback, &request_first));
-    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback, &request_second));
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &final_id));
+    ASSERT_EQ(0, com_util_shutdown_request_register(
+                     record_callback, &request_second)); // [状態] - 終了要求 callback を id 1、2 の順に 2 件登録する。
+    ASSERT_EQ(0, com_util_shutdown_register(record_callback,
+                                            &final_id)); // [状態] - 最終 shutdown callback を id 3 で 1 件登録する。
+
+    // Pre-Assert
 
     // Act
-    int request_result = _com_util_shutdown_request_invoke_for_test(&request_event);
+    int request_result =
+        _com_util_shutdown_request_invoke_for_test(&request_event); // [手順] - 終了要求 callback を実行する。
 
     // Assert
     EXPECT_EQ(0, request_result); // [確認_正常系] - 終了要求 callback の実行が成功すること。
@@ -154,7 +169,7 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
 
     reset_records();
 
-    int final_result = _com_util_shutdown_invoke_for_test(&final_event);
+    int final_result = _com_util_shutdown_invoke_for_test(&final_event); // [手順] - 続けて最終 shutdown を実行する。
 
     EXPECT_EQ(0, final_result); // [確認_正常系] - final shutdown が別途実行できること。
     ASSERT_EQ(1, g_call_count); // [確認_正常系] - final callback は独立して 1 件実行されること。
@@ -163,19 +178,25 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
               g_last_event.reason); // [確認_正常系] - final shutdown では通常終了イベントが渡ること。
 }
 
+// 終了要求 callback が 1 回だけ実行されることの確認
 TEST_F(shutdownTest, test_request_callback_runs_only_once)
 {
     // Arrange
     int id = 1;
     com_util_shutdown_event event =
-        make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER, 2);
+        make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER,
+                   2); // [状態] - シグナル番号 2 の終了要求イベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback, &id));
+    ASSERT_EQ(0,
+              com_util_shutdown_request_register(record_callback, &id)); // [状態] - 終了要求 callback を 1 件登録する。
+
+    // Pre-Assert
 
     // Act
-    int first_result = _com_util_shutdown_request_invoke_for_test(&event);
-    int second_result = _com_util_shutdown_request_invoke_for_test(&event);
-    int register_after_request = com_util_shutdown_request_register(record_callback, &id);
+    int first_result = _com_util_shutdown_request_invoke_for_test(&event);  // [手順] - 1 回目の終了要求を実行する。
+    int second_result = _com_util_shutdown_request_invoke_for_test(&event); // [手順] - 2 回目の終了要求を実行する。
+    int register_after_request =
+        com_util_shutdown_request_register(record_callback, &id); // [手順] - 通知後に新規登録を試みる。
 
     // Assert
     EXPECT_EQ(0, first_result);            // [確認_正常系] - 1 回目は実行されること。
@@ -184,8 +205,17 @@ TEST_F(shutdownTest, test_request_callback_runs_only_once)
     EXPECT_EQ(1, g_call_count);            // [確認_正常系] - request callback は 1 回だけ実行されること。
 }
 
+// com_util_exit が終了コードを保持したまま callback を実行することの確認
 TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
 {
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(7) を呼び出す。
+    // Assert
+    // [確認_正常系] - 終了コード 7 で終了し、callback に reason=0 kind=1 code=7 のイベントが渡ること。
     EXPECT_EXIT(
         {
             _com_util_shutdown_reset_for_test();
@@ -195,8 +225,17 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
         ::testing::ExitedWithCode(7), "reason=0 kind=1 code=7");
 }
 
+// 明示的な shutdown 実行後に atexit で二重実行されないことの確認
 TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
 {
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    // [手順] - 子プロセス側で実行回数を出力する callback を登録し、明示的な shutdown 実行後に exit(0) を呼び出す。
+    // Assert
+    // [確認_正常系] - 終了コード 0 で終了し、callback の実行回数が count=1 のまま二重実行されないこと。
     EXPECT_EXIT(
         {
             com_util_shutdown_event event =
@@ -210,8 +249,17 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
 }
 
 #if defined(PLATFORM_LINUX)
+// SIGINT が終了要求 callback へ報告され、処理が継続することの確認
 TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
 {
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    // [手順] - 子プロセス側でイベント内容を出力する終了要求 callback を登録し、raise(SIGINT) を発生させる。
+    // Assert
+    // [確認_正常系] - callback に reason=2 kind=2 code=2 のイベントが渡り、SIGINT 後も処理が継続して終了コード 0 で終了すること。
     EXPECT_EXIT(
         {
             _com_util_shutdown_reset_for_test();
@@ -223,15 +271,19 @@ TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
         ::testing::ExitedWithCode(0), "reason=2 kind=2 code=2.*after-sigint");
 }
 #elif defined(PLATFORM_WINDOWS)
+// コンソール イベントが終了要求 callback へ報告されることの確認
 TEST_F(shutdownTest, test_console_event_is_reported_to_callback)
 {
     // Arrange
     int id = 1;
     com_util_shutdown_event event =
         make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_CONSOLE_CTRL_TYPE,
-                   CTRL_C_EVENT); // [状態] - CTRL_C_EVENT を模擬したイベントを使う。
+                   CTRL_C_EVENT); // [状態] - CTRL_C_EVENT を模擬したイベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback, &id));
+    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback,
+                                                    &id)); // [状態] - 記録用の終了要求 callback を 1 件登録する。
+
+    // Pre-Assert
 
     // Act
     int result = _com_util_shutdown_request_invoke_for_test(

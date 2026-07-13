@@ -39,24 +39,28 @@ class traceShutdownTest : public Test
 
 } // namespace
 
+// 共通 shutdown で registry が破棄され、以後の tracer 生成が拒否されることの確認
 TEST_F(traceShutdownTest, test_shutdown_disposes_registry_and_rejects_new_create)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(); // [手順] - tracer を 1 件生成する。
+    com_util_tracer *handle =
+        com_util_tracer_create(); // [状態] - tracer を 1 件生成し registry に登録された状態とする。
     ASSERT_NE((com_util_tracer *)NULL, handle);
-    EXPECT_EQ((size_t)1, trace_registry_count()); // [確認_正常系] - registry に 1 件登録されること。
+    EXPECT_EQ((size_t)1, trace_registry_count()); // [状態] - registry の登録件数を 1 件とする。
 
     com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
-                                     0}; // [状態] - 通常終了イベントで tracer shutdown を実行する。
+                                     0}; // [状態] - 通常終了 (NORMAL_EXIT) の shutdown イベントを用意する。
+
+    // Pre-Assert
 
     // Act
     int invoke_result = _com_util_shutdown_invoke_for_test(&event); // [手順] - 共通 shutdown を実行する。
     com_util_tracer *created_after_shutdown =
-        com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer を生成する。
+        com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer の生成を試みる。
 
     // Assert
-    EXPECT_EQ(0, invoke_result);                  // [確認_正常系] - shutdown 実行が成功すること。
+    EXPECT_EQ(0, invoke_result);                  // [確認_正常系] - shutdown 実行の戻り値が 0 であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - shutdown 後に registry が空になること。
     EXPECT_EQ((com_util_tracer *)NULL,
-              created_after_shutdown); // [確認_正常系] - shutdown 開始後は新規 tracer 作成が拒否されること。
+              created_after_shutdown); // [確認_正常系] - shutdown 開始後は新規 tracer 作成が拒否され NULL が返ること。
 }

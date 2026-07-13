@@ -53,6 +53,7 @@ class fdTest : public Test
     }
 };
 
+// write、lseek、read の一連の操作でデータが往復することの確認
 TEST_F(fdTest, write_read_lseek_roundtrip)
 {
     // Arrange
@@ -68,17 +69,18 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
     int64_t pos_end = com_util_lseek(fd_, 0, SEEK_END);      // [手順] - 読み書き位置を終端へ移動する。
 
     // Assert
-    EXPECT_EQ(6, written);              // [確認] - 書き込んだバイト数が 6 であること。
-    EXPECT_EQ(0, pos_head);             // [確認] - SEEK_SET 0 の戻り値が 0 であること。
-    EXPECT_EQ(6, read_len);             // [確認] - 読み取ったバイト数が 6 であること。
-    EXPECT_EQ(0, memcmp(data, buf, 6)); // [確認] - 読み取った内容が書き込んだ内容と一致すること。
-    EXPECT_EQ(6, pos_end);              // [確認] - SEEK_END 0 の戻り値がファイル サイズであること。
+    EXPECT_EQ(6, written);              // [確認_正常系] - 書き込んだバイト数が 6 であること。
+    EXPECT_EQ(0, pos_head);             // [確認_正常系] - SEEK_SET 0 の戻り値が 0 であること。
+    EXPECT_EQ(6, read_len);             // [確認_正常系] - 読み取ったバイト数が 6 であること。
+    EXPECT_EQ(0, memcmp(data, buf, 6)); // [確認_正常系] - 読み取った内容が書き込んだ内容と一致すること。
+    EXPECT_EQ(6, pos_end);              // [確認_正常系] - SEEK_END 0 の戻り値がファイル サイズであること。
 }
 
+// ファイル終端の読み取りで 0 が返ることの確認
 TEST_F(fdTest, read_reaches_eof_returns_zero)
 {
     // Arrange
-    char buf[8]; // [状態] - 空ファイルの先頭で読み取る。
+    char buf[8]; // [状態] - 読み取り先バッファーを用意する。ファイルは空のままとする。
 
     // Pre-Assert
 
@@ -86,9 +88,10 @@ TEST_F(fdTest, read_reaches_eof_returns_zero)
     int64_t read_len = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 空ファイルから読み取る。
 
     // Assert
-    EXPECT_EQ(0, read_len); // [確認] - ファイル終端では 0 が返ること。
+    EXPECT_EQ(0, read_len); // [確認_正常系] - ファイル終端では 0 が返ること。
 }
 
+// dup で複製した記述子が読み書き位置を共有することの確認
 TEST_F(fdTest, dup_shares_file_offset)
 {
     // Arrange
@@ -99,12 +102,14 @@ TEST_F(fdTest, dup_shares_file_offset)
     int dup_fd = com_util_dup(fd_); // [手順] - ファイル記述子を複製する。
 
     // Assert
-    ASSERT_LE(0, dup_fd);                            // [確認] - 複製された記述子が有効であること。
-    EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4)); // [確認] - 複製側で 4 バイト書き込めること。
-    EXPECT_EQ(4, com_util_lseek(fd_, 0, SEEK_CUR));  // [確認] - 複製元の読み書き位置が共有され 4 に進んでいること。
-    EXPECT_EQ(0, com_util_close(dup_fd));            // [確認] - 複製側のクローズが成功すること。
+    ASSERT_LE(0, dup_fd);                            // [確認_正常系] - 複製された記述子が有効であること。
+    EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
+    EXPECT_EQ(4,
+              com_util_lseek(fd_, 0, SEEK_CUR)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
+    EXPECT_EQ(0, com_util_close(dup_fd));        // [確認_正常系] - 複製側のクローズが成功すること。
 }
 
+// dup2 の成功時に 0 が返ることの確認
 TEST_F(fdTest, dup2_returns_zero_on_success)
 {
     // Arrange
@@ -118,10 +123,11 @@ TEST_F(fdTest, dup2_returns_zero_on_success)
     int rtc = com_util_dup2(fd_, target_fd); // [手順] - fd_ を target_fd へ複製する。
 
     // Assert
-    EXPECT_EQ(0, rtc);                       // [確認] - POSIX/Windows とも成功時は 0 に正規化されること。
-    EXPECT_EQ(0, com_util_close(target_fd)); // [確認] - 複製先のクローズが成功すること。
+    EXPECT_EQ(0, rtc);                       // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
+    EXPECT_EQ(0, com_util_close(target_fd)); // [確認_正常系] - 複製先のクローズが成功すること。
 }
 
+// close の成功時に 0 が返ることの確認
 TEST_F(fdTest, close_success_returns_zero)
 {
     // Arrange
@@ -132,14 +138,15 @@ TEST_F(fdTest, close_success_returns_zero)
     int rtc = com_util_close(fd_); // [手順] - 開いている記述子を閉じる。
 
     // Assert
-    EXPECT_EQ(0, rtc); // [確認] - クローズ成功時は 0 が返ること。
+    EXPECT_EQ(0, rtc); // [確認_正常系] - クローズ成功時は 0 が返ること。
     fd_ = -1;
 }
 
+// 負のファイル記述子で各関数が -1 を返すことの確認
 TEST_F(fdTest, negative_fd_returns_minus1)
 {
     // Arrange
-    char buf[4]; // [状態] - すべての関数に負のファイル記述子を与える。
+    char buf[4]; // [状態] - 読み書き用バッファーを用意する。
 
     // Pre-Assert
 
@@ -155,6 +162,7 @@ TEST_F(fdTest, negative_fd_returns_minus1)
     EXPECT_EQ(-1, com_util_write(-1, buf, sizeof(buf))); // [確認_異常系] - write が -1 を返すこと。
 }
 
+// バッファーが NULL の場合に read / write が -1 を返すことの確認
 TEST_F(fdTest, null_buf_returns_minus1)
 {
     // Arrange
@@ -168,6 +176,7 @@ TEST_F(fdTest, null_buf_returns_minus1)
     EXPECT_EQ(-1, com_util_write(fd_, NULL, 4)); // [確認_異常系] - write (buf NULL) が -1 を返すこと。
 }
 
+// 定義外の whence を与えた lseek が -1 を返すことの確認
 TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
 {
     // Arrange
@@ -181,17 +190,18 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の API を呼び出さずに -1 が返ること。
 }
 
+// 下位の lseek 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の lseek / _lseeki64 をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の lseek 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, lseek(_, _, _, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の lseek が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の lseek に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の lseek 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の lseek 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, lseek(_, _, _, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _lseeki64(_, _, _, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -202,17 +212,18 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
+// 下位の close 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の close / _close をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の close 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, close(_, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の close が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の close に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の close 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の close 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, close(_, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _close(_, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -223,17 +234,18 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
+// 下位の dup 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の dup / _dup をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の dup 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, dup(_, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の dup が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の dup に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の dup 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の dup 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, dup(_, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _dup(_, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -244,17 +256,18 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
+// 下位の dup2 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の dup2 / _dup2 をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の dup2 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の dup2 が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の dup2 に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の dup2 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の dup2 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _dup2(_, _, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -265,18 +278,19 @@ TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
+// 下位の read 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
 {
     // Arrange
     char buf[4];
-    Mock_unistd mock_unistd; // [状態] - 下位の read / _read をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の read 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の read が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の read に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の read 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の read 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _read(_, _, _, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -287,18 +301,19 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
 }
 
+// 下位の write 系 API が失敗した場合に -1 が返ることの確認
 TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
 {
     // Arrange
     const char buf[4] = "abc";
-    Mock_unistd mock_unistd; // [状態] - 下位の write / _write をモック化する。
+    Mock_unistd mock_unistd; // [状態] - 下位の write 系 API をモック化する。
 
     // Pre-Assert
-#ifndef _WIN32
-    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認] - 下位の write が 1 回呼び出されること。
-                               // [Pre-Assert手順] - 下位の write に -1 を返させる。
-#else
+    // [Pre-Assert確認_異常系] - 下位の write 系 API が 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の write 系 API から -1 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _)).WillOnce(Return(-1));
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_unistd, _write(_, _, _, _, _, _)).WillOnce(Return(-1));
 #endif
 
@@ -311,6 +326,7 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
 
 #if defined(PLATFORM_LINUX)
 /* Windows の CRT はクローズ済み記述子で invalid parameter handler を起動するため、Linux でのみ実施する */
+// クローズ済みの記述子で各関数が -1 を返すことの確認
 TEST_F(fdTest, closed_fd_operations_return_minus1)
 {
     // Arrange

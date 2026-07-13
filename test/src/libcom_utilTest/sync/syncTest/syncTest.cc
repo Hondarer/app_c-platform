@@ -48,27 +48,34 @@ static void make_test_interprocess_path(char *buf, size_t size, const char *tag)
     #define TEST_INTERPROCESS_UNLINK(path) _unlink(path)
 #endif
 
+// ロック取得済みの local lock への try_lock が BUSY を報告することの確認
 TEST(SyncLocalLockTest, TryLockReportsBusyWhenAlreadyLocked)
 {
     // Arrange
-    com_util_local_lock *lock = NULL;
+    com_util_local_lock *lock = NULL; // [状態] - 新規 local lock ハンドルの格納先を用意する。
 
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t create_result = com_util_local_lock_create(&lock);
-    com_util_sync_result_t first_lock = com_util_local_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
-    com_util_sync_result_t second_try = com_util_local_lock_try_lock(lock);
+    com_util_sync_result_t create_result = com_util_local_lock_create(&lock); // [手順] - local lock を作成する。
+    com_util_sync_result_t first_lock =
+        com_util_local_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 1 回目のロックを取得する。
+    com_util_sync_result_t second_try =
+        com_util_local_lock_try_lock(lock); // [手順] - ロック保持中に try_lock を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);
-    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);
-    EXPECT_TRUE(second_try == COM_UTIL_SYNC_BUSY || second_try == COM_UTIL_SYNC_INVALID_ARGUMENT);
+    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result); // [確認_正常系] - local lock 作成が成功すること。
+    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 1 回目のロック取得が成功すること。
+    EXPECT_TRUE(
+        second_try == COM_UTIL_SYNC_BUSY ||
+        second_try ==
+            COM_UTIL_SYNC_INVALID_ARGUMENT); // [確認_正常系] - 保持中の try_lock が BUSY (非再帰実装では INVALID_ARGUMENT) を返すこと。
 
     (void)com_util_local_lock_unlock(lock);
     com_util_local_lock_destroy(lock);
 }
 
+// 共有ロック同士が同時に取得できることの確認
 TEST(SyncLocalRwlockTest, SharedLocksCanCoexist)
 {
     // Arrange
@@ -93,6 +100,7 @@ TEST(SyncLocalRwlockTest, SharedLocksCanCoexist)
     com_util_local_rwlock_destroy(rwlock);
 }
 
+// 排他ロック中の共有 try_lock が BUSY になることの確認
 TEST(SyncLocalRwlockTest, ExclusiveLockBlocksSharedTryLock)
 {
     // Arrange
@@ -116,6 +124,7 @@ TEST(SyncLocalRwlockTest, ExclusiveLockBlocksSharedTryLock)
     com_util_local_rwlock_destroy(rwlock);
 }
 
+// 待機中の writer がいる間は新規 reader が取得できないことの確認
 TEST(SyncLocalRwlockTest, WaitingWriterPreventsNewReader)
 {
     // Arrange
@@ -143,11 +152,13 @@ TEST(SyncLocalRwlockTest, WaitingWriterPreventsNewReader)
     com_util_local_rwlock_destroy(rwlock);
 }
 
+// descriptor の出力と復元で同一の interprocess lock を再取得できることの確認
 TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
 {
     // Arrange
     char path[256];
-    make_test_interprocess_path(path, sizeof(path), "interprocess_lock");
+    make_test_interprocess_path(path, sizeof(path),
+                                "interprocess_lock"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_lock *restored = NULL;
     unsigned char descriptor[512];
@@ -156,20 +167,23 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t open_result = com_util_interprocess_lock_open(path, &lock);
-    com_util_sync_result_t export_result =
-        com_util_interprocess_lock_export_descriptor(lock, descriptor, &descriptor_size);
-    com_util_sync_result_t import_result =
-        com_util_interprocess_lock_import_descriptor(descriptor, descriptor_size, &restored);
-    com_util_sync_result_t first_lock = com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
-    com_util_sync_result_t second_try = com_util_interprocess_lock_try_lock(restored);
+    com_util_sync_result_t open_result =
+        com_util_interprocess_lock_open(path, &lock); // [手順] - interprocess lock を開く。
+    com_util_sync_result_t export_result = com_util_interprocess_lock_export_descriptor(
+        lock, descriptor, &descriptor_size); // [手順] - descriptor をバッファーへ出力する。
+    com_util_sync_result_t import_result = com_util_interprocess_lock_import_descriptor(
+        descriptor, descriptor_size, &restored); // [手順] - descriptor から interprocess lock を復元する。
+    com_util_sync_result_t first_lock =
+        com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 元ハンドルでロックを取得する。
+    com_util_sync_result_t second_try =
+        com_util_interprocess_lock_try_lock(restored); // [手順] - 復元ハンドルで try_lock を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);
-    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result);
-    EXPECT_EQ(COM_UTIL_SYNC_OK, import_result);
-    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);
-    EXPECT_EQ(COM_UTIL_SYNC_BUSY, second_try);
+    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);   // [確認_正常系] - interprocess lock open が成功すること。
+    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result); // [確認_正常系] - descriptor 出力が成功すること。
+    EXPECT_EQ(COM_UTIL_SYNC_OK, import_result); // [確認_正常系] - descriptor から復元できること。
+    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 元ハンドルでロックを取得できること。
+    EXPECT_EQ(COM_UTIL_SYNC_BUSY, second_try);  // [確認_正常系] - 復元ハンドルが同じロック インスタンスを参照すること。
 
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(restored);
@@ -177,11 +191,13 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+// rwlock の descriptor を interprocess lock として import できないことの確認
 TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
 {
     // Arrange
     char path[256];
-    make_test_interprocess_path(path, sizeof(path), "interprocess_lock_kind");
+    make_test_interprocess_path(path, sizeof(path),
+                                "interprocess_lock_kind"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_rwlock *rwlock = NULL;
     com_util_interprocess_lock *lock = NULL;
     unsigned char descriptor[512];
@@ -190,22 +206,25 @@ TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t open_result = com_util_interprocess_rwlock_open(path, &rwlock);
-    com_util_sync_result_t export_result =
-        com_util_interprocess_rwlock_export_descriptor(rwlock, descriptor, &descriptor_size);
-    com_util_sync_result_t import_result =
-        com_util_interprocess_lock_import_descriptor(descriptor, descriptor_size, &lock);
+    com_util_sync_result_t open_result =
+        com_util_interprocess_rwlock_open(path, &rwlock); // [手順] - interprocess rwlock を開く。
+    com_util_sync_result_t export_result = com_util_interprocess_rwlock_export_descriptor(
+        rwlock, descriptor, &descriptor_size); // [手順] - rwlock の descriptor を出力する。
+    com_util_sync_result_t import_result = com_util_interprocess_lock_import_descriptor(
+        descriptor, descriptor_size, &lock); // [手順] - rwlock の descriptor を lock として import する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);
-    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result);
-    EXPECT_EQ(COM_UTIL_SYNC_CORRUPT_DESCRIPTOR, import_result);
-    EXPECT_EQ(NULL, lock);
+    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);   // [確認_正常系] - interprocess rwlock open が成功すること。
+    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result); // [確認_正常系] - descriptor 出力が成功すること。
+    EXPECT_EQ(COM_UTIL_SYNC_CORRUPT_DESCRIPTOR,
+              import_result); // [確認_異常系] - 種別違いの import が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(NULL, lock);    // [確認_異常系] - ハンドルが生成されないこと。
 
     com_util_interprocess_rwlock_destroy(rwlock);
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+// descriptor の出力と復元で同一の interprocess rwlock を再取得できることの確認
 TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
 {
     // Arrange
@@ -244,6 +263,7 @@ TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+// NULL バッファーの export で必要な descriptor サイズが報告されることの確認
 TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
 {
     // Arrange
@@ -270,6 +290,7 @@ TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+// 不正な descriptor の import が拒否されることの確認
 TEST(SyncInterprocessRwlockTest, CorruptDescriptorIsRejected)
 {
     // Arrange
@@ -288,23 +309,27 @@ TEST(SyncInterprocessRwlockTest, CorruptDescriptorIsRejected)
 }
 
 #if defined(PLATFORM_LINUX)
+// fork した子プロセスから親プロセスの排他ロックが観測できることの確認
 TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
 {
     // Arrange
     char path[256];
-    make_test_interprocess_path(path, sizeof(path), "interprocess_lock_fork");
+    make_test_interprocess_path(path, sizeof(path),
+                                "interprocess_lock_fork"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_lock *lock = NULL;
 
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t open_result = com_util_interprocess_lock_open(path, &lock);
-    com_util_sync_result_t lock_result = com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
-    pid_t child = fork();
+    com_util_sync_result_t open_result =
+        com_util_interprocess_lock_open(path, &lock); // [手順] - interprocess lock を開く。
+    com_util_sync_result_t lock_result =
+        com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 親プロセスでロックを取得する。
+    pid_t child = fork(); // [手順] - fork した子プロセスから同じ lock file を開き try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result);
-    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result);
+    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result); // [確認_正常系] - interprocess lock open が成功すること。
+    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result); // [確認_正常系] - 親プロセスのロック取得が成功すること。
     ASSERT_GE(child, 0);
     if (child == 0)
     {
@@ -315,35 +340,43 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
         {
             com_util_interprocess_lock_destroy(child_lock);
         }
-        _exit((child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY) ? 0 : 1);
+        if (child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY)
+        {
+            _exit(0);
+        }
+        _exit(1);
     }
     int status = 0;
     ASSERT_EQ(child, waitpid(child, &status, 0));
-    EXPECT_TRUE(WIFEXITED(status));
-    EXPECT_EQ(0, WEXITSTATUS(status));
+    EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
+    EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ try_lock が BUSY であること。
 
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(lock);
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+// fork した子プロセスから親プロセスの rwlock 排他ロックが観測できることの確認
 TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
 {
     // Arrange
     char path[256];
-    make_test_interprocess_path(path, sizeof(path), "interprocess_rwlock_fork");
+    make_test_interprocess_path(path, sizeof(path),
+                                "interprocess_rwlock_fork"); // [状態] - テスト用 lock file パスを用意する。
     com_util_interprocess_rwlock *lock = NULL;
 
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t open_result = com_util_interprocess_rwlock_open(path, &lock);
-    com_util_sync_result_t lock_result = com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
-    pid_t child = fork();
+    com_util_sync_result_t open_result =
+        com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
+    com_util_sync_result_t lock_result = com_util_interprocess_rwlock_lock_exclusive(
+        lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 親プロセスで排他ロックを取得する。
+    pid_t child = fork();             // [手順] - fork した子プロセスから同じ lock file を開き共有 try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result);
-    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result);
+    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result); // [確認_正常系] - interprocess rwlock open が成功すること。
+    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result); // [確認_正常系] - 親プロセスの排他ロック取得が成功すること。
     ASSERT_GE(child, 0);
     if (child == 0)
     {
@@ -354,12 +387,16 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
         {
             com_util_interprocess_rwlock_destroy(child_lock);
         }
-        _exit((child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY) ? 0 : 1);
+        if (child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY)
+        {
+            _exit(0);
+        }
+        _exit(1);
     }
     int status = 0;
     ASSERT_EQ(child, waitpid(child, &status, 0));
-    EXPECT_TRUE(WIFEXITED(status));
-    EXPECT_EQ(0, WEXITSTATUS(status));
+    EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
+    EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ共有 try_lock が BUSY であること。
 
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
@@ -367,6 +404,7 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
 }
 #endif /* PLATFORM_LINUX */
 
+// 待機時間 0 ms の指定で即時に戻ることの確認
 TEST(SyncSleepMsTest, ZeroReturnsImmediately)
 {
     // Arrange
@@ -382,6 +420,7 @@ TEST(SyncSleepMsTest, ZeroReturnsImmediately)
     EXPECT_LT(after - before, 100U); // [確認_正常系] - 0 ms 指定で即時に戻ること。
 }
 
+// 負の待機時間の指定で即時に戻ることの確認
 TEST(SyncSleepMsTest, NegativeReturnsImmediately)
 {
     // Arrange
@@ -397,10 +436,11 @@ TEST(SyncSleepMsTest, NegativeReturnsImmediately)
     EXPECT_LT(after - before, 100U); // [確認_異常系] - 負値指定で即時に戻ること (no-op)。
 }
 
+// 指定した待機時間以上が経過することの確認
 TEST(SyncSleepMsTest, ElapsesAtLeastSpecifiedDuration)
 {
     // Arrange
-    const int target_ms = 50;              // [状態] - 待機指示値。
+    const int target_ms = 50;              // [状態] - 待機時間の指示値を 50 ms とする。
     uint64_t before = test_monotonic_ms(); // [状態] - 呼び出し前の単調増加時刻を取得する。
 
     // Pre-Assert
@@ -414,19 +454,21 @@ TEST(SyncSleepMsTest, ElapsesAtLeastSpecifiedDuration)
     EXPECT_GE(after - before, (uint64_t)target_ms - 15U); // [確認_正常系] - 指定ミリ秒以上経過していること。
 }
 
+// 負のタイムアウト指定が INVALID_ARGUMENT になることの確認
 TEST(SyncLocalLockTest, NegativeTimeoutReturnsInvalidArgument)
 {
     // Arrange
-    com_util_local_lock *lock = NULL;
+    com_util_local_lock *lock = NULL; // [状態] - 新規 local lock ハンドルの格納先を用意する。
 
     // Pre-Assert
 
     // Act
-    com_util_sync_result_t create_result = com_util_local_lock_create(&lock);
-    com_util_sync_result_t lock_result = com_util_local_lock_lock(lock, -1); // [手順] - 負のタイムアウトを指定する。
+    com_util_sync_result_t create_result = com_util_local_lock_create(&lock); // [手順] - local lock を作成する。
+    com_util_sync_result_t lock_result =
+        com_util_local_lock_lock(lock, -1); // [手順] - 負のタイムアウト -1 を指定してロックする。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);
+    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);             // [確認_正常系] - local lock 作成が成功すること。
     EXPECT_EQ(COM_UTIL_SYNC_INVALID_ARGUMENT, lock_result); // [確認_異常系] - 負値で INVALID_ARGUMENT を返すこと。
 
     com_util_local_lock_destroy(lock);

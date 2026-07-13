@@ -78,7 +78,14 @@ static void recording_hook(com_util_tracer_hook_entry *prev, com_util_tracer *ha
     rec.level = level;
     rec.padding = 0;
     rec.timestamp = *timestamp;
-    rec.message = (message != NULL) ? message : "";
+    if (message != NULL)
+    {
+        rec.message = message;
+    }
+    else
+    {
+        rec.message = "";
+    }
     rec.context = context;
     g_hook_records.push_back(rec);
 }
@@ -136,140 +143,194 @@ class traceHookTest : public Test
     }
 };
 
-// フックが未設定のとき set_hook は有効なエントリを返す
+// フックが未設定のとき set_hook が有効なエントリを返すことの確認
 TEST_F(traceHookTest, test_set_hook_returns_non_null)
 {
     // Arrange
-    com_util_tracer *tracer = create_tracer();
+    com_util_tracer *tracer = create_tracer(); // [状態] - 生成済みの tracer を用意する。
+
+    // Pre-Assert
 
     // Act
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
+        tracer, recording_hook, nullptr); // [手順] - com_util_tracer_set_hook でフックを登録する。
 
     // Assert
-    EXPECT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    EXPECT_NE((com_util_tracer_hook_entry *)NULL, entry); // [確認_正常系] - エントリが NULL でないこと。
 
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
 
-// handle が NULL のとき set_hook は NULL を返す
+// handle が NULL のとき set_hook が NULL を返すことの確認
 TEST_F(traceHookTest, test_set_hook_null_handle_returns_null)
 {
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(nullptr, recording_hook, nullptr);
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry);
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
+        nullptr, recording_hook, nullptr); // [手順] - handle に NULL を渡して com_util_tracer_set_hook を呼び出す。
+
+    // Assert
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
 }
 
-// fn が NULL のとき set_hook は NULL を返す
+// fn が NULL のとき set_hook が NULL を返すことの確認
 TEST_F(traceHookTest, test_set_hook_null_fn_returns_null)
 {
-    com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, nullptr, nullptr);
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry);
+    // Arrange
+    com_util_tracer *tracer = create_tracer(); // [状態] - 生成済みの tracer を用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
+        tracer, nullptr, nullptr); // [手順] - fn に NULL を渡して com_util_tracer_set_hook を呼び出す。
+
+    // Assert
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
     com_util_tracer_dispose(tracer);
 }
 
-// started 状態では set_hook は NULL を返す
+// started 状態では set_hook が NULL を返すことの確認
 TEST_F(traceHookTest, test_set_hook_while_started_returns_null)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - started 状態の tracer を用意する。
 
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry);
+    // Pre-Assert
+
+    // Act
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
+        tracer, recording_hook, nullptr); // [手順] - started 状態で com_util_tracer_set_hook を呼び出す。
+
+    // Assert
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
 
-// フックを登録してから write するとコールバックが呼ばれる
+// フックを登録してから write するとコールバックが呼ばれることの確認
 TEST_F(traceHookTest, test_hook_is_called_on_write)
 {
     // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry =
-        com_util_tracer_set_hook(tracer, recording_hook, reinterpret_cast<void *>(0xABCD));
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
+        tracer, recording_hook,
+        reinterpret_cast<void *>(0xABCD)); // [状態] - context 0xABCD 付きで記録用フックを登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
-    com_util_timespec ts = make_fixed_timestamp();
+    com_util_timespec ts = make_fixed_timestamp(); // [状態] - 固定タイムスタンプを用意する。
+
+    // Pre-Assert
 
     // Act
-    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "hello hook");
+    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+                                    "hello hook"); // [手順] - INFO レベルで "hello hook" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rc);
-    ASSERT_EQ(1u, g_hook_records.size());
-    EXPECT_EQ(tracer, g_hook_records[0].handle);
-    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_INFO, g_hook_records[0].level);
-    EXPECT_EQ("hello hook", g_hook_records[0].message);
-    EXPECT_EQ(reinterpret_cast<void *>(0xABCD), g_hook_records[0].context);
-    EXPECT_EQ(ts.tv_sec, g_hook_records[0].timestamp.tv_sec);
-    EXPECT_EQ(ts.tv_nsec, g_hook_records[0].timestamp.tv_nsec);
+    EXPECT_EQ(0, rc);                            // [確認_正常系] - 戻り値が 0 であること。
+    ASSERT_EQ(1u, g_hook_records.size());        // [確認_正常系] - フックが 1 回呼ばれること。
+    EXPECT_EQ(tracer, g_hook_records[0].handle); // [確認_正常系] - フックに tracer の handle が渡ること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_INFO, g_hook_records[0].level); // [確認_正常系] - フックに INFO レベルが渡ること。
+    EXPECT_EQ("hello hook", g_hook_records[0].message); // [確認_正常系] - フックに message "hello hook" が渡ること。
+    EXPECT_EQ(reinterpret_cast<void *>(0xABCD),
+              g_hook_records[0].context);                     // [確認_正常系] - フックに context 0xABCD が渡ること。
+    EXPECT_EQ(ts.tv_sec, g_hook_records[0].timestamp.tv_sec); // [確認_正常系] - タイムスタンプの秒が一致すること。
+    EXPECT_EQ(ts.tv_nsec,
+              g_hook_records[0].timestamp.tv_nsec); // [確認_正常系] - タイムスタンプのナノ秒が一致すること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
 
-// COM_UTIL_TRACE_LEVEL_NONE で要求した場合もフックは呼ばれる
+// COM_UTIL_TRACE_LEVEL_NONE で要求した場合もフックが呼ばれることの確認
 TEST_F(traceHookTest, test_hook_is_called_for_none_level)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
+    com_util_tracer_hook_entry *entry =
+        com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_NONE, &ts, "none level message");
 
-    ASSERT_EQ(1u, g_hook_records.size());
-    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE, g_hook_records[0].level);
-    EXPECT_EQ("none level message", g_hook_records[0].message);
+    // Pre-Assert
+
+    // Act
+    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_NONE, &ts,
+                           "none level message"); // [手順] - NONE レベルで "none level message" を書き込む。
+
+    // Assert
+    ASSERT_EQ(1u, g_hook_records.size());                          // [確認_正常系] - フックが 1 回呼ばれること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE, g_hook_records[0].level); // [確認_正常系] - フックに NONE レベルが渡ること。
+    EXPECT_EQ("none level message", g_hook_records[0].message);    // [確認_正常系] - フックに message が渡ること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
 
-// フックが設定されていない場合は write が通常通り成功する (性能パス)
+// フックが設定されていない場合に write が通常通り成功することの確認 (性能パス)
 TEST_F(traceHookTest, test_no_hook_write_succeeds)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - フック未登録のまま started 状態の tracer を用意する。
 
     com_util_timespec ts = make_fixed_timestamp();
-    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "no hook");
 
-    EXPECT_EQ(0, rc);
-    EXPECT_EQ(0u, g_hook_records.size());
+    // Pre-Assert
+
+    // Act
+    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+                                    "no hook"); // [手順] - INFO レベルで "no hook" を書き込む。
+
+    // Assert
+    EXPECT_EQ(0, rc);                     // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - フックが呼ばれないこと。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
 
-// remove_hook 後はコールバックが呼ばれない
+// remove_hook 後はコールバックが呼ばれないことの確認
 TEST_F(traceHookTest, test_hook_not_called_after_remove)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
     com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
 
-    // 解除
-    com_util_tracer_remove_hook(tracer, entry);
+    com_util_tracer_remove_hook(tracer, entry); // [状態] - 登録済みフックを解除した状態とする。
 
     com_util_tracer_start(tracer);
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "after remove");
 
-    EXPECT_EQ(0u, g_hook_records.size());
+    // Pre-Assert
+
+    // Act
+    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+                           "after remove"); // [手順] - INFO レベルで "after remove" を書き込む。
+
+    // Assert
+    EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - 解除済みフックが呼ばれないこと。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
 
-// 複数フックのチェーン: 最後に登録したものから順に呼ばれる
+// 複数フックのチェーンで最後に登録したものから順に呼ばれることの確認
 TEST_F(traceHookTest, test_hook_chain_order)
 {
+    // Arrange
     static std::vector<int> call_order;
     call_order.clear();
 
@@ -286,22 +347,29 @@ TEST_F(traceHookTest, test_hook_chain_order)
         HookCtx *c = reinterpret_cast<HookCtx *>(context);
         call_order.push_back(c->id);
         com_util_tracer_call_next_hook(prev, handle, level, timestamp, message);
-    };
+    }; // [状態] - 呼び出し順を記録して次のフックへ委譲するチェーン フックを用意する。
 
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *e1 = com_util_tracer_set_hook(tracer, chain_fn, &ctx1);
-    com_util_tracer_hook_entry *e2 = com_util_tracer_set_hook(tracer, chain_fn, &ctx2);
+    com_util_tracer_hook_entry *e1 =
+        com_util_tracer_set_hook(tracer, chain_fn, &ctx1); // [状態] - id=1 のフックを先に登録する。
+    com_util_tracer_hook_entry *e2 =
+        com_util_tracer_set_hook(tracer, chain_fn, &ctx2); // [状態] - id=2 のフックを後から登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, e1);
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, e2);
 
     com_util_tracer_start(tracer);
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "chain test");
 
-    // 最後に登録した e2 (id=2) が最初に呼ばれ、次に e1 (id=1) が呼ばれる
-    ASSERT_EQ(2u, call_order.size());
-    EXPECT_EQ(2, call_order[0]);
-    EXPECT_EQ(1, call_order[1]);
+    // Pre-Assert
+
+    // Act
+    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+                           "chain test"); // [手順] - INFO レベルで "chain test" を書き込む。
+
+    // Assert
+    ASSERT_EQ(2u, call_order.size()); // [確認_正常系] - 2 つのフックが両方呼ばれること。
+    EXPECT_EQ(2, call_order[0]);      // [確認_正常系] - 最後に登録した id=2 が最初に呼ばれること。
+    EXPECT_EQ(1, call_order[1]);      // [確認_正常系] - 次に id=1 が呼ばれること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, e2);
@@ -309,77 +377,110 @@ TEST_F(traceHookTest, test_hook_chain_order)
     com_util_tracer_dispose(tracer);
 }
 
-// call_next_hook に NULL を渡しても何も起きない
+// call_next_hook に NULL を渡しても何も起きないことの確認
 TEST_F(traceHookTest, test_call_next_hook_null_prev)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - started 状態の tracer を用意する。
 
     com_util_timespec ts = make_fixed_timestamp();
-    EXPECT_NO_FATAL_FAILURE(com_util_tracer_call_next_hook(nullptr, tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "test"));
+
+    // Pre-Assert
+
+    // Act
+    // Assert
+    EXPECT_NO_FATAL_FAILURE(com_util_tracer_call_next_hook(
+        nullptr, tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+        "test")); // [手順] - prev に NULL を渡して com_util_tracer_call_next_hook を呼び出す。
+                  // [確認_正常系] - 致命的失敗なく完了すること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
 
-// writef 経由でもフックが呼ばれる
+// writef 経由でもフックが呼ばれることの確認
 TEST_F(traceHookTest, test_hook_called_via_writef)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
+    com_util_tracer_hook_entry *entry =
+        com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, &ts, "fmt %d", 42);
 
-    ASSERT_EQ(1u, g_hook_records.size());
-    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_WARNING, g_hook_records[0].level);
-    // _com_util_tracer_writef はフォーマット展開後の文字列が渡される
-    EXPECT_NE(std::string::npos, g_hook_records[0].message.find("42"));
+    // Pre-Assert
+
+    // Act
+    _com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, &ts, "fmt %d",
+                            42); // [手順] - WARNING レベルでフォーマット "fmt %d" と引数 42 を書き込む。
+
+    // Assert
+    ASSERT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが 1 回呼ばれること。
+    EXPECT_EQ(COM_UTIL_TRACE_LEVEL_WARNING,
+              g_hook_records[0].level); // [確認_正常系] - フックに WARNING レベルが渡ること。
+    /* _com_util_tracer_writef はフォーマット展開後の文字列が渡される */
+    EXPECT_NE(std::string::npos,
+              g_hook_records[0].message.find("42")); // [確認_正常系] - フックに展開後の "42" を含む文字列が渡ること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
 
-// タイムスタンプが NULL でも write_dual 内で解決されたタイムスタンプがフックに渡る
+// タイムスタンプが NULL でも解決済みタイムスタンプがフックに渡ることの確認
 TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
+    com_util_tracer_hook_entry *entry =
+        com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
-    // timestamp=NULL で呼び出す → 内部で現在時刻を取得
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, nullptr, "ts resolve test");
+    // Pre-Assert
+    // [Pre-Assert手順] - com_util_get_realtime は SetUp のモックで固定値 {1714100645, 678000000} を返却する。
 
-    ASSERT_EQ(1u, g_hook_records.size());
-    // set_fixed_realtime によりモックで固定された値と一致するはず
-    EXPECT_EQ(1714100645LL, g_hook_records[0].timestamp.tv_sec);
-    EXPECT_EQ(678000000, g_hook_records[0].timestamp.tv_nsec);
+    // Act
+    _com_util_tracer_write(
+        tracer, COM_UTIL_TRACE_LEVEL_INFO, nullptr,
+        "ts resolve test"); // [手順] - timestamp に NULL を渡して書き込み、内部での現在時刻取得を促す。
+
+    // Assert
+    ASSERT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが 1 回呼ばれること。
+    EXPECT_EQ(1714100645LL,
+              g_hook_records[0].timestamp.tv_sec); // [確認_正常系] - モックで固定した秒 1714100645 が渡ること。
+    EXPECT_EQ(678000000,
+              g_hook_records[0].timestamp.tv_nsec); // [確認_正常系] - モックで固定したナノ秒 678000000 が渡ること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
 
-// started 状態では remove_hook は何もしない
+// started 状態では remove_hook が何もしないことの確認
 TEST_F(traceHookTest, test_remove_hook_while_started_does_nothing)
 {
+    // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
+    com_util_tracer_hook_entry *entry =
+        com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
     ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
-    com_util_tracer_start(tracer);
+    com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
-    // started 中は解除できない
-    com_util_tracer_remove_hook(tracer, entry);
+    // Pre-Assert
+
+    // Act
+    com_util_tracer_remove_hook(tracer, entry); // [手順] - started 状態のまま com_util_tracer_remove_hook を呼び出す。
 
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts, "hook still active");
+    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+                           "hook still active"); // [手順] - INFO レベルで "hook still active" を書き込む。
 
-    // フックはまだ有効
-    EXPECT_EQ(1u, g_hook_records.size());
+    // Assert
+    EXPECT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが解除されず 1 回呼ばれること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);

@@ -1,6 +1,9 @@
 # テスト対象のソース ファイル
 TEST_SRCS := \
-	$(MYAPP_DIR)/prod/src/cmd/etw-viewer/etw-viewer.c \
+	$(MYAPP_DIR)/prod/src/cmd/etw-viewer/etw-viewer.c
+
+# テスト固有の補助ソース (カバレッジ対象外のため TEST_SRCS には含めない)
+ADD_SRCS := \
 	$(MYAPP_DIR)/test/libsrc/mock_com_util/runtime/mock_com_util_shutdown_request_register.cc
 
 # エントリ ポイントの変更

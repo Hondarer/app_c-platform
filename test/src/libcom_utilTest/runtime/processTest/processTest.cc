@@ -125,6 +125,7 @@ static void trim_trailing_newline(char *buf)
     }
 }
 
+// 同期実行が子プロセスの終了コードを返すことの確認
 TEST(ProcessTest, RunSyncReturnsChildExitCode)
 {
     // Arrange
@@ -142,17 +143,22 @@ TEST(ProcessTest, RunSyncReturnsChildExitCode)
     char *argv[] = {arg0, arg1, arg2, NULL};
 
     memset(&options, 0, sizeof(options));
-    options.argv = argv;
+    options.argv = argv; // [状態] - 終了コード 7 で終了するシェル コマンドを子プロセスとする。
     exit_code = 0;
 
+    // Pre-Assert
+
     // Act
-    com_util_process_result_t result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &exit_code);
+    com_util_process_result_t result =
+        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                  &exit_code); // [手順] - com_util_process_run_sync を無期限待機で呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, result);
-    EXPECT_EQ(7, exit_code);
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - 戻り値が OK であること。
+    EXPECT_EQ(7, exit_code);                // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
 }
 
+// 環境変数の上書きが子プロセスから参照できることの確認
 TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
 {
     // Arrange
@@ -177,32 +183,39 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
 
     make_temp_path(path, sizeof(path), "env");
     remove_temp_path(path);
-    handle = open_output_handle(path);
+    handle = open_output_handle(path); // [状態] - 子プロセスの stdout を受けるテンポラリ ファイルを開く。
     ASSERT_EQ(0, is_invalid_output_handle(handle));
 
     memset(&stdout_spec, 0, sizeof(stdout_spec));
     stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
-    stdout_spec.native_handle = handle;
+    stdout_spec.native_handle = handle; // [状態] - stdout をネイティブ ハンドルへリダイレクトする指定とする。
     memset(&options, 0, sizeof(options));
     options.argv = argv;
-    options.env_overrides = env_overrides;
+    options.env_overrides =
+        env_overrides; // [状態] - 環境変数 COM_UTIL_PROCESS_TEST_VALUE を "override-value" に上書きする。
     options.stdout_spec = stdout_spec;
     exit_code = 0;
 
+    // Pre-Assert
+
     // Act
-    com_util_process_result_t result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &exit_code);
+    com_util_process_result_t result =
+        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                  &exit_code); // [手順] - 環境変数を出力する子プロセスを同期実行する。
     close_output_handle(handle);
-    int read_result = read_text_file(output, sizeof(output), path);
+    int read_result =
+        read_text_file(output, sizeof(output), path); // [手順] - リダイレクト先ファイルから子プロセスの出力を読み取る。
     trim_trailing_newline(output);
     remove_temp_path(path);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, result);
-    EXPECT_EQ(0, exit_code);
-    EXPECT_EQ(0, read_result);
-    EXPECT_STREQ("override-value", output);
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - 実行の戻り値が OK であること。
+    EXPECT_EQ(0, exit_code);                // [確認_正常系] - 子プロセスの終了コードが 0 であること。
+    EXPECT_EQ(0, read_result);              // [確認_正常系] - 出力ファイルが読み取れること。
+    EXPECT_STREQ("override-value", output); // [確認_正常系] - 子プロセスの出力が上書き値 "override-value" であること。
 }
 
+// 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
 TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
 {
     // Arrange
@@ -221,39 +234,49 @@ TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
     char *argv[] = {arg0, arg1, arg2, NULL};
 
     memset(&options, 0, sizeof(options));
-    options.argv = argv;
+    options.argv = argv; // [状態] - 2 秒程度実行し続けるシェル コマンドを子プロセスとする。
     process = NULL;
     exit_code = 0;
 
-    // Act / Assert
-    com_util_process_result_t start_result = com_util_process_start(&options, &process);
+    // Pre-Assert
+
+    // Act
+    com_util_process_result_t start_result =
+        com_util_process_start(&options, &process); // [手順] - com_util_process_start で子プロセスを起動する。
     ASSERT_EQ(COM_UTIL_PROCESS_OK, start_result);
     ASSERT_NE(nullptr, process);
 
-    // Act
-    com_util_process_result_t wait_result = com_util_process_wait(process, COM_UTIL_PROCESS_NO_WAIT);
-    com_util_process_result_t terminate_result = com_util_process_terminate(process);
-    com_util_process_result_t final_wait = com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER);
-    com_util_process_result_t exit_result = com_util_process_get_exit_code(process, &exit_code);
+    com_util_process_result_t wait_result =
+        com_util_process_wait(process, COM_UTIL_PROCESS_NO_WAIT); // [手順] - NO_WAIT で待機する。
+    com_util_process_result_t terminate_result =
+        com_util_process_terminate(process); // [手順] - 子プロセスを terminate する。
+    com_util_process_result_t final_wait =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 無期限待機で終了を待つ。
+    com_util_process_result_t exit_result =
+        com_util_process_get_exit_code(process, &exit_code); // [手順] - 終了コードを取得する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_TIMEOUT, wait_result);
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, terminate_result);
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, final_wait);
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, exit_result);
+    EXPECT_EQ(COM_UTIL_PROCESS_TIMEOUT, wait_result); // [確認_正常系] - 実行中の NO_WAIT 待機が TIMEOUT を返すこと。
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, terminate_result); // [確認_正常系] - terminate が OK を返すこと。
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, final_wait);       // [確認_正常系] - terminate 後の待機が OK を返すこと。
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, exit_result);      // [確認_正常系] - 終了コードの取得が OK を返すこと。
 
     com_util_process_destroy(process);
 }
 
+// start が不正引数を検出することの確認
 TEST(ProcessTest, RejectsInvalidArguments)
 {
     // Arrange
-    com_util_process *process = NULL;
+    com_util_process *process = NULL; // [状態] - プロセス ハンドルの受け取り先を NULL で初期化する。
+
+    // Pre-Assert
 
     // Act
-    com_util_process_result_t result = com_util_process_start(NULL, &process);
+    com_util_process_result_t result =
+        com_util_process_start(NULL, &process); // [手順] - options に NULL を渡して com_util_process_start を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_INVALID_ARGUMENT, result);
-    EXPECT_EQ(nullptr, process);
+    EXPECT_EQ(COM_UTIL_PROCESS_INVALID_ARGUMENT, result); // [確認_異常系] - INVALID_ARGUMENT が返ること。
+    EXPECT_EQ(nullptr, process);                          // [確認_異常系] - ハンドルが NULL のままであること。
 }

@@ -62,6 +62,8 @@ TEST_F(argparser_sampleTest, main_reports_parse_error_with_usage)
     const char *argv[] = {"argparser-sample", "--bogus", "in.txt"};
     const int argc = (int)(sizeof(argv) / sizeof(argv[0]));
 
+    // Pre-Assert
+
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - 未知のオプションで main を呼び出す。
 
@@ -75,6 +77,8 @@ TEST_F(argparser_sampleTest, main_reports_missing_required)
     // Arrange
     const char *argv[] = {"argparser-sample"};
     const int argc = (int)(sizeof(argv) / sizeof(argv[0]));
+
+    // Pre-Assert
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - 引数なしで main を呼び出す。
@@ -91,6 +95,8 @@ TEST_F(argparser_sampleTest, main_prints_usage_on_help)
     // Arrange
     const char *argv[] = {"argparser-sample", "--help"};
     const int argc = (int)(sizeof(argv) / sizeof(argv[0]));
+
+    // Pre-Assert
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - --help で main を呼び出す。

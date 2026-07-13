@@ -27,56 +27,87 @@ class consoleTest : public Test
 // com_util_console_init がクラッシュしないことの確認
 TEST_F(consoleTest, test_init_succeeds)
 {
-    // Act & Assert - クラッシュしないことを確認
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
     com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
+
+    // Assert
+    // [確認_正常系] - クラッシュせずに完了すること。
 }
 
 // init 後に dispose_on_shutdown() がクラッシュしないことの確認
 TEST_F(consoleTest, test_dispose_on_shutdown_after_init)
 {
     // Arrange
-    com_util_console_init();
-    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_console_init(); // [状態] - 初期化済みのコンソール ヘルパーとする。
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
+                                     0}; // [状態] - 通常終了イベントを用意する。
 
-    // Act & Assert - クラッシュしないことを確認
-    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 正常終了イベントで dispose_on_shutdown() を呼ぶ。
+    // Pre-Assert
+
+    // Act
+    com_util_console_dispose_on_shutdown(&event,
+                                         NULL); // [手順] - 正常終了イベントで dispose_on_shutdown() を呼び出す。
+
+    // Assert
+    // [確認_正常系] - クラッシュせずに完了すること。
 }
 
 // init なしで dispose_on_shutdown() を呼んでも安全なことの確認
 TEST_F(consoleTest, test_dispose_on_shutdown_without_init)
 {
     // Arrange
-    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
+                                     0}; // [状態] - 通常終了イベントを用意する (init は呼ばない)。
 
-    // Act & Assert - クラッシュしないことを確認
-    com_util_console_dispose_on_shutdown(
-        &event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼ぶ。安全に何もしないこと。
+    // Pre-Assert
+
+    // Act
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼び出す。
+
+    // Assert
+    // [確認_正常系] - 安全に何もせず、クラッシュしないこと。
 }
 
 // dispose_on_shutdown() を 2 回呼んでも安全なことの確認
 TEST_F(consoleTest, test_double_dispose_on_shutdown)
 {
     // Arrange
-    com_util_console_init();
-    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+    com_util_console_init(); // [状態] - 初期化済みのコンソール ヘルパーとする。
+    com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
+                                     0}; // [状態] - 通常終了イベントを用意する。
 
-    // Act & Assert - 2 回呼んでもクラッシュしないことを確認
-    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown()。
-    com_util_console_dispose_on_shutdown(&event,
-                                         NULL); // [手順] - 2 回目の dispose_on_shutdown()。安全に何もしないこと。
+    // Pre-Assert
+
+    // Act
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown() を呼び出す。
+    com_util_console_dispose_on_shutdown(&event, NULL); // [手順] - 続けて 2 回目の dispose_on_shutdown() を呼び出す。
+
+    // Assert
+    // [確認_正常系] - 2 回目は安全に何もせず、クラッシュしないこと。
 }
 
 // init 後に終了中イベントの dispose_on_shutdown() が安全に何もしないことの確認
 TEST_F(consoleTest, test_dispose_on_shutdown_process_terminating)
 {
     // Arrange
-    com_util_console_init();
+    com_util_console_init(); // [状態] - 初期化済みのコンソール ヘルパーとする。
     com_util_shutdown_event terminating_event = {COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING,
-                                                 COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
+                                                 COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
+                                                 0}; // [状態] - プロセス終了中イベントを用意する。
     com_util_shutdown_event normal_event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0};
 
-    // Act & Assert - 終了中イベントでは何もしないこと (クラッシュしないことを確認)
-    com_util_console_dispose_on_shutdown(&terminating_event, NULL); // [手順] - 終了中イベントを模擬。何もしないこと。
+    // Pre-Assert
+
+    // Act
+    com_util_console_dispose_on_shutdown(&terminating_event,
+                                         NULL); // [手順] - 終了中イベントで dispose_on_shutdown() を呼び出す。
+
+    // Assert
+    // [確認_正常系] - 終了中イベントでは何もせず、クラッシュしないこと。
 
     // Cleanup - init 状態を解放する (通常終了イベントで明示的にクリーンアップ)
     com_util_console_dispose_on_shutdown(&normal_event, NULL);
@@ -86,11 +117,16 @@ TEST_F(consoleTest, test_dispose_on_shutdown_process_terminating)
 TEST_F(consoleTest, test_write_after_init)
 {
     // Arrange
-    com_util_console_init();
+    com_util_console_init(); // [状態] - 初期化済みのコンソール ヘルパーとする。
 
-    // Act & Assert - クラッシュしないことを確認
+    // Pre-Assert
+
+    // Act
     printf("consoleTest: stdout\n");          // [手順] - stdout に書き込む。
     fprintf(stderr, "consoleTest: stderr\n"); // [手順] - stderr に書き込む。
+
+    // Assert
+    // [確認_正常系] - クラッシュせずに完了すること。
 }
 
 /* ===== Linux NOP テスト ===== */
@@ -105,41 +141,49 @@ TEST_F(consoleTest, test_write_after_init)
 TEST_F(consoleTest, test_nop_stdout_fd_unchanged)
 {
     // Arrange
-    int fd_before = fileno(stdout); // [手順] - init 前の stdout FD を記録する。
+    int fd_before = fileno(stdout); // [状態] - init 前の stdout FD を記録する。
+
+    // Pre-Assert
 
     // Act
-    com_util_console_init();
+    com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
 
     // Assert
-    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - no-op なので FD が変わっていないこと。
+    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
 
-    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - dispose 後も FD が変わっていないこと。
+    com_util_console_dispose();           // [手順] - no-op の dispose を呼び出す。
+    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - dispose 後も FD が変わらないこと。
 }
 
 // Linux: init 前後で stderr の FD が変わらないことの確認
 TEST_F(consoleTest, test_nop_stderr_fd_unchanged)
 {
     // Arrange
-    int fd_before = fileno(stderr); // [手順] - init 前の stderr FD を記録する。
+    int fd_before = fileno(stderr); // [状態] - init 前の stderr FD を記録する。
+
+    // Pre-Assert
 
     // Act
-    com_util_console_init();
+    com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
 
     // Assert
-    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - no-op なので FD が変わっていないこと。
+    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
 
-    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - dispose 後も FD が変わっていないこと。
+    com_util_console_dispose();           // [手順] - no-op の dispose を呼び出す。
+    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - dispose 後も FD が変わらないこと。
 }
 
 // Linux: dispose を呼んでも stdout の FD が変わらないことの確認
 TEST_F(consoleTest, test_nop_dispose_stdout_fd_unchanged)
 {
     // Arrange
-    int fd_before = fileno(stdout); // [手順] - init 前の stdout FD を記録する。
-    com_util_console_init();
+    int fd_before = fileno(stdout); // [状態] - init 前の stdout FD を記録する。
+    com_util_console_init();        // [状態] - 初期化済みのコンソール ヘルパーとする。
+
+    // Pre-Assert
 
     // Act
-    com_util_console_dispose(); // [手順] - no-op の dispose を呼ぶ。
+    com_util_console_dispose(); // [手順] - no-op の dispose を呼び出す。
 
     // Assert
     EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - dispose を呼んでも FD が変わらないこと。

@@ -283,17 +283,21 @@ TEST_F(clockTest, realtime_utc_zeroes_tm_when_com_util_gmtime_fails)
     EXPECT_EQ(expected_nsec, actual_nsec);     // [確認_異常系] - ナノ秒部は取得済みの値 246800000 を保持すること。
 }
 
+// ローカル時刻の ISO 8601 文字列に UTC オフセットとミリ秒が出力されることの確認
 TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
 {
-    const com_util_timespec timestamp = {1712297228LL, 246800000LL};
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL,
+                                         246800000LL}; // [状態] - 変換対象を {1712297228, 246800000} とする。
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     struct tm local_tm;
     struct tm utc_tm;
     Mock_com_util mock_com_util;
 
-    set_tm(&local_tm, 2024, 4, 5, 15, 7, 8);
-    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+    set_tm(&local_tm, 2024, 4, 5, 15, 7, 8); // [状態] - ローカル時刻を 2024-04-05 15:07:08 とする。
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);    // [状態] - UTC を 2024-04-05 06:07:08 (オフセット +09:00 相当) とする。
 
+    // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
         .WillOnce(
             [&](struct tm *tm_value, const time_t *timep)
@@ -301,7 +305,8 @@ TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
                 EXPECT_EQ(timestamp.tv_sec, *timep);
                 *tm_value = local_tm;
                 return 0;
-            });
+            }); // [Pre-Assert確認_正常系] - com_util_localtime が対象秒で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_localtime からローカル時刻の分解値を返却する。
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
         .WillOnce(
             [&](struct tm *tm_value, const time_t *timep)
@@ -309,49 +314,73 @@ TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
                 EXPECT_EQ(timestamp.tv_sec, *timep);
                 *tm_value = utc_tm;
                 return 0;
-            });
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が対象秒で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から UTC の分解値を返却する。
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &timestamp));
-    EXPECT_STREQ("2024-04-05T15:07:08.246+09:00", actual);
+    // Act
+    // Assert
+    EXPECT_EQ(0,
+              com_util_format_realtime_iso8601_local(
+                  actual, sizeof(actual), &timestamp)); // [手順] - com_util_format_realtime_iso8601_local を呼び出す。
+                                                        // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_STREQ("2024-04-05T15:07:08.246+09:00",
+                 actual); // [確認_正常系] - オフセット +09:00 とミリ秒 246 を含む文字列になること。
 }
 
+// 負の UTC オフセットが正しく出力されることの確認
 TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
 {
-    const com_util_timespec timestamp = {1712297228LL, 135000000LL};
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL,
+                                         135000000LL}; // [状態] - 変換対象を {1712297228, 135000000} とする。
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     struct tm local_tm;
     struct tm utc_tm;
     Mock_com_util mock_com_util;
 
-    set_tm(&local_tm, 2024, 4, 5, 0, 37, 8);
-    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+    set_tm(&local_tm, 2024, 4, 5, 0, 37, 8); // [状態] - ローカル時刻を 2024-04-05 00:37:08 とする。
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);    // [状態] - UTC を 2024-04-05 06:07:08 (オフセット -05:30 相当) とする。
 
+    // Pre-Assert
+    // [Pre-Assert手順] - com_util_localtime と com_util_gmtime からそれぞれの分解値を返却する。
     EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = local_tm;
-            return 0;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = local_tm;
+                return 0;
+            });
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
-        .WillOnce([&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = utc_tm;
-            return 0;
-        });
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = utc_tm;
+                return 0;
+            });
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &timestamp));
-    EXPECT_STREQ("2024-04-05T00:37:08.135-05:30", actual);
+    // Act
+    // Assert
+    EXPECT_EQ(0,
+              com_util_format_realtime_iso8601_local(
+                  actual, sizeof(actual), &timestamp)); // [手順] - com_util_format_realtime_iso8601_local を呼び出す。
+                                                        // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_STREQ("2024-04-05T00:37:08.135-05:30",
+                 actual); // [確認_正常系] - 負のオフセット -05:30 を含む文字列になること。
 }
 
+// UTC の ISO 8601 文字列に "Z" サフィックスが出力されることの確認
 TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
 {
-    const com_util_timespec timestamp = {1712297228LL, 987000000LL};
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL,
+                                         987000000LL}; // [状態] - 変換対象を {1712297228, 987000000} とする。
     char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
     struct tm utc_tm;
     Mock_com_util mock_com_util;
 
-    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8); // [状態] - UTC を 2024-04-05 06:07:08 とする。
 
+    // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
         .WillOnce(
             [&](struct tm *tm_value, const time_t *timep)
@@ -359,27 +388,48 @@ TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
                 EXPECT_EQ(timestamp.tv_sec, *timep);
                 *tm_value = utc_tm;
                 return 0;
-            });
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が対象秒で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から UTC の分解値を返却する。
 
-    EXPECT_EQ(0, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), &timestamp));
-    EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual);
+    // Act
+    // Assert
+    EXPECT_EQ(0, com_util_format_realtime_iso8601_utc(
+                     actual, sizeof(actual), &timestamp)); // [手順] - com_util_format_realtime_iso8601_utc を呼び出す。
+                                                           // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual); // [確認_正常系] - "Z" サフィックス付きの UTC 文字列になること。
 }
 
+// nsec が不正な場合に -1 を返しゼロ埋め文字列へフォールバックすることの確認
 TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
 {
-    const com_util_timespec invalid_timestamp = {0, 1000000000LL};
+    // Arrange
+    const com_util_timespec invalid_timestamp = {
+        0, 1000000000LL}; // [状態] - nsec が 10 億の不正なタイムスタンプを用意する。
     char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
 
-    EXPECT_EQ(-1, com_util_format_realtime_iso8601_local(actual, sizeof(actual), &invalid_timestamp));
-    EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual);
+    // Pre-Assert
+
+    // Act
+    // Assert
+    EXPECT_EQ(
+        -1,
+        com_util_format_realtime_iso8601_local(
+            actual, sizeof(actual),
+            &invalid_timestamp)); // [手順] - 不正なタイムスタンプで com_util_format_realtime_iso8601_local を呼び出す。
+                                  // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
+// gmtime が失敗した場合に -1 を返しゼロ埋め文字列へフォールバックすることの確認
 TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
 {
-    const com_util_timespec timestamp = {1712297228LL, 123000000LL};
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL,
+                                         123000000LL}; // [状態] - 変換対象を {1712297228, 123000000} とする。
     char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
     Mock_com_util mock_com_util;
 
+    // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
         .WillOnce(
             [&](struct tm *tm_value, const time_t *timep)
@@ -387,10 +437,16 @@ TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
                 EXPECT_EQ(timestamp.tv_sec, *timep);
                 EXPECT_NE((struct tm *)NULL, tm_value);
                 return -1;
-            });
+            }); // [Pre-Assert確認_異常系] - com_util_gmtime が対象秒で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から -1 を返却する。
 
-    EXPECT_EQ(-1, com_util_format_realtime_iso8601_utc(actual, sizeof(actual), &timestamp));
-    EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual);
+    // Act
+    // Assert
+    EXPECT_EQ(-1,
+              com_util_format_realtime_iso8601_utc(
+                  actual, sizeof(actual), &timestamp)); // [手順] - com_util_format_realtime_iso8601_utc を呼び出す。
+                                                        // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual);   // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
 // 実時刻 deadline 計算でナノ秒 overflow がない場合にそのまま加算されることの確認

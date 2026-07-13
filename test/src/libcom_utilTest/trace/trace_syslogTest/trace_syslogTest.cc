@@ -18,20 +18,34 @@ class trace_syslogTest : public Test
 // プロバイダーを初期化し、有効なハンドルが返されることの確認
 TEST_F(trace_syslogTest, test_init_and_dispose)
 {
-    com_util_syslog_sink *handle =
-        com_util_syslog_sink_create("syslog_test", LOG_USER); // [手順] - syslog sink を初期化する。
-    EXPECT_NE((com_util_syslog_sink *)NULL, handle);          // [確認_正常系] - ハンドルが NULL でないこと。
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    com_util_syslog_sink *handle = com_util_syslog_sink_create(
+        "syslog_test", LOG_USER); // [手順] - ident "syslog_test"、facility LOG_USER で syslog sink を初期化する。
+
+    // Assert
+    EXPECT_NE((com_util_syslog_sink *)NULL, handle); // [確認_正常系] - ハンドルが NULL でないこと。
     com_util_syslog_sink_dispose(handle);
 }
 
 // INFO レベルでメッセージを書き込み、戻り値が 0 であることの確認
 TEST_F(trace_syslogTest, test_write_returns_zero)
 {
-    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    // Arrange
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
     ASSERT_NE((com_util_syslog_sink *)NULL, handle);
 
-    int result = com_util_syslog_sink_write(handle, LOG_INFO, NULL, "test message"); // [手順] - INFO レベルで書き込む。
+    // Pre-Assert
 
+    // Act
+    int result = com_util_syslog_sink_write(handle, LOG_INFO, NULL,
+                                            "test message"); // [手順] - LOG_INFO レベルで "test message" を書き込む。
+
+    // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 戻り値が 0 であること。
     com_util_syslog_sink_dispose(handle);
 }
@@ -39,9 +53,16 @@ TEST_F(trace_syslogTest, test_write_returns_zero)
 // 全レベルで書き込みが成功することの確認
 TEST_F(trace_syslogTest, test_write_all_levels)
 {
-    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    // Arrange
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
     ASSERT_NE((com_util_syslog_sink *)NULL, handle);
 
+    // Pre-Assert
+
+    // Act
+
+    // Assert
     EXPECT_EQ(0, com_util_syslog_sink_write(handle, LOG_CRIT, NULL,
                                             "critical")); // [確認_正常系] - CRIT レベルで書き込めること。
     EXPECT_EQ(
@@ -59,6 +80,7 @@ TEST_F(trace_syslogTest, test_write_all_levels)
 // SYSLOG_TEST_FD 経路ではタイムスタンプ付き 1 行が書き込まれることの確認
 TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
 {
+    // Arrange
     int pipe_fds[2];
     char fd_text[32];
     char actual[256];
@@ -66,30 +88,48 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
     ssize_t nread;
     const char *saved_tz = getenv("TZ");
     const char *saved_fd = getenv("SYSLOG_TEST_FD");
-    std::string saved_tz_value = saved_tz != NULL ? saved_tz : "";
-    std::string saved_fd_value = saved_fd != NULL ? saved_fd : "";
-    com_util_timespec timestamp = {1412916640LL, 0};
+    std::string saved_tz_value;
+    std::string saved_fd_value;
+    if (saved_tz != NULL)
+    {
+        saved_tz_value = saved_tz;
+    }
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    com_util_timespec timestamp = {
+        1412916640LL, 0}; // [状態] - 明示タイムスタンプを 2014-10-10T13:50:40+09:00 相当の {1412916640, 0} とする。
 
     ASSERT_EQ(0, pipe(pipe_fds));
-    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1));
+    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイムゾーンを Asia/Tokyo に設定する。
     tzset();
     snprintf(fd_text, sizeof(fd_text), "%d", pipe_fds[1]);
-    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text, 1));
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text,
+                        1)); // [状態] - SYSLOG_TEST_FD に pipe の書き込み側を設定し、出力を横取りする。
 
-    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
     ASSERT_NE((com_util_syslog_sink *)NULL, handle);
 
-    EXPECT_EQ(0, com_util_syslog_sink_write(handle, LOG_INFO, &timestamp, "test message"));
+    // Pre-Assert
+
+    // Act
+    // Assert
+    EXPECT_EQ(
+        0, com_util_syslog_sink_write(handle, LOG_INFO, &timestamp,
+                                      "test message")); // [手順] - 明示タイムスタンプ付きで "test message" を書き込む。
+                                                        // [確認_正常系] - 戻り値が 0 であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
-    nread = read(pipe_fds[0], actual, sizeof(actual) - 1);
+    nread = read(pipe_fds[0], actual, sizeof(actual) - 1); // [手順] - pipe から書き込まれた 1 行を読み取る。
     ASSERT_GT(nread, 0);
     actual[nread] = '\0';
 
     snprintf(expected, sizeof(expected), "2014-10-10T13:50:40.000+09:00 <14>syslog_test[%d]: test message\n",
              (int)getpid());
-    EXPECT_STREQ(expected, actual);
+    EXPECT_STREQ(expected, actual); // [確認_正常系] - ISO 8601 タイムスタンプ付きの 1 行が書き込まれていること。
 
     com_util_syslog_sink_dispose(handle);
     close(pipe_fds[0]);
@@ -115,6 +155,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
 // 不正な明示タイムスタンプ指定時に現在時刻へ代替して出力しつつ -1 を返すことの確認
 TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_timestamp)
 {
+    // Arrange
     int pipe_fds[2];
     char fd_text[32];
     char actual[256];
@@ -122,30 +163,48 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
     ssize_t nread;
     const char *saved_tz = getenv("TZ");
     const char *saved_fd = getenv("SYSLOG_TEST_FD");
-    std::string saved_tz_value = saved_tz != NULL ? saved_tz : "";
-    std::string saved_fd_value = saved_fd != NULL ? saved_fd : "";
-    com_util_timespec invalid_timestamp = {1714100645LL, 1000000000};
+    std::string saved_tz_value;
+    std::string saved_fd_value;
+    if (saved_tz != NULL)
+    {
+        saved_tz_value = saved_tz;
+    }
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    com_util_timespec invalid_timestamp = {1714100645LL,
+                                           1000000000}; // [状態] - nsec が 10 億の不正な明示タイムスタンプを用意する。
 
     ASSERT_EQ(0, pipe(pipe_fds));
-    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1));
+    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイムゾーンを Asia/Tokyo に設定する。
     tzset();
     snprintf(fd_text, sizeof(fd_text), "%d", pipe_fds[1]);
-    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text, 1));
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text,
+                        1)); // [状態] - SYSLOG_TEST_FD に pipe の書き込み側を設定し、出力を横取りする。
 
-    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
     ASSERT_NE((com_util_syslog_sink *)NULL, handle);
 
-    EXPECT_EQ(-1, com_util_syslog_sink_write(handle, LOG_INFO, &invalid_timestamp, "invalid ts"));
+    // Pre-Assert
+
+    // Act
+    // Assert
+    EXPECT_EQ(-1, com_util_syslog_sink_write(
+                      handle, LOG_INFO, &invalid_timestamp,
+                      "invalid ts")); // [手順] - 不正な明示タイムスタンプ付きで "invalid ts" を書き込む。
+                                      // [確認_異常系] - 戻り値が -1 であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
-    nread = read(pipe_fds[0], actual, sizeof(actual) - 1);
+    nread = read(pipe_fds[0], actual, sizeof(actual) - 1); // [手順] - pipe から書き込まれた 1 行を読み取る。
     ASSERT_GT(nread, 0);
     actual[nread] = '\0';
 
     snprintf(expected, sizeof(expected), "<14>syslog_test[%d]: invalid ts\n", (int)getpid());
     EXPECT_NE(std::string::npos, std::string(actual).find(expected)); // [確認_異常系] - syslog 本文が出力されること。
-    EXPECT_NE('<', actual[0]); // [確認_異常系] - 先頭にタイムスタンプが付与されること。
+    EXPECT_NE('<', actual[0]); // [確認_異常系] - 先頭に現在時刻のタイムスタンプが付与されること。
 
     com_util_syslog_sink_dispose(handle);
     close(pipe_fds[0]);
@@ -171,8 +230,15 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
 // NULL 引数が安全に無視されることの確認
 TEST_F(trace_syslogTest, test_null_arguments_are_safe)
 {
-    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslog_test", LOG_USER);
+    // Arrange
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
 
+    // Pre-Assert
+
+    // Act
+
+    // Assert
     EXPECT_EQ((com_util_syslog_sink *)NULL,
               com_util_syslog_sink_create(NULL, LOG_USER)); // [確認_異常系] - NULL ident で create が失敗すること。
     EXPECT_EQ(0, com_util_syslog_sink_write(NULL, LOG_INFO, NULL,
@@ -181,7 +247,7 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
         0, com_util_syslog_sink_write(handle, LOG_INFO, NULL, NULL)); // [確認_異常系] - NULL message が安全であること。
 
     com_util_syslog_sink_dispose(handle);
-    com_util_syslog_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼ぶ。
+    com_util_syslog_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
 }
 
 #elif defined(PLATFORM_WINDOWS)

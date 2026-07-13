@@ -131,6 +131,10 @@ class trace_fileTest : public Test
 // NULL path では create が失敗することの確認
 TEST_F(trace_fileTest, test_create_returns_null_for_null_path)
 {
+    // Arrange
+
+    // Pre-Assert
+
     // Act
     com_util_trace_file_sink *handle =
         com_util_trace_file_sink_create(NULL, 0, 0, 0); // [手順] - NULL path で create を呼ぶ。
@@ -142,6 +146,8 @@ TEST_F(trace_fileTest, test_create_returns_null_for_null_path)
 // create が既定 open flags でファイルを開くことの確認
 TEST_F(trace_fileTest, test_create_opens_file_with_default_flags)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 既定 open flags でファイルを開くこと。
@@ -168,6 +174,8 @@ TEST_F(trace_fileTest, test_create_opens_file_with_default_flags)
 // create のファイル オープンが初回失敗後にリトライされることの確認
 TEST_F(trace_fileTest, test_create_retries_file_open_after_initial_failure)
 {
+    // Arrange
+
     // Pre-Assert
     InSequence seq;
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
@@ -199,6 +207,8 @@ TEST_F(trace_fileTest, test_create_retries_file_open_after_initial_failure)
 // create のファイル オープンがリトライ上限まで失敗した場合に NULL を返すことの確認
 TEST_F(trace_fileTest, test_create_returns_null_after_file_open_retry_exhausted)
 {
+    // Arrange
+
     // Pre-Assert
     InSequence seq;
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
@@ -300,6 +310,8 @@ TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock
                 return 0;
             }); // [Pre-Assert確認_正常系] - 明示タイムスタンプがそのまま書式化されること。
 
+    // Pre-Assert
+
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
                                                 "explicit hello"); // [手順] - 明示タイムスタンプ付きで書き込む。
@@ -352,6 +364,8 @@ TEST_F(trace_fileTest, test_write_falls_back_from_invalid_explicit_timestamp)
                 return 0;
             }); // [Pre-Assert確認_異常系] - 代替時刻で低レベル書き込みを行うこと。
 
+    // Pre-Assert
+
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
                                                 "invalid"); // [手順] - 不正タイムスタンプで書き込む。
@@ -393,6 +407,8 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create("trace.log", 1, 2, 0);
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
 
+    // Pre-Assert
+
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                                 "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
@@ -407,13 +423,22 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
 // dispose が NULL ハンドルでも安全であることの確認
 TEST_F(trace_fileTest, test_dispose_with_null_handle_is_safe)
 {
-    // Act & Assert
-    com_util_trace_file_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼ぶ。
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    com_util_trace_file_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
+
+    // Assert
+    // [確認_正常系] - クラッシュせずに完了すること。
 }
 
 // パスに区切り文字が含まれる場合に makedirs が親ディレクトリ パスで呼ばれることの確認
 TEST_F(trace_fileTest, test_create_calls_makedirs_for_path_with_separator)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_makedirs(StrEq("sub")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 親ディレクトリ "sub" で makedirs が呼ばれること。
@@ -436,6 +461,8 @@ TEST_F(trace_fileTest, test_create_calls_makedirs_for_path_with_separator)
 // Windows スタイル区切りのパスでも makedirs が親ディレクトリ パスで呼ばれることの確認
 TEST_F(trace_fileTest, test_create_normalizes_windows_separator_for_parent_directory)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_makedirs(StrEq("sub/dir")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 正規化した親ディレクトリで makedirs が呼ばれること。
@@ -457,6 +484,8 @@ TEST_F(trace_fileTest, test_create_normalizes_windows_separator_for_parent_direc
 // 単一プロセス モード (flags 0) ではプロセス間ロックも同一性チェックも使わないことの確認
 TEST_F(trace_fileTest, test_single_mode_does_not_use_interprocess_lock_or_identity_check)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_interprocess_lock_open(_, _))
         .Times(0); // [Pre-Assert確認_正常系] - ロック ファイルが開かれないこと。
@@ -482,6 +511,8 @@ TEST_F(trace_fileTest, test_single_mode_does_not_use_interprocess_lock_or_identi
 // 共有モードの create がロック ファイルを開き、共有書き込みフラグでファイルを開くことの確認
 TEST_F(trace_fileTest, test_create_shared_opens_lock_file)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有書き込みフラグでファイルが開かれること。
@@ -505,6 +536,8 @@ TEST_F(trace_fileTest, test_create_shared_opens_lock_file)
 // 共有モードでプロセス間ロックのオープンに失敗した場合に create が NULL を返すことの確認
 TEST_F(trace_fileTest, test_create_shared_returns_null_when_lock_open_fails)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_interprocess_lock_open(StrEq("trace.log.lock"), _))
         .WillOnce(Return(COM_UTIL_SYNC_SYSTEM_ERROR)); // [Pre-Assert確認_異常系] - ロックのオープンが失敗すること。
@@ -522,6 +555,10 @@ TEST_F(trace_fileTest, test_create_shared_returns_null_when_lock_open_fails)
 // 負の flags では create が NULL を返すことの確認
 TEST_F(trace_fileTest, test_create_returns_null_for_negative_flags)
 {
+    // Arrange
+
+    // Pre-Assert
+
     // Act
     com_util_trace_file_sink *handle =
         com_util_trace_file_sink_create("trace.log", 0, 0, -1); // [手順] - 負の flags で create を呼ぶ。
@@ -668,6 +705,8 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
         com_util_trace_file_sink_create("trace.log", 1, 2, COM_UTIL_TRACE_FILE_SINK_SHARED);
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
 
+    // Pre-Assert
+
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                                 "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
@@ -769,6 +808,8 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_on_lock_timeout)
 // 同一プロセス内で同一パスの create が同一ハンドルを共有することの確認 (プロセス内調停)
 TEST_F(trace_fileTest, test_create_same_path_shares_handle_in_single_process)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ファイル オープンは 1 回だけ行われること。
@@ -827,6 +868,8 @@ TEST_F(trace_fileTest, test_create_same_path_with_mismatched_shared_flag_returns
     com_util_trace_file_sink *first = com_util_trace_file_sink_create("trace.log", 0, 0, 0);
     ASSERT_NE((com_util_trace_file_sink *)NULL, first); // [状態] - 占有モードの sink が存在する。
 
+    // Pre-Assert
+
     // Act
     com_util_trace_file_sink *second = com_util_trace_file_sink_create(
         "trace.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 同一パスを共有モードで create する。
@@ -841,6 +884,8 @@ TEST_F(trace_fileTest, test_create_same_path_with_mismatched_shared_flag_returns
 // 異なるパスの create は独立したハンドルを生成することの確認
 TEST_F(trace_fileTest, test_create_different_paths_returns_distinct_handles)
 {
+    // Arrange
+
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("first.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 1 つ目のパスでファイルを開くこと。
