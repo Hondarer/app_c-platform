@@ -41,7 +41,7 @@ TEST_F(makedirsTest, test_null_path_returns_minus_one)
     int ret = com_util_makedirs(NULL); // [手順] - パスに NULL を渡して com_util_makedirs を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_makedirs の戻り値が -1 であること。
 }
 
 // 空文字列パスは -1 を返すことの確認
@@ -55,7 +55,7 @@ TEST_F(makedirsTest, test_empty_path_returns_minus_one)
     int ret = com_util_makedirs(""); // [手順] - 空文字列パスで com_util_makedirs を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_makedirs の戻り値が -1 であること。
 }
 
 // 単一階層ディレクトリの新規作成と冪等性の確認
@@ -77,11 +77,12 @@ TEST_F(makedirsTest, test_single_level_creates_directory)
     // Act
     // Assert
     int ret = com_util_makedirs(dir);      // [手順] - 存在しない単一階層ディレクトリを com_util_makedirs で作成する。
-    EXPECT_EQ(0, ret);                     // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);                     // [確認_正常系] - com_util_makedirs の戻り値が 0 であること。
     EXPECT_EQ(0, com_util_stat(&st, dir)); // [確認_正常系] - ディレクトリが存在すること。
 
     int ret2 = com_util_makedirs(dir); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
-    EXPECT_EQ(0, ret2);                // [確認_正常系] - 既存ディレクトリでも 0 が返ること (冪等)。
+    EXPECT_EQ(0,
+              ret2); // [確認_正常系] - 既存ディレクトリに対する com_util_makedirs の戻り値が 0 であり、冪等であること。
 
     // Cleanup
     remove_dir(dir);
@@ -110,7 +111,7 @@ TEST_F(makedirsTest, test_nested_levels_creates_all_directories)
         com_util_makedirs(nested); // [手順] - 中間ディレクトリが欠けた 2 階層パスを com_util_makedirs で作成する。
 
     // Assert
-    EXPECT_EQ(0, ret);                        // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);                        // [確認_正常系] - com_util_makedirs の戻り値が 0 であること。
     EXPECT_EQ(0, com_util_stat(&st, nested)); // [確認_正常系] - リーフ ディレクトリが存在すること。
 
     // Cleanup
@@ -142,12 +143,13 @@ TEST_F(makedirsTest, test_windows_separator_path_creates_directory)
     // Assert
     int ret = com_util_makedirs(
         windows_path.c_str()); // [手順] - Windows スタイル区切りの 2 階層パスを com_util_makedirs で作成する。
-    EXPECT_EQ(0, ret);         // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);         // [確認_正常系] - com_util_makedirs の戻り値が 0 であること。
     EXPECT_EQ(0, com_util_stat(&st, nested)); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
 
     int ret2 =
         com_util_makedirs(windows_path.c_str()); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
-    EXPECT_EQ(0, ret2);                          // [確認_正常系] - 既存ディレクトリでも 0 が返ること (冪等)。
+    EXPECT_EQ(0,
+              ret2); // [確認_正常系] - 既存ディレクトリに対する com_util_makedirs の戻り値が 0 であり、冪等であること。
 
     // Cleanup
     remove_dir(root);

@@ -64,8 +64,12 @@ TEST(SyncLocalLockTest, TryLockReportsBusyWhenAlreadyLocked)
         com_util_local_lock_try_lock(lock); // [手順] - ロック保持中に try_lock を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result); // [確認_正常系] - local lock 作成が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 1 回目のロック取得が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_local_lock_create の戻り値から、local lock 作成が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        first_lock); // [確認_正常系] - com_util_local_lock_lock の戻り値から、1 回目のロック取得が成功したと判断できること。
     EXPECT_TRUE(
         second_try == COM_UTIL_SYNC_BUSY ||
         second_try ==
@@ -91,8 +95,12 @@ TEST(SyncLocalRwlockTest, SharedLocksCanCoexist)
         com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 2 つ目の共有ロックを取得する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result); // [確認_正常系] - rwlock 作成が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 1 つ目の共有ロック取得が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_local_rwlock_create の戻り値から、rwlock 作成が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        first_lock); // [確認_正常系] - com_util_local_rwlock_lock_shared の戻り値から、1 つ目の共有ロック取得が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, second_lock);   // [確認_正常系] - 共有ロック同士が同時取得できること。
 
     (void)com_util_local_rwlock_unlock_shared(rwlock);
@@ -116,8 +124,12 @@ TEST(SyncLocalRwlockTest, ExclusiveLockBlocksSharedTryLock)
         com_util_local_rwlock_try_lock_shared(rwlock); // [手順] - 排他ロック中に共有ロック取得を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);  // [確認_正常系] - rwlock 作成が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, exclusive_lock); // [確認_正常系] - 排他ロック取得が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_local_rwlock_create の戻り値から、rwlock 作成が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        exclusive_lock); // [確認_正常系] - com_util_local_rwlock_lock_exclusive の戻り値から、排他ロック取得が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, shared_try);   // [確認_正常系] - 排他ロック中の共有 try lock が BUSY を返すこと。
 
     (void)com_util_local_rwlock_unlock_exclusive(rwlock);
@@ -142,8 +154,12 @@ TEST(SyncLocalRwlockTest, WaitingWriterPreventsNewReader)
         com_util_local_rwlock_try_lock_shared(rwlock); // [手順] - writer 待機後に新規 reader を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);   // [確認_正常系] - rwlock 作成が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, shared_lock);     // [確認_正常系] - 先行 reader 取得が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_local_rwlock_create の戻り値から、rwlock 作成が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        shared_lock); // [確認_正常系] - com_util_local_rwlock_lock_shared の戻り値から、先行 reader 取得が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_TIMEOUT, writer_try); // [確認_正常系] - writer が reader 解放待ちでタイムアウトすること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, second_reader);   // [確認_正常系] - タイムアウトした writer は待機数に残らないこと。
 
@@ -179,8 +195,12 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
         com_util_interprocess_lock_try_lock(restored); // [手順] - 復元ハンドルで try_lock を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);   // [確認_正常系] - interprocess lock open が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result); // [確認_正常系] - descriptor 出力が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        open_result); // [確認_正常系] - com_util_interprocess_lock_open の戻り値から、interprocess lock open が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        export_result); // [確認_正常系] - com_util_interprocess_lock_export_descriptor の戻り値から、descriptor 出力が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, import_result); // [確認_正常系] - descriptor から復元できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 元ハンドルでロックを取得できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, second_try);  // [確認_正常系] - 復元ハンドルが同じロック インスタンスを参照すること。
@@ -214,8 +234,12 @@ TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
         descriptor, descriptor_size, &lock); // [手順] - rwlock の descriptor を lock として import する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, open_result);   // [確認_正常系] - interprocess rwlock open が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result); // [確認_正常系] - descriptor 出力が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        open_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        export_result); // [確認_正常系] - com_util_interprocess_rwlock_export_descriptor の戻り値から、descriptor 出力が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_CORRUPT_DESCRIPTOR,
               import_result); // [確認_異常系] - 種別違いの import が CORRUPT_DESCRIPTOR になること。
     EXPECT_EQ(NULL, lock);    // [確認_異常系] - ハンドルが生成されないこと。
@@ -251,8 +275,12 @@ TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
         com_util_interprocess_rwlock_try_lock_shared(restored); // [手順] - 復元ハンドルで共有ロック取得を試行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);  // [確認_正常系] - interprocess rwlock open が成功すること。
-    EXPECT_EQ(COM_UTIL_SYNC_OK, export_result);  // [確認_正常系] - descriptor 出力が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        export_result); // [確認_正常系] - com_util_interprocess_rwlock_export_descriptor の戻り値から、descriptor 出力が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, import_result);  // [確認_正常系] - descriptor から復元できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, exclusive_lock); // [確認_正常系] - 元ハンドルで排他ロックを取得できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, shared_try);   // [確認_正常系] - 復元ハンドルが同じ排他インスタンスを参照すること。
@@ -282,7 +310,9 @@ TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
         lock, NULL, &descriptor_size); // [手順] - NULL バッファーで必要サイズを問い合わせる。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result); // [確認_正常系] - interprocess rwlock open が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUFFER_TOO_SMALL, export_result); // [確認_正常系] - バッファー不足が通知されること。
     EXPECT_GT(descriptor_size, 20U);                          // [確認_正常系] - descriptor に必要なサイズが返ること。
 
@@ -328,8 +358,12 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
     pid_t child = fork(); // [手順] - fork した子プロセスから同じ lock file を開き try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result); // [確認_正常系] - interprocess lock open が成功すること。
-    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result); // [確認_正常系] - 親プロセスのロック取得が成功すること。
+    ASSERT_EQ(
+        COM_UTIL_SYNC_OK,
+        open_result); // [確認_正常系] - com_util_interprocess_lock_open の戻り値から、interprocess lock open が成功したと判断できること。
+    ASSERT_EQ(
+        COM_UTIL_SYNC_OK,
+        lock_result); // [確認_正常系] - com_util_interprocess_lock_lock の戻り値から、親プロセスのロック取得が成功したと判断できること。
     ASSERT_GE(child, 0);
     if (child == 0)
     {
@@ -375,8 +409,12 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
     pid_t child = fork();             // [手順] - fork した子プロセスから同じ lock file を開き共有 try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_SYNC_OK, open_result); // [確認_正常系] - interprocess rwlock open が成功すること。
-    ASSERT_EQ(COM_UTIL_SYNC_OK, lock_result); // [確認_正常系] - 親プロセスの排他ロック取得が成功すること。
+    ASSERT_EQ(
+        COM_UTIL_SYNC_OK,
+        open_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
+    ASSERT_EQ(
+        COM_UTIL_SYNC_OK,
+        lock_result); // [確認_正常系] - com_util_interprocess_rwlock_lock_exclusive の戻り値から、親プロセスの排他ロック取得が成功したと判断できること。
     ASSERT_GE(child, 0);
     if (child == 0)
     {
@@ -468,7 +506,9 @@ TEST(SyncLocalLockTest, NegativeTimeoutReturnsInvalidArgument)
         com_util_local_lock_lock(lock, -1); // [手順] - 負のタイムアウト -1 を指定してロックする。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_SYNC_OK, create_result);             // [確認_正常系] - local lock 作成が成功すること。
+    EXPECT_EQ(
+        COM_UTIL_SYNC_OK,
+        create_result); // [確認_正常系] - com_util_local_lock_create の戻り値から、local lock 作成が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_INVALID_ARGUMENT, lock_result); // [確認_異常系] - 負値で INVALID_ARGUMENT を返すこと。
 
     com_util_local_lock_destroy(lock);

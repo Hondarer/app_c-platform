@@ -19,7 +19,7 @@ TEST_F(crt_stringTest, strcpy_success)
     int ret = com_util_strcpy(buf, sizeof(buf), "abc"); // [手順] - "abc" を指定して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);        // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);        // [確認_正常系] - com_util_strcpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - バッファーに "abc" がコピーされること。
 }
 
@@ -35,7 +35,7 @@ TEST_F(crt_stringTest, strcpy_null_argument)
     int ret = com_util_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(EINVAL, ret); // [確認_異常系] - 戻り値が EINVAL であること。
+    EXPECT_EQ(EINVAL, ret); // [確認_異常系] - com_util_strcpy の戻り値が EINVAL であること。
 }
 
 // バッファー不足の場合に ERANGE を返しバッファーが空になることの確認
@@ -51,7 +51,7 @@ TEST_F(crt_stringTest, strcpy_buffer_shortage)
         com_util_strcpy(buf, sizeof(buf), "abcd"); // [手順] - 4 文字の "abcd" を指定して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(ERANGE, ret); // [確認_異常系] - 戻り値が ERANGE であること。
+    EXPECT_EQ(ERANGE, ret); // [確認_異常系] - com_util_strcpy の戻り値が ERANGE であること。
     EXPECT_STREQ("", buf);  // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
@@ -68,7 +68,7 @@ TEST_F(crt_stringTest, strncpy_truncates_to_count)
                                3); // [手順] - "abcdef" と count=3 を指定して com_util_strncpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);        // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);        // [確認_正常系] - com_util_strncpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - 先頭 3 文字 "abc" だけがコピーされること。
 }
 
@@ -84,7 +84,7 @@ TEST_F(crt_stringTest, strcat_success)
     int ret = com_util_strcat(buf, sizeof(buf), "def"); // [手順] - "def" を指定して com_util_strcat を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);           // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);           // [確認_正常系] - com_util_strcat の戻り値が 0 であること。
     EXPECT_STREQ("abcdef", buf); // [確認_正常系] - バッファーが "abcdef" になること。
 }
 

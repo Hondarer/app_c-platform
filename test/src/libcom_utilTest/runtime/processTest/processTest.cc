@@ -154,7 +154,8 @@ TEST(ProcessTest, RunSyncReturnsChildExitCode)
                                   &exit_code); // [手順] - com_util_process_run_sync を無期限待機で呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - 戻り値が OK であること。
+    EXPECT_EQ(COM_UTIL_PROCESS_OK,
+              result); // [確認_正常系] - com_util_process_run_sync の戻り値が COM_UTIL_PROCESS_OK であること。
     EXPECT_EQ(7, exit_code);                // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
 }
 
@@ -209,7 +210,7 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
     remove_temp_path(path);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - 実行の戻り値が OK であること。
+    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
     EXPECT_EQ(0, exit_code);                // [確認_正常系] - 子プロセスの終了コードが 0 であること。
     EXPECT_EQ(0, read_result);              // [確認_正常系] - 出力ファイルが読み取れること。
     EXPECT_STREQ("override-value", output); // [確認_正常系] - 子プロセスの出力が上書き値 "override-value" であること。
@@ -259,7 +260,9 @@ TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
     EXPECT_EQ(COM_UTIL_PROCESS_TIMEOUT, wait_result); // [確認_正常系] - 実行中の NO_WAIT 待機が TIMEOUT を返すこと。
     EXPECT_EQ(COM_UTIL_PROCESS_OK, terminate_result); // [確認_正常系] - terminate が OK を返すこと。
     EXPECT_EQ(COM_UTIL_PROCESS_OK, final_wait);       // [確認_正常系] - terminate 後の待機が OK を返すこと。
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, exit_result);      // [確認_正常系] - 終了コードの取得が OK を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_PROCESS_OK,
+        exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
 
     com_util_process_destroy(process);
 }
@@ -277,6 +280,8 @@ TEST(ProcessTest, RejectsInvalidArguments)
         com_util_process_start(NULL, &process); // [手順] - options に NULL を渡して com_util_process_start を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_INVALID_ARGUMENT, result); // [確認_異常系] - INVALID_ARGUMENT が返ること。
+    EXPECT_EQ(
+        COM_UTIL_PROCESS_INVALID_ARGUMENT,
+        result); // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_PROCESS_INVALID_ARGUMENT であること。
     EXPECT_EQ(nullptr, process);                          // [確認_異常系] - ハンドルが NULL のままであること。
 }

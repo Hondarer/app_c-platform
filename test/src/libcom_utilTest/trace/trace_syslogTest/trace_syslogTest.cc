@@ -46,7 +46,7 @@ TEST_F(trace_syslogTest, test_write_returns_zero)
                                             "test message"); // [手順] - LOG_INFO レベルで "test message" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, result); // [確認_正常系] - com_util_syslog_sink_write の戻り値が 0 であること。
     com_util_syslog_sink_dispose(handle);
 }
 
@@ -120,7 +120,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
         handle, LOG_INFO, &timestamp, "test message"); // [手順] - 明示タイムスタンプ付きで "test message" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rtc_syslog_sink_write); // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_syslog_sink_write); // [確認_正常系] - com_util_syslog_sink_write の戻り値が 0 であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
@@ -196,7 +196,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
                                    "invalid ts"); // [手順] - 不正な明示タイムスタンプ付きで "invalid ts" を書き込む。
 
     // Assert
-    EXPECT_EQ(-1, rtc_syslog_sink_write); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_syslog_sink_write); // [確認_異常系] - com_util_syslog_sink_write の戻り値が -1 であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
@@ -241,8 +241,11 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
     // Act
 
     // Assert
-    EXPECT_EQ((com_util_syslog_sink *)NULL,
-              com_util_syslog_sink_create(NULL, LOG_USER)); // [確認_異常系] - NULL ident で create が失敗すること。
+    EXPECT_EQ(
+        (com_util_syslog_sink *)NULL,
+        com_util_syslog_sink_create(
+            NULL,
+            LOG_USER)); // [確認_異常系] - com_util_syslog_sink_create の戻り値から、NULL ident で create が失敗したと判断できること。
     EXPECT_EQ(0, com_util_syslog_sink_write(NULL, LOG_INFO, NULL,
                                             "test message")); // [確認_異常系] - NULL ハンドルが安全であること。
     EXPECT_EQ(

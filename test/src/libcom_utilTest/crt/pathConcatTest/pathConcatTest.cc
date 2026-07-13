@@ -22,7 +22,7 @@ TEST_F(pathConcatTest, concatenates_path_fragments)
                              "libbase_extdef.txt"); // [手順] - "tmp"、セパレータ、"libbase_extdef.txt" を連結する。
 
     // Assert
-    EXPECT_EQ(0, rtc_path_concat);                      // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が 0 であること。
     EXPECT_STREQ("tmp/libbase_extdef.txt", path);       // [確認_正常系] - 断片が指定順に連結されること。
 }
 
@@ -40,7 +40,7 @@ TEST_F(pathConcatTest, keeps_empty_fragment)
         com_util_path_concat(path, sizeof(path), &err, "", "abc"); // [手順] - 空文字列と "abc" を連結する。
 
     // Assert
-    EXPECT_EQ(0, rtc_path_concat); // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が 0 であること。
     EXPECT_STREQ("abc", path); // [確認_正常系] - 空文字断片もそのまま扱え "abc" になること。
 }
 
@@ -59,7 +59,7 @@ TEST_F(pathConcatTest, accepts_sixteen_fragments)
                              "n", "o", "p"); // [手順] - "a" から "p" までの 16 断片を連結する。
 
     // Assert
-    EXPECT_EQ(0, rtc_path_concat);          // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_path_concat);          // [確認_正常系] - com_util_path_concat の戻り値が 0 であること。
     EXPECT_STREQ("abcdefghijklmnop", path); // [確認_正常系] - サポート上限の 16 断片が連結されること。
 }
 
@@ -77,7 +77,7 @@ TEST_F(pathConcatTest, returns_einval_for_zero_part_count)
         path, sizeof(path), &err, 0u); // [手順] - part_count に 0 を渡して com_util_path_concat_n を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_path_concat_n);          // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_path_concat_n);          // [確認_異常系] - com_util_path_concat_n の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, err);                    // [確認_異常系] - errno_out に EINVAL が返ること。
 }
 
@@ -96,7 +96,7 @@ TEST_F(pathConcatTest, returns_einval_for_null_fragment)
         (const char *)NULL); // [手順] - 2 断片のうち 1 つに NULL を渡して com_util_path_concat_n を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_path_concat_n); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_path_concat_n); // [確認_異常系] - com_util_path_concat_n の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, err);           // [確認_異常系] - errno_out に EINVAL が返ること。
 }
 
@@ -117,7 +117,7 @@ TEST_F(pathConcatTest, returns_enametoolong_when_result_does_not_fit)
                                                "e"); // [手順] - 連結結果が 5 文字 (+NUL) となる断片を渡して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_path_concat);           // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_path_concat);           // [確認_異常系] - com_util_path_concat の戻り値が -1 であること。
     EXPECT_EQ(ENAMETOOLONG, err);             // [確認_異常系] - errno_out に ENAMETOOLONG が返ること。
     EXPECT_EQ('\0', path[0]);                 // [確認_異常系] - 失敗時は空文字列に初期化されること。
 }

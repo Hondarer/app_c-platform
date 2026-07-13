@@ -140,7 +140,8 @@ TEST_F(trace_fileTest, test_create_returns_null_for_null_path)
         com_util_trace_file_sink_create(NULL, 0, 0, 0); // [手順] - NULL path で create を呼ぶ。
 
     // Assert
-    EXPECT_EQ((com_util_trace_file_sink *)NULL, handle); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_trace_file_sink *)NULL,
+              handle); // [確認_異常系] - com_util_trace_file_sink_create の戻り値が NULL であること。
 }
 
 // create が既定 open flags でファイルを開くことの確認
@@ -232,7 +233,8 @@ TEST_F(trace_fileTest, test_create_returns_null_after_file_open_retry_exhausted)
         com_util_trace_file_sink_create("trace.log", 0, 0, 0); // [手順] - open 失敗を継続させる。
 
     // Assert
-    EXPECT_EQ((com_util_trace_file_sink *)NULL, handle); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_trace_file_sink *)NULL,
+              handle); // [確認_異常系] - com_util_trace_file_sink_create の戻り値が NULL であること。
 }
 
 // INFO 行が固定タイムスタンプと I marker で書き込まれることの確認
@@ -257,7 +259,8 @@ TEST_F(trace_fileTest, test_write_formats_info_line)
                                                 "hello"); // [手順] - INFO 行を書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -285,7 +288,8 @@ TEST_F(trace_fileTest, test_write_formats_debug_marker)
                                                 "debug line"); // [手順] - DEBUG 行を書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -317,7 +321,9 @@ TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock
                                                 "explicit hello"); // [手順] - 明示タイムスタンプ付きで書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 明示タイムスタンプ付き書き込みが成功すること。
+    EXPECT_EQ(
+        0,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、明示タイムスタンプ付き書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -502,7 +508,8 @@ TEST_F(trace_fileTest, test_single_mode_does_not_use_interprocess_lock_or_identi
 
     // Assert
     EXPECT_NE((com_util_trace_file_sink *)NULL, handle); // [確認_正常系] - ハンドルが生成されること。
-    EXPECT_EQ(0, result);                                // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -549,7 +556,8 @@ TEST_F(trace_fileTest, test_create_shared_returns_null_when_lock_open_fails)
         "trace.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 共有モードで create を呼ぶ。
 
     // Assert
-    EXPECT_EQ((com_util_trace_file_sink *)NULL, handle); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_trace_file_sink *)NULL,
+              handle); // [確認_異常系] - com_util_trace_file_sink_create の戻り値が NULL であること。
 }
 
 // 負の flags では create が NULL を返すことの確認
@@ -564,7 +572,8 @@ TEST_F(trace_fileTest, test_create_returns_null_for_negative_flags)
         com_util_trace_file_sink_create("trace.log", 0, 0, -1); // [手順] - 負の flags で create を呼ぶ。
 
     // Assert
-    EXPECT_EQ((com_util_trace_file_sink *)NULL, handle); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_trace_file_sink *)NULL,
+              handle); // [確認_異常系] - com_util_trace_file_sink_create の戻り値が NULL であること。
 }
 
 // 他プロセスのローテーションで path の実体が変わった場合に書き込み前に開き直すことの確認
@@ -596,7 +605,8 @@ TEST_F(trace_fileTest, test_shared_write_reopens_after_external_rotation)
                                                 "after rotate"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -635,7 +645,8 @@ TEST_F(trace_fileTest, test_shared_write_reopen_retries_file_open_after_external
                                                 "after rotate"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -766,7 +777,8 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
                                                 "already rotated"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込みが成功すること。
+    EXPECT_EQ(
+        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -823,7 +835,9 @@ TEST_F(trace_fileTest, test_create_same_path_shares_handle_in_single_process)
 
     // Assert
     ASSERT_NE((com_util_trace_file_sink *)NULL, first); // [確認_正常系] - 1 回目のハンドルが生成されること。
-    EXPECT_EQ(first, second);                           // [確認_正常系] - 2 回目は同一ハンドルが返ること。
+    EXPECT_EQ(
+        first,
+        second); // [確認_正常系] - com_util_trace_file_sink_create の戻り値として、2 回目は同一ハンドルが返ること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(second);
@@ -855,7 +869,9 @@ TEST_F(trace_fileTest, test_shared_handle_survives_until_last_dispose)
                                                 "after first dispose"); // [手順] - 2 人目の利用者が書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 参照が残っている間は書き込みが成功すること。
+    EXPECT_EQ(
+        0,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、参照が残っている間は書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(second);
@@ -875,7 +891,9 @@ TEST_F(trace_fileTest, test_create_same_path_with_mismatched_shared_flag_returns
         "trace.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [手順] - 同一パスを共有モードで create する。
 
     // Assert
-    EXPECT_EQ((com_util_trace_file_sink *)NULL, second); // [確認_異常系] - モード不一致では NULL が返ること。
+    EXPECT_EQ(
+        (com_util_trace_file_sink *)NULL,
+        second); // [確認_異常系] - com_util_trace_file_sink_create の戻り値として、モード不一致では NULL が返ること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(first);

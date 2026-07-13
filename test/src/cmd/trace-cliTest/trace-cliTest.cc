@@ -112,8 +112,9 @@ TEST_F(trace_cliTest, process_line_create_and_reject_second_create)
     int second = trace_cli_process_line(&session_, "create"); // [手順] - 続けて 2 回目の "create" を処理する。
 
     // Assert
-    EXPECT_EQ(0, first);                 // [確認_正常系] - 1 回目の戻り値が 0 (継続) であること。
-    EXPECT_LT(second, 0);                // [確認_異常系] - 2 回目の戻り値が負 (エラー) であること。
+    EXPECT_EQ(0, first); // [確認_正常系] - 1 回目に呼び出した trace_cli_process_line の戻り値が 0 (継続) であること。
+    EXPECT_LT(second,
+              0); // [確認_異常系] - 2 回目に呼び出した trace_cli_process_line の戻り値が負 (エラー) であること。
     EXPECT_EQ(handle_, session_.handle); // [確認_正常系] - session に生成済み handle が保持されること。
 }
 
@@ -136,7 +137,7 @@ TEST_F(trace_cliTest, process_line_set_file_level_accepts_null_keyword)
                                     "set-file-level null INFO"); // [手順] - "set-file-level null INFO" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // set-os-level で tracer API がエラーの場合に赤の rc 表示となることの確認
@@ -157,7 +158,7 @@ TEST_F(trace_cliTest, process_line_set_os_level_colors_error_rc)
     int rc = trace_cli_process_line(&session_, "set-os-level INFO"); // [手順] - "set-os-level INFO" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - コマンド処理自体の戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // stdout が TTY でない場合に rc 表示へ ANSI 色を付けないことの確認
@@ -182,7 +183,7 @@ TEST_F(trace_cliTest, process_line_set_os_level_keeps_plain_rc_when_stdout_is_no
     int rc = trace_cli_process_line(&session_, "set-os-level INFO"); // [手順] - "set-os-level INFO" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // dispose で保持中の handle が解放され session から外れることの確認
@@ -204,7 +205,7 @@ TEST_F(trace_cliTest, process_line_dispose_releases_handle)
     int rc = trace_cli_process_line(&session_, "dispose"); // [手順] - "dispose" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc);                    // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc);                    // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
     EXPECT_EQ(nullptr, session_.handle); // [確認_正常系] - session の handle が NULL に戻ること。
 }
 
@@ -238,7 +239,7 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
         "write-hex INFO \"01 AB FF\" payload bytes"); // [手順] - "write-hex INFO \"01 AB FF\" payload bytes" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // writef が行末までを 1 つの message 文字列として API へ渡すことの確認
@@ -261,7 +262,7 @@ TEST_F(trace_cliTest, process_line_writef_uses_message_as_single_string)
         &session_, "writef DEBUG message with spaces"); // [手順] - "writef DEBUG message with spaces" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // handle 未生成でも get-os-level が NULL handle のまま API を呼び出すことの確認
@@ -281,7 +282,7 @@ TEST_F(trace_cliTest, process_line_get_os_level_calls_api_with_null_handle)
     int rc = trace_cli_process_line(&session_, "get-os-level"); // [手順] - "get-os-level" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // help でコマンド一覧が stdout に出力されることの確認
@@ -302,7 +303,7 @@ TEST_F(trace_cliTest, process_line_help_prints_command_list)
     int rc = trace_cli_process_line(&session_, "help"); // [手順] - "help" を処理する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (継続) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 0 (継続) であること。
 }
 
 // quit が終了要求として処理されることの確認
@@ -316,7 +317,7 @@ TEST_F(trace_cliTest, process_line_quit_requests_exit)
     int rc = trace_cli_process_line(&session_, "quit"); // [手順] - "quit" を処理する。
 
     // Assert
-    EXPECT_EQ(1, rc);                      // [確認_正常系] - 戻り値が 1 (終了要求) であること。
+    EXPECT_EQ(1, rc); // [確認_正常系] - trace_cli_process_line の戻り値が 1 (終了要求) であること。
     EXPECT_EQ(1, session_.exit_requested); // [確認_正常系] - session の exit_requested が 1 になること。
 }
 
@@ -336,7 +337,7 @@ TEST_F(trace_cliTest, main_prints_usage_on_help)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 戻り値が EXIT_SUCCESS であること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - main() の戻り値が EXIT_SUCCESS であること。
 }
 
 // 対話モードで create から exit までの一連のコマンドが処理され handle が解放されることの確認
@@ -429,5 +430,5 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() を引数なしで呼び出し、対話シーケンスを実行する。
 
     // Assert
-    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 戻り値が EXIT_SUCCESS であること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - main() の戻り値が EXIT_SUCCESS であること。
 }

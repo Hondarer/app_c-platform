@@ -70,10 +70,10 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
 
     // Assert
     EXPECT_EQ(6, written);              // [確認_正常系] - 書き込んだバイト数が 6 であること。
-    EXPECT_EQ(0, pos_head);             // [確認_正常系] - SEEK_SET 0 の戻り値が 0 であること。
+    EXPECT_EQ(0, pos_head); // [確認_正常系] - SEEK_SET 0 を指定した com_util_lseek の戻り値が 0 であること。
     EXPECT_EQ(6, read_len);             // [確認_正常系] - 読み取ったバイト数が 6 であること。
     EXPECT_EQ(0, memcmp(data, buf, 6)); // [確認_正常系] - 読み取った内容が書き込んだ内容と一致すること。
-    EXPECT_EQ(6, pos_end);              // [確認_正常系] - SEEK_END 0 の戻り値がファイル サイズであること。
+    EXPECT_EQ(6, pos_end); // [確認_正常系] - SEEK_END 0 を指定した com_util_lseek の戻り値がファイル サイズであること。
 }
 
 // ファイル終端の読み取りで 0 が返ることの確認
@@ -88,7 +88,7 @@ TEST_F(fdTest, read_reaches_eof_returns_zero)
     int64_t read_len = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 空ファイルから読み取る。
 
     // Assert
-    EXPECT_EQ(0, read_len); // [確認_正常系] - ファイル終端では 0 が返ること。
+    EXPECT_EQ(0, read_len); // [確認_正常系] - com_util_read の戻り値として、ファイル終端では 0 が返ること。
 }
 
 // dup で複製した記述子が読み書き位置を共有することの確認
@@ -106,7 +106,9 @@ TEST_F(fdTest, dup_shares_file_offset)
     EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
     EXPECT_EQ(4,
               com_util_lseek(fd_, 0, SEEK_CUR)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
-    EXPECT_EQ(0, com_util_close(dup_fd));        // [確認_正常系] - 複製側のクローズが成功すること。
+    EXPECT_EQ(0,
+              com_util_close(
+                  dup_fd)); // [確認_正常系] - com_util_close の戻り値から、複製側のクローズが成功したと判断できること。
 }
 
 // dup2 の成功時に 0 が返ることの確認
@@ -124,7 +126,9 @@ TEST_F(fdTest, dup2_returns_zero_on_success)
 
     // Assert
     EXPECT_EQ(0, rtc);                       // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
-    EXPECT_EQ(0, com_util_close(target_fd)); // [確認_正常系] - 複製先のクローズが成功すること。
+    EXPECT_EQ(
+        0, com_util_close(
+               target_fd)); // [確認_正常系] - com_util_close の戻り値から、複製先のクローズが成功したと判断できること。
 }
 
 // close の成功時に 0 が返ることの確認
@@ -138,7 +142,7 @@ TEST_F(fdTest, close_success_returns_zero)
     int rtc = com_util_close(fd_); // [手順] - 開いている記述子を閉じる。
 
     // Assert
-    EXPECT_EQ(0, rtc); // [確認_正常系] - クローズ成功時は 0 が返ること。
+    EXPECT_EQ(0, rtc); // [確認_正常系] - com_util_close の戻り値として、クローズ成功時は 0 が返ること。
     fd_ = -1;
 }
 
@@ -198,7 +202,7 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
     int64_t rtc = com_util_lseek(fd_, 0, 99); // [手順] - 定義外の whence を与える。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の API を呼び出さずに -1 が返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の API を呼び出さずに -1 が返ること。
 }
 
 // 下位の lseek 系 API が失敗した場合に -1 が返ることの確認
@@ -220,7 +224,7 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
     int64_t rtc = com_util_lseek(fd_, 0, SEEK_SET); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の close 系 API が失敗した場合に -1 が返ることの確認
@@ -242,7 +246,7 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
     int rtc = com_util_close(fd_); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_close の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の dup 系 API が失敗した場合に -1 が返ることの確認
@@ -264,7 +268,7 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
     int rtc = com_util_dup(fd_); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の dup2 系 API が失敗した場合に -1 が返ることの確認
@@ -286,7 +290,7 @@ TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
     int rtc = com_util_dup2(fd_, fd_); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup2 の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の read 系 API が失敗した場合に -1 が返ることの確認
@@ -309,7 +313,7 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
     int64_t rtc = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_read の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の write 系 API が失敗した場合に -1 が返ることの確認
@@ -332,7 +336,7 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
     int64_t rtc = com_util_write(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 #if defined(PLATFORM_LINUX)

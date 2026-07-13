@@ -50,7 +50,7 @@ TEST_F(fopenTempTest, opens_writable_file_and_reports_path)
                                    nullptr); // [手順] - prefix "ptr"、モード "wb" で com_util_fopen_temp を呼び出す。
 
     // Assert
-    ASSERT_NE((FILE *)nullptr, fp); // [確認_正常系] - FILE* が返ること。
+    ASSERT_NE((FILE *)nullptr, fp); // [確認_正常系] - com_util_fopen_temp の戻り値として、FILE* が返ること。
     EXPECT_NE('\0', path[0]);       // [確認_正常系] - path_out が空文字列でないこと。
 
     const char data[] = "hello-temp";
@@ -117,7 +117,8 @@ TEST_F(fopenTempTest, null_prefix_is_accepted)
                                    nullptr); // [手順] - prefix に NULL を渡して com_util_fopen_temp を呼び出す。
 
     // Assert
-    ASSERT_NE((FILE *)nullptr, fp); // [確認_正常系] - prefix=NULL でも FILE* が返ること。
+    ASSERT_NE((FILE *)nullptr,
+              fp); // [確認_正常系] - com_util_fopen_temp の戻り値として、prefix=NULL でも FILE* が返ること。
     fclose(fp);
     std::remove(path);
 }
@@ -136,7 +137,7 @@ TEST_F(fopenTempTest, null_modes_returns_einval)
                                    &err); // [手順] - modes に NULL を渡して com_util_fopen_temp を呼び出す。
 
     // Assert
-    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
     EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
 }
 
@@ -153,7 +154,7 @@ TEST_F(fopenTempTest, null_path_out_returns_einval)
                                    &err); // [手順] - path_out に NULL を渡して com_util_fopen_temp を呼び出す。
 
     // Assert
-    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
     EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
 }
 
@@ -171,7 +172,7 @@ TEST_F(fopenTempTest, zero_path_size_returns_einval)
                                    &err); // [手順] - path_size に 0 を渡して com_util_fopen_temp を呼び出す。
 
     // Assert
-    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
     EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
 }
 
@@ -191,7 +192,7 @@ TEST_F(fopenTempTest, path_size_too_small_returns_enametoolong)
                                    &err); // [手順] - path_size に 4 を渡して com_util_fopen_temp を呼び出す。
 
     // Assert
-    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
     EXPECT_EQ(ENAMETOOLONG, err);   // [確認_異常系] - errno_out に ENAMETOOLONG が格納されること。
 }
 #endif /* PLATFORM_LINUX */
@@ -209,7 +210,8 @@ TEST_F(fopenTempTest, prefix_longer_than_three_chars_is_truncated)
                                    nullptr); // [手順] - 4 文字の prefix "abcd" で com_util_fopen_temp を呼び出す。
 
     // Assert
-    ASSERT_NE((FILE *)nullptr, fp); // [確認_正常系] - 4 文字以上の prefix でも FILE* が返ること。
+    ASSERT_NE((FILE *)nullptr,
+              fp); // [確認_正常系] - com_util_fopen_temp の戻り値として、4 文字以上の prefix でも FILE* が返ること。
     fclose(fp);
     std::string base = basename_of(path);
     EXPECT_NE(std::string::npos, base.find("abc")); // [確認_正常系] - 先頭 3 文字 "abc" が basename に含まれること。

@@ -69,7 +69,7 @@ TEST_F(compress_cliTest, main_rejects_unknown_option)
     int rc = __real_main(4, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
 // help オプション指定時に usage を表示して正常終了することの確認
@@ -87,7 +87,7 @@ TEST_F(compress_cliTest, main_prints_usage_on_help)
     int rc = __real_main(2, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 必須位置引数がなくても戻り値が EXIT_SUCCESS であること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 必須位置引数がない場合も main() の戻り値が EXIT_SUCCESS であること。
 }
 
 // 正規化後に同一となる入出力パスが拒否されることの確認
@@ -117,7 +117,7 @@ TEST_F(compress_cliTest, main_rejects_same_normalized_path)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
 // 圧縮モードで入力が読み込まれ圧縮結果が出力ファイルへ書き込まれることの確認
@@ -197,7 +197,7 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - 戻り値が EXIT_SUCCESS であること。
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - main() の戻り値が EXIT_SUCCESS であること。
 }
 
 // 展開時にヘッダーの元サイズが小さすぎる入力が拒否されることの確認
@@ -241,7 +241,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_s
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
 // 展開後サイズがヘッダー値と一致しない場合に出力せず失敗終了することの確認
@@ -295,7 +295,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
 // 出力の書き込みが失敗した場合に部分出力ファイルが削除されることの確認
@@ -352,7 +352,7 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
 // パス比較 API が失敗した場合にファイルを開かず失敗終了することの確認
@@ -383,5 +383,5 @@ TEST_F(compress_cliTest, main_fails_when_path_comparison_fails)
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
 
     // Assert
-    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - 戻り値が EXIT_SUCCESS 以外であること。
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }

@@ -59,8 +59,9 @@ TEST_F(traceShutdownTest, test_shutdown_disposes_registry_and_rejects_new_create
         com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer の生成を試みる。
 
     // Assert
-    EXPECT_EQ(0, invoke_result);                  // [確認_正常系] - shutdown 実行の戻り値が 0 であること。
+    EXPECT_EQ(0, invoke_result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値が 0 であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - shutdown 後に registry が空になること。
-    EXPECT_EQ((com_util_tracer *)NULL,
-              created_after_shutdown); // [確認_正常系] - shutdown 開始後は新規 tracer 作成が拒否され NULL が返ること。
+    EXPECT_EQ(
+        (com_util_tracer *)NULL,
+        created_after_shutdown); // [確認_正常系] - com_util_tracer_create の戻り値として、shutdown 開始後は新規 tracer 作成が拒否され NULL が返ること。
 }

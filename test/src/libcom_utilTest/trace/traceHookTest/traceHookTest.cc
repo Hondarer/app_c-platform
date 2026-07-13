@@ -174,7 +174,8 @@ TEST_F(traceHookTest, test_set_hook_null_handle_returns_null)
         nullptr, recording_hook, nullptr); // [手順] - handle に NULL を渡して com_util_tracer_set_hook を呼び出す。
 
     // Assert
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL,
+              entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
 }
 
 // fn が NULL のとき set_hook が NULL を返すことの確認
@@ -190,7 +191,8 @@ TEST_F(traceHookTest, test_set_hook_null_fn_returns_null)
         tracer, nullptr, nullptr); // [手順] - fn に NULL を渡して com_util_tracer_set_hook を呼び出す。
 
     // Assert
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL,
+              entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
     com_util_tracer_dispose(tracer);
 }
 
@@ -208,7 +210,8 @@ TEST_F(traceHookTest, test_set_hook_while_started_returns_null)
         tracer, recording_hook, nullptr); // [手順] - started 状態で com_util_tracer_set_hook を呼び出す。
 
     // Assert
-    EXPECT_EQ((com_util_tracer_hook_entry *)NULL, entry); // [確認_異常系] - NULL が返ること。
+    EXPECT_EQ((com_util_tracer_hook_entry *)NULL,
+              entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
 
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
@@ -234,7 +237,7 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
                                     "hello hook"); // [手順] - INFO レベルで "hello hook" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rc);                            // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rc);                            // [確認_正常系] - _com_util_tracer_write の戻り値が 0 であること。
     ASSERT_EQ(1u, g_hook_records.size());        // [確認_正常系] - フックが 1 回呼ばれること。
     EXPECT_EQ(tracer, g_hook_records[0].handle); // [確認_正常系] - フックに tracer の handle が渡ること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_INFO, g_hook_records[0].level); // [確認_正常系] - フックに INFO レベルが渡ること。
@@ -294,7 +297,7 @@ TEST_F(traceHookTest, test_no_hook_write_succeeds)
                                     "no hook"); // [手順] - INFO レベルで "no hook" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rc);                     // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rc);                     // [確認_正常系] - _com_util_tracer_write の戻り値が 0 であること。
     EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - フックが呼ばれないこと。
 
     com_util_tracer_stop(tracer);

@@ -74,8 +74,10 @@ TEST_F(memoryLockTest, test_range_locks_and_unlocks_heap_buffer)
     }
 
     // Assert
-    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK, lock_result);   // [確認_正常系] - ロックの戻り値が OK であること。
-    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK, unlock_result); // [確認_正常系] - 解除の戻り値が OK であること。
+    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK,
+              lock_result); // [確認_正常系] - com_util_memory_lock_range の戻り値が OK であること。
+    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK,
+              unlock_result); // [確認_正常系] - com_util_memory_unlock_range の戻り値が OK であること。
 
     free(buffer);
 }
@@ -119,7 +121,9 @@ TEST_F(memoryLockTest, test_scope_release_accepts_null)
         NULL); // [手順] - NULL scope で com_util_memory_lock_scope_release を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK, rtc_memory_lock); // [確認_正常系] - 戻り値が OK であること。
+    EXPECT_EQ(
+        COM_UTIL_MEMORY_LOCK_OK,
+        rtc_memory_lock); // [確認_正常系] - com_util_memory_lock_scope_release の戻り値が COM_UTIL_MEMORY_LOCK_OK であること。
 }
 
 // 過大な stack_prefault_bytes が拒否されることの確認
@@ -138,7 +142,9 @@ TEST_F(memoryLockTest, test_lock_self_rejects_excessive_stack_prefault)
         com_util_memory_lock_self(&options, &scope); // [手順] - 過大な設定で com_util_memory_lock_self を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED, rtc_memory_lock); // [確認_異常系] - LIMIT_EXCEEDED が返ること。
+    EXPECT_EQ(
+        COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED,
+        rtc_memory_lock); // [確認_異常系] - com_util_memory_lock_self の戻り値が COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED であること。
     EXPECT_EQ(nullptr, scope);                        // [確認_異常系] - scope が NULL のままであること。
 }
 

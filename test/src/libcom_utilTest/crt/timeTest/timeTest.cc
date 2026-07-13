@@ -21,7 +21,7 @@ TEST_F(timeTest, gmtime_success_epoch)
     int ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);             // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret);             // [確認_正常系] - com_util_gmtime の戻り値が 0 であること。
     EXPECT_EQ(70, utc_tm.tm_year); // [確認_正常系] - tm_year が 70 (1970 年) であること。
     EXPECT_EQ(0, utc_tm.tm_mon);   // [確認_正常系] - tm_mon が 0 (1 月) であること。
     EXPECT_EQ(1, utc_tm.tm_mday);  // [確認_正常系] - tm_mday が 1 日であること。
@@ -42,7 +42,7 @@ TEST_F(timeTest, gmtime_null_tm)
     int ret = com_util_gmtime(NULL, &epoch); // [手順] - 出力構造体に NULL を渡して com_util_gmtime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_gmtime の戻り値が -1 であること。
 }
 
 // 時刻が NULL の場合に -1 を返すことの確認
@@ -57,7 +57,7 @@ TEST_F(timeTest, gmtime_null_time)
     int ret = com_util_gmtime(&utc_tm, NULL); // [手順] - 時刻に NULL を渡して com_util_gmtime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_gmtime の戻り値が -1 であること。
 }
 
 // OS の変換関数が失敗した場合に -1 を返し出力構造体がゼロ クリアされることの確認
@@ -103,7 +103,7 @@ TEST_F(timeTest, gmtime_zeroes_tm_when_platform_conversion_fails)
     int ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret);           // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret);           // [確認_異常系] - com_util_gmtime の戻り値が -1 であること。
     EXPECT_EQ(0, utc_tm.tm_year); // [確認_異常系] - tm_year が 0 にクリアされること。
     EXPECT_EQ(0, utc_tm.tm_mon);  // [確認_異常系] - tm_mon が 0 にクリアされること。
     EXPECT_EQ(0, utc_tm.tm_mday); // [確認_異常系] - tm_mday が 0 にクリアされること。
@@ -135,7 +135,7 @@ TEST_F(timeTest, localtime_matches_platform_result)
         com_util_localtime(&actual_tm, &epoch); // [手順] - com_util_localtime(&actual_tm, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc_localtime);                       // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_localtime);                       // [確認_正常系] - com_util_localtime の戻り値が 0 であること。
     EXPECT_EQ(expected_tm.tm_year, actual_tm.tm_year); // [確認_正常系] - tm_year が OS の変換結果と一致すること。
     EXPECT_EQ(expected_tm.tm_mon, actual_tm.tm_mon);   // [確認_正常系] - tm_mon が OS の変換結果と一致すること。
     EXPECT_EQ(expected_tm.tm_mday, actual_tm.tm_mday); // [確認_正常系] - tm_mday が OS の変換結果と一致すること。
@@ -157,7 +157,7 @@ TEST_F(timeTest, localtime_null_tm)
         com_util_localtime(NULL, &epoch); // [手順] - 出力構造体に NULL を渡して com_util_localtime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_localtime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_localtime); // [確認_異常系] - com_util_localtime の戻り値が -1 であること。
 }
 
 // 時刻が NULL の場合に -1 を返すことの確認
@@ -173,7 +173,7 @@ TEST_F(timeTest, localtime_null_time)
         com_util_localtime(&local_tm, NULL); // [手順] - 時刻に NULL を渡して com_util_localtime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_localtime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_localtime); // [確認_異常系] - com_util_localtime の戻り値が -1 であること。
 }
 
 // エポック 0 秒が ctime 形式の文字列に変換されることの確認
@@ -191,7 +191,7 @@ TEST_F(timeTest, ctime_success_epoch)
     int ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret); // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, ret); // [確認_正常系] - com_util_ctime の戻り値が 0 であること。
 
     /* ctime はローカル時刻依存のため固定文字列比較は行わず、形式のみを確認する */
     len = strlen(buf);
@@ -223,7 +223,7 @@ TEST_F(timeTest, ctime_matches_platform_result)
         com_util_ctime(actual, sizeof(actual), &epoch); // [手順] - com_util_ctime(actual, 26, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc_ctime);                                // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_ctime);                                // [確認_正常系] - com_util_ctime の戻り値が 0 であること。
     EXPECT_STREQ(expected, actual);                         // [確認_正常系] - 変換結果が OS の変換結果と一致すること。
 }
 
@@ -240,7 +240,7 @@ TEST_F(timeTest, ctime_null_buf)
         com_util_ctime(NULL, 26, &epoch); // [手順] - 出力バッファーに NULL を渡して com_util_ctime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - com_util_ctime の戻り値が -1 であること。
 }
 
 // 時刻が NULL の場合に -1 を返し出力バッファーがゼロ クリアされることの確認
@@ -256,7 +256,7 @@ TEST_F(timeTest, ctime_null_time_zeroes_buf)
     int rtc_ctime = com_util_ctime(buf, sizeof(buf), NULL); // [手順] - 時刻に NULL を渡して com_util_ctime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - com_util_ctime の戻り値が -1 であること。
 
     // [確認_異常系] - 出力バッファーの全バイトが '\0' にクリアされること。
     for (size_t i = 0; i < sizeof(buf); i++)
@@ -280,7 +280,7 @@ TEST_F(timeTest, ctime_small_buf_zeroes_buf)
         com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - サイズ 25 のバッファーを渡して com_util_ctime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - com_util_ctime の戻り値が -1 であること。
 
     // [確認_異常系] - 出力バッファーの全バイトが '\0' にクリアされること。
     for (size_t i = 0; i < sizeof(buf); i++)
@@ -304,7 +304,7 @@ TEST_F(timeTest, ctime_zero_buf_size_fails_without_write)
         com_util_ctime(buf, 0, &epoch); // [手順] - バッファー サイズに 0 を渡して com_util_ctime を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc_ctime); // [確認_異常系] - com_util_ctime の戻り値が -1 であること。
 
     /* buf_size が 0 のため memset も書き込みを行わないこと */
     EXPECT_EQ(0x7f, buf[0]); // [確認_異常系] - バッファーの先頭が 0x7f のまま書き込まれないこと。
@@ -348,7 +348,7 @@ TEST_F(timeTest, ctime_zeroes_buf_when_platform_conversion_fails)
     int ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, ret); // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, ret); // [確認_異常系] - com_util_ctime の戻り値が -1 であること。
 
     // [確認_異常系] - 出力バッファーの全バイトが '\0' にクリアされること。
     for (size_t i = 0; i < sizeof(buf); i++)

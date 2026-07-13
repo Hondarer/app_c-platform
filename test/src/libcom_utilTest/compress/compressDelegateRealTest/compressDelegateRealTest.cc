@@ -98,7 +98,7 @@ TEST_F(compressDelegateRealTest, expect_call_overrides_default_real_delegate)
                                 sizeof(kPlainText) - 1U); // [手順] - 明示した EXPECT_CALL 付きで com_util_compress() を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);             // [確認_正常系] - 明示した戻り値 -1 が返ること。
+    EXPECT_EQ(-1, rtc);             // [確認_正常系] - com_util_compress の戻り値として、明示した戻り値 -1 が返ること。
     EXPECT_EQ(7U, compressed_len);  // [確認_正常系] - 明示した出力長 7 が反映されること。
     EXPECT_EQ(0xAA, compressed[0]); // [確認_正常系] - 明示した出力内容が反映されること。
 }
@@ -116,8 +116,10 @@ TEST_F(compressDelegateRealTest, try_resolve_returns_diagnostic_when_library_is_
                                "com_util_compress"); // [手順] - 実在しないライブラリ名でシンボル解決を試行する。
 
     // Assert
-    EXPECT_EQ(nullptr, result.symbol);          // [確認_正常系] - 解決結果が nullptr であること。
-    EXPECT_FALSE(result.diagnostic.empty());    // [確認_正常系] - 失敗理由の文字列が返ること。
+    EXPECT_EQ(nullptr,
+              result.symbol); // [確認_正常系] - tryResolveSharedSymbol の戻り値として、解決結果が nullptr であること。
+    EXPECT_FALSE(result.diagnostic
+                     .empty()); // [確認_正常系] - tryResolveSharedSymbol の戻り値として、失敗理由の文字列が返ること。
 }
 
 // 実在ライブラリに存在しないシンボル名を指定したときに失敗情報を返すことの確認
@@ -133,6 +135,8 @@ TEST_F(compressDelegateRealTest, try_resolve_returns_diagnostic_when_symbol_is_m
                                "com_util_symbol_that_does_not_exist"); // [手順] - 実在ライブラリに存在しないシンボル名で解決を試行する。
 
     // Assert
-    EXPECT_EQ(nullptr, result.symbol);       // [確認_正常系] - 解決結果が nullptr であること。
-    EXPECT_FALSE(result.diagnostic.empty()); // [確認_正常系] - 失敗理由の文字列が返ること。
+    EXPECT_EQ(nullptr,
+              result.symbol); // [確認_正常系] - tryResolveSharedSymbol の戻り値として、解決結果が nullptr であること。
+    EXPECT_FALSE(result.diagnostic
+                     .empty()); // [確認_正常系] - tryResolveSharedSymbol の戻り値として、失敗理由の文字列が返ること。
 }

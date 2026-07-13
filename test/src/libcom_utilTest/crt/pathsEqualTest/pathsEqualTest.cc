@@ -47,7 +47,7 @@ TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
         com_util_paths_equal(nullptr, ".", &err); // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rc);      // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rc);      // [確認_異常系] - com_util_paths_equal の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out に EINVAL が返ること。
 }
 
@@ -67,7 +67,7 @@ TEST_F(pathsEqualTest, compares_relative_and_absolute_current_directory_as_equal
     int rc = com_util_paths_equal(".", absolute_current_dir, &err); // [手順] - 相対パス "." と絶対パスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - 戻り値が 1 (一致) であること。
+    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (一致) であること。
 }
 
 // ".." やバックスラッシュを含むパスが正規化されて比較されることの確認
@@ -90,7 +90,7 @@ TEST_F(pathsEqualTest, normalizes_dotdot_and_backslash_segments_before_comparing
     int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 表記ゆれのある 2 つのパスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - 戻り値が 1 (正規化後に一致) であること。
+    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (正規化後に一致) であること。
 }
 
 // 異なるパスが不一致と判定されることの確認
@@ -112,7 +112,7 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
     int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 異なる 2 つのパスを比較する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (不一致) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 0 (不一致) であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -135,7 +135,7 @@ TEST_F(pathsEqualTest, keeps_case_sensitive_comparison_on_linux)
     int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 大小文字だけが異なるパスを比較する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - 戻り値が 0 (大小文字を区別して不一致) であること。
+    EXPECT_EQ(0, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 0 (大小文字を区別して不一致) であること。
 }
 #elif defined(PLATFORM_WINDOWS)
 // Windows では大小文字差を無視して比較されることの確認
@@ -157,6 +157,6 @@ TEST_F(pathsEqualTest, ignores_case_differences_on_windows)
     int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 大小文字だけが異なるパスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - 戻り値が 1 (大小文字差を無視して一致) であること。
+    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (大小文字差を無視して一致) であること。
 }
 #endif

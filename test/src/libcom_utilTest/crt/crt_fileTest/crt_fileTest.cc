@@ -100,7 +100,9 @@ TEST_F(crt_fileTest, append_open_reports_existing_size)
             COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - CREATE | APPEND | WRITE_THROUGH でオープンする。
 
     // Assert
-    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - CREATE | APPEND | WRITE_THROUGH でオープンした結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_open); // [確認_正常系] - CREATE | APPEND | WRITE_THROUGH でオープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_size =
         com_util_file_get_size(&file, &size); // [手順] - com_util_file_get_size でサイズを取得する。
     ASSERT_EQ(0, rtc_file_get_size); // [確認_正常系] - com_util_file_get_size でサイズを取得した結果が 0 であること。
@@ -130,7 +132,9 @@ TEST_F(crt_fileTest, truncate_open_resets_existing_file_size)
                                COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - TRUNCATE を含むフラグでオープンする。
 
     // Assert
-    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - TRUNCATE を含むフラグでオープンした結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_open); // [確認_正常系] - TRUNCATE を含むフラグでオープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_size =
         com_util_file_get_size(&file, &size); // [手順] - com_util_file_get_size でサイズを取得する。
     ASSERT_EQ(0, rtc_file_get_size); // [確認_正常系] - com_util_file_get_size でサイズを取得した結果が 0 であること。
@@ -161,9 +165,11 @@ TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
                                COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - 新規作成でオープンする。
 
     // Assert
-    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - 新規作成でオープンした結果が 0 であること。
+    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - 新規作成でオープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_write = com_util_file_write(&file, "abc", 3); // [手順] - "abc" 3 バイトを書き込む。
-    ASSERT_EQ(0, rtc_file_write); // [確認_正常系] - "abc" 3 バイトを書き込んだ結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_write); // [確認_正常系] - com_util_file_write の戻り値として、"abc" 3 バイトを書き込んだ結果が 0 であること。
     ASSERT_EQ(0, com_util_file_get_size(&file, &size));
     EXPECT_EQ((size_t)3, size); // [確認_正常系] - 書き込み後のサイズが 3 であること。
 
@@ -173,9 +179,12 @@ TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
         com_util_file_open(&file, path.c_str(),
                            COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
                                COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - クローズ後に追記モードで再オープンする。
-    ASSERT_EQ(0, rtc_file_open_2); // [確認_正常系] - クローズ後に追記モードで再オープンした結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_open_2); // [確認_正常系] - クローズ後に追記モードで再オープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_write_2 = com_util_file_write(&file, "def", 3); // [手順] - "def" 3 バイトを追記する。
-    ASSERT_EQ(0, rtc_file_write_2); // [確認_正常系] - "def" 3 バイトを追記する場合の戻り値が 0 であること。
+    ASSERT_EQ(
+        0, rtc_file_write_2); // [確認_正常系] - "def" 3 バイトを追記した com_util_file_write の戻り値が 0 であること。
     com_util_file_close(&file);
 
     EXPECT_EQ(std::string("abcdef"),
@@ -229,12 +238,17 @@ TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
                                COM_UTIL_FILE_OPEN_SHARE_WRITE); // [手順] - 共有フラグ付きでオープンする。
 
     // Assert
-    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした結果が 0 であること。
+    ASSERT_EQ(
+        0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
-    ASSERT_EQ(0, rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した com_util_file_get_id の戻り値が 0 であること。
     int rtc_file_get_path_id =
         com_util_file_get_path_id(path.c_str(), &path_id); // [手順] - パスから同一性 ID を取得する。
-    ASSERT_EQ(0, rtc_file_get_path_id); // [確認_正常系] - パスから同一性 ID を取得した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_get_path_id); // [確認_正常系] - パスから同一性 ID を取得した com_util_file_get_path_id の戻り値が 0 であること。
 
     /* 同じ実体を指している間は同一性が一致する */
     EXPECT_EQ(handle_id.volume, path_id.volume); // [確認_正常系] - volume が一致すること。
@@ -268,9 +282,12 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
                                COM_UTIL_FILE_OPEN_SHARE_WRITE); // [手順] - 共有フラグ付きでオープンする。
 
     // Assert
-    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした結果が 0 であること。
+    ASSERT_EQ(
+        0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
-    ASSERT_EQ(0, rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した com_util_file_get_id の戻り値が 0 であること。
 
     /* ローテーション相当の操作: path をリネームして同じ path に別ファイルを作る */
     int rtc_rename = std::rename(path.c_str(), renamed.c_str()); // [手順] - ファイルをリネームする。
@@ -279,7 +296,9 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
 
     int rtc_file_get_path_id =
         com_util_file_get_path_id(path.c_str(), &path_id); // [手順] - 差し替え後のパスから同一性 ID を取得する。
-    ASSERT_EQ(0, rtc_file_get_path_id); // [確認_正常系] - 差し替え後のパスから同一性 ID を取得した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_file_get_path_id); // [確認_正常系] - 差し替え後のパスから同一性 ID を取得した com_util_file_get_path_id の戻り値が 0 であること。
 
     /* path は別実体を指すため、開いているハンドルの同一性とは一致しない */
     EXPECT_FALSE(handle_id.volume == path_id.volume &&

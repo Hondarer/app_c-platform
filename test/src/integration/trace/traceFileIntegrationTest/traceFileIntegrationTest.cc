@@ -25,14 +25,20 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
     // Act
     int rtc_tracer_set_file_level = com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_INFO, 0,
                                                                    0, 0); // [手順] - file trace を有効化する。
-    ASSERT_EQ(0, rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した com_util_tracer_set_file_level の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                   "file error message"); // [手順] - ERROR 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - ERROR 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、ERROR 行を書き込んだ結果が 0 であること。
     int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                                     "file info message"); // [手順] - INFO 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - INFO 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_2); // [確認_正常系] - _com_util_tracer_write の戻り値として、INFO 行を書き込んだ結果が 0 であること。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -62,14 +68,20 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
     // Act
     int rtc_tracer_set_file_level = com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_ERROR, 0,
                                                                    0, 0); // [手順] - file level を ERROR に設定する。
-    ASSERT_EQ(0, rtc_tracer_set_file_level); // [確認_正常系] - file level を ERROR に設定した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_level); // [確認_正常系] - file level を ERROR に設定した com_util_tracer_set_file_level の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                   "should be in file"); // [手順] - ERROR 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - ERROR 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、ERROR 行を書き込んだ結果が 0 であること。
     int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_WARNING, NULL,
                                                     "should not be in file"); // [手順] - WARNING 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - WARNING 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_2); // [確認_正常系] - _com_util_tracer_write の戻り値として、WARNING 行を書き込んだ結果が 0 であること。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -98,14 +110,20 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     // Act
     int rtc_tracer_set_file_level = com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_DEBUG, 0,
                                                                    0, 0); // [手順] - file level を DEBUG に設定する。
-    ASSERT_EQ(0, rtc_tracer_set_file_level); // [確認_正常系] - file level を DEBUG に設定した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_level); // [確認_正常系] - file level を DEBUG に設定した com_util_tracer_set_file_level の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
                                                   "verbose in debug file"); // [手順] - VERBOSE 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - VERBOSE 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、VERBOSE 行を書き込んだ結果が 0 であること。
     int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL,
                                                     "debug in debug file"); // [手順] - DEBUG 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - DEBUG 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_2); // [確認_正常系] - _com_util_tracer_write の戻り値として、DEBUG 行を書き込んだ結果が 0 であること。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -135,20 +153,27 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
     // Act
     int rtc_tracer_set_file_level = com_util_tracer_set_file_level(handle, path.c_str(), COM_UTIL_TRACE_LEVEL_INFO, 0,
                                                                    0, 0); // [手順] - file trace を有効化する。
-    ASSERT_EQ(0, rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した com_util_tracer_set_file_level の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                   "before disable"); // [手順] - 無効化前に 1 行書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - 無効化前に 1 行書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、無効化前に 1 行書き込んだ結果が 0 であること。
     ASSERT_EQ(0, com_util_tracer_stop(handle));
     int rtc_tracer_set_file_level_2 = com_util_tracer_set_file_level(
         handle, path.c_str(), COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0); // [手順] - level NONE で file trace を無効化する。
     ASSERT_EQ(
-        0, rtc_tracer_set_file_level_2); // [確認_正常系] - level NONE で file trace を無効化した結果が 0 であること。
+        0,
+        rtc_tracer_set_file_level_2); // [確認_正常系] - level NONE で file trace を無効化した com_util_tracer_set_file_level の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                     "after disable"); // [手順] - 無効化後に 1 行書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - 無効化後に 1 行書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_2); // [確認_正常系] - _com_util_tracer_write の戻り値として、無効化後に 1 行書き込んだ結果が 0 であること。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -202,17 +227,22 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
     int rtc_tracer_set_name = com_util_tracer_set_name(
         handle, "default_path_it", 0); // [手順] - インスタンス名を設定する (ファイル名には影響しない)。
-    ASSERT_EQ(0,
-              rtc_tracer_set_name); // [確認_正常系] - インスタンス名の設定が成功すること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_name); // [確認_正常系] - com_util_tracer_set_name の戻り値から、インスタンス名の設定が成功したと判断できること。
 
     // Pre-Assert
 
     // Act
     int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - set_file_level なしで start する。
-    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - set_file_level なしで start した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_start); // [確認_正常系] - set_file_level なしで start した com_util_tracer_start の戻り値が 0 であること。
     int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                                   "default path message"); // [手順] - INFO 行を書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - INFO 行を書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、INFO 行を書き込んだ結果が 0 であること。
     com_util_tracer_dispose(handle);
 
     // Assert
@@ -242,19 +272,29 @@ TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_p
 
     // Act
     int rtc_tracer_start = com_util_tracer_start(first); // [手順] - 1 つ目の tracer を start する。
-    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - 1 つ目の tracer を start した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_start); // [確認_正常系] - 1 つ目の tracer を start した com_util_tracer_start の戻り値が 0 であること。
     int rtc_tracer_start_2 = com_util_tracer_start(second); // [手順] - 2 つ目も同一デフォルト パスで start する。
-    ASSERT_EQ(0, rtc_tracer_start_2); // [確認_正常系] - 2 つ目も同一デフォルト パスで start した結果が 0 であること。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_start_2); // [確認_正常系] - 2 つ目も同一デフォルト パスで start した com_util_tracer_start の戻り値が 0 であること。
     int rtc_tracer_write = _com_util_tracer_write(first, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                   "from first tracer"); // [手順] - 1 つ目から書き込む。
-    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - 1 つ目から書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write); // [確認_正常系] - _com_util_tracer_write の戻り値として、1 つ目から書き込んだ結果が 0 であること。
     int rtc_tracer_write_2 = _com_util_tracer_write(second, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                     "from second tracer"); // [手順] - 2 つ目から書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - 2 つ目から書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_2); // [確認_正常系] - _com_util_tracer_write の戻り値として、2 つ目から書き込んだ結果が 0 であること。
     com_util_tracer_dispose(first);                             // [手順] - 1 つ目を解放する。
     int rtc_tracer_write_3 = _com_util_tracer_write(second, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                     "after first dispose"); // [手順] - 解放後も 2 つ目から書き込む。
-    EXPECT_EQ(0, rtc_tracer_write_3); // [確認_正常系] - 解放後も 2 つ目から書き込んだ結果が 0 であること。
+    EXPECT_EQ(
+        0,
+        rtc_tracer_write_3); // [確認_正常系] - _com_util_tracer_write の戻り値として、解放後も 2 つ目から書き込んだ結果が 0 であること。
     com_util_tracer_dispose(second);
 
     // Assert

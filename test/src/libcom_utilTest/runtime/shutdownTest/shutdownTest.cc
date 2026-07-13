@@ -95,7 +95,9 @@ TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
         _com_util_shutdown_invoke_for_test(&event); // [手順] - 3 件の callback を shutdown イベントで実行する。
 
     // Assert
-    EXPECT_EQ(0, result);       // [確認_正常系] - shutdown 実行が成功すること。
+    EXPECT_EQ(
+        0,
+        result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値から、shutdown 実行が成功したと判断できること。
     ASSERT_EQ(3, g_call_count); // [確認_正常系] - callback が 3 回呼ばれること。
     EXPECT_EQ(3, g_order[0]);   // [確認_正常系] - 最後に登録した callback から実行されること。
     EXPECT_EQ(2, g_order[1]);   // [確認_正常系] - 2 番目に登録した callback が続くこと。
@@ -160,7 +162,9 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
         _com_util_shutdown_request_invoke_for_test(&request_event); // [手順] - 終了要求 callback を実行する。
 
     // Assert
-    EXPECT_EQ(0, request_result); // [確認_正常系] - 終了要求 callback の実行が成功すること。
+    EXPECT_EQ(
+        0,
+        request_result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値から、終了要求 callback の実行が成功したと判断できること。
     ASSERT_EQ(2, g_call_count);   // [確認_正常系] - request callback が 2 件だけ実行されること。
     EXPECT_EQ(2, g_order[0]);     // [確認_正常系] - request callback も LIFO 順で実行されること。
     EXPECT_EQ(1, g_order[1]);     // [確認_正常系] - 最初の request callback が最後に実行されること。
@@ -290,7 +294,9 @@ TEST_F(shutdownTest, test_console_event_is_reported_to_callback)
         &event); // [手順] - CTRL_C_EVENT 相当の request callback を実行する。
 
     // Assert
-    EXPECT_EQ(0, result);       // [確認_正常系] - request callback 実行が成功すること。
+    EXPECT_EQ(
+        0,
+        result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値から、request callback 実行が成功したと判断できること。
     EXPECT_EQ(1, g_call_count); // [確認_正常系] - callback が 1 回実行されること。
     EXPECT_EQ(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT,
               g_last_event.reason); // [確認_正常系] - コンソール イベントの理由が渡ること。

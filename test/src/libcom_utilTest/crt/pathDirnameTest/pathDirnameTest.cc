@@ -21,7 +21,7 @@ TEST_F(pathDirnameTest, returns_parent_of_nested_path)
                               "a/b/c"); // [手順] - com_util_path_dirname(actual, size, NULL, "a/b/c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 親ディレクトリが "a/b" であること。
 }
 
@@ -38,7 +38,7 @@ TEST_F(pathDirnameTest, returns_dot_when_no_separator)
                                     "c"); // [手順] - com_util_path_dirname(actual, size, NULL, "c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);         // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);         // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ(".", actual); // [確認_正常系] - "." が返ること。
 }
 
@@ -55,7 +55,7 @@ TEST_F(pathDirnameTest, returns_root_for_root_path)
                                     "/"); // [手順] - com_util_path_dirname(actual, size, NULL, "/") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);         // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);         // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ("/", actual); // [確認_正常系] - "/" が返ること。
 }
 
@@ -73,7 +73,7 @@ TEST_F(pathDirnameTest, returns_root_for_top_level_path)
                               "/name"); // [手順] - com_util_path_dirname(actual, size, NULL, "/name") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);         // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);         // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ("/", actual); // [確認_正常系] - "/" が返ること。
 }
 
@@ -90,7 +90,7 @@ TEST_F(pathDirnameTest, strips_trailing_separator_before_computing_parent)
                                     "a/b/"); // [手順] - com_util_path_dirname(actual, size, NULL, "a/b/") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);         // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);         // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ("a", actual); // [確認_正常系] - "a" が返ること。
 }
 
@@ -108,7 +108,7 @@ TEST_F(pathDirnameTest, normalizes_backslash_separator_in_output)
                               "a\\b\\c"); // [手順] - com_util_path_dirname(actual, size, NULL, "a\\b\\c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - 戻り値が 0 であること。
+    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_dirname の戻り値が 0 であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - '/' 正規化された "a/b" が返ること。
 }
 
@@ -125,7 +125,7 @@ TEST_F(pathDirnameTest, returns_einval_for_null_path_out)
                                     "a/b"); // [手順] - com_util_path_dirname(NULL, 16, &err, "a/b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_dirname の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }
 
@@ -143,7 +143,7 @@ TEST_F(pathDirnameTest, returns_einval_for_empty_path)
                                     ""); // [手順] - com_util_path_dirname(actual, size, &err, "") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_dirname の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }
 
@@ -161,7 +161,7 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_buffer_too_small)
                                     "ab/c"); // [手順] - com_util_path_dirname(actual, 2, &err, "ab/c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);           // [確認_異常系] - 戻り値が -1 であること。
+    EXPECT_EQ(-1, rtc);           // [確認_異常系] - com_util_path_dirname の戻り値が -1 であること。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
 }
 
@@ -178,5 +178,7 @@ TEST_F(pathDirnameTest, allows_null_errno_out)
                                     "a/b"); // [手順] - com_util_path_dirname(actual, 1, NULL, "a/b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - errno_out が NULL でもクラッシュせず -1 が返ること。
+    EXPECT_EQ(
+        -1,
+        rtc); // [確認_異常系] - com_util_path_dirname の戻り値として、errno_out が NULL でもクラッシュせず -1 が返ること。
 }

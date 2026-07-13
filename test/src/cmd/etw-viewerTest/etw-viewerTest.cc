@@ -137,7 +137,9 @@ TEST_F(etw_viewerTest, build_default_session_name_formats_process_id)
         etw_viewer_build_default_session_name(4321UL, buffer, sizeof(buffer)); // [手順] - 既定 session 名を生成する。
 
     // Assert
-    EXPECT_EQ(0, rc);                        // [確認_正常系] - session 名生成が成功すること。
+    EXPECT_EQ(
+        0,
+        rc); // [確認_正常系] - etw_viewer_build_default_session_name の戻り値から、session 名生成が成功したと判断できること。
     EXPECT_STREQ("etw-viewer_4321", buffer); // [確認_正常系] - process id を含む名前になること。
 }
 
@@ -154,7 +156,9 @@ TEST_F(etw_viewerTest, format_timestamp_utc_formats_filetime)
                                              sizeof(buffer)); // [手順] - FILETIME epoch を UTC 文字列へ変換する。
 
     // Assert
-    EXPECT_EQ(0, rc);                                      // [確認_正常系] - タイムスタンプ変換が成功すること。
+    EXPECT_EQ(
+        0,
+        rc); // [確認_正常系] - etw_viewer_format_timestamp_utc の戻り値から、タイムスタンプ変換が成功したと判断できること。
     EXPECT_STREQ("1970-01-01T09:00:00.000+09:00", buffer); // [確認_正常系] - ローカル ISO8601 形式へ変換されること。
 }
 
