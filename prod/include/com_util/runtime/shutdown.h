@@ -120,6 +120,63 @@ extern "C"
 
     /**
      *  @brief          終了コードを記録して `exit(code)` を実行します。
+     *
+     *  @note
+     *  @parblock
+     *  Linux と Windows の両方で動作し、シェルから利用される CLI では、独自に定義する終了コードに
+     *  0-125 の範囲を推奨します。
+     *
+     *  **推奨する終了コード**
+     *
+     *  - 0: 正常終了。
+     *  - 1-125: アプリケーション固有の失敗。
+     *
+     *  本関数は値の範囲を検証しません。\n
+     *  呼び出し側がクロスプラットフォームの終了コード規約として 0-125 を使用してください。
+     *
+     *  **0-125 を推奨する理由**
+     *
+     *  POSIX の `wait()` と `waitpid()` から利用できる通常終了コードは、`exit()` などへ渡した値の
+     *  下位 8 bit です。\n
+     *  そのため、256 以上の値は呼び出し側が指定した値とは異なる終了コードとして取得され、
+     *  256 は 0 として取得されます。
+     *
+     *  Bash が扱う終了ステータスの範囲は 0-255 ですが、126 はコマンドを実行できない場合、
+     *  127 はコマンドが見つからない場合に使用されます。\n
+     *  Bash は致命的なシグナル N でコマンドが終了した場合に 128+N を使用するため、128 以上も
+     *  アプリケーション固有の終了コードとの区別が難しくなります。
+     *
+     *  **Windows との共通利用**
+     *
+     *  Windows の `ExitProcess()` は `UINT` 型の終了コードを受け取り、`GetExitCodeProcess()` は
+     *  プロセスの終了ステータスを `DWORD` 型で取得します。\n
+     *  Windows API 間では 32 bit の値を利用できますが、POSIX とシェルを含む共通の CLI 契約では、
+     *  その範囲を前提にできません。\n
+     *  負数や 256 以上の値は、OS や呼び出し側によって切り捨てまたは符号の解釈が異なります。
+     *  `GetExitCodeProcess()` が実行中を表す `STILL_ACTIVE` として使用する 259 も、
+     *  アプリケーション固有の終了コードには使用しません。
+     *
+     *  **詳細なエラー情報**
+     *
+     *  終了コードには、成功か失敗か、および失敗の大分類だけを割り当てます。\n
+     *  詳細なエラー情報は、用途に応じて次の出力先へ記録します。
+     *
+     *  - 標準エラー出力: 利用者が読むエラー メッセージ。
+     *  - ログ: OS エラー コードや内部状態などの診断情報。
+     *  - IPC または結果ファイル: 呼び出し側が機械処理する構造化された結果。
+     *
+     *  `errno`、`GetLastError()`、`HRESULT`、`NTSTATUS` などの値を終了コードとして直接使用すると、
+     *  POSIX で値が失われたり、呼び出し側の符号解釈が変わったりします。\n
+     *  これらの値は終了コードへ変換せず、標準エラー出力、ログ、IPC などへ記録してください。
+     *
+     *  **参考資料**
+     *
+     *  - [POSIX.1-2024 `_Exit`](https://pubs.opengroup.org/onlinepubs/9799919799/functions/_exit.html)
+     *  - [GNU Bash Reference Manual: Exit Status](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html)
+     *  - [Microsoft Learn: `ExitProcess` function](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitprocess)
+     *  - [Microsoft Learn: `GetExitCodeProcess` function](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess)
+     *  @endparblock
+     *
      *  @param[in]      code 終了コード。
      *
      *  @par            スレッド セーフ
