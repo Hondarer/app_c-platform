@@ -216,6 +216,19 @@ TEST_F(argparserTest, register_rejects_invalid_arguments)
               _com_util_argparser_register_positional_int(
                   parser, NULL, NULL, 0,
                   &storage)); // [確認_異常系] - 位置引数の名前 NULL が検出されること。
+    size_t positional_count = 0;
+    EXPECT_EQ(COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
+              _com_util_argparser_register_positional_int_array(
+                  parser, "values", NULL, 0, NULL, 1,
+                  &positional_count)); // [確認_異常系] - 可変長位置引数の storage NULL が検出されること。
+    EXPECT_EQ(COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
+              _com_util_argparser_register_positional_int_array(
+                  parser, "values", NULL, 0, &storage, 0,
+                  &positional_count)); // [確認_異常系] - 可変長位置引数の capacity 0 が検出されること。
+    EXPECT_EQ(COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
+              _com_util_argparser_register_positional_int_array(
+                  parser, "values", NULL, 0, &storage, 1,
+                  NULL)); // [確認_異常系] - 可変長位置引数の count NULL が検出されること。
 
     _com_util_argparser_dispose(parser);
 }
@@ -268,6 +281,40 @@ TEST_F(argparserTest, register_rejects_required_positional_after_optional)
         _com_util_argparser_register_positional_string(
             parser, "second", NULL, COM_UTIL_ARGPARSER_REQUIRED,
             &second)); // [確認_異常系] - 任意の位置引数の後の必須位置引数 "second" の登録が INVALID_ARGUMENT になること。
+
+    _com_util_argparser_dispose(parser);
+}
+
+// 可変長位置引数を位置引数列の末尾に 1 件だけ登録できることの確認
+TEST_F(argparserTest, register_requires_variadic_positional_to_be_last)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *values[2] = {};
+    size_t value_count = 0;
+    const char *trailing = NULL;
+    int verbose = 0;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string_array(
+                                         parser, "values", NULL, 0, values, 2,
+                                         &value_count)); // [状態] - 可変長位置引数 "values" を登録済みとする。
+
+    // Pre-Assert
+
+    // Act
+    // Assert
+    EXPECT_EQ(COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
+              _com_util_argparser_register_positional_string(
+                  parser, "trailing", NULL, 0,
+                  &trailing)); // [確認_異常系] - 可変長位置引数の後に単数位置引数を登録できないこと。
+    EXPECT_EQ(COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
+              _com_util_argparser_register_positional_string_array(
+                  parser, "more", NULL, 0, values, 2,
+                  &value_count)); // [確認_異常系] - 可変長位置引数を複数登録できないこと。
+    EXPECT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_flag(
+                  parser, "-v", "--verbose", NULL,
+                  &verbose)); // [確認_正常系] - 可変長位置引数の後でもオプションを登録できること。
 
     _com_util_argparser_dispose(parser);
 }
@@ -961,6 +1008,132 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
     _com_util_argparser_dispose(parser);
 }
 
+// 可変長文字列位置引数の割り当て、容量超過、再解析の確認
+TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *input = NULL;
+    const char *files[2] = {};
+    size_t file_count = 99;
+    int verbose = 0;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string(
+                                         parser, "input", NULL, COM_UTIL_ARGPARSER_REQUIRED,
+                                         &input)); // [状態] - 必須の単数位置引数 "input" を登録する。
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string_array(
+                                         parser, "files", NULL, 0, files, 2,
+                                         &file_count)); // [状態] - 任意の可変長位置引数 "files" を容量 2 で登録する。
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_flag(
+                                         parser, "-v", "--verbose", NULL,
+                                         &verbose)); // [状態] - 可変長位置引数の後にフラグ "--verbose" を登録する。
+
+    // Pre-Assert
+
+    // Act
+    // Assert
+    {
+        ARGV(cstr("prog"), cstr("in.txt"), cstr("a.txt"), cstr("-v"), cstr("b.txt"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK,
+                  _com_util_argparser_parse(
+                      parser, argc, argv)); // [手順] - 単数位置引数、可変長位置引数、フラグが混在する入力を解析する。
+        EXPECT_STREQ("in.txt", input);      // [確認_正常系] - 先頭の位置引数が "input" に割り当てられること。
+        EXPECT_EQ((size_t)2, file_count);   // [確認_正常系] - 可変長位置引数の件数が 2 であること。
+        EXPECT_EQ(argv[2], files[0]);       // [確認_正常系] - 1 件目の可変長位置引数が argv[2] を指すこと。
+        EXPECT_EQ(argv[4], files[1]);       // [確認_正常系] - フラグを挟んだ 2 件目が argv[4] を指すこと。
+        EXPECT_EQ(1, verbose);              // [確認_正常系] - 混在したフラグも解析されること。
+    }
+    {
+        ARGV(cstr("prog"), cstr("in.txt"), cstr("a.txt"), cstr("b.txt"), cstr("c.txt"));
+        EXPECT_EQ(
+            COM_UTIL_ARGPARSER_PARSE_ERROR,
+            _com_util_argparser_parse(parser, argc, argv)); // [手順] - 容量 2 を超える 3 件の可変長位置引数を解析する。
+        EXPECT_EQ(
+            COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS,
+            _com_util_argparser_get_error(parser)); // [確認_異常系] - 容量超過が TOO_MANY_POSITIONALS になること。
+        EXPECT_STREQ(
+            "c.txt",
+            _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が超過した "c.txt" であること。
+        EXPECT_EQ(4,
+                  _com_util_argparser_get_error_index(
+                      parser)); // [確認_異常系] - エラー位置が超過トークンの argv[4] であること。
+    }
+    {
+        ARGV(cstr("prog"), cstr("in.txt"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_OK,
+                  _com_util_argparser_parse(parser, argc, argv)); // [手順] - 可変長位置引数を省略して再解析する。
+        EXPECT_EQ((size_t)0,
+                  file_count); // [確認_正常系] - 再解析時に可変長位置引数の件数が 0 へ初期化されること。
+    }
+
+    _com_util_argparser_dispose(parser);
+}
+
+// 可変長 int 位置引数の変換、負数、必須条件の確認
+TEST_F(argparserTest, positional_int_array_conversion_and_required)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int values[3] = {};
+    size_t value_count = 0;
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_int_array(
+                                         parser, "values", NULL, COM_UTIL_ARGPARSER_REQUIRED, values, 3,
+                                         &value_count)); // [状態] - 必須の可変長 int 位置引数 "values" を登録する。
+
+    // Pre-Assert
+
+    // Act
+    // Assert
+    {
+        ARGV(cstr("prog"), cstr("-42"), cstr("7"));
+        EXPECT_EQ(
+            COM_UTIL_ARGPARSER_OK,
+            _com_util_argparser_parse(parser, argc, argv)); // [手順] - 負数と正数を可変長 int 位置引数として解析する。
+        EXPECT_EQ((size_t)2, value_count);                  // [確認_正常系] - 解析した値の件数が 2 であること。
+        EXPECT_EQ(-42, values[0]);                          // [確認_正常系] - 負数 -42 が値として格納されること。
+        EXPECT_EQ(7, values[1]);                            // [確認_正常系] - 正数 7 が値として格納されること。
+    }
+    {
+        ARGV(cstr("prog"), cstr("12a"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR,
+                  _com_util_argparser_parse(parser, argc, argv)); // [手順] - 整数へ変換できない "12a" を解析する。
+        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_INVALID_INT,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INT になること。
+        EXPECT_STREQ("values",
+                     _com_util_argparser_get_error_target(
+                         parser)); // [確認_異常系] - エラー対象が位置引数名 "values" であること。
+    }
+    {
+        ARGV(cstr("prog"), cstr("-2147483649"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR,
+                  _com_util_argparser_parse(parser, argc, argv)); // [手順] - int の下限を下回る値を解析する。
+        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 範囲外エラーが OUT_OF_RANGE になること。
+    }
+    {
+        ARGV(cstr("prog"));
+        EXPECT_EQ(COM_UTIL_ARGPARSER_PARSE_ERROR,
+                  _com_util_argparser_parse(parser, argc, argv)); // [手順] - 必須の可変長位置引数を省略して解析する。
+        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 必須欠落が MISSING_REQUIRED になること。
+        EXPECT_STREQ("values",
+                     _com_util_argparser_get_error_target(
+                         parser)); // [確認_異常系] - エラー対象が位置引数名 "values" であること。
+    }
+
+    char usage[256];
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_get_usage(parser, usage, sizeof(usage),
+                                            NULL)); // [手順] - 必須の可変長位置引数を含む usage を組み立てる。
+    EXPECT_THAT(
+        std::string(usage),
+        HasSubstr(
+            "Usage: prog <values>...\n")); // [確認_正常系] - 必須の可変長位置引数が <values>... と表示されること。
+
+    _com_util_argparser_dispose(parser);
+}
+
 // 未知のオプションが検出されることの確認 (短オプション連結を含む)
 TEST_F(argparserTest, unknown_option_detection)
 {
@@ -1310,6 +1483,8 @@ TEST_F(argparserTest, usage_formatting)
     const char *name = NULL;
     const char *input = NULL;
     const char *output = NULL;
+    const char *files[2] = {};
+    size_t file_count = 0;
     ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", "verbose output", &verbose));
     ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
@@ -1319,9 +1494,12 @@ TEST_F(argparserTest, usage_formatting)
               _com_util_argparser_register_option_string(parser, NULL, "--name", "NAME", "display name", 0, &name));
     ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string(
                                          parser, "input", "input file", COM_UTIL_ARGPARSER_REQUIRED, &input));
-    ASSERT_EQ(COM_UTIL_ARGPARSER_OK, _com_util_argparser_register_positional_string(
-                                         parser, "output", "output file", 0,
-                                         &output)); // [状態] - フラグ、オプション、位置引数を一式登録する。
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_positional_string(parser, "output", "output file", 0, &output));
+    ASSERT_EQ(COM_UTIL_ARGPARSER_OK,
+              _com_util_argparser_register_positional_string_array(
+                  parser, "files", "additional files", 0, files, 2,
+                  &file_count)); // [状態] - フラグ、オプション、単数・可変長位置引数を一式登録する。
 
     // Pre-Assert
 
@@ -1339,7 +1517,7 @@ TEST_F(argparserTest, usage_formatting)
     EXPECT_THAT(
         usage_text,
         HasSubstr(
-            "Usage: sample [OPTIONS] <input> [output]\n")); // [確認_正常系] - Usage 行に必須と任意の位置引数が反映されること。
+            "Usage: sample [OPTIONS] <input> [output] [files...]\n")); // [確認_正常系] - Usage 行に単数・可変長位置引数が反映されること。
     EXPECT_THAT(usage_text,
                 HasSubstr("\nPositional arguments:\n")); // [確認_正常系] - 位置引数セクションが含まれること。
     EXPECT_THAT(
@@ -1349,6 +1527,10 @@ TEST_F(argparserTest, usage_formatting)
     EXPECT_THAT(
         usage_text,
         HasSubstr("  output                    output file\n")); // [確認_正常系] - 任意位置引数の行が含まれること。
+    EXPECT_THAT(
+        usage_text,
+        HasSubstr(
+            "  files                     additional files\n")); // [確認_正常系] - 可変長位置引数の行が含まれること。
     EXPECT_THAT(usage_text, HasSubstr("\nOptions:\n")); // [確認_正常系] - オプション セクションが含まれること。
     EXPECT_THAT(
         usage_text,

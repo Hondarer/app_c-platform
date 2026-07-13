@@ -47,7 +47,9 @@ typedef enum
     ARGPARSER_SPEC_OPTION_INT_ARRAY = 3,
     ARGPARSER_SPEC_OPTION_STRING_ARRAY = 4,
     ARGPARSER_SPEC_POSITIONAL_INT = 5,
-    ARGPARSER_SPEC_POSITIONAL_STRING = 6
+    ARGPARSER_SPEC_POSITIONAL_STRING = 6,
+    ARGPARSER_SPEC_POSITIONAL_INT_ARRAY = 7,
+    ARGPARSER_SPEC_POSITIONAL_STRING_ARRAY = 8
 } argparser_spec_kind;
 
 /* 登録項目 */
@@ -186,7 +188,23 @@ static int argparser_is_valid_long_name(const char *name)
  */
 static int argparser_spec_is_positional(const argparser_spec *spec)
 {
-    if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT || spec->kind == ARGPARSER_SPEC_POSITIONAL_STRING)
+    if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT || spec->kind == ARGPARSER_SPEC_POSITIONAL_STRING ||
+        spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY || spec->kind == ARGPARSER_SPEC_POSITIONAL_STRING_ARRAY)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  @brief          登録項目が可変長位置引数かどうかを判定します。
+ *  @param[in]      spec  判定する登録項目。
+ *  @return         可変長位置引数の場合は 1、それ以外の場合は 0 を返します。
+ */
+static int argparser_spec_is_positional_array(const argparser_spec *spec)
+{
+    if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY || spec->kind == ARGPARSER_SPEC_POSITIONAL_STRING_ARRAY)
     {
         return 1;
     }
@@ -502,8 +520,18 @@ static int argparser_register_positional_core(com_util_argparser *parser, argpar
     }
     else
     {
+        /* 可変長位置引数は位置引数列の末尾に 1 件だけ登録できる */
+        for (size_t i = 0; i < parser->spec_count; i++)
+        {
+            if (argparser_spec_is_positional_array(&parser->specs[i]) != 0)
+            {
+                result = COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+                break;
+            }
+        }
+
         /* 任意の位置引数の後に必須の位置引数は登録できない (割り当てが曖昧になるため) */
-        if ((flags & COM_UTIL_ARGPARSER_REQUIRED) != 0u)
+        if (result == COM_UTIL_ARGPARSER_OK && (flags & COM_UTIL_ARGPARSER_REQUIRED) != 0u)
         {
             for (size_t i = 0; i < parser->spec_count; i++)
             {
@@ -697,11 +725,37 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
     while (*positional_index < parser->spec_count)
     {
         argparser_spec *spec = &parser->specs[*positional_index];
-        (*positional_index)++;
         if (argparser_spec_is_positional(spec) == 0)
         {
+            (*positional_index)++;
             continue;
         }
+
+        if (argparser_spec_is_positional_array(spec) != 0)
+        {
+            if (*spec->count >= spec->capacity)
+            {
+                return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS, token, index);
+            }
+            if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY)
+            {
+                int int_error = argparser_parse_int(token, &spec->int_storage[*spec->count]);
+                if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
+                {
+                    return argparser_set_error(parser, int_error, spec->long_name, index);
+                }
+            }
+            else
+            {
+                spec->string_storage[*spec->count] = token;
+            }
+            (*spec->count)++;
+            spec->found++;
+
+            return COM_UTIL_ARGPARSER_OK;
+        }
+
+        (*positional_index)++;
 
         if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
         {
@@ -903,11 +957,19 @@ static void argparser_usage_build(const com_util_argparser *parser, argparser_us
             argparser_usage_write(writer, " <");
             argparser_usage_write(writer, spec->long_name);
             argparser_usage_write(writer, ">");
+            if (argparser_spec_is_positional_array(spec) != 0)
+            {
+                argparser_usage_write(writer, "...");
+            }
         }
         else
         {
             argparser_usage_write(writer, " [");
             argparser_usage_write(writer, spec->long_name);
+            if (argparser_spec_is_positional_array(spec) != 0)
+            {
+                argparser_usage_write(writer, "...");
+            }
             argparser_usage_write(writer, "]");
         }
     }
@@ -1349,6 +1411,74 @@ void com_util_argparser_register_positional_string(const char *name, const char 
                                                          storage);
 }
 
+int _com_util_argparser_register_positional_int_array(com_util_argparser *parser, const char *name,
+                                                      const char *description, const unsigned int flags, int *storage,
+                                                      const size_t capacity, size_t *count)
+{
+    if (storage == NULL || capacity == 0 || count == NULL)
+    {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, name, NULL);
+        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+
+    argparser_spec *spec = NULL;
+    int result = argparser_register_positional_core(parser, ARGPARSER_SPEC_POSITIONAL_INT_ARRAY, name, description,
+                                                    flags, &spec);
+    if (result != COM_UTIL_ARGPARSER_OK)
+    {
+        return result;
+    }
+    spec->int_storage = storage;
+    spec->capacity = capacity;
+    spec->count = count;
+
+    return COM_UTIL_ARGPARSER_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_positional_int_array(const char *name, const char *description,
+                                                      const unsigned int flags, int *storage, const size_t capacity,
+                                                      size_t *count)
+{
+    (void)_com_util_argparser_register_positional_int_array(_com_util_argparser_default(NULL), name, description, flags,
+                                                            storage, capacity, count);
+}
+
+int _com_util_argparser_register_positional_string_array(com_util_argparser *parser, const char *name,
+                                                         const char *description, const unsigned int flags,
+                                                         const char **storage, const size_t capacity, size_t *count)
+{
+    if (storage == NULL || capacity == 0 || count == NULL)
+    {
+        argparser_record_register_result(parser, COM_UTIL_ARGPARSER_INVALID_ARGUMENT, name, NULL);
+        return COM_UTIL_ARGPARSER_INVALID_ARGUMENT;
+    }
+
+    argparser_spec *spec = NULL;
+    int result = argparser_register_positional_core(parser, ARGPARSER_SPEC_POSITIONAL_STRING_ARRAY, name, description,
+                                                    flags, &spec);
+    if (result != COM_UTIL_ARGPARSER_OK)
+    {
+        return result;
+    }
+    spec->string_storage = storage;
+    spec->capacity = capacity;
+    spec->count = count;
+
+    return COM_UTIL_ARGPARSER_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_argparser_register_positional_string_array(const char *name, const char *description,
+                                                         const unsigned int flags, const char **storage,
+                                                         const size_t capacity, size_t *count)
+{
+    (void)_com_util_argparser_register_positional_string_array(_com_util_argparser_default(NULL), name, description,
+                                                               flags, storage, capacity, count);
+}
+
 int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *const *argv)
 {
     if (parser == NULL || argc < 1 || argv == NULL)
@@ -1468,7 +1598,8 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
                         const argparser_spec *next_spec = &parser->specs[next_positional_index];
                         if (argparser_spec_is_positional(next_spec) != 0)
                         {
-                            if (next_spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
+                            if (next_spec->kind == ARGPARSER_SPEC_POSITIONAL_INT ||
+                                next_spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY)
                             {
                                 int result = argparser_store_positional(parser, token, i, &positional_index);
                                 if (result != COM_UTIL_ARGPARSER_OK)

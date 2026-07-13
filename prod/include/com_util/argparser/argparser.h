@@ -14,6 +14,7 @@
  *  - フラグ : `-v` / `--verbose` (出現回数を格納)
  *  - 値付きオプション : `-o {value}` / `-o={value}` / `--option {value}` / `--option={value}`
  *  - 位置引数 : 登録順に割り当て
+ *  - 可変長位置引数 : 位置引数列の末尾で複数の値を配列へ格納
  *  - 負の位置整数 : 次の位置引数が整数型の場合、`-1` などを位置引数として割り当て
  *
  *  短オプションの連結 (`-abc`) と `--` 区切りはサポートしません。
@@ -128,7 +129,7 @@ extern "C"
 #define COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE         (4) /**< 整数値が int の範囲を超えている。 */
 #define COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED     (5) /**< 必須のオプション/位置引数が指定されなかった。 */
 #define COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION     (6) /**< 単数オプションが複数回指定された。 */
-#define COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS (7) /**< 位置引数が登録数を超えた。 */
+#define COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS (7) /**< 位置引数が登録した受入数を超えた。 */
 #define COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES (8) /**< 複数値オプションの出現数が容量を超えた。 */
 #define COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE     (9) /**< フラグに値が指定された (`--flag={value}`)。 */
 
@@ -453,6 +454,79 @@ extern "C"
                                                                                     const char *description,
                                                                                     unsigned int flags,
                                                                                     const char **storage);
+
+    /**
+     *  @brief          可変長の int 値位置引数を登録します。
+     *  @param[in]      parser       引数パーサー ハンドルです。NULL を渡してはなりません。
+     *  @param[in]      name         usage に表示する位置引数の名前です。NULL を渡してはなりません。
+     *  @param[in]      description  usage に表示する説明文です。NULL も指定できます。
+     *  @param[in]      flags        登録フラグです。@ref COM_UTIL_ARGPARSER_REQUIRED を指定できます
+     *                               (1 個以上の位置引数を必須とします)。
+     *  @param[out]     storage      解析した値を出現順に格納する配列です。NULL を渡してはなりません。
+     *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。
+     *                               出現数が @p capacity を超えた場合は解析エラー
+     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
+     *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
+     *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
+     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_int_array(com_util_argparser *parser,
+                                                                                       const char *name,
+                                                                                       const char *description,
+                                                                                       unsigned int flags, int *storage,
+                                                                                       size_t capacity, size_t *count);
+
+    /**
+     *  @brief          可変長の int 値位置引数を、プロセス共有のデフォルト パーサーへ登録します。
+     *
+     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
+     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @see            _com_util_argparser_register_positional_int_array
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_positional_int_array(const char *name,
+                                                                                       const char *description,
+                                                                                       unsigned int flags, int *storage,
+                                                                                       size_t capacity, size_t *count);
+
+    /**
+     *  @brief          可変長の文字列値位置引数を登録します。
+     *  @param[in]      parser       引数パーサー ハンドルです。NULL を渡してはなりません。
+     *  @param[in]      name         usage に表示する位置引数の名前です。NULL を渡してはなりません。
+     *  @param[in]      description  usage に表示する説明文です。NULL も指定できます。
+     *  @param[in]      flags        登録フラグです。@ref COM_UTIL_ARGPARSER_REQUIRED を指定できます
+     *                               (1 個以上の位置引数を必須とします)。
+     *  @param[out]     storage      解析した値を出現順に格納する配列です。NULL を渡してはなりません。
+     *                               格納する文字列は argv 内の文字列を指します (コピーしません)。
+     *                               寿命は argv に従います。
+     *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。
+     *                               出現数が @p capacity を超えた場合は解析エラー
+     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
+     *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
+     *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
+     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_string_array(
+        com_util_argparser *parser, const char *name, const char *description, unsigned int flags, const char **storage,
+        size_t capacity, size_t *count);
+
+    /**
+     *  @brief          可変長の文字列値位置引数を、プロセス共有のデフォルト パーサーへ登録します。
+     *
+     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
+     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @see            _com_util_argparser_register_positional_string_array
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API
+    com_util_argparser_register_positional_string_array(const char *name, const char *description, unsigned int flags,
+                                                        const char **storage, size_t capacity, size_t *count);
 
     /**
      *  @brief          コマンドラインを解析し、登録済みの格納先に結果を書き込みます。

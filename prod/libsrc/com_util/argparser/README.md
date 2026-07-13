@@ -13,6 +13,7 @@ short-title: "argparser"
 - 値付きオプション: `-o value` / `--option value` / `--option=value`
 - 複数回指定できる値付きオプション: 上記構文の繰り返し (出現順に配列へ格納)
 - 位置引数: 登録順に割り当て
+- 可変長位置引数: 位置引数列の末尾で複数の値を配列へ格納
 - 負の位置整数: 次の位置引数が整数型の場合、`-1` などを位置引数として割り当て
 
 次の構文は対応していません。
@@ -206,6 +207,33 @@ com_util_argparser_register_positional_string("output", "出力ファイル", 0,
 
 登録数を超える位置引数トークンが出現した場合は `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` になります。
 
+### 可変長位置引数
+
+残りの位置引数を同じ用途の配列へ格納する場合は、可変長位置引数を使用します。
+呼び出し側は格納先の配列 (`storage`)、その要素数 (`capacity`)、出現数の格納先 (`count`) を渡します。
+
+```c
+#define FILE_MAX 8
+
+const char *files[FILE_MAX];
+size_t file_count = 0;
+
+com_util_argparser_register_positional_string_array("files", "処理するファイル", COM_UTIL_ARGPARSER_REQUIRED,
+                                                    files, FILE_MAX, &file_count);
+
+/* "a.txt b.txt" を解析すると
+   file_count == 2, files[0] == "a.txt", files[1] == "b.txt" */
+```
+
+可変長位置引数は位置引数列の末尾に 1 件だけ登録できます。
+可変長位置引数の後に別の位置引数を登録すると、登録エラーになります。
+値付きオプションやフラグは可変長位置引数の後から登録でき、コマンド ライン上でも位置引数の途中に指定できます。
+
+`COM_UTIL_ARGPARSER_REQUIRED` を指定した場合は 1 個以上、指定しない場合は 0 個以上の値を受け取ります。
+`capacity` を超える値は `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` になります。
+int 値には `com_util_argparser_register_positional_int_array()` を使用します。
+文字列配列の要素は argv 内の文字列を指し、文字列の寿命は argv に従います。
+
 ### ヘルプ表示との組み合わせ
 
 `--help` のようなフラグと `com_util_argparser_print_usage()` を組み合わせると、必須引数が省略されていてもヘルプを優先して表示できます。
@@ -275,7 +303,7 @@ com_util_argparser_parse(argc2, argv2);
 /* ... 2 回目の結果を利用 (フラグと複数値オプションの出現数は自動的にリセットされる) ... */
 ```
 
-呼び出しの開始時に、フラグの格納先を 0 に、複数値オプションの出現数を 0 に初期化し、前回のエラー状態をクリアします。
+呼び出しの開始時に、フラグの格納先を 0 に、複数値オプションと可変長位置引数の出現数を 0 に初期化し、前回のエラー状態をクリアします。
 値付きオプションと位置引数の格納先は出現時のみ上書きされるため、2 回目の解析前に必要であれば呼び出し側で既定値を設定し直してください。
 
 ## 参考実装

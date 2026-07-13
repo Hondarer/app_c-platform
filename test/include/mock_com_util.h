@@ -401,6 +401,14 @@ extern int delegate_real__com_util_argparser_register_positional_int(com_util_ar
 extern int delegate_real__com_util_argparser_register_positional_string(com_util_argparser *parser, const char *name,
                                                                         const char *description, unsigned int flags,
                                                                         const char **storage);
+extern int delegate_real__com_util_argparser_register_positional_int_array(com_util_argparser *parser, const char *name,
+                                                                           const char *description, unsigned int flags,
+                                                                           int *storage, size_t capacity,
+                                                                           size_t *count);
+extern int delegate_real__com_util_argparser_register_positional_string_array(com_util_argparser *parser,
+                                                                              const char *name, const char *description,
+                                                                              unsigned int flags, const char **storage,
+                                                                              size_t capacity, size_t *count);
 extern int delegate_real__com_util_argparser_parse(com_util_argparser *parser, int argc, char *const *argv);
 extern int delegate_real__com_util_argparser_get_error(const com_util_argparser *parser);
 extern const char *delegate_real__com_util_argparser_get_error_target(const com_util_argparser *parser);
@@ -443,6 +451,12 @@ extern void delegate_real_com_util_argparser_register_positional_int(const char 
                                                                      unsigned int flags, int *storage);
 extern void delegate_real_com_util_argparser_register_positional_string(const char *name, const char *description,
                                                                         unsigned int flags, const char **storage);
+extern void delegate_real_com_util_argparser_register_positional_int_array(const char *name, const char *description,
+                                                                           unsigned int flags, int *storage,
+                                                                           size_t capacity, size_t *count);
+extern void delegate_real_com_util_argparser_register_positional_string_array(const char *name, const char *description,
+                                                                              unsigned int flags, const char **storage,
+                                                                              size_t capacity, size_t *count);
 extern int delegate_real_com_util_argparser_parse(int argc, char *const *argv);
 extern int delegate_real_com_util_argparser_get_error(void);
 extern const char *delegate_real_com_util_argparser_get_error_target(void);
@@ -769,6 +783,10 @@ class Mock_com_util
                 (com_util_argparser *, const char *, const char *, unsigned int, int *));
     MOCK_METHOD(int, _com_util_argparser_register_positional_string,
                 (com_util_argparser *, const char *, const char *, unsigned int, const char **));
+    MOCK_METHOD(int, _com_util_argparser_register_positional_int_array,
+                (com_util_argparser *, const char *, const char *, unsigned int, int *, size_t, size_t *));
+    MOCK_METHOD(int, _com_util_argparser_register_positional_string_array,
+                (com_util_argparser *, const char *, const char *, unsigned int, const char **, size_t, size_t *));
     MOCK_METHOD(int, _com_util_argparser_parse, (com_util_argparser *, int, char *const *));
     MOCK_METHOD(int, _com_util_argparser_get_error, (const com_util_argparser *));
     MOCK_METHOD(const char *, _com_util_argparser_get_error_target, (const com_util_argparser *));
@@ -799,6 +817,10 @@ class Mock_com_util
     MOCK_METHOD(void, com_util_argparser_register_positional_int, (const char *, const char *, unsigned int, int *));
     MOCK_METHOD(void, com_util_argparser_register_positional_string,
                 (const char *, const char *, unsigned int, const char **));
+    MOCK_METHOD(void, com_util_argparser_register_positional_int_array,
+                (const char *, const char *, unsigned int, int *, size_t, size_t *));
+    MOCK_METHOD(void, com_util_argparser_register_positional_string_array,
+                (const char *, const char *, unsigned int, const char **, size_t, size_t *));
     MOCK_METHOD(int, com_util_argparser_parse, (int, char *const *));
     MOCK_METHOD(int, com_util_argparser_get_error, ());
     MOCK_METHOD(const char *, com_util_argparser_get_error_target, ());

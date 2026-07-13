@@ -74,6 +74,14 @@ DEFINE_ARGPARSER_RESULT(_com_util_argparser_register_positional_int, (parser, na
 DEFINE_ARGPARSER_RESULT(_com_util_argparser_register_positional_string, (parser, name, description, flags, storage),
                         com_util_argparser *parser, const char *name, const char *description, unsigned int flags,
                         const char **storage)
+DEFINE_ARGPARSER_RESULT(_com_util_argparser_register_positional_int_array,
+                        (parser, name, description, flags, storage, capacity, count), com_util_argparser *parser,
+                        const char *name, const char *description, unsigned int flags, int *storage, size_t capacity,
+                        size_t *count)
+DEFINE_ARGPARSER_RESULT(_com_util_argparser_register_positional_string_array,
+                        (parser, name, description, flags, storage, capacity, count), com_util_argparser *parser,
+                        const char *name, const char *description, unsigned int flags, const char **storage,
+                        size_t capacity, size_t *count)
 DEFINE_ARGPARSER_RESULT(_com_util_argparser_parse, (parser, argc, argv), com_util_argparser *parser, int argc,
                         char *const *argv)
 DEFINE_ARGPARSER_RESULT(_com_util_argparser_get_error_message, (parser, buffer, buffer_size),
@@ -351,6 +359,12 @@ DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_int, (name, descrip
                       const char *description, unsigned int flags, int *storage)
 DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_string, (name, description, flags, storage),
                       const char *name, const char *description, unsigned int flags, const char **storage)
+DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_int_array,
+                      (name, description, flags, storage, capacity, count), const char *name, const char *description,
+                      unsigned int flags, int *storage, size_t capacity, size_t *count)
+DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_string_array,
+                      (name, description, flags, storage, capacity, count), const char *name, const char *description,
+                      unsigned int flags, const char **storage, size_t capacity, size_t *count)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_parse, (argc, argv), int argc, char *const *argv)
 DEFINE_ARGPARSER_VOID(com_util_argparser_get_error_message, (buffer, buffer_size), char *buffer, size_t buffer_size)
 DEFINE_ARGPARSER_VOID(com_util_argparser_get_usage, (buffer, buffer_size, required_size), char *buffer,

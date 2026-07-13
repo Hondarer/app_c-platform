@@ -342,6 +342,10 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_int));
     ON_CALL(*this, _com_util_argparser_register_positional_string(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_string));
+    ON_CALL(*this, _com_util_argparser_register_positional_int_array(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_int_array));
+    ON_CALL(*this, _com_util_argparser_register_positional_string_array(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real__com_util_argparser_register_positional_string_array));
     ON_CALL(*this, _com_util_argparser_parse(_, _, _)).WillByDefault(Invoke(delegate_real__com_util_argparser_parse));
     ON_CALL(*this, _com_util_argparser_get_error(_)).WillByDefault(Invoke(delegate_real__com_util_argparser_get_error));
     ON_CALL(*this, _com_util_argparser_get_error_target(_))
@@ -383,6 +387,10 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_int));
     ON_CALL(*this, com_util_argparser_register_positional_string(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_string));
+    ON_CALL(*this, com_util_argparser_register_positional_int_array(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_int_array));
+    ON_CALL(*this, com_util_argparser_register_positional_string_array(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_string_array));
     ON_CALL(*this, com_util_argparser_parse(_, _)).WillByDefault(Invoke(delegate_real_com_util_argparser_parse));
     ON_CALL(*this, com_util_argparser_get_error()).WillByDefault(Invoke(delegate_real_com_util_argparser_get_error));
     ON_CALL(*this, com_util_argparser_get_error_target())
