@@ -429,10 +429,9 @@ TEST_F(traceTest, test_etw_level_is_none_and_noop_on_linux)
     // Assert
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
               com_util_tracer_get_etw_level(handle)); // [確認_正常系] - Linux では etw_level が常に NONE であること。
-    EXPECT_EQ(0, com_util_tracer_set_etw_level(
-                     handle,
-                     COM_UTIL_TRACE_LEVEL_WARNING)); // [手順] - etw_level に WARNING の設定を試みる。
-                                                     // [確認_正常系] - 設定が no-op として成功すること。
+    int rtc_tracer_set_etw_level = com_util_tracer_set_etw_level(
+        handle, COM_UTIL_TRACE_LEVEL_WARNING); // [手順] - etw_level に WARNING の設定を試みる。
+    EXPECT_EQ(0, rtc_tracer_set_etw_level);    // [確認_正常系] - 設定が no-op として成功すること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
               com_util_tracer_get_etw_level(handle)); // [確認_正常系] - 設定後も etw_level が NONE のままであること。
     com_util_tracer_dispose(handle);
@@ -734,7 +733,7 @@ TEST_F(traceTest, test_level_change_allowed_when_started)
 
     // Assert
     EXPECT_EQ(0, os_result);     // [確認_正常系] - started 中の set_os_level が成功すること。
-    EXPECT_EQ(0, etw_result);    // [確認_正常系] - started 中の set_etw_level が成功すること (Linux は no-op で 0)。
+    EXPECT_EQ(0, etw_result);    // [確認_正常系] - Linux では no-op となる set_etw_level が started 中に成功すること。
     EXPECT_EQ(0, stderr_result); // [確認_正常系] - started 中の set_stderr_level が成功すること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
               com_util_tracer_get_os_level(handle)); // [確認_正常系] - 変更後の os レベルが反映されること。
@@ -781,8 +780,11 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
 #endif
 
     // Act
-    ASSERT_EQ(0, com_util_tracer_set_os_level(
-                     handle, COM_UTIL_TRACE_LEVEL_VERBOSE)); // [手順] - started のまま閾値を VERBOSE へ引き上げる。
+    int rtc_tracer_set_os_level = com_util_tracer_set_os_level(
+        handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started のまま閾値を VERBOSE へ引き上げる。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_os_level); // [確認_正常系] - started のまま閾値を VERBOSE へ引き上げる場合の戻り値が 0 であること。
     com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
                           "verbose after"); // [手順] - 引き上げ後に VERBOSE で "verbose after" を書き込む。
 
@@ -902,8 +904,9 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
 
     // Act
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
-                                                0)); // [手順] - file trace を有効化する。
+    int rtc_tracer_set_file_level = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
+                                                                   0); // [手順] - file trace を有効化する。
+    ASSERT_EQ(0, rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した結果が 0 であること。
     ASSERT_EQ(0, com_util_tracer_start(handle));
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "file info"); // [手順] - INFO メッセージを書き込む。
@@ -929,7 +932,8 @@ TEST_F(traceTest, test_set_file_level_passes_flags_to_file_sink)
     int result = com_util_tracer_set_file_level(
         handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
         COM_UTIL_TRACE_FILE_SINK_SHARED);        // [手順] - 共有フラグ付きで set_file_level を呼ぶ。
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start で file sink を生成させる。
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start で file sink を生成させる。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start で file sink を生成させる場合の戻り値が 0 であること。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - 設定が成功すること。
@@ -950,15 +954,19 @@ TEST_F(traceTest, test_set_file_level_defers_sink_creation_until_start)
         .Times(0); // [Pre-Assert確認_正常系] - set_file_level の時点では file sink が生成されないこと。
 
     // Act
+    int rtc_tracer_set_file_level = com_util_tracer_set_file_level(
+        handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0); // [手順] - stopped 中に set_file_level を呼び出す。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
-                                                0)); // [手順] - stopped 中に set_file_level を呼び出す。
+    ASSERT_EQ(
+        0, rtc_tracer_set_file_level); // [確認_正常系] - stopped 中に set_file_level を呼び出した結果が 0 であること。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(
             file_handle_)); // [Pre-Assert確認_正常系] - start 時に設定済みパス "trace.log" で file sink が生成されること。
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start で file sink を生成させる。
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start で file sink を生成させる。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start で file sink を生成させる場合の戻り値が 0 であること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1016,8 +1024,11 @@ TEST_F(traceTest, test_file_level_none_disables_file_backend)
     // Arrange
     com_util_tracer *handle = create_logger();
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0,
-                                                0)); // [手順] - level NONE でファイル トレースを無効化する。
+    int rtc_tracer_set_file_level = com_util_tracer_set_file_level(
+        handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0); // [手順] - level NONE でファイル トレースを無効化する。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_level); // [確認_正常系] - level NONE でファイル トレースを無効化した結果が 0 であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
@@ -1108,10 +1119,12 @@ TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
 
     // Act
     testing::internal::CaptureStderr();
-    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
-                                        "verbose to stderr")); // [手順] - VERBOSE を stderr へ出力する。
-    EXPECT_EQ(0, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL,
-                                        "debug to stderr")); // [手順] - DEBUG を stderr へ出力する。
+    int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
+                                                  "verbose to stderr"); // [手順] - VERBOSE を stderr へ出力する。
+    EXPECT_EQ(0, rtc_tracer_write); // [確認_正常系] - VERBOSE を stderr へ出力する場合の戻り値が 0 であること。
+    int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL,
+                                                    "debug to stderr"); // [手順] - DEBUG を stderr へ出力する。
+    EXPECT_EQ(0, rtc_tracer_write_2); // [確認_正常系] - DEBUG を stderr へ出力する場合の戻り値が 0 であること。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
@@ -1288,7 +1301,8 @@ TEST_F(traceTest, test_start_creates_default_file_sink)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - デフォルトの file sink へ INFO が送られること。
 
     // Act
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - 未設定のまま start する。
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - 未設定のまま start する。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - 未設定のまま start した結果が 0 であること。
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "default file"); // [手順] - INFO メッセージを書き込む。
 
@@ -1314,9 +1328,10 @@ TEST_F(traceTest, test_set_name_does_not_affect_default_file_path)
             file_handle_)); // [Pre-Assert確認_正常系] - set_name に関わらずプロセス名のデフォルト パスを開くこと。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start でデフォルト パスを解決させる。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
-                                                 // [確認_正常系] - start が成功すること。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1336,9 +1351,10 @@ TEST_F(traceTest, test_set_file_name_reflects_to_default_file_path)
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - custom_2 のデフォルト パスを開くこと。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start でデフォルト パスを解決させる。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
-                                                 // [確認_正常系] - start が成功すること。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1350,17 +1366,22 @@ TEST_F(traceTest, test_set_file_name_null_restores_process_name_default)
     // Arrange
     com_util_tracer *handle = create_logger();
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "custom", 2)); // [手順] - 一度ファイル名を変更する。
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, NULL, 0));     // [手順] - NULL でデフォルトに戻す。
+    int rtc_tracer_set_file_name =
+        com_util_tracer_set_file_name(handle, "custom", 2); // [手順] - 一度ファイル名を変更する。
+    ASSERT_EQ(0, rtc_tracer_set_file_name); // [確認_正常系] - 一度ファイル名を変更した結果が 0 であること。
+    int rtc_tracer_set_file_name_2 =
+        com_util_tracer_set_file_name(handle, NULL, 0); // [手順] - NULL でデフォルトに戻す。
+    ASSERT_EQ(0, rtc_tracer_set_file_name_2); // [確認_正常系] - NULL でデフォルトに戻す場合の戻り値が 0 であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - プロセス名のデフォルト パスへ戻ること。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start でデフォルト パスを解決させる。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
-                                                 // [確認_正常系] - start が成功すること。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1379,18 +1400,26 @@ TEST_F(traceTest, test_getters_report_instance_and_file_settings_independently)
     // Act
     // Assert
     // デフォルト値の確認
-    ASSERT_EQ(0, com_util_tracer_get_name(handle, name_buf, sizeof(name_buf))); // [手順] - インスタンス名を取得する。
+    int rtc_tracer_get_name =
+        com_util_tracer_get_name(handle, name_buf, sizeof(name_buf)); // [手順] - インスタンス名を取得する。
+    ASSERT_EQ(0, rtc_tracer_get_name); // [確認_正常系] - インスタンス名を取得した結果が 0 であること。
     EXPECT_STREQ("myapp", name_buf); // [確認_正常系] - デフォルトのインスタンス名がプロセス名 "myapp" であること。
     EXPECT_EQ(
         0, com_util_tracer_get_identifier(handle)); // [確認_正常系] - デフォルトのインスタンス識別番号が 0 であること。
-    ASSERT_EQ(0, com_util_tracer_get_file_name(handle, file_buf, sizeof(file_buf))); // [手順] - ファイル名を取得する。
+    int rtc_tracer_get_file_name =
+        com_util_tracer_get_file_name(handle, file_buf, sizeof(file_buf)); // [手順] - ファイル名を取得する。
+    ASSERT_EQ(0, rtc_tracer_get_file_name); // [確認_正常系] - ファイル名を取得した結果が 0 であること。
     EXPECT_STREQ("myapp", file_buf); // [確認_正常系] - デフォルトのファイル名がプロセス名 "myapp" であること。
     EXPECT_EQ(0, com_util_tracer_get_file_identifier(
                      handle)); // [確認_正常系] - デフォルトのファイル識別番号が 0 であること。
 
     // 設定後: インスタンス側とファイル側が独立していることの確認
-    ASSERT_EQ(0, com_util_tracer_set_name(handle, "worker", 2)); // [手順] - インスタンス側を "worker", 2 に設定する。
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "custom", 5)); // [手順] - ファイル側を "custom", 5 に設定する。
+    int rtc_tracer_set_name =
+        com_util_tracer_set_name(handle, "worker", 2); // [手順] - インスタンス側を "worker", 2 に設定する。
+    ASSERT_EQ(0, rtc_tracer_set_name); // [確認_正常系] - インスタンス側を "worker", 2 に設定した結果が 0 であること。
+    int rtc_tracer_set_file_name =
+        com_util_tracer_set_file_name(handle, "custom", 5); // [手順] - ファイル側を "custom", 5 に設定する。
+    ASSERT_EQ(0, rtc_tracer_set_file_name); // [確認_正常系] - ファイル側を "custom", 5 に設定した結果が 0 であること。
     ASSERT_EQ(0, com_util_tracer_get_name(handle, name_buf, sizeof(name_buf)));
     EXPECT_STREQ("worker_2", name_buf); // [確認_正常系] - インスタンス名が識別込みの "worker_2" で返ること。
     EXPECT_EQ(2, com_util_tracer_get_identifier(handle)); // [確認_正常系] - インスタンス識別番号 2 が返ること。
@@ -1414,7 +1443,8 @@ TEST_F(traceTest, test_set_file_name_fails_when_started_or_identifier_negative)
     // Assert
     EXPECT_EQ(-1,
               com_util_tracer_set_file_name(handle, "x", -1)); // [確認_異常系] - 負の識別番号 -1 では -1 が返ること。
-    ASSERT_EQ(0, com_util_tracer_start(handle));               // [手順] - tracer を started 状態にする。
+    int rtc_tracer_start = com_util_tracer_start(handle);      // [手順] - tracer を started 状態にする。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - tracer を started 状態にする場合の戻り値が 0 であること。
     EXPECT_EQ(-1, com_util_tracer_set_file_name(handle, "x",
                                                 0)); // [確認_異常系] - started 中の set_file_name では -1 が返ること。
 
@@ -1466,7 +1496,9 @@ TEST_F(traceTest, test_default_file_path_strips_exe_suffix_on_windows)
             });
     com_util_tracer *handle = create_logger();
     ASSERT_EQ(0, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, NULL, 7)); // [手順] - ファイル識別 7 を設定する。
+    int rtc_tracer_set_file_name =
+        com_util_tracer_set_file_name(handle, NULL, 7); // [手順] - ファイル識別 7 を設定する。
+    ASSERT_EQ(0, rtc_tracer_set_file_name); // [確認_正常系] - ファイル識別 7 を設定した結果が 0 であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
@@ -1474,9 +1506,10 @@ TEST_F(traceTest, test_default_file_path_strips_exe_suffix_on_windows)
             Return(file_handle_)); // [Pre-Assert確認_正常系] - .exe を除いたプロセス名でデフォルト パスを開くこと。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start でデフォルト パスを解決させる。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
-                                                 // [確認_正常系] - start が成功すること。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1498,9 +1531,10 @@ TEST_F(traceTest, test_default_file_path_falls_back_to_relative_log)
             Return(file_handle_)); // [Pre-Assert確認_異常系] - 相対パス log/unknown.log へフォールバックすること。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start でデフォルト パスを解決させる。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - start でデフォルト パスを解決させる。
-                                                 // [確認_正常系] - start が成功すること。
+    ASSERT_EQ(0, rtc_tracer_start); // [確認_正常系] - start が成功すること。
 
     // Cleanup
     com_util_tracer_dispose(handle);
@@ -1553,12 +1587,19 @@ TEST_F(traceTest, test_stop_disposes_file_sink_and_restart_uses_new_name)
         .Times(2); // [Pre-Assert確認_正常系] - stop 時と dispose 時にトレース ファイルが閉じられること。
 
     // Act
+    int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - 初回の start を行う。
+
     // Assert
-    ASSERT_EQ(0, com_util_tracer_start(handle)); // [手順] - 初回の start を行う。
-    ASSERT_EQ(0, com_util_tracer_stop(handle));  // [手順] - stop でトレース ファイルを閉じる。
-    ASSERT_EQ(0, com_util_tracer_set_file_name(handle, "renamed",
-                                               0)); // [手順] - stopped 中にファイル名を "renamed" に変更する。
-    ASSERT_EQ(0, com_util_tracer_start(handle));    // [手順] - 再度 start を行う。
+    ASSERT_EQ(0, rtc_tracer_start);                     // [確認_正常系] - 初回の start を行った結果が 0 であること。
+    int rtc_tracer_stop = com_util_tracer_stop(handle); // [手順] - stop でトレース ファイルを閉じる。
+    ASSERT_EQ(0, rtc_tracer_stop); // [確認_正常系] - stop でトレース ファイルを閉じた結果が 0 であること。
+    int rtc_tracer_set_file_name =
+        com_util_tracer_set_file_name(handle, "renamed", 0); // [手順] - stopped 中にファイル名を "renamed" に変更する。
+    ASSERT_EQ(
+        0,
+        rtc_tracer_set_file_name); // [確認_正常系] - stopped 中にファイル名を "renamed" に変更した結果が 0 であること。
+    int rtc_tracer_start_2 = com_util_tracer_start(handle); // [手順] - 再度 start を行う。
+    ASSERT_EQ(0, rtc_tracer_start_2);                       // [確認_正常系] - 再度 start を行った結果が 0 であること。
 
     // Cleanup
     com_util_tracer_dispose(handle);

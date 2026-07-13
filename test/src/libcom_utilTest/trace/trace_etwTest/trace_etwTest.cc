@@ -59,17 +59,19 @@ TEST_F(trace_etwTest, test_write_all_levels)
     // Pre-Assert
 
     // Act
+    // [手順] - CRITICAL、ERROR、WARNING、INFO、VERBOSE の各レベルで書き込む。
+    int rtc_critical = com_util_etw_provider_write(handle, 1, NULL, "critical");
+    int rtc_error = com_util_etw_provider_write(handle, 2, NULL, "error");
+    int rtc_warning = com_util_etw_provider_write(handle, 3, NULL, "warning");
+    int rtc_info = com_util_etw_provider_write(handle, 4, NULL, "info");
+    int rtc_verbose = com_util_etw_provider_write(handle, 5, NULL, "verbose");
 
     // Assert
-    EXPECT_EQ(0, com_util_etw_provider_write(handle, 1, NULL,
-                                             "critical")); // [確認_正常系] - CRITICAL レベルで書き込めること。
-    EXPECT_EQ(0,
-              com_util_etw_provider_write(handle, 2, NULL, "error")); // [確認_正常系] - ERROR レベルで書き込めること。
-    EXPECT_EQ(
-        0, com_util_etw_provider_write(handle, 3, NULL, "warning")); // [確認_正常系] - WARNING レベルで書き込めること。
-    EXPECT_EQ(0, com_util_etw_provider_write(handle, 4, NULL, "info")); // [確認_正常系] - INFO レベルで書き込めること。
-    EXPECT_EQ(
-        0, com_util_etw_provider_write(handle, 5, NULL, "verbose")); // [確認_正常系] - VERBOSE レベルで書き込めること。
+    EXPECT_EQ(0, rtc_critical); // [確認_正常系] - CRITICAL レベルで書き込めること。
+    EXPECT_EQ(0, rtc_error);    // [確認_正常系] - ERROR レベルで書き込めること。
+    EXPECT_EQ(0, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
+    EXPECT_EQ(0, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
+    EXPECT_EQ(0, rtc_verbose);  // [確認_正常系] - VERBOSE レベルで書き込めること。
 
     com_util_etw_provider_dispose(handle);
 }

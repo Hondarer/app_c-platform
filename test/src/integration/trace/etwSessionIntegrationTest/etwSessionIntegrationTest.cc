@@ -95,25 +95,31 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
     // Pre-Assert
 
     // Act
+    com_util_etw_session *session_null_name =
+        com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL,
+                                   &status); // [手順] - session_name に NULL を渡して session_start を呼び出す。
+
     // Assert
     EXPECT_EQ((com_util_etw_session *)NULL,
-              com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL,
-                                         &status)); // [手順] - session_name に NULL を渡して session_start を呼び出す。
-                                                    // [確認_異常系] - NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - status に ERR_PARAM が返ること。
+              session_null_name); // [確認_異常系] - session_name が NULL の場合に NULL が返ること。
+    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+              status); // [確認_異常系] - session_name が NULL の場合に status に ERR_PARAM が返ること。
 
-    EXPECT_EQ(
-        (com_util_etw_session *)NULL,
+    com_util_etw_session *session_null_provider_guid =
         com_util_etw_session_start("test", NULL, collect_callback, NULL,
-                                   &status)); // [手順] - provider_guid に NULL を渡して session_start を呼び出す。
-                                              // [確認_異常系] - NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - status に ERR_PARAM が返ること。
-
+                                   &status); // [手順] - provider_guid に NULL を渡して session_start を呼び出す。
     EXPECT_EQ((com_util_etw_session *)NULL,
-              com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL,
-                                         &status));    // [手順] - callback に NULL を渡して session_start を呼び出す。
-                                                       // [確認_異常系] - NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - status に ERR_PARAM が返ること。
+              session_null_provider_guid); // [確認_異常系] - provider_guid が NULL の場合に NULL が返ること。
+    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+              status); // [確認_異常系] - provider_guid が NULL の場合に status に ERR_PARAM が返ること。
+
+    com_util_etw_session *session_null_callback =
+        com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL,
+                                   &status); // [手順] - callback に NULL を渡して session_start を呼び出す。
+    EXPECT_EQ((com_util_etw_session *)NULL,
+              session_null_callback); // [確認_異常系] - callback が NULL の場合に NULL が返ること。
+    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+              status); // [確認_異常系] - callback が NULL の場合に status に ERR_PARAM が返ること。
 }
 
 // 不正な GUID 文字列が ERR_PARAM で拒否されることの確認
@@ -125,12 +131,12 @@ TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
     // Pre-Assert
 
     // Act
-    // Assert
-    EXPECT_EQ(
-        (com_util_etw_session *)NULL,
+    com_util_etw_session *session_invalid_guid =
         com_util_etw_session_start("test", "not-a-guid", collect_callback, NULL,
-                                   &status)); // [手順] - 不正な GUID 文字列 "not-a-guid" で session_start を呼び出す。
-                                              // [確認_異常系] - NULL が返ること。
+                                   &status); // [手順] - 不正な GUID 文字列 "not-a-guid" で session_start を呼び出す。
+
+    // Assert
+    EXPECT_EQ((com_util_etw_session *)NULL, session_invalid_guid); // [確認_異常系] - NULL が返ること。
     EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - status に ERR_PARAM が返ること。
 }
 
