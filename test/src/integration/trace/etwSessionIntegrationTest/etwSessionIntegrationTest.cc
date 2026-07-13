@@ -199,6 +199,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     }
     EXPECT_TRUE(found) << "Expected event 'hello world' not found";
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -243,6 +244,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
     }
     EXPECT_TRUE(found) << "Expected UTF-8 Japanese event not found";
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -290,6 +292,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
     }
     EXPECT_TRUE(found) << "Expected UTF-8 mixed event not found";
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -373,6 +376,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
     EXPECT_TRUE(saw_info);     // [確認_正常系] - INFO が受信されること。
     EXPECT_TRUE(saw_verbose);  // [確認_正常系] - VERBOSE が受信されること。
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -415,6 +419,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
     }
     EXPECT_TRUE(found) << "Expected empty-string event not found";
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -459,6 +464,7 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     }
     EXPECT_TRUE(found) << "Expected event with service field not found";
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 

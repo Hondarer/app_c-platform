@@ -108,6 +108,7 @@ TEST_F(crt_fileTest, append_open_reports_existing_size)
     ASSERT_EQ(0, rtc_file_get_size); // [確認_正常系] - com_util_file_get_size でサイズを取得した結果が 0 であること。
     EXPECT_EQ((size_t)5, size);                           // [確認_正常系] - 既存サイズ 5 が報告されること。
 
+    // Cleanup
     com_util_file_close(&file);
     std::remove(path.c_str());
 }
@@ -142,6 +143,8 @@ TEST_F(crt_fileTest, truncate_open_resets_existing_file_size)
 
     com_util_file_close(&file);
     EXPECT_EQ(std::string(), read_text_file(path)); // [確認_正常系] - クローズ後のファイル内容が空であること。
+
+    // Cleanup
     std::remove(path.c_str());
 }
 
@@ -189,6 +192,8 @@ TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
 
     EXPECT_EQ(std::string("abcdef"),
               read_text_file(path)); // [確認_正常系] - ファイル内容が "abcdef" になっていること。
+
+    // Cleanup
     std::remove(path.c_str());
 }
 
@@ -254,6 +259,7 @@ TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
     EXPECT_EQ(handle_id.volume, path_id.volume); // [確認_正常系] - volume が一致すること。
     EXPECT_EQ(handle_id.index, path_id.index);   // [確認_正常系] - index が一致すること。
 
+    // Cleanup
     com_util_file_close(&file);
     std::remove(path.c_str());
 }
@@ -304,6 +310,7 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
     EXPECT_FALSE(handle_id.volume == path_id.volume &&
                  handle_id.index == path_id.index); // [確認_正常系] - volume と index の組が一致しないこと。
 
+    // Cleanup
     com_util_file_close(&file);
     std::remove(path.c_str());
     std::remove(renamed.c_str());

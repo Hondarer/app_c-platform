@@ -119,13 +119,13 @@ TEST_F(traceTest, test_init_and_dispose)
 
     // Act
     com_util_tracer *handle = create_logger(); // [手順] - トレース ハンドルを初期化する。
+    size_t registry_count_after_create = trace_registry_count();
+    com_util_tracer_dispose(handle); // [手順] - トレース ハンドルを破棄する。
+    size_t registry_count_after_dispose = trace_registry_count();
 
     // Assert
-    EXPECT_EQ((size_t)1, trace_registry_count()); // [確認_正常系] - registry に 1 件登録されること。
-
-    // Cleanup
-    com_util_tracer_dispose(handle);
-    EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - dispose 後に registry が空になること。
+    EXPECT_EQ((size_t)1, registry_count_after_create);  // [確認_正常系] - create 後に registry へ 1 件登録されること。
+    EXPECT_EQ((size_t)0, registry_count_after_dispose); // [確認_正常系] - dispose 後に registry が空になること。
 }
 
 // get_state が create/start/stop の状態遷移を返すことの確認
@@ -450,6 +450,8 @@ TEST_F(traceTest, test_etw_level_is_none_and_noop_on_linux)
         rtc_tracer_set_etw_level); // [確認_正常系] - com_util_tracer_set_etw_level の戻り値から、設定が no-op として成功したと判断できること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
               com_util_tracer_get_etw_level(handle)); // [確認_正常系] - 設定後も etw_level が NONE のままであること。
+
+    // Cleanup
     com_util_tracer_dispose(handle);
 }
 #endif /* PLATFORM_ */

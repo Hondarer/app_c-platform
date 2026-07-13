@@ -25,10 +25,10 @@ TEST_F(trace_syslogTest, test_init_and_dispose)
     // Act
     com_util_syslog_sink *handle = com_util_syslog_sink_create(
         "syslog_test", LOG_USER); // [手順] - ident "syslog_test"、facility LOG_USER で syslog sink を初期化する。
+    com_util_syslog_sink_dispose(handle); // [手順] - syslog sink を破棄する。
 
     // Assert
     EXPECT_NE((com_util_syslog_sink *)NULL, handle); // [確認_正常系] - ハンドルが NULL でないこと。
-    com_util_syslog_sink_dispose(handle);
 }
 
 // INFO レベルでメッセージを書き込み、戻り値が 0 であることの確認
@@ -47,6 +47,8 @@ TEST_F(trace_syslogTest, test_write_returns_zero)
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - com_util_syslog_sink_write の戻り値が 0 であること。
+
+    // Cleanup
     com_util_syslog_sink_dispose(handle);
 }
 
@@ -75,6 +77,7 @@ TEST_F(trace_syslogTest, test_write_all_levels)
     EXPECT_EQ(0, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
     EXPECT_EQ(0, rtc_debug);    // [確認_正常系] - DEBUG レベルで書き込めること。
 
+    // Cleanup
     com_util_syslog_sink_dispose(handle);
 }
 
@@ -132,6 +135,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
              (int)getpid());
     EXPECT_STREQ(expected, actual); // [確認_正常系] - ISO 8601 タイムスタンプ付きの 1 行が書き込まれていること。
 
+    // Cleanup
     com_util_syslog_sink_dispose(handle);
     close(pipe_fds[0]);
     if (saved_fd != NULL)
@@ -208,6 +212,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
     EXPECT_NE(std::string::npos, std::string(actual).find(expected)); // [確認_異常系] - syslog 本文が出力されること。
     EXPECT_NE('<', actual[0]); // [確認_異常系] - 先頭に現在時刻のタイムスタンプが付与されること。
 
+    // Cleanup
     com_util_syslog_sink_dispose(handle);
     close(pipe_fds[0]);
     if (saved_fd != NULL)
@@ -239,6 +244,7 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
     // Pre-Assert
 
     // Act
+    com_util_syslog_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
 
     // Assert
     EXPECT_EQ(
@@ -251,8 +257,8 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
     EXPECT_EQ(
         0, com_util_syslog_sink_write(handle, LOG_INFO, NULL, NULL)); // [確認_異常系] - NULL message が安全であること。
 
+    // Cleanup
     com_util_syslog_sink_dispose(handle);
-    com_util_syslog_sink_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
 }
 
 #elif defined(PLATFORM_WINDOWS)

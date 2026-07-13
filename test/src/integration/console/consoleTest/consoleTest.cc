@@ -109,7 +109,8 @@ TEST_F(consoleTest, test_dispose_on_shutdown_process_terminating)
     // Assert
     // [確認_正常系] - 終了中イベントでは何もせず、クラッシュしないこと。
 
-    // Cleanup - init 状態を解放する (通常終了イベントで明示的にクリーンアップ)
+    // Cleanup
+    // init 状態を通常終了イベントで解放する。
     com_util_console_dispose_on_shutdown(&normal_event, NULL);
 }
 
@@ -147,12 +148,13 @@ TEST_F(consoleTest, test_nop_stdout_fd_unchanged)
 
     // Act
     com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
+    int fd_after_init = fileno(stdout);
+    com_util_console_dispose(); // [手順] - no-op の dispose を呼び出す。
+    int fd_after_dispose = fileno(stdout);
 
     // Assert
-    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
-
-    com_util_console_dispose();           // [手順] - no-op の dispose を呼び出す。
-    EXPECT_EQ(fd_before, fileno(stdout)); // [確認_正常系] - dispose 後も FD が変わらないこと。
+    EXPECT_EQ(fd_before, fd_after_init);    // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
+    EXPECT_EQ(fd_before, fd_after_dispose); // [確認_正常系] - dispose 後も FD が変わらないこと。
 }
 
 // Linux: init 前後で stderr の FD が変わらないことの確認
@@ -165,12 +167,13 @@ TEST_F(consoleTest, test_nop_stderr_fd_unchanged)
 
     // Act
     com_util_console_init(); // [手順] - コンソール ヘルパーを初期化する。
+    int fd_after_init = fileno(stderr);
+    com_util_console_dispose(); // [手順] - no-op の dispose を呼び出す。
+    int fd_after_dispose = fileno(stderr);
 
     // Assert
-    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
-
-    com_util_console_dispose();           // [手順] - no-op の dispose を呼び出す。
-    EXPECT_EQ(fd_before, fileno(stderr)); // [確認_正常系] - dispose 後も FD が変わらないこと。
+    EXPECT_EQ(fd_before, fd_after_init);    // [確認_正常系] - no-op のため init 後も FD が変わらないこと。
+    EXPECT_EQ(fd_before, fd_after_dispose); // [確認_正常系] - dispose 後も FD が変わらないこと。
 }
 
 // Linux: dispose を呼んでも stdout の FD が変わらないことの確認

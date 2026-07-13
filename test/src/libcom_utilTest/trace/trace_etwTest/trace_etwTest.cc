@@ -26,6 +26,8 @@ TEST_F(trace_etwTest, test_init_and_dispose)
 
     // Assert
     EXPECT_NE((com_util_etw_provider *)NULL, handle); // [確認_正常系] - ハンドルが NULL でないこと。
+
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -45,6 +47,8 @@ TEST_F(trace_etwTest, test_write_returns_zero)
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - com_util_etw_provider_write の戻り値が 0 であること。
+
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -73,6 +77,7 @@ TEST_F(trace_etwTest, test_write_all_levels)
     EXPECT_EQ(0, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
     EXPECT_EQ(0, rtc_verbose);  // [確認_正常系] - VERBOSE レベルで書き込めること。
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
 }
 
@@ -86,6 +91,7 @@ TEST_F(trace_etwTest, test_null_arguments_are_safe)
     // Pre-Assert
 
     // Act
+    com_util_etw_provider_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
 
     // Assert
     EXPECT_EQ(
@@ -96,8 +102,8 @@ TEST_F(trace_etwTest, test_null_arguments_are_safe)
                                              "test message"));        // [確認_異常系] - NULL ハンドルが安全であること。
     EXPECT_EQ(0, com_util_etw_provider_write(handle, 4, NULL, NULL)); // [確認_異常系] - NULL message が安全であること。
 
+    // Cleanup
     com_util_etw_provider_dispose(handle);
-    com_util_etw_provider_dispose(NULL); // [手順] - NULL ハンドルで dispose を呼び出す。
 }
 
 #elif defined(PLATFORM_LINUX)

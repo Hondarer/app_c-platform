@@ -158,6 +158,7 @@ TEST_F(traceHookTest, test_set_hook_returns_non_null)
     // Assert
     EXPECT_NE((com_util_tracer_hook_entry *)NULL, entry); // [確認_正常系] - エントリが NULL でないこと。
 
+    // Cleanup
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
 }
@@ -193,6 +194,8 @@ TEST_F(traceHookTest, test_set_hook_null_fn_returns_null)
     // Assert
     EXPECT_EQ((com_util_tracer_hook_entry *)NULL,
               entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
+
+    // Cleanup
     com_util_tracer_dispose(tracer);
 }
 
@@ -213,6 +216,7 @@ TEST_F(traceHookTest, test_set_hook_while_started_returns_null)
     EXPECT_EQ((com_util_tracer_hook_entry *)NULL,
               entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
@@ -248,6 +252,7 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
     EXPECT_EQ(ts.tv_nsec,
               g_hook_records[0].timestamp.tv_nsec); // [確認_正常系] - タイムスタンプのナノ秒が一致すること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
@@ -276,6 +281,7 @@ TEST_F(traceHookTest, test_hook_is_called_for_none_level)
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE, g_hook_records[0].level); // [確認_正常系] - フックに NONE レベルが渡ること。
     EXPECT_EQ("none level message", g_hook_records[0].message);    // [確認_正常系] - フックに message が渡ること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
@@ -300,6 +306,7 @@ TEST_F(traceHookTest, test_no_hook_write_succeeds)
     EXPECT_EQ(0, rc);                     // [確認_正常系] - _com_util_tracer_write の戻り値が 0 であること。
     EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - フックが呼ばれないこと。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
@@ -326,6 +333,7 @@ TEST_F(traceHookTest, test_hook_not_called_after_remove)
     // Assert
     EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - 解除済みフックが呼ばれないこと。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
@@ -374,6 +382,7 @@ TEST_F(traceHookTest, test_hook_chain_order)
     EXPECT_EQ(2, call_order[0]);      // [確認_正常系] - 最後に登録した id=2 が最初に呼ばれること。
     EXPECT_EQ(1, call_order[1]);      // [確認_正常系] - 次に id=1 が呼ばれること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, e2);
     com_util_tracer_remove_hook(tracer, e1);
@@ -398,6 +407,7 @@ TEST_F(traceHookTest, test_call_next_hook_null_prev)
         "test")); // [手順] - prev に NULL を渡して com_util_tracer_call_next_hook を呼び出す。
                   // [確認_正常系] - 致命的失敗なく完了すること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_dispose(tracer);
 }
@@ -428,6 +438,7 @@ TEST_F(traceHookTest, test_hook_called_via_writef)
     EXPECT_NE(std::string::npos,
               g_hook_records[0].message.find("42")); // [確認_正常系] - フックに展開後の "42" を含む文字列が渡ること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
@@ -458,6 +469,7 @@ TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
     EXPECT_EQ(678000000,
               g_hook_records[0].timestamp.tv_nsec); // [確認_正常系] - モックで固定したナノ秒 678000000 が渡ること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);
@@ -485,6 +497,7 @@ TEST_F(traceHookTest, test_remove_hook_while_started_does_nothing)
     // Assert
     EXPECT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが解除されず 1 回呼ばれること。
 
+    // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
     com_util_tracer_dispose(tracer);

@@ -75,6 +75,7 @@ TEST(SyncLocalLockTest, TryLockReportsBusyWhenAlreadyLocked)
         second_try ==
             COM_UTIL_SYNC_INVALID_ARGUMENT); // [確認_正常系] - 保持中の try_lock が BUSY (非再帰実装では INVALID_ARGUMENT) を返すこと。
 
+    // Cleanup
     (void)com_util_local_lock_unlock(lock);
     com_util_local_lock_destroy(lock);
 }
@@ -103,6 +104,7 @@ TEST(SyncLocalRwlockTest, SharedLocksCanCoexist)
         first_lock); // [確認_正常系] - com_util_local_rwlock_lock_shared の戻り値から、1 つ目の共有ロック取得が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, second_lock);   // [確認_正常系] - 共有ロック同士が同時取得できること。
 
+    // Cleanup
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     com_util_local_rwlock_destroy(rwlock);
@@ -132,6 +134,7 @@ TEST(SyncLocalRwlockTest, ExclusiveLockBlocksSharedTryLock)
         exclusive_lock); // [確認_正常系] - com_util_local_rwlock_lock_exclusive の戻り値から、排他ロック取得が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, shared_try);   // [確認_正常系] - 排他ロック中の共有 try lock が BUSY を返すこと。
 
+    // Cleanup
     (void)com_util_local_rwlock_unlock_exclusive(rwlock);
     com_util_local_rwlock_destroy(rwlock);
 }
@@ -163,6 +166,7 @@ TEST(SyncLocalRwlockTest, WaitingWriterPreventsNewReader)
     EXPECT_EQ(COM_UTIL_SYNC_TIMEOUT, writer_try); // [確認_正常系] - writer が reader 解放待ちでタイムアウトすること。
     EXPECT_EQ(COM_UTIL_SYNC_OK, second_reader);   // [確認_正常系] - タイムアウトした writer は待機数に残らないこと。
 
+    // Cleanup
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     com_util_local_rwlock_destroy(rwlock);
@@ -205,6 +209,7 @@ TEST(SyncInterprocessLockTest, DescriptorRoundTripReopensSameLock)
     EXPECT_EQ(COM_UTIL_SYNC_OK, first_lock);    // [確認_正常系] - 元ハンドルでロックを取得できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, second_try);  // [確認_正常系] - 復元ハンドルが同じロック インスタンスを参照すること。
 
+    // Cleanup
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(restored);
     com_util_interprocess_lock_destroy(lock);
@@ -244,6 +249,7 @@ TEST(SyncInterprocessLockTest, RejectsRwlockDescriptor)
               import_result); // [確認_異常系] - 種別違いの import が CORRUPT_DESCRIPTOR になること。
     EXPECT_EQ(NULL, lock);    // [確認_異常系] - ハンドルが生成されないこと。
 
+    // Cleanup
     com_util_interprocess_rwlock_destroy(rwlock);
     TEST_INTERPROCESS_UNLINK(path);
 }
@@ -285,6 +291,7 @@ TEST(SyncInterprocessRwlockTest, DescriptorRoundTripReopensSameLock)
     EXPECT_EQ(COM_UTIL_SYNC_OK, exclusive_lock); // [確認_正常系] - 元ハンドルで排他ロックを取得できること。
     EXPECT_EQ(COM_UTIL_SYNC_BUSY, shared_try);   // [確認_正常系] - 復元ハンドルが同じ排他インスタンスを参照すること。
 
+    // Cleanup
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(restored);
     com_util_interprocess_rwlock_destroy(lock);
@@ -316,6 +323,7 @@ TEST(SyncInterprocessRwlockTest, ExportReportsRequiredDescriptorSize)
     EXPECT_EQ(COM_UTIL_SYNC_BUFFER_TOO_SMALL, export_result); // [確認_正常系] - バッファー不足が通知されること。
     EXPECT_GT(descriptor_size, 20U);                          // [確認_正常系] - descriptor に必要なサイズが返ること。
 
+    // Cleanup
     com_util_interprocess_rwlock_destroy(lock);
     TEST_INTERPROCESS_UNLINK(path);
 }
@@ -372,6 +380,8 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
         com_util_sync_result_t child_try = com_util_interprocess_lock_try_lock(child_lock);
         if (child_lock != NULL)
         {
+
+            // Cleanup
             com_util_interprocess_lock_destroy(child_lock);
         }
         if (child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY)
@@ -385,6 +395,7 @@ TEST(SyncInterprocessLockTest, ForkedProcessObservesExclusiveLock)
     EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
     EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ try_lock が BUSY であること。
 
+    // Cleanup
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(lock);
     TEST_INTERPROCESS_UNLINK(path);
@@ -423,6 +434,8 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
         com_util_sync_result_t child_try = com_util_interprocess_rwlock_try_lock_shared(child_lock);
         if (child_lock != NULL)
         {
+
+            // Cleanup
             com_util_interprocess_rwlock_destroy(child_lock);
         }
         if (child_open == COM_UTIL_SYNC_OK && child_try == COM_UTIL_SYNC_BUSY)
@@ -436,6 +449,7 @@ TEST(SyncInterprocessRwlockTest, ForkedProcessObservesExclusiveLock)
     EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
     EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ共有 try_lock が BUSY であること。
 
+    // Cleanup
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
     TEST_INTERPROCESS_UNLINK(path);
@@ -511,5 +525,6 @@ TEST(SyncLocalLockTest, NegativeTimeoutReturnsInvalidArgument)
         create_result); // [確認_正常系] - com_util_local_lock_create の戻り値から、local lock 作成が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_SYNC_INVALID_ARGUMENT, lock_result); // [確認_異常系] - 負値で INVALID_ARGUMENT を返すこと。
 
+    // Cleanup
     com_util_local_lock_destroy(lock);
 }

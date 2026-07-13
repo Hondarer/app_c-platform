@@ -55,9 +55,10 @@ TEST_F(fopenTempTest, opens_writable_file_and_reports_path)
 
     const char data[] = "hello-temp";
     EXPECT_EQ(sizeof(data), fwrite(data, 1, sizeof(data), fp)); // [確認_正常系] - 開いたファイルへ書き込めること。
-    EXPECT_EQ(0, fclose(fp));
-
     EXPECT_TRUE(path_exists(path)); // [確認_正常系] - 戻されたパスにファイルが実在すること。
+
+    // Cleanup
+    EXPECT_EQ(0, fclose(fp));
     std::remove(path);
 }
 
@@ -77,8 +78,10 @@ TEST_F(fopenTempTest, returns_unique_paths_for_repeated_calls)
         char path[PLATFORM_PATH_MAX] = {};
         FILE *fp = com_util_fopen_temp("ptr", "wb", path, sizeof(path), nullptr);
         ASSERT_NE((FILE *)nullptr, fp);
-        fclose(fp);
         EXPECT_TRUE(seen.insert(path).second); // [確認_正常系] - 過去に返された path と重複しないこと。
+
+        // Cleanup
+        fclose(fp);
         std::remove(path);
     }
 }
@@ -97,10 +100,11 @@ TEST_F(fopenTempTest, prefix_is_part_of_basename)
 
     // Assert
     ASSERT_NE((FILE *)nullptr, fp);
-    fclose(fp);
-
     std::string base = basename_of(path);
     EXPECT_NE(std::string::npos, base.find("abc")); // [確認_正常系] - basename に prefix "abc" が含まれること。
+
+    // Cleanup
+    fclose(fp);
     std::remove(path);
 }
 
@@ -119,6 +123,8 @@ TEST_F(fopenTempTest, null_prefix_is_accepted)
     // Assert
     ASSERT_NE((FILE *)nullptr,
               fp); // [確認_正常系] - com_util_fopen_temp の戻り値として、prefix=NULL でも FILE* が返ること。
+
+    // Cleanup
     fclose(fp);
     std::remove(path);
 }
@@ -212,8 +218,10 @@ TEST_F(fopenTempTest, prefix_longer_than_three_chars_is_truncated)
     // Assert
     ASSERT_NE((FILE *)nullptr,
               fp); // [確認_正常系] - com_util_fopen_temp の戻り値として、4 文字以上の prefix でも FILE* が返ること。
-    fclose(fp);
     std::string base = basename_of(path);
     EXPECT_NE(std::string::npos, base.find("abc")); // [確認_正常系] - 先頭 3 文字 "abc" が basename に含まれること。
+
+    // Cleanup
+    fclose(fp);
     std::remove(path);
 }

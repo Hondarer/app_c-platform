@@ -79,6 +79,7 @@ TEST_F(memoryLockTest, test_range_locks_and_unlocks_heap_buffer)
     EXPECT_EQ(COM_UTIL_MEMORY_LOCK_OK,
               unlock_result); // [確認_正常系] - com_util_memory_unlock_range の戻り値が OK であること。
 
+    // Cleanup
     free(buffer);
 }
 
@@ -167,6 +168,8 @@ TEST_F(memoryLockTest, test_lock_self_allows_independent_scopes_from_multiple_th
     // Assert
     if ((first.result != COM_UTIL_MEMORY_LOCK_OK) || (second.result != COM_UTIL_MEMORY_LOCK_OK))
     {
+
+        // Cleanup
         (void)com_util_memory_lock_scope_release(first.scope);
         (void)com_util_memory_lock_scope_release(second.scope);
         GTEST_SKIP() << "self memory lock is not available in this environment";

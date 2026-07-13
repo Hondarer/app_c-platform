@@ -175,6 +175,7 @@ TEST_F(pathGetFullTest, resolves_symlink_to_target_path_when_target_exists)
     // Assert
     EXPECT_STREQ(expected, actual); // [確認_正常系] - 実体ファイルのパスへ解決されること。
 
+    // Cleanup
     ASSERT_EQ(0, unlink(link_path));
     ASSERT_EQ(0, unlink(target_path));
     ASSERT_EQ(0, rmdir(dir_path));

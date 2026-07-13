@@ -41,11 +41,12 @@ TEST_F(argparserTest, create_and_dispose)
     // Act
     com_util_argparser *parser =
         _com_util_argparser_create(NULL); // [手順] - オプション NULL で _com_util_argparser_create を呼び出す。
-
-    // Assert
-    ASSERT_NE(nullptr, parser);          // [確認_正常系] - ハンドルが NULL でないこと。
+    bool handle_created = parser != NULL;
     _com_util_argparser_dispose(parser); // [手順] - 生成したハンドルを dispose する。
     _com_util_argparser_dispose(NULL);   // [手順] - NULL ハンドルで dispose を呼び出す。
+
+    // Assert
+    EXPECT_TRUE(handle_created); // [確認_正常系] - _com_util_argparser_create の戻り値が NULL でないこと。
     // [確認_正常系] - dispose(NULL) がクラッシュせずに完了すること。
 }
 
@@ -235,6 +236,7 @@ TEST_F(argparserTest, register_rejects_invalid_arguments)
                   parser, "values", NULL, 0, &storage, 1,
                   NULL)); // [確認_異常系] - 可変長位置引数の count NULL が検出されること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -262,6 +264,7 @@ TEST_F(argparserTest, register_rejects_duplicate_definition)
         _com_util_argparser_register_flag(parser, NULL, "--verbose", NULL,
                                           &storage)); // [確認_異常系] - 長い名前 "--verbose" の重複が検出されること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -287,6 +290,7 @@ TEST_F(argparserTest, register_rejects_required_positional_after_optional)
             parser, "second", NULL, COM_UTIL_ARGPARSER_REQUIRED,
             &second)); // [確認_異常系] - 任意の位置引数の後の必須位置引数 "second" の登録が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -321,6 +325,7 @@ TEST_F(argparserTest, register_requires_variadic_positional_to_be_last)
                   parser, "-v", "--verbose", NULL,
                   &verbose)); // [確認_正常系] - 可変長位置引数の後でもオプションを登録できること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -376,6 +381,7 @@ TEST_F(argparserTest, register_error_collection_accumulates_all_failures)
     EXPECT_STREQ("--aa", _com_util_argparser_get_register_error_target(
                              parser, 2)); // [確認_正常系] - 3 件目の対象が "--aa" であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -436,6 +442,7 @@ TEST_F(argparserTest, register_error_getters_default_when_absent_or_out_of_range
             parser,
             1)); // [確認_異常系] - _com_util_argparser_get_register_error_target の戻り値として、範囲外インデックスで NULL が返ること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -488,6 +495,7 @@ TEST_F(argparserTest, register_error_message_formatting)
         _com_util_argparser_get_register_error_message(
             parser, 1, message, sizeof(message))); // [確認_異常系] - 範囲外インデックスが INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -509,6 +517,7 @@ TEST_F(argparserTest, print_register_error_messages_rejects_invalid_arguments)
               _com_util_argparser_print_register_error_messages(
                   parser, NULL)); // [確認_異常系] - stream NULL が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -533,6 +542,7 @@ TEST_F(argparserTest, print_register_error_messages_is_noop_without_error)
         COM_UTIL_ARGPARSER_OK,
         result); // [確認_正常系] - _com_util_argparser_print_register_error_messages の戻り値が COM_UTIL_ARGPARSER_OK であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -570,6 +580,7 @@ TEST_F(argparserTest, print_register_error_messages_writes_all_to_stream)
         COM_UTIL_ARGPARSER_OK,
         result); // [確認_正常系] - _com_util_argparser_print_register_error_messages の戻り値が COM_UTIL_ARGPARSER_OK であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -605,6 +616,7 @@ TEST_F(argparserTest, register_grows_beyond_initial_capacity)
     EXPECT_EQ(0, storages[1]);  // [確認_正常系] - 未指定の "--opt01" が 0 のままであること。
     EXPECT_EQ(1, storages[19]); // [確認_正常系] - 末尾の "--opt19" が解析されること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -642,6 +654,7 @@ TEST_F(argparserTest, flag_counts_occurrences_and_resets_on_reparse)
         EXPECT_EQ(0, verbose);                                    // [確認_正常系] - 再解析で 0 に初期化されること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -672,6 +685,7 @@ TEST_F(argparserTest, flag_with_value_is_unexpected_value)
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--verbose" であること。
     EXPECT_EQ(1, _com_util_argparser_get_error_index(parser));  // [確認_異常系] - エラー位置が argv[1] であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -702,6 +716,7 @@ TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
                                   parser)); // [確認_異常系] - エラー対象が長い名前 "--verbose" で報告されること。
     EXPECT_EQ(1, _com_util_argparser_get_error_index(parser)); // [確認_異常系] - エラー位置が argv[1] であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -772,6 +787,7 @@ TEST_F(argparserTest, option_int_accepts_all_syntaxes)
         EXPECT_EQ(42, count); // [確認_正常系] - 非出現時は格納先 42 が変更されないこと。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -843,6 +859,7 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - int の空値が INVALID_INT になること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -891,6 +908,7 @@ TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unkno
             _com_util_argparser_get_error(parser)); // [確認_異常系] - "-x" が UNKNOWN_OPTION として検出されること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -952,6 +970,7 @@ TEST_F(argparserTest, option_string_points_into_argv)
         EXPECT_STREQ("", name); // [確認_正常系] - 短いオプションでも空値 "" が受理されること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1027,6 +1046,7 @@ TEST_F(argparserTest, option_string_accepts_value_with_spaces)
         EXPECT_STREQ("parameter string", param); // [確認_正常系] - "-p v" 構文で同一の値が取得できること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1067,6 +1087,7 @@ TEST_F(argparserTest, option_string_stores_argv_verbatim)
         EXPECT_STREQ("say \"hi\" now", param);              // [確認_正常系] - 途中のクオートもそのまま格納すること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1137,6 +1158,7 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
                           parser)); // [確認_異常系] - エラー位置が -1 (特定位置なし) であること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1205,6 +1227,7 @@ TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
                   file_count); // [確認_正常系] - 再解析時に可変長位置引数の件数が 0 へ初期化されること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1283,6 +1306,7 @@ TEST_F(argparserTest, positional_int_array_conversion_and_required)
         HasSubstr(
             "Usage: prog <values>...\n")); // [確認_正常系] - 必須の可変長位置引数が <values>... と表示されること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1334,6 +1358,7 @@ TEST_F(argparserTest, unknown_option_detection)
                                     parser)); // [確認_異常系] - エラー対象が "--bogus" であること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1363,6 +1388,7 @@ TEST_F(argparserTest, missing_value_at_end)
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1392,6 +1418,7 @@ TEST_F(argparserTest, duplicate_option_occurrence)
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1446,6 +1473,7 @@ TEST_F(argparserTest, array_option_multiple_occurrences)
         EXPECT_EQ((size_t)0, include_count); // [確認_正常系] - 非出現時は count が 0 に初期化されること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1490,6 +1518,7 @@ TEST_F(argparserTest, array_option_int_and_required)
                                    parser)); // [確認_異常系] - エラー対象が "--port" であること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1519,6 +1548,7 @@ TEST_F(argparserTest, missing_required_option)
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1561,6 +1591,7 @@ TEST_F(argparserTest, reparse_clears_error_state)
         EXPECT_EQ(-1, _com_util_argparser_get_error_index(parser)); // [確認_正常系] - エラー位置が -1 に戻ること。
     }
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1604,6 +1635,7 @@ TEST_F(argparserTest, multiple_handles_are_independent)
               _com_util_argparser_get_error(
                   parser2)); // [確認_正常系] - parser2 のエラー状態が独立して UNKNOWN_OPTION であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser1);
     _com_util_argparser_dispose(parser2);
 }
@@ -1663,6 +1695,7 @@ TEST_F(argparserTest, error_message_formatting)
               _com_util_argparser_get_error_message(parser, message,
                                                     0)); // [確認_異常系] - サイズ 0 が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1774,6 +1807,7 @@ TEST_F(argparserTest, usage_formatting)
         _com_util_argparser_get_usage(
             parser, usage, 0, NULL)); // [確認_異常系] - サイズ 0 かつ required NULL が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1795,6 +1829,7 @@ TEST_F(argparserTest, print_usage_rejects_invalid_arguments)
         COM_UTIL_ARGPARSER_INVALID_ARGUMENT,
         _com_util_argparser_print_usage(parser, NULL)); // [確認_異常系] - stream NULL が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1823,6 +1858,7 @@ TEST_F(argparserTest, print_usage_writes_to_stream)
     EXPECT_EQ(COM_UTIL_ARGPARSER_OK,
               result); // [確認_正常系] - _com_util_argparser_print_usage の戻り値が COM_UTIL_ARGPARSER_OK であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1844,6 +1880,7 @@ TEST_F(argparserTest, print_error_messages_rejects_invalid_arguments)
               _com_util_argparser_print_error_messages(
                   parser, NULL)); // [確認_異常系] - stream NULL が INVALID_ARGUMENT になること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1867,6 +1904,7 @@ TEST_F(argparserTest, print_error_messages_is_noop_without_error)
         COM_UTIL_ARGPARSER_OK,
         result); // [確認_正常系] - _com_util_argparser_print_error_messages の戻り値が COM_UTIL_ARGPARSER_OK であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1898,6 +1936,7 @@ TEST_F(argparserTest, print_error_messages_writes_to_stream)
         COM_UTIL_ARGPARSER_OK,
         result); // [確認_正常系] - _com_util_argparser_print_error_messages の戻り値が COM_UTIL_ARGPARSER_OK であること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1942,6 +1981,7 @@ TEST_F(argparserTest, usage_program_name_resolution)
     EXPECT_THAT(std::string(usage),
                 HasSubstr("Usage: mytool [OPTIONS]\n")); // [確認_正常系] - argv[0] のベース名 "mytool" が使われること。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }
 
@@ -1973,5 +2013,6 @@ TEST_F(argparserTest, parse_rejects_invalid_arguments)
     EXPECT_EQ(-1, _com_util_argparser_get_error_index(
                       NULL)); // [確認_異常系] - get_error_index が NULL ハンドルで -1 を返すこと。
 
+    // Cleanup
     _com_util_argparser_dispose(parser);
 }

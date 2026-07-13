@@ -207,13 +207,15 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
     int read_result =
         read_text_file(output, sizeof(output), path); // [手順] - リダイレクト先ファイルから子プロセスの出力を読み取る。
     trim_trailing_newline(output);
-    remove_temp_path(path);
 
     // Assert
     EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
     EXPECT_EQ(0, exit_code);                // [確認_正常系] - 子プロセスの終了コードが 0 であること。
     EXPECT_EQ(0, read_result);              // [確認_正常系] - 出力ファイルが読み取れること。
     EXPECT_STREQ("override-value", output); // [確認_正常系] - 子プロセスの出力が上書き値 "override-value" であること。
+
+    // Cleanup
+    remove_temp_path(path);
 }
 
 // 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
@@ -264,6 +266,7 @@ TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
         COM_UTIL_PROCESS_OK,
         exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
 
+    // Cleanup
     com_util_process_destroy(process);
 }
 
