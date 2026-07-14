@@ -72,6 +72,10 @@ extern "C"
 
     /**
      *  @brief          終了コールバック関数型です。
+     *
+     *  通常終了時のコールバックで終了コードが必要な場合は、`com_util_exit()` を使用してください。\n
+     *  `exit()` の直接呼び出しまたは `main()` の戻り値による終了では、終了コードを取得できません。
+     *
      *  @param[in]      event   終了イベント情報。
      *  @param[in]      context 登録時に渡した任意のコンテキスト。
      *
@@ -120,6 +124,10 @@ extern "C"
 
     /**
      *  @brief          終了コードを記録して `exit(code)` を実行します。
+     *
+     *  本関数は、`com_util_shutdown_register()` で登録した終了コールバックへ終了コードを渡します。\n
+     *  イベントの `code_kind` は `COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE` です。\n
+     *  イベントの `code` は @p code です。
      *
      *  @note
      *  @parblock
