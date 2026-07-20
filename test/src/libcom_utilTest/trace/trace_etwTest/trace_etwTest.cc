@@ -106,20 +106,4 @@ TEST_F(trace_etwTest, test_null_arguments_are_safe)
     com_util_etw_provider_dispose(handle);
 }
 
-#elif defined(PLATFORM_LINUX)
-
-    #include <testfw.h>
-
-TEST(trace_etwTest, not_supported)
-{
-    // Arrange
-
-    // Pre-Assert
-
-    // Act
-    GTEST_SKIP() << "ETW is not supported on this platform";
-
-    // Assert
-}
-
 #endif /* PLATFORM_ */

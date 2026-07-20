@@ -261,20 +261,4 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
     com_util_syslog_sink_dispose(handle);
 }
 
-#elif defined(PLATFORM_WINDOWS)
-
-    #include <testfw.h>
-
-TEST(trace_syslogTest, not_supported)
-{
-    // Arrange
-
-    // Pre-Assert
-
-    // Act
-    GTEST_SKIP() << "syslog is not supported on this platform";
-
-    // Assert
-}
-
 #endif /* PLATFORM_ */

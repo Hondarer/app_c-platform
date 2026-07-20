@@ -468,20 +468,4 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     com_util_etw_provider_dispose(handle);
 }
 
-#elif defined(PLATFORM_LINUX)
-
-    #include <testfw.h>
-
-TEST(etwSessionIntegrationTest, not_supported)
-{
-    // Arrange
-
-    // Pre-Assert
-
-    // Act
-    GTEST_SKIP() << "ETW session integration is not supported on this platform";
-
-    // Assert
-}
-
 #endif /* PLATFORM_ */
