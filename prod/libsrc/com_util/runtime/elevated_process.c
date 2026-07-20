@@ -45,6 +45,29 @@
     #define COM_UTIL_PROCESS_RESULT_TARGET_FLAG "--com-util-result-file"
 
 static char s_result_target_path[PLATFORM_PATH_MAX] = {0};
+
+/**
+ *  @brief          現在のプロセスが対話セッションで動作しているかを確認します。
+ *
+ *  Windows のサービス プロセスはセッション 0 に隔離され、UAC (User Account Control)
+ *  ダイアログを表示できる対話デスクトップを持ちません。セッション 0 で未昇格のまま
+ *  `ShellExecuteExW` の `runas` verb を呼び出すと、対話デスクトップが無いために
+ *  昇格が失敗または応答不能になるおそれがあるため、事前にセッション ID で判定します。
+ *  see: https://learn.microsoft.com/windows/win32/services/interactive-services
+ *
+ *  @return         対話セッションの場合は非 0、非対話セッション (セッション 0) の場合は 0、
+ *                  判定に失敗した場合は -1 を返します。
+ */
+static int is_current_session_interactive(void)
+{
+    DWORD session_id = 0;
+
+    if (!ProcessIdToSessionId(GetCurrentProcessId(), &session_id))
+    {
+        return -1;
+    }
+    return (session_id != 0);
+}
 #endif /* PLATFORM_ */
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -128,6 +151,14 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         if (elevated != 0)
         {
             return 0;
+        }
+
+        /* セッション 0 (非対話セッション) では UAC ダイアログを表示できないため、
+           昇格を試みず即座に失敗させる。 */
+        if (is_current_session_interactive() == 0)
+        {
+            *exit_code = EXIT_FAILURE;
+            return -1;
         }
 
         if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != 0)
@@ -369,6 +400,14 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         if (elevated != 0)
         {
             return 0;
+        }
+
+        /* セッション 0 (非対話セッション) では UAC ダイアログを表示できないため、
+           昇格を試みず即座に失敗させる。 */
+        if (is_current_session_interactive() == 0)
+        {
+            *exit_code = EXIT_FAILURE;
+            return -1;
         }
 
         if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != 0)

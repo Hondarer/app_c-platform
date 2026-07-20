@@ -55,6 +55,8 @@ extern "C"
      *
      *  Windows では、未昇格の場合に UAC を要求して現在の実行ファイルを @p arguments 付きで
      *  再起動し、子プロセスの終了まで待機します。すでに昇格済みの場合は何もしません。\n
+     *  未昇格かつセッション 0 (非対話セッション。Windows サービスなど、UAC ダイアログを
+     *  表示できる対話デスクトップを持たないセッション) の場合は、昇格を試みず失敗を返します。\n
      *  Linux では、実効ユーザー ID が root であることを確認します。root でない場合は失敗します。\n
      *  本関数は権限保証のための API であり、Linux で `sudo` などの外部昇格コマンドは実行しません。
      *
@@ -88,6 +90,8 @@ extern "C"
      *  本関数は昇格プロセスのコンソールを一切引き継がず、結果メッセージを一時ファイル経由で
      *  受け渡します。昇格プロセス側は com_util_elevated_process_extract_result_target() を起動直後に
      *  呼び出し、処理結果を com_util_elevated_process_report_result() で報告してください。\n
+     *  com_util_elevated_process_run_if_needed() と同様、未昇格かつセッション 0 (非対話
+     *  セッション) の場合は、昇格を試みず失敗を返します。\n
      *  Linux では com_util_elevated_process_run_if_needed() と同じ判定を行い、
      *  @p result_message は変更しません (別プロセスを起動しないため報告の余地がない)。
      *
