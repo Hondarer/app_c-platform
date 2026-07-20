@@ -89,14 +89,6 @@ extern "C"
      */
     void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
 
-    /**
-     *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
-     *  @param[in]      fmt `printf` 互換の書式文字列です。
-     *
-     *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
-     */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_console_diag_logf(const char *fmt, ...);
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

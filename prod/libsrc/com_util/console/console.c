@@ -37,6 +37,8 @@ static LONG s_initialized = 0;
 static LONG s_attached_parent = 0;
 static com_util_once_flag s_console_shutdown_once = {0};
 
+static void com_util_console_diag_logf(const char *fmt, ...);
+
 static void register_console_shutdown_callback(void)
 {
     (void)com_util_shutdown_register(com_util_console_dispose_on_shutdown, NULL);
@@ -143,9 +145,13 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
     return 0;
 }
 
-/* Doxygen コメントは、ヘッダーに記載 */
-
-void com_util_console_diag_logf(const char *fmt, ...)
+/**
+ *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
+ *  @param[in]      fmt `printf` 互換の書式文字列です。
+ *
+ *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
+ */
+static void com_util_console_diag_logf(const char *fmt, ...)
 {
     wchar_t path[PLATFORM_PATH_MAX];
     char line[1024];
@@ -717,13 +723,6 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
     (void)event;
     (void)context;
 }
-/* Doxygen コメントは、ヘッダーに記載 */
-
-void com_util_console_diag_logf(const char *fmt, ...)
-{
-    (void)fmt;
-}
-
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_console_write(com_util_stream_t stream, const char *text)
