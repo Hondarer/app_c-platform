@@ -8,6 +8,14 @@
 #include <string>
 #include <thread>
 
+namespace
+{
+
+com_util_shutdown_callback_t g_default_shutdown_callback = nullptr;
+void *g_default_shutdown_context = nullptr;
+
+} // namespace
+
 class argparserTest : public Test
 {
   protected:
@@ -15,7 +23,9 @@ class argparserTest : public Test
     {
         // 実体への委譲で shutdown コールバックが登録されると、フィクスチャ破棄後の
         // atexit で破棄済みモックを参照してアクセス違反となるため、登録を抑止する。
-        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(0));
+        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _))
+            .WillByDefault(
+                DoAll(SaveArg<0>(&g_default_shutdown_callback), SaveArg<1>(&g_default_shutdown_context), Return(0)));
     }
 
     NiceMock<Mock_com_util> mock_com_util_;
@@ -66,6 +76,40 @@ TEST_F(argparserTest, create_returns_null_on_alloc_failure)
 
     // Assert
     EXPECT_EQ(nullptr, parser); // [確認_異常系] - _com_util_argparser_create の戻り値が NULL であること。
+}
+
+// default() の終了コールバックを並行実行しても共有ロックを破棄しないことの確認
+TEST_F(argparserTest, default_shutdown_callback_keeps_process_lifetime_lock)
+{
+    // Arrange
+    static constexpr size_t kThreadCount = 16;
+    std::thread threads[kThreadCount];
+    com_util_argparser *parser =
+        _com_util_argparser_default(NULL); // [状態] - 終了コールバックを登録した default ハンドルを用意する。
+    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, g_default_shutdown_callback);
+    com_util_shutdown_event event = {};
+    event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
+    event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_NONE;
+    ON_CALL(mock_com_util_, com_util_local_lock_destroy(_)).WillByDefault([](com_util_local_lock *) {});
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_destroy(_))
+        .Times(0); // [Pre-Assert確認_正常系] - default 用の共有ロックが破棄されないこと。
+
+    // Act
+    // [手順] - 16 スレッドから並行に default の終了コールバックを呼び出す。
+    for (size_t i = 0; i < kThreadCount; i++)
+    {
+        threads[i] = std::thread([&event]() { g_default_shutdown_callback(&event, g_default_shutdown_context); });
+    }
+    for (size_t i = 0; i < kThreadCount; i++)
+    {
+        threads[i].join();
+    }
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - すべての終了コールバックがクラッシュせずに完了すること。
 }
 
 // default() を複数回呼び出しても同一ハンドルが返ることの確認 (dispose は呼び出さない)

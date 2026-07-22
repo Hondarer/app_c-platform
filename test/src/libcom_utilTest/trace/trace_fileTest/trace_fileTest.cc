@@ -122,7 +122,7 @@ class trace_fileTest : public Test
                     *lock = (com_util_interprocess_lock *)&dummy_lock;
                     return COM_UTIL_SYNC_OK;
                 });
-        ON_CALL(mock_, com_util_interprocess_lock_lock(_, _)).WillByDefault(Return(COM_UTIL_SYNC_OK));
+        ON_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_SYNC_OK));
         ON_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_SYNC_OK));
         ON_CALL(mock_, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
     }
@@ -426,6 +426,52 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
     com_util_trace_file_sink_dispose(handle);
 }
 
+// 単一プロセス モードのローテーション後にファイル オープンが失敗しても再試行しないことの確認
+TEST_F(trace_fileTest, test_write_does_not_retry_open_after_rotation)
+{
+    // Arrange
+    {
+        InSequence seq;
+
+        EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default())).WillOnce(Return(0));
+        EXPECT_CALL(mock_, com_util_file_get_size(_, _))
+            .WillOnce(
+                [](const com_util_file *, size_t *size_out)
+                {
+                    *size_out = 0;
+                    return 0;
+                });
+        EXPECT_CALL(mock_, com_util_file_write(_, _, _))
+            .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - ローテーション前の書き込みが成功すること。
+        EXPECT_CALL(mock_, com_util_file_close(_)).Times(1);
+        EXPECT_CALL(mock_, com_util_remove(StrEq("trace.log.2"))).WillOnce(Return(0));
+        EXPECT_CALL(mock_, com_util_rename(StrEq("trace.log.1"), StrEq("trace.log.2"))).WillOnce(Return(0));
+        EXPECT_CALL(mock_, com_util_rename(StrEq("trace.log"), StrEq("trace.log.1"))).WillOnce(Return(0));
+        EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_truncate()))
+            .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - ローテーション後のファイル オープンが失敗すること。
+        EXPECT_CALL(mock_, com_util_file_close(_)).Times(1);
+    }
+
+    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("trace.log", 1, 2, 0);
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_sleep_ms(_))
+        .Times(0); // [Pre-Assert確認_異常系] - ローテーション後のオープン失敗時に待機しないこと。
+
+    // Act
+    int result = com_util_trace_file_sink_write(
+        handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+        "rotate once"); // [手順] - 上限 1 byte のファイルへ書き込み、ローテーション後の open を失敗させる。
+
+    // Assert
+    EXPECT_EQ(0,
+              result); // [確認_異常系] - com_util_trace_file_sink_write は完了済みの書き込み結果として 0 を返すこと。
+
+    // Cleanup
+    com_util_trace_file_sink_dispose(handle);
+}
+
 // dispose が NULL ハンドルでも安全であることの確認
 TEST_F(trace_fileTest, test_dispose_with_null_handle_is_safe)
 {
@@ -612,8 +658,8 @@ TEST_F(trace_fileTest, test_shared_write_reopens_after_external_rotation)
     com_util_trace_file_sink_dispose(handle);
 }
 
-// 共有モードの開き直しでもファイル オープンがリトライされることの確認
-TEST_F(trace_fileTest, test_shared_write_reopen_retries_file_open_after_external_rotation)
+// 共有モードの開き直しでファイル オープンに失敗した場合に再試行しないことの確認
+TEST_F(trace_fileTest, test_shared_write_reopen_does_not_retry_after_external_rotation)
 {
     // Arrange
     com_util_trace_file_sink *handle =
@@ -621,32 +667,32 @@ TEST_F(trace_fileTest, test_shared_write_reopen_retries_file_open_after_external
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
 
     // Pre-Assert
-    InSequence seq;
-    EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _))
-        .WillOnce(
-            [](const char *, com_util_file_id *id_out)
-            {
-                set_file_id(id_out, kDefaultFileIndex + 1);
-                return 0;
-            });                                          // [Pre-Assert確認_正常系] - path が別実体を指していること。
-    EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_正常系] - 旧ハンドルが閉じられること。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
-        .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - 開き直しの初回 open が失敗すること。
-    EXPECT_CALL(mock_, com_util_sleep_ms(3000))
-        .WillOnce(Return()); // [Pre-Assert確認_正常系] - 3 秒相当の待機を行うこと。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - リトライで開き直しが成功すること。
+    {
+        InSequence seq;
+        EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _))
+            .WillOnce(
+                [](const char *, com_util_file_id *id_out)
+                {
+                    set_file_id(id_out, kDefaultFileIndex + 1);
+                    return 0;
+                }); // [Pre-Assert確認_異常系] - path が別実体を指していること。
+        EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_異常系] - 旧ハンドルが閉じられること。
+        EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+            .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 開き直しのファイル オープンが失敗すること。
+        EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
+    }
+    EXPECT_CALL(mock_, com_util_sleep_ms(_))
+        .Times(0); // [Pre-Assert確認_異常系] - ファイル オープンの失敗後に待機しないこと。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
-        .WillOnce(Return(0));                            // [Pre-Assert確認_正常系] - 開き直し後に書き込まれること。
-    EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
+        .Times(0); // [Pre-Assert確認_異常系] - ファイルを開き直せない場合は書き込まないこと。
 
     // Act
     int result = com_util_trace_file_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                                 "after rotate"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+    EXPECT_EQ(-1,
+              result); // [確認_異常系] - com_util_trace_file_sink_write の戻り値が直ちに -1 であること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -683,9 +729,9 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
             }); // [Pre-Assert確認_正常系] - 実サイズが閾値以上であること。
 
     // プロセス間ロック下の再確認 → ローテーション
-    EXPECT_CALL(mock_, com_util_interprocess_lock_lock(_, _))
-        .WillOnce(
-            Return(COM_UTIL_SYNC_OK)); // [Pre-Assert確認_正常系] - ローテーション前にプロセス間ロックを取得すること。
+    EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
+        .WillOnce(Return(
+            COM_UTIL_SYNC_OK)); // [Pre-Assert確認_正常系] - ローテーション前にプロセス間ロックを即時取得すること。
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _)).Times(1);
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
         .WillOnce(
@@ -750,7 +796,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
                 *size_out = 10;
                 return 0;
             }); // [Pre-Assert確認_正常系] - 実サイズが閾値以上であること。
-    EXPECT_CALL(mock_, com_util_interprocess_lock_lock(_, _)).WillOnce(Return(COM_UTIL_SYNC_OK));
+    EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillOnce(Return(COM_UTIL_SYNC_OK));
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _))
         .WillOnce(
             [](const char *, com_util_file_id *id_out)
@@ -784,8 +830,8 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
     com_util_trace_file_sink_dispose(handle);
 }
 
-// プロセス間ロックの取得がタイムアウトした場合にローテーションを見送ることの確認
-TEST_F(trace_fileTest, test_shared_write_skips_rotate_on_lock_timeout)
+// プロセス間ロックがビジー状態の場合にローテーションを見送ることの確認
+TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_lock_is_busy)
 {
     // Arrange
     com_util_trace_file_sink *handle =
@@ -800,8 +846,8 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_on_lock_timeout)
                 *size_out = 10;
                 return 0;
             }); // [Pre-Assert確認_異常系] - 実サイズが閾値以上であること。
-    EXPECT_CALL(mock_, com_util_interprocess_lock_lock(_, _))
-        .WillOnce(Return(COM_UTIL_SYNC_TIMEOUT));       // [Pre-Assert確認_異常系] - ロック取得がタイムアウトすること。
+    EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
+        .WillOnce(Return(COM_UTIL_SYNC_BUSY)); // [Pre-Assert確認_異常系] - プロセス間ロックがビジー状態であること。
     EXPECT_CALL(mock_, com_util_rename(_, _)).Times(0); // [Pre-Assert確認_異常系] - リネームは行われないこと。
     EXPECT_CALL(mock_, com_util_interprocess_lock_unlock(_))
         .Times(0); // [Pre-Assert確認_異常系] - ロック解放は呼ばれないこと。

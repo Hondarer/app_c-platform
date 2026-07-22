@@ -1105,6 +1105,7 @@ void _com_util_argparser_dispose(com_util_argparser *parser)
 
 /* プロセス共有のデフォルト パーサー ハンドル */
 static com_util_argparser *s_default_parser = NULL;
+/* 破棄と並行取得の競合を避けるため、初期化後はプロセス終了まで同じロックを使用する */
 static com_util_local_lock *s_default_lock = NULL;
 static com_util_once_flag s_default_initialize_once = {0};
 
@@ -1115,25 +1116,24 @@ static void argparser_default_dispose_on_shutdown(const com_util_shutdown_event 
     {
         return;
     }
-    if (s_default_lock == NULL)
+    com_util_local_lock *lock = s_default_lock;
+    if (lock == NULL)
     {
         return;
     }
 
-    if (com_util_local_lock_lock(s_default_lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_SYNC_OK)
+    if (com_util_local_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_SYNC_OK)
     {
         return;
     }
     com_util_argparser *parser = s_default_parser;
     s_default_parser = NULL;
-    (void)com_util_local_lock_unlock(s_default_lock);
+    (void)com_util_local_lock_unlock(lock);
 
     if (parser != NULL)
     {
         argparser_dispose_core(parser);
     }
-    com_util_local_lock_destroy(s_default_lock);
-    s_default_lock = NULL;
 }
 
 static void argparser_default_initialize(void)
@@ -1155,12 +1155,13 @@ static void argparser_default_initialize(void)
 com_util_argparser *_com_util_argparser_default(const com_util_argparser_options *options)
 {
     com_util_call_once(&s_default_initialize_once, argparser_default_initialize);
-    if (s_default_lock == NULL)
+    com_util_local_lock *lock = s_default_lock;
+    if (lock == NULL)
     {
         return NULL;
     }
 
-    if (com_util_local_lock_lock(s_default_lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_SYNC_OK)
+    if (com_util_local_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_SYNC_OK)
     {
         return NULL;
     }
@@ -1173,7 +1174,7 @@ com_util_argparser *_com_util_argparser_default(const com_util_argparser_options
         }
     }
     com_util_argparser *parser = s_default_parser;
-    (void)com_util_local_lock_unlock(s_default_lock);
+    (void)com_util_local_lock_unlock(lock);
 
     return parser;
 }

@@ -306,32 +306,8 @@ static int base_open_flags(const com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  ファイルを開き、失敗時は一定間隔で再試行します。
- *  @return 成功 0 / 失敗 -1。
- */
-static int open_trace_file_with_retry(com_util_file *file, const char *path, const int flags)
-{
-    int retry_count;
-
-    if (com_util_file_open(file, path, flags) == 0)
-    {
-        return 0;
-    }
-
-    for (retry_count = 0; retry_count < TRACE_FILE_OPEN_RETRY_COUNT; retry_count++)
-    {
-        com_util_sleep_ms(TRACE_FILE_OPEN_RETRY_INTERVAL_MS);
-        if (com_util_file_open(file, path, flags) == 0)
-        {
-            return 0;
-        }
-    }
-
-    return -1;
-}
-
-/**
- *  @brief  ファイルを追記モードで開き current_bytes を初期サイズで初期化します。
+ *  @brief  ファイルを追記モードで 1 回だけ開き current_bytes を初期サイズで初期化します。
+ *  @param[in,out]  p  ファイル sink。
  *  @return 成功 0 / 失敗 -1。
  *
  *  親ディレクトリが存在しない場合は com_util_makedirs で自動生成する (best-effort)。\n
@@ -351,7 +327,7 @@ static int open_file(com_util_trace_file_sink *p)
 
     p->self_id_valid = 0;
 
-    if (open_trace_file_with_retry(&p->file, p->path, base_open_flags(p)) != 0)
+    if (com_util_file_open(&p->file, p->path, base_open_flags(p)) != 0)
     {
         p->current_bytes = 0;
         return -1;
@@ -374,9 +350,39 @@ static int open_file(com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  ローテーション後の新規ファイルを空で作成して開く (単一プロセス モード用) です。
- *          current_bytes は必ず 0 に設定されます。
+ *  @brief  ファイルを追記モードで開き、失敗時は一定間隔で再試行します。
+ *  @param[in,out]  p  ファイル sink。
  *  @return 成功 0 / 失敗 -1。
+ *
+ *  sink の生成中だけ使用し、生成後のローカル mutex を保持した処理からは呼び出しません。
+ */
+static int open_file_with_retry(com_util_trace_file_sink *p)
+{
+    int retry_count;
+
+    if (open_file(p) == 0)
+    {
+        return 0;
+    }
+
+    for (retry_count = 0; retry_count < TRACE_FILE_OPEN_RETRY_COUNT; retry_count++)
+    {
+        com_util_sleep_ms(TRACE_FILE_OPEN_RETRY_INTERVAL_MS);
+        if (open_file(p) == 0)
+        {
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ *  @brief  ローテーション後の新規ファイルを空で作成して 1 回だけ開く (単一プロセス モード用) です。
+ *  @param[in,out]  p  ファイル sink。
+ *  @return 成功 0 / 失敗 -1。
+ *
+ *  current_bytes は必ず 0 に設定されます。
  */
 static int open_file_truncate(com_util_trace_file_sink *p)
 {
@@ -384,7 +390,7 @@ static int open_file_truncate(com_util_trace_file_sink *p)
 
     p->current_bytes = 0;
 
-    return open_trace_file_with_retry(&p->file, p->path, flags);
+    return com_util_file_open(&p->file, p->path, flags);
 }
 
 /**
@@ -427,7 +433,7 @@ static void close_file(com_util_trace_file_sink *p)
 /**
  *  @brief  トレース ファイルをローテーションします。
  *
- *  ロック保持中から呼ばれる。\n
+ *  ローカル mutex 保持中から呼ばれる。ファイルの再オープンは 1 回だけ試行する。\n
  *  リネームに失敗した場合はその世代でカスケードを打ち切り、
  *  呼び出し元をブロックせずに続行する (ベスト エフォート)。
  */
@@ -486,7 +492,7 @@ static void rotate_file(com_util_trace_file_sink *p)
  *
  *  ローカル mutex 保持中、書き込み成功直後に呼ばれる。\n
  *  全プロセス合計の実サイズ (ハンドル基準) が max_bytes 未満なら何もしない。\n
- *  閾値以上の場合はプロセス間ロックを取得し、ロック下で同一性と実サイズを
+ *  閾値以上の場合はプロセス間ロックの取得をノンブロッキングで試行し、ロック下で同一性と実サイズを
  *  再確認してからローテーションする。他プロセスがローテーション済みの場合は
  *  開き直すだけにする。\n
  *  プロセス間ロックの取得に失敗した場合はローテーションを見送る
@@ -506,7 +512,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
         return;
     }
 
-    if (com_util_interprocess_lock_lock(p->rotate_lock, FILE_LOCK_TIMEOUT_MS) != COM_UTIL_SYNC_OK)
+    if (com_util_interprocess_lock_try_lock(p->rotate_lock) != COM_UTIL_SYNC_OK)
     {
         return;
     }
@@ -628,7 +634,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
 
     /* ファイルを開く; 失敗したらリソースを解放して NULL を返す */
     /* (親ディレクトリの自動生成を含むため、ロック ファイルより先に開く) */
-    if (open_file(handle) != 0)
+    if (open_file_with_retry(handle) != 0)
     {
         free_sink(handle);
         return NULL;
