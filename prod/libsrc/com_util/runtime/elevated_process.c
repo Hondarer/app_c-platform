@@ -441,8 +441,8 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         {
             arg_len = strlen(arguments);
         }
-        /* 区切り空白 + フラグ + '=' + パス + 終端の余裕を確保する */
-        buf_sz = arg_len + 1 + strlen(COM_UTIL_PROCESS_RESULT_TARGET_FLAG) + 1 + strlen(result_path) + 1;
+        /* 区切り空白 + フラグ + '=' + '"' + パス + '"' + 終端の余裕を確保する */
+        buf_sz = arg_len + 1 + strlen(COM_UTIL_PROCESS_RESULT_TARGET_FLAG) + 1 + 1 + strlen(result_path) + 1 + 1;
         combined_arguments = (char *)malloc(buf_sz);
         if (combined_arguments == NULL)
         {
@@ -450,14 +450,19 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             *exit_code = EXIT_FAILURE;
             return -1;
         }
+        /* result_path はユーザー プロファイル配下 (ユーザー名に空白を含みうる) から生成されるため、
+           クォートしないと CRT のコマンドライン分割で複数トークンとなり、
+           com_util_elevated_process_extract_result_target() でのフラグ抽出に失敗する。
+           クォート区間内の空白はトークン区切りにならず、クォート文字自体は結果の argv から除去される。
+           see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments */
         if (arg_len > 0)
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s %s=%s", arguments, COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
+            (void)snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments, COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
                            result_path);
         }
         else
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s=%s", COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
+            (void)snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
         }
 
         wide_exe_path = com_util_utf8_to_wstr_alloc(exe_path);
