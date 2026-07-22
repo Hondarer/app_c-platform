@@ -803,7 +803,7 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
                           "verbose before"); // [手順] - 閾値引き上げ前に VERBOSE で "verbose before" を書き込む。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
-    // Pre-Assert
+    // Pre-Assert_2
     // 停止せずに閾値を VERBOSE へ引き上げると VERBOSE が送られる。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose after")))
@@ -814,7 +814,7 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 閾値引き上げ後は VERBOSE が EventLog へ送られること。
 #endif
 
-    // Act
+    // Act_2
     int rtc_tracer_set_os_level = com_util_tracer_set_os_level(
         handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started のまま閾値を VERBOSE へ引き上げる。
     ASSERT_EQ(
