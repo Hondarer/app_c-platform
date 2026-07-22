@@ -260,6 +260,20 @@ MYLIB_EXPORT int MYLIB_API mylib_open(void);
 makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、  
 このワークスペースでは GCC / Clang / MSVC が暗黙に `1` を与える前提で扱います。
 
+### 変数 (グローバル データ) をエクスポートする場合は export マクロと export テーブルの両方に登録する
+
+公開ヘッダーで `extern` 変数を宣言する場合も、関数と同じ export マクロを先頭に付けます。呼び出し規約マクロ (`MYLIB_API` 相当) は関数専用のため、変数には付けません。
+
+```c
+MYLIB_EXPORT extern int g_mylib_feature_flag;
+```
+
+`com_util` では、`app/com_util/test/src/libcom_utilTest/exportTest/exportTest.cc` の `COM_UTIL_EXPORT_VARIABLE_TABLE(EXPORT_ENTRY)` に `EXPORT_ENTRY(変数名, 型 *)` の形で登録してください。関数と同じ `COM_UTIL_EXPORT_TABLE` の仕組み (シグネチャの static_assert、実バイナリのエクスポート一覧との突き合わせ) がそのまま変数にも適用され、export マクロの付け忘れとテーブル登録漏れの両方を検出できます。
+
+さらに、`exportTest.cc` の `public_header_variables_declare_export_macro` テストが `prod/include/` 配下を直接走査し、export マクロを伴わない `extern` 変数宣言がないかを機械的に確認します。テーブルへの登録を忘れた場合でも、この走査によって export マクロの付け忘れが検出されます。
+
+この検証の仕組み自体 (テーブルからの static_assert 生成、実バイナリとの突き合わせ、ヘッダー走査) は `com_util` 固有ではなく `framework/testfw` の共通処理として提供されています。他ライブラリでの使い方や、公開ヘッダーと DLL/SO が 1:1 とは限らない構成への対応は [export-symbol-check.md](../../../framework/testfw/docs/export-symbol-check.md) を参照してください。
+
 ### 単一プラットフォーム専用 API はヘッダー全体で限定する
 
 Linux 専用 API、Windows 専用 API のように、公開面そのものが片側専用である場合は、ヘッダー全体を `PLATFORM_*` で囲います。
