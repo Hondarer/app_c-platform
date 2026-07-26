@@ -65,6 +65,8 @@
 
 #include <com_util/crypto/crypto.h>
 
+#include <com_util/mmap/mmap.h>
+
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>
 

@@ -236,15 +236,13 @@ TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                               COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE |
-                               COM_UTIL_FILE_OPEN_SHARE_WRITE); // [手順] - 共有フラグ付きでオープンする。
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(),
+        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+            COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
 
     // Assert
-    ASSERT_EQ(
-        0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした com_util_file_open の戻り値が 0 であること。
+    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
     ASSERT_EQ(
         0,
@@ -281,15 +279,13 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                               COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE |
-                               COM_UTIL_FILE_OPEN_SHARE_WRITE); // [手順] - 共有フラグ付きでオープンする。
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(),
+        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
+            COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
 
     // Assert
-    ASSERT_EQ(
-        0, rtc_file_open); // [確認_正常系] - 共有フラグ付きでオープンした com_util_file_open の戻り値が 0 であること。
+    ASSERT_EQ(0, rtc_file_open); // [確認_正常系] - com_util_file_open の戻り値が 0 であること。
     int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
     ASSERT_EQ(
         0,
@@ -336,4 +332,214 @@ TEST_F(crt_fileTest, file_id_invalid_arguments_fail)
     EXPECT_EQ(-1, com_util_file_get_path_id("crt_fileTest_no_such_file.log",
                                             &id)); // [確認_異常系] - get_path_id (存在しないパス) が -1 を返すこと。
     EXPECT_EQ(-1, com_util_file_get_path_id("x", NULL)); // [確認_異常系] - get_path_id (id NULL) が -1 を返すこと。
+}
+
+// READ/WRITE フラグを指定しない場合に、既定で書き込み専用としてオープンすることの確認
+TEST_F(crt_fileTest, default_access_remains_write_only)
+{
+    // Arrange
+    std::string path = make_path("default_access.log");
+    com_util_file file;
+
+    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open =
+        com_util_file_open(&file, path.c_str(),
+                           COM_UTIL_FILE_OPEN_CREATE); // [手順] - READ/WRITE を指定せず CREATE のみでオープンする。
+    int rtc_file_write = com_util_file_write(&file, "abc", 3); // [手順] - "abc" 3 バイトを書き込む。
+
+    // Assert
+    ASSERT_EQ(0, rtc_file_open);  // [確認_正常系] - READ/WRITE 無指定でオープンした戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_file_write); // [確認_正常系] - 既定 (書き込み専用) で書き込みが成功すること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// COM_UTIL_FILE_OPEN_READ のみを指定した場合に書き込みが失敗することの確認 (読み取り専用オープン)
+TEST_F(crt_fileTest, read_only_open_rejects_write)
+{
+    // Arrange
+    std::string path = make_path("read_only.log");
+    com_util_file file;
+
+    write_text_file(path, "hello"); // [状態] - 既存ファイルとして "hello" を書き込んでおく。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_READ);       // [手順] - COM_UTIL_FILE_OPEN_READ のみでオープンする。
+    int rtc_file_write = com_util_file_write(&file, "x", 1); // [手順] - 1 バイトの書き込みを試みる。
+
+    // Assert
+    ASSERT_EQ(0, rtc_file_open);   // [確認_正常系] - 読み取り専用オープンの戻り値が 0 であること。
+    EXPECT_EQ(-1, rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの書き込みが -1 を返すこと。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// COM_UTIL_FILE_OPEN_READ が存在しないファイルに対して失敗することの確認 (CREATE を伴わない)
+TEST_F(crt_fileTest, read_only_open_fails_for_missing_file)
+{
+    // Arrange
+    std::string path = make_path("read_only_missing.log");
+    com_util_file file;
+
+    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_READ); // [手順] - CREATE を伴わずに READ のみでオープンを試みる。
+
+    // Assert
+    EXPECT_EQ(-1, rtc_file_open); // [確認_異常系] - 存在しないファイルに対するオープンが -1 を返すこと。
+}
+
+// READ | WRITE を指定した場合に読み書き両用でオープンできることの確認
+TEST_F(crt_fileTest, read_write_open_allows_write_and_reports_size)
+{
+    // Arrange
+    std::string path = make_path("read_write.log");
+    com_util_file file;
+    size_t size = 0;
+
+    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open =
+        com_util_file_open(&file, path.c_str(),
+                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ |
+                               COM_UTIL_FILE_OPEN_WRITE);         // [手順] - CREATE | READ | WRITE でオープンする。
+    int rtc_file_write = com_util_file_write(&file, "abcde", 5);  // [手順] - "abcde" 5 バイトを書き込む。
+    int rtc_file_get_size = com_util_file_get_size(&file, &size); // [手順] - サイズを取得する。
+
+    // Assert
+    ASSERT_EQ(0, rtc_file_open);     // [確認_正常系] - CREATE | READ | WRITE でオープンした戻り値が 0 であること。
+    EXPECT_EQ(0, rtc_file_write);    // [確認_正常系] - 読み書き両用ハンドルへの書き込みが成功すること。
+    ASSERT_EQ(0, rtc_file_get_size); // [確認_正常系] - get_size の戻り値が 0 であること。
+    EXPECT_EQ((size_t)5, size);      // [確認_正常系] - 書き込み後のサイズが 5 であること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// CREATE | CREATE_NEW で新規ファイルの作成に成功することの確認
+TEST_F(crt_fileTest, create_new_succeeds_for_absent_file)
+{
+    // Arrange
+    std::string path = make_path("create_new_absent.log");
+    com_util_file file;
+
+    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(),
+        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
+            COM_UTIL_FILE_OPEN_WRITE); // [手順] - CREATE | CREATE_NEW | READ | WRITE でオープンする。
+
+    // Assert
+    EXPECT_EQ(0, rtc_file_open); // [確認_正常系] - 存在しないファイルへの CREATE_NEW オープンが成功すること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// CREATE | CREATE_NEW が既存ファイルに対して失敗することの確認
+TEST_F(crt_fileTest, create_new_fails_for_existing_file)
+{
+    // Arrange
+    std::string path = make_path("create_new_existing.log");
+    com_util_file file;
+
+    write_text_file(path, "existing"); // [状態] - 既存ファイルとして "existing" を書き込んでおく。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(),
+        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
+            COM_UTIL_FILE_OPEN_WRITE); // [手順] - 既存ファイルに対して CREATE | CREATE_NEW でオープンを試みる。
+
+    // Assert
+    EXPECT_EQ(-1, rtc_file_open); // [確認_異常系] - 既存ファイルに対する CREATE_NEW オープンが -1 を返すこと。
+
+    // Cleanup
+    std::remove(path.c_str());
+}
+
+// com_util_file_set_size がファイル サイズを拡張・縮小できることの確認 (マルチ フェーズ テスト)
+TEST_F(crt_fileTest, set_size_extends_and_truncates_file)
+{
+    // Arrange
+    std::string path = make_path("set_size.log");
+    com_util_file file;
+    size_t size = 0;
+
+    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
+    com_util_file_init(&file);
+    ASSERT_EQ(0, com_util_file_open(&file, path.c_str(),
+                                    COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ |
+                                        COM_UTIL_FILE_OPEN_WRITE)); // [状態] - CREATE | READ | WRITE でオープンする。
+
+    // Pre-Assert
+
+    // Act
+    int rtc_set_size_1 = com_util_file_set_size(&file, 128); // [手順] - サイズを 128 バイトへ拡張する。
+
+    // Assert
+    ASSERT_EQ(0, rtc_set_size_1); // [確認_正常系] - set_size (128 バイトへ拡張) の戻り値が 0 であること。
+    ASSERT_EQ(0, com_util_file_get_size(&file, &size));
+    EXPECT_EQ((size_t)128, size); // [確認_正常系] - サイズが 128 バイトへ拡張されていること。
+
+    // Act_2
+    int rtc_set_size_2 = com_util_file_set_size(&file, 16); // [手順] - サイズを 16 バイトへ縮小する。
+
+    // Assert_2
+    ASSERT_EQ(0, rtc_set_size_2); // [確認_正常系] - set_size (16 バイトへ縮小) の戻り値が 0 であること。
+    ASSERT_EQ(0, com_util_file_get_size(&file, &size));
+    EXPECT_EQ((size_t)16, size); // [確認_正常系] - サイズが 16 バイトへ縮小されていること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// com_util_file_set_size が不正な引数で -1 を返すことの確認
+TEST_F(crt_fileTest, set_size_invalid_arguments_fail)
+{
+    // Arrange
+    com_util_file file;
+
+    com_util_file_init(&file); // [状態] - 未オープンのハンドルを初期化して用意する。
+
+    // Pre-Assert
+
+    // Act
+
+    // Assert
+    EXPECT_EQ(-1,
+              com_util_file_set_size(&file, 16)); // [確認_異常系] - set_size (未オープンのハンドル) が -1 を返すこと。
 }

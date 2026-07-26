@@ -41,19 +41,12 @@ static com_util_timespec make_fixed_timestamp(void)
 
 static uint32_t open_flags_default(void)
 {
-    // 単一プロセス モードは共有書き込み (SHARE_WRITE) を許可しない
-    return COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-           COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
+    return COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH;
 }
 
 static uint32_t open_flags_truncate(void)
 {
     return open_flags_default() | COM_UTIL_FILE_OPEN_TRUNCATE;
-}
-
-static uint32_t open_flags_shared(void)
-{
-    return open_flags_default() | COM_UTIL_FILE_OPEN_SHARE_WRITE;
 }
 
 // 共有モード テストで使う既定のファイル同一性インデックス
@@ -561,14 +554,14 @@ TEST_F(trace_fileTest, test_single_mode_does_not_use_interprocess_lock_or_identi
     com_util_trace_file_sink_dispose(handle);
 }
 
-// 共有モードの create がロック ファイルを開き、共有書き込みフラグでファイルを開くことの確認
+// 共有モードの create がロック ファイルを開くことの確認
 TEST_F(trace_fileTest, test_create_shared_opens_lock_file)
 {
     // Arrange
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有書き込みフラグでファイルが開かれること。
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ファイルが開かれること。
     EXPECT_CALL(mock_, com_util_interprocess_lock_open(StrEq("trace.log.lock"), _))
         .Times(1); // [Pre-Assert確認_正常系] - "<path>.lock" でプロセス間ロックが開かれること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(AtLeast(1));
@@ -640,7 +633,7 @@ TEST_F(trace_fileTest, test_shared_write_reopens_after_external_rotation)
                 return 0;
             });                                          // [Pre-Assert確認_正常系] - path が別実体を指していること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_正常系] - 旧ハンドルが閉じられること。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 新しい path が開き直されること。
     EXPECT_CALL(mock_, com_util_file_write(_, _, _))
         .WillOnce(Return(0));                            // [Pre-Assert確認_正常系] - 開き直し後に書き込まれること。
@@ -677,7 +670,7 @@ TEST_F(trace_fileTest, test_shared_write_reopen_does_not_retry_after_external_ro
                     return 0;
                 }); // [Pre-Assert確認_異常系] - path が別実体を指していること。
         EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // [Pre-Assert確認_異常系] - 旧ハンドルが閉じられること。
-        EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+        EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
             .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 開き直しのファイル オープンが失敗すること。
         EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
     }
@@ -705,7 +698,7 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
     InSequence seq;
 
     // create: オープン → サイズ取得 → 同一性キャッシュ → ロック ファイル オープン
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared())).WillOnce(Return(0));
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default())).WillOnce(Return(0));
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
         .WillOnce(
             [](const com_util_file *, size_t *size_out)
@@ -744,7 +737,7 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
     EXPECT_CALL(mock_, com_util_remove(StrEq("trace.log.2"))).WillOnce(Return(0));
     EXPECT_CALL(mock_, com_util_rename(StrEq("trace.log.1"), StrEq("trace.log.2"))).WillOnce(Return(0));
     EXPECT_CALL(mock_, com_util_rename(StrEq("trace.log"), StrEq("trace.log.1"))).WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 切り詰めずに追記モードで開き直すこと。
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
         .WillOnce(
@@ -805,7 +798,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
                 return 0;
             }); // [Pre-Assert確認_正常系] - ロック下の再確認で別実体を検知すること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1);
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_shared()))
+    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("trace.log"), open_flags_default()))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 開き直しのみ行われること。
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
         .WillOnce(

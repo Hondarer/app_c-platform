@@ -287,22 +287,18 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
 /* ===== 内部ヘルパー関数 ===== */
 
 /**
- *  @brief  モードに応じた基本オープン フラグを返します。
+ *  @brief  基本オープン フラグを返します。
  *
- *  単一プロセス モードでは共有書き込みを許可しない (Windows では OS が単一 writer を強制する)。\n
- *  SHARE_READ と SHARE_DELETE (外部のログ整理ツール向け) は両モードで許可します。
+ *  `com_util_file_open()` は常に他プロセスからの読み取り/書き込み/削除を許可するため
+ *  (Linux の open() と対称にする設計。file.h 参照)、単一プロセス モードであっても
+ *  Windows の排他書き込みによる複数プロセス誤書き込み防止は働きません。\n
+ *  複数プロセスからの同時書き込みを避けたい場合は、呼び出し側で
+ *  `com_util_interprocess_lock`/`com_util_interprocess_rwlock` (`sync.h`) による
+ *  明示的な排他制御を行ってください。
  */
-static int base_open_flags(const com_util_trace_file_sink *p)
+static int base_open_flags(void)
 {
-    int flags = COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH |
-                COM_UTIL_FILE_OPEN_SHARE_READ | COM_UTIL_FILE_OPEN_SHARE_DELETE;
-
-    if (p->shared != 0)
-    {
-        flags |= COM_UTIL_FILE_OPEN_SHARE_WRITE;
-    }
-
-    return flags;
+    return COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH;
 }
 
 /**
@@ -327,7 +323,7 @@ static int open_file(com_util_trace_file_sink *p)
 
     p->self_id_valid = 0;
 
-    if (com_util_file_open(&p->file, p->path, base_open_flags(p)) != 0)
+    if (com_util_file_open(&p->file, p->path, base_open_flags()) != 0)
     {
         p->current_bytes = 0;
         return -1;
@@ -386,7 +382,7 @@ static int open_file_with_retry(com_util_trace_file_sink *p)
  */
 static int open_file_truncate(com_util_trace_file_sink *p)
 {
-    int flags = base_open_flags(p) | COM_UTIL_FILE_OPEN_TRUNCATE;
+    int flags = base_open_flags() | COM_UTIL_FILE_OPEN_TRUNCATE;
 
     p->current_bytes = 0;
 

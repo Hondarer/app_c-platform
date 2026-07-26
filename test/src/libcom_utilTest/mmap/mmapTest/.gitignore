@@ -1,0 +1,9 @@
+/file.c
+/file_api.c
+/mmap_linux.c
+/mmap_windows.c
+/stdio.c
+/sync_descriptor.c
+/sync_linux.c
+/sync_windows.c
+/wchar_conv.c

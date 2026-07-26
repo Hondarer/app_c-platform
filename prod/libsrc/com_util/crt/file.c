@@ -62,11 +62,35 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
 
 #if defined(PLATFORM_LINUX)
     {
-        int open_flags = O_WRONLY;
+        int open_flags;
+        int has_read = (flags & COM_UTIL_FILE_OPEN_READ) != 0;
+        int has_write = (flags & COM_UTIL_FILE_OPEN_WRITE) != 0;
+
+        if (!has_read && !has_write)
+        {
+            has_write = 1; /* 既定は書き込み専用として扱い、COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱う。 */
+        }
+
+        if (has_read && has_write)
+        {
+            open_flags = O_RDWR;
+        }
+        else if (has_read)
+        {
+            open_flags = O_RDONLY;
+        }
+        else
+        {
+            open_flags = O_WRONLY;
+        }
 
         if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0)
         {
             open_flags |= O_CREAT;
+        }
+        if ((flags & COM_UTIL_FILE_OPEN_CREATE_NEW) != 0)
+        {
+            open_flags |= O_EXCL;
         }
         if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0)
         {
@@ -98,36 +122,38 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
-        DWORD share_mode = 0;
+        /* Linux の open() には他プロセスへの共有可否を制御する概念がなく常に共有可能であるため、
+           Windows も同じ既定動作に揃えて常にフル共有でオープンする (file.h の com_util_file_open 参照)。 */
+        DWORD share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
         DWORD desired_access;
         DWORD creation_disposition;
         DWORD file_flags = FILE_ATTRIBUTE_NORMAL;
         int use_append_access;
+        int has_read = (flags & COM_UTIL_FILE_OPEN_READ) != 0;
+        int has_write = (flags & COM_UTIL_FILE_OPEN_WRITE) != 0;
         LARGE_INTEGER pos;
+
+        if (!has_read && !has_write)
+        {
+            has_write = 1; /* 既定は書き込み専用として扱い、COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱う。 */
+        }
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
             return -1;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_SHARE_READ) != 0)
-        {
-            share_mode |= FILE_SHARE_READ;
-        }
-        if ((flags & COM_UTIL_FILE_OPEN_SHARE_DELETE) != 0)
-        {
-            share_mode |= FILE_SHARE_DELETE;
-        }
-        if ((flags & COM_UTIL_FILE_OPEN_SHARE_WRITE) != 0)
-        {
-            share_mode |= FILE_SHARE_WRITE;
-        }
         if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
         {
             file_flags |= FILE_FLAG_WRITE_THROUGH;
         }
 
-        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0)
+        if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0 && (flags & COM_UTIL_FILE_OPEN_CREATE_NEW) != 0)
+        {
+            /* 新規作成のみ許可する。既存ファイルがある場合は失敗させる。 */
+            creation_disposition = CREATE_NEW;
+        }
+        else if ((flags & COM_UTIL_FILE_OPEN_CREATE) != 0)
         {
             if ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) != 0)
             {
@@ -147,17 +173,30 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
             creation_disposition = OPEN_EXISTING;
         }
 
-        /* APPEND かつ TRUNCATE なしのとき FILE_APPEND_DATA で開くと書き込みが EOF へ原子的に向かう。 */
-        /* FILE_READ_ATTRIBUTES は後続の GetFileSizeEx (com_util_file_get_size) に必要。           */
-        /* TRUNCATE ありの場合は既存ファイルをゼロ化して先頭から書くため GENERIC_WRITE を使う。    */
-        use_append_access = ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0) && ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) == 0);
-        if (use_append_access != 0)
+        if (has_write)
         {
-            desired_access = FILE_APPEND_DATA | FILE_READ_ATTRIBUTES;
+            /* APPEND かつ TRUNCATE なしのとき FILE_APPEND_DATA で開くと書き込みが EOF へ原子的に向かう。 */
+            /* FILE_READ_ATTRIBUTES は後続の GetFileSizeEx (com_util_file_get_size) に必要。           */
+            /* TRUNCATE ありの場合は既存ファイルをゼロ化して先頭から書くため GENERIC_WRITE を使う。    */
+            use_append_access =
+                ((flags & COM_UTIL_FILE_OPEN_APPEND) != 0) && ((flags & COM_UTIL_FILE_OPEN_TRUNCATE) == 0);
+            if (use_append_access != 0)
+            {
+                desired_access = FILE_APPEND_DATA | FILE_READ_ATTRIBUTES;
+            }
+            else
+            {
+                desired_access = GENERIC_WRITE;
+            }
+            if (has_read)
+            {
+                desired_access |= GENERIC_READ;
+            }
         }
         else
         {
-            desired_access = GENERIC_WRITE;
+            use_append_access = 0;
+            desired_access = GENERIC_READ;
         }
 
         file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
@@ -242,6 +281,43 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
+        }
+
+        return 0;
+    }
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_file_set_size(com_util_file *file, size_t size)
+{
+    if (!file_is_open(file))
+    {
+        return -1;
+    }
+
+#if defined(PLATFORM_LINUX)
+    {
+        if (ftruncate(file->handle, (off_t)size) != 0)
+        {
+            return -1;
+        }
+
+        return 0;
+    }
+#elif defined(PLATFORM_WINDOWS)
+    {
+        LARGE_INTEGER pos;
+
+        pos.QuadPart = (LONGLONG)size;
+        if (!SetFilePointerEx(file->handle, pos, NULL, FILE_BEGIN))
+        {
+            return -1;
+        }
+        if (!SetEndOfFile(file->handle))
+        {
+            return -1;
         }
 
         return 0;

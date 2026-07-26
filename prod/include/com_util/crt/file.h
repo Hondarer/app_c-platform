@@ -39,9 +39,15 @@
 #define COM_UTIL_FILE_OPEN_TRUNCATE      (1 << 1) /**< 既存ファイルを開く際に内容を切り詰める。 */
 #define COM_UTIL_FILE_OPEN_APPEND        (1 << 2) /**< 書き込みをファイル末尾に追記する。 */
 #define COM_UTIL_FILE_OPEN_WRITE_THROUGH (1 << 3) /**< 書き込みをバッファリングせずディスクに直接書き出す。 */
-#define COM_UTIL_FILE_OPEN_SHARE_READ    (1 << 4) /**< 他プロセスからの読み取り共有を許可する。 */
-#define COM_UTIL_FILE_OPEN_SHARE_DELETE  (1 << 5) /**< 他プロセスからの削除を許可する。 */
-#define COM_UTIL_FILE_OPEN_SHARE_WRITE   (1 << 6) /**< 他プロセスからの書き込み共有を許可する。 */
+#define COM_UTIL_FILE_OPEN_READ          (1 << 4) /**< 読み取りアクセスを要求する。 */
+#define COM_UTIL_FILE_OPEN_WRITE \
+    (1 << 5) /**< 書き込みアクセスを要求する。@ref COM_UTIL_FILE_OPEN_READ と \
+                  @ref COM_UTIL_FILE_OPEN_WRITE のいずれも指定しない場合は、\
+                  既定で書き込み専用アクセスとして扱い、\
+                  @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱う。 */
+#define COM_UTIL_FILE_OPEN_CREATE_NEW \
+    (1 << 6) /**< 新規作成のみ許可する。既存ファイルがある場合は失敗する。\
+                  @ref COM_UTIL_FILE_OPEN_CREATE と併用する。 */
 
 /**
  *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持) です。
@@ -92,8 +98,19 @@ extern "C"
      *                         すでにオープン済みの場合は先にクローズしてから開き直します。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープン フラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
-     *                         負値を渡した場合は -1 を返します。
+     *                         負値を渡した場合は -1 を返します。\n
+     *                         @ref COM_UTIL_FILE_OPEN_READ / @ref COM_UTIL_FILE_OPEN_WRITE を
+     *                         いずれも指定しない場合は、既定で書き込み専用アクセスとして開き、
+     *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
+     *  (Windows でも `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` を常に指定します)。\n
+     *  Linux の `open()` にはそもそも「他プロセスへの共有可否」を制御する概念が存在せず常に
+     *  共有可能であるため、Windows も同じ既定動作に揃えています。\n
+     *  複数プロセスからの同時書き込みを防ぎたい場合は、OS の排他アクセスには頼らず、
+     *  `com_util_interprocess_lock`/`com_util_interprocess_rwlock` (`sync.h`) で明示的に
+     *  排他制御してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -125,6 +142,19 @@ extern "C"
      *  内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out);
+
+    /**
+     *  @brief          ファイル サイズを指定値に設定します (拡張または切り詰め)。
+     *  @param[in]      file  対象のファイル。書き込みアクセスでオープン済みでなければなりません。
+     *                        NULL を渡してはなりません。
+     *  @param[in]      size  設定後のファイル サイズ (バイト)。
+     *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file への並行操作は呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_set_size(com_util_file *file, size_t size);
 
     /**
      *  @brief          開いているファイルの同一性情報を取得します。
