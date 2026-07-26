@@ -385,7 +385,17 @@
 // テーブルからシグネチャの static_assert と期待シンボル名一覧を生成する。
 // 定型マクロ (TESTFW_EXPORT_STATIC_ASSERT_ENTRY/TESTFW_EXPORT_NAME_ENTRY) は
 // framework/testfw/include/export_check.h 側の共通定義を使う。
+#if defined(PLATFORM_LINUX)
+    // GCC は format 属性付き関数ポインター型を std::is_same のテンプレート引数にすると、
+    // ABI シグネチャ比較の対象外である format 属性を無視したことを警告するため、この比較だけ抑制する。
+    // see: https://gcc.gnu.org/onlinedocs/gcc-8.5.0/gcc/Warning-Options.html#index-Wignored-attributes
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif /* PLATFORM_LINUX */
 COM_UTIL_EXPORT_TABLE(TESTFW_EXPORT_STATIC_ASSERT_ENTRY)
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
 
 static const char *const kExpectedExportNames[] = {COM_UTIL_EXPORT_TABLE(TESTFW_EXPORT_NAME_ENTRY)};
 
@@ -425,8 +435,9 @@ TEST_F(exportTest, symbol_names_match)
         testing::getActualExportNames(dll_path); // [手順] - dumpbin/nm で libcom_util の実際のエクスポート一覧を取得する。
 
     // Assert
-    testing::expectExportNamesMatch(expected, actual,
-                                     kExpectedExportSignatures); // [確認] - 期待シンボルとの不足/想定外がないこと (Windows は完全一致、Linux は不足のみ) 。
+    testing::expectExportNamesMatch(
+        expected, actual,
+        kExpectedExportSignatures); // [確認_正常系] - 期待シンボルとの不足/想定外がないこと (Windows は完全一致、Linux は不足のみ) 。
 }
 
 // 公開ヘッダーの変数宣言が dllexport マクロ (COM_UTIL_EXPORT) を
@@ -443,6 +454,7 @@ TEST_F(exportTest, public_header_variables_declare_export_macro)
         include_dir, "COM_UTIL_EXPORT"); // [手順] - prod/include 配下を走査し、COM_UTIL_EXPORT を伴わない extern 変数宣言を集める。
 
     // Assert
-    EXPECT_TRUE(undecorated.empty())
-        << "COM_UTIL_EXPORT を伴わない変数宣言: " << testing::joinNames(undecorated); // [確認] - 該当する宣言が 1 件もないこと。
+    EXPECT_TRUE(undecorated.empty()) << "COM_UTIL_EXPORT を伴わない変数宣言: "
+                                     << testing::joinNames(
+                                            undecorated); // [確認_正常系] - 該当する宣言が 1 件もないこと。
 }

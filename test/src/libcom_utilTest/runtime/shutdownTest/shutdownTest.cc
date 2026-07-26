@@ -220,6 +220,13 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(7) を呼び出す。
     // Assert
     // [確認_正常系] - 終了コード 7 で終了し、callback に reason=0 kind=1 code=7 のイベントが渡ること。
+#if defined(PLATFORM_LINUX)
+    // GoogleTest 1.17.0 の EXPECT_EXIT は default のない switch に展開されるため、
+    // GoogleTest のマクロ展開に限定して -Wswitch-default を抑制する。
+    // see: https://github.com/google/googletest/blob/v1.17.0/googletest/include/gtest/internal/gtest-death-test-internal.h#L221-L245
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif /* PLATFORM_LINUX */
     EXPECT_EXIT(
         {
             _com_util_shutdown_reset_for_test();
@@ -227,6 +234,9 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
             com_util_exit(7);
         },
         ::testing::ExitedWithCode(7), "reason=0 kind=1 code=7");
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
 }
 
 // 明示的な shutdown 実行後に atexit で二重実行されないことの確認
@@ -240,6 +250,11 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
     // [手順] - 子プロセス側で実行回数を出力する callback を登録し、明示的な shutdown 実行後に exit(0) を呼び出す。
     // Assert
     // [確認_正常系] - 終了コード 0 で終了し、callback の実行回数が count=1 のまま二重実行されないこと。
+#if defined(PLATFORM_LINUX)
+    // EXPECT_EXIT のマクロ展開に限定して -Wswitch-default を抑制する。
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif /* PLATFORM_LINUX */
     EXPECT_EXIT(
         {
             com_util_shutdown_event event =
@@ -250,6 +265,9 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
             exit(0);
         },
         ::testing::ExitedWithCode(0), "count=1");
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
 }
 
 #if defined(PLATFORM_LINUX)
@@ -264,6 +282,9 @@ TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
     // [手順] - 子プロセス側でイベント内容を出力する終了要求 callback を登録し、raise(SIGINT) を発生させる。
     // Assert
     // [確認_正常系] - callback に reason=2 kind=2 code=2 のイベントが渡り、SIGINT 後も処理が継続して終了コード 0 で終了すること。
+    // EXPECT_EXIT のマクロ展開に限定して -Wswitch-default を抑制する。
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
     EXPECT_EXIT(
         {
             _com_util_shutdown_reset_for_test();
@@ -273,6 +294,7 @@ TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
             exit(0);
         },
         ::testing::ExitedWithCode(0), "reason=2 kind=2 code=2.*after-sigint");
+    #pragma GCC diagnostic pop
 }
 #elif defined(PLATFORM_WINDOWS)
 // コンソール イベントが終了要求 callback へ報告されることの確認
