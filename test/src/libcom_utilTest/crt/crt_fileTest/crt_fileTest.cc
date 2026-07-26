@@ -490,6 +490,28 @@ TEST_F(crt_fileTest, create_new_fails_for_existing_file)
     std::remove(path.c_str());
 }
 
+// CREATE_NEW を CREATE なしで指定すると -1 を返すことの確認
+TEST_F(crt_fileTest, create_new_without_create_fails)
+{
+    // Arrange
+    std::string path = make_path("create_new_without_create.log");
+    com_util_file file;
+
+    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(),
+        COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
+            COM_UTIL_FILE_OPEN_WRITE); // [手順] - CREATE を指定せず CREATE_NEW | READ | WRITE でオープンを試みる。
+
+    // Assert
+    EXPECT_EQ(-1, rtc_file_open); // [確認_異常系] - CREATE なしの CREATE_NEW オープンが -1 を返すこと。
+}
+
 // com_util_file_set_size がファイル サイズを拡張・縮小できることの確認 (マルチ フェーズ テスト)
 TEST_F(crt_fileTest, set_size_extends_and_truncates_file)
 {

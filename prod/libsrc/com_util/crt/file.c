@@ -57,6 +57,12 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
     {
         return -1;
     }
+    if ((flags & COM_UTIL_FILE_OPEN_CREATE_NEW) != 0 && (flags & COM_UTIL_FILE_OPEN_CREATE) == 0)
+    {
+        /* CREATE_NEW は CREATE との併用が必須。単独指定は Linux では O_EXCL が黙って無視され、
+           Windows では OPEN_EXISTING 相当に落ちるため、意図と乖離しないよう明示的に失敗させる。 */
+        return -1;
+    }
 
     com_util_file_close(file);
 

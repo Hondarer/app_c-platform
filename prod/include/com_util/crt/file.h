@@ -47,7 +47,8 @@
                   @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱う。 */
 #define COM_UTIL_FILE_OPEN_CREATE_NEW \
     (1 << 6) /**< 新規作成のみ許可する。既存ファイルがある場合は失敗する。\
-                  @ref COM_UTIL_FILE_OPEN_CREATE と併用する。 */
+                  @ref COM_UTIL_FILE_OPEN_CREATE の指定が必須であり、指定しない場合 \
+                  com_util_file_open() は呼び出し自体を -1 で失敗させる。 */
 
 /**
  *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持) です。
@@ -101,7 +102,9 @@ extern "C"
      *                         負値を渡した場合は -1 を返します。\n
      *                         @ref COM_UTIL_FILE_OPEN_READ / @ref COM_UTIL_FILE_OPEN_WRITE を
      *                         いずれも指定しない場合は、既定で書き込み専用アクセスとして開き、
-     *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。
+     *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。\n
+     *                         @ref COM_UTIL_FILE_OPEN_CREATE_NEW を @ref COM_UTIL_FILE_OPEN_CREATE
+     *                         なしで指定した場合も -1 を返します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
