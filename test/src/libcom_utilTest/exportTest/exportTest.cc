@@ -26,6 +26,7 @@
 #include <com_util/crt/time.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crypto/crypto.h>
+#include <com_util/mmap/mmap.h>
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/runtime/elevated_process.h>
@@ -134,6 +135,7 @@
     EXPORT_ENTRY(com_util_file_open, int(COM_UTIL_API *)(com_util_file *file, const char *path, int flags)) \
     EXPORT_ENTRY(com_util_file_write, int(COM_UTIL_API *)(com_util_file *file, const void *buf, size_t len)) \
     EXPORT_ENTRY(com_util_file_get_size, int(COM_UTIL_API *)(const com_util_file *file, size_t *size_out)) \
+    EXPORT_ENTRY(com_util_file_set_size, int(COM_UTIL_API *)(com_util_file *file, size_t size)) \
     EXPORT_ENTRY(com_util_file_get_id, int(COM_UTIL_API *)(const com_util_file *file, com_util_file_id *id_out)) \
     EXPORT_ENTRY(com_util_file_get_path_id, int(COM_UTIL_API *)(const char *path, com_util_file_id *id_out)) \
     EXPORT_ENTRY(com_util_file_close, void(COM_UTIL_API *)(com_util_file *file)) \
@@ -208,6 +210,13 @@
     EXPORT_ENTRY(com_util_encrypt, int(COM_UTIL_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
     EXPORT_ENTRY(com_util_decrypt, int(COM_UTIL_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
     EXPORT_ENTRY(com_util_passphrase_to_key, int(COM_UTIL_API *)(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len)) \
+    /* com_util/mmap/mmap.h */ \
+    EXPORT_ENTRY(com_util_mmap_attach, com_util_mmap_result_t(COM_UTIL_API *)(const char *path, com_util_mmap_access_t access, size_t create_size, com_util_mmap **map)) \
+    EXPORT_ENTRY(com_util_mmap_get_address, void *(COM_UTIL_API *)(const com_util_mmap *map)) \
+    EXPORT_ENTRY(com_util_mmap_get_size, size_t(COM_UTIL_API *)(const com_util_mmap *map)) \
+    EXPORT_ENTRY(com_util_mmap_get_rwlock, com_util_interprocess_rwlock *(COM_UTIL_API *)(const com_util_mmap *map)) \
+    EXPORT_ENTRY(com_util_mmap_flush, com_util_mmap_result_t(COM_UTIL_API *)(com_util_mmap *map, void *address, size_t length)) \
+    EXPORT_ENTRY(com_util_mmap_detach, void(COM_UTIL_API *)(com_util_mmap *map)) \
     /* com_util/prompt/pinned_prompt.h */ \
     EXPORT_ENTRY(com_util_pinned_prompt_create, com_util_pinned_prompt *(COM_UTIL_API *)(const com_util_pinned_prompt_options *options)) \
     EXPORT_ENTRY(com_util_pinned_prompt_dispose, void(COM_UTIL_API *)(com_util_pinned_prompt *screen)) \
