@@ -39,7 +39,7 @@ short-title: "prompt"
 - `com_util_prompt_options` と `com_util_pinned_prompt_options.input` は、履歴数、入力バッファー初期容量、入力バッファー最大容量を指定します。
 - `history_max == 0` は `COM_UTIL_PROMPT_HISTORY_DEFAULT` を使います。
 - `input_max_bytes == 0` は `COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT` を使います。
-- `com_util_pinned_prompt_readline()` は Enter で 1、EOF または Ctrl+C で 0 を返します。
+- `com_util_pinned_prompt_readline()` は Enter で `COM_UTIL_OK`、EOF で `COM_UTIL_ERR_EOF`、Ctrl+C で `COM_UTIL_ERR_CANCELED` を返します。
 - 履歴リングは `com_util_pinned_prompt_readline()` / `com_util_pinned_prompt_readline_fmt()` の呼び出し元ごとに分かれます。
 - `com_util_pinned_prompt_write()` と `com_util_pinned_prompt_printf()` は、入力中でも呼び出せます。
 - `com_util_pinned_prompt_write()` は渡されたバイト列だけを書き込み、改行を自動追加しません。

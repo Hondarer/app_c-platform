@@ -11,6 +11,7 @@
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
 
+#include <com_util/base/result.h>
 #include <com_util/crt/wchar_conv.h>
 
 #if defined(PLATFORM_LINUX)
@@ -55,13 +56,13 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
 {
     if (file == NULL || path == NULL || flags < 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if ((flags & COM_UTIL_FILE_OPEN_CREATE_NEW) != 0 && (flags & COM_UTIL_FILE_OPEN_CREATE) == 0)
     {
         /* CREATE_NEW は CREATE との併用が必須。単独指定は Linux では O_EXCL が黙って無視され、
            Windows では OPEN_EXISTING 相当に落ちるため、意図と乖離しないよう明示的に失敗させる。 */
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     com_util_file_close(file);
@@ -118,11 +119,11 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
         file->handle = open(path, open_flags, 0644);
         if (file_is_open(file))
         {
-            return 0;
+            return COM_UTIL_OK;
         }
         else
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -146,7 +147,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
@@ -208,7 +209,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
         file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         /* GENERIC_WRITE 経路の APPEND: 手動で末尾へシークする。 */
@@ -219,11 +220,11 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
             if (!SetFilePointerEx(file->handle, pos, NULL, FILE_END))
             {
                 com_util_file_close(file);
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
         }
 
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -234,12 +235,12 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (len == 0u)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -252,14 +253,14 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
             ssize_t written = write(file->handle, cursor, remaining);
             if (written <= 0)
             {
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -282,14 +283,14 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
 
             if (!WriteFile(file->handle, cursor, chunk, &written, NULL) || written == 0u)
             {
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -300,17 +301,17 @@ int com_util_file_set_size(com_util_file *file, size_t size)
 {
     if (!file_is_open(file))
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
     {
         if (ftruncate(file->handle, (off_t)size) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -319,14 +320,14 @@ int com_util_file_set_size(com_util_file *file, size_t size)
         pos.QuadPart = (LONGLONG)size;
         if (!SetFilePointerEx(file->handle, pos, NULL, FILE_BEGIN))
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (!SetEndOfFile(file->handle))
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -337,7 +338,7 @@ int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 {
     if (!file_is_open(file) || size_out == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -346,11 +347,11 @@ int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 
         if (fstat(file->handle, &st) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         *size_out = (size_t)st.st_size;
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -358,11 +359,11 @@ int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 
         if (!GetFileSizeEx(file->handle, &size))
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         *size_out = (size_t)size.QuadPart;
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -373,7 +374,7 @@ int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 {
     if (!file_is_open(file) || id_out == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -382,12 +383,12 @@ int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 
         if (fstat(file->handle, &st) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -395,12 +396,12 @@ int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 
         if (!GetFileInformationByHandle(file->handle, &info))
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -411,7 +412,7 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 {
     if (path == NULL || id_out == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -420,12 +421,12 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 
         if (stat(path, &st) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -436,7 +437,7 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         /* 属性読み取り専用で開くため、他プロセスの共有モードの影響を受けない。 */
@@ -444,19 +445,19 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (handle == INVALID_HANDLE_VALUE)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         got_info = GetFileInformationByHandle(handle, &info);
         CloseHandle(handle);
         if (!got_info)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }

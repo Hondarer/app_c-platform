@@ -2,6 +2,7 @@
 /file.c
 /mock_com_util_eventlog_sink_dispose_on_unload.cc
 /process.c
+/result.c
 /stdio.c
 /time.c
 /trace_common.c

@@ -68,6 +68,7 @@
 /* int64_t (com_util_tracer_set_name で使用) */
 #include <inttypes.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/path.h>
 #include <com_util/com_util_export.h>
@@ -340,15 +341,15 @@ extern "C"
      *  com_util_tracer_set_file_level, com_util_tracer_set_stderr_level) は started 状態でも使用でき、
      *  停止せずに閾値レベルを変更できます。\n
      *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
-     *  com_util_tracer_set_hook, com_util_tracer_remove_hook) は started 状態では使用できません (-1 / NULL を返します)。\n
-     *  すでに started 状態の場合は何もせず 0 を返します (冪等)。
+     *  com_util_tracer_set_hook, com_util_tracer_remove_hook) は started 状態では使用できません (@ref COM_UTIL_ERR_UNKNOWN / NULL を返します)。\n
+     *  すでに started 状態の場合は何もせず @ref COM_UTIL_OK を返します (冪等)。
      *
      *  ファイル トレースのレベルが COM_UTIL_TRACE_LEVEL_NONE 以外の場合、
      *  本関数の呼び出し時点の設定 (出力ファイル パス、ファイル名、ファイル識別) で
      *  トレース ファイルを開きます。\n
      *  出力ファイル パスの妥当性 (オープン可否) は本関数の戻り値で報告されます。\n
      *  トレース ファイルを開けなかった場合も started 状態へは遷移し、
-     *  ファイル以外のトレース出力 (OS / stderr / フック) は継続したうえで -1 を返します。
+     *  ファイル以外のトレース出力 (OS / stderr / フック) は継続したうえで @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  この場合、com_util_tracer_stop 後に再度本関数を呼び出すとオープンを再試行します。
      *
      *  同一プロセス内の複数の tracer が同一パスのトレース ファイルを開いた場合は、
@@ -356,13 +357,13 @@ extern "C"
      *  (詳細は com_util_trace_file_sink_create を参照)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部で排他制御を行います。
      *
-     *  @warning        handle が NULL の場合は -1 を返します。
+     *  @warning        handle が NULL の場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @warning        別プロセスとの間では占有モードの排他が働くため、同一実行ファイルを複数プロセス
      *                  起動するとデフォルト パスのオープンが 2 プロセス目以降で失敗する場合があります
      *                  (Windows)。com_util_tracer_set_file_name のファイル識別、または
@@ -376,22 +377,22 @@ extern "C"
      *  @brief          トレース プロバイダーを停止します。
      *
      *  ハンドルを停止中 (stopped) 状態に遷移させます。\n
-     *  stopped 状態では出力関数 (com_util_tracer_write 等) は -1 を返し、
+     *  stopped 状態では出力関数 (com_util_tracer_write 等) は @ref COM_UTIL_ERR_UNKNOWN を返し、
      *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
      *  com_util_tracer_set_hook, com_util_tracer_remove_hook) がスレッド安全に使用できるようになります。\n
      *  レベル設定関数 (com_util_tracer_set_os_level 等) は stopped / started のどちらでも使用できます。\n
      *  ファイル トレースが有効な場合、開いていたトレース ファイルを閉じます。
      *  ファイル トレースの設定は保持され、次回の com_util_tracer_start で改めてファイルを開きます。\n
-     *  すでに stopped 状態の場合は何もせず 0 を返します (冪等)。
+     *  すでに stopped 状態の場合は何もせず @ref COM_UTIL_OK を返します (冪等)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部で排他制御を行います。
      *
-     *  @warning        handle が NULL の場合は -1 を返します。
+     *  @warning        handle が NULL の場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @see            com_util_tracer_start
      */
@@ -421,9 +422,9 @@ extern "C"
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
-     *                             戻り値は -1 を返します。
+     *                             戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      message    null 終端 UTF-8 文字列。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -439,10 +440,10 @@ extern "C"
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
-     *                             戻り値は -1 を返します。
+     *                             戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      format     printf 形式のフォーマット文字列。
      *  @param[in]      ...        フォーマット文字列に対応する可変長引数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -459,11 +460,11 @@ extern "C"
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
-     *                             戻り値は -1 を返します。
+     *                             戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      data       バイナリ データへのポインター。
      *  @param[in]      size       バイナリ データのバイト数。
      *  @param[in]      message    HEX データの手前に付与するラベル文字列。NULL 可。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -480,12 +481,12 @@ extern "C"
      *  @param[in]      level      トレース レベル (com_util_trace_level_t)。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
-     *                             戻り値は -1 を返します。
+     *                             戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      data       バイナリ データへのポインター。
      *  @param[in]      size       バイナリ データのバイト数。
      *  @param[in]      format     printf 形式のフォーマット文字列 (ラベル)。NULL 可。
      *  @param[in]      ...        フォーマット文字列に対応する可変長引数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -509,11 +510,11 @@ extern "C"
      *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      name        インスタンス名。NULL で自プロセス名を使用。
      *  @param[in]      identifier  インスタンス識別番号 (0 以上)。0 でサフィックスなし。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped 状態でのみ有効です。started 状態では @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @see            com_util_tracer_get_name
      *  @see            com_util_tracer_get_identifier
@@ -530,9 +531,10 @@ extern "C"
      *  com_util_tracer_set_name 未呼び出しの場合は自プロセス名です。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
-     *  @param[out]     out       識別名を格納するバッファー。NULL の場合は -1 を返します。
-     *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @param[out]     out       識別名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @param[in]      out_size  バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                            格納に不足する場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -571,11 +573,11 @@ extern "C"
      *  @param[in]      handle      com_util_tracer_create の戻り値。
      *  @param[in]      name        ファイル名。NULL でプロセス名を使用。
      *  @param[in]      identifier  ファイル識別番号 (0 以上)。0 でサフィックスなし。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
-     *  stopped 状態でのみ有効です。started 状態では -1 を返します。
+     *  stopped 状態でのみ有効です。started 状態では @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @see            com_util_tracer_get_file_name
      *  @see            com_util_tracer_get_file_identifier
@@ -593,9 +595,10 @@ extern "C"
      *  (実行ファイルのベース名。Windows は末尾の @c .exe を除く) です。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
-     *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は -1 を返します。
-     *  @param[in]      out_size  バッファーのバイト数。0 または格納に不足する場合は -1 を返します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @param[in]      out_size  バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                            格納に不足する場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -640,7 +643,7 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -671,11 +674,11 @@ extern "C"
      *
      *  ETW は Windows 専用の独立した診断チャネルであり、OS トレース (EventLog) とは
      *  別の軸として制御します。デフォルトは COM_UTIL_TRACER_DEFAULT_ETW_LEVEL です。\n
-     *  Linux では ETW が存在しないため、本関数は何もせず 0 を返します。
+     *  Linux では ETW が存在しないため、本関数は何もせず @ref COM_UTIL_OK を返します。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -726,14 +729,14 @@ extern "C"
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
      *  @param[in]      flags        動作フラグ (@ref COM_UTIL_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            started 中の即時反映
      *  started 状態でも呼び出せます。この場合は設定を記録するだけでなく、変更を即座に反映します。\n
      *  level に COM_UTIL_TRACE_LEVEL_NONE を指定するとファイル出力を停止します。\n
      *  出力ファイル パスや max_bytes / generations / flags を変更した場合 (または無効状態から
      *  有効化した場合) は、新しい設定でトレース ファイルを開き直します。新しいファイルのオープンに
-     *  失敗した場合は、開いていたファイルと従来の設定を保持したまま -1 を返します。\n
+     *  失敗した場合は、開いていたファイルと従来の設定を保持したまま @ref COM_UTIL_ERR_UNKNOWN を返します。\n
      *  パスとパラメーターが現状と一致し、閾値レベルのみを変更する場合はファイルを開き直しません。
      *
      *  @par            スレッド セーフ
@@ -762,7 +765,7 @@ extern "C"
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (com_util_trace_level_t)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -896,7 +899,7 @@ static inline const char *_com_util_tracer_hex_msg(const char *message)
  *  @param[in]      file       出力に付与するソース ファイル名。
  *  @param[in]      line       出力に付与するソース行番号。
  *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
- *  @return         成功時は 0、失敗時は -1 を返します。
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
  *  @internal
  *
  *  @par            スレッド セーフ

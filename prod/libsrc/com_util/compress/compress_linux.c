@@ -24,6 +24,7 @@
     #include <arpa/inet.h>
     #include <zlib.h>
 
+    #include <com_util/base/result.h>
     #include <com_util/compress/compress.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -36,12 +37,12 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (*dst_len < COM_UTIL_COMPRESS_HEADER_SIZE + 1U)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     /* 先頭 4 バイトに元サイズ (NBO) を書く */
@@ -57,7 +58,7 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
 
     if (deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     ret = deflate(&z, Z_FINISH);
@@ -65,11 +66,11 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
 
     if (ret != Z_STREAM_END)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = COM_UTIL_COMPRESS_HEADER_SIZE + (size_t)z.total_out;
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -83,7 +84,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* 先頭 4 バイトから元サイズを取得 */
@@ -92,7 +93,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (*dst_len < (size_t)orig_len)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     /* raw DEFLATE を展開 */
@@ -104,7 +105,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (inflateInit2(&z, -15) != Z_OK)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     ret = inflate(&z, Z_FINISH);
@@ -112,11 +113,11 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (ret != Z_STREAM_END)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = (size_t)z.total_out;
-    return 0;
+    return COM_UTIL_OK;
 }
 
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)

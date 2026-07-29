@@ -38,7 +38,7 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
 
     if (__atomic_compare_exchange_n(&fobj->lock_state, &expected, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
     {
-        if (com_util_local_lock_create(&fobj->lock) != 0)
+        if (com_util_local_lock_create(&fobj->lock) != COM_UTIL_OK)
         {
             __atomic_store_n(&fobj->lock_state, -1, __ATOMIC_RELEASE);
             return -1;
@@ -66,7 +66,7 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
     expected = InterlockedCompareExchange((volatile LONG *)&fobj->lock_state, 1, 0);
     if (expected == 0)
     {
-        if (com_util_local_lock_create(&fobj->lock) != 0)
+        if (com_util_local_lock_create(&fobj->lock) != COM_UTIL_OK)
         {
             InterlockedExchange((volatile LONG *)&fobj->lock_state, -1);
             return -1;
@@ -132,7 +132,7 @@ void *com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj)
     /* ロード処理を排他制御する。
      * ロック取得後に再度 resolved を確認し、他スレッドが先にロードを
      * 完了していた場合は処理をスキップする (double-checked locking)。 */
-    if (com_util_local_lock_lock(fobj->lock, COM_UTIL_SYNC_WAIT_FOREVER) != 0)
+    if (com_util_local_lock_lock(fobj->lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_OK)
     {
         return NULL;
     }

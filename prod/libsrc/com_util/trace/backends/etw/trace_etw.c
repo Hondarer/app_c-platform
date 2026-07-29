@@ -17,6 +17,7 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+    #include <com_util/base/result.h>
     #include <com_util/base/windows_sdk.h>
     #include <TraceLoggingProvider.h>
     #include <com_util/trace/etw.h>
@@ -139,12 +140,12 @@ int com_util_etw_provider_write(com_util_etw_provider *handle, const int level, 
 {
     if (handle == NULL || message == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     write_trace_event(handle->provider_ref, level, service, message);
 
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

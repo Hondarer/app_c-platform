@@ -77,7 +77,7 @@ class trace_fileTest : public Test
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
                 });
-        ON_CALL(mock_, com_util_file_open(_, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_file_open(_, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_file_get_size(_, _))
             .WillByDefault(
                 [](const com_util_file *, size_t *size_out)
@@ -85,7 +85,7 @@ class trace_fileTest : public Test
                     *size_out = 0;
                     return 0;
                 });
-        ON_CALL(mock_, com_util_file_write(_, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_file_write(_, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_file_close(_)).WillByDefault(Return());
         ON_CALL(mock_, com_util_remove(_)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_rename(_, _)).WillByDefault(Return(0));
@@ -113,10 +113,10 @@ class trace_fileTest : public Test
                 {
                     static int dummy_lock = 0;
                     *lock = (com_util_interprocess_lock *)&dummy_lock;
-                    return COM_UTIL_SYNC_OK;
+                    return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_SYNC_OK));
-        ON_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_SYNC_OK));
+        ON_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
     }
 };
@@ -253,7 +253,8 @@ TEST_F(trace_fileTest, test_write_formats_info_line)
 
     // Assert
     EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+        COM_UTIL_OK,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -282,7 +283,8 @@ TEST_F(trace_fileTest, test_write_formats_debug_marker)
 
     // Assert
     EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+        COM_UTIL_OK,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -315,7 +317,7 @@ TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock
 
     // Assert
     EXPECT_EQ(
-        0,
+        COM_UTIL_OK,
         result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、明示タイムスタンプ付き書き込みが成功したと判断できること。
 
     // Cleanup
@@ -338,7 +340,8 @@ TEST_F(trace_fileTest, test_write_returns_minus_one_on_file_error)
                                                 "write error"); // [手順] - 書き込み失敗を発生させる。
 
     // Assert
-    EXPECT_EQ(-1, result); // [確認_異常系] - com_util_trace_file_sink_write が -1 を返すこと。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_trace_file_sink_write が COM_UTIL_ERR_UNKNOWN を返すこと。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -370,7 +373,7 @@ TEST_F(trace_fileTest, test_write_falls_back_from_invalid_explicit_timestamp)
                                                 "invalid"); // [手順] - 不正タイムスタンプで書き込む。
 
     // Assert
-    EXPECT_EQ(-1, result); // [確認_異常系] - 代替出力後も -1 を返すこと。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, result); // [確認_異常系] - 代替出力後も COM_UTIL_ERR_UNKNOWN を返すこと。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -413,7 +416,7 @@ TEST_F(trace_fileTest, test_write_rotates_when_size_limit_is_reached)
                                                 "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込み後にローテーションが完了すること。
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 書き込み後にローテーションが完了すること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -458,8 +461,9 @@ TEST_F(trace_fileTest, test_write_does_not_retry_open_after_rotation)
         "rotate once"); // [手順] - 上限 1 byte のファイルへ書き込み、ローテーション後の open を失敗させる。
 
     // Assert
-    EXPECT_EQ(0,
-              result); // [確認_異常系] - com_util_trace_file_sink_write は完了済みの書き込み結果として 0 を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        result); // [確認_異常系] - com_util_trace_file_sink_write は完了済みの書き込み結果として COM_UTIL_OK を返すこと。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -548,7 +552,8 @@ TEST_F(trace_fileTest, test_single_mode_does_not_use_interprocess_lock_or_identi
     // Assert
     EXPECT_NE((com_util_trace_file_sink *)NULL, handle); // [確認_正常系] - ハンドルが生成されること。
     EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+        COM_UTIL_OK,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -586,7 +591,7 @@ TEST_F(trace_fileTest, test_create_shared_returns_null_when_lock_open_fails)
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_interprocess_lock_open(StrEq("trace.log.lock"), _))
-        .WillOnce(Return(COM_UTIL_SYNC_SYSTEM_ERROR)); // [Pre-Assert確認_異常系] - ロックのオープンが失敗すること。
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - ロックのオープンが失敗すること。
     EXPECT_CALL(mock_, com_util_file_close(_))
         .Times(AtLeast(1)); // [Pre-Assert確認_異常系] - オープン済みファイルが閉じられること。
 
@@ -645,7 +650,8 @@ TEST_F(trace_fileTest, test_shared_write_reopens_after_external_rotation)
 
     // Assert
     EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+        COM_UTIL_OK,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -684,8 +690,9 @@ TEST_F(trace_fileTest, test_shared_write_reopen_does_not_retry_after_external_ro
                                                 "after rotate"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(-1,
-              result); // [確認_異常系] - com_util_trace_file_sink_write の戻り値が直ちに -1 であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        result); // [確認_異常系] - com_util_trace_file_sink_write の戻り値が直ちに COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -723,8 +730,8 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
 
     // プロセス間ロック下の再確認 → ローテーション
     EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
-        .WillOnce(Return(
-            COM_UTIL_SYNC_OK)); // [Pre-Assert確認_正常系] - ローテーション前にプロセス間ロックを即時取得すること。
+        .WillOnce(
+            Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - ローテーション前にプロセス間ロックを即時取得すること。
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _)).Times(1);
     EXPECT_CALL(mock_, com_util_file_get_size(_, _))
         .WillOnce(
@@ -748,7 +755,7 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
             });
     EXPECT_CALL(mock_, com_util_file_get_id(_, _)).Times(1);
     EXPECT_CALL(mock_, com_util_interprocess_lock_unlock(_))
-        .WillOnce(Return(COM_UTIL_SYNC_OK)); // [Pre-Assert確認_正常系] - ローテーション後にロックを解放すること。
+        .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - ローテーション後にロックを解放すること。
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
 
     com_util_trace_file_sink *handle =
@@ -762,7 +769,7 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
                                                 "rotate me"); // [手順] - 上限 1 byte のファイルへ 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - 書き込み後にローテーションが完了すること。
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 書き込み後にローテーションが完了すること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -789,7 +796,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
                 *size_out = 10;
                 return 0;
             }); // [Pre-Assert確認_正常系] - 実サイズが閾値以上であること。
-    EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillOnce(Return(COM_UTIL_SYNC_OK));
+    EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillOnce(Return(COM_UTIL_OK));
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _))
         .WillOnce(
             [](const char *, com_util_file_id *id_out)
@@ -808,7 +815,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
                 return 0;
             });                                              // 開き直し時の初期サイズ取得
     EXPECT_CALL(mock_, com_util_file_get_id(_, _)).Times(1); // 開き直し時の同一性キャッシュ
-    EXPECT_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillOnce(Return(COM_UTIL_SYNC_OK));
+    EXPECT_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillOnce(Return(COM_UTIL_OK));
     EXPECT_CALL(mock_, com_util_file_close(_)).Times(1); // dispose 分
 
     // Act
@@ -817,7 +824,8 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
 
     // Assert
     EXPECT_EQ(
-        0, result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
+        COM_UTIL_OK,
+        result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -840,7 +848,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_lock_is_busy)
                 return 0;
             }); // [Pre-Assert確認_異常系] - 実サイズが閾値以上であること。
     EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
-        .WillOnce(Return(COM_UTIL_SYNC_BUSY)); // [Pre-Assert確認_異常系] - プロセス間ロックがビジー状態であること。
+        .WillOnce(Return(COM_UTIL_ERR_BUSY)); // [Pre-Assert確認_異常系] - プロセス間ロックがビジー状態であること。
     EXPECT_CALL(mock_, com_util_rename(_, _)).Times(0); // [Pre-Assert確認_異常系] - リネームは行われないこと。
     EXPECT_CALL(mock_, com_util_interprocess_lock_unlock(_))
         .Times(0); // [Pre-Assert確認_異常系] - ロック解放は呼ばれないこと。
@@ -850,7 +858,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_lock_is_busy)
                                                 "lock busy"); // [手順] - 1 行書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_異常系] - ローテーションを見送っても書き込みは成功扱いであること。
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_異常系] - ローテーションを見送っても書き込みは成功扱いであること。
 
     // Cleanup
     com_util_trace_file_sink_dispose(handle);
@@ -909,7 +917,7 @@ TEST_F(trace_fileTest, test_shared_handle_survives_until_last_dispose)
 
     // Assert
     EXPECT_EQ(
-        0,
+        COM_UTIL_OK,
         result); // [確認_正常系] - com_util_trace_file_sink_write の戻り値から、参照が残っている間は書き込みが成功したと判断できること。
 
     // Cleanup

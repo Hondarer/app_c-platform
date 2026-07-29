@@ -120,17 +120,17 @@ class traceHookTest : public Test
                     return 0;
                 });
         ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
-        ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
 
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(0));
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
 #elif defined(PLATFORM_WINDOWS)
         ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif
     }
@@ -241,8 +241,9 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
                                     "hello hook"); // [手順] - INFO レベルで "hello hook" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rc);                            // [確認_正常系] - _com_util_tracer_write の戻り値が 0 であること。
-    ASSERT_EQ(1u, g_hook_records.size());        // [確認_正常系] - フックが 1 回呼ばれること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rc);                        // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが 1 回呼ばれること。
     EXPECT_EQ(tracer, g_hook_records[0].handle); // [確認_正常系] - フックに tracer の handle が渡ること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_INFO, g_hook_records[0].level); // [確認_正常系] - フックに INFO レベルが渡ること。
     EXPECT_EQ("hello hook", g_hook_records[0].message); // [確認_正常系] - フックに message "hello hook" が渡ること。
@@ -303,7 +304,8 @@ TEST_F(traceHookTest, test_no_hook_write_succeeds)
                                     "no hook"); // [手順] - INFO レベルで "no hook" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rc);                     // [確認_正常系] - _com_util_tracer_write の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rc);                        // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - フックが呼ばれないこと。
 
     // Cleanup

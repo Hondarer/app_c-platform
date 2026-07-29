@@ -109,7 +109,7 @@ static int report_status(const int status, const char *action)
 {
     char message[256];
 
-    if (status == COM_UTIL_EVENTLOG_OK)
+    if (status == COM_UTIL_OK)
     {
         (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
                        COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
@@ -123,11 +123,11 @@ static int report_status(const int status, const char *action)
         }
         return 0;
     }
-    if (status == COM_UTIL_EVENTLOG_ERR_ACCESS)
+    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
     {
         (void)snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
-    else if (status == COM_UTIL_EVENTLOG_ERR_PARAM)
+    else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
         (void)snprintf(message, sizeof(message), "パラメーターが不正です。\n");
     }
@@ -168,7 +168,7 @@ static int do_install(void)
     /* メッセージ リソースは eventlog-register.exe 自身に埋め込んでいる。
        自身の絶対パスを EventMessageFile / CategoryMessageFile に登録する。 */
     message_file = NULL;
-    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0)
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == COM_UTIL_OK)
     {
         message_file = exe_path;
     }
@@ -242,16 +242,16 @@ int eventlog_register_run(const char *command)
 int main(int argc, char *argv[])
 {
     int run_result;
-    int extract_rc;
+    int detected;
 
     /* 昇格ワーカーとして再起動された場合、結果報告先フラグを argv から取り除く。
        引数解析より前に呼び出す。昇格ワーカーのコンソールは一切引き継がない
        (ensure_elevated() / report_status() がファイル経由で結果を受け渡す)。 */
-    extract_rc = com_util_elevated_process_extract_result_target(&argc, argv);
+    (void)com_util_elevated_process_extract_result_target(&argc, argv, &detected);
 #if defined(PLATFORM_WINDOWS)
-    s_is_elevated_worker = extract_rc;
+    s_is_elevated_worker = detected;
 #else
-    (void)extract_rc;
+    (void)detected;
 #endif
 
     com_util_console_init();
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    if (parse_result != COM_UTIL_OK)
     {
         com_util_argparser_print_error_messages(stderr);
         com_util_argparser_print_usage(stderr);

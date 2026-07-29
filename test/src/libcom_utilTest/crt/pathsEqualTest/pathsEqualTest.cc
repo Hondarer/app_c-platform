@@ -38,16 +38,36 @@ class pathsEqualTest : public Test
 TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
 {
     // Arrange
-    int err = 0; // [状態] - errno_out の受け取り先を 0 で初期化する。
+    int err = 0;   // [状態] - errno_out の受け取り先を 0 で初期化する。
+    int equal = 0; // [状態] - equal_out の受け取り先を 0 で初期化する。
 
     // Pre-Assert
 
     // Act
-    int rc =
-        com_util_paths_equal(nullptr, ".", &err); // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
+    int rc = com_util_paths_equal(nullptr, ".", &equal,
+                                  &err); // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rc);      // [確認_異常系] - com_util_paths_equal の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rc); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out に EINVAL が返ること。
+}
+
+// 比較結果の出力先が NULL の場合に不正引数で失敗することの確認
+TEST_F(pathsEqualTest, returns_invalid_argument_for_null_equal_out)
+{
+    // Arrange
+    int err = 0;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_paths_equal(".", ".", nullptr,
+                                      &err); // [手順] - equal_out に NULL を渡して com_util_paths_equal を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out に EINVAL が返ること。
 }
 
@@ -57,6 +77,7 @@ TEST_F(pathsEqualTest, compares_relative_and_absolute_current_directory_as_equal
     // Arrange
     char absolute_current_dir[PLATFORM_PATH_MAX] = {};
     int err = 0;
+    int equal = 0;
 
     assert_path_get_full_success(absolute_current_dir, sizeof(absolute_current_dir),
                                  "."); // [状態] - カレント ディレクトリの絶対パスを取得する。
@@ -64,10 +85,12 @@ TEST_F(pathsEqualTest, compares_relative_and_absolute_current_directory_as_equal
     // Pre-Assert
 
     // Act
-    int rc = com_util_paths_equal(".", absolute_current_dir, &err); // [手順] - 相対パス "." と絶対パスを比較する。
+    int rc = com_util_paths_equal(".", absolute_current_dir, &equal,
+                                  &err); // [手順] - 相対パス "." と絶対パスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (一致) であること。
+    ASSERT_EQ(COM_UTIL_OK, rc); // [確認_正常系] - com_util_paths_equal の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, equal);        // [確認_正常系] - equal_out が 1 (一致) であること。
 }
 
 // ".." やバックスラッシュを含むパスが正規化されて比較されることの確認
@@ -78,6 +101,7 @@ TEST_F(pathsEqualTest, normalizes_dotdot_and_backslash_segments_before_comparing
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
     int err = 0;
+    int equal = 0;
 
     assert_path_get_full_success(base, sizeof(base), ".");
     build_three_part_path(lhs, sizeof(lhs), base, "alpha\\..",
@@ -87,10 +111,11 @@ TEST_F(pathsEqualTest, normalizes_dotdot_and_backslash_segments_before_comparing
     // Pre-Assert
 
     // Act
-    int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 表記ゆれのある 2 つのパスを比較する。
+    int rc = com_util_paths_equal(lhs, rhs, &equal, &err); // [手順] - 表記ゆれのある 2 つのパスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (正規化後に一致) であること。
+    ASSERT_EQ(COM_UTIL_OK, rc); // [確認_正常系] - com_util_paths_equal の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, equal);        // [確認_正常系] - equal_out が 1 (正規化後に一致) であること。
 }
 
 // 異なるパスが不一致と判定されることの確認
@@ -101,6 +126,7 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
     int err = 0;
+    int equal = 1;
 
     assert_path_get_full_success(base, sizeof(base), ".");
     build_path(lhs, sizeof(lhs), base, "alpha.bin"); // [状態] - 左辺を "alpha.bin" とする。
@@ -109,10 +135,11 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
     // Pre-Assert
 
     // Act
-    int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 異なる 2 つのパスを比較する。
+    int rc = com_util_paths_equal(lhs, rhs, &equal, &err); // [手順] - 異なる 2 つのパスを比較する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 0 (不一致) であること。
+    ASSERT_EQ(COM_UTIL_OK, rc); // [確認_正常系] - com_util_paths_equal の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, equal);        // [確認_正常系] - equal_out が 0 (不一致) であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -124,6 +151,7 @@ TEST_F(pathsEqualTest, keeps_case_sensitive_comparison_on_linux)
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
     int err = 0;
+    int equal = 1;
 
     assert_path_get_full_success(base, sizeof(base), ".");
     build_path(lhs, sizeof(lhs), base, "Case.bin"); // [状態] - 左辺を "Case.bin" とする。
@@ -132,10 +160,11 @@ TEST_F(pathsEqualTest, keeps_case_sensitive_comparison_on_linux)
     // Pre-Assert
 
     // Act
-    int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 大小文字だけが異なるパスを比較する。
+    int rc = com_util_paths_equal(lhs, rhs, &equal, &err); // [手順] - 大小文字だけが異なるパスを比較する。
 
     // Assert
-    EXPECT_EQ(0, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 0 (大小文字を区別して不一致) であること。
+    ASSERT_EQ(COM_UTIL_OK, rc); // [確認_正常系] - com_util_paths_equal の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, equal);        // [確認_正常系] - equal_out が 0 (大小文字を区別して不一致) であること。
 }
 #elif defined(PLATFORM_WINDOWS)
 // Windows では大小文字差を無視して比較されることの確認
@@ -146,6 +175,7 @@ TEST_F(pathsEqualTest, ignores_case_differences_on_windows)
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
     int err = 0;
+    int equal = 0;
 
     assert_path_get_full_success(base, sizeof(base), ".");
     build_path(lhs, sizeof(lhs), base, "Case.bin"); // [状態] - 左辺を "Case.bin" とする。
@@ -154,9 +184,10 @@ TEST_F(pathsEqualTest, ignores_case_differences_on_windows)
     // Pre-Assert
 
     // Act
-    int rc = com_util_paths_equal(lhs, rhs, &err); // [手順] - 大小文字だけが異なるパスを比較する。
+    int rc = com_util_paths_equal(lhs, rhs, &equal, &err); // [手順] - 大小文字だけが異なるパスを比較する。
 
     // Assert
-    EXPECT_EQ(1, rc); // [確認_正常系] - com_util_paths_equal の戻り値が 1 (大小文字差を無視して一致) であること。
+    ASSERT_EQ(COM_UTIL_OK, rc); // [確認_正常系] - com_util_paths_equal の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, equal);        // [確認_正常系] - equal_out が 1 (大小文字差を無視して一致) であること。
 }
 #endif

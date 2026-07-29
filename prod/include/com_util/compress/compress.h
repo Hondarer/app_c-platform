@@ -34,6 +34,7 @@
 #ifndef COMPRESS_H
 #define COMPRESS_H
 
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -59,7 +60,7 @@ extern "C"
      *                           出力: 書き込んだバイト数。
      *  @param[in]      src      圧縮前データへのポインター。
      *  @param[in]      src_len  圧縮前データのバイト数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -75,7 +76,7 @@ extern "C"
      *                           出力: 書き込んだバイト数。
      *  @param[in]      src      圧縮後データへのポインター (先頭 4 バイトは元サイズ)。
      *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

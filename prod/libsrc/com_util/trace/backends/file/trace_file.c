@@ -13,6 +13,7 @@
  *******************************************************************************
  */
 
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
@@ -156,7 +157,7 @@ static char *build_registry_key(const char *path)
     char *key;
     size_t len;
 
-    if (com_util_path_get_full(full, sizeof(full), NULL, path) == 0)
+    if (com_util_path_get_full(full, sizeof(full), NULL, path) == COM_UTIL_OK)
     {
         src = full;
     }
@@ -316,27 +317,27 @@ static int open_file(com_util_trace_file_sink *p)
     char dir[PLATFORM_PATH_MAX];
 
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
-    if (com_util_path_dirname(dir, sizeof(dir), NULL, p->path) == 0 && strcmp(dir, ".") != 0)
+    if (com_util_path_dirname(dir, sizeof(dir), NULL, p->path) == COM_UTIL_OK && strcmp(dir, ".") != 0)
     {
         (void)com_util_makedirs(dir);
     }
 
     p->self_id_valid = 0;
 
-    if (com_util_file_open(&p->file, p->path, base_open_flags()) != 0)
+    if (com_util_file_open(&p->file, p->path, base_open_flags()) != COM_UTIL_OK)
     {
         p->current_bytes = 0;
         return -1;
     }
 
-    if (com_util_file_get_size(&p->file, &p->current_bytes) != 0)
+    if (com_util_file_get_size(&p->file, &p->current_bytes) != COM_UTIL_OK)
     {
         p->current_bytes = 0;
     }
 
     if (p->shared != 0)
     {
-        if (com_util_file_get_id(&p->file, &p->self_id) == 0)
+        if (com_util_file_get_id(&p->file, &p->self_id) == COM_UTIL_OK)
         {
             p->self_id_valid = 1;
         }
@@ -405,7 +406,7 @@ static int sink_points_to_current_file(const com_util_trace_file_sink *p)
         return 0;
     }
 
-    if (com_util_file_get_path_id(p->path, &path_id) != 0)
+    if (com_util_file_get_path_id(p->path, &path_id) != COM_UTIL_OK)
     {
         return 0;
     }
@@ -499,7 +500,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
     size_t real_bytes;
 
     /* インメモリ集計ではなく実サイズで判定する (複数 writer の合計を反映) */
-    if (com_util_file_get_size(&p->file, &real_bytes) != 0)
+    if (com_util_file_get_size(&p->file, &real_bytes) != COM_UTIL_OK)
     {
         return;
     }
@@ -508,7 +509,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
         return;
     }
 
-    if (com_util_interprocess_lock_try_lock(p->rotate_lock) != COM_UTIL_SYNC_OK)
+    if (com_util_interprocess_lock_try_lock(p->rotate_lock) != COM_UTIL_OK)
     {
         return;
     }
@@ -522,7 +523,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
     else
     {
         /* ロック下で実サイズを再確認してからローテーションする */
-        if (com_util_file_get_size(&p->file, &real_bytes) == 0 && real_bytes >= p->max_bytes)
+        if (com_util_file_get_size(&p->file, &real_bytes) == COM_UTIL_OK && real_bytes >= p->max_bytes)
         {
             rotate_file(p);
         }
@@ -621,7 +622,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
     memcpy(handle->path, path, path_len + 1);
 
     /* 同期プリミティブを初期化する */
-    if (com_util_local_lock_create(&handle->mutex) != 0)
+    if (com_util_local_lock_create(&handle->mutex) != COM_UTIL_OK)
     {
         free_sink(handle);
         return NULL;
@@ -647,7 +648,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
         }
         snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path, TRACE_FILE_LOCK_SUFFIX);
 
-        if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_SYNC_OK)
+        if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_OK)
         {
             handle->rotate_lock = NULL;
             free_sink(handle);
@@ -750,24 +751,24 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
 
     if (handle == NULL || message == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     /* タイムスタンプはロック外で取得する (共有状態へのアクセスなし) */
     if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (trace_format_local_timestamp(ts, sizeof(ts), &resolved) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
     len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level_t)level), message);
     if (len <= 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (len >= (int)sizeof(buf))
     {
@@ -777,9 +778,9 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* ロック取得 (タイムアウト付き) */
-    if (com_util_local_lock_lock(handle->mutex, FILE_LOCK_TIMEOUT_MS) != 0)
+    if (com_util_local_lock_lock(handle->mutex, FILE_LOCK_TIMEOUT_MS) != COM_UTIL_OK)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* 共有モード: 他プロセスのローテーションで path の実体が入れ替わっていたら開き直す */
@@ -791,7 +792,7 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
             if (open_file(handle) != 0)
             {
                 com_util_local_lock_unlock(handle->mutex);
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
         }
     }
@@ -826,11 +827,11 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
 
     if (ret != 0 || fallback_used)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     else
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 }
 

@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <com_util/base/result.h>
 #include <com_util/crt/path.h>
 #include <errno.h>
 #include <string.h>
@@ -114,7 +115,7 @@ TEST_F(pathExtensionTest, strip_extension_removes_extension)
         "a/b.txt"); // [手順] - com_util_path_strip_extension(actual, size, NULL, "a/b.txt") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_strip_extension の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 拡張子を除いたパスが返ること。
 }
 
@@ -132,7 +133,7 @@ TEST_F(pathExtensionTest, strip_extension_copies_as_is_when_no_extension)
         "noext"); // [手順] - com_util_path_strip_extension(actual, size, NULL, "noext") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);             // [確認_正常系] - com_util_path_strip_extension の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc);   // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("noext", actual); // [確認_正常系] - 入力がそのままコピーされること。
 }
 
@@ -150,7 +151,9 @@ TEST_F(pathExtensionTest, strip_extension_returns_einval_for_null_path_out)
         "a.txt"); // [手順] - com_util_path_strip_extension(NULL, 16, &err, "a.txt") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_strip_extension の戻り値が -1 であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }
 
@@ -169,6 +172,8 @@ TEST_F(pathExtensionTest, strip_extension_returns_enametoolong_when_buffer_too_s
         "abc.txt"); // [手順] - com_util_path_strip_extension(actual, 2, &err, "abc.txt") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);           // [確認_異常系] - com_util_path_strip_extension の戻り値が -1 であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
 }

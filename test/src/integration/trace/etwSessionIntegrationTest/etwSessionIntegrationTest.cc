@@ -90,7 +90,7 @@ TEST_F(etwSessionIntegrationTest, test_session_stop_with_null)
 TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
 {
     // Arrange
-    int status = COM_UTIL_ETW_SESSION_OK; // [状態] - status の受け取り先を OK で初期化する。
+    int status = COM_UTIL_OK; // [状態] - status の受け取り先を OK で初期化する。
 
     // Pre-Assert
 
@@ -103,7 +103,7 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
     EXPECT_EQ(
         (com_util_etw_session *)NULL,
         session_null_name); // [確認_異常系] - com_util_etw_session_start の戻り値として、session_name が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               status); // [確認_異常系] - session_name が NULL の場合に status に ERR_PARAM が返ること。
 
     com_util_etw_session *session_null_provider_guid =
@@ -112,7 +112,7 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
     EXPECT_EQ(
         (com_util_etw_session *)NULL,
         session_null_provider_guid); // [確認_異常系] - com_util_etw_session_start の戻り値として、provider_guid が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               status); // [確認_異常系] - provider_guid が NULL の場合に status に ERR_PARAM が返ること。
 
     com_util_etw_session *session_null_callback =
@@ -121,7 +121,7 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
     EXPECT_EQ(
         (com_util_etw_session *)NULL,
         session_null_callback); // [確認_異常系] - com_util_etw_session_start の戻り値として、callback が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM,
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               status); // [確認_異常系] - callback が NULL の場合に status に ERR_PARAM が返ること。
 }
 
@@ -129,7 +129,7 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
 TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
 {
     // Arrange
-    int status = COM_UTIL_ETW_SESSION_OK; // [状態] - status の受け取り先を OK で初期化する。
+    int status = COM_UTIL_OK; // [状態] - status の受け取り先を OK で初期化する。
 
     // Pre-Assert
 
@@ -141,7 +141,7 @@ TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
     // Assert
     EXPECT_EQ((com_util_etw_session *)NULL,
               session_invalid_guid); // [確認_異常系] - com_util_etw_session_start の戻り値が NULL であること。
-    EXPECT_EQ(COM_UTIL_ETW_SESSION_ERR_PARAM, status); // [確認_異常系] - status に ERR_PARAM が返ること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, status); // [確認_異常系] - status に ERR_PARAM が返ること。
 }
 
 class etwSessionSubscribeIntegrationTest : public Test
@@ -150,13 +150,12 @@ class etwSessionSubscribeIntegrationTest : public Test
     void SetUp() override
     {
         int status = com_util_etw_session_check_access();
-        ASSERT_NE(COM_UTIL_ETW_SESSION_ERR_ACCESS, status)
+        ASSERT_NE(COM_UTIL_ERR_PERMISSION_DENIED, status)
             << "ETW session の開始権限がありません。Administrators または "
                "\"Performance Log Users\" が必要です。\n"
                "対処方法: net localgroup \"Performance Log Users\" %USERNAME% /add\n"
                "          この操作後にサインアウト/サインインが必要です。";
-        ASSERT_EQ(COM_UTIL_ETW_SESSION_OK, status)
-            << "com_util_etw_session_check_access failed (status=" << status << ")";
+        ASSERT_EQ(COM_UTIL_OK, status) << "com_util_etw_session_check_access failed (status=" << status << ")";
     }
 };
 

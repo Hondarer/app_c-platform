@@ -10,6 +10,7 @@
  *******************************************************************************
  */
 
+#include <com_util/base/result.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/sync/sync.h>
 
@@ -248,11 +249,11 @@ static void install_shutdown_hooks(void)
 int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
 {
     shutdown_callback_entry *entry;
-    int result = 0;
+    int result = COM_UTIL_OK;
 
     if (callback == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     com_util_call_once(&s_shutdown_hook_once, install_shutdown_hooks);
@@ -260,7 +261,7 @@ int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *cont
     entry = (shutdown_callback_entry *)malloc(sizeof(*entry));
     if (entry == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     entry->callback = callback;
@@ -269,7 +270,7 @@ int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *cont
     shutdown_lock();
     if (s_shutdown_started)
     {
-        result = -1;
+        result = COM_UTIL_ERR_UNKNOWN;
     }
     else
     {
@@ -278,7 +279,7 @@ int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *cont
     }
     shutdown_unlock();
 
-    if (result != 0)
+    if (result != COM_UTIL_OK)
     {
         free(entry);
     }
@@ -300,11 +301,11 @@ void com_util_exit(const int code)
 int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context)
 {
     shutdown_callback_entry *entry;
-    int result = 0;
+    int result = COM_UTIL_OK;
 
     if (callback == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     com_util_call_once(&s_shutdown_hook_once, install_shutdown_hooks);
@@ -312,7 +313,7 @@ int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, vo
     entry = (shutdown_callback_entry *)malloc(sizeof(*entry));
     if (entry == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     entry->callback = callback;
@@ -321,7 +322,7 @@ int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, vo
     shutdown_lock();
     if (s_shutdown_started || s_shutdown_request_started)
     {
-        result = -1;
+        result = COM_UTIL_ERR_UNKNOWN;
     }
     else
     {
@@ -330,7 +331,7 @@ int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, vo
     }
     shutdown_unlock();
 
-    if (result != 0)
+    if (result != COM_UTIL_OK)
     {
         free(entry);
     }
@@ -340,16 +341,50 @@ int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, vo
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event)
+int _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event, int *invoked_out)
 {
-    return invoke_shutdown_callbacks_once(event);
+    int rc = invoke_shutdown_callbacks_once(event);
+
+    if (rc < 0)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if (invoked_out != NULL)
+    {
+        if (rc == 0)
+        {
+            *invoked_out = 1;
+        }
+        else
+        {
+            *invoked_out = 0;
+        }
+    }
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event)
+int _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event, int *invoked_out)
 {
-    return invoke_shutdown_request_callbacks_once(event, NULL);
+    int rc = invoke_shutdown_request_callbacks_once(event, NULL);
+
+    if (rc < 0)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if (invoked_out != NULL)
+    {
+        if (rc == 0)
+        {
+            *invoked_out = 1;
+        }
+        else
+        {
+            *invoked_out = 0;
+        }
+    }
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

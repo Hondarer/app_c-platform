@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -21,23 +22,23 @@ int com_util_gmtime(struct tm *utc_tm, const time_t *timep)
 {
     if (utc_tm == NULL || timep == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
     if (gmtime_r(timep, utc_tm) == NULL)
     {
         memset(utc_tm, 0, sizeof(*utc_tm));
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     if (gmtime_s(utc_tm, timep) != 0)
     {
         memset(utc_tm, 0, sizeof(*utc_tm));
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -47,23 +48,23 @@ int com_util_localtime(struct tm *local_tm, const time_t *timep)
 {
     if (local_tm == NULL || timep == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
     if (localtime_r(timep, local_tm) == NULL)
     {
         memset(local_tm, 0, sizeof(*local_tm));
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     if (localtime_s(local_tm, timep) != 0)
     {
         memset(local_tm, 0, sizeof(*local_tm));
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -73,7 +74,7 @@ int com_util_ctime(char *buf, const size_t buf_size, const time_t *timep)
 {
     if (buf == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* ctime_r は格納先に 26 バイト以上を要求する。               */
@@ -82,22 +83,22 @@ int com_util_ctime(char *buf, const size_t buf_size, const time_t *timep)
     if (timep == NULL || buf_size < 26)
     {
         memset(buf, 0, buf_size);
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
     if (ctime_r(timep, buf) == NULL)
     {
         memset(buf, 0, buf_size);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     if (ctime_s(buf, buf_size, timep) != 0)
     {
         memset(buf, 0, buf_size);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }

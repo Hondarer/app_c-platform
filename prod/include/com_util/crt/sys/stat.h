@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -53,7 +54,7 @@ extern "C"
      *  @brief          UTF-8 パスのファイル情報を取得します (`stat` / `_wstat64` ラッパー)。
      *  @param[out]     buf   ファイル情報の格納先。NULL を渡してはなりません。
      *  @param[in]      path  対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -64,7 +65,7 @@ extern "C"
     /**
      *  @brief          UTF-8 パスのディレクトリを作成します (`mkdir` / `_wmkdir` ラッパー)。
      *  @param[in]      path  作成するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -76,7 +77,7 @@ extern "C"
      *  @brief          UTF-8 パスのディレクトリを、欠けている中間ディレクトリも
      *                  含めて再帰的に作成します (`mkdir -p` 相当)。
      *  @param[in]      path  作成するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  既に存在するディレクトリは成功として扱います (冪等)。\n
      *  中間ディレクトリが欠けている場合はすべて生成します。\n
@@ -93,7 +94,7 @@ extern "C"
      *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -106,7 +107,7 @@ extern "C"
      *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -118,7 +119,7 @@ extern "C"
      *  @brief          書式指定パスのディレクトリを作成します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_mkdir_fmt(const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -130,7 +131,7 @@ extern "C"
      *  @brief          書式指定パスのディレクトリを作成します (`com_util_mkdir_fmt` の `va_list` 版)。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vmkdir_fmt(const char *format, va_list args)
 #if defined(COMPILER_GCC)

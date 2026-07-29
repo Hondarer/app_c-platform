@@ -7,6 +7,7 @@
  *  Linux 環境: com_util_console_init / com_util_console_dispose は no-op です。
  */
 
+#include <com_util/base/result.h>
 #include <com_util/console/console.h>
 #include <com_util/console/console_internal.h>
 #include <com_util/crt/path.h>
@@ -448,7 +449,7 @@ static int extract_diag_arg(int *argc, char **argv)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_console_attach_parent(int *argc, char **argv)
+int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
 {
     DWORD parent_pid;
     HWND parent_window;
@@ -460,6 +461,11 @@ int com_util_console_attach_parent(int *argc, char **argv)
     int attempt;
     int argc_value;
 
+    if (attached_out != NULL)
+    {
+        *attached_out = 0;
+    }
+
     parent_pid = 0;
     parent_window = NULL;
     if (extract_diag_arg(argc, argv) != 0)
@@ -468,7 +474,7 @@ int com_util_console_attach_parent(int *argc, char **argv)
     }
     if (!extract_handover_args(argc, argv, &parent_pid, &parent_window))
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     argc_value = -1;
     if (argc != NULL)
@@ -537,7 +543,7 @@ int com_util_console_attach_parent(int *argc, char **argv)
         /* AttachConsole 自体が一度も成功しなかった場合のみ失敗とする。 */
         com_util_console_diag_logf("attach_parent failed attached=%d attached_once=%d final_hwnd=0x%p", attached,
                                    attached_once, (void *)GetConsoleWindow());
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     com_util_console_diag_logf("attach_parent proceed attached=%d attached_once=%d final_hwnd=0x%p", attached,
                                attached_once, (void *)GetConsoleWindow());
@@ -610,7 +616,11 @@ int com_util_console_attach_parent(int *argc, char **argv)
     InterlockedExchange(&s_attached_parent, 1);
     com_util_console_diag_logf("attach_parent end attached=%d attached_once=%d", attached, attached_once);
 
-    return 1;
+    if (attached_out != NULL)
+    {
+        *attached_out = 1;
+    }
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -659,7 +669,7 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
 
     if (text == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (stream == COM_UTIL_STREAM_STDOUT)
     {
@@ -671,28 +681,28 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
     }
     else
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     h = GetStdHandle(std_handle);
     if (h == NULL || h == INVALID_HANDLE_VALUE)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     len = (DWORD)strlen(text);
     if (WriteConsoleA(h, text, len, &written, NULL))
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     /* リダイレクト先がコンソールでない場合 WriteConsoleA は失敗するため WriteFile にフォールバックする */
     if (WriteFile(h, text, len, &written, NULL))
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     com_util_console_diag_logf("console_write failed error=%lu", (unsigned long)GetLastError());
-    return -1;
+    return COM_UTIL_ERR_UNKNOWN;
 }
 
 #elif defined(PLATFORM_LINUX)
@@ -710,11 +720,15 @@ void com_util_console_init(void) {}
 void com_util_console_dispose(void) {}
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_console_attach_parent(int *argc, char **argv)
+int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
 {
     (void)argc;
     (void)argv;
-    return 0;
+    if (attached_out != NULL)
+    {
+        *attached_out = 0;
+    }
+    return COM_UTIL_OK;
 }
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -733,7 +747,7 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
 
     if (text == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (stream == COM_UTIL_STREAM_STDOUT)
     {
@@ -745,7 +759,7 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
     }
     else
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     cursor = text;
@@ -756,12 +770,12 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
 
         if (written < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         cursor += written;
         len -= (size_t)written;
     }
-    return 0;
+    return COM_UTIL_OK;
 }
 
 #endif /* PLATFORM_ */

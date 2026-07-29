@@ -221,11 +221,11 @@ static void print_access_error(void)
 
 static void print_start_error(int status, const char *session_name)
 {
-    if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
     {
         print_access_error();
     }
-    else if (status == COM_UTIL_ETW_SESSION_ERR_PARAM)
+    else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
         fprintf(stderr, "ETW session の開始に失敗しました。内部パラメータが不正です。\n");
     }
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    if (parse_result != COM_UTIL_OK)
     {
         com_util_argparser_print_error_messages(stderr);
         com_util_argparser_print_usage(stderr);
@@ -298,18 +298,18 @@ int main(int argc, char *argv[])
     viewer_context.has_process_id_filter = options.has_process_id_filter;
 
     status = com_util_etw_session_check_access();
-    if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
     {
         print_access_error();
         return EXIT_ACCESS_DENIED;
     }
-    if (status != COM_UTIL_ETW_SESSION_OK)
+    if (status != COM_UTIL_OK)
     {
         fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
         return EXIT_FAILURE;
     }
 
-    if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != 0)
+    if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != COM_UTIL_OK)
     {
         fprintf(stderr, "終了要求 callback の登録に失敗しました。\n");
         return EXIT_FAILURE;
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     if (session == NULL)
     {
         int exit_code = EXIT_FAILURE;
-        if (status == COM_UTIL_ETW_SESSION_ERR_ACCESS)
+        if (status == COM_UTIL_ERR_PERMISSION_DENIED)
         {
             exit_code = EXIT_ACCESS_DENIED;
         }

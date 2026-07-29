@@ -1,9 +1,11 @@
 #include <testfw.h>
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result_internal.h>
 #include <com_util/crt/path.h>
 #include <com_util/runtime/process.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -86,6 +88,24 @@ static void remove_temp_path(const char *path)
 }
 #endif /* PLATFORM_ */
 
+static_assert(COM_UTIL_OK == 0, "COM_UTIL_OK の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_UNKNOWN == -1, "COM_UTIL_ERR_UNKNOWN の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_INVALID_ARGUMENT == -2, "COM_UTIL_ERR_INVALID_ARGUMENT の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_UNSUPPORTED == -3, "COM_UTIL_ERR_UNSUPPORTED の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_OUT_OF_MEMORY == -4, "COM_UTIL_ERR_OUT_OF_MEMORY の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_PERMISSION_DENIED == -5, "COM_UTIL_ERR_PERMISSION_DENIED の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_TIMEOUT == -6, "COM_UTIL_ERR_TIMEOUT の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_BUSY == -7, "COM_UTIL_ERR_BUSY の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_BUFFER_TOO_SMALL == -8, "COM_UTIL_ERR_BUFFER_TOO_SMALL の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_LIMIT_EXCEEDED == -9, "COM_UTIL_ERR_LIMIT_EXCEEDED の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_CORRUPT_DESCRIPTOR == -10,
+              "COM_UTIL_ERR_CORRUPT_DESCRIPTOR の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_DUPLICATE_DEFINITION == -11,
+              "COM_UTIL_ERR_DUPLICATE_DEFINITION の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_PARSE == -12, "COM_UTIL_ERR_PARSE の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_EOF == -13, "COM_UTIL_ERR_EOF の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_CANCELED == -14, "COM_UTIL_ERR_CANCELED の ABI 値を変更してはなりません。");
+
 static int read_text_file(char *buf, size_t size, const char *path)
 {
     FILE *fp;
@@ -125,6 +145,55 @@ static void trim_trailing_newline(char *buf)
     }
 }
 
+// errno が共通結果コードへ分類されることの確認
+TEST(ProcessTest, MapsErrnoToCommonResults)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int invalid_result = com_util_result_from_errno(EINVAL);    // [手順] - EINVAL を共通結果コードへ変換する。
+    int permission_result = com_util_result_from_errno(EACCES); // [手順] - EACCES を共通結果コードへ変換する。
+    int timeout_result = com_util_result_from_errno(ETIMEDOUT); // [手順] - ETIMEDOUT を共通結果コードへ変換する。
+    int busy_result = com_util_result_from_errno(EBUSY);        // [手順] - EBUSY を共通結果コードへ変換する。
+    int memory_result = com_util_result_from_errno(ENOMEM);     // [手順] - ENOMEM を共通結果コードへ変換する。
+    int other_result = com_util_result_from_errno(ENOENT);      // [手順] - ENOENT を共通結果コードへ変換する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              invalid_result); // [確認_正常系] - EINVAL の変換結果が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_PERMISSION_DENIED,
+              permission_result); // [確認_正常系] - EACCES の変換結果が COM_UTIL_ERR_PERMISSION_DENIED であること。
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT,
+              timeout_result); // [確認_正常系] - ETIMEDOUT の変換結果が COM_UTIL_ERR_TIMEOUT であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUSY,
+              busy_result); // [確認_正常系] - EBUSY の変換結果が COM_UTIL_ERR_BUSY であること。
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              memory_result); // [確認_正常系] - ENOMEM の変換結果が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              other_result); // [確認_正常系] - 未分類の errno の変換結果が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+#if defined(PLATFORM_WINDOWS)
+// Windows のバッファー不足が共通結果コードへ分類されることの確認
+TEST(ProcessTest, MapsWindowsInsufficientBuffer)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_result_from_windows_error(
+        ERROR_INSUFFICIENT_BUFFER); // [手順] - ERROR_INSUFFICIENT_BUFFER を共通結果コードへ変換する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        result); // [確認_正常系] - ERROR_INSUFFICIENT_BUFFER の変換結果が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+}
+#endif
+
 // 同期実行が子プロセスの終了コードを返すことの確認
 TEST(ProcessTest, RunSyncReturnsChildExitCode)
 {
@@ -149,14 +218,13 @@ TEST(ProcessTest, RunSyncReturnsChildExitCode)
     // Pre-Assert
 
     // Act
-    com_util_process_result_t result =
-        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                  &exit_code); // [手順] - com_util_process_run_sync を無期限待機で呼び出す。
+    int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                           &exit_code); // [手順] - com_util_process_run_sync を無期限待機で呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK,
-              result); // [確認_正常系] - com_util_process_run_sync の戻り値が COM_UTIL_PROCESS_OK であること。
-    EXPECT_EQ(7, exit_code);                // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
+    EXPECT_EQ(COM_UTIL_OK,
+              result);       // [確認_正常系] - com_util_process_run_sync の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(7, exit_code); // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
 }
 
 // 環境変数の上書きが子プロセスから参照できることの確認
@@ -200,16 +268,15 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
     // Pre-Assert
 
     // Act
-    com_util_process_result_t result =
-        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                  &exit_code); // [手順] - 環境変数を出力する子プロセスを同期実行する。
+    int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                           &exit_code); // [手順] - 環境変数を出力する子プロセスを同期実行する。
     close_output_handle(handle);
     int read_result =
         read_text_file(output, sizeof(output), path); // [手順] - リダイレクト先ファイルから子プロセスの出力を読み取る。
     trim_trailing_newline(output);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, result); // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
+    EXPECT_EQ(COM_UTIL_OK, result);         // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
     EXPECT_EQ(0, exit_code);                // [確認_正常系] - 子プロセスの終了コードが 0 であること。
     EXPECT_EQ(0, read_result);              // [確認_正常系] - 出力ファイルが読み取れること。
     EXPECT_STREQ("override-value", output); // [確認_正常系] - 子プロセスの出力が上書き値 "override-value" であること。
@@ -244,26 +311,22 @@ TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
     // Pre-Assert
 
     // Act
-    com_util_process_result_t start_result =
+    int start_result =
         com_util_process_start(&options, &process); // [手順] - com_util_process_start で子プロセスを起動する。
-    ASSERT_EQ(COM_UTIL_PROCESS_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result);
     ASSERT_NE(nullptr, process);
 
-    com_util_process_result_t wait_result =
-        com_util_process_wait(process, COM_UTIL_PROCESS_NO_WAIT); // [手順] - NO_WAIT で待機する。
-    com_util_process_result_t terminate_result =
-        com_util_process_terminate(process); // [手順] - 子プロセスを terminate する。
-    com_util_process_result_t final_wait =
-        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 無期限待機で終了を待つ。
-    com_util_process_result_t exit_result =
-        com_util_process_get_exit_code(process, &exit_code); // [手順] - 終了コードを取得する。
+    int wait_result = com_util_process_wait(process, COM_UTIL_PROCESS_NO_WAIT); // [手順] - NO_WAIT で待機する。
+    int terminate_result = com_util_process_terminate(process); // [手順] - 子プロセスを terminate する。
+    int final_wait = com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 無期限待機で終了を待つ。
+    int exit_result = com_util_process_get_exit_code(process, &exit_code);          // [手順] - 終了コードを取得する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_PROCESS_TIMEOUT, wait_result); // [確認_正常系] - 実行中の NO_WAIT 待機が TIMEOUT を返すこと。
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, terminate_result); // [確認_正常系] - terminate が OK を返すこと。
-    EXPECT_EQ(COM_UTIL_PROCESS_OK, final_wait);       // [確認_正常系] - terminate 後の待機が OK を返すこと。
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, wait_result); // [確認_正常系] - 実行中の NO_WAIT 待機が TIMEOUT を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, terminate_result);     // [確認_正常系] - terminate が OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, final_wait);           // [確認_正常系] - terminate 後の待機が OK を返すこと。
     EXPECT_EQ(
-        COM_UTIL_PROCESS_OK,
+        COM_UTIL_OK,
         exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
 
     // Cleanup
@@ -279,12 +342,71 @@ TEST(ProcessTest, RejectsInvalidArguments)
     // Pre-Assert
 
     // Act
-    com_util_process_result_t result =
+    int result =
         com_util_process_start(NULL, &process); // [手順] - options に NULL を渡して com_util_process_start を呼び出す。
 
     // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - ハンドルが NULL のままであること。
+}
+
+// 実行ファイルのパスを取得できることの確認
+TEST(ProcessTest, GetsExecutablePath)
+{
+    // Arrange
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_get_executable_path(
+        path, sizeof(path)); // [手順] - 十分な容量のバッファーを渡して実行ファイルのパスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_process_get_executable_path の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE('\0', path[0]); // [確認_正常系] - 取得した実行ファイルのパスが空文字列でないこと。
+}
+
+// 実行ファイルのパス取得が不正な出力引数を拒否することの確認
+TEST(ProcessTest, ExecutablePathRejectsInvalidOutputArguments)
+{
+    // Arrange
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+
+    // Act
+    int null_result = com_util_process_get_executable_path(
+        NULL, sizeof(path)); // [手順] - 出力先に NULL を渡して実行ファイルのパスを取得する。
+    int zero_size_result = com_util_process_get_executable_path(
+        path, 0); // [手順] - 出力先サイズに 0 を渡して実行ファイルのパスを取得する。
+
+    // Assert
     EXPECT_EQ(
-        COM_UTIL_PROCESS_INVALID_ARGUMENT,
-        result); // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_PROCESS_INVALID_ARGUMENT であること。
-    EXPECT_EQ(nullptr, process);                          // [確認_異常系] - ハンドルが NULL のままであること。
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_result); // [確認_異常系] - 出力先が NULL の呼び出しの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - 出力先サイズが 0 の呼び出しの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// 実行ファイルのパス取得がバッファー不足を報告することの確認
+TEST(ProcessTest, ExecutablePathReportsSmallBuffer)
+{
+    // Arrange
+    char path[1] = {'x'};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_get_executable_path(
+        path, sizeof(path)); // [手順] - 1 バイトの出力先へ実行ファイルのパスを取得する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        result); // [確認_異常系] - com_util_process_get_executable_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - バッファー不足時に出力先が空文字列であること。
 }

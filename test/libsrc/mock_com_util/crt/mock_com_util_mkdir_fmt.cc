@@ -5,16 +5,15 @@
 
 int delegate_real_com_util_mkdir_fmt(const char *format, ...)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_mkdir_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_mkdir_fmt"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_mkdir_fmt)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_mkdir_fmt"));
 
     return real_fn("%s", format);
 }
 
 MOCK_WEAK_IMPL(int, com_util_mkdir_fmt, const char *format, ...)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     char buf[4096];
     va_list args;

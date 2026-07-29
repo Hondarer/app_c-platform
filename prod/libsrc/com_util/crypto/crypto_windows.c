@@ -26,6 +26,7 @@
     #pragma comment(lib, "bcrypt.lib")
     #include <string.h>
 
+    #include <com_util/base/result.h>
     #include <com_util/crypto/crypto.h>
 
 /* BCrypt を使用した AES-256-GCM 暗号化の共通実装。
@@ -45,7 +46,7 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
     status = BCryptOpenAlgorithmProvider(&h_alg, BCRYPT_AES_ALGORITHM, NULL, 0);
     if (!BCRYPT_SUCCESS(status))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     status =
@@ -53,14 +54,14 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
     if (!BCRYPT_SUCCESS(status))
     {
         BCryptCloseAlgorithmProvider(h_alg, 0);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     status = BCryptGenerateSymmetricKey(h_alg, &h_key, NULL, 0, (PUCHAR)key, (ULONG)COM_UTIL_CRYPTO_KEY_SIZE, 0);
     if (!BCRYPT_SUCCESS(status))
     {
         BCryptCloseAlgorithmProvider(h_alg, 0);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     BCRYPT_INIT_AUTH_MODE_INFO(auth_info);
@@ -94,11 +95,11 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
 
     if (!BCRYPT_SUCCESS(status))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = (size_t)out_len;
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -109,10 +110,14 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     uint8_t tag[COM_UTIL_CRYPTO_TAG_SIZE];
     size_t enc_len;
 
-    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0) || key == NULL || nonce == NULL ||
-        *dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
+    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0) || key == NULL || nonce == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    if (*dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
+    {
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     enc_len = src_len;
@@ -121,6 +126,8 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         /* BCrypt は src=NULL を受け付けないため、空バッファーを用意する */
         static const uint8_t empty_src[1] = {0};
         const uint8_t *actual_src;
+        int bcrypt_result;
+
         if (src != NULL)
         {
             actual_src = src;
@@ -130,17 +137,18 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
             actual_src = empty_src;
         }
 
-        if (bcrypt_aes_gcm(TRUE, dst, &enc_len, actual_src, src_len, key, nonce, aad, aad_len, tag,
-                           (ULONG)COM_UTIL_CRYPTO_TAG_SIZE) != 0)
+        bcrypt_result = bcrypt_aes_gcm(TRUE, dst, &enc_len, actual_src, src_len, key, nonce, aad, aad_len, tag,
+                                       (ULONG)COM_UTIL_CRYPTO_TAG_SIZE);
+        if (bcrypt_result != COM_UTIL_OK)
         {
-            return -1;
+            return bcrypt_result;
         }
     }
 
     /* タグ (16B) を暗号文の直後に付加する */
     memcpy(dst + enc_len, tag, COM_UTIL_CRYPTO_TAG_SIZE);
     *dst_len = enc_len + COM_UTIL_CRYPTO_TAG_SIZE;
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -153,18 +161,18 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     if (dst == NULL || dst_len == NULL || src == NULL || src_len < COM_UTIL_CRYPTO_TAG_SIZE || key == NULL ||
         nonce == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     plain_len = src_len - COM_UTIL_CRYPTO_TAG_SIZE;
 
     if (plain_len > 0 && *dst_len < plain_len)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     /* タグは暗号文の末尾 COM_UTIL_CRYPTO_TAG_SIZE バイト。BCrypt がタグ検証を行う。
-       STATUS_AUTH_TAG_MISMATCH 時は bcrypt_aes_gcm が -1 を返す。 */
+       STATUS_AUTH_TAG_MISMATCH 時は bcrypt_aes_gcm が COM_UTIL_ERR_UNKNOWN を返す。 */
     return bcrypt_aes_gcm(FALSE, dst, dst_len, src, plain_len, key, nonce, aad, aad_len, (uint8_t *)(src + plain_len),
                           (ULONG)COM_UTIL_CRYPTO_TAG_SIZE);
 }
@@ -183,7 +191,7 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
     /* 引数検証は Linux 実装 (crypto_linux.c) と同じく関数先頭で行う */
     if (key == NULL || (passphrase == NULL && passphrase_len > 0))
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (passphrase != NULL)
@@ -200,14 +208,14 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
     status = BCryptOpenAlgorithmProvider(&h_alg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
     if (!BCRYPT_SUCCESS(status))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     status = BCryptCreateHash(h_alg, &h_hash, NULL, 0, NULL, 0, 0);
     if (!BCRYPT_SUCCESS(status))
     {
         BCryptCloseAlgorithmProvider(h_alg, 0);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     status = BCryptHashData(h_hash, (PUCHAR)data, data_len, 0);
@@ -215,7 +223,7 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
     {
         BCryptDestroyHash(h_hash);
         BCryptCloseAlgorithmProvider(h_alg, 0);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     status = BCryptFinishHash(h_hash, (PUCHAR)key, (ULONG)COM_UTIL_CRYPTO_KEY_SIZE, 0);
@@ -225,11 +233,11 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
 
     if (BCRYPT_SUCCESS(status))
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     else
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 }
 

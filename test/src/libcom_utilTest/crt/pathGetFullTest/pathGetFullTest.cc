@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <com_util/base/result.h>
 #include <com_util/crt/path.h>
 #include <cerrno>
 #include <cstdio>
@@ -17,7 +18,7 @@ namespace
 static void assert_path_get_full_success(char *path_out, size_t path_size, const char *path)
 {
     int err = 0;
-    ASSERT_EQ(0, com_util_path_get_full(path_out, path_size, &err, path));
+    ASSERT_EQ(COM_UTIL_OK, com_util_path_get_full(path_out, path_size, &err, path));
 }
 
 static void build_path(char *path_out, size_t path_size, const char *lhs, const char *rhs)
@@ -55,7 +56,8 @@ TEST_F(pathGetFullTest, returns_einval_for_null_path)
                                     nullptr); // [手順] - パスに NULL を渡して com_util_path_get_full を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rc);        // [確認_異常系] - com_util_path_get_full の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err);   // [確認_異常系] - errno_out に EINVAL が返ること。
     EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
 }
@@ -114,7 +116,8 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
                                     "."); // [手順] - 小さすぎる出力バッファーで com_util_path_get_full を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rc);            // [確認_異常系] - com_util_path_get_full の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              rc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out に ENAMETOOLONG が返ること。
     EXPECT_EQ('\0', path[0]);     // [確認_異常系] - 出力は空文字列に初期化されること。
 }

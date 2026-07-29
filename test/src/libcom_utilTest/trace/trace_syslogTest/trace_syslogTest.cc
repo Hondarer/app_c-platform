@@ -31,7 +31,56 @@ TEST_F(trace_syslogTest, test_init_and_dispose)
     EXPECT_NE((com_util_syslog_sink *)NULL, handle); // [確認_正常系] - ハンドルが NULL でないこと。
 }
 
-// INFO レベルでメッセージを書き込み、戻り値が 0 であることの確認
+// syslog sink の識別子を変更できることの確認
+TEST_F(trace_syslogTest, rename_succeeds)
+{
+    // Arrange
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("before", LOG_USER); // [状態] - 変更前の識別子を "before" とする。
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle);
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_rename(handle, "after"); // [手順] - syslog sink の識別子を "after" へ変更する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_syslog_sink_rename の戻り値が COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// syslog sink の識別子変更が不正引数を拒否することの確認
+TEST_F(trace_syslogTest, rename_rejects_invalid_arguments)
+{
+    // Arrange
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslog_test", LOG_USER); // [状態] - 初期化済みの syslog sink を用意する。
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle);
+
+    // Pre-Assert
+
+    // Act
+    int null_handle_result =
+        com_util_syslog_sink_rename(NULL, "after"); // [手順] - handle に NULL を渡して識別子を変更する。
+    int null_ident_result =
+        com_util_syslog_sink_rename(handle, NULL); // [手順] - new_ident に NULL を渡して識別子を変更する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_handle_result); // [確認_異常系] - handle が NULL の呼び出しの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_ident_result); // [確認_異常系] - new_ident が NULL の呼び出しの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// INFO レベルでメッセージを書き込み、成功することの確認
 TEST_F(trace_syslogTest, test_write_returns_zero)
 {
     // Arrange
@@ -46,7 +95,8 @@ TEST_F(trace_syslogTest, test_write_returns_zero)
                                             "test message"); // [手順] - LOG_INFO レベルで "test message" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - com_util_syslog_sink_write の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);
@@ -71,11 +121,11 @@ TEST_F(trace_syslogTest, test_write_all_levels)
     int rtc_debug = com_util_syslog_sink_write(handle, LOG_DEBUG, NULL, "debug");
 
     // Assert
-    EXPECT_EQ(0, rtc_critical); // [確認_正常系] - CRIT レベルで書き込めること。
-    EXPECT_EQ(0, rtc_error);    // [確認_正常系] - ERR レベルで書き込めること。
-    EXPECT_EQ(0, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
-    EXPECT_EQ(0, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
-    EXPECT_EQ(0, rtc_debug);    // [確認_正常系] - DEBUG レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_critical); // [確認_正常系] - CRIT レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_error);    // [確認_正常系] - ERR レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_debug);    // [確認_正常系] - DEBUG レベルで書き込めること。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);
@@ -123,7 +173,8 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
         handle, LOG_INFO, &timestamp, "test message"); // [手順] - 明示タイムスタンプ付きで "test message" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, rtc_syslog_sink_write); // [確認_正常系] - com_util_syslog_sink_write の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_syslog_sink_write); // [確認_正常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
@@ -200,7 +251,9 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
                                    "invalid ts"); // [手順] - 不正な明示タイムスタンプ付きで "invalid ts" を書き込む。
 
     // Assert
-    EXPECT_EQ(-1, rtc_syslog_sink_write); // [確認_異常系] - com_util_syslog_sink_write の戻り値が -1 であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc_syslog_sink_write); // [確認_異常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
@@ -252,10 +305,16 @@ TEST_F(trace_syslogTest, test_null_arguments_are_safe)
         com_util_syslog_sink_create(
             NULL,
             LOG_USER)); // [確認_異常系] - com_util_syslog_sink_create の戻り値から、NULL ident で create が失敗したと判断できること。
-    EXPECT_EQ(0, com_util_syslog_sink_write(NULL, LOG_INFO, NULL,
-                                            "test message")); // [確認_異常系] - NULL ハンドルが安全であること。
     EXPECT_EQ(
-        0, com_util_syslog_sink_write(handle, LOG_INFO, NULL, NULL)); // [確認_異常系] - NULL message が安全であること。
+        COM_UTIL_OK,
+        com_util_syslog_sink_write(
+            NULL, LOG_INFO, NULL,
+            "test message")); // [確認_異常系] - NULL ハンドルに対する com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        com_util_syslog_sink_write(
+            handle, LOG_INFO, NULL,
+            NULL)); // [確認_異常系] - NULL message に対する com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);

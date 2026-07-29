@@ -51,13 +51,13 @@ extern "C"
      *  @param[in]      backend          バックエンド種別。
      *  @param[out]     descriptor       直列化結果を格納するバッファー。
      *  @param[in,out]  descriptor_size  入力はバッファーのバイト数、出力は必要バイト数。
-     *  @return         成功時 COM_UTIL_SYNC_OK。
-     *                  identity または descriptor_size が NULL の場合 COM_UTIL_SYNC_INVALID_ARGUMENT。
-     *                  バッファー不足時は COM_UTIL_SYNC_BUFFER_TOO_SMALL を返し、
+     *  @return         成功時 COM_UTIL_OK。
+     *                  identity または descriptor_size が NULL の場合 COM_UTIL_ERR_INVALID_ARGUMENT。
+     *                  バッファー不足時は COM_UTIL_ERR_BUFFER_TOO_SMALL を返し、
      *                  descriptor_size に必要バイト数を格納します。
      */
-    com_util_sync_result_t interprocess_sync_descriptor_export(const char *identity, uint8_t kind, uint8_t backend,
-                                                               void *descriptor, size_t *descriptor_size);
+    int interprocess_sync_descriptor_export(const char *identity, uint8_t kind, uint8_t backend, void *descriptor,
+                                            size_t *descriptor_size);
 
     /**
      *  @brief          ディスクリプターを検証して identity を取り出します。
@@ -67,13 +67,13 @@ extern "C"
      *  @param[in]      backend          期待するバックエンド種別。
      *  @param[out]     identity_out     取り出した identity 文字列 (ヒープ確保、NUL 終端) の格納先。
      *                                   呼び出し元が free すること。
-     *  @return         成功時 COM_UTIL_SYNC_OK。
-     *                  descriptor または identity_out が NULL の場合 COM_UTIL_SYNC_INVALID_ARGUMENT。
-     *                  フォーマット不一致時 COM_UTIL_SYNC_CORRUPT_DESCRIPTOR。
-     *                  メモリ確保失敗時 COM_UTIL_SYNC_SYSTEM_ERROR。
+     *  @return         成功時 COM_UTIL_OK。
+     *                  descriptor または identity_out が NULL の場合 COM_UTIL_ERR_INVALID_ARGUMENT。
+     *                  フォーマット不一致時 COM_UTIL_ERR_CORRUPT_DESCRIPTOR。
+     *                  メモリ確保失敗時 COM_UTIL_ERR_UNKNOWN。
      */
-    com_util_sync_result_t interprocess_sync_descriptor_import(const void *descriptor, size_t descriptor_size,
-                                                               uint8_t kind, uint8_t backend, char **identity_out);
+    int interprocess_sync_descriptor_import(const void *descriptor, size_t descriptor_size, uint8_t kind,
+                                            uint8_t backend, char **identity_out);
 
 #ifdef __cplusplus
 }

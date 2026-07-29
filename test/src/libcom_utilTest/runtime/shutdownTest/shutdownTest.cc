@@ -83,21 +83,23 @@ TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE,
                    7); // [状態] - 終了コード 7 を持つ通常終了イベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &first));
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &second));
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback,
-                                            &third)); // [状態] - 記録用 callback を id 1、2、3 の順に 3 件登録する。
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &first));
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &second));
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_register(record_callback,
+                                         &third)); // [状態] - 記録用 callback を id 1、2、3 の順に 3 件登録する。
 
     // Pre-Assert
 
     // Act
-    int result =
-        _com_util_shutdown_invoke_for_test(&event); // [手順] - 3 件の callback を shutdown イベントで実行する。
+    int invoked = 0;
+    int result = _com_util_shutdown_invoke_for_test(
+        &event, &invoked); // [手順] - 3 件の callback を shutdown イベントで実行する。
 
     // Assert
-    EXPECT_EQ(
-        0,
-        result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値から、shutdown 実行が成功したと判断できること。
+    ASSERT_EQ(COM_UTIL_OK,
+              result);     // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, invoked); // [確認_正常系] - invoked_out が 1 (実行した) であること。
     ASSERT_EQ(3, g_call_count); // [確認_正常系] - callback が 3 回呼ばれること。
     EXPECT_EQ(3, g_order[0]);   // [確認_正常系] - 最後に登録した callback から実行されること。
     EXPECT_EQ(2, g_order[1]);   // [確認_正常系] - 2 番目に登録した callback が続くこと。
@@ -118,21 +120,28 @@ TEST_F(shutdownTest, test_multiple_invoke_runs_callbacks_only_once)
         make_event(COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
                    0); // [状態] - プロセス終了中イベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback, &id)); // [状態] - 記録用 callback を 1 件登録する。
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_register(record_callback, &id)); // [状態] - 記録用 callback を 1 件登録する。
 
     // Pre-Assert
 
     // Act
-    int first_result = _com_util_shutdown_invoke_for_test(&event);  // [手順] - 1 回目の shutdown を実行する。
-    int second_result = _com_util_shutdown_invoke_for_test(&event); // [手順] - 2 回目の shutdown を実行する。
+    int first_invoked = 0;
+    int second_invoked = 0;
+    int first_result =
+        _com_util_shutdown_invoke_for_test(&event, &first_invoked); // [手順] - 1 回目の shutdown を実行する。
+    int second_result =
+        _com_util_shutdown_invoke_for_test(&event, &second_invoked); // [手順] - 2 回目の shutdown を実行する。
     int register_after_shutdown =
         com_util_shutdown_register(record_callback, &id); // [手順] - shutdown 後に新規登録を試みる。
 
     // Assert
-    EXPECT_EQ(0, first_result);             // [確認_正常系] - 1 回目は実行されること。
-    EXPECT_EQ(1, second_result);            // [確認_正常系] - 2 回目は再実行されないこと。
-    EXPECT_EQ(-1, register_after_shutdown); // [確認_正常系] - shutdown 開始後の登録が拒否されること。
-    EXPECT_EQ(1, g_call_count);             // [確認_正常系] - callback は 1 回だけ実行されること。
+    ASSERT_EQ(COM_UTIL_OK, first_result);  // [確認_正常系] - 1 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, first_invoked);           // [確認_正常系] - 1 回目は実行されること。
+    ASSERT_EQ(COM_UTIL_OK, second_result); // [確認_正常系] - 2 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, second_invoked);          // [確認_正常系] - 2 回目は再実行されないこと。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, register_after_shutdown); // [確認_正常系] - shutdown 開始後の登録が拒否されること。
+    EXPECT_EQ(1, g_call_count);                               // [確認_正常系] - callback は 1 回だけ実行されること。
 }
 
 // 終了要求 callback の実行が最終 shutdown を消費しないことの確認
@@ -149,35 +158,42 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
                    0); // [状態] - 通常終了の最終 shutdown イベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback, &request_first));
-    ASSERT_EQ(0, com_util_shutdown_request_register(
-                     record_callback, &request_second)); // [状態] - 終了要求 callback を id 1、2 の順に 2 件登録する。
-    ASSERT_EQ(0, com_util_shutdown_register(record_callback,
-                                            &final_id)); // [状態] - 最終 shutdown callback を id 3 で 1 件登録する。
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_request_register(record_callback, &request_first));
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_request_register(
+                  record_callback, &request_second)); // [状態] - 終了要求 callback を id 1、2 の順に 2 件登録する。
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_register(record_callback,
+                                         &final_id)); // [状態] - 最終 shutdown callback を id 3 で 1 件登録する。
 
     // Pre-Assert
 
     // Act
-    int request_result =
-        _com_util_shutdown_request_invoke_for_test(&request_event); // [手順] - 終了要求 callback を実行する。
+    int request_invoked = 0;
+    int request_result = _com_util_shutdown_request_invoke_for_test(
+        &request_event, &request_invoked); // [手順] - 終了要求 callback を実行する。
 
     // Assert
-    EXPECT_EQ(
-        0,
-        request_result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値から、終了要求 callback の実行が成功したと判断できること。
-    ASSERT_EQ(2, g_call_count);   // [確認_正常系] - request callback が 2 件だけ実行されること。
-    EXPECT_EQ(2, g_order[0]);     // [確認_正常系] - request callback も LIFO 順で実行されること。
-    EXPECT_EQ(1, g_order[1]);     // [確認_正常系] - 最初の request callback が最後に実行されること。
+    ASSERT_EQ(
+        COM_UTIL_OK,
+        request_result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, request_invoked); // [確認_正常系] - invoked_out が 1 (実行した) であること。
+    ASSERT_EQ(2, g_call_count);    // [確認_正常系] - request callback が 2 件だけ実行されること。
+    EXPECT_EQ(2, g_order[0]);      // [確認_正常系] - request callback も LIFO 順で実行されること。
+    EXPECT_EQ(1, g_order[1]);      // [確認_正常系] - 最初の request callback が最後に実行されること。
     EXPECT_EQ(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT,
               g_last_event.reason); // [確認_正常系] - request イベントが渡ること。
 
     reset_records();
 
-    int final_result = _com_util_shutdown_invoke_for_test(&final_event); // [手順] - 続けて最終 shutdown を実行する。
+    int final_invoked = 0;
+    int final_result =
+        _com_util_shutdown_invoke_for_test(&final_event, &final_invoked); // [手順] - 続けて最終 shutdown を実行する。
 
-    EXPECT_EQ(0, final_result); // [確認_正常系] - final shutdown が別途実行できること。
-    ASSERT_EQ(1, g_call_count); // [確認_正常系] - final callback は独立して 1 件実行されること。
-    EXPECT_EQ(3, g_order[0]);   // [確認_正常系] - final callback が実行されること。
+    ASSERT_EQ(COM_UTIL_OK, final_result); // [確認_正常系] - final shutdown の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, final_invoked);          // [確認_正常系] - final shutdown が別途実行できること。
+    ASSERT_EQ(1, g_call_count);           // [確認_正常系] - final callback は独立して 1 件実行されること。
+    EXPECT_EQ(3, g_order[0]);             // [確認_正常系] - final callback が実行されること。
     EXPECT_EQ(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT,
               g_last_event.reason); // [確認_正常系] - final shutdown では通常終了イベントが渡ること。
 }
@@ -191,22 +207,28 @@ TEST_F(shutdownTest, test_request_callback_runs_only_once)
         make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER,
                    2); // [状態] - シグナル番号 2 の終了要求イベントを用意する。
 
-    ASSERT_EQ(0,
+    ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_request_register(record_callback, &id)); // [状態] - 終了要求 callback を 1 件登録する。
 
     // Pre-Assert
 
     // Act
-    int first_result = _com_util_shutdown_request_invoke_for_test(&event);  // [手順] - 1 回目の終了要求を実行する。
-    int second_result = _com_util_shutdown_request_invoke_for_test(&event); // [手順] - 2 回目の終了要求を実行する。
+    int first_invoked = 0;
+    int second_invoked = 0;
+    int first_result =
+        _com_util_shutdown_request_invoke_for_test(&event, &first_invoked); // [手順] - 1 回目の終了要求を実行する。
+    int second_result =
+        _com_util_shutdown_request_invoke_for_test(&event, &second_invoked); // [手順] - 2 回目の終了要求を実行する。
     int register_after_request =
         com_util_shutdown_request_register(record_callback, &id); // [手順] - 通知後に新規登録を試みる。
 
     // Assert
-    EXPECT_EQ(0, first_result);            // [確認_正常系] - 1 回目は実行されること。
-    EXPECT_EQ(1, second_result);           // [確認_正常系] - 2 回目は再実行されないこと。
-    EXPECT_EQ(-1, register_after_request); // [確認_正常系] - 通知後の登録は拒否されること。
-    EXPECT_EQ(1, g_call_count);            // [確認_正常系] - request callback は 1 回だけ実行されること。
+    ASSERT_EQ(COM_UTIL_OK, first_result);  // [確認_正常系] - 1 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, first_invoked);           // [確認_正常系] - 1 回目は実行されること。
+    ASSERT_EQ(COM_UTIL_OK, second_result); // [確認_正常系] - 2 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, second_invoked);          // [確認_正常系] - 2 回目は再実行されないこと。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, register_after_request); // [確認_正常系] - 通知後の登録は拒否されること。
+    EXPECT_EQ(1, g_call_count); // [確認_正常系] - request callback は 1 回だけ実行されること。
 }
 
 // com_util_exit が終了コードを保持したまま callback を実行することの確認
@@ -261,7 +283,7 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
                 make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0);
             _com_util_shutdown_reset_for_test();
             com_util_shutdown_register(print_count_callback, NULL);
-            _com_util_shutdown_invoke_for_test(&event);
+            _com_util_shutdown_invoke_for_test(&event, NULL);
             exit(0);
         },
         ::testing::ExitedWithCode(0), "count=1");
@@ -306,19 +328,21 @@ TEST_F(shutdownTest, test_console_event_is_reported_to_callback)
         make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_CONSOLE_CTRL_TYPE,
                    CTRL_C_EVENT); // [状態] - CTRL_C_EVENT を模擬したイベントを用意する。
 
-    ASSERT_EQ(0, com_util_shutdown_request_register(record_callback,
-                                                    &id)); // [状態] - 記録用の終了要求 callback を 1 件登録する。
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_request_register(record_callback,
+                                                 &id)); // [状態] - 記録用の終了要求 callback を 1 件登録する。
 
     // Pre-Assert
 
     // Act
+    int invoked = 0;
     int result = _com_util_shutdown_request_invoke_for_test(
-        &event); // [手順] - CTRL_C_EVENT 相当の request callback を実行する。
+        &event, &invoked); // [手順] - CTRL_C_EVENT 相当の request callback を実行する。
 
     // Assert
-    EXPECT_EQ(
-        0,
-        result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値から、request callback 実行が成功したと判断できること。
+    ASSERT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, invoked);      // [確認_正常系] - invoked_out が 1 (実行した) であること。
     EXPECT_EQ(1, g_call_count); // [確認_正常系] - callback が 1 回実行されること。
     EXPECT_EQ(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT,
               g_last_event.reason); // [確認_正常系] - コンソール イベントの理由が渡ること。

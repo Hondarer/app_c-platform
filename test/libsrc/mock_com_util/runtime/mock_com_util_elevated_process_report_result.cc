@@ -11,7 +11,7 @@ int delegate_real_com_util_elevated_process_report_result(const char *message)
 
 MOCK_WEAK_IMPL(int, com_util_elevated_process_report_result, const char *message)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

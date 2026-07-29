@@ -4,15 +4,14 @@
 int delegate_real_com_util_makedirs(const char *path)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_makedirs)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_makedirs"));
+        reinterpret_cast<decltype(&com_util_makedirs)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_makedirs"));
 
     return real_fn(path);
 }
 
 MOCK_WEAK_IMPL(int, com_util_makedirs, const char *path)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

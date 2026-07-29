@@ -55,7 +55,7 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 - Windows では `com_util_elevated_process_run_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出する
 - `AttachConsole` で親コンソールへ接続し、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へつなぎ直す
 - 検出したフラグは `argv` から取り除き、`argc` を 1 減らす
-- Linux では何もせず 0 を返す
+- Linux では何もせず `COM_UTIL_OK` を返し、`attached_out` が NULL でなければ 0 を格納する
 - プログラム開始直後、引数解析および `com_util_console_init` より前に呼び出す
 
 この関数は次の仕組みで昇格プロセスの出力を元のコンソールに表示します。UAC 昇格 (`ShellExecuteExW` の `runas` 動詞) では昇格プロセスを別セキュリティ コンテキストで生成するため、親のハンドルを継承できません。そこで親プロセス ID と親コンソールの window ハンドルをコマンド ラインで渡し、昇格プロセス側が親コンソールへ接続し直します。親側は昇格プロセスの一時コンソールを隠して起動するため、別ウインドウは表示されません。
@@ -94,7 +94,7 @@ UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_a
 
 - Windows では `GetStdHandle` で取得した Win32 ハンドルへ `WriteConsoleA` (失敗時は `WriteFile` にフォールバック) で直接書き込む
 - Linux では対象の fd へ `write()` で直接書き込む
-- `printf` / `fprintf` (FILE\* 経由) は再接続後に書き込みを拒否することがあるため、`com_util_console_attach_parent()` の戻り値が 1 (再接続が発生した) であった場合の出力は、本関数を使うこと
+- `printf` / `fprintf` (FILE\* 経由) は再接続後に書き込みを拒否することがあるため、`com_util_console_attach_parent()` が `attached_out` に 1 を格納した場合の出力は、本関数を使うこと
 
 ## 使い方
 
@@ -141,8 +141,8 @@ int main(void)
 
 - Windows では `activeCodePage=UTF-8` マニフェストを併用してください
 - `com_util_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `com_util_console_attach_parent` を使用してください)
-- `com_util_console_attach_parent()` が 1 (再接続発生) を返した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `com_util_console_write()` を使用してください
-- UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` ではなく `com_util_process_run_elevated_with_result()` の使用を検討してください (前述の既知の制限)
+- `com_util_console_attach_parent()` が `attached_out` に 1 を格納した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `com_util_console_write()` を使用してください
+- UAC 昇格後に確実に結果を表示したい場合は、`com_util_console_attach_parent()` ではなく `com_util_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)
 - Windows 10 1903 未満はサポート対象外です
 
 ## 参考リンク

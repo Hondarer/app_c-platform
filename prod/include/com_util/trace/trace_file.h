@@ -25,6 +25,7 @@
 
 #include <stddef.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/com_util_export.h>
 #include <com_util/trace/tracer.h>
@@ -126,9 +127,9 @@ extern "C"
      *  @param[in]      level      トレース レベル。
      *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
      *                             不正な明示タイムスタンプが渡された場合も現在時刻で出力を継続し、
-     *                             戻り値は -1 を返します。
+     *                             戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      message    null 終端 UTF-8 文字列。NULL は無視。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

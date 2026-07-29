@@ -42,6 +42,7 @@
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/dll_exports.h>
+#include <com_util/base/result.h>
 #include <com_util/base/windows_sdk.h>
 
 #include <com_util/argparser/argparser.h>

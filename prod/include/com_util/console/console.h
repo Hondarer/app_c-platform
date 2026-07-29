@@ -33,6 +33,7 @@
 #define COM_UTIL_CONSOLE_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <com_util/crt/unistd.h>
 
@@ -84,10 +85,11 @@ extern "C"
 
     /**
      *  @brief          昇格起動時に親プロセスのコンソールへ再接続します。
-     *  @param[in,out]  argc  引数の数へのポインター。NULL 可。
-     *  @param[in,out]  argv  引数配列。NULL 可。
-     *  @return         親コンソールへ再接続した場合は 1、何もしなかった場合は 0、
-     *                  失敗した場合は -1 を返します。
+     *  @param[in,out]  argc          引数の数へのポインター。NULL 可。
+     *  @param[in,out]  argv          引数配列。NULL 可。
+     *  @param[out]     attached_out  親コンソールへ再接続した場合は 1、何もしなかった場合は 0 の格納先。
+     *                                NULL 可。戻り値が @ref COM_UTIL_OK の場合のみ有効です。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  Windows 環境では、com_util_elevated_process_run_if_needed() が UAC 昇格で
      *  自プロセスを再起動した際に付与する引き継ぎフラグを検出し、親プロセスの
@@ -95,18 +97,18 @@ extern "C"
      *  再接続後、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へ
      *  つなぎ直すため、昇格プロセスの出力が元のコンソールにそのまま表示されます。\n
      *  検出した引き継ぎフラグは @p argv から取り除き、@p argc を 1 減らします。\n
-     *  Linux 環境では何もせず 0 を返します。
+     *  Linux 環境では何もせず @p attached_out に 0 を設定して @ref COM_UTIL_OK を返します。
      *
      *  @note           本関数はプログラム開始直後、引数解析および
      *                  @c com_util_console_init より前に 1 度だけ呼び出してください。\n
      *                  親プロセスにコンソールが無い場合 (GUI 起動など) は引き継ぎ
-     *                  フラグが付与されないため、本関数は 0 を返します。
+     *                  フラグが付与されないため、@p attached_out には 0 が設定されます。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  プロセス起動直後のシングル スレッド フェーズで呼び出してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_attach_parent(int *argc, char **argv, int *attached_out);
 
     /**
      *  @brief          stdout / stderr の CRT ストリーム (printf / fprintf) を経由せず、
@@ -114,7 +116,7 @@ extern "C"
      *  @param[in]      stream  書き込み先 (@ref COM_UTIL_STREAM_STDOUT または
      *                  @ref COM_UTIL_STREAM_STDERR)。それ以外は失敗します。
      *  @param[in]      text    書き込む文字列 (UTF-8)。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  Windows 環境では、com_util_console_attach_parent() による昇格後の親コンソール
      *  再接続直後に、stdout / stderr の CRT ストリーム (FILE*) 経由の printf / fprintf が

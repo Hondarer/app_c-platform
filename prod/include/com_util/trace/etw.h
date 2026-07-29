@@ -2,6 +2,7 @@
 #define COM_UTIL_ETW_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <stdint.h>
 
@@ -122,7 +123,7 @@ extern "C"
      *  @param[in]      level    イベント レベル (1=CRITICAL / 2=ERROR / 3=WARNING / 4=INFO / 5=VERBOSE)。
      *  @param[in]      service  サービス名です。NULL の場合は Service フィールドなしで書き込みます。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         常に @ref COM_UTIL_OK を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -144,29 +145,15 @@ extern "C"
 
     /* ===== セッション (Consumer) API ===== */
 
-    /** @name ETW セッション ステータス コード */
-    /** @{ */
-
-    /** 成功。 */
-    #define COM_UTIL_ETW_SESSION_OK 0
-    /** パラメーター エラー (NULL または不正な GUID)。 */
-    #define COM_UTIL_ETW_SESSION_ERR_PARAM -1
-    /** 権限不足 (Administrators または Performance Log Users が必要)。 */
-    #define COM_UTIL_ETW_SESSION_ERR_ACCESS -2
-    /** その他のシステム エラー。 */
-    #define COM_UTIL_ETW_SESSION_ERR_SYSTEM -3
-
-    /** @} */
-
     /** ETW セッション ハンドル (不透明型)。 */
     typedef struct com_util_etw_session com_util_etw_session;
 
     /**
      *  @brief          ETW セッション開始に必要な権限があるか検査します。
      *
-     *  @return         必要な権限がある場合は COM_UTIL_ETW_SESSION_OK、権限不足の場合は
-     *                  COM_UTIL_ETW_SESSION_ERR_ACCESS、検査中にシステム エラーが発生した場合は
-     *                  COM_UTIL_ETW_SESSION_ERR_SYSTEM を返します。
+     *  @return         必要な権限がある場合は @ref COM_UTIL_OK、権限不足の場合は
+     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED、検査中にシステム エラーが発生した場合は
+     *                  @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

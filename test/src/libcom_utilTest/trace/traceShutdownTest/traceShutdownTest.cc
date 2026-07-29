@@ -29,7 +29,7 @@ class traceShutdownTest : public Test
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
         ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(0));
+        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
 #elif defined(PLATFORM_WINDOWS)
         ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
@@ -54,12 +54,15 @@ TEST_F(traceShutdownTest, test_shutdown_disposes_registry_and_rejects_new_create
     // Pre-Assert
 
     // Act
-    int invoke_result = _com_util_shutdown_invoke_for_test(&event); // [手順] - 共通 shutdown を実行する。
+    int invoked = 0;
+    int invoke_result = _com_util_shutdown_invoke_for_test(&event, &invoked); // [手順] - 共通 shutdown を実行する。
     com_util_tracer *created_after_shutdown =
         com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer の生成を試みる。
 
     // Assert
-    EXPECT_EQ(0, invoke_result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値が 0 であること。
+    ASSERT_EQ(COM_UTIL_OK,
+              invoke_result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, invoked);    // [確認_正常系] - invoked_out が 1 (実行した) であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - shutdown 後に registry が空になること。
     EXPECT_EQ(
         (com_util_tracer *)NULL,

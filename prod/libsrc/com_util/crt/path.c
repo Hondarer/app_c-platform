@@ -10,6 +10,7 @@
 
 #include <com_util/crt/path.h>
 #include <com_util/crt/wchar_conv.h>
+#include <com_util/base/result.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -30,7 +31,7 @@ static int com_util_copy_path_text(char *path_out, const size_t path_size, int *
         {
             *errno_out = EINVAL;
         }
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     len = strlen(text);
@@ -41,11 +42,11 @@ static int com_util_copy_path_text(char *path_out, const size_t path_size, int *
         {
             *errno_out = ENAMETOOLONG;
         }
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     memcpy(path_out, text, len + 1u);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 static int com_util_compare_normalized_paths(const char *lhs, const char *rhs)
@@ -163,7 +164,7 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
         {
             *errno_out = EINVAL;
         }
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (path[0] == PLATFORM_PATH_SEP_CHR)
@@ -184,7 +185,7 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
             {
                 *errno_out = errno;
             }
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         written = snprintf(path_out, path_size, "%s/%s", cwd, path);
@@ -198,11 +199,11 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
     }
 
-    return 0;
+    return COM_UTIL_OK;
 }
 #endif /* PLATFORM_LINUX */
 
@@ -220,7 +221,7 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
         {
             *errno_out = EINVAL;
         }
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     path_out[0] = '\0';
@@ -237,7 +238,7 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
             {
                 *errno_out = EINVAL;
             }
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
         part_len = strlen(part);
@@ -248,7 +249,7 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         required_size += part_len;
     }
@@ -263,7 +264,7 @@ static int com_util_vpath_concat_n(char *path_out, const size_t path_size, int *
     }
     path_out[offset] = '\0';
 
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -295,7 +296,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
         {
             *errno_out = EINVAL;
         }
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -303,10 +304,11 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
         char candidate[PLATFORM_PATH_MAX];
         char resolved[PLATFORM_PATH_MAX];
 
-        if (com_util_build_absolute_posix_path(candidate, sizeof(candidate), errno_out, path) != 0)
+        int build_result = com_util_build_absolute_posix_path(candidate, sizeof(candidate), errno_out, path);
+        if (build_result != COM_UTIL_OK)
         {
             path_out[0] = '\0';
-            return -1;
+            return build_result;
         }
 
         com_util_normalize_path_sep(candidate);
@@ -326,10 +328,11 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
         wchar_t wfull[PLATFORM_PATH_MAX];
         DWORD needed;
 
-        if (com_util_copy_path_text(normalized_input, sizeof(normalized_input), errno_out, path) != 0)
+        int copy_result = com_util_copy_path_text(normalized_input, sizeof(normalized_input), errno_out, path);
+        if (copy_result != COM_UTIL_OK)
         {
             path_out[0] = '\0';
-            return -1;
+            return copy_result;
         }
         com_util_normalize_path_sep(normalized_input);
 
@@ -340,7 +343,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
             {
                 *errno_out = EINVAL;
             }
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
         needed = GetFullPathNameW(wpath, (DWORD)(sizeof(wfull) / sizeof(wfull[0])), wfull, NULL);
@@ -351,7 +354,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
             {
                 *errno_out = (int)GetLastError();
             }
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (needed >= (DWORD)(sizeof(wfull) / sizeof(wfull[0])))
         {
@@ -360,7 +363,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
 
         if (com_util_wpath_to_utf8(path_out, path_size, wfull) < 0)
@@ -370,41 +373,54 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
     }
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out)
+int com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out, int *errno_out)
 {
     char lhs_full[PLATFORM_PATH_MAX];
     char rhs_full[PLATFORM_PATH_MAX];
     int err = 0;
+    int rc;
 
-    if (com_util_path_get_full(lhs_full, sizeof(lhs_full), &err, lhs) != 0)
+    if (equal_out == NULL)
+    {
+        if (errno_out != NULL)
+        {
+            *errno_out = EINVAL;
+        }
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    rc = com_util_path_get_full(lhs_full, sizeof(lhs_full), &err, lhs);
+    if (rc != COM_UTIL_OK)
     {
         if (errno_out != NULL)
         {
             *errno_out = err;
         }
-        return -1;
+        return rc;
     }
 
     err = 0;
-    if (com_util_path_get_full(rhs_full, sizeof(rhs_full), &err, rhs) != 0)
+    rc = com_util_path_get_full(rhs_full, sizeof(rhs_full), &err, rhs);
+    if (rc != COM_UTIL_OK)
     {
         if (errno_out != NULL)
         {
             *errno_out = err;
         }
-        return -1;
+        return rc;
     }
 
-    return com_util_compare_normalized_paths(lhs_full, rhs_full);
+    *equal_out = com_util_compare_normalized_paths(lhs_full, rhs_full);
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -417,7 +433,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
         {
             *errno_out = EINVAL;
         }
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -444,9 +460,9 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -461,7 +477,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
             {
                 *errno_out = (int)GetLastError();
             }
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         if (com_util_wpath_to_utf8(path_out, path_size, wdir) < 0)
@@ -470,7 +486,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
             {
                 *errno_out = ENAMETOOLONG;
             }
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
 
         /* GetTempPathW は末尾 '\' を付けて返す。変換後は '/' になるので除去する */
@@ -479,7 +495,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
         {
             path_out[--len] = '\0';
         }
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }

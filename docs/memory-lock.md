@@ -14,13 +14,13 @@
 範囲単位の API は Linux と Windows の両方で使用できます。
 
 ```c
-com_util_memory_lock_result_t com_util_memory_lock_range(const void *address, size_t size);
-com_util_memory_lock_result_t com_util_memory_unlock_range(const void *address, size_t size);
+int com_util_memory_lock_range(const void *address, size_t size);
+int com_util_memory_unlock_range(const void *address, size_t size);
 ```
 
 `address` はロック対象範囲の先頭アドレスです。
 `size` はロック対象範囲のサイズです。
-`address == NULL` または `size == 0` の場合は `COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT` を返します。
+`address == NULL` または `size == 0` の場合は `COM_UTIL_ERR_INVALID_ARGUMENT` を返します。
 実際にロックされる範囲は OS のページ単位に丸められます。
 
 プロセス全体の現在分ロックには scope API を使用します。
@@ -32,17 +32,17 @@ typedef struct com_util_memory_lock_self_options
     size_t stack_prefault_bytes;
 } com_util_memory_lock_self_options;
 
-com_util_memory_lock_result_t
+int
 com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
                           com_util_memory_lock_scope **scope);
 
-com_util_memory_lock_result_t
+int
 com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
 ```
 
 `com_util_memory_lock_self()` が成功すると、解除に必要な情報を `scope` に返します。
 呼び出し側は処理が終わった時点で `com_util_memory_lock_scope_release()` を呼び出します。
-`scope == NULL` を `com_util_memory_lock_scope_release()` に渡した場合は何もせず `COM_UTIL_MEMORY_LOCK_OK` を返します。
+`scope == NULL` を `com_util_memory_lock_scope_release()` に渡した場合は何もせず `COM_UTIL_OK` を返します。
 成功した `scope` は 1 回だけ `com_util_memory_lock_scope_release()` に渡してください。
 同一 `scope` の二重解放、または複数スレッドからの同時解放は未定義です。
 `options->stack_prefault_bytes` に 0 より大きい値を指定すると、ロック前に呼び出しスレッドのスタックを指定サイズ分だけ触ります。
@@ -58,8 +58,8 @@ com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
 | `COM_UTIL_MEMORY_LOCK_FUTURE` | 今後追加されるマッピングも対象にします。 | 未対応です。 |
 | `COM_UTIL_MEMORY_LOCK_ONFAULT` | ページ フォルト時にロックします。 | 未対応です。 |
 
-`options == NULL`、`flags == 0`、または未知の bit を含む場合は `COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT` を返します。
-Windows で `COM_UTIL_MEMORY_LOCK_FUTURE` または `COM_UTIL_MEMORY_LOCK_ONFAULT` を指定した場合は `COM_UTIL_MEMORY_LOCK_UNSUPPORTED` を返します。
+`options == NULL`、`flags == 0`、または未知の bit を含む場合は `COM_UTIL_ERR_INVALID_ARGUMENT` を返します。
+Windows で `COM_UTIL_MEMORY_LOCK_FUTURE` または `COM_UTIL_MEMORY_LOCK_ONFAULT` を指定した場合は `COM_UTIL_ERR_UNSUPPORTED` を返します。
 
 ## スレッド安全性と scope の解放
 
@@ -87,7 +87,7 @@ Windows の `COM_UTIL_MEMORY_LOCK_CURRENT` は、`VirtualQuery()` で列挙し�
 Linux でも同じ指定を受け付けます。
 `mlockall(MCL_CURRENT)` は呼び出し時点でマップ済みのページを対象にするため、ロック前にスタックを触る意味があります。
 
-指定サイズが現在のスレッド スタックで安全に扱えない場合は、実際にスタックを消費せず `COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED` を返します。
+指定サイズが現在のスレッド スタックで安全に扱えない場合は、実際にスタックを消費せず `COM_UTIL_ERR_LIMIT_EXCEEDED` を返します。
 この判定は stack overflow を避けるための安全側の見積もりです。
 
 ## scope API のタイミング
@@ -118,7 +118,7 @@ else Windows
     API -> API : 登録済み範囲の ref-count を加算
 end
 API -> Lock : 解放
-API --> Caller : COM_UTIL_MEMORY_LOCK_OK, scope
+API --> Caller : COM_UTIL_OK, scope
 @enduml
 ```
 
@@ -135,7 +135,7 @@ participant "OS" as OS
 
 Caller -> API : scope
 alt scope == NULL
-    API --> Caller : COM_UTIL_MEMORY_LOCK_OK
+    API --> Caller : COM_UTIL_OK
 else scope != NULL
     API -> Lock : 取得
     alt Linux
@@ -191,21 +191,26 @@ Windows の `scope` は `VirtualLock()` に成功した範囲を記録します�
 
 ## 結果コード
 
-結果コードは `com_util_memory_lock_result_t` で返します。
+結果コードは com_util 共通の結果コード (`int`、`com_util/base/result.h` 参照) で返します。
+本 API で実際に返しうるコードは次のとおりです。
 
 | 結果コード | 意味 |
 |---|---|
-| `COM_UTIL_MEMORY_LOCK_OK` | 成功。 |
-| `COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT` | 引数が不正。 |
-| `COM_UTIL_MEMORY_LOCK_UNSUPPORTED` | 対象プラットフォームまたは指定 flag では未対応。 |
-| `COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED` | 権限不足。 |
-| `COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED` | ロック可能量またはリソース上限を超過。 |
-| `COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR` | その他の OS エラー。 |
+| `COM_UTIL_OK` | 成功。 |
+| `COM_UTIL_ERR_INVALID_ARGUMENT` | 引数が不正。 |
+| `COM_UTIL_ERR_UNSUPPORTED` | 対象プラットフォームまたは指定 flag では未対応。 |
+| `COM_UTIL_ERR_PERMISSION_DENIED` | 権限不足。 |
+| `COM_UTIL_ERR_LIMIT_EXCEEDED` | ロック可能量またはリソース上限を超過。 |
+| `COM_UTIL_ERR_UNKNOWN` | 上記以外の OS エラー。 |
 
-Linux では `EPERM` を `COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED` に対応させます。
-Linux の `ENOMEM` は `COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED` に対応させます。
-Windows では `ERROR_ACCESS_DENIED` と `ERROR_PRIVILEGE_NOT_HELD` を `COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED` に対応させます。
-Windows の working set やシステム リソース不足を示すエラーは `COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED` に対応させます。
+errno および Windows の `GetLastError()` の値は、共通ヘルパー `com_util_result_from_errno()` /
+`com_util_result_from_windows_error()` (`com_util/base/result_internal.h`) を通じて結果コードへ変換します。
+ただし、ロック可能量の上限超過を示すエラーはこの API に固有の意味を持つため、共通ヘルパーより前段で個別に判定します。
+
+Linux では `EPERM` を `COM_UTIL_ERR_PERMISSION_DENIED` に対応させます (共通ヘルパーの分類)。
+Linux の `ENOMEM` は、mlock 系のロック可能量上限超過を意味するため、共通ヘルパーとは別に `COM_UTIL_ERR_LIMIT_EXCEEDED` に対応させます。
+Windows では `ERROR_ACCESS_DENIED` と `ERROR_PRIVILEGE_NOT_HELD` を `COM_UTIL_ERR_PERMISSION_DENIED` に対応させます (共通ヘルパーの分類)。
+Windows のワーキング セットやシステム リソース不足を示すエラー (`ERROR_NOT_ENOUGH_MEMORY`、`ERROR_WORKING_SET_QUOTA`、`ERROR_COMMITMENT_LIMIT`、`ERROR_NO_SYSTEM_RESOURCES`) は、共通ヘルパーとは別に `COM_UTIL_ERR_LIMIT_EXCEEDED` に対応させます。
 
 ## 使用例
 
@@ -215,8 +220,8 @@ Windows の working set やシステム リソース不足を示すエラーは 
 #include <com_util/runtime/memory_lock.h>
 
 unsigned char secret[64];
-com_util_memory_lock_result_t result = com_util_memory_lock_range(secret, sizeof(secret));
-if (result != COM_UTIL_MEMORY_LOCK_OK)
+int result = com_util_memory_lock_range(secret, sizeof(secret));
+if (result != COM_UTIL_OK)
 {
     /* ロックできない場合の扱いを呼び出し側で決める。 */
 }
@@ -235,8 +240,8 @@ com_util_memory_lock_scope *scope = NULL;
 com_util_memory_lock_self_options options = {0};
 options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
 
-com_util_memory_lock_result_t result = com_util_memory_lock_self(&options, &scope);
-if (result == COM_UTIL_MEMORY_LOCK_OK)
+int result = com_util_memory_lock_self(&options, &scope);
+if (result == COM_UTIL_OK)
 {
     /* ページ フォルトを避けたい処理を実行する。 */
 }
@@ -250,10 +255,10 @@ Linux で将来分も対象にする場合は、`COM_UTIL_MEMORY_LOCK_FUTURE` �
 com_util_memory_lock_scope *scope = NULL;
 com_util_memory_lock_self_options options = {0};
 options.flags = COM_UTIL_MEMORY_LOCK_CURRENT | COM_UTIL_MEMORY_LOCK_FUTURE;
-com_util_memory_lock_result_t result = com_util_memory_lock_self(&options, &scope);
+int result = com_util_memory_lock_self(&options, &scope);
 ```
 
-この指定は Windows では `COM_UTIL_MEMORY_LOCK_UNSUPPORTED` を返します。
+この指定は Windows では `COM_UTIL_ERR_UNSUPPORTED` を返します。
 
 Windows で現在のスレッド スタックを追加で 64 KiB 触ってから現在分をロックする例です。
 
@@ -262,7 +267,7 @@ com_util_memory_lock_scope *scope = NULL;
 com_util_memory_lock_self_options options = {0};
 options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
 options.stack_prefault_bytes = 64U * 1024U;
-com_util_memory_lock_result_t result = com_util_memory_lock_self(&options, &scope);
+int result = com_util_memory_lock_self(&options, &scope);
 ```
 
 ## 注意点

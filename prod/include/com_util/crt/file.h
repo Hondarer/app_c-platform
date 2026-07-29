@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 #if defined(PLATFORM_WINDOWS)
@@ -48,7 +49,7 @@
 #define COM_UTIL_FILE_OPEN_CREATE_NEW \
     (1 << 6) /**< 新規作成のみ許可する。既存ファイルがある場合は失敗する。\
                   @ref COM_UTIL_FILE_OPEN_CREATE の指定が必須であり、指定しない場合 \
-                  com_util_file_open() は呼び出し自体を -1 で失敗させる。 */
+                  com_util_file_open() は呼び出し自体を @ref COM_UTIL_ERR_INVALID_ARGUMENT で失敗させる。 */
 
 /**
  *  @brief  ファイル ハンドルの抽象化構造体 (Linux の fd、Windows の HANDLE を保持) です。
@@ -99,13 +100,13 @@ extern "C"
      *                         すでにオープン済みの場合は先にクローズしてから開き直します。
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープン フラグ (@ref COM_UTIL_FILE_OPEN_CREATE 等の OR 結合)。
-     *                         負値を渡した場合は -1 を返します。\n
+     *                         負値を渡した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。\n
      *                         @ref COM_UTIL_FILE_OPEN_READ / @ref COM_UTIL_FILE_OPEN_WRITE を
      *                         いずれも指定しない場合は、既定で書き込み専用アクセスとして開き、
      *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。\n
      *                         @ref COM_UTIL_FILE_OPEN_CREATE_NEW を @ref COM_UTIL_FILE_OPEN_CREATE
-     *                         なしで指定した場合も -1 を返します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *                         なしで指定した場合も @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
      *  (Windows でも `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` を常に指定します)。\n
@@ -126,7 +127,7 @@ extern "C"
      *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -138,7 +139,7 @@ extern "C"
      *  @brief          ファイル サイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -151,7 +152,7 @@ extern "C"
      *  @param[in]      file  対象のファイル。書き込みアクセスでオープン済みでなければなりません。
      *                        NULL を渡してはなりません。
      *  @param[in]      size  設定後のファイル サイズ (バイト)。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -163,7 +164,7 @@ extern "C"
      *  @brief          開いているファイルの同一性情報を取得します。
      *  @param[in]      file    対象のファイル。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  Linux では fstat、Windows では GetFileInformationByHandle で取得します。
      *
@@ -177,7 +178,7 @@ extern "C"
      *  @brief          UTF-8 パスが現在指しているファイルの同一性情報を取得します。
      *  @param[in]      path    対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時 (パスが存在しない場合を含む) は -1 を返します。
+     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します (パスが存在しない場合を含む)。
      *
      *  `com_util_file_get_id()` の結果と比較することで、開いているファイルが
      *  そのパスの最新の実体を指しているかを判定できます。\n

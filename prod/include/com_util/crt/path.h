@@ -42,6 +42,7 @@
 #define COM_UTIL_CRT_PATH_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
 
@@ -136,7 +137,7 @@ extern "C"
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  相対パスはカレント ディレクトリ基準で絶対化します。\n
      *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
@@ -155,8 +156,10 @@ extern "C"
      *  @brief          2 つのパスが同じ実体を指すか比較します。
      *  @param[in]      lhs        比較対象の 1 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @param[in]      rhs        比較対象の 2 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
+     *  @param[out]     equal_out  一致時は 1、不一致時は 0 の格納先。NULL を渡してはなりません。
+     *                             戻り値が @ref COM_UTIL_OK の場合のみ有効です。
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
-     *  @return         一致時は 1、不一致時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  内部でそれぞれのパスに対して com_util_path_get_full() を呼び、絶対化と
      *  区切り文字正規化を行ったうえで比較します。\n
@@ -166,7 +169,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると比較結果が不定になります。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *errno_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
+                                                          int *errno_out);
 
     /**
      *  @brief          プラットフォームの一時ディレクトリのパスを取得します。
@@ -175,7 +179,7 @@ extern "C"
      *                              NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  Linux 環境では環境変数 @c TMPDIR を参照し、未設定または空の場合は @c "/tmp" を使用します。\n
      *  Windows 環境では @c GetTempPathW() で取得したパスを UTF-8 に変換して使用します。\n
@@ -195,7 +199,7 @@ extern "C"
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  断片は自動補正せず、そのまま連結されます。\n
      *  いずれかの断片が NULL、または @p part_count が 0 の場合は EINVAL を返します。\n
@@ -234,7 +238,7 @@ extern "C"
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  POSIX dirname() 相当の規約で親ディレクトリ部分を求めます。\n
      *  末尾のセパレータ群を除去したうえで、最後のセパレータより前を返します。\n
@@ -279,7 +283,7 @@ extern "C"
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  com_util_path_extension() が返す拡張子部分を除いて @p path を @p path_out へ
      *  コピーします。\n
@@ -303,7 +307,7 @@ extern "C"
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  隣り合う非空断片の間に @ref PLATFORM_PATH_SEP_CHR がちょうど 1 つになるよう
      *  自動的に補完・重複除去して連結します

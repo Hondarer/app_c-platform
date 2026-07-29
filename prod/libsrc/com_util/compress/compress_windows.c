@@ -36,6 +36,7 @@
     #include <compressapi.h>
     #pragma comment(lib, "Cabinet.lib")
 
+    #include <com_util/base/result.h>
     #include <com_util/compress/compress.h>
 
 /*
@@ -95,13 +96,13 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* NBO ヘッダー (4B) + CK (2B) + raw DEFLATE 最低 1B */
     if (*dst_len < COM_UTIL_COMPRESS_HEADER_SIZE + 2U + 1U)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     /* 先頭 4 バイトに元サイズ (NBO) を書く */
@@ -115,7 +116,7 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
      */
     if (!CreateCompressor(COMPRESS_ALGORITHM_MSZIP | COMPRESS_RAW, NULL, &h))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* データ全体を単一ブロックとして処理する */
@@ -136,14 +137,14 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
 
     if (!ok || cmp_len < 2U)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* CK(2B) を除去: [CK][raw DEFLATE] → [raw DEFLATE] */
     memmove(dst + COM_UTIL_COMPRESS_HEADER_SIZE, dst + COM_UTIL_COMPRESS_HEADER_SIZE + 2U, (size_t)(cmp_len - 2U));
 
     *dst_len = COM_UTIL_COMPRESS_HEADER_SIZE + (size_t)(cmp_len - 2U);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -162,7 +163,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* 先頭 4 バイトから元サイズを取得 */
@@ -171,7 +172,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (*dst_len < (size_t)orig_len)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     raw_deflate_len = src_len - COM_UTIL_COMPRESS_HEADER_SIZE;
@@ -188,7 +189,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
     tmp = (uint8_t *)malloc(tmp_len);
     if (tmp == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     /* ヘッダー: magic (4B) + header_size (2B) + crc_byte (1B) + algo_id (1B) */
@@ -220,7 +221,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
     if (!CreateDecompressor(COMPRESS_ALGORITHM_MSZIP, NULL, &h))
     {
         free(tmp);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     ok = Decompress(h, tmp, (SIZE_T)tmp_len, dst, (SIZE_T)*dst_len, &out_len);
@@ -229,11 +230,11 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 
     if (!ok)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = (size_t)out_len;
-    return 0;
+    return COM_UTIL_OK;
 }
 
 #endif /* PLATFORM_WINDOWS */

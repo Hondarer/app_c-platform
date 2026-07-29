@@ -15,7 +15,7 @@ int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink *handle, int l
 MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, int level,
                const com_util_timespec *timestamp, const char *message)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
@@ -28,8 +28,17 @@ MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, in
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d ts=%s \"%s\"", __func__, level, timestamp != nullptr ? "set" : "null",
-               message != nullptr ? message : "(null)");
+        const char *timestamp_text = "null";
+        const char *message_text = "(null)";
+        if (timestamp != nullptr)
+        {
+            timestamp_text = "set";
+        }
+        if (message != nullptr)
+        {
+            message_text = message;
+        }
+        printf("  > %s %d ts=%s \"%s\"", __func__, level, timestamp_text, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

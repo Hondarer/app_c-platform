@@ -13,6 +13,7 @@
  *
  *******************************************************************************
  */
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/path.h>
 #include <com_util/runtime/process.h>
@@ -374,7 +375,7 @@ static int to_etw_level(const com_util_trace_level_t lv)
  */
 static const char *get_process_basename(char *buf, const size_t buf_size)
 {
-    if (com_util_process_get_executable_path(buf, buf_size) != 0)
+    if (com_util_process_get_executable_path(buf, buf_size) != COM_UTIL_OK)
     {
         return FALLBACK_NAME;
     }
@@ -409,7 +410,7 @@ static void config_unlock_exclusive(com_util_tracer *handle)
  */
 static int config_lock_shared_timed(com_util_tracer *handle)
 {
-    if (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == 0)
+    if (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == COM_UTIL_OK)
     {
         return 0;
     }
@@ -669,9 +670,9 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
     }
     if (written < 0 || (size_t)written >= out_size)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /**
@@ -705,8 +706,8 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         return -1;
     }
 
-    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == 0 &&
-        com_util_path_dirname(exe_dir, sizeof(exe_dir), NULL, exe_path) == 0 && strcmp(exe_dir, ".") != 0)
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == COM_UTIL_OK &&
+        com_util_path_dirname(exe_dir, sizeof(exe_dir), NULL, exe_path) == COM_UTIL_OK && strcmp(exe_dir, ".") != 0)
     {
         return com_util_path_join(out, out_size, NULL, exe_dir, "log", log_file_name);
     }
@@ -760,7 +761,7 @@ static int stop_handle_for_cleanup(com_util_tracer *handle)
     if (!handle->running)
     {
         config_unlock_exclusive(handle);
-        return 0;
+        return COM_UTIL_OK;
     }
 
     handle->running = 0;
@@ -770,7 +771,7 @@ static int stop_handle_for_cleanup(com_util_tracer *handle)
         handle->file_handle = NULL;
     }
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /**
@@ -911,7 +912,7 @@ com_util_tracer *com_util_tracer_create(void)
             return NULL;
         }
 
-        if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
+        if (com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
         {
             com_util_syslog_sink_dispose(sp);
             free(handle->effective_name);
@@ -964,7 +965,7 @@ com_util_tracer *com_util_tracer_create(void)
         handle->config_rwlock_initialized = 0;
         handle->hook_head = NULL;
 
-        if (com_util_local_rwlock_create(&handle->config_rwlock) != 0)
+        if (com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
         {
             free(handle->eventlog_instance_name);
             free(handle->service_name);
@@ -1023,16 +1024,16 @@ com_util_tracer *com_util_tracer_create(void)
 
 int com_util_tracer_start(com_util_tracer *handle)
 {
-    int result = 0;
+    int result = COM_UTIL_OK;
 
     if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (handle->running)
     {
         config_unlock_exclusive(handle);
-        return 0;
+        return COM_UTIL_OK;
     }
 
     /* ファイル トレースが有効な場合、この時点の設定 (パスと有効名) でトレース ファイルを開く。
@@ -1043,7 +1044,7 @@ int com_util_tracer_start(com_util_tracer *handle)
                                                   handle->file_generations, handle->file_flags);
         if (handle->file_handle == NULL)
         {
-            result = -1;
+            result = COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -1058,7 +1059,7 @@ int com_util_tracer_stop(com_util_tracer *handle)
 {
     if (!handle_is_active(handle))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     return stop_handle_for_cleanup(handle);
@@ -1128,7 +1129,7 @@ static int write_os_backends(com_util_tracer *handle, const com_util_trace_level
     {
         return com_util_syslog_sink_write(handle->syslog_handle, to_syslog_level(level), timestamp, msg);
     }
-    return 0;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     int etw_result = 0;
     int eventlog_result = 0;
@@ -1148,9 +1149,9 @@ static int write_os_backends(com_util_tracer *handle, const com_util_trace_level
 
     if (etw_result != 0 || eventlog_result != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -1212,13 +1213,13 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
     {
         if (trace_resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         effective_timestamp = &resolved;
 
         if (trace_format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -1245,11 +1246,11 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
 
     if (timestamp_fallback_used || os_result != 0 || file_result != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     else
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 }
 
@@ -1265,11 +1266,11 @@ int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t
 
     if (handle == NULL || message == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     msg = message;
@@ -1298,11 +1299,11 @@ int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_
 
     if (handle == NULL || format == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     va_start(args, format);
@@ -1343,7 +1344,7 @@ static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t 
 
     if (handle == NULL || data == NULL || size == 0)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     if (label != NULL && label[0] != '\0')
@@ -1429,11 +1430,11 @@ int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_lev
 
     if (handle == NULL || data == NULL || size == 0)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     ret = hex_write_impl(handle, level, timestamp, data, size, message);
@@ -1452,11 +1453,11 @@ int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_le
 
     if (handle == NULL || data == NULL || size == 0)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     if (tracer_enter_shared_running(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (format != NULL)
@@ -1484,18 +1485,18 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
 
     if (identifier < 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (tracer_enter_exclusive_stopped(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     effective = build_effective_name(name, identifier);
     if (effective == NULL)
     {
         config_unlock_exclusive(handle);
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -1505,13 +1506,13 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
         {
             free(effective);
             config_unlock_exclusive(handle);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         free(handle->effective_name);
         handle->effective_name = effective;
         handle->identifier = identifier;
         config_unlock_exclusive(handle);
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -1520,7 +1521,7 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
         {
             free(effective);
             config_unlock_exclusive(handle);
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         free(handle->eventlog_instance_name);
         free(handle->service_name);
@@ -1528,7 +1529,7 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
         handle->service_name = effective;
         handle->identifier = identifier;
         config_unlock_exclusive(handle);
-        return 0;
+        return COM_UTIL_OK;
     }
 #endif /* PLATFORM_ */
 }
@@ -1541,20 +1542,20 @@ int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t ou
 
     if (out == NULL || out_size == 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     written = snprintf(out, out_size, "%s", tracer_effective_name(handle));
     config_unlock_shared(handle);
 
     if (written < 0 || (size_t)written >= out_size)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1580,11 +1581,11 @@ int com_util_tracer_set_file_name(com_util_tracer *handle, const char *name, con
 
     if (!handle_is_active(handle))
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (identifier < 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* 失敗時に設定を変更しないよう、名前の複製をロック取得前に確保する */
@@ -1597,21 +1598,21 @@ int com_util_tracer_set_file_name(com_util_tracer *handle, const char *name, con
 #endif /* PLATFORM_ */
         if (name_copy == NULL)
         {
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
     }
 
     if (tracer_enter_exclusive_stopped(handle) != 0)
     {
         free(name_copy);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     free(handle->file_name);
     handle->file_name = name_copy;
     handle->file_identifier = identifier;
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1622,11 +1623,11 @@ int com_util_tracer_get_file_name(com_util_tracer *handle, char *out, const size
 
     if (out == NULL || out_size == 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (tracer_enter_shared(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     rc = resolve_file_name(handle, out, out_size);
     config_unlock_shared(handle);
@@ -1669,12 +1670,12 @@ int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_l
 {
     if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     handle->os_level = level;
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1705,17 +1706,17 @@ int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_
 #if defined(PLATFORM_WINDOWS)
     if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     handle->etw_level = level;
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 #else  /* PLATFORM_LINUX */
     /* Linux では ETW が存在しないため何もしない。 */
     (void)handle;
     (void)level;
-    return 0;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -1751,14 +1752,14 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
 #endif /* PLATFORM_ */
         if (path_copy == NULL)
         {
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
     }
 
     if (tracer_enter_exclusive(handle) != 0)
     {
         free(path_copy);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (handle->running)
@@ -1781,7 +1782,7 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
             handle->file_generations = generations;
             handle->file_flags = flags;
             config_unlock_exclusive(handle);
-            return 0;
+            return COM_UTIL_OK;
         }
 
         /* ケース 2: 構造パラメーターが一致し、既にファイルが開いている場合は閾値のみ変更する。
@@ -1795,18 +1796,18 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
             handle->file_level = level;
             config_unlock_exclusive(handle);
             free(path_copy);
-            return 0;
+            return COM_UTIL_OK;
         }
 
         /* ケース 3: 新パラメーターでファイルを開き直す。先に新 sink を開き、成功時のみ差し替える。
-         * オープン失敗時は旧ハンドルと旧設定を保持して -1 を返す。 */
+         * オープン失敗時は旧ハンドルと旧設定を保持して COM_UTIL_ERR_UNKNOWN を返す。 */
         {
             com_util_trace_file_sink *new_sink = open_file_sink_with(handle, path, max_bytes, generations, flags);
             if (new_sink == NULL)
             {
                 config_unlock_exclusive(handle);
                 free(path_copy);
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
             if (handle->file_handle != NULL)
             {
@@ -1820,7 +1821,7 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
             handle->file_generations = generations;
             handle->file_flags = flags;
             config_unlock_exclusive(handle);
-            return 0;
+            return COM_UTIL_OK;
         }
     }
 
@@ -1839,7 +1840,7 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
     handle->file_flags = flags;
 
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1863,12 +1864,12 @@ int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_tra
 {
     if (tracer_enter_exclusive(handle) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     handle->stderr_level = level;
     config_unlock_exclusive(handle);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

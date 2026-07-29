@@ -11,6 +11,7 @@
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
 
+#include <com_util/base/result.h>
 #include <com_util/crt/path_format.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -21,12 +22,12 @@ int com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list ar
 
     if (buf == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (com_util_vformat_path(filename, sizeof(filename), format, args, NULL) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     return com_util_stat(buf, filename);
@@ -54,7 +55,7 @@ int com_util_vmkdir_fmt(const char *format, va_list args)
 
     if (com_util_vformat_path(filename, sizeof(filename), format, args, NULL) != 0)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     return com_util_mkdir(filename);

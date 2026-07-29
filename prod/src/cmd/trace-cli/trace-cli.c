@@ -913,7 +913,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    if (parse_result != COM_UTIL_OK)
     {
         com_util_argparser_print_error_messages(stderr);
         com_util_argparser_print_usage(stderr);
@@ -927,7 +927,7 @@ int main(int argc, char *argv[])
     while (!session.exit_requested)
     {
         if (com_util_prompt_readline_fmt(prompt, line, sizeof(line), "trace-cli[%s]> ",
-                                         session_prompt_state_to_name(&session)) == 0)
+                                         session_prompt_state_to_name(&session)) != COM_UTIL_OK)
         {
             break;
         }

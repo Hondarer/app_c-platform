@@ -20,6 +20,7 @@
 
 #include <stddef.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -35,19 +36,6 @@ extern "C"
 #define COM_UTIL_MEMORY_LOCK_CURRENT 0x01 /**< 現在マップ済みのメモリをロック対象にします。 */
 #define COM_UTIL_MEMORY_LOCK_FUTURE  0x02 /**< 今後マップされるメモリもロック対象にします。 */
 #define COM_UTIL_MEMORY_LOCK_ONFAULT 0x04 /**< ページ フォルト時にロックします。 */
-
-    /**
-     *  @brief          メモリ ロック操作の結果コードです。
-     */
-    typedef enum com_util_memory_lock_result_t
-    {
-        COM_UTIL_MEMORY_LOCK_OK = 0,                /**< 成功。 */
-        COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT = 1,  /**< 引数が不正。 */
-        COM_UTIL_MEMORY_LOCK_UNSUPPORTED = 2,       /**< 操作がサポートされない。 */
-        COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED = 3, /**< 権限不足。 */
-        COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED = 4,    /**< ロック可能量またはリソース上限を超過。 */
-        COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR = 5       /**< OS/システム エラー。 */
-    } com_util_memory_lock_result_t;
 
     /**
      *  @brief          自プロセス メモリ ロックの解除情報です。
@@ -83,8 +71,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  同じページに対する複数スレッドからの lock / unlock の対応関係は呼び出し側で管理してください。
      */
-    COM_UTIL_EXPORT com_util_memory_lock_result_t COM_UTIL_API com_util_memory_lock_range(const void *address,
-                                                                                          size_t size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_memory_lock_range(const void *address, size_t size);
 
     /**
      *  @brief          指定したメモリ範囲のロックを解除します。
@@ -95,8 +82,7 @@ extern "C"
      *  実際に解除される範囲は OS のページ単位に丸められます。\n
      *  Windows では部分的に未ロックのページを含むと失敗することがあります。
      */
-    COM_UTIL_EXPORT com_util_memory_lock_result_t COM_UTIL_API com_util_memory_unlock_range(const void *address,
-                                                                                            size_t size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_memory_unlock_range(const void *address, size_t size);
 
     /**
      *  @brief          自プロセスのメモリをまとめてロックします。
@@ -111,7 +97,7 @@ extern "C"
      *  Windows では @ref COM_UTIL_MEMORY_LOCK_CURRENT だけをサポートし、VirtualQuery() で現在の
      *  committed region を列挙して VirtualLock() を適用します。\n
      *  Windows で @ref COM_UTIL_MEMORY_LOCK_FUTURE または @ref COM_UTIL_MEMORY_LOCK_ONFAULT を指定した場合は
-     *  @ref COM_UTIL_MEMORY_LOCK_UNSUPPORTED を返します。\n
+     *  @ref COM_UTIL_ERR_UNSUPPORTED を返します。\n
      *  返された @p scope は com_util_memory_lock_scope_release() で破棄してください。
      *
      *  @par            呼び出しタイミング
@@ -141,7 +127,7 @@ extern "C"
             API -> API : 登録済み範囲の ref-count を加算
         end
         API -> Lock : 解放
-        API --> Caller : COM_UTIL_MEMORY_LOCK_OK, scope
+        API --> Caller : COM_UTIL_OK, scope
     @enduml
      *
      *  @par            スレッド セーフ
@@ -149,15 +135,15 @@ extern "C"
      *  複数スレッドから同時に呼び出して、呼び出しごとに独立した @p scope を取得できます。\n
      *  @p options の stack_prefault_bytes は呼び出しスレッドだけに作用します。
      */
-    COM_UTIL_EXPORT com_util_memory_lock_result_t COM_UTIL_API
-    com_util_memory_lock_self(const com_util_memory_lock_self_options *options, com_util_memory_lock_scope **scope);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
+                                                               com_util_memory_lock_scope **scope);
 
     /**
      *  @brief          自プロセス全体ロックの解除情報を破棄し、ロックを解除します。
      *  @param[in]      scope  com_util_memory_lock_self() で取得した解除情報。NULL 可。
      *  @return         結果コードを返します。
      *
-     *  NULL を渡した場合は何もせず @ref COM_UTIL_MEMORY_LOCK_OK を返します。
+     *  NULL を渡した場合は何もせず @ref COM_UTIL_OK を返します。
      *
      *  @par            解放タイミング
      *  @p scope は、対応する com_util_memory_lock_self() が成功した後、ロック状態を必要とする処理が終わった時点で
@@ -175,7 +161,7 @@ extern "C"
 
         Caller -> API : scope
         alt scope == NULL
-            API --> Caller : COM_UTIL_MEMORY_LOCK_OK
+            API --> Caller : COM_UTIL_OK
         else scope != NULL
             API -> Lock : 取得
             alt Linux
@@ -202,8 +188,7 @@ extern "C"
      *  同一 @p scope を複数スレッドから同時に渡してはなりません。\n
      *  同一 @p scope は 1 回だけ解放してください。
      */
-    COM_UTIL_EXPORT com_util_memory_lock_result_t COM_UTIL_API
-    com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
 
 #ifdef __cplusplus
 }

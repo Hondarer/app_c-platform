@@ -5,6 +5,7 @@
  *  入力行、履歴、ステータス領域を管理し、アプリケーション出力後に固定領域を再描画します。
  */
 
+#include <com_util/base/result.h>
 #include <com_util/prompt/pinned_prompt.h>
 
 #include <com_util/console/console.h>
@@ -1297,10 +1298,10 @@ static int pinned_prompt_readline_fallback(char *buf, size_t buf_size, const cha
     }
     if (fgets(buf, (int)buf_size, stdin) == NULL)
     {
-        return 0;
+        return COM_UTIL_ERR_EOF;
     }
     buf[strcspn(buf, "\r\n")] = '\0';
-    return 1;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1337,7 +1338,7 @@ com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prom
     screen->is_tty = pinned_prompt_platform_is_tty();
     pinned_prompt_update_size(screen);
 
-    if (com_util_local_lock_create(&screen->mutex) != 0)
+    if (com_util_local_lock_create(&screen->mutex) != COM_UTIL_OK)
     {
         free(screen);
         return NULL;
@@ -1433,7 +1434,7 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
 
     if (screen == NULL || buf == NULL || buf_size == 0U)
     {
-        return 0;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     buf[0] = '\0';
 
@@ -1454,13 +1455,13 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
     {
         pinned_prompt_unlock(screen);
         pinned_prompt_platform_leave_raw(screen);
-        return 0;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (pinned_prompt_set_prompt(screen, prompt_str) != 0)
     {
         pinned_prompt_unlock(screen);
         pinned_prompt_platform_leave_raw(screen);
-        return 0;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     screen->edit_len = 0U;
     screen->edit_buf[0] = '\0';
@@ -1472,7 +1473,7 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
     pinned_prompt_unlock(screen);
 
     done = 0;
-    result = 0;
+    result = COM_UTIL_ERR_UNKNOWN;
     while (!done)
     {
         int ch;
@@ -1503,20 +1504,20 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
             buf[copy] = '\0';
             pinned_prompt_history_add(screen, history_ctx, screen->edit_buf);
             pinned_prompt_finish_prompt_locked(screen);
-            result = 1;
+            result = COM_UTIL_OK;
             done = 1;
             break;
         }
         case PINNED_PROMPT_KEY_EOF:
             buf[0] = '\0';
             pinned_prompt_finish_prompt_locked(screen);
-            result = 0;
+            result = COM_UTIL_ERR_EOF;
             done = 1;
             break;
         case PINNED_PROMPT_KEY_CTRL_C:
             buf[0] = '\0';
             pinned_prompt_cleanup_terminal_locked(screen);
-            result = 0;
+            result = COM_UTIL_ERR_CANCELED;
             done = 1;
             break;
         case PINNED_PROMPT_KEY_CLEAR:
@@ -1587,7 +1588,7 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *b
 
     if (screen == NULL)
     {
-        return 0;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     va_start(ap, fmt);
     rc = pinned_prompt_format_prompt(screen, fmt, ap);
@@ -1706,7 +1707,7 @@ int com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
 {
     if (screen == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     pinned_prompt_lock(screen);
@@ -1735,12 +1736,12 @@ int com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
     else
     {
         pinned_prompt_unlock(screen);
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     screen->status_dirty = 1;
     pinned_prompt_render_locked(screen);
     pinned_prompt_unlock(screen);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char *content)
@@ -1754,7 +1755,7 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
         new_buf = (char *)realloc(*buf, len + 1U);
         if (new_buf == NULL)
         {
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         *buf = new_buf;
         *cap = len + 1U;
@@ -1767,7 +1768,7 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
     {
         (*buf)[0] = '\0';
     }
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1779,7 +1780,7 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
 
     if (screen == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     pinned_prompt_lock(screen);
@@ -1796,7 +1797,7 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
         else
         {
             pinned_prompt_unlock(screen);
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
     }
     else if (position == COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM)
@@ -1814,16 +1815,16 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
         else
         {
             pinned_prompt_unlock(screen);
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
     }
     else
     {
         pinned_prompt_unlock(screen);
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    if (rc == 0)
+    if (rc == COM_UTIL_OK)
     {
         screen->status_dirty = 1;
         pinned_prompt_render_locked(screen);

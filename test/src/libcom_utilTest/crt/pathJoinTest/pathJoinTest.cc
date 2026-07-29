@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <com_util/base/result.h>
 #include <com_util/crt/path.h>
 #include <errno.h>
 #include <string.h>
@@ -20,7 +21,7 @@ TEST_F(pathJoinTest, inserts_separator_between_plain_fragments)
                                  "b"); // [手順] - com_util_path_join(actual, size, NULL, "a", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - "a/b" が返ること。
 }
 
@@ -37,7 +38,7 @@ TEST_F(pathJoinTest, collapses_duplicate_separators_at_boundary)
                                  "/b"); // [手順] - com_util_path_join(actual, size, NULL, "a/", "/b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 重複セパレータが畳まれて "a/b" になること。
 }
 
@@ -54,7 +55,7 @@ TEST_F(pathJoinTest, preserves_absolute_first_fragment)
                                  "b"); // [手順] - com_util_path_join(actual, size, NULL, "/abs", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);              // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc);    // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/abs/b", actual); // [確認_正常系] - 先頭の '/' が保持されること。
 }
 
@@ -71,7 +72,7 @@ TEST_F(pathJoinTest, skips_empty_fragments)
                                  "b"); // [手順] - com_util_path_join(actual, size, NULL, "a", "", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 空断片を無視して "a/b" になること。
 }
 
@@ -88,8 +89,8 @@ TEST_F(pathJoinTest, succeeds_with_empty_result_when_all_fragments_empty)
                                  ""); // [手順] - com_util_path_join(actual, size, NULL, "", "") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);        // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
-    EXPECT_STREQ("", actual); // [確認_正常系] - 空文字列が返ること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("", actual);    // [確認_正常系] - 空文字列が返ること。
 }
 
 // 単一断片がそのまま返ることの確認
@@ -105,7 +106,7 @@ TEST_F(pathJoinTest, returns_single_fragment_as_is)
                                  "only"); // [手順] - com_util_path_join(actual, size, NULL, "only") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);            // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc);  // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("only", actual); // [確認_正常系] - 単一断片がそのまま返ること。
 }
 
@@ -123,7 +124,7 @@ TEST_F(pathJoinTest, joins_maximum_sixteen_fragments)
                                  "16"); // [手順] - 16 個の断片で com_util_path_join を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc); // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16",
                  actual); // [確認_正常系] - 16 断片がすべてセパレータ区切りで結合されること。
 }
@@ -142,7 +143,8 @@ TEST_F(pathJoinTest, returns_einval_for_null_fragment)
                                    (const char *)NULL); // [手順] - 2 番目の断片に NULL を渡して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_join_n の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - com_util_path_join_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }
 
@@ -159,7 +161,8 @@ TEST_F(pathJoinTest, returns_einval_for_zero_part_count)
     int rtc = com_util_path_join_n(actual, sizeof(actual), &err, 0); // [手順] - part_count に 0 を渡して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_join_n の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - com_util_path_join_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }
 
@@ -176,7 +179,7 @@ TEST_F(pathJoinTest, succeeds_when_result_exactly_fits_with_separator)
                                  "b"); // [手順] - com_util_path_join(actual, 4, NULL, "a", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);           // [確認_正常系] - com_util_path_join の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - ちょうど収まって "a/b" が返ること。
 }
 
@@ -194,7 +197,8 @@ TEST_F(pathJoinTest, returns_enametoolong_when_separator_insertion_overflows)
                                  "b"); // [手順] - com_util_path_join(actual, 3, &err, "a", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);           // [確認_異常系] - com_util_path_join の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              rtc); // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
 }
 
@@ -213,8 +217,9 @@ TEST_F(pathJoinTest, returns_enametoolong_without_overflow_when_no_room_for_sepa
                                  "b"); // [手順] - com_util_path_join(actual, 2, &err, "a", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1,
-              rtc); // [確認_異常系] - com_util_path_join の戻り値が -1 であり、バッファー境界を越えて書き込まないこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        rtc); // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であり、バッファー境界を越えて書き込まないこと。
     EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
 }
 
@@ -231,6 +236,7 @@ TEST_F(pathJoinTest, returns_einval_for_null_path_out)
                                  "b"); // [手順] - com_util_path_join(NULL, 16, &err, "a", "b") を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);     // [確認_異常系] - com_util_path_join の戻り値が -1 であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc);         // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
 }

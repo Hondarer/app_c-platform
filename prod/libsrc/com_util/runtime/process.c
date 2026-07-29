@@ -17,6 +17,7 @@
 
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/process_internal.h>
+#include <com_util/base/result_internal.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/wchar_conv.h>
 
@@ -919,60 +920,77 @@ int com_util_process_get_executable_path(char *out_path, const size_t out_path_s
 {
     if (out_path == NULL || out_path_sz == 0)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
     {
         ssize_t len;
 
-        len = readlink("/proc/self/exe", out_path, out_path_sz - 1);
-        if (len < 0 || (size_t)len >= out_path_sz)
+        if (out_path_sz == 1)
         {
             out_path[0] = '\0';
-            return -1;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        }
+        len = readlink("/proc/self/exe", out_path, out_path_sz - 1);
+        if (len < 0)
+        {
+            out_path[0] = '\0';
+            return com_util_result_from_errno(errno);
+        }
+        if ((size_t)len >= out_path_sz)
+        {
+            out_path[0] = '\0';
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         out_path[len] = '\0';
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wbuf[PLATFORM_PATH_MAX];
         DWORD n;
+        int result;
 
         n = GetModuleFileNameW(NULL, wbuf, (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])));
-        if (n == 0 || n >= (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])))
+        if (n == 0)
         {
             out_path[0] = '\0';
-            return -1;
+            return com_util_result_from_windows_error(GetLastError());
+        }
+        if (n >= (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])))
+        {
+            out_path[0] = '\0';
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         wbuf[n] = L'\0';
         if (com_util_wpath_to_utf8(out_path, out_path_sz, wbuf) < 0)
         {
+            result = com_util_result_from_windows_error(GetLastError());
             out_path[0] = '\0';
-            return -1;
+            return result;
         }
-        return 0;
+        return COM_UTIL_OK;
     }
 #else
     out_path[0] = '\0';
-    return -1;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_process_result_t com_util_process_start(const com_util_process_options_t *options, com_util_process **process)
+int com_util_process_start(const com_util_process_options_t *options, com_util_process **process)
 {
     com_util_process *new_process;
 
     if (options == NULL || process == NULL)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (has_valid_argv(options->argv) == 0)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     *process = NULL;
 
@@ -984,14 +1002,14 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         envp = build_environment(options->env_overrides);
         if (envp == NULL)
         {
-            return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
         new_process = (com_util_process *)calloc(1, sizeof(*new_process));
         if (new_process == NULL)
         {
             free_envp(envp);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         pid = fork();
@@ -999,7 +1017,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         {
             free_envp(envp);
             free(new_process);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         if (pid == 0)
@@ -1023,7 +1041,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         free_envp(envp);
         new_process->pid = pid;
         *process = new_process;
-        return COM_UTIL_PROCESS_OK;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -1043,14 +1061,14 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         res.command_line = build_command_line(options->argv);
         if (res.command_line == NULL)
         {
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         res.environment_block = build_environment_block(options->env_overrides);
         if (options->env_overrides != NULL && res.environment_block == NULL)
         {
             release_process_start_resources(&res);
-            return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
         if (options->working_directory != NULL)
@@ -1059,7 +1077,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
             if (res.working_directory == NULL)
             {
                 release_process_start_resources(&res);
-                return COM_UTIL_PROCESS_SYSTEM_ERROR;
+                return COM_UTIL_ERR_UNKNOWN;
             }
         }
 
@@ -1068,7 +1086,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
             prepare_stdio_handle(&options->stderr_spec, STD_ERROR_HANDLE, GENERIC_WRITE, &res.stdio_handles[2]) != 0)
         {
             release_process_start_resources(&res);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         startup.StartupInfo.cb = sizeof(startup);
@@ -1083,12 +1101,12 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         if (res.attribute_list == NULL)
         {
             release_process_start_resources(&res);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (!InitializeProcThreadAttributeList(res.attribute_list, 1, 0, &attr_size))
         {
             release_process_start_resources(&res);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         res.attribute_list_initialized = 1;
         startup.lpAttributeList = res.attribute_list;
@@ -1100,7 +1118,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
                                        sizeof(inherit_handles), NULL, NULL))
         {
             release_process_start_resources(&res);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         create_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
@@ -1111,7 +1129,7 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
 
         if (!created)
         {
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         CloseHandle(process_info.hThread);
@@ -1119,28 +1137,28 @@ com_util_process_result_t com_util_process_start(const com_util_process_options_
         if (new_process == NULL)
         {
             CloseHandle(process_info.hProcess);
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         new_process->process = process_info.hProcess;
         *process = new_process;
-        return COM_UTIL_PROCESS_OK;
+        return COM_UTIL_OK;
     }
 #else
-    return COM_UTIL_PROCESS_UNSUPPORTED;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_process_result_t com_util_process_wait(com_util_process *process, const int timeout_ms)
+int com_util_process_wait(com_util_process *process, const int timeout_ms)
 {
     if (process == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (process->exited != 0)
     {
-        return COM_UTIL_PROCESS_OK;
+        return COM_UTIL_OK;
     }
 
 #if defined(PLATFORM_LINUX)
@@ -1175,7 +1193,7 @@ com_util_process_result_t com_util_process_wait(com_util_process *process, const
                 {
                     process_set_exit_code(process, -1);
                 }
-                return COM_UTIL_PROCESS_OK;
+                return COM_UTIL_OK;
             }
             if (rc < 0)
             {
@@ -1183,15 +1201,15 @@ com_util_process_result_t com_util_process_wait(com_util_process *process, const
                 {
                     continue;
                 }
-                return COM_UTIL_PROCESS_SYSTEM_ERROR;
+                return COM_UTIL_ERR_UNKNOWN;
             }
             if (timeout_ms == COM_UTIL_PROCESS_NO_WAIT)
             {
-                return COM_UTIL_PROCESS_TIMEOUT;
+                return COM_UTIL_ERR_TIMEOUT;
             }
             if (timeout_ms != COM_UTIL_PROCESS_WAIT_FOREVER && monotonic_ms() >= deadline)
             {
-                return COM_UTIL_PROCESS_TIMEOUT;
+                return COM_UTIL_ERR_TIMEOUT;
             }
             usleep(1000);
         }
@@ -1214,17 +1232,17 @@ com_util_process_result_t com_util_process_wait(com_util_process *process, const
         wait_result = WaitForSingleObject(process->process, wait_ms);
         if (wait_result == WAIT_TIMEOUT)
         {
-            return COM_UTIL_PROCESS_TIMEOUT;
+            return COM_UTIL_ERR_TIMEOUT;
         }
         if (wait_result != WAIT_OBJECT_0)
         {
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         child_exit_code = EXIT_FAILURE;
         if (!GetExitCodeProcess(process->process, &child_exit_code))
         {
-            return COM_UTIL_PROCESS_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (child_exit_code > INT_MAX)
         {
@@ -1234,56 +1252,56 @@ com_util_process_result_t com_util_process_wait(com_util_process *process, const
         {
             process_set_exit_code(process, (int)child_exit_code);
         }
-        return COM_UTIL_PROCESS_OK;
+        return COM_UTIL_OK;
     }
 #else
-    return COM_UTIL_PROCESS_UNSUPPORTED;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_process_result_t com_util_process_get_exit_code(com_util_process *process, int *exit_code)
+int com_util_process_get_exit_code(com_util_process *process, int *exit_code)
 {
     if (process == NULL || exit_code == NULL)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (process->exited == 0)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     *exit_code = process->exit_code;
-    return COM_UTIL_PROCESS_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_process_result_t com_util_process_terminate(com_util_process *process)
+int com_util_process_terminate(com_util_process *process)
 {
     if (process == NULL)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (process->exited != 0)
     {
-        return COM_UTIL_PROCESS_OK;
+        return COM_UTIL_OK;
     }
 
 #if defined(PLATFORM_LINUX)
     if (kill(process->pid, SIGTERM) != 0)
     {
-        return COM_UTIL_PROCESS_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return COM_UTIL_PROCESS_OK;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     if (!TerminateProcess(process->process, EXIT_FAILURE))
     {
-        return COM_UTIL_PROCESS_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return COM_UTIL_PROCESS_OK;
+    return COM_UTIL_OK;
 #else
-    return COM_UTIL_PROCESS_UNSUPPORTED;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
@@ -1331,27 +1349,26 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_process_result_t com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms,
-                                                    int *exit_code)
+int com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms, int *exit_code)
 {
     com_util_process *process;
-    com_util_process_result_t result;
+    int result;
 
     if (exit_code == NULL)
     {
-        return COM_UTIL_PROCESS_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     *exit_code = EXIT_FAILURE;
 
     process = NULL;
     result = com_util_process_start(options, &process);
-    if (result != COM_UTIL_PROCESS_OK)
+    if (result != COM_UTIL_OK)
     {
         return result;
     }
 
     result = com_util_process_wait(process, timeout_ms);
-    if (result == COM_UTIL_PROCESS_OK)
+    if (result == COM_UTIL_OK)
     {
         result = com_util_process_get_exit_code(process, exit_code);
     }

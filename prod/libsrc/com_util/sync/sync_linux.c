@@ -114,21 +114,21 @@ static int cond_init_monotonic(pthread_cond_t *cond)
     return rc;
 }
 
-static com_util_sync_result_t map_wait_rc(int rc)
+static int map_wait_rc(int rc)
 {
     if (rc == 0)
     {
-        return COM_UTIL_SYNC_OK;
+        return COM_UTIL_OK;
     }
     if (rc == ETIMEDOUT)
     {
-        return COM_UTIL_SYNC_TIMEOUT;
+        return COM_UTIL_ERR_TIMEOUT;
     }
     if (rc == EBUSY || rc == EAGAIN || rc == EACCES)
     {
-        return COM_UTIL_SYNC_BUSY;
+        return COM_UTIL_ERR_BUSY;
     }
-    return COM_UTIL_SYNC_SYSTEM_ERROR;
+    return COM_UTIL_ERR_UNKNOWN;
 }
 
 static void *thread_start_proc(void *opaque)
@@ -142,7 +142,7 @@ static void *thread_start_proc(void *opaque)
     return NULL;
 }
 
-static com_util_sync_result_t app_lock_open_identity(const char *identity, com_util_interprocess_rwlock **lock)
+static int app_lock_open_identity(const char *identity, com_util_interprocess_rwlock **lock)
 {
     com_util_interprocess_rwlock *new_lock;
     int fd;
@@ -150,20 +150,20 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity, com_u
 
     if (identity == NULL || identity[0] == '\0' || lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     fd = open(identity, O_RDWR | O_CREAT | O_CLOEXEC, 0666);
     if (fd < 0)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     identity_copy = strdup(identity);
     if (identity_copy == NULL)
     {
         close(fd);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     new_lock = (com_util_interprocess_rwlock *)calloc(1, sizeof(*new_lock));
@@ -171,16 +171,16 @@ static com_util_sync_result_t app_lock_open_identity(const char *identity, com_u
     {
         free(identity_copy);
         close(fd);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     new_lock->fd = fd;
     new_lock->identity = identity_copy;
     *lock = new_lock;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
-static com_util_sync_result_t interprocess_lock_open_identity(const char *identity, com_util_interprocess_lock **lock)
+static int interprocess_lock_open_identity(const char *identity, com_util_interprocess_lock **lock)
 {
     com_util_interprocess_lock *new_lock;
     int fd;
@@ -188,20 +188,20 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
 
     if (identity == NULL || identity[0] == '\0' || lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     fd = open(identity, O_RDWR | O_CREAT | O_CLOEXEC, 0666);
     if (fd < 0)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     identity_copy = strdup(identity);
     if (identity_copy == NULL)
     {
         close(fd);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     new_lock = (com_util_interprocess_lock *)calloc(1, sizeof(*new_lock));
@@ -209,22 +209,22 @@ static com_util_sync_result_t interprocess_lock_open_identity(const char *identi
     {
         free(identity_copy);
         close(fd);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     new_lock->fd = fd;
     new_lock->identity = identity_copy;
     *lock = new_lock;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
-static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock *lock, int operation, int timeout_ms)
+static int app_lock_take(com_util_interprocess_rwlock *lock, int operation, int timeout_ms)
 {
     uint64_t deadline;
 
     if (lock == NULL || lock->locked)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
@@ -233,11 +233,11 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock *lock, 
         {
             if (errno != EINTR)
             {
-                return COM_UTIL_SYNC_SYSTEM_ERROR;
+                return COM_UTIL_ERR_UNKNOWN;
             }
         }
         lock->locked = 1;
-        return COM_UTIL_SYNC_OK;
+        return COM_UTIL_OK;
     }
 
     deadline = monotonic_ms() + timeout_ms;
@@ -246,15 +246,15 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock *lock, 
         if (flock(lock->fd, operation | LOCK_NB) == 0)
         {
             lock->locked = 1;
-            return COM_UTIL_SYNC_OK;
+            return COM_UTIL_OK;
         }
         if (errno != EWOULDBLOCK && errno != EINTR)
         {
-            return COM_UTIL_SYNC_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
         {
-            return COM_UTIL_SYNC_BUSY;
+            return COM_UTIL_ERR_BUSY;
         }
         {
             struct timespec sleep_ts = {0, 1000000L};
@@ -262,16 +262,16 @@ static com_util_sync_result_t app_lock_take(com_util_interprocess_rwlock *lock, 
         }
     } while (monotonic_ms() < deadline);
 
-    return COM_UTIL_SYNC_TIMEOUT;
+    return COM_UTIL_ERR_TIMEOUT;
 }
 
-static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock *lock, int timeout_ms)
+static int interprocess_lock_take(com_util_interprocess_lock *lock, int timeout_ms)
 {
     uint64_t deadline;
 
     if (lock == NULL || lock->locked)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
@@ -280,11 +280,11 @@ static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock 
         {
             if (errno != EINTR)
             {
-                return COM_UTIL_SYNC_SYSTEM_ERROR;
+                return COM_UTIL_ERR_UNKNOWN;
             }
         }
         lock->locked = 1;
-        return COM_UTIL_SYNC_OK;
+        return COM_UTIL_OK;
     }
 
     deadline = monotonic_ms() + timeout_ms;
@@ -293,15 +293,15 @@ static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock 
         if (flock(lock->fd, LOCK_EX | LOCK_NB) == 0)
         {
             lock->locked = 1;
-            return COM_UTIL_SYNC_OK;
+            return COM_UTIL_OK;
         }
         if (errno != EWOULDBLOCK && errno != EINTR)
         {
-            return COM_UTIL_SYNC_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
         {
-            return COM_UTIL_SYNC_BUSY;
+            return COM_UTIL_ERR_BUSY;
         }
         {
             struct timespec sleep_ts = {0, 1000000L};
@@ -309,42 +309,42 @@ static com_util_sync_result_t interprocess_lock_take(com_util_interprocess_lock 
         }
     } while (monotonic_ms() < deadline);
 
-    return COM_UTIL_SYNC_TIMEOUT;
+    return COM_UTIL_ERR_TIMEOUT;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_lock_create(com_util_local_lock **mtx)
+int com_util_local_lock_create(com_util_local_lock **mtx)
 {
     com_util_local_lock *new_mtx;
 
     if (mtx == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     new_mtx = (com_util_local_lock *)calloc(1, sizeof(*new_mtx));
     if (new_mtx == NULL)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (pthread_mutex_init(&new_mtx->native, NULL) != 0)
     {
         free(new_mtx);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     *mtx = new_mtx;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
+int com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
 {
     uint64_t deadline;
 
     if (mtx == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
@@ -360,34 +360,34 @@ com_util_sync_result_t com_util_local_lock_lock(com_util_local_lock *mtx, int ti
         int rc = pthread_mutex_trylock(&mtx->native);
         if (rc == 0)
         {
-            return COM_UTIL_SYNC_OK;
+            return COM_UTIL_OK;
         }
         if (rc != EBUSY)
         {
-            return COM_UTIL_SYNC_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         {
             struct timespec sleep_ts = {0, 1000000L};
             nanosleep(&sleep_ts, NULL);
         }
     } while (monotonic_ms() < deadline);
-    return COM_UTIL_SYNC_TIMEOUT;
+    return COM_UTIL_ERR_TIMEOUT;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_lock_try_lock(com_util_local_lock *mtx)
+int com_util_local_lock_try_lock(com_util_local_lock *mtx)
 {
     return com_util_local_lock_lock(mtx, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_lock_unlock(com_util_local_lock *mtx)
+int com_util_local_lock_unlock(com_util_local_lock *mtx)
 {
     if (mtx == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return map_wait_rc(pthread_mutex_unlock(&mtx->native));
 }
@@ -405,37 +405,37 @@ void com_util_local_lock_destroy(com_util_local_lock *mtx)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_condvar_create(com_util_condvar **cv)
+int com_util_condvar_create(com_util_condvar **cv)
 {
     com_util_condvar *new_cv;
 
     if (cv == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     new_cv = (com_util_condvar *)calloc(1, sizeof(*new_cv));
     if (new_cv == NULL)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (cond_init_monotonic(&new_cv->native) != 0)
     {
         free(new_cv);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     *cv = new_cv;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_condvar_wait(com_util_condvar *cv, com_util_local_lock *mtx, int timeout_ms)
+int com_util_condvar_wait(com_util_condvar *cv, com_util_local_lock *mtx, int timeout_ms)
 {
     struct timespec abs_ts;
 
     if (cv == NULL || mtx == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
@@ -447,22 +447,22 @@ com_util_sync_result_t com_util_condvar_wait(com_util_condvar *cv, com_util_loca
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_condvar_signal(com_util_condvar *cv)
+int com_util_condvar_signal(com_util_condvar *cv)
 {
     if (cv == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return map_wait_rc(pthread_cond_signal(&cv->native));
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_condvar_broadcast(com_util_condvar *cv)
+int com_util_condvar_broadcast(com_util_condvar *cv)
 {
     if (cv == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return map_wait_rc(pthread_cond_broadcast(&cv->native));
 }
@@ -480,18 +480,18 @@ void com_util_condvar_destroy(com_util_condvar *cv)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
+int com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
 {
     com_util_local_rwlock *new_lock;
 
     if (rwlock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     new_lock = (com_util_local_rwlock *)calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     if (pthread_mutex_init(&new_lock->mutex, NULL) != 0 || cond_init_monotonic(&new_lock->readers_cv) != 0 ||
         cond_init_monotonic(&new_lock->writers_cv) != 0)
@@ -500,22 +500,22 @@ com_util_sync_result_t com_util_local_rwlock_create(com_util_local_rwlock **rwlo
         pthread_cond_destroy(&new_lock->readers_cv);
         pthread_cond_destroy(&new_lock->writers_cv);
         free(new_lock);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     *rwlock = new_lock;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms)
+int com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
     int rc = 0;
 
     if (rwlock == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     pthread_mutex_lock(&rwlock->mutex);
     if (timeout_ms != COM_UTIL_SYNC_WAIT_FOREVER)
@@ -527,44 +527,49 @@ com_util_sync_result_t com_util_local_rwlock_lock_shared(com_util_local_rwlock *
         if (timeout_ms == COM_UTIL_SYNC_NO_WAIT)
         {
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_BUSY;
+            return COM_UTIL_ERR_BUSY;
         }
-        rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
-                 ? pthread_cond_wait(&rwlock->readers_cv, &rwlock->mutex)
-                 : pthread_cond_timedwait(&rwlock->readers_cv, &rwlock->mutex, &abs_ts);
+        if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+        {
+            rc = pthread_cond_wait(&rwlock->readers_cv, &rwlock->mutex);
+        }
+        else
+        {
+            rc = pthread_cond_timedwait(&rwlock->readers_cv, &rwlock->mutex, &abs_ts);
+        }
         if (rc == ETIMEDOUT)
         {
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_TIMEOUT;
+            return COM_UTIL_ERR_TIMEOUT;
         }
         if (rc != 0)
         {
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
     rwlock->active_readers++;
     pthread_mutex_unlock(&rwlock->mutex);
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock)
+int com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwlock *rwlock, int timeout_ms)
+int com_util_local_rwlock_lock_exclusive(com_util_local_rwlock *rwlock, int timeout_ms)
 {
     struct timespec abs_ts;
     int rc = 0;
 
     if (rwlock == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     pthread_mutex_lock(&rwlock->mutex);
     rwlock->waiting_writers++;
@@ -578,50 +583,55 @@ com_util_sync_result_t com_util_local_rwlock_lock_exclusive(com_util_local_rwloc
         {
             rwlock->waiting_writers--;
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_BUSY;
+            return COM_UTIL_ERR_BUSY;
         }
-        rc = (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
-                 ? pthread_cond_wait(&rwlock->writers_cv, &rwlock->mutex)
-                 : pthread_cond_timedwait(&rwlock->writers_cv, &rwlock->mutex, &abs_ts);
+        if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
+        {
+            rc = pthread_cond_wait(&rwlock->writers_cv, &rwlock->mutex);
+        }
+        else
+        {
+            rc = pthread_cond_timedwait(&rwlock->writers_cv, &rwlock->mutex, &abs_ts);
+        }
         if (rc == ETIMEDOUT)
         {
             rwlock->waiting_writers--;
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_TIMEOUT;
+            return COM_UTIL_ERR_TIMEOUT;
         }
         if (rc != 0)
         {
             rwlock->waiting_writers--;
             pthread_mutex_unlock(&rwlock->mutex);
-            return COM_UTIL_SYNC_SYSTEM_ERROR;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
     rwlock->waiting_writers--;
     rwlock->writer_active = 1;
     pthread_mutex_unlock(&rwlock->mutex);
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock)
+int com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock)
 {
     return com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock)
+int com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock)
 {
     if (rwlock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     pthread_mutex_lock(&rwlock->mutex);
     if (rwlock->active_readers == 0)
     {
         pthread_mutex_unlock(&rwlock->mutex);
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     rwlock->active_readers--;
     if (rwlock->active_readers == 0 && rwlock->waiting_writers > 0)
@@ -629,22 +639,22 @@ com_util_sync_result_t com_util_local_rwlock_unlock_shared(com_util_local_rwlock
         pthread_cond_signal(&rwlock->writers_cv);
     }
     pthread_mutex_unlock(&rwlock->mutex);
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock)
+int com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock)
 {
     if (rwlock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     pthread_mutex_lock(&rwlock->mutex);
     if (!rwlock->writer_active)
     {
         pthread_mutex_unlock(&rwlock->mutex);
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     rwlock->writer_active = 0;
     if (rwlock->waiting_writers > 0)
@@ -656,7 +666,7 @@ com_util_sync_result_t com_util_local_rwlock_unlock_exclusive(com_util_local_rwl
         pthread_cond_broadcast(&rwlock->readers_cv);
     }
     pthread_mutex_unlock(&rwlock->mutex);
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -674,7 +684,7 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg)
+int com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg)
 {
     struct com_util_thread_start_ctx *ctx;
     com_util_thread *new_thread;
@@ -682,7 +692,7 @@ com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util
 
     if (thread == NULL || func == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     new_thread = (com_util_thread *)calloc(1, sizeof(*new_thread));
     ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
@@ -690,7 +700,7 @@ com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util
     {
         free(new_thread);
         free(ctx);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     ctx->func = func;
     ctx->arg = arg;
@@ -699,22 +709,22 @@ com_util_sync_result_t com_util_thread_create(com_util_thread **thread, com_util
     {
         free(ctx);
         free(new_thread);
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     *thread = new_thread;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_thread_join(com_util_thread *thread, int timeout_ms)
+int com_util_thread_join(com_util_thread *thread, int timeout_ms)
 {
     struct timespec abs_ts;
     int rc;
 
     if (thread == NULL || timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (timeout_ms == COM_UTIL_SYNC_WAIT_FOREVER)
     {
@@ -749,14 +759,14 @@ com_util_sync_result_t com_util_thread_join(com_util_thread *thread, int timeout
     }
     if (rc == ETIMEDOUT)
     {
-        return COM_UTIL_SYNC_TIMEOUT;
+        return COM_UTIL_ERR_TIMEOUT;
     }
     if (rc != 0)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     free(thread);
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -772,19 +782,19 @@ void com_util_thread_detach(com_util_thread *thread)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock)
+int com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock)
 {
     return interprocess_lock_open_identity(identity, lock);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock *lock,
-                                                                    void *descriptor, size_t *descriptor_size)
+int com_util_interprocess_lock_export_descriptor(const com_util_interprocess_lock *lock, void *descriptor,
+                                                 size_t *descriptor_size)
 {
     if (lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_LOCK,
                                                (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
@@ -793,19 +803,19 @@ com_util_sync_result_t com_util_interprocess_lock_export_descriptor(const com_ut
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
-                                                                    com_util_interprocess_lock **lock)
+int com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                                 com_util_interprocess_lock **lock)
 {
     char *identity;
-    com_util_sync_result_t result;
+    int result;
 
     if (lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_LOCK,
                                                  (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
-    if (result != COM_UTIL_SYNC_OK)
+    if (result != COM_UTIL_OK)
     {
         return result;
     }
@@ -816,36 +826,36 @@ com_util_sync_result_t com_util_interprocess_lock_import_descriptor(const void *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms)
+int com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return interprocess_lock_take(lock, timeout_ms);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock)
+int com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock)
 {
     return com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
+int com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
 {
     if (lock == NULL || !lock->locked)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (flock(lock->fd, LOCK_UN) != 0)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     lock->locked = 0;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -866,19 +876,19 @@ void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock)
+int com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock)
 {
     return app_lock_open_identity(identity, lock);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock *lock,
-                                                                      void *descriptor, size_t *descriptor_size)
+int com_util_interprocess_rwlock_export_descriptor(const com_util_interprocess_rwlock *lock, void *descriptor,
+                                                   size_t *descriptor_size)
 {
     if (lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_RWLOCK,
                                                (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
@@ -887,19 +897,19 @@ com_util_sync_result_t com_util_interprocess_rwlock_export_descriptor(const com_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
-                                                                      com_util_interprocess_rwlock **lock)
+int com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
+                                                   com_util_interprocess_rwlock **lock)
 {
     char *identity;
-    com_util_sync_result_t result;
+    int result;
 
     if (lock == NULL)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_RWLOCK,
                                                  (uint8_t)COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
-    if (result != COM_UTIL_SYNC_OK)
+    if (result != COM_UTIL_OK)
     {
         return result;
     }
@@ -910,54 +920,54 @@ com_util_sync_result_t com_util_interprocess_rwlock_import_descriptor(const void
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock *lock, int timeout_ms)
+int com_util_interprocess_rwlock_lock_shared(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return app_lock_take(lock, LOCK_SH, timeout_ms);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock *lock)
+int com_util_interprocess_rwlock_try_lock_shared(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_shared(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock *lock, int timeout_ms)
+int com_util_interprocess_rwlock_lock_exclusive(com_util_interprocess_rwlock *lock, int timeout_ms)
 {
     if (timeout_ms < 0)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     return app_lock_take(lock, LOCK_EX, timeout_ms);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock)
+int com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock)
 {
     return com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_sync_result_t com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
+int com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
 {
     if (lock == NULL || !lock->locked)
     {
-        return COM_UTIL_SYNC_INVALID_ARGUMENT;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     if (flock(lock->fd, LOCK_UN) != 0)
     {
-        return COM_UTIL_SYNC_SYSTEM_ERROR;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     lock->locked = 0;
-    return COM_UTIL_SYNC_OK;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

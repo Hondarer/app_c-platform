@@ -24,6 +24,7 @@
 
     #include <openssl/evp.h>
 
+    #include <com_util/base/result.h>
     #include <com_util/crypto/crypto.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -35,35 +36,39 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     int outl;
     int final_len;
 
-    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0) || key == NULL || nonce == NULL ||
-        *dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
+    if (dst == NULL || dst_len == NULL || (src == NULL && src_len > 0) || key == NULL || nonce == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    if (*dst_len < src_len + COM_UTIL_CRYPTO_TAG_SIZE)
+    {
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* ノンス長を 12 バイトに設定 (デフォルトと同一だが明示する) */
     if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* AAD を入力 (ヘッダー改ざん検知用) */
@@ -72,7 +77,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         if (EVP_EncryptUpdate(ctx, NULL, &outl, aad, (int)aad_len) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -83,7 +88,7 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         if (EVP_EncryptUpdate(ctx, dst, &outl, src, (int)src_len) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -91,20 +96,20 @@ int com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     if (EVP_EncryptFinal_ex(ctx, dst + outl, &final_len) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* GCM 認証タグ (16 バイト) を暗号文の直後に書き込む */
     if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int)COM_UTIL_CRYPTO_TAG_SIZE, dst + src_len) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = src_len + COM_UTIL_CRYPTO_TAG_SIZE;
 
     EVP_CIPHER_CTX_free(ctx);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -120,38 +125,38 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     if (dst == NULL || dst_len == NULL || src == NULL || src_len < COM_UTIL_CRYPTO_TAG_SIZE || key == NULL ||
         nonce == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     plain_len = src_len - COM_UTIL_CRYPTO_TAG_SIZE;
 
     if (plain_len > 0 && *dst_len < plain_len)
     {
-        return -1;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int)COM_UTIL_CRYPTO_NONCE_SIZE, NULL) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (aad != NULL && aad_len > 0)
@@ -159,7 +164,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         if (EVP_DecryptUpdate(ctx, NULL, &outl, aad, (int)aad_len) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -170,7 +175,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         if (EVP_DecryptUpdate(ctx, dst, &outl, src, (int)plain_len) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
@@ -183,21 +188,21 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, (int)COM_UTIL_CRYPTO_TAG_SIZE, tag_buf) != 1)
         {
             EVP_CIPHER_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
-    /* DecryptFinal でタグ検証を行う。失敗時は -1 を返す。 */
+    /* DecryptFinal でタグ検証を行う。失敗時は COM_UTIL_ERR_UNKNOWN を返す (認証タグ不一致)。 */
     if (EVP_DecryptFinal_ex(ctx, dst + outl, &final_len) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        return -1; /* 認証タグ不一致 */
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     *dst_len = plain_len;
 
     EVP_CIPHER_CTX_free(ctx);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -209,13 +214,13 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
 
     if (key == NULL || (passphrase == NULL && passphrase_len > 0))
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     ctx = EVP_MD_CTX_new();
     if (ctx == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     {
@@ -232,12 +237,12 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
             EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
         {
             EVP_MD_CTX_free(ctx);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
 
     EVP_MD_CTX_free(ctx);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)

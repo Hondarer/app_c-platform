@@ -13,7 +13,7 @@
  *  - Home / End    : 行頭/行末へ移動
  *  - BackSpace     : カーソル前の文字を削除
  *  - Delete        : カーソル上の文字を削除
- *  - Ctrl+C        : 入力中断 (0 を返す)
+ *  - Ctrl+C        : 入力中断 (@ref COM_UTIL_ERR_CANCELED を返す)
  *  - Enter         : 確定
  *
  *  TTY でない場合 (パイプ・リダイレクト等) は fgets() にフォールバックします。\n
@@ -25,7 +25,7 @@
     int main(void) {
         char buf[256];
         com_util_prompt *prompt = com_util_prompt_create(NULL);
-        while (com_util_prompt_readline(prompt, buf, sizeof(buf), ">> ")) {
+        while (com_util_prompt_readline(prompt, buf, sizeof(buf), ">> ") == COM_UTIL_OK) {
             printf("入力: %s\n", buf);
         }
         com_util_prompt_dispose(prompt);
@@ -36,7 +36,7 @@
  *  @par 使用例 (フォーマット プロンプト)
     @code{.c}
     while (com_util_prompt_readline_fmt(prompt, buf, sizeof(buf),
-                                        "[%s]> ", state_name)) {
+                                        "[%s]> ", state_name) == COM_UTIL_OK) {
         // ...
     }
     @endcode
@@ -61,6 +61,7 @@
 #include <stddef.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/compiler.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -151,8 +152,8 @@ extern "C"
  *  @param[out]     buf         入力結果を格納するバッファーです。終端の改行は格納しません。
  *  @param[in]      buf_size    @p buf のバイト数です。
  *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
- *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
- *                  0 を返します。
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+ *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
  */
 #define com_util_prompt_readline(p, buf, buf_size, prompt_str) \
     com_util_prompt_readline_at((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
@@ -164,8 +165,8 @@ extern "C"
  *  @param[in]      buf_size  @p buf のバイト数です。
  *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
  *  @param[in]      ...       @p fmt に対応する書式引数です。
- *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
- *                  0 を返します。
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+ *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
  *
  *  プロンプト文字列バッファーはハンドル内に保持し、必要に応じて自動拡張します。
  */
@@ -183,7 +184,8 @@ extern "C"
      *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
      *  @param[in]      file        履歴を識別する呼び出し元ファイル名です。
      *  @param[in]      line        履歴を識別する呼び出し元行番号です。
-     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -204,7 +206,8 @@ extern "C"
      *  @param[in]      line      履歴を識別する呼び出し元行番号です。
      *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
      *  @param[in]      ...       @p fmt に対応する書式引数です。
-     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)

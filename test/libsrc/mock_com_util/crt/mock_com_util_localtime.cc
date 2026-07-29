@@ -3,16 +3,15 @@
 
 int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_localtime)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_localtime"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_localtime)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_localtime"));
 
     return real_fn(local_tm, timep);
 }
 
 MOCK_WEAK_IMPL(int, com_util_localtime, struct tm *local_tm, const time_t *timep)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

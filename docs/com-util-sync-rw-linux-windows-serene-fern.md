@@ -204,7 +204,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 - 新規 `COM_UTIL_SYNC_DEAD_OWNER_RECOVERED` (`EOWNERDEAD` 起因で復旧した直後の通知。  
   オプション。クライアントが「以前保持されていた状態が一貫しているか」を再検査するヒント)
-- 既存 `COM_UTIL_SYNC_CORRUPT_DESCRIPTOR` を `ENOTRECOVERABLE` 経路でも使用
+- 既存 `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` を `ENOTRECOVERABLE` 経路でも使用
 
 ---
 

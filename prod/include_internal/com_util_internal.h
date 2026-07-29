@@ -27,6 +27,8 @@
 
 #include <com_util.h> /* 内部 API で公開定数、公開型、公開関数などに依存している可能性を考慮 */
 
+#include <com_util/base/result_internal.h>
+
 #include <com_util/console/console_internal.h>
 
 #include <com_util/crt/path_format.h>

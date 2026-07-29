@@ -13,7 +13,7 @@ int delegate_real_com_util_trace_file_sink_write(com_util_trace_file_sink *handl
 MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink *handle, int level,
                const com_util_timespec *timestamp, const char *message)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
@@ -26,8 +26,12 @@ MOCK_WEAK_IMPL(int, com_util_trace_file_sink_write, com_util_trace_file_sink *ha
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d 0x%p \"%s\"", __func__, level, (const void *)timestamp,
-               message != nullptr ? message : "(null)");
+        const char *message_text = "(null)";
+        if (message != nullptr)
+        {
+            message_text = message;
+        }
+        printf("  > %s %d 0x%p \"%s\"", __func__, level, (const void *)timestamp, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

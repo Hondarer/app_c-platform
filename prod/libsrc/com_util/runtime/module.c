@@ -20,6 +20,7 @@
  *******************************************************************************
  */
 
+#include <com_util/base/result.h>
 #include <com_util/runtime/module.h>
 #include <com_util/crt/wchar_conv.h>
 #include <com_util/crt/path.h>
@@ -35,21 +36,6 @@
     #include <stdint.h>
     #include <string.h>
 #endif /* PLATFORM_ */
-
-/**
- *  @brief          内部関数の戻り値 (ステータス) です。
- */
-typedef enum get_lib_info_status_t
-{
-    /** 成功 */
-    MYLIB_OK = 0,
-    /** 引数不正 (NULL、サイズ 0 など) */
-    MYLIB_EINVAL = -1,
-    /** バッファー不足 (出力が収まらない) */
-    MYLIB_ENOBUFS = -2,
-    /** その他の失敗 (取得不能、OS API 失敗など) */
-    MYLIB_EFAIL = -3
-} get_lib_info_status_t;
 
 /**
  *  @brief          共有ライブラリ特有の拡張子 (Linux の .so 系) の切り出し位置を求めます。
@@ -100,21 +86,21 @@ static const char *find_shared_lib_extension_cut(const char *s)
  *  @param[out]     out_path    出力 (UTF-8、NULL 終端)。
  *  @param[in]      out_path_sz 出力バッファサイズ[byte]。
  *  @param[in]      func_addr   所属モジュールを特定するための関数アドレス。
- *  @return         get_lib_info_status_t
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれか。
  */
-static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path_sz, const void *func_addr)
+static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *func_addr)
 {
     Dl_info info;
     const char *p;
     int err = 0;
 
     if (!out_path || out_path_sz == 0 || !func_addr)
-        return MYLIB_EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
 
     memset(&info, 0, sizeof(info));
     if (dladdr(func_addr, &info) == 0)
     {
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (info.dli_fname)
@@ -126,20 +112,20 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
         p = "";
     }
     if (p[0] == '\0')
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
 
-    if (com_util_path_get_full(out_path, out_path_sz, &err, p) == 0)
+    if (com_util_path_get_full(out_path, out_path_sz, &err, p) == COM_UTIL_OK)
     {
-        return MYLIB_OK;
+        return COM_UTIL_OK;
     }
 
     if (err == ENAMETOOLONG)
     {
-        return MYLIB_ENOBUFS;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
     else
     {
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 }
 
@@ -151,33 +137,33 @@ static get_lib_info_status_t get_self_path_posix(char *out_path, size_t out_path
  *  @param[out]     out_w     出力 (UTF-16、NULL 終端)。
  *  @param[in]      out_w_cap 出力バッファサイズ[wchar_t 個数]。
  *  @param[in]      func_addr 所属モジュールを特定するための関数アドレス。
- *  @return         get_lib_info_status_t
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれか。
  */
-static get_lib_info_status_t get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_addr)
+static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_addr)
 {
     HMODULE hm = NULL;
     wchar_t buf[PLATFORM_PATH_MAX];
     DWORD n;
 
     if (!out_w || out_w_cap == 0 || !func_addr)
-        return MYLIB_EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
 
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                             (LPCWSTR)func_addr, &hm))
     {
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     n = GetModuleFileNameW(hm, buf, (DWORD)(sizeof(buf) / sizeof(buf[0])));
     if (n == 0 || n >= (DWORD)(sizeof(buf) / sizeof(buf[0])))
     {
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     buf[n] = L'\0';
     if (wcslen(buf) + 1 > out_w_cap)
-        return MYLIB_ENOBUFS;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     (void)com_util_wcscpy(out_w, out_w_cap, buf);
-    return MYLIB_OK;
+    return COM_UTIL_OK;
 }
 
 #endif /* PLATFORM_ */
@@ -187,13 +173,13 @@ static get_lib_info_status_t get_self_path_w(wchar_t *out_w, size_t out_w_cap, c
 int com_util_module_get_path(char *out_path, const size_t out_path_sz, const void *func_addr)
 {
 #if defined(PLATFORM_LINUX)
-    return (int)get_self_path_posix(out_path, out_path_sz, func_addr);
+    return get_self_path_posix(out_path, out_path_sz, func_addr);
 #elif defined(PLATFORM_WINDOWS)
     wchar_t wpath[PLATFORM_PATH_MAX];
     char utf8_path[PLATFORM_PATH_MAX];
     int err = 0;
-    get_lib_info_status_t st = get_self_path_w(wpath, (size_t)(sizeof(wpath) / sizeof(wpath[0])), func_addr);
-    if (st != MYLIB_OK)
+    int st = get_self_path_w(wpath, (size_t)(sizeof(wpath) / sizeof(wpath[0])), func_addr);
+    if (st != COM_UTIL_OK)
     {
         if (out_path && out_path_sz)
             out_path[0] = '\0';
@@ -203,22 +189,22 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
     {
         if (out_path && out_path_sz)
             out_path[0] = '\0';
-        return MYLIB_ENOBUFS;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    if (com_util_path_get_full(out_path, out_path_sz, &err, utf8_path) != 0)
+    if (com_util_path_get_full(out_path, out_path_sz, &err, utf8_path) != COM_UTIL_OK)
     {
         if (out_path && out_path_sz)
             out_path[0] = '\0';
         if (err == ENAMETOOLONG)
         {
-            return MYLIB_ENOBUFS;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         else
         {
-            return MYLIB_EFAIL;
+            return COM_UTIL_ERR_UNKNOWN;
         }
     }
-    return MYLIB_OK;
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -226,16 +212,16 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
 
 int com_util_module_get_basename(char *out_basename, const size_t out_basename_sz, const void *func_addr)
 {
-    get_lib_info_status_t st;
+    int st;
     char path_buf[4096];
     const char *fname;
     const char *shared_lib_cut;
 
     if (!out_basename || out_basename_sz == 0)
-        return MYLIB_EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
 
     st = com_util_module_get_path(path_buf, sizeof(path_buf), func_addr);
-    if (st != MYLIB_OK)
+    if (st != COM_UTIL_OK)
     {
         out_basename[0] = '\0';
         return st;
@@ -245,7 +231,7 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
     if (fname == NULL || fname[0] == '\0')
     {
         out_basename[0] = '\0';
-        return MYLIB_EFAIL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     shared_lib_cut = find_shared_lib_extension_cut(fname);
@@ -256,22 +242,29 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
         if (len + 1u > out_basename_sz)
         {
             out_basename[0] = '\0';
-            return MYLIB_ENOBUFS;
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         memcpy(out_basename, fname, len);
         out_basename[len] = '\0';
-        return MYLIB_OK;
+        return COM_UTIL_OK;
     }
 
     {
         int path_errno = 0;
 
-        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_errno, fname) != 0)
+        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_errno, fname) != COM_UTIL_OK)
         {
             out_basename[0] = '\0';
-            return (path_errno == ENAMETOOLONG) ? MYLIB_ENOBUFS : MYLIB_EFAIL;
+            if (path_errno == ENAMETOOLONG)
+            {
+                return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+            }
+            else
+            {
+                return COM_UTIL_ERR_UNKNOWN;
+            }
         }
     }
 
-    return MYLIB_OK;
+    return COM_UTIL_OK;
 }

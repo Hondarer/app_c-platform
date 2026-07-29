@@ -18,6 +18,7 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+    #include <com_util/base/result.h>
     #include <com_util/base/windows_sdk.h>
     #include <com_util/crt/path.h>
     #include <com_util/crt/wchar_conv.h>
@@ -185,7 +186,7 @@ static void init_executable_path_cache(void)
     wchar_t *wpath;
 
     s_executable_path[0] = L'\0';
-    if (com_util_process_get_executable_path(path, sizeof(path)) != 0)
+    if (com_util_process_get_executable_path(path, sizeof(path)) != COM_UTIL_OK)
     {
         return;
     }
@@ -317,19 +318,19 @@ static int build_source_key_path(const char *source_name, wchar_t *key_path, con
 /**
  *  @brief          RegCreateKeyExW / RegDeleteKeyW の戻り値をステータス コードに変換します。
  *  @param[in]      rc  Win32 レジストリ API の戻り値。
- *  @return         COM_UTIL_EVENTLOG_OK / COM_UTIL_EVENTLOG_ERR_ACCESS / COM_UTIL_EVENTLOG_ERR_SYSTEM。
+ *  @return         COM_UTIL_OK / COM_UTIL_ERR_PERMISSION_DENIED / COM_UTIL_ERR_UNKNOWN。
  */
 static int registry_status(const LONG rc)
 {
     if (rc == ERROR_SUCCESS)
     {
-        return COM_UTIL_EVENTLOG_OK;
+        return COM_UTIL_OK;
     }
     if (rc == ERROR_ACCESS_DENIED)
     {
-        return COM_UTIL_EVENTLOG_ERR_ACCESS;
+        return COM_UTIL_ERR_PERMISSION_DENIED;
     }
-    return COM_UTIL_EVENTLOG_ERR_SYSTEM;
+    return COM_UTIL_ERR_UNKNOWN;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -390,7 +391,7 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
 
     if (handle == NULL || handle->source == NULL || message == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     has_file_identifier = format_identifier_string(file_identifier, file_id, sizeof(file_id));
@@ -415,7 +416,7 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
         free(wfile_id);
         free(winstance);
         free(winstance_id);
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     strings[0] = wmsg;
@@ -432,9 +433,9 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
 
     if (!ok)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -482,12 +483,12 @@ int com_util_eventlog_register_source(const char *source_name, const char *messa
 
     if (source_name == NULL)
     {
-        return COM_UTIL_EVENTLOG_ERR_PARAM;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (build_source_key_path(source_name, key_path, sizeof(key_path) / sizeof(key_path[0])) != 0)
     {
-        return COM_UTIL_EVENTLOG_ERR_SYSTEM;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     rc = RegCreateKeyExW(HKEY_LOCAL_MACHINE, key_path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, NULL, &hkey,
@@ -556,18 +557,18 @@ int com_util_eventlog_unregister_source(const char *source_name)
 
     if (source_name == NULL)
     {
-        return COM_UTIL_EVENTLOG_ERR_PARAM;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (build_source_key_path(source_name, key_path, sizeof(key_path) / sizeof(key_path[0])) != 0)
     {
-        return COM_UTIL_EVENTLOG_ERR_SYSTEM;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     rc = RegDeleteKeyW(HKEY_LOCAL_MACHINE, key_path);
     if (rc == ERROR_FILE_NOT_FOUND)
     {
-        return COM_UTIL_EVENTLOG_OK;
+        return COM_UTIL_OK;
     }
     return registry_status(rc);
 }

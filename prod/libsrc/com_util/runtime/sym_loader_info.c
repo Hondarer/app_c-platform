@@ -7,7 +7,7 @@
  *  @version        1.0.0
  *
  *  各エントリを表示し、未解決のエントリがあれば解決を試みます。\n
- *  1 つでも解決失敗した場合は -1 を返します。\n
+ *  1 つでも解決失敗した場合は @ref COM_UTIL_ERR_UNKNOWN を返します。\n
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -21,8 +21,20 @@
 
 int com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array, const size_t fobj_length)
 {
-    int rtc = 0;
+    int result = COM_UTIL_OK;
     size_t fobj_index;
+
+    if (fobj_length > 0 && fobj_array == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
+    {
+        if (fobj_array[fobj_index] == NULL)
+        {
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
+        }
+    }
 
     for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
     {
@@ -41,9 +53,9 @@ int com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array, const
 
         if (fobj->resolved < 0)
         {
-            rtc = -1;
+            result = COM_UTIL_ERR_UNKNOWN;
         }
     }
 
-    return rtc;
+    return result;
 }

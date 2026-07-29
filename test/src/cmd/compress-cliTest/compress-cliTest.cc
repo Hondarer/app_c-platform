@@ -103,9 +103,11 @@ TEST_F(compress_cliTest, main_rejects_same_normalized_path)
     EXPECT_CALL(mock_com_util_, com_util_console_init())
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("./data.bin"), StrEq("subdir/../data.bin"), _))
-        .WillOnce(Return(1)); // [Pre-Assert確認_異常系] - com_util_paths_equal で入出力パスの比較が行われること。
-                              // [Pre-Assert手順] - com_util_paths_equal から 1 (同一) を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("./data.bin"), StrEq("subdir/../data.bin"), _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<2>(1),
+            Return(COM_UTIL_OK))); // [Pre-Assert確認_異常系] - com_util_paths_equal で入出力パスの比較が行われること。
+                                   // [Pre-Assert手順] - equal_out に 1 (同一) を設定して COM_UTIL_OK を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - 同一パス検出時は com_util_path_get_full が呼び出されないこと。
     EXPECT_CALL(mock_com_util_, com_util_fopen(_, _, _))
@@ -134,8 +136,10 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
     EXPECT_CALL(mock_com_util_, com_util_console_init())
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _))
-        .WillOnce(Return(0)); // [Pre-Assert手順] - com_util_paths_equal から 0 (不一致) を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<2>(0),
+            Return(COM_UTIL_OK))); // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して COM_UTIL_OK を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, int *errno_out, const char *)
@@ -213,7 +217,8 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_s
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
                   { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
@@ -255,7 +260,8 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
                   { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
@@ -310,7 +316,8 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
                   { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
@@ -365,11 +372,12 @@ TEST_F(compress_cliTest, main_fails_when_path_comparison_fails)
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
-    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _))
-        .WillOnce(
-            DoAll(SetArgPointee<2>(EIO),
-                  Return(-1))); // [Pre-Assert確認_異常系] - com_util_paths_equal で入出力パスの比較が行われること。
-                                // [Pre-Assert手順] - errno_out に EIO を設定して -1 を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(EIO),
+            Return(
+                COM_UTIL_ERR_UNKNOWN))); // [Pre-Assert確認_異常系] - com_util_paths_equal で入出力パスの比較が行われること。
+    // [Pre-Assert手順] - errno_out に EIO を設定して COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - 比較失敗時は com_util_path_get_full が呼び出されないこと。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin"))).Times(0);

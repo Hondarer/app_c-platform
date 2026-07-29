@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <mock_com_util.h>
 #include <mock_time.h>
@@ -323,8 +324,8 @@ TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
 
     // Assert
     EXPECT_EQ(
-        0,
-        rtc_format_realtime_iso8601_local); // [確認_正常系] - com_util_format_realtime_iso8601_local の戻り値が 0 であること。
+        COM_UTIL_OK,
+        rtc_format_realtime_iso8601_local); // [確認_正常系] - com_util_format_realtime_iso8601_local の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("2024-04-05T15:07:08.246+09:00",
                  actual); // [確認_正常系] - オフセット +09:00 とミリ秒 246 を含む文字列になること。
 }
@@ -366,8 +367,8 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
 
     // Assert
     EXPECT_EQ(
-        0,
-        rtc_format_realtime_iso8601_local); // [確認_正常系] - com_util_format_realtime_iso8601_local の戻り値が 0 であること。
+        COM_UTIL_OK,
+        rtc_format_realtime_iso8601_local); // [確認_正常系] - com_util_format_realtime_iso8601_local の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("2024-04-05T00:37:08.135-05:30",
                  actual); // [確認_正常系] - 負のオフセット -05:30 を含む文字列になること。
 }
@@ -401,12 +402,12 @@ TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
 
     // Assert
     EXPECT_EQ(
-        0,
-        rtc_format_realtime_iso8601_utc); // [確認_正常系] - com_util_format_realtime_iso8601_utc の戻り値が 0 であること。
+        COM_UTIL_OK,
+        rtc_format_realtime_iso8601_utc); // [確認_正常系] - com_util_format_realtime_iso8601_utc の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual); // [確認_正常系] - "Z" サフィックス付きの UTC 文字列になること。
 }
 
-// nsec が不正な場合に -1 を返しゼロ埋め文字列へフォールバックすることの確認
+// nsec が不正な場合に COM_UTIL_ERR_INVALID_ARGUMENT を返しゼロ埋め文字列へフォールバックすることの確認
 TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
 {
     // Arrange
@@ -423,12 +424,12 @@ TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
 
     // Assert
     EXPECT_EQ(
-        -1,
-        rtc_format_realtime_iso8601_local); // [確認_異常系] - com_util_format_realtime_iso8601_local の戻り値が -1 であること。
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_format_realtime_iso8601_local); // [確認_異常系] - com_util_format_realtime_iso8601_local の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
-// gmtime が失敗した場合に -1 を返しゼロ埋め文字列へフォールバックすることの確認
+// gmtime が失敗した場合に COM_UTIL_ERR_UNKNOWN を返しゼロ埋め文字列へフォールバックすることの確認
 TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
 {
     // Arrange
@@ -454,9 +455,9 @@ TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
 
     // Assert
     EXPECT_EQ(
-        -1,
-        rtc_format_realtime_iso8601_utc); // [確認_異常系] - com_util_format_realtime_iso8601_utc の戻り値が -1 であること。
-    EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual);   // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
+        COM_UTIL_ERR_UNKNOWN,
+        rtc_format_realtime_iso8601_utc); // [確認_異常系] - com_util_format_realtime_iso8601_utc の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
 // 実時刻 deadline 計算でナノ秒 overflow がない場合にそのまま加算されることの確認

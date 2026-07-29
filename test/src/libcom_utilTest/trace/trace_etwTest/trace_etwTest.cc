@@ -46,7 +46,8 @@ TEST_F(trace_etwTest, test_write_returns_zero)
                                              "test message"); // [手順] - INFO レベル (4) で "test message" を書き込む。
 
     // Assert
-    EXPECT_EQ(0, result); // [確認_正常系] - com_util_etw_provider_write の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_etw_provider_write の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_etw_provider_dispose(handle);
@@ -71,11 +72,11 @@ TEST_F(trace_etwTest, test_write_all_levels)
     int rtc_verbose = com_util_etw_provider_write(handle, 5, NULL, "verbose");
 
     // Assert
-    EXPECT_EQ(0, rtc_critical); // [確認_正常系] - CRITICAL レベルで書き込めること。
-    EXPECT_EQ(0, rtc_error);    // [確認_正常系] - ERROR レベルで書き込めること。
-    EXPECT_EQ(0, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
-    EXPECT_EQ(0, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
-    EXPECT_EQ(0, rtc_verbose);  // [確認_正常系] - VERBOSE レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_critical); // [確認_正常系] - CRITICAL レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_error);    // [確認_正常系] - ERROR レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_verbose);  // [確認_正常系] - VERBOSE レベルで書き込めること。
 
     // Cleanup
     com_util_etw_provider_dispose(handle);
@@ -98,9 +99,16 @@ TEST_F(trace_etwTest, test_null_arguments_are_safe)
         (com_util_etw_provider *)NULL,
         com_util_etw_provider_create(
             NULL)); // [確認_異常系] - com_util_etw_provider_create の戻り値から、NULL provider_ref で create が失敗したと判断できること。
-    EXPECT_EQ(0, com_util_etw_provider_write(NULL, 4, NULL,
-                                             "test message"));        // [確認_異常系] - NULL ハンドルが安全であること。
-    EXPECT_EQ(0, com_util_etw_provider_write(handle, 4, NULL, NULL)); // [確認_異常系] - NULL message が安全であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        com_util_etw_provider_write(
+            NULL, 4, NULL,
+            "test message")); // [確認_異常系] - NULL ハンドルに対する com_util_etw_provider_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        com_util_etw_provider_write(
+            handle, 4, NULL,
+            NULL)); // [確認_異常系] - NULL message に対する com_util_etw_provider_write の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_etw_provider_dispose(handle);

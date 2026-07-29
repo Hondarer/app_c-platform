@@ -3,6 +3,7 @@
  *  @brief          プロンプト ヘルパーの共通処理を実装します。
  */
 
+#include <com_util/base/result.h>
 #include <com_util/prompt/prompt_internal.h>
 
 #include <com_util/crt/string.h>
@@ -457,7 +458,7 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
 
     if (p == NULL || buf == NULL || buf_size == 0)
     {
-        return 0;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     buf[0] = '\0';
 
@@ -471,10 +472,10 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
         }
         if (fgets(buf, (int)buf_size, stdin) == NULL)
         {
-            return 0;
+            return COM_UTIL_ERR_EOF;
         }
         buf[strcspn(buf, "\r\n")] = '\0';
-        return 1;
+        return COM_UTIL_OK;
     }
 
     /* 呼び出し元に対応するコンテキストを取得 */
@@ -489,10 +490,10 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
         }
         if (fgets(buf, (int)buf_size, stdin) == NULL)
         {
-            return 0;
+            return COM_UTIL_ERR_EOF;
         }
         buf[strcspn(buf, "\r\n")] = '\0';
-        return 1;
+        return COM_UTIL_OK;
     }
 
     /* raw モードに移行 */
@@ -534,15 +535,21 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
                 history_add(p, ctx, p->edit_buf);
             }
             prompt_platform_leave_raw(p);
-            return 1;
+            return COM_UTIL_OK;
 
         case KEY_EOF:
+            putchar('\n');
+            fflush(stdout);
+            buf[0] = '\0';
+            prompt_platform_leave_raw(p);
+            return COM_UTIL_ERR_EOF;
+
         case KEY_CTRL_C:
             putchar('\n');
             fflush(stdout);
             buf[0] = '\0';
             prompt_platform_leave_raw(p);
-            return 0;
+            return COM_UTIL_ERR_CANCELED;
 
         case KEY_BACKSPACE:
             if (p->cursor > 0)
@@ -648,7 +655,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
 
     if (p == NULL)
     {
-        return 0;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* 遅延初期化 */

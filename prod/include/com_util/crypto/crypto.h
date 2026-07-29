@@ -38,6 +38,7 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -74,7 +75,7 @@ extern "C"
      *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
      *  @param[in]      aad      追加認証データへのポインター。NULL の場合は AAD なし。
      *  @param[in]      aad_len  AAD のバイト数。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -96,7 +97,7 @@ extern "C"
      *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
      *  @param[in]      aad      追加認証データへのポインター。NULL の場合は AAD なし。
      *  @param[in]      aad_len  AAD のバイト数。
-     *  @return         成功 (認証タグ検証 OK) 時は 0、失敗 (認証タグ不一致含む) 時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK (認証タグ検証 OK) 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN (認証タグ不一致含む) のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -115,7 +116,7 @@ extern "C"
      *  @param[out]     key             出力鍵バッファー (COM_UTIL_CRYPTO_KEY_SIZE = 32 バイト)。
      *  @param[in]      passphrase      パスフレーズへのポインター (任意のバイト列)。
      *  @param[in]      passphrase_len  パスフレーズの長さ (バイト)。0 の場合も有効。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

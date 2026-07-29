@@ -11,6 +11,7 @@
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
 
+#include <com_util/base/result.h>
 #include <com_util/crt/wchar_conv.h>
 
 #include <stddef.h>
@@ -35,24 +36,24 @@ static int ensure_one_dir(const char *dir)
     com_util_file_stat_t st;
 
     /* 既に存在する場合は成功 */
-    if (com_util_stat(&st, dir) == 0)
+    if (com_util_stat(&st, dir) == COM_UTIL_OK)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     /* 存在しないので生成する */
-    if (com_util_mkdir(dir) == 0)
+    if (com_util_mkdir(dir) == COM_UTIL_OK)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     /* mkdir 失敗: 競合生成の可能性があるため再確認する */
-    if (com_util_stat(&st, dir) == 0)
+    if (com_util_stat(&st, dir) == COM_UTIL_OK)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
-    return -1;
+    return COM_UTIL_ERR_UNKNOWN;
 }
 
 #if defined(PLATFORM_WINDOWS)
@@ -125,13 +126,13 @@ int com_util_makedirs(const char *path)
 
     if (path == NULL || path[0] == '\0')
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     path_len = strlen(path);
     if (path_len >= (size_t)PLATFORM_PATH_MAX)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     /* パスをローカル バッファーに複製する */
@@ -151,9 +152,9 @@ int com_util_makedirs(const char *path)
             {
                 /* 中間ディレクトリを一時終端して生成する */
                 buf[i] = '\0';
-                if (ensure_one_dir(buf) != 0)
+                if (ensure_one_dir(buf) != COM_UTIL_OK)
                 {
-                    return -1;
+                    return COM_UTIL_ERR_UNKNOWN;
                 }
                 buf[i] = PLATFORM_PATH_SEP_CHR;
             }
@@ -170,10 +171,11 @@ int com_util_stat(com_util_file_stat_t *buf, const char *path)
 {
     if (buf == NULL || path == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
+    /* stat() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
     return stat(path, buf);
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -181,9 +183,10 @@ int com_util_stat(com_util_file_stat_t *buf, const char *path)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
+        /* _wstat64() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
         return _wstat64(wpath, buf);
     }
 #endif /* PLATFORM_ */
@@ -195,10 +198,11 @@ int com_util_mkdir(const char *path)
 {
     if (path == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
+    /* mkdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
     return mkdir(path, 0755);
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -206,9 +210,10 @@ int com_util_mkdir(const char *path)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
+        /* _wmkdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
         return _wmkdir(wpath);
     }
 #endif /* PLATFORM_ */

@@ -38,6 +38,7 @@
     #include <stdlib.h>
     #include <string.h>
 
+    #include <com_util/base/result.h>
     #include <com_util/clock/clock.h>
     #include <com_util/sync/sync.h>
     #include <com_util/trace/syslog.h>
@@ -180,7 +181,7 @@ com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int f
     handle->backoff_sec = BACKOFF_INIT_SEC;
     handle->lock_initialized = 0;
 
-    if (com_util_local_lock_create(&handle->reconnect_lock) != 0)
+    if (com_util_local_lock_create(&handle->reconnect_lock) != COM_UTIL_OK)
     {
         free(handle->ident);
         free(handle);
@@ -216,14 +217,14 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
 
     if (handle == NULL || message == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     /* timestamp が NULL の場合はタイムスタンプなしで送信するため、解決は行わない */
     if (timestamp != NULL)
     {
         if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         effective_timestamp = &resolved;
     }
@@ -235,7 +236,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message);
     if (n < 0)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
     if ((size_t)n >= sizeof(buf))
     {
@@ -247,12 +248,13 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     if (test_fd_str != NULL)
     {
         if (effective_timestamp != NULL &&
-            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) == 0)
+            com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
+                COM_UTIL_OK)
         {
             debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
             if (debug_len < 0)
             {
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
             if ((size_t)debug_len >= sizeof(debug_buf))
             {
@@ -269,11 +271,11 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
         }
         if (fallback_used)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         else
         {
-            return 0;
+            return COM_UTIL_OK;
         }
     }
 
@@ -292,11 +294,11 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
             com_util_local_lock_unlock(handle->reconnect_lock);
             if (fallback_used)
             {
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
-                return 0; /* drop */
+                return COM_UTIL_OK; /* drop */
             }
         }
     }
@@ -312,11 +314,11 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
             com_util_local_lock_unlock(handle->reconnect_lock);
             if (fallback_used)
             {
-                return -1;
+                return COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
-                return 0;
+                return COM_UTIL_OK;
             }
         }
         /* その他エラー (ENOENT, ECONNREFUSED 等): ソケットを閉じてバックオフ */
@@ -324,11 +326,11 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
         com_util_local_lock_unlock(handle->reconnect_lock);
         if (fallback_used)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         else
         {
-            return 0; /* drop */
+            return COM_UTIL_OK; /* drop */
         }
     }
 
@@ -338,11 +340,11 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     com_util_local_lock_unlock(handle->reconnect_lock);
     if (fallback_used)
     {
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
     else
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 }
 
@@ -373,26 +375,32 @@ int com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_id
 {
     char *dup;
     size_t len;
+    int result;
 
     if (handle == NULL || new_ident == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     len = strlen(new_ident) + 1;
     dup = (char *)malloc(len);
     if (dup == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
     memcpy(dup, new_ident, len);
 
-    com_util_local_lock_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
+    result = com_util_local_lock_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
+    if (result != COM_UTIL_OK)
+    {
+        free(dup);
+        return result;
+    }
     free(handle->ident);
     handle->ident = dup;
-    com_util_local_lock_unlock(handle->reconnect_lock);
+    result = com_util_local_lock_unlock(handle->reconnect_lock);
 
-    return 0;
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

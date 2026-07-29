@@ -15,6 +15,7 @@
  *******************************************************************************
  */
 
+#include <com_util/base/result.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/process_internal.h>
@@ -76,7 +77,7 @@ int com_util_elevated_process_is_elevated(int *elevated)
 {
     if (elevated == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     *elevated = 0;
@@ -86,7 +87,7 @@ int com_util_elevated_process_is_elevated(int *elevated)
     {
         *elevated = 1;
     }
-    return 0;
+    return COM_UTIL_OK;
 #elif defined(PLATFORM_WINDOWS)
     {
         HANDLE token = NULL;
@@ -94,7 +95,7 @@ int com_util_elevated_process_is_elevated(int *elevated)
         DWORD returned_length;
         int rc;
 
-        rc = -1;
+        rc = COM_UTIL_ERR_UNKNOWN;
         returned_length = 0;
 
         if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
@@ -105,7 +106,7 @@ int com_util_elevated_process_is_elevated(int *elevated)
                 {
                     *elevated = 1;
                 }
-                rc = 0;
+                rc = COM_UTIL_OK;
             }
             CloseHandle(token);
         }
@@ -113,7 +114,7 @@ int com_util_elevated_process_is_elevated(int *elevated)
         return rc;
     }
 #else
-    return -1;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
@@ -123,7 +124,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
 {
     if (exit_code == NULL || handled == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     *exit_code = 0;
@@ -143,14 +144,14 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         int inherit_console;
         int diag_enabled;
 
-        if (com_util_elevated_process_is_elevated(&elevated) != 0)
+        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (elevated != 0)
         {
-            return 0;
+            return COM_UTIL_OK;
         }
 
         /* セッション 0 (非対話セッション) では UAC ダイアログを表示できないため、
@@ -158,13 +159,13 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         if (is_current_session_interactive() == 0)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
-        if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != 0)
+        if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != COM_UTIL_OK)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         /* 親にコンソールがある場合のみ、昇格プロセスへ親コンソールを引き継ぐ。
@@ -211,7 +212,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             if (combined_arguments == NULL)
             {
                 *exit_code = EXIT_FAILURE;
-                return -1;
+                return COM_UTIL_ERR_OUT_OF_MEMORY;
             }
             offset = 0;
             if (arg_len > 0)
@@ -221,7 +222,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
-                    return -1;
+                    return COM_UTIL_ERR_UNKNOWN;
                 }
             }
             else
@@ -243,7 +244,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
-                    return -1;
+                    return COM_UTIL_ERR_UNKNOWN;
                 }
                 offset += written;
             }
@@ -262,7 +263,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
-                    return -1;
+                    return COM_UTIL_ERR_UNKNOWN;
                 }
                 offset += written;
             }
@@ -274,7 +275,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         {
             free(combined_arguments);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         if (effective_arguments != NULL)
         {
@@ -284,7 +285,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 free(combined_arguments);
                 free(wide_exe_path);
                 *exit_code = EXIT_FAILURE;
-                return -1;
+                return COM_UTIL_ERR_OUT_OF_MEMORY;
             }
         }
         free(combined_arguments);
@@ -315,7 +316,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             free(wide_arguments);
             free(wide_exe_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         free(wide_arguments);
         free(wide_exe_path);
@@ -325,36 +326,36 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         {
             CloseHandle(exec_info.hProcess);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
-        if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_PROCESS_OK ||
-            com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_PROCESS_OK)
+        if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_OK ||
+            com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_OK)
         {
             com_util_process_destroy(child_process);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         com_util_process_destroy(child_process);
 
         *exit_code = child_exit_code;
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_LINUX)
     {
         int elevated;
 
         (void)arguments;
-        if (com_util_elevated_process_is_elevated(&elevated) != 0 || elevated == 0)
+        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK || elevated == 0)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
-        return 0;
+        return COM_UTIL_OK;
     }
 #else
     (void)arguments;
     *exit_code = EXIT_FAILURE;
-    return -1;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
@@ -365,7 +366,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
 {
     if (exit_code == NULL || handled == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     *exit_code = 0;
@@ -392,14 +393,14 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         size_t buf_sz;
         DWORD temp_len;
 
-        if (com_util_elevated_process_is_elevated(&elevated) != 0)
+        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (elevated != 0)
         {
-            return 0;
+            return COM_UTIL_OK;
         }
 
         /* セッション 0 (非対話セッション) では UAC ダイアログを表示できないため、
@@ -407,13 +408,13 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         if (is_current_session_interactive() == 0)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
-        if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != 0)
+        if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) != COM_UTIL_OK)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         /* 昇格プロセスが結果メッセージを書き込む一時ファイルを確保する。GetTempFileNameW は
@@ -422,18 +423,18 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         if (temp_len == 0 || temp_len >= sizeof(wide_temp_dir) / sizeof(wide_temp_dir[0]))
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (GetTempFileNameW(wide_temp_dir, L"cur", 0, wide_result_path) == 0)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (com_util_wpath_to_utf8(result_path, sizeof(result_path), wide_result_path) < 0)
         {
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
 
         arg_len = 0;
@@ -446,9 +447,8 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         combined_arguments = (char *)malloc(buf_sz);
         if (combined_arguments == NULL)
         {
-            DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         /* result_path はユーザー プロファイル配下 (ユーザー名に空白を含みうる) から生成されるため、
            クォートしないと CRT のコマンドライン分割で複数トークンとなり、
@@ -471,7 +471,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             free(combined_arguments);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         wide_arguments = com_util_utf8_to_wstr_alloc(combined_arguments);
         free(combined_arguments);
@@ -480,7 +480,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             free(wide_exe_path);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
 
         ZeroMemory(&exec_info, sizeof(exec_info));
@@ -501,7 +501,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             free(wide_exe_path);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         free(wide_arguments);
         free(wide_exe_path);
@@ -512,15 +512,15 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             CloseHandle(exec_info.hProcess);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
-        if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_PROCESS_OK ||
-            com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_PROCESS_OK)
+        if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_OK ||
+            com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_OK)
         {
             com_util_process_destroy(child_process);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         com_util_process_destroy(child_process);
 
@@ -545,7 +545,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         DeleteFileW(wide_result_path);
 
         *exit_code = child_exit_code;
-        return 0;
+        return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_LINUX)
     {
@@ -555,25 +555,25 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         (void)result_message;
         (void)result_message_size;
         (void)arguments;
-        if (com_util_elevated_process_is_elevated(&elevated) != 0 || elevated == 0)
+        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK || elevated == 0)
         {
             *exit_code = EXIT_FAILURE;
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
-        return 0;
+        return COM_UTIL_OK;
     }
 #else
     (void)arguments;
     (void)result_message;
     (void)result_message_size;
     *exit_code = EXIT_FAILURE;
-    return -1;
+    return COM_UTIL_ERR_UNSUPPORTED;
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_elevated_process_extract_result_target(int *argc, char **argv)
+int com_util_elevated_process_extract_result_target(int *argc, char **argv, int *detected_out)
 {
 #if defined(PLATFORM_WINDOWS)
     const char *prefix = COM_UTIL_PROCESS_RESULT_TARGET_FLAG "=";
@@ -581,9 +581,14 @@ int com_util_elevated_process_extract_result_target(int *argc, char **argv)
     int n;
     int i;
 
+    if (detected_out != NULL)
+    {
+        *detected_out = 0;
+    }
+
     if (argc == NULL || argv == NULL)
     {
-        return 0;
+        return COM_UTIL_OK;
     }
 
     prefix_len = strlen(prefix);
@@ -612,13 +617,21 @@ int com_util_elevated_process_extract_result_target(int *argc, char **argv)
         }
         argv[n - 1] = NULL;
         *argc = n - 1;
-        return 1;
+        if (detected_out != NULL)
+        {
+            *detected_out = 1;
+        }
+        return COM_UTIL_OK;
     }
-    return 0;
+    return COM_UTIL_OK;
 #else
     (void)argc;
     (void)argv;
-    return 0;
+    if (detected_out != NULL)
+    {
+        *detected_out = 0;
+    }
+    return COM_UTIL_OK;
 #endif /* PLATFORM_ */
 }
 
@@ -628,7 +641,7 @@ int com_util_elevated_process_report_result(const char *message)
 {
     if (message == NULL)
     {
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_WINDOWS)
@@ -640,28 +653,28 @@ int com_util_elevated_process_report_result(const char *message)
 
         if (s_result_target_path[0] == '\0')
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         if (com_util_utf8_to_wpath(wide_path, sizeof(wide_path) / sizeof(wide_path[0]), s_result_target_path) < 0)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         h = CreateFileW(wide_path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (h == INVALID_HANDLE_VALUE)
         {
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         len = strlen(message);
         if (!WriteFile(h, message, (DWORD)len, &written, NULL))
         {
             CloseHandle(h);
-            return -1;
+            return COM_UTIL_ERR_UNKNOWN;
         }
         CloseHandle(h);
-        return 0;
+        return COM_UTIL_OK;
     }
 #else
     (void)message;
-    return -1;
+    return COM_UTIL_ERR_UNKNOWN;
 #endif /* PLATFORM_ */
 }

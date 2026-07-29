@@ -3,7 +3,8 @@
 #include <mock_com_util.h>
 #include <string.h>
 
-namespace {
+namespace
+{
 
 const char *const kMissingLibName = "libmissing_com_util_for_test" TESTFW_SHARED_LIBRARY_EXTENSION;
 
@@ -17,18 +18,12 @@ static void expect_round_trip_success()
     size_t decompressed_len = sizeof(decompressed);
     int rtc;
 
-    rtc = com_util_compress(compressed,
-                            &compressed_len,
-                            kPlainText,
-                            sizeof(kPlainText) - 1U);
-    ASSERT_EQ(0, rtc);
+    rtc = com_util_compress(compressed, &compressed_len, kPlainText, sizeof(kPlainText) - 1U);
+    ASSERT_EQ(COM_UTIL_OK, rtc);
     ASSERT_GT(compressed_len, COM_UTIL_COMPRESS_HEADER_SIZE);
 
-    rtc = com_util_decompress(decompressed,
-                              &decompressed_len,
-                              compressed,
-                              compressed_len);
-    ASSERT_EQ(0, rtc);
+    rtc = com_util_decompress(decompressed, &decompressed_len, compressed, compressed_len);
+    ASSERT_EQ(COM_UTIL_OK, rtc);
     ASSERT_EQ(sizeof(kPlainText) - 1U, decompressed_len);
     EXPECT_EQ(0, memcmp(kPlainText, decompressed, decompressed_len));
 }
@@ -57,7 +52,8 @@ TEST_F(compressDelegateRealTest, compress_and_decompress_delegate_to_real_when_m
 TEST_F(compressDelegateRealTest, default_behavior_delegates_to_real_when_mock_is_attached)
 {
     // Arrange
-    NiceMock<Mock_com_util> mock_com_util; // [状態] - Mock_com_util を注入するが、compress/decompress の個別指定は行わない。
+    NiceMock<Mock_com_util>
+        mock_com_util; // [状態] - Mock_com_util を注入するが、compress/decompress の個別指定は行わない。
 
     // Pre-Assert
 
@@ -89,13 +85,12 @@ TEST_F(compressDelegateRealTest, expect_call_overrides_default_real_delegate)
                 dst[0] = 0xAA;
                 return -1;
             }); // [Pre-Assert確認_正常系] - com_util_compress() が 1 回呼び出されること。
-              // [Pre-Assert手順] - com_util_compress() でテスト専用の戻り値 -1 と出力長 7 を返す。
+                // [Pre-Assert手順] - com_util_compress() でテスト専用の戻り値 -1 と出力長 7 を返す。
 
     // Act
-    int rtc = com_util_compress(compressed,
-                                &compressed_len,
-                                kPlainText,
-                                sizeof(kPlainText) - 1U); // [手順] - 明示した EXPECT_CALL 付きで com_util_compress() を呼び出す。
+    int rtc = com_util_compress(compressed, &compressed_len, kPlainText,
+                                sizeof(kPlainText) -
+                                    1U); // [手順] - 明示した EXPECT_CALL 付きで com_util_compress() を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc);             // [確認_正常系] - com_util_compress の戻り値として、明示した戻り値 -1 が返ること。
@@ -130,9 +125,9 @@ TEST_F(compressDelegateRealTest, try_resolve_returns_diagnostic_when_symbol_is_m
     // Pre-Assert
 
     // Act
-    SharedSymbolResult result =
-        tryResolveSharedSymbol(kLibComUtilName,
-                               "com_util_symbol_that_does_not_exist"); // [手順] - 実在ライブラリに存在しないシンボル名で解決を試行する。
+    SharedSymbolResult result = tryResolveSharedSymbol(
+        kLibComUtilName,
+        "com_util_symbol_that_does_not_exist"); // [手順] - 実在ライブラリに存在しないシンボル名で解決を試行する。
 
     // Assert
     EXPECT_EQ(nullptr,

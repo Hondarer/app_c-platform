@@ -16,7 +16,7 @@ int delegate_real_com_util_eventlog_sink_write(com_util_eventlog_sink *handle, i
 MOCK_WEAK_IMPL(int, com_util_eventlog_sink_write, com_util_eventlog_sink *handle, int level, int64_t file_identifier,
                const char *instance_name, int64_t instance_identifier, const char *message)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
@@ -31,9 +31,18 @@ MOCK_WEAK_IMPL(int, com_util_eventlog_sink_write, com_util_eventlog_sink *handle
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d %lld \"%s\" %lld \"%s\"", __func__, level, (long long)file_identifier,
-               instance_name != nullptr ? instance_name : "(null)", (long long)instance_identifier,
-               message != nullptr ? message : "(null)");
+        const char *instance_name_text = "(null)";
+        const char *message_text = "(null)";
+        if (instance_name != nullptr)
+        {
+            instance_name_text = instance_name;
+        }
+        if (message != nullptr)
+        {
+            message_text = message;
+        }
+        printf("  > %s %d %lld \"%s\" %lld \"%s\"", __func__, level, (long long)file_identifier, instance_name_text,
+               (long long)instance_identifier, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

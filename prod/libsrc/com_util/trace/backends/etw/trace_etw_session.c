@@ -435,7 +435,7 @@ int com_util_etw_session_check_access(void)
     props = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
     if (props == NULL)
     {
-        return COM_UTIL_ETW_SESSION_ERR_SYSTEM;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     zero_bytes(props, props_size);
@@ -450,15 +450,15 @@ int com_util_etw_session_check_access(void)
     if (status == ERROR_SUCCESS)
     {
         ControlTraceW(handle, NULL, props, EVENT_TRACE_CONTROL_STOP);
-        result = COM_UTIL_ETW_SESSION_OK;
+        result = COM_UTIL_OK;
     }
     else if (status == ERROR_ACCESS_DENIED)
     {
-        result = COM_UTIL_ETW_SESSION_ERR_ACCESS;
+        result = COM_UTIL_ERR_PERMISSION_DENIED;
     }
     else
     {
-        result = COM_UTIL_ETW_SESSION_ERR_SYSTEM;
+        result = COM_UTIL_ERR_UNKNOWN;
     }
 
     free(props);
@@ -479,20 +479,20 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
 
     if (session_name == NULL || provider_guid_str == NULL || callback == NULL)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
+        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
         return NULL;
     }
 
     if (parse_guid(provider_guid_str, &provider_guid) != 0)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
+        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
         return NULL;
     }
 
     session = (com_util_etw_session *)malloc(sizeof(com_util_etw_session));
     if (session == NULL)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return NULL;
     }
 
@@ -510,7 +510,7 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     session->session_name_w = com_util_utf8_to_wstr_alloc(session_name);
     if (session->session_name_w == NULL)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_PARAM);
+        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
         return dispose_session_and_return_null(session);
     }
     name_len_w = wcslen(session->session_name_w) + 1;
@@ -520,7 +520,7 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     session->properties = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
     if (session->properties == NULL)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return dispose_session_and_return_null(session);
     }
 
@@ -538,14 +538,14 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     if (status == ERROR_ACCESS_DENIED)
     {
         session->session_handle = 0;
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_ACCESS);
+        set_status(out_status, COM_UTIL_ERR_PERMISSION_DENIED);
         return dispose_session_and_return_null(session);
     }
 
     if (status != ERROR_SUCCESS)
     {
         session->session_handle = 0;
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return dispose_session_and_return_null(session);
     }
 
@@ -555,7 +555,7 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
                             0xFFFFFFFFFFFFFFFF, 0, 0, &etp);
     if (status != ERROR_SUCCESS)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return dispose_session_and_return_null(session);
     }
 
@@ -571,17 +571,17 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     }
     if (session->trace_handle == INVALID_PROCESSTRACE_HANDLE)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return dispose_session_and_return_null(session);
     }
 
-    if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != 0)
+    if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != COM_UTIL_OK)
     {
-        set_status(out_status, COM_UTIL_ETW_SESSION_ERR_SYSTEM);
+        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
         return dispose_session_and_return_null(session);
     }
 
-    set_status(out_status, COM_UTIL_ETW_SESSION_OK);
+    set_status(out_status, COM_UTIL_OK);
     return session;
 }
 

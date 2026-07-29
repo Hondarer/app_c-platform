@@ -4,9 +4,8 @@
 
 int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_size, const com_util_timespec *timestamp)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_format_realtime_iso8601_utc)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_format_realtime_iso8601_utc"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_format_realtime_iso8601_utc)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_format_realtime_iso8601_utc"));
 
     return real_fn(buf, buf_size, timestamp);
 }
@@ -14,7 +13,7 @@ int delegate_real_com_util_format_realtime_iso8601_utc(char *buf, size_t buf_siz
 MOCK_WEAK_IMPL(int, com_util_format_realtime_iso8601_utc, char *buf, size_t buf_size,
                const com_util_timespec *timestamp)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

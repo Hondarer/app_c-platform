@@ -11,7 +11,7 @@ int delegate_real_com_util_file_get_id(const com_util_file *file, com_util_file_
 
 MOCK_WEAK_IMPL(int, com_util_file_get_id, const com_util_file *file, com_util_file_id *id_out)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

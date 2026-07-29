@@ -31,7 +31,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_ctime(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_ctime));
     ON_CALL(*this, com_util_getenv(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
-    ON_CALL(*this, com_util_paths_equal(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
+    ON_CALL(*this, com_util_paths_equal(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
     ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
 
     // crt - stdio
@@ -139,7 +139,7 @@ Mock_com_util::Mock_com_util()
     // console
     ON_CALL(*this, com_util_console_init()).WillByDefault(Invoke(delegate_real_com_util_console_init));
     ON_CALL(*this, com_util_console_dispose()).WillByDefault(Invoke(delegate_real_com_util_console_dispose));
-    ON_CALL(*this, com_util_console_attach_parent(_, _))
+    ON_CALL(*this, com_util_console_attach_parent(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_console_attach_parent));
 
     // sync
@@ -227,7 +227,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_elevated_process_run_if_needed));
     ON_CALL(*this, com_util_elevated_process_run_with_result(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_elevated_process_run_with_result));
-    ON_CALL(*this, com_util_elevated_process_extract_result_target(_, _))
+    ON_CALL(*this, com_util_elevated_process_extract_result_target(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_elevated_process_extract_result_target));
     ON_CALL(*this, com_util_elevated_process_report_result(_))
         .WillByDefault(Invoke(delegate_real_com_util_elevated_process_report_result));

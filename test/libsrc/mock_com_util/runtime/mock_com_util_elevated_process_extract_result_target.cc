@@ -1,25 +1,25 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_elevated_process_extract_result_target(int *argc, char **argv)
+int delegate_real_com_util_elevated_process_extract_result_target(int *argc, char **argv, int *detected_out)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_elevated_process_extract_result_target)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_elevated_process_extract_result_target"));
 
-    return real_fn(argc, argv);
+    return real_fn(argc, argv, detected_out);
 }
 
-MOCK_WEAK_IMPL(int, com_util_elevated_process_extract_result_target, int *argc, char **argv)
+MOCK_WEAK_IMPL(int, com_util_elevated_process_extract_result_target, int *argc, char **argv, int *detected_out)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_elevated_process_extract_result_target(argc, argv);
+        rtc = _mock_com_util->com_util_elevated_process_extract_result_target(argc, argv, detected_out);
     }
     else
     {
-        rtc = delegate_real_com_util_elevated_process_extract_result_target(argc, argv);
+        rtc = delegate_real_com_util_elevated_process_extract_result_target(argc, argv, detected_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)

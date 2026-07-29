@@ -84,6 +84,12 @@ make -C app/com_util test
     - [ファイルの一覧](doxybook2_internal/Files/README.md)
     - [カテゴリの一覧](doxybook2_internal/Modules/README.md)
 
+## 他カテゴリの関連ドキュメント
+
+<!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
+
+- [ファイル入出力 API の選定基準](../bench-io/api-selection-guideline.md) - `stdio` ラッパー API とメモリ マップド ファイル API の使い分け (実測に基づく)
+
 ## 関連ドキュメント
 
 \toc depth=-1 exclude-basedir=true exclude="doxybook2_public/*" exclude="doxybook2_internal/*"

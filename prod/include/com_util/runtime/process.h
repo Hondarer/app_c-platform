@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -38,7 +39,11 @@ extern "C"
      *  @brief          現在のプロセスの実行ファイル本体の絶対パスを取得します。
      *  @param[out]     out_path      絶対パス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @retval         COM_UTIL_OK                    実行ファイルのパスを取得しました。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p out_path が NULL、または @p out_path_sz が 0 です。
+     *  @retval         COM_UTIL_ERR_BUFFER_TOO_SMALL  @p out_path の容量が不足しています。
+     *  @retval         COM_UTIL_ERR_UNSUPPORTED       現在のプラットフォームをサポートしていません。
+     *  @return         上記以外の失敗時は、OS エラーを変換した共通結果コードを返します。
      *
      *  com_util_module_get_path() が関数アドレスの所属モジュールを返す (Windows では
      *  DLL を指しうる) のに対し、本関数は常にプロセス本体の実行ファイルのパスを返します。\n
@@ -52,16 +57,6 @@ extern "C"
 
 #define COM_UTIL_PROCESS_WAIT_FOREVER INT_MAX /**< タイムアウトなしで待機する (INT_MAX)。 */
 #define COM_UTIL_PROCESS_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */
-
-    /** @brief プロセス操作の結果コード。 */
-    typedef enum
-    {
-        COM_UTIL_PROCESS_OK = 0,               /**< 成功。 */
-        COM_UTIL_PROCESS_TIMEOUT = 1,          /**< タイムアウト。 */
-        COM_UTIL_PROCESS_INVALID_ARGUMENT = 2, /**< 引数が不正。 */
-        COM_UTIL_PROCESS_SYSTEM_ERROR = 3,     /**< OS/システム エラー。 */
-        COM_UTIL_PROCESS_UNSUPPORTED = 4       /**< 操作がサポートされない。 */
-    } com_util_process_result_t;
 
     /** @brief 子プロセスの標準入出力ハンドルの扱い。 */
     typedef enum
@@ -109,8 +104,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  呼び出しごとに独立したプロセス ハンドルを生成します。
      */
-    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
-    com_util_process_start(const com_util_process_options_t *options, com_util_process **process);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_start(const com_util_process_options_t *options,
+                                                            com_util_process **process);
 
     /**
      *  @brief          子プロセスの終了を待機します。
@@ -119,8 +114,7 @@ extern "C"
      *                              @ref COM_UTIL_PROCESS_NO_WAIT も指定可能です。
      *  @return         結果コードを返します。
      */
-    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_wait(com_util_process *process,
-                                                                                 int timeout_ms);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_wait(com_util_process *process, int timeout_ms);
 
     /**
      *  @brief          子プロセスの終了コードを取得します。
@@ -128,15 +122,14 @@ extern "C"
      *  @param[out]     exit_code  終了コードの格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
      */
-    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_get_exit_code(com_util_process *process,
-                                                                                          int *exit_code);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_exit_code(com_util_process *process, int *exit_code);
 
     /**
      *  @brief          子プロセスを強制終了します。
      *  @param[in]      process  対象のプロセス ハンドル。NULL を渡してはなりません。
      *  @return         結果コードを返します。
      */
-    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API com_util_process_terminate(com_util_process *process);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_terminate(com_util_process *process);
 
     /**
      *  @brief          子プロセス ハンドルを破棄します。
@@ -154,8 +147,8 @@ extern "C"
      *  @param[out]     exit_code   終了コードの格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
      */
-    COM_UTIL_EXPORT com_util_process_result_t COM_UTIL_API
-    com_util_process_run_sync(const com_util_process_options_t *options, int timeout_ms, int *exit_code);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_sync(const com_util_process_options_t *options,
+                                                               int timeout_ms, int *exit_code);
 
 #ifdef __cplusplus
 }

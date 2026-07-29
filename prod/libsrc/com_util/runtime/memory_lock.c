@@ -18,6 +18,7 @@
  */
 
 #include <com_util/runtime/memory_lock.h>
+#include <com_util/base/result_internal.h>
 #include <com_util/sync/sync.h>
 
 #include <stdint.h>
@@ -87,20 +88,20 @@ static void init_memory_lock_lock(void)
 
 /**
  *  @brief          メモリ ロック内部状態を保護する local lock を取得します。
- *  @return         取得できた場合は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         取得できた場合は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t memory_lock_lock(void)
+static int memory_lock_lock(void)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     com_util_call_once(&s_memory_lock_lock_once, init_memory_lock_lock);
     if (s_memory_lock_lock == NULL)
     {
-        result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+        result = COM_UTIL_ERR_UNKNOWN;
     }
-    else if (com_util_local_lock_lock(s_memory_lock_lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_SYNC_OK)
+    else if (com_util_local_lock_lock(s_memory_lock_lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_OK)
     {
-        result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+        result = COM_UTIL_ERR_UNKNOWN;
     }
 
     return result;
@@ -140,23 +141,23 @@ static NO_INLINE void prefault_stack_recursive(size_t remaining)
 /**
  *  @brief          errno をメモリ ロック結果コードへ変換します。
  *  @param[in]      error_no errno の値。
- *  @return         対応するメモリ ロック結果コードを返します。
+ *  @return         対応する結果コードを返します。
+ *
+ *  mlock() 系の ENOMEM はロック可能量の上限超過を意味するため、共通の
+ *  errno マッピングとは別に @ref COM_UTIL_ERR_LIMIT_EXCEEDED として扱います。\n
+ *  それ以外の errno は com_util_result_from_errno() の分類に委譲します。
  */
-static com_util_memory_lock_result_t map_errno_to_memory_lock_result(int error_no)
+static int map_errno_to_memory_lock_result(int error_no)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+    int result;
 
-    if (error_no == EPERM)
+    if (error_no == ENOMEM)
     {
-        result = COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED;
+        result = COM_UTIL_ERR_LIMIT_EXCEEDED;
     }
-    else if (error_no == ENOMEM)
+    else
     {
-        result = COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED;
-    }
-    else if (error_no == EINVAL)
-    {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = com_util_result_from_errno(error_no);
     }
 
     return result;
@@ -208,11 +209,11 @@ static int convert_flags_to_mlockall_flags(int flags, int *native_flags)
 /**
  *  @brief          Linux で呼び出しスレッドのスタックをロック前に committed page 化します。
  *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
+static int prefault_stack(size_t stack_prefault_bytes)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (stack_prefault_bytes > 0U)
     {
@@ -224,7 +225,7 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
         int attr_result = pthread_getattr_np(pthread_self(), &attr);
         if (attr_result != 0)
         {
-            result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+            result = COM_UTIL_ERR_UNKNOWN;
         }
         else
         {
@@ -233,7 +234,7 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
 
             if (stack_result != 0)
             {
-                result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                result = COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
@@ -250,7 +251,7 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
                 if ((available <= COM_UTIL_MEMORY_LOCK_STACK_SAFETY_MARGIN) ||
                     (stack_prefault_bytes > (available - COM_UTIL_MEMORY_LOCK_STACK_SAFETY_MARGIN)))
                 {
-                    result = COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED;
+                    result = COM_UTIL_ERR_LIMIT_EXCEEDED;
                 }
                 else
                 {
@@ -266,24 +267,24 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
 /**
  *  @brief          Windows エラー コードをメモリ ロック結果コードへ変換します。
  *  @param[in]      error_code GetLastError() で取得したエラー コード。
- *  @return         対応するメモリ ロック結果コードを返します。
+ *  @return         対応する結果コードを返します。
+ *
+ *  ワーキング セットやコミット上限に関するエラーはロック可能量の上限超過を意味するため、
+ *  共通の Windows エラー マッピングとは別に @ref COM_UTIL_ERR_LIMIT_EXCEEDED として扱います。\n
+ *  それ以外のエラーは com_util_result_from_windows_error() の分類に委譲します。
  */
-static com_util_memory_lock_result_t map_windows_error_to_memory_lock_result(unsigned long error_code)
+static int map_windows_error_to_memory_lock_result(unsigned long error_code)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+    int result;
 
-    if ((error_code == ERROR_ACCESS_DENIED) || (error_code == ERROR_PRIVILEGE_NOT_HELD))
+    if ((error_code == ERROR_NOT_ENOUGH_MEMORY) || (error_code == ERROR_WORKING_SET_QUOTA) ||
+        (error_code == ERROR_COMMITMENT_LIMIT) || (error_code == ERROR_NO_SYSTEM_RESOURCES))
     {
-        result = COM_UTIL_MEMORY_LOCK_PERMISSION_DENIED;
+        result = COM_UTIL_ERR_LIMIT_EXCEEDED;
     }
-    else if ((error_code == ERROR_NOT_ENOUGH_MEMORY) || (error_code == ERROR_WORKING_SET_QUOTA) ||
-             (error_code == ERROR_COMMITMENT_LIMIT) || (error_code == ERROR_NO_SYSTEM_RESOURCES))
+    else
     {
-        result = COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED;
-    }
-    else if (error_code == ERROR_INVALID_PARAMETER)
-    {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = com_util_result_from_windows_error(error_code);
     }
 
     return result;
@@ -311,12 +312,11 @@ static int is_lockable_region(const MEMORY_BASIC_INFORMATION *info)
  *  @param[in,out]  scope 範囲を追加する self scope。
  *  @param[in]      base  範囲の先頭アドレス。
  *  @param[in]      end   範囲の終端アドレス。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t append_scope_range(com_util_memory_lock_scope *scope, uintptr_t base,
-                                                        uintptr_t end)
+static int append_scope_range(com_util_memory_lock_scope *scope, uintptr_t base, uintptr_t end)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (scope->count == scope->capacity)
     {
@@ -330,7 +330,7 @@ static com_util_memory_lock_result_t append_scope_range(com_util_memory_lock_sco
             (com_util_memory_lock_range_entry *)realloc(scope->entries, sizeof(*new_entries) * new_capacity);
         if (new_entries == NULL)
         {
-            result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+            result = COM_UTIL_ERR_UNKNOWN;
         }
         else
         {
@@ -339,7 +339,7 @@ static com_util_memory_lock_result_t append_scope_range(com_util_memory_lock_sco
         }
     }
 
-    if (result == COM_UTIL_MEMORY_LOCK_OK)
+    if (result == COM_UTIL_OK)
     {
         scope->entries[scope->count].base = base;
         scope->entries[scope->count].end = end;
@@ -353,11 +353,11 @@ static com_util_memory_lock_result_t append_scope_range(com_util_memory_lock_sco
 /**
  *  @brief          Windows ロック範囲 registry の容量を確保します。
  *  @param[in]      required_capacity 必要な要素数。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t ensure_windows_registry_capacity(size_t required_capacity)
+static int ensure_windows_registry_capacity(size_t required_capacity)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (required_capacity > s_windows_locked_range_capacity)
     {
@@ -366,11 +366,11 @@ static com_util_memory_lock_result_t ensure_windows_registry_capacity(size_t req
         {
             new_capacity = s_windows_locked_range_capacity;
         }
-        while ((result == COM_UTIL_MEMORY_LOCK_OK) && (new_capacity < required_capacity))
+        while ((result == COM_UTIL_OK) && (new_capacity < required_capacity))
         {
             if (new_capacity > ((size_t)-1) / 2U)
             {
-                result = COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED;
+                result = COM_UTIL_ERR_LIMIT_EXCEEDED;
             }
             else
             {
@@ -378,13 +378,13 @@ static com_util_memory_lock_result_t ensure_windows_registry_capacity(size_t req
             }
         }
 
-        if (result == COM_UTIL_MEMORY_LOCK_OK)
+        if (result == COM_UTIL_OK)
         {
             com_util_memory_lock_range_entry *new_ranges = (com_util_memory_lock_range_entry *)realloc(
                 s_windows_locked_ranges, sizeof(*new_ranges) * new_capacity);
             if (new_ranges == NULL)
             {
-                result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                result = COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
@@ -403,14 +403,13 @@ static com_util_memory_lock_result_t ensure_windows_registry_capacity(size_t req
  *  @param[in]      base      範囲の先頭アドレス。
  *  @param[in]      end       範囲の終端アドレス。
  *  @param[in]      ref_count 初期参照数。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t insert_windows_registry_range(size_t index, uintptr_t base, uintptr_t end,
-                                                                   size_t ref_count)
+static int insert_windows_registry_range(size_t index, uintptr_t base, uintptr_t end, size_t ref_count)
 {
-    com_util_memory_lock_result_t result = ensure_windows_registry_capacity(s_windows_locked_range_count + 1U);
+    int result = ensure_windows_registry_capacity(s_windows_locked_range_count + 1U);
 
-    if (result == COM_UTIL_MEMORY_LOCK_OK)
+    if (result == COM_UTIL_OK)
     {
         size_t move_index = s_windows_locked_range_count;
 
@@ -447,14 +446,14 @@ static void remove_windows_registry_range(size_t index)
 /**
  *  @brief          registry 内の範囲を指定境界で分割します。
  *  @param[in]      boundary 分割境界のアドレス。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t split_windows_registry_at(uintptr_t boundary)
+static int split_windows_registry_at(uintptr_t boundary)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
     size_t index = 0U;
 
-    while ((result == COM_UTIL_MEMORY_LOCK_OK) && (index < s_windows_locked_range_count))
+    while ((result == COM_UTIL_OK) && (index < s_windows_locked_range_count))
     {
         com_util_memory_lock_range_entry *entry = &s_windows_locked_ranges[index];
 
@@ -557,14 +556,14 @@ static void *pointer_from_uintptr(uintptr_t address)
 /**
  *  @brief          self scope が参照している Windows ロック範囲を解放します。
  *  @param[in,out]  scope 解放する self scope。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  *
  *  registry の ref-count を減算し、0 になった範囲だけ VirtualUnlock() へ渡します。
  */
-static com_util_memory_lock_result_t release_windows_scope_ranges(com_util_memory_lock_scope *scope)
+static int release_windows_scope_ranges(com_util_memory_lock_scope *scope)
 {
     size_t index = scope->count;
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     while (index > 0U)
     {
@@ -574,7 +573,7 @@ static com_util_memory_lock_result_t release_windows_scope_ranges(com_util_memor
         index--;
         if (find_windows_registry_range(scope->entries[index].base, &registry_index) == 0)
         {
-            result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+            result = COM_UTIL_ERR_UNKNOWN;
         }
         else
         {
@@ -582,7 +581,7 @@ static com_util_memory_lock_result_t release_windows_scope_ranges(com_util_memor
             if ((entry->base != scope->entries[index].base) || (entry->end != scope->entries[index].end) ||
                 (entry->ref_count == 0U))
             {
-                result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                result = COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
@@ -610,32 +609,31 @@ static com_util_memory_lock_result_t release_windows_scope_ranges(com_util_memor
  *  @param[in,out]  scope 範囲取得に成功した単位を記録する self scope。
  *  @param[in]      base  取得する範囲の先頭アドレス。
  *  @param[in]      end   取得する範囲の終端アドレス。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  *
  *  既存 registry 範囲は ref-count を増やし、未登録範囲だけ VirtualLock() へ渡します。\n
  *  途中で失敗した場合は、本関数内で取得済みの範囲を release_windows_scope_ranges() で戻します。
  */
-static com_util_memory_lock_result_t acquire_windows_range(com_util_memory_lock_scope *scope, uintptr_t base,
-                                                           uintptr_t end)
+static int acquire_windows_range(com_util_memory_lock_scope *scope, uintptr_t base, uintptr_t end)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
     uintptr_t current = base;
 
     if (base >= end)
     {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    if (result == COM_UTIL_MEMORY_LOCK_OK)
+    if (result == COM_UTIL_OK)
     {
         result = split_windows_registry_at(base);
     }
-    if (result == COM_UTIL_MEMORY_LOCK_OK)
+    if (result == COM_UTIL_OK)
     {
         result = split_windows_registry_at(end);
     }
 
-    while ((result == COM_UTIL_MEMORY_LOCK_OK) && (current < end))
+    while ((result == COM_UTIL_OK) && (current < end))
     {
         size_t registry_index = 0U;
 
@@ -649,7 +647,7 @@ static com_util_memory_lock_result_t acquire_windows_range(com_util_memory_lock_
 
             s_windows_locked_ranges[registry_index].ref_count++;
             result = append_scope_range(scope, current, range_end);
-            if (result != COM_UTIL_MEMORY_LOCK_OK)
+            if (result != COM_UTIL_OK)
             {
                 s_windows_locked_ranges[registry_index].ref_count--;
             }
@@ -669,14 +667,14 @@ static com_util_memory_lock_result_t acquire_windows_range(com_util_memory_lock_
                 size_t insert_index = find_windows_registry_insert_index(current);
 
                 result = insert_windows_registry_range(insert_index, current, range_end, 1U);
-                if (result != COM_UTIL_MEMORY_LOCK_OK)
+                if (result != COM_UTIL_OK)
                 {
                     (void)VirtualUnlock(pointer_from_uintptr(current), range_size);
                 }
                 else
                 {
                     result = append_scope_range(scope, current, range_end);
-                    if (result != COM_UTIL_MEMORY_LOCK_OK)
+                    if (result != COM_UTIL_OK)
                     {
                         (void)VirtualUnlock(pointer_from_uintptr(current), range_size);
                         remove_windows_registry_range(insert_index);
@@ -687,7 +685,7 @@ static com_util_memory_lock_result_t acquire_windows_range(com_util_memory_lock_
         }
     }
 
-    if (result != COM_UTIL_MEMORY_LOCK_OK)
+    if (result != COM_UTIL_OK)
     {
         (void)release_windows_scope_ranges(scope);
     }
@@ -698,11 +696,11 @@ static com_util_memory_lock_result_t acquire_windows_range(com_util_memory_lock_
 /**
  *  @brief          Windows で呼び出しスレッドのスタックをロック前に committed page 化します。
  *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
- *  @return         成功時は COM_UTIL_MEMORY_LOCK_OK、それ以外はエラー結果を返します。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
+static int prefault_stack(size_t stack_prefault_bytes)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (stack_prefault_bytes > 0U)
     {
@@ -722,7 +720,7 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
         if ((available <= COM_UTIL_MEMORY_LOCK_STACK_SAFETY_MARGIN) ||
             (stack_prefault_bytes > (available - COM_UTIL_MEMORY_LOCK_STACK_SAFETY_MARGIN)))
         {
-            result = COM_UTIL_MEMORY_LOCK_LIMIT_EXCEEDED;
+            result = COM_UTIL_ERR_LIMIT_EXCEEDED;
         }
         else
         {
@@ -736,15 +734,15 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
 /**
  *  @brief          未対応プラットフォームで stack prefault の結果を返します。
  *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
- *  @return         0 の場合は COM_UTIL_MEMORY_LOCK_OK、それ以外は COM_UTIL_MEMORY_LOCK_UNSUPPORTED を返します。
+ *  @return         0 の場合は COM_UTIL_OK、それ以外は COM_UTIL_ERR_UNSUPPORTED を返します。
  */
-static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
+static int prefault_stack(size_t stack_prefault_bytes)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (stack_prefault_bytes > 0U)
     {
-        result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+        result = COM_UTIL_ERR_UNSUPPORTED;
     }
 
     return result;
@@ -753,13 +751,13 @@ static com_util_memory_lock_result_t prefault_stack(size_t stack_prefault_bytes)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_memory_lock_result_t com_util_memory_lock_range(const void *address, size_t size)
+int com_util_memory_lock_range(const void *address, size_t size)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if ((address == NULL) || (size == 0U))
     {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     else
     {
@@ -776,7 +774,7 @@ com_util_memory_lock_result_t com_util_memory_lock_range(const void *address, si
             result = map_windows_error_to_memory_lock_result(GetLastError());
         }
 #else
-        result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+        result = COM_UTIL_ERR_UNSUPPORTED;
 #endif
     }
 
@@ -785,13 +783,13 @@ com_util_memory_lock_result_t com_util_memory_lock_range(const void *address, si
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_memory_lock_result_t com_util_memory_unlock_range(const void *address, size_t size)
+int com_util_memory_unlock_range(const void *address, size_t size)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if ((address == NULL) || (size == 0U))
     {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     else
     {
@@ -808,7 +806,7 @@ com_util_memory_lock_result_t com_util_memory_unlock_range(const void *address, 
             result = map_windows_error_to_memory_lock_result(GetLastError());
         }
 #else
-        result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+        result = COM_UTIL_ERR_UNSUPPORTED;
 #endif
     }
 
@@ -817,15 +815,14 @@ com_util_memory_lock_result_t com_util_memory_unlock_range(const void *address, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
-                                                        com_util_memory_lock_scope **scope)
+int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, com_util_memory_lock_scope **scope)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if ((options == NULL) || (scope == NULL) || (options->flags == 0) ||
         ((options->flags & ~COM_UTIL_MEMORY_LOCK_KNOWN_FLAGS) != 0))
     {
-        result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     else
     {
@@ -833,7 +830,7 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
 
         result = prefault_stack(options->stack_prefault_bytes);
 
-        if (result != COM_UTIL_MEMORY_LOCK_OK)
+        if (result != COM_UTIL_OK)
         {
             return result;
         }
@@ -844,11 +841,11 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
 
         if (convert_result < 0)
         {
-            result = COM_UTIL_MEMORY_LOCK_INVALID_ARGUMENT;
+            result = COM_UTIL_ERR_INVALID_ARGUMENT;
         }
         else if (convert_result > 0)
         {
-            result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+            result = COM_UTIL_ERR_UNSUPPORTED;
         }
         else
         {
@@ -856,12 +853,12 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
                 (com_util_memory_lock_scope *)calloc(1U, sizeof(com_util_memory_lock_scope));
             if (new_scope == NULL)
             {
-                result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                result = COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
                 result = memory_lock_lock();
-                if (result == COM_UTIL_MEMORY_LOCK_OK)
+                if (result == COM_UTIL_OK)
                 {
                     if (mlockall(native_flags) != 0)
                     {
@@ -877,7 +874,7 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
                     memory_lock_unlock();
                 }
 
-                if (result != COM_UTIL_MEMORY_LOCK_OK)
+                if (result != COM_UTIL_OK)
                 {
                     free(new_scope);
                 }
@@ -886,7 +883,7 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
 #elif defined(PLATFORM_WINDOWS)
         if (options->flags != COM_UTIL_MEMORY_LOCK_CURRENT)
         {
-            result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+            result = COM_UTIL_ERR_UNSUPPORTED;
         }
         else
         {
@@ -894,14 +891,14 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
                 (com_util_memory_lock_scope *)calloc(1U, sizeof(com_util_memory_lock_scope));
             if (new_scope == NULL)
             {
-                result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                result = COM_UTIL_ERR_UNKNOWN;
             }
             else
             {
                 SYSTEM_INFO system_info;
 
                 result = memory_lock_lock();
-                if (result == COM_UTIL_MEMORY_LOCK_OK)
+                if (result == COM_UTIL_OK)
                 {
                     GetSystemInfo(&system_info);
 
@@ -909,7 +906,7 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
                     uintptr_t maximum = (uintptr_t)system_info.lpMaximumApplicationAddress;
                     size_t page_size = (size_t)system_info.dwPageSize;
 
-                    while ((result == COM_UTIL_MEMORY_LOCK_OK) && (current < maximum))
+                    while ((result == COM_UTIL_OK) && (current < maximum))
                     {
                         MEMORY_BASIC_INFORMATION info;
                         SIZE_T query_size = VirtualQuery((LPCVOID)current, &info, sizeof(info));
@@ -938,14 +935,14 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
                         }
                     }
 
-                    if (result == COM_UTIL_MEMORY_LOCK_OK)
+                    if (result == COM_UTIL_OK)
                     {
                         *scope = new_scope;
                     }
                     memory_lock_unlock();
                 }
 
-                if (result != COM_UTIL_MEMORY_LOCK_OK)
+                if (result != COM_UTIL_OK)
                 {
                     free(new_scope->entries);
                     free(new_scope);
@@ -953,7 +950,7 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
             }
         }
 #else
-        result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+        result = COM_UTIL_ERR_UNSUPPORTED;
 #endif
     }
 
@@ -962,9 +959,9 @@ com_util_memory_lock_result_t com_util_memory_lock_self(const com_util_memory_lo
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_memory_lock_result_t com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope)
+int com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope)
 {
-    com_util_memory_lock_result_t result = COM_UTIL_MEMORY_LOCK_OK;
+    int result = COM_UTIL_OK;
 
     if (scope != NULL)
     {
@@ -972,11 +969,11 @@ com_util_memory_lock_result_t com_util_memory_lock_scope_release(com_util_memory
         if (scope->locked_all != 0)
         {
             result = memory_lock_lock();
-            if (result == COM_UTIL_MEMORY_LOCK_OK)
+            if (result == COM_UTIL_OK)
             {
                 if (s_linux_self_lock_scope_count == 0U)
                 {
-                    result = COM_UTIL_MEMORY_LOCK_SYSTEM_ERROR;
+                    result = COM_UTIL_ERR_UNKNOWN;
                 }
                 else
                 {
@@ -995,7 +992,7 @@ com_util_memory_lock_result_t com_util_memory_lock_scope_release(com_util_memory
         free(scope);
 #elif defined(PLATFORM_WINDOWS)
         result = memory_lock_lock();
-        if (result == COM_UTIL_MEMORY_LOCK_OK)
+        if (result == COM_UTIL_OK)
         {
             result = release_windows_scope_ranges(scope);
             memory_lock_unlock();
@@ -1004,7 +1001,7 @@ com_util_memory_lock_result_t com_util_memory_lock_scope_release(com_util_memory
         free(scope);
 #else
         free(scope);
-        result = COM_UTIL_MEMORY_LOCK_UNSUPPORTED;
+        result = COM_UTIL_ERR_UNSUPPORTED;
 #endif
     }
 

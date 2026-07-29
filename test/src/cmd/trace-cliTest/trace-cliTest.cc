@@ -402,11 +402,11 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
             {
                 if (index >= lines.size())
                 {
-                    return 0;
+                    return COM_UTIL_ERR_EOF;
                 }
                 copy_line(buf, (int)buf_size, lines[index++].c_str());
-                return 1;
-            }); // [Pre-Assert手順] - com_util_prompt_readline_fmt_at にて入力列を 1 行ずつ返却し、尽きたら 0 を返却する。
+                return COM_UTIL_OK;
+            }); // [Pre-Assert手順] - com_util_prompt_readline_fmt_at にて入力列を 1 行ずつ返却し、尽きたら COM_UTIL_ERR_EOF を返却する。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(0)); // [Pre-Assert手順] - help を含むその他の stdout 出力を許容する。

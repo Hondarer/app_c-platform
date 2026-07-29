@@ -27,6 +27,7 @@
 #endif     /* PLATFORM_LINUX */
 
 #include <stddef.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -44,7 +45,7 @@ extern "C"
      *  @param[out]     out_path      完全なパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      func_addr     モジュールを特定するための関数アドレス。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -58,7 +59,7 @@ extern "C"
      *  @param[out]     out_basename      ベース名 (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      out_basename_sz   @p out_basename のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      func_addr         モジュールを特定するための関数アドレス。NULL を渡してはなりません。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

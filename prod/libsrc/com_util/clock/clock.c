@@ -12,6 +12,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/time.h>
 #include <stdio.h>
@@ -239,7 +240,7 @@ int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, con
     if (timestamp == NULL || timestamp->tv_nsec < 0 || timestamp->tv_nsec >= NSEC_PER_SEC)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (com_util_localtime(&local_tm, &timestamp->tv_sec) != 0 || com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0 ||
@@ -247,10 +248,10 @@ int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, con
         clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, timestamp->tv_nsec, offset_minutes) != 0)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -262,17 +263,17 @@ int com_util_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const
     if (timestamp == NULL || timestamp->tv_nsec < 0 || timestamp->tv_nsec >= NSEC_PER_SEC)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_utc_fallback);
-        return -1;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0 ||
         clock_format_iso8601_utc_from_tm(buf, buf_size, &utc_tm, timestamp->tv_nsec) != 0)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_utc_fallback);
-        return -1;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

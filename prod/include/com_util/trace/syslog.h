@@ -2,6 +2,7 @@
 #define COM_UTIL_SYSLOG_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/com_util_export.h>
 
@@ -59,9 +60,9 @@ extern "C"
      *  @param[in]      level    syslog severity 値。
      *  @param[in]      timestamp  デバッグ用 FD 出力に付与する実時刻です。NULL の場合は時刻を付与しません。
      *                             不正な明示タイムスタンプが渡された場合は現在時刻へ代替し、
-     *                             出力は継続しつつ戻り値は -1 を返します。
+     *                             出力は継続しつつ戻り値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *  @param[in]      message  null 終端 UTF-8 文字列。NULL は無視。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -74,9 +75,12 @@ extern "C"
     /**
      *  @brief          syslog プロバイダーの識別子を変更します。
      *
-     *  @param[in]      handle     com_util_syslog_sink_create の戻り値です。NULL の場合は -1 を返します。
-     *  @param[in]      new_ident  新しい識別子文字列です。NULL の場合は -1 を返します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @param[in]      handle     com_util_syslog_sink_create の戻り値です。NULL を渡してはなりません。
+     *  @param[in]      new_ident  新しい識別子文字列です。NULL を渡してはなりません。
+     *  @retval         COM_UTIL_OK                    識別子を変更しました。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p handle または @p new_ident が NULL です。
+     *  @retval         COM_UTIL_ERR_OUT_OF_MEMORY     識別子を複製するメモリを確保できません。
+     *  @return         上記以外の失敗時は、内部ロック API の共通結果コードを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

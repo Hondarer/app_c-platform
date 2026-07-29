@@ -26,6 +26,7 @@
 
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/com_util_export.h>
 
@@ -121,8 +122,8 @@ extern "C"
  *  @param[out]     buf         入力結果を格納するバッファーです。終端の改行は格納しません。
  *  @param[in]      buf_size    @p buf のバイト数です。
  *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
- *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
- *                  0 を返します。
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+ *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
  */
 #define com_util_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
     _com_util_pinned_prompt_readline((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
@@ -134,8 +135,8 @@ extern "C"
  *  @param[in]      buf_size  @p buf のバイト数です。
  *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
  *  @param[in]      ...       @p fmt に対応する書式引数です。
- *  @return         入力を確定した場合は 1 を返します。EOF、Ctrl+C、引数不正、または内部エラーの場合は
- *                  0 を返します。
+ *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+ *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
  */
 #define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
     _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
@@ -151,7 +152,8 @@ extern "C"
      *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
      *  @param[in]      file        履歴を識別する呼び出し元ファイル名です。
      *  @param[in]      line        履歴を識別する呼び出し元行番号です。
-     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -173,7 +175,8 @@ extern "C"
      *  @param[in]      line      履歴を識別する呼び出し元行番号です。
      *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
      *  @param[in]      ...       @p fmt に対応する書式引数です。
-     *  @return         入力を確定した場合は 1、それ以外の場合は 0 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf,
                                                                           size_t buf_size, const char *file, int line,
@@ -225,8 +228,8 @@ extern "C"
      *  @param[in]      screen    固定プロンプト ハンドルです。
      *  @param[in]      position  上部または下部のステータス領域を指定します。
      *  @param[in]      enable    0 以外の場合は有効にし、0 の場合は無効にします。
-     *  @return         成功時は 0 を返します。@p screen が NULL、または @p position が不正な場合は
-     *                  -1 を返します。
+     *  @retval         COM_UTIL_OK                    ステータス領域の有効状態を変更しました。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p screen が NULL、または @p position が不正です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -241,7 +244,9 @@ extern "C"
      *  @param[in]      position  上部または下部のステータス領域を指定します。
      *  @param[in]      align     左寄せまたは右寄せを指定します。
      *  @param[in]      content   表示する文字列です。NULL の場合は指定位置の内容を消去します。
-     *  @return         成功時は 0 を返します。引数不正またはメモリ確保失敗の場合は -1 を返します。
+     *  @retval         COM_UTIL_OK                    表示内容を設定しました。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p screen が NULL、または位置や配置の指定が不正です。
+     *  @retval         COM_UTIL_ERR_OUT_OF_MEMORY     表示内容を保持するメモリを確保できません。
      *  @note           ANSI CSI SGR エスケープ シーケンスは色指定としてそのまま出力し、表示幅を
      *                  0 として配置を計算します。
      *

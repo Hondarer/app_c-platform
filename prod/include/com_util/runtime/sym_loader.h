@@ -29,6 +29,7 @@
 #define COM_UTIL_SYM_LOADER_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/sync/sync.h>
 #include <com_util/com_util_export.h>
 
@@ -163,9 +164,11 @@ extern "C"
     /**
      *  @brief          com_util_sym_loader_entry ポインター配列の内容を標準出力に表示します。
      *
-     *  @param[in]      fobj_array      com_util_sym_loader_entry ポインター配列。
+     *  @param[in]      fobj_array      com_util_sym_loader_entry ポインター配列。要素数が 0 の場合は NULL 可。
      *  @param[in]      fobj_length     配列の要素数。
-     *  @return         すべてのエントリが正常に解決されている場合は 0、1 つでも失敗している場合は -1。
+     *  @retval         COM_UTIL_OK                    すべてのエントリが正常に解決されています。
+     *  @retval         COM_UTIL_ERR_UNKNOWN                   1 つ以上のエントリを解決できません。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  配列または配列要素が NULL です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

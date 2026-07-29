@@ -6,15 +6,14 @@
 int delegate_real_com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_stat_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_stat_fmt"));
+        reinterpret_cast<decltype(&com_util_stat_fmt)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_stat_fmt"));
 
     return real_fn(buf, "%s", format);
 }
 
 MOCK_WEAK_IMPL(int, com_util_stat_fmt, com_util_file_stat_t *buf, const char *format, ...)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     char path[4096];
     va_list args;

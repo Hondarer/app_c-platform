@@ -25,6 +25,7 @@
 #define COM_UTIL_RUNTIME_SHUTDOWN_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -94,7 +95,7 @@ extern "C"
      *
      *  @param[in]      callback 実行するコールバック。
      *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -113,7 +114,7 @@ extern "C"
      *
      *  @param[in]      callback 実行するコールバック。
      *  @param[in]      context  コールバックへ渡す任意ポインター。NULL 可。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -198,30 +199,34 @@ extern "C"
      *
      *  実アプリケーションでは使用しません。登録済みコールバックを 1 回だけ実行します。
      *
-     *  @param[in]      event 実行に使用する終了イベント。
-     *  @return         コールバックを実行した場合は 0、すでに実行済みの場合は 1、引数不正の場合は
-     *                  -1 を返します。
+     *  @param[in]      event       実行に使用する終了イベント。
+     *  @param[out]     invoked_out コールバックを実行した場合は 1、すでに実行済みで何もしなかった場合は 0 の格納先。
+     *                              NULL 可。戻り値が @ref COM_UTIL_OK の場合のみ有効です。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event,
+                                                                        int *invoked_out);
 
     /**
      *  @brief          テスト用に終了要求 callback を同期実行します。
      *
      *  実アプリケーションでは使用しません。登録済み request callback を 1 回だけ実行します。
      *
-     *  @param[in]      event 実行に使用する終了イベント。
-     *  @return         コールバックを実行した場合は 0、すでに実行済みの場合は 1、引数不正の場合は
-     *                  -1 を返します。
+     *  @param[in]      event       実行に使用する終了イベント。
+     *  @param[out]     invoked_out コールバックを実行した場合は 1、すでに実行済みで何もしなかった場合は 0 の格納先。
+     *                              NULL 可。戻り値が @ref COM_UTIL_OK の場合のみ有効です。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event);
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event,
+                                                                                int *invoked_out);
 
     /**
      *  @brief          テスト用に shutdown ランタイムの内部状態を初期化します。

@@ -47,67 +47,58 @@
         } \
     }
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_lock_create, (mtx), com_util_local_lock **mtx)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_lock_lock, (mtx, timeout_ms), com_util_local_lock *mtx,
-                int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_lock_try_lock, (mtx), com_util_local_lock *mtx)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_lock_unlock, (mtx), com_util_local_lock *mtx)
+DEFINE_SYNC_RET(int, com_util_local_lock_create, (mtx), com_util_local_lock **mtx)
+DEFINE_SYNC_RET(int, com_util_local_lock_lock, (mtx, timeout_ms), com_util_local_lock *mtx, int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_local_lock_try_lock, (mtx), com_util_local_lock *mtx)
+DEFINE_SYNC_RET(int, com_util_local_lock_unlock, (mtx), com_util_local_lock *mtx)
 DEFINE_SYNC_VOID(com_util_local_lock_destroy, (mtx), com_util_local_lock *mtx)
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_condvar_create, (cv), com_util_condvar **cv)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_condvar_wait, (cv, mtx, timeout_ms), com_util_condvar *cv,
-                com_util_local_lock *mtx, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_condvar_signal, (cv), com_util_condvar *cv)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_condvar_broadcast, (cv), com_util_condvar *cv)
+DEFINE_SYNC_RET(int, com_util_condvar_create, (cv), com_util_condvar **cv)
+DEFINE_SYNC_RET(int, com_util_condvar_wait, (cv, mtx, timeout_ms), com_util_condvar *cv, com_util_local_lock *mtx,
+                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_condvar_signal, (cv), com_util_condvar *cv)
+DEFINE_SYNC_RET(int, com_util_condvar_broadcast, (cv), com_util_condvar *cv)
 DEFINE_SYNC_VOID(com_util_condvar_destroy, (cv), com_util_condvar *cv)
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_create, (rwlock), com_util_local_rwlock **rwlock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_lock_shared, (rwlock, timeout_ms),
-                com_util_local_rwlock *rwlock, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_try_lock_shared, (rwlock), com_util_local_rwlock *rwlock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_lock_exclusive, (rwlock, timeout_ms),
-                com_util_local_rwlock *rwlock, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_try_lock_exclusive, (rwlock),
-                com_util_local_rwlock *rwlock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_unlock_shared, (rwlock), com_util_local_rwlock *rwlock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_local_rwlock_unlock_exclusive, (rwlock), com_util_local_rwlock *rwlock)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_create, (rwlock), com_util_local_rwlock **rwlock)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_lock_shared, (rwlock, timeout_ms), com_util_local_rwlock *rwlock,
+                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_try_lock_shared, (rwlock), com_util_local_rwlock *rwlock)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_lock_exclusive, (rwlock, timeout_ms), com_util_local_rwlock *rwlock,
+                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_try_lock_exclusive, (rwlock), com_util_local_rwlock *rwlock)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_unlock_shared, (rwlock), com_util_local_rwlock *rwlock)
+DEFINE_SYNC_RET(int, com_util_local_rwlock_unlock_exclusive, (rwlock), com_util_local_rwlock *rwlock)
 DEFINE_SYNC_VOID(com_util_local_rwlock_destroy, (rwlock), com_util_local_rwlock *rwlock)
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_thread_create, (thread, func, arg), com_util_thread **thread,
-                com_util_thread_func_t func, void *arg)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_thread_join, (thread, timeout_ms), com_util_thread *thread,
-                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_thread_create, (thread, func, arg), com_util_thread **thread, com_util_thread_func_t func,
+                void *arg)
+DEFINE_SYNC_RET(int, com_util_thread_join, (thread, timeout_ms), com_util_thread *thread, int timeout_ms)
 DEFINE_SYNC_VOID(com_util_thread_detach, (thread), com_util_thread *thread)
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_open, (identity, lock), const char *identity,
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_open, (identity, lock), const char *identity,
                 com_util_interprocess_lock **lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_import_descriptor,
-                (descriptor, descriptor_size, lock), const void *descriptor, size_t descriptor_size,
-                com_util_interprocess_lock **lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_export_descriptor,
-                (lock, descriptor, descriptor_size), const com_util_interprocess_lock *lock, void *descriptor,
-                size_t *descriptor_size)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_lock, (lock, timeout_ms),
-                com_util_interprocess_lock *lock, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_try_lock, (lock), com_util_interprocess_lock *lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_lock_unlock, (lock), com_util_interprocess_lock *lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_import_descriptor, (descriptor, descriptor_size, lock),
+                const void *descriptor, size_t descriptor_size, com_util_interprocess_lock **lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_export_descriptor, (lock, descriptor, descriptor_size),
+                const com_util_interprocess_lock *lock, void *descriptor, size_t *descriptor_size)
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_lock, (lock, timeout_ms), com_util_interprocess_lock *lock,
+                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_try_lock, (lock), com_util_interprocess_lock *lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_lock_unlock, (lock), com_util_interprocess_lock *lock)
 DEFINE_SYNC_VOID(com_util_interprocess_lock_destroy, (lock), com_util_interprocess_lock *lock)
 
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_open, (identity, lock), const char *identity,
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_open, (identity, lock), const char *identity,
                 com_util_interprocess_rwlock **lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_import_descriptor,
-                (descriptor, descriptor_size, lock), const void *descriptor, size_t descriptor_size,
-                com_util_interprocess_rwlock **lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_export_descriptor,
-                (lock, descriptor, descriptor_size), const com_util_interprocess_rwlock *lock, void *descriptor,
-                size_t *descriptor_size)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_lock_shared, (lock, timeout_ms),
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_import_descriptor, (descriptor, descriptor_size, lock),
+                const void *descriptor, size_t descriptor_size, com_util_interprocess_rwlock **lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_export_descriptor, (lock, descriptor, descriptor_size),
+                const com_util_interprocess_rwlock *lock, void *descriptor, size_t *descriptor_size)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_lock_shared, (lock, timeout_ms), com_util_interprocess_rwlock *lock,
+                int timeout_ms)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_try_lock_shared, (lock), com_util_interprocess_rwlock *lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_lock_exclusive, (lock, timeout_ms),
                 com_util_interprocess_rwlock *lock, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_try_lock_shared, (lock),
-                com_util_interprocess_rwlock *lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_lock_exclusive, (lock, timeout_ms),
-                com_util_interprocess_rwlock *lock, int timeout_ms)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_try_lock_exclusive, (lock),
-                com_util_interprocess_rwlock *lock)
-DEFINE_SYNC_RET(com_util_sync_result_t, com_util_interprocess_rwlock_unlock, (lock), com_util_interprocess_rwlock *lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_try_lock_exclusive, (lock), com_util_interprocess_rwlock *lock)
+DEFINE_SYNC_RET(int, com_util_interprocess_rwlock_unlock, (lock), com_util_interprocess_rwlock *lock)
 DEFINE_SYNC_VOID(com_util_interprocess_rwlock_destroy, (lock), com_util_interprocess_rwlock *lock)

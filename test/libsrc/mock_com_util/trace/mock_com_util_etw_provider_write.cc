@@ -15,7 +15,7 @@ int delegate_real_com_util_etw_provider_write(com_util_etw_provider *handle, int
 MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, int level, const char *service,
                const char *message)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
@@ -28,7 +28,12 @@ MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, 
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d \"%s\"", __func__, level, message != nullptr ? message : "(null)");
+        const char *message_text = "(null)";
+        if (message != nullptr)
+        {
+            message_text = message;
+        }
+        printf("  > %s %d \"%s\"", __func__, level, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

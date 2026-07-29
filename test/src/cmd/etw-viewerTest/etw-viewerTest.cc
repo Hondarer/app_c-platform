@@ -84,14 +84,14 @@ TEST_F(etw_viewerTest, main_accepts_pid_filter)
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
     EXPECT_CALL(mock_com_util_, com_util_etw_session_check_access())
-        .WillOnce(Return(COM_UTIL_ETW_SESSION_OK)); // [Pre-Assert手順] - 権限確認から OK を返却して通過させる。
+        .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert手順] - 権限確認から OK を返却して通過させる。
     EXPECT_CALL(mock_com_util_, com_util_etw_session_start(_, _, _, _, _))
         .WillOnce(Invoke(
             [&captured_context](const char *, const char *, com_util_etw_event_callback_t, void *context,
                                 int *out_status)
             {
                 captured_context = *static_cast<const etw_viewer_context *>(context);
-                *out_status = COM_UTIL_ETW_SESSION_ERR_PARAM;
+                *out_status = COM_UTIL_ERR_INVALID_ARGUMENT;
                 return static_cast<com_util_etw_session *>(nullptr);
             })); // [Pre-Assert確認_正常系] - com_util_etw_session_start が 1 回呼び出されること。
                  // [Pre-Assert手順] - session 開始に渡された context を捕捉し、失敗を返却して打ち切る。
@@ -282,8 +282,8 @@ TEST_F(etw_viewerTest, main_stops_when_access_is_denied)
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_com_util_, com_util_etw_session_check_access())
         .WillOnce(Return(
-            COM_UTIL_ETW_SESSION_ERR_ACCESS)); // [Pre-Assert確認_異常系] - com_util_etw_session_check_access が 1 回呼び出されること。
-                                               // [Pre-Assert手順] - 権限確認から ERR_ACCESS を返却する。
+            COM_UTIL_ERR_PERMISSION_DENIED)); // [Pre-Assert確認_異常系] - com_util_etw_session_check_access が 1 回呼び出されること。
+                                              // [Pre-Assert手順] - 権限確認から ERR_ACCESS を返却する。
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("Performance Log Users")))
         .WillOnce(
             Return(0)); // [Pre-Assert確認_異常系] - "Performance Log Users" を含む案内メッセージが表示されること。

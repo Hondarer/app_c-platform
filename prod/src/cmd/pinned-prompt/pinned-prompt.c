@@ -175,11 +175,11 @@ static int worker_ensure_sync(pinned_prompt_cli_worker *worker)
     {
         return 0;
     }
-    if (com_util_local_lock_create(&worker->mutex) != 0)
+    if (com_util_local_lock_create(&worker->mutex) != COM_UTIL_OK)
     {
         return -1;
     }
-    if (com_util_condvar_create(&worker->condvar) != 0)
+    if (com_util_condvar_create(&worker->condvar) != COM_UTIL_OK)
     {
         (void)com_util_local_lock_destroy(worker->mutex);
         return -1;
@@ -245,7 +245,7 @@ static void worker_start(pinned_prompt_cli_worker *worker)
     {
         worker->stop_requested = 0;
         worker->tick_count = 0U;
-        if (com_util_thread_create(&worker->thread, worker_thread_proc, worker) == 0)
+        if (com_util_thread_create(&worker->thread, worker_thread_proc, worker) == COM_UTIL_OK)
         {
             worker->thread_running = 1;
             started = 1;
@@ -524,7 +524,7 @@ static void process_read(pinned_prompt_cli_session *session, const char *arg)
         return;
     }
 
-    if (rc)
+    if (rc == COM_UTIL_OK)
     {
         com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, "read %s: %s\n", arg,
                                       buf);
@@ -650,7 +650,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    if (parse_result != COM_UTIL_OK)
     {
         com_util_argparser_print_error_messages(stderr);
         com_util_argparser_print_usage(stderr);
@@ -666,7 +666,7 @@ int main(int argc, char *argv[])
     while (!session.exit_requested)
     {
         rc = com_util_pinned_prompt_readline(session.screen, line, sizeof(line), "pinned-prompt> ");
-        if (rc == 0)
+        if (rc != COM_UTIL_OK)
         {
             break;
         }

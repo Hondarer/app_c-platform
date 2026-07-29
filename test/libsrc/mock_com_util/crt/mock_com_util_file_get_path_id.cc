@@ -11,7 +11,7 @@ int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *
 
 MOCK_WEAK_IMPL(int, com_util_file_get_path_id, const char *path, com_util_file_id *id_out)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
@@ -24,7 +24,12 @@ MOCK_WEAK_IMPL(int, com_util_file_get_path_id, const char *path, com_util_file_i
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s \"%s\", 0x%p", __func__, path != nullptr ? path : "(null)", (void *)id_out);
+        const char *path_text = "(null)";
+        if (path != nullptr)
+        {
+            path_text = path;
+        }
+        printf("  > %s \"%s\", 0x%p", __func__, path_text, (void *)id_out);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

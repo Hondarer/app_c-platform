@@ -66,7 +66,7 @@
             return EXIT_SUCCESS;
         }
 
-        if (parse_result != COM_UTIL_ARGPARSER_OK)
+        if (parse_result != COM_UTIL_OK)
         {
             com_util_argparser_print_error_messages(stderr);
             com_util_argparser_print_usage(stderr);
@@ -95,6 +95,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -112,16 +113,7 @@ extern "C"
  */
 #define COM_UTIL_ARGPARSER_REQUIRED (0x00000001u)
 
-/** @brief 引数解析操作の結果コード。 */
-#define COM_UTIL_ARGPARSER_OK                   (0) /**< 成功。 */
-#define COM_UTIL_ARGPARSER_INVALID_ARGUMENT     (1) /**< API 引数が不正。 */
-#define COM_UTIL_ARGPARSER_OUT_OF_MEMORY        (2) /**< メモリを確保できない。 */
-#define COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION (3) /**< 同名オプションが登録済み。 */
-#define COM_UTIL_ARGPARSER_PARSE_ERROR \
-    (4) /**< コマンドラインの解析エラー (詳細は _com_util_argparser_get_error() で取得)。 */
-#define COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL (5) /**< 出力バッファーが不足している。 */
-
-/** @brief 解析エラーの詳細種別。 */
+/* 解析エラーの詳細種別。 */
 #define COM_UTIL_ARGPARSER_ERROR_NONE                 (0) /**< エラーなし。 */
 #define COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION       (1) /**< 未登録のオプションが出現した。 */
 #define COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE        (2) /**< 値付きオプションに値が指定されなかった。 */
@@ -227,9 +219,9 @@ extern "C"
      *  @param[in]      description  usage に表示する説明文です。NULL も指定できます。
      *  @param[out]     storage      出現回数の格納先です。NULL を渡してはなりません。\n
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化し、出現ごとに 1 加算します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  フラグは同一コマンドラインで複数回指定できます (例: `-v -v` で @p storage は 2)。
      */
@@ -257,9 +249,9 @@ extern "C"
      *  @param[in]      flags        登録フラグです。@ref COM_UTIL_ARGPARSER_REQUIRED を指定できます。
      *  @param[out]     storage      解析した値の格納先です。NULL を渡してはなりません。\n
      *                               オプションが出現した場合のみ書き込みます。既定値は解析前に呼び出し側で設定してください。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  同一コマンドラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION) になります。\n
@@ -294,9 +286,9 @@ extern "C"
      *                               オプションが出現した場合のみ書き込みます。既定値は解析前に呼び出し側で設定してください。\n
      *                               格納する文字列は argv 内の文字列を指します (コピーしません)。
      *                               寿命は argv に従います。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  同一コマンドラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION) になります。\n
@@ -332,9 +324,9 @@ extern "C"
      *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_option_int_array(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
@@ -368,9 +360,9 @@ extern "C"
      *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_option_string_array(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
@@ -396,12 +388,12 @@ extern "C"
      *  @param[out]     storage      解析した値の格納先です。NULL を渡してはなりません。\n
      *                               位置引数が出現した場合のみ書き込みます。
      *                               既定値は解析前に呼び出し側で設定してください。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  位置引数は登録順にコマンドラインの非オプション トークンへ割り当てます。\n
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
-     *  @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_int(com_util_argparser *parser,
                                                                                  const char *name,
@@ -430,12 +422,12 @@ extern "C"
      *                               既定値は解析前に呼び出し側で設定してください。\n
      *                               格納する文字列は argv 内の文字列を指します (コピーしません)。
      *                               寿命は argv に従います。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  位置引数は登録順にコマンドラインの非オプション トークンへ割り当てます。\n
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
-     *  @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_string(com_util_argparser *parser,
                                                                                     const char *name,
@@ -468,11 +460,11 @@ extern "C"
      *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
-     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_int_array(com_util_argparser *parser,
                                                                                        const char *name,
@@ -507,11 +499,11 @@ extern "C"
      *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
-     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT を返します。
+     *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_positional_string_array(
         com_util_argparser *parser, const char *name, const char *description, unsigned int flags, const char **storage,
@@ -534,11 +526,11 @@ extern "C"
      *  @param[in]      argc    argv の要素数です。1 以上を指定してください。
      *  @param[in]      argv    コマンドライン引数の配列です。NULL を渡してはなりません。\n
      *                          argv[0] はプログラム名として扱い、argv[1] 以降を解析します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_PARSE_ERROR 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_PARSE 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  @ref COM_UTIL_ARGPARSER_PARSE_ERROR を返した場合、エラーの詳細は
+     *  @ref COM_UTIL_ERR_PARSE を返した場合、エラーの詳細は
      *  _com_util_argparser_get_error() 、_com_util_argparser_get_error_target() 、
      *  _com_util_argparser_get_error_index() 、_com_util_argparser_get_error_message()
      *  で取得できます。\n
@@ -558,9 +550,9 @@ extern "C"
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーでコマンドラインを解析します。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_PARSE_ERROR 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_PARSE 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *  @see            _com_util_argparser_parse
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_parse(int argc, char *const *argv);
@@ -617,9 +609,9 @@ extern "C"
      *  @param[out]     buffer       メッセージの格納先バッファーです。NULL を渡してはなりません。\n
      *                               常に NUL 終端します。
      *  @param[in]      buffer_size  @p buffer のバイト数です。1 以上を指定してください。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL のいずれかを返します。\n
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL の場合、@p buffer には
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。\n
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合、@p buffer には
      *                  切り詰めたメッセージを格納します。
      *
      *  本 API は組み立てた文字列を返すだけで、表示は行いません。表示は呼び出し側で行ってください。
@@ -644,9 +636,9 @@ extern "C"
      *                                 NULL でない場合は常に NUL 終端します。
      *  @param[in]      buffer_size    @p buffer のバイト数です。@p buffer が NULL の場合は無視します。
      *  @param[out]     required_size  NUL 終端を含む必要バイト数の格納先です。不要な場合は NULL も指定できます。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL のいずれかを返します。\n
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL の場合、@p buffer には
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。\n
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合、@p buffer には
      *                  切り詰めた usage を格納し、@p required_size (NULL でない場合) に必要サイズを出力します。
      *
      *  本 API は組み立てた文字列を返すだけで、表示は行いません。\n
@@ -673,8 +665,8 @@ extern "C"
      *  @brief          登録内容から組み立てた usage を指定ストリームへ出力します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL を渡してはなりません。
      *  @param[in]      stream  出力先ストリームです (stdout / stderr など)。NULL を渡してはなりません。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_OUT_OF_MEMORY のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  内部で _com_util_argparser_get_usage() を用いて usage 文字列を組み立ててから
      *  @p stream へ書き出します。固定長バッファーによる切り詰めは発生しません。\n
@@ -715,7 +707,7 @@ extern "C"
      *  @brief          register 系呼び出しで発生したエラーの件数を取得します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は 0 を返します。
      *  @return         これまでに対象の @p parser へ行った register 系呼び出しのうち、
-     *                  @ref COM_UTIL_ARGPARSER_OK 以外を返した回数を返します。
+     *                  @ref COM_UTIL_OK 以外を返した回数を返します。
      *
      *  明示 API の各 _com_util_argparser_register_*() は個別に結果コードを返します。
      *  呼び出し側は戻り値を都度確認せずに
@@ -732,11 +724,11 @@ extern "C"
 
     /**
      *  @brief          register 系呼び出しで発生した @p index 件目のエラーの結果コードを取得します。
-     *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は @ref COM_UTIL_ARGPARSER_OK を返します。
+     *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は @ref COM_UTIL_OK を返します。
      *  @param[in]      index   取得するエラーの番号 (0 起点、発生順)。
      *  @return         @p index 件目のエラーの結果コードを返します。\n
      *                  @p index が _com_util_argparser_get_register_error_count() 以上の場合は
-     *                  @ref COM_UTIL_ARGPARSER_OK を返します。
+     *                  @ref COM_UTIL_OK を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_get_register_error(const com_util_argparser *parser,
                                                                             size_t index);
@@ -772,9 +764,9 @@ extern "C"
      *  @param[out]     buffer       メッセージの格納先バッファーです。NULL を渡してはなりません。\n
      *                               常に NUL 終端します。
      *  @param[in]      buffer_size  @p buffer のバイト数です。1 以上を指定してください。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL のいずれかを返します。\n
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL の場合、@p buffer には
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。\n
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合、@p buffer には
      *                  切り詰めたメッセージを格納します。
      *
      *  本 API は組み立てた文字列を返すだけで、表示は行いません。表示は呼び出し側で行ってください。
@@ -796,8 +788,8 @@ extern "C"
      *  @brief          register 系呼び出しで発生したエラーのメッセージを指定ストリームへ全件出力します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL を渡してはなりません。
      *  @param[in]      stream  出力先ストリームです (stdout / stderr など)。NULL を渡してはなりません。
-     *  @return         @ref COM_UTIL_ARGPARSER_OK 、@ref COM_UTIL_ARGPARSER_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ARGPARSER_BUFFER_TOO_SMALL のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  内部で _com_util_argparser_get_register_error_message() を用いてエラー メッセージを組み立ててから、
      *  発生順にすべて "error: {メッセージ}\n" の形式で @p stream へ書き出し、

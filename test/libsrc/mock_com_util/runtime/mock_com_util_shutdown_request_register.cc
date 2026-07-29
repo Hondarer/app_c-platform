@@ -3,16 +3,15 @@
 
 int delegate_real_com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_shutdown_request_register)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_shutdown_request_register"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_shutdown_request_register)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_shutdown_request_register"));
 
     return real_fn(callback, context);
 }
 
 MOCK_WEAK_IMPL(int, com_util_shutdown_request_register, com_util_shutdown_callback_t callback, void *context)
 {
-    int rtc = -1;
+    int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {

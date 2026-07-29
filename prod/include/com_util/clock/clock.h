@@ -48,6 +48,7 @@
 #define CLOCK_H
 
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/timespec.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
@@ -214,7 +215,7 @@ extern "C"
      *  @param[out]     buf       出力先バッファー。
      *  @param[in]      buf_size  出力先バッファー サイズ。
      *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
-     *  @return         成功時 0、失敗時 -1。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
      *  ローカル時刻の `YYYY-MM-DDTHH:MM:SS.sss+09:00` 形式へ変換します。\n
@@ -235,7 +236,7 @@ extern "C"
      *  @param[out]     buf       出力先バッファー。
      *  @param[in]      buf_size  出力先バッファー サイズ。
      *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
-     *  @return         成功時 0、失敗時 -1。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  com_util_get_realtime() が返す UTC 基準の時刻値を、
      *  UTC の `YYYY-MM-DDTHH:MM:SS.sssZ` 形式へ変換します。\n

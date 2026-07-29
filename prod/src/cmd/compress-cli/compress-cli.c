@@ -160,30 +160,29 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
                                       char *output_full, size_t output_full_size)
 {
     int err = 0;
-    int path_cmp;
+    int path_equal = 0;
 
-    path_cmp = com_util_paths_equal(options->input_path, options->output_path, &err);
-    if (path_cmp < 0)
+    if (com_util_paths_equal(options->input_path, options->output_path, &path_equal, &err) != COM_UTIL_OK)
     {
         fprintf(stderr, "入力パスと出力パスの比較に失敗しました (errno=%d)\n", err);
         return -1;
     }
 
-    if (path_cmp != 0)
+    if (path_equal != 0)
     {
         fprintf(stderr, "入力ファイルと出力ファイルに同じパスは指定できません。\n");
         return -1;
     }
 
     err = 0;
-    if (com_util_path_get_full(input_full, input_full_size, &err, options->input_path) != 0)
+    if (com_util_path_get_full(input_full, input_full_size, &err, options->input_path) != COM_UTIL_OK)
     {
         fprintf(stderr, "入力パスの正規化に失敗しました: %s (errno=%d)\n", options->input_path, err);
         return -1;
     }
 
     err = 0;
-    if (com_util_path_get_full(output_full, output_full_size, &err, options->output_path) != 0)
+    if (com_util_path_get_full(output_full, output_full_size, &err, options->output_path) != COM_UTIL_OK)
     {
         fprintf(stderr, "出力パスの正規化に失敗しました: %s (errno=%d)\n", options->output_path, err);
         return -1;
@@ -246,7 +245,7 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
     }
 
     compressed_size = compressed_capacity;
-    if (com_util_compress(compressed_data, &compressed_size, input_data, input_size) != 0)
+    if (com_util_compress(compressed_data, &compressed_size, input_data, input_size) != COM_UTIL_OK)
     {
         fprintf(stderr, "圧縮に失敗しました: %s\n", input_path);
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
@@ -302,7 +301,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     }
 
     decompressed_size = (size_t)expected_size;
-    if (com_util_decompress(decompressed_data, &decompressed_size, input_data, input_size) != 0)
+    if (com_util_decompress(decompressed_data, &decompressed_size, input_data, input_size) != COM_UTIL_OK)
     {
         fprintf(stderr, "展開に失敗しました: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
@@ -372,7 +371,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_ARGPARSER_OK)
+    if (parse_result != COM_UTIL_OK)
     {
         com_util_argparser_print_error_messages(stderr);
         com_util_argparser_print_usage(stderr);
