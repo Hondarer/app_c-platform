@@ -113,18 +113,6 @@ extern "C"
  */
 #define COM_UTIL_ARGPARSER_REQUIRED (0x00000001u)
 
-/* 解析エラーの詳細種別。 */
-#define COM_UTIL_ARGPARSER_ERROR_NONE                 (0) /**< エラーなし。 */
-#define COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION       (1) /**< 未登録のオプションが出現した。 */
-#define COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE        (2) /**< 値付きオプションに値が指定されなかった。 */
-#define COM_UTIL_ARGPARSER_ERROR_INVALID_INT          (3) /**< 整数値として解釈できない。 */
-#define COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE         (4) /**< 整数値が int の範囲を超えている。 */
-#define COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED     (5) /**< 必須のオプション/位置引数が指定されなかった。 */
-#define COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION     (6) /**< 単数オプションが複数回指定された。 */
-#define COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS (7) /**< 位置引数が登録した受入数を超えた。 */
-#define COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES (8) /**< 複数値オプションの出現数が容量を超えた。 */
-#define COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE     (9) /**< フラグに値が指定された (`--flag={value}`)。 */
-
     /**
      *  @brief  引数パーサーを操作する不透明ハンドルです。
      */
@@ -257,7 +245,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  同一コマンドラインで複数回指定された場合は解析エラー
-     *  (@ref COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION) になります。\n
+     *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
      *  複数回の指定を許可する場合は _com_util_argparser_register_option_int_array() を使用してください。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_option_int(
@@ -297,7 +285,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  同一コマンドラインで複数回指定された場合は解析エラー
-     *  (@ref COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION) になります。\n
+     *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
      *  複数回の指定を許可する場合は _com_util_argparser_register_option_string_array() を使用してください。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_option_string(
@@ -330,7 +318,7 @@ extern "C"
      *  @param[out]     storage      解析した値を出現順に格納する配列です。NULL を渡してはなりません。
      *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。\n
      *                               出現数が @p capacity を超えた場合は解析エラー
-     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES) になります。
+     *                               (@ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
@@ -369,7 +357,7 @@ extern "C"
      *                               寿命は argv に従います。
      *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。\n
      *                               出現数が @p capacity を超えた場合は解析エラー
-     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES) になります。
+     *                               (@ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
@@ -478,7 +466,7 @@ extern "C"
      *  @param[out]     storage      解析した値を出現順に格納する配列です。NULL を渡してはなりません。
      *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。
      *                               出現数が @p capacity を超えた場合は解析エラー
-     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
+     *                               (@ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
@@ -520,7 +508,7 @@ extern "C"
      *                               寿命は argv に従います。
      *  @param[in]      capacity     @p storage の要素数です。1 以上を指定してください。
      *                               出現数が @p capacity を超えた場合は解析エラー
-     *                               (@ref COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS) になります。
+     *                               (@ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
      *                               _com_util_argparser_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
@@ -554,13 +542,22 @@ extern "C"
      *  @param[in]      argv    コマンドライン引数の配列です。NULL を渡してはなりません。\n
      *                          argv[0] はプログラム名として扱い、argv[1] 以降を解析します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_PARSE 、
-     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *                  @ref COM_UTIL_ERR_UNKNOWN_OPTION 、
+     *                  @ref COM_UTIL_ERR_MISSING_VALUE 、
+     *                  @ref COM_UTIL_ERR_UNEXPECTED_VALUE 、
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、
+     *                  @ref COM_UTIL_ERR_MISSING_REQUIRED 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_OPTION 、
+     *                  @ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS 、
+     *                  @ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。\n
+     *                  解析エラーの場合は、検出した種別に対応する結果コードを返します。
      *
-     *  @ref COM_UTIL_ERR_PARSE を返した場合、エラーの詳細は
-     *  _com_util_argparser_get_error() 、_com_util_argparser_get_error_target() 、
-     *  _com_util_argparser_get_error_index() 、_com_util_argparser_get_error_message()
-     *  で取得できます。\n
+     *  解析エラーの対象名と位置は _com_util_argparser_get_error_target() 、
+     *  _com_util_argparser_get_error_index() で取得し、表示用のメッセージは
+     *  _com_util_argparser_get_error_message() で組み立てられます。\n
+     *  種別は戻り値を保持していない場合でも _com_util_argparser_get_error() で再取得できます。\n
      *  解析エラー時、エラー検出より前に処理した格納先には値が書き込まれています。
      *
      *  本関数は同一ハンドルで繰り返し呼び出せます。\n
@@ -578,7 +575,15 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーでコマンドラインを解析します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_PARSE 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN_OPTION 、
+     *                  @ref COM_UTIL_ERR_MISSING_VALUE 、
+     *                  @ref COM_UTIL_ERR_UNEXPECTED_VALUE 、
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、
+     *                  @ref COM_UTIL_ERR_MISSING_REQUIRED 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_OPTION 、
+     *                  @ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS 、
+     *                  @ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *  @see            _com_util_argparser_parse
      */
@@ -587,9 +592,9 @@ extern "C"
     /**
      *  @brief          直前の _com_util_argparser_parse() の解析エラー種別を取得します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は
-     *                          @ref COM_UTIL_ARGPARSER_ERROR_NONE を返します。
+     *                          @ref COM_UTIL_OK を返します。
      *  @return         解析エラー種別を返します。解析が成功した場合と未解析の場合は
-     *                  @ref COM_UTIL_ARGPARSER_ERROR_NONE を返します。
+     *                  @ref COM_UTIL_OK を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_get_error(const com_util_argparser *parser);
 

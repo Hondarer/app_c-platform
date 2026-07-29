@@ -1,7 +1,7 @@
 # ベンチマークの測定方法
 
 `bench-io` コマンドが何をどう測っているかと、Linux および Windows での実行手順をまとめます。  
-測定結果から導いた API の選び分けは [API 選定基準](../../../../docs/api-selection-guideline.md) を参照してください。
+測定結果から導いた API の選び分けは [API 選定基準](https://github.com/Hondarer/app_com_util/blob/main/docs/fileio-api-selection-guideline.md) を参照してください。
 
 ## 測定対象
 

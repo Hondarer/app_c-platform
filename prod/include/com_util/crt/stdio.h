@@ -147,7 +147,7 @@ extern "C"
      *  @param[out]     buf     読み取ったデータの格納先。NULL を渡してはなりません。
      *  @param[in]      size    @p buf のサイズ (バイト)。
      *  @param[in]      stream  読み取り元のストリーム。NULL を渡してはなりません。
-     *  @return         成功時は @p buf、EOF またはエラー時は NULL を返します。
+     *  @return         成功時は @p buf 、EOF またはエラー時は NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

@@ -102,7 +102,7 @@ register 系 API (`com_util_argparser_register_*()`) は結果コードを戻り
 本 API はエラーを標準出力・標準エラーへ出力しません。  
 表示するかどうか、どこへ (stdout / stderr / ログ) 出すかは呼び出し側が決定します。
 
-`com_util_argparser_parse()` が `COM_UTIL_ERR_PARSE` を返した場合、詳細は次の API で取得します。
+`com_util_argparser_parse()` が解析エラーのコードを返した場合、詳細は次の API で取得します。
 
 - `com_util_argparser_get_error()`: エラー種別 (`int`)
 - `com_util_argparser_get_error_target()`: エラーの対象名 (オプション名や位置引数名)
@@ -127,11 +127,11 @@ com_util_argparser_register_flag("-v", "--verbose", "詳細出力を有効にす
 /* "-v -v --verbose" を解析すると verbose == 3 */
 ```
 
-`--verbose=1` のように値を指定するとエラー (`COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE`) になります。
+`--verbose=1` のように値を指定するとエラー (`COM_UTIL_ERR_UNEXPECTED_VALUE`) になります。
 
 ### 必須の値付きオプション (int)
 
-`COM_UTIL_ARGPARSER_REQUIRED` を指定すると、1 回も出現しない場合に `COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED` で解析が失敗します。
+`COM_UTIL_ARGPARSER_REQUIRED` を指定すると、1 回も出現しない場合に `COM_UTIL_ERR_MISSING_REQUIRED` で解析が失敗します。
 
 ```c
 int port = 0;
@@ -140,7 +140,7 @@ com_util_argparser_register_option_int("-p", "--port", "PORT", "待ち受けポ�
                                        COM_UTIL_ARGPARSER_REQUIRED, &port);
 ```
 
-同一オプションを 2 回指定した場合は `COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION` になります。  
+同一オプションを 2 回指定した場合は `COM_UTIL_ERR_DUPLICATE_OPTION` になります。  
 複数回の指定を許可したい場合は、後述の配列版オプションを使用してください。
 
 ### 文字列オプションと値の寿命
@@ -174,7 +174,7 @@ com_util_argparser_register_option_string_array("-i", "--include", "DIR", "イ�
    include_count == 2, includes[0] == "dir1", includes[1] == "dir2" */
 ```
 
-`capacity` を超える出現は `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES` になります。  
+`capacity` を超える出現は `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` になります。  
 int 値の複数回指定には `com_util_argparser_register_option_int_array()` を使用します。
 
 ```c
@@ -205,7 +205,7 @@ com_util_argparser_register_positional_string("output", "出力ファイル", 0,
 割り当てが曖昧になるためです。  
 必須の位置引数は先に登録してください。
 
-登録数を超える位置引数トークンが出現した場合は `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` になります。
+登録数を超える位置引数トークンが出現した場合は `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` になります。
 
 ### 可変長位置引数
 
@@ -230,7 +230,7 @@ com_util_argparser_register_positional_string_array("files", "処理するファ
 値付きオプションやフラグは可変長位置引数の後から登録でき、コマンド ライン上でも位置引数の途中に指定できます。
 
 `COM_UTIL_ARGPARSER_REQUIRED` を指定した場合は 1 個以上、指定しない場合は 0 個以上の値を受け取ります。  
-`capacity` を超える値は `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` になります。  
+`capacity` を超える値は `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` になります。  
 int 値には `com_util_argparser_register_positional_int_array()` を使用します。  
 文字列配列の要素は argv 内の文字列を指し、文字列の寿命は argv に従います。
 

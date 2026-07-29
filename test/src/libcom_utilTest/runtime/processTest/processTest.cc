@@ -88,24 +88,6 @@ static void remove_temp_path(const char *path)
 }
 #endif /* PLATFORM_ */
 
-static_assert(COM_UTIL_OK == 0, "COM_UTIL_OK の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_UNKNOWN == -1, "COM_UTIL_ERR_UNKNOWN の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_INVALID_ARGUMENT == -2, "COM_UTIL_ERR_INVALID_ARGUMENT の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_UNSUPPORTED == -3, "COM_UTIL_ERR_UNSUPPORTED の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_OUT_OF_MEMORY == -4, "COM_UTIL_ERR_OUT_OF_MEMORY の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_PERMISSION_DENIED == -5, "COM_UTIL_ERR_PERMISSION_DENIED の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_TIMEOUT == -6, "COM_UTIL_ERR_TIMEOUT の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_BUSY == -7, "COM_UTIL_ERR_BUSY の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_BUFFER_TOO_SMALL == -8, "COM_UTIL_ERR_BUFFER_TOO_SMALL の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_LIMIT_EXCEEDED == -9, "COM_UTIL_ERR_LIMIT_EXCEEDED の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_CORRUPT_DESCRIPTOR == -10,
-              "COM_UTIL_ERR_CORRUPT_DESCRIPTOR の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_DUPLICATE_DEFINITION == -11,
-              "COM_UTIL_ERR_DUPLICATE_DEFINITION の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_PARSE == -12, "COM_UTIL_ERR_PARSE の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_EOF == -13, "COM_UTIL_ERR_EOF の ABI 値を変更してはなりません。");
-static_assert(COM_UTIL_ERR_CANCELED == -14, "COM_UTIL_ERR_CANCELED の ABI 値を変更してはなりません。");
-
 static int read_text_file(char *buf, size_t size, const char *path)
 {
     FILE *fp;

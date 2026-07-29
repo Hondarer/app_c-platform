@@ -20,26 +20,40 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 共通結果コードは `prod/include/com_util/base/result.h` に定義します。  
 `result.h` が正であり、本節のコード一覧は参照用の写しです。
 
-| コード | 値 | 意味 |
-|---|---|---|
-| `COM_UTIL_OK` | 0 | 成功 |
-| `COM_UTIL_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
-| `COM_UTIL_ERR_INVALID_ARGUMENT` | -2 | API 引数が不正 (NULL、負値など) |
-| `COM_UTIL_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
-| `COM_UTIL_ERR_OUT_OF_MEMORY` | -4 | メモリを確保できない |
-| `COM_UTIL_ERR_PERMISSION_DENIED` | -5 | 権限不足 |
-| `COM_UTIL_ERR_TIMEOUT` | -6 | タイムアウト |
-| `COM_UTIL_ERR_BUSY` | -7 | リソースがビジー状態 |
-| `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -8 | 出力バッファーが不足している |
-| `COM_UTIL_ERR_LIMIT_EXCEEDED` | -9 | リソースの上限を超過した |
-| `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -10 | ディスクリプタが破損している |
-| `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -11 | 同名の定義が登録済み |
-| `COM_UTIL_ERR_PARSE` | -12 | 解析エラー |
-| `COM_UTIL_ERR_EOF` | -13 | 入力が EOF に達した |
-| `COM_UTIL_ERR_CANCELED` | -14 | ユーザー操作 (Ctrl+C など) による中断 |
+定義は課題別の帯に分けて並べ、各帯に将来の追加用の余白を設けています。
+
+| 帯 | コード | 値 | 意味 |
+|---|---|---|---|
+| 分類不能 | `COM_UTIL_OK` | 0 | 成功 |
+| | `COM_UTIL_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
+| 引数・状態・権限<br> (-2 〜 -9) | `COM_UTIL_ERR_INVALID_ARGUMENT` | -2 | API 引数が不正 (NULL、負値など) |
+| | `COM_UTIL_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
+| | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
+| | `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
+| リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できない |
+| | `COM_UTIL_ERR_BUSY` | -11 | リソースがビジー状態 |
+| | `COM_UTIL_ERR_TIMEOUT` | -12 | タイムアウト |
+| | `COM_UTIL_ERR_LIMIT_EXCEEDED` | -13 | リソースの上限を超過した |
+| | `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -14 | 出力バッファーが不足している |
+| | `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -15 | ディスクリプタが破損している |
+| 入力解析<br> (-20 〜 -39) | `COM_UTIL_ERR_UNKNOWN_OPTION` | -20 | 未登録のオプションが指定された |
+| | `COM_UTIL_ERR_MISSING_VALUE` | -21 | 値を要する項目に値が指定されていない |
+| | `COM_UTIL_ERR_UNEXPECTED_VALUE` | -22 | 値を取らない項目に値が指定された |
+| | `COM_UTIL_ERR_INVALID_INTEGER` | -23 | 整数値として解釈できない |
+| | `COM_UTIL_ERR_OUT_OF_RANGE` | -24 | 値が表現可能な範囲を超えている |
+| | `COM_UTIL_ERR_MISSING_REQUIRED` | -25 | 必須の項目が指定されていない |
+| | `COM_UTIL_ERR_DUPLICATE_OPTION` | -26 | 単数指定の項目が複数回指定された |
+| | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` | -27 | 引数の個数が受入数を超えている |
+| | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` | -28 | 同一項目の出現回数が容量を超えている |
+| 制御<br> (-40 〜) | `COM_UTIL_ERR_EOF` | -40 | 入力が EOF に達した |
+| | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
+
+帯は定義の整理と追加位置を示すためのものであり、範囲判定による分類は API の契約に含めません。  
+`rc <= -20` のような範囲比較で種別を判定せず、個々のコード名との比較を使用します。
 
 各コードの値は ABI として凍結します。  
-既存の値の変更は禁止し、コードの追加は末尾 (より小さい負値) への追記のみとします。
+既存の値の変更は禁止し、コードの追加は該当する帯の余白への追記のみとします。  
+値は `test/src/libcom_utilTest/base/resultTest/` の `static_assert` で固定しており、変更するとコンパイル時に検出されます。
 
 ### 判定慣用句
 
@@ -69,11 +83,19 @@ if (rc != COM_UTIL_OK)
 分類済みコードでは失われる詳細 (`ENOENT` と `EACCES` の区別など) が必要な API のみ、`errno_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
 `errno`、`GetLastError()`、`HRESULT` などの OS エラー値を、共通結果コードとして直接返しません。
 
-### 詳細コードの扱い
+### 命名
 
-共通結果コードより細かい粒度の「詳細コード」は、モジュール固有の定義を許容します。  
-com_util では argparser の `COM_UTIL_ARGPARSER_ERROR_*` (解析失敗の詳細分類) が該当します。  
-詳細コードは関数の戻り値としては使用せず、取得用 API または出力引数で伝達します。
+エラー コードの名称は `COM_UTIL_ERR_*` に統一します。  
+`ERROR` という略記は使用しません。
+
+### 詳細分類の扱い
+
+共通結果コードより細かい粒度の分類が必要な場合も、`result.h` へコードを追加して 1 系統に集約します。  
+モジュール固有のコード体系を別に設けません。
+
+そのため `result.h` は、粗い分類 (`COM_UTIL_ERR_INVALID_ARGUMENT` など) と細かい分類 (`COM_UTIL_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
+細かい分類のコードも通常の結果コードであり、関数の戻り値として返せます。  
+argparser の `_com_util_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`_com_util_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
 
 ### 適用対象外
 

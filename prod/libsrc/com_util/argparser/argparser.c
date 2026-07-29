@@ -266,7 +266,7 @@ static void argparser_free_spec(argparser_spec *spec)
  */
 static void argparser_clear_error(com_util_argparser *parser)
 {
-    parser->last_error = COM_UTIL_ARGPARSER_ERROR_NONE;
+    parser->last_error = COM_UTIL_OK;
     free(parser->last_error_target);
     parser->last_error_target = NULL;
     parser->last_error_index = -1;
@@ -278,7 +278,7 @@ static void argparser_clear_error(com_util_argparser *parser)
  *  @param[in]      error   エラー種別。
  *  @param[in]      target  エラー対象名。NULL 可。複製して保持します。
  *  @param[in]      index   エラーを起こした argv インデックス。該当なしは -1。
- *  @return         常に @ref COM_UTIL_ERR_PARSE を返します。
+ *  @return         @p error をそのまま返します。呼び出し元は解析関数の戻り値として伝播します。
  */
 static int argparser_set_error(com_util_argparser *parser, int error, const char *target, const int index)
 {
@@ -288,7 +288,7 @@ static int argparser_set_error(com_util_argparser *parser, int error, const char
     parser->last_error_target = argparser_strdup(target);
     parser->last_error_index = index;
 
-    return COM_UTIL_ERR_PARSE;
+    return error;
 }
 
 /**
@@ -574,15 +574,15 @@ static int argparser_register_positional_core(com_util_argparser *parser, argpar
  *  @brief          文字列を int 値に変換します。
  *  @param[in]      text   変換する文字列。
  *  @param[out]     value  変換結果の格納先。
- *  @return         成功時は @ref COM_UTIL_ARGPARSER_ERROR_NONE 、
- *                  失敗時は @ref COM_UTIL_ARGPARSER_ERROR_INVALID_INT または
- *                  @ref COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE を返します。
+ *  @return         成功時は @ref COM_UTIL_OK 、
+ *                  失敗時は @ref COM_UTIL_ERR_INVALID_INTEGER または
+ *                  @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
  */
 static int argparser_parse_int(const char *text, int *value)
 {
     if (text[0] == '\0')
     {
-        return COM_UTIL_ARGPARSER_ERROR_INVALID_INT;
+        return COM_UTIL_ERR_INVALID_INTEGER;
     }
 
     char *end = NULL;
@@ -590,16 +590,16 @@ static int argparser_parse_int(const char *text, int *value)
     long parsed = strtol(text, &end, 10);
     if (end == NULL || *end != '\0')
     {
-        return COM_UTIL_ARGPARSER_ERROR_INVALID_INT;
+        return COM_UTIL_ERR_INVALID_INTEGER;
     }
     if (errno == ERANGE || parsed < INT_MIN || parsed > INT_MAX)
     {
-        return COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE;
+        return COM_UTIL_ERR_OUT_OF_RANGE;
     }
 
     *value = (int)parsed;
 
-    return COM_UTIL_ARGPARSER_ERROR_NONE;
+    return COM_UTIL_OK;
 }
 
 /**
@@ -659,7 +659,7 @@ static argparser_spec *argparser_find_short(const com_util_argparser *parser, co
  *  @param[in]      value   書き込む値の文字列。
  *  @param[in]      index   値を取得した argv インデックス。
  *  @return         成功時は @ref COM_UTIL_OK 、
- *                  失敗時は @ref COM_UTIL_ERR_PARSE を返します。
+ *                  失敗時は解析エラーの種別に対応する結果コードを返します。
  */
 static int argparser_store_option_value(com_util_argparser *parser, argparser_spec *spec, const char *value,
                                         const int index)
@@ -670,12 +670,12 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
     {
         if (spec->found > 0)
         {
-            return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION, display_name, index);
+            return argparser_set_error(parser, COM_UTIL_ERR_DUPLICATE_OPTION, display_name, index);
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT)
         {
             int int_error = argparser_parse_int(value, spec->int_storage);
-            if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
+            if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
             }
@@ -689,12 +689,12 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
     {
         if (*spec->count >= spec->capacity)
         {
-            return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES, display_name, index);
+            return argparser_set_error(parser, COM_UTIL_ERR_TOO_MANY_OCCURRENCES, display_name, index);
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT_ARRAY)
         {
             int int_error = argparser_parse_int(value, &spec->int_storage[*spec->count]);
-            if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
+            if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
             }
@@ -718,7 +718,7 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
  *  @param[in]      index             トークンの argv インデックス。
  *  @param[in,out]  positional_index  次に割り当てる位置引数の検索開始位置。
  *  @return         成功時は @ref COM_UTIL_OK 、
- *                  失敗時は @ref COM_UTIL_ERR_PARSE を返します。
+ *                  失敗時は解析エラーの種別に対応する結果コードを返します。
  */
 static int argparser_store_positional(com_util_argparser *parser, const char *token, const int index,
                                       size_t *positional_index)
@@ -736,12 +736,12 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
         {
             if (*spec->count >= spec->capacity)
             {
-                return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS, token, index);
+                return argparser_set_error(parser, COM_UTIL_ERR_TOO_MANY_ARGUMENTS, token, index);
             }
             if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY)
             {
                 int int_error = argparser_parse_int(token, &spec->int_storage[*spec->count]);
-                if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
+                if (int_error != COM_UTIL_OK)
                 {
                     return argparser_set_error(parser, int_error, spec->long_name, index);
                 }
@@ -761,7 +761,7 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
         if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
         {
             int int_error = argparser_parse_int(token, spec->int_storage);
-            if (int_error != COM_UTIL_ARGPARSER_ERROR_NONE)
+            if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, spec->long_name, index);
             }
@@ -775,7 +775,7 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
         return COM_UTIL_OK;
     }
 
-    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS, token, index);
+    return argparser_set_error(parser, COM_UTIL_ERR_TOO_MANY_ARGUMENTS, token, index);
 }
 
 /**
@@ -1529,15 +1529,15 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
             argparser_spec *spec = argparser_find_long(parser, token, name_len);
             if (spec == NULL)
             {
-                return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, token, i);
+                return argparser_set_error(parser, COM_UTIL_ERR_UNKNOWN_OPTION, token, i);
             }
 
             if (spec->kind == ARGPARSER_SPEC_FLAG)
             {
                 if (equal != NULL)
                 {
-                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE,
-                                               argparser_spec_display_name(spec), i);
+                    return argparser_set_error(parser, COM_UTIL_ERR_UNEXPECTED_VALUE, argparser_spec_display_name(spec),
+                                               i);
                 }
                 (*spec->int_storage)++;
                 spec->found++;
@@ -1554,8 +1554,8 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
             {
                 if ((i + 1) >= argc)
                 {
-                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE,
-                                               argparser_spec_display_name(spec), i);
+                    return argparser_set_error(parser, COM_UTIL_ERR_MISSING_VALUE, argparser_spec_display_name(spec),
+                                               i);
                 }
                 i++;
                 value = argv[i];
@@ -1610,7 +1610,7 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
                                 }
                                 break;
                             }
-                            return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, token, i);
+                            return argparser_set_error(parser, COM_UTIL_ERR_UNKNOWN_OPTION, token, i);
                         }
                         next_positional_index++;
                     }
@@ -1619,15 +1619,15 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
                         continue;
                     }
                 }
-                return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION, token, i);
+                return argparser_set_error(parser, COM_UTIL_ERR_UNKNOWN_OPTION, token, i);
             }
 
             if (spec->kind == ARGPARSER_SPEC_FLAG)
             {
                 if (equal != NULL)
                 {
-                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE,
-                                               argparser_spec_display_name(spec), i);
+                    return argparser_set_error(parser, COM_UTIL_ERR_UNEXPECTED_VALUE, argparser_spec_display_name(spec),
+                                               i);
                 }
                 (*spec->int_storage)++;
                 spec->found++;
@@ -1644,8 +1644,8 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
             {
                 if ((i + 1) >= argc)
                 {
-                    return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE,
-                                               argparser_spec_display_name(spec), i);
+                    return argparser_set_error(parser, COM_UTIL_ERR_MISSING_VALUE, argparser_spec_display_name(spec),
+                                               i);
                 }
                 i++;
                 value = argv[i];
@@ -1683,7 +1683,7 @@ int _com_util_argparser_parse(com_util_argparser *parser, const int argc, char *
             {
                 display_name = argparser_spec_display_name(spec);
             }
-            return argparser_set_error(parser, COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED, display_name, -1);
+            return argparser_set_error(parser, COM_UTIL_ERR_MISSING_REQUIRED, display_name, -1);
         }
     }
 
@@ -1701,7 +1701,7 @@ int _com_util_argparser_get_error(const com_util_argparser *parser)
 {
     if (parser == NULL)
     {
-        return COM_UTIL_ARGPARSER_ERROR_NONE;
+        return COM_UTIL_OK;
     }
 
     return parser->last_error;
@@ -1765,34 +1765,34 @@ int _com_util_argparser_get_error_message(const com_util_argparser *parser, char
     int written = 0;
     switch (parser->last_error)
     {
-    case COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION:
+    case COM_UTIL_ERR_UNKNOWN_OPTION:
         written = com_util_snprintf(buffer, buffer_size, "unknown option '%s'", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE:
+    case COM_UTIL_ERR_MISSING_VALUE:
         written = com_util_snprintf(buffer, buffer_size, "option '%s' requires a value", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_INVALID_INT:
+    case COM_UTIL_ERR_INVALID_INTEGER:
         written = com_util_snprintf(buffer, buffer_size, "value of '%s' must be an integer", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE:
+    case COM_UTIL_ERR_OUT_OF_RANGE:
         written = com_util_snprintf(buffer, buffer_size, "value of '%s' is out of range", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED:
+    case COM_UTIL_ERR_MISSING_REQUIRED:
         written = com_util_snprintf(buffer, buffer_size, "'%s' is required", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION:
+    case COM_UTIL_ERR_DUPLICATE_OPTION:
         written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified more than once", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS:
+    case COM_UTIL_ERR_TOO_MANY_ARGUMENTS:
         written = com_util_snprintf(buffer, buffer_size, "too many arguments: '%s'", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES:
+    case COM_UTIL_ERR_TOO_MANY_OCCURRENCES:
         written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified too many times", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE:
+    case COM_UTIL_ERR_UNEXPECTED_VALUE:
         written = com_util_snprintf(buffer, buffer_size, "option '%s' does not take a value", target);
         break;
-    case COM_UTIL_ARGPARSER_ERROR_NONE:
+    case COM_UTIL_OK:
     default:
         written = com_util_snprintf(buffer, buffer_size, "no error");
         break;
@@ -1910,7 +1910,7 @@ int _com_util_argparser_print_error_messages(const com_util_argparser *parser, F
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if (parser->last_error == COM_UTIL_ARGPARSER_ERROR_NONE)
+    if (parser->last_error == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
@@ -2012,7 +2012,6 @@ int _com_util_argparser_get_register_error_message(const com_util_argparser *par
         written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
         break;
     case COM_UTIL_OK:
-    case COM_UTIL_ERR_PARSE:
     case COM_UTIL_ERR_BUFFER_TOO_SMALL:
     default:
         written = com_util_snprintf(buffer, buffer_size, "failed to register '%s'", target);

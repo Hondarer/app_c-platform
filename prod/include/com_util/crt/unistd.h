@@ -91,7 +91,7 @@ extern "C"
      *  @brief          ファイル記述子の読み書き位置を移動します (`lseek` / `_lseeki64` ラッパー)。
      *  @param[in]      fd      対象のファイル記述子。com_util_open() が返した値を渡します。
      *  @param[in]      offset  @p whence を基準とする移動量 (バイト)。
-     *  @param[in]      whence  基準位置 (@c SEEK_SET、@c SEEK_CUR、@c SEEK_END のいずれか)。
+     *  @param[in]      whence  基準位置 (@c SEEK_SET 、@c SEEK_CUR 、@c SEEK_END のいずれか)。
      *  @return         成功時はファイル先頭からの新しい読み書き位置、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ

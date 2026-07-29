@@ -30,7 +30,7 @@ com_util は戻り値規約を、共通結果コード (`COM_UTIL_OK` + 負値�
 
 | モジュール | 旧規約 | 新規約 |
 |---|---|---|
-| `argparser` (`COM_UTIL_ARGPARSER_OK` 等) | 正値の列挙 (0..5) | `COM_UTIL_OK` (0)、詳細は `COM_UTIL_ERR_INVALID_ARGUMENT` (-2)/`COM_UTIL_ERR_OUT_OF_MEMORY` (-4)/`COM_UTIL_ERR_DUPLICATE_DEFINITION` (-11)/`COM_UTIL_ERR_PARSE` (-12)/`COM_UTIL_ERR_BUFFER_TOO_SMALL` (-8) へ符号反転。`COM_UTIL_ARGPARSER_ERROR_*` (詳細コード層) は据え置き |
+| `argparser` (`COM_UTIL_ARGPARSER_OK` 等) | 正値の列挙 (0..5) | `COM_UTIL_OK` (0)、詳細は `COM_UTIL_ERR_INVALID_ARGUMENT` (-2)/`COM_UTIL_ERR_OUT_OF_MEMORY` (-4)/`COM_UTIL_ERR_DUPLICATE_DEFINITION` (-11)/`COM_UTIL_ERR_PARSE` (-12)/`COM_UTIL_ERR_BUFFER_TOO_SMALL` (-8) へ符号反転。`COM_UTIL_ARGPARSER_ERROR_*` (詳細コード層) は当時据え置いたが、その後 [`api-consistency-migration.md`](api-consistency-migration.md) の「詳細コードの共通結果コードへの統合」で廃止した |
 | `etw` / `eventlog` (`ERR_PARAM`/`ERR_ACCESS`/`ERR_SYSTEM`) | 独自の負値 | `COM_UTIL_ERR_INVALID_ARGUMENT` (-2) / `COM_UTIL_ERR_PERMISSION_DENIED` (-5) / `COM_UTIL_ERR_UNKNOWN` (-1) |
 
 ### 素の 0/-1 群 (最大勢力、値は互換)

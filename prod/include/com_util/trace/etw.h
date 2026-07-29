@@ -151,8 +151,8 @@ extern "C"
     /**
      *  @brief          ETW セッション開始に必要な権限があるか検査します。
      *
-     *  @return         必要な権限がある場合は @ref COM_UTIL_OK、権限不足の場合は
-     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED、検査中にシステム エラーが発生した場合は
+     *  @return         必要な権限がある場合は @ref COM_UTIL_OK 、権限不足の場合は
+     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED 、検査中にシステム エラーが発生した場合は
      *                  @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ

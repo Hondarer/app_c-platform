@@ -715,9 +715,10 @@ TEST_F(argparserTest, flag_with_value_is_unexpected_value)
     int result = _com_util_argparser_parse(parser, argc, argv); // [手順] - "--verbose=1" を解析する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_PARSE,
-              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE,
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNEXPECTED_VALUE,
+        result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNEXPECTED_VALUE であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNEXPECTED_VALUE,
               _com_util_argparser_get_error(parser)); // [確認_異常系] - エラー種別が UNEXPECTED_VALUE であること。
     EXPECT_STREQ("--verbose",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--verbose" であること。
@@ -745,9 +746,10 @@ TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
     int result = _com_util_argparser_parse(parser, argc, argv); // [手順] - "-v=1" を解析する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_PARSE,
-              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE,
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNEXPECTED_VALUE,
+        result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNEXPECTED_VALUE であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNEXPECTED_VALUE,
               _com_util_argparser_get_error(parser)); // [確認_異常系] - エラー種別が UNEXPECTED_VALUE であること。
     EXPECT_STREQ("--verbose", _com_util_argparser_get_error_target(
                                   parser)); // [確認_異常系] - エラー対象が長い名前 "--verbose" で報告されること。
@@ -868,9 +870,9 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
         int rtc_argparser_parse_3 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - INT_MAX + 1 の "2147483648" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_3); // [確認_異常系] - INT_MAX + 1 の "2147483648" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE,
+            COM_UTIL_ERR_OUT_OF_RANGE,
+            rtc_argparser_parse_3); // [確認_異常系] - INT_MAX + 1 の "2147483648" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+        EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - 範囲外が OUT_OF_RANGE になること。
     }
     {
@@ -878,10 +880,10 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
         int rtc_argparser_parse_4 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 数値でない "12a" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_4); // [確認_異常系] - 数値でない "12a" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_INVALID_INT,
-                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INT になること。
+            COM_UTIL_ERR_INVALID_INTEGER,
+            rtc_argparser_parse_4); // [確認_異常系] - 数値でない "12a" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INTEGER になること。
         EXPECT_STREQ("--count", _com_util_argparser_get_error_target(
                                     parser)); // [確認_異常系] - エラー対象が "--count" であること。
     }
@@ -890,10 +892,10 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
         int rtc_argparser_parse_5 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 空値の "--count=" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_5); // [確認_異常系] - 空値の "--count=" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_INVALID_INT,
-                  _com_util_argparser_get_error(parser)); // [確認_異常系] - int の空値が INVALID_INT になること。
+            COM_UTIL_ERR_INVALID_INTEGER,
+            rtc_argparser_parse_5); // [確認_異常系] - 空値の "--count=" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - int の空値が INVALID_INTEGER になること。
     }
 
     // Cleanup
@@ -928,9 +930,9 @@ TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unkno
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - INT_MIN - 1 の "-2147483649" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - INT_MIN - 1 の "-2147483649" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE,
+            COM_UTIL_ERR_OUT_OF_RANGE,
+            rtc_argparser_parse_2); // [確認_異常系] - INT_MIN - 1 の "-2147483649" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+        EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - 範囲外が OUT_OF_RANGE になること。
     }
     {
@@ -938,10 +940,10 @@ TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unkno
         int rtc_argparser_parse_3 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 数値でない "-x" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_3); // [確認_異常系] - 数値でない "-x" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse_3); // [確認_異常系] - 数値でない "-x" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
         EXPECT_EQ(
-            COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION,
+            COM_UTIL_ERR_UNKNOWN_OPTION,
             _com_util_argparser_get_error(parser)); // [確認_異常系] - "-x" が UNKNOWN_OPTION として検出されること。
     }
 
@@ -1161,10 +1163,10 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - int 位置引数に "abc" を渡して解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - int 位置引数に "abc" を渡して解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_INVALID_INT,
-                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INT になること。
+            COM_UTIL_ERR_INVALID_INTEGER,
+            rtc_argparser_parse_2); // [確認_異常系] - int 位置引数に "abc" を渡して解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INTEGER になること。
         EXPECT_STREQ("level", _com_util_argparser_get_error_target(
                                   parser)); // [確認_異常系] - エラー対象が位置引数名 "level" であること。
     }
@@ -1173,10 +1175,10 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
         int rtc_argparser_parse_3 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 登録数を超える 3 つの位置引数を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_3); // [確認_異常系] - 登録数を超える 3 つの位置引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS,
-                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 超過が TOO_MANY_POSITIONALS になること。
+            COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
+            rtc_argparser_parse_3); // [確認_異常系] - 登録数を超える 3 つの位置引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_TOO_MANY_ARGUMENTS であること。
+        EXPECT_EQ(COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 超過が TOO_MANY_ARGUMENTS になること。
         EXPECT_STREQ("extra", _com_util_argparser_get_error_target(
                                   parser)); // [確認_異常系] - エラー対象が超過トークン "extra" であること。
         EXPECT_EQ(3, _com_util_argparser_get_error_index(parser)); // [確認_異常系] - エラー位置が argv[3] であること。
@@ -1185,9 +1187,9 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
         ARGV(cstr("prog"));
         int rtc_argparser_parse_4 = _com_util_argparser_parse(parser, argc, argv); // [手順] - 位置引数なしで解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_4); // [確認_異常系] - 位置引数なしで解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED,
+            COM_UTIL_ERR_MISSING_REQUIRED,
+            rtc_argparser_parse_4); // [確認_異常系] - 位置引数なしで解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_MISSING_REQUIRED であること。
+        EXPECT_EQ(COM_UTIL_ERR_MISSING_REQUIRED,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - 必須欠落が MISSING_REQUIRED になること。
         EXPECT_STREQ("input",
                      _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "input" であること。
@@ -1241,11 +1243,10 @@ TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 容量 2 を超える 3 件の可変長位置引数を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - 容量 2 を超える 3 件の可変長位置引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(
-            COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS,
-            _com_util_argparser_get_error(parser)); // [確認_異常系] - 容量超過が TOO_MANY_POSITIONALS になること。
+            COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
+            rtc_argparser_parse_2); // [確認_異常系] - 容量 2 を超える 3 件の可変長位置引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_TOO_MANY_ARGUMENTS であること。
+        EXPECT_EQ(COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 容量超過が TOO_MANY_ARGUMENTS になること。
         EXPECT_STREQ(
             "c.txt",
             _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が超過した "c.txt" であること。
@@ -1300,10 +1301,10 @@ TEST_F(argparserTest, positional_int_array_conversion_and_required)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 整数へ変換できない "12a" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - 整数へ変換できない "12a" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_INVALID_INT,
-                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INT になること。
+            COM_UTIL_ERR_INVALID_INTEGER,
+            rtc_argparser_parse_2); // [確認_異常系] - 整数へ変換できない "12a" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
+                  _com_util_argparser_get_error(parser)); // [確認_異常系] - 変換エラーが INVALID_INTEGER になること。
         EXPECT_STREQ("values",
                      _com_util_argparser_get_error_target(
                          parser)); // [確認_異常系] - 変換エラーの対象が位置引数名 "values" であること。
@@ -1313,9 +1314,9 @@ TEST_F(argparserTest, positional_int_array_conversion_and_required)
         int rtc_argparser_parse_3 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - int の下限を下回る値を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_3); // [確認_異常系] - int の下限を下回る値を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE,
+            COM_UTIL_ERR_OUT_OF_RANGE,
+            rtc_argparser_parse_3); // [確認_異常系] - int の下限を下回る値を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+        EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - 範囲外エラーが OUT_OF_RANGE になること。
     }
     {
@@ -1323,9 +1324,9 @@ TEST_F(argparserTest, positional_int_array_conversion_and_required)
         int rtc_argparser_parse_4 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 必須の可変長位置引数を省略して解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_4); // [確認_異常系] - 必須の可変長位置引数を省略して解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED,
+            COM_UTIL_ERR_MISSING_REQUIRED,
+            rtc_argparser_parse_4); // [確認_異常系] - 必須の可変長位置引数を省略して解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_MISSING_REQUIRED であること。
+        EXPECT_EQ(COM_UTIL_ERR_MISSING_REQUIRED,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - 必須欠落が MISSING_REQUIRED になること。
         EXPECT_STREQ("values",
                      _com_util_argparser_get_error_target(
@@ -1366,9 +1367,9 @@ TEST_F(argparserTest, unknown_option_detection)
         ARGV(cstr("prog"), cstr("-x"));
         int rtc_argparser_parse = _com_util_argparser_parse(parser, argc, argv); // [手順] - 未登録の "-x" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse); // [確認_異常系] - 未登録の "-x" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION,
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse); // [確認_異常系] - 未登録の "-x" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+        EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - UNKNOWN_OPTION になること。
         EXPECT_STREQ("-x",
                      _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "-x" であること。
@@ -1378,10 +1379,10 @@ TEST_F(argparserTest, unknown_option_detection)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 短オプション連結の "-vv" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - 短オプション連結の "-vv" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse_2); // [確認_異常系] - 短オプション連結の "-vv" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
         EXPECT_EQ(
-            COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION,
+            COM_UTIL_ERR_UNKNOWN_OPTION,
             _com_util_argparser_get_error(parser)); // [確認_異常系] - 連結は未サポートで UNKNOWN_OPTION になること。
     }
     {
@@ -1389,8 +1390,8 @@ TEST_F(argparserTest, unknown_option_detection)
         int rtc_argparser_parse_3 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 未登録の "--bogus" を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_3); // [確認_異常系] - 未登録の "--bogus" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse_3); // [確認_異常系] - 未登録の "--bogus" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
         EXPECT_STREQ("--bogus", _com_util_argparser_get_error_target(
                                     parser)); // [確認_異常系] - エラー対象が "--bogus" であること。
     }
@@ -1417,9 +1418,9 @@ TEST_F(argparserTest, missing_value_at_end)
     int result = _com_util_argparser_parse(parser, argc, argv); // [手順] - 値なしの末尾 "--count" を解析する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_PARSE,
-              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE,
+    EXPECT_EQ(COM_UTIL_ERR_MISSING_VALUE,
+              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_MISSING_VALUE であること。
+    EXPECT_EQ(COM_UTIL_ERR_MISSING_VALUE,
               _com_util_argparser_get_error(parser)); // [確認_異常系] - エラー種別が MISSING_VALUE であること。
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
@@ -1446,9 +1447,10 @@ TEST_F(argparserTest, duplicate_option_occurrence)
     int result = _com_util_argparser_parse(parser, argc, argv); // [手順] - "-c 1" と "--count=2" を併記して解析する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_PARSE,
-              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION,
+    EXPECT_EQ(
+        COM_UTIL_ERR_DUPLICATE_OPTION,
+        result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_DUPLICATE_OPTION であること。
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_OPTION,
               _com_util_argparser_get_error(parser)); // [確認_異常系] - エラー種別が DUPLICATE_OPTION であること。
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
@@ -1490,10 +1492,10 @@ TEST_F(argparserTest, array_option_multiple_occurrences)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 容量 2 を超える 3 回の出現を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - 容量 2 を超える 3 回の出現を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_TOO_MANY_OCCURRENCES,
+            rtc_argparser_parse_2); // [確認_異常系] - 容量 2 を超える 3 回の出現を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_TOO_MANY_OCCURRENCES であること。
         EXPECT_EQ(
-            COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES,
+            COM_UTIL_ERR_TOO_MANY_OCCURRENCES,
             _com_util_argparser_get_error(parser)); // [確認_異常系] - 容量超過が TOO_MANY_OCCURRENCES になること。
         EXPECT_STREQ("--include", _com_util_argparser_get_error_target(
                                       parser)); // [確認_異常系] - エラー対象が "--include" であること。
@@ -1543,9 +1545,9 @@ TEST_F(argparserTest, array_option_int_and_required)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - オプション非出現の引数を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - オプション非出現の引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED,
+            COM_UTIL_ERR_MISSING_REQUIRED,
+            rtc_argparser_parse_2); // [確認_異常系] - オプション非出現の引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_MISSING_REQUIRED であること。
+        EXPECT_EQ(COM_UTIL_ERR_MISSING_REQUIRED,
                   _com_util_argparser_get_error(
                       parser)); // [確認_異常系] - REQUIRED の配列オプション欠落が MISSING_REQUIRED になること。
         EXPECT_STREQ("--port", _com_util_argparser_get_error_target(
@@ -1574,9 +1576,10 @@ TEST_F(argparserTest, missing_required_option)
     int result = _com_util_argparser_parse(parser, argc, argv); // [手順] - オプション非出現の引数を解析する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_PARSE,
-              result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED,
+    EXPECT_EQ(
+        COM_UTIL_ERR_MISSING_REQUIRED,
+        result); // [確認_異常系] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_MISSING_REQUIRED であること。
+    EXPECT_EQ(COM_UTIL_ERR_MISSING_REQUIRED,
               _com_util_argparser_get_error(parser)); // [確認_異常系] - エラー種別が MISSING_REQUIRED であること。
     EXPECT_STREQ("--count",
                  _com_util_argparser_get_error_target(parser)); // [確認_異常系] - エラー対象が "--count" であること。
@@ -1605,9 +1608,9 @@ TEST_F(argparserTest, reparse_clears_error_state)
         int rtc_argparser_parse =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 未登録の "-x" で解析エラーを発生させる。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse); // [確認_異常系] - _com_util_argparser_parse の戻り値として、未登録の "-x" で解析エラーを発生させた結果が COM_UTIL_ERR_PARSE であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION,
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse); // [確認_異常系] - _com_util_argparser_parse の戻り値として、未登録の "-x" で解析エラーを発生させた結果が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+        EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
                   _com_util_argparser_get_error(parser)); // [確認_異常系] - UNKNOWN_OPTION が記録されること。
     }
     {
@@ -1617,7 +1620,7 @@ TEST_F(argparserTest, reparse_clears_error_state)
         EXPECT_EQ(
             COM_UTIL_OK,
             rtc_argparser_parse_2); // [確認_正常系] - 正しい引数 "-v" で再解析した _com_util_argparser_parse の戻り値が COM_UTIL_OK であること。
-        EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_NONE,
+        EXPECT_EQ(COM_UTIL_OK,
                   _com_util_argparser_get_error(parser)); // [確認_正常系] - エラー種別が NONE に戻ること。
         EXPECT_EQ(nullptr,
                   _com_util_argparser_get_error_target(parser));    // [確認_正常系] - エラー対象が NULL に戻ること。
@@ -1657,14 +1660,14 @@ TEST_F(argparserTest, multiple_handles_are_independent)
         int rtc_argparser_parse_2 =
             _com_util_argparser_parse(parser2, argc, argv); // [手順] - "-a" 未登録の parser2 でも同じ引数を解析する。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse_2); // [確認_異常系] - "-a" 未登録の parser2 でも同じ引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse_2); // [確認_異常系] - "-a" 未登録の parser2 でも同じ引数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
     }
     EXPECT_EQ(1, flag1); // [確認_正常系] - parser1 側のフラグだけが 1 になること。
     EXPECT_EQ(0, flag2); // [確認_正常系] - parser2 側のフラグが 0 のままであること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_NONE,
+    EXPECT_EQ(COM_UTIL_OK,
               _com_util_argparser_get_error(parser1)); // [確認_正常系] - parser1 のエラー状態が NONE であること。
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION,
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
               _com_util_argparser_get_error(
                   parser2)); // [確認_正常系] - parser2 のエラー状態が独立して UNKNOWN_OPTION であること。
 
@@ -1702,8 +1705,8 @@ TEST_F(argparserTest, error_message_formatting)
         int rtc_argparser_parse =
             _com_util_argparser_parse(parser, argc, argv); // [手順] - 未登録の "--bogus" で解析エラーを発生させる。
         EXPECT_EQ(
-            COM_UTIL_ERR_PARSE,
-            rtc_argparser_parse); // [確認_異常系] - _com_util_argparser_parse の戻り値として、未登録の "--bogus" で解析エラーを発生させた結果が COM_UTIL_ERR_PARSE であること。
+            COM_UTIL_ERR_UNKNOWN_OPTION,
+            rtc_argparser_parse); // [確認_異常系] - _com_util_argparser_parse の戻り値として、未登録の "--bogus" で解析エラーを発生させた結果が COM_UTIL_ERR_UNKNOWN_OPTION であること。
     }
     EXPECT_EQ(COM_UTIL_OK, _com_util_argparser_get_error_message(parser, message, sizeof(message)));
     EXPECT_STREQ("unknown option '--bogus'",
@@ -1946,7 +1949,7 @@ TEST_F(argparserTest, print_error_messages_writes_to_stream)
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL, &verbose));
 
     ARGV(cstr("prog"), cstr("--bogus"));
-    ASSERT_EQ(COM_UTIL_ERR_PARSE,
+    ASSERT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
               _com_util_argparser_parse(parser, argc, argv)); // [状態] - "--bogus" の解析エラーを発生させた状態とする。
 
     // Pre-Assert
@@ -2032,7 +2035,7 @@ TEST_F(argparserTest, parse_rejects_invalid_arguments)
         COM_UTIL_ERR_INVALID_ARGUMENT,
         _com_util_argparser_parse(parser, argc, NULL)); // [確認_異常系] - argv NULL が INVALID_ARGUMENT になること。
 
-    EXPECT_EQ(COM_UTIL_ARGPARSER_ERROR_NONE,
+    EXPECT_EQ(COM_UTIL_OK,
               _com_util_argparser_get_error(NULL)); // [確認_異常系] - get_error が NULL ハンドルで NONE を返すこと。
     EXPECT_EQ(nullptr, _com_util_argparser_get_error_target(
                            NULL)); // [確認_異常系] - get_error_target が NULL ハンドルで NULL を返すこと。

@@ -73,7 +73,7 @@ if (result != COM_UTIL_OK)
 
 ## 解析エラー詳細の取得
 
-`_com_util_argparser_parse()` が `COM_UTIL_ERR_PARSE` を返した場合、詳細は次の API で取得します。
+`_com_util_argparser_parse()` が解析エラーのコードを返した場合、詳細は次の API で取得します。
 
 - `_com_util_argparser_get_error()`: エラー種別 (`int`)
 - `_com_util_argparser_get_error_target()`: エラーの対象名 (オプション名や位置引数名)

@@ -3,6 +3,7 @@
 ## 概要
 
 com_util は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規約」「引数順序規約」および上位「コーディング規範」への適合のため、「既知の逸脱と移行課題」に整理していた公開 API を一括変更しました。  
+あわせて argparser の詳細コードを共通結果コードへ統合し、結果コードの値を再採番しました。  
 本書は、com_util を利用するリポジトリが本変更へ追随する際の対応表と移行手順を示します。  
 戻り値規約そのものの移行は [`result-code-migration.md`](result-code-migration.md) を参照してください。
 
@@ -30,6 +31,51 @@ argparser の既定パーサー ラッパー 15 関数は、`void` 戻りから�
 `com_util_argparser_init` は変更していません。  
 既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効で、利用側による破棄を必要としない設計です (`coding-guideline.md` の「生成と破棄の動詞対」)。
 
+## 詳細コードの共通結果コードへの統合
+
+argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通結果コード (`result.h`) へ統合しました。  
+あわせて定義を課題別の帯へ再編したため、**すべての結果コードの値が変わりました**。値は再凍結しています。
+
+### 廃止したコードと対応先
+
+| 旧 (0 以上の詳細コード) | 新 (負値の共通結果コード) |
+|---|---|
+| `COM_UTIL_ARGPARSER_ERROR_NONE` (0) | `COM_UTIL_OK` (0) |
+| `COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION` (1) | `COM_UTIL_ERR_UNKNOWN_OPTION` (-20) |
+| `COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE` (2) | `COM_UTIL_ERR_MISSING_VALUE` (-21) |
+| `COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE` (9) | `COM_UTIL_ERR_UNEXPECTED_VALUE` (-22) |
+| `COM_UTIL_ARGPARSER_ERROR_INVALID_INT` (3) | `COM_UTIL_ERR_INVALID_INTEGER` (-23) |
+| `COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE` (4) | `COM_UTIL_ERR_OUT_OF_RANGE` (-24) |
+| `COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED` (5) | `COM_UTIL_ERR_MISSING_REQUIRED` (-25) |
+| `COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION` (6) | `COM_UTIL_ERR_DUPLICATE_OPTION` (-26) |
+| `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` (7) | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` (-27) |
+| `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES` (8) | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` (-28) |
+
+`COM_UTIL_ERR_PARSE` は削除しました。解析エラーは上表の具体コードで表します。
+
+### 値が変わった既存コード
+
+| コード | 旧値 | 新値 |
+|---|---|---|
+| `COM_UTIL_ERR_OUT_OF_MEMORY` | -4 | -10 |
+| `COM_UTIL_ERR_PERMISSION_DENIED` | -5 | -4 |
+| `COM_UTIL_ERR_TIMEOUT` | -6 | -12 |
+| `COM_UTIL_ERR_BUSY` | -7 | -11 |
+| `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -8 | -14 |
+| `COM_UTIL_ERR_LIMIT_EXCEEDED` | -9 | -13 |
+| `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -10 | -15 |
+| `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -11 | -5 |
+| `COM_UTIL_ERR_EOF` | -13 | -40 |
+| `COM_UTIL_ERR_CANCELED` | -14 | -41 |
+
+`COM_UTIL_OK` (0)、`COM_UTIL_ERR_UNKNOWN` (-1)、`COM_UTIL_ERR_INVALID_ARGUMENT` (-2)、`COM_UTIL_ERR_UNSUPPORTED` (-3) は変わりません。
+
+### parse の戻り値
+
+`_com_util_argparser_parse()` と `com_util_argparser_parse()` は、従来つねに `COM_UTIL_ERR_PARSE` を返し、種別は `get_error()` で取得する二段構えでした。  
+統合により、解析エラーの種別に対応するコードを直接返すようになりました。  
+`_com_util_argparser_get_error()` は種別を後から再取得する用途で引き続き利用できます。戻り値の符号が 0 以上から負値に変わっています。
+
 ## 移行手順
 
 1. **ビルドで機械的に検出**: `com_util_getenv`、`com_util_pinned_prompt_write`、`com_util_etw_session_start` の呼び出しと `com_util_process_options_t` / `com_util_process_stdio_t` の参照は、引数個数・型名の変更によりコンパイル エラーとして検出されます。
@@ -44,12 +90,13 @@ argparser の既定パーサー ラッパー 15 関数は、`void` 戻りから�
    if (com_util_getenv(name, buf, sizeof(buf), &exists) != 0 || exists == 0) { /* 未設定または不足 */ }
    ```
 
-3. **mock の追随**: `mock_com_util` を利用するテストで、上記 API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
-4. **ローカル テストで確認**: `make -C app/<repo> test` で回帰がないことを確認します。
+3. **旧詳細コードの置換**: `COM_UTIL_ARGPARSER_ERROR_*` と `COM_UTIL_ERR_PARSE` はマクロ自体を削除したため、参照はコンパイル エラーとして検出されます。上表に従って置換します。
+4. **結果コードの数値リテラル比較の洗い出し**: 値が変わったため、コード名ではなく数値で比較している箇所は意味が変わります。以下で洗い出し、コード名との比較へ書き換えます。
 
-## 参考: 本リポジトリ内で追随済みの利用側
+   ```bash
+   grep -nE '(==|!=|<=|>=)[[:space:]]*\(?-[0-9]+\)?' <対象ディレクトリ>/*.c
+   ```
 
-- `app/bench-io/prod/src/cmd/bench-io/bench_report.c` (`com_util_getenv`)
-- `app/service-sample/prod/src/cmd/service-sample/service-sample_linux.c` (`com_util_process_options`)
-- `app/com_util/prod/include/com_util/base/shared_lib_lifecycle.h` (`com_util_getenv`)
-- `app/com_util/prod/src/cmd/etw-viewer/etw-viewer.c` (`com_util_etw_session_start`)
+5. **利用側の再ビルド**: 値が変わったため、com_util を利用するすべてのモジュールを再ビルドします。ヘッダーだけを更新して再リンクする運用では不整合が生じます。
+6. **mock の追随**: `mock_com_util` を利用するテストで、シグネチャが変わった API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
+7. **ローカル テストで確認**: `make -C app/<repo> test` で回帰がないことを確認します。
