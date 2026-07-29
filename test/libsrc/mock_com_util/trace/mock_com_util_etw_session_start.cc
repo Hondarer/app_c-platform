@@ -3,29 +3,29 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-com_util_etw_session *delegate_real_com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                                                               com_util_etw_event_callback_t callback, void *context,
-                                                               int *out_status)
+int delegate_real_com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
+                                             com_util_etw_event_callback_t callback, void *context,
+                                             com_util_etw_session **session_out)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_etw_session_start)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_start"));
 
-    return real_fn(session_name, provider_guid_str, callback, context, out_status);
+    return real_fn(session_name, provider_guid_str, callback, context, session_out);
 }
 
-MOCK_WEAK_IMPL(com_util_etw_session *, com_util_etw_session_start, const char *session_name,
-               const char *provider_guid_str, com_util_etw_event_callback_t callback, void *context, int *out_status)
+MOCK_WEAK_IMPL(int, com_util_etw_session_start, const char *session_name, const char *provider_guid_str,
+               com_util_etw_event_callback_t callback, void *context, com_util_etw_session **session_out)
 {
-    com_util_etw_session *rtc = nullptr;
+    int rtc;
 
     if (_mock_com_util != nullptr)
     {
         rtc =
-            _mock_com_util->com_util_etw_session_start(session_name, provider_guid_str, callback, context, out_status);
+            _mock_com_util->com_util_etw_session_start(session_name, provider_guid_str, callback, context, session_out);
     }
     else
     {
-        rtc = delegate_real_com_util_etw_session_start(session_name, provider_guid_str, callback, context, out_status);
+        rtc = delegate_real_com_util_etw_session_start(session_name, provider_guid_str, callback, context, session_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -33,7 +33,7 @@ MOCK_WEAK_IMPL(com_util_etw_session *, com_util_etw_session_start, const char *s
         printf("  > %s \"%s\"", __func__, session_name != nullptr ? session_name : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> %d\n", rtc);
         }
         else
         {

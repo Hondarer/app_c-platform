@@ -44,18 +44,13 @@
 #include <stdint.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CRYPTO
  *  @{
  */
 
-/** @defgroup COM_UTIL_CRYPTO 暗号化定数 (AES-256-GCM)
- *  @ingroup        COM_UTIL_PUBLIC_API
- *  @{
- */
 #define COM_UTIL_CRYPTO_KEY_SIZE   32U /**< AES-256-GCM 鍵サイズ (バイト)。 */
 #define COM_UTIL_CRYPTO_NONCE_SIZE 12U /**< AES-256-GCM ノンス サイズ (バイト)。 */
 #define COM_UTIL_CRYPTO_TAG_SIZE   16U /**< AES-256-GCM 認証タグ サイズ (バイト)。暗号文の直後に付加する。 */
-/** @} */
 
 #ifdef __cplusplus
 extern "C"

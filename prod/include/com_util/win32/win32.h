@@ -22,7 +22,7 @@
 #define COM_UTIL_WIN32_WIN32_H
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_WIN32
  *  @{
  */
 

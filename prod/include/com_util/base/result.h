@@ -40,7 +40,7 @@
 
 /**
  *  @defgroup       COM_UTIL_RESULT 共通結果コード
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_BASE
  *
  *  com_util の公開 API が戻り値として使用する共通の結果コードです。\n
  *  成功は @ref COM_UTIL_OK (0) のみで、エラーは負値です。

@@ -86,62 +86,75 @@ TEST_F(etwSessionIntegrationTest, test_session_stop_with_null)
     // [確認_正常系] - クラッシュせずに完了すること。
 }
 
-// session_start の必須引数 NULL が ERR_PARAM で拒否されることの確認
+// session_start の必須引数 NULL が ERR_INVALID_ARGUMENT で拒否されることの確認
 TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
 {
     // Arrange
-    int status = COM_UTIL_OK; // [状態] - status の受け取り先を OK で初期化する。
+    com_util_etw_session *session = NULL; // [状態] - session の受け取り先を NULL で初期化する。
 
     // Pre-Assert
 
     // Act
-    com_util_etw_session *session_null_name =
+    int rtc_null_name =
         com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL,
-                                   &status); // [手順] - session_name に NULL を渡して session_start を呼び出す。
+                                   &session); // [手順] - session_name に NULL を渡して session_start を呼び出す。
 
     // Assert
     EXPECT_EQ(
-        (com_util_etw_session *)NULL,
-        session_null_name); // [確認_異常系] - com_util_etw_session_start の戻り値として、session_name が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              status); // [確認_異常系] - session_name が NULL の場合に status に ERR_PARAM が返ること。
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_null_name); // [確認_異常系] - session_name が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ((com_util_etw_session *)NULL,
+              session); // [確認_異常系] - session_name が NULL の場合に session に NULL が格納されること。
 
-    com_util_etw_session *session_null_provider_guid =
+    // Act_2
+    int rtc_null_provider_guid =
         com_util_etw_session_start("test", NULL, collect_callback, NULL,
-                                   &status); // [手順] - provider_guid に NULL を渡して session_start を呼び出す。
-    EXPECT_EQ(
-        (com_util_etw_session *)NULL,
-        session_null_provider_guid); // [確認_異常系] - com_util_etw_session_start の戻り値として、provider_guid が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              status); // [確認_異常系] - provider_guid が NULL の場合に status に ERR_PARAM が返ること。
+                                   &session); // [手順] - provider_guid に NULL を渡して session_start を呼び出す。
 
-    com_util_etw_session *session_null_callback =
-        com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL,
-                                   &status); // [手順] - callback に NULL を渡して session_start を呼び出す。
+    // Assert_2
     EXPECT_EQ(
-        (com_util_etw_session *)NULL,
-        session_null_callback); // [確認_異常系] - com_util_etw_session_start の戻り値として、callback が NULL の場合に NULL が返ること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              status); // [確認_異常系] - callback が NULL の場合に status に ERR_PARAM が返ること。
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_null_provider_guid); // [確認_異常系] - provider_guid が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+
+    // Act_3
+    int rtc_null_callback =
+        com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL,
+                                   &session); // [手順] - callback に NULL を渡して session_start を呼び出す。
+
+    // Assert_3
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_null_callback); // [確認_異常系] - callback が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+
+    // Act_4
+    int rtc_null_session_out =
+        com_util_etw_session_start("test", TEST_PROVIDER_GUID, collect_callback, NULL,
+                                   NULL); // [手順] - session の受け取り先に NULL を渡して session_start を呼び出す。
+
+    // Assert_4
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_null_session_out); // [確認_異常系] - 受け取り先が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
-// 不正な GUID 文字列が ERR_PARAM で拒否されることの確認
+// 不正な GUID 文字列が ERR_INVALID_ARGUMENT で拒否されることの確認
 TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
 {
     // Arrange
-    int status = COM_UTIL_OK; // [状態] - status の受け取り先を OK で初期化する。
+    com_util_etw_session *session = NULL; // [状態] - session の受け取り先を NULL で初期化する。
 
     // Pre-Assert
 
     // Act
-    com_util_etw_session *session_invalid_guid =
+    int rtc_invalid_guid =
         com_util_etw_session_start("test", "not-a-guid", collect_callback, NULL,
-                                   &status); // [手順] - 不正な GUID 文字列 "not-a-guid" で session_start を呼び出す。
+                                   &session); // [手順] - 不正な GUID 文字列 "not-a-guid" で session_start を呼び出す。
 
     // Assert
-    EXPECT_EQ((com_util_etw_session *)NULL,
-              session_invalid_guid); // [確認_異常系] - com_util_etw_session_start の戻り値が NULL であること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, status); // [確認_異常系] - status に ERR_PARAM が返ること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_invalid_guid); // [確認_異常系] - com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ((com_util_etw_session *)NULL, session); // [確認_異常系] - session に NULL が格納されること。
 }
 
 class etwSessionSubscribeIntegrationTest : public Test
@@ -169,10 +182,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 
@@ -214,10 +228,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 
@@ -262,10 +277,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 
@@ -305,10 +321,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 
@@ -389,10 +406,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 
@@ -432,10 +450,11 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
     ASSERT_NE((com_util_etw_provider *)NULL, handle);
 
-    com_util_etw_session *session =
+    com_util_etw_session *session = NULL;
+    int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
-                                   NULL); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_NE((com_util_etw_session *)NULL, session);
+                                   &session); // [状態] - 収集 callback 付きで ETW session を開始する。
+    ASSERT_EQ(COM_UTIL_OK, start_result);
 
     // Pre-Assert
 

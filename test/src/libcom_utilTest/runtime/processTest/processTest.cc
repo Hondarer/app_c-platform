@@ -198,7 +198,7 @@ TEST(ProcessTest, MapsWindowsInsufficientBuffer)
 TEST(ProcessTest, RunSyncReturnsChildExitCode)
 {
     // Arrange
-    com_util_process_options_t options;
+    com_util_process_options options;
     int exit_code;
 #if defined(PLATFORM_LINUX)
     char arg0[] = "/bin/sh";
@@ -231,8 +231,8 @@ TEST(ProcessTest, RunSyncReturnsChildExitCode)
 TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
 {
     // Arrange
-    com_util_process_options_t options;
-    com_util_process_stdio_t stdout_spec;
+    com_util_process_options options;
+    com_util_process_stdio stdout_spec;
     char path[PLATFORM_PATH_MAX];
     char output[64];
     intptr_t handle;
@@ -289,7 +289,7 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
 TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
 {
     // Arrange
-    com_util_process_options_t options;
+    com_util_process_options options;
     com_util_process *process;
     int exit_code;
 #if defined(PLATFORM_LINUX)

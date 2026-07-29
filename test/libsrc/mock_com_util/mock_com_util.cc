@@ -29,7 +29,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_gmtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_gmtime));
     ON_CALL(*this, com_util_localtime(_, _)).WillByDefault(Invoke(delegate_real_com_util_localtime));
     ON_CALL(*this, com_util_ctime(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_ctime));
-    ON_CALL(*this, com_util_getenv(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
+    ON_CALL(*this, com_util_getenv(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
     ON_CALL(*this, com_util_paths_equal(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
     ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
@@ -315,7 +315,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real__com_util_pinned_prompt_readline));
     ON_CALL(*this, _com_util_pinned_prompt_readline_fmt(_, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real__com_util_pinned_prompt_readline_fmt));
-    ON_CALL(*this, com_util_pinned_prompt_write(_, _, _, _))
+    ON_CALL(*this, com_util_pinned_prompt_write(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_write));
     ON_CALL(*this, com_util_pinned_prompt_printf(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_printf));

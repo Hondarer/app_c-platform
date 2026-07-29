@@ -26,7 +26,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_RUNTIME
  *  @{
  */
 
@@ -79,7 +79,7 @@ extern "C"
         unsigned int pad; /**< x64 で native_handle のアラインメントを明示する予約領域。 */
 #endif
         intptr_t native_handle; /**< OS ネイティブ ハンドル。 */
-    } com_util_process_stdio_t;
+    } com_util_process_stdio;
 
     /** @brief 子プロセス起動オプション。 */
     typedef struct com_util_process_options
@@ -87,10 +87,10 @@ extern "C"
         char *const *argv;                    /**< コマンドと引数の配列 (NULL 終端)。NULL を渡してはなりません。 */
         char *const *env_overrides;           /**< 追加・上書きする KEY=VALUE 配列 (NULL 終端)。NULL 可。 */
         const char *working_directory;        /**< 作業ディレクトリ。NULL の場合は親の作業ディレクトリを継承します。 */
-        com_util_process_stdio_t stdin_spec;  /**< stdin 指定。 */
-        com_util_process_stdio_t stdout_spec; /**< stdout 指定。 */
-        com_util_process_stdio_t stderr_spec; /**< stderr 指定。 */
-    } com_util_process_options_t;
+        com_util_process_stdio stdin_spec;    /**< stdin 指定。 */
+        com_util_process_stdio stdout_spec;   /**< stdout 指定。 */
+        com_util_process_stdio stderr_spec;   /**< stderr 指定。 */
+    } com_util_process_options;
 
     typedef struct com_util_process com_util_process; /**< 子プロセス ハンドル。 */
 
@@ -104,7 +104,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  呼び出しごとに独立したプロセス ハンドルを生成します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_start(const com_util_process_options_t *options,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_start(const com_util_process_options *options,
                                                             com_util_process **process);
 
     /**
@@ -147,8 +147,8 @@ extern "C"
      *  @param[out]     exit_code   終了コードの格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_sync(const com_util_process_options_t *options,
-                                                               int timeout_ms, int *exit_code);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_run_sync(const com_util_process_options *options, int timeout_ms,
+                                                               int *exit_code);
 
 #ifdef __cplusplus
 }

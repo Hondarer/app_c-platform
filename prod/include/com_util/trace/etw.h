@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_TRACE
  *  @{
  */
 
@@ -168,17 +168,18 @@ extern "C"
      *  @param[in]      provider_guid_str  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"。
      *  @param[in]      callback           イベント受信時に呼ばれるコールバック。
      *  @param[in]      context            コールバックに渡すユーザーデータ。
-     *  @param[out]     out_status         エラー コード出力先 (NULL 可)。
-     *  @return         成功時は開始したセッションのハンドルを返します。失敗時は NULL を返し、
-     *                  @p out_status が NULL でなければエラー コードを格納します。
+     *  @param[out]     session_out        開始したセッションのハンドルの格納先。NULL を渡してはなりません。\n
+     *                  失敗時は NULL を格納します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したセッションを生成します。
      */
-    COM_UTIL_EXPORT com_util_etw_session *COM_UTIL_API
-    com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                               com_util_etw_event_callback_t callback, void *context, int *out_status);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
+                                                                com_util_etw_event_callback_t callback, void *context,
+                                                                com_util_etw_session **session_out);
 
     /**
      *  @brief          ETW セッションを停止し、リソースを解放します。

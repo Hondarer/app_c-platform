@@ -38,7 +38,7 @@
 #include <com_util/crt/unistd.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CONSOLE
  *  @{
  */
 

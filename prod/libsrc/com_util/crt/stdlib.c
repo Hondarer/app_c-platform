@@ -17,8 +17,12 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_getenv(const char *name, char *buf, const size_t buf_size)
+int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exists_out)
 {
+    if (exists_out != NULL)
+    {
+        *exists_out = 0;
+    }
     if (name == NULL)
     {
         return EINVAL;
@@ -29,7 +33,15 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size)
         const char *val = getenv(name);
         if (val == NULL)
         {
-            return -1;
+            if (buf != NULL && buf_size > 0)
+            {
+                buf[0] = '\0';
+            }
+            return 0;
+        }
+        if (exists_out != NULL)
+        {
+            *exists_out = 1;
         }
         if (buf != NULL)
         {
@@ -49,7 +61,15 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size)
 
         if (_dupenv_s(&val, &val_len, name) != 0 || val == NULL)
         {
-            return -1;
+            if (buf != NULL && buf_size > 0)
+            {
+                buf[0] = '\0';
+            }
+            return 0;
+        }
+        if (exists_out != NULL)
+        {
+            *exists_out = 1;
         }
         if (buf != NULL)
         {

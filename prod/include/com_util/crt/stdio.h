@@ -31,7 +31,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CRT
  *  @{
  */
 
@@ -190,6 +190,49 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vfprintf(FILE *stream, const char *format, va_list args)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 2, 0)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          バッファーへ書式化出力します (`snprintf` ラッパー)。
+     *  @param[out]     buf       出力先バッファー。@p buf_size が 0 の場合は NULL も指定できます。
+     *  @param[in]      buf_size  @p buf のバイト数。
+     *  @param[in]      format    printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      ...       書式引数。
+     *  @return         書式化後の文字数 (終端の NUL を除く) を返します。失敗時は負値を返します。\n
+     *                  戻り値が @p buf_size 以上の場合は切り詰めが発生しており、@p buf には
+     *                  先頭 (@p buf_size - 1) 文字と終端の NUL を格納します。
+     *
+     *  C99 の `snprintf` の規約 (切り詰め時も必要文字数を返し、常に NUL 終端する) を
+     *  両プラットフォームで保証します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_snprintf(char *buf, size_t buf_size, const char *format, ...)
+#if defined(COMPILER_GCC)
+        __attribute__((format(printf, 3, 4)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          バッファーへ書式化出力します (`com_util_snprintf` の `va_list` 版)。
+     *  @param[out]     buf       出力先バッファー。@p buf_size が 0 の場合は NULL も指定できます。
+     *  @param[in]      buf_size  @p buf のバイト数。
+     *  @param[in]      format    printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args      書式引数リスト。
+     *  @return         書式化後の文字数 (終端の NUL を除く) を返します。失敗時は負値を返します。\n
+     *                  戻り値が @p buf_size 以上の場合は切り詰めが発生しており、@p buf には
+     *                  先頭 (@p buf_size - 1) 文字と終端の NUL を格納します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args)
+#if defined(COMPILER_GCC)
+        __attribute__((format(printf, 3, 0)))
 #endif /* COMPILER_GCC */
         ;
 

@@ -270,7 +270,7 @@ static const char *find_env_value(char *const *envp, const char *key)
     return NULL;
 }
 
-static int setup_child_stdio_one(const com_util_process_stdio_t *spec, const int target_fd, const int null_flags)
+static int setup_child_stdio_one(const com_util_process_stdio *spec, const int target_fd, const int null_flags)
 {
     int source_fd;
 
@@ -316,7 +316,7 @@ static int setup_child_stdio_one(const com_util_process_stdio_t *spec, const int
     return 0;
 }
 
-static int setup_child_stdio(const com_util_process_options_t *options)
+static int setup_child_stdio(const com_util_process_options *options)
 {
     if (setup_child_stdio_one(&options->stdin_spec, STDIN_FILENO, O_RDONLY) != 0)
     {
@@ -819,7 +819,7 @@ static int duplicate_inheritable_handle(HANDLE source, HANDLE *duplicated)
     return 0;
 }
 
-static int prepare_stdio_handle(const com_util_process_stdio_t *spec, const DWORD std_id, const DWORD null_access,
+static int prepare_stdio_handle(const com_util_process_stdio *spec, const DWORD std_id, const DWORD null_access,
                                 HANDLE *prepared)
 {
     HANDLE source;
@@ -980,7 +980,7 @@ int com_util_process_get_executable_path(char *out_path, const size_t out_path_s
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_process_start(const com_util_process_options_t *options, com_util_process **process)
+int com_util_process_start(const com_util_process_options *options, com_util_process **process)
 {
     com_util_process *new_process;
 
@@ -1349,7 +1349,7 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_process_run_sync(const com_util_process_options_t *options, const int timeout_ms, int *exit_code)
+int com_util_process_run_sync(const com_util_process_options *options, const int timeout_ms, int *exit_code)
 {
     com_util_process *process;
     int result;

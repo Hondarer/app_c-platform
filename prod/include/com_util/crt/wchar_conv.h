@@ -19,7 +19,7 @@
 #define COM_UTIL_CRT_WCHAR_CONV_H
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CRT
  *  @{
  */
 

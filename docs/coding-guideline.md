@@ -91,6 +91,8 @@ com_util は Linux / Windows のインターフェース差異を抽象化する
 
 対象外の API 群を新設する場合は、元 API との対応と戻り値規約をヘッダーの Doxygen コメントに明記します。
 
+なお、`com_util_getenv` は上表の「成功 0 / バッファー不足 `ERANGE`」に加えて「未設定 -1」を返す三値規約であり、本規約への適合は「既知の逸脱と移行課題」に整理しています。
+
 ### 検証
 
 ```bash
@@ -100,6 +102,117 @@ grep -nE '(==|!=)[[:space:]]*-1\b' prod/libsrc/com_util/**/*.c
 # 局所テスト
 make -C app/com_util test
 ```
+
+## API 命名規約
+
+com_util の公開 API 名に適用する規則を示します。
+既存 API の名前は ABI として凍結し、本規約への適合を目的としたリネームは行いません。
+本規約は新設 API と、移行を伴う変更の際の改名先に適用します。
+
+### 基本形
+
+公開 API は `com_util_<カテゴリ名詞>_<動詞または属性>` の順序を正とします。
+
+```c
+com_util_file_get_size(...)     /* file カテゴリの getter */
+com_util_tracer_set_name(...)   /* tracer カテゴリの setter */
+com_util_path_dirname(...)      /* path カテゴリの変換 */
+```
+
+カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms` など) に限り、動詞先行を許容します。
+既存の `com_util_get_temp_dir`、`com_util_get_monotonic_ms`、`com_util_normalize_path_sep`、`com_util_paths_equal` は本規約に先行するため凍結対象です。
+
+### 生成と破棄の動詞対
+
+ハンドルを生成・破棄する API の新設時は、`*_create` / `*_dispose` の対を正とします。
+既存 API の破棄動詞 (`*_destroy`、`*_detach`、`*_close`、`*_stop`、`*_release`) は凍結し、同一ハンドル型の中では既存の動詞に合わせます (例: sync カテゴリへの追加は `*_destroy` に合わせる)。
+
+プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません (`com_util_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません)。
+`com_util_argparser_init` が該当します。既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であり、利用側による破棄を必要としない設計です。
+
+### アンダースコア前置きの公開シンボル
+
+`_com_util_` 前置きの公開シンボルは、直接呼び出しを想定しないシンボルに限定します。
+許容する用途は以下の 2 種のみとします。
+
+| 用途 | 例 |
+|---|---|
+| 呼び出し元情報 (`__FILE__` / `__LINE__`) などを補うマクロの実体 | `_com_util_tracer_write` |
+| テスト専用フック (`_for_test` サフィックスを併用) | `_com_util_shutdown_invoke_for_test` |
+
+明示ハンドル版と既定ハンドル版の区別 (argparser の `_com_util_argparser_*` / `com_util_argparser_*`) には今後使用しません。
+既存の argparser API は凍結対象です。
+
+### typedef の規則 (上位規範への追記)
+
+typedef struct に `_t` サフィックスを付けない規則は上位規範のとおりです。
+enum と関数ポインターの typedef に付く `_t` (`com_util_trace_level_t` など) は現状を追認し、許容します。
+新設の typedef enum はタグ付き (`typedef enum name { ... } name;`) を正とし、無名 enum の typedef は作成しません。
+
+## 引数順序規約
+
+com_util の公開 API の引数順序は、API の性格に応じて以下の 3 規則に従います。
+
+### 変換・整形系 (COM_UTIL_OK 系)
+
+入力を出力バッファーへ変換・整形する API は、CRT の `strcpy_s` 系に合わせて出力バッファーを先頭に置きます。
+
+```c
+戻り値 関数名(out, out_size[, errno_out], 入力...);
+```
+
+```c
+com_util_strcpy(dest, dest_size, src);
+com_util_path_dirname(path_out, path_size, errno_out, path);
+com_util_gmtime(utc_tm, timep);
+com_util_stat(buf, path);
+```
+
+`com_util_stat` が POSIX の `stat(path, buf)` と逆順であるのは、本規約 (出力先頭) によるものです。
+`errno_out` を提供する場合は、出力バッファーとサイズの直後に置きます。
+
+### ハンドル・操作系 (COM_UTIL_OK 系)
+
+ハンドルまたは操作対象を先頭に置き、`*_out` の出力引数は末尾に置きます。
+
+```c
+com_util_file_get_size(file, size_out);
+com_util_paths_equal(lhs, rhs, equal_out, errno_out);
+com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
+```
+
+### 適用対象外 API と _fmt 系
+
+「エラー処理と戻り値規約」の適用対象外 API は、元 API の引数順を保存し、追加の出力引数 (`errno_out` など) は末尾に付加します。
+
+```c
+com_util_fopen(path, modes, errno_out);        /* fopen(path, modes) + errno_out */
+com_util_fopen_temp(prefix, modes, path_out, path_size, errno_out);
+```
+
+`_fmt` 系はパス引数を書式で組み立てる派生 API であり、基底 API からパス引数を除いた残りの引数順を維持し、末尾に `format` と可変長引数を置きます。
+`v*_fmt` は可変長引数を `va_list args` に置き換えます。
+
+```c
+com_util_open(path, flags, mode);
+com_util_open_fmt(flags, mode, format, ...);
+com_util_vopen_fmt(flags, mode, format, args);
+```
+
+## 解消済みの逸脱
+
+本規約および上位規範に対する既存公開 API の逸脱として整理していた項目は、すべて解消済みです。
+旧シグネチャからの移行手順は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+
+| API | 逸脱内容 | 解消結果 |
+|---|---|---|
+| `com_util_getenv` | 0 / -1 (未設定) / `ERANGE` の三値。上位規範の三値禁止に抵触 | 設定有無を `int *exists_out` へ分離し、戻り値を 0 / `EINVAL` / `ERANGE` の二値系へ変更 |
+| argparser の既定ハンドル版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なる | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
+| `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できない | 結果コード戻り + `size_t *written_out` へ変更 |
+| `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なる | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
+| `com_util_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `com_util_process_options` へ統一。同種の `com_util_process_stdio_t` も `com_util_process_stdio` へ統一 |
+
+`com_util_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
 
 ## 標準時刻型 (com_util_timespec)
 

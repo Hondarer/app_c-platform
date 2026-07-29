@@ -43,7 +43,7 @@
 #include <com_util/sync/sync.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_MMAP
  *  @{
  */
 

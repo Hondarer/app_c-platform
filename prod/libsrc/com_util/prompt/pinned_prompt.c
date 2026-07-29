@@ -1602,15 +1602,19 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *b
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
-                                    const void *data, size_t size)
+int com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+                                 const void *data, size_t size, size_t *written_out)
 {
     FILE *out;
     size_t written;
 
+    if (written_out != NULL)
+    {
+        *written_out = 0U;
+    }
     if (screen == NULL || (data == NULL && size != 0U))
     {
-        return 0U;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     out = pinned_prompt_channel_file(channel);
@@ -1625,7 +1629,15 @@ size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pin
             written = 0U;
         }
         (void)fflush(out);
-        return written;
+        if (written_out != NULL)
+        {
+            *written_out = written;
+        }
+        if (written != size)
+        {
+            return COM_UTIL_ERR_UNKNOWN;
+        }
+        return COM_UTIL_OK;
     }
 
     pinned_prompt_lock(screen);
@@ -1643,7 +1655,15 @@ size_t com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pin
     pinned_prompt_render_locked(screen);
     pinned_prompt_unlock(screen);
 
-    return written;
+    if (written_out != NULL)
+    {
+        *written_out = written;
+    }
+    if (written != size)
+    {
+        return COM_UTIL_ERR_UNKNOWN;
+    }
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1655,7 +1675,8 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     va_list ap_copy;
     int needed;
     char *buf;
-    size_t written;
+    size_t written = 0U;
+    int write_result;
 
     if (screen == NULL)
     {
@@ -1695,8 +1716,12 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     }
     va_end(ap);
 
-    written = com_util_pinned_prompt_write(screen, channel, buf, (size_t)needed);
+    write_result = com_util_pinned_prompt_write(screen, channel, buf, (size_t)needed, &written);
     free(buf);
+    if (write_result != COM_UTIL_OK)
+    {
+        return -1;
+    }
     return (int)written;
 }
 

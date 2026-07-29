@@ -34,19 +34,31 @@ make -C app/com_util
 make -C app/com_util test
 ```
 
-### 使用例 (概念)
+### 使用例
 
-以下は `com_util` のヘッダーを利用する概念的な例です。実際の API 名は実装を参照してください。
+以下はトレース API を利用する例です。標準エラー出力へ INFO レベルのトレースを出力します。
 
 ```c
-#include "com_util.h"
+#include <com_util.h>
 
-int main(void) {
-	cu_log_init(CU_LOG_INFO, NULL);
-	const char *val = cu_config_get("general", "timeout", "1000");
-	cu_log_info("timeout=%s", val);
-	cu_log_close();
-	return 0;
+int main(void)
+{
+    com_util_tracer *tracer = com_util_tracer_create();
+
+    if (tracer == NULL)
+    {
+        return 1;
+    }
+
+    com_util_tracer_set_stderr_level(tracer, COM_UTIL_TRACE_LEVEL_INFO);
+    com_util_tracer_start(tracer);
+
+    com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "timeout=%d", 1000);
+
+    com_util_tracer_stop(tracer);
+    com_util_tracer_dispose(tracer);
+
+    return 0;
 }
 ```
 

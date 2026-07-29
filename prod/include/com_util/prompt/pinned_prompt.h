@@ -31,7 +31,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_PROMPT
  *  @{
  */
 
@@ -190,9 +190,11 @@ extern "C"
      *  @brief          端末下部の固定プロンプトより上へデータを書き込みます。
      *  @param[in]      screen   固定プロンプト ハンドルです。
      *  @param[in]      channel  書き込み先の標準ストリームです。
-     *  @param[in]      data     書き込むデータです。@p size が 0 の場合に限り NULL も指定できます。
-     *  @param[in]      size     @p data から書き込むバイト数です。
-     *  @return         対象ストリームへ書き込んだバイト数を返します。引数不正の場合は 0 を返します。
+     *  @param[in]      data         書き込むデータです。@p size が 0 の場合に限り NULL も指定できます。
+     *  @param[in]      size         @p data から書き込むバイト数です。
+     *  @param[out]     written_out  対象ストリームへ書き込んだバイト数を格納します。NULL も指定できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT のいずれかを返します。\n
+     *                  書き込みが @p size バイトに満たない場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  指定されたデータだけを書き込み、改行は付加しません。
      *  ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
@@ -201,9 +203,9 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
-                                                                     com_util_pinned_prompt_channel_t channel,
-                                                                     const void *data, size_t size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
+                                                                  com_util_pinned_prompt_channel_t channel,
+                                                                  const void *data, size_t size, size_t *written_out);
 
     /**
      *  @brief          端末下部の固定プロンプトより上へ書式付き文字列を書き込みます。

@@ -30,7 +30,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_SYNC
  *  @{
  */
 
@@ -96,7 +96,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms);
 
     /**
-     *  @brief          ミューテックスをノンブロッキングでロック試行します。
+     *  @brief          ミューテックスを非ブロッキングでロック試行します。
      *  @param[in]      mtx  対象のミューテックス。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *
@@ -216,7 +216,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms);
 
     /**
-     *  @brief          共有 (読み取り) ロックをノンブロッキングで取得試行します。
+     *  @brief          共有 (読み取り) ロックを非ブロッキングで取得試行します。
      *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *
@@ -244,7 +244,7 @@ extern "C"
                                                                           int timeout_ms);
 
     /**
-     *  @brief          排他 (書き込み) ロックをノンブロッキングで取得試行します。
+     *  @brief          排他 (書き込み) ロックを非ブロッキングで取得試行します。
      *  @param[in]      rwlock  対象の読み書きロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *
@@ -387,7 +387,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms);
 
     /**
-     *  @brief          プロセス横断ミューテックスをノンブロッキングでロック試行します。
+     *  @brief          プロセス横断ミューテックスを非ブロッキングでロック試行します。
      *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *
@@ -479,7 +479,7 @@ extern "C"
                                                                               int timeout_ms);
 
     /**
-     *  @brief          プロセス横断共有 (読み取り) ロックをノンブロッキングで取得試行します。
+     *  @brief          プロセス横断共有 (読み取り) ロックを非ブロッキングで取得試行します。
      *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *
@@ -507,7 +507,7 @@ extern "C"
                                                                                  int timeout_ms);
 
     /**
-     *  @brief          プロセス横断排他 (書き込み) ロックをノンブロッキングで取得試行します。
+     *  @brief          プロセス横断排他 (書き込み) ロックを非ブロッキングで取得試行します。
      *  @param[in]      lock  対象のロック。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_BUSY を返します。
      *

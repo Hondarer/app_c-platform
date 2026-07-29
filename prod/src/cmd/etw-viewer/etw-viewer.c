@@ -315,9 +315,9 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    session = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
-                                         etw_viewer_handle_event, &viewer_context, &status);
-    if (session == NULL)
+    status = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
+                                        etw_viewer_handle_event, &viewer_context, &session);
+    if (status != COM_UTIL_OK)
     {
         int exit_code = EXIT_FAILURE;
         if (status == COM_UTIL_ERR_PERMISSION_DENIED)

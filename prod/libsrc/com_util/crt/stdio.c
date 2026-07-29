@@ -305,6 +305,34 @@ int com_util_vfprintf(FILE *stream, const char *format, va_list args)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_snprintf(char *buf, size_t buf_size, const char *format, ...)
+{
+    int result;
+    va_list args;
+
+    va_start(args, format);
+    result = com_util_vsnprintf(buf, buf_size, format, args);
+    va_end(args);
+
+    return result;
+}
+
+/* 外部利用者が参照する Doxygen コメントは、ヘッダーに記載 */
+/**
+ *  @details
+ *  UCRT の `vsnprintf` は C99 準拠 (切り詰め時も必要文字数を返し、常に NUL 終端する) のため、
+ *  プラットフォーム分岐を行いません。\n
+ *  MSVC の `sprintf_s` / `_vsnprintf_s` は切り詰め時の戻り値と終端の挙動が C99 と異なるため、
+ *  使用しません。\n
+ *  see: https://learn.microsoft.com/cpp/c-runtime-library/reference/vsnprintf-vsnprintf-vsnprintf-l-vsnwprintf-vsnwprintf-l
+ */
+int com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args)
+{
+    return vsnprintf(buf, buf_size, format, args);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_fflush(FILE *stream)
 {
     return fflush(stream);

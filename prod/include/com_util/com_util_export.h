@@ -20,7 +20,7 @@
 #define COM_UTIL_EXPORT_H
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_BASE
  *  @{
  */
 

@@ -25,7 +25,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CRT
  *  @{
  */
 
@@ -37,22 +37,25 @@ extern "C"
     /**
      *  @brief          環境変数の値を取得します。
      *
-     *  指定された環境変数が設定されている場合、その値を @p buf に格納して 0 を返す。\n
+     *  指定された環境変数が設定されている場合、その値を @p buf に格納する。\n
      *  @p buf に NULL を渡した場合は存在確認のみ行い、値のコピーを省略する。\n
      *  Windows では @c _dupenv_s を使用して MSVC セキュリティ警告を回避します。
      *
-     *  @param[in]      name        環境変数名 (null 終端文字列)。
-     *  @param[out]     buf         値の格納先です。NULL を指定すると存在確認のみ行います。
+     *  @param[in]      name        環境変数名 (null 終端文字列)。NULL を渡した場合は EINVAL を返します。
+     *  @param[out]     buf         値の格納先です。NULL を指定すると存在確認のみ行います。\n
+     *                              変数が設定されていない場合は空文字列を格納します。
      *  @param[in]      buf_size    @p buf のバイト数。@p buf が NULL の場合は無視。
-     *  @return         変数が設定されている場合は 0 を返し、@p buf が NULL でなければ値をコピーします。
-     *  @return         変数が設定されていない場合は -1 を返します。
-     *  @return         @p buf が NULL でなく、値を格納するには不足している場合は ERANGE を返します。
+     *  @param[out]     exists_out  変数が設定されている場合は 1、設定されていない場合は 0 を格納します。\n
+     *                              NULL も指定できます。戻り値が 0 または ERANGE の場合に有効です。
+     *  @return         成功時は 0 を返します。変数の設定有無は @p exists_out で確認します。
+     *  @return         @p name が NULL の場合は EINVAL を返します。
+     *  @return         変数が設定されており、@p buf が NULL でなく、値を格納するには不足している場合は ERANGE を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  環境変数の読み取りのみを行います。他スレッドが同時に環境変数を変更する場合は、呼び出し側で同期してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, size_t buf_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out);
 
 #ifdef __cplusplus
 }

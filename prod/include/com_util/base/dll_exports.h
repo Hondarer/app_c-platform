@@ -48,7 +48,7 @@
 #include <com_util/base/platform.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_BASE
  *  @{
  */
 

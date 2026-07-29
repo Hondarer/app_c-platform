@@ -31,7 +31,7 @@
 #include <com_util/trace/tracer.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_TRACE
  *  @{
  */
 

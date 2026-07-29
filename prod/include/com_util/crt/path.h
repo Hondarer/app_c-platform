@@ -63,7 +63,7 @@
 #endif     /* DOXYGEN */
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CRT
  *  @{
  */
 

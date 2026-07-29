@@ -88,11 +88,11 @@ TEST_F(etw_viewerTest, main_accepts_pid_filter)
     EXPECT_CALL(mock_com_util_, com_util_etw_session_start(_, _, _, _, _))
         .WillOnce(Invoke(
             [&captured_context](const char *, const char *, com_util_etw_event_callback_t, void *context,
-                                int *out_status)
+                                com_util_etw_session **session_out)
             {
                 captured_context = *static_cast<const etw_viewer_context *>(context);
-                *out_status = COM_UTIL_ERR_INVALID_ARGUMENT;
-                return static_cast<com_util_etw_session *>(nullptr);
+                *session_out = nullptr;
+                return COM_UTIL_ERR_INVALID_ARGUMENT;
             })); // [Pre-Assert確認_正常系] - com_util_etw_session_start が 1 回呼び出されること。
                  // [Pre-Assert手順] - session 開始に渡された context を捕捉し、失敗を返却して打ち切る。
 

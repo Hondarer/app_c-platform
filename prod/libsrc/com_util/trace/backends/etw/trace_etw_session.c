@@ -409,17 +409,6 @@ static void trace_thread_proc(void *param)
     return;
 }
 
-/**
- *  @brief  out_status が非 NULL なら値を設定します。
- */
-static void set_status(int *out_status, int value)
-{
-    if (out_status != NULL)
-    {
-        *out_status = value;
-    }
-}
-
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_etw_session_check_access(void)
@@ -467,8 +456,9 @@ int com_util_etw_session_check_access(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_etw_session *com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                                                 com_util_etw_event_callback_t callback, void *context, int *out_status)
+int com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
+                               com_util_etw_event_callback_t callback, void *context,
+                               com_util_etw_session **session_out)
 {
     com_util_etw_session *session = NULL;
     GUID provider_guid;
@@ -477,23 +467,26 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     size_t props_size;
     ENABLE_TRACE_PARAMETERS etp = {0};
 
+    if (session_out == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    *session_out = NULL;
+
     if (session_name == NULL || provider_guid_str == NULL || callback == NULL)
     {
-        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
-        return NULL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     if (parse_guid(provider_guid_str, &provider_guid) != 0)
     {
-        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
-        return NULL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     session = (com_util_etw_session *)malloc(sizeof(com_util_etw_session));
     if (session == NULL)
     {
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return NULL;
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     zero_bytes(session, sizeof(com_util_etw_session));
@@ -510,8 +503,8 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     session->session_name_w = com_util_utf8_to_wstr_alloc(session_name);
     if (session->session_name_w == NULL)
     {
-        set_status(out_status, COM_UTIL_ERR_INVALID_ARGUMENT);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     name_len_w = wcslen(session->session_name_w) + 1;
 
@@ -520,8 +513,8 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     session->properties = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
     if (session->properties == NULL)
     {
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* リアルタイム セッションを開始 */
@@ -538,15 +531,15 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     if (status == ERROR_ACCESS_DENIED)
     {
         session->session_handle = 0;
-        set_status(out_status, COM_UTIL_ERR_PERMISSION_DENIED);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_PERMISSION_DENIED;
     }
 
     if (status != ERROR_SUCCESS)
     {
         session->session_handle = 0;
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* プロバイダーを有効化 */
@@ -555,8 +548,8 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
                             0xFFFFFFFFFFFFFFFF, 0, 0, &etp);
     if (status != ERROR_SUCCESS)
     {
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     /* トレースをオープンしワーカー スレッドを起動 */
@@ -571,18 +564,18 @@ com_util_etw_session *com_util_etw_session_start(const char *session_name, const
     }
     if (session->trace_handle == INVALID_PROCESSTRACE_HANDLE)
     {
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != COM_UTIL_OK)
     {
-        set_status(out_status, COM_UTIL_ERR_UNKNOWN);
-        return dispose_session_and_return_null(session);
+        (void)dispose_session_and_return_null(session);
+        return COM_UTIL_ERR_UNKNOWN;
     }
 
-    set_status(out_status, COM_UTIL_OK);
-    return session;
+    *session_out = session;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

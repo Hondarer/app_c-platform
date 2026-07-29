@@ -47,7 +47,7 @@
 #include <time.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_CLOCK
  *  @{
  */
 

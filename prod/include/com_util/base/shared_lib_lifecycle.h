@@ -45,7 +45,7 @@
 #endif /* PLATFORM_ */
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_BASE
  *  @{
  */
 
@@ -87,8 +87,9 @@ static void dllmain_syslog_send__(const char *msg)
     struct sockaddr_un sa;
     int fd;
     int n;
+    int enabled = 0;
 
-    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0) != 0)
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled) != 0 || enabled == 0)
     {
         return;
     }
@@ -130,8 +131,9 @@ static void dllmain_output_debug_msg__(const char *msg)
 {
     wchar_t buf[1024];
     int len;
+    int enabled = 0;
 
-    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0) != 0)
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled) != 0 || enabled == 0)
     {
         return;
     }

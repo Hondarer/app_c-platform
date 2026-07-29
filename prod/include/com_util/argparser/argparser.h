@@ -99,7 +99,7 @@
 #include <com_util/com_util_export.h>
 
 /**
- *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @ingroup        COM_UTIL_ARGPARSER
  *  @{
  */
 
@@ -232,12 +232,15 @@ extern "C"
     /**
      *  @brief          フラグ (値なしオプション) を、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_flag
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_flag(const char *short_name, const char *long_name,
-                                                                       const char *description, int *storage);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_flag(const char *short_name, const char *long_name,
+                                                                      const char *description, int *storage);
 
     /**
      *  @brief          int 値を取るオプションを登録します。
@@ -264,15 +267,18 @@ extern "C"
     /**
      *  @brief          int 値を取るオプションを、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_option_int
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_option_int(const char *short_name,
-                                                                             const char *long_name,
-                                                                             const char *value_name,
-                                                                             const char *description,
-                                                                             unsigned int flags, int *storage);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int(const char *short_name,
+                                                                            const char *long_name,
+                                                                            const char *value_name,
+                                                                            const char *description, unsigned int flags,
+                                                                            int *storage);
 
     /**
      *  @brief          文字列値を取るオプションを登録します。
@@ -301,11 +307,14 @@ extern "C"
     /**
      *  @brief          文字列値を取るオプションを、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_option_string
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
+    COM_UTIL_EXPORT int COM_UTIL_API
     com_util_argparser_register_option_string(const char *short_name, const char *long_name, const char *value_name,
                                               const char *description, unsigned int flags, const char **storage);
 
@@ -335,11 +344,14 @@ extern "C"
     /**
      *  @brief          複数回指定できる int 値オプションを、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_option_int_array
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_option_int_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int_array(
         const char *short_name, const char *long_name, const char *value_name, const char *description,
         unsigned int flags, int *storage, size_t capacity, size_t *count);
 
@@ -371,11 +383,14 @@ extern "C"
     /**
      *  @brief          複数回指定できる文字列値オプションを、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_option_string_array
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_option_string_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_string_array(
         const char *short_name, const char *long_name, const char *value_name, const char *description,
         unsigned int flags, const char **storage, size_t capacity, size_t *count);
 
@@ -403,13 +418,16 @@ extern "C"
     /**
      *  @brief          int 値の位置引数を、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_positional_int
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_positional_int(const char *name,
-                                                                                 const char *description,
-                                                                                 unsigned int flags, int *storage);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int(const char *name,
+                                                                                const char *description,
+                                                                                unsigned int flags, int *storage);
 
     /**
      *  @brief          文字列値の位置引数を登録します。
@@ -438,14 +456,17 @@ extern "C"
     /**
      *  @brief          文字列値の位置引数を、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_positional_string
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_positional_string(const char *name,
-                                                                                    const char *description,
-                                                                                    unsigned int flags,
-                                                                                    const char **storage);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_string(const char *name,
+                                                                                   const char *description,
+                                                                                   unsigned int flags,
+                                                                                   const char **storage);
 
     /**
      *  @brief          可変長の int 値位置引数を登録します。
@@ -475,14 +496,17 @@ extern "C"
     /**
      *  @brief          可変長の int 値位置引数を、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_positional_int_array
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_register_positional_int_array(const char *name,
-                                                                                       const char *description,
-                                                                                       unsigned int flags, int *storage,
-                                                                                       size_t capacity, size_t *count);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int_array(const char *name,
+                                                                                      const char *description,
+                                                                                      unsigned int flags, int *storage,
+                                                                                      size_t capacity, size_t *count);
 
     /**
      *  @brief          可変長の文字列値位置引数を登録します。
@@ -512,11 +536,14 @@ extern "C"
     /**
      *  @brief          可変長の文字列値位置引数を、プロセス共有のデフォルト パーサーへ登録します。
      *
-     *  登録エラーは内部に記録し、結果コードは戻り値として返しません。
-     *  登録エラーは com_util_argparser_get_register_error_count() で確認できます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
      *  @see            _com_util_argparser_register_positional_string_array
      */
-    COM_UTIL_EXPORT void COM_UTIL_API
+    COM_UTIL_EXPORT int COM_UTIL_API
     com_util_argparser_register_positional_string_array(const char *name, const char *description, unsigned int flags,
                                                         const char **storage, size_t capacity, size_t *count);
 
@@ -622,10 +649,11 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、直前の解析エラーのメッセージを組み立てます。
      *
-     *  _com_util_argparser_get_error_message() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *  @see            _com_util_argparser_get_error_message
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_get_error_message(char *buffer, size_t buffer_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error_message(char *buffer, size_t buffer_size);
 
     /**
      *  @brief          登録内容から usage 文字列を組み立てます。
@@ -655,11 +683,12 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの登録内容から usage 文字列を組み立てます。
      *
-     *  _com_util_argparser_get_usage() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *  @see            _com_util_argparser_get_usage
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_get_usage(char *buffer, size_t buffer_size,
-                                                                   size_t *required_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_usage(char *buffer, size_t buffer_size,
+                                                                  size_t *required_size);
 
     /**
      *  @brief          登録内容から組み立てた usage を指定ストリームへ出力します。
@@ -677,16 +706,19 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの usage を指定ストリームへ出力します。
      *
-     *  _com_util_argparser_print_usage() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *  @see            _com_util_argparser_print_usage
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_print_usage(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_usage(FILE *stream);
 
     /**
      *  @brief          直前の解析エラーのメッセージを指定ストリームへ出力します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL を渡してはなりません。
      *  @param[in]      stream  出力先ストリームです (stdout / stderr など)。NULL を渡してはなりません。
-     *  @return         _com_util_argparser_get_error_message() の戻り値をそのまま返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。\n
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合、切り詰めたメッセージを出力した上で返します。
      *
      *  内部で _com_util_argparser_get_error_message() を用いてエラー メッセージを組み立ててから、
      *  "error: {メッセージ}\n" の形式で @p stream へ書き出し、続けて区切りの空行を出力します。\n
@@ -698,10 +730,11 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、直前の解析エラーのメッセージを出力します。
      *
-     *  _com_util_argparser_print_error_messages() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *  @see            _com_util_argparser_print_error_messages
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_print_error_messages(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_error_messages(FILE *stream);
 
     /**
      *  @brief          register 系呼び出しで発生したエラーの件数を取得します。
@@ -778,11 +811,12 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、register 系エラーのメッセージを組み立てます。
      *
-     *  _com_util_argparser_get_register_error_message() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *  @see            _com_util_argparser_get_register_error_message
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_get_register_error_message(size_t index, char *buffer,
-                                                                                    size_t buffer_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_register_error_message(size_t index, char *buffer,
+                                                                                   size_t buffer_size);
 
     /**
      *  @brief          register 系呼び出しで発生したエラーのメッセージを指定ストリームへ全件出力します。
@@ -802,10 +836,11 @@ extern "C"
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、register 系エラーのメッセージを全件出力します。
      *
-     *  _com_util_argparser_print_register_error_messages() の戻り値は破棄します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *  @see            _com_util_argparser_print_register_error_messages
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_print_register_error_messages(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_register_error_messages(FILE *stream);
 
 #ifdef __cplusplus
 }

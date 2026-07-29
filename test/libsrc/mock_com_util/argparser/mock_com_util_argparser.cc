@@ -337,44 +337,44 @@ MOCK_WEAK_IMPL(const char *, _com_util_argparser_get_register_error_target, cons
 
 DEFINE_ARGPARSER_VOID(com_util_argparser_init, (description), const char *description)
 
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_flag, (short_name, long_name, description, storage),
-                      const char *short_name, const char *long_name, const char *description, int *storage)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_option_int,
-                      (short_name, long_name, value_name, description, flags, storage), const char *short_name,
-                      const char *long_name, const char *value_name, const char *description, unsigned int flags,
-                      int *storage)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_option_string,
-                      (short_name, long_name, value_name, description, flags, storage), const char *short_name,
-                      const char *long_name, const char *value_name, const char *description, unsigned int flags,
-                      const char **storage)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_option_int_array,
-                      (short_name, long_name, value_name, description, flags, storage, capacity, count),
-                      const char *short_name, const char *long_name, const char *value_name, const char *description,
-                      unsigned int flags, int *storage, size_t capacity, size_t *count)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_option_string_array,
-                      (short_name, long_name, value_name, description, flags, storage, capacity, count),
-                      const char *short_name, const char *long_name, const char *value_name, const char *description,
-                      unsigned int flags, const char **storage, size_t capacity, size_t *count)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_int, (name, description, flags, storage), const char *name,
-                      const char *description, unsigned int flags, int *storage)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_string, (name, description, flags, storage),
-                      const char *name, const char *description, unsigned int flags, const char **storage)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_int_array,
-                      (name, description, flags, storage, capacity, count), const char *name, const char *description,
-                      unsigned int flags, int *storage, size_t capacity, size_t *count)
-DEFINE_ARGPARSER_VOID(com_util_argparser_register_positional_string_array,
-                      (name, description, flags, storage, capacity, count), const char *name, const char *description,
-                      unsigned int flags, const char **storage, size_t capacity, size_t *count)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_flag, (short_name, long_name, description, storage),
+                        const char *short_name, const char *long_name, const char *description, int *storage)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_option_int,
+                        (short_name, long_name, value_name, description, flags, storage), const char *short_name,
+                        const char *long_name, const char *value_name, const char *description, unsigned int flags,
+                        int *storage)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_option_string,
+                        (short_name, long_name, value_name, description, flags, storage), const char *short_name,
+                        const char *long_name, const char *value_name, const char *description, unsigned int flags,
+                        const char **storage)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_option_int_array,
+                        (short_name, long_name, value_name, description, flags, storage, capacity, count),
+                        const char *short_name, const char *long_name, const char *value_name, const char *description,
+                        unsigned int flags, int *storage, size_t capacity, size_t *count)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_option_string_array,
+                        (short_name, long_name, value_name, description, flags, storage, capacity, count),
+                        const char *short_name, const char *long_name, const char *value_name, const char *description,
+                        unsigned int flags, const char **storage, size_t capacity, size_t *count)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_int, (name, description, flags, storage),
+                        const char *name, const char *description, unsigned int flags, int *storage)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_string, (name, description, flags, storage),
+                        const char *name, const char *description, unsigned int flags, const char **storage)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_int_array,
+                        (name, description, flags, storage, capacity, count), const char *name, const char *description,
+                        unsigned int flags, int *storage, size_t capacity, size_t *count)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_string_array,
+                        (name, description, flags, storage, capacity, count), const char *name, const char *description,
+                        unsigned int flags, const char **storage, size_t capacity, size_t *count)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_parse, (argc, argv), int argc, char *const *argv)
-DEFINE_ARGPARSER_VOID(com_util_argparser_get_error_message, (buffer, buffer_size), char *buffer, size_t buffer_size)
-DEFINE_ARGPARSER_VOID(com_util_argparser_get_usage, (buffer, buffer_size, required_size), char *buffer,
-                      size_t buffer_size, size_t *required_size)
-DEFINE_ARGPARSER_VOID(com_util_argparser_print_usage, (stream), FILE *stream)
-DEFINE_ARGPARSER_VOID(com_util_argparser_print_error_messages, (stream), FILE *stream)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_get_error_message, (buffer, buffer_size), char *buffer, size_t buffer_size)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_get_usage, (buffer, buffer_size, required_size), char *buffer,
+                        size_t buffer_size, size_t *required_size)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_print_usage, (stream), FILE *stream)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_print_error_messages, (stream), FILE *stream)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_get_register_error, (index), size_t index)
-DEFINE_ARGPARSER_VOID(com_util_argparser_get_register_error_message, (index, buffer, buffer_size), size_t index,
-                      char *buffer, size_t buffer_size)
-DEFINE_ARGPARSER_VOID(com_util_argparser_print_register_error_messages, (stream), FILE *stream)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_get_register_error_message, (index, buffer, buffer_size), size_t index,
+                        char *buffer, size_t buffer_size)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_print_register_error_messages, (stream), FILE *stream)
 
 int delegate_real_com_util_argparser_get_error(void)
 {
