@@ -43,6 +43,8 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_fputs(_, _)).WillByDefault(Invoke(delegate_real_com_util_fputs));
     ON_CALL(*this, com_util_fprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
     ON_CALL(*this, com_util_vfprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
+    ON_CALL(*this, com_util_snprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
+    ON_CALL(*this, com_util_vsnprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
     ON_CALL(*this, com_util_fflush(_)).WillByDefault(Invoke(delegate_real_com_util_fflush));
     ON_CALL(*this, com_util_feof(_)).WillByDefault(Invoke(delegate_real_com_util_feof));
     ON_CALL(*this, com_util_ferror(_)).WillByDefault(Invoke(delegate_real_com_util_ferror));

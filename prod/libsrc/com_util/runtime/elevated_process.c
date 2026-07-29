@@ -16,6 +16,7 @@
  */
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/process_internal.h>
@@ -217,7 +218,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             offset = 0;
             if (arg_len > 0)
             {
-                offset = snprintf(combined_arguments, buf_sz, "%s", arguments);
+                offset = com_util_snprintf(combined_arguments, buf_sz, "%s", arguments);
                 if (offset < 0 || (size_t)offset >= buf_sz)
                 {
                     free(combined_arguments);
@@ -238,8 +239,8 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     separator = " ";
                 }
-                written = snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s", separator,
-                                   COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG);
+                written = com_util_snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s", separator,
+                                            COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG);
                 if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
                 {
                     free(combined_arguments);
@@ -257,8 +258,9 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     separator = " ";
                 }
-                written = snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s=%lu:%llu", separator,
-                                   COM_UTIL_CONSOLE_HANDOVER_FLAG, (unsigned long)parent_pid, parent_console_window);
+                written =
+                    com_util_snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s=%lu:%llu", separator,
+                                      COM_UTIL_CONSOLE_HANDOVER_FLAG, (unsigned long)parent_pid, parent_console_window);
                 if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
                 {
                     free(combined_arguments);
@@ -457,12 +459,13 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
            see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments */
         if (arg_len > 0)
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments, COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
-                           result_path);
+            (void)com_util_snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments,
+                                    COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
         }
         else
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
+            (void)com_util_snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
+                                    result_path);
         }
 
         wide_exe_path = com_util_utf8_to_wstr_alloc(exe_path);

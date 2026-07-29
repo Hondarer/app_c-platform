@@ -328,6 +328,7 @@ int com_util_snprintf(char *buf, size_t buf_size, const char *format, ...)
  */
 int com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args)
 {
+    /* 本関数はラッパー自身の実装であるため、元の vsnprintf を直接呼び出す。 */
     return vsnprintf(buf, buf_size, format, args);
 }
 

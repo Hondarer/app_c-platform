@@ -11,6 +11,7 @@
 #include <com_util/console/console.h>
 #include <com_util/console/console_internal.h>
 #include <com_util/crt/path.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/runtime/shutdown.h>
 
@@ -174,17 +175,17 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     }
 
     GetLocalTime(&now);
-    prefix_len =
-        snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ", (unsigned int)now.wYear,
-                 (unsigned int)now.wMonth, (unsigned int)now.wDay, (unsigned int)now.wHour, (unsigned int)now.wMinute,
-                 (unsigned int)now.wSecond, (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
+    prefix_len = com_util_snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ",
+                                   (unsigned int)now.wYear, (unsigned int)now.wMonth, (unsigned int)now.wDay,
+                                   (unsigned int)now.wHour, (unsigned int)now.wMinute, (unsigned int)now.wSecond,
+                                   (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
     if (prefix_len < 0 || prefix_len >= (int)sizeof(line))
     {
         return;
     }
 
     va_start(args, fmt);
-    message_len = vsnprintf(message, sizeof(message), fmt, args);
+    message_len = com_util_vsnprintf(message, sizeof(message), fmt, args);
     va_end(args);
     if (message_len < 0)
     {

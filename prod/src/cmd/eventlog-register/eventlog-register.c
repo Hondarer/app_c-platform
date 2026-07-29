@@ -24,6 +24,7 @@
 #include <com_util/argparser/argparser.h>
 #include <com_util/base/platform.h>
 #include <com_util/console/console.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/trace/tracer.h>
@@ -111,8 +112,8 @@ static int report_status(const int status, const char *action)
 
     if (status == COM_UTIL_OK)
     {
-        (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                       COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+        (void)com_util_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+                                COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
             (void)com_util_elevated_process_report_result(message);
@@ -125,15 +126,15 @@ static int report_status(const int status, const char *action)
     }
     if (status == COM_UTIL_ERR_PERMISSION_DENIED)
     {
-        (void)snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+        (void)com_util_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
     else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
-        (void)snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+        (void)com_util_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
     }
     else
     {
-        (void)snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
+        (void)com_util_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
     }
 
     if (s_is_elevated_worker != 0)

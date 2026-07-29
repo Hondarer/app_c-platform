@@ -65,7 +65,13 @@ static void zero_bytes(void *ptr, const size_t size)
     }
 }
 
-static com_util_etw_session *dispose_session_and_return_null(com_util_etw_session *session)
+/**
+ *  @brief  構築途中のセッションが確保した資源を解放します。
+ *
+ *  トレース ハンドル、セッション ハンドル、ワイド文字列、プロパティー領域の順に解放する。\n
+ *  未確保のメンバーは初期値のまま解放をスキップするため、構築のどの段階からでも呼び出せる。
+ */
+static void dispose_session(com_util_etw_session *session)
 {
     if (session != NULL)
     {
@@ -81,7 +87,6 @@ static com_util_etw_session *dispose_session_and_return_null(com_util_etw_sessio
         free(session->properties);
         free(session);
     }
-    return NULL;
 }
 
 /**
@@ -503,7 +508,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
     session->session_name_w = com_util_utf8_to_wstr_alloc(session_name);
     if (session->session_name_w == NULL)
     {
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     name_len_w = wcslen(session->session_name_w) + 1;
@@ -513,7 +518,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
     session->properties = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
     if (session->properties == NULL)
     {
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
@@ -531,14 +536,14 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
     if (status == ERROR_ACCESS_DENIED)
     {
         session->session_handle = 0;
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_PERMISSION_DENIED;
     }
 
     if (status != ERROR_SUCCESS)
     {
         session->session_handle = 0;
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
@@ -548,7 +553,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
                             0xFFFFFFFFFFFFFFFF, 0, 0, &etp);
     if (status != ERROR_SUCCESS)
     {
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
@@ -564,13 +569,13 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
     }
     if (session->trace_handle == INVALID_PROCESSTRACE_HANDLE)
     {
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
     if (com_util_thread_create(&session->thread_handle, trace_thread_proc, session) != COM_UTIL_OK)
     {
-        (void)dispose_session_and_return_null(session);
+        dispose_session(session);
         return COM_UTIL_ERR_UNKNOWN;
     }
 

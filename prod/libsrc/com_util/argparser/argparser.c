@@ -15,6 +15,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/crt/path.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/sync/sync.h>
 #include <errno.h>
@@ -1765,35 +1766,35 @@ int _com_util_argparser_get_error_message(const com_util_argparser *parser, char
     switch (parser->last_error)
     {
     case COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION:
-        written = snprintf(buffer, buffer_size, "unknown option '%s'", target);
+        written = com_util_snprintf(buffer, buffer_size, "unknown option '%s'", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE:
-        written = snprintf(buffer, buffer_size, "option '%s' requires a value", target);
+        written = com_util_snprintf(buffer, buffer_size, "option '%s' requires a value", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_INVALID_INT:
-        written = snprintf(buffer, buffer_size, "value of '%s' must be an integer", target);
+        written = com_util_snprintf(buffer, buffer_size, "value of '%s' must be an integer", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE:
-        written = snprintf(buffer, buffer_size, "value of '%s' is out of range", target);
+        written = com_util_snprintf(buffer, buffer_size, "value of '%s' is out of range", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED:
-        written = snprintf(buffer, buffer_size, "'%s' is required", target);
+        written = com_util_snprintf(buffer, buffer_size, "'%s' is required", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION:
-        written = snprintf(buffer, buffer_size, "option '%s' is specified more than once", target);
+        written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified more than once", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS:
-        written = snprintf(buffer, buffer_size, "too many arguments: '%s'", target);
+        written = com_util_snprintf(buffer, buffer_size, "too many arguments: '%s'", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES:
-        written = snprintf(buffer, buffer_size, "option '%s' is specified too many times", target);
+        written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified too many times", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE:
-        written = snprintf(buffer, buffer_size, "option '%s' does not take a value", target);
+        written = com_util_snprintf(buffer, buffer_size, "option '%s' does not take a value", target);
         break;
     case COM_UTIL_ARGPARSER_ERROR_NONE:
     default:
-        written = snprintf(buffer, buffer_size, "no error");
+        written = com_util_snprintf(buffer, buffer_size, "no error");
         break;
     }
 
@@ -2002,19 +2003,19 @@ int _com_util_argparser_get_register_error_message(const com_util_argparser *par
     switch (parser->register_errors[index].result)
     {
     case COM_UTIL_ERR_INVALID_ARGUMENT:
-        written = snprintf(buffer, buffer_size, "failed to register '%s': invalid argument", target);
+        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': invalid argument", target);
         break;
     case COM_UTIL_ERR_OUT_OF_MEMORY:
-        written = snprintf(buffer, buffer_size, "failed to register '%s': out of memory", target);
+        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': out of memory", target);
         break;
     case COM_UTIL_ERR_DUPLICATE_DEFINITION:
-        written = snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
+        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
         break;
     case COM_UTIL_OK:
     case COM_UTIL_ERR_PARSE:
     case COM_UTIL_ERR_BUFFER_TOO_SMALL:
     default:
-        written = snprintf(buffer, buffer_size, "failed to register '%s'", target);
+        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s'", target);
         break;
     }
 

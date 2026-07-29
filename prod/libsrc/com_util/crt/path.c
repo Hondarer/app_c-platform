@@ -9,6 +9,7 @@
  */
 
 #include <com_util/crt/path.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/crt/wchar_conv.h>
 #include <com_util/base/result.h>
 #include <ctype.h>
@@ -188,7 +189,7 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
             return COM_UTIL_ERR_UNKNOWN;
         }
 
-        written = snprintf(path_out, path_size, "%s/%s", cwd, path);
+        written = com_util_snprintf(path_out, path_size, "%s/%s", cwd, path);
         if (written < 0 || (size_t)written >= path_size)
         {
             if (path_out != NULL && path_size > 0u)
@@ -453,7 +454,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
             --len;
         }
 
-        n = snprintf(path_out, path_size, "%.*s", (int)len, tmpdir);
+        n = com_util_snprintf(path_out, path_size, "%.*s", (int)len, tmpdir);
         if (n < 0 || (size_t)n >= path_size)
         {
             if (errno_out != NULL)

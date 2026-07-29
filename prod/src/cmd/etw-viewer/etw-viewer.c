@@ -20,6 +20,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/crt/string.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/sync/sync.h>
@@ -93,7 +94,7 @@ int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer
         return -1;
     }
 
-    written = snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id);
+    written = com_util_snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id);
     if (written < 0 || (size_t)written >= buffer_size)
     {
         return -1;

@@ -444,24 +444,24 @@ static void rotate_file(com_util_trace_file_sink *p)
     close_file(p);
 
     /* 最老世代のファイルを削除する (失敗は無視) */
-    snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations);
+    com_util_snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations);
     (void)com_util_remove(new_path);
 
     /* path.(gen-1) → path.gen のカスケード リネーム */
     for (gen = p->generations; gen >= 1; gen--)
     {
         /* 移動先: path.gen */
-        snprintf(new_path, sizeof(new_path), "%s.%d", p->path, gen);
+        com_util_snprintf(new_path, sizeof(new_path), "%s.%d", p->path, gen);
 
         /* 移動元: gen==1 のときは path そのもの */
         if (gen == 1)
         {
             /* old_path に path をコピー */
-            snprintf(old_path, sizeof(old_path), "%s", p->path);
+            com_util_snprintf(old_path, sizeof(old_path), "%s", p->path);
         }
         else
         {
-            snprintf(old_path, sizeof(old_path), "%s.%d", p->path, gen - 1);
+            com_util_snprintf(old_path, sizeof(old_path), "%s.%d", p->path, gen - 1);
         }
 
         if (com_util_rename(old_path, new_path) != 0)
@@ -646,7 +646,8 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
             free_sink(handle);
             return NULL;
         }
-        snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path, TRACE_FILE_LOCK_SUFFIX);
+        com_util_snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path,
+                          TRACE_FILE_LOCK_SUFFIX);
 
         if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_OK)
         {
@@ -765,7 +766,8 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
-    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level_t)level), message);
+    len =
+        com_util_snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level_t)level), message);
     if (len <= 0)
     {
         return COM_UTIL_ERR_UNKNOWN;

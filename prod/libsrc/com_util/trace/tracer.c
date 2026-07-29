@@ -16,6 +16,7 @@
 #include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/path.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/runtime/process.h>
 #include <com_util/sync/sync.h>
 #include <com_util/trace/tracer.h>
@@ -559,7 +560,7 @@ static char *build_effective_name(const char *name, const int64_t identifier)
     }
 
     {
-        int id_len = snprintf(NULL, 0, "%" PRId64, identifier);
+        int id_len = com_util_snprintf(NULL, 0, "%" PRId64, identifier);
         size_t base_len = strlen(base);
         size_t total = base_len + 1 + (size_t)id_len + 1;
 
@@ -568,7 +569,7 @@ static char *build_effective_name(const char *name, const int64_t identifier)
         {
             return NULL;
         }
-        snprintf(result, total, "%s_%" PRId64, base, identifier);
+        com_util_snprintf(result, total, "%s_%" PRId64, base, identifier);
         return result;
     }
 }
@@ -648,13 +649,13 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 
     if (handle->file_name != NULL)
     {
-        snprintf(name_buf, sizeof(name_buf), "%s", handle->file_name);
+        com_util_snprintf(name_buf, sizeof(name_buf), "%s", handle->file_name);
     }
     else
     {
         char path_buf[256];
 
-        snprintf(name_buf, sizeof(name_buf), "%s", get_process_basename(path_buf, sizeof(path_buf)));
+        com_util_snprintf(name_buf, sizeof(name_buf), "%s", get_process_basename(path_buf, sizeof(path_buf)));
 #if defined(PLATFORM_WINDOWS)
         strip_exe_suffix(name_buf);
 #endif /* PLATFORM_WINDOWS */
@@ -662,11 +663,11 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 
     if (handle->file_identifier != 0)
     {
-        written = snprintf(out, out_size, "%s_%" PRId64, name_buf, handle->file_identifier);
+        written = com_util_snprintf(out, out_size, "%s_%" PRId64, name_buf, handle->file_identifier);
     }
     else
     {
-        written = snprintf(out, out_size, "%s", name_buf);
+        written = com_util_snprintf(out, out_size, "%s", name_buf);
     }
     if (written < 0 || (size_t)written >= out_size)
     {
@@ -700,7 +701,7 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         return -1;
     }
 
-    written = snprintf(log_file_name, sizeof(log_file_name), "%s.log", name_buf);
+    written = com_util_snprintf(log_file_name, sizeof(log_file_name), "%s.log", name_buf);
     if (written < 0 || (size_t)written >= sizeof(log_file_name))
     {
         return -1;
@@ -1307,7 +1308,7 @@ int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_
     }
 
     va_start(args, format);
-    vsnprintf(buf, sizeof(buf), format, args);
+    com_util_vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
 
     ret = write_dual(handle, level, timestamp, buf);
@@ -1464,7 +1465,7 @@ int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_le
     {
         va_list args;
         va_start(args, format);
-        vsnprintf(label, sizeof(label), format, args);
+        com_util_vsnprintf(label, sizeof(label), format, args);
         va_end(args);
         ret = hex_write_impl(handle, level, timestamp, data, size, label);
     }
@@ -1548,7 +1549,7 @@ int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t ou
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
-    written = snprintf(out, out_size, "%s", tracer_effective_name(handle));
+    written = com_util_snprintf(out, out_size, "%s", tracer_effective_name(handle));
     config_unlock_shared(handle);
 
     if (written < 0 || (size_t)written >= out_size)

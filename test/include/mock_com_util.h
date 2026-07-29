@@ -8,6 +8,7 @@
 
 #if defined(COMPILER_MSVC)
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vsnprintf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vopen_fmt")
@@ -53,6 +54,7 @@
 
 inline constexpr char kLibComUtilName[] = "libcom_util" TESTFW_SHARED_LIBRARY_EXTENSION;
 
+
 // compress
 extern int delegate_real_com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 extern int delegate_real_com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
@@ -92,6 +94,8 @@ extern char *delegate_real_com_util_fgets(char *buf, int size, FILE *stream);
 extern int delegate_real_com_util_fputs(const char *str, FILE *stream);
 extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...);
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
+extern int delegate_real_com_util_snprintf(char *buf, size_t buf_size, const char *format, ...);
+extern int delegate_real_com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args);
 extern int delegate_real_com_util_fflush(FILE *stream);
 extern int delegate_real_com_util_feof(FILE *stream);
 extern int delegate_real_com_util_ferror(FILE *stream);
@@ -496,6 +500,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_fputs, (const char *, FILE *));
     MOCK_METHOD(int, com_util_fprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
+    MOCK_METHOD(int, com_util_snprintf, (char *, size_t, const char *));
+    MOCK_METHOD(int, com_util_vsnprintf, (char *, size_t, const char *));
     MOCK_METHOD(int, com_util_fflush, (FILE *));
     MOCK_METHOD(int, com_util_feof, (FILE *));
     MOCK_METHOD(int, com_util_ferror, (FILE *));

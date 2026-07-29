@@ -9,6 +9,7 @@
  */
 
 #include <com_util/crt/path_format.h>
+#include <com_util/crt/stdio.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -28,7 +29,7 @@ int com_util_vformat_path(char *path, const size_t path_size, const char *format
         return -1;
     }
 
-    written = vsnprintf(path, path_size, format, args);
+    written = com_util_vsnprintf(path, path_size, format, args);
     if (written < 0)
     {
         if (error_out != NULL)

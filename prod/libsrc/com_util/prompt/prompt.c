@@ -6,6 +6,7 @@
 #include <com_util/base/result.h>
 #include <com_util/prompt/prompt_internal.h>
 
+#include <com_util/crt/stdio.h>
 #include <com_util/crt/string.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/prompt/prompt_edit.h>
@@ -680,7 +681,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
     for (;;)
     {
         va_start(ap, fmt);
-        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
+        needed = com_util_vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
         va_end(ap);
 
         if (needed < 0)

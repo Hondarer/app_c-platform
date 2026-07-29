@@ -103,6 +103,20 @@ grep -nE '(==|!=)[[:space:]]*-1\b' prod/libsrc/com_util/**/*.c
 make -C app/com_util test
 ```
 
+## CRT ラッパーの適用範囲
+
+com_util が CRT / POSIX 関数のラッパー (`com_util_snprintf`、`com_util_fopen` など) を提供している関数については、`app/` 配下のすべてのコードでラッパーを使用します。
+com_util 自身の実装 (`prod/libsrc/`) も対象に含みます (`com_util_strcpy`、`com_util_stat`、`com_util_fopen`、`com_util_sscanf` などの既存の使用例に従います)。
+
+例外は、そのラッパー自身の実装だけです。
+`com_util_vsnprintf` の実装が `vsnprintf` を呼ぶような、ラッパーが元関数へ委譲する箇所は元関数を直接呼び出します。
+
+ラッパーを提供していない関数 (`memset`、`strlen` など) はこの規約の対象外であり、元関数をそのまま使用します。
+`prod/libsrc/com_util/trace/backends/etw/trace_etw_session.c` の `zero_bytes()` が `memset` を使わず自前実装しているのは、testfw が libc の `memset` を include_override のマクロで差し替えるためであり、com_util のラッパー層とは別の理由によるものです。
+
+`mock_com_util` は `com_util_*` を weak シンボルで差し替えるため、実装内部の呼び出しもモックの対象になります。
+これは既存のラッパー使用箇所でも同様であり、モック未設定時は実関数へ委譲されます。
+
 ## API 命名規約
 
 com_util の公開 API 名に適用する規則を示します。
