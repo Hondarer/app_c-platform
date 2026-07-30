@@ -64,7 +64,7 @@ void com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array, cons
         return;
     }
 
-    while (com_util_fgets(line, sizeof(line), fp) != NULL)
+    while (fgets(line, sizeof(line), fp) != NULL)
     {
         /* '#' 以降をコメントとして切り捨てる (行頭 '#' も同様に処理される) */
         comment = strchr(line, '#');
@@ -95,6 +95,6 @@ void com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array, cons
         }
     }
 
-    com_util_fclose(fp);
+    fclose(fp);
     return;
 }

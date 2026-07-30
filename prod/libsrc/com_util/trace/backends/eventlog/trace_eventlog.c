@@ -279,7 +279,7 @@ static int format_identifier_string(const int64_t identifier, char *buf, const s
         return 0;
     }
 
-    written = com_util_snprintf(buf, buf_size, "%" PRId64, identifier);
+    written = snprintf(buf, buf_size, "%" PRId64, identifier);
     if (written < 0 || (size_t)written >= buf_size)
     {
         buf[0] = '\0';

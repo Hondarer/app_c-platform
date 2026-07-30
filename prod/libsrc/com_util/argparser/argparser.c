@@ -1766,35 +1766,35 @@ int _com_util_argparser_get_error_message(const com_util_argparser *parser, char
     switch (parser->last_error)
     {
     case COM_UTIL_ERR_UNKNOWN_OPTION:
-        written = com_util_snprintf(buffer, buffer_size, "unknown option '%s'", target);
+        written = snprintf(buffer, buffer_size, "unknown option '%s'", target);
         break;
     case COM_UTIL_ERR_MISSING_VALUE:
-        written = com_util_snprintf(buffer, buffer_size, "option '%s' requires a value", target);
+        written = snprintf(buffer, buffer_size, "option '%s' requires a value", target);
         break;
     case COM_UTIL_ERR_INVALID_INTEGER:
-        written = com_util_snprintf(buffer, buffer_size, "value of '%s' must be an integer", target);
+        written = snprintf(buffer, buffer_size, "value of '%s' must be an integer", target);
         break;
     case COM_UTIL_ERR_OUT_OF_RANGE:
-        written = com_util_snprintf(buffer, buffer_size, "value of '%s' is out of range", target);
+        written = snprintf(buffer, buffer_size, "value of '%s' is out of range", target);
         break;
     case COM_UTIL_ERR_MISSING_REQUIRED:
-        written = com_util_snprintf(buffer, buffer_size, "'%s' is required", target);
+        written = snprintf(buffer, buffer_size, "'%s' is required", target);
         break;
     case COM_UTIL_ERR_DUPLICATE_OPTION:
-        written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified more than once", target);
+        written = snprintf(buffer, buffer_size, "option '%s' is specified more than once", target);
         break;
     case COM_UTIL_ERR_TOO_MANY_ARGUMENTS:
-        written = com_util_snprintf(buffer, buffer_size, "too many arguments: '%s'", target);
+        written = snprintf(buffer, buffer_size, "too many arguments: '%s'", target);
         break;
     case COM_UTIL_ERR_TOO_MANY_OCCURRENCES:
-        written = com_util_snprintf(buffer, buffer_size, "option '%s' is specified too many times", target);
+        written = snprintf(buffer, buffer_size, "option '%s' is specified too many times", target);
         break;
     case COM_UTIL_ERR_UNEXPECTED_VALUE:
-        written = com_util_snprintf(buffer, buffer_size, "option '%s' does not take a value", target);
+        written = snprintf(buffer, buffer_size, "option '%s' does not take a value", target);
         break;
     case COM_UTIL_OK:
     default:
-        written = com_util_snprintf(buffer, buffer_size, "no error");
+        written = snprintf(buffer, buffer_size, "no error");
         break;
     }
 
@@ -2003,18 +2003,18 @@ int _com_util_argparser_get_register_error_message(const com_util_argparser *par
     switch (parser->register_errors[index].result)
     {
     case COM_UTIL_ERR_INVALID_ARGUMENT:
-        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': invalid argument", target);
+        written = snprintf(buffer, buffer_size, "failed to register '%s': invalid argument", target);
         break;
     case COM_UTIL_ERR_OUT_OF_MEMORY:
-        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': out of memory", target);
+        written = snprintf(buffer, buffer_size, "failed to register '%s': out of memory", target);
         break;
     case COM_UTIL_ERR_DUPLICATE_DEFINITION:
-        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
+        written = snprintf(buffer, buffer_size, "failed to register '%s': duplicate definition", target);
         break;
     case COM_UTIL_OK:
     case COM_UTIL_ERR_BUFFER_TOO_SMALL:
     default:
-        written = com_util_snprintf(buffer, buffer_size, "failed to register '%s'", target);
+        written = snprintf(buffer, buffer_size, "failed to register '%s'", target);
         break;
     }
 

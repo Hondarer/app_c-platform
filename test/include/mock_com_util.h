@@ -8,7 +8,6 @@
 
 #if defined(COMPILER_MSVC)
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vsnprintf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vopen_fmt")
@@ -87,20 +86,8 @@ extern const char *delegate_real_com_util_path_basename(const char *path);
 
 // crt - stdio
 extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath);
-extern int delegate_real_com_util_fclose(FILE *stream);
-extern size_t delegate_real_com_util_fread(void *ptr, size_t size, size_t count, FILE *stream);
-extern size_t delegate_real_com_util_fwrite(const void *ptr, size_t size, size_t count, FILE *stream);
-extern char *delegate_real_com_util_fgets(char *buf, int size, FILE *stream);
-extern int delegate_real_com_util_fputs(const char *str, FILE *stream);
 extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...);
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
-extern int delegate_real_com_util_snprintf(char *buf, size_t buf_size, const char *format, ...);
-extern int delegate_real_com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args);
-extern int delegate_real_com_util_fflush(FILE *stream);
-extern int delegate_real_com_util_feof(FILE *stream);
-extern int delegate_real_com_util_ferror(FILE *stream);
-extern void delegate_real_com_util_clearerr(FILE *stream);
-extern void delegate_real_com_util_rewind(FILE *stream);
 extern int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence);
 extern int64_t delegate_real_com_util_ftell(FILE *stream);
 extern FILE *delegate_real_com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...);
@@ -493,20 +480,8 @@ class Mock_com_util
 
     // crt - stdio
     MOCK_METHOD(int, com_util_rename, (const char *, const char *));
-    MOCK_METHOD(int, com_util_fclose, (FILE *));
-    MOCK_METHOD(size_t, com_util_fread, (void *, size_t, size_t, FILE *));
-    MOCK_METHOD(size_t, com_util_fwrite, (const void *, size_t, size_t, FILE *));
-    MOCK_METHOD(char *, com_util_fgets, (char *, int, FILE *));
-    MOCK_METHOD(int, com_util_fputs, (const char *, FILE *));
     MOCK_METHOD(int, com_util_fprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
-    MOCK_METHOD(int, com_util_snprintf, (char *, size_t, const char *));
-    MOCK_METHOD(int, com_util_vsnprintf, (char *, size_t, const char *));
-    MOCK_METHOD(int, com_util_fflush, (FILE *));
-    MOCK_METHOD(int, com_util_feof, (FILE *));
-    MOCK_METHOD(int, com_util_ferror, (FILE *));
-    MOCK_METHOD(void, com_util_clearerr, (FILE *));
-    MOCK_METHOD(void, com_util_rewind, (FILE *));
     MOCK_METHOD(int, com_util_fseek, (FILE *, int64_t, int));
     MOCK_METHOD(int64_t, com_util_ftell, (FILE *));
     MOCK_METHOD(FILE *, com_util_fopen_fmt, (const char *, int *, const char *));

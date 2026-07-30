@@ -192,12 +192,12 @@ static int drop_page_cache(void *arg)
     {
         return -1;
     }
-    if (com_util_fwrite("3\n", 1U, 2U, stream) != 2U)
+    if (fwrite("3\n", 1U, 2U, stream) != 2U)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 #else
     return -1;
@@ -320,7 +320,7 @@ static int create_data_file(const char *path, size_t size)
     block = (bench_record *)calloc((size_t)BENCH_BLOCK_RECORDS, sizeof(bench_record));
     if (block == NULL)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
 
@@ -337,17 +337,17 @@ static int create_data_file(const char *path, size_t size)
         {
             bench_fill_record(written + index, &block[index]);
         }
-        if (com_util_fwrite(block, sizeof(*block), chunk, stream) != chunk)
+        if (fwrite(block, sizeof(*block), chunk, stream) != chunk)
         {
             free(block);
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         written += chunk;
     }
 
     free(block);
-    if (com_util_fclose(stream) != 0)
+    if (fclose(stream) != 0)
     {
         return -1;
     }
@@ -537,7 +537,7 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
     int api_index;
     int failures = 0;
 
-    com_util_snprintf(path, sizeof(path), "%s/bench_%llu.bin", dir, (unsigned long long)size);
+    snprintf(path, sizeof(path), "%s/bench_%llu.bin", dir, (unsigned long long)size);
 
     if (create_data_file(path, size) != 0)
     {
@@ -759,7 +759,7 @@ int main(int argc, char *argv[])
 
     if (csv != NULL)
     {
-        (void)com_util_fclose(csv);
+        (void)fclose(csv);
     }
 
     if (failures > 0)

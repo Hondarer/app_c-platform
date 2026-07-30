@@ -96,7 +96,7 @@ static void dllmain_syslog_send__(const char *msg)
     }
 
     /* priority 14 = facility LOG_USER(1<<3) | severity LOG_INFO(6) */
-    n = com_util_snprintf(buf, sizeof(buf), "<14>com_util[%d]: %s", (int)getpid(), msg);
+    n = snprintf(buf, sizeof(buf), "<14>com_util[%d]: %s", (int)getpid(), msg);
     if (n <= 0)
     {
         return;

@@ -77,7 +77,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             tmpdir = "/tmp";
         }
 
-        n = com_util_snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx);
+        n = snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx);
         if (n < 0 || (size_t)n >= path_size)
         {
             if (errno_out != NULL)

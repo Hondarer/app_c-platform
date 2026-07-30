@@ -227,21 +227,8 @@
                  FILE *(COM_UTIL_API *)(const char *path, const char *modes, FILE *stream, int *errno_out)) \
     EXPORT_ENTRY(com_util_remove, int(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_rename, int(COM_UTIL_API *)(const char *oldpath, const char *newpath)) \
-    EXPORT_ENTRY(com_util_fclose, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(com_util_fread, size_t(COM_UTIL_API *)(void *ptr, size_t size, size_t count, FILE *stream)) \
-    EXPORT_ENTRY(com_util_fwrite, size_t(COM_UTIL_API *)(const void *ptr, size_t size, size_t count, FILE *stream)) \
-    EXPORT_ENTRY(com_util_fgets, char *(COM_UTIL_API *)(char *buf, int size, FILE *stream)) \
-    EXPORT_ENTRY(com_util_fputs, int(COM_UTIL_API *)(const char *str, FILE *stream)) \
     EXPORT_ENTRY(com_util_fprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vfprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, va_list args)) \
-    EXPORT_ENTRY(com_util_snprintf, int(COM_UTIL_API *)(char *buf, size_t buf_size, const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vsnprintf, \
-                 int(COM_UTIL_API *)(char *buf, size_t buf_size, const char *format, va_list args)) \
-    EXPORT_ENTRY(com_util_fflush, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(com_util_feof, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(com_util_ferror, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(com_util_clearerr, void(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(com_util_rewind, void(COM_UTIL_API *)(FILE * stream)) \
     EXPORT_ENTRY(com_util_fseek, int(COM_UTIL_API *)(FILE * stream, int64_t offset, int whence)) \
     EXPORT_ENTRY(com_util_ftell, int64_t(COM_UTIL_API *)(FILE * stream)) \
     EXPORT_ENTRY(com_util_fopen_fmt, \

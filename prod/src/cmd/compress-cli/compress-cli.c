@@ -33,7 +33,7 @@ static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
 {
     if (file != NULL)
     {
-        (void)com_util_fclose(file);
+        (void)fclose(file);
     }
     free(data);
     return -1;
@@ -104,7 +104,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
             return compress_cli_read_file_fail(file, data);
         }
 
-        read_count = com_util_fread(data, 1u, file_size, file);
+        read_count = fread(data, 1u, file_size, file);
         if (read_count != file_size)
         {
             fprintf(stderr, "入力ファイルの読み込みに失敗しました: %s\n", path);
@@ -112,7 +112,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
         }
     }
 
-    if (com_util_fclose(file) != 0)
+    if (fclose(file) != 0)
     {
         file = NULL;
         fprintf(stderr, "入力ファイルのクローズに失敗しました: %s\n", path);
@@ -140,11 +140,11 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
 
     if (size > 0u)
     {
-        written = com_util_fwrite(data, 1u, size, file);
+        written = fwrite(data, 1u, size, file);
         if (written != size)
         {
             fprintf(stderr, "出力ファイルの書き込みに失敗しました: %s\n", path);
-            close_rc = com_util_fclose(file);
+            close_rc = fclose(file);
             if (close_rc != 0)
             {
                 fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
@@ -154,7 +154,7 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
         }
     }
 
-    if (com_util_fclose(file) != 0)
+    if (fclose(file) != 0)
     {
         fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
         (void)com_util_remove(path);

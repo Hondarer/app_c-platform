@@ -234,7 +234,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     prio = (handle->facility & ~7) | (level & 7);
 
     /* RFC 3164 形式: <PRI>TAG[PID]: MSG */
-    n = com_util_snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message);
+    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message);
     if (n < 0)
     {
         return COM_UTIL_OK;
@@ -252,7 +252,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
             com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
                 COM_UTIL_OK)
         {
-            debug_len = com_util_snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
+            debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
             if (debug_len < 0)
             {
                 return COM_UTIL_ERR_UNKNOWN;

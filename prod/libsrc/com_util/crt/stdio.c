@@ -245,41 +245,6 @@ int com_util_rename(const char *oldpath, const char *newpath)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_fclose(FILE *stream)
-{
-    return fclose(stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-size_t com_util_fread(void *ptr, const size_t size, const size_t count, FILE *stream)
-{
-    return fread(ptr, size, count, stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-size_t com_util_fwrite(const void *ptr, const size_t size, const size_t count, FILE *stream)
-{
-    return fwrite(ptr, size, count, stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-char *com_util_fgets(char *buf, const int size, FILE *stream)
-{
-    return fgets(buf, size, stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int com_util_fputs(const char *str, FILE *stream)
-{
-    return fputs(str, stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
 int com_util_fprintf(FILE *stream, const char *format, ...)
 {
     int result;
@@ -301,70 +266,6 @@ int com_util_vfprintf(FILE *stream, const char *format, va_list args)
 #else
     return vfprintf(stream, format, args);
 #endif /* PLATFORM_ */
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int com_util_snprintf(char *buf, size_t buf_size, const char *format, ...)
-{
-    int result;
-    va_list args;
-
-    va_start(args, format);
-    result = com_util_vsnprintf(buf, buf_size, format, args);
-    va_end(args);
-
-    return result;
-}
-
-/* 外部利用者が参照する Doxygen コメントは、ヘッダーに記載 */
-/**
- *  @details
- *  UCRT の `vsnprintf` は C99 準拠 (切り詰め時も必要文字数を返し、常に NUL 終端する) のため、
- *  プラットフォーム分岐を行いません。\n
- *  MSVC の `sprintf_s` / `_vsnprintf_s` は切り詰め時の戻り値と終端の挙動が C99 と異なるため、
- *  使用しません。\n
- *  see: https://learn.microsoft.com/cpp/c-runtime-library/reference/vsnprintf-vsnprintf-vsnprintf-l-vsnwprintf-vsnwprintf-l
- */
-int com_util_vsnprintf(char *buf, size_t buf_size, const char *format, va_list args)
-{
-    /* 本関数はラッパー自身の実装であるため、元の vsnprintf を直接呼び出す。 */
-    return vsnprintf(buf, buf_size, format, args);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int com_util_fflush(FILE *stream)
-{
-    return fflush(stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int com_util_feof(FILE *stream)
-{
-    return feof(stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int com_util_ferror(FILE *stream)
-{
-    return ferror(stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-void com_util_clearerr(FILE *stream)
-{
-    clearerr(stream);
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-void com_util_rewind(FILE *stream)
-{
-    rewind(stream);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

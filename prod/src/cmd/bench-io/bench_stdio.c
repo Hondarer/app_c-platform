@@ -60,14 +60,14 @@ static int seq_read_by_record(bench_context *ctx)
     {
         bench_record record;
 
-        if (com_util_fread(&record, sizeof(record), 1U, stream) != 1U)
+        if (fread(&record, sizeof(record), 1U, stream) != 1U)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         ctx->checksum += accumulate(&record);
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -95,9 +95,9 @@ static int seq_read_by_block(bench_context *ctx, bench_record *block)
         {
             chunk = remaining;
         }
-        if (com_util_fread(block, sizeof(*block), chunk, stream) != chunk)
+        if (fread(block, sizeof(*block), chunk, stream) != chunk)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         for (index = 0U; index < chunk; index++)
@@ -106,7 +106,7 @@ static int seq_read_by_block(bench_context *ctx, bench_record *block)
         }
         remaining -= chunk;
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -130,18 +130,18 @@ static int seq_write_by_record(bench_context *ctx, int durable)
         bench_record record;
 
         bench_fill_record(index, &record);
-        if (com_util_fwrite(&record, sizeof(record), 1U, stream) != 1U)
+        if (fwrite(&record, sizeof(record), 1U, stream) != 1U)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
     }
-    if (durable != 0 && com_util_fflush(stream) != 0)
+    if (durable != 0 && fflush(stream) != 0)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -174,19 +174,19 @@ static int seq_write_by_block(bench_context *ctx, bench_record *block, int durab
         {
             bench_fill_record(written + index, &block[index]);
         }
-        if (com_util_fwrite(block, sizeof(*block), chunk, stream) != chunk)
+        if (fwrite(block, sizeof(*block), chunk, stream) != chunk)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         written += chunk;
     }
-    if (durable != 0 && com_util_fflush(stream) != 0)
+    if (durable != 0 && fflush(stream) != 0)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -211,17 +211,17 @@ static int rand_read(bench_context *ctx)
 
         if (com_util_fseek(stream, offset, SEEK_SET) != 0)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
-        if (com_util_fread(&record, sizeof(record), 1U, stream) != 1U)
+        if (fread(&record, sizeof(record), 1U, stream) != 1U)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         ctx->checksum += accumulate(&record);
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -247,33 +247,33 @@ static int rand_update(bench_context *ctx, int durable)
 
         if (com_util_fseek(stream, offset, SEEK_SET) != 0)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
-        if (com_util_fread(&record, sizeof(record), 1U, stream) != 1U)
+        if (fread(&record, sizeof(record), 1U, stream) != 1U)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
         record.counter++;
         ctx->checksum += accumulate(&record);
         if (com_util_fseek(stream, offset, SEEK_SET) != 0)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
-        if (com_util_fwrite(&record, sizeof(record), 1U, stream) != 1U)
+        if (fwrite(&record, sizeof(record), 1U, stream) != 1U)
         {
-            (void)com_util_fclose(stream);
+            (void)fclose(stream);
             return -1;
         }
     }
-    if (durable != 0 && com_util_fflush(stream) != 0)
+    if (durable != 0 && fflush(stream) != 0)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -294,16 +294,16 @@ static int point_lookup(bench_context *ctx)
     }
     if (com_util_fseek(stream, offset, SEEK_SET) != 0)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
-    if (com_util_fread(&record, sizeof(record), 1U, stream) != 1U)
+    if (fread(&record, sizeof(record), 1U, stream) != 1U)
     {
-        (void)com_util_fclose(stream);
+        (void)fclose(stream);
         return -1;
     }
     ctx->checksum += accumulate(&record);
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 
@@ -321,7 +321,7 @@ static int open_close(bench_context *ctx)
         return -1;
     }
     ctx->checksum++;
-    (void)com_util_fclose(stream);
+    (void)fclose(stream);
     return 0;
 }
 

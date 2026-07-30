@@ -112,7 +112,7 @@ static int report_status(const int status, const char *action)
 
     if (status == COM_UTIL_OK)
     {
-        (void)com_util_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+        (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
                                 COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
@@ -126,15 +126,15 @@ static int report_status(const int status, const char *action)
     }
     if (status == COM_UTIL_ERR_PERMISSION_DENIED)
     {
-        (void)com_util_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+        (void)snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
     else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
-        (void)com_util_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+        (void)snprintf(message, sizeof(message), "パラメーターが不正です。\n");
     }
     else
     {
-        (void)com_util_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
+        (void)snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
     }
 
     if (s_is_elevated_worker != 0)

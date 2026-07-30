@@ -681,7 +681,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
     for (;;)
     {
         va_start(ap, fmt);
-        needed = com_util_vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
+        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
         va_end(ap);
 
         if (needed < 0)

@@ -218,7 +218,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             offset = 0;
             if (arg_len > 0)
             {
-                offset = com_util_snprintf(combined_arguments, buf_sz, "%s", arguments);
+                offset = snprintf(combined_arguments, buf_sz, "%s", arguments);
                 if (offset < 0 || (size_t)offset >= buf_sz)
                 {
                     free(combined_arguments);
@@ -239,7 +239,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 {
                     separator = " ";
                 }
-                written = com_util_snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s", separator,
+                written = snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s", separator,
                                             COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG);
                 if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
                 {
@@ -259,7 +259,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                     separator = " ";
                 }
                 written =
-                    com_util_snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s=%lu:%llu", separator,
+                    snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s=%lu:%llu", separator,
                                       COM_UTIL_CONSOLE_HANDOVER_FLAG, (unsigned long)parent_pid, parent_console_window);
                 if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
                 {
@@ -459,12 +459,12 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
            see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments */
         if (arg_len > 0)
         {
-            (void)com_util_snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments,
+            (void)snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments,
                                     COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
         }
         else
         {
-            (void)com_util_snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
+            (void)snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
                                     result_path);
         }
 

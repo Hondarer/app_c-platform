@@ -1262,7 +1262,7 @@ static int pinned_prompt_format_prompt(com_util_pinned_prompt *screen, const cha
         va_copy(ap_copy, ap);
         if (fmt != NULL)
         {
-            needed = com_util_vsnprintf(screen->fmt_buf, screen->fmt_cap, fmt, ap_copy);
+            needed = vsnprintf(screen->fmt_buf, screen->fmt_cap, fmt, ap_copy);
         }
         else
         {
@@ -1688,7 +1688,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     va_copy(ap_copy, ap);
     if (fmt != NULL)
     {
-        needed = com_util_vsnprintf(NULL, 0U, fmt, ap_copy);
+        needed = vsnprintf(NULL, 0U, fmt, ap_copy);
     }
     else
     {
@@ -1709,7 +1709,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     }
     if (fmt != NULL)
     {
-        (void)com_util_vsnprintf(buf, (size_t)needed + 1U, fmt, ap);
+        (void)vsnprintf(buf, (size_t)needed + 1U, fmt, ap);
     }
     else
     {

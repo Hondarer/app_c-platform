@@ -175,7 +175,7 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     }
 
     GetLocalTime(&now);
-    prefix_len = com_util_snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ",
+    prefix_len = snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ",
                                    (unsigned int)now.wYear, (unsigned int)now.wMonth, (unsigned int)now.wDay,
                                    (unsigned int)now.wHour, (unsigned int)now.wMinute, (unsigned int)now.wSecond,
                                    (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
@@ -185,7 +185,7 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     }
 
     va_start(args, fmt);
-    message_len = com_util_vsnprintf(message, sizeof(message), fmt, args);
+    message_len = vsnprintf(message, sizeof(message), fmt, args);
     va_end(args);
     if (message_len < 0)
     {

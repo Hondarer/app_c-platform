@@ -36,20 +36,8 @@ Mock_com_util::Mock_com_util()
 
     // crt - stdio
     ON_CALL(*this, com_util_rename(_, _)).WillByDefault(Invoke(delegate_real_com_util_rename));
-    ON_CALL(*this, com_util_fclose(_)).WillByDefault(Invoke(delegate_real_com_util_fclose));
-    ON_CALL(*this, com_util_fread(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_fread));
-    ON_CALL(*this, com_util_fwrite(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_fwrite));
-    ON_CALL(*this, com_util_fgets(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fgets));
-    ON_CALL(*this, com_util_fputs(_, _)).WillByDefault(Invoke(delegate_real_com_util_fputs));
     ON_CALL(*this, com_util_fprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
     ON_CALL(*this, com_util_vfprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
-    ON_CALL(*this, com_util_snprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
-    ON_CALL(*this, com_util_vsnprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
-    ON_CALL(*this, com_util_fflush(_)).WillByDefault(Invoke(delegate_real_com_util_fflush));
-    ON_CALL(*this, com_util_feof(_)).WillByDefault(Invoke(delegate_real_com_util_feof));
-    ON_CALL(*this, com_util_ferror(_)).WillByDefault(Invoke(delegate_real_com_util_ferror));
-    ON_CALL(*this, com_util_clearerr(_)).WillByDefault(Invoke(delegate_real_com_util_clearerr));
-    ON_CALL(*this, com_util_rewind(_)).WillByDefault(Invoke(delegate_real_com_util_rewind));
     ON_CALL(*this, com_util_fseek(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fseek));
     ON_CALL(*this, com_util_ftell(_)).WillByDefault(Invoke(delegate_real_com_util_ftell));
     ON_CALL(*this, com_util_fopen_fmt(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fopen_fmt));
