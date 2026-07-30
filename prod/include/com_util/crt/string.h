@@ -75,6 +75,25 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, size_t dest_size, const char *src);
 
     /**
+     *  @brief          文字列を複製します (`strdup` / `_strdup` ラッパー)。
+     *  @param[in]      src  複製元の文字列 (null 終端)。NULL を渡した場合は NULL を返します。
+     *  @return         複製した文字列へのポインター。確保に失敗した場合は NULL を返します。
+     *
+     *  MSVC では `strdup` が非推奨 (C4996) であり `_strdup` が正の名前です。\n
+     *  本関数はその名前の差異を吸収します。
+     *
+     *  返却した領域は呼び出し側が `free` で解放してください。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  複製した領域へのポインターを返し、失敗を NULL で表します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT char *COM_UTIL_API com_util_strdup(const char *src);
+
+    /**
      *  @brief          バッファー サイズ付き安全 wcscpy (`wcscpy_s` 相当) です。
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。

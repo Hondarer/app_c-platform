@@ -136,6 +136,26 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len);
 
     /**
+     *  @brief          ファイルからバイト列を読み取ります。
+     *  @param[in]      file      読み取り対象のファイル。NULL を渡してはなりません。\n
+     *                            @ref COM_UTIL_FILE_OPEN_READ を指定して開いている必要があります。
+     *  @param[out]     buf       読み取り先。NULL を渡してはなりません。
+     *  @param[in]      len       読み取る最大バイト数。
+     *  @param[out]     read_out  実際に読み取ったバイト数の格納先。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  ファイル終端に達した場合は @p read_out に 0 を格納して @ref COM_UTIL_OK を返します。\n
+     *  @p read_out が @p len より小さい値になることは終端以外でも起こりうるため、
+     *  必要なバイト数が揃うまで呼び出し側で繰り返してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file への並行読み取りは呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out);
+
+    /**
      *  @brief          ファイル サイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。

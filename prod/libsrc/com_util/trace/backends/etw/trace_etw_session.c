@@ -15,6 +15,7 @@
     #include <com_util/base/windows_sdk.h>
     #include <com_util/crt/wchar_conv.h>
     #include <com_util/crt/string.h>
+    #include <string.h> /* memset */
     #include <com_util/sync/sync.h>
     #include <evntcons.h>
     #include <evntrace.h>
@@ -50,20 +51,6 @@ struct com_util_etw_session
     /** プロバイダー GUID (イベント フィルタリング用)。 */
     GUID provider_guid;
 };
-
-/**
- *  @brief  メモリ領域をゼロ クリアする (memset 代替) です。
- *  @note   testfw が memset をモックするため、直接ゼロ代入で初期化します。
- */
-static void zero_bytes(void *ptr, const size_t size)
-{
-    unsigned char *p = (unsigned char *)ptr;
-    size_t i;
-    for (i = 0; i < size; i++)
-    {
-        p[i] = 0;
-    }
-}
 
 /**
  *  @brief  構築途中のセッションが確保した資源を解放します。
@@ -432,7 +419,7 @@ int com_util_etw_session_check_access(void)
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    zero_bytes(props, props_size);
+    memset(props, 0, props_size);
     props->Wnode.BufferSize = (ULONG)props_size;
     props->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     props->Wnode.ClientContext = 1;
@@ -494,7 +481,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    zero_bytes(session, sizeof(com_util_etw_session));
+    memset(session, 0, sizeof(com_util_etw_session));
     session->callback = callback;
     session->context = context;
     session->session_handle = 0;
@@ -523,7 +510,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
     }
 
     /* リアルタイム セッションを開始 */
-    zero_bytes(session->properties, props_size);
+    memset(session->properties, 0, props_size);
     session->properties->Wnode.BufferSize = (ULONG)props_size;
     session->properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     session->properties->Wnode.ClientContext = 1; /* QPC */

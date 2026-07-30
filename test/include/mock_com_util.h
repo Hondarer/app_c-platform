@@ -75,6 +75,7 @@ extern int delegate_real_com_util_open(const char *path, int flags, int mode);
 extern int delegate_real_com_util_access(const char *path, int mode);
 extern int delegate_real_com_util_mkdir(const char *path);
 extern int delegate_real_com_util_makedirs(const char *path);
+extern int delegate_real_com_util_rmdir(const char *path);
 extern int delegate_real_com_util_remove(const char *path);
 extern int delegate_real_com_util_sscanf(const char *buffer, const char *format, va_list args);
 extern int delegate_real_com_util_vsscanf(const char *buffer, const char *format, va_list args);
@@ -82,6 +83,8 @@ extern int delegate_real_com_util_gmtime(struct tm *utc_tm, const time_t *timep)
 extern int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep);
 extern int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t *timep);
 extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out);
+extern int delegate_real_com_util_setenv(const char *name, const char *value, int overwrite);
+extern int delegate_real_com_util_unsetenv(const char *name);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, int *errno_out, const char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out, int *errno_out);
 extern const char *delegate_real_com_util_path_basename(const char *path);
@@ -118,6 +121,7 @@ extern int delegate_real_com_util_vopen_fmt(int flags, int mode, const char *for
 extern int delegate_real_com_util_strcpy(char *dest, size_t dest_size, const char *src);
 extern int delegate_real_com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 extern int delegate_real_com_util_strcat(char *dest, size_t dest_size, const char *src);
+extern char *delegate_real_com_util_strdup(const char *src);
 extern int delegate_real_com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
 // crt - sys/stat
@@ -130,6 +134,7 @@ extern int delegate_real_com_util_vmkdir_fmt(const char *format, va_list args);
 extern void delegate_real_com_util_file_init(com_util_file *file);
 extern int delegate_real_com_util_file_open(com_util_file *file, const char *path, int flags);
 extern int delegate_real_com_util_file_write(com_util_file *file, const void *buf, size_t len);
+extern int delegate_real_com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out);
 extern int delegate_real_com_util_file_get_size(const com_util_file *file, size_t *size_out);
 extern int delegate_real_com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out);
 extern int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *id_out);
@@ -471,6 +476,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_access, (const char *, int));
     MOCK_METHOD(int, com_util_mkdir, (const char *));
     MOCK_METHOD(int, com_util_makedirs, (const char *));
+    MOCK_METHOD(int, com_util_rmdir, (const char *));
     MOCK_METHOD(int, com_util_remove, (const char *));
     MOCK_METHOD(int, com_util_sscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int, com_util_vsscanf, (const char *, const char *, va_list));
@@ -478,6 +484,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_localtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_ctime, (char *, size_t, const time_t *));
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t, int *));
+    MOCK_METHOD(int, com_util_setenv, (const char *, const char *, int));
+    MOCK_METHOD(int, com_util_unsetenv, (const char *));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, int *, const char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, int *));
     MOCK_METHOD(const char *, com_util_path_basename, (const char *));
@@ -513,6 +521,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_strcpy, (char *, size_t, const char *));
     MOCK_METHOD(int, com_util_strncpy, (char *, size_t, const char *, size_t));
     MOCK_METHOD(int, com_util_strcat, (char *, size_t, const char *));
+    MOCK_METHOD(char *, com_util_strdup, (const char *));
     MOCK_METHOD(int, com_util_wcscpy, (wchar_t *, size_t, const wchar_t *));
 
     // crt - sys/stat
@@ -525,6 +534,7 @@ class Mock_com_util
     MOCK_METHOD(void, com_util_file_init, (com_util_file *));
     MOCK_METHOD(int, com_util_file_open, (com_util_file *, const char *, int));
     MOCK_METHOD(int, com_util_file_write, (com_util_file *, const void *, size_t));
+    MOCK_METHOD(int, com_util_file_read, (com_util_file *, void *, size_t, size_t *));
     MOCK_METHOD(int, com_util_file_get_size, (const com_util_file *, size_t *));
     MOCK_METHOD(int, com_util_file_get_id, (const com_util_file *, com_util_file_id *));
     MOCK_METHOD(int, com_util_file_get_path_id, (const char *, com_util_file_id *));

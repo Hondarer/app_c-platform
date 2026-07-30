@@ -335,6 +335,60 @@ int com_util_file_set_size(com_util_file *file, size_t size)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t *read_out)
+{
+    if (!file_is_open(file) || buf == NULL || read_out == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    *read_out = 0u;
+
+    if (len == 0u)
+    {
+        return COM_UTIL_OK;
+    }
+
+#if defined(PLATFORM_LINUX)
+    {
+        ssize_t bytes = read(file->handle, buf, len);
+
+        if (bytes < 0)
+        {
+            return COM_UTIL_ERR_UNKNOWN;
+        }
+
+        *read_out = (size_t)bytes;
+        return COM_UTIL_OK;
+    }
+#elif defined(PLATFORM_WINDOWS)
+    {
+        DWORD chunk;
+        DWORD bytes = 0;
+
+        /* ReadFile の DWORD 境界に合わせるため、コーディング規範の例外として UINT32_MAX を維持する。 */
+        if (len > (size_t)UINT32_MAX)
+        {
+            chunk = UINT32_MAX;
+        }
+        else
+        {
+            chunk = (DWORD)len;
+        }
+
+        if (!ReadFile(file->handle, buf, chunk, &bytes, NULL))
+        {
+            return COM_UTIL_ERR_UNKNOWN;
+        }
+
+        *read_out = (size_t)bytes;
+        return COM_UTIL_OK;
+    }
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 {
     if (!file_is_open(file) || size_out == NULL)

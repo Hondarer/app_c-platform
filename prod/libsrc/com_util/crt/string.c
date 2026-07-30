@@ -136,3 +136,21 @@ int com_util_sscanf(const char *buffer, const char *format, ...)
     va_end(args);
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+char *com_util_strdup(const char *src)
+{
+    if (src == NULL)
+    {
+        return NULL;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return strdup(src);
+#elif defined(PLATFORM_WINDOWS)
+    /* MSVC では strdup が C4996 で非推奨のため _strdup を使用する。
+     * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/strdup-wcsdup-mbsdup */
+    return _strdup(src);
+#endif /* PLATFORM_ */
+}

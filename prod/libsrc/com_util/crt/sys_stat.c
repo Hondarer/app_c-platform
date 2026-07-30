@@ -19,6 +19,7 @@
 
 #if defined(PLATFORM_LINUX)
     #include <sys/stat.h>
+    #include <unistd.h> /* rmdir */
 #elif defined(PLATFORM_WINDOWS)
     #include <direct.h>
 #endif /* PLATFORM_ */
@@ -113,6 +114,33 @@ static size_t path_root_prefix_len(const char *path)
     }
 
     return 0u;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_rmdir(const char *path)
+{
+    if (path == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+#if defined(PLATFORM_LINUX)
+    /* rmdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
+    return rmdir(path);
+#elif defined(PLATFORM_WINDOWS)
+    {
+        wchar_t wpath[PLATFORM_PATH_MAX];
+
+        if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+        {
+            return COM_UTIL_ERR_INVALID_ARGUMENT;
+        }
+
+        /* _wrmdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
+        return _wrmdir(wpath);
+    }
+#endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

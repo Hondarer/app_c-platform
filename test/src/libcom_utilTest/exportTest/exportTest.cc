@@ -201,6 +201,8 @@
     EXPORT_ENTRY(com_util_file_init, void(COM_UTIL_API *)(com_util_file * file)) \
     EXPORT_ENTRY(com_util_file_open, int(COM_UTIL_API *)(com_util_file * file, const char *path, int flags)) \
     EXPORT_ENTRY(com_util_file_write, int(COM_UTIL_API *)(com_util_file * file, const void *buf, size_t len)) \
+    EXPORT_ENTRY(com_util_file_read, \
+                 int(COM_UTIL_API *)(com_util_file * file, void *buf, size_t len, size_t *read_out)) \
     EXPORT_ENTRY(com_util_file_get_size, int(COM_UTIL_API *)(const com_util_file *file, size_t *size_out)) \
     EXPORT_ENTRY(com_util_file_set_size, int(COM_UTIL_API *)(com_util_file * file, size_t size)) \
     EXPORT_ENTRY(com_util_file_get_id, int(COM_UTIL_API *)(const com_util_file *file, com_util_file_id *id_out)) \
@@ -243,10 +245,13 @@
                                                              size_t path_size, int *errno_out)) \
     /* com_util/crt/stdlib.h */ \
     EXPORT_ENTRY(com_util_getenv, int(COM_UTIL_API *)(const char *name, char *buf, size_t buf_size, int *exists_out)) \
+    EXPORT_ENTRY(com_util_setenv, int(COM_UTIL_API *)(const char *name, const char *value, int overwrite)) \
+    EXPORT_ENTRY(com_util_unsetenv, int(COM_UTIL_API *)(const char *name)) \
     /* com_util/crt/string.h */ \
     EXPORT_ENTRY(com_util_strcpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
     EXPORT_ENTRY(com_util_strncpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \
     EXPORT_ENTRY(com_util_strcat, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
+    EXPORT_ENTRY(com_util_strdup, char *(COM_UTIL_API *)(const char *src)) \
     EXPORT_ENTRY(com_util_wcscpy, int(COM_UTIL_API *)(wchar_t * dest, size_t dest_size, const wchar_t *src)) \
     EXPORT_ENTRY(com_util_sscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vsscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, va_list args)) \
@@ -254,6 +259,7 @@
     EXPORT_ENTRY(com_util_stat, int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *path)) \
     EXPORT_ENTRY(com_util_mkdir, int(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_makedirs, int(COM_UTIL_API *)(const char *path)) \
+    EXPORT_ENTRY(com_util_rmdir, int(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_stat_fmt, int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vstat_fmt, \
                  int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *format, va_list args)) \

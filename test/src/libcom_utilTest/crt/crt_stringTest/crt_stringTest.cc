@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/crt/string.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 
 class crt_stringTest : public Test
@@ -162,4 +163,38 @@ TEST_F(crt_stringTest, sscanf_respects_width_limit)
     // Assert
     EXPECT_EQ(1, count);        // [確認_正常系] - 読み取り数が 1 であること。
     EXPECT_STREQ("abc", token); // [確認_正常系] - 幅 3 で切り詰められた "abc" が得られること。
+}
+
+// com_util_strdup が文字列を複製することの確認
+TEST_F(crt_stringTest, strdup_duplicates_string)
+{
+    // Arrange
+    const char *src = "hello"; // [状態] - 複製元の文字列を "hello" とする。
+
+    // Pre-Assert
+
+    // Act
+    char *dup = com_util_strdup(src); // [手順] - "hello" を複製する。
+
+    // Assert
+    ASSERT_NE(nullptr, dup);    // [確認_正常系] - com_util_strdup の戻り値が NULL でないこと。
+    EXPECT_STREQ("hello", dup); // [確認_正常系] - 複製された内容が "hello" であること。
+    EXPECT_NE(src, dup);        // [確認_正常系] - 複製元とは異なる領域が返ること。
+
+    // Cleanup
+    free(dup);
+}
+
+// com_util_strdup が NULL に対して NULL を返すことの確認
+TEST_F(crt_stringTest, strdup_null_returns_null)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    char *dup = com_util_strdup(NULL); // [手順] - 複製元に NULL を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(nullptr, dup); // [確認_異常系] - com_util_strdup の戻り値が NULL であること。
 }

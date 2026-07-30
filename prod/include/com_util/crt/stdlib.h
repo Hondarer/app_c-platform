@@ -57,6 +57,49 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out);
 
+    /**
+     *  @brief          環境変数の値を設定します。
+     *
+     *  Linux では @c setenv、Windows では @c _putenv_s を使用します。\n
+     *  設定は呼び出し元プロセスにのみ反映され、親プロセスへは伝わりません。
+     *
+     *  @param[in]      name       環境変数名 (null 終端文字列)。NULL、空文字列、
+     *                             `'='` を含む文字列を渡した場合は EINVAL を返します。
+     *  @param[in]      value      設定する値 (null 終端文字列)。NULL を渡した場合は EINVAL を返します。
+     *  @param[in]      overwrite  変数がすでに設定されている場合に上書きするかどうか。\n
+     *                             0 のとき既存の値を保持し、0 を返します。
+     *  @return         成功時は 0 を返します。失敗時は errno の値を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  同一ヘッダーの com_util_getenv() と規約を揃え、errno の値をそのまま返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  環境変数の変更は、他スレッドによる読み取りと競合します。
+     *  マルチスレッド化の前に設定を完了させるか、呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_setenv(const char *name, const char *value, int overwrite);
+
+    /**
+     *  @brief          環境変数を削除します。
+     *
+     *  Linux では @c unsetenv、Windows では値に空文字列を指定した @c _putenv_s を使用します。\n
+     *  Windows は空文字列の設定を削除として扱うため、値が空の環境変数を作ることはできません。
+     *
+     *  @param[in]      name  環境変数名 (null 終端文字列)。NULL、空文字列、
+     *                        `'='` を含む文字列を渡した場合は EINVAL を返します。
+     *  @return         成功時は 0 を返します。失敗時は errno の値を返します。\n
+     *                  変数が設定されていない場合も成功として 0 を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  同一ヘッダーの com_util_getenv() と規約を揃え、errno の値をそのまま返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  環境変数の変更は、他スレッドによる読み取りと競合します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_unsetenv(const char *name);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

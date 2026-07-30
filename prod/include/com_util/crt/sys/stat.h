@@ -90,6 +90,20 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_makedirs(const char *path);
 
     /**
+     *  @brief          UTF-8 パスの空のディレクトリを削除します (`rmdir` / `_wrmdir` ラッパー)。
+     *  @param[in]      path  削除するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  ディレクトリが空でない場合、存在しない場合はいずれも失敗します。\n
+     *  com_util_makedirs() のように中間ディレクトリを再帰的に削除することはありません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_rmdir(const char *path);
+
+    /**
      *  @brief          書式指定パスのファイル情報を取得します。
      *  @param[out]     buf     ファイル情報の格納先。NULL を渡してはなりません。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。

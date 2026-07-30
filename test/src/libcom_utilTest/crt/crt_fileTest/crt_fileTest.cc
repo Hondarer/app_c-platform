@@ -618,3 +618,87 @@ TEST_F(crt_fileTest, set_size_invalid_arguments_fail)
                   &file,
                   16)); // [確認_異常系] - set_size (未オープンのハンドル) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
+
+// com_util_file_read が書き込んだ内容を読み取れることの確認
+TEST_F(crt_fileTest, read_returns_written_content)
+{
+    // Arrange
+    com_util_file file;
+    std::string path = make_path("read_content.bin");
+    char buf[16];
+    size_t read_len = 0;
+
+    com_util_file_init(&file);
+    write_text_file(path, "abcde"); // [状態] - 内容が "abcde" (5 バイト) のファイルを用意する。
+    memset(buf, 0, sizeof(buf));
+
+    // Pre-Assert
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ));
+
+    // Act
+    int rtc_read = com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 16 バイトを要求して読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc_read); // [確認_正常系] - com_util_file_read の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)5, read_len);   // [確認_正常系] - 読み取ったバイト数が 5 であること。
+    EXPECT_STREQ("abcde", buf);       // [確認_正常系] - 読み取った内容が "abcde" であること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// com_util_file_read がファイル終端で 0 バイトを返すことの確認
+TEST_F(crt_fileTest, read_at_end_of_file_returns_zero_length)
+{
+    // Arrange
+    com_util_file file;
+    std::string path = make_path("read_eof.bin");
+    char buf[16];
+    size_t read_len = 0;
+
+    com_util_file_init(&file);
+    write_text_file(path, "ab"); // [状態] - 内容が "ab" (2 バイト) のファイルを用意する。
+    memset(buf, 0, sizeof(buf));
+
+    // Pre-Assert
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_read(&file, buf, sizeof(buf), &read_len));
+    ASSERT_EQ((size_t)2, read_len);
+
+    // Act
+    int rtc_read_eof =
+        com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 終端到達後に再度読み取りを行う。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_read_eof); // [確認_正常系] - 終端到達後の com_util_file_read の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)0, read_len); // [確認_正常系] - 読み取ったバイト数が 0 であること。
+
+    // Cleanup
+    com_util_file_close(&file);
+    std::remove(path.c_str());
+}
+
+// com_util_file_read が不正な引数で COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
+TEST_F(crt_fileTest, read_invalid_arguments_fail)
+{
+    // Arrange
+    com_util_file file;
+    char buf[16];
+    size_t read_len = 0;
+
+    com_util_file_init(&file); // [状態] - 未オープンのハンドルを初期化して用意する。
+    memset(buf, 0, sizeof(buf));
+
+    // Pre-Assert
+
+    // Act
+    int rtc_not_open =
+        com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 未オープンのハンドルで読み取りを行う。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_not_open); // [確認_異常系] - 未オープンのハンドルを渡した com_util_file_read の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
