@@ -11,12 +11,13 @@
  *  @par            使用例
     @code{.c}
     #include <com_util/console/console.h>
+    #include <com_util/crt/stdio.h>
     #include <stdio.h>
 
     int main(void) {
         com_util_console_init();     // Windows コンソール設定を初期化
         printf("こんにちは\n");
-        fprintf(stderr, "警告\n");
+        com_util_fprintf(stderr, "警告\n");
         com_util_console_dispose();
         return 0;
     }

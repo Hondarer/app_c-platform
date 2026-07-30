@@ -30,6 +30,7 @@
  *  @section        usage 使用例
     @code{.c}
     #include "compiler.h"
+    #include <com_util/crt/stdio.h>
 
     FORCE_INLINE int fast_add(int a, int b)
     {
@@ -38,7 +39,7 @@
 
     NO_INLINE void debug_dump(const char *msg)
     {
-        fprintf(stderr, "%s\n", msg);
+        com_util_fprintf(stderr, "%s\n", msg);
     }
     @endcode
  *

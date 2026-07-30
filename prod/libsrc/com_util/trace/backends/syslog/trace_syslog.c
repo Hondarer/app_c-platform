@@ -41,6 +41,8 @@
     #include <com_util/base/result.h>
     #include <com_util/clock/clock.h>
     #include <com_util/crt/stdio.h>
+    #include <com_util/crt/stdlib.h>
+    #include <com_util/crt/string.h>
     #include <com_util/sync/sync.h>
     #include <com_util/trace/syslog.h>
     #include <com_util/trace/trace_common.h>
@@ -114,12 +116,15 @@ static void advance_backoff(com_util_syslog_sink *h)
  */
 static void close_and_backoff_locked(com_util_syslog_sink *h)
 {
+    com_util_timespec now;
+
     if (h->fd >= 0)
     {
         close(h->fd);
         h->fd = -1;
     }
-    h->next_connect = time(NULL) + h->backoff_sec;
+    com_util_get_realtime(&now);
+    h->next_connect = now.tv_sec + h->backoff_sec;
     advance_backoff(h);
 }
 
@@ -129,10 +134,11 @@ static void close_and_backoff_locked(com_util_syslog_sink *h)
  */
 static void try_open_socket_locked(com_util_syslog_sink *h)
 {
-    time_t now = time(NULL);
+    com_util_timespec now;
     int fd;
 
-    if (now < h->next_connect)
+    com_util_get_realtime(&now);
+    if (now.tv_sec < h->next_connect)
     {
         return; /* バックオフ期間中 */
     }
@@ -140,7 +146,7 @@ static void try_open_socket_locked(com_util_syslog_sink *h)
     fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (fd < 0)
     {
-        h->next_connect = now + h->backoff_sec;
+        h->next_connect = now.tv_sec + h->backoff_sec;
         advance_backoff(h);
         return;
     }
@@ -209,7 +215,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     com_util_timespec resolved;
     const com_util_timespec *effective_timestamp = NULL;
     struct sockaddr_un sa;
-    const char *test_fd_str;
+    int test_fd_exists = 0;
     int fallback_used = 0;
     int prio;
     int n;
@@ -244,9 +250,10 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
         n = (int)(sizeof(buf) - 1);
     }
 
-    /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない */
-    test_fd_str = getenv("SYSLOG_TEST_FD");
-    if (test_fd_str != NULL)
+    /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない。
+       値は参照せず、設定の有無だけを判定する */
+    (void)com_util_getenv("SYSLOG_TEST_FD", NULL, 0u, &test_fd_exists);
+    if (test_fd_exists != 0)
     {
         if (effective_timestamp != NULL &&
             com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
@@ -282,7 +289,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, DEVLOG_PATH, sizeof(sa.sun_path) - 1);
+    (void)com_util_strncpy(sa.sun_path, sizeof(sa.sun_path), DEVLOG_PATH, sizeof(sa.sun_path) - 1u);
 
     com_util_local_lock_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
 

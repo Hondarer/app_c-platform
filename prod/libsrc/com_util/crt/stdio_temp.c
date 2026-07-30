@@ -14,6 +14,7 @@
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/wchar_conv.h>
+#include <com_util/crt/stdlib.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -47,7 +48,8 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
 
 #if defined(PLATFORM_LINUX)
     {
-        const char *tmpdir = getenv("TMPDIR");
+        char tmpdir_buf[PLATFORM_PATH_MAX];
+        const char *tmpdir;
         char pfx_buf[COM_UTIL_TEMP_PREFIX_MAX + 1u];
         const char *pfx;
         int fd;
@@ -72,9 +74,23 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             pfx = "cu_";
         }
 
-        if (tmpdir == NULL || tmpdir[0] == '\0')
+        /* TMPDIR が本バッファーに収まらない場合、切り詰めた値では誤ったディレクトリに
+           一時ファイルを作成するため、失敗として扱う */
+        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL) == ERANGE)
+        {
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
+            return NULL;
+        }
+        if (tmpdir_buf[0] == '\0')
         {
             tmpdir = "/tmp";
+        }
+        else
+        {
+            tmpdir = tmpdir_buf;
         }
 
         n = snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx);

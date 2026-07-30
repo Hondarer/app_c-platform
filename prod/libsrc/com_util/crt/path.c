@@ -10,6 +10,7 @@
 
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/wchar_conv.h>
 #include <com_util/base/result.h>
 #include <com_util/base/result_internal.h>
@@ -466,13 +467,29 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
 
 #if defined(PLATFORM_LINUX)
     {
-        const char *tmpdir = getenv("TMPDIR");
+        char tmpdir_buf[PLATFORM_PATH_MAX];
+        const char *tmpdir;
         size_t len;
         int n;
 
-        if (tmpdir == NULL || tmpdir[0] == '\0')
+        /* TMPDIR が設定されていても本バッファーに収まらない場合は、切り詰めた値を
+           一時ディレクトリとして採用すると誤ったパスを返すため、失敗として扱う */
+        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL) == ERANGE)
+        {
+            path_out[0] = '\0';
+            if (errno_out != NULL)
+            {
+                *errno_out = ENAMETOOLONG;
+            }
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        }
+        if (tmpdir_buf[0] == '\0')
         {
             tmpdir = "/tmp";
+        }
+        else
+        {
+            tmpdir = tmpdir_buf;
         }
 
         len = strlen(tmpdir);
