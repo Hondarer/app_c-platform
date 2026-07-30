@@ -53,4 +53,6 @@ int com_util_random_bytes(void *buf, const size_t size)
     return COM_UTIL_OK;
 }
 
-#endif /* PLATFORM_LINUX */
+#elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)
+    #pragma warning(disable : 4206)
+#endif
