@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* 圧縮・展開で扱う非圧縮データの上限を 1 GiB とする。 */
+#define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE (1024U * 1024U * 1024U)
+
 static uint32_t compress_cli_read_u32_be(const uint8_t *data)
 {
     return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
@@ -36,7 +39,7 @@ static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
     return -1;
 }
 
-static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *size_out)
+static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **data_out, size_t *size_out)
 {
     FILE *file = NULL;
     uint8_t *data = NULL;
@@ -80,6 +83,11 @@ static int compress_cli_read_file(const char *path, uint8_t **data_out, size_t *
     }
 #endif
     file_size = (size_t)file_size_i64;
+    if (file_size > max_size)
+    {
+        fprintf(stderr, "入力ファイルが上限サイズを超えています: %s\n", path);
+        return compress_cli_read_file_fail(file, data);
+    }
 
     if (com_util_fseek(file, 0, SEEK_SET) != 0)
     {
@@ -207,7 +215,7 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
     size_t compressed_size;
     int rc = -1;
 
-    if (compress_cli_read_file(input_path, &input_data, &input_size) != 0)
+    if (compress_cli_read_file(input_path, COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE, &input_data, &input_size) != 0)
     {
         return -1;
     }
@@ -217,19 +225,6 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
         fprintf(stderr, "空ファイルは圧縮できません: %s\n", input_path);
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
-    /* 圧縮ヘッダーで NBO 4 バイトとして元サイズを格納するため、コーディング規範の例外として UINT32_MAX 上限を維持する。 */
-    if ((uint64_t)input_size > UINT32_MAX)
-    {
-        fprintf(stderr, "入力ファイルが大きすぎます: %s\n", input_path);
-        return compress_cli_run_compress_return(input_data, compressed_data, rc);
-    }
-#if SIZE_MAX <= UINT32_MAX
-    if (input_size > (SIZE_MAX - COM_UTIL_COMPRESS_HEADER_SIZE) / 2u)
-    {
-        fprintf(stderr, "圧縮出力バッファのサイズ計算に失敗しました。\n");
-        return compress_cli_run_compress_return(input_data, compressed_data, rc);
-    }
-#endif
 
     compressed_capacity = input_size * 2u + COM_UTIL_COMPRESS_HEADER_SIZE;
     if (compressed_capacity < 256u)
@@ -275,7 +270,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     uint32_t expected_size;
     int rc = -1;
 
-    if (compress_cli_read_file(input_path, &input_data, &input_size) != 0)
+    if (compress_cli_read_file(input_path, SIZE_MAX, &input_data, &input_size) != 0)
     {
         return -1;
     }
@@ -286,10 +281,17 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
+    /* 圧縮ヘッダーの NBO 4 バイトを読み取るため、コーディング規範の例外として uint32_t を維持する。 */
     expected_size = compress_cli_read_u32_be(input_data);
-    if (expected_size <= COM_UTIL_COMPRESS_HEADER_SIZE)
+    if (expected_size == 0U)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダの元サイズが小さすぎます: %s\n", input_path);
+        return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
+    }
+
+    if (expected_size > COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE)
+    {
+        fprintf(stderr, "展開入力が不正です。ヘッダの元サイズが上限を超えています: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 

@@ -22,6 +22,7 @@ namespace
 const uint8_t kPlainInput[] = {'a', 'b', 'c', 'd', 'e', 'f'};
 const uint8_t kCompressedPayload[] = {0x00, 0x00, 0x00, 0x06, 0x78, 0x9c, 0x4b};
 const uint8_t kDecompressedOutput[] = {'A', 'B', 'C', 'D', 'E', 'F'};
+const int64_t kMaxUncompressedSize = 1073741824;
 
 static int return_full_path(char *path_out, size_t path_size, int *errno_out, const char *text)
 {
@@ -122,6 +123,47 @@ TEST_F(compress_cliTest, main_rejects_same_normalized_path)
     EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
 }
 
+// 圧縮入力が非圧縮データの上限を超える場合に内容を読み込まず失敗終了することの確認
+TEST_F(compress_cliTest, main_rejects_compress_input_over_size_limit_before_reading)
+{
+    // Arrange
+    int argc = 4;
+    const char *argv[] = {"compress-cli", "--compress", "input.bin",
+                          "output.bin"}; // [状態] - 圧縮モードで入力 "input.bin"、出力 "output.bin" とする。
+    FILE *input_file = (FILE *)(uintptr_t)0x1000;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_ftell(input_file))
+        .WillOnce(Return(kMaxUncompressedSize +
+                         1)); // [Pre-Assert手順] - 入力ファイルのサイズとして上限より 1 byte 大きい値を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_SET))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は入力ファイルの先頭へ戻す処理が呼び出されないこと。
+    EXPECT_CALL(mock_com_util_, com_util_fread(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は入力ファイルの内容が読み込まれないこと。
+    EXPECT_CALL(mock_com_util_, com_util_fclose(input_file)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_compress(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は com_util_compress が呼び出されないこと。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("上限サイズ")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "上限サイズ" を含むエラーが表示されること。
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
+
+    // Assert
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
+}
+
 // 圧縮モードで入力が読み込まれ圧縮結果が出力ファイルへ書き込まれることの確認
 TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
 {
@@ -204,16 +246,16 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
     EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - main() の戻り値が EXIT_SUCCESS であること。
 }
 
-// 展開時にヘッダーの元サイズが小さすぎる入力が拒否されることの確認
-TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_small)
+// 展開時にヘッダーの元サイズが 0 の入力が拒否されることの確認
+TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zero)
 {
     // Arrange
     int argc = 4;
     const char *argv[] = {"compress-cli", "--decompress", "input.bin",
                           "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
     FILE *input_file = (FILE *)(uintptr_t)0x3030;
-    const uint8_t invalid_input[] = {
-        0x00, 0x00, 0x00, 0x04, 0x10}; // [状態] - ヘッダーの元サイズが 4 byte と小さすぎる不正入力 5 byte を用意する。
+    const uint8_t invalid_input[] = {0x00, 0x00, 0x00, 0x00,
+                                     0x10}; // [状態] - ヘッダーの元サイズが 0 byte の不正入力 5 byte を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
@@ -247,6 +289,125 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_header_size_is_too_s
 
     // Assert
     EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
+}
+
+// 展開時にヘッダーの元サイズが上限を超える入力がバッファー確保前に拒否されることの確認
+TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceeds_limit)
+{
+    // Arrange
+    int argc = 4;
+    const char *argv[] = {"compress-cli", "--decompress", "input.bin",
+                          "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
+    FILE *input_file = (FILE *)(uintptr_t)0x3031;
+    const uint8_t invalid_input[] = {
+        0x40, 0x00, 0x00, 0x01,
+        0x10}; // [状態] - ヘッダーの元サイズが 1 GiB より 1 byte 大きい不正入力 5 byte を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(invalid_input)));
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_SET)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_fread(_, 1u, sizeof(invalid_input), input_file))
+        .WillOnce(
+            [&](void *ptr, size_t, size_t count, FILE *)
+            {
+                std::memcpy(ptr, invalid_input, sizeof(invalid_input));
+                return count;
+            }); // [Pre-Assert手順] - 入力ファイルの読み込みで元サイズが上限を超える入力 5 byte を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_fclose(input_file)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_decompress(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 元サイズの上限超過時は com_util_decompress が呼び出されないこと。
+    EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/output.bin"), StrEq("wb"), _))
+        .Times(0); // [Pre-Assert確認_異常系] - 元サイズの上限超過時は出力ファイルが開かれないこと。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("上限を超えています")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "上限を超えています" を含むエラーが表示されること。
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
+
+    // Assert
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
+}
+
+// 展開時にヘッダーの元サイズが 1 byte の入力を展開して出力できることの確認
+TEST_F(compress_cliTest, main_decompresses_one_byte_input)
+{
+    // Arrange
+    int argc = 4;
+    const char *argv[] = {"compress-cli", "--decompress", "input.bin",
+                          "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
+    FILE *input_file = (FILE *)(uintptr_t)0x3032;
+    FILE *output_file = (FILE *)(uintptr_t)0x3033;
+    const uint8_t compressed_input[] = {0x00, 0x00, 0x00, 0x01,
+                                        0x10}; // [状態] - ヘッダーの元サイズが 1 byte の圧縮入力 5 byte を用意する。
+    const uint8_t decompressed_output[] = {'A'};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
+        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
+                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+    EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(compressed_input)));
+    EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_SET)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_fread(_, 1u, sizeof(compressed_input), input_file))
+        .WillOnce(
+            [&](void *ptr, size_t, size_t count, FILE *)
+            {
+                std::memcpy(ptr, compressed_input, sizeof(compressed_input));
+                return count;
+            }); // [Pre-Assert手順] - 入力ファイルの読み込みで元サイズが 1 byte の圧縮入力を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_fclose(input_file)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util_, com_util_decompress(_, _, _, sizeof(compressed_input)))
+        .WillOnce(
+            [&](uint8_t *dst, size_t *dst_len, const uint8_t *, size_t)
+            {
+                EXPECT_EQ(
+                    (size_t)1u,
+                    *dst_len); // [Pre-Assert確認_正常系] - 展開 API にヘッダー値 1 byte が出力サイズとして渡ること。
+                std::memcpy(dst, decompressed_output, sizeof(decompressed_output));
+                *dst_len = sizeof(decompressed_output);
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - com_util_decompress が入力サイズ 5 byte で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_decompress から展開済みデータ 1 byte を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/output.bin"), StrEq("wb"), _))
+        .WillOnce(
+            Return(output_file)); // [Pre-Assert確認_正常系] - 展開成功時は出力ファイルがモード "wb" で開かれること。
+    EXPECT_CALL(mock_com_util_, com_util_fwrite(_, 1u, sizeof(decompressed_output), output_file))
+        .WillOnce(
+            [&](const void *ptr, size_t, size_t count, FILE *)
+            {
+                EXPECT_EQ(
+                    0,
+                    std::memcmp(
+                        ptr, decompressed_output,
+                        sizeof(
+                            decompressed_output))); // [Pre-Assert確認_正常系] - 展開済みデータ 1 byte が出力されること。
+                return count;
+            });
+    EXPECT_CALL(mock_com_util_, com_util_fclose(output_file)).WillOnce(Return(0));
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
+
+    // Assert
+    EXPECT_EQ(EXIT_SUCCESS, rc); // [確認_正常系] - main() の戻り値が EXIT_SUCCESS であること。
 }
 
 // 展開後サイズがヘッダー値と一致しない場合に出力せず失敗終了することの確認

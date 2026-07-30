@@ -1,8 +1,11 @@
 #include <testfw.h>
 #include <com_util/crt/path.h>
+#include <mock_stdlib.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+
+using namespace testing;
 
 namespace
 {
@@ -143,6 +146,30 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
 }
 
 #if defined(PLATFORM_LINUX)
+// 左辺パスの正規化用メモリを確保できない場合に ENOMEM で失敗することの確認
+TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    int err = 0;   // [状態] - errno_out の受け取り先を 0 で初期化する。
+    int equal = 0; // [状態] - equal_out の受け取り先を 0 で初期化する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, PLATFORM_PATH_MAX, sizeof(size_t)))
+        .WillOnce(
+            Return(nullptr)); // [Pre-Assert確認_異常系] - 左辺パスの正規化用メモリの calloc が 1 回呼び出されること。
+                              // [Pre-Assert手順] - calloc から NULL を返却する。
+
+    // Act
+    int rc = com_util_paths_equal("/lhs", "/rhs", &equal,
+                                  &err); // [手順] - 2 つの絶対パスを指定して com_util_paths_equal を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rc);          // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+    EXPECT_EQ(ENOMEM, err); // [確認_異常系] - errno_out に ENOMEM が返ること。
+}
+
 // Linux では大小文字を区別して比較されることの確認
 TEST_F(pathsEqualTest, keeps_case_sensitive_comparison_on_linux)
 {

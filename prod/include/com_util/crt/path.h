@@ -137,11 +137,13 @@ extern "C"
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
      *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
-     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  相対パスはカレント ディレクトリ基準で絶対化します。\n
      *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
      *  '.' / '..' を解消した絶対パス文字列を返します。\n
+     *  正規化用メモリを確保できない場合、@p errno_out に @c ENOMEM を格納します。\n
      *  Windows では GetFullPathNameW() により絶対化し、返却値は常に
      *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
      *
@@ -159,7 +161,8 @@ extern "C"
      *  @param[out]     equal_out  一致時は 1、不一致時は 0 の格納先。NULL を渡してはなりません。
      *                             戻り値が @ref COM_UTIL_OK の場合のみ有効です。
      *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
-     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  内部でそれぞれのパスに対して com_util_path_get_full() を呼び、絶対化と
      *  区切り文字正規化を行ったうえで比較します。\n

@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/path.h>
+#include <mock_stdlib.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -11,6 +12,8 @@
 #elif defined(PLATFORM_WINDOWS)
     #include <direct.h>
 #endif
+
+using namespace testing;
 
 namespace
 {
@@ -146,6 +149,30 @@ TEST_F(pathGetFullTest, returns_absolute_path_for_nonexistent_target)
 }
 
 #if defined(PLATFORM_LINUX)
+// 正規化用メモリを確保できない場合に ENOMEM で失敗することの確認
+TEST_F(pathGetFullTest, returns_enomem_when_normalization_allocation_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char path[PLATFORM_PATH_MAX] = {'x'}; // [状態] - 出力バッファーを空文字列以外で初期化する。
+    int err = 0;                          // [状態] - errno_out の受け取り先を 0 で初期化する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, PLATFORM_PATH_MAX, sizeof(size_t)))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 正規化用メモリの calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - calloc から NULL を返却する。
+
+    // Act
+    int rc = com_util_path_get_full(path, sizeof(path), &err,
+                                    "/missing"); // [手順] - 絶対パスを指定して com_util_path_get_full を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rc);          // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+    EXPECT_EQ(ENOMEM, err); // [確認_異常系] - errno_out に ENOMEM が返ること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
+}
+
 // symlink が実体ファイルのパスへ解決されることの確認
 TEST_F(pathGetFullTest, resolves_symlink_to_target_path_when_target_exists)
 {

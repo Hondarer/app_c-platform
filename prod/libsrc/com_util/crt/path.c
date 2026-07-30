@@ -83,16 +83,22 @@ static int com_util_compare_normalized_paths(const char *lhs, const char *rhs)
 }
 
 #if defined(PLATFORM_LINUX)
-static void com_util_normalize_absolute_posix_path(char *path)
+static int com_util_normalize_absolute_posix_path(char *path)
 {
     size_t read_idx;
     size_t write_idx;
-    size_t restore_points[PLATFORM_PATH_MAX];
+    size_t *restore_points;
     size_t restore_count = 0u;
 
     if (path == NULL || path[0] != PLATFORM_PATH_SEP_CHR)
     {
-        return;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    restore_points = (size_t *)calloc(PLATFORM_PATH_MAX, sizeof(*restore_points));
+    if (restore_points == NULL)
+    {
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
     write_idx = 1u;
@@ -149,6 +155,8 @@ static void com_util_normalize_absolute_posix_path(char *path)
         write_idx = 1u;
     }
     path[write_idx] = '\0';
+    free(restore_points);
+    return COM_UTIL_OK;
 }
 
 static int com_util_build_absolute_posix_path(char *path_out, const size_t path_size, int *errno_out, const char *path)
@@ -313,7 +321,25 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
         }
 
         com_util_normalize_path_sep(candidate);
-        com_util_normalize_absolute_posix_path(candidate);
+        {
+            int normalize_result = com_util_normalize_absolute_posix_path(candidate);
+            if (normalize_result != COM_UTIL_OK)
+            {
+                path_out[0] = '\0';
+                if (errno_out != NULL)
+                {
+                    if (normalize_result == COM_UTIL_ERR_OUT_OF_MEMORY)
+                    {
+                        *errno_out = ENOMEM;
+                    }
+                    else
+                    {
+                        *errno_out = EINVAL;
+                    }
+                }
+                return normalize_result;
+            }
+        }
 
         if (realpath(candidate, resolved) != NULL)
         {
