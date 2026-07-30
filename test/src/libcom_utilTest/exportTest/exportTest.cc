@@ -25,7 +25,9 @@
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/unistd.h>
+#include <com_util/base/error_message.h>
 #include <com_util/crypto/crypto.h>
+#include <com_util/crypto/random.h>
 #include <com_util/mmap/mmap.h>
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>
@@ -279,8 +281,14 @@
     EXPORT_ENTRY(com_util_decrypt, \
                  int(COM_UTIL_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, \
                                      const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
+    EXPORT_ENTRY(com_util_random_bytes, int(COM_UTIL_API *)(void *buf, size_t size)) \
+    EXPORT_ENTRY(com_util_secure_zero, void(COM_UTIL_API *)(void *buf, size_t size)) \
+    EXPORT_ENTRY(com_util_result_to_string, const char *(COM_UTIL_API *)(int result)) \
+    EXPORT_ENTRY(com_util_errno_message, int(COM_UTIL_API *)(char *buf, size_t buf_size, int errno_value)) \
     EXPORT_ENTRY(com_util_passphrase_to_key, \
                  int(COM_UTIL_API *)(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len)) \
+    /* com_util/crypto/random.h */ \
+    EXPORT_ENTRY(com_util_random_bytes, int(COM_UTIL_API *)(void *buf, size_t size)) \
     /* com_util/mmap/mmap.h */ \
     EXPORT_ENTRY(com_util_mmap_attach, int(COM_UTIL_API *)(const char *path, com_util_mmap_access_t access, \
                                                            size_t create_size, com_util_mmap **map)) \
@@ -337,6 +345,7 @@
     EXPORT_ENTRY(com_util_memory_lock_self, int(COM_UTIL_API *)(const com_util_memory_lock_self_options *options, \
                                                                 com_util_memory_lock_scope **scope)) \
     EXPORT_ENTRY(com_util_memory_lock_scope_release, int(COM_UTIL_API *)(com_util_memory_lock_scope * scope)) \
+    EXPORT_ENTRY(com_util_secure_zero, void(COM_UTIL_API *)(void *buf, size_t size)) \
     /* com_util/runtime/module.h */ \
     EXPORT_ENTRY(com_util_module_get_path, \
                  int(COM_UTIL_API *)(char *out_path, size_t out_path_sz, const void *func_addr)) \
@@ -499,6 +508,8 @@
         EXPORT_ENTRY(com_util_utf8_to_wstr_alloc, wchar_t *(COM_UTIL_API *)(const char *utf8_text)) \
         EXPORT_ENTRY(com_util_wstr_to_utf8_alloc, char *(COM_UTIL_API *)(const wchar_t *wtext)) \
         /* com_util/trace/etw.h */ \
+        EXPORT_ENTRY(com_util_win32_error_message, \
+                     int(COM_UTIL_API *)(char *buf, size_t buf_size, unsigned long error_code)) \
         EXPORT_ENTRY(com_util_etw_provider_create, \
                      com_util_etw_provider *(COM_UTIL_API *)(com_util_etw_provider_ref_t provider_ref)) \
         EXPORT_ENTRY(com_util_etw_provider_write, int(COM_UTIL_API *)(com_util_etw_provider * handle, int level, \
@@ -529,6 +540,14 @@
                                             DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size, \
                                             DWORD default_timeout, LPSECURITY_ATTRIBUTES security_attributes)) \
         EXPORT_ENTRY(GetModuleFileNameU, DWORD(COM_UTIL_API *)(HMODULE module, char *utf8_buf, DWORD size)) \
+        EXPORT_ENTRY(WriteConsoleU, BOOL(COM_UTIL_API *)(HANDLE console, const char *utf8_text, DWORD utf8_length, \
+                                                         DWORD *written_length, void *reserved)) \
+        EXPORT_ENTRY(GetVolumePathNameU, \
+                     BOOL(COM_UTIL_API *)(const char *utf8_path, char *utf8_volume_root, DWORD size)) \
+        EXPORT_ENTRY(GetVolumeInformationU, \
+                     BOOL(COM_UTIL_API *)(const char *utf8_root_path, char *utf8_volume_name, DWORD volume_name_size, \
+                                          DWORD *serial_number, DWORD *max_component_length, DWORD *file_system_flags, \
+                                          char *utf8_file_system_name, DWORD file_system_name_size)) \
         EXPORT_ENTRY(LoadLibraryU, HMODULE(COM_UTIL_API *)(const char *utf8_file_name)) \
         EXPORT_ENTRY(CreateProcessU, BOOL(COM_UTIL_API *)( \
                                          const char *utf8_application_name, const char *utf8_command_line, \

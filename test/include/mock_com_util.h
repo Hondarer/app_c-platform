@@ -23,6 +23,7 @@
 
 #include <com_util/compress/compress.h>
 #include <com_util/crypto/crypto.h>
+#include <com_util/crypto/random.h>
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/stdio.h>
@@ -64,6 +65,7 @@ extern int delegate_real_com_util_encrypt(uint8_t *dst, size_t *dst_len, const u
 extern int delegate_real_com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
                                           const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
 extern int delegate_real_com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len);
+extern int delegate_real_com_util_random_bytes(void *buf, size_t size);
 
 // crt
 extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, int *errno_out);
@@ -241,6 +243,7 @@ extern int delegate_real_com_util_memory_unlock_range(const void *address, size_
 extern int delegate_real_com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
                                                    com_util_memory_lock_scope **scope);
 extern int delegate_real_com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
+extern void delegate_real_com_util_secure_zero(void *buf, size_t size);
 
 // runtime - process_info
 extern int delegate_real_com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
@@ -458,6 +461,7 @@ class Mock_com_util
                 (uint8_t *, size_t *, const uint8_t *, size_t, const uint8_t *, const uint8_t *, const uint8_t *,
                  size_t));
     MOCK_METHOD(int, com_util_passphrase_to_key, (uint8_t *, const uint8_t *, size_t));
+    MOCK_METHOD(int, com_util_random_bytes, (void *, size_t));
 
     // crt
     MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, int *));
@@ -629,6 +633,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_memory_lock_self,
                 (const com_util_memory_lock_self_options *, com_util_memory_lock_scope **));
     MOCK_METHOD(int, com_util_memory_lock_scope_release, (com_util_memory_lock_scope *));
+    MOCK_METHOD(void, com_util_secure_zero, (void *, size_t));
 
     // runtime - process_info
     MOCK_METHOD(int, com_util_process_get_executable_path, (char *, size_t));

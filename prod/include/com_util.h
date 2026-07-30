@@ -136,6 +136,7 @@
 #include <com_util/base/compiler.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/dll_exports.h>
+#include <com_util/base/error_message.h>
 #include <com_util/base/result.h>
 #include <com_util/base/windows_sdk.h>
 
@@ -159,6 +160,7 @@
 #include <com_util/crt/wchar_conv.h>
 
 #include <com_util/crypto/crypto.h>
+#include <com_util/crypto/random.h>
 
 #include <com_util/mmap/mmap.h>
 

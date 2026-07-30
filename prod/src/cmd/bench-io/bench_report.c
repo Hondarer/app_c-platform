@@ -24,6 +24,7 @@
     #include <sys/vfs.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
+    #include <com_util/win32/win32.h>
 #endif /* PLATFORM_ */
 
 #include "bench_case.h"
@@ -171,12 +172,12 @@ static void collect_fs_type(const char *dir, bench_environment *env)
     char fs_name[MAX_PATH + 1];
     char root[MAX_PATH + 1];
 
-    if (GetVolumePathNameA(dir, root, (DWORD)sizeof(root)) == 0)
+    if (GetVolumePathNameU(dir, root, (DWORD)sizeof(root)) == 0)
     {
         copy_text(env->fs_type, sizeof(env->fs_type), NULL);
         return;
     }
-    if (GetVolumeInformationA(root, NULL, 0, NULL, NULL, NULL, fs_name, (DWORD)sizeof(fs_name)) == 0)
+    if (GetVolumeInformationU(root, NULL, 0, NULL, NULL, NULL, fs_name, (DWORD)sizeof(fs_name)) == 0)
     {
         copy_text(env->fs_type, sizeof(env->fs_type), NULL);
         return;

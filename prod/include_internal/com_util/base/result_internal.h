@@ -40,6 +40,17 @@ extern "C"
      *  @return         対応する共通結果コード。対応がない値は @ref COM_UTIL_ERR_UNKNOWN を返します。
      */
     int com_util_result_from_windows_error(unsigned long error_code);
+
+    /**
+     *  @brief          GetLastError() の値を errno 相当の値へ変換します。
+     *  @param[in]      error_code GetLastError() で取得したエラー コード。
+     *  @return         対応する errno の値。対応がない値は `EIO` を返します。
+     *
+     *  errno を返す API の `errno_out` へ Win32 エラー コードをそのまま格納すると、
+     *  errno として文字列化した際に無関係なメッセージになります。\n
+     *  Windows 固有の実装から errno ドメインの出力引数へ値を渡す場合は本 API を使用してください。
+     */
+    int com_util_errno_from_windows_error(unsigned long error_code);
 #endif
 
 #ifdef __cplusplus

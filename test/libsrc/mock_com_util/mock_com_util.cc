@@ -14,6 +14,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_encrypt(_, _, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_encrypt));
     ON_CALL(*this, com_util_decrypt(_, _, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_decrypt));
     ON_CALL(*this, com_util_passphrase_to_key(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_passphrase_to_key));
+    ON_CALL(*this, com_util_random_bytes(_, _)).WillByDefault(Invoke(delegate_real_com_util_random_bytes));
 
     // crt
     ON_CALL(*this, com_util_fopen(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fopen));
@@ -207,6 +208,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_memory_lock_self(_, _)).WillByDefault(Invoke(delegate_real_com_util_memory_lock_self));
     ON_CALL(*this, com_util_memory_lock_scope_release(_))
         .WillByDefault(Invoke(delegate_real_com_util_memory_lock_scope_release));
+    ON_CALL(*this, com_util_secure_zero(_, _)).WillByDefault(Invoke(delegate_real_com_util_secure_zero));
 
     // runtime - process_info
     ON_CALL(*this, com_util_process_get_executable_path(_, _))

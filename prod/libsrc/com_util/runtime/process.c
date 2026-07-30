@@ -803,6 +803,7 @@ static wchar_t *build_environment_block(char *const *overrides)
 
 static HANDLE open_windows_null_device(const DWORD access)
 {
+    /* ワイド文字列リテラルを渡すため CreateFileU を使わない */
     return CreateFileW(L"NUL", access, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
                        NULL);
 }
@@ -952,6 +953,8 @@ int com_util_process_get_executable_path(char *out_path, const size_t out_path_s
         DWORD n;
         int result;
 
+        /* GetModuleFileNameU は失敗を 0 でしか表現できず、バッファー不足と
+           その他の失敗を区別できないため、ここでは W 版を直接使う */
         n = GetModuleFileNameW(NULL, wbuf, (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])));
         if (n == 0)
         {
@@ -1122,6 +1125,8 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
         }
 
         create_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
+        /* res.command_line と res.environment_block は組み立て済みのワイド文字列であり、
+           CreateProcessU を経由すると UTF-8 への往復変換が増えるだけになる */
         created = CreateProcessW(NULL, res.command_line, NULL, NULL, TRUE, create_flags, res.environment_block,
                                  res.working_directory, &startup.StartupInfo, &process_info);
 

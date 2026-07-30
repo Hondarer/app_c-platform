@@ -27,6 +27,7 @@
 #if defined(PLATFORM_LINUX)
     #include <errno.h>
     #include <pthread.h>
+    #include <string.h>
     #include <sys/mman.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
@@ -1006,4 +1007,20 @@ int com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope)
     }
 
     return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_secure_zero(void *buf, const size_t size)
+{
+    if (buf == NULL || size == 0U)
+    {
+        return;
+    }
+
+#if defined(PLATFORM_LINUX)
+    explicit_bzero(buf, size);
+#elif defined(PLATFORM_WINDOWS)
+    SecureZeroMemory(buf, size);
+#endif /* PLATFORM_ */
 }

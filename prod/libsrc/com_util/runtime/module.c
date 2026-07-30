@@ -154,6 +154,7 @@ static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_ad
         return COM_UTIL_ERR_UNKNOWN;
     }
 
+    /* 本関数はワイド文字列を出力するため、UTF-8 を返す GetModuleFileNameU は使えない */
     n = GetModuleFileNameW(hm, buf, (DWORD)(sizeof(buf) / sizeof(buf[0])));
     if (n == 0 || n >= (DWORD)(sizeof(buf) / sizeof(buf[0])))
     {

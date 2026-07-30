@@ -85,6 +85,27 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_memory_unlock_range(const void *address, size_t size);
 
     /**
+     *  @brief          機密データを保持していたメモリ範囲を確実にゼロ クリアします。
+     *  @param[out]     buf   クリア対象の先頭アドレス。@p size が 0 の場合に限り NULL も指定できます。
+     *  @param[in]      size  クリア対象のサイズ (バイト)。
+     *
+     *  鍵、パスフレーズ、復号済み平文など、解放前に消去すべきデータに使用します。\n
+     *  Linux では `explicit_bzero`、Windows では `SecureZeroMemory` を使用します。
+     *
+     *  @important      素の `memset` を使用しないでください。書き込み後に領域を読まない場合、
+     *                  コンパイラは不要な書き込みとみなして除去できます (デッド ストア除去)。
+     *                  本関数はその除去が起きないことを保証します。
+     *
+     *  @remark         本関数はメモリの内容を消すだけで、ページのロック状態は変更しません。
+     *                  スワップへの書き出しも防ぐ場合は com_util_memory_lock_range() と併用してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一範囲を複数スレッドから同時に操作しないことは呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_secure_zero(void *buf, size_t size);
+
+    /**
      *  @brief          自プロセスのメモリをまとめてロックします。
      *  @param[in]      options  ロック オプション。NULL を渡してはなりません。
      *  @param[out]     scope    解除情報の格納先。NULL を渡してはなりません。

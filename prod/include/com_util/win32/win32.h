@@ -116,6 +116,74 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWOR
 COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size);
 
 /**
+ *  @brief          コンソールへ文字列を書き込みます (UTF-8 入力版)。
+ *
+ *  utf8_text を UTF-16 に変換して WriteConsoleW を呼び出します。\n
+ *                  WriteConsoleA はコンソールのコード ページ (日本語環境では cp932) で
+ *                  解釈するため、UTF-8 文字列を渡すと文字化けします。\n
+ *                  変換失敗時は SetLastError(ERROR_INVALID_PARAMETER) を設定して FALSE を返します。\n
+ *                  ハンドルがコンソールでない場合 (リダイレクト時) は WriteConsoleW と同様に失敗します。
+ *  @param[in]      console         コンソール スクリーン バッファーのハンドル。
+ *  @param[in]      utf8_text       書き込む文字列 (UTF-8)。NUL 終端されている必要があります。
+ *  @param[in]      utf8_length     utf8_text のバイト数 (NUL 終端を除く)。
+ *  @param[out]     written_length  書き込めた utf8_text のバイト数の格納先。NULL 可。\n
+ *                                  全体を書き込めた場合は utf8_length と同じ値を格納します。
+ *  @param[in]      reserved        予約。NULL を指定してください。
+ *  @return         成功時は非 0。失敗時は 0。
+ *
+ *  @attention      WriteConsoleW は書き込めた UTF-16 単位数を返すため、
+ *                  部分書き込みが発生した場合の @p written_length は
+ *                  書き込めた UTF-16 単位数に対応する UTF-8 バイト数ではなく 0 になります。
+ *                  部分書き込みを検出する用途には使用しないでください。
+ *  @see            WriteConsoleW
+ *                  https://learn.microsoft.com/windows/console/writeconsole
+ */
+COM_UTIL_EXPORT BOOL COM_UTIL_API WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length,
+                                                DWORD *written_length, void *reserved);
+
+/**
+ *  @brief          パスを含むボリュームのマウント ポイントを取得します (UTF-8 版)。
+ *
+ *  utf8_path を UTF-16 に変換して GetVolumePathNameW を呼び出し、結果を UTF-8 に
+ *                  変換して utf8_volume_root へ書き込みます。\n
+ *                  A 版はコンソールのコード ページで解釈するため、非 ASCII の
+ *                  マウント パスを扱えません。\n
+ *                  変換失敗またはバッファー不足時は SetLastError を設定して FALSE を返します。
+ *  @param[in]      utf8_path           対象のパス (UTF-8)。
+ *  @param[out]     utf8_volume_root    マウント ポイントの書き込み先 (UTF-8)。
+ *  @param[in]      size                utf8_volume_root のサイズ (バイト)。
+ *  @return         成功時は非 0。失敗時は 0。
+ *  @see            GetVolumePathNameW
+ *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew
+ */
+COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD size);
+
+/**
+ *  @brief          ボリュームの情報を取得します (UTF-8 版)。
+ *
+ *  utf8_root_path を UTF-16 に変換して GetVolumeInformationW を呼び出し、
+ *                  文字列の出力を UTF-8 に変換して書き込みます。\n
+ *                  A 版はコンソールのコード ページで解釈するため、非 ASCII の
+ *                  ボリューム名やマウント パスを扱えません。\n
+ *                  変換失敗またはバッファー不足時は SetLastError を設定して FALSE を返します。
+ *  @param[in]      utf8_root_path          ボリュームのルート パス (UTF-8)。NULL のとき現在のディレクトリのボリューム。
+ *  @param[out]     utf8_volume_name        ボリューム名の書き込み先 (UTF-8)。NULL 可。
+ *  @param[in]      volume_name_size        utf8_volume_name のサイズ (バイト)。
+ *  @param[out]     serial_number           シリアル番号の格納先。NULL 可。
+ *  @param[out]     max_component_length    ファイル名の最大長の格納先。NULL 可。
+ *  @param[out]     file_system_flags       ファイル システムのフラグの格納先。NULL 可。
+ *  @param[out]     utf8_file_system_name   ファイル システム名の書き込み先 (UTF-8)。NULL 可。
+ *  @param[in]      file_system_name_size   utf8_file_system_name のサイズ (バイト)。
+ *  @return         成功時は非 0。失敗時は 0。
+ *  @see            GetVolumeInformationW
+ *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
+ */
+COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name,
+                                                        DWORD volume_name_size, DWORD *serial_number,
+                                                        DWORD *max_component_length, DWORD *file_system_flags,
+                                                        char *utf8_file_system_name, DWORD file_system_name_size);
+
+/**
  *  @brief          指定したモジュールをプロセスのアドレス空間にロードします (UTF-8 名前版)。
  *
  *  utf8_file_name を UTF-16 に変換して LoadLibraryW を呼び出します。\n

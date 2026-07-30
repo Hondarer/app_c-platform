@@ -91,4 +91,50 @@ int com_util_result_from_windows_error(const unsigned long error_code)
 
     return result;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_errno_from_windows_error(const unsigned long error_code)
+{
+    int errno_value;
+
+    if (error_code == ERROR_INVALID_PARAMETER)
+    {
+        errno_value = EINVAL;
+    }
+    else if ((error_code == ERROR_ACCESS_DENIED) || (error_code == ERROR_PRIVILEGE_NOT_HELD))
+    {
+        errno_value = EACCES;
+    }
+    else if ((error_code == ERROR_FILE_NOT_FOUND) || (error_code == ERROR_PATH_NOT_FOUND))
+    {
+        errno_value = ENOENT;
+    }
+    else if (error_code == ERROR_FILE_EXISTS || error_code == ERROR_ALREADY_EXISTS)
+    {
+        errno_value = EEXIST;
+    }
+    else if ((error_code == ERROR_NOT_ENOUGH_MEMORY) || (error_code == ERROR_OUTOFMEMORY))
+    {
+        errno_value = ENOMEM;
+    }
+    else if ((error_code == ERROR_INSUFFICIENT_BUFFER) || (error_code == ERROR_BUFFER_OVERFLOW))
+    {
+        errno_value = ENAMETOOLONG;
+    }
+    else if (error_code == ERROR_BUSY)
+    {
+        errno_value = EBUSY;
+    }
+    else if ((error_code == WAIT_TIMEOUT) || (error_code == ERROR_TIMEOUT))
+    {
+        errno_value = ETIMEDOUT;
+    }
+    else
+    {
+        errno_value = EIO;
+    }
+
+    return errno_value;
+}
 #endif

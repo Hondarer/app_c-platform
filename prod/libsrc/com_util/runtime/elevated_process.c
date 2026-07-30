@@ -421,6 +421,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
 
         /* 昇格プロセスが結果メッセージを書き込む一時ファイルを確保する。GetTempFileNameW は
            一意な空ファイルを作成するため、並行する別プロセスとの衝突を避けられる。 */
+        /* 本関数内の一時ファイル操作はワイドのまま完結するため、*U ラッパーを経由しない */
         temp_len = GetTempPathW((DWORD)(sizeof(wide_temp_dir) / sizeof(wide_temp_dir[0])), wide_temp_dir);
         if (temp_len == 0 || temp_len >= sizeof(wide_temp_dir) / sizeof(wide_temp_dir[0]))
         {
@@ -662,6 +663,7 @@ int com_util_elevated_process_report_result(const char *message)
         {
             return COM_UTIL_ERR_UNKNOWN;
         }
+        /* wide_path はワイド文字列であり UTF-8 が関与しないため CreateFileU を使わない */
         h = CreateFileW(wide_path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (h == INVALID_HANDLE_VALUE)
         {

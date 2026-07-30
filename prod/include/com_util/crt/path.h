@@ -28,6 +28,11 @@
  *  パス関数と異なる切り出し結果になる点に注意してください。\n
  *  com_util_path_join_n() (パス構築系) はこの例外に含まれず、`'\\'` を正規化しません。
  *
+ *  本ヘッダーの `errno_out` は errno ドメインの値を格納します。\n
+ *  Windows 実装であっても `GetLastError()` の値をそのまま格納することはなく、
+ *  対応する errno へ変換した値を格納します。
+ *  格納された値は com_util_errno_message() で文字列化できます。
+ *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
  *  @hideincludedbygraph

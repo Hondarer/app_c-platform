@@ -124,6 +124,8 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         DWORD dwret;
         UINT uret;
 
+        /* 以降の GetTempFileNameW / DeleteFileW へワイドのまま渡すため、
+           *U ラッパーを経由しない (UTF-8 への往復変換が増えるだけになる) */
         dwret = GetTempPathW((DWORD)(sizeof(wdir) / sizeof(wdir[0])), wdir);
         if (dwret == 0u || dwret > (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
         {

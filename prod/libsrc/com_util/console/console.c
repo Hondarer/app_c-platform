@@ -21,6 +21,7 @@
 
     #include <com_util/base/windows_sdk.h>
     #include <com_util/sync/sync.h>
+    #include <com_util/win32/win32.h>
     #include <errno.h>
     #include <fcntl.h>
     #include <io.h>
@@ -133,6 +134,7 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
         return -1;
     }
 
+    /* 取得したパスは以降 CreateFileW へワイドのまま渡すため、*U ラッパーを経由しない */
     temp_len = GetTempPathW((DWORD)(sizeof(temp_path) / sizeof(temp_path[0])), temp_path);
     if (temp_len == 0 || temp_len >= sizeof(temp_path) / sizeof(temp_path[0]))
     {
@@ -204,6 +206,7 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     line[prefix_len + message_len] = '\n';
     line[prefix_len + message_len + 1] = '\0';
 
+    /* path は GetTempPathW 由来のワイド文字列であり UTF-8 が関与しないため CreateFileU を使わない */
     handle = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
                          FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
@@ -551,6 +554,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
 
     /* Win32 レベルの標準ハンドルを親コンソールへ付け替える
        (GetStdHandle / WriteConsole 系や tracer の stderr sink が参照する) */
+    /* 以下 3 件はワイド文字列リテラルを渡すため、CreateFileU を使わない */
     h_out = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                         OPEN_EXISTING, 0, NULL);
     if (h_out != INVALID_HANDLE_VALUE)
@@ -597,7 +601,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     /* CRT レベルの標準ストリームを親コンソールへ再接続する (fgets 等の入力で参照する)。
        printf/fprintf (FILE* 経由) は再接続後に書き込みを拒否することがあるため
        (README.md 参照)、再接続後の出力には本ファイル末尾の com_util_console_write()
-       (Win32 の WriteConsoleA を直接呼ぶ) を使うこと。本関数による fd の再接続は、
+       (Win32 の WriteConsoleU を呼ぶ) を使うこと。本関数による fd の再接続は、
        fgets 等の入力経路向けに維持している。
        CONOUT$ / CONIN$ は GENERIC_READ | GENERIC_WRITE で開いているため `_O_RDWR` を渡す。 */
     if (reopen_crt_std_fd(h_out, stdout, "stdout", _O_TEXT | _O_RDWR) == 0)
@@ -692,11 +696,12 @@ int com_util_console_write(com_util_stream_t stream, const char *text)
     }
 
     len = (DWORD)strlen(text);
-    if (WriteConsoleA(h, text, len, &written, NULL))
+    if (WriteConsoleU(h, text, len, &written, NULL))
     {
         return COM_UTIL_OK;
     }
-    /* リダイレクト先がコンソールでない場合 WriteConsoleA は失敗するため WriteFile にフォールバックする */
+    /* リダイレクト先がコンソールでない場合 WriteConsoleU は失敗するため WriteFile にフォールバックする。
+       リダイレクト先はコード ページ変換を行わないため、UTF-8 のまま書き込む */
     if (WriteFile(h, text, len, &written, NULL))
     {
         return COM_UTIL_OK;

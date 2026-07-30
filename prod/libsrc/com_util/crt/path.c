@@ -12,6 +12,7 @@
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/wchar_conv.h>
 #include <com_util/base/result.h>
+#include <com_util/base/result_internal.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -379,7 +380,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, int *errno_ou
             path_out[0] = '\0';
             if (errno_out != NULL)
             {
-                *errno_out = (int)GetLastError();
+                *errno_out = com_util_errno_from_windows_error(GetLastError());
             }
             return COM_UTIL_ERR_UNKNOWN;
         }
@@ -497,12 +498,14 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, int *errno_out
         DWORD dwret;
         size_t len;
 
+        /* 取得結果は直後に com_util_wpath_to_utf8 で変換するため、
+           GetTempPathU を新設せず W 版と既存の変換関数を組み合わせる */
         dwret = GetTempPathW((DWORD)(sizeof(wdir) / sizeof(wdir[0])), wdir);
         if (dwret == 0u || dwret >= (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
         {
             if (errno_out != NULL)
             {
-                *errno_out = (int)GetLastError();
+                *errno_out = com_util_errno_from_windows_error(GetLastError());
             }
             return COM_UTIL_ERR_UNKNOWN;
         }

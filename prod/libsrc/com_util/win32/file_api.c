@@ -21,6 +21,7 @@
     #include <com_util/crt/wchar_conv.h>
     #include <stdlib.h>
     #include <string.h>
+    #include <wchar.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -111,6 +112,146 @@ DWORD GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size)
     written = (DWORD)utf8_len;
     free(utf8);
     return written;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+BOOL WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length, DWORD *written_length, void *reserved)
+{
+    BOOL result;
+    char *utf8_copy;
+    wchar_t *wtext;
+    DWORD wwritten = 0;
+
+    if (written_length != NULL)
+    {
+        *written_length = 0;
+    }
+    if (utf8_text == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    /* utf8_length バイトだけを対象とするため、NUL 終端した複製を作ってから変換する */
+    utf8_copy = (char *)malloc((size_t)utf8_length + 1u);
+    if (utf8_copy == NULL)
+    {
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+        return FALSE;
+    }
+    memcpy(utf8_copy, utf8_text, (size_t)utf8_length);
+    utf8_copy[utf8_length] = '\0';
+
+    wtext = com_util_utf8_to_wstr_alloc(utf8_copy);
+    free(utf8_copy);
+    if (wtext == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    result = WriteConsoleW(console, wtext, (DWORD)wcslen(wtext), &wwritten, reserved);
+    if (result && written_length != NULL && wwritten == (DWORD)wcslen(wtext))
+    {
+        *written_length = utf8_length;
+    }
+    free(wtext);
+    return result;
+}
+
+/* UTF-16 文字列を UTF-8 へ変換して固定長バッファーへ書き込む。
+ * 収まらない場合は ERROR_INSUFFICIENT_BUFFER を設定して 0 を返す。 */
+static BOOL copy_wstr_as_utf8(char *utf8_buf, DWORD size, const wchar_t *wtext)
+{
+    char *utf8;
+    size_t utf8_len;
+
+    if (utf8_buf == NULL || size == 0u)
+    {
+        return TRUE;
+    }
+
+    utf8 = com_util_wstr_to_utf8_alloc(wtext);
+    if (utf8 == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    utf8_len = strlen(utf8);
+    if (utf8_len + 1u > (size_t)size)
+    {
+        free(utf8);
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    memcpy(utf8_buf, utf8, utf8_len + 1u);
+    free(utf8);
+    return TRUE;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+BOOL GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD size)
+{
+    wchar_t *wpath;
+    wchar_t wroot[PLATFORM_PATH_MAX];
+
+    wpath = com_util_utf8_to_wstr_alloc(utf8_path);
+    if (wpath == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    if (!GetVolumePathNameW(wpath, wroot, (DWORD)(sizeof(wroot) / sizeof(wroot[0]))))
+    {
+        free(wpath);
+        return FALSE;
+    }
+    free(wpath);
+
+    return copy_wstr_as_utf8(utf8_volume_root, size, wroot);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+BOOL GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name, DWORD volume_name_size,
+                           DWORD *serial_number, DWORD *max_component_length, DWORD *file_system_flags,
+                           char *utf8_file_system_name, DWORD file_system_name_size)
+{
+    wchar_t *wroot = NULL;
+    wchar_t wvolume[MAX_PATH + 1];
+    wchar_t wfs[MAX_PATH + 1];
+
+    if (utf8_root_path != NULL)
+    {
+        wroot = com_util_utf8_to_wstr_alloc(utf8_root_path);
+        if (wroot == NULL)
+        {
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return FALSE;
+        }
+    }
+
+    wvolume[0] = L'\0';
+    wfs[0] = L'\0';
+
+    if (!GetVolumeInformationW(wroot, wvolume, (DWORD)(sizeof(wvolume) / sizeof(wvolume[0])), serial_number,
+                               max_component_length, file_system_flags, wfs, (DWORD)(sizeof(wfs) / sizeof(wfs[0]))))
+    {
+        free(wroot);
+        return FALSE;
+    }
+    free(wroot);
+
+    if (!copy_wstr_as_utf8(utf8_volume_name, volume_name_size, wvolume))
+    {
+        return FALSE;
+    }
+    return copy_wstr_as_utf8(utf8_file_system_name, file_system_name_size, wfs);
 }
 
 #endif /* PLATFORM_WINDOWS */

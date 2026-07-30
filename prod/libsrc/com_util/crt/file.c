@@ -206,6 +206,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
             desired_access = GENERIC_READ;
         }
 
+        /* wpath は本関数内ですでに UTF-8 から変換済みのため、CreateFileU を経由しない */
         file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
@@ -441,6 +442,7 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
         }
 
         /* 属性読み取り専用で開くため、他プロセスの共有モードの影響を受けない。 */
+        /* wpath は本関数内ですでに UTF-8 から変換済みのため、CreateFileU を経由しない */
         handle = CreateFileW(wpath, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (handle == INVALID_HANDLE_VALUE)
