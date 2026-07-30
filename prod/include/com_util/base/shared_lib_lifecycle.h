@@ -40,6 +40,7 @@
     #include <sys/socket.h>
     #include <sys/un.h>
     #include <unistd.h>
+    #include <com_util/crt/string.h>
     #include <com_util/test/syslog_test.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
@@ -121,7 +122,11 @@ static void dllmain_syslog_send__(const char *msg)
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, "/dev/log", sizeof(sa.sun_path) - 1);
+    if (com_util_strcpy(sa.sun_path, sizeof(sa.sun_path), "/dev/log") != 0)
+    {
+        close(fd);
+        return;
+    }
 
     (void)sendto(fd, buf, (size_t)n, MSG_DONTWAIT, (struct sockaddr *)&sa, (socklen_t)sizeof(sa));
     close(fd);
