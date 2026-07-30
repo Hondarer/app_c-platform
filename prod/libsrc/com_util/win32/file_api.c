@@ -18,6 +18,7 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+    #include <com_util/crt/path.h>
     #include <com_util/crt/wchar_conv.h>
     #include <stdlib.h>
     #include <string.h>
