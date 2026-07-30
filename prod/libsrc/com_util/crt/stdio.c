@@ -245,6 +245,54 @@ int com_util_rename(const char *oldpath, const char *newpath)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_scanf(const char *format, ...)
+{
+    va_list args;
+    int result;
+
+    va_start(args, format);
+    result = com_util_vscanf(format, args);
+    va_end(args);
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_vscanf(const char *format, va_list args)
+{
+#if defined(COMPILER_MSVC)
+    #pragma warning(suppress : 4996)
+#endif /* COMPILER_MSVC */
+    return vscanf(format, args);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_fscanf(FILE *stream, const char *format, ...)
+{
+    va_list args;
+    int result;
+
+    va_start(args, format);
+    result = com_util_vfscanf(stream, format, args);
+    va_end(args);
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_vfscanf(FILE *stream, const char *format, va_list args)
+{
+#if defined(COMPILER_MSVC)
+    #pragma warning(suppress : 4996)
+#endif /* COMPILER_MSVC */
+    return vfscanf(stream, format, args);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_fprintf(FILE *stream, const char *format, ...)
 {
     int result;

@@ -107,11 +107,14 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
     /**
-     *  @brief          `sscanf` / `sscanf_s` のラッパーです。
+     *  @brief          文字列から書式化データを読み取ります (`sscanf` ラッパー)。
      *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
      *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[out]     ...     変換結果の格納先。
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
+     *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_sscanf(const char *buffer, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -120,11 +123,13 @@ extern "C"
         ;
 
     /**
-     *  @brief          `com_util_sscanf` の `va_list` 版です。
+     *  @brief          文字列から書式化データを読み取ります (`com_util_sscanf` の `va_list` 版)。
      *  @param[in]      buffer  スキャン対象の文字列。NULL を渡してはなりません。
      *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  文字列とスキャンセットの変換には @ref com_util_sscanf と同じ幅指定規約が適用されます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vsscanf(const char *buffer, const char *format, va_list args)
 #if defined(COMPILER_GCC)

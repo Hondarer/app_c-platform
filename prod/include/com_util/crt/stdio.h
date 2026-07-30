@@ -41,6 +41,68 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
+     *  @brief          標準入力から書式化データを読み取ります (`scanf` ラッパー)。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[out]     ...     変換結果の格納先。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
+     *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
+     *  非信頼な標準入力は `fgets` で 1 行を読み取ってから @ref com_util_sscanf で解析することを推奨します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_scanf(const char *format, ...)
+#if defined(COMPILER_GCC)
+        __attribute__((format(scanf, 1, 2)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          標準入力から書式化データを読み取ります (`com_util_scanf` の `va_list` 版)。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  文字列とスキャンセットの変換には @ref com_util_scanf と同じ幅指定規約が適用されます。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vscanf(const char *format, va_list args)
+#if defined(COMPILER_GCC)
+        __attribute__((format(scanf, 1, 0)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          ストリームから書式化データを読み取ります (`fscanf` ラッパー)。
+     *  @param[in]      stream  読み取り元ストリーム。NULL を渡してはなりません。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[out]     ...     変換結果の格納先。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
+     *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
+     *  非信頼なストリーム入力は `fgets` で 1 行を読み取ってから @ref com_util_sscanf で解析することを推奨します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_fscanf(FILE *stream, const char *format, ...)
+#if defined(COMPILER_GCC)
+        __attribute__((format(scanf, 2, 3)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          ストリームから書式化データを読み取ります (`com_util_fscanf` の `va_list` 版)。
+     *  @param[in]      stream  読み取り元ストリーム。NULL を渡してはなりません。
+     *  @param[in]      format  scanf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args    書式引数リスト。
+     *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
+     *
+     *  文字列とスキャンセットの変換には @ref com_util_fscanf と同じ幅指定規約が適用されます。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vfscanf(FILE *stream, const char *format, va_list args)
+#if defined(COMPILER_GCC)
+        __attribute__((format(scanf, 2, 0)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
      *  @brief          UTF-8 パスでファイルを開きます (`fopen` ラッパー)。
      *  @param[in]      path       開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      fopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。

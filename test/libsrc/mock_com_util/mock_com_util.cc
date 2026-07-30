@@ -39,6 +39,10 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
 
     // crt - stdio
+    ON_CALL(*this, com_util_scanf(_, _)).WillByDefault(Invoke(delegate_real_com_util_scanf));
+    ON_CALL(*this, com_util_vscanf(_, _)).WillByDefault(Invoke(delegate_real_com_util_vscanf));
+    ON_CALL(*this, com_util_fscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fscanf));
+    ON_CALL(*this, com_util_vfscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_vfscanf));
     ON_CALL(*this, com_util_rename(_, _)).WillByDefault(Invoke(delegate_real_com_util_rename));
     ON_CALL(*this, com_util_fprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
     ON_CALL(*this, com_util_vfprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));

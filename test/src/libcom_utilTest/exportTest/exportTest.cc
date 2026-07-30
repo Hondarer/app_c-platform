@@ -231,6 +231,10 @@
                  FILE *(COM_UTIL_API *)(const char *path, const char *modes, FILE *stream, int *errno_out)) \
     EXPORT_ENTRY(com_util_remove, int(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_rename, int(COM_UTIL_API *)(const char *oldpath, const char *newpath)) \
+    EXPORT_ENTRY(com_util_scanf, int(COM_UTIL_API *)(const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vscanf, int(COM_UTIL_API *)(const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_fscanf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vfscanf, int(COM_UTIL_API *)(FILE * stream, const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vfprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fseek, int(COM_UTIL_API *)(FILE * stream, int64_t offset, int whence)) \

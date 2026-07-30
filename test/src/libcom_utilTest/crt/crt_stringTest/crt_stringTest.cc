@@ -4,6 +4,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int call_com_util_vsscanf(const char *buffer, const char *format, ...)
+{
+    va_list args;
+    int result;
+
+    va_start(args, format);
+    result = com_util_vsscanf(buffer, format, args);
+    va_end(args);
+    return result;
+}
+
 class crt_stringTest : public Test
 {
 };
@@ -163,6 +174,22 @@ TEST_F(crt_stringTest, sscanf_respects_width_limit)
     // Assert
     EXPECT_EQ(1, count);        // [確認_正常系] - 読み取り数が 1 であること。
     EXPECT_STREQ("abc", token); // [確認_正常系] - 幅 3 で切り詰められた "abc" が得られること。
+}
+
+// vsscanf 版でも幅指定した文字列が読み取られることの確認
+TEST_F(crt_stringTest, vsscanf_reads_width_limited_token)
+{
+    // Arrange
+    char token[4]; // [状態] - 4 バイトのトークン受け取り先バッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int count = call_com_util_vsscanf("abcdef", "%3s", token); // [手順] - "abcdef" を %3s で解析する。
+
+    // Assert
+    EXPECT_EQ(1, count);        // [確認_正常系] - com_util_vsscanf の戻り値が 1 であること。
+    EXPECT_STREQ("abc", token); // [確認_正常系] - 先頭 3 文字が読み取られること。
 }
 
 // com_util_strdup が文字列を複製することの確認

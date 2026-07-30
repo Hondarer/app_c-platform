@@ -7,6 +7,8 @@
 #include <time.h>
 
 #if defined(COMPILER_MSVC)
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vscanf")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfscanf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
@@ -90,6 +92,10 @@ extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, 
 extern const char *delegate_real_com_util_path_basename(const char *path);
 
 // crt - stdio
+extern int delegate_real_com_util_scanf(const char *format, va_list args);
+extern int delegate_real_com_util_vscanf(const char *format, va_list args);
+extern int delegate_real_com_util_fscanf(FILE *stream, const char *format, va_list args);
+extern int delegate_real_com_util_vfscanf(FILE *stream, const char *format, va_list args);
 extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath);
 extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...);
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
@@ -491,6 +497,10 @@ class Mock_com_util
     MOCK_METHOD(const char *, com_util_path_basename, (const char *));
 
     // crt - stdio
+    MOCK_METHOD(int, com_util_scanf, (const char *, va_list));
+    MOCK_METHOD(int, com_util_vscanf, (const char *, va_list));
+    MOCK_METHOD(int, com_util_fscanf, (FILE *, const char *, va_list));
+    MOCK_METHOD(int, com_util_vfscanf, (FILE *, const char *, va_list));
     MOCK_METHOD(int, com_util_rename, (const char *, const char *));
     MOCK_METHOD(int, com_util_fprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
