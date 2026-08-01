@@ -95,7 +95,9 @@
  *
  *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。
  *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
- *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+ *                  エラー詳細を設定せず、返却しません。
+ *                  NULL 以外を指定した場合、成功時は空の値を格納します。
  *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
  *
  *  断片は自動補正せず、そのまま連結されます。\n
@@ -109,7 +111,9 @@
  *
  *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。
  *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
- *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+ *                  エラー詳細を設定せず、返却しません。
+ *                  NULL 以外を指定した場合、成功時は空の値を格納します。
  *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
  *
  *  com_util_path_concat() と異なり、断片間に @ref PLATFORM_PATH_SEP を自動的に補完します。\n
@@ -143,7 +147,9 @@ extern "C"
      *  @brief          パスを絶対化し、区切り文字を '/' に正規化して返します。
      *  @param[out]     path_out    絶対化済みパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
@@ -168,7 +174,9 @@ extern "C"
      *  @param[in]      rhs        比較対象の 2 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @param[out]     equal_out  一致時は 1、不一致時は 0 の格納先。NULL を渡してはなりません。
      *                             戻り値が @ref COM_UTIL_OK の場合のみ有効です。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -189,7 +197,9 @@ extern "C"
      *                              末尾パス区切り文字 (@ref PLATFORM_PATH_SEP_CHR) は付きません。
      *                              NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  Linux 環境では環境変数 @c TMPDIR を参照し、未設定または空の場合は @c "/tmp" を使用します。\n
@@ -208,7 +218,9 @@ extern "C"
      *  @brief          パス断片を指定順にそのまま連結します。
      *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
@@ -248,7 +260,9 @@ extern "C"
      *  @brief          パスの親ディレクトリ部分を取得します。
      *  @param[out]     path_out   親ディレクトリ パス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
@@ -293,7 +307,9 @@ extern "C"
      *  @brief          パスから拡張子を除いた文字列を取得します。
      *  @param[out]     path_out   拡張子を除いたパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
@@ -316,7 +332,9 @@ extern "C"
      *  @brief          パス断片をパス区切り文字で自動補完しながら連結します。
      *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。

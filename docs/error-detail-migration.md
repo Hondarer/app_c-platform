@@ -20,7 +20,8 @@ com_util の OS エラー詳細は、生の `errno` を格納する `int *errno_
 
 `detail_out` を持つ com_util API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録します。  
 成功時は出力引数と直前値をクリアします。  
-出力引数に `NULL` を指定しても直前値は更新されるため、既存コードで詳細が不要な場合は従来どおり `NULL` を指定できます。
+`detail_out` に `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、直前値は更新されます。  
+既存コードで詳細が不要な場合は、従来どおり `NULL` を指定できます。
 
 直前値は `com_util_error_get_last()`、要因は `com_util_error_get_cause()` または `com_util_error_is()`、人間可読の文字列は `com_util_error_message()` で取得します。
 
@@ -53,13 +54,14 @@ com_util の OS エラー詳細は、生の `errno` を格納する `int *errno_
 - `com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_close`
 - `com_util_mmap_attach`、`com_util_mmap_get_rwlock`、`com_util_mmap_flush`、`com_util_mmap_detach`
 
-`com_util_file_close` と `com_util_mmap_detach` は、解放処理の失敗を通知するため、戻り値を `void` から共通結果コードへ変更しました。
-`com_util_mmap_get_rwlock` は、ロック ポインターを戻り値から `lock_out` へ移し、戻り値で共通結果コードを返します。
+`com_util_file_close` と `com_util_mmap_detach` は、解放処理の失敗を通知するため、戻り値を `void` から共通結果コードへ変更しました。  
+`com_util_mmap_get_rwlock` は、ロック ポインターを戻り値から `lock_out` へ移し、戻り値で共通結果コードを返します。  
+`com_util_stat` は変換・整形系の引数順序規約に従い、`com_util_stat(buf, detail_out, path)` の順序で呼び出します。
 
-新たに `com_util_fclose`、`com_util_fflush`、`com_util_fread`、`com_util_fwrite`、`com_util_file_flush` を追加しました。
+新たに `com_util_fclose`、`com_util_fflush`、`com_util_fread`、`com_util_fwrite`、`com_util_file_flush` を追加しました。  
 標準 I/O ラッパーは元の CRT と同じ戻り値規約を保ち、OS エラー詳細だけを抽象化します。
 
-`com_util_getenv`、`com_util_setenv`、`com_util_unsetenv` と文字列コピー API は、生の errno 値ではなく共通結果コードを返します。
+`com_util_getenv`、`com_util_setenv`、`com_util_unsetenv` と文字列コピー API は、生の errno 値ではなく共通結果コードを返します。  
 文字列コピー API は OS エラーを発生させないため、`detail_out` を追加していません。
 
 当初の調査では 9 API を対象としていましたが、同じヘッダーにある `com_util_freopen`、`com_util_fopen_temp`、`com_util_paths_equal` を含めると 12 API でした。  
@@ -135,9 +137,9 @@ if (os_operation_failed)
 }
 ```
 
-明示的に保存した値を取り込む場合は、`com_util_error_capture_errno()` を使用します。
-Windows では、失敗した OS API の直後に `com_util_error_capture_current_windows_error()` を呼び出します。
-明示的に保存した `GetLastError()` の値を取り込む場合は、`com_util_error_capture_windows_error()` を使用します。
+明示的に保存した値を取り込む場合は、`com_util_error_capture_errno()` を使用します。  
+Windows では、失敗した OS API の直後に `com_util_error_capture_current_windows_error()` を呼び出します。  
+明示的に保存した `GetLastError()` の値を取り込む場合は、`com_util_error_capture_windows_error()` を使用します。  
 メッセージ生成などの別 API を先に呼ぶと、OS の直前値が上書きされる可能性があります。
 
 生の値が必要な場合は、ドメインを確認した後で `com_util_error_get_errno()` または `com_util_error_get_windows_error()` を使用します。
@@ -188,5 +190,5 @@ rg -n 'com_util_(path_get_full|paths_equal|get_temp_dir|path_concat_n|path_dirna
 
 ## 今回の対象外
 
-`sync` と `runtime` の全 API へ `detail_out` を追加する変更は、今回の対象外です。
+`sync` と `runtime` の全 API へ `detail_out` を追加する変更は、今回の対象外です。  
 これらへ詳細エラー抽象化を展開する場合も、戻り値、`detail_out`、TLS の役割分担と成功時クリアの規約を維持します。

@@ -50,7 +50,9 @@ extern "C"
      *  @param[out]     exists_out  変数が設定されている場合は 1、設定されていない場合は 0 を格納します。\n
      *                              NULL も指定できます。戻り値が @ref COM_UTIL_OK または
      *                              @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合に有効です。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は @ref COM_UTIL_OK を返します。変数の設定有無は @p exists_out で確認します。
      *  @return         @p name が NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      *  @return         値の格納先が不足している場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
@@ -73,8 +75,10 @@ extern "C"
      *  @param[in]      value      設定する値 (null 終端文字列)。NULL を渡してはなりません。
      *  @param[in]      overwrite  変数がすでに設定されている場合に上書きするかどうか。\n
      *                             0 のとき既存の値を保持します。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
-     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK 、失敗時は共通結果コードを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -92,8 +96,10 @@ extern "C"
      *
      *  @param[in]      name  環境変数名 (null 終端文字列)。NULL、空文字列、
      *                        `'='` を含む文字列を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
-     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。\n
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK 、失敗時は共通結果コードを返します。\n
      *                  変数が設定されていない場合も成功として扱います。
      *
      *  @par            スレッド セーフ

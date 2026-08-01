@@ -27,11 +27,13 @@
 #endif /* PLATFORM_ */
 
 /**
- *  @brief  指定されたディレクトリが存在することを確認し、なければ生成します。
- *  @param[in]  dir  対象ディレクトリのパス (UTF-8)。
- *  @return     成功時は 0、失敗時は -1 を返します。
+ *  @brief          指定されたディレクトリが存在することを確認し、なければ生成します。
+ *  @param[in]      dir 対象ディレクトリのパス (UTF-8)。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+ *                  エラー詳細を設定せず、返却しません。
+ *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
  *
- *  com_util_mkdir が競合生成で -1 を返す場合も com_util_stat で再確認して
+ *  com_util_mkdir が競合生成で @ref COM_UTIL_ERR_UNKNOWN を返す場合も com_util_stat で再確認して
  *  ディレクトリが存在すれば成功とみなします。
  */
 static int ensure_one_dir(const char *dir, com_util_error *detail_out)
@@ -39,7 +41,7 @@ static int ensure_one_dir(const char *dir, com_util_error *detail_out)
     com_util_file_stat_t st;
 
     /* 既に存在する場合は成功 */
-    if (com_util_stat(&st, dir, detail_out) == COM_UTIL_OK)
+    if (com_util_stat(&st, detail_out, dir) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
@@ -51,7 +53,7 @@ static int ensure_one_dir(const char *dir, com_util_error *detail_out)
     }
 
     /* mkdir 失敗: 競合生成の可能性があるため再確認する */
-    if (com_util_stat(&st, dir, detail_out) == COM_UTIL_OK)
+    if (com_util_stat(&st, detail_out, dir) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
@@ -204,7 +206,7 @@ int com_util_makedirs(const char *path, com_util_error *detail_out)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_stat(com_util_file_stat_t *buf, const char *path, com_util_error *detail_out)
+int com_util_stat(com_util_file_stat_t *buf, com_util_error *detail_out, const char *path)
 {
     int result;
 

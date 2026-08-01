@@ -107,7 +107,9 @@ extern "C"
      *  @brief          UTF-8 パスでファイルを開きます (`fopen` ラッパー)。
      *  @param[in]      path       開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      fopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      *
      *  @par            共有モード
@@ -126,7 +128,9 @@ extern "C"
      *  @param[in]      path       再オープンするファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      freopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
      *  @param[in,out]  stream     再オープン対象のストリーム。NULL を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      *
      *  @par            共有モード
@@ -146,7 +150,9 @@ extern "C"
     /**
      *  @brief          ストリームを閉じます (`fclose` ラッパー)。
      *  @param[in]      stream     閉じるストリーム。NULL を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は EOF を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream, com_util_error *detail_out);
@@ -154,7 +160,9 @@ extern "C"
     /**
      *  @brief          ストリームのバッファーを反映します (`fflush` ラッパー)。
      *  @param[in]      stream     対象のストリーム。NULL の場合は開いている全出力ストリームを対象にします。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は EOF を返します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_fflush(FILE *stream, com_util_error *detail_out);
@@ -165,7 +173,9 @@ extern "C"
      *  @param[in]      size       1 要素のバイト数。
      *  @param[in]      count      読み取る要素数。
      *  @param[in]      stream     読み取り元ストリーム。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時およびファイル終端時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時およびファイル終端時は空の値を格納します。
      *  @return         読み取った要素数を返します。
      */
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *buffer, size_t size, size_t count, FILE *stream,
@@ -177,7 +187,9 @@ extern "C"
      *  @param[in]      size       1 要素のバイト数。
      *  @param[in]      count      書き込む要素数。
      *  @param[in]      stream     書き込み先ストリーム。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         書き込んだ要素数を返します。
      */
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *buffer, size_t size, size_t count, FILE *stream,
@@ -186,7 +198,9 @@ extern "C"
     /**
      *  @brief          UTF-8 パスのファイルを削除します (`remove` / `_wremove` ラッパー)。
      *  @param[in]      path  削除するファイルのパス (UTF-8)。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -199,7 +213,9 @@ extern "C"
      *  @brief          UTF-8 パスのファイルを改名します (`rename` / `_wrename` ラッパー)。
      *  @param[in]      oldpath  変更前のパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      newpath  変更後のパス (UTF-8)。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -262,7 +278,9 @@ extern "C"
     /**
      *  @brief          書式指定パスでファイルを開きます。
      *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...        書式引数。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
@@ -277,7 +295,9 @@ extern "C"
     /**
      *  @brief          書式指定パスでファイルを開きます (`com_util_fopen_fmt` の `va_list` 版)。
      *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      args       書式引数リスト。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
@@ -291,7 +311,9 @@ extern "C"
 
     /**
      *  @brief          書式指定パスのファイルを削除します。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         成功時は 0、失敗時は -1 を返します。
@@ -304,7 +326,9 @@ extern "C"
 
     /**
      *  @brief          書式指定パスのファイルを削除します (`com_util_remove_fmt` の `va_list` 版)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は 0、失敗時は -1 を返します。
@@ -326,7 +350,9 @@ extern "C"
      *                               API 層での制限は課しません。
      *  @param[out]     path_out     生成された一時ファイル絶対パス (UTF-8) の格納先。
      *  @param[in]      path_size    @p path_out のサイズ (バイト)。PLATFORM_PATH_MAX 以上を推奨します。
-     *  @param[out]     detail_out   エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out   エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時はオープンされた FILE*、失敗時は NULL を返します。
      *
      *  Linux 環境では TMPDIR (未設定なら "/tmp") に "{prefix}XXXXXX" のテンプレートで

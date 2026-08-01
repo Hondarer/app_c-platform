@@ -2,7 +2,7 @@
 
 ## 概要
 
-本書は、上位の「コーディング規範」(`docs/general/coding-guideline.md`) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。
+本書は、上位の「コーディング規範」(`docs/general/coding-guideline.md`) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。  
 章立ては上位文書の章に対応させ、com_util 固有の追記・上書き事項のみを記載します。
 
 com_util 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
@@ -111,7 +111,7 @@ OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結
 自前の OS 呼び出しで得た値は `com_util_error_capture_errno()` または `com_util_error_capture_windows_error()` で取り込みます。
 
 `detail_out` を持つ API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録し、成功時に両方をクリアします。  
-出力引数へ `NULL` を指定しても、スレッドの直前値は更新されます。  
+`detail_out` へ `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、スレッドの直前値は更新されます。  
 `com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されるため、保持が必要な場合は直ちにコピーするか `detail_out` を使用します。
 
 `com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
@@ -284,25 +284,25 @@ com_util の公開 API の引数順序は、API の性格に応じて以下の 3
 入力を出力バッファーへ変換・整形する API は、CRT の `strcpy_s` 系に合わせて出力バッファーを先頭に置きます。
 
 ```c
-戻り値 関数名(out, out_size[, detail_out], 入力...);
+戻り値 関数名(out[, out_size][, detail_out], 入力...);
 ```
 
 ```c
 com_util_strcpy(dest, dest_size, src);
 com_util_path_dirname(path_out, path_size, detail_out, path);
 com_util_gmtime(utc_tm, timep);
-com_util_stat(buf, path);
+com_util_stat(buf, detail_out, path);
 ```
 
 `com_util_stat` が POSIX の `stat(path, buf)` と逆順であるのは、本規約 (出力先頭) によるものです。  
-`detail_out` を提供する場合は、出力バッファーとサイズの直後に置きます。
+`detail_out` を提供する場合は、出力引数と、その出力サイズがある場合は出力サイズの直後に置き、後続の入力引数より前に置きます。
 
 ### ハンドル・操作系 (COM_UTIL_OK 系)
 
 ハンドルまたは操作対象を先頭に置き、`*_out` の出力引数は末尾に置きます。
 
 ```c
-com_util_file_get_size(file, size_out);
+com_util_file_get_size(file, size_out, detail_out);
 com_util_paths_equal(lhs, rhs, equal_out, detail_out);
 com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
 ```
@@ -320,9 +320,9 @@ com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
 `v*_fmt` は可変長引数を `va_list args` に置き換えます。
 
 ```c
-com_util_open(path, flags, mode);
-com_util_open_fmt(flags, mode, format, ...);
-com_util_vopen_fmt(flags, mode, format, args);
+com_util_open(path, flags, mode, detail_out);
+com_util_open_fmt(flags, mode, detail_out, format, ...);
+com_util_vopen_fmt(flags, mode, detail_out, format, args);
 ```
 
 ## 解消済みの逸脱

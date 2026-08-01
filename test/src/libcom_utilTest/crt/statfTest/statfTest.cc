@@ -78,7 +78,7 @@ TEST_F(statfTest, test_successful_call_with_format)
     com_util_file_stat_t st;
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_stat(&st, StrEq("test_123.txt"), _))
+    EXPECT_CALL(mock_com_util, com_util_stat(&st, _, StrEq("test_123.txt")))
         .WillOnce(Return(
             COM_UTIL_OK)); // [Pre-Assert確認_正常系] - com_util_stat が展開後のファイル名 "test_123.txt" で 1 回呼び出されること。
                            // [Pre-Assert手順] - com_util_stat から COM_UTIL_OK を返却する。
@@ -100,7 +100,7 @@ TEST_F(statfTest, test_successful_call_with_multiple_parameters)
     com_util_file_stat_t st;
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_stat(&st, StrEq("output_1_2_3.txt"), _))
+    EXPECT_CALL(mock_com_util, com_util_stat(&st, _, StrEq("output_1_2_3.txt")))
         .WillOnce(Return(
             COM_UTIL_OK)); // [Pre-Assert確認_正常系] - com_util_stat が展開後のファイル名 "output_1_2_3.txt" で 1 回呼び出されること。
                            // [Pre-Assert手順] - com_util_stat から COM_UTIL_OK を返却する。
@@ -122,7 +122,7 @@ TEST_F(statfTest, test_stat_returns_error)
     com_util_file_stat_t st;
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_stat(&st, StrEq("nonexistent.txt"), _))
+    EXPECT_CALL(mock_com_util, com_util_stat(&st, _, StrEq("nonexistent.txt")))
         .WillOnce(Return(
             COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - com_util_stat がファイル名 "nonexistent.txt" で 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_stat から COM_UTIL_ERR_UNKNOWN を返却する。

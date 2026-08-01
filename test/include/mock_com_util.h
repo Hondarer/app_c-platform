@@ -79,7 +79,7 @@ extern size_t delegate_real_com_util_fread(void *buffer, size_t size, size_t cou
                                            com_util_error *detail_out);
 extern size_t delegate_real_com_util_fwrite(const void *buffer, size_t size, size_t count, FILE *stream,
                                             com_util_error *detail_out);
-extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path, com_util_error *detail_out);
+extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, com_util_error *detail_out, const char *path);
 extern int delegate_real_com_util_open(const char *path, int flags, int mode, com_util_error *detail_out);
 extern int delegate_real_com_util_access(const char *path, int mode, com_util_error *detail_out);
 extern int delegate_real_com_util_mkdir(const char *path, com_util_error *detail_out);
@@ -504,7 +504,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_fflush, (FILE *, com_util_error *));
     MOCK_METHOD(size_t, com_util_fread, (void *, size_t, size_t, FILE *, com_util_error *));
     MOCK_METHOD(size_t, com_util_fwrite, (const void *, size_t, size_t, FILE *, com_util_error *));
-    MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, const char *, com_util_error *));
+    MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, com_util_error *, const char *));
     MOCK_METHOD(int, com_util_open, (const char *, int, int, com_util_error *));
     MOCK_METHOD(int, com_util_access, (const char *, int, com_util_error *));
     MOCK_METHOD(int, com_util_mkdir, (const char *, com_util_error *));

@@ -34,7 +34,7 @@ int com_util_vstat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, co
         return com_util_error_report_errno(detail_out, format_error);
     }
 
-    return com_util_stat(buf, filename, detail_out);
+    return com_util_stat(buf, detail_out, filename);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

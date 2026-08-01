@@ -284,7 +284,7 @@
     EXPORT_ENTRY(com_util_vsscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, va_list args)) \
     /* com_util/crt/sys/stat.h */ \
     EXPORT_ENTRY(com_util_stat, \
-                 int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *path, com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(com_util_file_stat_t * buf, com_util_error * detail_out, const char *path)) \
     EXPORT_ENTRY(com_util_mkdir, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_makedirs, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_rmdir, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \

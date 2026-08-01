@@ -39,7 +39,9 @@ extern "C"
      *  @param[in]      path   開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      flags  オープン フラグ (O_RDONLY、O_WRONLY、O_RDWR など)。
      *  @param[in]      mode   ファイル生成時のパーミッション (O_CREAT 指定時に使用)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -52,7 +54,9 @@ extern "C"
      *  @brief          書式指定パスでファイル記述子を開きます。
      *  @param[in]      flags   オープン フラグ (O_RDONLY、O_WRONLY、O_RDWR など)。
      *  @param[in]      mode    ファイル生成時のパーミッション (O_CREAT 指定時に使用)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。
@@ -68,7 +72,9 @@ extern "C"
      *  @brief          書式指定パスでファイル記述子を開きます (`com_util_open_fmt` の `va_list` 版)。
      *  @param[in]      flags   オープン フラグ (O_RDONLY、O_WRONLY、O_RDWR など)。
      *  @param[in]      mode    ファイル生成時のパーミッション (O_CREAT 指定時に使用)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。

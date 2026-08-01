@@ -2,8 +2,14 @@
 #include <com_util/base/error.h>
 #include <com_util/base/error_message.h>
 #include <com_util/base/result.h>
+#include <com_util/crt/fcntl.h>
+#include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
+#include <com_util/crt/sys/stat.h>
+#include <com_util/crt/unistd.h>
+#include <com_util/mmap/mmap.h>
 #include <com_util/sync/sync.h>
 
 #include <errno.h>
@@ -48,6 +54,67 @@ typedef struct tls_thread_case
     int call_completed;
 } tls_thread_case;
 
+typedef struct detail_out_null_case
+{
+    const char *name;
+    void (*invoke)(void);
+    int expected_tls_set;
+} detail_out_null_case;
+
+static void invoke_vopen_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vopen_fmt(0, 0, NULL, format, args);
+    va_end(args);
+}
+
+static void invoke_vfopen_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vfopen_fmt(NULL, NULL, format, args);
+    va_end(args);
+}
+
+static void invoke_vremove_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vremove_fmt(NULL, format, args);
+    va_end(args);
+}
+
+static void invoke_vstat_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vstat_fmt(NULL, NULL, format, args);
+    va_end(args);
+}
+
+static void invoke_vmkdir_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vmkdir_fmt(NULL, format, args);
+    va_end(args);
+}
+
+static void invoke_vaccess_fmt_with_null_detail(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    (void)com_util_vaccess_fmt(0, NULL, format, args);
+    va_end(args);
+}
+
 static void record_thread_local_error(void *arg)
 {
     tls_thread_case *test_case = static_cast<tls_thread_case *>(arg);
@@ -68,6 +135,98 @@ static void record_thread_local_error(void *arg)
 class errorTest : public Test
 {
 };
+
+// detail_out を持つ全公開 API が NULL を受け付け、TLS を規約どおり更新することの確認
+TEST_F(errorTest, all_detail_out_apis_accept_null)
+{
+    // Arrange
+    const std::vector<detail_out_null_case> cases = {
+        {"com_util_open", []() { (void)com_util_open(NULL, 0, 0, NULL); }, 1},
+        {"com_util_open_fmt", []() { (void)com_util_open_fmt(0, 0, NULL, NULL); }, 1},
+        {"com_util_vopen_fmt", []() { invoke_vopen_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_file_open", []() { (void)com_util_file_open(NULL, NULL, 0, NULL); }, 1},
+        {"com_util_file_write", []() { (void)com_util_file_write(NULL, NULL, 1U, NULL); }, 1},
+        {"com_util_file_read", []() { (void)com_util_file_read(NULL, NULL, 1U, NULL, NULL); }, 1},
+        {"com_util_file_get_size", []() { (void)com_util_file_get_size(NULL, NULL, NULL); }, 1},
+        {"com_util_file_set_size", []() { (void)com_util_file_set_size(NULL, 0U, NULL); }, 1},
+        {"com_util_file_get_id", []() { (void)com_util_file_get_id(NULL, NULL, NULL); }, 1},
+        {"com_util_file_get_path_id", []() { (void)com_util_file_get_path_id(NULL, NULL, NULL); }, 1},
+        {"com_util_file_flush", []() { (void)com_util_file_flush(NULL, NULL); }, 1},
+        {"com_util_file_close", []() { (void)com_util_file_close(NULL, NULL); }, 1},
+        {"com_util_path_get_full", []() { (void)com_util_path_get_full(NULL, 0U, NULL, NULL); }, 1},
+        {"com_util_paths_equal", []() { (void)com_util_paths_equal(NULL, NULL, NULL, NULL); }, 1},
+        {"com_util_get_temp_dir", []() { (void)com_util_get_temp_dir(NULL, 0U, NULL); }, 1},
+        {"com_util_path_concat_n", []() { (void)com_util_path_concat_n(NULL, 0U, NULL, 1U, "x"); }, 1},
+        {"com_util_path_concat", []() { (void)com_util_path_concat(NULL, 0U, NULL, "x"); }, 1},
+        {"com_util_path_dirname", []() { (void)com_util_path_dirname(NULL, 0U, NULL, NULL); }, 1},
+        {"com_util_path_strip_extension", []() { (void)com_util_path_strip_extension(NULL, 0U, NULL, NULL); }, 1},
+        {"com_util_path_join_n", []() { (void)com_util_path_join_n(NULL, 0U, NULL, 1U, "x"); }, 1},
+        {"com_util_path_join", []() { (void)com_util_path_join(NULL, 0U, NULL, "x"); }, 1},
+        {"com_util_fopen", []() { (void)com_util_fopen(NULL, NULL, NULL); }, 1},
+        {"com_util_freopen", []() { (void)com_util_freopen(NULL, NULL, NULL, NULL); }, 1},
+        {"com_util_fclose", []() { (void)com_util_fclose(NULL, NULL); }, 1},
+        {"com_util_fflush", []() { (void)com_util_fflush(NULL, NULL); }, -1},
+        {"com_util_fread", []() { (void)com_util_fread(NULL, 1U, 1U, NULL, NULL); }, 1},
+        {"com_util_fwrite", []() { (void)com_util_fwrite(NULL, 1U, 1U, NULL, NULL); }, 1},
+        {"com_util_remove", []() { (void)com_util_remove(NULL, NULL); }, 1},
+        {"com_util_rename", []() { (void)com_util_rename(NULL, NULL, NULL); }, 1},
+        {"com_util_fopen_fmt", []() { (void)com_util_fopen_fmt(NULL, NULL, NULL); }, 1},
+        {"com_util_vfopen_fmt", []() { invoke_vfopen_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_remove_fmt", []() { (void)com_util_remove_fmt(NULL, NULL); }, 1},
+        {"com_util_vremove_fmt", []() { invoke_vremove_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_fopen_temp", []() { (void)com_util_fopen_temp(NULL, NULL, NULL, 0U, NULL); }, 1},
+        {"com_util_getenv", []() { (void)com_util_getenv(NULL, NULL, 0U, NULL, NULL); }, 1},
+        {"com_util_setenv", []() { (void)com_util_setenv(NULL, NULL, 0, NULL); }, 1},
+        {"com_util_unsetenv", []() { (void)com_util_unsetenv(NULL, NULL); }, 1},
+        {"com_util_lseek", []() { (void)com_util_lseek(-1, 0, 0, NULL); }, 1},
+        {"com_util_close", []() { (void)com_util_close(-1, NULL); }, 1},
+        {"com_util_dup", []() { (void)com_util_dup(-1, NULL); }, 1},
+        {"com_util_dup2", []() { (void)com_util_dup2(-1, -1, NULL); }, 1},
+        {"com_util_read", []() { (void)com_util_read(-1, NULL, 1U, NULL); }, 1},
+        {"com_util_write", []() { (void)com_util_write(-1, NULL, 1U, NULL); }, 1},
+        {"com_util_access", []() { (void)com_util_access(NULL, 0, NULL); }, 1},
+        {"com_util_access_fmt", []() { (void)com_util_access_fmt(0, NULL, NULL); }, 1},
+        {"com_util_vaccess_fmt", []() { invoke_vaccess_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_stat", []() { (void)com_util_stat(NULL, NULL, NULL); }, 1},
+        {"com_util_mkdir", []() { (void)com_util_mkdir(NULL, NULL); }, 1},
+        {"com_util_makedirs", []() { (void)com_util_makedirs(NULL, NULL); }, 1},
+        {"com_util_rmdir", []() { (void)com_util_rmdir(NULL, NULL); }, 1},
+        {"com_util_stat_fmt", []() { (void)com_util_stat_fmt(NULL, NULL, NULL); }, 1},
+        {"com_util_vstat_fmt", []() { invoke_vstat_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_mkdir_fmt", []() { (void)com_util_mkdir_fmt(NULL, NULL); }, 1},
+        {"com_util_vmkdir_fmt", []() { invoke_vmkdir_fmt_with_null_detail(NULL); }, 1},
+        {"com_util_mmap_attach",
+         []() { (void)com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0U, NULL, NULL); }, 1},
+        {"com_util_mmap_get_rwlock", []() { (void)com_util_mmap_get_rwlock(NULL, NULL, NULL); }, 1},
+        {"com_util_mmap_flush", []() { (void)com_util_mmap_flush(NULL, NULL, 0U, NULL); }, 1},
+        {"com_util_mmap_detach", []() { (void)com_util_mmap_detach(NULL, NULL); }, 0},
+    }; // [状態] - detail_out に NULL を指定する公開関数 56 件と公開マクロ 2 件を用意する。
+    std::vector<int> tls_set_results;
+
+    // Pre-Assert
+
+    // Act
+    for (const detail_out_null_case &item : cases)
+    {
+        com_util_error last_error;
+
+        com_util_error_clear_last();
+        item.invoke();
+        com_util_error_get_last(&last_error);
+        tls_set_results.push_back(com_util_error_is_set(&last_error));
+    } // [手順] - 全公開 API の detail_out に NULL を指定し、呼び出し後の TLS を取得する。
+
+    // Assert
+    EXPECT_EQ(cases.size(), tls_set_results.size()); // [確認_正常系] - 全58件の公開 API 呼び出しが完了したこと。
+    for (std::size_t index = 0U; index < cases.size(); ++index)
+    {
+        if (cases[index].expected_tls_set >= 0)
+        {
+            // [確認_正常系] - 各公開 API が NULL の detail_out を参照せず、TLS を規約どおり更新すること。
+            EXPECT_EQ(cases[index].expected_tls_set, tls_set_results[index]) << cases[index].name;
+        }
+    }
+}
 
 // errno の取り込みと参照 API の確認
 TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)

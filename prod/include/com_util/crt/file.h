@@ -107,7 +107,9 @@ extern "C"
      *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。\n
      *                         @ref COM_UTIL_FILE_OPEN_CREATE_NEW を @ref COM_UTIL_FILE_OPEN_CREATE
      *                         なしで指定した場合も @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
@@ -130,7 +132,9 @@ extern "C"
      *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
@@ -147,7 +151,9 @@ extern "C"
      *  @param[out]     buf       読み取り先。NULL を渡してはなりません。
      *  @param[in]      len       読み取る最大バイト数。
      *  @param[out]     read_out  実際に読み取ったバイト数の格納先。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -166,7 +172,9 @@ extern "C"
      *  @brief          ファイル サイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
@@ -181,7 +189,9 @@ extern "C"
      *  @param[in]      file  対象のファイル。書き込みアクセスでオープン済みでなければなりません。
      *                        NULL を渡してはなりません。
      *  @param[in]      size  設定後のファイル サイズ (バイト)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
@@ -195,7 +205,9 @@ extern "C"
      *  @brief          開いているファイルの同一性情報を取得します。
      *  @param[in]      file    対象のファイル。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  Linux では fstat、Windows では GetFileInformationByHandle で取得します。
@@ -211,7 +223,9 @@ extern "C"
      *  @brief          UTF-8 パスが現在指しているファイルの同一性情報を取得します。
      *  @param[in]      path    対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します (パスが存在しない場合を含む)。
      *
      *  `com_util_file_get_id()` の結果と比較することで、開いているファイルが
@@ -229,8 +243,10 @@ extern "C"
     /**
      *  @brief          ファイルへ書き込んだ内容を永続記憶装置へ反映します。
      *  @param[in]      file       対象のファイル。NULL または無効なハンドルを渡してはなりません。
-     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
-     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK 、失敗時は共通結果コードを返します。
      *
      *  Linux では `fsync`、Windows では `FlushFileBuffers` を使用します。
      */
@@ -240,8 +256,10 @@ extern "C"
      *  @brief          ファイルを閉じます。
      *                  `com_util_file_init()` で初期化済みの無効ハンドルには何もしません。
      *  @param[in]      file  閉じるファイル。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
-     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK 、失敗時は共通結果コードを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

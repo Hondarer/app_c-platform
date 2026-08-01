@@ -93,7 +93,9 @@ extern "C"
      *  @param[in]      fd      対象のファイル記述子。com_util_open() が返した値を渡します。
      *  @param[in]      offset  @p whence を基準とする移動量 (バイト)。
      *  @param[in]      whence  基準位置 (@c SEEK_SET 、@c SEEK_CUR 、@c SEEK_END のいずれか)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時はファイル先頭からの新しい読み書き位置、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -109,7 +111,9 @@ extern "C"
     /**
      *  @brief          ファイル記述子を閉じます (`close` / `_close` ラッパー)。
      *  @param[in]      fd  閉じるファイル記述子。com_util_open() が返した値を渡します。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -124,7 +128,9 @@ extern "C"
     /**
      *  @brief          ファイル記述子を複製します (`dup` / `_dup` ラッパー)。
      *  @param[in]      fd  複製元のファイル記述子。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は新しいファイル記述子、失敗時は -1 を返します。
      *
      *  複製されたファイル記述子は複製元と読み書き位置を共有します。\n
@@ -142,7 +148,9 @@ extern "C"
      *  @brief          ファイル記述子を指定番号へ複製します (`dup2` / `_dup2` ラッパー)。
      *  @param[in]      oldfd  複製元のファイル記述子。
      *  @param[in]      newfd  複製先のファイル記述子番号。開いている場合は先に閉じられます。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  POSIX の @c dup2 は成功時に @p newfd を返しますが、
@@ -161,7 +169,9 @@ extern "C"
      *  @param[in]      fd     読み取り元のファイル記述子。
      *  @param[out]     buf    読み取ったデータの格納先。NULL を渡してはなりません。
      *  @param[in]      count  読み取る最大バイト数。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は読み取ったバイト数 (ファイル終端では 0)、失敗時は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
@@ -184,7 +194,9 @@ extern "C"
      *  @param[in]      fd     書き込み先のファイル記述子。
      *  @param[in]      buf    書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      count  書き込むバイト数。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は書き込んだバイト数、失敗時は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
@@ -207,7 +219,9 @@ extern "C"
      *  @brief          UTF-8 パスのアクセス確認 (`access` / `_waccess` ラッパー) です。
      *  @param[in]      path  確認対象のファイル パス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      mode  確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
      *
      *  @par            スレッド セーフ
@@ -219,7 +233,9 @@ extern "C"
     /**
      *  @brief          書式指定パスのアクセス確認です。
      *  @param[in]      mode    確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
@@ -233,7 +249,9 @@ extern "C"
     /**
      *  @brief          書式指定パスのアクセス確認 (`com_util_access_fmt` の `va_list` 版) です。
      *  @param[in]      mode    確認するアクセス種別 (@ref COM_UTIL_ACCESS_FMT_F_OK 等)。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
