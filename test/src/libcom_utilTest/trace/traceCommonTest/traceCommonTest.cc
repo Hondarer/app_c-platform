@@ -3,8 +3,6 @@
 
 #include <com_util/trace/trace_common.h>
 
-#include <string.h>
-
 using namespace testing;
 
 // 有効な明示タイムスタンプを変更せず採用することの確認
@@ -180,9 +178,9 @@ TEST(traceCommonTest, formats_valid_timestamp)
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_format_realtime_iso8601_local(buf, sizeof(buf), &timestamp))
         .WillOnce(
-            [](char *output, size_t, const com_util_timespec *)
+            [](char *output, size_t output_size, const com_util_timespec *)
             {
-                strcpy(output, "formatted");
+                (void)com_util_strcpy(output, output_size, "formatted");
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_正常系] - 有効なタイムスタンプの書式化を 1 回呼び出すこと。
                 // [Pre-Assert手順] - "formatted" を格納して COM_UTIL_OK を返却する。
