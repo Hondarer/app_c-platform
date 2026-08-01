@@ -73,21 +73,29 @@ extern int delegate_real_com_util_random_bytes(void *buf, size_t size);
 extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, com_util_error *detail_out);
 extern FILE *delegate_real_com_util_freopen(const char *path, const char *modes, FILE *stream,
                                             com_util_error *detail_out);
-extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path);
-extern int delegate_real_com_util_open(const char *path, int flags, int mode);
-extern int delegate_real_com_util_access(const char *path, int mode);
-extern int delegate_real_com_util_mkdir(const char *path);
-extern int delegate_real_com_util_makedirs(const char *path);
-extern int delegate_real_com_util_rmdir(const char *path);
-extern int delegate_real_com_util_remove(const char *path);
+extern int delegate_real_com_util_fclose(FILE *stream, com_util_error *detail_out);
+extern int delegate_real_com_util_fflush(FILE *stream, com_util_error *detail_out);
+extern size_t delegate_real_com_util_fread(void *buffer, size_t size, size_t count, FILE *stream,
+                                           com_util_error *detail_out);
+extern size_t delegate_real_com_util_fwrite(const void *buffer, size_t size, size_t count, FILE *stream,
+                                            com_util_error *detail_out);
+extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path, com_util_error *detail_out);
+extern int delegate_real_com_util_open(const char *path, int flags, int mode, com_util_error *detail_out);
+extern int delegate_real_com_util_access(const char *path, int mode, com_util_error *detail_out);
+extern int delegate_real_com_util_mkdir(const char *path, com_util_error *detail_out);
+extern int delegate_real_com_util_makedirs(const char *path, com_util_error *detail_out);
+extern int delegate_real_com_util_rmdir(const char *path, com_util_error *detail_out);
+extern int delegate_real_com_util_remove(const char *path, com_util_error *detail_out);
 extern int delegate_real_com_util_sscanf(const char *buffer, const char *format, va_list args);
 extern int delegate_real_com_util_vsscanf(const char *buffer, const char *format, va_list args);
 extern int delegate_real_com_util_gmtime(struct tm *utc_tm, const time_t *timep);
 extern int delegate_real_com_util_localtime(struct tm *local_tm, const time_t *timep);
 extern int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t *timep);
-extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out);
-extern int delegate_real_com_util_setenv(const char *name, const char *value, int overwrite);
-extern int delegate_real_com_util_unsetenv(const char *name);
+extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out,
+                                         com_util_error *detail_out);
+extern int delegate_real_com_util_setenv(const char *name, const char *value, int overwrite,
+                                         com_util_error *detail_out);
+extern int delegate_real_com_util_unsetenv(const char *name, com_util_error *detail_out);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, com_util_error *detail_out,
                                                 const char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
@@ -99,7 +107,7 @@ extern int delegate_real_com_util_scanf(const char *format, va_list args);
 extern int delegate_real_com_util_vscanf(const char *format, va_list args);
 extern int delegate_real_com_util_fscanf(FILE *stream, const char *format, va_list args);
 extern int delegate_real_com_util_vfscanf(FILE *stream, const char *format, va_list args);
-extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath);
+extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath, com_util_error *detail_out);
 extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...);
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
 extern int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence);
@@ -107,25 +115,26 @@ extern int64_t delegate_real_com_util_ftell(FILE *stream);
 extern FILE *delegate_real_com_util_fopen_fmt(const char *modes, com_util_error *detail_out, const char *format, ...);
 extern FILE *delegate_real_com_util_vfopen_fmt(const char *modes, com_util_error *detail_out, const char *format,
                                                va_list args);
-extern int delegate_real_com_util_remove_fmt(const char *format, ...);
-extern int delegate_real_com_util_vremove_fmt(const char *format, va_list args);
+extern int delegate_real_com_util_remove_fmt(com_util_error *detail_out, const char *format, ...);
+extern int delegate_real_com_util_vremove_fmt(com_util_error *detail_out, const char *format, va_list args);
 extern FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *modes, char *path_out, size_t path_size,
                                                com_util_error *detail_out);
 
 // crt - unistd
 extern int delegate_real_com_util_isatty(com_util_stream_t stream);
-extern int delegate_real_com_util_access_fmt(int mode, const char *format, ...);
-extern int delegate_real_com_util_vaccess_fmt(int mode, const char *format, va_list args);
-extern int64_t delegate_real_com_util_lseek(int fd, int64_t offset, int whence);
-extern int delegate_real_com_util_close(int fd);
-extern int delegate_real_com_util_dup(int fd);
-extern int delegate_real_com_util_dup2(int oldfd, int newfd);
-extern int64_t delegate_real_com_util_read(int fd, void *buf, size_t count);
-extern int64_t delegate_real_com_util_write(int fd, const void *buf, size_t count);
+extern int delegate_real_com_util_access_fmt(int mode, com_util_error *detail_out, const char *format, ...);
+extern int delegate_real_com_util_vaccess_fmt(int mode, com_util_error *detail_out, const char *format, va_list args);
+extern int64_t delegate_real_com_util_lseek(int fd, int64_t offset, int whence, com_util_error *detail_out);
+extern int delegate_real_com_util_close(int fd, com_util_error *detail_out);
+extern int delegate_real_com_util_dup(int fd, com_util_error *detail_out);
+extern int delegate_real_com_util_dup2(int oldfd, int newfd, com_util_error *detail_out);
+extern int64_t delegate_real_com_util_read(int fd, void *buf, size_t count, com_util_error *detail_out);
+extern int64_t delegate_real_com_util_write(int fd, const void *buf, size_t count, com_util_error *detail_out);
 
 // crt - fcntl
-extern int delegate_real_com_util_open_fmt(int flags, int mode, const char *format, ...);
-extern int delegate_real_com_util_vopen_fmt(int flags, int mode, const char *format, va_list args);
+extern int delegate_real_com_util_open_fmt(int flags, int mode, com_util_error *detail_out, const char *format, ...);
+extern int delegate_real_com_util_vopen_fmt(int flags, int mode, com_util_error *detail_out, const char *format,
+                                            va_list args);
 
 // crt - string
 extern int delegate_real_com_util_strcpy(char *dest, size_t dest_size, const char *src);
@@ -135,20 +144,30 @@ extern char *delegate_real_com_util_strdup(const char *src);
 extern int delegate_real_com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
 // crt - sys/stat
-extern int delegate_real_com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...);
-extern int delegate_real_com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args);
-extern int delegate_real_com_util_mkdir_fmt(const char *format, ...);
-extern int delegate_real_com_util_vmkdir_fmt(const char *format, va_list args);
+extern int delegate_real_com_util_stat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, const char *format,
+                                           ...);
+extern int delegate_real_com_util_vstat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, const char *format,
+                                            va_list args);
+extern int delegate_real_com_util_mkdir_fmt(com_util_error *detail_out, const char *format, ...);
+extern int delegate_real_com_util_vmkdir_fmt(com_util_error *detail_out, const char *format, va_list args);
 
 // crt - file
 extern void delegate_real_com_util_file_init(com_util_file *file);
-extern int delegate_real_com_util_file_open(com_util_file *file, const char *path, int flags);
-extern int delegate_real_com_util_file_write(com_util_file *file, const void *buf, size_t len);
-extern int delegate_real_com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out);
-extern int delegate_real_com_util_file_get_size(const com_util_file *file, size_t *size_out);
-extern int delegate_real_com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out);
-extern int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *id_out);
-extern void delegate_real_com_util_file_close(com_util_file *file);
+extern int delegate_real_com_util_file_open(com_util_file *file, const char *path, int flags,
+                                            com_util_error *detail_out);
+extern int delegate_real_com_util_file_write(com_util_file *file, const void *buf, size_t len,
+                                             com_util_error *detail_out);
+extern int delegate_real_com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out,
+                                            com_util_error *detail_out);
+extern int delegate_real_com_util_file_get_size(const com_util_file *file, size_t *size_out,
+                                                com_util_error *detail_out);
+extern int delegate_real_com_util_file_set_size(com_util_file *file, size_t size, com_util_error *detail_out);
+extern int delegate_real_com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out,
+                                              com_util_error *detail_out);
+extern int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *id_out,
+                                                   com_util_error *detail_out);
+extern int delegate_real_com_util_file_flush(com_util_file *file, com_util_error *detail_out);
+extern int delegate_real_com_util_file_close(com_util_file *file, com_util_error *detail_out);
 
 // trace - tracer
 extern com_util_tracer *delegate_real_com_util_tracer_create(void);
@@ -481,21 +500,25 @@ class Mock_com_util
     // crt
     MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, com_util_error *));
     MOCK_METHOD(FILE *, com_util_freopen, (const char *, const char *, FILE *, com_util_error *));
-    MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, const char *));
-    MOCK_METHOD(int, com_util_open, (const char *, int, int));
-    MOCK_METHOD(int, com_util_access, (const char *, int));
-    MOCK_METHOD(int, com_util_mkdir, (const char *));
-    MOCK_METHOD(int, com_util_makedirs, (const char *));
-    MOCK_METHOD(int, com_util_rmdir, (const char *));
-    MOCK_METHOD(int, com_util_remove, (const char *));
+    MOCK_METHOD(int, com_util_fclose, (FILE *, com_util_error *));
+    MOCK_METHOD(int, com_util_fflush, (FILE *, com_util_error *));
+    MOCK_METHOD(size_t, com_util_fread, (void *, size_t, size_t, FILE *, com_util_error *));
+    MOCK_METHOD(size_t, com_util_fwrite, (const void *, size_t, size_t, FILE *, com_util_error *));
+    MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, const char *, com_util_error *));
+    MOCK_METHOD(int, com_util_open, (const char *, int, int, com_util_error *));
+    MOCK_METHOD(int, com_util_access, (const char *, int, com_util_error *));
+    MOCK_METHOD(int, com_util_mkdir, (const char *, com_util_error *));
+    MOCK_METHOD(int, com_util_makedirs, (const char *, com_util_error *));
+    MOCK_METHOD(int, com_util_rmdir, (const char *, com_util_error *));
+    MOCK_METHOD(int, com_util_remove, (const char *, com_util_error *));
     MOCK_METHOD(int, com_util_sscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int, com_util_vsscanf, (const char *, const char *, va_list));
     MOCK_METHOD(int, com_util_gmtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_localtime, (struct tm *, const time_t *));
     MOCK_METHOD(int, com_util_ctime, (char *, size_t, const time_t *));
-    MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t, int *));
-    MOCK_METHOD(int, com_util_setenv, (const char *, const char *, int));
-    MOCK_METHOD(int, com_util_unsetenv, (const char *));
+    MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t, int *, com_util_error *));
+    MOCK_METHOD(int, com_util_setenv, (const char *, const char *, int, com_util_error *));
+    MOCK_METHOD(int, com_util_unsetenv, (const char *, com_util_error *));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, com_util_error *, const char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, com_util_error *));
     MOCK_METHOD(const char *, com_util_path_basename, (const char *));
@@ -505,31 +528,31 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_vscanf, (const char *, va_list));
     MOCK_METHOD(int, com_util_fscanf, (FILE *, const char *, va_list));
     MOCK_METHOD(int, com_util_vfscanf, (FILE *, const char *, va_list));
-    MOCK_METHOD(int, com_util_rename, (const char *, const char *));
+    MOCK_METHOD(int, com_util_rename, (const char *, const char *, com_util_error *));
     MOCK_METHOD(int, com_util_fprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_fseek, (FILE *, int64_t, int));
     MOCK_METHOD(int64_t, com_util_ftell, (FILE *));
     MOCK_METHOD(FILE *, com_util_fopen_fmt, (const char *, com_util_error *, const char *));
     MOCK_METHOD(FILE *, com_util_vfopen_fmt, (const char *, com_util_error *, const char *));
-    MOCK_METHOD(int, com_util_remove_fmt, (const char *));
-    MOCK_METHOD(int, com_util_vremove_fmt, (const char *));
+    MOCK_METHOD(int, com_util_remove_fmt, (com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_vremove_fmt, (com_util_error *, const char *));
     MOCK_METHOD(FILE *, com_util_fopen_temp, (const char *, const char *, char *, size_t, com_util_error *));
 
     // crt - unistd
     MOCK_METHOD(int, com_util_isatty, (com_util_stream_t));
-    MOCK_METHOD(int, com_util_access_fmt, (int, const char *));
-    MOCK_METHOD(int, com_util_vaccess_fmt, (int, const char *));
-    MOCK_METHOD(int64_t, com_util_lseek, (int, int64_t, int));
-    MOCK_METHOD(int, com_util_close, (int));
-    MOCK_METHOD(int, com_util_dup, (int));
-    MOCK_METHOD(int, com_util_dup2, (int, int));
-    MOCK_METHOD(int64_t, com_util_read, (int, void *, size_t));
-    MOCK_METHOD(int64_t, com_util_write, (int, const void *, size_t));
+    MOCK_METHOD(int, com_util_access_fmt, (int, com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_vaccess_fmt, (int, com_util_error *, const char *));
+    MOCK_METHOD(int64_t, com_util_lseek, (int, int64_t, int, com_util_error *));
+    MOCK_METHOD(int, com_util_close, (int, com_util_error *));
+    MOCK_METHOD(int, com_util_dup, (int, com_util_error *));
+    MOCK_METHOD(int, com_util_dup2, (int, int, com_util_error *));
+    MOCK_METHOD(int64_t, com_util_read, (int, void *, size_t, com_util_error *));
+    MOCK_METHOD(int64_t, com_util_write, (int, const void *, size_t, com_util_error *));
 
     // crt - fcntl
-    MOCK_METHOD(int, com_util_open_fmt, (int, int, const char *));
-    MOCK_METHOD(int, com_util_vopen_fmt, (int, int, const char *));
+    MOCK_METHOD(int, com_util_open_fmt, (int, int, com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_vopen_fmt, (int, int, com_util_error *, const char *));
 
     // crt - string
     MOCK_METHOD(int, com_util_strcpy, (char *, size_t, const char *));
@@ -539,20 +562,22 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_wcscpy, (wchar_t *, size_t, const wchar_t *));
 
     // crt - sys/stat
-    MOCK_METHOD(int, com_util_stat_fmt, (com_util_file_stat_t *, const char *));
-    MOCK_METHOD(int, com_util_vstat_fmt, (com_util_file_stat_t *, const char *));
-    MOCK_METHOD(int, com_util_mkdir_fmt, (const char *));
-    MOCK_METHOD(int, com_util_vmkdir_fmt, (const char *));
+    MOCK_METHOD(int, com_util_stat_fmt, (com_util_file_stat_t *, com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_vstat_fmt, (com_util_file_stat_t *, com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_mkdir_fmt, (com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_vmkdir_fmt, (com_util_error *, const char *));
 
     // crt - file
     MOCK_METHOD(void, com_util_file_init, (com_util_file *));
-    MOCK_METHOD(int, com_util_file_open, (com_util_file *, const char *, int));
-    MOCK_METHOD(int, com_util_file_write, (com_util_file *, const void *, size_t));
-    MOCK_METHOD(int, com_util_file_read, (com_util_file *, void *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_file_get_size, (const com_util_file *, size_t *));
-    MOCK_METHOD(int, com_util_file_get_id, (const com_util_file *, com_util_file_id *));
-    MOCK_METHOD(int, com_util_file_get_path_id, (const char *, com_util_file_id *));
-    MOCK_METHOD(void, com_util_file_close, (com_util_file *));
+    MOCK_METHOD(int, com_util_file_open, (com_util_file *, const char *, int, com_util_error *));
+    MOCK_METHOD(int, com_util_file_write, (com_util_file *, const void *, size_t, com_util_error *));
+    MOCK_METHOD(int, com_util_file_read, (com_util_file *, void *, size_t, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_get_size, (const com_util_file *, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_set_size, (com_util_file *, size_t, com_util_error *));
+    MOCK_METHOD(int, com_util_file_get_id, (const com_util_file *, com_util_file_id *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_get_path_id, (const char *, com_util_file_id *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_flush, (com_util_file *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_close, (com_util_file *, com_util_error *));
 
     // trace - tracer
     MOCK_METHOD(com_util_tracer *, com_util_tracer_create, ());

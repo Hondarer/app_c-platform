@@ -3,15 +3,15 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_vmkdir_fmt(const char *format, va_list args)
+int delegate_real_com_util_vmkdir_fmt(com_util_error *detail_out, const char *format, va_list args)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_vmkdir_fmt)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vmkdir_fmt"));
 
-    return real_fn(format, args);
+    return real_fn(detail_out, format, args);
 }
 
-MOCK_WEAK_IMPL(int, com_util_vmkdir_fmt, const char *format, va_list args)
+MOCK_WEAK_IMPL(int, com_util_vmkdir_fmt, com_util_error *detail_out, const char *format, va_list args)
 {
     int rtc = COM_UTIL_ERR_UNKNOWN;
 
@@ -25,11 +25,11 @@ MOCK_WEAK_IMPL(int, com_util_vmkdir_fmt, const char *format, va_list args)
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vmkdir_fmt(buf);
+        rtc = _mock_com_util->com_util_vmkdir_fmt(detail_out, buf);
     }
     else
     {
-        rtc = delegate_real_com_util_vmkdir_fmt(format, args);
+        rtc = delegate_real_com_util_vmkdir_fmt(detail_out, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)

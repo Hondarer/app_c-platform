@@ -12,7 +12,10 @@
 #include <com_util/crt/path.h>
 
 #include <com_util/base/result.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/crt/wchar_conv.h>
+
+#include <errno.h>
 
 #if defined(PLATFORM_LINUX)
     #include <fcntl.h>
@@ -52,20 +55,27 @@ void com_util_file_init(com_util_file *file)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_open(com_util_file *file, const char *path, int flags)
+int com_util_file_open(com_util_file *file, const char *path, int flags, com_util_error *detail_out)
 {
     if (file == NULL || path == NULL || flags < 0)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
     if ((flags & COM_UTIL_FILE_OPEN_CREATE_NEW) != 0 && (flags & COM_UTIL_FILE_OPEN_CREATE) == 0)
     {
         /* CREATE_NEW は CREATE との併用が必須。単独指定は Linux では O_EXCL が黙って無視され、
            Windows では OPEN_EXISTING 相当に落ちるため、意図と乖離しないよう明示的に失敗させる。 */
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
-    com_util_file_close(file);
+    {
+        const int close_result = com_util_file_close(file, detail_out);
+
+        if (close_result != COM_UTIL_OK)
+        {
+            return close_result;
+        }
+    }
 
 #if defined(PLATFORM_LINUX)
     {
@@ -119,11 +129,11 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
         file->handle = open(path, open_flags, 0644);
         if (file_is_open(file))
         {
-            return COM_UTIL_OK;
+            return com_util_error_report_success(detail_out);
         }
         else
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -147,7 +157,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         if ((flags & COM_UTIL_FILE_OPEN_WRITE_THROUGH) != 0)
@@ -210,7 +220,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
         file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         /* GENERIC_WRITE 経路の APPEND: 手動で末尾へシークする。 */
@@ -220,28 +230,30 @@ int com_util_file_open(com_util_file *file, const char *path, int flags)
             pos.QuadPart = 0;
             if (!SetFilePointerEx(file->handle, pos, NULL, FILE_END))
             {
-                com_util_file_close(file);
-                return COM_UTIL_ERR_UNKNOWN;
+                const DWORD error_code = GetLastError();
+
+                (void)com_util_file_close(file, NULL);
+                return com_util_error_report_windows_error(detail_out, error_code);
             }
         }
 
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_write(com_util_file *file, const void *buf, size_t len)
+int com_util_file_write(com_util_file *file, const void *buf, size_t len, com_util_error *detail_out)
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     if (len == 0u)
     {
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -254,14 +266,14 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
             ssize_t written = write(file->handle, cursor, remaining);
             if (written <= 0)
             {
-                return COM_UTIL_ERR_UNKNOWN;
+                return com_util_error_report_errno(detail_out, errno);
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -282,37 +294,41 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len)
             }
             DWORD written = 0;
 
-            if (!WriteFile(file->handle, cursor, chunk, &written, NULL) || written == 0u)
+            if (!WriteFile(file->handle, cursor, chunk, &written, NULL))
             {
-                return COM_UTIL_ERR_UNKNOWN;
+                return com_util_error_report_windows_error(detail_out, GetLastError());
+            }
+            if (written == 0u)
+            {
+                return com_util_error_report_errno(detail_out, EIO);
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_set_size(com_util_file *file, size_t size)
+int com_util_file_set_size(com_util_file *file, size_t size, com_util_error *detail_out)
 {
     if (!file_is_open(file))
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
     {
         if (ftruncate(file->handle, (off_t)size) != 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
 
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -321,32 +337,32 @@ int com_util_file_set_size(com_util_file *file, size_t size)
         pos.QuadPart = (LONGLONG)size;
         if (!SetFilePointerEx(file->handle, pos, NULL, FILE_BEGIN))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
         if (!SetEndOfFile(file->handle))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t *read_out)
+int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t *read_out, com_util_error *detail_out)
 {
     if (!file_is_open(file) || buf == NULL || read_out == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     *read_out = 0u;
 
     if (len == 0u)
     {
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -355,11 +371,11 @@ int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t 
 
         if (bytes < 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
 
         *read_out = (size_t)bytes;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -378,22 +394,22 @@ int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t 
 
         if (!ReadFile(file->handle, buf, chunk, &bytes, NULL))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         *read_out = (size_t)bytes;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_get_size(const com_util_file *file, size_t *size_out)
+int com_util_file_get_size(const com_util_file *file, size_t *size_out, com_util_error *detail_out)
 {
     if (!file_is_open(file) || size_out == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -402,11 +418,11 @@ int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 
         if (fstat(file->handle, &st) != 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
 
         *size_out = (size_t)st.st_size;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -414,22 +430,22 @@ int com_util_file_get_size(const com_util_file *file, size_t *size_out)
 
         if (!GetFileSizeEx(file->handle, &size))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         *size_out = (size_t)size.QuadPart;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
+int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out, com_util_error *detail_out)
 {
     if (!file_is_open(file) || id_out == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -438,12 +454,12 @@ int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 
         if (fstat(file->handle, &st) != 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -451,23 +467,23 @@ int com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out)
 
         if (!GetFileInformationByHandle(file->handle, &info))
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
+int com_util_file_get_path_id(const char *path, com_util_file_id *id_out, com_util_error *detail_out)
 {
     if (path == NULL || id_out == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -476,12 +492,12 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 
         if (stat(path, &st) != 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, errno);
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -492,7 +508,7 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         /* 属性読み取り専用で開くため、他プロセスの共有モードの影響を受けない。 */
@@ -501,43 +517,89 @@ int com_util_file_get_path_id(const char *path, com_util_file_id *id_out)
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (handle == INVALID_HANDLE_VALUE)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         got_info = GetFileInformationByHandle(handle, &info);
-        CloseHandle(handle);
         if (!got_info)
         {
-            return COM_UTIL_ERR_UNKNOWN;
+            const DWORD error_code = GetLastError();
+
+            (void)CloseHandle(handle);
+            return com_util_error_report_windows_error(detail_out, error_code);
+        }
+        if (!CloseHandle(handle))
+        {
+            return com_util_error_report_windows_error(detail_out, GetLastError());
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return COM_UTIL_OK;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_file_close(com_util_file *file)
+int com_util_file_flush(com_util_file *file, com_util_error *detail_out)
+{
+    if (!file_is_open(file))
+    {
+        return com_util_error_report_errno(detail_out, EINVAL);
+    }
+
+#if defined(PLATFORM_LINUX)
+    if (fsync(file->handle) != 0)
+    {
+        const int errno_value = errno;
+
+        return com_util_error_report_errno(detail_out, errno_value);
+    }
+#elif defined(PLATFORM_WINDOWS)
+    if (!FlushFileBuffers(file->handle))
+    {
+        const DWORD error_code = GetLastError();
+
+        return com_util_error_report_windows_error(detail_out, error_code);
+    }
+#endif /* PLATFORM_ */
+
+    return com_util_error_report_success(detail_out);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_file_close(com_util_file *file, com_util_error *detail_out)
 {
     if (file == NULL)
     {
-        return;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
     if (file->handle != -1)
     {
-        close(file->handle);
+        const int handle = file->handle;
+
         file->handle = -1;
+        if (close(handle) != 0)
+        {
+            return com_util_error_report_errno(detail_out, errno);
+        }
     }
 #elif defined(PLATFORM_WINDOWS)
     if (file->handle != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(file->handle);
+        const HANDLE handle = file->handle;
+
         file->handle = INVALID_HANDLE_VALUE;
+        if (!CloseHandle(handle))
+        {
+            return com_util_error_report_windows_error(detail_out, GetLastError());
+        }
     }
 #endif /* PLATFORM_ */
+
+    return com_util_error_report_success(detail_out);
 }

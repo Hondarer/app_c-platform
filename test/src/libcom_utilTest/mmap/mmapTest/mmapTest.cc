@@ -36,8 +36,8 @@ TEST_F(mmapTest, attach_creates_new_file_and_persists_content_across_reattach)
     // Pre-Assert
 
     // Act
-    result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                  &map); // [手順] - create_size 64 で新規アタッチする。
+    result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+                                  NULL); // [手順] - create_size 64 で新規アタッチする。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK, result); // [確認_正常系] - attach (新規作成) の戻り値が COM_UTIL_OK であること。
@@ -47,14 +47,14 @@ TEST_F(mmapTest, attach_creates_new_file_and_persists_content_across_reattach)
     void *address = com_util_mmap_get_address(map);
     ASSERT_NE((void *)NULL, address); // [確認_正常系] - マップ済みアドレスが NULL でないこと。
     std::memcpy(address, "hello", 5);
-    EXPECT_EQ(COM_UTIL_OK, com_util_mmap_flush(map, NULL, 0)); // [手順] - マップ全体を flush する。
-    com_util_mmap_detach(map);
+    EXPECT_EQ(COM_UTIL_OK, com_util_mmap_flush(map, NULL, 0, NULL)); // [手順] - マップ全体を flush する。
+    com_util_mmap_detach(map, NULL);
     map = NULL;
 
     // Act_2
     result =
-        com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 4096,
-                             &map); // [手順] - 既存ファイルに対し異なる create_size (4096) を指定して再アタッチする。
+        com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 4096, &map,
+                             NULL); // [手順] - 既存ファイルに対し異なる create_size (4096) を指定して再アタッチする。
 
     // Assert_2
     ASSERT_EQ(COM_UTIL_OK,
@@ -67,7 +67,7 @@ TEST_F(mmapTest, attach_creates_new_file_and_persists_content_across_reattach)
     EXPECT_EQ(0, std::memcmp(address_2, "hello", 5)); // [確認_正常系] - 前回書き込んだ内容が読み取れること。
 
     // Cleanup
-    com_util_mmap_detach(map);
+    com_util_mmap_detach(map, NULL);
     std::remove(path.c_str());
 }
 
@@ -83,8 +83,8 @@ TEST_F(mmapTest, attach_fails_when_create_size_is_zero_for_new_file)
     // Pre-Assert
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 0,
-                                      &map); // [手順] - create_size 0 で新規アタッチを試みる。
+    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 0, &map,
+                                      NULL); // [手順] - create_size 0 で新規アタッチを試みる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -103,8 +103,8 @@ TEST_F(mmapTest, attach_read_only_fails_for_missing_file)
     // Pre-Assert
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 64,
-                                      &map); // [手順] - 存在しないファイルを READ_ONLY でアタッチを試みる。
+    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 64, &map,
+                                      NULL); // [手順] - 存在しないファイルを READ_ONLY でアタッチを試みる。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK, result); // [確認_異常系] - attach (READ_ONLY、存在しないファイル) が失敗すること。
@@ -123,22 +123,23 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                             &map)); // [確認_異常系] - attach (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+        com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+                             NULL)); // [確認_異常系] - attach (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
+        com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, NULL,
                              NULL)); // [確認_異常系] - attach (map NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               com_util_mmap_attach(
-                  "x", (com_util_mmap_access_t)99, 64,
-                  &map)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+                  "x", (com_util_mmap_access_t)99, 64, &map,
+                  NULL)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 
 // NULL ハンドルに対する get_address/get_size/get_rwlock/flush/detach が安全であることの確認
 TEST_F(mmapTest, accessors_are_safe_for_null_handle)
 {
     // Arrange
+    com_util_interprocess_rwlock *lock = NULL;
 
     // Pre-Assert
 
@@ -147,12 +148,17 @@ TEST_F(mmapTest, accessors_are_safe_for_null_handle)
     // Assert
     EXPECT_EQ((void *)NULL, com_util_mmap_get_address(NULL)); // [確認_異常系] - get_address(NULL) が NULL を返すこと。
     EXPECT_EQ((size_t)0, com_util_mmap_get_size(NULL));       // [確認_異常系] - get_size(NULL) が 0 を返すこと。
-    EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
-              com_util_mmap_get_rwlock(NULL)); // [確認_異常系] - get_rwlock(NULL) が NULL を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_mmap_flush(NULL, NULL,
-                                  0)); // [確認_異常系] - flush(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    com_util_mmap_detach(NULL);        // [確認_異常系] - detach(NULL) がクラッシュせずに完了すること。
+              com_util_mmap_get_rwlock(
+                  NULL, &lock,
+                  NULL)); // [確認_異常系] - get_rwlock(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
+              lock); // [確認_異常系] - get_rwlock(NULL) が出力先を変更しないこと。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              com_util_mmap_flush(NULL, NULL, 0,
+                                  NULL)); // [確認_異常系] - flush(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, com_util_mmap_detach(NULL,
+                                                NULL)); // [確認_異常系] - detach(NULL) が COM_UTIL_OK を返すこと。
 }
 
 // get_rwlock を同一ハンドルへ繰り返し呼び出しても、遅延生成したロックが 1 つだけ返ることの確認
@@ -161,28 +167,33 @@ TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
     // Arrange
     std::string path = make_path("lazy_rwlock_same.dat");
     com_util_mmap *map = NULL;
+    com_util_interprocess_rwlock *lock_first = NULL;
+    com_util_interprocess_rwlock *lock_second = NULL;
 
     std::remove(path.c_str()); // [状態] - 既存ファイルを削除した状態とする。
     ASSERT_EQ(COM_UTIL_OK,
-              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                   &map)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
+              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+                                   NULL)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
 
     // Pre-Assert
 
     // Act
-    com_util_interprocess_rwlock *lock_first =
-        com_util_mmap_get_rwlock(map); // [手順] - get_rwlock を 1 回目に呼び出す。
-    com_util_interprocess_rwlock *lock_second =
-        com_util_mmap_get_rwlock(map); // [手順] - 同一ハンドルに対し get_rwlock を 2 回目に呼び出す。
+    int result_first = com_util_mmap_get_rwlock(map, &lock_first, NULL); // [手順] - get_rwlock を 1 回目に呼び出す。
+    int result_second = com_util_mmap_get_rwlock(map, &lock_second,
+                                                 NULL); // [手順] - 同一ハンドルに対し get_rwlock を 2 回目に呼び出す。
 
     // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              result_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が COM_UTIL_OK であること。
     ASSERT_NE((com_util_interprocess_rwlock *)NULL,
               lock_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が NULL でないこと。
     EXPECT_EQ(lock_first,
               lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインタであること。
 
     // Cleanup
-    com_util_mmap_detach(map);
+    com_util_mmap_detach(map, NULL);
     std::remove(path.c_str());
 }
 
@@ -198,8 +209,8 @@ TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
     // Pre-Assert
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                      &map); // [手順] - create_size 64 で新規アタッチする。
+    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+                                      NULL); // [手順] - create_size 64 で新規アタッチする。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK,
@@ -209,11 +220,11 @@ TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
               address); // [確認_正常系] - get_rwlock を呼ばない場合も get_address が NULL を返さないこと。
     std::memcpy(address, "lazy", 4);
     EXPECT_EQ(COM_UTIL_OK,
-              com_util_mmap_flush(map, NULL, 0)); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が
-                                                  // COM_UTIL_OK であること。
+              com_util_mmap_flush(map, NULL, 0, NULL)); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が
+                                                        // COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_mmap_detach(map);
+    com_util_mmap_detach(map, NULL);
     std::remove(path.c_str());
 }
 
@@ -225,19 +236,21 @@ TEST_F(mmapTest, get_rwlock_returns_single_instance_under_concurrent_calls)
     std::string path = make_path("lazy_rwlock_concurrent.dat");
     com_util_mmap *map = NULL;
     std::vector<com_util_interprocess_rwlock *> results(thread_count, NULL);
+    std::vector<int> call_results(thread_count, COM_UTIL_ERR_UNKNOWN);
     std::vector<std::thread> threads;
 
     std::remove(path.c_str()); // [状態] - 既存ファイルを削除した状態とする。
     ASSERT_EQ(COM_UTIL_OK,
-              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                   &map)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
+              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+                                   NULL)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
 
     // Pre-Assert
 
     // Act
     for (size_t index = 0; index < thread_count; index++)
     {
-        threads.emplace_back([&results, map, index]() { results[index] = com_util_mmap_get_rwlock(map); });
+        threads.emplace_back([&call_results, &results, map, index]()
+                             { call_results[index] = com_util_mmap_get_rwlock(map, &results[index], NULL); });
     } // [手順] - 8 個のスレッドから同一ハンドルに対し get_rwlock を同時に呼び出す。
     for (std::thread &thread : threads)
     {
@@ -247,13 +260,17 @@ TEST_F(mmapTest, get_rwlock_returns_single_instance_under_concurrent_calls)
     // Assert
     ASSERT_NE((com_util_interprocess_rwlock *)NULL,
               results[0]); // [確認_正常系] - 並行呼び出し時の get_rwlock の戻り値が NULL でないこと。
+    for (size_t index = 0; index < thread_count; index++)
+    {
+        EXPECT_EQ(COM_UTIL_OK, call_results[index]);
+    } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が COM_UTIL_OK であること。
     for (size_t index = 1; index < thread_count; index++)
     {
         EXPECT_EQ(results[0], results[index]);
     } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が同一のポインタであること。
 
     // Cleanup
-    com_util_mmap_detach(map);
+    com_util_mmap_detach(map, NULL);
     std::remove(path.c_str());
 }
 
@@ -264,14 +281,16 @@ TEST_F(mmapTest, embedded_rwlock_allows_concurrent_readers_and_times_out_on_excl
     std::string path = make_path("rwlock.dat");
     com_util_mmap *map1 = NULL;
     com_util_mmap *map2 = NULL;
+    com_util_interprocess_rwlock *lock1 = NULL;
+    com_util_interprocess_rwlock *lock2 = NULL;
 
     std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                                &map1)); // [状態] - 1 つ目のハンドルを新規作成でアタッチする。
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64,
-                                                &map2)); // [状態] - 2 つ目のハンドルを同一パスへ既存アタッチする。
-    com_util_interprocess_rwlock *lock1 = com_util_mmap_get_rwlock(map1);
-    com_util_interprocess_rwlock *lock2 = com_util_mmap_get_rwlock(map2);
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map1,
+                                                NULL)); // [状態] - 1 つ目のハンドルを新規作成でアタッチする。
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map2,
+                                                NULL)); // [状態] - 2 つ目のハンドルを同一パスへ既存アタッチする。
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_get_rwlock(map1, &lock1, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_get_rwlock(map2, &lock2, NULL));
     ASSERT_NE((com_util_interprocess_rwlock *)NULL, lock1);
     ASSERT_NE((com_util_interprocess_rwlock *)NULL, lock2);
 
@@ -303,7 +322,7 @@ TEST_F(mmapTest, embedded_rwlock_allows_concurrent_readers_and_times_out_on_excl
 
     // Cleanup
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_unlock(lock1));
-    com_util_mmap_detach(map1);
-    com_util_mmap_detach(map2);
+    com_util_mmap_detach(map1, NULL);
+    com_util_mmap_detach(map2, NULL);
     std::remove(path.c_str());
 }

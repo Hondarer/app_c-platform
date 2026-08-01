@@ -117,7 +117,7 @@ static int access_mapped(bench_context *ctx, const bench_case *item, com_util_mm
 
     if (result == 0 && item->durable != 0 && is_write_pattern(item->pattern) != 0)
     {
-        if (com_util_mmap_flush(map, NULL, 0U) != COM_UTIL_OK)
+        if (com_util_mmap_flush(map, NULL, 0U, NULL) != COM_UTIL_OK)
         {
             result = -1;
         }
@@ -136,7 +136,9 @@ static int access_mapped(bench_context *ctx, const bench_case *item, com_util_mm
  */
 static int access_mapped_with_lock(bench_context *ctx, const bench_case *item, com_util_mmap *map)
 {
-    com_util_interprocess_rwlock *lock = com_util_mmap_get_rwlock(map);
+    com_util_interprocess_rwlock *lock = NULL;
+
+    (void)com_util_mmap_get_rwlock(map, &lock, NULL);
     int lock_result;
     int access_result;
 
@@ -188,7 +190,8 @@ int bench_mmap_setup(bench_context *ctx, const bench_case *item)
     {
         return -1;
     }
-    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &state->map) != COM_UTIL_OK)
+    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &state->map, NULL) !=
+        COM_UTIL_OK)
     {
         free(state);
         return -1;
@@ -216,7 +219,7 @@ int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
         return access_mapped(ctx, item, state->map);
     }
 
-    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &map) != COM_UTIL_OK)
+    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &map, NULL) != COM_UTIL_OK)
     {
         return -1;
     }
@@ -230,7 +233,7 @@ int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
         result = access_mapped(ctx, item, map);
     }
 
-    com_util_mmap_detach(map);
+    (void)com_util_mmap_detach(map, NULL);
     return result;
 }
 
@@ -249,7 +252,7 @@ void bench_mmap_teardown(bench_context *ctx, const bench_case *item)
     {
         return;
     }
-    com_util_mmap_detach(state->map);
+    (void)com_util_mmap_detach(state->map, NULL);
     free(state);
     ctx->state = NULL;
 }

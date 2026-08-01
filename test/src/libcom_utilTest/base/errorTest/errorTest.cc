@@ -100,6 +100,26 @@ TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)
                                 COM_UTIL_CAUSE_NOT_FOUND)); // [確認_正常系] - NOT_FOUND との一致判定が 1 であること。
 }
 
+// 現在の errno を呼び出し側で退避せずに取り込めることの確認
+TEST_F(errorTest, capture_current_errno_preserves_current_value)
+{
+    // Arrange
+    com_util_error error;
+
+    errno = ENOENT; // [状態] - 現在の errno を ENOENT に設定する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_error_capture_current_errno(&error); // [手順] - 現在の errno を詳細エラーへ取り込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_ERRNO,
+              com_util_error_get_domain(&error)); // [確認_正常系] - error のドメインが errno であること。
+    EXPECT_EQ(ENOENT, com_util_error_get_errno(
+                          &error)); // [確認_正常系] - com_util_error_get_errno の戻り値が ENOENT であること。
+}
+
 // NULL、空の値、ドメイン不一致に対する参照 API の確認
 TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
 {
@@ -253,7 +273,8 @@ TEST_F(errorTest, real_api_records_failure_and_clears_it_on_success)
     com_util_error failure_error;
     com_util_error success_error;
 
-    (void)com_util_remove("com_util_error_tls_missing_file"); // [状態] - 失敗対象のファイルが存在しない状態にする。
+    (void)com_util_remove("com_util_error_tls_missing_file",
+                          NULL); // [状態] - 失敗対象のファイルが存在しない状態にする。
 
     // Pre-Assert
 
@@ -275,7 +296,7 @@ TEST_F(errorTest, real_api_records_failure_and_clears_it_on_success)
 
     // Cleanup
     (void)fclose(existing);
-    (void)com_util_remove(temp_path);
+    (void)com_util_remove(temp_path, NULL);
 }
 
 // 内部で複数のパス API を呼ぶ成功ケースが TLS を空にすることの確認
@@ -314,7 +335,8 @@ TEST_F(errorTest, last_error_is_isolated_between_threads)
     int join_not_found_result = COM_UTIL_ERR_UNKNOWN;
     int join_invalid_result = COM_UTIL_ERR_UNKNOWN;
 
-    (void)com_util_remove("com_util_error_tls_missing_file"); // [状態] - NOT_FOUND 用のファイルが存在しない状態にする。
+    (void)com_util_remove("com_util_error_tls_missing_file",
+                          NULL);                              // [状態] - NOT_FOUND 用のファイルが存在しない状態にする。
     com_util_error_clear_last();                              // [状態] - メイン スレッドの TLS 詳細エラーを空にする。
 
     // Pre-Assert

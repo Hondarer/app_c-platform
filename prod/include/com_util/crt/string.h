@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <com_util/base/compiler.h>
+#include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -39,7 +40,8 @@ extern "C"
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
+     *  @return         成功時は @ref COM_UTIL_OK、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT、
+     *                  バッファー不足時は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -53,7 +55,7 @@ extern "C"
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        コピー元文字列。NULL を渡してはなりません。
      *  @param[in]      count      コピーする最大文字数。
-     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
+     *  @return         成功時は @ref COM_UTIL_OK、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -66,7 +68,8 @@ extern "C"
      *  @param[in,out]  dest       連結先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      src        連結する文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
+     *  @return         成功時は @ref COM_UTIL_OK、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT、
+     *                  バッファー不足時は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -98,7 +101,8 @@ extern "C"
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。
      *  @param[in]      src        コピー元ワイド文字列。NULL を渡してはなりません。
-     *  @return         成功時は 0、バッファー不足時は ERANGE を返します。
+     *  @return         成功時は @ref COM_UTIL_OK、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT、
+     *                  バッファー不足時は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

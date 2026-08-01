@@ -26,13 +26,13 @@ TEST_F(rmdirTest, removes_empty_directory)
     std::string path = make_path("empty_dir");
 
     std::filesystem::remove_all(path);
-    ASSERT_EQ(COM_UTIL_OK, com_util_mkdir(path.c_str())); // [状態] - 空のディレクトリを作成しておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_mkdir(path.c_str(), NULL)); // [状態] - 空のディレクトリを作成しておく。
 
     // Pre-Assert
     ASSERT_TRUE(std::filesystem::exists(path));
 
     // Act
-    int rtc_rmdir = com_util_rmdir(path.c_str()); // [手順] - 空のディレクトリを削除する。
+    int rtc_rmdir = com_util_rmdir(path.c_str(), NULL); // [手順] - 空のディレクトリを削除する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc_rmdir); // [確認_正常系] - com_util_rmdir の戻り値が COM_UTIL_OK であること。
@@ -46,13 +46,13 @@ TEST_F(rmdirTest, fails_for_non_empty_directory)
     std::string path = make_path("non_empty_dir");
 
     std::filesystem::remove_all(path);
-    ASSERT_EQ(COM_UTIL_OK, com_util_mkdir(path.c_str()));
+    ASSERT_EQ(COM_UTIL_OK, com_util_mkdir(path.c_str(), NULL));
     std::filesystem::create_directories(std::filesystem::path(path) / "child"); // [状態] - 子ディレクトリを持つディレクトリを用意する。
 
     // Pre-Assert
 
     // Act
-    int rtc_rmdir = com_util_rmdir(path.c_str()); // [手順] - 空でないディレクトリを削除する。
+    int rtc_rmdir = com_util_rmdir(path.c_str(), NULL); // [手順] - 空でないディレクトリを削除する。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK, rtc_rmdir); // [確認_異常系] - 空でないディレクトリに対する com_util_rmdir の戻り値が COM_UTIL_OK でないこと。
@@ -70,7 +70,7 @@ TEST_F(rmdirTest, null_path_is_rejected)
     // Pre-Assert
 
     // Act
-    int rtc_rmdir = com_util_rmdir(NULL); // [手順] - パスに NULL を指定して呼び出す。
+    int rtc_rmdir = com_util_rmdir(NULL, NULL); // [手順] - パスに NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

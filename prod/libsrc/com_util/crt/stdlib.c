@@ -9,6 +9,7 @@
  */
 
 #include <com_util/crt/stdlib.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/base/platform.h>
 
 #include <errno.h>
@@ -17,7 +18,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exists_out)
+int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exists_out, com_util_error *detail_out)
 {
     if (exists_out != NULL)
     {
@@ -25,7 +26,7 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exi
     }
     if (name == NULL)
     {
-        return EINVAL;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -37,7 +38,7 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exi
             {
                 buf[0] = '\0';
             }
-            return 0;
+            return com_util_error_report_success(detail_out);
         }
         if (exists_out != NULL)
         {
@@ -48,24 +49,30 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exi
             size_t len = strlen(val);
             if (len + 1 > buf_size)
             {
-                return ERANGE;
+                return com_util_error_report_errno(detail_out, ERANGE);
             }
             memcpy(buf, val, len + 1);
         }
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
         char *val = NULL;
         size_t val_len = 0;
+        const errno_t err = _dupenv_s(&val, &val_len, name);
 
-        if (_dupenv_s(&val, &val_len, name) != 0 || val == NULL)
+        if (err != 0)
+        {
+            free(val);
+            return com_util_error_report_errno(detail_out, (int)err);
+        }
+        if (val == NULL)
         {
             if (buf != NULL && buf_size > 0)
             {
                 buf[0] = '\0';
             }
-            return 0;
+            return com_util_error_report_success(detail_out);
         }
         if (exists_out != NULL)
         {
@@ -76,12 +83,12 @@ int com_util_getenv(const char *name, char *buf, const size_t buf_size, int *exi
             if (val_len > buf_size)
             {
                 free(val);
-                return ERANGE;
+                return com_util_error_report_errno(detail_out, ERANGE);
             }
             memcpy(buf, val, val_len);
         }
         free(val);
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -103,20 +110,22 @@ static int env_name_is_valid(const char *name)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_setenv(const char *name, const char *value, const int overwrite)
+int com_util_setenv(const char *name, const char *value, const int overwrite, com_util_error *detail_out)
 {
     if (!env_name_is_valid(name) || value == NULL)
     {
-        return EINVAL;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
     {
         if (setenv(name, value, overwrite) != 0)
         {
-            return errno;
+            const int errno_value = errno;
+
+            return com_util_error_report_errno(detail_out, errno_value);
         }
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -125,37 +134,46 @@ int com_util_setenv(const char *name, const char *value, const int overwrite)
         {
             int exists = 0;
 
-            if (com_util_getenv(name, NULL, 0u, &exists) == 0 && exists != 0)
+            if (com_util_getenv(name, NULL, 0u, &exists, NULL) == COM_UTIL_OK && exists != 0)
             {
-                return 0;
+                return com_util_error_report_success(detail_out);
             }
         }
 
         if (_putenv_s(name, value) != 0)
         {
-            return errno;
+            int errno_value = errno;
+
+            if (errno_value == 0)
+            {
+                errno_value = EIO;
+            }
+
+            return com_util_error_report_errno(detail_out, errno_value);
         }
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_unsetenv(const char *name)
+int com_util_unsetenv(const char *name, com_util_error *detail_out)
 {
     if (!env_name_is_valid(name))
     {
-        return EINVAL;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
     {
         if (unsetenv(name) != 0)
         {
-            return errno;
+            const int errno_value = errno;
+
+            return com_util_error_report_errno(detail_out, errno_value);
         }
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -163,9 +181,16 @@ int com_util_unsetenv(const char *name)
          * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/putenv-s-wputenv-s */
         if (_putenv_s(name, "") != 0)
         {
-            return errno;
+            int errno_value = errno;
+
+            if (errno_value == 0)
+            {
+                errno_value = EIO;
+            }
+
+            return com_util_error_report_errno(detail_out, errno_value);
         }
-        return 0;
+        return com_util_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }

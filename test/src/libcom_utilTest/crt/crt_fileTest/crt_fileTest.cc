@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/file.h>
+#include <com_util/crt/stdio.h>
 #include <filesystem>
 #include <cstdio>
 #include <cstring>
@@ -74,8 +75,8 @@ TEST_F(crt_fileTest, init_and_close_are_safe_for_unopened_handle)
 
     // Act
     com_util_file_init(&file);  // [手順] - com_util_file_init で初期化する。
-    com_util_file_close(&file); // [手順] - 未オープンのまま com_util_file_close を呼び出す。
-    com_util_file_close(&file); // [手順] - 続けてもう一度 com_util_file_close を呼び出す。
+    com_util_file_close(&file, NULL); // [手順] - 未オープンのまま com_util_file_close を呼び出す。
+    com_util_file_close(&file, NULL); // [手順] - 続けてもう一度 com_util_file_close を呼び出す。
 
     // Assert
     // [確認_正常系] - クラッシュせずに完了すること。
@@ -96,23 +97,22 @@ TEST_F(crt_fileTest, append_open_reports_existing_size)
 
     // Act
     int rtc_file_open = com_util_file_open(
-        &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
-            COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - CREATE | APPEND | WRITE_THROUGH でオープンする。
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+        NULL); // [手順] - CREATE | APPEND | WRITE_THROUGH でオープンする。
 
     // Assert
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - CREATE | APPEND | WRITE_THROUGH でオープンした com_util_file_open の戻り値が COM_UTIL_OK であること。
     int rtc_file_get_size =
-        com_util_file_get_size(&file, &size); // [手順] - com_util_file_get_size でサイズを取得する。
+        com_util_file_get_size(&file, &size, NULL); // [手順] - com_util_file_get_size でサイズを取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_size); // [確認_正常系] - com_util_file_get_size でサイズを取得した結果が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)5, size); // [確認_正常系] - 既存サイズ 5 が報告されること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -130,23 +130,23 @@ TEST_F(crt_fileTest, truncate_open_resets_existing_file_size)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE | COM_UTIL_FILE_OPEN_APPEND |
-                               COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - TRUNCATE を含むフラグでオープンする。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(),
+                                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
+                                               COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+                                           NULL); // [手順] - TRUNCATE を含むフラグでオープンする。
 
     // Assert
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - TRUNCATE を含むフラグでオープンした com_util_file_open の戻り値が COM_UTIL_OK であること。
     int rtc_file_get_size =
-        com_util_file_get_size(&file, &size); // [手順] - com_util_file_get_size でサイズを取得する。
+        com_util_file_get_size(&file, &size, NULL); // [手順] - com_util_file_get_size でサイズを取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_size); // [確認_正常系] - com_util_file_get_size でサイズを取得した結果が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)0, size); // [確認_正常系] - サイズが 0 に切り詰められていること。
 
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     EXPECT_EQ(std::string(), read_text_file(path)); // [確認_正常系] - クローズ後のファイル内容が空であること。
 
     // Cleanup
@@ -167,36 +167,35 @@ TEST_F(crt_fileTest, write_persists_buffer_and_allows_reopen)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE | COM_UTIL_FILE_OPEN_APPEND |
-                               COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - 新規作成でオープンする。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(),
+                                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE |
+                                               COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+                                           NULL); // [手順] - 新規作成でオープンする。
 
     // Assert
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - 新規作成でオープンした com_util_file_open の戻り値が COM_UTIL_OK であること。
-    int rtc_file_write = com_util_file_write(&file, "abc", 3); // [手順] - "abc" 3 バイトを書き込む。
+    int rtc_file_write = com_util_file_write(&file, "abc", 3, NULL); // [手順] - "abc" 3 バイトを書き込む。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_write); // [確認_正常系] - "abc" 3 バイトを書き込んだ com_util_file_write の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size, NULL));
     EXPECT_EQ((size_t)3, size); // [確認_正常系] - 書き込み後のサイズが 3 であること。
 
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
 
-    int rtc_file_open_2 =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
-                               COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - クローズ後に追記モードで再オープンする。
+    int rtc_file_open_2 = com_util_file_open(
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+        NULL); // [手順] - クローズ後に追記モードで再オープンする。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_open_2); // [確認_正常系] - クローズ後に追記モードで再オープンした com_util_file_open の戻り値が COM_UTIL_OK であること。
-    int rtc_file_write_2 = com_util_file_write(&file, "def", 3); // [手順] - "def" 3 バイトを追記する。
+    int rtc_file_write_2 = com_util_file_write(&file, "def", 3, NULL); // [手順] - "def" 3 バイトを追記する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_write_2); // [確認_正常系] - "def" 3 バイトを追記した com_util_file_write の戻り値が COM_UTIL_OK であること。
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
 
     EXPECT_EQ(std::string("abcdef"),
               read_text_file(path)); // [確認_正常系] - ファイル内容が "abcdef" になっていること。
@@ -221,26 +220,28 @@ TEST_F(crt_fileTest, invalid_arguments_fail)
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_file_open(
-            NULL, "x",
-            COM_UTIL_FILE_OPEN_CREATE)); // [確認_異常系] - open (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+        com_util_file_open(NULL, "x", COM_UTIL_FILE_OPEN_CREATE,
+                           NULL)); // [確認_異常系] - open (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_file_open(
-            &file, NULL,
-            COM_UTIL_FILE_OPEN_CREATE)); // [確認_異常系] - open (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_write(
-                  &file, "abc", 3)); // [確認_異常系] - write (未オープン) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_get_size(
-                  &file, &size)); // [確認_異常系] - get_size (未オープン) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_get_size(
-                  NULL, &size)); // [確認_異常系] - get_size (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_get_size(
-                  &file, NULL)); // [確認_異常系] - get_size (size NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+        com_util_file_open(&file, NULL, COM_UTIL_FILE_OPEN_CREATE,
+                           NULL)); // [確認_異常系] - open (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_write(&file, "abc", 3,
+                            NULL)); // [確認_異常系] - write (未オープン) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_get_size(
+            &file, &size, NULL)); // [確認_異常系] - get_size (未オープン) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_get_size(
+            NULL, &size, NULL)); // [確認_異常系] - get_size (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_get_size(
+            &file, NULL, NULL)); // [確認_異常系] - get_size (size NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 
 // ハンドル由来とパス由来のファイル同一性 ID が一致することの確認
@@ -259,18 +260,17 @@ TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
 
     // Act
     int rtc_file_open = com_util_file_open(
-        &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
-            COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+        NULL); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK, rtc_file_open); // [確認_正常系] - com_util_file_open の戻り値が COM_UTIL_OK であること。
-    int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
+    int rtc_file_get_id = com_util_file_get_id(&file, &handle_id, NULL); // [手順] - ハンドルから同一性 ID を取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した com_util_file_get_id の戻り値が COM_UTIL_OK であること。
     int rtc_file_get_path_id =
-        com_util_file_get_path_id(path.c_str(), &path_id); // [手順] - パスから同一性 ID を取得する。
+        com_util_file_get_path_id(path.c_str(), &path_id, NULL); // [手順] - パスから同一性 ID を取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_path_id); // [確認_正常系] - パスから同一性 ID を取得した com_util_file_get_path_id の戻り値が COM_UTIL_OK であること。
@@ -280,7 +280,7 @@ TEST_F(crt_fileTest, file_id_matches_between_handle_and_path)
     EXPECT_EQ(handle_id.index, path_id.index);   // [確認_正常系] - index が一致すること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -302,13 +302,12 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
 
     // Act
     int rtc_file_open = com_util_file_open(
-        &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND |
-            COM_UTIL_FILE_OPEN_WRITE_THROUGH); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH,
+        NULL); // [手順] - オープンする (常時フル共有のため共有フラグ指定は不要)。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK, rtc_file_open); // [確認_正常系] - com_util_file_open の戻り値が COM_UTIL_OK であること。
-    int rtc_file_get_id = com_util_file_get_id(&file, &handle_id); // [手順] - ハンドルから同一性 ID を取得する。
+    int rtc_file_get_id = com_util_file_get_id(&file, &handle_id, NULL); // [手順] - ハンドルから同一性 ID を取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_id); // [確認_正常系] - ハンドルから同一性 ID を取得した com_util_file_get_id の戻り値が COM_UTIL_OK であること。
@@ -319,7 +318,7 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
     write_text_file(path, "recreated"); // [手順] - 同じパスに別ファイルを作成する。
 
     int rtc_file_get_path_id =
-        com_util_file_get_path_id(path.c_str(), &path_id); // [手順] - 差し替え後のパスから同一性 ID を取得する。
+        com_util_file_get_path_id(path.c_str(), &path_id, NULL); // [手順] - 差し替え後のパスから同一性 ID を取得する。
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_get_path_id); // [確認_正常系] - 差し替え後のパスから同一性 ID を取得した com_util_file_get_path_id の戻り値が COM_UTIL_OK であること。
@@ -329,7 +328,7 @@ TEST_F(crt_fileTest, file_id_differs_after_path_is_recreated)
                  handle_id.index == path_id.index); // [確認_正常系] - volume と index の組が一致しないこと。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
     std::remove(renamed.c_str());
 }
@@ -348,23 +347,25 @@ TEST_F(crt_fileTest, file_id_invalid_arguments_fail)
     // Act
 
     // Assert
-    EXPECT_EQ(
-        COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_file_get_id(
-            &file, &id)); // [確認_異常系] - get_id (未オープンのハンドル) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               com_util_file_get_id(
-                  NULL, &id)); // [確認_異常系] - get_id (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+                  &file, &id,
+                  NULL)); // [確認_異常系] - get_id (未オープンのハンドル) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_get_path_id(
-                  NULL, &id)); // [確認_異常系] - get_path_id (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+              com_util_file_get_id(
+                  NULL, &id, NULL)); // [確認_異常系] - get_id (file NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_get_path_id(
+            NULL, &id, NULL)); // [確認_異常系] - get_path_id (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               com_util_file_get_path_id(
-                  "crt_fileTest_no_such_file.log",
-                  &id)); // [確認_異常系] - get_path_id (存在しないパス) が COM_UTIL_ERR_UNKNOWN を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_get_path_id(
-                  "x", NULL)); // [確認_異常系] - get_path_id (id NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+                  "crt_fileTest_no_such_file.log", &id,
+                  NULL)); // [確認_異常系] - get_path_id (存在しないパス) が COM_UTIL_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_get_path_id(
+            "x", NULL, NULL)); // [確認_異常系] - get_path_id (id NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 
 // READ/WRITE フラグを指定しない場合に、既定で書き込み専用としてオープンすることの確認
@@ -380,10 +381,9 @@ TEST_F(crt_fileTest, default_access_remains_write_only)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE); // [手順] - READ/WRITE を指定せず CREATE のみでオープンする。
-    int rtc_file_write = com_util_file_write(&file, "abc", 3); // [手順] - "abc" 3 バイトを書き込む。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE,
+                                           NULL); // [手順] - READ/WRITE を指定せず CREATE のみでオープンする。
+    int rtc_file_write = com_util_file_write(&file, "abc", 3, NULL); // [手順] - "abc" 3 バイトを書き込む。
 
     // Assert
     ASSERT_EQ(
@@ -392,7 +392,7 @@ TEST_F(crt_fileTest, default_access_remains_write_only)
     EXPECT_EQ(COM_UTIL_OK, rtc_file_write); // [確認_正常系] - 既定 (書き込み専用) で書き込みが成功すること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -409,9 +409,9 @@ TEST_F(crt_fileTest, read_only_open_rejects_write)
     // Pre-Assert
 
     // Act
-    int rtc_file_open = com_util_file_open(
-        &file, path.c_str(), COM_UTIL_FILE_OPEN_READ);       // [手順] - COM_UTIL_FILE_OPEN_READ のみでオープンする。
-    int rtc_file_write = com_util_file_write(&file, "x", 1); // [手順] - 1 バイトの書き込みを試みる。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ,
+                                           NULL); // [手順] - COM_UTIL_FILE_OPEN_READ のみでオープンする。
+    int rtc_file_write = com_util_file_write(&file, "x", 1, NULL); // [手順] - 1 バイトの書き込みを試みる。
 
     // Assert
     ASSERT_EQ(
@@ -421,7 +421,7 @@ TEST_F(crt_fileTest, read_only_open_rejects_write)
               rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの書き込みが COM_UTIL_ERR_UNKNOWN を返すこと。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -438,8 +438,8 @@ TEST_F(crt_fileTest, read_only_open_fails_for_missing_file)
     // Pre-Assert
 
     // Act
-    int rtc_file_open = com_util_file_open(
-        &file, path.c_str(), COM_UTIL_FILE_OPEN_READ); // [手順] - CREATE を伴わずに READ のみでオープンを試みる。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ,
+                                           NULL); // [手順] - CREATE を伴わずに READ のみでオープンを試みる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -460,12 +460,11 @@ TEST_F(crt_fileTest, read_write_open_allows_write_and_reports_size)
     // Pre-Assert
 
     // Act
-    int rtc_file_open =
-        com_util_file_open(&file, path.c_str(),
-                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ |
-                               COM_UTIL_FILE_OPEN_WRITE);         // [手順] - CREATE | READ | WRITE でオープンする。
-    int rtc_file_write = com_util_file_write(&file, "abcde", 5);  // [手順] - "abcde" 5 バイトを書き込む。
-    int rtc_file_get_size = com_util_file_get_size(&file, &size); // [手順] - サイズを取得する。
+    int rtc_file_open = com_util_file_open(
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
+        NULL); // [手順] - CREATE | READ | WRITE でオープンする。
+    int rtc_file_write = com_util_file_write(&file, "abcde", 5, NULL);  // [手順] - "abcde" 5 バイトを書き込む。
+    int rtc_file_get_size = com_util_file_get_size(&file, &size, NULL); // [手順] - サイズを取得する。
 
     // Assert
     ASSERT_EQ(
@@ -477,7 +476,7 @@ TEST_F(crt_fileTest, read_write_open_allows_write_and_reports_size)
     EXPECT_EQ((size_t)5, size);   // [確認_正常系] - 書き込み後のサイズが 5 であること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -494,16 +493,16 @@ TEST_F(crt_fileTest, create_new_succeeds_for_absent_file)
     // Pre-Assert
 
     // Act
-    int rtc_file_open = com_util_file_open(
-        &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
-            COM_UTIL_FILE_OPEN_WRITE); // [手順] - CREATE | CREATE_NEW | READ | WRITE でオープンする。
+    int rtc_file_open = com_util_file_open(&file, path.c_str(),
+                                           COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW |
+                                               COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
+                                           NULL); // [手順] - CREATE | CREATE_NEW | READ | WRITE でオープンする。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc_file_open); // [確認_正常系] - 存在しないファイルへの CREATE_NEW オープンが成功すること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -522,8 +521,8 @@ TEST_F(crt_fileTest, create_new_fails_for_existing_file)
     // Act
     int rtc_file_open = com_util_file_open(
         &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
-            COM_UTIL_FILE_OPEN_WRITE); // [手順] - 既存ファイルに対して CREATE | CREATE_NEW でオープンを試みる。
+        COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
+        NULL); // [手順] - 既存ファイルに対して CREATE | CREATE_NEW でオープンを試みる。
 
     // Assert
     EXPECT_EQ(
@@ -548,9 +547,8 @@ TEST_F(crt_fileTest, create_new_without_create_fails)
 
     // Act
     int rtc_file_open = com_util_file_open(
-        &file, path.c_str(),
-        COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ |
-            COM_UTIL_FILE_OPEN_WRITE); // [手順] - CREATE を指定せず CREATE_NEW | READ | WRITE でオープンを試みる。
+        &file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE_NEW | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
+        NULL); // [手順] - CREATE を指定せず CREATE_NEW | READ | WRITE でオープンを試みる。
 
     // Assert
     EXPECT_EQ(
@@ -570,33 +568,33 @@ TEST_F(crt_fileTest, set_size_extends_and_truncates_file)
     com_util_file_init(&file);
     ASSERT_EQ(COM_UTIL_OK,
               com_util_file_open(&file, path.c_str(),
-                                 COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ |
-                                     COM_UTIL_FILE_OPEN_WRITE)); // [状態] - CREATE | READ | WRITE でオープンする。
+                                 COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
+                                 NULL)); // [状態] - CREATE | READ | WRITE でオープンする。
 
     // Pre-Assert
 
     // Act
-    int rtc_set_size_1 = com_util_file_set_size(&file, 128); // [手順] - サイズを 128 バイトへ拡張する。
+    int rtc_set_size_1 = com_util_file_set_size(&file, 128, NULL); // [手順] - サイズを 128 バイトへ拡張する。
 
     // Assert
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_set_size_1); // [確認_正常系] - 128 バイトへ拡張する com_util_file_set_size の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size, NULL));
     EXPECT_EQ((size_t)128, size); // [確認_正常系] - サイズが 128 バイトへ拡張されていること。
 
     // Act_2
-    int rtc_set_size_2 = com_util_file_set_size(&file, 16); // [手順] - サイズを 16 バイトへ縮小する。
+    int rtc_set_size_2 = com_util_file_set_size(&file, 16, NULL); // [手順] - サイズを 16 バイトへ縮小する。
 
     // Assert_2
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_set_size_2); // [確認_正常系] - 16 バイトへ縮小する com_util_file_set_size の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_get_size(&file, &size, NULL));
     EXPECT_EQ((size_t)16, size); // [確認_正常系] - サイズが 16 バイトへ縮小されていること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -613,10 +611,11 @@ TEST_F(crt_fileTest, set_size_invalid_arguments_fail)
     // Act
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_file_set_size(
-                  &file,
-                  16)); // [確認_異常系] - set_size (未オープンのハンドル) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_file_set_size(
+            &file, 16,
+            NULL)); // [確認_異常系] - set_size (未オープンのハンドル) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 
 // com_util_file_read が書き込んだ内容を読み取れることの確認
@@ -633,10 +632,11 @@ TEST_F(crt_fileTest, read_returns_written_content)
     memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ, NULL));
 
     // Act
-    int rtc_read = com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 16 バイトを要求して読み取る。
+    int rtc_read =
+        com_util_file_read(&file, buf, sizeof(buf), &read_len, NULL); // [手順] - 16 バイトを要求して読み取る。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc_read); // [確認_正常系] - com_util_file_read の戻り値が COM_UTIL_OK であること。
@@ -644,7 +644,7 @@ TEST_F(crt_fileTest, read_returns_written_content)
     EXPECT_STREQ("abcde", buf);       // [確認_正常系] - 読み取った内容が "abcde" であること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -662,13 +662,13 @@ TEST_F(crt_fileTest, read_at_end_of_file_returns_zero_length)
     memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ));
-    ASSERT_EQ(COM_UTIL_OK, com_util_file_read(&file, buf, sizeof(buf), &read_len));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_READ, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_read(&file, buf, sizeof(buf), &read_len, NULL));
     ASSERT_EQ((size_t)2, read_len);
 
     // Act
     int rtc_read_eof =
-        com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 終端到達後に再度読み取りを行う。
+        com_util_file_read(&file, buf, sizeof(buf), &read_len, NULL); // [手順] - 終端到達後に再度読み取りを行う。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
@@ -676,7 +676,7 @@ TEST_F(crt_fileTest, read_at_end_of_file_returns_zero_length)
     EXPECT_EQ((size_t)0, read_len); // [確認_正常系] - 読み取ったバイト数が 0 であること。
 
     // Cleanup
-    com_util_file_close(&file);
+    com_util_file_close(&file, NULL);
     std::remove(path.c_str());
 }
 
@@ -695,10 +695,76 @@ TEST_F(crt_fileTest, read_invalid_arguments_fail)
 
     // Act
     int rtc_not_open =
-        com_util_file_read(&file, buf, sizeof(buf), &read_len); // [手順] - 未オープンのハンドルで読み取りを行う。
+        com_util_file_read(&file, buf, sizeof(buf), &read_len, NULL); // [手順] - 未オープンのハンドルで読み取りを行う。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         rtc_not_open); // [確認_異常系] - 未オープンのハンドルを渡した com_util_file_read の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// com_util_file_flush が書き込み済みファイルを永続記憶装置へ反映することの確認
+TEST_F(crt_fileTest, flush_reports_success)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    std::string path = make_path("flush.bin");
+    const char data[] = "data";
+
+    com_util_file_init(&file);
+
+    // Pre-Assert
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_TRUNCATE, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_file_write(&file, data, sizeof(data), NULL));
+
+    // Act
+    int result = com_util_file_flush(&file, &detail); // [手順] - 書き込み済みファイルを永続記憶装置へ反映する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_file_flush の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
+              com_util_error_get_domain(&detail)); // [確認_正常系] - detail が空の値であること。
+
+    // Cleanup
+    com_util_file_close(&file, NULL);
+    std::remove(path.c_str());
+}
+
+// FILE ラッパーが読み書き、反映、クローズの成功を報告することの確認
+TEST_F(crt_fileTest, stdio_wrappers_report_success)
+{
+    // Arrange
+    FILE *stream = std::tmpfile();
+    com_util_error detail;
+    char read_buffer[5] = {0};
+    const char write_buffer[] = "data";
+
+    // Pre-Assert
+    ASSERT_NE(nullptr, stream);
+
+    // Act
+    size_t written = com_util_fwrite(write_buffer, 1u, 4u, stream, &detail); // [手順] - 4 バイトを書き込む。
+
+    // Assert
+    EXPECT_EQ(4u, written); // [確認_正常系] - com_util_fwrite の戻り値が 4 であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE, com_util_error_get_domain(&detail));
+
+    // Act_2
+    int flush_result = com_util_fflush(stream, &detail); // [手順] - ストリームのバッファーを反映する。
+    ASSERT_EQ(0, com_util_fseek(stream, 0, SEEK_SET));
+    size_t read_count = com_util_fread(read_buffer, 1u, 4u, stream, &detail); // [手順] - 4 バイトを読み取る。
+
+    // Assert_2
+    EXPECT_EQ(0, flush_result);        // [確認_正常系] - com_util_fflush の戻り値が 0 であること。
+    EXPECT_EQ(4u, read_count);         // [確認_正常系] - com_util_fread の戻り値が 4 であること。
+    EXPECT_STREQ("data", read_buffer); // [確認_正常系] - 読み取った内容が "data" であること。
+
+    // Act_3
+    int close_result = com_util_fclose(stream, &detail); // [手順] - ストリームを閉じる。
+
+    // Assert_3
+    EXPECT_EQ(0, close_result); // [確認_正常系] - com_util_fclose の戻り値が 0 であること。
 }

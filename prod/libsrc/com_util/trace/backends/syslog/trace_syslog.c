@@ -252,7 +252,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
 
     /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない。
        値は参照せず、設定の有無だけを判定する */
-    (void)com_util_getenv("SYSLOG_TEST_FD", NULL, 0u, &test_fd_exists);
+    (void)com_util_getenv("SYSLOG_TEST_FD", NULL, 0u, &test_fd_exists, NULL);
     if (test_fd_exists != 0)
     {
         if (effective_timestamp != NULL &&

@@ -402,7 +402,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, com_util_error
 
         /* TMPDIR が設定されていても本バッファーに収まらない場合は、切り詰めた値を
            一時ディレクトリとして採用すると誤ったパスを返すため、失敗として扱う */
-        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL) == ERANGE)
+        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL, NULL) == COM_UTIL_ERR_BUFFER_TOO_SMALL)
         {
             path_out[0] = '\0';
             return com_util_error_report_errno(detail_out, ENAMETOOLONG);

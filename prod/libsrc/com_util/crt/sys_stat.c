@@ -12,9 +12,11 @@
 #include <com_util/crt/path.h>
 
 #include <com_util/base/result.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/crt/wchar_conv.h>
 
 #include <stddef.h>
+#include <errno.h>
 #include <string.h>
 
 #if defined(PLATFORM_LINUX)
@@ -32,24 +34,24 @@
  *  com_util_mkdir が競合生成で -1 を返す場合も com_util_stat で再確認して
  *  ディレクトリが存在すれば成功とみなします。
  */
-static int ensure_one_dir(const char *dir)
+static int ensure_one_dir(const char *dir, com_util_error *detail_out)
 {
     com_util_file_stat_t st;
 
     /* 既に存在する場合は成功 */
-    if (com_util_stat(&st, dir) == COM_UTIL_OK)
+    if (com_util_stat(&st, dir, detail_out) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
 
     /* 存在しないので生成する */
-    if (com_util_mkdir(dir) == COM_UTIL_OK)
+    if (com_util_mkdir(dir, detail_out) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
 
     /* mkdir 失敗: 競合生成の可能性があるため再確認する */
-    if (com_util_stat(&st, dir) == COM_UTIL_OK)
+    if (com_util_stat(&st, dir, detail_out) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
@@ -118,34 +120,41 @@ static size_t path_root_prefix_len(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_rmdir(const char *path)
+int com_util_rmdir(const char *path, com_util_error *detail_out)
 {
+    int result;
+
     if (path == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    /* rmdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-    return rmdir(path);
+    result = rmdir(path);
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return COM_UTIL_ERR_INVALID_ARGUMENT;
+            return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
-        /* _wrmdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-        return _wrmdir(wpath);
+        result = _wrmdir(wpath);
     }
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        return com_util_error_report_errno(detail_out, errno);
+    }
+    return com_util_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_makedirs(const char *path)
+int com_util_makedirs(const char *path, com_util_error *detail_out)
 {
     char buf[PLATFORM_PATH_MAX];
     size_t path_len;
@@ -154,13 +163,13 @@ int com_util_makedirs(const char *path)
 
     if (path == NULL || path[0] == '\0')
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     path_len = strlen(path);
     if (path_len >= (size_t)PLATFORM_PATH_MAX)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     /* パスをローカル バッファーに複製する */
@@ -180,7 +189,7 @@ int com_util_makedirs(const char *path)
             {
                 /* 中間ディレクトリを一時終端して生成する */
                 buf[i] = '\0';
-                if (ensure_one_dir(buf) != COM_UTIL_OK)
+                if (ensure_one_dir(buf, detail_out) != COM_UTIL_OK)
                 {
                     return COM_UTIL_ERR_UNKNOWN;
                 }
@@ -190,59 +199,73 @@ int com_util_makedirs(const char *path)
     }
 
     /* 末尾要素 (= パス全体) を生成する */
-    return ensure_one_dir(buf);
+    return ensure_one_dir(buf, detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_stat(com_util_file_stat_t *buf, const char *path)
+int com_util_stat(com_util_file_stat_t *buf, const char *path, com_util_error *detail_out)
 {
+    int result;
+
     if (buf == NULL || path == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    /* stat() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-    return stat(path, buf);
+    result = stat(path, buf);
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return COM_UTIL_ERR_INVALID_ARGUMENT;
+            return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
-        /* _wstat64() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-        return _wstat64(wpath, buf);
+        result = _wstat64(wpath, buf);
     }
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        return com_util_error_report_errno(detail_out, errno);
+    }
+    return com_util_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_mkdir(const char *path)
+int com_util_mkdir(const char *path, com_util_error *detail_out)
 {
+    int result;
+
     if (path == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    /* mkdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-    return mkdir(path, 0755);
+    result = mkdir(path, 0755);
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return COM_UTIL_ERR_INVALID_ARGUMENT;
+            return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
-        /* _wmkdir() は成功時 0、失敗時 -1 (== COM_UTIL_ERR_UNKNOWN) のみを返すため、そのまま返す */
-        return _wmkdir(wpath);
+        result = _wmkdir(wpath);
     }
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        return com_util_error_report_errno(detail_out, errno);
+    }
+    return com_util_error_report_success(detail_out);
 }

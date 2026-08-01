@@ -91,7 +91,7 @@ static void dllmain_syslog_send__(const char *msg)
     int n;
     int enabled = 0;
 
-    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled) != 0 || enabled == 0)
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
     {
         return;
     }
@@ -139,7 +139,7 @@ static void dllmain_output_debug_msg__(const char *msg)
     int len;
     int enabled = 0;
 
-    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled) != 0 || enabled == 0)
+    if (com_util_getenv("ENABLE_DLLMAIN_COM_UTIL_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
     {
         return;
     }

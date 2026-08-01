@@ -54,27 +54,29 @@ FILE *com_util_fopen_fmt(const char *modes, com_util_error *detail_out, const ch
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_vremove_fmt(const char *format, va_list args)
+int com_util_vremove_fmt(com_util_error *detail_out, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
+    int format_error;
 
-    if (com_util_vformat_path(filename, sizeof(filename), format, args, NULL) != 0)
+    if (com_util_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
+        (void)com_util_error_report_errno(detail_out, format_error);
         return -1;
     }
 
-    return com_util_remove(filename);
+    return com_util_remove(filename, detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_remove_fmt(const char *format, ...)
+int com_util_remove_fmt(com_util_error *detail_out, const char *format, ...)
 {
     int result;
     va_list args;
 
     va_start(args, format);
-    result = com_util_vremove_fmt(format, args);
+    result = com_util_vremove_fmt(detail_out, format, args);
     va_end(args);
 
     return result;

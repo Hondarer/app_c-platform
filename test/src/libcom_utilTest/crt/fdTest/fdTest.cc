@@ -37,7 +37,7 @@ class fdTest : public Test
     {
         if (fd_ >= 0)
         {
-            com_util_close(fd_);
+            com_util_close(fd_, NULL);
             fd_ = -1;
         }
         std::remove(path_.c_str());
@@ -46,9 +46,9 @@ class fdTest : public Test
     int open_work_file()
     {
 #if defined(PLATFORM_LINUX)
-        return com_util_open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+        return com_util_open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644, NULL);
 #elif defined(PLATFORM_WINDOWS)
-        return com_util_open(path_.c_str(), _O_RDWR | _O_CREAT | _O_TRUNC | _O_BINARY, _S_IREAD | _S_IWRITE);
+        return com_util_open(path_.c_str(), _O_RDWR | _O_CREAT | _O_TRUNC | _O_BINARY, _S_IREAD | _S_IWRITE, NULL);
 #endif /* PLATFORM_ */
     }
 };
@@ -63,10 +63,10 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
     // Pre-Assert
 
     // Act
-    int64_t written = com_util_write(fd_, data, 6);          // [手順] - 6 バイトを書き込む。
-    int64_t pos_head = com_util_lseek(fd_, 0, SEEK_SET);     // [手順] - 読み書き位置を先頭へ移動する。
-    int64_t read_len = com_util_read(fd_, buf, sizeof(buf)); // [手順] - ファイル全体を読み取る。
-    int64_t pos_end = com_util_lseek(fd_, 0, SEEK_END);      // [手順] - 読み書き位置を終端へ移動する。
+    int64_t written = com_util_write(fd_, data, 6, NULL);          // [手順] - 6 バイトを書き込む。
+    int64_t pos_head = com_util_lseek(fd_, 0, SEEK_SET, NULL);     // [手順] - 読み書き位置を先頭へ移動する。
+    int64_t read_len = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - ファイル全体を読み取る。
+    int64_t pos_end = com_util_lseek(fd_, 0, SEEK_END, NULL);      // [手順] - 読み書き位置を終端へ移動する。
 
     // Assert
     EXPECT_EQ(6, written);              // [確認_正常系] - 書き込んだバイト数が 6 であること。
@@ -85,7 +85,7 @@ TEST_F(fdTest, read_reaches_eof_returns_zero)
     // Pre-Assert
 
     // Act
-    int64_t read_len = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 空ファイルから読み取る。
+    int64_t read_len = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 空ファイルから読み取る。
 
     // Assert
     EXPECT_EQ(0, read_len); // [確認_正常系] - com_util_read の戻り値として、ファイル終端では 0 が返ること。
@@ -99,36 +99,38 @@ TEST_F(fdTest, dup_shares_file_offset)
     // Pre-Assert
 
     // Act
-    int dup_fd = com_util_dup(fd_); // [手順] - ファイル記述子を複製する。
+    int dup_fd = com_util_dup(fd_, NULL); // [手順] - ファイル記述子を複製する。
 
     // Assert
     ASSERT_LE(0, dup_fd);                            // [確認_正常系] - 複製された記述子が有効であること。
-    EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
-    EXPECT_EQ(4,
-              com_util_lseek(fd_, 0, SEEK_CUR)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
-    EXPECT_EQ(0,
-              com_util_close(
-                  dup_fd)); // [確認_正常系] - com_util_close の戻り値から、複製側のクローズが成功したと判断できること。
+    EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4, NULL)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
+    EXPECT_EQ(4, com_util_lseek(fd_, 0, SEEK_CUR,
+                                NULL)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
+    EXPECT_EQ(
+        0,
+        com_util_close(
+            dup_fd, NULL)); // [確認_正常系] - com_util_close の戻り値から、複製側のクローズが成功したと判断できること。
 }
 
 // dup2 の成功時に 0 が返ることの確認
 TEST_F(fdTest, dup2_returns_zero_on_success)
 {
     // Arrange
-    int target_fd = com_util_dup(fd_); // [状態] - 複製先とする有効な記述子番号を確保する。
+    int target_fd = com_util_dup(fd_, NULL); // [状態] - 複製先とする有効な記述子番号を確保する。
 
     ASSERT_LE(0, target_fd);
 
     // Pre-Assert
 
     // Act
-    int rtc = com_util_dup2(fd_, target_fd); // [手順] - fd_ を target_fd へ複製する。
+    int rtc = com_util_dup2(fd_, target_fd, NULL); // [手順] - fd_ を target_fd へ複製する。
 
     // Assert
     EXPECT_EQ(0, rtc);                       // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
-    EXPECT_EQ(
-        0, com_util_close(
-               target_fd)); // [確認_正常系] - com_util_close の戻り値から、複製先のクローズが成功したと判断できること。
+    EXPECT_EQ(0,
+              com_util_close(
+                  target_fd,
+                  NULL)); // [確認_正常系] - com_util_close の戻り値から、複製先のクローズが成功したと判断できること。
 }
 
 // close の成功時に 0 が返ることの確認
@@ -139,7 +141,7 @@ TEST_F(fdTest, close_success_returns_zero)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_close(fd_); // [手順] - 開いている記述子を閉じる。
+    int rtc = com_util_close(fd_, NULL); // [手順] - 開いている記述子を閉じる。
 
     // Assert
     EXPECT_EQ(0, rtc); // [確認_正常系] - com_util_close の戻り値として、クローズ成功時は 0 が返ること。
@@ -156,13 +158,13 @@ TEST_F(fdTest, negative_fd_returns_minus1)
 
     // Act
     // [手順] - 負のファイル記述子で lseek、close、dup、dup2、read、write を呼び出す。
-    int64_t rtc_lseek = com_util_lseek(-1, 0, SEEK_SET);
-    int rtc_close = com_util_close(-1);
-    int rtc_dup = com_util_dup(-1);
-    int rtc_dup2_oldfd = com_util_dup2(-1, fd_);
-    int rtc_dup2_newfd = com_util_dup2(fd_, -1);
-    int64_t rtc_read = com_util_read(-1, buf, sizeof(buf));
-    int64_t rtc_write = com_util_write(-1, buf, sizeof(buf));
+    int64_t rtc_lseek = com_util_lseek(-1, 0, SEEK_SET, NULL);
+    int rtc_close = com_util_close(-1, NULL);
+    int rtc_dup = com_util_dup(-1, NULL);
+    int rtc_dup2_oldfd = com_util_dup2(-1, fd_, NULL);
+    int rtc_dup2_newfd = com_util_dup2(fd_, -1, NULL);
+    int64_t rtc_read = com_util_read(-1, buf, sizeof(buf), NULL);
+    int64_t rtc_write = com_util_write(-1, buf, sizeof(buf), NULL);
 
     // Assert
     EXPECT_EQ(-1, rtc_lseek);      // [確認_異常系] - lseek が -1 を返すこと。
@@ -183,8 +185,8 @@ TEST_F(fdTest, null_buf_returns_minus1)
 
     // Act
     // [手順] - NULL バッファーで read と write を呼び出す。
-    int64_t rtc_read = com_util_read(fd_, NULL, 4);
-    int64_t rtc_write = com_util_write(fd_, NULL, 4);
+    int64_t rtc_read = com_util_read(fd_, NULL, 4, NULL);
+    int64_t rtc_write = com_util_write(fd_, NULL, 4, NULL);
 
     // Assert
     EXPECT_EQ(-1, rtc_read);  // [確認_異常系] - read (buf NULL) が -1 を返すこと。
@@ -199,7 +201,7 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
     // Pre-Assert
 
     // Act
-    int64_t rtc = com_util_lseek(fd_, 0, 99); // [手順] - 定義外の whence を与える。
+    int64_t rtc = com_util_lseek(fd_, 0, 99, NULL); // [手順] - 定義外の whence を与える。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の API を呼び出さずに -1 が返ること。
@@ -221,7 +223,7 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
 #endif
 
     // Act
-    int64_t rtc = com_util_lseek(fd_, 0, SEEK_SET); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_lseek(fd_, 0, SEEK_SET, NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -243,7 +245,7 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
 #endif
 
     // Act
-    int rtc = com_util_close(fd_); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_close(fd_, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_close の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -265,7 +267,7 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
 #endif
 
     // Act
-    int rtc = com_util_dup(fd_); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_dup(fd_, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -287,7 +289,7 @@ TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
 #endif
 
     // Act
-    int rtc = com_util_dup2(fd_, fd_); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_dup2(fd_, fd_, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup2 の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -310,7 +312,7 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
 #endif
 
     // Act
-    int64_t rtc = com_util_read(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_read の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -333,7 +335,7 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
 #endif
 
     // Act
-    int64_t rtc = com_util_write(fd_, buf, sizeof(buf)); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_write(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -348,19 +350,19 @@ TEST_F(fdTest, closed_fd_operations_return_minus1)
     int closed_fd = fd_; // [状態] - クローズ済みの記述子を用意する。
     char buf[4];
 
-    ASSERT_EQ(0, com_util_close(fd_));
+    ASSERT_EQ(0, com_util_close(fd_, NULL));
     fd_ = -1;
 
     // Pre-Assert
 
     // Act
     // [手順] - クローズ済みのファイル記述子で lseek、read、write、dup、dup2、close を呼び出す。
-    int64_t rtc_lseek = com_util_lseek(closed_fd, 0, SEEK_SET);
-    int64_t rtc_read = com_util_read(closed_fd, buf, sizeof(buf));
-    int64_t rtc_write = com_util_write(closed_fd, buf, sizeof(buf));
-    int rtc_dup = com_util_dup(closed_fd);
-    int rtc_dup2 = com_util_dup2(closed_fd, closed_fd);
-    int rtc_close = com_util_close(closed_fd);
+    int64_t rtc_lseek = com_util_lseek(closed_fd, 0, SEEK_SET, NULL);
+    int64_t rtc_read = com_util_read(closed_fd, buf, sizeof(buf), NULL);
+    int64_t rtc_write = com_util_write(closed_fd, buf, sizeof(buf), NULL);
+    int rtc_dup = com_util_dup(closed_fd, NULL);
+    int rtc_dup2 = com_util_dup2(closed_fd, closed_fd, NULL);
+    int rtc_close = com_util_close(closed_fd, NULL);
 
     // Assert
     EXPECT_EQ(-1, rtc_lseek); // [確認_異常系] - lseek が -1 を返すこと。

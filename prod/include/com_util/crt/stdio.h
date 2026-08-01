@@ -144,29 +144,72 @@ extern "C"
                                                         com_util_error *detail_out);
 
     /**
+     *  @brief          ストリームを閉じます (`fclose` ラッパー)。
+     *  @param[in]      stream     閉じるストリーム。NULL を渡してはなりません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は 0、失敗時は EOF を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_fclose(FILE *stream, com_util_error *detail_out);
+
+    /**
+     *  @brief          ストリームのバッファーを反映します (`fflush` ラッパー)。
+     *  @param[in]      stream     対象のストリーム。NULL の場合は開いている全出力ストリームを対象にします。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は 0、失敗時は EOF を返します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_fflush(FILE *stream, com_util_error *detail_out);
+
+    /**
+     *  @brief          ストリームから要素を読み取ります (`fread` ラッパー)。
+     *  @param[out]     buffer     読み取り先。
+     *  @param[in]      size       1 要素のバイト数。
+     *  @param[in]      count      読み取る要素数。
+     *  @param[in]      stream     読み取り元ストリーム。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時およびファイル終端時は空の値を格納します。
+     *  @return         読み取った要素数を返します。
+     */
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fread(void *buffer, size_t size, size_t count, FILE *stream,
+                                                       com_util_error *detail_out);
+
+    /**
+     *  @brief          ストリームへ要素を書き込みます (`fwrite` ラッパー)。
+     *  @param[in]      buffer     書き込むデータ。
+     *  @param[in]      size       1 要素のバイト数。
+     *  @param[in]      count      書き込む要素数。
+     *  @param[in]      stream     書き込み先ストリーム。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         書き込んだ要素数を返します。
+     */
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_fwrite(const void *buffer, size_t size, size_t count, FILE *stream,
+                                                        com_util_error *detail_out);
+
+    /**
      *  @brief          UTF-8 パスのファイルを削除します (`remove` / `_wremove` ラッパー)。
      *  @param[in]      path  削除するファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_remove(const char *path, com_util_error *detail_out);
 
     /**
      *  @brief          UTF-8 パスのファイルを改名します (`rename` / `_wrename` ラッパー)。
      *  @param[in]      oldpath  変更前のパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      newpath  変更後のパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_rename(const char *oldpath, const char *newpath,
+                                                     com_util_error *detail_out);
 
-                        /**
+    /**
      *  @brief          ストリームへ書式化出力します (`fprintf` ラッパー)。
      *  @param[in]      stream  出力先のストリーム。NULL を渡してはなりません。
      *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
@@ -192,7 +235,7 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
-                                /**
+    /**
      *  @brief          ストリーム位置を移動します (64bit 対応 `fseek` ラッパー)。
      *  @param[in]      stream  対象のストリーム。NULL を渡してはなりません。
      *  @param[in]      offset  移動量 (バイト)。
@@ -248,25 +291,27 @@ extern "C"
 
     /**
      *  @brief          書式指定パスのファイルを削除します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         成功時は 0、失敗時は -1 を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_remove_fmt(const char *format, ...)
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_remove_fmt(com_util_error *detail_out, const char *format, ...)
 #if defined(COMPILER_GCC)
-        __attribute__((format(printf, 1, 2)))
+        __attribute__((format(printf, 2, 3)))
 #endif /* COMPILER_GCC */
         ;
 
     /**
      *  @brief          書式指定パスのファイルを削除します (`com_util_remove_fmt` の `va_list` 版)。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は 0、失敗時は -1 を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(const char *format, va_list args)
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vremove_fmt(com_util_error *detail_out, const char *format, va_list args)
 #if defined(COMPILER_GCC)
-        __attribute__((format(printf, 1, 0)))
+        __attribute__((format(printf, 2, 0)))
 #endif /* COMPILER_GCC */
         ;
 

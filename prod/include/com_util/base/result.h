@@ -18,9 +18,10 @@
  *  判定は @c != @ref COM_UTIL_OK の名前比較を正とします。
  *  全エラーが負値のため @c < 0 判定も等価ですが、名前比較を推奨します。
  *
- *  なお、CRT ラッパー (com_util_fopen など) と Windows API の UTF-8
- *  ラッパー (win32.h) は、元 API の戻り値規約を保存する層であるため、
- *  本結果コードの適用対象外です。
+ *  なお、com_util_fopen など元 API の戻り値規約を保存する CRT ラッパーと
+ *  Windows API の UTF-8 ラッパー (win32.h) は、本結果コードの適用対象外です。
+ *  CRT の機能を使用する API でも、戻り値に共通結果コードを使用すると明記した
+ *  関数には本結果コードを適用します。
  *
  *  本ヘッダーは、粗い分類 (@ref COM_UTIL_ERR_INVALID_ARGUMENT など) と
  *  細かい分類 (@ref COM_UTIL_ERR_UNKNOWN_OPTION など) の両方を含む単一の

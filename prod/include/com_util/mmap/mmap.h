@@ -39,6 +39,7 @@
 #include <stddef.h>
 
 #include <com_util/base/result.h>
+#include <com_util/base/error.h>
 #include <com_util/com_util_export.h>
 #include <com_util/sync/sync.h>
 
@@ -73,6 +74,7 @@ extern "C"
      *                               既存ファイルを開く場合は無視され、現在のファイル サイズが
      *                               マップ サイズになります。
      *  @param[out]     map          生成したハンドルの格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out   エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -94,7 +96,8 @@ extern "C"
      *  呼び出しごとに独立したハンドルを生成し、内部に共有状態を持ちません。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_attach(const char *path, com_util_mmap_access_t access,
-                                                          size_t create_size, com_util_mmap **map);
+                                                          size_t create_size, com_util_mmap **map,
+                                                          com_util_error *detail_out);
 
     /**
      *  @brief          マップ済みアドレスを取得します。
@@ -120,9 +123,10 @@ extern "C"
 
     /**
      *  @brief          ハンドルに内包されたプロセス横断リーダーライター ロックを取得します。
-     *  @param[in]      map  対象のハンドル。NULL を渡してはなりません。
-     *  @return         ロックへの非所有参照。@p map が NULL の場合、および
-     *                  ロックのオープンに失敗した場合は NULL を返します。
+     *  @param[in]      map         対象のハンドル。NULL を渡してはなりません。
+     *  @param[out]     lock_out    ロックへの非所有参照の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
      *
      *  ロックは本関数の初回呼び出し時に、@ref com_util_mmap_attach() へ渡したパスを
      *  識別子として開きます。\n
@@ -146,14 +150,17 @@ extern "C"
      *                  マップ済みアドレスやマップ サイズなど呼び出し側から見える状態は
      *                  変化しないため、@p map は const です。
      */
-    COM_UTIL_EXPORT com_util_interprocess_rwlock *COM_UTIL_API com_util_mmap_get_rwlock(const com_util_mmap *map);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_get_rwlock(const com_util_mmap *map,
+                                                              com_util_interprocess_rwlock **lock_out,
+                                                              com_util_error *detail_out);
 
     /**
      *  @brief          マップした内容をディスクへ反映します。
      *  @param[in]      map      対象のハンドル。NULL を渡してはなりません。
      *  @param[in]      address  反映対象の先頭アドレス。NULL の場合はマップ全体を対象にします。
      *  @param[in]      length   反映対象のサイズ (バイト)。@p address が NULL の場合は無視されます。
-     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
      *
      *  Linux では `msync(MS_SYNC)`、Windows では `FlushViewOfFile` に続けて
      *  `FlushFileBuffers` を呼び出します。
@@ -162,11 +169,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  同一 @p map に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_flush(com_util_mmap *map, void *address, size_t length);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_flush(com_util_mmap *map, void *address, size_t length,
+                                                         com_util_error *detail_out);
 
     /**
      *  @brief          マッピングを解除し、ハンドルを破棄します。
-     *  @param[in]      map  破棄するハンドル。NULL の場合は何もしません。
+     *  @param[in]      map         破棄するハンドル。NULL の場合は何もしません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
      *
      *  内包するロックの破棄 → アンマップ → ファイル クローズの順で行います。\n
      *  @ref com_util_mmap_get_rwlock() を一度も呼び出していない場合、
@@ -176,7 +186,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p map を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_mmap_detach(com_util_mmap *map);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_detach(com_util_mmap *map, com_util_error *detail_out);
 
 #ifdef __cplusplus
 }

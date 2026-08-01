@@ -75,7 +75,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
 
         /* TMPDIR が本バッファーに収まらない場合、切り詰めた値では誤ったディレクトリに
            一時ファイルを作成するため、失敗として扱う */
-        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL) == ERANGE)
+        if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL, NULL) == COM_UTIL_ERR_BUFFER_TOO_SMALL)
         {
             (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;

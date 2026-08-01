@@ -47,7 +47,8 @@ TEST_F(crt_stringTest, strcpy_null_argument)
     int ret = com_util_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(EINVAL, ret); // [確認_異常系] - com_util_strcpy の戻り値が EINVAL であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              ret); // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // バッファー不足の場合に ERANGE を返しバッファーが空になることの確認
@@ -63,7 +64,8 @@ TEST_F(crt_stringTest, strcpy_buffer_shortage)
         com_util_strcpy(buf, sizeof(buf), "abcd"); // [手順] - 4 文字の "abcd" を指定して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(ERANGE, ret); // [確認_異常系] - com_util_strcpy の戻り値が ERANGE であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              ret);         // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf);  // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 

@@ -195,20 +195,30 @@
     EXPORT_ENTRY(com_util_console_attach_parent, int(COM_UTIL_API *)(int *argc, char **argv, int *attached_out)) \
     EXPORT_ENTRY(com_util_console_write, int(COM_UTIL_API *)(com_util_stream_t stream, const char *text)) \
     /* com_util/crt/fcntl.h */ \
-    EXPORT_ENTRY(com_util_open, int(COM_UTIL_API *)(const char *path, int flags, int mode)) \
-    EXPORT_ENTRY(com_util_open_fmt, int(COM_UTIL_API *)(int flags, int mode, const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vopen_fmt, int(COM_UTIL_API *)(int flags, int mode, const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_open, \
+                 int(COM_UTIL_API *)(const char *path, int flags, int mode, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_open_fmt, \
+                 int(COM_UTIL_API *)(int flags, int mode, com_util_error *detail_out, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vopen_fmt, int(COM_UTIL_API *)(int flags, int mode, com_util_error *detail_out, \
+                                                         const char *format, va_list args)) \
     /* com_util/crt/file.h */ \
     EXPORT_ENTRY(com_util_file_init, void(COM_UTIL_API *)(com_util_file * file)) \
-    EXPORT_ENTRY(com_util_file_open, int(COM_UTIL_API *)(com_util_file * file, const char *path, int flags)) \
-    EXPORT_ENTRY(com_util_file_write, int(COM_UTIL_API *)(com_util_file * file, const void *buf, size_t len)) \
-    EXPORT_ENTRY(com_util_file_read, \
-                 int(COM_UTIL_API *)(com_util_file * file, void *buf, size_t len, size_t *read_out)) \
-    EXPORT_ENTRY(com_util_file_get_size, int(COM_UTIL_API *)(const com_util_file *file, size_t *size_out)) \
-    EXPORT_ENTRY(com_util_file_set_size, int(COM_UTIL_API *)(com_util_file * file, size_t size)) \
-    EXPORT_ENTRY(com_util_file_get_id, int(COM_UTIL_API *)(const com_util_file *file, com_util_file_id *id_out)) \
-    EXPORT_ENTRY(com_util_file_get_path_id, int(COM_UTIL_API *)(const char *path, com_util_file_id *id_out)) \
-    EXPORT_ENTRY(com_util_file_close, void(COM_UTIL_API *)(com_util_file * file)) \
+    EXPORT_ENTRY(com_util_file_open, \
+                 int(COM_UTIL_API *)(com_util_file * file, const char *path, int flags, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_write, \
+                 int(COM_UTIL_API *)(com_util_file * file, const void *buf, size_t len, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_read, int(COM_UTIL_API *)(com_util_file * file, void *buf, size_t len, \
+                                                         size_t *read_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_get_size, \
+                 int(COM_UTIL_API *)(const com_util_file *file, size_t *size_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_set_size, \
+                 int(COM_UTIL_API *)(com_util_file * file, size_t size, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_get_id, \
+                 int(COM_UTIL_API *)(const com_util_file *file, com_util_file_id *id_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_get_path_id, \
+                 int(COM_UTIL_API *)(const char *path, com_util_file_id *id_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_flush, int(COM_UTIL_API *)(com_util_file * file, com_util_error * detail_out)) \
+    EXPORT_ENTRY(com_util_file_close, int(COM_UTIL_API *)(com_util_file * file, com_util_error * detail_out)) \
     /* com_util/crt/path.h */ \
     EXPORT_ENTRY(com_util_normalize_path_sep, char *(COM_UTIL_API *)(char *path)) \
     EXPORT_ENTRY(com_util_path_get_full, \
@@ -232,8 +242,15 @@
                  FILE *(COM_UTIL_API *)(const char *path, const char *modes, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_freopen, FILE *(COM_UTIL_API *)(const char *path, const char *modes, FILE *stream, \
                                                           com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_remove, int(COM_UTIL_API *)(const char *path)) \
-    EXPORT_ENTRY(com_util_rename, int(COM_UTIL_API *)(const char *oldpath, const char *newpath)) \
+    EXPORT_ENTRY(com_util_fclose, int(COM_UTIL_API *)(FILE * stream, com_util_error * detail_out)) \
+    EXPORT_ENTRY(com_util_fflush, int(COM_UTIL_API *)(FILE * stream, com_util_error * detail_out)) \
+    EXPORT_ENTRY(com_util_fread, size_t(COM_UTIL_API *)(void *buffer, size_t size, size_t count, FILE *stream, \
+                                                        com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_fwrite, size_t(COM_UTIL_API *)(const void *buffer, size_t size, size_t count, FILE *stream, \
+                                                         com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_remove, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_rename, \
+                 int(COM_UTIL_API *)(const char *oldpath, const char *newpath, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_scanf, int(COM_UTIL_API *)(const char *format, ...)) \
     EXPORT_ENTRY(com_util_vscanf, int(COM_UTIL_API *)(const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fscanf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
@@ -246,14 +263,17 @@
                  FILE *(COM_UTIL_API *)(const char *modes, com_util_error *detail_out, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vfopen_fmt, FILE *(COM_UTIL_API *)(const char *modes, com_util_error *detail_out, \
                                                              const char *format, va_list args)) \
-    EXPORT_ENTRY(com_util_remove_fmt, int(COM_UTIL_API *)(const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vremove_fmt, int(COM_UTIL_API *)(const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_remove_fmt, int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vremove_fmt, \
+                 int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fopen_temp, FILE *(COM_UTIL_API *)(const char *prefix, const char *modes, char *path_out, \
                                                              size_t path_size, com_util_error *detail_out)) \
     /* com_util/crt/stdlib.h */ \
-    EXPORT_ENTRY(com_util_getenv, int(COM_UTIL_API *)(const char *name, char *buf, size_t buf_size, int *exists_out)) \
-    EXPORT_ENTRY(com_util_setenv, int(COM_UTIL_API *)(const char *name, const char *value, int overwrite)) \
-    EXPORT_ENTRY(com_util_unsetenv, int(COM_UTIL_API *)(const char *name)) \
+    EXPORT_ENTRY(com_util_getenv, int(COM_UTIL_API *)(const char *name, char *buf, size_t buf_size, int *exists_out, \
+                                                      com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_setenv, \
+                 int(COM_UTIL_API *)(const char *name, const char *value, int overwrite, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_unsetenv, int(COM_UTIL_API *)(const char *name, com_util_error *detail_out)) \
     /* com_util/crt/string.h */ \
     EXPORT_ENTRY(com_util_strcpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
     EXPORT_ENTRY(com_util_strncpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \
@@ -263,30 +283,37 @@
     EXPORT_ENTRY(com_util_sscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vsscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, va_list args)) \
     /* com_util/crt/sys/stat.h */ \
-    EXPORT_ENTRY(com_util_stat, int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *path)) \
-    EXPORT_ENTRY(com_util_mkdir, int(COM_UTIL_API *)(const char *path)) \
-    EXPORT_ENTRY(com_util_makedirs, int(COM_UTIL_API *)(const char *path)) \
-    EXPORT_ENTRY(com_util_rmdir, int(COM_UTIL_API *)(const char *path)) \
-    EXPORT_ENTRY(com_util_stat_fmt, int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vstat_fmt, \
-                 int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *format, va_list args)) \
-    EXPORT_ENTRY(com_util_mkdir_fmt, int(COM_UTIL_API *)(const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vmkdir_fmt, int(COM_UTIL_API *)(const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_stat, \
+                 int(COM_UTIL_API *)(com_util_file_stat_t * buf, const char *path, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_mkdir, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_makedirs, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_rmdir, int(COM_UTIL_API *)(const char *path, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_stat_fmt, int(COM_UTIL_API *)(com_util_file_stat_t * buf, com_util_error * detail_out, \
+                                                        const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vstat_fmt, int(COM_UTIL_API *)(com_util_file_stat_t * buf, com_util_error * detail_out, \
+                                                         const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_mkdir_fmt, int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vmkdir_fmt, \
+                 int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, va_list args)) \
     /* com_util/crt/time.h */ \
     EXPORT_ENTRY(com_util_gmtime, int(COM_UTIL_API *)(struct tm * utc_tm, const time_t *timep)) \
     EXPORT_ENTRY(com_util_localtime, int(COM_UTIL_API *)(struct tm * local_tm, const time_t *timep)) \
     EXPORT_ENTRY(com_util_ctime, int(COM_UTIL_API *)(char *buf, size_t buf_size, const time_t *timep)) \
     /* com_util/crt/unistd.h */ \
     EXPORT_ENTRY(com_util_isatty, int(COM_UTIL_API *)(com_util_stream_t stream)) \
-    EXPORT_ENTRY(com_util_lseek, int64_t(COM_UTIL_API *)(int fd, int64_t offset, int whence)) \
-    EXPORT_ENTRY(com_util_close, int(COM_UTIL_API *)(int fd)) \
-    EXPORT_ENTRY(com_util_dup, int(COM_UTIL_API *)(int fd)) \
-    EXPORT_ENTRY(com_util_dup2, int(COM_UTIL_API *)(int oldfd, int newfd)) \
-    EXPORT_ENTRY(com_util_read, int64_t(COM_UTIL_API *)(int fd, void *buf, size_t count)) \
-    EXPORT_ENTRY(com_util_write, int64_t(COM_UTIL_API *)(int fd, const void *buf, size_t count)) \
-    EXPORT_ENTRY(com_util_access, int(COM_UTIL_API *)(const char *path, int mode)) \
-    EXPORT_ENTRY(com_util_access_fmt, int(COM_UTIL_API *)(int mode, const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vaccess_fmt, int(COM_UTIL_API *)(int mode, const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_lseek, \
+                 int64_t(COM_UTIL_API *)(int fd, int64_t offset, int whence, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_close, int(COM_UTIL_API *)(int fd, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_dup, int(COM_UTIL_API *)(int fd, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_dup2, int(COM_UTIL_API *)(int oldfd, int newfd, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_read, int64_t(COM_UTIL_API *)(int fd, void *buf, size_t count, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_write, \
+                 int64_t(COM_UTIL_API *)(int fd, const void *buf, size_t count, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_access, int(COM_UTIL_API *)(const char *path, int mode, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_access_fmt, \
+                 int(COM_UTIL_API *)(int mode, com_util_error *detail_out, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vaccess_fmt, \
+                 int(COM_UTIL_API *)(int mode, com_util_error *detail_out, const char *format, va_list args)) \
     /* com_util/crypto/crypto.h */ \
     EXPORT_ENTRY(com_util_encrypt, \
                  int(COM_UTIL_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, \
@@ -301,6 +328,7 @@
     /* com_util/base/error.h */ \
     EXPORT_ENTRY(com_util_error_clear, void(COM_UTIL_API *)(com_util_error * error)) \
     EXPORT_ENTRY(com_util_error_capture_errno, void(COM_UTIL_API *)(com_util_error * error, int errno_value)) \
+    EXPORT_ENTRY(com_util_error_capture_current_errno, void(COM_UTIL_API *)(com_util_error * error)) \
     EXPORT_ENTRY(com_util_error_get_last, void(COM_UTIL_API *)(com_util_error * error_out)) \
     EXPORT_ENTRY(com_util_error_clear_last, void(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_error_is_set, int(COM_UTIL_API *)(const com_util_error *error)) \
@@ -315,13 +343,17 @@
     /* com_util/crypto/random.h */ \
     EXPORT_ENTRY(com_util_random_bytes, int(COM_UTIL_API *)(void *buf, size_t size)) \
     /* com_util/mmap/mmap.h */ \
-    EXPORT_ENTRY(com_util_mmap_attach, int(COM_UTIL_API *)(const char *path, com_util_mmap_access_t access, \
-                                                           size_t create_size, com_util_mmap **map)) \
+    EXPORT_ENTRY(com_util_mmap_attach, \
+                 int(COM_UTIL_API *)(const char *path, com_util_mmap_access_t access, size_t create_size, \
+                                     com_util_mmap **map, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_mmap_get_address, void *(COM_UTIL_API *)(const com_util_mmap *map)) \
     EXPORT_ENTRY(com_util_mmap_get_size, size_t(COM_UTIL_API *)(const com_util_mmap *map)) \
-    EXPORT_ENTRY(com_util_mmap_get_rwlock, com_util_interprocess_rwlock *(COM_UTIL_API *)(const com_util_mmap *map)) \
-    EXPORT_ENTRY(com_util_mmap_flush, int(COM_UTIL_API *)(com_util_mmap * map, void *address, size_t length)) \
-    EXPORT_ENTRY(com_util_mmap_detach, void(COM_UTIL_API *)(com_util_mmap * map)) \
+    EXPORT_ENTRY(com_util_mmap_get_rwlock, \
+                 int(COM_UTIL_API *)(const com_util_mmap *map, com_util_interprocess_rwlock **lock_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_mmap_flush, \
+                 int(COM_UTIL_API *)(com_util_mmap * map, void *address, size_t length, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_mmap_detach, int(COM_UTIL_API *)(com_util_mmap * map, com_util_error * detail_out)) \
     /* com_util/prompt/pinned_prompt.h */ \
     EXPORT_ENTRY(com_util_pinned_prompt_create, \
                  com_util_pinned_prompt *(COM_UTIL_API *)(const com_util_pinned_prompt_options *options)) \
@@ -535,6 +567,7 @@
         /* com_util/base/error.h */ \
         EXPORT_ENTRY(com_util_error_capture_windows_error, \
                      void(COM_UTIL_API *)(com_util_error * error, unsigned long error_code)) \
+        EXPORT_ENTRY(com_util_error_capture_current_windows_error, void(COM_UTIL_API *)(com_util_error * error)) \
         EXPORT_ENTRY(com_util_error_get_windows_error, unsigned long(COM_UTIL_API *)(const com_util_error *error)) \
         /* com_util/trace/etw.h */ \
         EXPORT_ENTRY(com_util_etw_provider_create, \

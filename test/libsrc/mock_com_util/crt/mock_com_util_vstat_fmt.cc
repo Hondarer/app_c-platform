@@ -3,15 +3,17 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args)
+int delegate_real_com_util_vstat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, const char *format,
+                                     va_list args)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_vstat_fmt)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vstat_fmt"));
 
-    return real_fn(buf, format, args);
+    return real_fn(buf, detail_out, format, args);
 }
 
-MOCK_WEAK_IMPL(int, com_util_vstat_fmt, com_util_file_stat_t *buf, const char *format, va_list args)
+MOCK_WEAK_IMPL(int, com_util_vstat_fmt, com_util_file_stat_t *buf, com_util_error *detail_out, const char *format,
+               va_list args)
 {
     int rtc = COM_UTIL_ERR_UNKNOWN;
 
@@ -25,11 +27,11 @@ MOCK_WEAK_IMPL(int, com_util_vstat_fmt, com_util_file_stat_t *buf, const char *f
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vstat_fmt(buf, path);
+        rtc = _mock_com_util->com_util_vstat_fmt(buf, detail_out, path);
     }
     else
     {
-        rtc = delegate_real_com_util_vstat_fmt(buf, format, args);
+        rtc = delegate_real_com_util_vstat_fmt(buf, detail_out, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)

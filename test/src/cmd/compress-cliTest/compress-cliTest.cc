@@ -512,7 +512,7 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
             sizeof(kDecompressedOutput) -
             1u)); // [Pre-Assert手順] - 出力ファイルの書き込みで要求より 1 byte 少ない 5 byte を返却し、書き込み失敗を発生させる。
     EXPECT_CALL(mock_stdio_, fclose(_, _, _, output_file)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util_, com_util_remove(StrEq("/tmp/output.bin")))
+    EXPECT_CALL(mock_com_util_, com_util_remove(StrEq("/tmp/output.bin"), _))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 部分出力ファイル "/tmp/output.bin" が削除されること。
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("書き込みに失敗")))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "書き込みに失敗" を含むエラーが表示されること。

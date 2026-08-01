@@ -12,36 +12,40 @@
 #include <com_util/crt/path.h>
 
 #include <com_util/base/result.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/crt/path_format.h>
+
+#include <errno.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_vstat_fmt(com_util_file_stat_t *buf, const char *format, va_list args)
+int com_util_vstat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
+    int format_error;
 
     if (buf == NULL)
     {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
-    if (com_util_vformat_path(filename, sizeof(filename), format, args, NULL) != 0)
+    if (com_util_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
-        return COM_UTIL_ERR_UNKNOWN;
+        return com_util_error_report_errno(detail_out, format_error);
     }
 
-    return com_util_stat(buf, filename);
+    return com_util_stat(buf, filename, detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...)
+int com_util_stat_fmt(com_util_file_stat_t *buf, com_util_error *detail_out, const char *format, ...)
 {
     int result;
     va_list args;
 
     va_start(args, format);
-    result = com_util_vstat_fmt(buf, format, args);
+    result = com_util_vstat_fmt(buf, detail_out, format, args);
     va_end(args);
 
     return result;
@@ -49,27 +53,28 @@ int com_util_stat_fmt(com_util_file_stat_t *buf, const char *format, ...)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_vmkdir_fmt(const char *format, va_list args)
+int com_util_vmkdir_fmt(com_util_error *detail_out, const char *format, va_list args)
 {
     char filename[PLATFORM_PATH_MAX] = {0};
+    int format_error;
 
-    if (com_util_vformat_path(filename, sizeof(filename), format, args, NULL) != 0)
+    if (com_util_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
-        return COM_UTIL_ERR_UNKNOWN;
+        return com_util_error_report_errno(detail_out, format_error);
     }
 
-    return com_util_mkdir(filename);
+    return com_util_mkdir(filename, detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_mkdir_fmt(const char *format, ...)
+int com_util_mkdir_fmt(com_util_error *detail_out, const char *format, ...)
 {
     int result;
     va_list args;
 
     va_start(args, format);
-    result = com_util_vmkdir_fmt(format, args);
+    result = com_util_vmkdir_fmt(detail_out, format, args);
     va_end(args);
 
     return result;

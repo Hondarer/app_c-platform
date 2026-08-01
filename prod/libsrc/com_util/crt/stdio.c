@@ -177,40 +177,194 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, com_ut
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_remove(const char *path)
+int com_util_fclose(FILE *stream, com_util_error *detail_out)
 {
+    int result;
+
+    if (stream == NULL)
+    {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
+        return EOF;
+    }
+
+    errno = 0;
+    result = fclose(stream);
+    if (result != 0)
+    {
+        int errno_value = errno;
+
+        if (errno_value == 0)
+        {
+            errno_value = EIO;
+        }
+
+        (void)com_util_error_report_errno(detail_out, errno_value);
+        return result;
+    }
+
+    (void)com_util_error_report_success(detail_out);
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_fflush(FILE *stream, com_util_error *detail_out)
+{
+    int result;
+
+    errno = 0;
+    result = fflush(stream);
+    if (result != 0)
+    {
+        int errno_value = errno;
+
+        if (errno_value == 0)
+        {
+            errno_value = EIO;
+        }
+
+        (void)com_util_error_report_errno(detail_out, errno_value);
+        return result;
+    }
+
+    (void)com_util_error_report_success(detail_out);
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+size_t com_util_fread(void *buffer, const size_t size, const size_t count, FILE *stream, com_util_error *detail_out)
+{
+    size_t read_count;
+
+    if ((buffer == NULL && size > 0u && count > 0u) || stream == NULL)
+    {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
+        return 0u;
+    }
+
+    errno = 0;
+    read_count = fread(buffer, size, count, stream);
+    if (read_count < count && ferror(stream) != 0)
+    {
+        int errno_value = errno;
+
+        if (errno_value == 0)
+        {
+            errno_value = EIO;
+        }
+        (void)com_util_error_report_errno(detail_out, errno_value);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+
+    return read_count;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+size_t com_util_fwrite(const void *buffer, const size_t size, const size_t count, FILE *stream,
+                       com_util_error *detail_out)
+{
+    size_t written_count;
+
+    if ((buffer == NULL && size > 0u && count > 0u) || stream == NULL)
+    {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
+        return 0u;
+    }
+
+    errno = 0;
+    written_count = fwrite(buffer, size, count, stream);
+    if (written_count < count)
+    {
+        int errno_value = errno;
+
+        if (errno_value == 0)
+        {
+            errno_value = EIO;
+        }
+        (void)com_util_error_report_errno(detail_out, errno_value);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+
+    return written_count;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_remove(const char *path, com_util_error *detail_out)
+{
+    int result;
+
     if (path == NULL)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
 #if defined(PLATFORM_LINUX)
-    return remove(path);
+    errno = 0;
+    result = remove(path);
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
-        return _wremove(wpath);
+        errno = 0;
+        result = _wremove(wpath);
     }
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        const int errno_value = errno;
+
+        (void)com_util_error_report_errno(detail_out, errno_value);
+        return result;
+    }
+
+    (void)com_util_error_report_success(detail_out);
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_rename(const char *oldpath, const char *newpath)
+int com_util_rename(const char *oldpath, const char *newpath, com_util_error *detail_out)
 {
     if (oldpath == NULL || newpath == NULL)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
 #if defined(PLATFORM_LINUX)
-    return rename(oldpath, newpath);
+    {
+        int result;
+
+        errno = 0;
+        result = rename(oldpath, newpath);
+        if (result != 0)
+        {
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
+            return result;
+        }
+
+        (void)com_util_error_report_success(detail_out);
+        return result;
+    }
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t woldpath[PLATFORM_PATH_MAX];
@@ -218,18 +372,24 @@ int com_util_rename(const char *oldpath, const char *newpath)
 
         if (com_util_utf8_to_wpath(woldpath, sizeof(woldpath) / sizeof(woldpath[0]), oldpath) < 0)
         {
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
         if (com_util_utf8_to_wpath(wnewpath, sizeof(wnewpath) / sizeof(wnewpath[0]), newpath) < 0)
         {
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
         if (!MoveFileExW(woldpath, wnewpath, MOVEFILE_REPLACE_EXISTING))
         {
+            const DWORD error_code = GetLastError();
+
+            (void)com_util_error_report_windows_error(detail_out, error_code);
             return -1;
         }
+        (void)com_util_error_report_success(detail_out);
         return 0;
     }
 #endif /* PLATFORM_ */

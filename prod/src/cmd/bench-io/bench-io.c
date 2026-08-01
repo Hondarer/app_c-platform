@@ -548,7 +548,7 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
     order = create_random_order(record_count, (size_t)BENCH_RANDOM_TOUCH_MAX);
     if (order == NULL)
     {
-        (void)com_util_remove(path);
+        (void)com_util_remove(path, NULL);
         return -1;
     }
 
@@ -600,7 +600,7 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
     free(order);
     if (keep == 0)
     {
-        (void)com_util_remove(path);
+        (void)com_util_remove(path, NULL);
     }
 
     if (failures > 0)

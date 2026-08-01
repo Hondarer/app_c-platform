@@ -1,25 +1,25 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path)
+int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path, com_util_error *detail_out)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_stat)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_stat"));
 
-    return real_fn(buf, path);
+    return real_fn(buf, path, detail_out);
 }
 
-MOCK_WEAK_IMPL(int, com_util_stat, com_util_file_stat_t *buf, const char *path)
+MOCK_WEAK_IMPL(int, com_util_stat, com_util_file_stat_t *buf, const char *path, com_util_error *detail_out)
 {
     int rtc = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_stat(buf, path);
+        rtc = _mock_com_util->com_util_stat(buf, path, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_stat(buf, path);
+        rtc = delegate_real_com_util_stat(buf, path, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)

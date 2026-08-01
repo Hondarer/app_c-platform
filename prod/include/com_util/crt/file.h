@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/error.h>
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 
@@ -106,6 +107,7 @@ extern "C"
      *                         @ref COM_UTIL_FILE_OPEN_WRITE が指定されているものとして扱います。\n
      *                         @ref COM_UTIL_FILE_OPEN_CREATE_NEW を @ref COM_UTIL_FILE_OPEN_CREATE
      *                         なしで指定した場合も @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
@@ -120,20 +122,23 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_open(com_util_file *file, const char *path, int flags,
+                                                        com_util_error *detail_out);
 
     /**
      *  @brief          ファイルにバイト列を書き込みます。
      *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file への並行書き込みは呼び出し側で同期してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_write(com_util_file *file, const void *buf, size_t len,
+                                                         com_util_error *detail_out);
 
     /**
      *  @brief          ファイルからバイト列を読み取ります。
@@ -142,6 +147,7 @@ extern "C"
      *  @param[out]     buf       読み取り先。NULL を渡してはなりません。
      *  @param[in]      len       読み取る最大バイト数。
      *  @param[out]     read_out  実際に読み取ったバイト数の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -153,37 +159,43 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file への並行読み取りは呼び出し側で同期してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_read(com_util_file *file, void *buf, size_t len, size_t *read_out,
+                                                        com_util_error *detail_out);
 
     /**
      *  @brief          ファイル サイズを取得します。
      *  @param[in]      file      対象のファイル。NULL を渡してはなりません。
      *  @param[out]     size_out  サイズ (バイト) の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_size(const com_util_file *file, size_t *size_out,
+                                                            com_util_error *detail_out);
 
     /**
      *  @brief          ファイル サイズを指定値に設定します (拡張または切り詰め)。
      *  @param[in]      file  対象のファイル。書き込みアクセスでオープン済みでなければなりません。
      *                        NULL を渡してはなりません。
      *  @param[in]      size  設定後のファイル サイズ (バイト)。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file への並行操作は呼び出し側で同期してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_set_size(com_util_file *file, size_t size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_set_size(com_util_file *file, size_t size,
+                                                            com_util_error *detail_out);
 
     /**
      *  @brief          開いているファイルの同一性情報を取得します。
      *  @param[in]      file    対象のファイル。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  Linux では fstat、Windows では GetFileInformationByHandle で取得します。
@@ -192,12 +204,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_id(const com_util_file *file, com_util_file_id *id_out,
+                                                          com_util_error *detail_out);
 
     /**
      *  @brief          UTF-8 パスが現在指しているファイルの同一性情報を取得します。
      *  @param[in]      path    対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[out]     id_out  同一性情報の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します (パスが存在しない場合を含む)。
      *
      *  `com_util_file_get_id()` の結果と比較することで、開いているファイルが
@@ -209,18 +223,31 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out,
+                                                               com_util_error *detail_out);
+
+    /**
+     *  @brief          ファイルへ書き込んだ内容を永続記憶装置へ反映します。
+     *  @param[in]      file       対象のファイル。NULL または無効なハンドルを渡してはなりません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
+     *
+     *  Linux では `fsync`、Windows では `FlushFileBuffers` を使用します。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_flush(com_util_file *file, com_util_error *detail_out);
 
     /**
      *  @brief          ファイルを閉じます。
      *                  `com_util_file_init()` で初期化済みの無効ハンドルには何もしません。
      *  @param[in]      file  閉じるファイル。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
+     *  @return         成功時は @ref COM_UTIL_OK、失敗時は共通結果コードを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_file_close(com_util_file *file);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_close(com_util_file *file, com_util_error *detail_out);
 
 #ifdef __cplusplus
 }

@@ -175,7 +175,7 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
             {
                 fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
             }
-            (void)com_util_remove(path);
+            (void)com_util_remove(path, NULL);
             return -1;
         }
     }
@@ -183,7 +183,7 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
     if (fclose(file) != 0)
     {
         fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
-        (void)com_util_remove(path);
+        (void)com_util_remove(path, NULL);
         return -1;
     }
 

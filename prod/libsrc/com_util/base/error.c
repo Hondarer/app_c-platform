@@ -53,6 +53,12 @@ static com_util_error_cause_t com_util_error_cause_from_errno(const int errno_va
     switch (errno_value)
     {
     case ENOENT:
+#if defined(ENODEV)
+    case ENODEV:
+#endif
+#if defined(ENXIO)
+    case ENXIO:
+#endif
         cause = COM_UTIL_CAUSE_NOT_FOUND;
         break;
     case EEXIST:
@@ -81,10 +87,16 @@ static com_util_error_cause_t com_util_error_cause_from_errno(const int errno_va
         cause = COM_UTIL_CAUSE_OUT_OF_MEMORY;
         break;
     case ENOSPC:
+#if defined(EDQUOT)
+    case EDQUOT:
+#endif
         cause = COM_UTIL_CAUSE_DISK_FULL;
         break;
     case EBUSY:
     case EAGAIN:
+#if defined(ETXTBSY)
+    case ETXTBSY:
+#endif
         cause = COM_UTIL_CAUSE_BUSY;
         break;
     case ETIMEDOUT:
@@ -148,10 +160,12 @@ static com_util_error_cause_t com_util_error_cause_from_windows_error(const unsi
     case ERROR_PATH_NOT_FOUND:
     case ERROR_BAD_NETPATH:
     case ERROR_INVALID_DRIVE:
+    case ERROR_SERVICE_DOES_NOT_EXIST:
         cause = COM_UTIL_CAUSE_NOT_FOUND;
         break;
     case ERROR_FILE_EXISTS:
     case ERROR_ALREADY_EXISTS:
+    case ERROR_SERVICE_EXISTS:
         cause = COM_UTIL_CAUSE_ALREADY_EXISTS;
         break;
     case ERROR_ACCESS_DENIED:
@@ -183,10 +197,15 @@ static com_util_error_cause_t com_util_error_cause_from_windows_error(const unsi
         cause = COM_UTIL_CAUSE_DISK_FULL;
         break;
     case ERROR_BUSY:
+    case ERROR_SERVICE_ALREADY_RUNNING:
+    case ERROR_SERVICE_MARKED_FOR_DELETE:
+    case ERROR_DEPENDENT_SERVICES_RUNNING:
+    case ERROR_SERVICE_CANNOT_ACCEPT_CTRL:
         cause = COM_UTIL_CAUSE_BUSY;
         break;
     case WAIT_TIMEOUT:
     case ERROR_TIMEOUT:
+    case ERROR_SERVICE_REQUEST_TIMEOUT:
         cause = COM_UTIL_CAUSE_TIMEOUT;
         break;
     case ERROR_OPERATION_ABORTED:
@@ -242,6 +261,15 @@ void com_util_error_capture_errno(com_util_error *error, const int errno_value)
     }
 }
 
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_error_capture_current_errno(com_util_error *error)
+{
+    const int errno_value = errno;
+
+    com_util_error_capture_errno(error, errno_value);
+}
+
 #if defined(PLATFORM_WINDOWS)
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -256,6 +284,15 @@ void com_util_error_capture_windows_error(com_util_error *error, const unsigned 
         com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_WINDOWS, com_util_result_from_windows_error(error_code),
                              error_code);
     }
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_error_capture_current_windows_error(com_util_error *error)
+{
+    const DWORD error_code = GetLastError();
+
+    com_util_error_capture_windows_error(error, error_code);
 }
 #endif
 

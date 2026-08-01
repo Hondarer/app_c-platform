@@ -319,25 +319,25 @@ static int open_file(com_util_trace_file_sink *p)
     /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
     if (com_util_path_dirname(dir, sizeof(dir), NULL, p->path) == COM_UTIL_OK && strcmp(dir, ".") != 0)
     {
-        (void)com_util_makedirs(dir);
+        (void)com_util_makedirs(dir, NULL);
     }
 
     p->self_id_valid = 0;
 
-    if (com_util_file_open(&p->file, p->path, base_open_flags()) != COM_UTIL_OK)
+    if (com_util_file_open(&p->file, p->path, base_open_flags(), NULL) != COM_UTIL_OK)
     {
         p->current_bytes = 0;
         return -1;
     }
 
-    if (com_util_file_get_size(&p->file, &p->current_bytes) != COM_UTIL_OK)
+    if (com_util_file_get_size(&p->file, &p->current_bytes, NULL) != COM_UTIL_OK)
     {
         p->current_bytes = 0;
     }
 
     if (p->shared != 0)
     {
-        if (com_util_file_get_id(&p->file, &p->self_id) == COM_UTIL_OK)
+        if (com_util_file_get_id(&p->file, &p->self_id, NULL) == COM_UTIL_OK)
         {
             p->self_id_valid = 1;
         }
@@ -387,7 +387,7 @@ static int open_file_truncate(com_util_trace_file_sink *p)
 
     p->current_bytes = 0;
 
-    return com_util_file_open(&p->file, p->path, flags);
+    return com_util_file_open(&p->file, p->path, flags, NULL);
 }
 
 /**
@@ -406,7 +406,7 @@ static int sink_points_to_current_file(const com_util_trace_file_sink *p)
         return 0;
     }
 
-    if (com_util_file_get_path_id(p->path, &path_id) != COM_UTIL_OK)
+    if (com_util_file_get_path_id(p->path, &path_id, NULL) != COM_UTIL_OK)
     {
         return 0;
     }
@@ -424,7 +424,7 @@ static int sink_points_to_current_file(const com_util_trace_file_sink *p)
  */
 static void close_file(com_util_trace_file_sink *p)
 {
-    com_util_file_close(&p->file);
+    (void)com_util_file_close(&p->file, NULL);
 }
 
 /**
@@ -445,7 +445,7 @@ static void rotate_file(com_util_trace_file_sink *p)
 
     /* 最老世代のファイルを削除する (失敗は無視) */
     snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations);
-    (void)com_util_remove(new_path);
+    (void)com_util_remove(new_path, NULL);
 
     /* path.(gen-1) → path.gen のカスケード リネーム */
     for (gen = p->generations; gen >= 1; gen--)
@@ -464,7 +464,7 @@ static void rotate_file(com_util_trace_file_sink *p)
             snprintf(old_path, sizeof(old_path), "%s.%d", p->path, gen - 1);
         }
 
-        if (com_util_rename(old_path, new_path) != 0)
+        if (com_util_rename(old_path, new_path, NULL) != 0)
         {
             /* リネーム失敗: カスケードをここで打ち切る */
             break;
@@ -500,7 +500,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
     size_t real_bytes;
 
     /* インメモリ集計ではなく実サイズで判定する (複数 writer の合計を反映) */
-    if (com_util_file_get_size(&p->file, &real_bytes) != COM_UTIL_OK)
+    if (com_util_file_get_size(&p->file, &real_bytes, NULL) != COM_UTIL_OK)
     {
         return;
     }
@@ -523,7 +523,7 @@ static void check_rotate_shared(com_util_trace_file_sink *p)
     else
     {
         /* ロック下で実サイズを再確認してからローテーションする */
-        if (com_util_file_get_size(&p->file, &real_bytes) == COM_UTIL_OK && real_bytes >= p->max_bytes)
+        if (com_util_file_get_size(&p->file, &real_bytes, NULL) == COM_UTIL_OK && real_bytes >= p->max_bytes)
         {
             rotate_file(p);
         }
@@ -800,7 +800,7 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* ファイルへ書き込む (FILE_FLAG_WRITE_THROUGH / O_DSYNC により自動フラッシュ) */
-    ret = com_util_file_write(&handle->file, buf, (size_t)len);
+    ret = com_util_file_write(&handle->file, buf, (size_t)len, NULL);
 
     /* 書き込み成功時: サイズを追跡しローテーション閾値を確認する */
     if (ret == 0)

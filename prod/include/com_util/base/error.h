@@ -127,6 +127,19 @@ extern "C"
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_error_capture_errno(com_util_error *error, int errno_value);
 
+    /**
+     *  @brief          現在の errno を詳細エラーへ取り込みます。
+     *  @param[out]     error 格納先。NULL 可。
+     *
+     *  OS API の失敗を検出した直後に使用します。本関数は errno を読み取る前に、
+     *  errno を変更する可能性がある処理を行いません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_error_capture_current_errno(com_util_error *error);
+
 #if defined(PLATFORM_WINDOWS)
     /**
      *  @brief          Win32 エラー コードを詳細エラーへ取り込みます。
@@ -142,6 +155,19 @@ extern "C"
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_error_capture_windows_error(com_util_error *error,
                                                                           unsigned long error_code);
+
+    /**
+     *  @brief          現在の Win32 エラー コードを詳細エラーへ取り込みます。
+     *  @param[out]     error 格納先。NULL 可。
+     *
+     *  Win32 API の失敗を検出した直後に使用します。本関数は GetLastError() を呼び出す前に、
+     *  Win32 エラー コードを変更する可能性がある処理を行いません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_error_capture_current_windows_error(com_util_error *error);
 #endif
 
     /**

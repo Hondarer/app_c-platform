@@ -15,6 +15,9 @@
 #include <stdio.h>
 
 #include <com_util/crt/wchar_conv.h>
+#include <com_util/base/error_internal.h>
+
+#include <errno.h>
 
 #if defined(PLATFORM_WINDOWS)
     #include <limits.h>
@@ -89,10 +92,13 @@ int com_util_isatty(const com_util_stream_t stream)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int64_t com_util_lseek(const int fd, const int64_t offset, const int whence)
+int64_t com_util_lseek(const int fd, const int64_t offset, const int whence, com_util_error *detail_out)
 {
+    int64_t result;
+
     if (fd < 0)
     {
+        (void)com_util_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -101,54 +107,95 @@ int64_t com_util_lseek(const int fd, const int64_t offset, const int whence)
     /* see: https://learn.microsoft.com/cpp/c-runtime-library/reference/lseek-lseeki64 */
     if (whence != SEEK_SET && whence != SEEK_CUR && whence != SEEK_END)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return (int64_t)lseek(fd, (off_t)offset, whence);
+    result = (int64_t)lseek(fd, (off_t)offset, whence);
 #elif defined(PLATFORM_WINDOWS)
-    return (int64_t)_lseeki64(fd, offset, whence);
+    result = (int64_t)_lseeki64(fd, offset, whence);
 #endif /* PLATFORM_ */
+
+    if (result < 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_close(const int fd)
+int com_util_close(const int fd, com_util_error *detail_out)
 {
+    int result;
+
     if (fd < 0)
     {
+        (void)com_util_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return close(fd);
+    result = close(fd);
 #elif defined(PLATFORM_WINDOWS)
-    return _close(fd);
+    result = _close(fd);
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_dup(const int fd)
+int com_util_dup(const int fd, com_util_error *detail_out)
 {
+    int result;
+
     if (fd < 0)
     {
+        (void)com_util_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return dup(fd);
+    result = dup(fd);
 #elif defined(PLATFORM_WINDOWS)
-    return _dup(fd);
+    result = _dup(fd);
 #endif /* PLATFORM_ */
+
+    if (result < 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_dup2(const int oldfd, const int newfd)
+int com_util_dup2(const int oldfd, const int newfd, com_util_error *detail_out)
 {
     if (oldfd < 0 || newfd < 0)
     {
+        (void)com_util_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -157,29 +204,35 @@ int com_util_dup2(const int oldfd, const int newfd)
 #if defined(PLATFORM_LINUX)
     if (dup2(oldfd, newfd) == -1)
     {
+        (void)com_util_error_report_errno(detail_out, errno);
         return -1;
     }
-    return 0;
 #elif defined(PLATFORM_WINDOWS)
     if (_dup2(oldfd, newfd) != 0)
     {
+        (void)com_util_error_report_errno(detail_out, errno);
         return -1;
     }
-    return 0;
 #endif /* PLATFORM_ */
+    (void)com_util_error_report_success(detail_out);
+    return 0;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int64_t com_util_read(const int fd, void *buf, const size_t count)
+int64_t com_util_read(const int fd, void *buf, const size_t count, com_util_error *detail_out)
 {
+    int64_t result;
+
     if (fd < 0 || buf == NULL)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return (int64_t)read(fd, buf, count);
+    result = (int64_t)read(fd, buf, count);
 #elif defined(PLATFORM_WINDOWS)
     {
         unsigned int request;
@@ -194,22 +247,36 @@ int64_t com_util_read(const int fd, void *buf, const size_t count)
             request = (unsigned int)count;
         }
 
-        return (int64_t)_read(fd, buf, request);
+        result = (int64_t)_read(fd, buf, request);
     }
 #endif /* PLATFORM_ */
+
+    if (result < 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int64_t com_util_write(const int fd, const void *buf, const size_t count)
+int64_t com_util_write(const int fd, const void *buf, const size_t count, com_util_error *detail_out)
 {
+    int64_t result;
+
     if (fd < 0 || buf == NULL)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return (int64_t)write(fd, buf, count);
+    result = (int64_t)write(fd, buf, count);
 #elif defined(PLATFORM_WINDOWS)
     {
         unsigned int request;
@@ -224,32 +291,57 @@ int64_t com_util_write(const int fd, const void *buf, const size_t count)
             request = (unsigned int)count;
         }
 
-        return (int64_t)_write(fd, buf, request);
+        result = (int64_t)_write(fd, buf, request);
     }
 #endif /* PLATFORM_ */
+
+    if (result < 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_access(const char *path, const int mode)
+int com_util_access(const char *path, const int mode, com_util_error *detail_out)
 {
+    int result;
+
     if (path == NULL)
     {
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
+    errno = 0;
 #if defined(PLATFORM_LINUX)
-    return access(path, mode);
+    result = access(path, mode);
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
-        return _waccess(wpath, mode);
+        result = _waccess(wpath, mode);
     }
 #endif /* PLATFORM_ */
+
+    if (result != 0)
+    {
+        (void)com_util_error_report_errno(detail_out, errno);
+    }
+    else
+    {
+        (void)com_util_error_report_success(detail_out);
+    }
+    return result;
 }

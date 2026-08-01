@@ -10,7 +10,6 @@
 
 #include <com_util/crt/string.h>
 
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -22,18 +21,18 @@ int com_util_strcpy(char *dest, const size_t dest_size, const char *src)
 
     if (dest == NULL || dest_size == 0 || src == NULL)
     {
-        return EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     len = strlen(src);
     if (len + 1 > dest_size)
     {
         dest[0] = '\0';
-        return ERANGE;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     memcpy(dest, src, len + 1);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -44,7 +43,7 @@ int com_util_strncpy(char *dest, const size_t dest_size, const char *src, const 
 
     if (dest == NULL || dest_size == 0 || src == NULL)
     {
-        return EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     len = strlen(src);
@@ -59,7 +58,7 @@ int com_util_strncpy(char *dest, const size_t dest_size, const char *src, const 
 
     memcpy(dest, src, len);
     dest[len] = '\0';
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -71,7 +70,7 @@ int com_util_strcat(char *dest, const size_t dest_size, const char *src)
 
     if (dest == NULL || dest_size == 0 || src == NULL)
     {
-        return EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     dest_len = 0;
@@ -82,17 +81,17 @@ int com_util_strcat(char *dest, const size_t dest_size, const char *src)
     if (dest_len >= dest_size)
     {
         dest[0] = '\0';
-        return ERANGE;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     src_len = strlen(src);
     if (dest_len + src_len + 1 > dest_size)
     {
-        return ERANGE;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     memcpy(dest + dest_len, src, src_len + 1);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -103,18 +102,18 @@ int com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
 
     if (dest == NULL || dest_size == 0 || src == NULL)
     {
-        return EINVAL;
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
     len = wcslen(src);
     if (len + 1 > dest_size)
     {
         dest[0] = L'\0';
-        return ERANGE;
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
     wmemcpy(dest, src, len + 1);
-    return 0;
+    return COM_UTIL_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
