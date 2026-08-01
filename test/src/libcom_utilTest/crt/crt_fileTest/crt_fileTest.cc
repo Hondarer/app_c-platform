@@ -417,8 +417,9 @@ TEST_F(crt_fileTest, read_only_open_rejects_write)
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - 読み取り専用で呼び出した com_util_file_open の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの書き込みが COM_UTIL_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_PERMISSION_DENIED,
+        rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの書き込みが COM_UTIL_ERR_PERMISSION_DENIED を返すこと。
 
     // Cleanup
     com_util_file_close(&file, NULL);
@@ -737,13 +738,27 @@ TEST_F(crt_fileTest, flush_reports_success)
 TEST_F(crt_fileTest, stdio_wrappers_report_success)
 {
     // Arrange
-    FILE *stream = std::tmpfile();
+    std::string path = make_path("stdio_wrappers.bin");
+    FILE *stream = NULL;
     com_util_error detail;
     char read_buffer[5] = {0};
     const char write_buffer[] = "data";
+#if defined(PLATFORM_WINDOWS)
+    errno_t open_result;
+#endif /* PLATFORM_WINDOWS */
+
+    std::remove(path.c_str());
+#if defined(PLATFORM_LINUX)
+    stream = std::fopen(path.c_str(), "w+b");
+#elif defined(PLATFORM_WINDOWS)
+    open_result = fopen_s(&stream, path.c_str(), "w+b");
+#endif /* PLATFORM_ */
 
     // Pre-Assert
     ASSERT_NE(nullptr, stream);
+#if defined(PLATFORM_WINDOWS)
+    ASSERT_EQ(0, open_result);
+#endif /* PLATFORM_WINDOWS */
 
     // Act
     size_t written = com_util_fwrite(write_buffer, 1u, 4u, stream, &detail); // [手順] - 4 バイトを書き込む。
@@ -767,4 +782,7 @@ TEST_F(crt_fileTest, stdio_wrappers_report_success)
 
     // Assert_3
     EXPECT_EQ(0, close_result); // [確認_正常系] - com_util_fclose の戻り値が 0 であること。
+
+    // Cleanup
+    std::remove(path.c_str());
 }
