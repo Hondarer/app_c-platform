@@ -418,8 +418,8 @@ TEST_F(crt_fileTest, read_only_open_rejects_write)
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - 読み取り専用で呼び出した com_util_file_open の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
-        COM_UTIL_ERR_UNKNOWN,
-        rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの com_util_file_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        COM_UTIL_ERR_PERMISSION_DENIED,
+        rtc_file_write); // [確認_異常系] - 読み取り専用ハンドルへの com_util_file_write の戻り値が COM_UTIL_ERR_PERMISSION_DENIED であること。
 
     // Cleanup
     com_util_file_close(&file, NULL);
