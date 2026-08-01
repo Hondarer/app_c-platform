@@ -29,7 +29,7 @@ make test
 ## 注意点
 
 - 公開 API (`prod/include/` 配下のヘッダー) に関数を追加・削除・シグネチャ変更した場合は、`test/src/libcom_utilTest/exportTest/exportTest.cc` の `COM_UTIL_EXPORT_TABLE_COMMON` / `COM_UTIL_EXPORT_TABLE_PLATFORM` を同じコミットで見直すこと。反映を怠ると `exportTest.symbol_names_match` が失敗する。
-- 上位の `docs/c-modernization-kit/coding-guideline.md` は一般則のみを扱う。com_util 固有の規則、制限、遵守事項 (結果コード `COM_UTIL_OK` / `COM_UTIL_ERR*`、標準時刻型、const 付与の模範例など) はすべて `docs/coding-guideline.md` に集約する。追加・変更時も同ファイルへ追記すること。
+- 上位の `docs/general/coding-guideline.md` は一般則のみを扱う。com_util 固有の規則、制限、遵守事項 (結果コード `COM_UTIL_OK` / `COM_UTIL_ERR*`、標準時刻型、const 付与の模範例など) はすべて `docs/coding-guideline.md` に集約する。追加・変更時も同ファイルへ追記すること。
 - `bench-io` は測定に時間がかかるため、`make test` では実行しない。測定軸を変更した場合は `prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同時に見直し、実測をやり直すこと。
 - `bench-io` の測定結果は `prod/src/cmd/bench-io/measurements/` へ出力する。このディレクトリは管理対象外であるため、共有する数値と測定環境は `docs/fileio-api-selection-guideline.md` へ転記すること。
 - `bench-io` のレコード型を変更する場合は、構造体にパディングが入らないことを確認すること。ビルドでは `-Wpadded` を有効にしている。

@@ -2,7 +2,7 @@
 
 ## 概要
 
-本書は、上位の「コーディング規範」(`docs/c-modernization-kit/coding-guideline.md`) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。  
+本書は、上位の「コーディング規範」(`docs/general/coding-guideline.md`) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。
 章立ては上位文書の章に対応させ、com_util 固有の追記・上書き事項のみを記載します。
 
 com_util 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
