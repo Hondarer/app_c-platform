@@ -92,7 +92,7 @@ static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *f
 {
     Dl_info info;
     const char *p;
-    int err = 0;
+    com_util_error err;
 
     if (!out_path || out_path_sz == 0 || !func_addr)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
@@ -119,7 +119,7 @@ static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *f
         return COM_UTIL_OK;
     }
 
-    if (err == ENAMETOOLONG)
+    if (com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG))
     {
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
@@ -178,7 +178,7 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
 #elif defined(PLATFORM_WINDOWS)
     wchar_t wpath[PLATFORM_PATH_MAX];
     char utf8_path[PLATFORM_PATH_MAX];
-    int err = 0;
+    com_util_error err;
     int st = get_self_path_w(wpath, (size_t)(sizeof(wpath) / sizeof(wpath[0])), func_addr);
     if (st != COM_UTIL_OK)
     {
@@ -196,7 +196,7 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
     {
         if (out_path && out_path_sz)
             out_path[0] = '\0';
-        if (err == ENAMETOOLONG)
+        if (com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG))
         {
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
@@ -251,12 +251,12 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
     }
 
     {
-        int path_errno = 0;
+        com_util_error path_error;
 
-        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_errno, fname) != COM_UTIL_OK)
+        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_error, fname) != COM_UTIL_OK)
         {
             out_basename[0] = '\0';
-            if (path_errno == ENAMETOOLONG)
+            if (com_util_error_is(&path_error, COM_UTIL_CAUSE_NAME_TOO_LONG))
             {
                 return COM_UTIL_ERR_BUFFER_TOO_SMALL;
             }

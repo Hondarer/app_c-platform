@@ -134,18 +134,21 @@ TEST_F(pathJoinTest, returns_einval_for_null_fragment)
 {
     // Arrange
     char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-    int err = 0;                    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err;             // [状態] - 詳細エラーの格納先を用意する。
+    com_util_error last_error;
 
     // Pre-Assert
 
     // Act
     int rtc = com_util_path_join_n(actual, sizeof(actual), &err, 2, "a",
                                    (const char *)NULL); // [手順] - 2 番目の断片に NULL を渡して呼び出す。
+    com_util_error_get_last(&last_error);               // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc); // [確認_異常系] - com_util_path_join_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
 // part_count が 0 の場合に EINVAL が返ることの確認
@@ -153,7 +156,7 @@ TEST_F(pathJoinTest, returns_einval_for_zero_part_count)
 {
     // Arrange
     char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-    int err = 0;                    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err;             // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -163,7 +166,7 @@ TEST_F(pathJoinTest, returns_einval_for_zero_part_count)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc); // [確認_異常系] - com_util_path_join_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
 // セパレータ補完を含めてちょうど収まる場合に成功することの確認
@@ -188,7 +191,7 @@ TEST_F(pathJoinTest, returns_enametoolong_when_separator_insertion_overflows)
 {
     // Arrange
     char actual[3]; // [状態] - "a/b" (3 バイト) + null 終端に対し 1 バイト不足するバッファーを用意する。
-    int err = 0;    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -199,7 +202,8 @@ TEST_F(pathJoinTest, returns_enametoolong_when_separator_insertion_overflows)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
               rtc); // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
+    EXPECT_EQ(1,
+              com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }
 
 // セパレータ補完の余地がちょうどない境界でバッファーを溢れさせずに ENAMETOOLONG が返ることの確認
@@ -208,7 +212,7 @@ TEST_F(pathJoinTest, returns_enametoolong_without_overflow_when_no_room_for_sepa
     // Arrange
     char actual[2] = {'X',
                       'X'}; // [状態] - "a" 単独ならちょうど収まるが結合には不足するバッファーを番兵付きで用意する。
-    int err = 0;            // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err;     // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -220,14 +224,15 @@ TEST_F(pathJoinTest, returns_enametoolong_without_overflow_when_no_room_for_sepa
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
         rtc); // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であり、バッファー境界を越えて書き込まないこと。
-    EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
+    EXPECT_EQ(1,
+              com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }
 
 // NULL path_out で EINVAL が返ることの確認
 TEST_F(pathJoinTest, returns_einval_for_null_path_out)
 {
     // Arrange
-    int err = 0; // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -238,5 +243,5 @@ TEST_F(pathJoinTest, returns_einval_for_null_path_out)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc);         // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }

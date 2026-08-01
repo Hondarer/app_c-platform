@@ -29,7 +29,9 @@ extern "C"
     /**
      *  @brief          errno の値を共通結果コードへ変換します。
      *  @param[in]      errno_value errno の値。
-     *  @return         対応する共通結果コード。対応がない値は @ref COM_UTIL_ERR_UNKNOWN を返します。
+     *  @return         対応する共通結果コード。`ENAMETOOLONG` と `ERANGE` は
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返し、対応がない値は
+     *                  @ref COM_UTIL_ERR_UNKNOWN を返します。
      */
     int com_util_result_from_errno(int errno_value);
 
@@ -46,9 +48,10 @@ extern "C"
      *  @param[in]      error_code GetLastError() で取得したエラー コード。
      *  @return         対応する errno の値。対応がない値は `EIO` を返します。
      *
-     *  errno を返す API の `errno_out` へ Win32 エラー コードをそのまま格納すると、
+     *  errno 互換の内部処理へ Win32 エラー コードをそのまま渡すと、
      *  errno として文字列化した際に無関係なメッセージになります。\n
-     *  Windows 固有の実装から errno ドメインの出力引数へ値を渡す場合は本 API を使用してください。
+     *  errno 互換値を必要とする内部処理に限って使用し、com_util_error には
+     *  Win32 ドメインの値を変換せずに記録してください。
      */
     int com_util_errno_from_windows_error(unsigned long error_code);
 #endif

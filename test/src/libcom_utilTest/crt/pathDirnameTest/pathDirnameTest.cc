@@ -117,18 +117,21 @@ TEST_F(pathDirnameTest, normalizes_backslash_separator_in_output)
 TEST_F(pathDirnameTest, returns_einval_for_null_path_out)
 {
     // Arrange
-    int err = 0; // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
+    com_util_error last_error;
 
     // Pre-Assert
 
     // Act
     int rtc = com_util_path_dirname(NULL, 16, &err,
                                     "a/b"); // [手順] - com_util_path_dirname(NULL, 16, &err, "a/b") を呼び出す。
+    com_util_error_get_last(&last_error);   // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
 // 空文字列パスで EINVAL が返ることの確認
@@ -136,7 +139,7 @@ TEST_F(pathDirnameTest, returns_einval_for_empty_path)
 {
     // Arrange
     char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-    int err = 0;                    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err;             // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -147,7 +150,7 @@ TEST_F(pathDirnameTest, returns_einval_for_empty_path)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
 // バッファー不足で ENAMETOOLONG が返ることの確認
@@ -155,7 +158,7 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_buffer_too_small)
 {
     // Arrange
     char actual[2]; // [状態] - "a/b" の親 "a" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
-    int err = 0;    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -166,11 +169,12 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_buffer_too_small)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
               rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
+    EXPECT_EQ(1,
+              com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }
 
-// errno_out に NULL を渡しても動作することの確認
-TEST_F(pathDirnameTest, allows_null_errno_out)
+// detail_out に NULL を渡しても動作することの確認
+TEST_F(pathDirnameTest, allows_null_detail_out)
 {
     // Arrange
     char actual[1]; // [状態] - 意図的に不足するバッファーを用意する。
@@ -184,5 +188,5 @@ TEST_F(pathDirnameTest, allows_null_errno_out)
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc); // [確認_異常系] - com_util_path_dirname の戻り値として、errno_out が NULL でもクラッシュせず COM_UTIL_ERR_BUFFER_TOO_SMALL が返ること。
+        rtc); // [確認_異常系] - com_util_path_dirname の戻り値として、detail_out が NULL でもクラッシュせず COM_UTIL_ERR_BUFFER_TOO_SMALL が返ること。
 }

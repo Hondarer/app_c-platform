@@ -6,7 +6,7 @@
  *  @date           2026/02/06
  *
  *  コンパイラの種類とバージョンを検出し、統一的なマクロを定義します。\n
- *  また、コンパイラ固有のインライン制御属性を抽象化します。
+ *  また、コンパイラ固有のインライン制御属性とスレッド ローカル記憶域を抽象化します。
  *
  *  @section        compiler_detection コンパイラ検出マクロ
  *
@@ -26,6 +26,12 @@
  *  | ------------ | ------------------------------------- | --------------------  | ------ |
  *  | FORCE_INLINE | inline __attribute__((always_inline)) | __forceinline         | inline |
  *  | NO_INLINE    | __attribute__((noinline))             | __declspec(noinline)  | (空)   |
+ *
+ *  @section        thread_local_storage スレッド ローカル記憶域マクロ
+ *
+ *  | マクロ名              | GCC の C        | GCC の C++     | MSVC                 | その他 |
+ *  | --------------------- | --------------- | -------------- | -------------------- | ------ |
+ *  | THREAD_LOCAL          | `_Thread_local` | `thread_local` | `__declspec(thread)` | (空)   |
  *
  *  @section        usage 使用例
     @code{.c}
@@ -97,6 +103,22 @@
         #define FORCE_INLINE inline
         #define NO_INLINE
     #endif /* COMPILER_ */
+#endif /* DOXYGEN */
+
+#ifdef DOXYGEN
+    #define THREAD_LOCAL /**< スレッドごとに独立した記憶域を定義します。 */
+#else                    /* !DOXYGEN */
+    #if defined(COMPILER_MSVC)
+        #define THREAD_LOCAL __declspec(thread)
+    #elif defined(COMPILER_GCC)
+        #if defined(__cplusplus)
+            #define THREAD_LOCAL thread_local
+        #else
+            #define THREAD_LOCAL _Thread_local
+        #endif
+    #else /* !COMPILER_MSVC && !COMPILER_GCC */
+        #define THREAD_LOCAL
+    #endif
 #endif /* DOXYGEN */
 
 /** @} */

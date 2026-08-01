@@ -1,5 +1,5 @@
 #include <testfw.h>
-#include <com_util/base/error_message.h>
+#include <com_util/base/error_message_internal.h>
 #include <com_util/base/result.h>
 
 #include <errno.h>

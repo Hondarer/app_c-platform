@@ -10,6 +10,7 @@
  */
 
 #include <com_util/crt/path.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/base/result.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -20,32 +21,25 @@ static int com_util_path_is_sep(const char c)
     return c == '/' || c == '\\';
 }
 
-static int com_util_copy_path_name_text(char *path_out, const size_t path_size, int *errno_out, const char *text)
+static int com_util_copy_path_name_text(char *path_out, const size_t path_size, com_util_error *detail_out,
+                                        const char *text)
 {
     size_t len;
 
     if (path_out == NULL || path_size == 0u || text == NULL)
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     len = strlen(text);
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        if (errno_out != NULL)
-        {
-            *errno_out = ENAMETOOLONG;
-        }
-        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        return com_util_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     memcpy(path_out, text, len + 1u);
-    return COM_UTIL_OK;
+    return com_util_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -78,7 +72,7 @@ const char *com_util_path_basename(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_path_dirname(char *path_out, const size_t path_size, int *errno_out, const char *path)
+int com_util_path_dirname(char *path_out, const size_t path_size, com_util_error *detail_out, const char *path)
 {
     const char *end;
     const char *last_sep;
@@ -87,11 +81,7 @@ int com_util_path_dirname(char *path_out, const size_t path_size, int *errno_out
 
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     /* 末尾のセパレータ群を除去する (ルートのみの場合は残す) */
@@ -112,24 +102,20 @@ int com_util_path_dirname(char *path_out, const size_t path_size, int *errno_out
 
     if (last_sep == NULL)
     {
-        return com_util_copy_path_name_text(path_out, path_size, errno_out, ".");
+        return com_util_copy_path_name_text(path_out, path_size, detail_out, ".");
     }
 
     /* 最後のセパレータより前がすべてセパレータの場合 (例: "/name") はルートを返す */
     if (last_sep == path)
     {
-        return com_util_copy_path_name_text(path_out, path_size, errno_out, PLATFORM_PATH_SEP);
+        return com_util_copy_path_name_text(path_out, path_size, detail_out, PLATFORM_PATH_SEP);
     }
 
     len = (size_t)(last_sep - path);
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        if (errno_out != NULL)
-        {
-            *errno_out = ENAMETOOLONG;
-        }
-        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        return com_util_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     for (p = path; p < last_sep; ++p)
@@ -145,7 +131,7 @@ int com_util_path_dirname(char *path_out, const size_t path_size, int *errno_out
     }
     path_out[len] = '\0';
 
-    return COM_UTIL_OK;
+    return com_util_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -181,18 +167,14 @@ const char *com_util_path_extension(const char *path)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_path_strip_extension(char *path_out, const size_t path_size, int *errno_out, const char *path)
+int com_util_path_strip_extension(char *path_out, const size_t path_size, com_util_error *detail_out, const char *path)
 {
     const char *ext;
     size_t len;
 
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     ext = com_util_path_extension(path);
@@ -201,22 +183,19 @@ int com_util_path_strip_extension(char *path_out, const size_t path_size, int *e
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        if (errno_out != NULL)
-        {
-            *errno_out = ENAMETOOLONG;
-        }
-        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        return com_util_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     memcpy(path_out, path, len);
     path_out[len] = '\0';
 
-    return COM_UTIL_OK;
+    return com_util_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out, const size_t part_count, ...)
+int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error *detail_out, const size_t part_count,
+                         ...)
 {
     size_t required_size = 1u;
     size_t offset = 0u;
@@ -227,11 +206,7 @@ int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out,
 
     if (path_out == NULL || path_size == 0u || part_count == 0u)
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
+        return com_util_error_report_errno(detail_out, EINVAL);
     }
 
     path_out[0] = '\0';
@@ -254,11 +229,7 @@ int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out,
             {
                 va_end(args_copy);
                 va_end(args);
-                if (errno_out != NULL)
-                {
-                    *errno_out = EINVAL;
-                }
-                return COM_UTIL_ERR_INVALID_ARGUMENT;
+                return com_util_error_report_errno(detail_out, EINVAL);
             }
 
             part_len = strlen(part);
@@ -285,11 +256,7 @@ int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out,
                     {
                         va_end(args_copy);
                         va_end(args);
-                        if (errno_out != NULL)
-                        {
-                            *errno_out = ENAMETOOLONG;
-                        }
-                        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+                        return com_util_error_report_errno(detail_out, ENAMETOOLONG);
                     }
                     required_size += 1u;
                 }
@@ -299,11 +266,7 @@ int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out,
             {
                 va_end(args_copy);
                 va_end(args);
-                if (errno_out != NULL)
-                {
-                    *errno_out = ENAMETOOLONG;
-                }
-                return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+                return com_util_error_report_errno(detail_out, ENAMETOOLONG);
             }
             required_size += part_len - skip_leading;
 
@@ -354,5 +317,5 @@ int com_util_path_join_n(char *path_out, const size_t path_size, int *errno_out,
 
     path_out[offset] = '\0';
 
-    return COM_UTIL_OK;
+    return com_util_error_report_success(detail_out);
 }

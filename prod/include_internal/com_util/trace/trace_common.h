@@ -22,13 +22,6 @@ extern "C"
 #endif
 
     /**
-     *  @brief          タイムスタンプが有効範囲か判定します。
-     *  @param[in]      timestamp  判定対象のタイムスタンプ。NULL 可。
-     *  @return         有効な場合 1、NULL または範囲外の場合 0。
-     */
-    int trace_timestamp_is_valid(const com_util_timespec *timestamp);
-
-    /**
      *  @brief          トレース出力に使用するタイムスタンプを解決します。
      *  @param[in]      timestamp      呼び出し側が渡した明示タイムスタンプ。NULL 可。
      *  @param[out]     resolved       解決後のタイムスタンプ格納先。
@@ -46,7 +39,8 @@ extern "C"
      *  @param[out]     buf        書き込み先バッファー。
      *  @param[in]      buf_size   バッファーのバイト数 (COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1 以上を推奨)。
      *  @param[in]      timestamp  使用する実時刻。
-     *  @return         成功時 0、タイムスタンプ不正または整形失敗時 -1。
+     *  @return         タイムスタンプ不正時は -1 を返します。それ以外の場合は
+     *                  com_util_format_realtime_iso8601_local() の戻り値を返します。
      */
     int trace_format_local_timestamp(char *buf, size_t buf_size, const com_util_timespec *timestamp);
 

@@ -9,6 +9,7 @@
  */
 
 #include <com_util/base/error_message.h>
+#include <com_util/base/error_message_internal.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 
@@ -104,6 +105,52 @@ const char *com_util_result_to_string(const int result)
     }
 
     return text;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_message(char *buf, const size_t buf_size, const com_util_error *error)
+{
+    int result;
+
+    if ((buf == NULL) || (buf_size == 0U) || (error == NULL))
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    if (error->domain == COM_UTIL_ERROR_DOMAIN_NONE)
+    {
+        const char message[] = "no error";
+        size_t copy_size = sizeof(message);
+
+        if (copy_size > buf_size)
+        {
+            copy_size = buf_size;
+        }
+        memcpy(buf, message, copy_size);
+        buf[copy_size - 1U] = '\0';
+        result = COM_UTIL_OK;
+    }
+    else if (error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO)
+    {
+        result = com_util_errno_message(buf, buf_size, (int)error->code);
+    }
+    else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS)
+    {
+#if defined(PLATFORM_WINDOWS)
+        result = com_util_win32_error_message(buf, buf_size, error->code);
+#else
+        buf[0] = '\0';
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
+#endif
+    }
+    else
+    {
+        buf[0] = '\0';
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    return result;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

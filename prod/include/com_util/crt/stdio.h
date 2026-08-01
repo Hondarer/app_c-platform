@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <com_util/base/compiler.h>
+#include <com_util/base/error.h>
 #include <com_util/com_util_export.h>
 
 /**
@@ -106,7 +107,7 @@ extern "C"
      *  @brief          UTF-8 パスでファイルを開きます (`fopen` ラッパー)。
      *  @param[in]      path       開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      fopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      *
      *  @par            共有モード
@@ -118,14 +119,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, int *errno_out);
+    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen(const char *path, const char *modes, com_util_error *detail_out);
 
     /**
      *  @brief          UTF-8 パスでストリームを再オープンします (`freopen` ラッパー)。
      *  @param[in]      path       再オープンするファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      freopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。
      *  @param[in,out]  stream     再オープン対象のストリーム。NULL を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno 相当の値を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      *
      *  @par            共有モード
@@ -140,7 +141,7 @@ extern "C"
      *  内部に共有状態を持ちません。同一 @p stream を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
      */
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_freopen(const char *path, const char *modes, FILE *stream,
-                                                        int *errno_out);
+                                                        com_util_error *detail_out);
 
     /**
      *  @brief          UTF-8 パスのファイルを削除します (`remove` / `_wremove` ラッパー)。
@@ -218,12 +219,13 @@ extern "C"
     /**
      *  @brief          書式指定パスでファイルを開きます。
      *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...        書式引数。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      */
-    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...)
+    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_fmt(const char *modes, com_util_error *detail_out,
+                                                          const char *format, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 3, 4)))
 #endif /* COMPILER_GCC */
@@ -232,13 +234,13 @@ extern "C"
     /**
      *  @brief          書式指定パスでファイルを開きます (`com_util_fopen_fmt` の `va_list` 版)。
      *  @param[in]      modes      fopen 互換のモード文字列。NULL を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。失敗時に errno を格納します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      args       書式引数リスト。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
      */
-    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes, int *errno_out, const char *format,
-                                                           va_list args)
+    COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_vfopen_fmt(const char *modes, com_util_error *detail_out,
+                                                           const char *format, va_list args)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 3, 0)))
 #endif /* COMPILER_GCC */
@@ -273,12 +275,13 @@ extern "C"
      *  @param[in]      prefix       ファイル名先頭につける識別子 (UTF-8)。NULL 可。
      *                               4 文字以上を渡した場合は先頭 3 文字を採用します。
      *  @param[in]      modes        fopen 互換のモード文字列 ("wb", "w", "w+b" など)。
-     *                               NULL を渡した場合は NULL を返し、@p errno_out に EINVAL を格納します。
+     *                               NULL を渡した場合は NULL を返し、@p detail_out に errno ドメインの
+     *                               EINVAL を格納します。
      *                               一時ファイルは常に新規作成のため "r"/"rb" は意味を持ちませんが、
      *                               API 層での制限は課しません。
      *  @param[out]     path_out     生成された一時ファイル絶対パス (UTF-8) の格納先。
      *  @param[in]      path_size    @p path_out のサイズ (バイト)。PLATFORM_PATH_MAX 以上を推奨します。
-     *  @param[out]     errno_out    エラー詳細の格納先。NULL 可。
+     *  @param[out]     detail_out   エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         成功時はオープンされた FILE*、失敗時は NULL を返します。
      *
      *  Linux 環境では TMPDIR (未設定なら "/tmp") に "{prefix}XXXXXX" のテンプレートで
@@ -302,7 +305,7 @@ extern "C"
      *  内部に共有状態を持ちません。呼び出しごとに独立した一時ファイルを生成します。
      */
     COM_UTIL_EXPORT FILE *COM_UTIL_API com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
-                                                           size_t path_size, int *errno_out);
+                                                           size_t path_size, com_util_error *detail_out);
 
 #ifdef __cplusplus
 }

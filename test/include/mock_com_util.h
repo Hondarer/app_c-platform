@@ -70,8 +70,9 @@ extern int delegate_real_com_util_passphrase_to_key(uint8_t *key, const uint8_t 
 extern int delegate_real_com_util_random_bytes(void *buf, size_t size);
 
 // crt
-extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, int *errno_out);
-extern FILE *delegate_real_com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out);
+extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, com_util_error *detail_out);
+extern FILE *delegate_real_com_util_freopen(const char *path, const char *modes, FILE *stream,
+                                            com_util_error *detail_out);
 extern int delegate_real_com_util_stat(com_util_file_stat_t *buf, const char *path);
 extern int delegate_real_com_util_open(const char *path, int flags, int mode);
 extern int delegate_real_com_util_access(const char *path, int mode);
@@ -87,8 +88,10 @@ extern int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t
 extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, int *exists_out);
 extern int delegate_real_com_util_setenv(const char *name, const char *value, int overwrite);
 extern int delegate_real_com_util_unsetenv(const char *name);
-extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, int *errno_out, const char *path);
-extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out, int *errno_out);
+extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, com_util_error *detail_out,
+                                                const char *path);
+extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
+                                              com_util_error *detail_out);
 extern const char *delegate_real_com_util_path_basename(const char *path);
 
 // crt - stdio
@@ -101,12 +104,13 @@ extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...)
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
 extern int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence);
 extern int64_t delegate_real_com_util_ftell(FILE *stream);
-extern FILE *delegate_real_com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...);
-extern FILE *delegate_real_com_util_vfopen_fmt(const char *modes, int *errno_out, const char *format, va_list args);
+extern FILE *delegate_real_com_util_fopen_fmt(const char *modes, com_util_error *detail_out, const char *format, ...);
+extern FILE *delegate_real_com_util_vfopen_fmt(const char *modes, com_util_error *detail_out, const char *format,
+                                               va_list args);
 extern int delegate_real_com_util_remove_fmt(const char *format, ...);
 extern int delegate_real_com_util_vremove_fmt(const char *format, va_list args);
 extern FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *modes, char *path_out, size_t path_size,
-                                               int *errno_out);
+                                               com_util_error *detail_out);
 
 // crt - unistd
 extern int delegate_real_com_util_isatty(com_util_stream_t stream);
@@ -475,8 +479,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_random_bytes, (void *, size_t));
 
     // crt
-    MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, int *));
-    MOCK_METHOD(FILE *, com_util_freopen, (const char *, const char *, FILE *, int *));
+    MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, com_util_error *));
+    MOCK_METHOD(FILE *, com_util_freopen, (const char *, const char *, FILE *, com_util_error *));
     MOCK_METHOD(int, com_util_stat, (com_util_file_stat_t *, const char *));
     MOCK_METHOD(int, com_util_open, (const char *, int, int));
     MOCK_METHOD(int, com_util_access, (const char *, int));
@@ -492,8 +496,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t, int *));
     MOCK_METHOD(int, com_util_setenv, (const char *, const char *, int));
     MOCK_METHOD(int, com_util_unsetenv, (const char *));
-    MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, int *, const char *));
-    MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, int *));
+    MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, com_util_error *, const char *));
+    MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, com_util_error *));
     MOCK_METHOD(const char *, com_util_path_basename, (const char *));
 
     // crt - stdio
@@ -506,11 +510,11 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_fseek, (FILE *, int64_t, int));
     MOCK_METHOD(int64_t, com_util_ftell, (FILE *));
-    MOCK_METHOD(FILE *, com_util_fopen_fmt, (const char *, int *, const char *));
-    MOCK_METHOD(FILE *, com_util_vfopen_fmt, (const char *, int *, const char *));
+    MOCK_METHOD(FILE *, com_util_fopen_fmt, (const char *, com_util_error *, const char *));
+    MOCK_METHOD(FILE *, com_util_vfopen_fmt, (const char *, com_util_error *, const char *));
     MOCK_METHOD(int, com_util_remove_fmt, (const char *));
     MOCK_METHOD(int, com_util_vremove_fmt, (const char *));
-    MOCK_METHOD(FILE *, com_util_fopen_temp, (const char *, const char *, char *, size_t, int *));
+    MOCK_METHOD(FILE *, com_util_fopen_temp, (const char *, const char *, char *, size_t, com_util_error *));
 
     // crt - unistd
     MOCK_METHOD(int, com_util_isatty, (com_util_stream_t));

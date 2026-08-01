@@ -6,6 +6,8 @@ TEST_SRCS := \
 # mmap_*.c が依存する crt/file.c (com_util_file)、sync/*.c (com_util_interprocess_rwlock)、
 # および sync_windows.c が呼ぶ win32 ラッパーと変換ユーティリティを追加する
 ADD_SRCS := \
+    $(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
+    $(MYAPP_DIR)/prod/libsrc/com_util/base/result.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/crt/file.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/crt/stdio.c \
     $(MYAPP_DIR)/prod/libsrc/com_util/crt/wchar_conv.c \

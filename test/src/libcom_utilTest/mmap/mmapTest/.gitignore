@@ -1,7 +1,9 @@
+/error.c
 /file.c
 /file_api.c
 /mmap_linux.c
 /mmap_windows.c
+/result.c
 /stdio.c
 /sync_descriptor.c
 /sync_linux.c

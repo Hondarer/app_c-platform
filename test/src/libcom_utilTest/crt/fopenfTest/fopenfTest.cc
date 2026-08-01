@@ -5,6 +5,18 @@
 #include <errno.h>
 #include <stdint.h>
 
+static FILE *call_vfopen_fmt(const char *modes, com_util_error *detail_out, const char *format, ...)
+{
+    FILE *fp;
+    va_list args;
+
+    va_start(args, format);
+    fp = com_util_vfopen_fmt(modes, detail_out, format, args);
+    va_end(args);
+
+    return fp;
+}
+
 class fopenfTest : public Test
 {
 };
@@ -14,6 +26,7 @@ TEST_F(fopenfTest, test_null_modes)
 {
     // Arrange
     Mock_com_util mock_com_util;
+    com_util_error last_error;
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(_, _, _))
@@ -22,9 +35,33 @@ TEST_F(fopenfTest, test_null_modes)
     // Act
     FILE *fp = com_util_fopen_fmt(NULL, NULL, "test_%d.txt",
                                   1); // [手順] - modes に NULL を渡して com_util_fopen_fmt を呼び出す。
+    com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
+}
+
+// va_list 版で modes が NULL の場合に TLS へ詳細エラーが記録されることの確認
+TEST_F(fopenfTest, vfopen_fmt_records_error_for_null_modes)
+{
+    // Arrange
+    Mock_com_util mock_com_util;
+    com_util_error last_error;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_fopen(_, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - com_util_fopen が呼び出されないこと。
+
+    // Act
+    FILE *fp = call_vfopen_fmt(NULL, NULL, "%s", "test.txt"); // [手順] - modes に NULL を指定して va_list 版を呼ぶ。
+    com_util_error_get_last(&last_error);                     // [手順] - TLS に記録された詳細エラーを取得する。
+
+    // Assert
+    EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_vfopen_fmt の戻り値が NULL であること。
+    EXPECT_EQ(1,
+              com_util_error_is(&last_error,
+                                COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - TLS の要因が EINVAL であること。
 }
 
 // format が NULL の場合に com_util_fopen を呼び出さず NULL を返すことの確認
@@ -163,16 +200,17 @@ TEST_F(fopenfTest, test_fopen_returns_null_with_errno)
 {
     // Arrange
     Mock_com_util mock_com_util;
-    int error_code = 0; // [状態] - エラー コードの受け取り先を 0 で初期化する。
+    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
+    com_util_error error_code; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("nonexistent.txt"), StrEq("r"), _))
         .WillOnce(DoAll(
-            SetArgPointee<2>(ENOENT),
+            SetArgPointee<2>(error),
             Return(
                 (FILE *)
                     NULL))); // [Pre-Assert確認_異常系] - com_util_fopen がファイル名 "nonexistent.txt" とモード "r" で 1 回呼び出されること。
-                             // [Pre-Assert手順] - com_util_fopen から NULL を返却し、errno_out に ENOENT を設定する。
+                             // [Pre-Assert手順] - com_util_fopen から NULL を返却し、detail_out に ENOENT を設定する。
 
     // Act
     FILE *fp = com_util_fopen_fmt(
@@ -180,30 +218,35 @@ TEST_F(fopenfTest, test_fopen_returns_null_with_errno)
         "nonexistent.txt"); // [手順] - error_code の受け取り先を指定して com_util_fopen_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ((FILE *)NULL, fp);   // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
-    EXPECT_EQ(ENOENT, error_code); // [確認_異常系] - error_code に ENOENT が設定されること。
+    EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
+    EXPECT_EQ(
+        1, com_util_error_is(&error_code,
+                             COM_UTIL_CAUSE_NOT_FOUND)); // [確認_異常系] - error_code の要因が NOT_FOUND であること。
 }
 
-// com_util_fopen が成功した場合にエラー コードが変更されないことの確認
-TEST_F(fopenfTest, test_fopen_success_errno_not_set)
+// com_util_fopen が成功した場合に詳細エラーが空になることの確認
+TEST_F(fopenfTest, test_fopen_success_clears_error)
 {
     // Arrange
     Mock_com_util mock_com_util;
     FILE *expected_fp =
         (FILE *)(uintptr_t)0x12345678; // [状態] - com_util_fopen が返すファイル ポインターの期待値を用意する。
-    int error_code = 999;              // [状態] - エラー コードの受け取り先を初期値 999 とする。
+    com_util_error empty_error = {COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL};
+    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("success.txt"), StrEq("r"), _))
-        .WillOnce(Return(
-            expected_fp)); // [Pre-Assert確認_正常系] - com_util_fopen がファイル名 "success.txt" とモード "r" で 1 回呼び出されること。
-                           // [Pre-Assert手順] - com_util_fopen から expected_fp を返却する。
+        .WillOnce(DoAll(
+            SetArgPointee<2>(empty_error),
+            Return(
+                expected_fp))); // [Pre-Assert確認_正常系] - com_util_fopen がファイル名 "success.txt" とモード "r" で 1 回呼び出されること。
+                                // [Pre-Assert手順] - detail_out を空にして expected_fp を返却する。
 
     // Act
     FILE *fp = com_util_fopen_fmt(
-        "r", &error_code, "success.txt"); // [手順] - error_code の受け取り先を指定して com_util_fopen_fmt を呼び出す。
+        "r", &error, "success.txt"); // [手順] - 詳細エラーの受け取り先を指定して com_util_fopen_fmt を呼び出す。
 
     // Assert
     EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から expected_fp が返されること。
-    EXPECT_EQ(999, error_code); // [確認_正常系] - 成功時は error_code が初期値 999 から変更されないこと。
+    EXPECT_EQ(0, com_util_error_is_set(&error)); // [確認_正常系] - 成功時は詳細エラーが空であること。
 }

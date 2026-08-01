@@ -28,10 +28,12 @@
  *  パス関数と異なる切り出し結果になる点に注意してください。\n
  *  com_util_path_join_n() (パス構築系) はこの例外に含まれず、`'\\'` を正規化しません。
  *
- *  本ヘッダーの `errno_out` は errno ドメインの値を格納します。\n
- *  Windows 実装であっても `GetLastError()` の値をそのまま格納することはなく、
- *  対応する errno へ変換した値を格納します。
- *  格納された値は com_util_errno_message() で文字列化できます。
+ *  本ヘッダーの `detail_out` はプラットフォーム別の詳細エラーを格納します。\n
+ *  Linux では errno ドメイン、Windows では実装が使用した API に応じて errno ドメインまたは
+ *  Win32 ドメインの値が入り、ドメインは @ref com_util_error の `domain` で識別できます。\n
+ *  値の取り出しは com_util_error_get_errno() / com_util_error_get_windows_error()、
+ *  文字列化は com_util_error_message()、要因判定は com_util_error_is() を使用してください。\n
+ *  同じ詳細は com_util_error_get_last() でも取得できます。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -46,6 +48,7 @@
 #ifndef COM_UTIL_CRT_PATH_H
 #define COM_UTIL_CRT_PATH_H
 
+#include <com_util/base/error.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
@@ -92,28 +95,28 @@
  *
  *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。
  *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
- *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
  *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
  *
  *  断片は自動補正せず、そのまま連結されます。\n
  *  パス区切り文字が必要な場合は @ref PLATFORM_PATH_SEP を明示的に指定してください。
  */
-#define com_util_path_concat(path_out, path_size, errno_out, ...) \
-    com_util_path_concat_n((path_out), (path_size), (errno_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
+#define com_util_path_concat(path_out, path_size, detail_out, ...) \
+    com_util_path_concat_n((path_out), (path_size), (detail_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 /**
  *  @brief          パス断片をパス区切り文字で自動補完しながら連結します。
  *
  *  @param[out]     path_out   連結結果の格納先。NULL を渡してはなりません。
  *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
- *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
  *  @param[in]      ...        連結する UTF-8 文字列断片。少なくとも 1 つ必要です。
  *
  *  com_util_path_concat() と異なり、断片間に @ref PLATFORM_PATH_SEP を自動的に補完します。\n
  *  詳細は com_util_path_join_n() を参照してください。
  */
-#define com_util_path_join(path_out, path_size, errno_out, ...) \
-    com_util_path_join_n((path_out), (path_size), (errno_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
+#define com_util_path_join(path_out, path_size, detail_out, ...) \
+    com_util_path_join_n((path_out), (path_size), (detail_out), COM_UTIL_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C"
@@ -140,7 +143,7 @@ extern "C"
      *  @brief          パスを絶対化し、区切り文字を '/' に正規化して返します。
      *  @param[out]     path_out    絶対化済みパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      path        入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
@@ -148,7 +151,7 @@ extern "C"
      *  相対パスはカレント ディレクトリ基準で絶対化します。\n
      *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
      *  '.' / '..' を解消した絶対パス文字列を返します。\n
-     *  正規化用メモリを確保できない場合、@p errno_out に @c ENOMEM を格納します。\n
+     *  正規化用メモリを確保できない場合、@p detail_out に errno ドメインの @c ENOMEM を格納します。\n
      *  Windows では GetFullPathNameW() により絶対化し、返却値は常に
      *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
      *
@@ -156,8 +159,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると解決結果が不定になります。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, size_t path_size, int *errno_out,
-                                                            const char *path);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_get_full(char *path_out, size_t path_size,
+                                                            com_util_error *detail_out, const char *path);
 
     /**
      *  @brief          2 つのパスが同じ実体を指すか比較します。
@@ -165,7 +168,7 @@ extern "C"
      *  @param[in]      rhs        比較対象の 2 つ目のパス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @param[out]     equal_out  一致時は 1、不一致時は 0 の格納先。NULL を渡してはなりません。
      *                             戻り値が @ref COM_UTIL_OK の場合のみ有効です。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -178,7 +181,7 @@ extern "C"
      *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると比較結果が不定になります。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
-                                                          int *errno_out);
+                                                          com_util_error *detail_out);
 
     /**
      *  @brief          プラットフォームの一時ディレクトリのパスを取得します。
@@ -186,7 +189,7 @@ extern "C"
      *                              末尾パス区切り文字 (@ref PLATFORM_PATH_SEP_CHR) は付きません。
      *                              NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  Linux 環境では環境変数 @c TMPDIR を参照し、未設定または空の場合は @c "/tmp" を使用します。\n
@@ -198,13 +201,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, size_t path_size, int *errno_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_get_temp_dir(char *path_out, size_t path_size,
+                                                           com_util_error *detail_out);
 
     /**
      *  @brief          パス断片を指定順にそのまま連結します。
      *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
@@ -217,8 +221,8 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, size_t path_size, int *errno_out,
-                                                            size_t part_count, ...);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_concat_n(char *path_out, size_t path_size,
+                                                            com_util_error *detail_out, size_t part_count, ...);
 
     /**
      *  @brief          パスのベース名 (最後のセパレータの次の位置) を指すポインターを返します。
@@ -244,7 +248,7 @@ extern "C"
      *  @brief          パスの親ディレクトリ部分を取得します。
      *  @param[out]     path_out   親ディレクトリ パス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
@@ -262,7 +266,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_dirname(char *path_out, size_t path_size, int *errno_out,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_dirname(char *path_out, size_t path_size, com_util_error *detail_out,
                                                            const char *path);
 
     /**
@@ -289,7 +293,7 @@ extern "C"
      *  @brief          パスから拡張子を除いた文字列を取得します。
      *  @param[out]     path_out   拡張子を除いたパス (UTF-8) の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size  @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out  エラー詳細の格納先。NULL 可。成功時は変更しません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      path       入力パス (UTF-8)。NULL および空文字は渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
@@ -305,14 +309,14 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_strip_extension(char *path_out, size_t path_size, int *errno_out,
-                                                                   const char *path);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_strip_extension(char *path_out, size_t path_size,
+                                                                   com_util_error *detail_out, const char *path);
 
     /**
      *  @brief          パス断片をパス区切り文字で自動補完しながら連結します。
      *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
      *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[out]     errno_out   エラー詳細の格納先。NULL 可。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL 可。成功時は空の値を格納します。
      *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
      *  @param[in]      ...         連結する UTF-8 文字列断片。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
@@ -331,7 +335,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_join_n(char *path_out, size_t path_size, int *errno_out,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_path_join_n(char *path_out, size_t path_size, com_util_error *detail_out,
                                                           size_t part_count, ...);
 
 #ifdef __cplusplus

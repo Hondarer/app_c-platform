@@ -19,20 +19,25 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-/**
- *  @brief          可変長引数リストから UTF-8 パス文字列を生成します。
- *  @param[out]     path       生成した NUL 終端文字列の格納先です。
- *  @param[in]      path_size  @p path のバイト数です。
- *  @param[in]      format     printf 形式の書式文字列です。
- *  @param[in]      args       @p format に対応する可変長引数リストです。
- *  @param[out]     error_out  失敗理由の errno 値を格納します。NULL も指定できます。
- *  @return         成功時は 0 を返します。引数不正、書式処理失敗、またはバッファー不足の場合は
- *                  -1 を返します。失敗時の @p path の内容は使用できません。
- */
-int com_util_vformat_path(char *path,
-                          size_t path_size,
-                          const char *format,
-                          va_list args,
-                          int *error_out);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    /**
+     *  @brief          可変長引数リストから UTF-8 パス文字列を生成します。
+     *  @param[out]     path       生成した NUL 終端文字列の格納先です。
+     *  @param[in]      path_size  @p path のバイト数です。
+     *  @param[in]      format     printf 形式の書式文字列です。
+     *  @param[in]      args       @p format に対応する可変長引数リストです。
+     *  @param[out]     error_out  失敗理由の errno 値を格納します。NULL も指定できます。
+     *  @return         成功時は 0 を返します。引数不正、書式処理失敗、またはバッファー不足の場合は
+     *                  -1 を返します。失敗時の @p path の内容は使用できません。
+     */
+    int com_util_vformat_path(char *path, size_t path_size, const char *format, va_list args, int *error_out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COM_UTIL_CRT_PATH_FORMAT_INTERNAL_H */

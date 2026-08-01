@@ -3,16 +3,16 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-FILE *delegate_real_com_util_fopen_fmt(const char *modes, int *errno_out, const char *format, ...)
+FILE *delegate_real_com_util_fopen_fmt(const char *modes, com_util_error *detail_out, const char *format, ...)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_fopen_fmt)>(
             resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fopen_fmt"));
 
-    return real_fn(modes, errno_out, "%s", format);
+    return real_fn(modes, detail_out, "%s", format);
 }
 
-MOCK_WEAK_IMPL(FILE *, com_util_fopen_fmt, const char *modes, int *errno_out, const char *format, ...)
+MOCK_WEAK_IMPL(FILE *, com_util_fopen_fmt, const char *modes, com_util_error *detail_out, const char *format, ...)
 {
     FILE *rtc = nullptr;
 
@@ -24,16 +24,16 @@ MOCK_WEAK_IMPL(FILE *, com_util_fopen_fmt, const char *modes, int *errno_out, co
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_fopen_fmt(modes, errno_out, buf);
+        rtc = _mock_com_util->com_util_fopen_fmt(modes, detail_out, buf);
     }
     else
     {
-        rtc = delegate_real_com_util_fopen_fmt(modes, errno_out, buf);
+        rtc = delegate_real_com_util_fopen_fmt(modes, detail_out, buf);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %s, 0x%p, %s", __func__, modes, (void *)errno_out, buf);
+        printf("  > %s %s, 0x%p, %s", __func__, modes, (void *)detail_out, buf);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> 0x%p\n", (void *)rtc);

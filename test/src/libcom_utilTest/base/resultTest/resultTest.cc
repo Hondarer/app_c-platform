@@ -1,6 +1,8 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
+#include <com_util/base/result_internal.h>
 
+#include <errno.h>
 #include <set>
 #include <vector>
 
@@ -105,4 +107,24 @@ TEST_F(resultTest, only_ok_is_zero_and_all_errors_are_negative)
     EXPECT_EQ(0, COM_UTIL_OK);         // [確認_正常系] - COM_UTIL_OK の値が 0 であること。
     EXPECT_EQ(0U, non_negative_count); // [確認_正常系] - 0 以上の値を持つエラー コードが存在しないこと。
     EXPECT_FALSE(error_codes.empty()); // [確認_正常系] - 検証対象のエラー コードが 1 つ以上列挙されていること。
+}
+
+// パスまたはバッファーの長さ超過を共通結果コードへ変換できることの確認
+TEST_F(resultTest, length_errors_map_to_buffer_too_small)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    const int name_too_long_result =
+        com_util_result_from_errno(ENAMETOOLONG);                // [手順] - ENAMETOOLONG を共通結果コードへ変換する。
+    const int range_result = com_util_result_from_errno(ERANGE); // [手順] - ERANGE を共通結果コードへ変換する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        name_too_long_result); // [確認_正常系] - ENAMETOOLONG の変換結果が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              range_result); // [確認_正常系] - ERANGE の変換結果が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }

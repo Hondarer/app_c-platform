@@ -11,6 +11,8 @@
 #include "compress-cli.h"
 
 #include <com_util/argparser/argparser.h>
+#include <com_util/base/error.h>
+#include <com_util/base/error_message.h>
 #include <com_util/base/platform.h>
 #include <com_util/compress/compress.h>
 #include <com_util/console/console.h>
@@ -23,6 +25,26 @@
 
 /* 圧縮・展開で扱う非圧縮データの上限を 1 GiB とする。 */
 #define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE (1024U * 1024U * 1024U)
+
+/* エラー メッセージの格納に使用するバッファーのバイト数。 */
+#define COMPRESS_CLI_ERROR_MESSAGE_SIZE 256
+
+/**
+ *  @brief          詳細エラーを人間可読の文字列へ変換します。
+ *  @param[in]      error    変換する詳細エラー。
+ *  @param[out]     buf      メッセージの格納先。
+ *  @param[in]      buf_size @p buf のバイト数。
+ *  @return         @p buf を返します。変換できない場合は代替の静的文字列を返します。
+ */
+static const char *compress_cli_error_text(const com_util_error *error, char *buf, size_t buf_size)
+{
+    if (com_util_error_message(buf, buf_size, error) != COM_UTIL_OK)
+    {
+        return "unknown error";
+    }
+
+    return buf;
+}
 
 static uint32_t compress_cli_read_u32_be(const uint8_t *data)
 {
@@ -43,7 +65,8 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 {
     FILE *file = NULL;
     uint8_t *data = NULL;
-    int open_err = 0;
+    com_util_error open_error;
+    char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     int64_t file_size_i64;
     size_t file_size;
     size_t read_count = 0u;
@@ -56,10 +79,11 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
     *data_out = NULL;
     *size_out = 0u;
 
-    file = com_util_fopen(path, "rb", &open_err);
+    file = com_util_fopen(path, "rb", &open_error);
     if (file == NULL)
     {
-        fprintf(stderr, "入力ファイルを開けません: %s (errno=%d)\n", path, open_err);
+        fprintf(stderr, "入力ファイルを開けません: %s (%s)\n", path,
+                compress_cli_error_text(&open_error, message, sizeof(message)));
         return -1;
     }
 
@@ -127,14 +151,16 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 static int compress_cli_write_file(const char *path, const uint8_t *data, size_t size)
 {
     FILE *file = NULL;
-    int open_err = 0;
+    com_util_error open_error;
+    char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     size_t written = 0u;
     int close_rc = 0;
 
-    file = com_util_fopen(path, "wb", &open_err);
+    file = com_util_fopen(path, "wb", &open_error);
     if (file == NULL)
     {
-        fprintf(stderr, "出力ファイルを開けません: %s (errno=%d)\n", path, open_err);
+        fprintf(stderr, "出力ファイルを開けません: %s (%s)\n", path,
+                compress_cli_error_text(&open_error, message, sizeof(message)));
         return -1;
     }
 
@@ -167,12 +193,14 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
 static int compress_cli_resolve_paths(const compress_cli_options *options, char *input_full, size_t input_full_size,
                                       char *output_full, size_t output_full_size)
 {
-    int err = 0;
+    com_util_error error;
+    char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     int path_equal = 0;
 
-    if (com_util_paths_equal(options->input_path, options->output_path, &path_equal, &err) != COM_UTIL_OK)
+    if (com_util_paths_equal(options->input_path, options->output_path, &path_equal, &error) != COM_UTIL_OK)
     {
-        fprintf(stderr, "入力パスと出力パスの比較に失敗しました (errno=%d)\n", err);
+        fprintf(stderr, "入力パスと出力パスの比較に失敗しました (%s)\n",
+                compress_cli_error_text(&error, message, sizeof(message)));
         return -1;
     }
 
@@ -182,17 +210,17 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
         return -1;
     }
 
-    err = 0;
-    if (com_util_path_get_full(input_full, input_full_size, &err, options->input_path) != COM_UTIL_OK)
+    if (com_util_path_get_full(input_full, input_full_size, &error, options->input_path) != COM_UTIL_OK)
     {
-        fprintf(stderr, "入力パスの正規化に失敗しました: %s (errno=%d)\n", options->input_path, err);
+        fprintf(stderr, "入力パスの正規化に失敗しました: %s (%s)\n", options->input_path,
+                compress_cli_error_text(&error, message, sizeof(message)));
         return -1;
     }
 
-    err = 0;
-    if (com_util_path_get_full(output_full, output_full_size, &err, options->output_path) != COM_UTIL_OK)
+    if (com_util_path_get_full(output_full, output_full_size, &error, options->output_path) != COM_UTIL_OK)
     {
-        fprintf(stderr, "出力パスの正規化に失敗しました: %s (errno=%d)\n", options->output_path, err);
+        fprintf(stderr, "出力パスの正規化に失敗しました: %s (%s)\n", options->output_path,
+                compress_cli_error_text(&error, message, sizeof(message)));
         return -1;
     }
 

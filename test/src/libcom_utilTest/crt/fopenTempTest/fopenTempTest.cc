@@ -134,24 +134,28 @@ TEST_F(fopenTempTest, null_modes_returns_einval)
 {
     // Arrange
     char path[PLATFORM_PATH_MAX] = {};
-    int err = 0; // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
+    com_util_error last_error;
 
     // Pre-Assert
 
     // Act
     FILE *fp = com_util_fopen_temp("ptr", nullptr, path, sizeof(path),
                                    &err); // [手順] - modes に NULL を渡して com_util_fopen_temp を呼び出す。
+    com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
-    EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
+    EXPECT_EQ(
+        1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が格納されること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
 // path_out が NULL の場合に EINVAL で失敗することの確認
 TEST_F(fopenTempTest, null_path_out_returns_einval)
 {
     // Arrange
-    int err = 0; // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
 
@@ -161,7 +165,8 @@ TEST_F(fopenTempTest, null_path_out_returns_einval)
 
     // Assert
     EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
-    EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
+    EXPECT_EQ(
+        1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が格納されること。
 }
 
 // path_size が 0 の場合に EINVAL で失敗することの確認
@@ -169,7 +174,7 @@ TEST_F(fopenTempTest, zero_path_size_returns_einval)
 {
     // Arrange
     char path[1] = {'x'};
-    int err = 0; // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
 
@@ -179,7 +184,8 @@ TEST_F(fopenTempTest, zero_path_size_returns_einval)
 
     // Assert
     EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
-    EXPECT_EQ(EINVAL, err);         // [確認_異常系] - errno_out に EINVAL が格納されること。
+    EXPECT_EQ(
+        1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が格納されること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -189,7 +195,7 @@ TEST_F(fopenTempTest, path_size_too_small_returns_enametoolong)
     // Arrange
     /* "<dir>/<prefix>XXXXXX" + NUL に満たない長さ */
     char path[4] = {}; // [状態] - 必要長に満たない 4 バイトのバッファーを用意する。
-    int err = 0;       // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
 
@@ -199,7 +205,8 @@ TEST_F(fopenTempTest, path_size_too_small_returns_enametoolong)
 
     // Assert
     EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
-    EXPECT_EQ(ENAMETOOLONG, err);   // [確認_異常系] - errno_out に ENAMETOOLONG が格納されること。
+    EXPECT_EQ(1, com_util_error_is(
+                     &err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が格納されること。
 }
 #endif /* PLATFORM_LINUX */
 

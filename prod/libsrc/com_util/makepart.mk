@@ -7,4 +7,5 @@ endif
 
 # 生成されるライブラリを動的ライブラリ (shared) とする
 # 未指定の場合 (デフォルト) は static
+# Linux の shared/dlopen 対応を維持するため、-ftls-model は指定しない
 LIB_TYPE = both

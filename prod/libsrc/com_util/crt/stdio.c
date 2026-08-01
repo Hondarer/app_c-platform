@@ -12,6 +12,7 @@
 #include <com_util/crt/path.h>
 
 #include <com_util/crt/wchar_conv.h>
+#include <com_util/base/error_internal.h>
 
 #include <errno.h>
 #include <string.h>
@@ -27,14 +28,11 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
+FILE *com_util_fopen(const char *path, const char *modes, com_util_error *detail_out)
 {
     if (path == NULL || modes == NULL)
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return NULL;
     }
 
@@ -43,9 +41,15 @@ FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
         FILE *fp;
         errno = 0;
         fp = fopen(path, modes);
-        if (fp == NULL && errno_out != NULL)
+        if (fp == NULL)
         {
-            *errno_out = errno;
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
+        }
+        else
+        {
+            (void)com_util_error_report_success(detail_out);
         }
         return fp;
     }
@@ -59,20 +63,14 @@ FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = ENAMETOOLONG;
-            }
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
         err = mbstowcs_s(&converted, wmodes, sizeof(wmodes) / sizeof(wmodes[0]), modes, _TRUNCATE);
         if (err != 0)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = EINVAL;
-            }
+            (void)com_util_error_report_errno(detail_out, EINVAL);
             return NULL;
         }
 
@@ -83,13 +81,13 @@ FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
         fp = _wfsopen(wpath, wmodes, _SH_DENYNO);
         if (fp == NULL)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = errno;
-            }
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
             return NULL;
         }
 
+        (void)com_util_error_report_success(detail_out);
         return fp;
     }
 #endif /* PLATFORM_ */
@@ -97,14 +95,11 @@ FILE *com_util_fopen(const char *path, const char *modes, int *errno_out)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *errno_out)
+FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, com_util_error *detail_out)
 {
     if (path == NULL || modes == NULL || stream == NULL)
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return NULL;
     }
 
@@ -113,9 +108,15 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
         FILE *fp;
         errno = 0;
         fp = freopen(path, modes, stream);
-        if (fp == NULL && errno_out != NULL)
+        if (fp == NULL)
         {
-            *errno_out = errno;
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
+        }
+        else
+        {
+            (void)com_util_error_report_success(detail_out);
         }
         return fp;
     }
@@ -131,20 +132,14 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
 
         if (com_util_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = ENAMETOOLONG;
-            }
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
         err = mbstowcs_s(&converted, wmodes, sizeof(wmodes) / sizeof(wmodes[0]), modes, _TRUNCATE);
         if (err != 0)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = EINVAL;
-            }
+            (void)com_util_error_report_errno(detail_out, EINVAL);
             return NULL;
         }
 
@@ -156,10 +151,9 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
         new_fp = _wfsopen(wpath, wmodes, _SH_DENYNO);
         if (new_fp == NULL)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = errno;
-            }
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
             return NULL;
         }
 
@@ -170,14 +164,12 @@ FILE *com_util_freopen(const char *path, const char *modes, FILE *stream, int *e
         {
             int saved = errno;
             (void)fclose(new_fp);
-            if (errno_out != NULL)
-            {
-                *errno_out = saved;
-            }
+            (void)com_util_error_report_errno(detail_out, saved);
             return NULL;
         }
         (void)fclose(new_fp); /* new_fd を解放。stream は old_fd を介して新ファイルを保持 */
         clearerr(stream);
+        (void)com_util_error_report_success(detail_out);
         return stream;
     }
 #endif /* PLATFORM_ */

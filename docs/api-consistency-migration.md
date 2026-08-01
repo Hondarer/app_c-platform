@@ -100,3 +100,7 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 5. **利用側の再ビルド**: 値が変わったため、com_util を利用するすべてのモジュールを再ビルドします。ヘッダーだけを更新して再リンクする運用では不整合が生じます。
 6. **mock の追随**: `mock_com_util` を利用するテストで、シグネチャが変わった API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
 7. **ローカル テストで確認**: `make -C app/<repo> test` で回帰がないことを確認します。
+
+## 関連ガイド
+
+OS 由来の詳細値を `int *errno_out` からドメイン付きの `com_util_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。

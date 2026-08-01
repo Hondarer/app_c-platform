@@ -12,7 +12,8 @@
  *
  *  @ref COM_UTIL_ERR_UNKNOWN (-1) は、-2 以下の分類済みコードに該当しない
  *  その他のエラーを表します。OS 由来の詳細 (errno、GetLastError() の値) が
- *  必要な API は、結果コードとは別に errno_out などの出力引数で伝達します。
+ *  必要な API は、結果コードとは別に com_util_error の出力引数または
+ *  com_util_error_get_last() で伝達します。
  *
  *  判定は @c != @ref COM_UTIL_OK の名前比較を正とします。
  *  全エラーが負値のため @c < 0 判定も等価ですが、名前比較を推奨します。

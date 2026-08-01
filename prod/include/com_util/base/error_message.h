@@ -1,18 +1,17 @@
 /**
  *******************************************************************************
  *  @file           error_message.h
- *  @brief          結果コードと OS エラー値を人間可読の文字列へ変換する API を提供します。
+ *  @brief          結果コードと詳細エラーを人間可読の文字列へ変換する API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/07/30
  *  @version        1.0.0
  *
  *  ログやユーザー向けメッセージへエラーを表示するための文字列化を提供します。\n
- *  共通結果コード (@ref COM_UTIL_OK 、`COM_UTIL_ERR_*`) と、OS 由来のエラー値
- *  (`errno`、Windows の `GetLastError()`) の双方を扱います。
+ *  共通結果コード (@ref COM_UTIL_OK 、`COM_UTIL_ERR_*`) と、ドメイン付きの
+ *  @ref com_util_error の双方を扱います。
  *
- *  OS エラー値の文字列化は、errno と Win32 エラー コードで API を分けています。\n
- *  同じ `int` で両方を受け取ると、値の由来を取り違えて誤ったメッセージを表示するため、
- *  ドメインを型と関数名で区別します。
+ *  公開 API は生の OS エラー値を受け取りません。@ref com_util_error が保持する
+ *  ドメインに基づいて errno と Win32 エラー コードの文字列化を振り分けます。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -27,7 +26,7 @@
 #ifndef COM_UTIL_BASE_ERROR_MESSAGE_H
 #define COM_UTIL_BASE_ERROR_MESSAGE_H
 
-#include <com_util/base/platform.h>
+#include <com_util/base/error.h>
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
 #include <stddef.h>
@@ -61,53 +60,24 @@ extern "C"
     COM_UTIL_EXPORT const char *COM_UTIL_API com_util_result_to_string(int result);
 
     /**
-     *  @brief          errno の値に対応するメッセージを取得します。
-     *  @param[out]     buf           メッセージの格納先。NULL を渡してはなりません。\n
-     *                                常に NUL 終端します。
-     *  @param[in]      buf_size      @p buf のバイト数。1 以上を指定してください。
-     *  @param[in]      errno_value   errno の値。
+     *  @brief          詳細エラーに対応するメッセージを取得します。
+     *  @param[out]     buf      メッセージの格納先。NULL を渡してはなりません。常に NUL 終端します。
+     *  @param[in]      buf_size @p buf のバイト数。1 以上を指定してください。
+     *  @param[in]      error    文字列化する詳細エラー。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。\n
      *                  メッセージが収まらない場合も切り詰めて格納し @ref COM_UTIL_OK を返します。
      *
-     *  Linux では `strerror_r`、Windows では `strerror_s` を使用します。\n
-     *  スレッド セーフでない `strerror` は使用しません。
-     *
-     *  @attention      Windows の `GetLastError()` の値を渡してはなりません。
-     *                  errno と Win32 エラー コードは別の体系であり、
-     *                  Win32 の値には com_util_win32_error_message() を使用します。
+     *  errno ドメインはスレッド セーフな CRT API、Win32 ドメインは
+     *  `FormatMessageW` を使用して UTF-8 のメッセージへ変換します。\n
+     *  ドメインが @ref COM_UTIL_ERROR_DOMAIN_NONE の場合は "no error" を格納します。\n
+     *  Linux で Win32 ドメインを指定した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  呼び出し側のバッファーへ書き込み、共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_errno_message(char *buf, size_t buf_size, int errno_value);
-
-#if defined(PLATFORM_WINDOWS)
-
-    /**
-     *  @brief          Win32 エラー コードに対応するメッセージを取得します (Windows 専用)。
-     *  @param[out]     buf         メッセージの格納先。NULL を渡してはなりません。\n
-     *                              常に NUL 終端します。
-     *  @param[in]      buf_size    @p buf のバイト数。1 以上を指定してください。
-     *  @param[in]      error_code  `GetLastError()` が返す Win32 エラー コード。
-     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。\n
-     *                  メッセージが収まらない場合も切り詰めて格納し @ref COM_UTIL_OK を返します。
-     *
-     *  `FormatMessageW` で取得した文字列を UTF-8 へ変換して格納します。\n
-     *  メッセージ末尾の改行は取り除きます。
-     *
-     *  @attention      errno の値を渡してはなりません。errno には
-     *                  com_util_errno_message() を使用します。
-     *
-     *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側のバッファーへ書き込み、共有状態を持ちません。
-     */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_win32_error_message(char *buf, size_t buf_size, unsigned long error_code);
-
-#endif /* PLATFORM_WINDOWS */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_error_message(char *buf, size_t buf_size, const com_util_error *error);
 
 #ifdef __cplusplus
 }

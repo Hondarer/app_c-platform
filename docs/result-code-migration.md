@@ -80,3 +80,7 @@ com_util は戻り値規約を、共通結果コード (`COM_UTIL_OK` + 負値�
 - `com_util_sscanf`、`com_util_utf8_to_wpath` 等 (変換項目数・変換文字数を返す)
 - `win32/win32.h` の UTF-8 ラッパー
 - ハンドル生成系 (`*_create`)、値をそのまま返す getter、`void` 関数
+
+## 関連ガイド
+
+OS 由来の詳細値を `int *errno_out` からドメイン付きの `com_util_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。

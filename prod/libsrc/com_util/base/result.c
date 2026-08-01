@@ -45,6 +45,10 @@ int com_util_result_from_errno(const int errno_value)
     {
         result = COM_UTIL_ERR_OUT_OF_MEMORY;
     }
+    else if ((errno_value == ENAMETOOLONG) || (errno_value == ERANGE))
+    {
+        result = COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
     else
     {
         result = COM_UTIL_ERR_UNKNOWN;

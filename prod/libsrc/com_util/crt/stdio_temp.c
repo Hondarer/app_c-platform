@@ -15,6 +15,7 @@
 
 #include <com_util/crt/wchar_conv.h>
 #include <com_util/crt/stdlib.h>
+#include <com_util/base/error_internal.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -35,14 +36,12 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out, const size_t path_size, int *errno_out)
+FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out, const size_t path_size,
+                          com_util_error *detail_out)
 {
     if (modes == NULL || path_out == NULL || path_size == 0u)
     {
-        if (errno_out != NULL)
-        {
-            *errno_out = EINVAL;
-        }
+        (void)com_util_error_report_errno(detail_out, EINVAL);
         return NULL;
     }
 
@@ -78,10 +77,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
            一時ファイルを作成するため、失敗として扱う */
         if (com_util_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL) == ERANGE)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = ENAMETOOLONG;
-            }
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
         if (tmpdir_buf[0] == '\0')
@@ -96,10 +92,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         n = snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx);
         if (n < 0 || (size_t)n >= path_size)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = ENAMETOOLONG;
-            }
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -107,10 +100,9 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         fd = mkostemp(path_out, O_CLOEXEC);
         if (fd == -1)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = errno;
-            }
+            const int errno_value = errno;
+
+            (void)com_util_error_report_errno(detail_out, errno_value);
             return NULL;
         }
 
@@ -120,12 +112,10 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             int saved = errno;
             close(fd);
             unlink(path_out);
-            if (errno_out != NULL)
-            {
-                *errno_out = saved;
-            }
+            (void)com_util_error_report_errno(detail_out, saved);
             return NULL;
         }
+        (void)com_util_error_report_success(detail_out);
         return fp;
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -143,12 +133,16 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         /* 以降の GetTempFileNameW / DeleteFileW へワイドのまま渡すため、
            *U ラッパーを経由しない (UTF-8 への往復変換が増えるだけになる) */
         dwret = GetTempPathW((DWORD)(sizeof(wdir) / sizeof(wdir[0])), wdir);
-        if (dwret == 0u || dwret > (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
+        if (dwret == 0u)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = (int)GetLastError();
-            }
+            const DWORD error_code = GetLastError();
+
+            (void)com_util_error_report_windows_error(detail_out, error_code);
+            return NULL;
+        }
+        if (dwret > (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
+        {
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -166,10 +160,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             /* STRUNCATE: 4 文字以上の prefix が COM_UTIL_TEMP_PREFIX_MAX に切り詰められた場合。正常扱い。 */
             if (err != 0 && err != STRUNCATE)
             {
-                if (errno_out != NULL)
-                {
-                    *errno_out = EINVAL;
-                }
+                (void)com_util_error_report_errno(detail_out, EINVAL);
                 return NULL;
             }
         }
@@ -177,20 +168,16 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         uret = GetTempFileNameW(wdir, wprefix, 0u, wfile);
         if (uret == 0u)
         {
-            if (errno_out != NULL)
-            {
-                *errno_out = (int)GetLastError();
-            }
+            const DWORD error_code = GetLastError();
+
+            (void)com_util_error_report_windows_error(detail_out, error_code);
             return NULL;
         }
 
         if (com_util_wpath_to_utf8(path_out, path_size, wfile) < 0)
         {
             DeleteFileW(wfile);
-            if (errno_out != NULL)
-            {
-                *errno_out = ENAMETOOLONG;
-            }
+            (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -198,10 +185,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         if (err != 0)
         {
             DeleteFileW(wfile);
-            if (errno_out != NULL)
-            {
-                *errno_out = EINVAL;
-            }
+            (void)com_util_error_report_errno(detail_out, EINVAL);
             return NULL;
         }
 
@@ -213,12 +197,10 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         {
             int saved = errno;
             DeleteFileW(wfile);
-            if (errno_out != NULL)
-            {
-                *errno_out = saved;
-            }
+            (void)com_util_error_report_errno(detail_out, saved);
             return NULL;
         }
+        (void)com_util_error_report_success(detail_out);
         return fp;
     }
 #endif /* PLATFORM_ */

@@ -24,11 +24,12 @@ const uint8_t kCompressedPayload[] = {0x00, 0x00, 0x00, 0x06, 0x78, 0x9c, 0x4b};
 const uint8_t kDecompressedOutput[] = {'A', 'B', 'C', 'D', 'E', 'F'};
 const int64_t kMaxUncompressedSize = 1073741824;
 
-static int return_full_path(char *path_out, size_t path_size, int *errno_out, const char *text)
+static int return_full_path(char *path_out, size_t path_size, com_util_error *detail_out, const char *text)
 {
     size_t len;
 
-    (void)errno_out;
+    com_util_error_clear(detail_out);
+
     if (path_out == nullptr || text == nullptr)
     {
         return -1;
@@ -137,11 +138,11 @@ TEST_F(compress_cliTest, main_rejects_compress_input_over_size_limit_before_read
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file))
@@ -184,15 +185,15 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
             Return(COM_UTIL_OK))); // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して COM_UTIL_OK を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
-            [](char *path_out, size_t path_size, int *errno_out, const char *)
+            [](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
             {
-                return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin");
+                return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin");
             }); // [Pre-Assert手順] - 入力パスの正規化結果として "/tmp/input.bin" を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
         .WillOnce(
-            [](char *path_out, size_t path_size, int *errno_out, const char *)
+            [](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
             {
-                return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin");
+                return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin");
             }); // [Pre-Assert手順] - 出力パスの正規化結果として "/tmp/output.bin" を返却する。
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _))
         .WillOnce(Return(input_file)); // [Pre-Assert確認_正常系] - 入力ファイルがモード "rb" で開かれること。
@@ -262,11 +263,11 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zer
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(invalid_input)));
@@ -308,11 +309,11 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(invalid_input)));
@@ -357,11 +358,11 @@ TEST_F(compress_cliTest, main_decompresses_one_byte_input)
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(compressed_input)));
@@ -424,11 +425,11 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(kCompressedPayload)));
@@ -480,11 +481,11 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(SetArgPointee<2>(0), Return(COM_UTIL_OK)));
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/input.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("output.bin")))
-        .WillOnce([](char *path_out, size_t path_size, int *errno_out, const char *)
-                  { return return_full_path(path_out, path_size, errno_out, "/tmp/output.bin"); });
+        .WillOnce([](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
+                  { return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin"); });
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _)).WillOnce(Return(input_file));
     EXPECT_CALL(mock_com_util_, com_util_fseek(input_file, 0, SEEK_END)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_ftell(input_file)).WillOnce(Return((int64_t)sizeof(kCompressedPayload)));
@@ -535,10 +536,10 @@ TEST_F(compress_cliTest, main_fails_when_path_comparison_fails)
     EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
     EXPECT_CALL(mock_com_util_, com_util_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
         .WillOnce(DoAll(
-            SetArgPointee<3>(EIO),
+            SetArgPointee<3>(com_util_error{COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, EIO}),
             Return(
                 COM_UTIL_ERR_UNKNOWN))); // [Pre-Assert確認_異常系] - com_util_paths_equal で入出力パスの比較が行われること。
-    // [Pre-Assert手順] - errno_out に EIO を設定して COM_UTIL_ERR_UNKNOWN を返却する。
+    // [Pre-Assert手順] - detail_out に EIO を設定して COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - 比較失敗時は com_util_path_get_full が呼び出されないこと。
     EXPECT_CALL(mock_com_util_, com_util_path_get_full(_, _, _, StrEq("input.bin"))).Times(0);

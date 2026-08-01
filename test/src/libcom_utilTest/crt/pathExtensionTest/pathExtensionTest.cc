@@ -141,7 +141,8 @@ TEST_F(pathExtensionTest, strip_extension_copies_as_is_when_no_extension)
 TEST_F(pathExtensionTest, strip_extension_returns_einval_for_null_path_out)
 {
     // Arrange
-    int err = 0; // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
+    com_util_error last_error;
 
     // Pre-Assert
 
@@ -149,12 +150,14 @@ TEST_F(pathExtensionTest, strip_extension_returns_einval_for_null_path_out)
     int rtc = com_util_path_strip_extension(
         NULL, 16, &err,
         "a.txt"); // [手順] - com_util_path_strip_extension(NULL, 16, &err, "a.txt") を呼び出す。
+    com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out が EINVAL であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
 // バッファー不足で ENAMETOOLONG が返ることの確認
@@ -162,7 +165,7 @@ TEST_F(pathExtensionTest, strip_extension_returns_enametoolong_when_buffer_too_s
 {
     // Arrange
     char actual[2]; // [状態] - "ab" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
-    int err = 0;    // [状態] - エラー コード格納先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
 
@@ -175,5 +178,6 @@ TEST_F(pathExtensionTest, strip_extension_returns_enametoolong_when_buffer_too_s
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
         rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_EQ(ENAMETOOLONG, err); // [確認_異常系] - errno_out が ENAMETOOLONG であること。
+    EXPECT_EQ(1,
+              com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }

@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <com_util/base/error.h>
 #include <com_util/base/platform.h>
 #include <com_util/argparser/argparser.h>
 #include <com_util/clock/clock.h>
@@ -211,24 +212,26 @@
     /* com_util/crt/path.h */ \
     EXPORT_ENTRY(com_util_normalize_path_sep, char *(COM_UTIL_API *)(char *path)) \
     EXPORT_ENTRY(com_util_path_get_full, \
-                 int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out, const char *path)) \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, const char *path)) \
     EXPORT_ENTRY(com_util_paths_equal, \
-                 int(COM_UTIL_API *)(const char *lhs, const char *rhs, int *equal_out, int *errno_out)) \
-    EXPORT_ENTRY(com_util_get_temp_dir, int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out)) \
-    EXPORT_ENTRY(com_util_path_concat_n, \
-                 int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out, size_t part_count, ...)) \
+                 int(COM_UTIL_API *)(const char *lhs, const char *rhs, int *equal_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_get_temp_dir, \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_path_concat_n, int(COM_UTIL_API *)(char *path_out, size_t path_size, \
+                                                             com_util_error *detail_out, size_t part_count, ...)) \
     EXPORT_ENTRY(com_util_path_basename, const char *(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_path_dirname, \
-                 int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out, const char *path)) \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, const char *path)) \
     EXPORT_ENTRY(com_util_path_extension, const char *(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_path_strip_extension, \
-                 int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out, const char *path)) \
-    EXPORT_ENTRY(com_util_path_join_n, \
-                 int(COM_UTIL_API *)(char *path_out, size_t path_size, int *errno_out, size_t part_count, ...)) \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, const char *path)) \
+    EXPORT_ENTRY(com_util_path_join_n, int(COM_UTIL_API *)(char *path_out, size_t path_size, \
+                                                           com_util_error *detail_out, size_t part_count, ...)) \
     /* com_util/crt/stdio.h */ \
-    EXPORT_ENTRY(com_util_fopen, FILE *(COM_UTIL_API *)(const char *path, const char *modes, int *errno_out)) \
-    EXPORT_ENTRY(com_util_freopen, \
-                 FILE *(COM_UTIL_API *)(const char *path, const char *modes, FILE *stream, int *errno_out)) \
+    EXPORT_ENTRY(com_util_fopen, \
+                 FILE *(COM_UTIL_API *)(const char *path, const char *modes, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_freopen, FILE *(COM_UTIL_API *)(const char *path, const char *modes, FILE *stream, \
+                                                          com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_remove, int(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_rename, int(COM_UTIL_API *)(const char *oldpath, const char *newpath)) \
     EXPORT_ENTRY(com_util_scanf, int(COM_UTIL_API *)(const char *format, ...)) \
@@ -240,13 +243,13 @@
     EXPORT_ENTRY(com_util_fseek, int(COM_UTIL_API *)(FILE * stream, int64_t offset, int whence)) \
     EXPORT_ENTRY(com_util_ftell, int64_t(COM_UTIL_API *)(FILE * stream)) \
     EXPORT_ENTRY(com_util_fopen_fmt, \
-                 FILE *(COM_UTIL_API *)(const char *modes, int *errno_out, const char *format, ...)) \
-    EXPORT_ENTRY(com_util_vfopen_fmt, \
-                 FILE *(COM_UTIL_API *)(const char *modes, int *errno_out, const char *format, va_list args)) \
+                 FILE *(COM_UTIL_API *)(const char *modes, com_util_error *detail_out, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vfopen_fmt, FILE *(COM_UTIL_API *)(const char *modes, com_util_error *detail_out, \
+                                                             const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_remove_fmt, int(COM_UTIL_API *)(const char *format, ...)) \
     EXPORT_ENTRY(com_util_vremove_fmt, int(COM_UTIL_API *)(const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fopen_temp, FILE *(COM_UTIL_API *)(const char *prefix, const char *modes, char *path_out, \
-                                                             size_t path_size, int *errno_out)) \
+                                                             size_t path_size, com_util_error *detail_out)) \
     /* com_util/crt/stdlib.h */ \
     EXPORT_ENTRY(com_util_getenv, int(COM_UTIL_API *)(const char *name, char *buf, size_t buf_size, int *exists_out)) \
     EXPORT_ENTRY(com_util_setenv, int(COM_UTIL_API *)(const char *name, const char *value, int overwrite)) \
@@ -293,10 +296,22 @@
                                      const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
     EXPORT_ENTRY(com_util_random_bytes, int(COM_UTIL_API *)(void *buf, size_t size)) \
     EXPORT_ENTRY(com_util_secure_zero, void(COM_UTIL_API *)(void *buf, size_t size)) \
-    EXPORT_ENTRY(com_util_result_to_string, const char *(COM_UTIL_API *)(int result)) \
-    EXPORT_ENTRY(com_util_errno_message, int(COM_UTIL_API *)(char *buf, size_t buf_size, int errno_value)) \
     EXPORT_ENTRY(com_util_passphrase_to_key, \
                  int(COM_UTIL_API *)(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len)) \
+    /* com_util/base/error.h */ \
+    EXPORT_ENTRY(com_util_error_clear, void(COM_UTIL_API *)(com_util_error * error)) \
+    EXPORT_ENTRY(com_util_error_capture_errno, void(COM_UTIL_API *)(com_util_error * error, int errno_value)) \
+    EXPORT_ENTRY(com_util_error_get_last, void(COM_UTIL_API *)(com_util_error * error_out)) \
+    EXPORT_ENTRY(com_util_error_clear_last, void(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_error_is_set, int(COM_UTIL_API *)(const com_util_error *error)) \
+    EXPORT_ENTRY(com_util_error_get_domain, com_util_error_domain_t(COM_UTIL_API *)(const com_util_error *error)) \
+    EXPORT_ENTRY(com_util_error_get_errno, int(COM_UTIL_API *)(const com_util_error *error)) \
+    EXPORT_ENTRY(com_util_error_to_result, int(COM_UTIL_API *)(const com_util_error *error)) \
+    EXPORT_ENTRY(com_util_error_get_cause, com_util_error_cause_t(COM_UTIL_API *)(const com_util_error *error)) \
+    EXPORT_ENTRY(com_util_error_is, int(COM_UTIL_API *)(const com_util_error *error, com_util_error_cause_t cause)) \
+    /* com_util/base/error_message.h */ \
+    EXPORT_ENTRY(com_util_result_to_string, const char *(COM_UTIL_API *)(int result)) \
+    EXPORT_ENTRY(com_util_error_message, int(COM_UTIL_API *)(char *buf, size_t buf_size, const com_util_error *error)) \
     /* com_util/crypto/random.h */ \
     EXPORT_ENTRY(com_util_random_bytes, int(COM_UTIL_API *)(void *buf, size_t size)) \
     /* com_util/mmap/mmap.h */ \
@@ -517,9 +532,11 @@
         EXPORT_ENTRY(com_util_wpath_to_utf8, int(COM_UTIL_API *)(char *out, size_t out_size, const wchar_t *wpath)) \
         EXPORT_ENTRY(com_util_utf8_to_wstr_alloc, wchar_t *(COM_UTIL_API *)(const char *utf8_text)) \
         EXPORT_ENTRY(com_util_wstr_to_utf8_alloc, char *(COM_UTIL_API *)(const wchar_t *wtext)) \
+        /* com_util/base/error.h */ \
+        EXPORT_ENTRY(com_util_error_capture_windows_error, \
+                     void(COM_UTIL_API *)(com_util_error * error, unsigned long error_code)) \
+        EXPORT_ENTRY(com_util_error_get_windows_error, unsigned long(COM_UTIL_API *)(const com_util_error *error)) \
         /* com_util/trace/etw.h */ \
-        EXPORT_ENTRY(com_util_win32_error_message, \
-                     int(COM_UTIL_API *)(char *buf, size_t buf_size, unsigned long error_code)) \
         EXPORT_ENTRY(com_util_etw_provider_create, \
                      com_util_etw_provider *(COM_UTIL_API *)(com_util_etw_provider_ref_t provider_ref)) \
         EXPORT_ENTRY(com_util_etw_provider_write, int(COM_UTIL_API *)(com_util_etw_provider * handle, int level, \

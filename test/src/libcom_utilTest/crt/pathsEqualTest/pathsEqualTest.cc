@@ -12,7 +12,7 @@ namespace
 
 static void assert_path_get_full_success(char *path_out, size_t path_size, const char *path)
 {
-    int err = 0;
+    com_util_error err;
     ASSERT_EQ(0, com_util_path_get_full(path_out, path_size, &err, path));
 }
 
@@ -41,7 +41,8 @@ class pathsEqualTest : public Test
 TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
 {
     // Arrange
-    int err = 0;   // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
+    com_util_error last_error;
     int equal = 0; // [状態] - equal_out の受け取り先を 0 で初期化する。
 
     // Pre-Assert
@@ -49,18 +50,20 @@ TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
     // Act
     int rc = com_util_paths_equal(nullptr, ".", &equal,
                                   &err); // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
+    com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rc); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out に EINVAL が返ること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が返ること。
+    EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
 // 比較結果の出力先が NULL の場合に不正引数で失敗することの確認
 TEST_F(pathsEqualTest, returns_invalid_argument_for_null_equal_out)
 {
     // Arrange
-    int err = 0;
+    com_util_error err;
 
     // Pre-Assert
 
@@ -71,7 +74,7 @@ TEST_F(pathsEqualTest, returns_invalid_argument_for_null_equal_out)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               result); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL, err); // [確認_異常系] - errno_out に EINVAL が返ること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が返ること。
 }
 
 // 相対パスと絶対パスが同じ実体なら一致と判定されることの確認
@@ -79,7 +82,7 @@ TEST_F(pathsEqualTest, compares_relative_and_absolute_current_directory_as_equal
 {
     // Arrange
     char absolute_current_dir[PLATFORM_PATH_MAX] = {};
-    int err = 0;
+    com_util_error err;
     int equal = 0;
 
     assert_path_get_full_success(absolute_current_dir, sizeof(absolute_current_dir),
@@ -103,7 +106,7 @@ TEST_F(pathsEqualTest, normalizes_dotdot_and_backslash_segments_before_comparing
     char base[PLATFORM_PATH_MAX] = {};
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
-    int err = 0;
+    com_util_error err;
     int equal = 0;
 
     assert_path_get_full_success(base, sizeof(base), ".");
@@ -128,7 +131,7 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
     char base[PLATFORM_PATH_MAX] = {};
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
-    int err = 0;
+    com_util_error err;
     int equal = 1;
 
     assert_path_get_full_success(base, sizeof(base), ".");
@@ -151,7 +154,7 @@ TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    int err = 0;   // [状態] - errno_out の受け取り先を 0 で初期化する。
+    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
     int equal = 0; // [状態] - equal_out の受け取り先を 0 で初期化する。
 
     // Pre-Assert
@@ -167,7 +170,7 @@ TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               rc);          // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
-    EXPECT_EQ(ENOMEM, err); // [確認_異常系] - errno_out に ENOMEM が返ること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_OUT_OF_MEMORY)); // [確認_異常系] - ENOMEM の要因が返ること。
 }
 
 // Linux では大小文字を区別して比較されることの確認
@@ -177,7 +180,7 @@ TEST_F(pathsEqualTest, keeps_case_sensitive_comparison_on_linux)
     char base[PLATFORM_PATH_MAX] = {};
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
-    int err = 0;
+    com_util_error err;
     int equal = 1;
 
     assert_path_get_full_success(base, sizeof(base), ".");
@@ -201,7 +204,7 @@ TEST_F(pathsEqualTest, ignores_case_differences_on_windows)
     char base[PLATFORM_PATH_MAX] = {};
     char lhs[PLATFORM_PATH_MAX] = {};
     char rhs[PLATFORM_PATH_MAX] = {};
-    int err = 0;
+    com_util_error err;
     int equal = 0;
 
     assert_path_get_full_success(base, sizeof(base), ".");

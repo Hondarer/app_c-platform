@@ -10,6 +10,7 @@ com_util 固有の規則、制限、遵守事項は、今後もすべて本書�
 ### 関連ドキュメント
 
 - [`platform-abstraction-guideline.md`](platform-abstraction-guideline.md) - `platform.h` / `compiler.h` の共通マクロ利用規則
+- [`error-detail-migration.md`](error-detail-migration.md) - 生の OS エラー値から `com_util_error` への移行手順
 
 ## エラー処理と戻り値規約
 
@@ -73,14 +74,16 @@ if (rc != COM_UTIL_OK)
 
 ### 戻り値とエラー詳細の役割分担
 
-戻り値は「分類済みの結果コード」を伝達し、OS 由来の詳細は出力引数で伝達します。
+戻り値は「分類済みの結果コード」を伝達し、OS 由来の詳細はドメイン付きの `com_util_error` で伝達します。
 
 | 伝達手段 | 内容 |
 |---|---|
 | 戻り値 (`int`) | `COM_UTIL_OK` または負値の分類済みエラー コード |
-| `int *errno_out` などの出力引数 | 生の詳細値。Linux では `errno`、Windows では `GetLastError()` の値 |
+| `com_util_error *detail_out` 出力引数 | OS エラーのドメイン、共通結果コード、生の詳細値 |
+| スレッド ローカルの直前値 | `com_util_error_get_last()` で取得する、直前の対応 API と同じ詳細 |
 
-分類済みコードでは失われる詳細 (`ENOENT` と `EACCES` の区別など) が必要な API のみ、`errno_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
+分類済みコードでは失われる詳細 (`ENOENT` と `EACCES` の区別など) が必要な API は、`detail_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
+対応 API は失敗時に出力引数とスレッド ローカルの直前値へ同じ詳細を記録し、成功時は両方をクリアします。  
 `errno`、`GetLastError()`、`HRESULT` などの OS エラー値を、共通結果コードとして直接返しません。
 
 ### 命名
@@ -90,12 +93,36 @@ if (rc != COM_UTIL_OK)
 
 ### 詳細分類の扱い
 
-共通結果コードより細かい粒度の分類が必要な場合も、`result.h` へコードを追加して 1 系統に集約します。  
-モジュール固有のコード体系を別に設けません。
+操作結果として呼び出し元の制御フローを分岐させる分類は、`result.h` の `COM_UTIL_ERR_*` へ追加します。  
+`COM_UTIL_ERR_*` は関数の戻り値として使用できます。
 
-そのため `result.h` は、粗い分類 (`COM_UTIL_ERR_INVALID_ARGUMENT` など) と細かい分類 (`COM_UTIL_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
-細かい分類のコードも通常の結果コードであり、関数の戻り値として返せます。  
+OS エラーの原因をプラットフォーム共通で調べる場合は、`error.h` の `COM_UTIL_CAUSE_*` を使用します。  
+要因コードは `com_util_error_get_cause()` または `com_util_error_is()` による詳細エラーの解釈専用であり、関数の戻り値には使用しません。  
+新しい要因を追加する場合は、errno と Win32 エラー コードの両方の対応表を確認します。
+
+`result.h` は、粗い分類 (`COM_UTIL_ERR_INVALID_ARGUMENT` など) と細かい操作結果 (`COM_UTIL_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
+モジュール固有の戻り値コード体系は別に設けません。  
 argparser の `_com_util_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`_com_util_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
+
+### OS エラー詳細の抽象化
+
+OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結果コード、生のエラー値をまとめて保持します。  
+公開 API の引数や戻り値で、生の `errno` または `GetLastError()` の値だけを受け渡してはなりません。  
+自前の OS 呼び出しで得た値は `com_util_error_capture_errno()` または `com_util_error_capture_windows_error()` で取り込みます。
+
+`detail_out` を持つ API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録し、成功時に両方をクリアします。  
+出力引数へ `NULL` を指定しても、スレッドの直前値は更新されます。  
+`com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されるため、保持が必要な場合は直ちにコピーするか `detail_out` を使用します。
+
+`com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
+人間可読の文字列は `com_util_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。
+
+### スレッド ローカル記憶域
+
+com_util 内部のスレッド ローカル変数には `compiler.h` の `THREAD_LOCAL` を使用します。  
+TLS 変数はソース ファイル内のファイル スコープ `static` に限定し、ヘッダーで `extern` 宣言しません。  
+同一プロセスで com_util の静的ライブラリ版と動的ライブラリ版を混在させると直前値が複数に分かれるため、混在させてはなりません。  
+Linux の共有ライブラリおよび `dlopen()` による読み込みへ対応するため、`-ftls-model=initial-exec` や `-ftls-model=local-exec` を指定しません。
 
 ### 適用対象外
 
@@ -164,18 +191,18 @@ com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
 
 ### scanf 系ラッパー
 
-`scanf`、`fscanf`、`sscanf` と各 `v*` 版は、com_util の対応するラッパーを使用します。
+`scanf`、`fscanf`、`sscanf` と各 `v*` 版は、com_util の対応するラッパーを使用します。  
 これらの API は Linux の scanf 書式と可変長引数の契約を正とし、Windows でも `_s` 版へ切り替えません。
 
-`%s`、`%S`、`%[` で文字列を格納するときは、終端文字を除いた最大文字数を幅として指定します。
-幅は宛先バッファーの要素数より小さくなければなりません。
+`%s`、`%S`、`%[` で文字列を格納するときは、終端文字を除いた最大文字数を幅として指定します。  
+幅は宛先バッファーの要素数より小さくなければなりません。  
 `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡します。
 
-非信頼なストリーム入力は `fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。
+非信頼なストリーム入力は `fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。  
 `com_util_scanf` と `com_util_fscanf` は、既存の scanf 形式との互換が必要な場合に使用します。
 
-Coverity では、幅なし `%s`、宛先容量以上の幅、com_util ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。
-ASan では、幅指定を欠くテスト用入力が境界外書き込みとして報告されることを手動で確認します。
+Coverity では、幅なし `%s`、宛先容量以上の幅、com_util ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。  
+ASan では、幅指定を欠くテスト用入力が境界外書き込みとして報告されることを手動で確認します。  
 どちらも書式が定数で、解析対象に呼び出し元とラッパー実装が含まれる場合に検出を期待できます。
 
 ### Win32 API の UTF-8 ラッパーの適用範囲
@@ -199,7 +226,7 @@ ASan では、幅指定を欠くテスト用入力が境界外書き込みとし
 
 - セキュア消去は volatile 経由で書き込み、コンパイラによる最適化除去を防ぎます。非 volatile のループや素の `memset` は使用しません
 - 乱数は暗号論的乱数源のみを使用し、取得に失敗した場合は結果コードで通知します。呼び出し側が失敗を無視して処理を続行しない設計とします
-- OS エラーの文字列化は、errno と Win32 エラー コードでドメインを型として分けます。同一の `int` 引数で両方を受け取る API は作りません
+- OS エラーの文字列化は `com_util_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
 
 ## API 命名規約
 
@@ -245,7 +272,8 @@ com_util_path_dirname(...)      /* path カテゴリの変換 */
 
 typedef struct に `_t` サフィックスを付けない規則は上位規範のとおりです。  
 enum と関数ポインターの typedef に付く `_t` (`com_util_trace_level_t` など) は現状を追認し、許容します。  
-新設の typedef enum はタグ付き (`typedef enum name { ... } name;`) を正とし、無名 enum の typedef は作成しません。
+新設の typedef enum はタグ付き (`typedef enum name { ... } name;`) を正とし、無名 enum の typedef は作成しません。  
+`com_util_error` のような値型構造体には `_t` を付けず、その分類に使用する enum 型には `com_util_error_domain_t` のように `_t` を付けます。
 
 ## 引数順序規約
 
@@ -256,18 +284,18 @@ com_util の公開 API の引数順序は、API の性格に応じて以下の 3
 入力を出力バッファーへ変換・整形する API は、CRT の `strcpy_s` 系に合わせて出力バッファーを先頭に置きます。
 
 ```c
-戻り値 関数名(out, out_size[, errno_out], 入力...);
+戻り値 関数名(out, out_size[, detail_out], 入力...);
 ```
 
 ```c
 com_util_strcpy(dest, dest_size, src);
-com_util_path_dirname(path_out, path_size, errno_out, path);
+com_util_path_dirname(path_out, path_size, detail_out, path);
 com_util_gmtime(utc_tm, timep);
 com_util_stat(buf, path);
 ```
 
 `com_util_stat` が POSIX の `stat(path, buf)` と逆順であるのは、本規約 (出力先頭) によるものです。  
-`errno_out` を提供する場合は、出力バッファーとサイズの直後に置きます。
+`detail_out` を提供する場合は、出力バッファーとサイズの直後に置きます。
 
 ### ハンドル・操作系 (COM_UTIL_OK 系)
 
@@ -275,17 +303,17 @@ com_util_stat(buf, path);
 
 ```c
 com_util_file_get_size(file, size_out);
-com_util_paths_equal(lhs, rhs, equal_out, errno_out);
+com_util_paths_equal(lhs, rhs, equal_out, detail_out);
 com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
 ```
 
 ### 適用対象外 API と _fmt 系
 
-「エラー処理と戻り値規約」の適用対象外 API は、元 API の引数順を保存し、追加の出力引数 (`errno_out` など) は末尾に付加します。
+「エラー処理と戻り値規約」の適用対象外 API は、元 API の引数順を保存し、追加の出力引数 (`detail_out` など) は末尾に付加します。
 
 ```c
-com_util_fopen(path, modes, errno_out);        /* fopen(path, modes) + errno_out */
-com_util_fopen_temp(prefix, modes, path_out, path_size, errno_out);
+com_util_fopen(path, modes, detail_out);        /* fopen(path, modes) + detail_out */
+com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
 ```
 
 `_fmt` 系はパス引数を書式で組み立てる派生 API であり、基底 API からパス引数を除いた残りの引数順を維持し、末尾に `format` と可変長引数を置きます。  
