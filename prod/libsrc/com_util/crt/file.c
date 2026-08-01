@@ -51,6 +51,7 @@ void com_util_file_init(com_util_file *file)
 #elif defined(PLATFORM_WINDOWS)
     file->handle = INVALID_HANDLE_VALUE;
 #endif /* PLATFORM_ */
+    file->writable = 0;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -129,6 +130,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags, com_uti
         file->handle = open(path, open_flags, 0644);
         if (file_is_open(file))
         {
+            file->writable = has_write;
             return com_util_error_report_success(detail_out);
         }
         else
@@ -222,6 +224,7 @@ int com_util_file_open(com_util_file *file, const char *path, int flags, com_uti
         {
             return com_util_error_report_windows_error(detail_out, GetLastError());
         }
+        file->writable = has_write;
 
         /* GENERIC_WRITE 経路の APPEND: 手動で末尾へシークする。 */
         /* FILE_APPEND_DATA 経路は OS が書き込みを EOF へ原子的に向けるためシーク不要。 */
@@ -249,6 +252,10 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len, com_ut
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
         return com_util_error_report_errno(detail_out, EINVAL);
+    }
+    if (!file->writable)
+    {
+        return com_util_error_report_errno(detail_out, EACCES);
     }
 
     if (len == 0u)

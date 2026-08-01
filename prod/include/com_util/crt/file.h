@@ -62,6 +62,7 @@ typedef struct com_util_file
 #elif defined(PLATFORM_WINDOWS)
     HANDLE handle;
 #endif /* PLATFORM_ */
+    int writable; /**< com_util_file_open() で書き込みアクセスを要求した場合に 0 以外。 */
 } com_util_file;
 
 /**
@@ -129,13 +130,17 @@ extern "C"
 
     /**
      *  @brief          ファイルにバイト列を書き込みます。
-     *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。
+     *  @param[in]      file  書き込み対象のファイル。NULL を渡してはなりません。\n
+     *                        @ref COM_UTIL_FILE_OPEN_WRITE を指定して開いている必要があります。
      *  @param[in]      buf   書き込むデータ。NULL を渡してはなりません。
      *  @param[in]      len   書き込むバイト数。
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_PERMISSION_DENIED 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。\n
+     *                  読み取り専用でオープンしたハンドルに対しては、OS の書き込み呼び出しを
+     *                  行わずに @ref COM_UTIL_ERR_PERMISSION_DENIED を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
