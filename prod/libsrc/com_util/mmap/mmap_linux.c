@@ -28,7 +28,6 @@ struct com_util_mmap
     com_util_local_lock *rwlock_guard;    /* rwlock の初回生成を直列化する。 */
     char *identity;                       /* rwlock の識別子として使うパスの複製。 */
     com_util_file file;
-    int _pad_struct_end;
 };
 
 static char *duplicate_path(const char *path)

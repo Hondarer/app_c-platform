@@ -77,10 +77,6 @@ struct com_util_trace_file_sink
     com_util_file_id self_id;
     /** 低レベル ファイル I/O ハンドル。 */
     com_util_file file;
-#if defined(PLATFORM_LINUX)
-    /** Linux で com_util_file (int) の直後を 8 バイト境界に揃えるためのパディング。 */
-    int pad;
-#endif /* PLATFORM_LINUX */
     /** 保持する旧世代数。 */
     int generations;
     /** 共有モードの場合 1 (COM_UTIL_TRACE_FILE_SINK_SHARED 指定時)。 */
