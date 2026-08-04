@@ -154,7 +154,7 @@ extern "C"
      *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_error_capture_windows_error(com_util_error *error,
-                                                                          unsigned long error_code);
+                                                                           unsigned long error_code);
 
     /**
      *  @brief          現在の Win32 エラー コードを詳細エラーへ取り込みます。
@@ -183,6 +183,19 @@ extern "C"
      *  直前値はスレッド ローカルであり、他スレッドの記録と干渉しません。
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_error_get_last(com_util_error *error_out);
+
+    /**
+     *  @brief          現在のスレッドの直前値を、保存済みの詳細エラーで更新します。
+     *  @param[in]      error 設定する値。NULL の場合は直前値をクリアします。
+     *
+     *  OS API の失敗後に保存した詳細を、後処理で直前値が変化した後に復元する場合に使用します。
+     *  指定した値は現在のスレッドの記憶域へコピーされ、呼び出し元の値は変更しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  更新する対象は呼び出したスレッドの直前値だけです。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_error_set_last(const com_util_error *error);
 
     /**
      *  @brief          現在のスレッドに記録された詳細エラーをクリアします。

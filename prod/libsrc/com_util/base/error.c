@@ -308,6 +308,20 @@ void com_util_error_get_last(com_util_error *error_out)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+void com_util_error_set_last(const com_util_error *error)
+{
+    if (error == NULL)
+    {
+        com_util_error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+    }
+    else
+    {
+        com_util_error_last = *error;
+    }
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_error_clear_last(void)
 {
     com_util_error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);

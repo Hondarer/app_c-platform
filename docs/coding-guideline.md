@@ -113,6 +113,8 @@ OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結
 `detail_out` を持つ API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録し、成功時に両方をクリアします。  
 `detail_out` へ `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、スレッドの直前値は更新されます。  
 `com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されるため、保持が必要な場合は直ちにコピーするか `detail_out` を使用します。
+OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `com_util_error_set_last()` で保存値を復元します。
+`com_util_error_set_last()` には有効な保存値だけを指定し、NULL を指定した場合は現在のスレッドの直前値をクリアします。
 
 `com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
 人間可読の文字列は `com_util_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。

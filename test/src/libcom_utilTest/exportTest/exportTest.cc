@@ -330,6 +330,7 @@
     EXPORT_ENTRY(com_util_error_capture_errno, void(COM_UTIL_API *)(com_util_error * error, int errno_value)) \
     EXPORT_ENTRY(com_util_error_capture_current_errno, void(COM_UTIL_API *)(com_util_error * error)) \
     EXPORT_ENTRY(com_util_error_get_last, void(COM_UTIL_API *)(com_util_error * error_out)) \
+    EXPORT_ENTRY(com_util_error_set_last, void(COM_UTIL_API *)(const com_util_error *error)) \
     EXPORT_ENTRY(com_util_error_clear_last, void(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_error_is_set, int(COM_UTIL_API *)(const com_util_error *error)) \
     EXPORT_ENTRY(com_util_error_get_domain, com_util_error_domain_t(COM_UTIL_API *)(const com_util_error *error)) \

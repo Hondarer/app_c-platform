@@ -280,6 +280,38 @@ TEST_F(errorTest, capture_current_errno_preserves_current_value)
                           &error)); // [確認_正常系] - com_util_error_get_errno の戻り値が ENOENT であること。
 }
 
+// 保存済みの詳細エラーによる TLS の更新とクリアの確認
+TEST_F(errorTest, set_last_copies_saved_error_and_null_clears_it)
+{
+    // Arrange
+    const com_util_error saved_error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
+    com_util_error copied_error;
+    com_util_error cleared_error;
+
+    com_util_error_clear_last(); // [状態] - 現在のスレッドの TLS 詳細エラーを空にする。
+
+    // Pre-Assert
+
+    // Act
+    com_util_error_set_last(&saved_error);   // [手順] - 保存済みの詳細エラーを現在のスレッドの TLS へ設定する。
+    com_util_error_get_last(&copied_error);  // [手順] - 設定後の TLS 詳細エラーを取得する。
+    com_util_error_set_last(NULL);           // [手順] - NULL を指定して現在のスレッドの TLS をクリアする。
+    com_util_error_get_last(&cleared_error); // [手順] - クリア後の TLS 詳細エラーを取得する。
+
+    // Assert
+    EXPECT_EQ(saved_error.domain,
+              copied_error.domain); // [確認_正常系] - 設定後の TLS に保存済みの domain がコピーされること。
+    EXPECT_EQ(saved_error.result,
+              copied_error.result); // [確認_正常系] - 設定後の TLS に保存済みの result がコピーされること。
+    EXPECT_EQ(saved_error.code,
+              copied_error.code); // [確認_正常系] - 設定後の TLS に保存済みの code がコピーされること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
+              cleared_error.domain); // [確認_正常系] - NULL 指定後の TLS の domain が空であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              cleared_error.result);    // [確認_正常系] - NULL 指定後の TLS の result が COM_UTIL_OK であること。
+    EXPECT_EQ(0UL, cleared_error.code); // [確認_正常系] - NULL 指定後の TLS の code が 0 であること。
+}
+
 // NULL、空の値、ドメイン不一致に対する参照 API の確認
 TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
 {
@@ -496,8 +528,8 @@ TEST_F(errorTest, last_error_is_isolated_between_threads)
     int join_invalid_result = COM_UTIL_ERR_UNKNOWN;
 
     (void)com_util_remove("com_util_error_tls_missing_file",
-                          NULL);                              // [状態] - NOT_FOUND 用のファイルが存在しない状態にする。
-    com_util_error_clear_last();                              // [状態] - メイン スレッドの TLS 詳細エラーを空にする。
+                          NULL); // [状態] - NOT_FOUND 用のファイルが存在しない状態にする。
+    com_util_error_clear_last(); // [状態] - メイン スレッドの TLS 詳細エラーを空にする。
 
     // Pre-Assert
 
