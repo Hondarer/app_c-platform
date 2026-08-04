@@ -94,6 +94,8 @@
 #define COM_UTIL_ERR_DUPLICATE_OPTION     (-26) /**< 単数指定の項目が複数回指定されました。 */
 #define COM_UTIL_ERR_TOO_MANY_ARGUMENTS   (-27) /**< 引数の個数が受入数を超えています。 */
 #define COM_UTIL_ERR_TOO_MANY_OCCURRENCES (-28) /**< 同一項目の出現回数が容量を超えています。 */
+#define COM_UTIL_ERR_INVALID_PATTERN      (-29) /**< 正規表現パターンの構文が不正です。 */
+#define COM_UTIL_ERR_INVALID_ENCODING     (-30) /**< 文字列が UTF-8 として不正です。 */
 
 /* 制御: -40 〜 */
 #define COM_UTIL_ERR_EOF      (-40) /**< 入力が EOF に達しました。 */

@@ -32,6 +32,8 @@ static_assert(COM_UTIL_ERR_TOO_MANY_ARGUMENTS == -27,
               "COM_UTIL_ERR_TOO_MANY_ARGUMENTS の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_TOO_MANY_OCCURRENCES == -28,
               "COM_UTIL_ERR_TOO_MANY_OCCURRENCES の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_INVALID_PATTERN == -29, "COM_UTIL_ERR_INVALID_PATTERN の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_INVALID_ENCODING == -30, "COM_UTIL_ERR_INVALID_ENCODING の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_EOF == -40, "COM_UTIL_ERR_EOF の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_CANCELED == -41, "COM_UTIL_ERR_CANCELED の ABI 値を変更してはなりません。");
 
@@ -58,6 +60,8 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_DUPLICATE_OPTION,
                             COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
                             COM_UTIL_ERR_TOO_MANY_OCCURRENCES,
+                            COM_UTIL_ERR_INVALID_PATTERN,
+                            COM_UTIL_ERR_INVALID_ENCODING,
                             COM_UTIL_ERR_EOF,
                             COM_UTIL_ERR_CANCELED};
 }

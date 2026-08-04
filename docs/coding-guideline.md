@@ -46,6 +46,8 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | | `COM_UTIL_ERR_DUPLICATE_OPTION` | -26 | 単数指定の項目が複数回指定された |
 | | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` | -27 | 引数の個数が受入数を超えている |
 | | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` | -28 | 同一項目の出現回数が容量を超えている |
+| | `COM_UTIL_ERR_INVALID_PATTERN` | -29 | 正規表現パターンの構文が不正である |
+| | `COM_UTIL_ERR_INVALID_ENCODING` | -30 | 文字列が UTF-8 として不正である |
 | 制御<br> (-40 〜) | `COM_UTIL_ERR_EOF` | -40 | 入力が EOF に達した |
 | | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
 
@@ -115,6 +117,10 @@ OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結
 `com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されるため、保持が必要な場合は直ちにコピーするか `detail_out` を使用します。
 OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `com_util_error_set_last()` で保存値を復元します。
 `com_util_error_set_last()` には有効な保存値だけを指定し、NULL を指定した場合は現在のスレッドの直前値をクリアします。
+
+失敗の原因が OS 呼び出しに由来しない場合 (引数の検証エラー、パターンの構文エラーなど) は、`com_util_error` に格納すべき詳細が存在しません。  
+この場合は `detail_out` と直前値の双方をクリアし、原因は共通結果コードだけで表します。  
+`com_util_error_is_set()` が偽であることは「OS 由来の詳細がない」ことを意味し、成功したことを意味しません。呼び出し側は必ず戻り値で成否を判定します。
 
 `com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
 人間可読の文字列は `com_util_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。

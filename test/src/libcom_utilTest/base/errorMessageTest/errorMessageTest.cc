@@ -32,6 +32,8 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_DUPLICATE_OPTION,
                             COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
                             COM_UTIL_ERR_TOO_MANY_OCCURRENCES,
+                            COM_UTIL_ERR_INVALID_PATTERN,
+                            COM_UTIL_ERR_INVALID_ENCODING,
                             COM_UTIL_ERR_EOF,
                             COM_UTIL_ERR_CANCELED};
 }

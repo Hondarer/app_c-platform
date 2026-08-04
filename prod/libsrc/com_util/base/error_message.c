@@ -93,6 +93,12 @@ const char *com_util_result_to_string(const int result)
     case COM_UTIL_ERR_TOO_MANY_OCCURRENCES:
         text = "too many occurrences";
         break;
+    case COM_UTIL_ERR_INVALID_PATTERN:
+        text = "invalid pattern";
+        break;
+    case COM_UTIL_ERR_INVALID_ENCODING:
+        text = "invalid encoding";
+        break;
     case COM_UTIL_ERR_EOF:
         text = "end of input";
         break;

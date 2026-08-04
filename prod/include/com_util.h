@@ -104,6 +104,12 @@
  */
 
 /**
+ *  @defgroup       COM_UTIL_REGEX 正規表現 (regex)
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @brief          UTF-8 文字列に対する正規表現の照合 API です。
+ */
+
+/**
  *  @defgroup       COM_UTIL_RUNTIME ランタイム (runtime)
  *  @ingroup        COM_UTIL_PUBLIC_API
  *  @brief          プロセス、モジュール、シャットダウン、メモリ ロックなどのランタイム支援 API です。
@@ -167,6 +173,8 @@
 
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>
+
+#include <com_util/regex/regex.h>
 
 #include <com_util/runtime/module.h>
 #include <com_util/runtime/memory_lock.h>

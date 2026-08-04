@@ -34,6 +34,8 @@
 #include <com_util/prompt/prompt.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/memory_lock.h>
+#include <com_util/regex/regex.h>
+
 #include <com_util/runtime/module.h>
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/shutdown.h>
@@ -397,6 +399,35 @@
     EXPORT_ENTRY(com_util_elevated_process_extract_result_target, \
                  int(COM_UTIL_API *)(int *argc, char **argv, int *detected_out)) \
     EXPORT_ENTRY(com_util_elevated_process_report_result, int(COM_UTIL_API *)(const char *message)) \
+    /* com_util/regex/regex.h */ \
+    EXPORT_ENTRY(com_util_regex_create, int(COM_UTIL_API *)(const char *pattern, unsigned int flags, \
+                                                            com_util_regex **regex_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_dispose, void(COM_UTIL_API *)(com_util_regex * regex)) \
+    EXPORT_ENTRY(com_util_regex_get_group_count, size_t(COM_UTIL_API *)(const com_util_regex *regex)) \
+    EXPORT_ENTRY(com_util_regex_search, \
+                 int(COM_UTIL_API *)(const com_util_regex *regex, const char *text, size_t text_len, \
+                                     size_t start_offset, unsigned int match_flags, com_util_regex_match *matches_out, \
+                                     size_t matches_capacity, int *matched_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_matches, \
+                 int(COM_UTIL_API *)(const com_util_regex *regex, const char *text, size_t text_len, \
+                                     unsigned int match_flags, com_util_regex_match *matches_out, \
+                                     size_t matches_capacity, int *matched_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_replace, \
+                 int(COM_UTIL_API *)(const com_util_regex *regex, const char *text, size_t text_len, \
+                                     const char *replacement, unsigned int flags, char *result_out, \
+                                     size_t result_size, size_t *required_size_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_iter_create, \
+                 int(COM_UTIL_API *)(const com_util_regex *regex, const char *text, size_t text_len, \
+                                     unsigned int match_flags, com_util_regex_iter **iter_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_iter_next, \
+                 int(COM_UTIL_API *)(com_util_regex_iter * iter, com_util_regex_match * matches_out, \
+                                     size_t matches_capacity, int *has_match_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_regex_iter_dispose, void(COM_UTIL_API *)(com_util_regex_iter * iter)) \
+    EXPORT_ENTRY(com_util_regex_split, \
+                 int(COM_UTIL_API *)(const com_util_regex *regex, const char *text, size_t text_len, size_t max_parts, \
+                                     unsigned int match_flags, com_util_regex_match *parts_out, size_t parts_capacity, \
+                                     size_t *part_count_out, com_util_error *detail_out)) \
     /* com_util/runtime/memory_lock.h */ \
     EXPORT_ENTRY(com_util_memory_lock_range, int(COM_UTIL_API *)(const void *address, size_t size)) \
     EXPORT_ENTRY(com_util_memory_unlock_range, int(COM_UTIL_API *)(const void *address, size_t size)) \
