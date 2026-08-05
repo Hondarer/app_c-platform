@@ -96,7 +96,7 @@ extern "C"
     typedef struct com_util_error
     {
         com_util_error_domain_t domain; /**< code の由来。 */
-        int result;                     /**< 対応する共通結果コード。 */
+        int result;                     /**< 対応する共通結果コード (COM_UTIL_OK または COM_UTIL_ERR_*)。 */
         unsigned long code;             /**< ドメイン固有の生のエラー値。 */
     } com_util_error;
 
