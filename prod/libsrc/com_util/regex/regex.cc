@@ -358,7 +358,17 @@ class regex_traits : public std::regex_traits<wchar_t>
     }
 };
 
+#if defined(COMPILER_MSVC)
+/*
+ * MSVC の <regex> はユーザー定義 traits と組み合わせると、ECMAScript の
+ * 文字クラスと置換書式を正しく処理できない。
+ * 既定 traits は classic ロケールを使用し、必要な ASCII の意味を保持する。
+ * see: https://developercommunity.visualstudio.com/content/problem/547543/stdregex-implementation-is-depending-on-non-standa.html
+ */
+typedef std::wregex engine_type;
+#else
 typedef std::basic_regex<wchar_t, regex_traits> engine_type;
+#endif /* COMPILER_MSVC */
 typedef std::match_results<std::wstring::const_iterator> match_type;
 
 /** コンパイル フラグとして受け付けるビットの和。 */
