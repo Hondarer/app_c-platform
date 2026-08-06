@@ -60,7 +60,7 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 この関数は次の仕組みで昇格プロセスの出力を元のコンソールに表示します。UAC 昇格 (`ShellExecuteExW` の `runas` 動詞) では昇格プロセスを別セキュリティ コンテキストで生成するため、親のハンドルを継承できません。そこで親プロセス ID と親コンソールの window ハンドルをコマンド ラインで渡し、昇格プロセス側が親コンソールへ接続し直します。親側は昇格プロセスの一時コンソールを隠して起動するため、別ウインドウは表示されません。
 
-```{.mermaid caption="昇格時のコンソール引き継ぎ"}
+```mermaid
 sequenceDiagram
     participant P as 親プロセス (未昇格)
     participant C as 昇格プロセス
@@ -70,6 +70,8 @@ sequenceDiagram
     C->>C: CONOUT$ / CONIN$ を std へ再接続
     C-->>P: 同一コンソールへ出力
 ```
+
+CodeBlock: 昇格時のコンソール引き継ぎ
 
 昇格直後は、子プロセスの一時コンソール (conhost) の割り当てが非同期に進みます。子プロセスが自前コンソールへ繋がったままの瞬間に `AttachConsole` を呼ぶと `ERROR_ACCESS_DENIED` で失敗します (`AttachConsole` は呼び出し元がすでにコンソールへ接続済みだと失敗します)。この失敗時は標準ハンドルの付け替えを行わず、かつ直前に `FreeConsole` 済みのため、子プロセスはどのコンソールにも繋がらず出力先を失います。これを避けるため、`FreeConsole` と `AttachConsole` を有界リトライし、割り当てが落ち着くまで数回試行します。通常は 1 回目か 2 回目で接続できます。
 
