@@ -82,8 +82,16 @@ enum char_class_bit : unsigned int
  *  `getloc()` が返す classic ロケールは、libstdc++ の内部実装がパターン走査時に
  *  `narrow()` と `is(digit)` を呼ぶためだけに使用される。
  *  文字の分類と大小の畳み込みは本クラスが行うため、照合結果はロケールに依存しない。
+ *
+ *  `std::regex_traits<wchar_t>` を public 継承しているのは、MSVC の `<regex>` 内部実装
+ *  (`_Matcher` など) がユーザー定義の regex_traits に対しても `std::regex_traits<>` 固有の
+ *  非標準の型エイリアス (`_Uelem` など) を要求してしまう不具合を回避するためである。
+ *  本クラスは標準インターフェースのメンバーをすべて再定義して基底の実装を隠蔽するため、
+ *  ロケール依存の挙動は継承しない。
+ *  see: https://developercommunity.visualstudio.com/content/problem/547543/stdregex-implementation-is-depending-on-non-standa.html
+ *  see: https://github.com/microsoft/STL/wiki/Changelog
  */
-class regex_traits
+class regex_traits : public std::regex_traits<wchar_t>
 {
   public:
     typedef wchar_t char_type;
