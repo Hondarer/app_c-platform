@@ -238,9 +238,16 @@ ASan では、幅指定を欠くテスト用入力が境界外書き込みとし
 
 ## API 命名規約
 
-com_util の公開 API 名に適用する規則を示します。  
-既存 API の名前は ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
-本規約は新設 API と、移行を伴う変更の際の改名先に適用します。
+com_util の公開 API 名およびライブラリ内共有 API 名に適用する規則を示します。  
+上位規範の「命名規則」がライブラリ接頭辞と記法までを定めるのに対し、本章はカテゴリ名詞と動詞の並び順など com_util 固有の構成規則を定めます。
+
+既存 API の名前は原則として ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
+ただし、上位規範の「予約識別子の回避」に反する形式 (`_t` サフィックス、アンダースコア前置き) の是正に限り、この凍結を破棄します。  
+規格が処理系用に予約している名前空間の侵犯であり、将来の libc や処理系の拡張とシンボルが衝突しうるためです。  
+凍結を破棄して改名した範囲は [`api-consistency-migration.md`](api-consistency-migration.md) に記録します。
+
+上記の例外を除き、本規約は新設 API と、移行を伴う変更の際の改名先に適用します。  
+上位規範が定めるライブラリ内共有の `<lib>_internal_` 接頭辞への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
 
 ### 基本形
 
@@ -252,6 +259,17 @@ com_util_tracer_set_name(...)   /* tracer カテゴリの setter */
 com_util_path_dirname(...)      /* path カテゴリの変換 */
 ```
 
+ライブラリ内共有 (`include_internal/`) の関数と型は、上位規範に従い `com_util_internal_` を前置きします。  
+カテゴリ名詞と動詞の並びは公開 API と同じ規則を適用し、接頭辞だけを差し替えます。
+
+```c
+/* 公開 */
+com_util_tracer_set_name(...)
+
+/* ライブラリ内共有 */
+com_util_internal_trace_resolve_timestamp(...)
+```
+
 カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms` など) に限り、動詞先行を許容します。  
 既存の `com_util_get_temp_dir`、`com_util_get_monotonic_ms`、`com_util_normalize_path_sep`、`com_util_paths_equal` は本規約に先行するため凍結対象です。
 
@@ -261,27 +279,58 @@ com_util_path_dirname(...)      /* path カテゴリの変換 */
 既存 API の破棄動詞 (`*_destroy`、`*_detach`、`*_close`、`*_stop`、`*_release`) は凍結し、同一ハンドル型の中では既存の動詞に合わせます (例: sync カテゴリへの追加は `*_destroy` に合わせる)。
 
 プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません (`com_util_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません)。  
-`com_util_argparser_init` が該当します。既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であり、利用側による破棄を必要としない設計です。
+`com_util_argparser_default_init` が該当します。既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であり、利用側による破棄を必要としない設計です。
 
-### アンダースコア前置きの公開シンボル
+### アンダースコア前置きの廃止
 
-`_com_util_` 前置きの公開シンボルは、直接呼び出しを想定しないシンボルに限定します。  
-許容する用途は以下の 2 種のみとします。
+`_com_util_` 前置きのシンボルは使用しません。  
+C 標準がアンダースコアで始まる識別子をファイル スコープで予約しているためです。
 
-| 用途 | 例 |
-|---|---|
-| 呼び出し元情報 (`__FILE__` / `__LINE__`) などを補うマクロの実体 | `_com_util_tracer_write` |
-| テスト専用フック (`_for_test` サフィックスを併用) | `_com_util_shutdown_invoke_for_test` |
+以前は、マクロの実体とテスト専用フックの 2 用途に限り `_com_util_` 前置きを許容していました。  
+この扱いは撤回し、上位規範の「予約識別子の回避」が定める 3 規則に従います。
 
-明示ハンドル版と既定ハンドル版の区別 (argparser の `_com_util_argparser_*` / `com_util_argparser_*`) には今後使用しません。  
-既存の argparser API は凍結対象です。
+| 用途 | com_util での形式 | 例 |
+|---|---|---|
+| 呼び出し元情報 (`__FILE__` / `__LINE__`) を補うマクロの実体 | `_at` サフィックス | `com_util_tracer_write_at` |
+| 既定インスタンス版と明示ハンドル版の対 | 明示ハンドル版が正名、既定版は `_default_` を挟む | `com_util_argparser_parse` と `com_util_argparser_default_parse` |
+| テスト専用フック | `_for_test` サフィックスのみ | `com_util_shutdown_invoke_for_test` |
+
+テスト専用フックは公開ヘッダーに宣言しますが、Doxygen の公開グループには含めず `@internal` を付けます。  
+直接の呼び出しを想定しないことは、名前ではなくドキュメント側で表現します。
+
+旧名との対応は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+
+### 既定インスタンス版 API の命名
+
+既定インスタンスを暗黙に使う API は、明示ハンドル版の名前に `_default_` を挟んだ名前とします。
+
+```c
+/* 明示ハンドル版 (正名) */
+int com_util_argparser_parse(com_util_argparser *parser, int argc, char **argv);
+
+/* 既定インスタンス版 */
+int com_util_argparser_default_parse(int argc, char **argv);
+```
+
+明示ハンドル版を正名とするのは、ハンドルを先頭引数に取る形が「引数順序規約」のハンドル・操作系に準拠した形であり、既定インスタンス版はそこからハンドルを暗黙化した派生形だからです。
+
+既定インスタンスの初期化と取得も同じ命名族に含めます。  
+`com_util_argparser_default_init` と `com_util_argparser_default_get` が該当します。
 
 ### typedef の規則 (上位規範への追記)
 
-typedef struct に `_t` サフィックスを付けない規則は上位規範のとおりです。  
-enum と関数ポインターの typedef に付く `_t` (`com_util_trace_level_t` など) は現状を追認し、許容します。  
-新設の typedef enum はタグ付き (`typedef enum name { ... } name;`) を正とし、無名 enum の typedef は作成しません。  
-`com_util_error` のような値型構造体には `_t` を付けず、その分類に使用する enum 型には `com_util_error_domain_t` のように `_t` を付けます。
+型名の規則は上位規範の「型の命名規則」に完全に従います。  
+struct、enum、union、関数ポインターのいずれにも `_t` サフィックスを付けません。
+
+以前は enum と関数ポインターの `_t` を現状追認として許容していましたが、この扱いは撤回しました。  
+撤回に伴って改名した公開型の一覧は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+
+`_t` を維持する例外は、OS / SDK が定義する型の alias に限ります。
+
+| 型 | 定義 | 例外とする理由 |
+|---|---|---|
+| `com_util_file_stat_t` | `include/com_util/crt/sys/stat.h` | POSIX の `struct stat` および MSVC の `struct _stat64` の alias であり、元の型名を保存する |
+| `com_util_etw_provider_ref_t` | `include/com_util/trace/etw.h` | Windows TraceLogging SDK の内部型への参照の alias であり、SDK の型定義に従う |
 
 ## 引数順序規約
 
@@ -345,8 +394,22 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できない | 結果コード戻り + `size_t *written_out` へ変更 |
 | `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なる | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
 | `com_util_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `com_util_process_options` へ統一。同種の `com_util_process_stdio_t` も `com_util_process_stdio` へ統一 |
+| enum と関数ポインターの `_t` サフィックス (公開 18 型) | POSIX が予約する名前空間の侵犯。struct とも規則が食い違う | `_t` を除去。関数ポインターはサフィックスを `_fn` へ統一。OS / SDK 由来の alias 2 型のみ例外として維持 |
+| `_com_util_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を正名へ、テスト フックを前置きなしへ変更 |
+| 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `com_util_` がなく、リンク時に利用側と衝突しうる | `com_util_` を付与 (当時の上位規範)。以降の新設・改名では上位規範の `com_util_internal_` に従う |
+| `static` 関数へのライブラリ接頭辞 (11 件) | 外部リンケージを持つかのように読め、公開シンボルの点検で偽陽性を生む | 接頭辞を除去 |
 
-`com_util_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
+`com_util_argparser_default_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
+
+### 凍結対象として残す逸脱
+
+次のマクロは公開ヘッダーにありながらライブラリ接頭辞を持ちませんが、利用側の改修規模が大きいため凍結対象とし、改名しません。
+
+| ヘッダー | マクロ |
+|---|---|
+| `include/com_util/base/platform.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR` |
+| `include/com_util/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
+| `include/com_util/base/shared_lib_lifecycle.h` | `DLLMAIN_COM_UTIL_INFO_MSG` |
 
 ## 標準時刻型 (com_util_timespec)
 
