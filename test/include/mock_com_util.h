@@ -96,6 +96,10 @@ extern int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf
 extern int delegate_real_com_util_setenv(const char *name, const char *value, int overwrite,
                                          com_util_error *detail_out);
 extern int delegate_real_com_util_unsetenv(const char *name, com_util_error *detail_out);
+extern int delegate_real_com_util_parse_int64(int64_t *value_out, const char *text, int base);
+extern int delegate_real_com_util_parse_uint64(uint64_t *value_out, const char *text, int base);
+extern int delegate_real_com_util_parse_int(int *value_out, const char *text, int base);
+extern int delegate_real_com_util_parse_double(double *value_out, const char *text);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, com_util_error *detail_out,
                                                 const char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
@@ -107,6 +111,9 @@ extern int delegate_real_com_util_scanf(const char *format, va_list args);
 extern int delegate_real_com_util_vscanf(const char *format, va_list args);
 extern int delegate_real_com_util_fscanf(FILE *stream, const char *format, va_list args);
 extern int delegate_real_com_util_vfscanf(FILE *stream, const char *format, va_list args);
+extern int delegate_real_com_util_snprintf(char *dest, size_t dest_size, const char *format, ...);
+extern int delegate_real_com_util_vsnprintf(char *dest, size_t dest_size, const char *format, va_list args);
+extern int delegate_real_com_util_fgets(char *dest, size_t dest_size, FILE *stream, com_util_error *detail_out);
 extern int delegate_real_com_util_rename(const char *oldpath, const char *newpath, com_util_error *detail_out);
 extern int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...);
 extern int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args);
@@ -140,6 +147,8 @@ extern int delegate_real_com_util_vopen_fmt(int flags, int mode, com_util_error 
 extern int delegate_real_com_util_strcpy(char *dest, size_t dest_size, const char *src);
 extern int delegate_real_com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 extern int delegate_real_com_util_strcat(char *dest, size_t dest_size, const char *src);
+extern int delegate_real_com_util_strncat(char *dest, size_t dest_size, const char *src, size_t count);
+extern char *delegate_real_com_util_strtok_r(char *str, const char *delim, char **saveptr);
 extern char *delegate_real_com_util_strdup(const char *src);
 extern int delegate_real_com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
@@ -518,6 +527,10 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_ctime, (char *, size_t, const time_t *));
     MOCK_METHOD(int, com_util_getenv, (const char *, char *, size_t, int *, com_util_error *));
     MOCK_METHOD(int, com_util_setenv, (const char *, const char *, int, com_util_error *));
+    MOCK_METHOD(int, com_util_parse_int64, (int64_t *, const char *, int));
+    MOCK_METHOD(int, com_util_parse_uint64, (uint64_t *, const char *, int));
+    MOCK_METHOD(int, com_util_parse_int, (int *, const char *, int));
+    MOCK_METHOD(int, com_util_parse_double, (double *, const char *));
     MOCK_METHOD(int, com_util_unsetenv, (const char *, com_util_error *));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, com_util_error *, const char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, com_util_error *));
@@ -528,6 +541,9 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_vscanf, (const char *, va_list));
     MOCK_METHOD(int, com_util_fscanf, (FILE *, const char *, va_list));
     MOCK_METHOD(int, com_util_vfscanf, (FILE *, const char *, va_list));
+    MOCK_METHOD(int, com_util_snprintf, (char *, size_t, const char *));
+    MOCK_METHOD(int, com_util_vsnprintf, (char *, size_t, const char *));
+    MOCK_METHOD(int, com_util_fgets, (char *, size_t, FILE *, com_util_error *));
     MOCK_METHOD(int, com_util_rename, (const char *, const char *, com_util_error *));
     MOCK_METHOD(int, com_util_fprintf, (FILE *, const char *));
     MOCK_METHOD(int, com_util_vfprintf, (FILE *, const char *));
@@ -558,6 +574,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_strcpy, (char *, size_t, const char *));
     MOCK_METHOD(int, com_util_strncpy, (char *, size_t, const char *, size_t));
     MOCK_METHOD(int, com_util_strcat, (char *, size_t, const char *));
+    MOCK_METHOD(int, com_util_strncat, (char *, size_t, const char *, size_t));
+    MOCK_METHOD(char *, com_util_strtok_r, (char *, const char *, char **));
     MOCK_METHOD(char *, com_util_strdup, (const char *));
     MOCK_METHOD(int, com_util_wcscpy, (wchar_t *, size_t, const wchar_t *));
 

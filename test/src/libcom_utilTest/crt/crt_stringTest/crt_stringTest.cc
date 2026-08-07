@@ -102,6 +102,147 @@ TEST_F(crt_stringTest, strcat_success)
     EXPECT_STREQ("abcdef", buf); // [確認_正常系] - バッファーが "abcdef" になること。
 }
 
+// count 指定で連結元が切り詰められることの確認
+TEST_F(crt_stringTest, strncat_truncates_to_count)
+{
+    // Arrange
+    char buf[16] = "abc"; // [状態] - 連結先バッファーを "abc" で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_strncat(buf, sizeof(buf), "defgh", 2u); // [手順] - "defgh" の先頭 2 文字を連結する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+}
+
+// count が連結元の長さを超える場合に全体が連結されることの確認
+TEST_F(crt_stringTest, strncat_copies_whole_source_when_count_exceeds_length)
+{
+    // Arrange
+    char buf[16] = "abc"; // [状態] - 連結先バッファーを "abc" で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_strncat(buf, sizeof(buf), "de", 10u); // [手順] - 長さ 2 の "de" に count 10 を指定して連結する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+}
+
+// 連結結果がちょうど収まる場合に成功することの確認
+TEST_F(crt_stringTest, strncat_exact_fit_succeeds)
+{
+    // Arrange
+    char buf[6] = "abc"; // [状態] - 終端を含めて "abcde" がちょうど収まる 6 バイトのバッファーを "abc" で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_strncat(buf, sizeof(buf), "de", 2u); // [手順] - 残り容量ちょうどの "de" を連結する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+}
+
+// 連結結果が収まらない場合に連結先が変更されないことの確認
+TEST_F(crt_stringTest, strncat_buffer_shortage_keeps_dest)
+{
+    // Arrange
+    char buf[6] = "abc"; // [状態] - 6 バイトのバッファーを "abc" で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_strncat(buf, sizeof(buf), "defg", 4u); // [手順] - 残り容量を超える 4 文字を連結させる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              ret);           // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("abc", buf); // [確認_異常系] - 連結先が "abc" のまま変更されないこと。
+}
+
+// 連結先が null 終端していない場合にバッファー不足を返すことの確認
+TEST_F(crt_stringTest, strncat_unterminated_dest_returns_buffer_too_small)
+{
+    // Arrange
+    char buf[4] = {'a', 'b', 'c', 'd'}; // [状態] - null 終端を持たない 4 バイトのバッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_strncat(buf, sizeof(buf), "e", 1u); // [手順] - 非終端のバッファーへ "e" を連結させる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              ret);        // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
+}
+
+// 連結元が NULL の場合に引数エラーになることの確認
+TEST_F(crt_stringTest, strncat_null_argument)
+{
+    // Arrange
+    char buf[16] = "abc"; // [状態] - 連結先バッファーを "abc" で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret =
+        com_util_strncat(buf, sizeof(buf), NULL, 1u); // [手順] - 連結元に NULL を渡して com_util_strncat を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              ret); // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// 文字列がトークンへ分割されることの確認
+TEST_F(crt_stringTest, strtok_r_splits_tokens)
+{
+    // Arrange
+    char text[] = "a,b,c"; // [状態] - カンマ区切りの文字列 "a,b,c" を用意する。
+    char *saveptr = NULL;
+    char *first;
+    char *second;
+    char *third;
+    char *fourth;
+
+    // Pre-Assert
+
+    // Act
+    first = com_util_strtok_r(text, ",", &saveptr);  // [手順] - 1 回目は対象文字列を指定して呼び出す。
+    second = com_util_strtok_r(NULL, ",", &saveptr); // [手順] - 2 回目は NULL を指定して呼び出す。
+    third = com_util_strtok_r(NULL, ",", &saveptr);  // [手順] - 3 回目は NULL を指定して呼び出す。
+    fourth = com_util_strtok_r(NULL, ",", &saveptr); // [手順] - 4 回目は NULL を指定して呼び出す。
+
+    // Assert
+    EXPECT_STREQ("a", first);        // [確認_正常系] - 1 回目の com_util_strtok_r が "a" を返すこと。
+    EXPECT_STREQ("b", second);       // [確認_正常系] - 2 回目の com_util_strtok_r が "b" を返すこと。
+    EXPECT_STREQ("c", third);        // [確認_正常系] - 3 回目の com_util_strtok_r が "c" を返すこと。
+    EXPECT_EQ((char *)NULL, fourth); // [確認_正常系] - 4 回目の com_util_strtok_r が NULL を返すこと。
+}
+
+// 区切り文字が NULL の場合に NULL を返すことの確認
+TEST_F(crt_stringTest, strtok_r_null_delimiter_returns_null)
+{
+    // Arrange
+    char text[] = "a,b"; // [状態] - カンマ区切りの文字列 "a,b" を用意する。
+    char *saveptr = NULL;
+
+    // Pre-Assert
+
+    // Act
+    char *token = com_util_strtok_r(text, NULL, &saveptr); // [手順] - 区切り文字に NULL を渡して呼び出す。
+
+    // Assert
+    EXPECT_EQ((char *)NULL, token); // [確認_異常系] - com_util_strtok_r の戻り値が NULL であること。
+}
+
 // 3 つのトークンが読み取られることの確認
 TEST_F(crt_stringTest, sscanf_reads_three_tokens)
 {

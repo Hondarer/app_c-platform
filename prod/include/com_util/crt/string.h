@@ -78,6 +78,45 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_strcat(char *dest, size_t dest_size, const char *src);
 
     /**
+     *  @brief          バッファー サイズ付き安全 strncat (`strncat_s` 相当) です。
+     *  @param[in,out]  dest       連結先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      src        連結する文字列。NULL を渡してはなりません。
+     *  @param[in]      count      @p src から連結する最大文字数。
+     *  @return         成功時は @ref COM_UTIL_OK 、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  バッファー不足時は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
+     *
+     *  @p src から連結するのは先頭 @p count 文字までであり、結果は常に null 終端されます。\n
+     *  連結結果が @p dest に収まらない場合は @p dest を変更しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_strncat(char *dest, size_t dest_size, const char *src, size_t count);
+
+    /**
+     *  @brief          文字列を区切り文字で分割します (`strtok_r` / `strtok_s` ラッパー)。
+     *  @param[in,out]  str      最初の呼び出しでは分割対象の文字列、2 回目以降は NULL を渡します。\n
+     *                           分割対象の文字列は本関数によって書き換えられます。
+     *  @param[in]      delim    区切り文字の集合 (null 終端)。NULL を渡してはなりません。
+     *  @param[in,out]  saveptr  解析状態の保持先。NULL を渡してはなりません。\n
+     *                           同一の分割操作を通じて同じポインターを渡してください。
+     *  @return         次のトークンへのポインター。トークンがない場合は NULL を返します。
+     *
+     *  再入可能でない `strtok` の代替です。\n
+     *  Linux では `strtok_r`、Windows では `strtok_s` を呼び出します。名前が異なるだけで意味は同じです。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  トークンへのポインターを返し、終了を NULL で表します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  解析状態は @p saveptr に保持され、ライブラリ内に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT char *COM_UTIL_API com_util_strtok_r(char *str, const char *delim, char **saveptr);
+
+    /**
      *  @brief          文字列を複製します (`strdup` / `_strdup` ラッパー)。
      *  @param[in]      src  複製元の文字列 (null 終端)。NULL を渡した場合は NULL を返します。
      *  @return         複製した文字列へのポインター。確保に失敗した場合は NULL を返します。

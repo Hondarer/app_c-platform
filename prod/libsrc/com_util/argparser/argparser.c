@@ -16,10 +16,9 @@
 #include <com_util/base/platform.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/sync/sync.h>
-#include <errno.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -571,38 +570,6 @@ static int argparser_register_positional_core(com_util_argparser *parser, argpar
 }
 
 /**
- *  @brief          文字列を int 値に変換します。
- *  @param[in]      text   変換する文字列。
- *  @param[out]     value  変換結果の格納先。
- *  @return         成功時は @ref COM_UTIL_OK 、
- *                  失敗時は @ref COM_UTIL_ERR_INVALID_INTEGER または
- *                  @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
- */
-static int argparser_parse_int(const char *text, int *value)
-{
-    if (text[0] == '\0')
-    {
-        return COM_UTIL_ERR_INVALID_INTEGER;
-    }
-
-    char *end = NULL;
-    errno = 0;
-    long parsed = strtol(text, &end, 10);
-    if (end == NULL || *end != '\0')
-    {
-        return COM_UTIL_ERR_INVALID_INTEGER;
-    }
-    if (errno == ERANGE || parsed < INT_MIN || parsed > INT_MAX)
-    {
-        return COM_UTIL_ERR_OUT_OF_RANGE;
-    }
-
-    *value = (int)parsed;
-
-    return COM_UTIL_OK;
-}
-
-/**
  *  @brief          長いオプション名でトークンに一致する登録項目を検索します。
  *  @param[in]      parser    対象のハンドル。
  *  @param[in]      name      トークンの名前部分 (先頭)。
@@ -674,7 +641,7 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT)
         {
-            int int_error = argparser_parse_int(value, spec->int_storage);
+            int int_error = com_util_parse_int(spec->int_storage, value, 10);
             if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
@@ -693,7 +660,7 @@ static int argparser_store_option_value(com_util_argparser *parser, argparser_sp
         }
         if (spec->kind == ARGPARSER_SPEC_OPTION_INT_ARRAY)
         {
-            int int_error = argparser_parse_int(value, &spec->int_storage[*spec->count]);
+            int int_error = com_util_parse_int(&spec->int_storage[*spec->count], value, 10);
             if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, display_name, index);
@@ -740,7 +707,7 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
             }
             if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT_ARRAY)
             {
-                int int_error = argparser_parse_int(token, &spec->int_storage[*spec->count]);
+                int int_error = com_util_parse_int(&spec->int_storage[*spec->count], token, 10);
                 if (int_error != COM_UTIL_OK)
                 {
                     return argparser_set_error(parser, int_error, spec->long_name, index);
@@ -760,7 +727,7 @@ static int argparser_store_positional(com_util_argparser *parser, const char *to
 
         if (spec->kind == ARGPARSER_SPEC_POSITIONAL_INT)
         {
-            int int_error = argparser_parse_int(token, spec->int_storage);
+            int int_error = com_util_parse_int(spec->int_storage, token, 10);
             if (int_error != COM_UTIL_OK)
             {
                 return argparser_set_error(parser, int_error, spec->long_name, index);

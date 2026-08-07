@@ -22,6 +22,7 @@
 #define COM_UTIL_CRT_STDLIB_H
 
 #include <stddef.h>
+#include <stdint.h>
 #include <com_util/base/error.h>
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
@@ -107,6 +108,98 @@ extern "C"
      *  環境変数の変更は、他スレッドによる読み取りと競合します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_unsetenv(const char *name, com_util_error *detail_out);
+
+    /**
+     *  @brief          文字列を 64 bit 符号付き整数へ変換します (`strtoll` の安全版)。
+     *
+     *  `strtoll` と異なり、変換位置 (`endptr`) を返しません。\n
+     *  文字列全体が整数として解釈されたことを関数側で検査し、末尾に余分な文字が残る場合は失敗とします。\n
+     *  先頭の空白と符号は許容します。空文字列と、空白のみの文字列は失敗とします。
+     *
+     *  @param[out]     value_out  変換結果の格納先。NULL を渡してはなりません。\n
+     *                             失敗時の内容は不定です。
+     *  @param[in]      text       変換する文字列 (null 終端)。NULL を渡してはなりません。
+     *  @param[in]      base       基数。2 から 36、または 0 (接頭辞による自動判別) を指定します。
+     *  @return         成功時は @ref COM_UTIL_OK を返します。
+     *  @return         @p value_out もしくは @p text が NULL の場合、または @p base が範囲外の場合は
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         整数として解釈できない場合、または末尾に余分な文字が残る場合は
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER を返します。
+     *  @return         `int64_t` で表現できない値の場合は @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_parse_int64(int64_t *value_out, const char *text, int base);
+
+    /**
+     *  @brief          文字列を 64 bit 符号なし整数へ変換します (`strtoull` の安全版)。
+     *
+     *  検査の方針は @ref com_util_parse_int64 と同じです。\n
+     *  加えて、符号 `'-'` で始まる文字列を @ref COM_UTIL_ERR_OUT_OF_RANGE として拒否します。
+     *
+     *  @param[out]     value_out  変換結果の格納先。NULL を渡してはなりません。\n
+     *                             失敗時の内容は不定です。
+     *  @param[in]      text       変換する文字列 (null 終端)。NULL を渡してはなりません。
+     *  @param[in]      base       基数。2 から 36、または 0 (接頭辞による自動判別) を指定します。
+     *  @return         成功時は @ref COM_UTIL_OK を返します。
+     *  @return         @p value_out もしくは @p text が NULL の場合、または @p base が範囲外の場合は
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         整数として解釈できない場合、または末尾に余分な文字が残る場合は
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER を返します。
+     *  @return         負値が指定された場合、または `uint64_t` で表現できない値の場合は
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_parse_uint64(uint64_t *value_out, const char *text, int base);
+
+    /**
+     *  @brief          文字列を `int` へ変換します (`atoi` の安全版)。
+     *
+     *  @ref com_util_parse_int64 で解析したうえで、`int` の範囲に収まることを検査します。
+     *
+     *  @param[out]     value_out  変換結果の格納先。NULL を渡してはなりません。\n
+     *                             失敗時の内容は不定です。
+     *  @param[in]      text       変換する文字列 (null 終端)。NULL を渡してはなりません。
+     *  @param[in]      base       基数。2 から 36、または 0 (接頭辞による自動判別) を指定します。
+     *  @return         成功時は @ref COM_UTIL_OK を返します。
+     *  @return         @p value_out もしくは @p text が NULL の場合、または @p base が範囲外の場合は
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         整数として解釈できない場合、または末尾に余分な文字が残る場合は
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER を返します。
+     *  @return         `int` で表現できない値の場合は @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_parse_int(int *value_out, const char *text, int base);
+
+    /**
+     *  @brief          文字列を `double` へ変換します (`atof` の安全版)。
+     *
+     *  検査の方針は @ref com_util_parse_int64 と同じで、文字列全体が数値として解釈されたことを検査します。\n
+     *  `strtod` が受け付ける表記 (指数表記、16 進浮動小数、`inf`、`nan`) をそのまま受け付けます。
+     *
+     *  @param[out]     value_out  変換結果の格納先。NULL を渡してはなりません。\n
+     *                             失敗時の内容は不定です。
+     *  @param[in]      text       変換する文字列 (null 終端)。NULL を渡してはなりません。
+     *  @return         成功時は @ref COM_UTIL_OK を返します。
+     *  @return         @p value_out もしくは @p text が NULL の場合は
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         数値として解釈できない場合、または末尾に余分な文字が残る場合は
+     *                  @ref COM_UTIL_ERR_INVALID_INTEGER を返します。
+     *  @return         `double` で表現できない値の場合は @ref COM_UTIL_ERR_OUT_OF_RANGE を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_parse_double(double *value_out, const char *text);
 
 #ifdef __cplusplus
 }

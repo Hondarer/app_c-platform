@@ -38,6 +38,10 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_getenv(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_getenv));
     ON_CALL(*this, com_util_setenv(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_setenv));
     ON_CALL(*this, com_util_unsetenv(_, _)).WillByDefault(Invoke(delegate_real_com_util_unsetenv));
+    ON_CALL(*this, com_util_parse_int64(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_parse_int64));
+    ON_CALL(*this, com_util_parse_uint64(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_parse_uint64));
+    ON_CALL(*this, com_util_parse_int(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_parse_int));
+    ON_CALL(*this, com_util_parse_double(_, _)).WillByDefault(Invoke(delegate_real_com_util_parse_double));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
     ON_CALL(*this, com_util_paths_equal(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
     ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
@@ -47,6 +51,9 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_vscanf(_, _)).WillByDefault(Invoke(delegate_real_com_util_vscanf));
     ON_CALL(*this, com_util_fscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fscanf));
     ON_CALL(*this, com_util_vfscanf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_vfscanf));
+    ON_CALL(*this, com_util_snprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
+    ON_CALL(*this, com_util_vsnprintf(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_snprintf));
+    ON_CALL(*this, com_util_fgets(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_fgets));
     ON_CALL(*this, com_util_rename(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_rename));
     ON_CALL(*this, com_util_fprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
     ON_CALL(*this, com_util_vfprintf(_, _)).WillByDefault(Invoke(delegate_real_com_util_fprintf));
@@ -77,6 +84,8 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_strcpy(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_strcpy));
     ON_CALL(*this, com_util_strncpy(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_strncpy));
     ON_CALL(*this, com_util_strcat(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_strcat));
+    ON_CALL(*this, com_util_strncat(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_strncat));
+    ON_CALL(*this, com_util_strtok_r(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_strtok_r));
     ON_CALL(*this, com_util_strdup(_)).WillByDefault(Invoke(delegate_real_com_util_strdup));
     ON_CALL(*this, com_util_wcscpy(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_wcscpy));
 

@@ -104,6 +104,81 @@ extern "C"
         ;
 
     /**
+     *  @brief          バッファーへ書式化して書き込みます (`snprintf` の切り詰め検出付き版)。
+     *
+     *  `snprintf` と異なり、戻り値は書き込んだ文字数ではなく共通結果コードです。\n
+     *  出力が @p dest に収まらない場合は切り詰めた結果を残さず、@p dest を空文字列にして
+     *  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
+     *
+     *  @param[out]     dest       書き込み先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      format     printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      ...        書式引数。
+     *  @return         成功時は @ref COM_UTIL_OK 、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  出力が @p dest に収まらない場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
+     *                  書式化そのものに失敗した場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
+     *
+     *  書き込んだ文字数が必要な場合は、成功後に @p dest へ `strlen` を適用してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_snprintf(char *dest, size_t dest_size, const char *format, ...)
+#if defined(COMPILER_GCC)
+        __attribute__((format(printf, 3, 4)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          バッファーへ書式化して書き込みます (@ref com_util_snprintf の `va_list` 版)。
+     *  @param[out]     dest       書き込み先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      format     printf 形式の書式文字列。NULL を渡してはなりません。
+     *  @param[in]      args       書式引数リスト。
+     *  @return         成功時は @ref COM_UTIL_OK 、引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  出力が @p dest に収まらない場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、
+     *                  書式化そのものに失敗した場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
+     *
+     *  切り詰め時の振る舞いは @ref com_util_snprintf と同じです。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vsnprintf(char *dest, size_t dest_size, const char *format, va_list args)
+#if defined(COMPILER_GCC)
+        __attribute__((format(printf, 3, 0)))
+#endif /* COMPILER_GCC */
+        ;
+
+    /**
+     *  @brief          ストリームから 1 行を読み取ります (`fgets` の切り詰め検出付き版)。
+     *
+     *  `fgets` と異なり、行の切り詰めと EOF を戻り値で区別します。\n
+     *  取得した行の末尾にある改行 (LF、CR、CRLF) は除去して格納します。
+     *
+     *  @param[out]     dest       行の格納先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      stream     読み取り元ストリーム。NULL を渡してはなりません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         1 行を取得した場合は @ref COM_UTIL_OK を返します。
+     *  @return         読み取る行がない場合は @ref COM_UTIL_ERR_EOF を返します。
+     *  @return         引数不正時は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @return         行が @p dest に収まらない場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。\n
+     *                  このとき読み取り位置は行の途中に留まるため、行の残りは次の呼び出しで取得されます。
+     *  @return         ストリーム エラーの場合は @ref COM_UTIL_ERR_UNKNOWN を返し、@p detail_out へ詳細を格納します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  同一の @p stream を複数スレッドから同時に読み取らないことを呼び出し側で保証してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_fgets(char *dest, size_t dest_size, FILE *stream,
+                                                    com_util_error *detail_out);
+
+    /**
      *  @brief          UTF-8 パスでファイルを開きます (`fopen` ラッパー)。
      *  @param[in]      path       開くファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[in]      modes      fopen 互換のモード文字列 ("r"、"w"、"rb" など)。NULL を渡してはなりません。

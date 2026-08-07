@@ -96,6 +96,64 @@ int com_util_strcat(char *dest, const size_t dest_size, const char *src)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_strncat(char *dest, const size_t dest_size, const char *src, const size_t count)
+{
+    size_t dest_len;
+    size_t src_len;
+
+    if (dest == NULL || dest_size == 0 || src == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    dest_len = 0;
+    while (dest_len < dest_size && dest[dest_len] != '\0')
+    {
+        dest_len++;
+    }
+    if (dest_len >= dest_size)
+    {
+        dest[0] = '\0';
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
+
+    /* src が count 文字未満で終端している場合に備え、終端までの長さで頭打ちにする */
+    src_len = 0;
+    while (src_len < count && src[src_len] != '\0')
+    {
+        src_len++;
+    }
+
+    if (dest_len + src_len + 1 > dest_size)
+    {
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
+
+    memcpy(dest + dest_len, src, src_len);
+    dest[dest_len + src_len] = '\0';
+    return COM_UTIL_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+char *com_util_strtok_r(char *str, const char *delim, char **saveptr)
+{
+    if (delim == NULL || saveptr == NULL)
+    {
+        return NULL;
+    }
+
+#if defined(PLATFORM_LINUX)
+    return strtok_r(str, delim, saveptr);
+#elif defined(PLATFORM_WINDOWS)
+    /* Windows では再入可能版の名前が strtok_s である。引数と意味は strtok_r と同じ。
+     * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/strtok-s-strtok-s-l-wcstok-s-wcstok-s-l-mbstok-s-mbstok-s-l */
+    return strtok_s(str, delim, saveptr);
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_wcscpy(wchar_t *dest, const size_t dest_size, const wchar_t *src)
 {
     size_t len;

@@ -7,6 +7,9 @@
 
 com_util 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
 
+規範本文と、その判断の背景の書き分けは、上位文書の「本書の記述形式」に従います。  
+平文が規範本文、`> [!NOTE]` が背景と根拠、`> [!IMPORTANT]` が見落とすと規範違反になる要点、`> [!WARNING]` が誤った書き方の招く具体的な障害です。
+
 ### 関連ドキュメント
 
 - [`platform-abstraction-guideline.md`](platform-abstraction-guideline.md) - `platform.h` / `compiler.h` の共通マクロ利用規則
@@ -18,8 +21,11 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 
 ### 定義ヘッダー
 
-共通結果コードは `prod/include/com_util/base/result.h` に定義します。  
-`result.h` が正であり、本節のコード一覧は参照用の写しです。
+共通結果コードは `prod/include/com_util/base/result.h` に定義します。
+
+> [!IMPORTANT]
+> `result.h` が正であり、本節のコード一覧は参照用の写しです。  
+> 両者が食い違う場合は `result.h` に従い、本節を更新してください。
 
 定義は課題別の帯に分けて並べ、各帯に将来の追加用の余白を設けています。
 
@@ -51,29 +57,40 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | 制御<br> (-40 〜) | `COM_UTIL_ERR_EOF` | -40 | 入力が EOF に達した |
 | | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
 
-帯は定義の整理と追加位置を示すためのものであり、範囲判定による分類は API の契約に含めません。  
 `ret <= -20` のような範囲比較で種別を判定せず、個々のコード名との比較を使用します。
 
 各コードの値は ABI として凍結します。  
-既存の値の変更は禁止し、コードの追加は該当する帯の余白への追記のみとします。  
-値は `test/src/libcom_utilTest/base/resultTest/` の `static_assert` で固定しており、変更するとコンパイル時に検出されます。
+既存の値の変更は禁止し、コードの追加は該当する帯の余白への追記のみとします。
+
+> [!WARNING]
+> 帯は定義の整理と追加位置を示すためのものであり、**範囲判定による分類は API の契約に含めません**。  
+> 範囲比較で種別を判定すると、余白へコードを追加した時点で判定結果が変わります。
+
+> [!NOTE]
+> 値は `test/src/libcom_utilTest/base/resultTest/` の `static_assert` で固定しています。  
+> 既存の値を変更するとコンパイル時に検出されます。
 
 ### 判定慣用句
 
 呼び出し側の成否判定は、コード名との比較を正とします。
 
 ```c
-int ret = com_util_mmap_attach(path, access, create_size, &map);
+int ret;
+
+ret = com_util_mmap_attach(path, access, create_size, &map);
 if (ret != COM_UTIL_OK)
 {
     return ret;
 }
 ```
 
-結果コードを受ける変数名は、上位規範に従い新規コードでは `ret` を第一選択とします。  
-全エラーが負値のため `ret < 0` も等価ですが、名前比較を推奨します。  
+結果コードを受ける変数名と宣言位置は、上位規範に従います。  
 特定のエラーを区別する場合は、`ret == COM_UTIL_ERR_TIMEOUT` のようにコード名で比較します。  
 `-1` などの数値リテラルとの比較は行いません。
+
+> [!NOTE]
+> 全エラーが負値のため `ret < 0` も等価ですが、名前比較を推奨します。  
+> 数値リテラルとの比較は、コードの追加や帯の見直しに対して意図が追随しません。
 
 ### 戻り値とエラー詳細の役割分担
 
@@ -88,6 +105,10 @@ if (ret != COM_UTIL_OK)
 分類済みコードでは失われる詳細 (`ENOENT` と `EACCES` の区別など) が必要な API は、`detail_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
 対応 API は失敗時に出力引数とスレッド ローカルの直前値へ同じ詳細を記録し、成功時は両方をクリアします。  
 `errno`、`GetLastError()`、`HRESULT` などの OS エラー値を、共通結果コードとして直接返しません。
+
+> [!NOTE]
+> 伝達手段を 3 つに分けているのは、詳細を必要とする呼び出し元と、分類済みコードだけで足りる呼び出し元の双方を、同じ API で扱えるようにするためです。  
+> 詳細が不要な呼び出し元は `detail_out` に `NULL` を渡し、戻り値だけで判定できます。
 
 ### 命名
 
@@ -115,13 +136,20 @@ OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結
 
 `detail_out` を持つ API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録し、成功時に両方をクリアします。  
 `detail_out` へ `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、スレッドの直前値は更新されます。  
-`com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されるため、保持が必要な場合は直ちにコピーするか `detail_out` を使用します。
-OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `com_util_error_set_last()` で保存値を復元します。
+OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `com_util_error_set_last()` で保存値を復元します。  
 `com_util_error_set_last()` には有効な保存値だけを指定し、NULL を指定した場合は現在のスレッドの直前値をクリアします。
 
 失敗の原因が OS 呼び出しに由来しない場合 (引数の検証エラー、パターンの構文エラーなど) は、`com_util_error` に格納すべき詳細が存在しません。  
-この場合は `detail_out` と直前値の双方をクリアし、原因は共通結果コードだけで表します。  
-`com_util_error_is_set()` が偽であることは「OS 由来の詳細がない」ことを意味し、成功したことを意味しません。呼び出し側は必ず戻り値で成否を判定します。
+この場合は `detail_out` と直前値の双方をクリアし、原因は共通結果コードだけで表します。
+
+> [!WARNING]
+> `com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されます。  
+> 保持が必要な場合は直ちにコピーするか、`detail_out` を使用してください。
+
+> [!WARNING]
+> `com_util_error_is_set()` が偽であることは「OS 由来の詳細がない」ことを意味し、**成功したことを意味しません**。  
+> 引数の検証エラーなど、OS 呼び出しに由来しない失敗でも偽になります。  
+> 呼び出し側は必ず戻り値で成否を判定してください。
 
 `com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
 人間可読の文字列は `com_util_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。
@@ -130,12 +158,23 @@ OS API の失敗後に後処理を行うアダプターは、先に詳細を保�
 
 com_util 内部のスレッド ローカル変数には `compiler.h` の `THREAD_LOCAL` を使用します。  
 TLS 変数はソース ファイル内のファイル スコープ `static` に限定し、ヘッダーで `extern` 宣言しません。  
-同一プロセスで com_util の静的ライブラリ版と動的ライブラリ版を混在させると直前値が複数に分かれるため、混在させてはなりません。  
-Linux の共有ライブラリおよび `dlopen()` による読み込みへ対応するため、`-ftls-model=initial-exec` や `-ftls-model=local-exec` を指定しません。
+`-ftls-model=initial-exec` や `-ftls-model=local-exec` を指定しません。
+
+> [!WARNING]
+> 同一プロセスで com_util の静的ライブラリ版と動的ライブラリ版を混在させると、直前値が複数に分かれます。  
+> `com_util_error_get_last()` が想定と異なる値を返すため、混在させてはなりません。
+
+> [!NOTE]
+> TLS モデルを指定しないのは、Linux の共有ライブラリおよび `dlopen()` による読み込みへ対応するためです。  
+> `initial-exec` や `local-exec` を指定すると、`dlopen()` で読み込んだ場合に TLS の割り当てに失敗します。
 
 ### 適用対象外
 
-com_util は Linux / Windows のインターフェース差異を抽象化する層でもあるため、以下の API 群は元 API の戻り値規約を保存し、共通結果コードの適用対象外とします。
+以下の API 群は元 API の戻り値規約を保存し、共通結果コードの適用対象外とします。
+
+> [!NOTE]
+> 対象外を設けるのは、com_util が Linux / Windows のインターフェース差異を抽象化する層でもあるためです。  
+> 元 API の戻り値規約を保存することで、標準 C / POSIX / Win32 の感覚のまま差し替えて使えます。
 
 | 対象外の API 群 | 現行規約 | 理由 |
 |---|---|---|
@@ -143,13 +182,20 @@ com_util は Linux / Windows のインターフェース差異を抽象化する
 | `com_util_strcpy` 系、`com_util_getenv` | 成功 0 / バッファー不足 `ERANGE` | CRT の `strcpy_s` 系規約に準拠 |
 | `com_util_sscanf`、`com_util_utf8_to_wpath` など | 変換項目数 / 変換文字数 | 元 API の意味を保存 |
 | `win32/win32.h` の UTF-8 ラッパー (`CreateFileU` など) | `HANDLE`、`BOOL` など Windows ネイティブ規約 | 元 API の差し替えとして使えることが設計意図 |
+| `com_util_strtok_r` | トークンへのポインター / 終了時 NULL | 元 API (`strtok_r` / `strtok_s`) の差し替えとして使えることが設計意図 |
 | ハンドル生成系 (`*_create` など) | 成功時ポインター / 失敗時 NULL | ポインター返却 API の慣用 |
 | 値をそのまま返す関数 (getter、`com_util_timespec_cmp` など) | 値そのもの | 結果コードの概念が適用されない |
 | 戻り値を持たない関数 (`*_destroy` など) | `void` | 同上 |
 
 対象外の API 群を新設する場合は、元 API との対応と戻り値規約をヘッダーの Doxygen コメントに明記します。
 
-なお、`com_util_getenv` は上表の「成功 0 / バッファー不足 `ERANGE`」に加えて「未設定 -1」を返す三値規約であり、本規約への適合は「既知の逸脱と移行課題」に整理しています。
+> [!IMPORTANT]
+> [危険な標準関数の代替](#危険な標準関数の代替) が定める代替 API のうち、`com_util_snprintf`、`com_util_vsnprintf`、`com_util_fgets`、`com_util_parse_*` は共通結果コードを返し、**上表の対象外には含まれません**。  
+> これらは元 API の戻り値規約を保存せず、検査を内包した結果コードへ正規化することが設計意図です。
+
+> [!IMPORTANT]
+> `com_util_getenv` は上表の「成功 0 / バッファー不足 `ERANGE`」に加えて「未設定 -1」を返す三値規約です。  
+> 本規約への適合は [解消済みの逸脱](#解消済みの逸脱) に整理しています。
 
 ### 検証
 
@@ -173,8 +219,17 @@ CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいの�
 | Windows で UTF-8 と UTF-16 を変換する | `com_util_fopen`、`com_util_access`、`CreateFileU` |
 | 戻り値やエラー伝達の規約を正規化する | `com_util_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`com_util_strcpy` (`ERANGE` を返す) |
 | MSVC のセキュア版と意味のある挙動差がある | `com_util_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
+| 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化する | `com_util_snprintf` (切り詰めを検出する)、`com_util_parse_int64` (完全消費と範囲を検査する)、`com_util_fgets` (切り詰めと EOF を区別する) |
 | com_util 定義の型を扱う | `com_util_timespec_*`、`com_util_file_*` |
 | com_util の他機能と統合する必要がある | `com_util_exit` (登録済みシャットダウン コールバックを実行する) |
+
+境界検査または失敗通知を欠く標準関数の正規化は、[危険な標準関数の代替](#危険な標準関数の代替) が定める代替先を com_util 側に用意するための条件です。  
+戻り値やエラー伝達の規約を正規化する条件の延長であり、元 API が呼び出し側に委ねている検査を、ラッパーが必ず実施する形へ移します。
+
+> [!NOTE]
+> 元 API との差は名前や引数ではなく「検査を省略できないこと」にあります。  
+> `snprintf` は切り詰めを検出できる情報を返しますが、呼び出し側が戻り値を捨てれば検査は消えます。  
+> ラッパーが検査を内包し、結果コードでしか成否を判定できない形にすると、検査の省略がコンパイル時または明示的な戻り値の破棄としてのみ起こりえます。
 
 ### ラッパーを作らないもの
 
@@ -182,10 +237,14 @@ CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいの�
 すでに存在する場合は撤去します。
 
 `memcpy`、`memmove`、`memset`、`strcmp` 系、`malloc` 系、標準出力への `printf` が該当します。  
-**利用件数の多さは抽象価値の根拠になりません。** これらはリポジトリ内で最も多く使われていますが、プラットフォーム差異がなく、MSVC のセキュア版にも意味のある挙動差がないため対象外です。
+これらはプラットフォーム差異がなく、MSVC のセキュア版にも意味のある挙動差がなく、境界検査と失敗通知の欠落もありません。
 
 テストでモックしたいという理由も、com_util 側にラッパーを作る根拠にはなりません。  
 libc 関数のモックは `framework/testfw/libsrc/mock_libc/` が提供する仕組みで受けます。
+
+> [!IMPORTANT]
+> **利用件数の多さは抽象価値の根拠になりません。**  
+> 上記の関数はリポジトリ内で最も多く使われていますが、ラッパーを作る条件のいずれにも該当しないため対象外です。
 
 ### ラッパーがある関数の使用
 
@@ -195,8 +254,164 @@ com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
 例外は、そのラッパー自身の実装だけです。  
 ラッパーが元関数へ委譲する箇所は元関数を直接呼び出します。
 
-`mock_com_util` は `com_util_*` を weak シンボルで差し替えるため、実装内部の呼び出しもモックの対象になります。  
-モック未設定時は実関数へ委譲されます。
+> [!NOTE]
+> com_util 自身の実装も対象に含めるのは、`mock_com_util` が `com_util_*` を weak シンボルで差し替えるためです。  
+> ラッパーを経由していれば、実装内部の呼び出しもモックの対象になります。  
+> モック未設定時は実関数へ委譲されます。
+
+### 危険な標準関数の代替
+
+境界検査を持たない、または終端の保証がない標準関数は、`app/` 配下の管理対象コードで直接使用しません。  
+代替は com_util がすべて提供します。標準関数を代替として指定することはありません。  
+外部 OSS 由来のコード (`app/lua`、`app/sqlite`、`app/cjson`) は本規則の対象外です。
+
+| 使用しない関数 | 問題 | 代替 |
+|---|---|---|
+| `strcpy` | コピー先の容量を受け取らず、境界を検査しない | `com_util_strcpy(dest, dest_size, src)` |
+| `strncpy` | コピー元が `count` 以上のとき null 終端しない。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy` |
+| `strcat` | 連結先の容量を受け取らず、境界を検査しない | `com_util_strcat(dest, dest_size, src)` |
+| `strncat` | 連結先の容量を受け取らない。`count` は連結元から読む最大文字数であり、終端の 1 バイトも別に必要 | `com_util_strncat(dest, dest_size, src, count)` |
+| `wcscpy` | `strcpy` と同じ | `com_util_wcscpy(dest, dest_size, src)` |
+| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なる | `com_util_strdup(src)` |
+| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できない | `com_util_strtok_r(str, delim, saveptr)` |
+| `gets` | 宛先の容量を指定できない。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
+| `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `com_util_fgets(dest, dest_size, stream, detail_out)` |
+| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しない | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
+| `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `com_util_snprintf` / `com_util_vsnprintf` ([書式化](#書式化) を参照) |
+| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になる | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` ([数値変換](#数値変換) を参照) |
+| `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しない | 同上 |
+| `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | com_util の対応するラッパー ([scanf 系ラッパー](#scanf-系ラッパー) を参照) |
+| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なる | `com_util_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
+
+`com_util_strcpy`、`com_util_strcat`、`com_util_strncat` は、バッファー不足を `COM_UTIL_ERR_BUFFER_TOO_SMALL` で通知します。  
+戻り値を破棄せず、`COM_UTIL_OK` との比較で判定してください。
+
+```c
+/* 望ましい */
+int ret;
+
+ret = com_util_strcpy(path, sizeof(path), input);
+if (ret != COM_UTIL_OK)
+{
+    return ret;
+}
+```
+
+意図的に文字列を切り詰める場合は `com_util_strncpy` を使用し、切り詰める条件を呼び出し側の仕様として明記します。
+
+> [!WARNING]
+> `strncpy` は、コピー元の長さが `count` 以上のときコピー先を null 終端しません。  
+> 終端を確認せずに文字列として扱うと、バッファーの外まで読み進めます。  
+> `count` がコピー先の容量ではなく最大コピー文字数である点も、容量を渡す API と誤認しやすい原因です。
+
+#### 書式化
+
+バッファーへの書式化は `com_util_snprintf` と `com_util_vsnprintf` を使用します。  
+出力が宛先に収まらない場合は `COM_UTIL_ERR_BUFFER_TOO_SMALL` を返し、宛先を空文字列にします。  
+書き込んだ文字数が必要な場合は、成功後に宛先へ `strlen` を適用します。
+
+```c
+/* 望ましい */
+int ret;
+
+ret = com_util_snprintf(buf, sizeof(buf), "%s/%s", dir, name);
+if (ret != COM_UTIL_OK)
+{
+    return ret;
+}
+```
+
+> [!WARNING]
+> `snprintf` の戻り値は「書き込んだ文字数」ではなく「終端を除いて必要だった文字数」です。  
+> **戻り値が宛先の容量以上なら切り詰めが起きています。**  
+> 戻り値を書き込み済みバイト数として次の書き込み位置へ加算すると、バッファーの外を指します。
+
+> [!NOTE]
+> 切り詰め時に宛先を空文字列にするのは、`com_util_strcpy` と `com_util_strcat` の既存の振る舞いに合わせるためです。  
+> 中途半端に切り詰められた文字列がパスやコマンドとして使われる事故を、戻り値の検査漏れがあっても防げます。
+
+#### 行入力
+
+ストリームからの 1 行読み取りは `com_util_fgets` を使用します。  
+戻り値は 1 行を取得した場合に `COM_UTIL_OK`、読み取る行がない場合に `COM_UTIL_ERR_EOF`、行が宛先に収まらない場合に `COM_UTIL_ERR_BUFFER_TOO_SMALL` です。  
+取得した行の末尾にある改行 (LF、CR、CRLF) は除去して格納されるため、呼び出し側での改行除去は不要です。
+
+非信頼なストリーム入力は `com_util_fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。
+
+> [!WARNING]
+> `fgets` は、行が宛先に収まらない場合も EOF に達した場合と同じく「途中まで格納して成功を返す」か「NULL を返す」かでしか区別できません。  
+> 切り詰めを検出するには、格納結果の末尾に改行があるかと `feof` の状態を呼び出し側で組み合わせる必要があります。
+
+#### 数値変換
+
+文字列から数値への変換は `com_util_parse_int`、`com_util_parse_int64`、`com_util_parse_uint64`、`com_util_parse_double` を使用します。  
+これらは文字列全体が数値として解釈されたことと、値が目的の型の範囲に収まることを関数側で検査します。  
+解釈できない場合は `COM_UTIL_ERR_INVALID_INTEGER`、範囲外の場合は `COM_UTIL_ERR_OUT_OF_RANGE` を返します。
+
+```c
+/* 望ましい */
+int ret;
+int64_t size;
+
+ret = com_util_parse_int64(&size, argv[1], 10);
+if (ret != COM_UTIL_OK)
+{
+    return ret;
+}
+```
+
+外部文字列を `size_t` やファイル位置へ変換する場合は、`com_util_parse_int64` で解析してから用途上の下限と上限を検査します。  
+手順は [コーディング規範](../../general/docs/coding-guideline.md) の「文字列入力から意味付き型への変換」に従います。
+
+幅が処理系に依存する `long` を返す変換 API は提供しません。
+
+> [!WARNING]
+> `strtol` 系は、変換できなかった場合も 0 を返します。  
+> 成否は戻り値だけでは判定できません。  
+> `atoi` 系に至っては失敗を通知する手段がなく、範囲外の入力が未定義動作になります。
+
+> [!IMPORTANT]
+> `com_util_parse_uint64` は、先頭の符号 `'-'` を `COM_UTIL_ERR_OUT_OF_RANGE` として拒否します。  
+> `strtoull` は負値を符号なしの折り返し値として受け付けるため、素の呼び出しでは `"-1"` が `UINT64_MAX` になります。
+
+#### エラー文字列化
+
+OS エラーの文字列化は `com_util_error_message` を使用します。  
+生の `errno` を持っている場合は、`com_util_error_capture_errno` で `com_util_error` へ取り込んでから渡します。  
+`detail_out` を提供する API から受け取った詳細は、そのまま渡せます。
+
+```c
+/* 望ましい */
+com_util_error err;
+char message[256];
+
+com_util_error_capture_errno(&err, errno_value);
+(void)com_util_error_message(message, sizeof(message), &err);
+```
+
+> [!WARNING]
+> `strerror` の戻り値は、次の呼び出しで上書きされる場合があります。  
+> 保持したまま別のエラーを文字列化すると、先に取得した文字列の内容が変わります。
+
+> [!NOTE]
+> 再入可能版の名前と引数はプラットフォームで異なります。  
+> GNU 版 `strerror_r` はバッファーではなくポインターを返すことがあり、XSI 版と戻り値の意味も違います。  
+> `com_util_error_message` は、この差と Win32 の `FormatMessageW` をドメインに基づいて吸収します。
+
+#### 検証
+
+```bash
+# 使用しない関数の残存確認
+# com_util ラッパー呼び出しと、Doxygen コメント行 (行頭が * のもの) を除外する
+grep -rnE '\b(strcpy|strncpy|strcat|strncat|wcscpy|strtok|gets|fgets|sprintf|vsprintf|snprintf|vsnprintf|atoi|atol|atoll|atof|strtol|strtoll|strtoul|strtoull|strtod|strerror)[[:space:]]*\(' \
+  app --include=*.c --include=*.h \
+  | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
+  | grep -vE 'com_util_(strcpy|strncpy|strcat|strncat|wcscpy|strtok_r|fgets|snprintf|vsnprintf|parse_)' \
+  | grep -vE ':[[:space:]]*\*'
+```
+
+com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc/com_util/base/error_message.c`) は、元関数へ委譲するため検出されます。  
+[ラッパーがある関数の使用](#ラッパーがある関数の使用) の例外に当たるため、対象外として扱います。
 
 ### scanf 系ラッパー
 
@@ -207,12 +422,18 @@ com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
 幅は宛先バッファーの要素数より小さくなければなりません。  
 `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡します。
 
-非信頼なストリーム入力は `fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。  
+非信頼なストリーム入力は `com_util_fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。  
 `com_util_scanf` と `com_util_fscanf` は、既存の scanf 形式との互換が必要な場合に使用します。
 
-Coverity では、幅なし `%s`、宛先容量以上の幅、com_util ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。  
-ASan では、幅指定を欠くテスト用入力が境界外書き込みとして報告されることを手動で確認します。  
-どちらも書式が定数で、解析対象に呼び出し元とラッパー実装が含まれる場合に検出を期待できます。
+> [!WARNING]
+> 幅を指定しない `%s` は、宛先の容量に関わらず入力の長さだけ書き込みます。  
+> 幅が宛先の要素数以上の場合も、終端文字の分だけ超過します。
+
+> [!NOTE]
+> 静的解析と動的解析による検出は次のとおりです。  
+> Coverity では、幅なし `%s`、宛先容量以上の幅、com_util ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。  
+> ASan では、幅指定を欠くテスト用入力が境界外書き込みとして報告されることを手動で確認します。  
+> どちらも書式が定数で、解析対象に呼び出し元とラッパー実装が含まれる場合に検出を期待できます。
 
 ### Win32 API の UTF-8 ラッパーの適用範囲
 
@@ -225,17 +446,25 @@ ASan では、幅指定を欠くテスト用入力が境界外書き込みとし
 - 呼び出し前後の処理がワイド文字列のまま完結しており、`*U` を経由すると UTF-8 への往復変換が新たに発生する
 - 構造体引数に文字列メンバーが含まれない (`SERVICE_PRESHUTDOWN_INFO` など)
 
-いずれの場合も、`*U` を使わない理由を該当箇所へコメントとして残します。  
-コメントがないと、将来の点検で「`*U` への置換漏れ」と誤認されます。
+いずれの場合も、`*U` を使わない理由を該当箇所へコメントとして残します。
 
-逆に、`*A` 版はコンソールのコード ページ (日本語環境では cp932) で文字列を解釈するため、使用しません。  
-`*A` を使っている箇所は非 ASCII 文字で壊れるため、`*U` へ置き換えます。
+`*A` 版は使用しません。  
+`*A` を使っている箇所は `*U` へ置き換えます。
+
+> [!IMPORTANT]
+> `*U` を使わない理由のコメントがないと、将来の点検で「`*U` への置換漏れ」と誤認され、不適切に変更されるおそれがあります。
+
+> [!WARNING]
+> `*A` 版はコンソールのコード ページ (日本語環境では cp932) で文字列を解釈します。  
+> 非 ASCII 文字を含むパスや文字列で壊れます。
 
 ### 新設 API 群の規約
 
 - セキュア消去は volatile 経由で書き込み、コンパイラによる最適化除去を防ぎます。非 volatile のループや素の `memset` は使用しません
 - 乱数は暗号論的乱数源のみを使用し、取得に失敗した場合は結果コードで通知します。呼び出し側が失敗を無視して処理を続行しない設計とします
 - OS エラーの文字列化は `com_util_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
+- 文字列から数値への変換は、完全消費と範囲の検査を関数側に内包します。`endptr` に相当する引数を公開 API に露出させません
+- 書式化と行入力は、切り詰めを結果コードで通知します。切り詰めた内容を宛先に残しません
 
 ## API 命名規約
 
@@ -244,8 +473,11 @@ com_util の公開 API 名およびライブラリ内共有 API 名に適用す�
 
 既存 API の名前は原則として ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
 ただし、上位規範の「予約識別子の回避」に反する形式 (`_t` サフィックス、アンダースコア前置き) の是正に限り、この凍結を破棄します。  
-規格が処理系用に予約している名前空間の侵犯であり、将来の libc や処理系の拡張とシンボルが衝突しうるためです。  
 凍結を破棄して改名した範囲は [`api-consistency-migration.md`](api-consistency-migration.md) に記録します。
+
+> [!NOTE]
+> 予約識別子の是正だけを凍結の例外とするのは、規格が処理系用に予約している名前空間の侵犯であり、将来の libc や処理系の拡張とシンボルが衝突しうるためです。  
+> 単なる規約への不適合は、ABI 互換を優先して凍結したままとします。
 
 上記の例外を除き、本規約は新設 API と、移行を伴う変更の際の改名先に適用します。  
 上位規範が定めるライブラリ内共有の接頭辞 (`com_util_internal_` の関数・型、`g_com_util_internal_` の外部リンケージ変数) への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
@@ -275,24 +507,33 @@ com_util_internal_trace_resolve_timestamp(...)
 extern int g_com_util_internal_sink_count;
 ```
 
-カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms` など) に限り、動詞先行を許容します。  
-既存の `com_util_get_temp_dir`、`com_util_get_monotonic_ms`、`com_util_normalize_path_sep`、`com_util_paths_equal` は本規約に先行するため凍結対象です。
+カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms`、`com_util_parse_int64` など) に限り、動詞先行を許容します。
+元 API 名を保存する CRT ラッパー (`com_util_strcpy`、`com_util_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
+
+> [!IMPORTANT]
+> `com_util_get_temp_dir`、`com_util_get_monotonic_ms`、`com_util_normalize_path_sep`、`com_util_paths_equal` は本規約に先行するため凍結対象です。  
+> これらを新設 API 名の前例として引用しないでください。
 
 ### 生成と破棄の動詞対
 
 ハンドルを生成・破棄する API の新設時は、`*_create` / `*_dispose` の対を正とします。  
 既存 API の破棄動詞 (`*_destroy`、`*_detach`、`*_close`、`*_stop`、`*_release`) は凍結し、同一ハンドル型の中では既存の動詞に合わせます (例: sync カテゴリへの追加は `*_destroy` に合わせる)。
 
-プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません (`com_util_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません)。  
-`com_util_argparser_default_init` が該当します。既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であり、利用側による破棄を必要としない設計です。
+プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません。  
+`com_util_argparser_default_init` が該当します。
+
+> [!NOTE]
+> 既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であるため、利用側による破棄を必要としない設計です。  
+> `com_util_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません。
 
 ### アンダースコア前置きの廃止
 
 `_com_util_` 前置きのシンボルは使用しません。  
-C 標準がアンダースコアで始まる識別子をファイル スコープで予約しているためです。
+用途に応じて、上位規範の「予約識別子の回避」が定める 3 規則に従います。
 
-以前は、マクロの実体とテスト専用フックの 2 用途に限り `_com_util_` 前置きを許容していました。  
-この扱いは撤回し、上位規範の「予約識別子の回避」が定める 3 規則に従います。
+> [!NOTE]
+> 使用しないのは、C 標準がアンダースコアで始まる識別子をファイル スコープで予約しているためです。  
+> 以前は、マクロの実体とテスト専用フックの 2 用途に限り `_com_util_` 前置きを許容していましたが、この扱いは撤回しました。
 
 | 用途 | com_util での形式 | 例 |
 |---|---|---|
@@ -300,8 +541,11 @@ C 標準がアンダースコアで始まる識別子をファイル スコー�
 | 既定インスタンス版と明示ハンドル版の対 | 明示ハンドル版が正名、既定版は `_default_` を挟む | `com_util_argparser_parse` と `com_util_argparser_default_parse` |
 | テスト専用フック | `_for_test` サフィックスのみ | `com_util_shutdown_invoke_for_test` |
 
-テスト専用フックは公開ヘッダーに宣言しますが、Doxygen の公開グループには含めず `@internal` を付けます。  
-直接の呼び出しを想定しないことは、名前ではなくドキュメント側で表現します。
+テスト専用フックは公開ヘッダーに宣言しますが、Doxygen の公開グループには含めず `@internal` を付けます。
+
+> [!NOTE]
+> 直接の呼び出しを想定しないことは、名前ではなくドキュメント側で表現します。  
+> 名前で表現しようとすると、予約識別子の形式へ寄っていくためです。
 
 旧名との対応は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
 
@@ -317,7 +561,9 @@ int com_util_argparser_parse(com_util_argparser *parser, int argc, char **argv);
 int com_util_argparser_default_parse(int argc, char **argv);
 ```
 
-明示ハンドル版を正名とするのは、ハンドルを先頭引数に取る形が「引数順序規約」のハンドル・操作系に準拠した形であり、既定インスタンス版はそこからハンドルを暗黙化した派生形だからです。
+> [!NOTE]
+> 明示ハンドル版を正名とするのは、ハンドルを先頭引数に取る形が [引数順序規約](#引数順序規約) のハンドル・操作系に準拠した形であり、既定インスタンス版はそこからハンドルを暗黙化した派生形だからです。  
+> 規約に準拠した形が装飾のない名前を持つようにします。
 
 既定インスタンスの初期化と取得も同じ命名族に含めます。  
 `com_util_argparser_default_init` と `com_util_argparser_default_get` が該当します。
@@ -327,10 +573,11 @@ int com_util_argparser_default_parse(int argc, char **argv);
 型名の規則は上位規範の「型の命名規則」に完全に従います。  
 struct、enum、union、関数ポインターのいずれにも `_t` サフィックスを付けません。
 
-以前は enum と関数ポインターの `_t` を現状追認として許容していましたが、この扱いは撤回しました。  
-撤回に伴って改名した公開型の一覧は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
-
 `_t` を維持する例外は、OS / SDK が定義する型の alias に限ります。
+
+> [!NOTE]
+> 以前は enum と関数ポインターの `_t` を現状追認として許容していましたが、この扱いは撤回しました。  
+> 撤回に伴って改名した公開型の一覧は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
 
 | 型 | 定義 | 例外とする理由 |
 |---|---|---|
@@ -351,13 +598,18 @@ com_util の公開 API の引数順序は、API の性格に応じて以下の 3
 
 ```c
 com_util_strcpy(dest, dest_size, src);
+com_util_snprintf(dest, dest_size, format, ...);
+com_util_parse_int64(value_out, text, base);
 com_util_path_dirname(path_out, path_size, detail_out, path);
 com_util_gmtime(utc_tm, timep);
 com_util_stat(buf, detail_out, path);
 ```
 
-`com_util_stat` が POSIX の `stat(path, buf)` と逆順であるのは、本規約 (出力先頭) によるものです。  
 `detail_out` を提供する場合は、出力引数と、その出力サイズがある場合は出力サイズの直後に置き、後続の入力引数より前に置きます。
+
+> [!IMPORTANT]
+> `com_util_stat` は POSIX の `stat(path, buf)` と引数順が逆です。  
+> 本規約 (出力先頭) によるものであり、誤りではありません。
 
 ### ハンドル・操作系 (COM_UTIL_OK 系)
 
@@ -404,11 +656,16 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `com_util_` がなく、リンク時に利用側と衝突しうる | `com_util_` を付与 (当時の上位規範)。以降の新設・改名では上位規範の `com_util_internal_` に従う |
 | `static` 関数へのライブラリ接頭辞 (11 件) | 外部リンケージを持つかのように読め、公開シンボルの点検で偽陽性を生む | 接頭辞を除去 |
 
-`com_util_argparser_default_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
+> [!NOTE]
+> `com_util_argparser_default_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
 
 ### 凍結対象として残す逸脱
 
 次のマクロは公開ヘッダーにありながらライブラリ接頭辞を持ちませんが、利用側の改修規模が大きいため凍結対象とし、改名しません。
+
+> [!IMPORTANT]
+> これらは凍結対象であり、新設するマクロの前例になりません。  
+> 新しいマクロには [API 命名規約](#api-命名規約) に従って `COM_UTIL_` を前置きします。
 
 | ヘッダー | マクロ |
 |---|---|
@@ -429,16 +686,17 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | native 変換 | ネイティブ `struct timespec` が必要な OS API 境界では `com_util_timespec_to_native()` / `com_util_timespec_from_native()` に集約する。キャスト・混用はしない |
 | 演算 | `com_util_timespec_normalize/add/sub/cmp/add_ms/diff_ms` を使用する |
 
-### 理由
-
-Windows UCRT の `struct timespec` は `tv_nsec` が `long` (32bit) でレイアウトが異なります。  
-共有メモリ・ダンプ・プロセス間受け渡しでレイアウト互換を保つため、公開型に統一します。
-
 詳細は `prod/include/com_util/clock/timespec.h` の Doxygen コメントを参照してください。
+
+> [!WARNING]
+> Windows UCRT の `struct timespec` は `tv_nsec` が `long` (32bit) であり、Linux とレイアウトが異なります。  
+> `struct timespec` のまま共有メモリ、ダンプ、プロセス間で受け渡すと、プラットフォームをまたいだ時点で値が壊れます。
 
 ### 例外事項
 
-時刻を扱う処理にて、`com_util_timespec` とは別の時刻型を利用している場合は、互換性を確保するための意図があるため、変更前にユーザーに確認するようにしてください。
+> [!IMPORTANT]
+> 時刻を扱う処理で `com_util_timespec` とは別の時刻型を使用している場合は、互換性を確保するための意図があります。  
+> 変更前にユーザーへ確認してください。
 
 ## 関数引数の const 付与と Doxygen 方向タグ
 
@@ -450,7 +708,7 @@ Windows UCRT の `struct timespec` は `tv_nsec` が `long` (32bit) でレイア
 - `prod/include/com_util/crypto/crypto.h` - データ系 `[in]` が const
 - `prod/include/com_util/runtime/module.h` - `func_addr` が `const void *`
 - `prod/include/com_util/runtime/shutdown.h` - `event` が `const com_util_shutdown_event *`
-- `prod/include/com_util/sync/sync.h` の `interprocess_*_export_descriptor` - `lock` が `const ..._t *`
+- `prod/include/com_util/sync/sync.h` の `com_util_interprocess_lock_export_descriptor` - `lock` が `const com_util_interprocess_lock *`
 
 ### 内部 lock 取得検査 (grep パターンの拡張)
 
@@ -459,3 +717,7 @@ Windows UCRT の `struct timespec` は `tv_nsec` が `long` (32bit) でレイア
 ```bash
 grep -nE '(pthread_mutex_lock|EnterCriticalSection|com_util_local_(mutex|rwlock|condvar)_)' <dir>/*.c
 ```
+
+> [!IMPORTANT]
+> com_util の同期プリミティブを取得対象として受け取る引数には、論理的に read-only であっても `const` を付けません。  
+> `-Wcast-qual` と整合させるためです。判定の詳細は上位規範の「ポインター引数の const 付与判定」を参照してください。

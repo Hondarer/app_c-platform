@@ -15,6 +15,7 @@
 #include <com_util/base/error_internal.h>
 
 #include <errno.h>
+#include <limits.h>
 #include <string.h>
 
 #if defined(PLATFORM_LINUX)
@@ -488,4 +489,103 @@ int64_t com_util_ftell(FILE *stream)
 #elif defined(PLATFORM_WINDOWS)
     return (int64_t)_ftelli64(stream);
 #endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_snprintf(char *dest, const size_t dest_size, const char *format, ...)
+{
+    va_list args;
+    int result;
+
+    va_start(args, format);
+    result = com_util_vsnprintf(dest, dest_size, format, args);
+    va_end(args);
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_vsnprintf(char *dest, const size_t dest_size, const char *format, va_list args)
+{
+    int needed;
+
+    if (dest == NULL || dest_size == 0 || format == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
+    /* MSVC の UCRT では vsnprintf が C99 準拠であり、切り詰め時も必要文字数を返す。
+     * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/vsnprintf-vsnprintf-vsnprintf-l-vsnwprintf-vsnwprintf-l */
+    needed = vsnprintf(dest, dest_size, format, args);
+
+    if (needed < 0)
+    {
+        dest[0] = '\0';
+        return COM_UTIL_ERR_UNKNOWN;
+    }
+
+    /* vsnprintf の戻り値は終端を除いて必要だった文字数であり、書き込んだ文字数ではない。
+     * 宛先の容量以上であれば切り詰めが起きている。 */
+    if ((size_t)needed >= dest_size)
+    {
+        dest[0] = '\0';
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
+
+    return COM_UTIL_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_fgets(char *dest, const size_t dest_size, FILE *stream, com_util_error *detail_out)
+{
+    size_t len;
+
+    if (dest == NULL || dest_size == 0 || stream == NULL || dest_size > (size_t)INT_MAX)
+    {
+        return com_util_error_report_errno(detail_out, EINVAL);
+    }
+
+    dest[0] = '\0';
+    errno = 0;
+    if (fgets(dest, (int)dest_size, stream) == NULL)
+    {
+        if (ferror(stream) != 0)
+        {
+            const int errno_value = errno;
+
+            return com_util_error_report_errno(detail_out, errno_value);
+        }
+
+        /* EOF は OS 呼び出し由来の詳細を持たないため、詳細をクリアして結果コードだけで表す */
+        (void)com_util_error_report_success(detail_out);
+        return COM_UTIL_ERR_EOF;
+    }
+
+    len = strlen(dest);
+
+    /* 宛先を使い切っており、かつ改行で終わっていない場合は、行の途中で打ち切られている。
+     * ファイル末尾が改行なしで終わる場合は EOF フラグが立つため、切り詰めと区別できる。
+     * dest_size が 1 のときは len が 0 になり 1 文字も格納できないため、常に切り詰めとして扱う。 */
+    if (len + 1 == dest_size && (len == 0 || dest[len - 1] != '\n') && feof(stream) == 0)
+    {
+        dest[0] = '\0';
+        (void)com_util_error_report_success(detail_out);
+        return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
+
+    if (len > 0 && dest[len - 1] == '\n')
+    {
+        len--;
+        dest[len] = '\0';
+    }
+    if (len > 0 && dest[len - 1] == '\r')
+    {
+        len--;
+        dest[len] = '\0';
+    }
+
+    return com_util_error_report_success(detail_out);
 }
