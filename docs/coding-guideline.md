@@ -52,7 +52,7 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
 
 帯は定義の整理と追加位置を示すためのものであり、範囲判定による分類は API の契約に含めません。  
-`rc <= -20` のような範囲比較で種別を判定せず、個々のコード名との比較を使用します。
+`ret <= -20` のような範囲比較で種別を判定せず、個々のコード名との比較を使用します。
 
 各コードの値は ABI として凍結します。  
 既存の値の変更は禁止し、コードの追加は該当する帯の余白への追記のみとします。  
@@ -63,15 +63,16 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 呼び出し側の成否判定は、コード名との比較を正とします。
 
 ```c
-int rc = com_util_mmap_attach(path, access, create_size, &map);
-if (rc != COM_UTIL_OK)
+int ret = com_util_mmap_attach(path, access, create_size, &map);
+if (ret != COM_UTIL_OK)
 {
-    return rc;
+    return ret;
 }
 ```
 
-全エラーが負値のため `rc < 0` も等価ですが、名前比較を推奨します。  
-特定のエラーを区別する場合は、`rc == COM_UTIL_ERR_TIMEOUT` のようにコード名で比較します。  
+結果コードを受ける変数名は、上位規範に従い新規コードでは `ret` を第一選択とします。  
+全エラーが負値のため `ret < 0` も等価ですが、名前比較を推奨します。  
+特定のエラーを区別する場合は、`ret == COM_UTIL_ERR_TIMEOUT` のようにコード名で比較します。  
 `-1` などの数値リテラルとの比較は行いません。
 
 ### 戻り値とエラー詳細の役割分担
@@ -247,7 +248,7 @@ com_util の公開 API 名およびライブラリ内共有 API 名に適用す�
 凍結を破棄して改名した範囲は [`api-consistency-migration.md`](api-consistency-migration.md) に記録します。
 
 上記の例外を除き、本規約は新設 API と、移行を伴う変更の際の改名先に適用します。  
-上位規範が定めるライブラリ内共有の `<lib>_internal_` 接頭辞への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
+上位規範が定めるライブラリ内共有の接頭辞 (`com_util_internal_` の関数・型、`g_com_util_internal_` の外部リンケージ変数) への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
 
 ### 基本形
 
@@ -260,14 +261,18 @@ com_util_path_dirname(...)      /* path カテゴリの変換 */
 ```
 
 ライブラリ内共有 (`include_internal/`) の関数と型は、上位規範に従い `com_util_internal_` を前置きします。  
+外部リンケージ変数は `g_com_util_internal_` を前置きします。  
 カテゴリ名詞と動詞の並びは公開 API と同じ規則を適用し、接頭辞だけを差し替えます。
 
 ```c
 /* 公開 */
 com_util_tracer_set_name(...)
 
-/* ライブラリ内共有 */
+/* ライブラリ内共有 (関数) */
 com_util_internal_trace_resolve_timestamp(...)
+
+/* ライブラリ内共有 (変数) */
+extern int g_com_util_internal_sink_count;
 ```
 
 カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms` など) に限り、動詞先行を許容します。  
