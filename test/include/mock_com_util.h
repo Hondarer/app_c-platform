@@ -11,6 +11,7 @@
 #if defined(COMPILER_MSVC)
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vscanf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfscanf")
+    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vsnprintf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")

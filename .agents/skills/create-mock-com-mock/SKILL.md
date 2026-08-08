@@ -86,6 +86,7 @@ ON_CALL(*this, com_util_vaccess_fmt(_, _))
 | `com_util_vmkdir_fmt` | `delegate_real_com_util_mkdir_fmt` |
 | `com_util_vremove_fmt` | `delegate_real_com_util_remove_fmt` |
 | `com_util_vstat_fmt` | `delegate_real_com_util_stat_fmt` |
+| `com_util_vsnprintf` | `delegate_real_com_util_snprintf` |
 
 なお `com_util_vsscanf` は MOCK_METHOD に `va_list` が含まれるため `Invoke(delegate_real_com_util_vsscanf)` を使います。
 
@@ -108,6 +109,7 @@ ON_CALL(*this, com_util_vaccess_fmt(_, _))
 // ... その他のインクルード
 
 #if defined(COMPILER_MSVC)
+#pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vsnprintf")
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
 #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")

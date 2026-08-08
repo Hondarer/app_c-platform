@@ -12,33 +12,7 @@ int delegate_real_com_util_vsnprintf(char *dest, size_t dest_size, const char *f
     return real_fn(dest, dest_size, format, args);
 }
 
-// 書式を展開した文字列を返す。
-// 固定長バッファーで展開すると長い出力が切り詰められ、被テスト側の切り詰め判定が
-// 実関数と食い違うため、必要な長さを求めてから確保する。
-std::vector<char> mock_com_util_expand_format(const char *format, va_list args)
-{
-    va_list args_len;
-    int needed;
-
-    va_copy(args_len, args);
-    needed = vsnprintf(nullptr, 0u, format, args_len);
-    va_end(args_len);
-
-    if (needed < 0)
-    {
-        return std::vector<char>(1u, '\0');
-    }
-
-    std::vector<char> buf((size_t)needed + 1u, '\0');
-    {
-        va_list args_copy;
-        va_copy(args_copy, args);
-        vsnprintf(buf.data(), buf.size(), format, args_copy);
-        va_end(args_copy);
-    }
-
-    return buf;
-}
+// mock_com_util_expand_format は mock_com_util_expand_format.cc で定義する
 
 MOCK_WEAK_IMPL(int, com_util_vsnprintf, char *dest, size_t dest_size, const char *format, va_list args)
 {
