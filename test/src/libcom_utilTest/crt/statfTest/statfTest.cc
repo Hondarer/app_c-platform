@@ -12,7 +12,7 @@ class statfTest : public Test
 TEST_F(statfTest, test_null_buf)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_stat(_, _, _))
@@ -31,7 +31,7 @@ TEST_F(statfTest, test_null_buf)
 TEST_F(statfTest, test_null_format)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_file_stat_t st;
 
     // Pre-Assert
@@ -50,7 +50,7 @@ TEST_F(statfTest, test_null_format)
 TEST_F(statfTest, test_buffer_overflow)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_file_stat_t st;
     char long_string[5000];
     memset(long_string, 'a', sizeof(long_string) - 1);
@@ -74,7 +74,7 @@ TEST_F(statfTest, test_buffer_overflow)
 TEST_F(statfTest, test_successful_call_with_format)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_file_stat_t st;
 
     // Pre-Assert
@@ -96,7 +96,7 @@ TEST_F(statfTest, test_successful_call_with_format)
 TEST_F(statfTest, test_successful_call_with_multiple_parameters)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_file_stat_t st;
 
     // Pre-Assert
@@ -118,7 +118,7 @@ TEST_F(statfTest, test_successful_call_with_multiple_parameters)
 TEST_F(statfTest, test_stat_returns_error)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_file_stat_t st;
 
     // Pre-Assert

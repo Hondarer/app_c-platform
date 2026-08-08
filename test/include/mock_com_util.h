@@ -5,6 +5,8 @@
 #include <testfw.h>
 #include <stdint.h>
 #include <time.h>
+#include <stdarg.h>
+#include <vector>
 
 #if defined(COMPILER_MSVC)
     #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vscanf")
@@ -56,6 +58,11 @@
 
 inline constexpr char kLibComUtilName[] = "libcom_util" TESTFW_SHARED_LIBRARY_EXTENSION;
 
+// 書式を展開した NUL 終端文字列を返す。
+// 期待値の照合と実関数への委譲の双方で使用する。固定長バッファーで展開すると長い出力が
+// 切り詰められ、被テスト側の切り詰め判定が実関数と食い違うため、testfw の allocvprintf で
+// 必要な長さを確保する。戻り値は解放不要で、.data() は常に有効な NUL 終端文字列を指す。
+extern std::vector<char> mock_com_util_expand_format(const char *format, va_list args);
 
 // compress
 extern int delegate_real_com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);

@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <vector>
 #include <stdio.h>
 #include <testfw.h>
 #include <mock_com_util.h>
@@ -17,17 +18,11 @@ MOCK_WEAK_IMPL(int, com_util_vopen_fmt, int flags, int mode, com_util_error *det
 {
     int rtc = -1;
 
-    char buf[4096];
-    {
-        va_list args_copy;
-        va_copy(args_copy, args);
-        vsnprintf(buf, sizeof(buf), format, args_copy);
-        va_end(args_copy);
-    }
+    std::vector<char> buf = mock_com_util_expand_format(format, args);
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vopen_fmt(flags, mode, detail_out, buf);
+        rtc = _mock_com_util->com_util_vopen_fmt(flags, mode, detail_out, buf.data());
     }
     else
     {
@@ -36,7 +31,7 @@ MOCK_WEAK_IMPL(int, com_util_vopen_fmt, int flags, int mode, com_util_error *det
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %d, %d, %s", __func__, flags, mode, buf);
+        printf("  > %s %d, %d, %s", __func__, flags, mode, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

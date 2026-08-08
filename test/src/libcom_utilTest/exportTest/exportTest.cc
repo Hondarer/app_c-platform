@@ -257,6 +257,11 @@
     EXPORT_ENTRY(com_util_vscanf, int(COM_UTIL_API *)(const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fscanf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vfscanf, int(COM_UTIL_API *)(FILE * stream, const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_snprintf, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *format, ...)) \
+    EXPORT_ENTRY(com_util_vsnprintf, \
+                 int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_fgets, \
+                 int(COM_UTIL_API *)(char *dest, size_t dest_size, FILE *stream, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_fprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vfprintf, int(COM_UTIL_API *)(FILE * stream, const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_fseek, int(COM_UTIL_API *)(FILE * stream, int64_t offset, int whence)) \
@@ -276,10 +281,16 @@
     EXPORT_ENTRY(com_util_setenv, \
                  int(COM_UTIL_API *)(const char *name, const char *value, int overwrite, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_unsetenv, int(COM_UTIL_API *)(const char *name, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_parse_int64, int(COM_UTIL_API *)(int64_t *value_out, const char *text, int base)) \
+    EXPORT_ENTRY(com_util_parse_uint64, int(COM_UTIL_API *)(uint64_t *value_out, const char *text, int base)) \
+    EXPORT_ENTRY(com_util_parse_int, int(COM_UTIL_API *)(int *value_out, const char *text, int base)) \
+    EXPORT_ENTRY(com_util_parse_double, int(COM_UTIL_API *)(double *value_out, const char *text)) \
     /* com_util/crt/string.h */ \
     EXPORT_ENTRY(com_util_strcpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
     EXPORT_ENTRY(com_util_strncpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \
     EXPORT_ENTRY(com_util_strcat, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
+    EXPORT_ENTRY(com_util_strncat, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \
+    EXPORT_ENTRY(com_util_strtok_r, char *(COM_UTIL_API *)(char *str, const char *delim, char **saveptr)) \
     EXPORT_ENTRY(com_util_strdup, char *(COM_UTIL_API *)(const char *src)) \
     EXPORT_ENTRY(com_util_wcscpy, int(COM_UTIL_API *)(wchar_t * dest, size_t dest_size, const wchar_t *src)) \
     EXPORT_ENTRY(com_util_sscanf, int(COM_UTIL_API *)(const char *buffer, const char *format, ...)) \

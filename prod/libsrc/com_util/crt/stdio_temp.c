@@ -53,7 +53,6 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
         const char *pfx;
         int fd;
         FILE *fp;
-        int n;
 
         if (prefix != NULL)
         {
@@ -89,8 +88,7 @@ FILE *com_util_fopen_temp(const char *prefix, const char *modes, char *path_out,
             tmpdir = tmpdir_buf;
         }
 
-        n = snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx);
-        if (n < 0 || (size_t)n >= path_size)
+        if (com_util_snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx) != COM_UTIL_OK)
         {
             (void)com_util_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;

@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <vector>
 #include <stdio.h>
 #include <testfw.h>
 #include <mock_com_util.h>
@@ -16,24 +17,26 @@ MOCK_WEAK_IMPL(int, com_util_fprintf, FILE *stream, const char *format, ...)
 {
     int rtc = -1;
 
-    char buf[1024];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buf, sizeof(buf), format, args);
-    va_end(args);
+    std::vector<char> buf;
+    {
+        va_list args;
+        va_start(args, format);
+        buf = mock_com_util_expand_format(format, args);
+        va_end(args);
+    }
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_fprintf(stream, buf);
+        rtc = _mock_com_util->com_util_fprintf(stream, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_fprintf(stream, buf);
+        rtc = delegate_real_com_util_fprintf(stream, buf.data());
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p, %s", __func__, (void *)stream, buf);
+        printf("  > %s 0x%p, %s", __func__, (void *)stream, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

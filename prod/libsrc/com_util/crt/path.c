@@ -156,7 +156,6 @@ static int com_util_normalize_absolute_posix_path(char *path)
 static int com_util_build_absolute_posix_path(char *path_out, const size_t path_size, com_util_error *detail_out,
                                               const char *path)
 {
-    int written;
 
     if (path == NULL || path[0] == '\0')
     {
@@ -186,13 +185,8 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
             return com_util_error_report_errno(detail_out, errno_value);
         }
 
-        written = snprintf(path_out, path_size, "%s/%s", cwd, path);
-        if (written < 0 || (size_t)written >= path_size)
+        if (com_util_snprintf(path_out, path_size, "%s/%s", cwd, path) != COM_UTIL_OK)
         {
-            if (path_out != NULL && path_size > 0u)
-            {
-                path_out[0] = '\0';
-            }
             return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }
     }
@@ -398,7 +392,6 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, com_util_error
         char tmpdir_buf[PLATFORM_PATH_MAX];
         const char *tmpdir;
         size_t len;
-        int n;
 
         /* TMPDIR が設定されていても本バッファーに収まらない場合は、切り詰めた値を
            一時ディレクトリとして採用すると誤ったパスを返すため、失敗として扱う */
@@ -422,8 +415,7 @@ int com_util_get_temp_dir(char *path_out, const size_t path_size, com_util_error
             --len;
         }
 
-        n = snprintf(path_out, path_size, "%.*s", (int)len, tmpdir);
-        if (n < 0 || (size_t)n >= path_size)
+        if (com_util_snprintf(path_out, path_size, "%.*s", (int)len, tmpdir) != COM_UTIL_OK)
         {
             return com_util_error_report_errno(detail_out, ENAMETOOLONG);
         }

@@ -1,17 +1,19 @@
+#include <stdarg.h>
 #include <stdio.h>
+#include <vector>
 #include <testfw.h>
 #include <mock_com_util.h>
 
 int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size,
                                                        const char *file, int line, const char *fmt, va_list args)
 {
-    char prompt[COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT];
-    vsnprintf(prompt, sizeof(prompt), fmt != nullptr ? fmt : "", args);
+    /* 実装側は必要長に応じてバッファーを伸長するため、モックでも切り詰めずに展開する */
+    std::vector<char> prompt = mock_com_util_expand_format(fmt, args);
 
     static auto real_fn = reinterpret_cast<decltype(&_com_util_pinned_prompt_readline)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_pinned_prompt_readline"));
 
-    return real_fn(screen, buf, buf_size, prompt, file, line);
+    return real_fn(screen, buf, buf_size, prompt.data(), file, line);
 }
 
 MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt *screen, char *buf, size_t buf_size,
@@ -35,7 +37,13 @@ MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s \"%s\"", __func__, fmt != nullptr ? fmt : "");
+        const char *fmt_text = fmt;
+
+        if (fmt_text == nullptr)
+        {
+            fmt_text = "";
+        }
+        printf("  > %s \"%s\"", __func__, fmt_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
             printf(" -> %d\n", rtc);

@@ -25,7 +25,7 @@ class fopenfTest : public Test
 TEST_F(fopenfTest, test_null_modes)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_error last_error;
 
     // Pre-Assert
@@ -46,7 +46,7 @@ TEST_F(fopenfTest, test_null_modes)
 TEST_F(fopenfTest, vfopen_fmt_records_error_for_null_modes)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_error last_error;
 
     // Pre-Assert
@@ -68,7 +68,7 @@ TEST_F(fopenfTest, vfopen_fmt_records_error_for_null_modes)
 TEST_F(fopenfTest, test_null_format)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(_, _, _))
@@ -85,7 +85,7 @@ TEST_F(fopenfTest, test_null_format)
 TEST_F(fopenfTest, test_buffer_overflow)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     char long_string[5000];
     memset(long_string, 'a', sizeof(long_string) - 1);
     long_string[sizeof(long_string) - 1] = '\0'; // [状態] - バッファー サイズを超える 4999 文字のファイル名を用意する。
@@ -107,7 +107,7 @@ TEST_F(fopenfTest, test_buffer_overflow)
 TEST_F(fopenfTest, test_successful_call_with_format)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     FILE *expected_fp =
         (FILE *)(uintptr_t)0x12345678; // [状態] - com_util_fopen が返すファイル ポインターの期待値を用意する。
 
@@ -130,7 +130,7 @@ TEST_F(fopenfTest, test_successful_call_with_format)
 TEST_F(fopenfTest, test_successful_call_with_multiple_parameters)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     FILE *expected_fp =
         (FILE *)(uintptr_t)0x87654321; // [状態] - com_util_fopen が返すファイル ポインターの期待値を用意する。
 
@@ -153,7 +153,7 @@ TEST_F(fopenfTest, test_successful_call_with_multiple_parameters)
 TEST_F(fopenfTest, test_fopen_returns_null)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("nonexistent.txt"), StrEq("r"), _))
@@ -176,7 +176,7 @@ TEST_F(fopenfTest, test_fopen_returns_null)
 TEST_F(fopenfTest, test_fopen_s_access_denied)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("protected.txt"), StrEq("w"), _))
@@ -199,7 +199,7 @@ TEST_F(fopenfTest, test_fopen_s_access_denied)
 TEST_F(fopenfTest, test_fopen_returns_null_with_errno)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
     com_util_error error_code; // [状態] - 詳細エラーの受け取り先を用意する。
 
@@ -228,7 +228,7 @@ TEST_F(fopenfTest, test_fopen_returns_null_with_errno)
 TEST_F(fopenfTest, test_fopen_success_clears_error)
 {
     // Arrange
-    Mock_com_util mock_com_util;
+    NiceMock<Mock_com_util> mock_com_util;
     FILE *expected_fp =
         (FILE *)(uintptr_t)0x12345678; // [状態] - com_util_fopen が返すファイル ポインターの期待値を用意する。
     com_util_error empty_error = {COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL};

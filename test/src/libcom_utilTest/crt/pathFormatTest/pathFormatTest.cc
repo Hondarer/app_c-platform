@@ -1,5 +1,5 @@
 #include <testfw.h>
-#include <mock_stdio.h>
+#include <mock_com_util.h>
 
 #include <com_util/crt/path_format.h>
 
@@ -88,48 +88,76 @@ TEST(pathFormatTest, allows_null_error_out_for_invalid_argument)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_vformat_path の戻り値が -1 であること。
 }
 
-// vsnprintf の失敗時に EINVAL を報告することの確認
+// 書式化の失敗時に EINVAL を報告することの確認
 TEST(pathFormatTest, reports_vsnprintf_failure)
 {
     // Arrange
-    NiceMock<Mock_stdio> mock_stdio;
+    NiceMock<Mock_com_util> mock_com_util;
     char path[16] = "before";
     int error_out = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, path, sizeof(path), StrEq("value-7")))
-        .WillOnce(
-            Return(-1)); // [Pre-Assert確認_異常系] - vsnprintf が展開済み文字列 "value-7" で 1 回呼び出されること。
-                         // [Pre-Assert手順] - vsnprintf から -1 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_vsnprintf(path, sizeof(path), StrEq("value-7")))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - com_util_vsnprintf が展開済み文字列 "value-7" で 1 回
+                                    // 呼び出されること。
+                                    // [Pre-Assert手順] - com_util_vsnprintf から COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
     int rtc = call_vformat_path(path, sizeof(path), &error_out, "value-%d",
-                                7); // [手順] - vsnprintf が失敗する条件で com_util_vformat_path を呼び出す。
+                                7); // [手順] - 書式化が失敗する条件で com_util_vformat_path を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc);           // [確認_異常系] - com_util_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, error_out); // [確認_異常系] - error_out に EINVAL が格納されること。
 }
 
-// vsnprintf の失敗時に error_out へ NULL を指定できることの確認
+// 書式化の失敗時に error_out へ NULL を指定できることの確認
 TEST(pathFormatTest, allows_null_error_out_for_vsnprintf_failure)
 {
     // Arrange
-    NiceMock<Mock_stdio> mock_stdio;
+    NiceMock<Mock_com_util> mock_com_util;
     char path[16] = "before";
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, path, sizeof(path), StrEq("value")))
-        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - vsnprintf が展開済み文字列 "value" で 1 回呼び出されること。
-                               // [Pre-Assert手順] - vsnprintf から -1 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_vsnprintf(path, sizeof(path), StrEq("value")))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - com_util_vsnprintf が展開済み文字列 "value" で 1 回
+                                    // 呼び出されること。
+                                    // [Pre-Assert手順] - com_util_vsnprintf から COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
     int rtc = call_vformat_path(
         path, sizeof(path), NULL, "%s",
-        "value"); // [手順] - vsnprintf が失敗する条件で error_out に NULL を指定して com_util_vformat_path を呼び出す。
+        "value"); // [手順] - 書式化が失敗する条件で error_out に NULL を指定して com_util_vformat_path を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_vformat_path の戻り値が -1 であること。
+}
+
+// バッファー不足時に ENAMETOOLONG を報告することの確認
+TEST(pathFormatTest, reports_buffer_too_small_from_wrapper)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[16] = "before";
+    int error_out = 0;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_vsnprintf(path, sizeof(path), StrEq("value")))
+        .WillOnce(Return(
+            COM_UTIL_ERR_BUFFER_TOO_SMALL)); // [Pre-Assert確認_異常系] - com_util_vsnprintf が展開済み文字列 "value" で
+                                             // 1 回呼び出されること。
+                                             // [Pre-Assert手順] - com_util_vsnprintf から
+                                             // COM_UTIL_ERR_BUFFER_TOO_SMALL を返却する。
+
+    // Act
+    int rtc = call_vformat_path(path, sizeof(path), &error_out, "%s",
+                                "value"); // [手順] - 書式化がバッファー不足を返す条件で呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc);                 // [確認_異常系] - com_util_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(ENAMETOOLONG, error_out); // [確認_異常系] - error_out に ENAMETOOLONG が格納されること。
 }
 
 // 出力が切り詰められる場合に ENAMETOOLONG を報告することの確認

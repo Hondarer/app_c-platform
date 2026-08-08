@@ -11,14 +11,15 @@
 #include <com_util/crt/path_format.h>
 #include <com_util/crt/stdio.h>
 
+#include <com_util/base/result.h>
+
 #include <errno.h>
-#include <stdio.h>
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_vformat_path(char *path, const size_t path_size, const char *format, va_list args, int *error_out)
 {
-    int written;
+    int ret;
 
     if (path == NULL || path_size == 0 || format == NULL)
     {
@@ -29,21 +30,20 @@ int com_util_vformat_path(char *path, const size_t path_size, const char *format
         return -1;
     }
 
-    written = vsnprintf(path, path_size, format, args);
-    if (written < 0)
-    {
-        if (error_out != NULL)
-        {
-            *error_out = EINVAL;
-        }
-        return -1;
-    }
-
-    if (written >= (int)path_size)
+    ret = com_util_vsnprintf(path, path_size, format, args);
+    if (ret == COM_UTIL_ERR_BUFFER_TOO_SMALL)
     {
         if (error_out != NULL)
         {
             *error_out = ENAMETOOLONG;
+        }
+        return -1;
+    }
+    if (ret != COM_UTIL_OK)
+    {
+        if (error_out != NULL)
+        {
+            *error_out = EINVAL;
         }
         return -1;
     }
