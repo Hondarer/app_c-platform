@@ -27,7 +27,7 @@ void reset_records()
     g_last_event.code = 0;
 }
 
-com_util_shutdown_event make_event(com_util_shutdown_reason_t reason, com_util_shutdown_code_kind_t code_kind, int code)
+com_util_shutdown_event make_event(com_util_shutdown_reason reason, com_util_shutdown_code_kind code_kind, int code)
 {
     com_util_shutdown_event event;
     event.reason = reason;

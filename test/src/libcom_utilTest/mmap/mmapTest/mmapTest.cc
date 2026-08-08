@@ -131,7 +131,7 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
                              NULL)); // [確認_異常系] - attach (map NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               com_util_mmap_attach(
-                  "x", (com_util_mmap_access_t)99, 64, &map,
+                  "x", (com_util_mmap_access)99, 64, &map,
                   NULL)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 

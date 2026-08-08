@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+int delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel channel,
                                                const void *data, size_t size, size_t *written_out)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_write)>(
@@ -11,7 +11,7 @@ int delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt *screen, c
 }
 
 MOCK_WEAK_IMPL(int, com_util_pinned_prompt_write, com_util_pinned_prompt *screen,
-               com_util_pinned_prompt_channel_t channel, const void *data, size_t size, size_t *written_out)
+               com_util_pinned_prompt_channel channel, const void *data, size_t size, size_t *written_out)
 {
     int rtc = 0;
 

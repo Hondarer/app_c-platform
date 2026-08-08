@@ -43,10 +43,10 @@ extern "C"
 #define COM_UTIL_SYNC_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */
 
     /** @brief プロセス横断同期のバックエンド種別。 */
-    typedef enum
+    typedef enum com_util_interprocess_sync_backend
     {
         COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE = 1 /**< ロック ファイルを使用するバックエンド。 */
-    } com_util_interprocess_sync_backend_t;
+    } com_util_interprocess_sync_backend;
 
     typedef struct com_util_local_lock com_util_local_lock;                   /**< プロセス内ミューテックス。 */
     typedef struct com_util_condvar com_util_condvar;                         /**< プロセス内条件変数。 */
@@ -56,9 +56,9 @@ extern "C"
     typedef struct com_util_interprocess_rwlock com_util_interprocess_rwlock; /**< プロセス横断読み書きロック。 */
 
     /** スレッド関数ポインター型。 */
-    typedef void (*com_util_thread_func_t)(void *);
+    typedef void (*com_util_thread_fn)(void *);
     /** call_once で 1 回だけ呼び出される関数ポインター型。 */
-    typedef void (*com_util_once_func_t)(void);
+    typedef void (*com_util_once_fn)(void);
 
     /** call_once 状態。静的領域では 0 初期化して用いる。 */
     typedef struct com_util_once_flag
@@ -297,7 +297,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  複数スレッドから同時に呼び出して独立したスレッドを生成できます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_thread_create(com_util_thread **thread, com_util_thread_fn func,
                                                             void *arg);
 
     /**
@@ -549,7 +549,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  同一 @p flag を複数スレッドから同時に指定しても @p func は 1 回だけ実行されます。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag *flag, com_util_once_func_t func);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_call_once(com_util_once_flag *flag, com_util_once_fn func);
 
     /**
      *  @brief      指定時間だけ現在のスレッドをスリープします。

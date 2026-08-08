@@ -4,7 +4,7 @@
 #if defined(PLATFORM_WINDOWS)
 
 int delegate_real_com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                                             com_util_etw_event_callback_t callback, void *context,
+                                             com_util_etw_event_fn callback, void *context,
                                              com_util_etw_session **session_out)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_etw_session_start)>(
@@ -14,7 +14,7 @@ int delegate_real_com_util_etw_session_start(const char *session_name, const cha
 }
 
 MOCK_WEAK_IMPL(int, com_util_etw_session_start, const char *session_name, const char *provider_guid_str,
-               com_util_etw_event_callback_t callback, void *context, com_util_etw_session **session_out)
+               com_util_etw_event_fn callback, void *context, com_util_etw_session **session_out)
 {
     int rtc;
 

@@ -26,7 +26,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_isatty(const com_util_stream_t stream)
+int com_util_isatty(const com_util_stream stream)
 {
 #if defined(PLATFORM_LINUX)
 

@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
+int delegate_real_com_util_shutdown_register(com_util_shutdown_fn callback, void *context)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_shutdown_register)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_shutdown_register"));
@@ -9,7 +9,7 @@ int delegate_real_com_util_shutdown_register(com_util_shutdown_callback_t callba
     return real_fn(callback, context);
 }
 
-MOCK_WEAK_IMPL(int, com_util_shutdown_register, com_util_shutdown_callback_t callback, void *context)
+MOCK_WEAK_IMPL(int, com_util_shutdown_register, com_util_shutdown_fn callback, void *context)
 {
     int rtc = COM_UTIL_ERR_UNKNOWN;
 

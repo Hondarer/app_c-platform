@@ -49,7 +49,7 @@ extern "C"
      *  @param[in]      level  変換元のトレース レベル。
      *  @return         対応するレベル文字 ('C'/'E'/'W'/'I'/'V'/'D')。範囲外は 'D'。
      */
-    char trace_level_char(com_util_trace_level_t level);
+    char trace_level_char(com_util_trace_level level);
 
 #ifdef __cplusplus
 }

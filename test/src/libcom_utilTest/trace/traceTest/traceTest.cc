@@ -137,11 +137,11 @@ TEST_F(traceTest, test_get_state_reports_stopped_started_stopped)
     // Pre-Assert
 
     // Act
-    com_util_tracer_state_t created_state = com_util_tracer_get_state(handle); // [手順] - create 直後の状態を取得する。
+    com_util_tracer_state created_state = com_util_tracer_get_state(handle); // [手順] - create 直後の状態を取得する。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
-    com_util_tracer_state_t started_state = com_util_tracer_get_state(handle); // [手順] - start 後の状態を取得する。
+    com_util_tracer_state started_state = com_util_tracer_get_state(handle); // [手順] - start 後の状態を取得する。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_stop(handle));
-    com_util_tracer_state_t stopped_state = com_util_tracer_get_state(handle); // [手順] - stop 後の状態を取得する。
+    com_util_tracer_state stopped_state = com_util_tracer_get_state(handle); // [手順] - stop 後の状態を取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_TRACER_STATE_STOPPED, created_state); // [確認_正常系] - create 直後は stopped を返すこと。
@@ -160,7 +160,7 @@ TEST_F(traceTest, test_get_state_returns_disposed_for_null)
     // Pre-Assert
 
     // Act
-    com_util_tracer_state_t state = com_util_tracer_get_state(NULL); // [手順] - NULL ハンドルの状態を取得する。
+    com_util_tracer_state state = com_util_tracer_get_state(NULL); // [手順] - NULL ハンドルの状態を取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_TRACER_STATE_DISPOSED, state); // [確認_異常系] - NULL では disposed を返すこと。

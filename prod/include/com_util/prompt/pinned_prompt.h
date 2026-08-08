@@ -48,29 +48,29 @@ extern "C"
     /**
      *  @brief  固定プロンプトの上へ出力するときに使用する出力先です。
      */
-    typedef enum
+    typedef enum com_util_pinned_prompt_channel
     {
         COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT = 0,
         COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR = 1
-    } com_util_pinned_prompt_channel_t;
+    } com_util_pinned_prompt_channel;
 
     /**
      *  @brief  ステータス領域の表示位置です。
      */
-    typedef enum
+    typedef enum com_util_pinned_prompt_status_position
     {
         COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP = 0,
         COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM = 1
-    } com_util_pinned_prompt_status_position_t;
+    } com_util_pinned_prompt_status_position;
 
     /**
      *  @brief  ステータス領域内の文字列配置です。
      */
-    typedef enum
+    typedef enum com_util_pinned_prompt_status_align
     {
         COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT = 0,
         COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT = 1
-    } com_util_pinned_prompt_status_align_t;
+    } com_util_pinned_prompt_status_align;
 
     /**
      *  @brief  固定プロンプトの生成オプションです。
@@ -204,7 +204,7 @@ extern "C"
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
-                                                                  com_util_pinned_prompt_channel_t channel,
+                                                                  com_util_pinned_prompt_channel channel,
                                                                   const void *data, size_t size, size_t *written_out);
 
     /**
@@ -218,7 +218,7 @@ extern "C"
      *  @note           ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
-                                                                   com_util_pinned_prompt_channel_t channel,
+                                                                   com_util_pinned_prompt_channel channel,
                                                                    const char *fmt, ...)
 #if defined(COMPILER_GCC)
         __attribute__((format(printf, 3, 4)))
@@ -238,7 +238,7 @@ extern "C"
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_enable(
-        com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position, int enable);
+        com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position position, int enable);
 
     /**
      *  @brief          指定位置のステータス領域へ表示内容を設定します。
@@ -257,8 +257,8 @@ extern "C"
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position,
-                                      com_util_pinned_prompt_status_align_t align, const char *content);
+    com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position position,
+                                      com_util_pinned_prompt_status_align align, const char *content);
 
 #ifdef __cplusplus
 }

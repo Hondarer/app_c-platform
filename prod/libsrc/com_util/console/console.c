@@ -665,7 +665,7 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_console_write(com_util_stream_t stream, const char *text)
+int com_util_console_write(com_util_stream stream, const char *text)
 {
     DWORD std_handle;
     HANDLE h;
@@ -745,7 +745,7 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
 }
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_console_write(com_util_stream_t stream, const char *text)
+int com_util_console_write(com_util_stream stream, const char *text)
 {
     int fd;
     size_t len;

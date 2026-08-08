@@ -50,7 +50,7 @@ static_assert(COM_UTIL_CAUSE_IO_ERROR == 21, "new cause values must be appended"
 typedef struct tls_thread_case
 {
     com_util_error observed_error;
-    com_util_error_cause_t requested_cause;
+    com_util_error_cause requested_cause;
     int call_completed;
 } tls_thread_case;
 
@@ -328,10 +328,10 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     com_util_error_capture_errno(NULL, ENOENT);          // [手順] - NULL の格納先へ errno を取り込む。
     com_util_error_get_last(NULL);                       // [手順] - NULL の格納先へ TLS の値を取得する。
     const int null_is_set = com_util_error_is_set(NULL); // [手順] - NULL の設定状態を取得する。
-    const com_util_error_domain_t null_domain = com_util_error_get_domain(NULL); // [手順] - NULL のドメインを取得する。
+    const com_util_error_domain null_domain = com_util_error_get_domain(NULL); // [手順] - NULL のドメインを取得する。
     const int null_errno = com_util_error_get_errno(NULL);  // [手順] - NULL から errno を取得する。
     const int null_result = com_util_error_to_result(NULL); // [手順] - NULL を共通結果コードへ変換する。
-    const com_util_error_cause_t null_cause = com_util_error_get_cause(NULL); // [手順] - NULL の要因を取得する。
+    const com_util_error_cause null_cause = com_util_error_get_cause(NULL); // [手順] - NULL の要因を取得する。
     const int null_matches = com_util_error_is(NULL, COM_UTIL_CAUSE_NONE);    // [手順] - NULL の要因一致を判定する。
     const int mismatched_errno =
         com_util_error_get_errno(&windows_error); // [手順] - Windows ドメインから errno を取得する。
@@ -357,7 +357,7 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
 TEST_F(errorTest, errno_values_map_to_one_cause)
 {
     // Arrange
-    const std::vector<std::pair<int, com_util_error_cause_t>> cases = {{ENOENT, COM_UTIL_CAUSE_NOT_FOUND},
+    const std::vector<std::pair<int, com_util_error_cause>> cases = {{ENOENT, COM_UTIL_CAUSE_NOT_FOUND},
                                                                        {EEXIST, COM_UTIL_CAUSE_ALREADY_EXISTS},
                                                                        {EACCES, COM_UTIL_CAUSE_ACCESS_DENIED},
                                                                        {ENOTDIR, COM_UTIL_CAUSE_NOT_A_DIRECTORY},
@@ -377,13 +377,13 @@ TEST_F(errorTest, errno_values_map_to_one_cause)
                                                                        {ENOTSUP, COM_UTIL_CAUSE_UNSUPPORTED},
                                                                        {EIO, COM_UTIL_CAUSE_IO_ERROR}};
     com_util_error error;
-    std::vector<com_util_error_cause_t> actual_causes;
+    std::vector<com_util_error_cause> actual_causes;
     std::vector<int> actual_matches;
 
     // Pre-Assert
 
     // Act
-    for (const std::pair<int, com_util_error_cause_t> &item : cases)
+    for (const std::pair<int, com_util_error_cause> &item : cases)
     {
         com_util_error_capture_errno(&error, item.first); // [手順] - 各 errno を順番に詳細エラーへ取り込む。
         actual_causes.push_back(com_util_error_get_cause(&error));

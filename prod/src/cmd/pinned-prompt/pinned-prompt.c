@@ -33,7 +33,7 @@ typedef struct pinned_prompt_cli_worker
 
     uint64_t tick_count;
 
-    com_util_pinned_prompt_channel_t channel;
+    com_util_pinned_prompt_channel channel;
     int sync_initialized;
     int thread_running;
     int stop_requested;
@@ -161,7 +161,7 @@ static void print_help(com_util_pinned_prompt *screen)
 }
 
 static void worker_init(pinned_prompt_cli_worker *worker, com_util_pinned_prompt *screen,
-                        com_util_pinned_prompt_channel_t channel, const char *name)
+                        com_util_pinned_prompt_channel channel, const char *name)
 {
     memset(worker, 0, sizeof(*worker));
     worker->screen = screen;

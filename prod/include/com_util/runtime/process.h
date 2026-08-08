@@ -59,12 +59,12 @@ extern "C"
 #define COM_UTIL_PROCESS_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */
 
     /** @brief 子プロセスの標準入出力ハンドルの扱い。 */
-    typedef enum
+    typedef enum com_util_process_stdio_mode
     {
         COM_UTIL_PROCESS_STDIO_INHERIT = 0,      /**< 親プロセスの標準ハンドルを継承します。 */
         COM_UTIL_PROCESS_STDIO_NULL_DEVICE = 1,  /**< null device へ接続します。 */
         COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE = 2 /**< native_handle で指定した OS ハンドルを使います。 */
-    } com_util_process_stdio_mode_t;
+    } com_util_process_stdio_mode;
 
     /**
      *  @brief          子プロセスの標準入出力指定です。
@@ -74,7 +74,7 @@ extern "C"
      */
     typedef struct com_util_process_stdio
     {
-        com_util_process_stdio_mode_t mode; /**< 標準入出力の扱い。 */
+        com_util_process_stdio_mode mode; /**< 標準入出力の扱い。 */
 #if defined(ARCH_X64)
         unsigned int pad; /**< x64 で native_handle のアラインメントを明示する予約領域。 */
 #endif

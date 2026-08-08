@@ -2,7 +2,7 @@
 #include <mock_com_util.h>
 
 void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                                  com_util_trace_level_t level, const com_util_timespec *timestamp,
+                                                  com_util_trace_level level, const com_util_timespec *timestamp,
                                                   const char *message)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_call_next_hook)>(
@@ -12,7 +12,7 @@ void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry *pr
 }
 
 MOCK_WEAK_IMPL(void, com_util_tracer_call_next_hook, com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-               com_util_trace_level_t level, const com_util_timespec *timestamp, const char *message)
+               com_util_trace_level level, const com_util_timespec *timestamp, const char *message)
 {
     if (_mock_com_util != nullptr)
     {

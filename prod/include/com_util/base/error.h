@@ -52,19 +52,19 @@ extern "C"
     /**
      *  @brief          詳細エラー値の由来を表します。
      */
-    typedef enum com_util_error_domain_t
+    typedef enum com_util_error_domain
     {
         COM_UTIL_ERROR_DOMAIN_NONE = 0,   /**< 詳細エラーが設定されていません。 */
         COM_UTIL_ERROR_DOMAIN_ERRNO = 1,  /**< errno の値を保持しています。 */
         COM_UTIL_ERROR_DOMAIN_WINDOWS = 2 /**< Win32 エラー コードを保持しています。 */
-    } com_util_error_domain_t;
+    } com_util_error_domain;
 
     /**
      *  @brief          OS エラーをプラットフォーム共通で判定する要因を表します。
      *
      *  値は ABI として固定し、新しい要因は末尾へ追加します。
      */
-    typedef enum com_util_error_cause_t
+    typedef enum com_util_error_cause
     {
         COM_UTIL_CAUSE_NONE = 0,
         COM_UTIL_CAUSE_OTHER = 1,
@@ -88,14 +88,14 @@ extern "C"
         COM_UTIL_CAUSE_BUFFER_TOO_SMALL = 19,
         COM_UTIL_CAUSE_UNSUPPORTED = 20,
         COM_UTIL_CAUSE_IO_ERROR = 21
-    } com_util_error_cause_t;
+    } com_util_error_cause;
 
     /**
      *  @brief          OS 由来の詳細エラーをドメイン付きで保持します。
      */
     typedef struct com_util_error
     {
-        com_util_error_domain_t domain; /**< code の由来。 */
+        com_util_error_domain domain; /**< code の由来。 */
         int result;                     /**< 対応する共通結果コード (COM_UTIL_OK または COM_UTIL_ERR_*)。 */
         unsigned long code;             /**< ドメイン固有の生のエラー値。 */
     } com_util_error;
@@ -229,7 +229,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  引数の値だけを参照し、共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_error_domain_t COM_UTIL_API com_util_error_get_domain(const com_util_error *error);
+    COM_UTIL_EXPORT com_util_error_domain COM_UTIL_API com_util_error_get_domain(const com_util_error *error);
 
     /**
      *  @brief          errno の値を返します。
@@ -286,7 +286,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  引数の値だけを参照し、共有状態を持ちません。
      */
-    COM_UTIL_EXPORT com_util_error_cause_t COM_UTIL_API com_util_error_get_cause(const com_util_error *error);
+    COM_UTIL_EXPORT com_util_error_cause COM_UTIL_API com_util_error_get_cause(const com_util_error *error);
 
     /**
      *  @brief          詳細エラーが指定した要因に一致するかを返します。
@@ -306,7 +306,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  引数の値だけを参照し、共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_error_is(const com_util_error *error, com_util_error_cause_t cause);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_error_is(const com_util_error *error, com_util_error_cause cause);
 
 #ifdef __cplusplus
 }

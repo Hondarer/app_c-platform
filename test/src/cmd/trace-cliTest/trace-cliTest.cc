@@ -219,7 +219,7 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
     EXPECT_CALL(mock_com_util_,
                 _com_util_tracer_write_hex(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, _, 3U, StrEq("payload bytes")))
         .WillOnce(
-            [](com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const void *data, size_t size,
+            [](com_util_tracer *, com_util_trace_level, const com_util_timespec *, const void *data, size_t size,
                const char *)
             {
                 const unsigned char *bytes = static_cast<const unsigned char *>(data);

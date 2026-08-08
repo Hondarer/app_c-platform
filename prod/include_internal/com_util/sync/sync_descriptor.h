@@ -12,7 +12,7 @@
  *  - offset 0-3: マジック "CULK"
  *  - offset 4: バージョン
  *  - offset 5: 種別 (INTERPROCESS_SYNC_KIND_*)
- *  - offset 6: バックエンド (com_util_interprocess_sync_backend_t)
+ *  - offset 6: バックエンド (com_util_interprocess_sync_backend)
  *  - offset 7: 予約 (0)
  *  - offset 8-11: identity 長 (uint32)
  *  - offset 12-19: 予約 (0)

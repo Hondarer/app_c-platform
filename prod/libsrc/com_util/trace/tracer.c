@@ -82,7 +82,7 @@ enum trace_handle_state
  */
 struct com_util_tracer_hook_entry
 {
-    com_util_tracer_hook_fn_t fn;
+    com_util_tracer_hook_fn fn;
     void *context;
     struct com_util_tracer_hook_entry *next;
 };
@@ -112,12 +112,12 @@ struct com_util_tracer
 
     com_util_local_rwlock *config_rwlock;
 
-    com_util_trace_level_t os_level;
+    com_util_trace_level os_level;
 #if defined(PLATFORM_WINDOWS)
-    com_util_trace_level_t etw_level;
+    com_util_trace_level etw_level;
 #endif /* PLATFORM_WINDOWS */
-    com_util_trace_level_t file_level;
-    com_util_trace_level_t stderr_level;
+    com_util_trace_level file_level;
+    com_util_trace_level stderr_level;
     volatile int running;
     volatile int lifecycle_state;
 
@@ -313,7 +313,7 @@ static int begin_dispose(com_util_tracer *handle)
  *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する syslog レベル値。
  */
-static int to_syslog_level(const com_util_trace_level_t lv)
+static int to_syslog_level(const com_util_trace_level lv)
 {
     switch (lv)
     {
@@ -342,7 +342,7 @@ static int to_syslog_level(const com_util_trace_level_t lv)
  *  @param[in]      lv  変換元のトレース レベル。
  *  @return         対応する ETW レベル値。
  */
-static int to_etw_level(const com_util_trace_level_t lv)
+static int to_etw_level(const com_util_trace_level lv)
 {
     switch (lv)
     {
@@ -1068,9 +1068,9 @@ int com_util_tracer_stop(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_tracer_state_t com_util_tracer_get_state(com_util_tracer *handle)
+com_util_tracer_state com_util_tracer_get_state(com_util_tracer *handle)
 {
-    com_util_tracer_state_t state;
+    com_util_tracer_state state;
 
     if (tracer_enter_shared(handle) != 0)
     {
@@ -1108,7 +1108,7 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
     return result;
 }
 
-static int should_output(const com_util_trace_level_t msg_level, const com_util_trace_level_t threshold);
+static int should_output(const com_util_trace_level msg_level, const com_util_trace_level threshold);
 
 /**
  *  @brief          OS ネイティブのバックエンドにメッセージを書き込みます。
@@ -1122,7 +1122,7 @@ static int should_output(const com_util_trace_level_t msg_level, const com_util_
  *  Windows では ETW を etw_level で、EventLog を os_level で独立してゲートします。
  *  各レベル判定を内部で行うため、本関数は常に呼び出せます。
  */
-static int write_os_backends(com_util_tracer *handle, const com_util_trace_level_t level,
+static int write_os_backends(com_util_tracer *handle, const com_util_trace_level level,
                              const com_util_timespec *timestamp, const char *msg)
 {
 #if defined(PLATFORM_LINUX)
@@ -1162,7 +1162,7 @@ static int write_os_backends(com_util_tracer *handle, const com_util_trace_level
  *  @param[in]      threshold   出力閾値となるトレース レベル。
  *  @return         出力すべき場合 1、出力不要の場合 0。
  */
-static int should_output(const com_util_trace_level_t msg_level, const com_util_trace_level_t threshold)
+static int should_output(const com_util_trace_level msg_level, const com_util_trace_level threshold)
 {
     if (threshold == COM_UTIL_TRACE_LEVEL_NONE)
     {
@@ -1179,7 +1179,7 @@ static int should_output(const com_util_trace_level_t msg_level, const com_util_
  *  @param[in]      timestamp_text  事前整形済みタイムスタンプ文字列。
  *  @param[in]      msg    書き込むメッセージ文字列。
  */
-static void write_stderr_entry(const com_util_trace_level_t level, const char *timestamp_text, const char *msg)
+static void write_stderr_entry(const com_util_trace_level level, const char *timestamp_text, const char *msg)
 {
     fprintf(stderr, "%s %c %s\n", timestamp_text, trace_level_char(level), msg);
 }
@@ -1192,7 +1192,7 @@ static void write_stderr_entry(const com_util_trace_level_t level, const char *t
  *  @param[in]      msg        書き込むメッセージ文字列。
  *  @return         全出力先で成功時 0、いずれかで失敗時 -1。
  */
-static int write_dual(com_util_tracer *handle, const com_util_trace_level_t level, const com_util_timespec *timestamp,
+static int write_dual(com_util_tracer *handle, const com_util_trace_level level, const com_util_timespec *timestamp,
                       const char *msg)
 {
     int os_result = 0;
@@ -1257,7 +1257,7 @@ static int write_dual(com_util_tracer *handle, const com_util_trace_level_t leve
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t level,
+int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level level,
                            const com_util_timespec *timestamp, const char *message)
 {
     const char *msg;
@@ -1291,7 +1291,7 @@ int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level_t
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level_t level,
+int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level level,
                             const com_util_timespec *timestamp, const char *format, ...)
 {
     va_list args;
@@ -1329,7 +1329,7 @@ static const char hex_chars[] = "0123456789ABCDEF";
  *  @param[in]      label       メッセージに付加するラベル (NULL 可)。
  *  @return         成功時 0、失敗時 -1。
  */
-static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t level,
+static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level level,
                           const com_util_timespec *timestamp, const void *data, const size_t size, const char *label)
 {
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
@@ -1423,7 +1423,7 @@ static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level_t 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level_t level,
+int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_level level,
                                const com_util_timespec *timestamp, const void *data, const size_t size,
                                const char *message)
 {
@@ -1445,7 +1445,7 @@ int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_lev
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level_t level,
+int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level level,
                                 const com_util_timespec *timestamp, const void *data, const size_t size,
                                 const char *format, ...)
 {
@@ -1652,9 +1652,9 @@ int64_t com_util_tracer_get_file_identifier(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_trace_level_t com_util_tracer_get_os_level(com_util_tracer *handle)
+com_util_trace_level com_util_tracer_get_os_level(com_util_tracer *handle)
 {
-    com_util_trace_level_t lv;
+    com_util_trace_level lv;
 
     if (tracer_enter_shared(handle) != 0)
     {
@@ -1667,7 +1667,7 @@ com_util_trace_level_t com_util_tracer_get_os_level(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_level_t level)
+int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_level level)
 {
     if (tracer_enter_exclusive(handle) != 0)
     {
@@ -1681,10 +1681,10 @@ int com_util_tracer_set_os_level(com_util_tracer *handle, const com_util_trace_l
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_trace_level_t com_util_tracer_get_etw_level(com_util_tracer *handle)
+com_util_trace_level com_util_tracer_get_etw_level(com_util_tracer *handle)
 {
 #if defined(PLATFORM_WINDOWS)
-    com_util_trace_level_t lv;
+    com_util_trace_level lv;
 
     if (tracer_enter_shared(handle) != 0)
     {
@@ -1702,7 +1702,7 @@ com_util_trace_level_t com_util_tracer_get_etw_level(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_level_t level)
+int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_level level)
 {
 #if defined(PLATFORM_WINDOWS)
     if (tracer_enter_exclusive(handle) != 0)
@@ -1723,9 +1723,9 @@ int com_util_tracer_set_etw_level(com_util_tracer *handle, const com_util_trace_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_trace_level_t com_util_tracer_get_file_level(com_util_tracer *handle)
+com_util_trace_level com_util_tracer_get_file_level(com_util_tracer *handle)
 {
-    com_util_trace_level_t lv;
+    com_util_trace_level lv;
 
     if (tracer_enter_shared(handle) != 0)
     {
@@ -1738,7 +1738,7 @@ com_util_trace_level_t com_util_tracer_get_file_level(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, const com_util_trace_level_t level,
+int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, const com_util_trace_level level,
                                    const size_t max_bytes, const int generations, const int flags)
 {
     char *path_copy = NULL;
@@ -1846,9 +1846,9 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_trace_level_t com_util_tracer_get_stderr_level(com_util_tracer *handle)
+com_util_trace_level com_util_tracer_get_stderr_level(com_util_tracer *handle)
 {
-    com_util_trace_level_t lv;
+    com_util_trace_level lv;
 
     if (tracer_enter_shared(handle) != 0)
     {
@@ -1861,7 +1861,7 @@ com_util_trace_level_t com_util_tracer_get_stderr_level(com_util_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_trace_level_t level)
+int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_trace_level level)
 {
     if (tracer_enter_exclusive(handle) != 0)
     {
@@ -1945,7 +1945,7 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn_t fn,
+com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn fn,
                                                      void *context)
 {
     com_util_tracer_hook_entry *entry;
@@ -2007,7 +2007,7 @@ void com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_e
 /* Doxygen コメントは、ヘッダーに記載 */
 
 void com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                    const com_util_trace_level_t level, const com_util_timespec *timestamp,
+                                    const com_util_trace_level level, const com_util_timespec *timestamp,
                                     const char *message)
 {
     if (prev == NULL || prev->fn == NULL)

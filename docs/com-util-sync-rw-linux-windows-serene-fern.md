@@ -196,7 +196,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 - `lock_shared / lock_exclusive / unlock` — 内部実装のみ変更
 - `export_descriptor / import_descriptor` — 識別子文字列をシリアライズする現方式を維持  
   (新方式でも identity 文字列で一意特定できるため)
-- `com_util_interprocess_sync_backend_t` の `COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE` は  
+- `com_util_interprocess_sync_backend` の `COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE` は  
   enum 値を残しつつ、新規 `COM_UTIL_INTERPROCESS_SYNC_BACKEND_SHARED_TABLE` を追加して  
   既定をこちらに切り替える (バックエンド選択 API が将来必要なら拡張ポイントになる)
 

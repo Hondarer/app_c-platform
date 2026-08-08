@@ -30,7 +30,7 @@ static THREAD_LOCAL com_util_error com_util_error_last;
  *  @param[in]      result 共通結果コード。
  *  @param[in]      code   ドメイン固有のエラー値。
  */
-static void com_util_error_store(com_util_error *error, const com_util_error_domain_t domain, const int result,
+static void com_util_error_store(com_util_error *error, const com_util_error_domain domain, const int result,
                                  const unsigned long code)
 {
     if (error != NULL)
@@ -46,9 +46,9 @@ static void com_util_error_store(com_util_error *error, const com_util_error_dom
  *  @param[in]      errno_value errno の値。
  *  @return         対応する要因を返します。
  */
-static com_util_error_cause_t com_util_error_cause_from_errno(const int errno_value)
+static com_util_error_cause com_util_error_cause_from_errno(const int errno_value)
 {
-    com_util_error_cause_t cause;
+    com_util_error_cause cause;
 
     switch (errno_value)
     {
@@ -150,9 +150,9 @@ static com_util_error_cause_t com_util_error_cause_from_errno(const int errno_va
  *  @param[in]      error_code Win32 エラー コード。
  *  @return         対応する要因を返します。
  */
-static com_util_error_cause_t com_util_error_cause_from_windows_error(const unsigned long error_code)
+static com_util_error_cause com_util_error_cause_from_windows_error(const unsigned long error_code)
 {
-    com_util_error_cause_t cause;
+    com_util_error_cause cause;
 
     switch (error_code)
     {
@@ -346,9 +346,9 @@ int com_util_error_is_set(const com_util_error *error)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_error_domain_t com_util_error_get_domain(const com_util_error *error)
+com_util_error_domain com_util_error_get_domain(const com_util_error *error)
 {
-    com_util_error_domain_t domain = COM_UTIL_ERROR_DOMAIN_NONE;
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_NONE;
 
     if (error != NULL)
     {
@@ -415,9 +415,9 @@ int com_util_error_to_result(const com_util_error *error)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_error_cause_t com_util_error_get_cause(const com_util_error *error)
+com_util_error_cause com_util_error_get_cause(const com_util_error *error)
 {
-    com_util_error_cause_t cause = COM_UTIL_CAUSE_NONE;
+    com_util_error_cause cause = COM_UTIL_CAUSE_NONE;
 
     if (error != NULL)
     {
@@ -444,7 +444,7 @@ com_util_error_cause_t com_util_error_get_cause(const com_util_error *error)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_error_is(const com_util_error *error, const com_util_error_cause_t cause)
+int com_util_error_is(const com_util_error *error, const com_util_error_cause cause)
 {
     int matches = 0;
 
@@ -481,7 +481,7 @@ int com_util_error_report_errno(com_util_error *detail_out, const int errno_valu
 
 int com_util_error_report_errno_as(com_util_error *detail_out, const int errno_value, const int result)
 {
-    com_util_error_domain_t domain = COM_UTIL_ERROR_DOMAIN_ERRNO;
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_ERRNO;
 
     if ((errno_value == 0) && (result == COM_UTIL_OK))
     {
@@ -517,7 +517,7 @@ int com_util_error_report_windows_error(com_util_error *detail_out, const unsign
 
 int com_util_error_report_windows_error_as(com_util_error *detail_out, const unsigned long error_code, const int result)
 {
-    com_util_error_domain_t domain = COM_UTIL_ERROR_DOMAIN_WINDOWS;
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_WINDOWS;
 
     if ((error_code == ERROR_SUCCESS) && (result == COM_UTIL_OK))
     {

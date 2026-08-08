@@ -62,14 +62,14 @@ struct com_util_interprocess_rwlock
 
 struct com_util_thread_start_ctx
 {
-    com_util_thread_func_t func;
+    com_util_thread_fn func;
     void *arg;
 };
 
 static unsigned __stdcall thread_start_proc(void *opaque)
 {
     struct com_util_thread_start_ctx *ctx = (struct com_util_thread_start_ctx *)opaque;
-    com_util_thread_func_t func = ctx->func;
+    com_util_thread_fn func = ctx->func;
     void *arg = ctx->arg;
 
     free(ctx);
@@ -591,7 +591,7 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg)
+int com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, void *arg)
 {
     struct com_util_thread_start_ctx *ctx;
     com_util_thread *new_thread;

@@ -67,7 +67,7 @@ int trace_format_local_timestamp(char *buf, const size_t buf_size, const com_uti
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-char trace_level_char(const com_util_trace_level_t level)
+char trace_level_char(const com_util_trace_level level)
 {
     switch (level)
     {

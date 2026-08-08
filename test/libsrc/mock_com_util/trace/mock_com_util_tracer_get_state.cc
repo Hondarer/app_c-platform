@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-com_util_tracer_state_t delegate_real_com_util_tracer_get_state(com_util_tracer *handle)
+com_util_tracer_state delegate_real_com_util_tracer_get_state(com_util_tracer *handle)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_get_state)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_get_state"));
@@ -9,9 +9,9 @@ com_util_tracer_state_t delegate_real_com_util_tracer_get_state(com_util_tracer 
     return real_fn(handle);
 }
 
-MOCK_WEAK_IMPL(com_util_tracer_state_t, com_util_tracer_get_state, com_util_tracer *handle)
+MOCK_WEAK_IMPL(com_util_tracer_state, com_util_tracer_get_state, com_util_tracer *handle)
 {
-    com_util_tracer_state_t rtc = COM_UTIL_TRACER_STATE_DISPOSED;
+    com_util_tracer_state rtc = COM_UTIL_TRACER_STATE_DISPOSED;
 
     if (_mock_com_util != nullptr)
     {

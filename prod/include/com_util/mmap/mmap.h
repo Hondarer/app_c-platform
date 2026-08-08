@@ -54,11 +54,11 @@ extern "C"
 #endif /* __cplusplus */
 
     /** @brief マップ時のアクセス モード。 */
-    typedef enum
+    typedef enum com_util_mmap_access
     {
         COM_UTIL_MMAP_ACCESS_READ_ONLY = 0, /**< 読み取り専用でマップする。既存ファイルが必要。 */
         COM_UTIL_MMAP_ACCESS_READ_WRITE = 1 /**< 読み書き両用でマップする。存在しなければ新規作成する。 */
-    } com_util_mmap_access_t;
+    } com_util_mmap_access;
 
     /** @brief メモリ マップド ファイルのハンドル (不透明構造体)。 */
     typedef struct com_util_mmap com_util_mmap;
@@ -66,7 +66,7 @@ extern "C"
     /**
      *  @brief          ファイルをアタッチし、プロセスのアドレス空間へマップします。
      *  @param[in]      path         マップするファイルのパス (UTF-8)。NULL を渡してはなりません。
-     *  @param[in]      access       アクセス モード (@ref com_util_mmap_access_t)。
+     *  @param[in]      access       アクセス モード (@ref com_util_mmap_access)。
      *  @param[in]      create_size  新規作成時のファイル サイズ (バイト)。\n
      *                               @p access が @ref COM_UTIL_MMAP_ACCESS_READ_WRITE で、
      *                               @p path のファイルが存在しない場合にのみ使用します。
@@ -97,7 +97,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  呼び出しごとに独立したハンドルを生成し、内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_attach(const char *path, com_util_mmap_access_t access,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_mmap_attach(const char *path, com_util_mmap_access access,
                                                           size_t create_size, com_util_mmap **map,
                                                           com_util_error *detail_out);
 

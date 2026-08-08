@@ -87,7 +87,7 @@ TEST_F(etw_viewerTest, main_accepts_pid_filter)
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert手順] - 権限確認から OK を返却して通過させる。
     EXPECT_CALL(mock_com_util_, com_util_etw_session_start(_, _, _, _, _))
         .WillOnce(Invoke(
-            [&captured_context](const char *, const char *, com_util_etw_event_callback_t, void *context,
+            [&captured_context](const char *, const char *, com_util_etw_event_fn, void *context,
                                 com_util_etw_session **session_out)
             {
                 captured_context = *static_cast<const etw_viewer_context *>(context);

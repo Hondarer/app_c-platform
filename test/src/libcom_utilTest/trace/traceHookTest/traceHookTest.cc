@@ -58,7 +58,7 @@ struct HookRecord
     com_util_timespec timestamp;
     std::string message;
     void *context;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
     uint32_t padding;
 };
 
@@ -69,7 +69,7 @@ static void reset_hook_records()
     g_hook_records.clear();
 }
 
-static void recording_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle, com_util_trace_level_t level,
+static void recording_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle, com_util_trace_level level,
                            const com_util_timespec *timestamp, const char *message, void *context)
 {
     HookRecord rec;
@@ -354,7 +354,7 @@ TEST_F(traceHookTest, test_hook_chain_order)
     static HookCtx ctx1 = {1};
     static HookCtx ctx2 = {2};
 
-    auto chain_fn = [](com_util_tracer_hook_entry *prev, com_util_tracer *handle, com_util_trace_level_t level,
+    auto chain_fn = [](com_util_tracer_hook_entry *prev, com_util_tracer *handle, com_util_trace_level level,
                        const com_util_timespec *timestamp, const char *message, void *context)
     {
         HookCtx *c = reinterpret_cast<HookCtx *>(context);

@@ -24,7 +24,7 @@
 
 typedef struct shutdown_callback_entry
 {
-    com_util_shutdown_callback_t callback;
+    com_util_shutdown_fn callback;
     void *context;
     struct shutdown_callback_entry *next;
 } shutdown_callback_entry;
@@ -246,7 +246,7 @@ static void install_shutdown_hooks(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context)
+int com_util_shutdown_register(com_util_shutdown_fn callback, void *context)
 {
     shutdown_callback_entry *entry;
     int result = COM_UTIL_OK;
@@ -298,7 +298,7 @@ void com_util_exit(const int code)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context)
+int com_util_shutdown_request_register(com_util_shutdown_fn callback, void *context)
 {
     shutdown_callback_entry *entry;
     int result = COM_UTIL_OK;

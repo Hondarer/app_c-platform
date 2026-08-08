@@ -5,7 +5,7 @@
 #include <mock_com_util.h>
 
 int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
-                                                com_util_pinned_prompt_channel_t channel, const char *fmt, ...)
+                                                com_util_pinned_prompt_channel channel, const char *fmt, ...)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_printf)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_printf"));
@@ -19,7 +19,7 @@ int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
 }
 
 MOCK_WEAK_IMPL(int, com_util_pinned_prompt_printf, com_util_pinned_prompt *screen,
-               com_util_pinned_prompt_channel_t channel, const char *fmt, ...)
+               com_util_pinned_prompt_channel channel, const char *fmt, ...)
 {
     int rtc = -1;
     std::vector<char> buf;

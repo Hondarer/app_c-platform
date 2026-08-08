@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level_t level,
+int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level level,
                                          const com_util_timespec *timestamp, const char *message)
 {
     static auto real_fn = reinterpret_cast<decltype(&_com_util_tracer_write)>(
@@ -10,7 +10,7 @@ int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace
     return real_fn(handle, level, timestamp, message);
 }
 
-MOCK_WEAK_IMPL(int, _com_util_tracer_write, com_util_tracer *handle, com_util_trace_level_t level,
+MOCK_WEAK_IMPL(int, _com_util_tracer_write, com_util_tracer *handle, com_util_trace_level level,
                const com_util_timespec *timestamp, const char *message)
 {
     int rtc = 0;

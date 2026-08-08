@@ -14,7 +14,7 @@ TEST_F(isattyTest, invalid_stream_returns_zero)
 
     // Act
     int ret =
-        com_util_isatty((com_util_stream_t)99); // [手順] - 定義外の enum 値 99 を渡して com_util_isatty を呼び出す。
+        com_util_isatty((com_util_stream)99); // [手順] - 定義外の enum 値 99 を渡して com_util_isatty を呼び出す。
 
     // Assert
     EXPECT_EQ(0, ret); // [確認_異常系] - com_util_isatty の戻り値が 0 であること。

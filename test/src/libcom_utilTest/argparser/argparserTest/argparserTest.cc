@@ -11,7 +11,7 @@
 namespace
 {
 
-com_util_shutdown_callback_t g_default_shutdown_callback = nullptr;
+com_util_shutdown_fn g_default_shutdown_callback = nullptr;
 void *g_default_shutdown_context = nullptr;
 
 } // namespace

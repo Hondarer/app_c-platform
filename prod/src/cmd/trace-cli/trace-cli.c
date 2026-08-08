@@ -182,7 +182,7 @@ static char *rest_argument(char **cursor)
     return p;
 }
 
-static const char *level_to_name(com_util_trace_level_t level)
+static const char *level_to_name(com_util_trace_level level)
 {
     if ((int)level >= 0 && (size_t)level < sizeof(g_trace_level_names) / sizeof(g_trace_level_names[0]))
     {
@@ -192,7 +192,7 @@ static const char *level_to_name(com_util_trace_level_t level)
     return "UNKNOWN";
 }
 
-static int parse_trace_level(const char *token, com_util_trace_level_t *level)
+static int parse_trace_level(const char *token, com_util_trace_level *level)
 {
     size_t i;
 
@@ -205,7 +205,7 @@ static int parse_trace_level(const char *token, com_util_trace_level_t *level)
     {
         if (str_case_equal(token, g_trace_level_names[i]))
         {
-            *level = (com_util_trace_level_t)i;
+            *level = (com_util_trace_level)i;
             return 1;
         }
     }
@@ -255,7 +255,7 @@ static int parse_int_value(const char *token, int *value)
     return 1;
 }
 
-static const char *tracer_state_to_name(com_util_tracer_state_t state)
+static const char *tracer_state_to_name(com_util_tracer_state state)
 {
     switch (state)
     {
@@ -402,7 +402,7 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
     return 1;
 }
 
-static void print_level_result(com_util_trace_level_t level)
+static void print_level_result(com_util_trace_level level)
 {
     printf("level=%s(%d)\n", level_to_name(level), (int)level);
 }
@@ -594,7 +594,7 @@ static int cmd_get_os_level(trace_cli_session *session, const struct trace_cli_c
 static int cmd_set_os_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
 {
     char *level_token;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
 
     level_token = next_token(cursor);
     if (level_token == NULL || next_token(cursor) != NULL)
@@ -626,7 +626,7 @@ static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli
     char *max_bytes_token;
     char *generations_token;
     const char *path = NULL;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
     size_t max_bytes = 0U;
     int generations = 0;
     int rc;
@@ -684,7 +684,7 @@ static int cmd_get_stderr_level(trace_cli_session *session, const struct trace_c
 static int cmd_set_stderr_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
 {
     char *level_token;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
 
     level_token = next_token(cursor);
     if (level_token == NULL || next_token(cursor) != NULL)
@@ -705,7 +705,7 @@ static int cmd_write(trace_cli_session *session, const struct trace_cli_command 
 {
     char *level_token;
     char *message;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
     int rc;
 
     level_token = next_token(cursor);
@@ -744,7 +744,7 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     char *hex_token;
     char *label_cursor;
     char *label;
-    com_util_trace_level_t level;
+    com_util_trace_level level;
     unsigned char *data = NULL;
     size_t size = 0U;
     int rc;

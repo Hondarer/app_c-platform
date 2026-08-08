@@ -50,7 +50,7 @@ typedef struct com_util_etw_event
 } com_util_etw_event;
 
 /**
- *  @typedef        com_util_etw_event_callback_t
+ *  @typedef        com_util_etw_event_fn
  *  @brief          ETW イベント受信コールバック型です。
  *
  *  @param[in]      event    受信イベント。callback 呼び出し中のみ参照可能。
@@ -60,7 +60,7 @@ typedef struct com_util_etw_event
  *  コールバックは ETW ワーカー スレッドから呼び出されます。\n
  *  コールバックの実装者は再入性を確保してください。
  */
-typedef void (*com_util_etw_event_callback_t)(const com_util_etw_event *event, void *context);
+typedef void (*com_util_etw_event_fn)(const com_util_etw_event *event, void *context);
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -178,7 +178,7 @@ extern "C"
      *  内部に共有状態を持ちません。各呼び出しは独立したセッションを生成します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                                                                com_util_etw_event_callback_t callback, void *context,
+                                                                com_util_etw_event_fn callback, void *context,
                                                                 com_util_etw_session **session_out);
 
     /**

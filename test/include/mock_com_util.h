@@ -136,7 +136,7 @@ extern FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *m
                                                com_util_error *detail_out);
 
 // crt - unistd
-extern int delegate_real_com_util_isatty(com_util_stream_t stream);
+extern int delegate_real_com_util_isatty(com_util_stream stream);
 extern int delegate_real_com_util_access_fmt(int mode, com_util_error *detail_out, const char *format, ...);
 extern int delegate_real_com_util_vaccess_fmt(int mode, com_util_error *detail_out, const char *format, va_list args);
 extern int64_t delegate_real_com_util_lseek(int fd, int64_t offset, int whence, com_util_error *detail_out);
@@ -191,34 +191,34 @@ extern com_util_tracer *delegate_real_com_util_tracer_create(void);
 extern void delegate_real_com_util_tracer_dispose(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_start(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_stop(com_util_tracer *handle);
-extern int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level_t level,
+extern int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level level,
                                                 const com_util_timespec *timestamp, const char *message);
-extern int delegate_real__com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level_t level,
+extern int delegate_real__com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level level,
                                                     const com_util_timespec *timestamp, const void *data, size_t size,
                                                     const char *message);
-extern int delegate_real__com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level_t level,
+extern int delegate_real__com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level level,
                                                  const com_util_timespec *timestamp, const char *format, ...);
-extern int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level_t level,
+extern int delegate_real__com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level level,
                                                      const com_util_timespec *timestamp, const void *data, size_t size,
                                                      const char *format, ...);
 extern int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier);
-extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level_t level);
-extern int delegate_real_com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level_t level);
+extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level level);
+extern int delegate_real_com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level level);
 extern int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
-                                                        com_util_trace_level_t level, size_t max_bytes, int generations,
+                                                        com_util_trace_level level, size_t max_bytes, int generations,
                                                         int flags);
-extern int delegate_real_com_util_tracer_set_stderr_level(com_util_tracer *handle, com_util_trace_level_t level);
+extern int delegate_real_com_util_tracer_set_stderr_level(com_util_tracer *handle, com_util_trace_level level);
 extern com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_tracer *handle,
-                                                                          com_util_tracer_hook_fn_t fn, void *context);
+                                                                          com_util_tracer_hook_fn fn, void *context);
 extern void delegate_real_com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_entry *hook_entry);
 extern void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                                         com_util_trace_level_t level,
+                                                         com_util_trace_level level,
                                                          const com_util_timespec *timestamp, const char *message);
-extern com_util_tracer_state_t delegate_real_com_util_tracer_get_state(com_util_tracer *handle);
-extern com_util_trace_level_t delegate_real_com_util_tracer_get_os_level(com_util_tracer *handle);
-extern com_util_trace_level_t delegate_real_com_util_tracer_get_etw_level(com_util_tracer *handle);
-extern com_util_trace_level_t delegate_real_com_util_tracer_get_file_level(com_util_tracer *handle);
-extern com_util_trace_level_t delegate_real_com_util_tracer_get_stderr_level(com_util_tracer *handle);
+extern com_util_tracer_state delegate_real_com_util_tracer_get_state(com_util_tracer *handle);
+extern com_util_trace_level delegate_real_com_util_tracer_get_os_level(com_util_tracer *handle);
+extern com_util_trace_level delegate_real_com_util_tracer_get_etw_level(com_util_tracer *handle);
+extern com_util_trace_level delegate_real_com_util_tracer_get_file_level(com_util_tracer *handle);
+extern com_util_trace_level delegate_real_com_util_tracer_get_stderr_level(com_util_tracer *handle);
 
 // clock
 extern uint64_t delegate_real_com_util_get_monotonic_ms(void);
@@ -256,7 +256,7 @@ extern int delegate_real_com_util_local_rwlock_try_lock_exclusive(com_util_local
 extern int delegate_real_com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock);
 extern int delegate_real_com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock);
 extern void delegate_real_com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock);
-extern int delegate_real_com_util_thread_create(com_util_thread **thread, com_util_thread_func_t func, void *arg);
+extern int delegate_real_com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, void *arg);
 extern int delegate_real_com_util_thread_join(com_util_thread *thread, int timeout_ms);
 extern void delegate_real_com_util_thread_detach(com_util_thread *thread);
 extern int delegate_real_com_util_interprocess_lock_open(const char *identity, com_util_interprocess_lock **lock);
@@ -280,7 +280,7 @@ extern int delegate_real_com_util_interprocess_rwlock_lock_exclusive(com_util_in
 extern int delegate_real_com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock);
 extern int delegate_real_com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock);
 extern void delegate_real_com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock);
-extern void delegate_real_com_util_call_once(com_util_once_flag *flag, com_util_once_func_t func);
+extern void delegate_real_com_util_call_once(com_util_once_flag *flag, com_util_once_fn func);
 extern void delegate_real_com_util_sleep_ms(int ms);
 
 // runtime - module_info
@@ -321,8 +321,8 @@ extern void delegate_real_com_util_sym_loader_dispose(com_util_sym_loader_entry 
 extern int delegate_real_com_util_sym_loader_info(com_util_sym_loader_entry *const *fobj_array, size_t fobj_length);
 
 // runtime - shutdown
-extern int delegate_real_com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context);
-extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_callback_t callback, void *context);
+extern int delegate_real_com_util_shutdown_register(com_util_shutdown_fn callback, void *context);
+extern int delegate_real_com_util_shutdown_request_register(com_util_shutdown_fn callback, void *context);
 
 // trace - trace_file_sink
 extern com_util_trace_file_sink *delegate_real_com_util_trace_file_sink_create(const char *path, size_t max_bytes,
@@ -356,7 +356,7 @@ extern int delegate_real_com_util_etw_provider_write(com_util_etw_provider *hand
                                                      const char *message);
 extern int delegate_real_com_util_etw_session_check_access(void);
 extern int delegate_real_com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                                                    com_util_etw_event_callback_t callback, void *context,
+                                                    com_util_etw_event_fn callback, void *context,
                                                     com_util_etw_session **session_out);
 extern void delegate_real_com_util_etw_session_stop(com_util_etw_session *session);
 
@@ -386,16 +386,16 @@ extern int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_pr
                                                               size_t buf_size, const char *file, int line,
                                                               const char *fmt, va_list args);
 extern int delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
-                                                      com_util_pinned_prompt_channel_t channel, const void *data,
+                                                      com_util_pinned_prompt_channel channel, const void *data,
                                                       size_t size, size_t *written_out);
 extern int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
-                                                       com_util_pinned_prompt_channel_t channel, const char *fmt, ...);
+                                                       com_util_pinned_prompt_channel channel, const char *fmt, ...);
 extern int delegate_real_com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
-                                                              com_util_pinned_prompt_status_position_t position,
+                                                              com_util_pinned_prompt_status_position position,
                                                               int enable);
 extern int delegate_real_com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen,
-                                                           com_util_pinned_prompt_status_position_t position,
-                                                           com_util_pinned_prompt_status_align_t align,
+                                                           com_util_pinned_prompt_status_position position,
+                                                           com_util_pinned_prompt_status_align align,
                                                            const char *content);
 
 // argparser
@@ -564,7 +564,7 @@ class Mock_com_util
     MOCK_METHOD(FILE *, com_util_fopen_temp, (const char *, const char *, char *, size_t, com_util_error *));
 
     // crt - unistd
-    MOCK_METHOD(int, com_util_isatty, (com_util_stream_t));
+    MOCK_METHOD(int, com_util_isatty, (com_util_stream));
     MOCK_METHOD(int, com_util_access_fmt, (int, com_util_error *, const char *));
     MOCK_METHOD(int, com_util_vaccess_fmt, (int, com_util_error *, const char *));
     MOCK_METHOD(int64_t, com_util_lseek, (int, int64_t, int, com_util_error *));
@@ -611,32 +611,32 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_tracer_start, (com_util_tracer *));
     MOCK_METHOD(int, com_util_tracer_stop, (com_util_tracer *));
     MOCK_METHOD(int, _com_util_tracer_write,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const char *));
+                (com_util_tracer *, com_util_trace_level, const com_util_timespec *, const char *));
     MOCK_METHOD(int, _com_util_tracer_write_hex,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const void *, size_t,
+                (com_util_tracer *, com_util_trace_level, const com_util_timespec *, const void *, size_t,
                  const char *));
     MOCK_METHOD(int, _com_util_tracer_writef,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const char *));
+                (com_util_tracer *, com_util_trace_level, const com_util_timespec *, const char *));
     MOCK_METHOD(int, _com_util_tracer_write_hexf,
-                (com_util_tracer *, com_util_trace_level_t, const com_util_timespec *, const void *, size_t,
+                (com_util_tracer *, com_util_trace_level, const com_util_timespec *, const void *, size_t,
                  const char *));
     MOCK_METHOD(int, com_util_tracer_set_name, (com_util_tracer *, const char *, int64_t));
-    MOCK_METHOD(int, com_util_tracer_set_os_level, (com_util_tracer *, com_util_trace_level_t));
-    MOCK_METHOD(int, com_util_tracer_set_etw_level, (com_util_tracer *, com_util_trace_level_t));
+    MOCK_METHOD(int, com_util_tracer_set_os_level, (com_util_tracer *, com_util_trace_level));
+    MOCK_METHOD(int, com_util_tracer_set_etw_level, (com_util_tracer *, com_util_trace_level));
     MOCK_METHOD(int, com_util_tracer_set_file_level,
-                (com_util_tracer *, const char *, com_util_trace_level_t, size_t, int, int));
-    MOCK_METHOD(int, com_util_tracer_set_stderr_level, (com_util_tracer *, com_util_trace_level_t));
+                (com_util_tracer *, const char *, com_util_trace_level, size_t, int, int));
+    MOCK_METHOD(int, com_util_tracer_set_stderr_level, (com_util_tracer *, com_util_trace_level));
     MOCK_METHOD(com_util_tracer_hook_entry *, com_util_tracer_set_hook,
-                (com_util_tracer *, com_util_tracer_hook_fn_t, void *));
+                (com_util_tracer *, com_util_tracer_hook_fn, void *));
     MOCK_METHOD(void, com_util_tracer_remove_hook, (com_util_tracer *, com_util_tracer_hook_entry *));
     MOCK_METHOD(void, com_util_tracer_call_next_hook,
-                (com_util_tracer_hook_entry *, com_util_tracer *, com_util_trace_level_t, const com_util_timespec *,
+                (com_util_tracer_hook_entry *, com_util_tracer *, com_util_trace_level, const com_util_timespec *,
                  const char *));
-    MOCK_METHOD(com_util_tracer_state_t, com_util_tracer_get_state, (com_util_tracer *));
-    MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_os_level, (com_util_tracer *));
-    MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_etw_level, (com_util_tracer *));
-    MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_file_level, (com_util_tracer *));
-    MOCK_METHOD(com_util_trace_level_t, com_util_tracer_get_stderr_level, (com_util_tracer *));
+    MOCK_METHOD(com_util_tracer_state, com_util_tracer_get_state, (com_util_tracer *));
+    MOCK_METHOD(com_util_trace_level, com_util_tracer_get_os_level, (com_util_tracer *));
+    MOCK_METHOD(com_util_trace_level, com_util_tracer_get_etw_level, (com_util_tracer *));
+    MOCK_METHOD(com_util_trace_level, com_util_tracer_get_file_level, (com_util_tracer *));
+    MOCK_METHOD(com_util_trace_level, com_util_tracer_get_stderr_level, (com_util_tracer *));
 
     // clock
     MOCK_METHOD(uint64_t, com_util_get_monotonic_ms, ());
@@ -672,7 +672,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_local_rwlock_unlock_shared, (com_util_local_rwlock *));
     MOCK_METHOD(int, com_util_local_rwlock_unlock_exclusive, (com_util_local_rwlock *));
     MOCK_METHOD(void, com_util_local_rwlock_destroy, (com_util_local_rwlock *));
-    MOCK_METHOD(int, com_util_thread_create, (com_util_thread **, com_util_thread_func_t, void *));
+    MOCK_METHOD(int, com_util_thread_create, (com_util_thread **, com_util_thread_fn, void *));
     MOCK_METHOD(int, com_util_thread_join, (com_util_thread *, int));
     MOCK_METHOD(void, com_util_thread_detach, (com_util_thread *));
     MOCK_METHOD(int, com_util_interprocess_lock_open, (const char *, com_util_interprocess_lock **));
@@ -695,7 +695,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_interprocess_rwlock_try_lock_exclusive, (com_util_interprocess_rwlock *));
     MOCK_METHOD(int, com_util_interprocess_rwlock_unlock, (com_util_interprocess_rwlock *));
     MOCK_METHOD(void, com_util_interprocess_rwlock_destroy, (com_util_interprocess_rwlock *));
-    MOCK_METHOD(void, com_util_call_once, (com_util_once_flag *, com_util_once_func_t));
+    MOCK_METHOD(void, com_util_call_once, (com_util_once_flag *, com_util_once_fn));
     MOCK_METHOD(void, com_util_sleep_ms, (int));
 
     // runtime - module_info
@@ -732,8 +732,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_sym_loader_info, (com_util_sym_loader_entry *const *, size_t));
 
     // runtime - shutdown
-    MOCK_METHOD(int, com_util_shutdown_register, (com_util_shutdown_callback_t, void *));
-    MOCK_METHOD(int, com_util_shutdown_request_register, (com_util_shutdown_callback_t, void *));
+    MOCK_METHOD(int, com_util_shutdown_register, (com_util_shutdown_fn, void *));
+    MOCK_METHOD(int, com_util_shutdown_request_register, (com_util_shutdown_fn, void *));
 
     // trace - trace_file_sink
     MOCK_METHOD(com_util_trace_file_sink *, com_util_trace_file_sink_create, (const char *, size_t, int, int));
@@ -765,7 +765,7 @@ class Mock_com_util
     MOCK_METHOD(void, com_util_etw_provider_dispose, (com_util_etw_provider *));
     MOCK_METHOD(int, com_util_etw_session_check_access, ());
     MOCK_METHOD(int, com_util_etw_session_start,
-                (const char *, const char *, com_util_etw_event_callback_t, void *, com_util_etw_session **));
+                (const char *, const char *, com_util_etw_event_fn, void *, com_util_etw_session **));
     MOCK_METHOD(void, com_util_etw_session_stop, (com_util_etw_session *));
 
     // trace - trace_eventlog (Windows only)
@@ -790,14 +790,14 @@ class Mock_com_util
     MOCK_METHOD(int, _com_util_pinned_prompt_readline_fmt,
                 (com_util_pinned_prompt *, char *, size_t, const char *, int, const char *, va_list));
     MOCK_METHOD(int, com_util_pinned_prompt_write,
-                (com_util_pinned_prompt *, com_util_pinned_prompt_channel_t, const void *, size_t, size_t *));
+                (com_util_pinned_prompt *, com_util_pinned_prompt_channel, const void *, size_t, size_t *));
     MOCK_METHOD(int, com_util_pinned_prompt_printf,
-                (com_util_pinned_prompt *, com_util_pinned_prompt_channel_t, const char *));
+                (com_util_pinned_prompt *, com_util_pinned_prompt_channel, const char *));
     MOCK_METHOD(int, com_util_pinned_prompt_status_enable,
-                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position_t, int));
+                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position, int));
     MOCK_METHOD(int, com_util_pinned_prompt_status_set,
-                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position_t,
-                 com_util_pinned_prompt_status_align_t, const char *));
+                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position,
+                 com_util_pinned_prompt_status_align, const char *));
 
     // argparser
     MOCK_METHOD(com_util_argparser *, _com_util_argparser_create, (const com_util_argparser_options *));

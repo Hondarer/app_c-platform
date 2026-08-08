@@ -266,10 +266,10 @@ TEST(traceCommonTest, propagates_error_for_zero_buffer_size)
 TEST(traceCommonTest, maps_all_trace_levels)
 {
     // Arrange
-    const com_util_trace_level_t levels[] = {
+    const com_util_trace_level levels[] = {
         COM_UTIL_TRACE_LEVEL_NONE,    COM_UTIL_TRACE_LEVEL_CRITICAL, COM_UTIL_TRACE_LEVEL_ERROR,
         COM_UTIL_TRACE_LEVEL_WARNING, COM_UTIL_TRACE_LEVEL_INFO,     COM_UTIL_TRACE_LEVEL_VERBOSE,
-        COM_UTIL_TRACE_LEVEL_DEBUG,   (com_util_trace_level_t)-1,    (com_util_trace_level_t)999};
+        COM_UTIL_TRACE_LEVEL_DEBUG,   (com_util_trace_level)-1,    (com_util_trace_level)999};
     const char expected[] = {'D', 'C', 'E', 'W', 'I', 'V', 'D', 'D', 'D'};
     char actual[sizeof(levels) / sizeof(levels[0])] = {0};
 

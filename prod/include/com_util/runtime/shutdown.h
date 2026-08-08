@@ -39,35 +39,35 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @enum           com_util_shutdown_reason_t
+     *  @enum           com_util_shutdown_reason
      *  @brief          終了理由の種別です。
      */
-    typedef enum com_util_shutdown_reason_t
+    typedef enum com_util_shutdown_reason
     {
         COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT = 0,            /**< 通常終了。 */
         COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING = 1,    /**< 終了処理中で待機を避けるべき終了。 */
         COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT = 2 /**< シグナルまたはコンソール イベント。 */
-    } com_util_shutdown_reason_t;
+    } com_util_shutdown_reason;
 
     /**
-     *  @enum           com_util_shutdown_code_kind_t
+     *  @enum           com_util_shutdown_code_kind
      *  @brief          終了イベントに付随する数値コードの意味です。
      */
-    typedef enum com_util_shutdown_code_kind_t
+    typedef enum com_util_shutdown_code_kind
     {
         COM_UTIL_SHUTDOWN_CODE_KIND_NONE = 0,             /**< 追加コードなし。 */
         COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE = 1,        /**< `exit(code)` の終了コード。 */
         COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER = 2,    /**< `SIGINT` などのシグナル番号。 */
         COM_UTIL_SHUTDOWN_CODE_KIND_CONSOLE_CTRL_TYPE = 3 /**< Windows `CTRL_*_EVENT`。 */
-    } com_util_shutdown_code_kind_t;
+    } com_util_shutdown_code_kind;
 
     /**
      *  @brief          終了イベント情報です。
      */
     typedef struct com_util_shutdown_event
     {
-        com_util_shutdown_reason_t reason;       /**< 終了理由。 */
-        com_util_shutdown_code_kind_t code_kind; /**< `code` の意味。 */
+        com_util_shutdown_reason reason;       /**< 終了理由。 */
+        com_util_shutdown_code_kind code_kind; /**< `code` の意味。 */
         int code;                                /**< 終了コード、シグナル番号、CTRL 種別。 */
     } com_util_shutdown_event;
 
@@ -84,7 +84,7 @@ extern "C"
      *  コールバックはシャットダウン ハンドラーから 1 スレッドで呼び出されます。\n
      *  コールバック内で再帰的にシャットダウン処理を呼び出さないでください。
      */
-    typedef void (*com_util_shutdown_callback_t)(const com_util_shutdown_event *event, void *context);
+    typedef void (*com_util_shutdown_fn)(const com_util_shutdown_event *event, void *context);
 
     /**
      *  @brief          終了コールバックを登録します。
@@ -101,7 +101,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_callback_t callback, void *context);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_register(com_util_shutdown_fn callback, void *context);
 
     /**
      *  @brief          終了要求 callback を登録します。
@@ -120,7 +120,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_callback_t callback,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_fn callback,
                                                                         void *context);
 
     /**

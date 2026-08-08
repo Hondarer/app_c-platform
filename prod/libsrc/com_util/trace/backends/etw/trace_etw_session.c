@@ -41,7 +41,7 @@ struct com_util_etw_session
     /** ProcessTrace ワーカー スレッド。 */
     com_util_thread *thread_handle;
     /** イベント受信コールバック。 */
-    com_util_etw_event_callback_t callback;
+    com_util_etw_event_fn callback;
     /** コールバックに渡すユーザーデータ。 */
     void *context;
     /** セッション プロパティ (可変長)。 */
@@ -449,7 +449,7 @@ int com_util_etw_session_check_access(void)
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_etw_session_start(const char *session_name, const char *provider_guid_str,
-                               com_util_etw_event_callback_t callback, void *context,
+                               com_util_etw_event_fn callback, void *context,
                                com_util_etw_session **session_out)
 {
     com_util_etw_session *session = NULL;

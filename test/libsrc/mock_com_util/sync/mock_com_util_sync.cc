@@ -71,7 +71,7 @@ DEFINE_SYNC_RET(int, com_util_local_rwlock_unlock_shared, (rwlock), com_util_loc
 DEFINE_SYNC_RET(int, com_util_local_rwlock_unlock_exclusive, (rwlock), com_util_local_rwlock *rwlock)
 DEFINE_SYNC_VOID(com_util_local_rwlock_destroy, (rwlock), com_util_local_rwlock *rwlock)
 
-DEFINE_SYNC_RET(int, com_util_thread_create, (thread, func, arg), com_util_thread **thread, com_util_thread_func_t func,
+DEFINE_SYNC_RET(int, com_util_thread_create, (thread, func, arg), com_util_thread **thread, com_util_thread_fn func,
                 void *arg)
 DEFINE_SYNC_RET(int, com_util_thread_join, (thread, timeout_ms), com_util_thread *thread, int timeout_ms)
 DEFINE_SYNC_VOID(com_util_thread_detach, (thread), com_util_thread *thread)

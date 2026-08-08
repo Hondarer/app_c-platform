@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-com_util_trace_level_t delegate_real_com_util_tracer_get_file_level(com_util_tracer *handle)
+com_util_trace_level delegate_real_com_util_tracer_get_file_level(com_util_tracer *handle)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_get_file_level)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_get_file_level"));
@@ -9,9 +9,9 @@ com_util_trace_level_t delegate_real_com_util_tracer_get_file_level(com_util_tra
     return real_fn(handle);
 }
 
-MOCK_WEAK_IMPL(com_util_trace_level_t, com_util_tracer_get_file_level, com_util_tracer *handle)
+MOCK_WEAK_IMPL(com_util_trace_level, com_util_tracer_get_file_level, com_util_tracer *handle)
 {
-    com_util_trace_level_t rtc = COM_UTIL_TRACE_LEVEL_NONE;
+    com_util_trace_level rtc = COM_UTIL_TRACE_LEVEL_NONE;
 
     if (_mock_com_util != nullptr)
     {

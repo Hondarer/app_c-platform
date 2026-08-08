@@ -33,7 +33,7 @@
     #include <com_util/base/windows_sdk.h>
 #endif
 
-typedef enum
+typedef enum pinned_prompt_key
 {
     PINNED_PROMPT_KEY_CHAR = 0,
     PINNED_PROMPT_KEY_ENTER,
@@ -50,7 +50,7 @@ typedef enum
     PINNED_PROMPT_KEY_RESIZE,
     PINNED_PROMPT_KEY_UNKNOWN,
     PINNED_PROMPT_KEY_EOF
-} pinned_prompt_key_t;
+} pinned_prompt_key;
 
 typedef struct pinned_prompt_layout
 {
@@ -280,7 +280,7 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len, s
     return width;
 }
 
-static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel_t channel)
+static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel channel)
 {
     if (channel == COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR)
     {
@@ -927,7 +927,7 @@ static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt *screen)
     (void)fflush(stdout);
 }
 
-static pinned_prompt_key_t pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
+static pinned_prompt_key pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
 {
     int c;
     int c2;
@@ -1478,7 +1478,7 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
     while (!done)
     {
         int ch;
-        pinned_prompt_key_t key;
+        pinned_prompt_key key;
 
         ch = 0;
         key = pinned_prompt_read_key(screen, &ch);
@@ -1603,7 +1603,7 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *b
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+int com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel channel,
                                  const void *data, size_t size, size_t *written_out)
 {
     FILE *out;
@@ -1669,7 +1669,7 @@ int com_util_pinned_prompt_write(com_util_pinned_prompt *screen, com_util_pinned
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel_t channel,
+int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel channel,
                                   const char *fmt, ...)
 {
     va_list ap;
@@ -1729,7 +1729,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
-                                         com_util_pinned_prompt_status_position_t position, int enable)
+                                         com_util_pinned_prompt_status_position position, int enable)
 {
     if (screen == NULL)
     {
@@ -1799,8 +1799,8 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position_t position,
-                                      com_util_pinned_prompt_status_align_t align, const char *content)
+int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position position,
+                                      com_util_pinned_prompt_status_align align, const char *content)
 {
     int rc;
 

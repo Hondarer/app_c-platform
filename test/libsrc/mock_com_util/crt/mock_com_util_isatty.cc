@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_isatty(com_util_stream_t stream)
+int delegate_real_com_util_isatty(com_util_stream stream)
 {
     static auto real_fn =
         reinterpret_cast<decltype(&com_util_isatty)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_isatty"));
@@ -9,7 +9,7 @@ int delegate_real_com_util_isatty(com_util_stream_t stream)
     return real_fn(stream);
 }
 
-MOCK_WEAK_IMPL(int, com_util_isatty, com_util_stream_t stream)
+MOCK_WEAK_IMPL(int, com_util_isatty, com_util_stream stream)
 {
     int rtc = 0;
 

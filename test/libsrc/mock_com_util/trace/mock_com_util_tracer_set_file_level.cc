@@ -2,7 +2,7 @@
 #include <mock_com_util.h>
 
 int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const char *path,
-                                                 com_util_trace_level_t level, size_t max_bytes, int generations,
+                                                 com_util_trace_level level, size_t max_bytes, int generations,
                                                  int flags)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_set_file_level)>(
@@ -12,7 +12,7 @@ int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const 
 }
 
 MOCK_WEAK_IMPL(int, com_util_tracer_set_file_level, com_util_tracer *handle, const char *path,
-               com_util_trace_level_t level, size_t max_bytes, int generations, int flags)
+               com_util_trace_level level, size_t max_bytes, int generations, int flags)
 {
     int rtc = 0;
 

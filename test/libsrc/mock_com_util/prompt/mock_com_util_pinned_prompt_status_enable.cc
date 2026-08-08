@@ -2,7 +2,7 @@
 #include <mock_com_util.h>
 
 int delegate_real_com_util_pinned_prompt_status_enable(com_util_pinned_prompt *screen,
-                                                       com_util_pinned_prompt_status_position_t position, int enable)
+                                                       com_util_pinned_prompt_status_position position, int enable)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_status_enable)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_status_enable"));
@@ -11,7 +11,7 @@ int delegate_real_com_util_pinned_prompt_status_enable(com_util_pinned_prompt *s
 }
 
 MOCK_WEAK_IMPL(int, com_util_pinned_prompt_status_enable, com_util_pinned_prompt *screen,
-               com_util_pinned_prompt_status_position_t position, int enable)
+               com_util_pinned_prompt_status_position position, int enable)
 {
     int rtc = -1;
 

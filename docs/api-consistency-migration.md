@@ -18,6 +18,50 @@ com_util は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規�
 | `com_util_etw_session_start` | `(session_name, guid, callback, context, int *out_status)`。戻り値はハンドル (失敗時 NULL + `out_status`) | `(session_name, guid, callback, context, com_util_etw_session **session_out)`。戻り値は結果コード、ハンドルは `session_out` (成功時のみ有効) |
 | `com_util_process_options_t` / `com_util_process_stdio_t` | typedef struct への `_t` 別名 | `_t` なしのタグ名 `com_util_process_options` / `com_util_process_stdio` へ統一 (別名は廃止) |
 
+### 型名変更 (enum / 関数ポインター、コンパイル エラーで検出可能)
+
+POSIX が予約する `_t` サフィックスを、公開 enum と関数ポインター typedef から除去しました。  
+関数ポインターは `_func` / `_callback` を使わず、サフィックスを `_fn` に統一しています。  
+互換エイリアスは置かないため、旧型名の参照はコンパイル エラーになります。
+
+#### enum (13 型)
+
+| 旧名 | 新名 |
+|---|---|
+| `com_util_shutdown_reason_t` | `com_util_shutdown_reason` |
+| `com_util_shutdown_code_kind_t` | `com_util_shutdown_code_kind` |
+| `com_util_trace_level_t` | `com_util_trace_level` |
+| `com_util_tracer_state_t` | `com_util_tracer_state` |
+| `com_util_error_domain_t` | `com_util_error_domain` |
+| `com_util_error_cause_t` | `com_util_error_cause` |
+| `com_util_stream_t` | `com_util_stream` |
+| `com_util_mmap_access_t` | `com_util_mmap_access` |
+| `com_util_pinned_prompt_channel_t` | `com_util_pinned_prompt_channel` |
+| `com_util_pinned_prompt_status_position_t` | `com_util_pinned_prompt_status_position` |
+| `com_util_pinned_prompt_status_align_t` | `com_util_pinned_prompt_status_align` |
+| `com_util_process_stdio_mode_t` | `com_util_process_stdio_mode` |
+| `com_util_interprocess_sync_backend_t` | `com_util_interprocess_sync_backend` |
+
+#### 関数ポインター (5 型)
+
+| 旧名 | 新名 |
+|---|---|
+| `com_util_thread_func_t` | `com_util_thread_fn` |
+| `com_util_once_func_t` | `com_util_once_fn` |
+| `com_util_shutdown_callback_t` | `com_util_shutdown_fn` |
+| `com_util_etw_event_callback_t` | `com_util_etw_event_fn` |
+| `com_util_tracer_hook_fn_t` | `com_util_tracer_hook_fn` |
+
+#### _t を維持する例外 (2 型)
+
+OS / SDK が定義する型の alias に限り、`_t` を維持します。  
+理由の詳細は [`coding-guideline.md`](coding-guideline.md) の「typedef の規則」を参照してください。
+
+| 型 | 由来 |
+|---|---|
+| `com_util_file_stat_t` | POSIX `struct stat` / MSVC `struct _stat64` の alias |
+| `com_util_etw_provider_ref_t` | Windows TraceLogging SDK 内部型への参照の alias |
+
 ### 戻り値型のみ変更 (ソース互換、再ビルドのみ必要)
 
 argparser の既定パーサー ラッパー 15 関数は、`void` 戻りから明示ハンドル版と同じ `int` (結果コード) 戻りへ変更しました。
@@ -78,7 +122,7 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 
 ## 移行手順
 
-1. **ビルドで機械的に検出**: `com_util_getenv`、`com_util_pinned_prompt_write`、`com_util_etw_session_start` の呼び出しと `com_util_process_options_t` / `com_util_process_stdio_t` の参照は、引数個数・型名の変更によりコンパイル エラーとして検出されます。
+1. **ビルドで機械的に検出**: `com_util_getenv`、`com_util_pinned_prompt_write`、`com_util_etw_session_start` の呼び出しと、`com_util_process_options_t` / `com_util_process_stdio_t` および本節の enum / 関数ポインター旧型名の参照は、引数個数・型名の変更によりコンパイル エラーとして検出されます。
 2. **getenv の判定式の書き換え**: 旧コードの「`戻り値 != 0` なら未設定またはエラー」の判定は、新コードでは成立しません。設定有無の判定は `exists_out` で行います。
 
    ```c

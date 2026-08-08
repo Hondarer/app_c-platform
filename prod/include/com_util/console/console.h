@@ -130,7 +130,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream_t stream, const char *text);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_console_write(com_util_stream stream, const char *text);
 
 #ifdef __cplusplus
 }

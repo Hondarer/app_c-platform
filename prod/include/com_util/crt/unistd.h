@@ -63,7 +63,7 @@ typedef enum com_util_stream
     COM_UTIL_STREAM_STDIN = 0,  /**< 標準入力 (stdin)。 */
     COM_UTIL_STREAM_STDOUT = 1, /**< 標準出力 (stdout)。 */
     COM_UTIL_STREAM_STDERR = 2  /**< 標準エラー出力 (stderr)。 */
-} com_util_stream_t;
+} com_util_stream;
 
 #ifdef __cplusplus
 extern "C"
@@ -80,13 +80,13 @@ extern "C"
      *  かつ @c GetConsoleMode が成功する場合にのみ 1 を返します。\n
      *  Linux 環境では POSIX の @c isatty() を使用します。\n
      *  POSIX の @c isatty() と異なり、引数はファイル ディスクリプタではなく
-     *  ストリーム enum (@ref com_util_stream_t) です。
+     *  ストリーム enum (@ref com_util_stream) です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(com_util_stream_t stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_isatty(com_util_stream stream);
 
     /**
      *  @brief          ファイル記述子の読み書き位置を移動します (`lseek` / `_lseeki64` ラッパー)。

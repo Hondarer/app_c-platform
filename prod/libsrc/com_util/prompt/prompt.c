@@ -19,7 +19,7 @@
  * 内部キーコード列挙
  * ================================================================ */
 
-typedef enum
+typedef enum prompt_key
 {
     KEY_CHAR = 0,
     KEY_ENTER,
@@ -36,7 +36,7 @@ typedef enum
     KEY_RESIZE,
     KEY_UNKNOWN,
     KEY_EOF,
-} prompt_key_t;
+} prompt_key;
 
 /* ================================================================
  * 履歴ヘルパー
@@ -114,7 +114,7 @@ static void redisplay(const char *prompt_str, const char *buf, size_t len, size_
  * エスケープ シーケンス解析
  * ================================================================ */
 
-static prompt_key_t read_key(com_util_prompt *p, int *out_ch)
+static prompt_key read_key(com_util_prompt *p, int *out_ch)
 {
     int c = prompt_platform_read_char(p);
     if (c == -1)
@@ -511,7 +511,7 @@ int com_util_prompt_readline_at(com_util_prompt *p, char *buf, size_t buf_size, 
     for (;;)
     {
         int ch = 0;
-        prompt_key_t key = read_key(p, &ch);
+        prompt_key key = read_key(p, &ch);
 
         switch (key)
         {

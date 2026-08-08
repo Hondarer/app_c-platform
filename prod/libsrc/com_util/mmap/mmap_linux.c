@@ -43,7 +43,7 @@ static char *duplicate_path(const char *path)
     return copy;
 }
 
-static int open_backing_file(const char *path, com_util_mmap_access_t access, size_t create_size, com_util_file *file,
+static int open_backing_file(const char *path, com_util_mmap_access access, size_t create_size, com_util_file *file,
                              size_t *size_out, com_util_error *detail_out)
 {
     int open_result;
@@ -107,7 +107,7 @@ static int open_backing_file(const char *path, com_util_mmap_access_t access, si
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_mmap_attach(const char *path, com_util_mmap_access_t access, size_t create_size, com_util_mmap **map,
+int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t create_size, com_util_mmap **map,
                          com_util_error *detail_out)
 {
     com_util_mmap *new_map;
