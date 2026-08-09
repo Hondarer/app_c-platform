@@ -2,6 +2,7 @@
 #include <com_util/crt/stdio.h>
 #include <com_util/runtime/sym_loader.h>
 #include <mock_cjson.h>
+#include <mock_com_util.h>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -10,6 +11,10 @@
 class symLoaderInitTest : public Test
 {
   protected:
+    // MSVC では Mock_com_util 生成により mock_com_util の弱参照 obj がリンクに取り込まれ、
+    // com_util_fopen 等の /ALTERNATENAME が有効になる。既定動作は実 libcom_util への委譲。
+    NiceMock<Mock_com_util> mock_com_util_;
+
     std::string make_path(const char *name)
     {
         std::string root = findWorkspaceRoot();
