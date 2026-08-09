@@ -3,6 +3,9 @@ TEST_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/crt/stdio_temp.c
 
 # テスト対象が依存するソース ファイル
+ADD_SRCS := \
+	$(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # ライブラリの指定
 LIBS += mock_libc com_util
