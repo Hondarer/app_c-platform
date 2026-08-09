@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/crt/stdio.h>
 #include <com_util/runtime/sym_loader.h>
+#include <mock_cjson.h>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -259,6 +260,38 @@ TEST_F(symLoaderInitTest, applies_multiple_entries)
     EXPECT_STREQ("fa", entry_a.func_name);   // [確認_正常系] - sample_func の func_name が fa であること。
     EXPECT_STREQ("libb", entry_b.lib_name);  // [確認_正常系] - other_func の lib_name が libb であること。
     EXPECT_STREQ("fb", entry_b.func_name);   // [確認_正常系] - other_func の func_name が fb であること。
+
+    // Cleanup
+    com_util_remove(path.c_str(), NULL);
+}
+
+// cJSON_Parse の失敗を注入した場合に設定を反映しないことの確認
+TEST_F(symLoaderInitTest, ignores_document_when_cjson_parse_fails)
+{
+    // Arrange
+    NiceMock<Mock_cjson> mock_cjson;
+    const char *json = "{\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}";
+    std::string path = make_path("injected_parse_failure.json");
+    write_file(path, json);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 正常な JSON と未設定の sample_func エントリを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cjson, cJSON_Parse(StrEq(json)))
+        .WillOnce(Return(
+            nullptr)); // [Pre-Assert確認_異常系] - cJSON_Parse が正常な JSON 文字列を指定して 1 回呼び出されること。
+                       // [Pre-Assert手順] - cJSON_Parse から NULL を返却する。
+    EXPECT_CALL(
+        mock_cjson,
+        cJSON_Delete(nullptr)); // [Pre-Assert確認_異常系] - cJSON_Delete が NULL を指定して 1 回呼び出されること。
+
+    // Act
+    com_util_sym_loader_init(entries, 1u,
+                             path.c_str()); // [手順] - cJSON_Parse の失敗を注入して JSON 設定ファイルを読み込む。
+
+    // Assert
+    EXPECT_STREQ("", entry.lib_name);  // [確認_異常系] - lib_name が空のままであること。
+    EXPECT_STREQ("", entry.func_name); // [確認_異常系] - func_name が空のままであること。
 
     // Cleanup
     com_util_remove(path.c_str(), NULL);
