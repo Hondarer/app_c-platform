@@ -266,10 +266,17 @@ TEST(traceCommonTest, propagates_error_for_zero_buffer_size)
 TEST(traceCommonTest, maps_all_trace_levels)
 {
     // Arrange
+    /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
+    int negative_level_value = -1;
+    int too_large_level_value = 999;
+    const com_util_trace_level negative_level =
+        (com_util_trace_level)negative_level_value; // [状態] - 範囲外の負値 -1 とする。
+    const com_util_trace_level too_large_level =
+        (com_util_trace_level)too_large_level_value; // [状態] - 範囲外の大きな値 999 とする。
     const com_util_trace_level levels[] = {
         COM_UTIL_TRACE_LEVEL_NONE,    COM_UTIL_TRACE_LEVEL_CRITICAL, COM_UTIL_TRACE_LEVEL_ERROR,
         COM_UTIL_TRACE_LEVEL_WARNING, COM_UTIL_TRACE_LEVEL_INFO,     COM_UTIL_TRACE_LEVEL_VERBOSE,
-        COM_UTIL_TRACE_LEVEL_DEBUG,   (com_util_trace_level)-1,      (com_util_trace_level)999};
+        COM_UTIL_TRACE_LEVEL_DEBUG,   negative_level,                too_large_level};
     const char expected[] = {'D', 'C', 'E', 'W', 'I', 'V', 'D', 'D', 'D'};
     char actual[sizeof(levels) / sizeof(levels[0])] = {0};
 

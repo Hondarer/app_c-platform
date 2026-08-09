@@ -39,12 +39,13 @@ static com_util_timespec make_fixed_timestamp(void)
     return timestamp;
 }
 
-static uint32_t open_flags_default(void)
+/* com_util_file_open() の flags 引数と製品コードの base_open_flags() に合わせて int を返す */
+static int open_flags_default(void)
 {
     return COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_APPEND | COM_UTIL_FILE_OPEN_WRITE_THROUGH;
 }
 
-static uint32_t open_flags_truncate(void)
+static int open_flags_truncate(void)
 {
     return open_flags_default() | COM_UTIL_FILE_OPEN_TRUNCATE;
 }
