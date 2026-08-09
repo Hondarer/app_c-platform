@@ -35,7 +35,7 @@
      *  | -------------------------------------------------- | ----------------------- |
      *  | Linux (非 Windows)                                 | (空)                    |
      *  | Windows / `__INTELLISENSE__` 定義時                | (空)                    |
-     *  | Windows / `COM_UTIL_STATIC` 定義時 (静的リンク)    | (空)                    |
+     *  | Windows / `COM_UTIL_STATIC` 定義時 (テスト定義)  | (空)                    |
      *  | Windows / `COM_UTIL_EXPORTS` 定義時 (DLL ビルド)   | `__declspec(dllexport)` |
      *  | Windows / `COM_UTIL_EXPORTS` 未定義時 (DLL 利用側) | `__declspec(dllimport)` |
      */
