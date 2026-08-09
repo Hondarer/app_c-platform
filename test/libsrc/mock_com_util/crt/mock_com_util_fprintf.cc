@@ -7,8 +7,7 @@
 int delegate_real_com_util_fprintf(FILE *stream, const char *format, ...)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_fprintf)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fprintf"));
+        reinterpret_cast<decltype(&com_util_fprintf)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fprintf"));
 
     return real_fn(stream, "%s", format);
 }

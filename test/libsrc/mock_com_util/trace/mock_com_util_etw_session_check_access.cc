@@ -5,9 +5,8 @@
 
 int delegate_real_com_util_etw_session_check_access(void)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_etw_session_check_access)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_check_access"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_etw_session_check_access)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_etw_session_check_access"));
 
     return real_fn();
 }

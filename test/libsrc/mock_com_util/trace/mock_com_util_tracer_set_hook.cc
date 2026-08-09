@@ -1,8 +1,8 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_tracer *handle,
-                                                                   com_util_tracer_hook_fn fn, void *context)
+com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn fn,
+                                                                   void *context)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_set_hook)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_set_hook"));

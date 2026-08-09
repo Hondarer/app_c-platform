@@ -190,7 +190,7 @@ TEST_F(pathJoinTest, succeeds_when_result_exactly_fits_with_separator)
 TEST_F(pathJoinTest, returns_enametoolong_when_separator_insertion_overflows)
 {
     // Arrange
-    char actual[3]; // [状態] - "a/b" (3 バイト) + null 終端に対し 1 バイト不足するバッファーを用意する。
+    char actual[3];     // [状態] - "a/b" (3 バイト) + null 終端に対し 1 バイト不足するバッファーを用意する。
     com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
@@ -242,6 +242,6 @@ TEST_F(pathJoinTest, returns_einval_for_null_path_out)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc);         // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              rtc); // [確認_異常系] - com_util_path_join の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }

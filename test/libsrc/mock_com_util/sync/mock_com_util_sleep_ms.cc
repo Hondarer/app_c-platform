@@ -4,8 +4,7 @@
 void delegate_real_com_util_sleep_ms(int ms)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_sleep_ms)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_sleep_ms"));
+        reinterpret_cast<decltype(&com_util_sleep_ms)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_sleep_ms"));
 
     real_fn(ms);
 }

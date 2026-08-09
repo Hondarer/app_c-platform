@@ -66,7 +66,7 @@ size_t com_util_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, 
 int com_util_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes, size_t required)
 {
     size_t new_cap;
-    char  *new_buf;
+    char *new_buf;
 
     if (buf == NULL || cap == NULL)
     {
@@ -104,13 +104,9 @@ int com_util_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_byt
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_prompt_edit_resolve_options(size_t requested_history_max,
-                                          size_t requested_initial_capacity,
-                                          size_t requested_max_bytes,
-                                          size_t initial_capacity_default,
-                                          size_t *history_max,
-                                          size_t *initial_capacity,
-                                          size_t *max_bytes)
+void com_util_prompt_edit_resolve_options(size_t requested_history_max, size_t requested_initial_capacity,
+                                          size_t requested_max_bytes, size_t initial_capacity_default,
+                                          size_t *history_max, size_t *initial_capacity, size_t *max_bytes)
 {
     size_t resolved_history_max = requested_history_max;
     size_t resolved_max_bytes = requested_max_bytes;

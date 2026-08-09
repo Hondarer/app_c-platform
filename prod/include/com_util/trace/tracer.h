@@ -269,8 +269,8 @@ typedef struct com_util_tracer_hook_entry com_util_tracer_hook_entry;
  *  コールバックの実装者は再入性を確保してください。
  */
 typedef void (*com_util_tracer_hook_fn)(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                          com_util_trace_level level, const com_util_timespec *timestamp,
-                                          const char *message, void *context);
+                                        com_util_trace_level level, const com_util_timespec *timestamp,
+                                        const char *message, void *context);
 
 /* ===== API 関数 ===== */
 
@@ -650,8 +650,7 @@ extern "C"
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle,
-                                                                  com_util_trace_level level);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level level);
 
     /**
      *  @brief          ETW トレースの現在のスレッショルド レベルを取得します。
@@ -685,8 +684,7 @@ extern "C"
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle,
-                                                                   com_util_trace_level level);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level level);
 
     /**
      *  @brief          ファイル トレースの現在のスレッショルド レベルを取得します。

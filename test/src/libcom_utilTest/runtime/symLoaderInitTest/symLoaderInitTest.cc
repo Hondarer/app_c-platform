@@ -41,15 +41,14 @@ TEST_F(symLoaderInitTest, applies_json_with_comments)
 {
     // Arrange
     std::string path = make_path("with_comments.json");
-    write_file(path,
-               "// header comment\n"
-               "{\n"
-               "  /* block comment */\n"
-               "  \"sample_func\": { // trailing line comment\n"
-               "    \"lib\": \"liboverride\",\n"
-               "    \"func\": \"override_func\"\n"
-               "  }\n"
-               "}\n");
+    write_file(path, "// header comment\n"
+                     "{\n"
+                     "  /* block comment */\n"
+                     "  \"sample_func\": { // trailing line comment\n"
+                     "    \"lib\": \"liboverride\",\n"
+                     "    \"func\": \"override_func\"\n"
+                     "  }\n"
+                     "}\n");
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - コメント付き JSON と sample_func エントリを用意する。
 
@@ -59,7 +58,7 @@ TEST_F(symLoaderInitTest, applies_json_with_comments)
     com_util_sym_loader_init(entries, 1u, path.c_str()); // [手順] - コメント付き JSON 設定ファイルを読み込む。
 
     // Assert
-    EXPECT_STREQ("liboverride", entry.lib_name);     // [確認_正常系] - lib_name が liboverride であること。
+    EXPECT_STREQ("liboverride", entry.lib_name);    // [確認_正常系] - lib_name が liboverride であること。
     EXPECT_STREQ("override_func", entry.func_name); // [確認_正常系] - func_name が override_func であること。
 
     // Cleanup
@@ -81,7 +80,7 @@ TEST_F(symLoaderInitTest, applies_matching_func_key)
     com_util_sym_loader_init(entries, 1u, path.c_str()); // [手順] - JSON 設定ファイルを読み込む。
 
     // Assert
-    EXPECT_STREQ("liboverride", entry.lib_name);     // [確認_正常系] - lib_name が liboverride であること。
+    EXPECT_STREQ("liboverride", entry.lib_name);    // [確認_正常系] - lib_name が liboverride であること。
     EXPECT_STREQ("override_func", entry.func_name); // [確認_正常系] - func_name が override_func であること。
 
     // Cleanup
@@ -200,9 +199,8 @@ TEST_F(symLoaderInitTest, ignores_unknown_func_key_and_applies_known)
 {
     // Arrange
     std::string path = make_path("partial.json");
-    write_file(path,
-               "{\"unknown_func\":{\"lib\":\"libx\",\"func\":\"fx\"},"
-               "\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}");
+    write_file(path, "{\"unknown_func\":{\"lib\":\"libx\",\"func\":\"fx\"},"
+                     "\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}");
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 既知キーと未知キーを含む JSON を用意する。
 
@@ -212,7 +210,7 @@ TEST_F(symLoaderInitTest, ignores_unknown_func_key_and_applies_known)
     com_util_sym_loader_init(entries, 1u, path.c_str()); // [手順] - 複数キーの JSON を読み込む。
 
     // Assert
-    EXPECT_STREQ("liboverride", entry.lib_name);     // [確認_正常系] - 既知キーの lib_name が反映されること。
+    EXPECT_STREQ("liboverride", entry.lib_name);    // [確認_正常系] - 既知キーの lib_name が反映されること。
     EXPECT_STREQ("override_func", entry.func_name); // [確認_正常系] - 既知キーの func_name が反映されること。
 
     // Cleanup
@@ -248,9 +246,8 @@ TEST_F(symLoaderInitTest, applies_multiple_entries)
 {
     // Arrange
     std::string path = make_path("multi.json");
-    write_file(path,
-               "{\"sample_func\":{\"lib\":\"liba\",\"func\":\"fa\"},"
-               "\"other_func\":{\"lib\":\"libb\",\"func\":\"fb\"}}");
+    write_file(path, "{\"sample_func\":{\"lib\":\"liba\",\"func\":\"fa\"},"
+                     "\"other_func\":{\"lib\":\"libb\",\"func\":\"fb\"}}");
     com_util_sym_loader_entry entry_a = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
     com_util_sym_loader_entry entry_b = COM_UTIL_SYM_LOADER_ENTRY_INIT("other_func", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry_a, &entry_b}; // [状態] - 2 件のエントリを用意する。
@@ -261,10 +258,10 @@ TEST_F(symLoaderInitTest, applies_multiple_entries)
     com_util_sym_loader_init(entries, 2u, path.c_str()); // [手順] - 複数エントリ向け JSON を読み込む。
 
     // Assert
-    EXPECT_STREQ("liba", entry_a.lib_name);  // [確認_正常系] - sample_func の lib_name が liba であること。
-    EXPECT_STREQ("fa", entry_a.func_name);   // [確認_正常系] - sample_func の func_name が fa であること。
-    EXPECT_STREQ("libb", entry_b.lib_name);  // [確認_正常系] - other_func の lib_name が libb であること。
-    EXPECT_STREQ("fb", entry_b.func_name);   // [確認_正常系] - other_func の func_name が fb であること。
+    EXPECT_STREQ("liba", entry_a.lib_name); // [確認_正常系] - sample_func の lib_name が liba であること。
+    EXPECT_STREQ("fa", entry_a.func_name);  // [確認_正常系] - sample_func の func_name が fa であること。
+    EXPECT_STREQ("libb", entry_b.lib_name); // [確認_正常系] - other_func の lib_name が libb であること。
+    EXPECT_STREQ("fb", entry_b.func_name);  // [確認_正常系] - other_func の func_name が fb であること。
 
     // Cleanup
     com_util_remove(path.c_str(), NULL);

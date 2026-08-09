@@ -84,12 +84,12 @@ extern "C"
     /** @brief 子プロセス起動オプション。 */
     typedef struct com_util_process_options
     {
-        char *const *argv;                    /**< コマンドと引数の配列 (NULL 終端)。NULL を渡してはなりません。 */
-        char *const *env_overrides;           /**< 追加・上書きする KEY=VALUE 配列 (NULL 終端)。NULL 可。 */
-        const char *working_directory;        /**< 作業ディレクトリ。NULL の場合は親の作業ディレクトリを継承します。 */
-        com_util_process_stdio stdin_spec;    /**< stdin 指定。 */
-        com_util_process_stdio stdout_spec;   /**< stdout 指定。 */
-        com_util_process_stdio stderr_spec;   /**< stderr 指定。 */
+        char *const *argv;                  /**< コマンドと引数の配列 (NULL 終端)。NULL を渡してはなりません。 */
+        char *const *env_overrides;         /**< 追加・上書きする KEY=VALUE 配列 (NULL 終端)。NULL 可。 */
+        const char *working_directory;      /**< 作業ディレクトリ。NULL の場合は親の作業ディレクトリを継承します。 */
+        com_util_process_stdio stdin_spec;  /**< stdin 指定。 */
+        com_util_process_stdio stdout_spec; /**< stdout 指定。 */
+        com_util_process_stdio stderr_spec; /**< stderr 指定。 */
     } com_util_process_options;
 
     typedef struct com_util_process com_util_process; /**< 子プロセス ハンドル。 */

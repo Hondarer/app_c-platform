@@ -157,7 +157,7 @@ TEST_F(pathDirnameTest, returns_einval_for_empty_path)
 TEST_F(pathDirnameTest, returns_enametoolong_when_buffer_too_small)
 {
     // Arrange
-    char actual[2]; // [状態] - "a/b" の親 "a" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
+    char actual[2];     // [状態] - "a/b" の親 "a" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
     com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert

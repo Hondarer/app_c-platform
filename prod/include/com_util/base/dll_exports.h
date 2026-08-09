@@ -107,19 +107,16 @@
          * 静的リンク時は属性不要。Windows の dllexport/dllimport 分岐と異なり、
          * 利用側でも default 可視性の宣言で問題ないため EXPORTS は見ない。
          */
-        #define COM_UTIL_DLL_EXPORT(prefix)                                                                    \
+        #define COM_UTIL_DLL_EXPORT(prefix) \
             COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _STATIC))(, __attribute__((visibility("default"))))
         #define COM_UTIL_DLL_API(prefix)
     #elif defined(PLATFORM_WINDOWS)
         #ifndef __INTELLISENSE__
-            #define COM_UTIL_DLL_EXPORT(prefix)                                                                 \
-                COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _STATIC))                                      \
-                (                                                                                              \
-                    ,                                                                                          \
-                    COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _EXPORTS))(__declspec(dllexport),         \
-                                                                                __declspec(dllimport))         \
-                )
-        #else      /* __INTELLISENSE__ */
+            #define COM_UTIL_DLL_EXPORT(prefix) \
+                COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _STATIC)) \
+                (, COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _EXPORTS))(__declspec(dllexport), \
+                                                                              __declspec(dllimport)))
+        #else /* __INTELLISENSE__ */
             #define COM_UTIL_DLL_EXPORT(prefix)
         #endif /* __INTELLISENSE__ */
         #define COM_UTIL_DLL_API(prefix) __stdcall

@@ -35,7 +35,7 @@ TEST_F(rmdirTest, removes_empty_directory)
     int rtc_rmdir = com_util_rmdir(path.c_str(), NULL); // [手順] - 空のディレクトリを削除する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_rmdir); // [確認_正常系] - com_util_rmdir の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_rmdir);           // [確認_正常系] - com_util_rmdir の戻り値が COM_UTIL_OK であること。
     EXPECT_FALSE(std::filesystem::exists(path)); // [確認_正常系] - ディレクトリが存在しなくなること。
 }
 
@@ -47,7 +47,8 @@ TEST_F(rmdirTest, fails_for_non_empty_directory)
 
     std::filesystem::remove_all(path);
     ASSERT_EQ(COM_UTIL_OK, com_util_mkdir(path.c_str(), NULL));
-    std::filesystem::create_directories(std::filesystem::path(path) / "child"); // [状態] - 子ディレクトリを持つディレクトリを用意する。
+    std::filesystem::create_directories(std::filesystem::path(path) /
+                                        "child"); // [状態] - 子ディレクトリを持つディレクトリを用意する。
 
     // Pre-Assert
 
@@ -55,7 +56,9 @@ TEST_F(rmdirTest, fails_for_non_empty_directory)
     int rtc_rmdir = com_util_rmdir(path.c_str(), NULL); // [手順] - 空でないディレクトリを削除する。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc_rmdir); // [確認_異常系] - 空でないディレクトリに対する com_util_rmdir の戻り値が COM_UTIL_OK でないこと。
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc_rmdir); // [確認_異常系] - 空でないディレクトリに対する com_util_rmdir の戻り値が COM_UTIL_OK でないこと。
     EXPECT_TRUE(std::filesystem::exists(path)); // [確認_異常系] - ディレクトリが残っていること。
 
     // Cleanup

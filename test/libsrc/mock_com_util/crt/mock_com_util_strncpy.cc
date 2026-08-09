@@ -4,8 +4,7 @@
 int delegate_real_com_util_strncpy(char *dest, size_t dest_size, const char *src, size_t count)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_strncpy)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_strncpy"));
+        reinterpret_cast<decltype(&com_util_strncpy)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_strncpy"));
 
     return real_fn(dest, dest_size, src, count);
 }

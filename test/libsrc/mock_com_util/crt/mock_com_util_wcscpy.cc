@@ -5,8 +5,7 @@
 int delegate_real_com_util_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_wcscpy)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_wcscpy"));
+        reinterpret_cast<decltype(&com_util_wcscpy)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_wcscpy"));
 
     return real_fn(dest, dest_size, src);
 }

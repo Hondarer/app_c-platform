@@ -41,8 +41,8 @@
     #pragma comment(lib, "Advapi32.lib")
     #ifdef byte
         #undef byte /* C++17 std::byte と Windows SDK byte typedef の競合を解消 */
-    #endif /* byte */
-#endif /* PLATFORM_WINDOWS */
+    #endif          /* byte */
+#endif              /* PLATFORM_WINDOWS */
 
 /** @} */
 

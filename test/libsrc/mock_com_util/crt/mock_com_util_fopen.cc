@@ -4,8 +4,7 @@
 FILE *delegate_real_com_util_fopen(const char *path, const char *modes, com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_fopen)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fopen"));
+        reinterpret_cast<decltype(&com_util_fopen)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fopen"));
 
     return real_fn(path, modes, detail_out);
 }

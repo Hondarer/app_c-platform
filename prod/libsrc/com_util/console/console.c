@@ -177,10 +177,10 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     }
 
     GetLocalTime(&now);
-    prefix_len = snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ",
-                                   (unsigned int)now.wYear, (unsigned int)now.wMonth, (unsigned int)now.wDay,
-                                   (unsigned int)now.wHour, (unsigned int)now.wMinute, (unsigned int)now.wSecond,
-                                   (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
+    prefix_len =
+        snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ", (unsigned int)now.wYear,
+                 (unsigned int)now.wMonth, (unsigned int)now.wDay, (unsigned int)now.wHour, (unsigned int)now.wMinute,
+                 (unsigned int)now.wSecond, (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
     if (prefix_len < 0 || prefix_len >= (int)sizeof(line))
     {
         return;

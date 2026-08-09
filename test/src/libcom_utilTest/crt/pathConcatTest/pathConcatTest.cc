@@ -76,7 +76,7 @@ TEST_F(pathConcatTest, returns_einval_for_zero_part_count)
 
     // Act
     int rtc_path_concat_n = com_util_path_concat_n(
-        path, sizeof(path), &err, 0u); // [手順] - part_count に 0 を渡して com_util_path_concat_n を呼び出す。
+        path, sizeof(path), &err, 0u);    // [手順] - part_count に 0 を渡して com_util_path_concat_n を呼び出す。
     com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
@@ -130,7 +130,7 @@ TEST_F(pathConcatTest, returns_enametoolong_when_result_does_not_fit)
         rtc_path_concat); // [確認_異常系] - com_util_path_concat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が返ること。
-    EXPECT_EQ('\0', path[0]);     // [確認_異常系] - 失敗時は空文字列に初期化されること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 失敗時は空文字列に初期化されること。
 }
 
 // 一時ディレクトリの格納先が NULL の場合に TLS へ詳細エラーが記録されることの確認

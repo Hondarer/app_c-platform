@@ -164,7 +164,7 @@ TEST_F(pathExtensionTest, strip_extension_returns_einval_for_null_path_out)
 TEST_F(pathExtensionTest, strip_extension_returns_enametoolong_when_buffer_too_small)
 {
     // Arrange
-    char actual[2]; // [状態] - "ab" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
+    char actual[2];     // [状態] - "ab" (2 バイト必要) に対し 2 バイトの出力バッファーを用意する。
     com_util_error err; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert

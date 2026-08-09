@@ -1329,8 +1329,8 @@ static const char hex_chars[] = "0123456789ABCDEF";
  *  @param[in]      label       メッセージに付加するラベル (NULL 可)。
  *  @return         成功時 0、失敗時 -1。
  */
-static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level level,
-                          const com_util_timespec *timestamp, const void *data, const size_t size, const char *label)
+static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level level, const com_util_timespec *timestamp,
+                          const void *data, const size_t size, const char *label)
 {
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     const unsigned char *bytes = (const unsigned char *)data;
@@ -1945,8 +1945,7 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn fn,
-                                                     void *context)
+com_util_tracer_hook_entry *com_util_tracer_set_hook(com_util_tracer *handle, com_util_tracer_hook_fn fn, void *context)
 {
     com_util_tracer_hook_entry *entry;
 

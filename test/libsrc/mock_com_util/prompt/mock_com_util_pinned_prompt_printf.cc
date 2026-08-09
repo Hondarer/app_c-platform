@@ -4,8 +4,8 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen,
-                                                com_util_pinned_prompt_channel channel, const char *fmt, ...)
+int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinned_prompt_channel channel,
+                                                const char *fmt, ...)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_printf)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_printf"));

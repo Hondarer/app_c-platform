@@ -69,9 +69,9 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
     int64_t pos_end = com_util_lseek(fd_, 0, SEEK_END, NULL);      // [手順] - 読み書き位置を終端へ移動する。
 
     // Assert
-    EXPECT_EQ(6, written);              // [確認_正常系] - 書き込んだバイト数が 6 であること。
+    EXPECT_EQ(6, written);  // [確認_正常系] - 書き込んだバイト数が 6 であること。
     EXPECT_EQ(0, pos_head); // [確認_正常系] - SEEK_SET 0 を指定した com_util_lseek の戻り値が 0 であること。
-    EXPECT_EQ(6, read_len);             // [確認_正常系] - 読み取ったバイト数が 6 であること。
+    EXPECT_EQ(6, read_len); // [確認_正常系] - 読み取ったバイト数が 6 であること。
     EXPECT_EQ(0, memcmp(data, buf, 6)); // [確認_正常系] - 読み取った内容が書き込んだ内容と一致すること。
     EXPECT_EQ(6, pos_end); // [確認_正常系] - SEEK_END 0 を指定した com_util_lseek の戻り値がファイル サイズであること。
 }
@@ -102,7 +102,7 @@ TEST_F(fdTest, dup_shares_file_offset)
     int dup_fd = com_util_dup(fd_, NULL); // [手順] - ファイル記述子を複製する。
 
     // Assert
-    ASSERT_LE(0, dup_fd);                            // [確認_正常系] - 複製された記述子が有効であること。
+    ASSERT_LE(0, dup_fd);                                  // [確認_正常系] - 複製された記述子が有効であること。
     EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4, NULL)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
     EXPECT_EQ(4, com_util_lseek(fd_, 0, SEEK_CUR,
                                 NULL)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
@@ -126,7 +126,7 @@ TEST_F(fdTest, dup2_returns_zero_on_success)
     int rtc = com_util_dup2(fd_, target_fd, NULL); // [手順] - fd_ を target_fd へ複製する。
 
     // Assert
-    EXPECT_EQ(0, rtc);                       // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
+    EXPECT_EQ(0, rtc); // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
     EXPECT_EQ(0,
               com_util_close(
                   target_fd,

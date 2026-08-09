@@ -6,9 +6,8 @@
 
 int delegate_real_com_util_vopen_fmt(int flags, int mode, com_util_error *detail_out, const char *format, va_list args)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_vopen_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vopen_fmt"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_vopen_fmt)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vopen_fmt"));
 
     return real_fn(flags, mode, detail_out, format, args);
 }

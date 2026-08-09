@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_get_realtime_utc)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime_utc"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_get_realtime_utc)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime_utc"));
 
     real_fn(utc_tm, tv_nsec);
 }

@@ -65,7 +65,7 @@ TEST_F(pathGetFullTest, returns_einval_for_null_path)
               rc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が返ること。
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
-    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
+    EXPECT_EQ('\0', path[0]);                         // [確認_異常系] - 出力は空文字列に初期化されること。
 }
 
 // カレント ディレクトリが絶対パスへ展開されることの確認
@@ -112,7 +112,7 @@ TEST_F(pathGetFullTest, normalizes_dotdot_and_backslash_segments)
 TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
 {
     // Arrange
-    char path[4] = {}; // [状態] - 4 バイトの小さすぎる出力バッファーを用意する。
+    char path[4] = {};  // [状態] - 4 バイトの小さすぎる出力バッファーを用意する。
     com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
@@ -126,7 +126,7 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
               rc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が返ること。
-    EXPECT_EQ('\0', path[0]);     // [確認_異常系] - 出力は空文字列に初期化されること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
 }
 
 // 存在しないパスでも絶対化済み文字列が返ることの確認
@@ -172,7 +172,7 @@ TEST_F(pathGetFullTest, returns_enomem_when_normalization_allocation_fails)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rc);          // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+              rc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_OUT_OF_MEMORY)); // [確認_異常系] - ENOMEM の要因が返ること。
     EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力は空文字列に初期化されること。
 }

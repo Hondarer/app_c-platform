@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_get_realtime_deadline_ms)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime_deadline_ms"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_get_realtime_deadline_ms)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime_deadline_ms"));
 
     real_fn(timeout_ms, abs_timeout);
 }

@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_console_init(void)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_console_init)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_console_init"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_console_init)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_console_init"));
 
     real_fn();
 }

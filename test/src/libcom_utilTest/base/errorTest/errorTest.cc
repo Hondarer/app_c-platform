@@ -329,10 +329,10 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     com_util_error_get_last(NULL);                       // [手順] - NULL の格納先へ TLS の値を取得する。
     const int null_is_set = com_util_error_is_set(NULL); // [手順] - NULL の設定状態を取得する。
     const com_util_error_domain null_domain = com_util_error_get_domain(NULL); // [手順] - NULL のドメインを取得する。
-    const int null_errno = com_util_error_get_errno(NULL);  // [手順] - NULL から errno を取得する。
+    const int null_errno = com_util_error_get_errno(NULL);                     // [手順] - NULL から errno を取得する。
     const int null_result = com_util_error_to_result(NULL); // [手順] - NULL を共通結果コードへ変換する。
     const com_util_error_cause null_cause = com_util_error_get_cause(NULL); // [手順] - NULL の要因を取得する。
-    const int null_matches = com_util_error_is(NULL, COM_UTIL_CAUSE_NONE);    // [手順] - NULL の要因一致を判定する。
+    const int null_matches = com_util_error_is(NULL, COM_UTIL_CAUSE_NONE);  // [手順] - NULL の要因一致を判定する。
     const int mismatched_errno =
         com_util_error_get_errno(&windows_error); // [手順] - Windows ドメインから errno を取得する。
 
@@ -358,24 +358,24 @@ TEST_F(errorTest, errno_values_map_to_one_cause)
 {
     // Arrange
     const std::vector<std::pair<int, com_util_error_cause>> cases = {{ENOENT, COM_UTIL_CAUSE_NOT_FOUND},
-                                                                       {EEXIST, COM_UTIL_CAUSE_ALREADY_EXISTS},
-                                                                       {EACCES, COM_UTIL_CAUSE_ACCESS_DENIED},
-                                                                       {ENOTDIR, COM_UTIL_CAUSE_NOT_A_DIRECTORY},
-                                                                       {EISDIR, COM_UTIL_CAUSE_IS_A_DIRECTORY},
-                                                                       {ENOTEMPTY, COM_UTIL_CAUSE_DIRECTORY_NOT_EMPTY},
-                                                                       {ENAMETOOLONG, COM_UTIL_CAUSE_NAME_TOO_LONG},
-                                                                       {EINVAL, COM_UTIL_CAUSE_INVALID_ARGUMENT},
-                                                                       {ENOMEM, COM_UTIL_CAUSE_OUT_OF_MEMORY},
-                                                                       {ENOSPC, COM_UTIL_CAUSE_DISK_FULL},
-                                                                       {EBUSY, COM_UTIL_CAUSE_BUSY},
-                                                                       {ETIMEDOUT, COM_UTIL_CAUSE_TIMEOUT},
-                                                                       {EINTR, COM_UTIL_CAUSE_INTERRUPTED},
-                                                                       {EPIPE, COM_UTIL_CAUSE_BROKEN_PIPE},
-                                                                       {EMFILE, COM_UTIL_CAUSE_TOO_MANY_OPEN_FILES},
-                                                                       {EROFS, COM_UTIL_CAUSE_READ_ONLY},
-                                                                       {ERANGE, COM_UTIL_CAUSE_BUFFER_TOO_SMALL},
-                                                                       {ENOTSUP, COM_UTIL_CAUSE_UNSUPPORTED},
-                                                                       {EIO, COM_UTIL_CAUSE_IO_ERROR}};
+                                                                     {EEXIST, COM_UTIL_CAUSE_ALREADY_EXISTS},
+                                                                     {EACCES, COM_UTIL_CAUSE_ACCESS_DENIED},
+                                                                     {ENOTDIR, COM_UTIL_CAUSE_NOT_A_DIRECTORY},
+                                                                     {EISDIR, COM_UTIL_CAUSE_IS_A_DIRECTORY},
+                                                                     {ENOTEMPTY, COM_UTIL_CAUSE_DIRECTORY_NOT_EMPTY},
+                                                                     {ENAMETOOLONG, COM_UTIL_CAUSE_NAME_TOO_LONG},
+                                                                     {EINVAL, COM_UTIL_CAUSE_INVALID_ARGUMENT},
+                                                                     {ENOMEM, COM_UTIL_CAUSE_OUT_OF_MEMORY},
+                                                                     {ENOSPC, COM_UTIL_CAUSE_DISK_FULL},
+                                                                     {EBUSY, COM_UTIL_CAUSE_BUSY},
+                                                                     {ETIMEDOUT, COM_UTIL_CAUSE_TIMEOUT},
+                                                                     {EINTR, COM_UTIL_CAUSE_INTERRUPTED},
+                                                                     {EPIPE, COM_UTIL_CAUSE_BROKEN_PIPE},
+                                                                     {EMFILE, COM_UTIL_CAUSE_TOO_MANY_OPEN_FILES},
+                                                                     {EROFS, COM_UTIL_CAUSE_READ_ONLY},
+                                                                     {ERANGE, COM_UTIL_CAUSE_BUFFER_TOO_SMALL},
+                                                                     {ENOTSUP, COM_UTIL_CAUSE_UNSUPPORTED},
+                                                                     {EIO, COM_UTIL_CAUSE_IO_ERROR}};
     com_util_error error;
     std::vector<com_util_error_cause> actual_causes;
     std::vector<int> actual_matches;

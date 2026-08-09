@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_get_monotonic(com_util_timespec *ts)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_get_monotonic)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_monotonic"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_get_monotonic)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_monotonic"));
 
     real_fn(ts);
 }

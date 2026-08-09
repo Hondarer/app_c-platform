@@ -132,8 +132,7 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
     {
         /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
         int invalid_access_value = 99;
-        com_util_mmap_access invalid_access =
-            (com_util_mmap_access)invalid_access_value;
+        com_util_mmap_access invalid_access = (com_util_mmap_access)invalid_access_value;
 
         EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
                   com_util_mmap_attach(

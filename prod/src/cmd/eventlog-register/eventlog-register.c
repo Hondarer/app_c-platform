@@ -113,7 +113,7 @@ static int report_status(const int status, const char *action)
     if (status == COM_UTIL_OK)
     {
         (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                                COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+                       COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
             (void)com_util_elevated_process_report_result(message);

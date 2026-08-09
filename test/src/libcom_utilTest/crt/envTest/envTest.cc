@@ -26,8 +26,8 @@ TEST_F(envTest, setenv_value_is_readable)
     // Assert
     EXPECT_EQ(0, rtc_setenv); // [確認_正常系] - com_util_setenv の戻り値が 0 であること。
     ASSERT_EQ(0, com_util_getenv("COM_UTIL_ENV_TEST", buf, sizeof(buf), &exists, NULL));
-    EXPECT_EQ(1, exists);          // [確認_正常系] - 環境変数が設定済みとして報告されること。
-    EXPECT_STREQ("value1", buf);   // [確認_正常系] - 取得した値が "value1" であること。
+    EXPECT_EQ(1, exists);        // [確認_正常系] - 環境変数が設定済みとして報告されること。
+    EXPECT_STREQ("value1", buf); // [確認_正常系] - 取得した値が "value1" であること。
 
     // Cleanup
     com_util_unsetenv("COM_UTIL_ENV_TEST", NULL);

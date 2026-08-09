@@ -3,9 +3,8 @@
 
 int delegate_real_com_util_process_get_executable_path(char *out_path, size_t out_path_sz)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_process_get_executable_path)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_process_get_executable_path"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_process_get_executable_path)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_process_get_executable_path"));
 
     return real_fn(out_path, out_path_sz);
 }

@@ -103,7 +103,7 @@
         #define FORCE_INLINE inline
         #define NO_INLINE
     #endif /* COMPILER_ */
-#endif /* DOXYGEN */
+#endif     /* DOXYGEN */
 
 #ifdef DOXYGEN
     #define THREAD_LOCAL /**< スレッドごとに独立した記憶域を定義します。 */

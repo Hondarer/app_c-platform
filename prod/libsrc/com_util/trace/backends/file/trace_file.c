@@ -642,8 +642,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
             free_sink(handle);
             return NULL;
         }
-        snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path,
-                          TRACE_FILE_LOCK_SUFFIX);
+        snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path, TRACE_FILE_LOCK_SUFFIX);
 
         if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_OK)
         {
@@ -762,8 +761,7 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
-    len =
-        snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level)level), message);
+    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level)level), message);
     if (len <= 0)
     {
         return COM_UTIL_ERR_UNKNOWN;

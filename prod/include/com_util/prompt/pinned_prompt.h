@@ -256,9 +256,10 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position position,
-                                      com_util_pinned_prompt_status_align align, const char *content);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen,
+                                                                       com_util_pinned_prompt_status_position position,
+                                                                       com_util_pinned_prompt_status_align align,
+                                                                       const char *content);
 
 #ifdef __cplusplus
 }

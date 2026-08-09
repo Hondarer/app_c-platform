@@ -194,7 +194,7 @@ TEST_F(fopenTempTest, path_size_too_small_returns_enametoolong)
 {
     // Arrange
     /* "<dir>/<prefix>XXXXXX" + NUL に満たない長さ */
-    char path[4] = {}; // [状態] - 必要長に満たない 4 バイトのバッファーを用意する。
+    char path[4] = {};  // [状態] - 必要長に満たない 4 バイトのバッファーを用意する。
     com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert

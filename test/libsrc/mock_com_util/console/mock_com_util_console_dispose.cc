@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_console_dispose(void)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_console_dispose)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_console_dispose"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_console_dispose)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_console_dispose"));
 
     real_fn();
 }

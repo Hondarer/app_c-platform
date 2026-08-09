@@ -34,11 +34,11 @@ TEST_F(fopenfTest, test_null_modes)
 
     // Act
     FILE *fp = com_util_fopen_fmt(NULL, NULL, "test_%d.txt",
-                                  1); // [手順] - modes に NULL を渡して com_util_fopen_fmt を呼び出す。
+                                  1);     // [手順] - modes に NULL を渡して com_util_fopen_fmt を呼び出す。
     com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
-    EXPECT_EQ((FILE *)NULL, fp); // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
+    EXPECT_EQ((FILE *)NULL, fp);                      // [確認_異常系] - com_util_fopen_fmt から NULL が返されること。
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
@@ -247,6 +247,6 @@ TEST_F(fopenfTest, test_fopen_success_clears_error)
         "r", &error, "success.txt"); // [手順] - 詳細エラーの受け取り先を指定して com_util_fopen_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ(expected_fp, fp); // [確認_正常系] - com_util_fopen_fmt から expected_fp が返されること。
+    EXPECT_EQ(expected_fp, fp);                  // [確認_正常系] - com_util_fopen_fmt から expected_fp が返されること。
     EXPECT_EQ(0, com_util_error_is_set(&error)); // [確認_正常系] - 成功時は詳細エラーが空であること。
 }

@@ -5,8 +5,7 @@
 int64_t delegate_real_com_util_ftell(FILE *stream)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_ftell)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_ftell"));
+        reinterpret_cast<decltype(&com_util_ftell)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_ftell"));
 
     return real_fn(stream);
 }

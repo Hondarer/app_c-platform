@@ -4,8 +4,7 @@
 int delegate_real_com_util_sscanf(const char *buffer, const char *format, va_list args)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_vsscanf)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vsscanf"));
+        reinterpret_cast<decltype(&com_util_vsscanf)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vsscanf"));
 
     return real_fn(buffer, format, args);
 }

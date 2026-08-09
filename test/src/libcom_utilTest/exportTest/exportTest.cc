@@ -392,11 +392,10 @@
                  int(COM_UTIL_API *)(com_util_pinned_prompt * screen, com_util_pinned_prompt_channel channel, \
                                      const char *fmt, ...)) \
     EXPORT_ENTRY(com_util_pinned_prompt_status_enable, \
-                 int(COM_UTIL_API *)(com_util_pinned_prompt * screen, \
-                                     com_util_pinned_prompt_status_position position, int enable)) \
+                 int(COM_UTIL_API *)(com_util_pinned_prompt * screen, com_util_pinned_prompt_status_position position, \
+                                     int enable)) \
     EXPORT_ENTRY(com_util_pinned_prompt_status_set, \
-                 int(COM_UTIL_API *)(com_util_pinned_prompt * screen, \
-                                     com_util_pinned_prompt_status_position position, \
+                 int(COM_UTIL_API *)(com_util_pinned_prompt * screen, com_util_pinned_prompt_status_position position, \
                                      com_util_pinned_prompt_status_align align, const char *content)) \
     /* com_util/prompt/prompt.h */ \
     EXPORT_ENTRY(com_util_prompt_create, com_util_prompt *(COM_UTIL_API *)(const com_util_prompt_options *options)) \
@@ -469,8 +468,7 @@
     EXPORT_ENTRY(com_util_process_run_sync, \
                  int(COM_UTIL_API *)(const com_util_process_options *options, int timeout_ms, int *exit_code)) \
     /* com_util/runtime/shutdown.h */ \
-    EXPORT_ENTRY(com_util_shutdown_register, \
-                 int(COM_UTIL_API *)(com_util_shutdown_fn callback, void *context)) \
+    EXPORT_ENTRY(com_util_shutdown_register, int(COM_UTIL_API *)(com_util_shutdown_fn callback, void *context)) \
     EXPORT_ENTRY(com_util_shutdown_request_register, \
                  int(COM_UTIL_API *)(com_util_shutdown_fn callback, void *context)) \
     EXPORT_ENTRY(com_util_exit, void(COM_UTIL_API *)(int code)) \
@@ -565,10 +563,9 @@
     EXPORT_ENTRY(_com_util_tracer_writef, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const char *format, ...)) \
-    EXPORT_ENTRY(_com_util_tracer_write_hex, \
-                 int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
-                                     const com_util_timespec *timestamp, const void *data, size_t size, \
-                                     const char *message)) \
+    EXPORT_ENTRY(_com_util_tracer_write_hex, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+                                                                 const com_util_timespec *timestamp, const void *data, \
+                                                                 size_t size, const char *message)) \
     EXPORT_ENTRY(_com_util_tracer_write_hexf, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const void *data, size_t size, \

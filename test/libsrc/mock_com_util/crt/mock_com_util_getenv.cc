@@ -5,8 +5,7 @@ int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, 
                                   com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_getenv)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_getenv"));
+        reinterpret_cast<decltype(&com_util_getenv)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_getenv"));
 
     return real_fn(name, buf, buf_size, exists_out, detail_out);
 }

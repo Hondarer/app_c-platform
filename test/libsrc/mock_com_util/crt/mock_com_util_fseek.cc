@@ -5,8 +5,7 @@
 int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_fseek)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fseek"));
+        reinterpret_cast<decltype(&com_util_fseek)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fseek"));
 
     return real_fn(stream, offset, whence);
 }

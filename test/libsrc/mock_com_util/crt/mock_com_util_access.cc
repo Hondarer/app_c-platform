@@ -4,8 +4,7 @@
 int delegate_real_com_util_access(const char *path, int mode, com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_access)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_access"));
+        reinterpret_cast<decltype(&com_util_access)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_access"));
 
     return real_fn(path, mode, detail_out);
 }

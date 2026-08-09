@@ -4,8 +4,7 @@
 int delegate_real_com_util_remove(const char *path, com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_remove)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_remove"));
+        reinterpret_cast<decltype(&com_util_remove)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_remove"));
 
     return real_fn(path, detail_out);
 }

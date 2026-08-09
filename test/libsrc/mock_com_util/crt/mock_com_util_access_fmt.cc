@@ -6,9 +6,8 @@
 
 int delegate_real_com_util_access_fmt(int mode, com_util_error *detail_out, const char *format, ...)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_access_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_access_fmt"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_access_fmt)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_access_fmt"));
 
     return real_fn(mode, detail_out, "%s", format);
 }

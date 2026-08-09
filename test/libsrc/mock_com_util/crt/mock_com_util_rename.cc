@@ -4,8 +4,7 @@
 int delegate_real_com_util_rename(const char *oldpath, const char *newpath, com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_rename)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_rename"));
+        reinterpret_cast<decltype(&com_util_rename)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_rename"));
 
     return real_fn(oldpath, newpath, detail_out);
 }

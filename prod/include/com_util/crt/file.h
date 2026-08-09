@@ -61,7 +61,7 @@ typedef struct com_util_file
     int handle;
 #elif defined(PLATFORM_WINDOWS)
     HANDLE handle;
-#endif /* PLATFORM_ */
+#endif            /* PLATFORM_ */
     int writable; /**< com_util_file_open() で書き込みアクセスを要求した場合に 0 以外。 */
 } com_util_file;
 

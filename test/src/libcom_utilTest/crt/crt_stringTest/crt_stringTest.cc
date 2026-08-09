@@ -65,8 +65,8 @@ TEST_F(crt_stringTest, strcpy_buffer_shortage)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);         // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_STREQ("", buf);  // [確認_異常系] - バッファーが空文字列にクリアされること。
+              ret);        // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
 // count 指定で文字列が切り詰めてコピーされることの確認

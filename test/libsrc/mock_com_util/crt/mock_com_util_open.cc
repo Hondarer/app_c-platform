@@ -4,8 +4,7 @@
 int delegate_real_com_util_open(const char *path, int flags, int mode, com_util_error *detail_out)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_open)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_open"));
+        reinterpret_cast<decltype(&com_util_open)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_open"));
 
     return real_fn(path, flags, mode, detail_out);
 }

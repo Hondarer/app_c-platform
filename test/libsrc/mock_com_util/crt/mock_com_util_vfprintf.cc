@@ -7,8 +7,7 @@
 int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list args)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_vfprintf)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vfprintf"));
+        reinterpret_cast<decltype(&com_util_vfprintf)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_vfprintf"));
 
     return real_fn(stream, format, args);
 }

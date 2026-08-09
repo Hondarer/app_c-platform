@@ -28,8 +28,8 @@
 
 #if defined(PLATFORM_LINUX)
 
-#include <stdlib.h>
-#include <unistd.h>
+    #include <stdlib.h>
+    #include <unistd.h>
 
 /**
  *  @ingroup        COM_UTIL_TEST
@@ -64,7 +64,7 @@ static int syslog_test_fd_write__(const char *buf, size_t nbytes)
     return 1;
 }
 
-/** @} */
+    /** @} */
 
 #endif /* PLATFORM_LINUX */
 

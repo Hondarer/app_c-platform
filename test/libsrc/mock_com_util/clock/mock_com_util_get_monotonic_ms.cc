@@ -3,9 +3,8 @@
 
 uint64_t delegate_real_com_util_get_monotonic_ms(void)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_get_monotonic_ms)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_monotonic_ms"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_get_monotonic_ms)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_monotonic_ms"));
 
     return real_fn();
 }

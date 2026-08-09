@@ -3,9 +3,8 @@
 
 void delegate_real_com_util_get_realtime(com_util_timespec *ts)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_get_realtime)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_get_realtime)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_get_realtime"));
 
     real_fn(ts);
 }

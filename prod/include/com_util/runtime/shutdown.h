@@ -68,7 +68,7 @@ extern "C"
     {
         com_util_shutdown_reason reason;       /**< 終了理由。 */
         com_util_shutdown_code_kind code_kind; /**< `code` の意味。 */
-        int code;                                /**< 終了コード、シグナル番号、CTRL 種別。 */
+        int code;                              /**< 終了コード、シグナル番号、CTRL 種別。 */
     } com_util_shutdown_event;
 
     /**
@@ -120,8 +120,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_fn callback,
-                                                                        void *context);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_register(com_util_shutdown_fn callback, void *context);
 
     /**
      *  @brief          終了コードを記録して `exit(code)` を実行します。

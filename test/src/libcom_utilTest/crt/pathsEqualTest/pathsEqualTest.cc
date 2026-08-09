@@ -49,7 +49,7 @@ TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
 
     // Act
     int rc = com_util_paths_equal(nullptr, ".", &equal,
-                                  &err); // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
+                                  &err);  // [手順] - 左辺パスに NULL を渡して com_util_paths_equal を呼び出す。
     com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
@@ -155,7 +155,7 @@ TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
-    int equal = 0; // [状態] - equal_out の受け取り先を 0 で初期化する。
+    int equal = 0;      // [状態] - equal_out の受け取り先を 0 で初期化する。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, PLATFORM_PATH_MAX, sizeof(size_t)))
@@ -169,7 +169,7 @@ TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rc);          // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+              rc); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_OUT_OF_MEMORY)); // [確認_異常系] - ENOMEM の要因が返ること。
 }
 

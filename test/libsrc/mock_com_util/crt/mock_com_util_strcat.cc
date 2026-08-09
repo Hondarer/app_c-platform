@@ -4,8 +4,7 @@
 int delegate_real_com_util_strcat(char *dest, size_t dest_size, const char *src)
 {
     static auto real_fn =
-        reinterpret_cast<decltype(&com_util_strcat)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_strcat"));
+        reinterpret_cast<decltype(&com_util_strcat)>(resolveSharedSymbolOrExit(kLibComUtilName, "com_util_strcat"));
 
     return real_fn(dest, dest_size, src);
 }

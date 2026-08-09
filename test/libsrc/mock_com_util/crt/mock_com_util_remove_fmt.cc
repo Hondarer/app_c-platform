@@ -6,9 +6,8 @@
 
 int delegate_real_com_util_remove_fmt(com_util_error *detail_out, const char *format, ...)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_remove_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_remove_fmt"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_remove_fmt)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_remove_fmt"));
 
     return real_fn(detail_out, "%s", format);
 }

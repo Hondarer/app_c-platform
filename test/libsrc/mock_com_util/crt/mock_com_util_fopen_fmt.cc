@@ -6,9 +6,8 @@
 
 FILE *delegate_real_com_util_fopen_fmt(const char *modes, com_util_error *detail_out, const char *format, ...)
 {
-    static auto real_fn =
-        reinterpret_cast<decltype(&com_util_fopen_fmt)>(
-            resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fopen_fmt"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_fopen_fmt)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_fopen_fmt"));
 
     return real_fn(modes, detail_out, "%s", format);
 }

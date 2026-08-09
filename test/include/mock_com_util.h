@@ -212,8 +212,8 @@ extern com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_ut
                                                                           com_util_tracer_hook_fn fn, void *context);
 extern void delegate_real_com_util_tracer_remove_hook(com_util_tracer *handle, com_util_tracer_hook_entry *hook_entry);
 extern void delegate_real_com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle,
-                                                         com_util_trace_level level,
-                                                         const com_util_timespec *timestamp, const char *message);
+                                                         com_util_trace_level level, const com_util_timespec *timestamp,
+                                                         const char *message);
 extern com_util_tracer_state delegate_real_com_util_tracer_get_state(com_util_tracer *handle);
 extern com_util_trace_level delegate_real_com_util_tracer_get_os_level(com_util_tracer *handle);
 extern com_util_trace_level delegate_real_com_util_tracer_get_etw_level(com_util_tracer *handle);
@@ -796,8 +796,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_pinned_prompt_status_enable,
                 (com_util_pinned_prompt *, com_util_pinned_prompt_status_position, int));
     MOCK_METHOD(int, com_util_pinned_prompt_status_set,
-                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position,
-                 com_util_pinned_prompt_status_align, const char *));
+                (com_util_pinned_prompt *, com_util_pinned_prompt_status_position, com_util_pinned_prompt_status_align,
+                 const char *));
 
     // argparser
     MOCK_METHOD(com_util_argparser *, _com_util_argparser_create, (const com_util_argparser_options *));

@@ -74,7 +74,7 @@ TEST_F(crt_fileTest, init_and_close_are_safe_for_unopened_handle)
     // Pre-Assert
 
     // Act
-    com_util_file_init(&file);  // [手順] - com_util_file_init で初期化する。
+    com_util_file_init(&file);        // [手順] - com_util_file_init で初期化する。
     com_util_file_close(&file, NULL); // [手順] - 未オープンのまま com_util_file_close を呼び出す。
     com_util_file_close(&file, NULL); // [手順] - 続けてもう一度 com_util_file_close を呼び出す。
 
