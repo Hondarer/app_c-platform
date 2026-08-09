@@ -369,7 +369,8 @@ if (ret != COM_UTIL_OK)
 
 文字列から数値への変換は `com_util_parse_int`、`com_util_parse_int64`、`com_util_parse_uint64`、`com_util_parse_double` を使用します。  
 これらは文字列全体が数値として解釈されたことと、値が目的の型の範囲に収まることを関数側で検査します。  
-解釈できない場合は `COM_UTIL_ERR_INVALID_INTEGER`、範囲外の場合は `COM_UTIL_ERR_OUT_OF_RANGE` を返します。
+解釈できない場合は `COM_UTIL_ERR_INVALID_INTEGER`、範囲外の場合は `COM_UTIL_ERR_OUT_OF_RANGE` を返します。  
+一般の整数演算と型変換の規則、および本 API が担う範囲の位置づけは [整数演算の安全性](#整数演算の安全性) を参照してください。
 
 ```c
 /* 望ましい */
@@ -424,7 +425,8 @@ com_util_error_capture_errno(&err, errno_value);
 #### メモリ確保の代替
 
 動的メモリの一般的な扱いは上位規範の「動的メモリの確保と解放」が定めます。  
-com_util は、そこで呼び出し側の責務としている検査を関数側へ内包した確保 API を提供します。
+com_util は、そこで呼び出し側の責務としている検査を関数側へ内包した確保 API を提供します。  
+要素数とサイズの乗算オーバーフローを関数側で担うことと、一般の加減乗算との分担は [整数演算の安全性](#整数演算の安全性) を参照してください。
 
 | 関数 | 用途 | ゼロ初期化 |
 |---|---|---|
@@ -764,6 +766,27 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | `include/com_util/base/platform.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR` |
 | `include/com_util/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
 | `include/com_util/base/shared_lib_lifecycle.h` | `DLLMAIN_COM_UTIL_INFO_MSG` |
+
+## 整数演算の安全性
+
+符号混在比較、明示キャストの範囲検査または理由コメント、オーバーフローの事前検査など、整数演算の一般則は上位の [コーディング規範](../../general/docs/coding-guideline.md) の「整数演算の安全性」に従います。
+
+com_util が **関数側で検査を内包する** 範囲は次のとおりです。
+
+| 領域 | API | 関数側の検査 |
+|---|---|---|
+| 外部文字列から整数への変換 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_uint64` / `com_util_parse_double` | 文字列の完全消費、目的型の範囲、符号なし系での先頭負号の拒否 |
+| 要素数とサイズの乗算を伴う確保 | `com_util_calloc` / `com_util_realloc` / `com_util_realloc_zerofill` | 長さ 0、`count * size` の乗算オーバーフロー |
+
+一般の加減乗算を検査する API は提供しません。  
+呼び出し側は上位規範の事前検査の慣用句に従います。  
+検査付きの共通 API が必要になった時点で、本節へ追加を検討します。
+
+詳細は [数値変換](#数値変換) と [メモリ確保の代替](#メモリ確保の代替) を参照してください。
+
+> [!NOTE]
+> 一般則を上位規範へ置き、関数を伴う部分だけを本書へ置くのは、com_util が optional であることと整合するためです。  
+> 危険な標準関数の代替 (C3) とメモリ確保の代替 (C4) と同じ分担です。
 
 ## 標準時刻型 (com_util_timespec)
 

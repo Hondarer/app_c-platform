@@ -240,7 +240,8 @@ static int app_lock_take(com_util_interprocess_rwlock *lock, int operation, int 
         return COM_UTIL_OK;
     }
 
-    deadline = monotonic_ms() + timeout_ms;
+    /* 呼び出し元で timeout_ms < 0 を拒否済み。WAIT_FOREVER 分岐後は 0 以上の有限値 */
+    deadline = monotonic_ms() + (uint64_t)timeout_ms;
     do
     {
         if (flock(lock->fd, operation | LOCK_NB) == 0)
@@ -287,7 +288,8 @@ static int interprocess_lock_take(com_util_interprocess_lock *lock, int timeout_
         return COM_UTIL_OK;
     }
 
-    deadline = monotonic_ms() + timeout_ms;
+    /* 呼び出し元で timeout_ms < 0 を拒否済み。WAIT_FOREVER 分岐後は 0 以上の有限値 */
+    deadline = monotonic_ms() + (uint64_t)timeout_ms;
     do
     {
         if (flock(lock->fd, LOCK_EX | LOCK_NB) == 0)
@@ -354,7 +356,8 @@ int com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
     {
         return map_wait_rc(pthread_mutex_trylock(&mtx->native));
     }
-    deadline = monotonic_ms() + timeout_ms;
+    /* 上で timeout_ms < 0 を拒否済み。WAIT_FOREVER 分岐後は 0 以上の有限値 */
+    deadline = monotonic_ms() + (uint64_t)timeout_ms;
     do
     {
         int rc = pthread_mutex_trylock(&mtx->native);
@@ -732,7 +735,8 @@ int com_util_thread_join(com_util_thread *thread, int timeout_ms)
     }
     else
     {
-        uint64_t deadline = monotonic_ms() + timeout_ms;
+        /* 上で timeout_ms < 0 を拒否済み。有限タイムアウトは 0 以上 */
+        uint64_t deadline = monotonic_ms() + (uint64_t)timeout_ms;
         do
         {
             rc = pthread_tryjoin_np(thread->native, NULL);

@@ -129,10 +129,17 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
         COM_UTIL_ERR_INVALID_ARGUMENT,
         com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, NULL,
                              NULL)); // [確認_異常系] - attach (map NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_mmap_attach(
-                  "x", (com_util_mmap_access)99, 64, &map,
-                  NULL)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    {
+        /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
+        int invalid_access_value = 99;
+        com_util_mmap_access invalid_access =
+            (com_util_mmap_access)invalid_access_value;
+
+        EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+                  com_util_mmap_attach(
+                      "x", invalid_access, 64, &map,
+                      NULL)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    }
 }
 
 // NULL ハンドルに対する get_address/get_size/get_rwlock/flush/detach が安全であることの確認
