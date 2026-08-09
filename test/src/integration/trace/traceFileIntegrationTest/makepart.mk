@@ -16,6 +16,8 @@ TEST_SRCS := \
 # trace_common.c 自体の試験は traceCommonTest で行う
 ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/trace/trace_common.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c \
 	$(MYAPP_DIR)/test/libsrc/mock_com_util/trace/mock_com_util_eventlog_sink_dispose_on_unload.cc
 
 # ライブラリの指定
