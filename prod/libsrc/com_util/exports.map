@@ -1,0 +1,11 @@
+/* libcom_util.so の動的エクスポートを公開 C API に限定する。
+ * regex モジュールが実体化する C++ 標準ライブラリ シンボルを dyn 表へ出さない。
+ * 公開 API は COM_UTIL_EXPORT (visibility default) と本マップの global の両方を満たす。
+ */
+{
+    global:
+        com_util_*;
+        _com_util_*;
+    local:
+        *;
+};

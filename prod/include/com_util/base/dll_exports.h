@@ -72,16 +72,20 @@
 
 #ifdef DOXYGEN
     /**
-     *  @brief          DLL エクスポート/インポート修飾子です。
+     *  @brief          共有ライブラリのエクスポート/インポート修飾子です。
      *
      *  プラットフォームとビルド構成に応じて展開されます。
      *
-     *  | 条件                                              | 展開値                    |
-     *  | ------------------------------------------------- | ------------------------- |
-     *  | Linux                                             | (空)                      |
-     *  | Windows / 静的リンク (`PREFIX_STATIC` 定義あり)   | (空)                      |
-     *  | Windows / DLL ビルド (`PREFIX_EXPORTS` 定義あり)  | `__declspec(dllexport)`   |
-     *  | Windows / DLL 利用側                              | `__declspec(dllimport)`   |
+     *  | 条件                                              | 展開値                                      |
+     *  | ------------------------------------------------- | ------------------------------------------- |
+     *  | Linux / 静的リンク (`PREFIX_STATIC` 定義あり)     | (空)                                        |
+     *  | Linux / 共有ライブラリ (静的リンクでない)         | `__attribute__((visibility("default")))`   |
+     *  | Windows / 静的リンク (`PREFIX_STATIC` 定義あり)   | (空)                                        |
+     *  | Windows / DLL ビルド (`PREFIX_EXPORTS` 定義あり)  | `__declspec(dllexport)`                     |
+     *  | Windows / DLL 利用側                              | `__declspec(dllimport)`                     |
+     *
+     *  Linux の共有ライブラリはビルド時に `-fvisibility=hidden` を併用し、
+     *  本マクロを付けた公開 API だけを動的シンボル表へ載せます。
      */
     #define COM_UTIL_DLL_EXPORT(prefix)
 
@@ -98,7 +102,13 @@
     #define COM_UTIL_DLL_API(prefix)
 #else /* !DOXYGEN */
     #if defined(PLATFORM_LINUX)
-        #define COM_UTIL_DLL_EXPORT(prefix)
+        /*
+         * 共有ライブラリでは既定を hidden にし (makelibsrc)、公開 API だけ default にする。
+         * 静的リンク時は属性不要。Windows の dllexport/dllimport 分岐と異なり、
+         * 利用側でも default 可視性の宣言で問題ないため EXPORTS は見ない。
+         */
+        #define COM_UTIL_DLL_EXPORT(prefix)                                                                    \
+            COM_UTIL_DLL_IF__(COM_UTIL_DLL_PP_CAT__(prefix, _STATIC))(, __attribute__((visibility("default"))))
         #define COM_UTIL_DLL_API(prefix)
     #elif defined(PLATFORM_WINDOWS)
         #ifndef __INTELLISENSE__

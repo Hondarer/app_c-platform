@@ -764,7 +764,7 @@ TEST_F(exportTest, symbol_names_match)
     // Assert
     testing::expectExportNamesMatch(
         expected, actual,
-        kExpectedExportSignatures); // [確認_正常系] - 期待シンボルとの不足/想定外がないこと (Windows は完全一致、Linux は不足のみ) 。
+        kExpectedExportSignatures); // [確認_正常系] - 期待シンボルとの不足/想定外がないこと (Windows / Linux とも完全一致) 。
 }
 
 // 公開ヘッダーの変数宣言が dllexport マクロ (COM_UTIL_EXPORT) を
