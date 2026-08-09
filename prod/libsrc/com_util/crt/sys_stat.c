@@ -40,7 +40,7 @@ static int ensure_one_dir(const char *dir, com_util_error *detail_out)
 {
     com_util_file_stat_t st;
 
-    /* 既に存在する場合は成功 */
+    /* すでに存在する場合は成功 */
     if (com_util_stat(&st, detail_out, dir) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;

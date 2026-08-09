@@ -601,7 +601,7 @@ com_util_internal_trace_resolve_timestamp(...)
 extern int g_com_util_internal_sink_count;
 ```
 
-カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms`、`com_util_parse_int64` など) に限り、動詞先行を許容します。
+カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms`、`com_util_parse_int64` など) に限り、動詞先行を許容します。  
 元 API 名を保存する CRT ラッパー (`com_util_strcpy`、`com_util_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
 
 > [!IMPORTANT]

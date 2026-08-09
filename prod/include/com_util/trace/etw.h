@@ -54,7 +54,7 @@ typedef struct com_util_etw_event
  *  @brief          ETW イベント受信コールバック型です。
  *
  *  @param[in]      event    受信イベント。callback 呼び出し中のみ参照可能。
- *  @param[in]      context  com_util_etw_session_start に渡したユーザーデータ。
+ *  @param[in]      context  com_util_etw_session_start に渡したユーザー データ。
  *
  *  @par            スレッド セーフ
  *  コールバックは ETW ワーカー スレッドから呼び出されます。\n
@@ -167,7 +167,7 @@ extern "C"
      *  @param[in]      session_name       セッション名 (システム全体で一意にすること)。
      *  @param[in]      provider_guid_str  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"。
      *  @param[in]      callback           イベント受信時に呼ばれるコールバック。
-     *  @param[in]      context            コールバックに渡すユーザーデータ。
+     *  @param[in]      context            コールバックに渡すユーザー データ。
      *  @param[out]     session_out        開始したセッションのハンドルの格納先。NULL を渡してはなりません。\n
      *                  失敗時は NULL を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、

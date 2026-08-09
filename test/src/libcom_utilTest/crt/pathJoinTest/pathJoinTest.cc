@@ -211,7 +211,7 @@ TEST_F(pathJoinTest, returns_enametoolong_without_overflow_when_no_room_for_sepa
 {
     // Arrange
     char actual[2] = {'X',
-                      'X'}; // [状態] - "a" 単独ならちょうど収まるが結合には不足するバッファーを番兵付きで用意する。
+                      'X'}; // [状態] - "a" 単独ならちょうど収まるが結合には不足するバッファーをセンチネル付きで用意する。
     com_util_error err;     // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert

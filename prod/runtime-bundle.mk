@@ -1,4 +1,4 @@
-# com_util の実行時ライブラリを実行ファイルと同じディレクトリーへ配置する。
+# com_util の実行時ライブラリを実行ファイルと同じディレクトリへ配置する。
 COM_UTIL_RUNTIME_OUTPUT_DIR := $(MYAPP_DIR)/prod/cbin
 
 ifdef PLATFORM_LINUX

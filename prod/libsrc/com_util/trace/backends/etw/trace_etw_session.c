@@ -42,7 +42,7 @@ struct com_util_etw_session
     com_util_thread *thread_handle;
     /** イベント受信コールバック。 */
     com_util_etw_event_fn callback;
-    /** コールバックに渡すユーザーデータ。 */
+    /** コールバックに渡すユーザー データ。 */
     void *context;
     /** セッション プロパティ (可変長)。 */
     EVENT_TRACE_PROPERTIES *properties;
@@ -55,7 +55,7 @@ struct com_util_etw_session
 /**
  *  @brief  構築途中のセッションが確保した資源を解放します。
  *
- *  トレース ハンドル、セッション ハンドル、ワイド文字列、プロパティー領域の順に解放する。\n
+ *  トレース ハンドル、セッション ハンドル、ワイド文字列、プロパティ領域の順に解放する。\n
  *  未確保のメンバーは初期値のまま解放をスキップするため、構築のどの段階からでも呼び出せる。
  */
 static void dispose_session(com_util_etw_session *session)

@@ -1,12 +1,12 @@
 /**
  *******************************************************************************
  *  @file           argparser.h
- *  @brief          汎用コマンドライン オプション パーサー API を提供します。
+ *  @brief          汎用コマンド ライン オプション パーサー API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/07/11
  *  @version        1.0.0
  *
- *  コマンドライン引数 (argc / argv) を解析する汎用パーサーです。\n
+ *  コマンド ライン引数 (argc / argv) を解析する汎用パーサーです。\n
  *  フラグ、値付きオプション、位置引数を事前に登録し、解析結果を
  *  登録時に指定した格納先へ書き込みます。
  *
@@ -19,7 +19,7 @@
  *
  *  短オプションの連結 (`-abc`) と `--` 区切りはサポートしません。
  *
- *  ダブルクオーテーションの除去とエスケープの解釈は、シェル (POSIX shell) や
+ *  ダブル クオーテーションの除去とエスケープの解釈は、シェル (POSIX shell) や
  *  C ランタイム (MSVC CRT) が argv を生成する時点で行われます。\n
  *  `--option="a b"` のようにワード中間にクオートがある場合も、シェルはクオートを
  *  除去して `--option=a b` を argv に渡すため、空白を含む値は全構文で同一に取得できます。\n
@@ -211,7 +211,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  フラグは同一コマンドラインで複数回指定できます (例: `-v -v` で @p storage は 2)。
+     *  フラグは同一コマンド ラインで複数回指定できます (例: `-v -v` で @p storage は 2)。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_register_flag(com_util_argparser *parser,
                                                                        const char *short_name, const char *long_name,
@@ -244,7 +244,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  同一コマンドラインで複数回指定された場合は解析エラー
+     *  同一コマンド ラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
      *  複数回の指定を許可する場合は _com_util_argparser_register_option_int_array() を使用してください。
      */
@@ -284,7 +284,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  同一コマンドラインで複数回指定された場合は解析エラー
+     *  同一コマンド ラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
      *  複数回の指定を許可する場合は _com_util_argparser_register_option_string_array() を使用してください。
      */
@@ -394,7 +394,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  位置引数は登録順にコマンドラインの非オプション トークンへ割り当てます。\n
+     *  位置引数は登録順にコマンド ラインの非オプション トークンへ割り当てます。\n
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
      *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
@@ -431,7 +431,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  位置引数は登録順にコマンドラインの非オプション トークンへ割り当てます。\n
+     *  位置引数は登録順にコマンド ラインの非オプション トークンへ割り当てます。\n
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
      *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
@@ -536,10 +536,10 @@ extern "C"
                                                         const char **storage, size_t capacity, size_t *count);
 
     /**
-     *  @brief          コマンドラインを解析し、登録済みの格納先に結果を書き込みます。
+     *  @brief          コマンド ラインを解析し、登録済みの格納先に結果を書き込みます。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL を渡してはなりません。
      *  @param[in]      argc    argv の要素数です。1 以上を指定してください。
-     *  @param[in]      argv    コマンドライン引数の配列です。NULL を渡してはなりません。\n
+     *  @param[in]      argv    コマンド ライン引数の配列です。NULL を渡してはなりません。\n
      *                          argv[0] はプログラム名として扱い、argv[1] 以降を解析します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN_OPTION 、
@@ -554,7 +554,7 @@ extern "C"
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。\n
      *                  解析エラーの場合は、検出した種別に対応する結果コードを返します。
      *
-     *  解析エラーの対象名と位置は _com_util_argparser_get_error_target() 、
+     *  解析エラーの対象名と位置は _com_util_argparser_get_error_target()、
      *  _com_util_argparser_get_error_index() で取得し、表示用のメッセージは
      *  _com_util_argparser_get_error_message() で組み立てられます。\n
      *  種別は戻り値を保持していない場合でも _com_util_argparser_get_error() で再取得できます。\n
@@ -573,7 +573,7 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_argparser_parse(com_util_argparser *parser, int argc, char *const *argv);
 
     /**
-     *  @brief          プロセス共有のデフォルト パーサーでコマンドラインを解析します。
+     *  @brief          プロセス共有のデフォルト パーサーでコマンド ラインを解析します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN_OPTION 、
      *                  @ref COM_UTIL_ERR_MISSING_VALUE 、

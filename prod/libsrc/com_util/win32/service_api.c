@@ -218,7 +218,7 @@ BOOL StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
         return FALSE;
     }
 
-    /* テーブルのエントリー数を数える (終端: service_name == NULL) */
+    /* テーブルのエントリ数を数える (終端: service_name == NULL) */
     count = 0;
     while (service_table[count].service_name != NULL)
     {
@@ -233,7 +233,7 @@ BOOL StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
         return FALSE;
     }
 
-    /* 各エントリーのサービス名を wide 化する (calloc で lpServiceName は全 NULL 初期化済み) */
+    /* 各エントリのサービス名を wide 化する (calloc で lpServiceName は全 NULL 初期化済み) */
     for (i = 0; i < count; i++)
     {
         w_table[i].lpServiceName = com_util_utf8_to_wstr_alloc(service_table[i].service_name);

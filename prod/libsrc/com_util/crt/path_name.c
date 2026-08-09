@@ -250,7 +250,7 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
                 else if (!prev_ends_with_sep && !part_starts_with_sep)
                 {
                     /* どちらもセパレータでない: 1 つ補完する。
-                       required_size は既に終端 '\0' の 1 バイトを見込んでいるため、
+                       required_size はすでに終端 '\0' の 1 バイトを見込んでいるため、
                        補完後も path_size に収まるかを "以上" で判定する必要がある。 */
                     if (required_size >= path_size)
                     {

@@ -136,7 +136,7 @@ bool utf8_decode(const char *text, std::size_t text_len, std::wstring &units_out
             code_point = (code_point << 6) | (trail & 0x3FU);
         }
 
-        /* オーバーロング表現を拒否する。 */
+        /* オーバー ロング表現を拒否する。 */
         if ((sequence_len == 2) && (code_point < 0x80UL))
         {
             return false;

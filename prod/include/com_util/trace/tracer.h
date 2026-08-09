@@ -301,8 +301,8 @@ extern "C"
      *  パスとパラメーターは com_util_tracer_set_file_level で、
      *  ファイル名とファイル識別は com_util_tracer_set_file_name で変更できます。
      *
-     *  識別名 (インスタンス名とインスタンス識別) とトレースファイル名 (ファイル名とファイル識別) は
-     *  独立して管理されます。com_util_tracer_set_name はトレースファイル名に影響しません。
+     *  識別名 (インスタンス名とインスタンス識別) とトレース ファイル名 (ファイル名とファイル識別) は
+     *  独立して管理されます。com_util_tracer_set_name はトレース ファイル名に影響しません。
      *
      *  @return         成功時は stopped 状態のハンドルを返します。メモリ確保または同期オブジェクトの
      *                  初期化に失敗した場合は NULL を返します。
@@ -339,7 +339,7 @@ extern "C"
      *  started 状態では出力関数 (com_util_tracer_write 等) が有効になります。\n
      *  レベル設定関数 (com_util_tracer_set_os_level, com_util_tracer_set_etw_level,
      *  com_util_tracer_set_file_level, com_util_tracer_set_stderr_level) は started 状態でも使用でき、
-     *  停止せずに閾値レベルを変更できます。\n
+     *  停止せずにしきい値レベルを変更できます。\n
      *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
      *  com_util_tracer_set_hook, com_util_tracer_remove_hook) は started 状態では使用できません (@ref COM_UTIL_ERR_UNKNOWN / NULL を返します)。\n
      *  すでに started 状態の場合は何もせず @ref COM_UTIL_OK を返します (冪等)。
@@ -504,7 +504,7 @@ extern "C"
      *  識別名は @c {name} (identifier が 0 の場合) または @c {name}_{identifier} です。\n
      *  EventLog はソースが com_util 共通のため、本識別名を本文先頭に付与して
      *  インスタンスを判別可能にします。\n
-     *  本関数はトレースファイル名には影響しません。トレースファイル名とファイル識別は
+     *  本関数はトレース ファイル名には影響しません。トレース ファイル名とファイル識別は
      *  com_util_tracer_set_file_name で独立して設定します。
      *
      *  @param[in]      handle      com_util_tracer_create の戻り値。
@@ -559,7 +559,7 @@ extern "C"
     COM_UTIL_EXPORT int64_t COM_UTIL_API com_util_tracer_get_identifier(com_util_tracer *handle);
 
     /**
-     *  @brief          トレースファイル名とファイル識別を設定します。
+     *  @brief          トレース ファイル名とファイル識別を設定します。
      *
      *  ファイル トレースのデフォルト パス (実行ファイルのディレクトリ配下の
      *  @c log/{ファイル名}.log) に使用するファイル名を設定します。
@@ -587,7 +587,7 @@ extern "C"
                                                                    int64_t identifier);
 
     /**
-     *  @brief          解決済みのトレースファイル名 (ファイル識別サフィックス込み) を取得します。
+     *  @brief          解決済みのトレース ファイル名 (ファイル識別サフィックス込み) を取得します。
      *
      *  ファイル トレースのデフォルト パスで実際に使用されるファイル名
      *  (拡張子 @c .log を除く) を返します。\n
@@ -735,7 +735,7 @@ extern "C"
      *  出力ファイル パスや max_bytes / generations / flags を変更した場合 (または無効状態から
      *  有効化した場合) は、新しい設定でトレース ファイルを開き直します。新しいファイルのオープンに
      *  失敗した場合は、開いていたファイルと従来の設定を保持したまま @ref COM_UTIL_ERR_UNKNOWN を返します。\n
-     *  パスとパラメーターが現状と一致し、閾値レベルのみを変更する場合はファイルを開き直しません。
+     *  パスとパラメーターが現状と一致し、しきい値レベルのみを変更する場合はファイルを開き直しません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

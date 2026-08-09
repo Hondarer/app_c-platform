@@ -485,7 +485,7 @@ static void rotate_file(com_util_trace_file_sink *p)
  *
  *  ローカル mutex 保持中、書き込み成功直後に呼ばれる。\n
  *  全プロセス合計の実サイズ (ハンドル基準) が max_bytes 未満なら何もしない。\n
- *  閾値以上の場合はプロセス間ロックの取得を非ブロッキングで試行し、ロック下で同一性と実サイズを
+ *  しきい値以上の場合はプロセス間ロックの取得を非ブロッキングで試行し、ロック下で同一性と実サイズを
  *  再確認してからローテーションする。他プロセスがローテーション済みの場合は
  *  開き直すだけにする。\n
  *  プロセス間ロックの取得に失敗した場合はローテーションを見送る
@@ -796,7 +796,7 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     /* ファイルへ書き込む (FILE_FLAG_WRITE_THROUGH / O_DSYNC により自動フラッシュ) */
     ret = com_util_file_write(&handle->file, buf, (size_t)len, NULL);
 
-    /* 書き込み成功時: サイズを追跡しローテーション閾値を確認する */
+    /* 書き込み成功時: サイズを追跡しローテーションしきい値を確認する */
     if (ret == 0)
     {
         if (handle->shared != 0)

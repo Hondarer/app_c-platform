@@ -116,7 +116,7 @@ int bench_timer_measure(bench_iteration_fn fn, void *arg, uint64_t min_duration_
 
     threshold_ns = min_duration_ms * (uint64_t)BENCH_NS_PER_MS;
 
-    /* ウォームアップ。初回のページ フォールトやメタデータ読み込みを測定から除く。 */
+    /* ウォーム アップ。初回のページ フォールトやメタデータ読み込みを測定から除く。 */
     if (fn(arg) != 0)
     {
         return -1;

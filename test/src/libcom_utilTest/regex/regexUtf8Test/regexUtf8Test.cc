@@ -111,7 +111,7 @@ TEST_F(regexUtf8Test, decode_rejects_invalid_utf8)
 
     // Assert
     EXPECT_FALSE(utf8_decode(overlong.data(), overlong.size(), units,
-                             offsets)); // [確認_異常系] - オーバーロング表現 C0 80 に対する utf8_decode の戻り値が
+                             offsets)); // [確認_異常系] - オーバー ロング表現 C0 80 に対する utf8_decode の戻り値が
                                         // false であること。
     EXPECT_FALSE(utf8_decode(surrogate.data(), surrogate.size(), units,
                              offsets)); // [確認_異常系] - 単独サロゲート ED A0 80 に対する utf8_decode の戻り値が
@@ -195,9 +195,9 @@ TEST_F(regexUtf8Test, offset_conversion_rounds_inside_surrogate_pair)
 
     // Assert
     EXPECT_EQ((std::size_t)0,
-              begin_offset); // [確認_正常系] - offset_of_begin の戻り値がコードポイント先頭の 0 であること。
+              begin_offset); // [確認_正常系] - offset_of_begin の戻り値がコード ポイント先頭の 0 であること。
     EXPECT_EQ((std::size_t)4,
-              end_offset); // [確認_正常系] - offset_of_end の戻り値がコードポイント末尾の 4 であること。
+              end_offset); // [確認_正常系] - offset_of_end の戻り値がコード ポイント末尾の 4 であること。
 }
 
 // バイト オフセットからコード単位索引を復元できることの確認

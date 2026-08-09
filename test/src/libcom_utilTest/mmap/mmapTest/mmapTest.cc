@@ -196,7 +196,7 @@ TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
     ASSERT_NE((com_util_interprocess_rwlock *)NULL,
               lock_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が NULL でないこと。
     EXPECT_EQ(lock_first,
-              lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインタであること。
+              lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインターであること。
 
     // Cleanup
     com_util_mmap_detach(map, NULL);
@@ -273,14 +273,14 @@ TEST_F(mmapTest, get_rwlock_returns_single_instance_under_concurrent_calls)
     for (size_t index = 1; index < thread_count; index++)
     {
         EXPECT_EQ(results[0], results[index]);
-    } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が同一のポインタであること。
+    } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が同一のポインターであること。
 
     // Cleanup
     com_util_mmap_detach(map, NULL);
     std::remove(path.c_str());
 }
 
-// 内包するリーダーライター ロックで、複数リーダーの共有ロック同時取得と排他ロックの相互排他・タイムアウトを確認する (マルチ フェーズ テスト)
+// 内包するリーダー ライター ロックで、複数リーダーの共有ロック同時取得と排他ロックの相互排他・タイムアウトを確認する (マルチ フェーズ テスト)
 TEST_F(mmapTest, embedded_rwlock_allows_concurrent_readers_and_times_out_on_exclusive_conflict)
 {
     // Arrange

@@ -282,8 +282,8 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zer
     EXPECT_CALL(mock_stdio_, fclose(_, _, _, input_file)).WillOnce(Return(0));
     EXPECT_CALL(mock_com_util_, com_util_decompress(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - ヘッダー不正時は com_util_decompress が呼び出されないこと。
-    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("ヘッダの元サイズ")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "ヘッダの元サイズ" を含むエラーが表示されること。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("ヘッダーの元サイズ")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "ヘッダーの元サイズ" を含むエラーが表示されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
@@ -456,8 +456,9 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
                 // [Pre-Assert手順] - 展開後サイズをヘッダー値より 1 byte 少ない 5 byte に設定して返却する。
     EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq("/tmp/output.bin"), StrEq("wb"), _))
         .Times(0); // [Pre-Assert確認_異常系] - サイズ不一致時は出力ファイルが開かれないこと。
-    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("展開後サイズがヘッダ値と一致")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "展開後サイズがヘッダ値と一致" を含むエラーが表示されること。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("展開後サイズがヘッダー値と一致")))
+        .WillOnce(
+            Return(0)); // [Pre-Assert確認_異常系] - "展開後サイズがヘッダー値と一致" を含むエラーが表示されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。

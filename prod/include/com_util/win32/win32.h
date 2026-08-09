@@ -37,7 +37,7 @@
 /* winsvc.h は WIN32_LEAN_AND_MEAN の対象外のため windows.h 経由で取り込まれる。 */
 
 /**
- *  @brief          StartServiceCtrlDispatcherU 用の UTF-8 サービス エントリーです。
+ *  @brief          StartServiceCtrlDispatcherU 用の UTF-8 サービス エントリです。
  *
  *  終端要素は service_name を NULL にします。\n
  *                  service_proc は W 版シグネチャ (LPSERVICE_MAIN_FUNCTIONW) を使用します。
@@ -347,7 +347,7 @@ COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU
  *                  呼び出します。テーブルの終端要素は service_name を NULL にしてください。\n
  *                  変換失敗時は SetLastError(ERROR_OUTOFMEMORY) を設定して FALSE を返します。\n
  *                  それ以外の挙動は StartServiceCtrlDispatcherW と同一です。
- *  @param[in]      service_table   サービス エントリーの配列。終端の service_name は NULL。
+ *  @param[in]      service_table   サービス エントリの配列。終端の service_name は NULL。
  *  @return         成功時は TRUE。失敗時は FALSE。
  *  @see            StartServiceCtrlDispatcherW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-startservicectrldispatcherw

@@ -700,7 +700,7 @@ TEST_F(trace_fileTest, test_shared_write_reopen_does_not_retry_after_external_ro
     com_util_trace_file_sink_dispose(handle);
 }
 
-// 共有モードで実サイズが閾値以上のときプロセス間ロック下でローテーションすることの確認
+// 共有モードで実サイズがしきい値以上のときプロセス間ロック下でローテーションすることの確認
 TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
 {
     // Arrange
@@ -728,7 +728,7 @@ TEST_F(trace_fileTest, test_shared_write_rotates_under_interprocess_lock)
             {
                 *size_out = 10;
                 return 0;
-            }); // [Pre-Assert確認_正常系] - 実サイズが閾値以上であること。
+            }); // [Pre-Assert確認_正常系] - 実サイズがしきい値以上であること。
 
     // プロセス間ロック下の再確認 → ローテーション
     EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
@@ -797,7 +797,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_other_process_already
             {
                 *size_out = 10;
                 return 0;
-            }); // [Pre-Assert確認_正常系] - 実サイズが閾値以上であること。
+            }); // [Pre-Assert確認_正常系] - 実サイズがしきい値以上であること。
     EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillOnce(Return(COM_UTIL_OK));
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("trace.log"), _, _))
         .WillOnce(
@@ -848,7 +848,7 @@ TEST_F(trace_fileTest, test_shared_write_skips_rotate_when_lock_is_busy)
             {
                 *size_out = 10;
                 return 0;
-            }); // [Pre-Assert確認_異常系] - 実サイズが閾値以上であること。
+            }); // [Pre-Assert確認_異常系] - 実サイズがしきい値以上であること。
     EXPECT_CALL(mock_, com_util_interprocess_lock_try_lock(_))
         .WillOnce(Return(COM_UTIL_ERR_BUSY)); // [Pre-Assert確認_異常系] - プロセス間ロックがビジー状態であること。
     EXPECT_CALL(mock_, com_util_rename(_, _, _)).Times(0); // [Pre-Assert確認_異常系] - リネームは行われないこと。

@@ -9,7 +9,7 @@
  *  Linux の `mmap` と Windows の `CreateFileMapping` + `MapViewOfFile` を
  *  共通のインターフェースで扱い、ファイルをプロセスのアドレス空間へマップした
  *  アドレスを公開します。\n
- *  同一ファイルへのプロセス横断リーダーライター ロックは、
+ *  同一ファイルへのプロセス横断リーダー ライター ロックは、
  *  @ref com_util_mmap_get_rwlock() の初回呼び出し時に自動で用意され、
  *  @ref com_util_interprocess_rwlock_lock_shared() 等 (`sync.h`) を
  *  そのまま使用します。\n
@@ -23,7 +23,7 @@
  *                    システム上では信頼できないことがある。
  *                  - @ref com_util_mmap_flush() が反映するのはサーバーへの書き込みまでであり、
  *                    他クライアントのキャッシュを無効化するものではない。
- *                  - 他クライアントが既にマップ済みのページは、ロックの取得/解放だけでは
+ *                  - 他クライアントがすでにマップ済みのページは、ロックの取得/解放だけでは
  *                    最新化されない (close-to-open セマンティクスに依存する)。\n
  *                  ネットワーク ファイル システム越しの共有が必要な場合は、本 API ではなく
  *                  別方式を検討してください。
@@ -84,7 +84,7 @@ extern "C"
      *  新規作成せず @ref COM_UTIL_ERR_UNKNOWN を返します。\n
      *  マップ結果のサイズが 0 になる場合 (空の既存ファイルを開いた場合など) は、
      *  `mmap`/`MapViewOfFile` がサイズ 0 を扱えないため @ref COM_UTIL_ERR_UNKNOWN を返します。\n
-     *  成功すると、同一 @p path がプロセス横断リーダーライター ロックの識別子として
+     *  成功すると、同一 @p path がプロセス横断リーダー ライター ロックの識別子として
      *  ハンドル内に保持されます。\n
      *  ロック自体は本関数では開かず、@ref com_util_mmap_get_rwlock() の
      *  初回呼び出し時に開きます。
@@ -124,7 +124,7 @@ extern "C"
     COM_UTIL_EXPORT size_t COM_UTIL_API com_util_mmap_get_size(const com_util_mmap *map);
 
     /**
-     *  @brief          ハンドルに内包されたプロセス横断リーダーライター ロックを取得します。
+     *  @brief          ハンドルに内包されたプロセス横断リーダー ライター ロックを取得します。
      *  @param[in]      map         対象のハンドル。NULL を渡してはなりません。
      *  @param[out]     lock_out    ロックへの非所有参照の格納先。NULL を渡してはなりません。
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは

@@ -1089,7 +1089,7 @@ TEST_F(argparserTest, option_string_accepts_value_with_spaces)
     _com_util_argparser_dispose(parser);
 }
 
-// argv に残存したダブルクオーテーションを除去せず無加工で格納することの確認
+// argv に残存したダブル クオーテーションを除去せず無加工で格納することの確認
 // クオート除去はシェル / C ランタイムの責務であり、本 API は独自解釈しない (値中の正当な " を破壊しないため)
 TEST_F(argparserTest, option_string_stores_argv_verbatim)
 {
@@ -1676,7 +1676,7 @@ TEST_F(argparserTest, multiple_handles_are_independent)
     _com_util_argparser_dispose(parser2);
 }
 
-// エラーメッセージの組み立てとバッファー不足の確認
+// エラー メッセージの組み立てとバッファー不足の確認
 TEST_F(argparserTest, error_message_formatting)
 {
     // Arrange

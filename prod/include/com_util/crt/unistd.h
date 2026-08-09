@@ -79,7 +79,7 @@ extern "C"
      *  Windows 環境では @c GetFileType が @c FILE_TYPE_CHAR を返し、
      *  かつ @c GetConsoleMode が成功する場合にのみ 1 を返します。\n
      *  Linux 環境では POSIX の @c isatty() を使用します。\n
-     *  POSIX の @c isatty() と異なり、引数はファイル ディスクリプタではなく
+     *  POSIX の @c isatty() と異なり、引数はファイル記述子ではなく
      *  ストリーム enum (@ref com_util_stream) です。
      *
      *  @par            スレッド セーフ

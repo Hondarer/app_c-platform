@@ -156,7 +156,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
         1412916640LL, 0}; // [状態] - 明示タイムスタンプを 2014-10-10T13:50:40+09:00 相当の {1412916640, 0} とする。
 
     ASSERT_EQ(0, pipe(pipe_fds));
-    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイムゾーンを Asia/Tokyo に設定する。
+    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイム ゾーンを Asia/Tokyo に設定する。
     tzset();
     snprintf(fd_text, sizeof(fd_text), "%d", pipe_fds[1]);
     ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text,
@@ -233,7 +233,7 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
                                            1000000000}; // [状態] - nsec が 10 億の不正な明示タイムスタンプを用意する。
 
     ASSERT_EQ(0, pipe(pipe_fds));
-    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイムゾーンを Asia/Tokyo に設定する。
+    ASSERT_EQ(0, setenv("TZ", "Asia/Tokyo", 1)); // [状態] - タイム ゾーンを Asia/Tokyo に設定する。
     tzset();
     snprintf(fd_text, sizeof(fd_text), "%d", pipe_fds[1]);
     ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text,

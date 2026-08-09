@@ -20,7 +20,7 @@ void com_util_sym_loader_dispose(com_util_sym_loader_entry *const *fobj_array, c
     size_t fobj_index;
 
     /* DllMain / destructor コンテキストから呼ばれるため、
-     * ローダーロック保持中にミューテックスを取得すると
+     * ローダー ロック保持中にミューテックスを取得すると
      * デッドロックを引き起こす恐れがある。
      * このコンテキストではシングルスレッド動作が保証されるため、
      * ロックなしで解放する。 */

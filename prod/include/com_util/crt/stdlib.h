@@ -68,7 +68,7 @@ extern "C"
     /**
      *  @brief          環境変数の値を設定します。
      *
-     *  Linux では @c setenv、Windows では @c _putenv_s を使用します。\n
+     *  Linux では @c setenv 、Windows では @c _putenv_s を使用します。\n
      *  設定は呼び出し元プロセスにのみ反映され、親プロセスへは伝わりません。
      *
      *  @param[in]      name       環境変数名 (null 終端文字列)。NULL、空文字列、
@@ -92,7 +92,7 @@ extern "C"
     /**
      *  @brief          環境変数を削除します。
      *
-     *  Linux では @c unsetenv、Windows では値に空文字列を指定した @c _putenv_s を使用します。\n
+     *  Linux では @c unsetenv 、Windows では値に空文字列を指定した @c _putenv_s を使用します。\n
      *  Windows は空文字列の設定を削除として扱うため、値が空の環境変数を作ることはできません。
      *
      *  @param[in]      name  環境変数名 (null 終端文字列)。NULL、空文字列、

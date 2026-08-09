@@ -69,7 +69,7 @@ extern "C"
     /**
      *  @brief          子プロセスの標準入出力指定です。
      *
-     *  Linux では @p native_handle をファイル ディスクリプタ、Windows では HANDLE として扱います。\n
+     *  Linux では @p native_handle をファイル記述子、Windows では HANDLE として扱います。\n
      *  呼び出し側が渡した native handle の所有権は移動しません。
      */
     typedef struct com_util_process_stdio

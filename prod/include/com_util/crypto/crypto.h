@@ -92,7 +92,7 @@ extern "C"
      *  @param[in]      nonce    ノンス (COM_UTIL_CRYPTO_NONCE_SIZE バイト)。
      *  @param[in]      aad      追加認証データへのポインター。NULL の場合は AAD なし。
      *  @param[in]      aad_len  AAD のバイト数。
-     *  @return         @ref COM_UTIL_OK (認証タグ検証 OK) 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN (認証タグ不一致含む) のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK (認証タグ検証 OK)、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN (認証タグ不一致含む) のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

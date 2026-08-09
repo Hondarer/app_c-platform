@@ -796,35 +796,35 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
     // 旧閾値 INFO では VERBOSE は OS backend へ送られない。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose before")))
-        .Times(0); // [Pre-Assert確認_正常系] - 閾値引き上げ前は VERBOSE が backend へ送られないこと。
+        .Times(0); // [Pre-Assert確認_正常系] - しきい値引き上げ前は VERBOSE が backend へ送られないこと。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, _, _, _,
                                                     HasSubstr("verbose before")))
-        .Times(0); // [Pre-Assert確認_正常系] - 閾値引き上げ前は VERBOSE が EventLog へ送られないこと。
+        .Times(0); // [Pre-Assert確認_正常系] - しきい値引き上げ前は VERBOSE が EventLog へ送られないこと。
 #endif
 
     // Act
     com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
-                          "verbose before"); // [手順] - 閾値引き上げ前に VERBOSE で "verbose before" を書き込む。
+                          "verbose before"); // [手順] - しきい値引き上げ前に VERBOSE で "verbose before" を書き込む。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Pre-Assert_2
-    // 停止せずに閾値を VERBOSE へ引き上げると VERBOSE が送られる。
+    // 停止せずにしきい値を VERBOSE へ引き上げると VERBOSE が送られる。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose after")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 閾値引き上げ後は VERBOSE が backend へ送られること。
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - しきい値引き上げ後は VERBOSE が backend へ送られること。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, 0,
                                                     StrEq("myapp"), 0, HasSubstr("verbose after")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 閾値引き上げ後は VERBOSE が EventLog へ送られること。
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - しきい値引き上げ後は VERBOSE が EventLog へ送られること。
 #endif
 
     // Act_2
     int rtc_tracer_set_os_level = com_util_tracer_set_os_level(
-        handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started のまま閾値を VERBOSE へ引き上げる。
+        handle, COM_UTIL_TRACE_LEVEL_VERBOSE); // [手順] - started のまましきい値を VERBOSE へ引き上げる。
     ASSERT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_set_os_level); // [確認_正常系] - started のまま閾値を VERBOSE へ引き上げた com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_set_os_level); // [確認_正常系] - started のまましきい値を VERBOSE へ引き上げた com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
                           "verbose after"); // [手順] - 引き上げ後に VERBOSE で "verbose after" を書き込む。
 
@@ -834,7 +834,7 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
     com_util_tracer_dispose(handle);
 }
 
-// started 中の閾値のみ変更では file sink を開き直さないことの確認 (ケース 2)
+// started 中のしきい値のみ変更では file sink を開き直さないことの確認 (ケース 2)
 TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
 {
     // Arrange
@@ -844,11 +844,11 @@ TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
 
     // Pre-Assert
-    // パスとパラメーターが同一で閾値のみ変える場合は再オープンしない。
+    // パスとパラメーターが同一でしきい値のみ変える場合は再オープンしない。
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
-        .Times(0); // [Pre-Assert確認_正常系] - 閾値のみ変更では file sink を再生成しないこと。
+        .Times(0); // [Pre-Assert確認_正常系] - しきい値のみ変更では file sink を再生成しないこと。
     EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(_))
-        .Times(0); // [Pre-Assert確認_正常系] - 閾値のみ変更では file sink を破棄しないこと。
+        .Times(0); // [Pre-Assert確認_正常系] - しきい値のみ変更では file sink を破棄しないこと。
 
     // Act
     int result = com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_VERBOSE, 0, 0, 0);
@@ -856,7 +856,7 @@ TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、閾値のみの変更が成功したと判断できること。
+        result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、しきい値のみの変更が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
               com_util_tracer_get_file_level(handle)); // [確認_正常系] - 変更後の file レベルが反映されること。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
@@ -1396,7 +1396,7 @@ TEST_F(traceTest, test_start_creates_default_file_sink)
     com_util_tracer_dispose(handle);
 }
 
-// set_name (インスタンス名とインスタンス識別) がデフォルトのトレースファイル名に影響しないことの確認
+// set_name (インスタンス名とインスタンス識別) がデフォルトのトレース ファイル名に影響しないことの確認
 TEST_F(traceTest, test_set_name_does_not_affect_default_file_path)
 {
     // Arrange

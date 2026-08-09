@@ -63,7 +63,7 @@ extern "C"
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
      *
-     *  文字列とスキャンセットの変換には @ref com_util_scanf と同じ幅指定規約が適用されます。
+     *  文字列とスキャン セットの変換には @ref com_util_scanf と同じ幅指定規約が適用されます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vscanf(const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -95,7 +95,7 @@ extern "C"
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
      *
-     *  文字列とスキャンセットの変換には @ref com_util_fscanf と同じ幅指定規約が適用されます。
+     *  文字列とスキャン セットの変換には @ref com_util_fscanf と同じ幅指定規約が適用されます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_vfscanf(FILE *stream, const char *format, va_list args)
 #if defined(COMPILER_GCC)

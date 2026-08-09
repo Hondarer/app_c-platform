@@ -453,7 +453,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
             return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         /* result_path はユーザー プロファイル配下 (ユーザー名に空白を含みうる) から生成されるため、
-           クォートしないと CRT のコマンドライン分割で複数トークンとなり、
+           クォートしないと CRT のコマンド ライン分割で複数トークンとなり、
            com_util_elevated_process_extract_result_target() でのフラグ抽出に失敗する。
            クォート区間内の空白はトークン区切りにならず、クォート文字自体は結果の argv から除去される。
            see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments */

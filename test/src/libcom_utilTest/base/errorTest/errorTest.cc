@@ -218,7 +218,7 @@ TEST_F(errorTest, all_detail_out_apis_accept_null)
     } // [手順] - 全公開 API の detail_out に NULL を指定し、呼び出し後の TLS を取得する。
 
     // Assert
-    EXPECT_EQ(cases.size(), tls_set_results.size()); // [確認_正常系] - 全58件の公開 API 呼び出しが完了したこと。
+    EXPECT_EQ(cases.size(), tls_set_results.size()); // [確認_正常系] - 全 58 件の公開 API 呼び出しが完了したこと。
     for (std::size_t index = 0U; index < cases.size(); ++index)
     {
         if (cases[index].expected_tls_set >= 0)

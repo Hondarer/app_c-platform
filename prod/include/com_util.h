@@ -52,13 +52,13 @@
 /**
  *  @defgroup       COM_UTIL_BASE 基盤 (base)
  *  @ingroup        COM_UTIL_PUBLIC_API
- *  @brief          コンパイラー / プラットフォーム判定、DLL エクスポート、結果コードなどの基盤機能です。
+ *  @brief          コンパイラ / プラットフォーム判定、DLL エクスポート、結果コードなどの基盤機能です。
  */
 
 /**
  *  @defgroup       COM_UTIL_ARGPARSER 引数解析 (argparser)
  *  @ingroup        COM_UTIL_PUBLIC_API
- *  @brief          コマンドライン引数の登録と解析を行う API です。
+ *  @brief          コマンド ライン引数の登録と解析を行う API です。
  */
 
 /**

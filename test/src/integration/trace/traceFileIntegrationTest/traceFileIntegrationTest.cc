@@ -188,7 +188,7 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
 namespace
 {
 
-// デフォルト トレースファイルのパス (実行ファイルのディレクトリ + /log/<プロセス名>.log) を導出する
+// デフォルト トレース ファイルのパス (実行ファイルのディレクトリ + /log/<プロセス名>.log) を導出する
 static std::string build_expected_default_path(void)
 {
     char exe_path[PLATFORM_PATH_MAX];
@@ -214,7 +214,7 @@ static std::string build_expected_default_path(void)
 } // namespace
 
 // set_file_level 未呼び出しでデフォルト パス (実行ファイルのディレクトリ + /log/<プロセス名>.log) へ
-// 書き込まれることの確認。set_name はトレースファイル名に影響しないことも実証する。
+// 書き込まれることの確認。set_name はトレース ファイル名に影響しないことも実証する。
 TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_to_executable)
 {
     // Arrange
@@ -245,7 +245,7 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
     com_util_tracer_dispose(handle);
 
     // Assert
-    EXPECT_FILE_EXISTS(path); // [確認_正常系] - プロセス名のトレースファイルが log/ に生成されること。
+    EXPECT_FILE_EXISTS(path); // [確認_正常系] - プロセス名のトレース ファイルが log/ に生成されること。
     EXPECT_FILE_CONTAINS(path, "default path message"); // [確認_正常系] - 書き込んだ行が含まれること。
 
     // Cleanup

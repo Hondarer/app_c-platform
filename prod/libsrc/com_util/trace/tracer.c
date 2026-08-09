@@ -618,7 +618,7 @@ static const char *tracer_effective_name(const com_util_tracer *handle)
  *  @param[in,out]  name  対象の名前文字列。
  *
  *  Windows ではプロセス名 (実行ファイルのベース名) が ".exe" で終わるため、
- *  トレースファイル名からは除去する。大文字小文字は区別しません。
+ *  トレース ファイル名からは除去する。大文字小文字は区別しません。
  */
 static void strip_exe_suffix(char *name)
 {
@@ -632,7 +632,7 @@ static void strip_exe_suffix(char *name)
 #endif /* PLATFORM_WINDOWS */
 
 /**
- *  @brief          トレースファイル名 (ファイル識別込み) を解決します。
+ *  @brief          トレース ファイル名 (ファイル識別込み) を解決します。
  *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
  *  @param[out]     out       解決した名前を格納するバッファー。
  *  @param[in]      out_size  バッファーのバイト数。
@@ -1786,7 +1786,7 @@ int com_util_tracer_set_file_level(com_util_tracer *handle, const char *path, co
             return COM_UTIL_OK;
         }
 
-        /* ケース 2: 構造パラメーターが一致し、既にファイルが開いている場合は閾値のみ変更する。
+        /* ケース 2: 構造パラメーターが一致し、すでにファイルが開いている場合はしきい値のみ変更する。
          * 再オープンを伴わないため、同一パスの一時的なオープン失敗で稼働中の出力を失わない。 */
         if (handle->file_handle != NULL &&
             ((path == NULL && handle->file_path == NULL) ||

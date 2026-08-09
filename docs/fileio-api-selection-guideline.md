@@ -222,7 +222,7 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
 ## プロセス間共有が要る場合
 
 複数プロセスから同一ファイルを排他制御しながら読み書きする場合は mmap を選びます。  
-`com_util_mmap_get_rwlock()` で得たプロセス横断リーダーライター ロックを、`com_util_interprocess_rwlock_lock_shared()` および `com_util_interprocess_rwlock_lock_exclusive()` と組み合わせて使用します。
+`com_util_mmap_get_rwlock()` で得たプロセス横断リーダー ライター ロックを、`com_util_interprocess_rwlock_lock_shared()` および `com_util_interprocess_rwlock_lock_exclusive()` と組み合わせて使用します。
 
 `stdio` ラッパー API にはプロセス間の排他機構がありません。
 

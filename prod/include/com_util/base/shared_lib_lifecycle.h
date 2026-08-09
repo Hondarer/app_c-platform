@@ -215,7 +215,7 @@ static void dllmain_output_debug_msg__(const char *msg)
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
- *  ローダーコンテキストの単一スレッドから呼び出されます。
+ *  ローダー コンテキストの単一スレッドから呼び出されます。
  */
 static void onLoad(void);
 
@@ -228,7 +228,7 @@ static void onLoad(void);
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
- *  ローダーコンテキストの単一スレッドから呼び出されます。
+ *  ローダー コンテキストの単一スレッドから呼び出されます。
  */
 static void onUnload(int process_terminating);
 
@@ -273,7 +273,7 @@ __attribute__((destructor)) static void dllmain_on_unload__(void)
  *
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフではありません。\n
- *  OS がローダーロックを保持した状態で単一スレッドから呼び出します。
+ *  OS がローダー ロックを保持した状態で単一スレッドから呼び出します。
  */
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {

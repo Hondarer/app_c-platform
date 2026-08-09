@@ -305,7 +305,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
 
     if (input_size <= COM_UTIL_COMPRESS_HEADER_SIZE)
     {
-        fprintf(stderr, "展開入力が不正です。ヘッダのみ、または空です: %s\n", input_path);
+        fprintf(stderr, "展開入力が不正です。ヘッダーのみ、または空です: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
@@ -313,13 +313,13 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     expected_size = compress_cli_read_u32_be(input_data);
     if (expected_size == 0U)
     {
-        fprintf(stderr, "展開入力が不正です。ヘッダの元サイズが小さすぎます: %s\n", input_path);
+        fprintf(stderr, "展開入力が不正です。ヘッダーの元サイズが小さすぎます: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
     if (expected_size > COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE)
     {
-        fprintf(stderr, "展開入力が不正です。ヘッダの元サイズが上限を超えています: %s\n", input_path);
+        fprintf(stderr, "展開入力が不正です。ヘッダーの元サイズが上限を超えています: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
@@ -339,7 +339,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
 
     if (decompressed_size != (size_t)expected_size)
     {
-        fprintf(stderr, "展開後サイズがヘッダ値と一致しません: %s\n", input_path);
+        fprintf(stderr, "展開後サイズがヘッダー値と一致しません: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
