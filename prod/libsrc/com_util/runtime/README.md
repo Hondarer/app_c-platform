@@ -74,7 +74,7 @@ short-title: "runtime"
 - Windows では `GetModuleHandleEx()` と `GetModuleFileNameW()` を使う
 - basename 取得時は拡張子を取り除く
 
-そのため、設定ファイル名を `<basename>_extdef.txt` のように組み立てる用途と相性が良い構成です。
+そのため、設定ファイル名を `<basename>_extdef.json` のように組み立てる用途と相性が良い構成です。
 
 ### sym_loader
 
@@ -85,6 +85,7 @@ short-title: "runtime"
 - Windows では `LoadLibrary` / `GetProcAddress`
 - 解決処理は内部ロックで保護される
 - 1 度解決した結果はエントリ内へ保持される
+- 設定ファイルの JSON 解析には cJSON を利用する (共有 `com_util` に静的リンクされる)
 
 ## sym_loader の利用手順
 
@@ -126,19 +127,27 @@ com_util_sym_loader_dispose(fobj_array, fobj_length);
 
 ## 設定ファイル形式
 
-`com_util_sym_loader_init` が読む設定ファイルは、1 行ごとに `func_key lib_name func_name` を並べる単純な形式です。
+`com_util_sym_loader_init` が読む設定ファイルは、`func_key` をキーにした JSON object です。  
+`//` 行コメントと C 形式のブロック コメントを書けます (解析前に `cJSON_Minify` で除去します)。
 
-```text
-# comment
-sample_func sample_override sample_func_impl
+```json
+// sample_func を外部実装へ委譲する例
+{
+  "sample_func": {
+    "lib": "sample_override",
+    "func": "sample_func_impl"
+  }
+}
 ```
 
-- 行頭 `#` はコメント
-- 行中の `#` 以降もコメント扱い
-- 3 フィールドそろわない行は無視
-- `func_key` が一致したエントリに対して設定が反映される
+- ルートは JSON object であること
+- 各プロパティ名が `func_key` に対応する
+- 値は object で、文字列フィールド `lib` と `func` を持つ
+- `//` 行コメントおよび C 形式のブロック コメントを利用できる
+- 必須フィールド欠落、型不正、未知の `func_key`、名称長超過のエントリは無視する
+- ファイル未存在、読取失敗、JSON 解析失敗は黙って無視する (エントリは未設定のまま)
 
-`lib_name` と `func_name` の両方に `default` を指定した場合は、明示的にデフォルト実装を使う設定として扱われます。
+`lib` と `func` の両方に `default` を指定した場合は、明示的にデフォルト実装を使う設定として扱われます。
 
 ## 使い方
 

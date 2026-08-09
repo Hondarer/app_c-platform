@@ -285,6 +285,13 @@
     EXPORT_ENTRY(com_util_parse_uint64, int(COM_UTIL_API *)(uint64_t *value_out, const char *text, int base)) \
     EXPORT_ENTRY(com_util_parse_int, int(COM_UTIL_API *)(int *value_out, const char *text, int base)) \
     EXPORT_ENTRY(com_util_parse_double, int(COM_UTIL_API *)(double *value_out, const char *text)) \
+    EXPORT_ENTRY(com_util_malloc, void *(COM_UTIL_API *)(size_t size)) \
+    EXPORT_ENTRY(com_util_malloc_zerofill, void *(COM_UTIL_API *)(size_t size)) \
+    EXPORT_ENTRY(com_util_calloc, void *(COM_UTIL_API *)(size_t count, size_t size)) \
+    EXPORT_ENTRY(com_util_realloc, void *(COM_UTIL_API *)(void *ptr, size_t count, size_t size)) \
+    EXPORT_ENTRY(com_util_realloc_zerofill, \
+                 void *(COM_UTIL_API *)(void *ptr, size_t old_count, size_t count, size_t size)) \
+    EXPORT_ENTRY(com_util_free, void(COM_UTIL_API *)(void *ptr)) \
     /* com_util/crt/string.h */ \
     EXPORT_ENTRY(com_util_strcpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src)) \
     EXPORT_ENTRY(com_util_strncpy, int(COM_UTIL_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \

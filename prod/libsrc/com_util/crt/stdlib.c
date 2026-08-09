@@ -4,7 +4,8 @@
  *  @brief          stdlib 系の CRT 関数を抽象化する API を実装します。
  *
  *  環境変数の有無とバッファー不足を共通の戻り値へ変換します。\n
- *  文字列から数値への変換は、変換位置と `errno` の検査を関数側へ内包し、共通結果コードへ変換します。
+ *  文字列から数値への変換は、変換位置と `errno` の検査を関数側へ内包し、共通結果コードへ変換します。\n
+ *  メモリ確保は、長さ 0 と要素数の乗算オーバーフローの検査を関数側へ内包します。
  *
  *******************************************************************************
  */
@@ -16,6 +17,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -369,4 +371,119 @@ int com_util_parse_double(double *value_out, const char *text)
     *value_out = parsed;
 
     return COM_UTIL_OK;
+}
+
+/* NOTE: 以降の確保・解放関数は、上位規範「動的メモリの確保と解放」および
+ *       com_util 規範「メモリ確保の代替」が定める代替の実体である。
+ *       本ファイル内の malloc / calloc / realloc / free の直接呼び出しは、
+ *       ラッパーが元関数へ委譲するための意図的な例外であり、置換対象外とする。 */
+
+/**
+ *  @brief          要素数と要素サイズの乗算が size_t を回り込むかを検査します。
+ *  @param[in]      count  要素数。
+ *  @param[in]      size   要素 1 個あたりのバイト数。
+ *  @return         確保してはならない場合は 1、確保してよい場合は 0 を返します。
+ *
+ *  いずれかが 0 の場合も、長さ 0 の確保を行わないため 1 を返します。
+ */
+static int alloc_size_rejects(const size_t count, const size_t size)
+{
+    if ((count == 0U) || (size == 0U))
+    {
+        return 1;
+    }
+
+    if (count > (SIZE_MAX / size))
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void *com_util_malloc(const size_t size)
+{
+    if (size == 0U)
+    {
+        return NULL;
+    }
+
+    return malloc(size); /* ラッパーの実体。置換対象外 */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void *com_util_malloc_zerofill(const size_t size)
+{
+    void *ptr;
+
+    if (size == 0U)
+    {
+        return NULL;
+    }
+
+    ptr = calloc(1U, size); /* ラッパーの実体。置換対象外 */
+
+    return ptr;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void *com_util_calloc(const size_t count, const size_t size)
+{
+    if (alloc_size_rejects(count, size) != 0)
+    {
+        return NULL;
+    }
+
+    return calloc(count, size); /* ラッパーの実体。置換対象外 */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void *com_util_realloc(void *ptr, const size_t count, const size_t size)
+{
+    if (alloc_size_rejects(count, size) != 0)
+    {
+        return NULL;
+    }
+
+    return realloc(ptr, count * size); /* ラッパーの実体。置換対象外 */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void *com_util_realloc_zerofill(void *ptr, const size_t old_count, const size_t count, const size_t size)
+{
+    void *new_ptr;
+
+    if (alloc_size_rejects(count, size) != 0)
+    {
+        return NULL;
+    }
+
+    new_ptr = realloc(ptr, count * size); /* ラッパーの実体。置換対象外 */
+    if (new_ptr == NULL)
+    {
+        return NULL;
+    }
+
+    if (old_count < count)
+    {
+        /* 拡張した範囲のみをゼロ初期化する。
+         * old_count は count 未満であり、count * size は上で回り込みを検査済みのため、
+         * old_count * size と (count - old_count) * size はいずれも回り込まない。 */
+        memset((char *)new_ptr + (old_count * size), 0, (count - old_count) * size);
+    }
+
+    return new_ptr;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+void com_util_free(void *ptr)
+{
+    free(ptr); /* ラッパーの実体。置換対象外。free(NULL) は無害 */
 }

@@ -20,11 +20,11 @@ TEST_F(pathConcatTest, concatenates_path_fragments)
     // Act
     int rtc_path_concat =
         com_util_path_concat(path, sizeof(path), &err, "tmp", PLATFORM_PATH_SEP,
-                             "libbase_extdef.txt"); // [手順] - "tmp"、セパレータ、"libbase_extdef.txt" を連結する。
+                             "libbase_extdef.json"); // [手順] - "tmp"、セパレータ、"libbase_extdef.json" を連結する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
-    EXPECT_STREQ("tmp/libbase_extdef.txt", path); // [確認_正常系] - 断片が指定順に連結されること。
+    EXPECT_STREQ("tmp/libbase_extdef.json", path); // [確認_正常系] - 断片が指定順に連結されること。
 }
 
 // 空文字列の断片がそのまま扱えることの確認

@@ -6,12 +6,12 @@
  *  @date           2026/03/17
  *  @version        1.0.0
  *
- *  sym_loader は、テキスト設定ファイルから関数シンボルとライブラリ名を読み込み、
+ *  sym_loader は、JSON 設定ファイルから関数シンボルとライブラリ名を読み込み、
  *  実行時に動的リンクで関数を解決するキャッシュ機構です。
  *
  *  使用方法:
  *  1. com_util_sym_loader_entry を COM_UTIL_SYM_LOADER_ENTRY_INIT マクロで静的初期化します。
- *  2. com_util_sym_loader_init() でテキスト設定ファイルを読み込む (DllMain/constructor から呼ぶ)。
+ *  2. com_util_sym_loader_init() で JSON 設定ファイルを読み込む (DllMain/constructor から呼ぶ)。
  *  3. com_util_sym_loader_resolve_as() で関数ポインターを取得して呼び出します。
  *  4. com_util_sym_loader_dispose() でリソースを解放する (DllMain/destructor から呼ぶ)。
  *

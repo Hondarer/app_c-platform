@@ -201,6 +201,143 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_parse_double(double *value_out, const char *text);
 
+    /**
+     *  @brief          メモリを確保します (`malloc` の安全版)。
+     *
+     *  確保した領域はゼロ初期化しません。単一オブジェクトとバイト バッファーに使用します。\n
+     *  要素数を伴う配列には @ref com_util_calloc を使用してください。
+     *
+     *  確保した領域は @ref com_util_free で解放してください。
+     *
+     *  @param[in]      size  確保するバイト数。0 を指定した場合は確保しません。
+     *  @return         確保した領域へのポインター。@p size が 0 の場合と確保に失敗した場合は NULL を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  確保した領域へのポインターを返し、失敗を NULL で表します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT void *COM_UTIL_API com_util_malloc(size_t size);
+
+    /**
+     *  @brief          ゼロ初期化したメモリを確保します。
+     *
+     *  検査の方針は @ref com_util_malloc と同じで、確保した領域全体を 0 で埋めます。\n
+     *  要素数を伴う配列には @ref com_util_calloc を使用してください。
+     *
+     *  確保した領域は @ref com_util_free で解放してください。
+     *
+     *  @param[in]      size  確保するバイト数。0 を指定した場合は確保しません。
+     *  @return         確保した領域へのポインター。@p size が 0 の場合と確保に失敗した場合は NULL を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  確保した領域へのポインターを返し、失敗を NULL で表します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT void *COM_UTIL_API com_util_malloc_zerofill(size_t size);
+
+    /**
+     *  @brief          要素数を伴うメモリを確保します (`calloc` の安全版)。
+     *
+     *  @p count と @p size の乗算が `size_t` を回り込む場合、確保を行わずに失敗とします。\n
+     *  確保した領域全体を 0 で埋めます。
+     *
+     *  確保した領域は @ref com_util_free で解放してください。
+     *
+     *  @param[in]      count  要素数。0 を指定した場合は確保しません。
+     *  @param[in]      size   要素 1 個あたりのバイト数。0 を指定した場合は確保しません。
+     *  @return         確保した領域へのポインター。@p count もしくは @p size が 0 の場合、
+     *                  乗算が回り込む場合、確保に失敗した場合は NULL を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  確保した領域へのポインターを返し、失敗を NULL で表します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT void *COM_UTIL_API com_util_calloc(size_t count, size_t size);
+
+    /**
+     *  @brief          確保済みのメモリを再確保します (`realloc` の安全版)。
+     *
+     *  標準の `realloc` と異なり、要素数と要素サイズを分けて受け取り、乗算の回り込みを検査します。\n
+     *  拡張した範囲はゼロ初期化しません。ゼロ初期化が必要な場合は @ref com_util_realloc_zerofill を使用してください。
+     *
+     *  失敗した場合、@p ptr が指す領域は解放されず、内容も保持されます。\n
+     *  戻り値は @p ptr とは別の変数で受け、NULL でないことを確認してから @p ptr へ代入してください。
+     *
+     *  確保した領域は @ref com_util_free で解放してください。
+     *
+     *  @param[in]      ptr    再確保する領域。NULL を指定した場合は新規確保として動作します。
+     *  @param[in]      count  再確保後の要素数。0 を指定した場合は確保しません。
+     *  @param[in]      size   要素 1 個あたりのバイト数。0 を指定した場合は確保しません。
+     *  @return         再確保した領域へのポインター。@p count もしくは @p size が 0 の場合、
+     *                  乗算が回り込む場合、確保に失敗した場合は NULL を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  確保した領域へのポインターを返し、失敗を NULL で表します。
+     *  @attention      @p count に 0 を指定しても @p ptr は解放しません。
+     *                  標準の `realloc` とは異なる扱いです。@ref com_util_free で明示的に解放してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一の @p ptr を複数スレッドから同時に渡す場合は、呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT void *COM_UTIL_API com_util_realloc(void *ptr, size_t count, size_t size);
+
+    /**
+     *  @brief          確保済みのメモリを再確保し、拡張した範囲をゼロ初期化します。
+     *
+     *  検査の方針は @ref com_util_realloc と同じです。\n
+     *  加えて、@p old_count から @p count までの範囲の要素を 0 で埋めます。\n
+     *  @p old_count が @p count 以上の場合はゼロ初期化を行いません。
+     *
+     *  確保した領域は @ref com_util_free で解放してください。
+     *
+     *  @param[in]      ptr        再確保する領域。NULL を指定した場合は新規確保として動作します。
+     *  @param[in]      old_count  再確保前の要素数。@p ptr が NULL の場合は 0 を指定してください。
+     *  @param[in]      count      再確保後の要素数。0 を指定した場合は確保しません。
+     *  @param[in]      size       要素 1 個あたりのバイト数。0 を指定した場合は確保しません。
+     *  @return         再確保した領域へのポインター。@p count もしくは @p size が 0 の場合、
+     *                  乗算が回り込む場合、確保に失敗した場合は NULL を返します。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  確保した領域へのポインターを返し、失敗を NULL で表します。
+     *  @attention      @p count に 0 を指定しても @p ptr は解放しません。
+     *                  標準の `realloc` とは異なる扱いです。@ref com_util_free で明示的に解放してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一の @p ptr を複数スレッドから同時に渡す場合は、呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT void *COM_UTIL_API com_util_realloc_zerofill(void *ptr, size_t old_count, size_t count,
+                                                                 size_t size);
+
+    /**
+     *  @brief          確保したメモリを解放します (`free` の代替)。
+     *
+     *  @ref com_util_malloc 、@ref com_util_malloc_zerofill 、@ref com_util_calloc 、
+     *  @ref com_util_realloc 、@ref com_util_realloc_zerofill 、@ref com_util_strdup が返した領域を解放します。
+     *
+     *  確保と解放を com_util 内で完結させ、共有ライブラリの境界をまたぐ解放を避けるために使用します。
+     *
+     *  @param[in]      ptr  解放する領域。NULL を指定した場合は何も行いません。
+     *
+     *  @attention      本関数は @ref COM_UTIL_OK 系の戻り値規約の適用対象外です。
+     *                  戻り値を持ちません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_free(void *ptr);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

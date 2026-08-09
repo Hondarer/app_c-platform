@@ -51,16 +51,22 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_utf8_to_wpath(wchar_t *wbuf, size_t wb
 COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath);
 
 /**
- *  @brief          UTF-8 文字列をワイド文字列に変換し、malloc() で確保して返します。
+ *  @brief          UTF-8 文字列をワイド文字列に変換し、確保した領域へ格納して返します。
+ *
+ *  返却した領域は @ref com_util_free で解放してください。
+ *
  *  @param[in]      utf8_text   変換元の UTF-8 文字列。
- *  @return         呼び出し元が free() すべきワイド文字列。失敗時は NULL。
+ *  @return         変換したワイド文字列へのポインター。失敗時は NULL。
  */
 COM_UTIL_EXPORT wchar_t *COM_UTIL_API com_util_utf8_to_wstr_alloc(const char *utf8_text);
 
 /**
- *  @brief          ワイド文字列を UTF-8 に変換し、malloc() で確保して返します。
+ *  @brief          ワイド文字列を UTF-8 に変換し、確保した領域へ格納して返します。
+ *
+ *  返却した領域は @ref com_util_free で解放してください。
+ *
  *  @param[in]      wtext       変換元のワイド文字列。
- *  @return         呼び出し元が free() すべき UTF-8 文字列。失敗時は NULL。
+ *  @return         変換した UTF-8 文字列へのポインター。失敗時は NULL。
  */
 COM_UTIL_EXPORT char *COM_UTIL_API com_util_wstr_to_utf8_alloc(const wchar_t *wtext);
 

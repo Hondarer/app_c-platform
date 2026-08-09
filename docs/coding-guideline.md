@@ -302,6 +302,9 @@ com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
 | `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しない | 同上 |
 | `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | com_util の対応するラッパー ([scanf 系ラッパー](#scanf-系ラッパー) を参照) |
 | `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なる | `com_util_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
+| `malloc` / `calloc` | 長さ 0 の戻り値が処理系定義。`malloc(count * size)` は乗算の回り込みを検出しない | `com_util_malloc` / `com_util_malloc_zerofill` / `com_util_calloc` ([メモリ確保の代替](#メモリ確保の代替) を参照) |
+| `realloc` | 上記に加え、失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `com_util_realloc` / `com_util_realloc_zerofill` (同上) |
+| `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `com_util_free(ptr)` (同上) |
 
 `com_util_strcpy`、`com_util_strcat`、`com_util_strncat` は、バッファー不足を `COM_UTIL_ERR_BUFFER_TOO_SMALL` で通知します。  
 戻り値を破棄せず、`COM_UTIL_OK` との比較で判定してください。
@@ -418,6 +421,63 @@ com_util_error_capture_errno(&err, errno_value);
 > GNU 版 `strerror_r` はバッファーではなくポインターを返すことがあり、XSI 版と戻り値の意味も違います。  
 > `com_util_error_message` は、この差と Win32 の `FormatMessageW` をドメインに基づいて吸収します。
 
+#### メモリ確保の代替
+
+動的メモリの一般的な扱いは上位規範の「動的メモリの確保と解放」が定めます。  
+com_util は、そこで呼び出し側の責務としている検査を関数側へ内包した確保 API を提供します。
+
+| 関数 | 用途 | ゼロ初期化 |
+|---|---|---|
+| `com_util_malloc(size)` | 単一オブジェクト、バイト バッファー | しない |
+| `com_util_malloc_zerofill(size)` | 同上 | 全体 |
+| `com_util_calloc(count, size)` | 要素数を伴う配列 | 全体 |
+| `com_util_realloc(ptr, count, size)` | 配列の伸長・縮小 | しない |
+| `com_util_realloc_zerofill(ptr, old_count, count, size)` | 同上 | 拡張した範囲のみ |
+| `com_util_free(ptr)` | 上記すべての解放 | - |
+
+いずれも失敗を NULL で表し、共通結果コードを返しません。  
+関数側で検査する条件は次のとおりで、該当する場合は確保を行わずに NULL を返します。
+
+- 要求サイズが 0 である (`size == 0`、`count == 0`)
+- `count` と `size` の乗算が `size_t` を回り込む
+
+`com_util_free` は NULL を受け取っても何もしません。
+
+```c
+/* 望ましい。伸長は別変数で受け、成功時にのみ元のポインターへ代入する */
+sample_entry *new_entries;
+
+new_entries = (sample_entry *)com_util_realloc(entries, new_count, sizeof(*new_entries));
+if (new_entries == NULL)
+{
+    return COM_UTIL_ERR_OUT_OF_MEMORY;
+}
+entries = new_entries;
+```
+
+> [!IMPORTANT]
+> `com_util_realloc` と `com_util_realloc_zerofill` は、標準の `realloc` と引数構成が異なります。  
+> 要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、行を機械的に置換すると引数がずれます。
+
+> [!IMPORTANT]
+> `com_util_realloc(ptr, 0, size)` は、**元の領域を解放せずに NULL を返します**。  
+> 標準の `realloc(ptr, 0)` とは異なる扱いです。呼び出し側が `com_util_free` で明示的に解放してください。  
+> NULL を「解放済み」と解釈すると領域が漏れます。
+
+> [!NOTE]
+> 長さ 0 と乗算オーバーフローの両方で NULL を返すため、NULL は「確保しなかった」ことだけを表します。  
+> 上位規範は長さ 0 の確保を呼び出し前の分岐で避けることを求めており、本 API の検査はその二重の防御です。
+
+> [!NOTE]
+> `com_util_malloc_zerofill` と `com_util_calloc` は、どちらもゼロ初期化した領域を返します。  
+> 単一オブジェクトとバイト バッファーには `com_util_malloc_zerofill`、要素数を伴う配列には `com_util_calloc` を使います。  
+> 要素数を伴う確保を `com_util_malloc_zerofill` で書くと、呼び出し側に乗算が戻ってしまうためです。
+
+> [!NOTE]
+> `free` に対して `com_util_free` を設けるのは、素通しのラッパーを増やすためではありません。  
+> com_util を共有ライブラリとして配布した場合、利用者側と com_util 側で C ランタイムが異なると、`free` に渡したポインターが解放側のヒープに属さない状態になりえます。  
+> 確保と解放を同じライブラリ内で完結させることが目的です。
+
 #### 検証
 
 ```bash
@@ -427,6 +487,17 @@ grep -rnE '\b(strcpy|strncpy|strcat|strncat|wcscpy|strtok|gets|fgets|sprintf|vsp
   app --include=*.c --include=*.h \
   | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
   | grep -vE 'com_util_(strcpy|strncpy|strcat|strncat|wcscpy|strtok_r|fgets|snprintf|vsnprintf|parse_)' \
+  | grep -vE ':[[:space:]]*\*'
+```
+
+確保系についても同様に確認します。
+
+```bash
+# 確保・解放関数の直接使用 (com_util ラッパーの実体を除く)
+grep -rnE '(^|[^A-Za-z0-9_])(malloc|calloc|realloc|free)[[:space:]]*\(' \
+  app --include=*.c --include=*.h \
+  | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
+  | grep -vE 'com_util_(malloc|calloc|realloc|free)' \
   | grep -vE ':[[:space:]]*\*'
 ```
 
@@ -485,6 +556,7 @@ com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc
 - OS エラーの文字列化は `com_util_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
 - 文字列から数値への変換は、完全消費と範囲の検査を関数側に内包します。`endptr` に相当する引数を公開 API に露出させません
 - 書式化と行入力は、切り詰めを結果コードで通知します。切り詰めた内容を宛先に残しません
+- メモリ確保は、長さ 0 と乗算オーバーフローを関数側で検査し、いずれも NULL を返します。呼び出し側が要素数とサイズの乗算を書く形の API は作りません
 
 ## API 命名規約
 
