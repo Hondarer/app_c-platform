@@ -108,7 +108,11 @@ TEST_F(compressTest, compress_returns_unknown_when_output_does_not_fit)
 {
     // Arrange
     std::string plain(4096u, 'x');
-    uint8_t dst[COM_UTIL_COMPRESS_HEADER_SIZE + 1u];
+    /* Windows 実装は CK プレフィックス 2 byte 分を含めて圧縮するため、
+     * ヘッダー + 1 byte では COM_UTIL_ERR_BUFFER_TOO_SMALL 側の分岐に入ってしまう。
+     * ヘッダー + 3 byte にして、両プラットフォームで「バッファーは足りているが
+     * 圧縮結果が収まらない」経路を通す。 */
+    uint8_t dst[COM_UTIL_COMPRESS_HEADER_SIZE + 3u];
     size_t dst_len = sizeof(dst); // [状態] - 圧縮結果が収まらない出力バッファーを用意する。
 
     // Pre-Assert
