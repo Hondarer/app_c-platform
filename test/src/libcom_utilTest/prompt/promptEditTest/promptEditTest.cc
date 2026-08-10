@@ -347,3 +347,30 @@ TEST_F(promptEditTest, resolve_options_accepts_null_outputs)
     // Assert
     // [確認_正常系] - クラッシュせずに完了すること。
 }
+
+// 再確保に失敗した場合に拒否されることの確認
+TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char *buf = static_cast<char *>(std::malloc(4u));
+    size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
+
+    ASSERT_NE(nullptr, buf);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, buf, 32u))
+        .WillOnce(
+            Return(nullptr)); // [Pre-Assert確認_異常系] - realloc が拡張後の容量 32 を指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - realloc から NULL を返却する。
+
+    // Act
+    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(4u, cap); // [確認_異常系] - 容量が変化しないこと。
+
+    // Cleanup
+    std::free(buf);
+}

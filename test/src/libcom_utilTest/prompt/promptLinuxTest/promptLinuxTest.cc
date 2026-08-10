@@ -1,5 +1,6 @@
 #include <testfw.h>
 #include <com_util/prompt/prompt_internal.h>
+#include <mock_termios.h>
 #include <mock_unistd.h>
 
 #include <errno.h>
@@ -136,6 +137,32 @@ TEST_F(promptLinuxTest, enter_and_leave_raw_on_terminal)
     EXPECT_EQ(1, sigwinch_after_enter); // [確認_正常系] - SIGWINCH ハンドラーが登録されること。
     EXPECT_EQ(0, handle_.raw_active);   // [確認_正常系] - 復帰後に raw モードが無効になること。
     EXPECT_EQ(0, test_prompt_sigwinch_installed()); // [確認_正常系] - SIGWINCH ハンドラーが復元されること。
+}
+
+// 端末設定の適用に失敗した場合に raw モードへ移行しないことの確認
+TEST_F(promptLinuxTest, enter_raw_does_nothing_when_tcsetattr_fails)
+{
+    // Arrange
+    NiceMock<Mock_termios> mock_termios;
+
+    if (!redirect_stdin_to_pty())
+    {
+        GTEST_SKIP() << "疑似端末を確保できないため実行しません";
+    } // [状態] - 標準入力を疑似端末へ差し替える。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _))
+        .WillOnce(Return(-1))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - tcsetattr が標準入力を指定して 1 回目に呼び出されること。
+                          // [Pre-Assert手順] - 1 回目は -1 を返却し、以降は本物へ委譲する。
+
+    // Act
+    prompt_platform_enter_raw(&handle_); // [手順] - prompt_platform_enter_raw を呼び出す。
+
+    // Assert
+    EXPECT_EQ(0, handle_.raw_active); // [確認_異常系] - 端末設定を適用できないため raw モードにならないこと。
+    EXPECT_EQ(0, test_prompt_sigwinch_installed()); // [確認_異常系] - SIGWINCH ハンドラーが登録されないこと。
 }
 
 // raw モード中の再入で二重に移行しないことの確認

@@ -2,6 +2,7 @@
 #include <com_util/base/result.h>
 #include <com_util/crt/path.h>
 #include <mock_stdlib.h>
+#include <mock_unistd.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -214,4 +215,63 @@ TEST_F(pathGetFullTest, resolves_symlink_to_target_path_when_target_exists)
     ASSERT_EQ(0, unlink(target_path));
     ASSERT_EQ(0, rmdir(dir_path));
 }
+#endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_LINUX)
+
+// カレント ディレクトリの取得に失敗した場合に errno が通知されることの確認
+// Windows の com_util_path_get_full は GetFullPathNameW を使うため、この失敗経路は Linux のみに存在する
+TEST_F(pathGetFullTest, reports_errno_when_getcwd_fails)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+    com_util_error detail;          // [状態] - 詳細エラーの格納先を用意する。
+
+    std::memset(actual, 'X', sizeof(actual));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, getcwd(_, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - getcwd が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - errno に EACCES を設定し、1 回目は NULL を返却する。
+
+    // Act
+    int rtc = com_util_path_get_full(actual, sizeof(actual), &detail,
+                                     "relative.txt"); // [手順] - 相対パスを指定して呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ(
+        EACCES,
+        com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EACCES であること。
+    EXPECT_STREQ("", actual);               // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
+}
+
+// realpath による解決に失敗しても正規化済みパスが返ることの確認
+// Windows の com_util_path_get_full は GetFullPathNameW を使うため、この分岐は Linux のみに存在する
+TEST_F(pathGetFullTest, falls_back_to_normalized_path_when_realpath_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+
+    std::memset(actual, 0, sizeof(actual));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realpath(_, _, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - realpath が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
+
+    // Act
+    int rtc = com_util_path_get_full(actual, sizeof(actual), NULL,
+                                     "/tmp/./pathGetFullTest_fallback"); // [手順] - 絶対パスを指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/tmp/pathGetFullTest_fallback",
+                 actual); // [確認_正常系] - realpath を使わず '.' を解消した正規化済みパスが返ること。
+}
+
 #endif /* PLATFORM_LINUX */

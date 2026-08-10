@@ -11,5 +11,6 @@ ADD_SRCS := \
 # ライブラリの指定
 LIBS += mock_libc mock_com_util
 ifdef PLATFORM_LINUX
-    LIBS += z
+    # zlib の初期化失敗を注入するため mock_zlib を使う
+    LIBS += mock_zlib z
 endif

@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/compress/compress.h>
+#include <mock_zlib.h>
 
 #include <cstring>
 #include <vector>
@@ -212,3 +213,55 @@ TEST_F(compressTest, decompress_returns_unknown_for_corrupt_stream)
         COM_UTIL_ERR_UNKNOWN,
         rtc); // [確認_異常系] - inflate が完了しないため com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
+
+#if defined(PLATFORM_LINUX)
+
+// 圧縮ストリームの初期化に失敗した場合に通知されることの確認
+// Windows の com_util_compress は Compression API を使うため、この失敗経路は Linux のみに存在する
+TEST_F(compressTest, compress_returns_unknown_when_deflate_init_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[] = "payload";
+    uint8_t dst[64];
+    size_t dst_len = sizeof(dst); // [状態] - 十分な大きさの出力バッファーを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_zlib, deflateInit2_(_, _, _, _, _, _, _, _, _, _, _))
+        .WillOnce(Return(Z_MEM_ERROR))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - deflateInit2_ が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
+
+    // Act
+    int rtc = com_util_compress(dst, &dst_len, src, sizeof(src) - 1u); // [手順] - com_util_compress を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_compress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 展開ストリームの初期化に失敗した場合に通知されることの確認
+// Windows の com_util_decompress は Compression API を使うため、この失敗経路は Linux のみに存在する
+TEST_F(compressTest, decompress_returns_unknown_when_inflate_init_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    uint8_t src[COM_UTIL_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64];
+    size_t dst_len = sizeof(dst); // [状態] - ヘッダー長を超える入力と出力バッファーを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_zlib, inflateInit2_(_, _, _, _, _, _, _))
+        .WillOnce(Return(Z_MEM_ERROR))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - inflateInit2_ が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
+
+    // Act
+    int rtc = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+#endif /* PLATFORM_LINUX */

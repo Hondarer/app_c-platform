@@ -2,6 +2,8 @@
 #include <mock_com_util.h>
 #include <com_util/runtime/sym_loader.h>
 
+#include <cstring>
+
 class symLoaderResolveTest : public Test
 {
   protected:
@@ -160,3 +162,54 @@ TEST_F(symLoaderResolveTest, releases_handle_when_symbol_is_missing)
     EXPECT_EQ(1, entry_.resolved);     // [確認_異常系] - resolved が解決済みを示す 1 になること。
     EXPECT_EQ(nullptr, entry_.handle); // [確認_異常系] - シンボルが見つからないためハンドルが解放されること。
 }
+
+#if defined(PLATFORM_LINUX)
+
+// ロックの生成に失敗した場合に解決が失敗することの確認
+// Windows は InterlockedCompareExchange を使うが、ロック生成の失敗経路は共通である
+TEST_F(symLoaderResolveTest, returns_null_when_lock_creation_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+
+    set_names("libcom_util", "com_util_path_basename"); // [状態] - 実在するライブラリ名と関数名を設定する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_local_lock_create が 1 回目に呼び出されること。
+                          // [Pre-Assert手順] - 1 回目は COM_UTIL_ERR_UNKNOWN を返却し、以降は本物へ委譲する。
+
+    // Act
+    void *func_ptr = com_util_sym_loader_resolve(&entry_); // [手順] - com_util_sym_loader_resolve を呼び出す。
+
+    // Assert
+    EXPECT_EQ(nullptr, func_ptr);  // [確認_異常系] - com_util_sym_loader_resolve の戻り値が NULL であること。
+    EXPECT_EQ(0, entry_.resolved); // [確認_異常系] - 解決状態が未解決のままであること。
+}
+
+// ロックの取得に失敗した場合に解決が失敗することの確認
+TEST_F(symLoaderResolveTest, returns_null_when_lock_acquisition_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+
+    set_names("libcom_util", "com_util_path_basename"); // [状態] - 実在するライブラリ名と関数名を設定する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_local_lock_lock が 1 回目に呼び出されること。
+                          // [Pre-Assert手順] - 1 回目は COM_UTIL_ERR_UNKNOWN を返却し、以降は本物へ委譲する。
+
+    // Act
+    void *func_ptr = com_util_sym_loader_resolve(&entry_); // [手順] - com_util_sym_loader_resolve を呼び出す。
+
+    // Assert
+    EXPECT_EQ(nullptr, func_ptr);  // [確認_異常系] - com_util_sym_loader_resolve の戻り値が NULL であること。
+    EXPECT_EQ(0, entry_.resolved); // [確認_異常系] - 解決状態が未解決のままであること。
+}
+
+#endif /* PLATFORM_LINUX */

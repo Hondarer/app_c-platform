@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crypto/random.h>
+#include <mock_openssl.h>
 
 #include <climits>
 #include <cstring>
@@ -101,3 +102,30 @@ TEST_F(randomTest, size_over_int_max_returns_invalid_argument)
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
+
+#if defined(PLATFORM_LINUX)
+
+// 乱数の生成に失敗した場合に通知されることの確認
+// Windows は BCryptGenRandom を使うため、この失敗経路は Linux のみに存在する
+TEST_F(randomTest, returns_unknown_when_rand_bytes_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+    unsigned char buf[16]; // [状態] - 16 byte のバッファーを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, RAND_bytes(_, _, _, buf, 16))
+        .WillOnce(Return(0))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - RAND_bytes がバッファーと 16 byte を指定して 1 回目に呼び出されること。
+                          // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却し、以降は本物へ委譲する。
+
+    // Act
+    int rtc = com_util_random_bytes(buf, sizeof(buf)); // [手順] - com_util_random_bytes を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+#endif /* PLATFORM_LINUX */

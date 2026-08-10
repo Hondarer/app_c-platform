@@ -9,3 +9,7 @@ ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/crt/wchar_conv.c
+
+# ライブラリの指定
+# error_message.c が strerror_r を呼ぶため、置換先の mock_libc が必要
+LIBS += mock_libc

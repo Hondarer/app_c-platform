@@ -11,5 +11,6 @@ ADD_SRCS := \
 # ライブラリの指定
 LIBS += mock_libc mock_com_util
 ifdef PLATFORM_LINUX
-    LIBS += crypto
+    # OpenSSL の失敗注入に mock_openssl を使う
+    LIBS += mock_openssl crypto
 endif

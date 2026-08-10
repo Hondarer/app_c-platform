@@ -2,6 +2,7 @@
 #include <com_util/base/error.h>
 #include <com_util/base/error_message_internal.h>
 #include <com_util/base/result.h>
+#include <mock_string.h>
 
 #include <errno.h>
 
@@ -160,3 +161,58 @@ TEST_F(errorMessageTest, error_message_dispatches_by_domain)
         com_util_error_message(buf, sizeof(buf),
                                NULL)); // [確認_異常系] - NULL の詳細エラーが COM_UTIL_ERR_INVALID_ARGUMENT になること。
 }
+
+#if defined(PLATFORM_LINUX)
+
+// errno 文字列の取得に失敗した場合に拒否されることの確認
+// Windows の com_util_errno_message は strerror_s を使うため、この失敗経路は Linux のみに存在する
+TEST_F(errorMessageTest, errno_message_returns_unknown_when_strerror_r_fails)
+{
+    // Arrange
+    NiceMock<Mock_string> mock_string;
+    char buf[64];
+
+    std::memset(buf, 'X', sizeof(buf)); // [状態] - 出力バッファーを 'X' で埋めておく。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_string, strerror_r(_, _, _, EACCES, buf, sizeof(buf)))
+        .WillOnce(Return(
+            EINVAL)); // [Pre-Assert確認_異常系] - strerror_r が errno 値 EACCES と 64 バイトのバッファーを指定して 1 回呼び出されること。
+                      // [Pre-Assert手順] - strerror_r から EINVAL を返却する。
+
+    // Act
+    int rtc = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc);        // [確認_異常系] - com_util_errno_message の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_STREQ("", buf); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
+}
+
+// 切り詰めを表す ERANGE が成功として扱われることの確認
+// Windows の com_util_errno_message は strerror_s を使うため、この分岐は Linux のみに存在する
+TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
+{
+    // Arrange
+    NiceMock<Mock_string> mock_string;
+    char buf[8];
+
+    std::memset(buf, 0, sizeof(buf)); // [状態] - 8 バイトの出力バッファーを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_string, strerror_r(_, _, _, EACCES, buf, sizeof(buf)))
+        .WillOnce(DoAll(
+            SetArrayArgument<4>("trunc", "trunc" + 6),
+            Return(
+                ERANGE))); // [Pre-Assert確認_正常系] - strerror_r が errno 値 EACCES と 8 バイトのバッファーを指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - バッファーへ切り詰め済みの文字列を書き込み、strerror_r から ERANGE を返却する。
+
+    // Act
+    int rtc = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 切り詰めは成功として扱われ COM_UTIL_OK が返ること。
+    EXPECT_STREQ("trunc", buf);  // [確認_正常系] - 書き込まれた文字列が保持されること。
+}
+
+#endif /* PLATFORM_LINUX */
