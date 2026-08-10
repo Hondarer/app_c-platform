@@ -1,0 +1,19 @@
+// promptTest 専用のプラットフォーム層 fake
+// prompt.c が呼ぶ prompt_platform_* を差し替え、実機の端末なしにキー入力を再現します
+#ifndef PROMPT_PLATFORM_FAKE_H
+#define PROMPT_PLATFORM_FAKE_H
+
+#include <string>
+
+/* 後続の prompt_platform_read_char / _nb が返すバイト列を設定する。
+   列を消費し切った後は EOF (-1) を返す。 */
+void promptFakeSetInput(const std::string &bytes);
+
+/* prompt_platform_enter_raw / leave_raw の呼び出し回数を取得する。 */
+int promptFakeEnterRawCount(void);
+int promptFakeLeaveRawCount(void);
+
+/* 呼び出し回数と入力列を初期化する。 */
+void promptFakeReset(void);
+
+#endif /* PROMPT_PLATFORM_FAKE_H */

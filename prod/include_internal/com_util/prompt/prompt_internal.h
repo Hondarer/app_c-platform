@@ -30,41 +30,46 @@
     #include <com_util/base/windows_sdk.h>
 #endif
 
-/* ---- 1 つの呼び出し元に対応する履歴コンテキスト ---- */
-typedef struct com_util_prompt_ctx
+#ifdef __cplusplus
+extern "C"
 {
-    /* ポインター類を先に並べてパディングを排除 */
-    const char *file; /* __FILE__ の文字列ポインター (コピー不要) */
-    char **entries;   /* リング バッファー (history_max 個の char*) */
-    char *saved_line; /* ブラウズ前の編集内容退避 (LINE_MAX バイト) */
-    size_t count;     /* 有効エントリ数 */
-    size_t head;      /* リング先頭インデックス (最古) */
-    int line;         /* __LINE__ */
-    int browse_idx;   /* ブラウズ中インデックス (-1 = 現在行) */
-} com_util_prompt_ctx;
+#endif /* __cplusplus */
 
-/* ---- メイン ハンドル (不透明型の実体) ---- */
-struct com_util_prompt
-{
-    /* 編集バッファー (readline_at 呼び出しごとに初期化) */
-    char *edit_buf;         /* 編集中の入力バッファー */
-    size_t edit_len;        /* 現在の文字数 (NUL 除く) */
-    size_t edit_cap;        /* edit_buf の容量 */
-    size_t input_max_bytes; /* edit_buf の最大容量 */
-    size_t cursor;          /* カーソル位置 (バイト オフセット、0〜edit_len) */
+    /* ---- 1 つの呼び出し元に対応する履歴コンテキスト ---- */
+    typedef struct com_util_prompt_ctx
+    {
+        /* ポインター類を先に並べてパディングを排除 */
+        const char *file; /* __FILE__ の文字列ポインター (コピー不要) */
+        char **entries;   /* リング バッファー (history_max 個の char*) */
+        char *saved_line; /* ブラウズ前の編集内容退避 (LINE_MAX バイト) */
+        size_t count;     /* 有効エントリ数 */
+        size_t head;      /* リング先頭インデックス (最古) */
+        int line;         /* __LINE__ */
+        int browse_idx;   /* ブラウズ中インデックス (-1 = 現在行) */
+    } com_util_prompt_ctx;
 
-    /* 履歴コンテキスト管理 */
-    com_util_prompt_ctx *contexts; /* コンテキスト配列 (動的拡張) */
-    size_t ctx_count;              /* 現在のコンテキスト数 */
-    size_t ctx_cap;                /* contexts 配列の容量 */
-    size_t history_max;            /* 各コンテキストの履歴最大数 */
+    /* ---- メイン ハンドル (不透明型の実体) ---- */
+    struct com_util_prompt
+    {
+        /* 編集バッファー (readline_at 呼び出しごとに初期化) */
+        char *edit_buf;         /* 編集中の入力バッファー */
+        size_t edit_len;        /* 現在の文字数 (NUL 除く) */
+        size_t edit_cap;        /* edit_buf の容量 */
+        size_t input_max_bytes; /* edit_buf の最大容量 */
+        size_t cursor;          /* カーソル位置 (バイト オフセット、0〜edit_len) */
 
-    /* _readline_fmt 用プロンプト文字列バッファー (遅延 malloc、自動拡張) */
-    char *prompt_fmt_buf;
-    size_t prompt_fmt_cap;
+        /* 履歴コンテキスト管理 */
+        com_util_prompt_ctx *contexts; /* コンテキスト配列 (動的拡張) */
+        size_t ctx_count;              /* 現在のコンテキスト数 */
+        size_t ctx_cap;                /* contexts 配列の容量 */
+        size_t history_max;            /* 各コンテキストの履歴最大数 */
 
-    /* TTY 状態 */
-    int is_tty;
+        /* _readline_fmt 用プロンプト文字列バッファー (遅延 malloc、自動拡張) */
+        char *prompt_fmt_buf;
+        size_t prompt_fmt_cap;
+
+        /* TTY 状態 */
+        int is_tty;
 
 #if defined(PLATFORM_LINUX)
     /* struct termios は 4 バイト アライン・60 バイト。raw_active 後に 4 バイトの
@@ -112,5 +117,9 @@ int prompt_platform_read_char(com_util_prompt *p);
  *                  -1 を返します。
  */
 int prompt_platform_read_char_nb(com_util_prompt *p);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* COM_UTIL_PROMPT_INTERNAL_H */

@@ -231,6 +231,9 @@
                  int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_path_concat_n, int(COM_UTIL_API *)(char *path_out, size_t path_size, \
                                                              com_util_error *detail_out, size_t part_count, ...)) \
+    EXPORT_ENTRY(com_util_vpath_concat_n, \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, size_t part_count, \
+                                     va_list args)) \
     EXPORT_ENTRY(com_util_path_basename, const char *(COM_UTIL_API *)(const char *path)) \
     EXPORT_ENTRY(com_util_path_dirname, \
                  int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, const char *path)) \
@@ -239,6 +242,9 @@
                  int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, const char *path)) \
     EXPORT_ENTRY(com_util_path_join_n, int(COM_UTIL_API *)(char *path_out, size_t path_size, \
                                                            com_util_error *detail_out, size_t part_count, ...)) \
+    EXPORT_ENTRY(com_util_vpath_join_n, \
+                 int(COM_UTIL_API *)(char *path_out, size_t path_size, com_util_error *detail_out, size_t part_count, \
+                                     va_list args)) \
     /* com_util/crt/stdio.h */ \
     EXPORT_ENTRY(com_util_fopen, \
                  FILE *(COM_UTIL_API *)(const char *path, const char *modes, com_util_error *detail_out)) \
@@ -563,6 +569,9 @@
     EXPORT_ENTRY(_com_util_tracer_writef, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const char *format, ...)) \
+    EXPORT_ENTRY(_com_util_tracer_vwritef, \
+                 int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+                                     const com_util_timespec *timestamp, const char *format, va_list args)) \
     EXPORT_ENTRY(_com_util_tracer_write_hex, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                                                  const com_util_timespec *timestamp, const void *data, \
                                                                  size_t size, const char *message)) \
@@ -570,6 +579,10 @@
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const void *data, size_t size, \
                                      const char *format, ...)) \
+    EXPORT_ENTRY(_com_util_tracer_vwrite_hexf, \
+                 int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+                                     const com_util_timespec *timestamp, const void *data, size_t size, \
+                                     const char *format, va_list args)) \
     EXPORT_ENTRY(com_util_tracer_set_name, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, const char *name, int64_t identifier)) \
     EXPORT_ENTRY(com_util_tracer_get_name, int(COM_UTIL_API *)(com_util_tracer * handle, char *out, size_t out_size)) \

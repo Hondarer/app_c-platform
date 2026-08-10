@@ -413,7 +413,7 @@ static int sink_points_to_current_file(const com_util_trace_file_sink *p)
 }
 
 /**
- *  @brief  開いているファイルを閉じます。未開の場合は何もしません (冪等です)。
+ *  @brief  開いているファイルを閉じます。未開の場合は何もしません (べき等です)。
  */
 static void close_file(com_util_trace_file_sink *p)
 {

@@ -1291,10 +1291,9 @@ int _com_util_tracer_write(com_util_tracer *handle, const com_util_trace_level l
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level level,
-                            const com_util_timespec *timestamp, const char *format, ...)
+int _com_util_tracer_vwritef(com_util_tracer *handle, const com_util_trace_level level,
+                             const com_util_timespec *timestamp, const char *format, va_list args)
 {
-    va_list args;
     char buf[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;
 
@@ -1307,12 +1306,25 @@ int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level 
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    va_start(args, format);
     vsnprintf(buf, sizeof(buf), format, args);
-    va_end(args);
 
     ret = write_dual(handle, level, timestamp, buf);
     config_unlock_shared(handle);
+    return ret;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int _com_util_tracer_writef(com_util_tracer *handle, const com_util_trace_level level,
+                            const com_util_timespec *timestamp, const char *format, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, format);
+    ret = _com_util_tracer_vwritef(handle, level, timestamp, format, args);
+    va_end(args);
+
     return ret;
 }
 
@@ -1445,9 +1457,9 @@ int _com_util_tracer_write_hex(com_util_tracer *handle, const com_util_trace_lev
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level level,
-                                const com_util_timespec *timestamp, const void *data, const size_t size,
-                                const char *format, ...)
+int _com_util_tracer_vwrite_hexf(com_util_tracer *handle, const com_util_trace_level level,
+                                 const com_util_timespec *timestamp, const void *data, const size_t size,
+                                 const char *format, va_list args)
 {
     char label[COM_UTIL_TRACER_MESSAGE_MAX_BYTES];
     int ret;
@@ -1463,10 +1475,7 @@ int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_le
 
     if (format != NULL)
     {
-        va_list args;
-        va_start(args, format);
         vsnprintf(label, sizeof(label), format, args);
-        va_end(args);
         ret = hex_write_impl(handle, level, timestamp, data, size, label);
     }
     else
@@ -1475,6 +1484,22 @@ int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_le
     }
 
     config_unlock_shared(handle);
+    return ret;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int _com_util_tracer_write_hexf(com_util_tracer *handle, const com_util_trace_level level,
+                                const com_util_timespec *timestamp, const void *data, const size_t size,
+                                const char *format, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, format);
+    ret = _com_util_tracer_vwrite_hexf(handle, level, timestamp, data, size, format, args);
+    va_end(args);
+
     return ret;
 }
 

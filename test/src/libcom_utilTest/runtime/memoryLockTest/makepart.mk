@@ -2,10 +2,9 @@
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/runtime/memory_lock.c
 
-# テスト対象が依存するソース ファイル
-# memory_lock.c が OS エラー値の共通結果コード変換関数を呼ぶため追加する
+# 結果コード変換。テスト側で戻り値を検証するため実装を取り込む
 ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # ライブラリの指定
-LIBS += mock_libc com_util
+LIBS += mock_libc mock_com_util

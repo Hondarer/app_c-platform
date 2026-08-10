@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <com_util/base/error.h>
 #include <com_util/base/error_message_internal.h>
 #include <com_util/base/result.h>
 
@@ -118,4 +119,44 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         rtc_zero_size); // [確認_異常系] - サイズが 0 の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+TEST_F(errorMessageTest, error_message_dispatches_by_domain)
+{
+    // Arrange
+    char buf[256];
+    com_util_error error;
+
+    memset(buf, 0, sizeof(buf)); // [状態] - 文字列の格納先を 0 で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_error_clear(&error); // [手順] - 空の詳細エラーを文字列化する。
+    const int none_result = com_util_error_message(buf, sizeof(buf), &error);
+    const std::string none_message(buf);
+    com_util_error_capture_errno(&error, ENOENT); // [手順] - errno ドメインの詳細エラーを文字列化する。
+    const int errno_result = com_util_error_message(buf, sizeof(buf), &error);
+    const std::string errno_message(buf);
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        none_result); // [確認_正常系] - 空の詳細エラーに対する com_util_error_message の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ("no error", none_message); // [確認_正常系] - 空の詳細エラーのメッセージが "no error" であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        errno_result); // [確認_正常系] - errno ドメインに対する com_util_error_message の戻り値が COM_UTIL_OK であること。
+    EXPECT_FALSE(errno_message.empty()); // [確認_正常系] - errno ドメインのメッセージが空でないこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_error_message(NULL, sizeof(buf),
+                               &error)); // [確認_異常系] - NULL の格納先が COM_UTIL_ERR_INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              com_util_error_message(buf, 0U,
+                                     &error)); // [確認_異常系] - サイズ 0 が COM_UTIL_ERR_INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        com_util_error_message(buf, sizeof(buf),
+                               NULL)); // [確認_異常系] - NULL の詳細エラーが COM_UTIL_ERR_INVALID_ARGUMENT になること。
 }

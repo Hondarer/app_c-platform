@@ -90,7 +90,7 @@ extern "C"
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
-     *  すでに存在するディレクトリは成功として扱います (冪等)。\n
+     *  すでに存在するディレクトリは成功として扱います (べき等)。\n
      *  中間ディレクトリが欠けている場合はすべて生成します。\n
      *  他プロセスによる競合生成は成功として扱います。
      *

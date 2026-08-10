@@ -195,8 +195,10 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
 }
 #endif /* PLATFORM_LINUX */
 
-static int com_util_vpath_concat_n(char *path_out, const size_t path_size, com_util_error *detail_out,
-                                   const size_t part_count, va_list args)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_vpath_concat_n(char *path_out, const size_t path_size, com_util_error *detail_out, const size_t part_count,
+                            va_list args)
 {
     size_t required_size = 1u;
     size_t offset = 0u;

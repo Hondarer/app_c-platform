@@ -194,14 +194,13 @@ int com_util_path_strip_extension(char *path_out, const size_t path_size, com_ut
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error *detail_out, const size_t part_count,
-                         ...)
+int com_util_vpath_join_n(char *path_out, const size_t path_size, com_util_error *detail_out, const size_t part_count,
+                          va_list args)
 {
     size_t required_size = 1u;
     size_t offset = 0u;
     size_t idx;
     int need_sep = 0;
-    va_list args;
     va_list args_copy;
 
     if (path_out == NULL || path_size == 0u || part_count == 0u)
@@ -212,7 +211,6 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
     path_out[0] = '\0';
 
     /* 1st pass: 引数検証と必要サイズの算出 (セパレータ補完分も含める) */
-    va_start(args, part_count);
     va_copy(args_copy, args);
     {
         int have_prev_nonempty = 0;
@@ -228,7 +226,6 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
             if (part == NULL)
             {
                 va_end(args_copy);
-                va_end(args);
                 return com_util_error_report_errno(detail_out, EINVAL);
             }
 
@@ -255,7 +252,6 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
                     if (required_size >= path_size)
                     {
                         va_end(args_copy);
-                        va_end(args);
                         return com_util_error_report_errno(detail_out, ENAMETOOLONG);
                     }
                     required_size += 1u;
@@ -265,7 +261,6 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
             if (part_len - skip_leading > path_size - required_size)
             {
                 va_end(args_copy);
-                va_end(args);
                 return com_util_error_report_errno(detail_out, ENAMETOOLONG);
             }
             required_size += part_len - skip_leading;
@@ -313,9 +308,23 @@ int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error 
         memcpy(path_out + offset, part + skip_leading, part_len - skip_leading);
         offset += part_len - skip_leading;
     }
-    va_end(args);
 
     path_out[offset] = '\0';
 
     return com_util_error_report_success(detail_out);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_path_join_n(char *path_out, const size_t path_size, com_util_error *detail_out, const size_t part_count,
+                         ...)
+{
+    int result;
+    va_list args;
+
+    va_start(args, part_count);
+    result = com_util_vpath_join_n(path_out, path_size, detail_out, part_count, args);
+    va_end(args);
+
+    return result;
 }

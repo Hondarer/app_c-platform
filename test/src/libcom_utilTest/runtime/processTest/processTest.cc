@@ -128,7 +128,7 @@ static void trim_trailing_newline(char *buf)
 }
 
 // errno が共通結果コードへ分類されることの確認
-TEST(ProcessTest, MapsErrnoToCommonResults)
+TEST(processTest, MapsErrnoToCommonResults)
 {
     // Arrange
 
@@ -159,7 +159,7 @@ TEST(ProcessTest, MapsErrnoToCommonResults)
 
 #if defined(PLATFORM_WINDOWS)
 // Windows のバッファー不足が共通結果コードへ分類されることの確認
-TEST(ProcessTest, MapsWindowsInsufficientBuffer)
+TEST(processTest, MapsWindowsInsufficientBuffer)
 {
     // Arrange
 
@@ -177,7 +177,7 @@ TEST(ProcessTest, MapsWindowsInsufficientBuffer)
 #endif
 
 // 同期実行が子プロセスの終了コードを返すことの確認
-TEST(ProcessTest, RunSyncReturnsChildExitCode)
+TEST(processTest, RunSyncReturnsChildExitCode)
 {
     // Arrange
     com_util_process_options options;
@@ -210,7 +210,7 @@ TEST(ProcessTest, RunSyncReturnsChildExitCode)
 }
 
 // 環境変数の上書きが子プロセスから参照できることの確認
-TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
+TEST(processTest, EnvironmentOverridesAreVisibleToChild)
 {
     // Arrange
     com_util_process_options options;
@@ -268,7 +268,7 @@ TEST(ProcessTest, EnvironmentOverridesAreVisibleToChild)
 }
 
 // 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
-TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
+TEST(processTest, WaitNoWaitReportsTimeoutForRunningProcess)
 {
     // Arrange
     com_util_process_options options;
@@ -316,7 +316,7 @@ TEST(ProcessTest, WaitNoWaitReportsTimeoutForRunningProcess)
 }
 
 // start が不正引数を検出することの確認
-TEST(ProcessTest, RejectsInvalidArguments)
+TEST(processTest, RejectsInvalidArguments)
 {
     // Arrange
     com_util_process *process = NULL; // [状態] - プロセス ハンドルの受け取り先を NULL で初期化する。
@@ -334,7 +334,7 @@ TEST(ProcessTest, RejectsInvalidArguments)
 }
 
 // 実行ファイルのパスを取得できることの確認
-TEST(ProcessTest, GetsExecutablePath)
+TEST(processTest, GetsExecutablePath)
 {
     // Arrange
     char path[PLATFORM_PATH_MAX] = {};
@@ -352,7 +352,7 @@ TEST(ProcessTest, GetsExecutablePath)
 }
 
 // 実行ファイルのパス取得が不正な出力引数を拒否することの確認
-TEST(ProcessTest, ExecutablePathRejectsInvalidOutputArguments)
+TEST(processTest, ExecutablePathRejectsInvalidOutputArguments)
 {
     // Arrange
     char path[PLATFORM_PATH_MAX] = {};
@@ -375,7 +375,7 @@ TEST(ProcessTest, ExecutablePathRejectsInvalidOutputArguments)
 }
 
 // 実行ファイルのパス取得がバッファー不足を報告することの確認
-TEST(ProcessTest, ExecutablePathReportsSmallBuffer)
+TEST(processTest, ExecutablePathReportsSmallBuffer)
 {
     // Arrange
     char path[1] = {'x'};

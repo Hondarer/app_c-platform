@@ -342,7 +342,7 @@ extern "C"
      *  停止せずにしきい値レベルを変更できます。\n
      *  識別子・ファイル名・フックの設定関数 (com_util_tracer_set_name, com_util_tracer_set_file_name,
      *  com_util_tracer_set_hook, com_util_tracer_remove_hook) は started 状態では使用できません (@ref COM_UTIL_ERR_UNKNOWN / NULL を返します)。\n
-     *  すでに started 状態の場合は何もせず @ref COM_UTIL_OK を返します (冪等)。
+     *  すでに started 状態の場合は何もせず @ref COM_UTIL_OK を返します (べき等)。
      *
      *  ファイル トレースのレベルが COM_UTIL_TRACE_LEVEL_NONE 以外の場合、
      *  本関数の呼び出し時点の設定 (出力ファイル パス、ファイル名、ファイル識別) で
@@ -383,7 +383,7 @@ extern "C"
      *  レベル設定関数 (com_util_tracer_set_os_level 等) は stopped / started のどちらでも使用できます。\n
      *  ファイル トレースが有効な場合、開いていたトレース ファイルを閉じます。
      *  ファイル トレースの設定は保持され、次回の com_util_tracer_start で改めてファイルを開きます。\n
-     *  すでに stopped 状態の場合は何もせず @ref COM_UTIL_OK を返します (冪等)。
+     *  すでに stopped 状態の場合は何もせず @ref COM_UTIL_OK を返します (べき等)。
      *
      *  @param[in]      handle   com_util_tracer_create の戻り値。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
@@ -454,6 +454,24 @@ extern "C"
                                                              ...);
 
     /**
+     *  @brief          書式付きメッセージをトレースに書き込む低レベル関数 (`_com_util_tracer_writef` の `va_list` 版) です。
+     *
+     *  @param[in]      handle     com_util_tracer_create の戻り値。
+     *  @param[in]      level      トレース レベル (com_util_trace_level)。
+     *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *  @param[in]      format     printf 形式のフォーマット文字列。
+     *  @param[in]      args       フォーマット文字列に対応する引数リスト。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwritef(com_util_tracer *handle, com_util_trace_level level,
+                                                              const com_util_timespec *timestamp, const char *format,
+                                                              va_list args);
+
+    /**
      *  @brief          バイナリ データを HEX テキスト形式でトレースに書き込む低レベル関数です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
@@ -495,6 +513,26 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level level,
                                                                  const com_util_timespec *timestamp, const void *data,
                                                                  size_t size, const char *format, ...);
+
+    /**
+     *  @brief          バイナリ データを HEX テキスト形式で書き込む低レベル関数 (`_com_util_tracer_write_hexf` の `va_list` 版) です。
+     *
+     *  @param[in]      handle     com_util_tracer_create の戻り値。
+     *  @param[in]      level      トレース レベル (com_util_trace_level)。
+     *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *  @param[in]      data       バイナリ データへのポインター。
+     *  @param[in]      size       バイナリ データのバイト数。
+     *  @param[in]      format     printf 形式のフォーマット文字列 (ラベル)。NULL 可。
+     *  @param[in]      args       フォーマット文字列に対応する引数リスト。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwrite_hexf(com_util_tracer *handle, com_util_trace_level level,
+                                                                  const com_util_timespec *timestamp, const void *data,
+                                                                  size_t size, const char *format, va_list args);
 
     /**
      *  @brief          トレース プロバイダーのインスタンス名とインスタンス識別を設定します。

@@ -111,7 +111,7 @@ class traceTest : public Test
 };
 
 // 初期化と破棄が成功することの確認
-TEST_F(traceTest, test_init_and_dispose)
+TEST_F(traceTest, init_and_dispose)
 {
     // Arrange
 
@@ -129,7 +129,7 @@ TEST_F(traceTest, test_init_and_dispose)
 }
 
 // get_state が create/start/stop の状態遷移を返すことの確認
-TEST_F(traceTest, test_get_state_reports_stopped_started_stopped)
+TEST_F(traceTest, get_state_reports_stopped_started_stopped)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -153,7 +153,7 @@ TEST_F(traceTest, test_get_state_reports_stopped_started_stopped)
 }
 
 // get_state が NULL に対して disposed を返すことの確認
-TEST_F(traceTest, test_get_state_returns_disposed_for_null)
+TEST_F(traceTest, get_state_returns_disposed_for_null)
 {
     // Arrange
 
@@ -167,7 +167,7 @@ TEST_F(traceTest, test_get_state_returns_disposed_for_null)
 }
 
 // registry が live handle 数と容量拡張を追跡できることの確認
-TEST_F(traceTest, test_registry_tracks_and_expands)
+TEST_F(traceTest, registry_tracks_and_expands)
 {
     // Arrange
     const size_t create_count = 12; // [状態] - 初期容量 8 を超える 12 個のハンドルを生成する。
@@ -194,7 +194,7 @@ TEST_F(traceTest, test_registry_tracks_and_expands)
 }
 
 // started 状態で INFO 出力が OS backend へ送られることの確認
-TEST_F(traceTest, test_macro_write_prefixes_source_location)
+TEST_F(traceTest, macro_write_prefixes_source_location)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -227,7 +227,7 @@ TEST_F(traceTest, test_macro_write_prefixes_source_location)
 }
 
 // 公開マクロが明示タイムスタンプを backend へ渡すことの確認
-TEST_F(traceTest, test_macro_write_passes_explicit_timestamp)
+TEST_F(traceTest, macro_write_passes_explicit_timestamp)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -267,7 +267,7 @@ TEST_F(traceTest, test_macro_write_passes_explicit_timestamp)
 }
 
 // 公開マクロが NULL メッセージでもソース位置だけを backend へ渡すことの確認
-TEST_F(traceTest, test_macro_write_with_null_message_emits_source_location_only)
+TEST_F(traceTest, macro_write_with_null_message_emits_source_location_only)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -301,7 +301,7 @@ TEST_F(traceTest, test_macro_write_with_null_message_emits_source_location_only)
 }
 
 // 公開マクロが source location にファイルの basename を使うことの確認
-TEST_F(traceTest, test_public_macros_prefix_source_location_with_basename)
+TEST_F(traceTest, public_macros_prefix_source_location_with_basename)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -369,7 +369,7 @@ TEST_F(traceTest, test_public_macros_prefix_source_location_with_basename)
 }
 
 // started 状態で INFO 出力が OS backend へ送られることの確認
-TEST_F(traceTest, test_write_routes_info_to_os_backend)
+TEST_F(traceTest, write_routes_info_to_os_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -405,7 +405,7 @@ TEST_F(traceTest, test_write_routes_info_to_os_backend)
 
 #if defined(PLATFORM_WINDOWS)
 // ETW トレース (etw_level) と OS トレース (os_level) が独立にゲートされることの確認
-TEST_F(traceTest, test_etw_and_os_levels_are_independent)
+TEST_F(traceTest, etw_and_os_levels_are_independent)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -434,7 +434,7 @@ TEST_F(traceTest, test_etw_and_os_levels_are_independent)
 }
 #elif defined(PLATFORM_LINUX)
 // Linux では etw_level が常に NONE を返し、設定が no-op となることの確認
-TEST_F(traceTest, test_etw_level_is_none_and_noop_on_linux)
+TEST_F(traceTest, etw_level_is_none_and_noop_on_linux)
 {
     // Arrange
     com_util_tracer *handle = create_logger(); // [状態] - 生成済みの tracer を用意する。
@@ -460,7 +460,7 @@ TEST_F(traceTest, test_etw_level_is_none_and_noop_on_linux)
 
 #if defined(PLATFORM_WINDOWS)
 // OS トレース (os_level) が EventLog backend へ送られることの確認 (Windows)
-TEST_F(traceTest, test_write_routes_info_to_eventlog_backend)
+TEST_F(traceTest, write_routes_info_to_eventlog_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -484,7 +484,7 @@ TEST_F(traceTest, test_write_routes_info_to_eventlog_backend)
 }
 
 // EventLog backend へファイル識別子とインスタンス識別子が個別に渡されることの確認 (Windows)
-TEST_F(traceTest, test_write_routes_eventlog_identity_fields)
+TEST_F(traceTest, write_routes_eventlog_identity_fields)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -511,7 +511,7 @@ TEST_F(traceTest, test_write_routes_eventlog_identity_fields)
 #endif /* PLATFORM_WINDOWS */
 
 // 明示タイムスタンプ付き INFO 出力が OS backend へ渡ることの確認
-TEST_F(traceTest, test_write_routes_explicit_timestamp_to_os_backend)
+TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -549,7 +549,7 @@ TEST_F(traceTest, test_write_routes_explicit_timestamp_to_os_backend)
 }
 
 // NULL ハンドルと NULL メッセージが安全に無視されることの確認
-TEST_F(traceTest, test_write_is_null_safe)
+TEST_F(traceTest, write_is_null_safe)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -575,7 +575,7 @@ TEST_F(traceTest, test_write_is_null_safe)
 }
 
 // 1024 バイト超の UTF-8 文字列が安全な境界で切り詰められることの確認
-TEST_F(traceTest, test_write_truncates_utf8_boundary)
+TEST_F(traceTest, write_truncates_utf8_boundary)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -626,7 +626,7 @@ TEST_F(traceTest, test_write_truncates_utf8_boundary)
 }
 
 // writef が format 展開後の文字列を backend へ渡すことの確認
-TEST_F(traceTest, test_writef_formats_message)
+TEST_F(traceTest, writef_formats_message)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -656,7 +656,7 @@ TEST_F(traceTest, test_writef_formats_message)
 }
 
 // HEX 書き込みがラベル付きテキストへ変換されることの確認
-TEST_F(traceTest, test_write_hex_formats_payload)
+TEST_F(traceTest, write_hex_formats_payload)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -687,7 +687,7 @@ TEST_F(traceTest, test_write_hex_formats_payload)
 }
 
 // HEX 書き込みでデータ本体を出力できない残り長の場合に省略記号だけが付与されることの確認
-TEST_F(traceTest, test_write_hex_appends_ellipsis_when_only_ellipsis_fits)
+TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -721,7 +721,7 @@ TEST_F(traceTest, test_write_hex_appends_ellipsis_when_only_ellipsis_fits)
 }
 
 // started 中は識別子・ファイル名の設定関数が失敗することの確認
-TEST_F(traceTest, test_identity_config_fails_when_started)
+TEST_F(traceTest, identity_config_fails_when_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -747,7 +747,7 @@ TEST_F(traceTest, test_identity_config_fails_when_started)
 }
 
 // started 中でも os / etw / stderr のレベル変更が成功し反映されることの確認
-TEST_F(traceTest, test_level_change_allowed_when_started)
+TEST_F(traceTest, level_change_allowed_when_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -785,7 +785,7 @@ TEST_F(traceTest, test_level_change_allowed_when_started)
 }
 
 // started 中の os レベル引き上げが即座に出力へ反映されることの確認 (連続性)
-TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
+TEST_F(traceTest, os_level_raise_takes_effect_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -835,7 +835,7 @@ TEST_F(traceTest, test_os_level_raise_takes_effect_while_started)
 }
 
 // started 中のしきい値のみ変更では file sink を開き直さないことの確認 (ケース 2)
-TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
+TEST_F(traceTest, set_file_level_threshold_only_no_reopen_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -866,7 +866,7 @@ TEST_F(traceTest, test_set_file_level_threshold_only_no_reopen_while_started)
 }
 
 // started 中にパスを変更すると file sink を開き直すことの確認 (ケース 3)
-TEST_F(traceTest, test_set_file_level_reopen_on_path_change_while_started)
+TEST_F(traceTest, set_file_level_reopen_on_path_change_while_started)
 {
     // Arrange
     com_util_trace_file_sink *file_handle2 =
@@ -901,7 +901,7 @@ TEST_F(traceTest, test_set_file_level_reopen_on_path_change_while_started)
 }
 
 // started 中に level=NONE を指定するとファイル出力を無効化することの確認 (ケース 1)
-TEST_F(traceTest, test_set_file_level_disable_while_started)
+TEST_F(traceTest, set_file_level_disable_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -936,7 +936,7 @@ TEST_F(traceTest, test_set_file_level_disable_while_started)
 }
 
 // stopped 中の file level 設定が file backend 作成と書き込みへ反映されることの確認
-TEST_F(traceTest, test_file_level_routes_to_file_backend)
+TEST_F(traceTest, file_level_routes_to_file_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -969,7 +969,7 @@ TEST_F(traceTest, test_file_level_routes_to_file_backend)
 }
 
 // set_file_level の flags が start 時の file sink 生成へ引き渡されることの確認
-TEST_F(traceTest, test_set_file_level_passes_flags_to_file_sink)
+TEST_F(traceTest, set_file_level_passes_flags_to_file_sink)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -996,7 +996,7 @@ TEST_F(traceTest, test_set_file_level_passes_flags_to_file_sink)
 }
 
 // set_file_level が sink を生成せず start まで遅延されることの確認
-TEST_F(traceTest, test_set_file_level_defers_sink_creation_until_start)
+TEST_F(traceTest, set_file_level_defers_sink_creation_until_start)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1029,7 +1029,7 @@ TEST_F(traceTest, test_set_file_level_defers_sink_creation_until_start)
 }
 
 // 明示タイムスタンプ指定時に file backend と stderr が同じ時刻を使うことの確認
-TEST_F(traceTest, test_explicit_timestamp_is_shared_by_file_and_stderr)
+TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1077,7 +1077,7 @@ TEST_F(traceTest, test_explicit_timestamp_is_shared_by_file_and_stderr)
 }
 
 // file level NONE でファイル トレースが無効化されることの確認
-TEST_F(traceTest, test_file_level_none_disables_file_backend)
+TEST_F(traceTest, file_level_none_disables_file_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1107,7 +1107,7 @@ TEST_F(traceTest, test_file_level_none_disables_file_backend)
 }
 
 // set_name が識別子付き名称を反映することの確認
-TEST_F(traceTest, test_set_name_with_identifier_updates_backend_name)
+TEST_F(traceTest, set_name_with_identifier_updates_backend_name)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1138,7 +1138,7 @@ TEST_F(traceTest, test_set_name_with_identifier_updates_backend_name)
 }
 
 // COM_UTIL_TRACE_LEVEL_NONE では OS backend が呼ばれないことの確認
-TEST_F(traceTest, test_os_level_none_suppresses_output)
+TEST_F(traceTest, os_level_none_suppresses_output)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1166,7 +1166,7 @@ TEST_F(traceTest, test_os_level_none_suppresses_output)
 }
 
 // stderr level DEBUG で V と D の marker が出力されることの確認
-TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
+TEST_F(traceTest, stderr_level_debug_outputs_markers)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1205,7 +1205,7 @@ TEST_F(traceTest, test_stderr_level_debug_outputs_markers)
 }
 
 // 不正な明示タイムスタンプ指定時に現在時刻へ代替して各出力先へ書き込みつつ -1 を返すことの確認
-TEST_F(traceTest, test_invalid_explicit_timestamp_falls_back_and_returns_minus_one)
+TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1260,7 +1260,7 @@ TEST_F(traceTest, test_invalid_explicit_timestamp_falls_back_and_returns_minus_o
 }
 
 // 不正な明示タイムスタンプ指定時に write_hex でも現在時刻へ代替して -1 を返すことの確認
-TEST_F(traceTest, test_write_hex_invalid_explicit_timestamp_falls_back_and_returns_minus_one)
+TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_minus_one)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1298,7 +1298,7 @@ TEST_F(traceTest, test_write_hex_invalid_explicit_timestamp_falls_back_and_retur
 }
 
 // stopped 状態では出力関数が失敗することの確認
-TEST_F(traceTest, test_write_fails_when_stopped)
+TEST_F(traceTest, write_fails_when_stopped)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1334,8 +1334,8 @@ TEST_F(traceTest, test_write_fails_when_stopped)
     com_util_tracer_dispose(handle);
 }
 
-// start と stop の二重呼び出しが冪等であることの確認
-TEST_F(traceTest, test_start_and_stop_are_idempotent)
+// start と stop の二重呼び出しがべき等であることの確認
+TEST_F(traceTest, start_and_stop_are_idempotent)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1366,7 +1366,7 @@ TEST_F(traceTest, test_start_and_stop_are_idempotent)
 }
 
 // set_file_level 未呼び出しの start でデフォルト パスのファイル トレースが有効になることの確認
-TEST_F(traceTest, test_start_creates_default_file_sink)
+TEST_F(traceTest, start_creates_default_file_sink)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1397,7 +1397,7 @@ TEST_F(traceTest, test_start_creates_default_file_sink)
 }
 
 // set_name (インスタンス名とインスタンス識別) がデフォルトのトレース ファイル名に影響しないことの確認
-TEST_F(traceTest, test_set_name_does_not_affect_default_file_path)
+TEST_F(traceTest, set_name_does_not_affect_default_file_path)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1423,7 +1423,7 @@ TEST_F(traceTest, test_set_name_does_not_affect_default_file_path)
 }
 
 // set_file_name のファイル名とファイル識別がデフォルト パスへ反映されることの確認
-TEST_F(traceTest, test_set_file_name_reflects_to_default_file_path)
+TEST_F(traceTest, set_file_name_reflects_to_default_file_path)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1448,7 +1448,7 @@ TEST_F(traceTest, test_set_file_name_reflects_to_default_file_path)
 }
 
 // set_file_name(NULL, 0) でデフォルト (プロセス名、識別なし) に戻ることの確認
-TEST_F(traceTest, test_set_file_name_null_restores_process_name_default)
+TEST_F(traceTest, set_file_name_null_restores_process_name_default)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1481,7 +1481,7 @@ TEST_F(traceTest, test_set_file_name_null_restores_process_name_default)
 }
 
 // 名前と識別の getter がインスタンス側とファイル側を独立して返すことの確認
-TEST_F(traceTest, test_getters_report_instance_and_file_settings_independently)
+TEST_F(traceTest, getters_report_instance_and_file_settings_independently)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1539,7 +1539,7 @@ TEST_F(traceTest, test_getters_report_instance_and_file_settings_independently)
 }
 
 // started 中の set_file_name と負の識別番号が失敗することの確認
-TEST_F(traceTest, test_set_file_name_fails_when_started_or_identifier_negative)
+TEST_F(traceTest, set_file_name_fails_when_started_or_identifier_negative)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1568,7 +1568,7 @@ TEST_F(traceTest, test_set_file_name_fails_when_started_or_identifier_negative)
 }
 
 // 名前と識別の getter が NULL や不足バッファーに対して安全に失敗することの確認
-TEST_F(traceTest, test_name_getters_fail_safely_for_invalid_arguments)
+TEST_F(traceTest, name_getters_fail_safely_for_invalid_arguments)
 {
     // Arrange
     char buf[64];
@@ -1619,7 +1619,7 @@ TEST_F(traceTest, test_name_getters_fail_safely_for_invalid_arguments)
 
 #if defined(PLATFORM_WINDOWS)
 // Windows でプロセス名由来の有効名から .exe が除去されることの確認
-TEST_F(traceTest, test_default_file_path_strips_exe_suffix_on_windows)
+TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
 {
     // Arrange
     ON_CALL(mock_, com_util_process_get_executable_path(_, _))
@@ -1656,7 +1656,7 @@ TEST_F(traceTest, test_default_file_path_strips_exe_suffix_on_windows)
 #endif /* PLATFORM_WINDOWS */
 
 // 実行ファイル パス取得失敗時に相対 log パスへフォールバックすることの確認
-TEST_F(traceTest, test_default_file_path_falls_back_to_relative_log)
+TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
 {
     // Arrange
     ON_CALL(mock_, com_util_process_get_executable_path(_, _))
@@ -1682,7 +1682,7 @@ TEST_F(traceTest, test_default_file_path_falls_back_to_relative_log)
 }
 
 // トレース ファイルを開けない場合に start が -1 を返しつつ started 状態になることの確認
-TEST_F(traceTest, test_start_returns_minus_one_but_starts_when_file_sink_create_fails)
+TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
@@ -1715,7 +1715,7 @@ TEST_F(traceTest, test_start_returns_minus_one_but_starts_when_file_sink_create_
 }
 
 // stop がトレース ファイルを閉じ、再 start で新しいファイル名のデフォルト パスを開き直すことの確認
-TEST_F(traceTest, test_stop_disposes_file_sink_and_restart_uses_new_name)
+TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
 {
     // Arrange
     com_util_tracer *handle = create_logger();

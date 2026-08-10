@@ -52,6 +52,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
+#include <stdarg.h>
 #include <stddef.h>
 
 #ifdef DOXYGEN
@@ -237,6 +238,25 @@ extern "C"
                                                             com_util_error *detail_out, size_t part_count, ...);
 
     /**
+     *  @brief          パス断片を指定順にそのまま連結します (`com_util_path_concat_n` の `va_list` 版)。
+     *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
+     *  @param[in]      args        連結する UTF-8 文字列断片の引数リスト。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vpath_concat_n(char *path_out, size_t path_size,
+                                                             com_util_error *detail_out, size_t part_count,
+                                                             va_list args);
+
+    /**
      *  @brief          パスのベース名 (最後のセパレータの次の位置) を指すポインターを返します。
      *  @param[in]      path  対象パス (UTF-8)。NULL 可。
      *  @return         @p path 内のベース名先頭を指すポインター。
@@ -355,6 +375,24 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_path_join_n(char *path_out, size_t path_size, com_util_error *detail_out,
                                                           size_t part_count, ...);
+
+    /**
+     *  @brief          パス断片をパス区切り文字で自動補完しながら連結します (`com_util_path_join_n` の `va_list` 版)。
+     *  @param[out]     path_out    連結結果の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size   @p path_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @param[in]      part_count  連結する断片数。1 以上を渡してください。
+     *  @param[in]      args        連結する UTF-8 文字列断片の引数リスト。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_vpath_join_n(char *path_out, size_t path_size, com_util_error *detail_out,
+                                                           size_t part_count, va_list args);
 
 #ifdef __cplusplus
 }

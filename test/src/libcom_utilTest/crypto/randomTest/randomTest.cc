@@ -2,6 +2,7 @@
 #include <com_util/base/result.h>
 #include <com_util/crypto/random.h>
 
+#include <climits>
 #include <cstring>
 
 class randomTest : public Test
@@ -77,6 +78,24 @@ TEST_F(randomTest, null_buffer_returns_invalid_argument)
 
     // Act
     int rtc = com_util_random_bytes(NULL, 16U); // [手順] - バッファーに NULL、サイズに 16 を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// 要求バイト数が INT_MAX を超える場合に拒否されることの確認
+// RAND_bytes が要求バイト数を int で受けるため、範囲外は引数不正として扱われる
+TEST_F(randomTest, size_over_int_max_returns_invalid_argument)
+{
+    // Arrange
+    unsigned char buf[1]; // [状態] - 実際には書き込まれない 1 byte のバッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_random_bytes(
+        buf, (size_t)INT_MAX + 1U); // [手順] - INT_MAX を 1 超えるサイズで com_util_random_bytes を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

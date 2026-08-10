@@ -28,6 +28,8 @@ make test
 
 ## 注意点
 
+- `test/` 配下のテスト構成 (テスト ディレクトリの粒度と命名、`TEST_SRCS` と `LIBS` の指定方針) は testfw の規約に従うこと。  
+  see: `framework/testfw/docs/how-to-test.md` の「テストの構成単位」
 - 公開 API (`prod/include/` 配下のヘッダー) に関数を追加・削除・シグネチャ変更した場合は、`test/src/libcom_utilTest/exportTest/exportTest.cc` の `COM_UTIL_EXPORT_TABLE_COMMON` / `COM_UTIL_EXPORT_TABLE_PLATFORM` を同じコミットで見直すこと。反映を怠ると `exportTest.symbol_names_match` が失敗する。
 - 上位の `docs/general/coding-guideline.md` は一般則のみを扱う。com_util 固有の規則、制限、遵守事項 (結果コード `COM_UTIL_OK` / `COM_UTIL_ERR*`、標準時刻型、const 付与の模範例など) はすべて `docs/coding-guideline.md` に集約する。追加・変更時も同ファイルへ追記すること。
 - `bench-io` は測定に時間がかかるため、`make test` では実行しない。測定軸を変更した場合は `prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同時に見直し、実測をやり直すこと。

@@ -1,0 +1,27 @@
+// テスト対象ソース ファイルの注入用追加ヘッダー
+// このヘッダーをテスト プログラムが参照することで
+// テスト プログラムからテスト対象ソースの static 変数にアクセスできます
+#ifndef PROMPT_LINUX_INJECT_H
+#define PROMPT_LINUX_INJECT_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
+    /* prompt_linux.c のファイル内 static 変数 s_resize_pending へのアクセサー。
+       この変数は SIGWINCH ハンドラーからのみ設定されるため、
+       端末サイズ変更を伴わずにリサイズ通知の経路を検証するために使用する。 */
+    extern void test_prompt_set_resize_pending(int value);
+
+    /* prompt_linux.c のファイル内 static 変数 s_resize_pending の値を返す。 */
+    extern int test_prompt_resize_pending(void);
+
+    /* prompt_linux.c のファイル内 static 変数 s_sigwinch_installed の値を返す。 */
+    extern int test_prompt_sigwinch_installed(void);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* PROMPT_LINUX_INJECT_H */
