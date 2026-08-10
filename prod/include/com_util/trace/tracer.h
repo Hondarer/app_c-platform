@@ -715,9 +715,11 @@ extern "C"
      *  ファイル トレースを無効化するには level に COM_UTIL_TRACE_LEVEL_NONE を指定します。
      *
      *  flags は com_util_trace_file_sink_create にそのまま渡されます。\n
-     *  flags に 0 を指定した場合、ファイル トレースは単一プロセス専用になります。\n
+     *  flags に 0 を指定した場合、ファイル トレースは単一プロセス専用になります。
+     *  このモードは OS の排他的オープンを使用しないため、呼び出し側が他プロセスから
+     *  同一パスへ書き込まないことを保証してください。\n
      *  @ref COM_UTIL_TRACE_FILE_SINK_SHARED を指定すると、
-     *  複数プロセスから同一パスへ書き込めるファイル トレースになります。
+     *  複数プロセスから同一パスへ書き込むための調停を有効にします。
      *  詳細は com_util_trace_file_sink_create を参照してください。
      *
      *  @param[in]      handle       com_util_tracer_create の戻り値。

@@ -286,12 +286,9 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
 /**
  *  @brief  基本オープン フラグを返します。
  *
- *  `com_util_file_open()` は常に他プロセスからの読み取り/書き込み/削除を許可するため
- *  (Linux の open() と対称にする設計。file.h 参照)、単一プロセス モードであっても
- *  Windows の排他書き込みによる複数プロセス誤書き込み防止は働きません。\n
- *  複数プロセスからの同時書き込みを避けたい場合は、呼び出し側で
- *  `com_util_interprocess_lock`/`com_util_interprocess_rwlock` (`sync.h`) による
- *  明示的な排他制御を行ってください。
+ *  `com_util_file_open()` は排他的オープンを提供しません。
+ *  単一プロセス モードではプロセス間の調停を行わないため、呼び出し側が他プロセスから
+ *  同一パスへ書き込まないことを保証する必要があります。
  */
 static int base_open_flags(void)
 {

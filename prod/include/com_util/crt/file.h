@@ -113,13 +113,14 @@ extern "C"
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK または @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
-     *  本関数がオープンしたファイルは、常に他プロセスからの読み取り/書き込み/削除を許可します
-     *  (Windows でも `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` を常に指定します)。\n
-     *  Linux の `open()` にはそもそも「他プロセスへの共有可否」を制御する概念が存在せず常に
-     *  共有可能であるため、Windows も同じ既定動作に揃えています。\n
-     *  複数プロセスからの同時書き込みを防ぎたい場合は、OS の排他アクセスには頼らず、
-     *  `com_util_interprocess_lock`/`com_util_interprocess_rwlock` (`sync.h`) で明示的に
-     *  排他制御してください。
+     *  @par            ファイル共有と排他制御
+     *  @ref COM_UTIL_FILE_OPEN_READ と @ref COM_UTIL_FILE_OPEN_WRITE は、本関数が作成するハンドルの
+     *  アクセス権を指定するフラグです。他プロセスによるファイル アクセスの可否は指定しません。\n
+     *  Windows では `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` を指定し、本関数が
+     *  作成するハンドルによって他プロセスの読み取り、書き込み、削除を妨げないようにします。
+     *  Linux の `open()` には、これらの操作を拒否する共有モードがありません。\n
+     *  本関数は排他的オープンを提供しません。複数プロセスによるアクセスを直列化する場合は、
+     *  `com_util_interprocess_lock` または `com_util_interprocess_rwlock` (`sync.h`) を使用してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

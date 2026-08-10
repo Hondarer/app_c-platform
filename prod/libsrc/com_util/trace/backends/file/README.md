@@ -49,7 +49,8 @@ OS トレースとは別に、アプリケーション自身が追跡しやす�
 
 ## 複数プロセス共有 (オプトイン)
 
-既定では単一プロセス専用で、出力ファイルは共有書き込み禁止で開かれます。  
+既定では単一プロセス専用で、プロセス間の調停を行いません。  
+このモードは OS の排他的オープンを使用しないため、呼び出し側が他プロセスから同一パスへ書き込まないことを保証する必要があります。  
 複数プロセスから同一パスへ書き込む場合は、`com_util_trace_file_sink_create()` または `com_util_tracer_set_file_level()` の flags に `COM_UTIL_TRACE_FILE_SINK_SHARED` を指定します。
 
 共有モードでは次のように動作します。
@@ -75,7 +76,7 @@ com_util_tracer_dispose(tracer);
 ```
 
 `max_bytes == 0` の場合は既定サイズ、`generations <= 0` の場合は既定世代数を使います。  
-末尾の引数は動作フラグで、0 は単一プロセス専用、`COM_UTIL_TRACE_FILE_SINK_SHARED` は複数プロセス共有です。
+末尾の引数は動作フラグで、0 はプロセス間調停を行わない単一プロセス専用モード、`COM_UTIL_TRACE_FILE_SINK_SHARED` は複数プロセス共有モードです。
 
 ## backend 単体の役割
 

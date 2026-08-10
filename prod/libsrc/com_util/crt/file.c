@@ -141,8 +141,8 @@ int com_util_file_open(com_util_file *file, const char *path, int flags, com_uti
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];
-        /* Linux の open() には他プロセスへの共有可否を制御する概念がなく常に共有可能であるため、
-           Windows も同じ既定動作に揃えて常にフル共有でオープンする (file.h の com_util_file_open 参照)。 */
+        /* このハンドルによって他プロセスの読み取り、書き込み、削除を妨げない。
+           Linux の open() には対応する共有拒否モードがない (file.h の com_util_file_open 参照)。 */
         DWORD share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
         DWORD desired_access;
         DWORD creation_disposition;
