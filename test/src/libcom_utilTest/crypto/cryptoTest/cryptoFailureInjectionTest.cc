@@ -17,6 +17,7 @@ class cryptoFailureInjectionTest : public Test
     uint8_t key_[COM_UTIL_CRYPTO_KEY_SIZE];
     uint8_t nonce_[COM_UTIL_CRYPTO_NONCE_SIZE];
     uint8_t plain_[16];
+    uint8_t pad_[4]; // cipher_ の 8 バイト境界を明示する。
     std::vector<uint8_t> cipher_;
     size_t cipher_len_ = 0u;
 
