@@ -12,9 +12,9 @@
 | `prompt_linux.c` | `promptLinuxTest` | 98% | 100% | 11 |
 | `prompt.c` | `promptTest` | 85% | 91% | 30 |
 | `pinned_prompt.c` | `pinnedPromptTest` | 1% | 0% | 1 |
-| `prompt_windows.c` | なし | - | - | 0 |
+| `prompt_windows.c` | `promptWindowsTest` | - | - | 11 |
 
-`pinned_prompt.c` (806 行) と `prompt_windows.c` (89 行) が未着手です。
+`pinned_prompt.c` (806 行) が未着手です。`prompt_windows.c` は Windows 専用実装のため、行/C2 の数値は Linux (gcov) では計測されません。
 
 ## テストの構成
 
@@ -63,6 +63,20 @@ prompt_->is_tty = 1;
 
 `s_resize_pending` と `s_sigwinch_installed` はファイル内 `static` のため、`prompt_linux.inject.c` でアクセサーを通しています。リサイズ通知の経路 (`read` が EINTR で失敗し、かつリサイズ待ちがある) は `Mock_unistd` で `read` に EINTR を注入して到達させます。
 
+### promptWindowsTest — Win32 API を Mock_windows でモックする
+
+`prompt_windows.c` は `GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile` を直接呼び出します。これらは `framework/testfw` の `mock_windows.h`/`Mock_windows` ( `include_override/windows.h` による差し替え ) でモック化しています。`GetTickCount64` などの既存モックと同じ仕組みで、実コンソールや実プロセスを一切必要とせず、`SetConsoleMode` の失敗経路や `WaitForSingleObject` のタイムアウト経路も含めて全分岐を決定的に再現できます。
+
+```cpp
+Mock_windows mock_windows;
+
+EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(dummy_handle));
+EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
+    .WillOnce(DoAll(SetArgPointee<4>(orig_mode), Return(TRUE)));
+```
+
+`MOCK_METHOD` の各引数は `(__FILE__, __LINE__, __func__, 実引数...)` の順であるため、実引数の位置は 4 番目以降になります ( `SetArgPointee<4>` などのインデックスに注意 ) 。モック未注入時 (`_mock_windows == nullptr`) は自動的に実 API へ委譲されるため、`console.c`/`process.c`/`sync_windows.c` など他の `TEST_SRCS` が同じ関数を呼んでいても挙動は変化しません。
+
 ## 未到達として残している箇所
 
 | 箇所 | 理由 |
@@ -82,15 +96,15 @@ prompt_->is_tty = 1;
 
 `prompt_edit.c` を `ADD_SRCS` で取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。fake を追加する場合は、そのディレクトリへ `.cc` を置くだけで自動収集されます。
 
-### prompt_windows.c (89 行)
+### prompt_windows.c (89 行) — 対応済み
 
-Windows 専用実装です。Linux ではコンパイル対象にならないため、この環境ではテストを書いても 1 行も実行されません。以下に注意してください。
+`promptWindowsTest` として実装済みです。`prompt_linux.c` と対になる 4 関数が extern リンクのため、`promptLinuxTest` のテスト構成をそのまま写像しています。標準入力の差し替えは、実コンソールではなく `Mock_windows` ( 「promptWindowsTest — Win32 API を Mock_windows でモックする」を参照 ) による決定的なモックで行っています。実コンソールの確保 (`AllocConsole`) や `GTEST_SKIP()` は使用していません。
 
-- テスト本体は `#if defined(PLATFORM_WINDOWS)` で囲み、Linux では空になる旨を `makepart.mk` にコメントで残す
-- 初回は Windows CI での確認が必須で、修正の往復が発生する前提で計画する
-- `prompt_linux.c` と対になる 4 関数を実装しているため、`promptLinuxTest` のテスト構成をそのまま写像できる。ただし標準入力の差し替えは `posix_openpt` ではなく Windows のコンソール API を使う必要がある
+`Mock_windows` への 5 関数 (`GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile`) の追加は `framework/testfw/include/mock_windows.h`、`framework/testfw/libsrc/mock_libc/mock_windows.cc`、`framework/testfw/libsrc/mock_libc/mock_<Func>.cc` ( 関数ごと ) で行いました。`framework/testfw` は別 git ルートのため、変更する際は `framework/testfw/AGENTS.md` に従ってください。
 
-同様に Windows 専用で未着手のソースは com_util 全体で 9 本あります。`trace_etw_session.c`、`trace_eventlog.c`、`win32/` 配下 4 本、`wchar_conv.c`、`crypto_windows.c`、`prompt_windows.c` です。
+Windows CI での初回確認はまだ実施できていません。
+
+同様に Windows 専用で未着手のソースは com_util 全体で 8 本あります。`trace_etw_session.c`、`trace_eventlog.c`、`win32/` 配下 4 本、`wchar_conv.c`、`crypto_windows.c` です。
 
 ## 作業時の注意
 

@@ -81,6 +81,8 @@ TEST(syncInterprocessLockTest, rejects_rwlock_descriptor)
     TEST_INTERPROCESS_UNLINK(path);
 }
 
+#if defined(PLATFORM_LINUX)
+
 // fork した子プロセスから親プロセスの排他ロックが観測できることの確認
 TEST(syncInterprocessLockTest, forked_process_observes_exclusive_lock)
 {
@@ -133,3 +135,5 @@ TEST(syncInterprocessLockTest, forked_process_observes_exclusive_lock)
     com_util_interprocess_lock_destroy(lock);
     TEST_INTERPROCESS_UNLINK(path);
 }
+
+#endif /* PLATFORM_LINUX */

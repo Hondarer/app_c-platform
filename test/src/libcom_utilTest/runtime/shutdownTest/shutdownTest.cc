@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <com_util/runtime/shutdown.h>
 
 #include <cstdlib>

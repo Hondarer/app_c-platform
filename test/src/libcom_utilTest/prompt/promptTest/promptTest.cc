@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <com_util/base/result.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/prompt_internal.h>

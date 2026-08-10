@@ -1,6 +1,18 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <com_util/base/result.h>
 #include <com_util/runtime/elevated_process.h>
+
+#if defined(PLATFORM_WINDOWS)
+    #include <com_util/runtime/process_internal.h>
+
+// このテストではネイティブ プロセスの取り込み経路を実行しないため、リンク用の fake を定義する。
+extern "C" com_util_process *com_util_process_adopt_native(intptr_t native_handle)
+{
+    (void)native_handle;
+    return NULL;
+}
+#endif /* PLATFORM_WINDOWS */
 
 // 昇格結果報告先が未検出の場合に出力フラグが 0 になることの確認
 TEST(elevatedProcessTest, elevated_result_target_initializes_output)

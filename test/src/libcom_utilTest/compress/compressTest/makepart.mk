@@ -9,4 +9,7 @@ ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # ライブラリの指定
-LIBS += mock_libc mock_com_util z
+LIBS += mock_libc mock_com_util
+ifdef PLATFORM_LINUX
+    LIBS += z
+endif

@@ -9,21 +9,66 @@
 #include <vector>
 
 #if defined(COMPILER_MSVC)
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vscanf")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfscanf")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vsnprintf")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfprintf")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vfopen_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vaccess_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vopen_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vremove_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vmkdir_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_vstat_fmt")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_console_dispose_on_shutdown")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_path_basename")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_shutdown_register")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_call_once")
-    #pragma comment(linker, "/INCLUDE:_mock_impl_com_util_local_lock_create")
+    #define MOCK_COM_UTIL_LINK_IMPL(func) __pragma(comment(linker, "/INCLUDE:_mock_impl_" #func))
+
+MOCK_COM_UTIL_LINK_IMPL(com_util_vscanf)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vfscanf)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vsnprintf)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vfprintf)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vfopen_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vaccess_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vopen_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vremove_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vmkdir_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_vstat_fmt)
+MOCK_COM_UTIL_LINK_IMPL(com_util_console_dispose_on_shutdown)
+MOCK_COM_UTIL_LINK_IMPL(com_util_path_basename)
+MOCK_COM_UTIL_LINK_IMPL(com_util_shutdown_register)
+MOCK_COM_UTIL_LINK_IMPL(com_util_call_once)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_create)
+MOCK_COM_UTIL_LINK_IMPL(com_util_fclose)
+MOCK_COM_UTIL_LINK_IMPL(com_util_fflush)
+MOCK_COM_UTIL_LINK_IMPL(com_util_fread)
+MOCK_COM_UTIL_LINK_IMPL(com_util_fwrite)
+MOCK_COM_UTIL_LINK_IMPL(com_util_fseek)
+MOCK_COM_UTIL_LINK_IMPL(com_util_utf8_to_wpath)
+MOCK_COM_UTIL_LINK_IMPL(com_util_wpath_to_utf8)
+MOCK_COM_UTIL_LINK_IMPL(com_util_utf8_to_wstr_alloc)
+MOCK_COM_UTIL_LINK_IMPL(com_util_path_get_full)
+MOCK_COM_UTIL_LINK_IMPL(com_util_normalize_path_sep)
+MOCK_COM_UTIL_LINK_IMPL(com_util_wcscpy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_get_realtime)
+MOCK_COM_UTIL_LINK_IMPL(com_util_format_realtime_iso8601_local)
+MOCK_COM_UTIL_LINK_IMPL(com_util_open)
+MOCK_COM_UTIL_LINK_IMPL(com_util_isatty)
+MOCK_COM_UTIL_LINK_IMPL(com_util_console_init)
+MOCK_COM_UTIL_LINK_IMPL(com_util_strcpy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_strcat)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_lock)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_unlock)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_sym_loader_resolve)
+MOCK_COM_UTIL_LINK_IMPL(com_util_sym_loader_dispose)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_executable_path)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_wait)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_exit_code)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_destroy)
+MOCK_COM_UTIL_LINK_IMPL(CreateFileU)
+MOCK_COM_UTIL_LINK_IMPL(CreateNamedPipeU)
+MOCK_COM_UTIL_LINK_IMPL(GetModuleFileNameU)
+MOCK_COM_UTIL_LINK_IMPL(GetVolumePathNameU)
+MOCK_COM_UTIL_LINK_IMPL(GetVolumeInformationU)
+MOCK_COM_UTIL_LINK_IMPL(LoadLibraryU)
+MOCK_COM_UTIL_LINK_IMPL(WriteConsoleU)
+MOCK_COM_UTIL_LINK_IMPL(CreateProcessU)
+MOCK_COM_UTIL_LINK_IMPL(OpenSCManagerU)
+MOCK_COM_UTIL_LINK_IMPL(CreateServiceU)
+MOCK_COM_UTIL_LINK_IMPL(OpenServiceU)
+MOCK_COM_UTIL_LINK_IMPL(ChangeServiceConfig2U)
+MOCK_COM_UTIL_LINK_IMPL(RegisterServiceCtrlHandlerExU)
+MOCK_COM_UTIL_LINK_IMPL(StartServiceCtrlDispatcherU)
+
+    #undef MOCK_COM_UTIL_LINK_IMPL
 #endif /* COMPILER_MSVC */
 
 #include <com_util/compress/compress.h>
@@ -56,6 +101,9 @@
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/argparser/argparser.h>
+#if defined(PLATFORM_WINDOWS)
+    #include <com_util/win32/win32.h>
+#endif /* PLATFORM_WINDOWS */
 
 inline constexpr char kLibComUtilName[] = "libcom_util" TESTFW_SHARED_LIBRARY_EXTENSION;
 
@@ -110,6 +158,7 @@ extern int delegate_real_com_util_parse_int(int *value_out, const char *text, in
 extern int delegate_real_com_util_parse_double(double *value_out, const char *text);
 extern int delegate_real_com_util_path_get_full(char *path_out, size_t path_size, com_util_error *detail_out,
                                                 const char *path);
+extern char *delegate_real_com_util_normalize_path_sep(char *path);
 extern int delegate_real_com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out,
                                               com_util_error *detail_out);
 extern const char *delegate_real_com_util_path_basename(const char *path);
@@ -341,6 +390,42 @@ extern void delegate_real_com_util_syslog_sink_dispose(com_util_syslog_sink *han
 #endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
+// win32 - file_api (Windows only)
+extern HANDLE delegate_real_CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode,
+                                        LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition,
+                                        DWORD flags_and_attributes, HANDLE template_file);
+extern HANDLE delegate_real_CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
+                                             DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size,
+                                             DWORD default_timeout, LPSECURITY_ATTRIBUTES security_attributes);
+extern DWORD delegate_real_GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size);
+extern BOOL delegate_real_GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD size);
+extern BOOL delegate_real_GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name,
+                                                DWORD volume_name_size, DWORD *serial_number,
+                                                DWORD *max_component_length, DWORD *file_system_flags,
+                                                char *utf8_file_system_name, DWORD file_system_name_size);
+extern HMODULE delegate_real_LoadLibraryU(const char *utf8_file_name);
+extern BOOL delegate_real_WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length, DWORD *written_length,
+                                        void *reserved);
+extern BOOL delegate_real_CreateProcessU(const char *utf8_application_name, const char *utf8_command_line,
+                                         LPSECURITY_ATTRIBUTES process_attributes,
+                                         LPSECURITY_ATTRIBUTES thread_attributes, BOOL inherit_handles,
+                                         DWORD creation_flags, LPVOID environment, const char *utf8_current_directory,
+                                         LPSTARTUPINFOW startup_info, LPPROCESS_INFORMATION process_information);
+extern SC_HANDLE delegate_real_OpenSCManagerU(const char *utf8_machine_name, const char *utf8_database_name,
+                                              DWORD desired_access);
+extern SC_HANDLE delegate_real_CreateServiceU(SC_HANDLE scm, const char *utf8_service_name,
+                                              const char *utf8_display_name, DWORD desired_access, DWORD service_type,
+                                              DWORD start_type, DWORD error_control, const char *utf8_binary_path_name,
+                                              const char *utf8_load_order_group, LPDWORD tag_id,
+                                              const char *utf8_dependencies, const char *utf8_service_start_name,
+                                              const char *utf8_password);
+extern SC_HANDLE delegate_real_OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access);
+extern BOOL delegate_real_ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text);
+extern SERVICE_STATUS_HANDLE delegate_real_RegisterServiceCtrlHandlerExU(const char *utf8_service_name,
+                                                                         LPHANDLER_FUNCTION_EX handler_proc,
+                                                                         LPVOID context);
+extern BOOL delegate_real_StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table);
+
 // crt - wchar_conv (Windows only)
 extern int delegate_real_com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
 extern int delegate_real_com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath);
@@ -541,6 +626,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_parse_double, (double *, const char *));
     MOCK_METHOD(int, com_util_unsetenv, (const char *, com_util_error *));
     MOCK_METHOD(int, com_util_path_get_full, (char *, size_t, com_util_error *, const char *));
+    MOCK_METHOD(char *, com_util_normalize_path_sep, (char *));
     MOCK_METHOD(int, com_util_paths_equal, (const char *, const char *, int *, com_util_error *));
     MOCK_METHOD(const char *, com_util_path_basename, (const char *));
 
@@ -751,6 +837,30 @@ class Mock_com_util
 #endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
+    // win32 - file_api (Windows only)
+    MOCK_METHOD(HANDLE, CreateFileU,
+                (const char *, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE));
+    MOCK_METHOD(HANDLE, CreateNamedPipeU,
+                (const char *, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, LPSECURITY_ATTRIBUTES));
+    MOCK_METHOD(DWORD, GetModuleFileNameU, (HMODULE, char *, DWORD));
+    MOCK_METHOD(BOOL, GetVolumePathNameU, (const char *, char *, DWORD));
+    MOCK_METHOD(BOOL, GetVolumeInformationU,
+                (const char *, char *, DWORD, DWORD *, DWORD *, DWORD *, char *, DWORD));
+    MOCK_METHOD(HMODULE, LoadLibraryU, (const char *));
+    MOCK_METHOD(BOOL, WriteConsoleU, (HANDLE, const char *, DWORD, DWORD *, void *));
+    MOCK_METHOD(BOOL, CreateProcessU,
+                (const char *, const char *, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID,
+                 const char *, LPSTARTUPINFOW, LPPROCESS_INFORMATION));
+    MOCK_METHOD(SC_HANDLE, OpenSCManagerU, (const char *, const char *, DWORD));
+    MOCK_METHOD(SC_HANDLE, CreateServiceU,
+                (SC_HANDLE, const char *, const char *, DWORD, DWORD, DWORD, DWORD, const char *, const char *, LPDWORD,
+                 const char *, const char *, const char *));
+    MOCK_METHOD(SC_HANDLE, OpenServiceU, (SC_HANDLE, const char *, DWORD));
+    MOCK_METHOD(BOOL, ChangeServiceConfig2U, (SC_HANDLE, DWORD, const char *));
+    MOCK_METHOD(SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerExU,
+                (const char *, LPHANDLER_FUNCTION_EX, LPVOID));
+    MOCK_METHOD(BOOL, StartServiceCtrlDispatcherU, (const com_util_service_entry_u *));
+
     // crt - wchar_conv (Windows only)
     MOCK_METHOD(int, com_util_utf8_to_wpath, (wchar_t *, size_t, const char *));
     MOCK_METHOD(int, com_util_wpath_to_utf8, (char *, size_t, const wchar_t *));

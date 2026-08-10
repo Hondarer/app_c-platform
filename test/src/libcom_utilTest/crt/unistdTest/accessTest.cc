@@ -1,6 +1,8 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/fcntl.h>
+#include <com_util/crt/path.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -55,7 +57,7 @@ TEST_F(accessTest, returns_zero_for_existing_file)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(path_.c_str(), F_OK,
+    int rtc = com_util_access(path_.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 存在する作業ファイルに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
@@ -73,7 +75,7 @@ TEST_F(accessTest, returns_minus1_for_missing_file)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(missing.c_str(), F_OK,
+    int rtc = com_util_access(missing.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 存在しないパスに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
@@ -91,7 +93,8 @@ TEST_F(accessTest, returns_minus1_for_null_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(NULL, F_OK, &detail); // [手順] - パスに NULL を指定して com_util_access を呼び出す。
+    int rtc = com_util_access(NULL, COM_UTIL_ACCESS_FMT_F_OK,
+                              &detail); // [手順] - パスに NULL を指定して com_util_access を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_access の戻り値が -1 であること。
@@ -115,7 +118,7 @@ TEST_F(accessTest, returns_enametoolong_when_path_exceeds_wide_buffer)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(long_path.c_str(), F_OK,
+    int rtc = com_util_access(long_path.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 変換先バッファーに収まらないパスで com_util_access を呼び出す。
 
     // Assert

@@ -43,6 +43,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_parse_int(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_parse_int));
     ON_CALL(*this, com_util_parse_double(_, _)).WillByDefault(Invoke(delegate_real_com_util_parse_double));
     ON_CALL(*this, com_util_path_get_full(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_path_get_full));
+    ON_CALL(*this, com_util_normalize_path_sep(_)).WillByDefault(Invoke(delegate_real_com_util_normalize_path_sep));
     ON_CALL(*this, com_util_paths_equal(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_paths_equal));
     ON_CALL(*this, com_util_path_basename(_)).WillByDefault(Invoke(delegate_real_com_util_path_basename));
 
@@ -286,6 +287,25 @@ Mock_com_util::Mock_com_util()
 #endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
+    // win32 - file_api (Windows only)
+    ON_CALL(*this, CreateFileU(_, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_CreateFileU));
+    ON_CALL(*this, CreateNamedPipeU(_, _, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_CreateNamedPipeU));
+    ON_CALL(*this, GetModuleFileNameU(_, _, _)).WillByDefault(Invoke(delegate_real_GetModuleFileNameU));
+    ON_CALL(*this, GetVolumePathNameU(_, _, _)).WillByDefault(Invoke(delegate_real_GetVolumePathNameU));
+    ON_CALL(*this, GetVolumeInformationU(_, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_GetVolumeInformationU));
+    ON_CALL(*this, LoadLibraryU(_)).WillByDefault(Invoke(delegate_real_LoadLibraryU));
+    ON_CALL(*this, WriteConsoleU(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_WriteConsoleU));
+    ON_CALL(*this, CreateProcessU(_, _, _, _, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_CreateProcessU));
+    ON_CALL(*this, OpenSCManagerU(_, _, _)).WillByDefault(Invoke(delegate_real_OpenSCManagerU));
+    ON_CALL(*this, CreateServiceU(_, _, _, _, _, _, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_CreateServiceU));
+    ON_CALL(*this, OpenServiceU(_, _, _)).WillByDefault(Invoke(delegate_real_OpenServiceU));
+    ON_CALL(*this, ChangeServiceConfig2U(_, _, _)).WillByDefault(Invoke(delegate_real_ChangeServiceConfig2U));
+    ON_CALL(*this, RegisterServiceCtrlHandlerExU(_, _, _))
+        .WillByDefault(Invoke(delegate_real_RegisterServiceCtrlHandlerExU));
+    ON_CALL(*this, StartServiceCtrlDispatcherU(_)).WillByDefault(Invoke(delegate_real_StartServiceCtrlDispatcherU));
+
     // crt - wchar_conv (Windows only)
     ON_CALL(*this, com_util_utf8_to_wpath(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_utf8_to_wpath));
     ON_CALL(*this, com_util_wpath_to_utf8(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_wpath_to_utf8));

@@ -1,7 +1,9 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/fcntl.h>
+#include <com_util/crt/path.h>
 #include <com_util/crt/unistd.h>
+#include <mock_com_util.h>
 
 #include <errno.h>
 #include <fcntl.h>

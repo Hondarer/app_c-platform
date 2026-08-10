@@ -1,4 +1,5 @@
 #include <com_util/base/platform.h>
+#include <mock_com_util.h>
 
 #if defined(PLATFORM_LINUX)
 
