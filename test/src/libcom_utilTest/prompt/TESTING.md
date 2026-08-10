@@ -23,12 +23,16 @@
 `prompt.c` は端末制御を `prompt_platform_enter_raw` / `leave_raw` / `read_char` / `read_char_nb` の 4 関数へ委ねています。実機の端末を必要とせずキー入力を再現するため、`promptPlatformFake.cc` でこの 4 関数を差し替えています。
 
 ```makefile
+TEST_SRCS := \
+	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/prompt.c
+
 ADD_SRCS := \
-	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/prompt_edit.c \
-	promptPlatformFake.cc
+	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/prompt_edit.c
 ```
 
-`prompt_linux.c` / `prompt_windows.c` はリンクしません。fake はテスト固有の補助実装であるため `TEST_SRCS` ではなく `ADD_SRCS` に指定します。
+`prompt_linux.c` / `prompt_windows.c` はリンクしません。
+
+`promptPlatformFake.cc` は `makepart.mk` に現れません。テスト ディレクトリ直下のソースは `SRCS_CPP` として自動収集されるためです。`ADD_SRCS` は自ディレクトリ外のソースを引き込むための指定であり、同ディレクトリのファイルに使う必要はありません。
 
 テストからは `promptFakeSetInput()` へバイト列を渡し、`com_util_prompt_readline_at()` を呼び出します。列を消費し切ると EOF (-1) を返します。
 
@@ -76,7 +80,7 @@ prompt_->is_tty = 1;
 
 現状の `pinnedPromptTest` は `com_util_pinned_prompt_status_*` の引数検証 1 件のみです。`prompt.c` と同様にプラットフォーム層を持つ構造であれば、`promptPlatformFake.cc` と同じ方式で差し替えられます。着手前に依存の切り口を確認してください。
 
-`prompt_edit.c` を `ADD_SRCS` に取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。
+`prompt_edit.c` を `ADD_SRCS` で取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。fake を追加する場合は、そのディレクトリへ `.cc` を置くだけで自動収集されます。
 
 ### prompt_windows.c (89 行)
 
@@ -92,4 +96,5 @@ Windows 専用実装です。Linux ではコンパイル対象にならないた
 
 - テスト ディレクトリを改名した場合は `obj/` を削除してから再ビルドしてください。`.gcno` に埋め込まれた旧パスと実体がずれ、テストは通るのにカバレッジが 0% と表示されます
 - `ADD_SRCS` に指定したソースは override ヘッダーの対象外です。モックを前提とするテストがある場合、実装を `ADD_SRCS` で取り込むと実物が優先されてテストが壊れます
+- `ADD_SRCS` は自ディレクトリ外のソースを引き込むための指定です。テスト ディレクトリ直下に置いた補助ソースは自動収集されるため、記載すると重複になります
 - `prompt_internal.h` には `extern "C"` を追加済みです。テスト コード (C++) からプラットフォーム層を差し替えるために必要でした
