@@ -1,7 +1,10 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/compress/compress.h>
-#include <mock_zlib.h>
+
+#if defined(PLATFORM_LINUX)
+    #include <mock_zlib.h>
+#endif /* PLATFORM_LINUX */
 
 #include <cstring>
 #include <vector>
