@@ -20,6 +20,7 @@ class promptLinuxTest : public Test
     int saved_stdin_ = -1;
     int write_fd_ = -1;
     int master_fd_ = -1;
+    unsigned int pad_ = 0; /* 明示的アラインメント */
 
     void SetUp() override
     {

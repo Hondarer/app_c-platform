@@ -10,6 +10,7 @@ class cryptoTest : public Test
   protected:
     uint8_t key_[COM_UTIL_CRYPTO_KEY_SIZE];
     uint8_t nonce_[COM_UTIL_CRYPTO_NONCE_SIZE];
+    unsigned int pad_ = 0; /* 明示的アラインメント */
 
     void SetUp() override
     {

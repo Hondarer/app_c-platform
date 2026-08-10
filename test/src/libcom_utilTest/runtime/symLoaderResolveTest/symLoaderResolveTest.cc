@@ -2,8 +2,6 @@
 #include <mock_com_util.h>
 #include <com_util/runtime/sym_loader.h>
 
-#include <cstring>
-
 class symLoaderResolveTest : public Test
 {
   protected:
@@ -12,8 +10,8 @@ class symLoaderResolveTest : public Test
     /* lib_name / func_name は固定長配列のため、テストからは直接書き込む */
     void set_names(const char *lib_name, const char *func_name)
     {
-        std::strncpy(entry_.lib_name, lib_name, sizeof(entry_.lib_name) - 1u);
-        std::strncpy(entry_.func_name, func_name, sizeof(entry_.func_name) - 1u);
+        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry_.lib_name, sizeof(entry_.lib_name), lib_name));
+        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry_.func_name, sizeof(entry_.func_name), func_name));
     }
 
     void TearDown() override

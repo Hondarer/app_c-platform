@@ -75,7 +75,7 @@ TEST_F(consoleWriteTest, returns_invalid_argument_for_unknown_stream)
 {
     // Arrange
     com_util_stream unknown =
-        static_cast<com_util_stream>(0x7F); // [状態] - stdout でも stderr でもないストリーム種別を用意する。
+        static_cast<com_util_stream>(3); // [状態] - 列挙子に定義されていないストリーム種別 3 を用意する。
 
     // Pre-Assert
 
