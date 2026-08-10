@@ -190,9 +190,15 @@ TEST_F(promptWindowsTest, read_char_returns_next_byte)
             Return(WAIT_OBJECT_0)); // [Pre-Assert確認_正常系] - WaitForSingleObject が 100ms を指定して 1 回呼び出されること。
                                      // [Pre-Assert手順] - WAIT_OBJECT_0 を返却する。
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, dummy_handle, _, 1U, _, _))
-        .WillOnce(DoAll(SetArrayArgument<4>(&byte_value, &byte_value + 1), SetArgPointee<6>(1UL),
-                        Return(TRUE))); // [Pre-Assert確認_正常系] - ReadFile が 1 回呼び出されること。
-                                        // [Pre-Assert手順] - 出力バッファーへ 'A' を書き込み、読み取りバイト数 1 と TRUE を返却する。
+        .WillOnce(
+            [byte_value](const char *, int, const char *, HANDLE, LPVOID buffer, DWORD, LPDWORD bytes_read,
+                         LPOVERLAPPED)
+            {
+                *static_cast<char *>(buffer) = byte_value;
+                *bytes_read = 1UL;
+                return TRUE;
+            }); // [Pre-Assert確認_正常系] - ReadFile が 1 回呼び出されること。
+                // [Pre-Assert手順] - 出力バッファーへ 'A' を書き込み、読み取りバイト数 1 と TRUE を返却する。
 
     // Act
     int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
@@ -288,9 +294,15 @@ TEST_F(promptWindowsTest, read_char_nb_returns_next_byte_when_available)
             Return(WAIT_OBJECT_0)); // [Pre-Assert確認_正常系] - prompt_platform_read_char への委譲で 100ms を指定して 1 回呼び出されること。
                                      // [Pre-Assert手順] - WAIT_OBJECT_0 を返却する。
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, dummy_handle, _, 1U, _, _))
-        .WillOnce(DoAll(SetArrayArgument<4>(&byte_value, &byte_value + 1), SetArgPointee<6>(1UL),
-                        Return(TRUE))); // [Pre-Assert確認_正常系] - ReadFile が 1 回呼び出されること。
-                                        // [Pre-Assert手順] - 出力バッファーへ 'B' を書き込み、読み取りバイト数 1 と TRUE を返却する。
+        .WillOnce(
+            [byte_value](const char *, int, const char *, HANDLE, LPVOID buffer, DWORD, LPDWORD bytes_read,
+                         LPOVERLAPPED)
+            {
+                *static_cast<char *>(buffer) = byte_value;
+                *bytes_read = 1UL;
+                return TRUE;
+            }); // [Pre-Assert確認_正常系] - ReadFile が 1 回呼び出されること。
+                // [Pre-Assert手順] - 出力バッファーへ 'B' を書き込み、読み取りバイト数 1 と TRUE を返却する。
 
     // Act
     int rtc = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
