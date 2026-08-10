@@ -1328,7 +1328,6 @@ void com_util_process_destroy(com_util_process *process)
     free(process);
 }
 
-/* Doxygen コメントは、内部ヘッダー process_internal.h に記載 */
 /* Doxygen コメントは、ヘッダーに記載 */
 
 com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
