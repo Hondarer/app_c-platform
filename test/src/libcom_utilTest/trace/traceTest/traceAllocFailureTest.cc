@@ -2,7 +2,6 @@
 #include <mock_com_util.h>
 #include <mock_stdlib.h>
 #include <mock_string.h>
-#include <com_util/runtime/shutdown.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/tracer_internal.h>
 
@@ -27,6 +26,7 @@ class traceAllocFailureTest : public Test
 
     void SetUp() override
     {
+        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
         ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
@@ -35,12 +35,6 @@ class traceAllocFailureTest : public Test
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif /* PLATFORM_ */
     }
-
-    void TearDown() override
-    {
-        // Mock_com_util の破棄前に、実体へ登録した shutdown callback を破棄する。
-        _com_util_shutdown_reset_for_test();
-    }
 };
 
 // ハンドルの確保に失敗した場合に生成が失敗することの確認
@@ -48,7 +42,6 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    ON_CALL(mock_stdlib, atexit(_, _, _, _)).WillByDefault(Return(0));
 
     // Pre-Assert
     /* com_util_tracer は不透明型でサイズを指定できない。生成時の malloc はハンドル確保の 1 回だけである */
@@ -101,7 +94,6 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_registry_expansion_fails)
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    ON_CALL(mock_stdlib, atexit(_, _, _, _)).WillByDefault(Return(0));
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
@@ -123,7 +115,6 @@ TEST_F(traceAllocFailureTest, set_name_fails_when_effective_name_allocation_fail
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    ON_CALL(mock_stdlib, atexit(_, _, _, _)).WillByDefault(Return(0));
 
     com_util_tracer *handle = com_util_tracer_create();
 

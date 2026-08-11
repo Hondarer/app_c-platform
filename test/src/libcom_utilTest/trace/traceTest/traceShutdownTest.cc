@@ -17,6 +17,8 @@ class traceShutdownTest : public Test
 {
   protected:
     NiceMock<Mock_com_util> mock_;
+    com_util_shutdown_fn shutdown_callback_ = nullptr;
+    void *shutdown_context_ = nullptr;
 
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink *os_handle_ = reinterpret_cast<com_util_syslog_sink *>(static_cast<uintptr_t>(0x1100));
@@ -26,7 +28,15 @@ class traceShutdownTest : public Test
 
     void SetUp() override
     {
-        _com_util_shutdown_reset_for_test();
+        test_trace_registry_reset_shutdown_state();
+        ON_CALL(mock_, com_util_shutdown_register(_, _))
+            .WillByDefault(
+                [this](com_util_shutdown_fn callback, void *context)
+                {
+                    shutdown_callback_ = callback;
+                    shutdown_context_ = context;
+                    return COM_UTIL_OK;
+                });
 
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
@@ -40,10 +50,8 @@ class traceShutdownTest : public Test
 
     void TearDown() override
     {
-        /* shutdown_started は本来戻らないため、同一バイナリの他テストが
-           tracer を生成できるよう inject 経由で初期状態へ戻す */
+        // shutdown_started は本来戻らないため、同一バイナリの他テストが tracer を生成できるよう初期状態へ戻す。
         test_trace_registry_reset_shutdown_state();
-        _com_util_shutdown_reset_for_test();
     }
 };
 
@@ -62,17 +70,14 @@ TEST_F(traceShutdownTest, shutdown_disposes_registry_and_rejects_new_create)
                                      0}; // [状態] - 通常終了 (NORMAL_EXIT) の shutdown イベントを用意する。
 
     // Pre-Assert
+    ASSERT_NE(nullptr, shutdown_callback_); // [Pre-Assert確認_正常系] - tracer の shutdown callback が登録されること。
 
     // Act
-    int invoked = 0;
-    int invoke_result = _com_util_shutdown_invoke_for_test(&event, &invoked); // [手順] - 共通 shutdown を実行する。
+    shutdown_callback_(&event, shutdown_context_); // [手順] - 登録された tracer shutdown callback を直接呼び出す。
     com_util_tracer *created_after_shutdown =
         com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer の生成を試みる。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_OK,
-              invoke_result); // [確認_正常系] - _com_util_shutdown_invoke_for_test の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(1, invoked);    // [確認_正常系] - invoked_out が 1 (実行した) であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - shutdown 後に registry が空になること。
     EXPECT_EQ(
         (com_util_tracer *)NULL,

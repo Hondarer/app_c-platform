@@ -41,6 +41,7 @@ TEST(elevatedProcessTest, elevated_result_target_initializes_output)
     EXPECT_EQ(0, detected); // [確認_正常系] - detected_out が 0 であること。
 }
 
+#if defined(PLATFORM_LINUX)
 // Linux の root 判定が geteuid の結果を elevated へ反映することの確認
 TEST(elevatedProcessTest, is_elevated_reflects_effective_user_id)
 {
@@ -80,6 +81,7 @@ TEST(elevatedProcessTest, is_elevated_rejects_non_root_as_not_elevated)
               result);      // [確認_正常系] - 非 root 判定の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, elevated); // [確認_正常系] - geteuid が 0 以外のとき elevated が 0 であること。
 }
+#endif /* PLATFORM_LINUX */
 
 // 昇格判定 API が NULL 出力を拒否することの確認
 TEST(elevatedProcessTest, elevated_apis_reject_null_outputs)
@@ -106,6 +108,7 @@ TEST(elevatedProcessTest, elevated_apis_reject_null_outputs)
               result_run_with_result); // [確認_異常系] - run_with_result の戻り値が INVALID_ARGUMENT であること。
 }
 
+#if defined(PLATFORM_LINUX)
 // Linux では root の場合だけ昇格処理を完了扱いにすることの確認
 TEST(elevatedProcessTest, run_apis_report_linux_elevation_state)
 {
@@ -162,3 +165,4 @@ TEST(elevatedProcessTest, run_apis_reject_linux_non_root)
               result_run_with_result);  // [確認_異常系] - 非 root の run_with_result が UNKNOWN を返すこと。
     EXPECT_EQ(EXIT_FAILURE, exit_code); // [確認_異常系] - 非 root の run_with_result が失敗コードを返すこと。
 }
+#endif /* PLATFORM_LINUX */

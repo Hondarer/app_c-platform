@@ -1,5 +1,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#include <mock_stdlib.h>
 #include <com_util/runtime/shutdown.h>
 
 #include <cstdlib>
@@ -61,10 +62,13 @@ void print_count_callback(const com_util_shutdown_event *, void *)
 class shutdownTest : public Test
 {
   protected:
+    NiceMock<Mock_stdlib> mock_stdlib_;
+
     void SetUp() override
     {
         _com_util_shutdown_reset_for_test();
         reset_records();
+        ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Return(0));
     }
 
     void TearDown() override
@@ -236,8 +240,11 @@ TEST_F(shutdownTest, test_request_callback_runs_only_once)
 TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
 {
     // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
 
     // Pre-Assert
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(7) を呼び出す。
@@ -266,8 +273,11 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
 TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
 {
     // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
 
     // Pre-Assert
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側で実行回数を出力する callback を登録し、明示的な shutdown 実行後に exit(0) を呼び出す。

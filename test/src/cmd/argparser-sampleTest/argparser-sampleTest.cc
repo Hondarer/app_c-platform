@@ -13,9 +13,8 @@ class argparser_sampleTest : public Test
   protected:
     argparser_sampleTest()
     {
-        // 実体への委譲で shutdown コールバックが登録されると、フィクスチャ破棄後の
-        // atexit で破棄済みモックを参照してアクセス違反となるため、登録を抑止する。
-        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(0));
+        // argparser-sample.c の単体テストでは shutdown.c を対象外とし、登録 API をフェイクする。
+        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
     }
 
     NiceMock<Mock_stdio> mock_stdio_;

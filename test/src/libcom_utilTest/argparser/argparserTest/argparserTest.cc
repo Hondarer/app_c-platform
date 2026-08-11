@@ -23,11 +23,11 @@ class argparserTest : public Test
   protected:
     argparserTest()
     {
-        // 実体への委譲で shutdown コールバックが登録されると、フィクスチャ破棄後の
-        // atexit で破棄済みモックを参照してアクセス違反となるため、登録を抑止する。
+        // argparser.c の単体テストでは shutdown.c をリンクせず、登録 API の動作をフェイクする。
+        // 登録された callback は、argparser の shutdown 処理を検証するテストから直接呼び出す。
         ON_CALL(mock_com_util_, com_util_shutdown_register(_, _))
-            .WillByDefault(
-                DoAll(SaveArg<0>(&g_default_shutdown_callback), SaveArg<1>(&g_default_shutdown_context), Return(0)));
+            .WillByDefault(DoAll(SaveArg<0>(&g_default_shutdown_callback), SaveArg<1>(&g_default_shutdown_context),
+                                 Return(COM_UTIL_OK)));
     }
 
     NiceMock<Mock_com_util> mock_com_util_;
