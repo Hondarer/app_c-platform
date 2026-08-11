@@ -466,7 +466,7 @@ TEST_F(socketTest, connection_operations_report_os_failures)
     EXPECT_CALL(mock_winsock_, connect(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, WSAGetLastError)
         .WillOnce(Return(WSAEADDRINUSE))
-        .WillOnce(Return(WSAEINVAL))
+        .WillOnce(Return(WSAENETDOWN))
         .WillOnce(Return(WSAECONNREFUSED));
 #endif /* PLATFORM_ */
 
@@ -572,7 +572,7 @@ TEST_F(socketTest, accept_reports_os_failure)
     EXPECT_CALL(mock_sys_socket_, accept(_, _, _, (int)kSocket, _, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, accept(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(INVALID_SOCKET));
-    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEWOULDBLOCK));
+    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAENETDOWN));
 #endif /* PLATFORM_ */
 
     // Act
@@ -624,7 +624,7 @@ TEST_F(socketTest, pending_error_reports_empty_pending_and_failure)
                 return 0;
             })
         .WillOnce(Return(SOCKET_ERROR));
-    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEBADF)).WillOnce(Return(WSAENOTSOCK));
+    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAENOTSOCK));
 #endif /* PLATFORM_ */
 
     // Act
@@ -677,7 +677,7 @@ TEST_F(socketTest, nonblocking_reports_invalid_and_os_failure)
                 return 0;
             })
         .WillOnce(Return(SOCKET_ERROR));
-    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEINVAL));
+    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAENETDOWN));
 #endif /* PLATFORM_ */
 
     // Act
@@ -908,7 +908,7 @@ TEST_F(socketTest, send_and_recv_report_results)
     EXPECT_CALL(mock_winsock_, recv(_, _, _, (SOCKET)kSocket, _, 4, 0))
         .WillOnce(Return(2))
         .WillOnce(Return(SOCKET_ERROR));
-    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEPIPE)).WillOnce(Return(WSAECONNRESET));
+    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAECONNRESET)).WillOnce(Return(WSAECONNRESET));
 #endif /* PLATFORM_ */
 
     // Act
@@ -1148,7 +1148,7 @@ TEST_F(socketTest, send_all_reports_results)
         .WillOnce(Return(0))
         .WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 2, 0)).WillOnce(Return(2));
-    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEPIPE));
+    EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAECONNRESET));
 #endif /* PLATFORM_ */
 
     // Act
@@ -1475,6 +1475,7 @@ TEST_F(socketTest, shutdown_receive_reports_results)
 {
     // Arrange
     com_util_socket socket = kSocket;
+    com_util_socket failure_socket = kSocket;
     com_util_socket invalid_socket = COM_UTIL_INVALID_SOCKET;
     com_util_error detail = {};
 
@@ -1496,7 +1497,7 @@ TEST_F(socketTest, shutdown_receive_reports_results)
     int rtc_null = com_util_socket_shutdown_receive(NULL, &detail); // [手順] - ソケット出力先に NULL を指定する。
     int rtc_invalid = com_util_socket_shutdown_receive(&invalid_socket, &detail); // [手順] - 無効なソケットを指定する。
     int rtc_success = com_util_socket_shutdown_receive(&socket, &detail);         // [手順] - 受信停止を成功させる。
-    int rtc_failure = com_util_socket_shutdown_receive(&socket, &detail);         // [手順] - 受信停止の失敗を注入する。
+    int rtc_failure = com_util_socket_shutdown_receive(&failure_socket, &detail); // [手順] - 受信停止の失敗を注入する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

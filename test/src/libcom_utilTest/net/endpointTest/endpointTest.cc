@@ -13,8 +13,9 @@
     #include <netdb.h>
     #include <netinet/in.h>
 #elif defined(PLATFORM_WINDOWS)
+    #include <com_util/base/windows_sdk.h>
+    #include <com_util/base/error_internal.h>
     #include <com_util/net/socket_internal.h>
-    #include <mock_com_util.h>
     #include <mock_winsock.h>
 #endif /* PLATFORM_ */
 
@@ -29,6 +30,16 @@ using testing::Return;
 namespace
 {
 
+#if defined(PLATFORM_WINDOWS)
+class Mock_socket_internal
+{
+  public:
+    MOCK_METHOD(int, startup, (com_util_error *));
+};
+
+Mock_socket_internal *s_mock_socket_internal = nullptr;
+#endif /* PLATFORM_WINDOWS */
+
 void expect_detail(const com_util_error &detail, const com_util_error_domain domain, const int result,
                    const unsigned long code)
 {
@@ -39,6 +50,18 @@ void expect_detail(const com_util_error &detail, const com_util_error_domain dom
 
 } // namespace
 
+#if defined(PLATFORM_WINDOWS)
+extern "C" int com_util_internal_socket_startup(com_util_error *detail_out)
+{
+    if (s_mock_socket_internal == nullptr)
+    {
+        return COM_UTIL_ERR_UNKNOWN;
+    }
+
+    return s_mock_socket_internal->startup(detail_out);
+}
+#endif /* PLATFORM_WINDOWS */
+
 class endpointTest : public Test
 {
   protected:
@@ -46,21 +69,20 @@ class endpointTest : public Test
     NiceMock<Mock_arpa_inet> mock_arpa_inet_;
     NiceMock<Mock_netdb> mock_netdb_;
 #elif defined(PLATFORM_WINDOWS)
-    NiceMock<Mock_com_util> mock_com_util_;
+    NiceMock<Mock_socket_internal> mock_socket_internal_;
     NiceMock<Mock_winsock> mock_winsock_;
 
     void SetUp() override
     {
-        ON_CALL(mock_com_util_, com_util_call_once)
-            .WillByDefault([](com_util_once_flag *, com_util_once_fn function) { function(); });
-        ON_CALL(mock_winsock_, WSAStartup).WillByDefault(Return(0));
-        ON_CALL(mock_winsock_, WSACleanup).WillByDefault(Return(0));
+        s_mock_socket_internal = &mock_socket_internal_;
+        ON_CALL(mock_socket_internal_, startup(_))
+            .WillByDefault([](com_util_error *detail_out) { return com_util_error_report_success(detail_out); });
         ON_CALL(mock_winsock_, WSAGetLastError).WillByDefault(Return(0));
     }
 
     void TearDown() override
     {
-        com_util_internal_socket_cleanup();
+        s_mock_socket_internal = nullptr;
     }
 #endif /* PLATFORM_WINDOWS */
 };
@@ -161,10 +183,11 @@ TEST_F(endpointTest, parse_returns_invalid_when_startup_fails)
     uint32_t address = 0U;
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - WSAStartup が 1 回呼び出されること。
-    // [Pre-Assert手順] - WSAStartup から WSASYSNOTREADY を返却する。
-    EXPECT_CALL(mock_winsock_, WSAStartup(_, _, _, _, _))
-        .WillOnce(Return(WSASYSNOTREADY));
+    // [Pre-Assert確認_異常系] - com_util_internal_socket_startup が 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
+    EXPECT_CALL(mock_socket_internal_, startup(_))
+        .WillOnce([](com_util_error *detail_out)
+                  { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int rtc = com_util_ipv4_parse("127.0.0.1", &address); // [手順] - 初期化失敗を注入して IPv4 を解析する。
@@ -415,10 +438,11 @@ TEST_F(endpointTest, resolve_propagates_startup_failure)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - WSAStartup が 1 回呼び出されること。
-    // [Pre-Assert手順] - WSAStartup から WSASYSNOTREADY を返却する。
-    EXPECT_CALL(mock_winsock_, WSAStartup(_, _, _, _, _))
-        .WillOnce(Return(WSASYSNOTREADY));
+    // [Pre-Assert確認_異常系] - com_util_internal_socket_startup が 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
+    EXPECT_CALL(mock_socket_internal_, startup(_))
+        .WillOnce([](com_util_error *detail_out)
+                  { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 初期化失敗を注入して名前解決する。
@@ -528,7 +552,7 @@ TEST_F(endpointTest, to_string_converts_address)
         .WillOnce(
             [](const char *, const int, const char *, int, const void *, char *dst, socklen_t)
             {
-                std::strcpy(dst, "127.0.0.1");
+                std::memcpy(dst, "127.0.0.1", sizeof("127.0.0.1"));
                 return static_cast<const char *>(dst);
             });
 #elif defined(PLATFORM_WINDOWS)
@@ -536,7 +560,7 @@ TEST_F(endpointTest, to_string_converts_address)
         .WillOnce(
             [](const char *, const int, const char *, INT, const void *, PSTR dst, size_t)
             {
-                std::strcpy(dst, "127.0.0.1");
+                std::memcpy(dst, "127.0.0.1", sizeof("127.0.0.1"));
                 return static_cast<PCSTR>(dst);
             });
 #endif /* PLATFORM_ */
@@ -563,10 +587,11 @@ TEST_F(endpointTest, to_string_propagates_startup_failure)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - WSAStartup が 1 回呼び出されること。
-    // [Pre-Assert手順] - WSAStartup から WSASYSNOTREADY を返却する。
-    EXPECT_CALL(mock_winsock_, WSAStartup(_, _, _, _, _))
-        .WillOnce(Return(WSASYSNOTREADY));
+    // [Pre-Assert確認_異常系] - com_util_internal_socket_startup が 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
+    EXPECT_CALL(mock_socket_internal_, startup(_))
+        .WillOnce([](com_util_error *detail_out)
+                  { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int rtc = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
