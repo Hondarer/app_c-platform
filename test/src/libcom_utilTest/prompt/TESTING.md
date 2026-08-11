@@ -13,7 +13,7 @@
 | `prompt_edit.c` | `promptEditTest` | 19 | 100% (64/64) | 100% (54/54) |
 | `prompt_linux.c` | `promptLinuxTest` | 12 | 100% (48/48) | 100% (22/22) |
 | `prompt.c` | `promptTest` | 37 | 91% (310/340) | 94% (170/181) |
-| `pinned_prompt.c` | `pinnedPromptTest` | 11 | 31% (248/806) | 33% (154/473) |
+| `pinned_prompt.c` | `pinnedPromptTest` | 13 | 55% (446/806) | 58% (274/473) |
 | `prompt_windows.c` | `promptWindowsTest` | 13 | Linux では計測対象外 | Linux では計測対象外 |
 
 ## テスト構成

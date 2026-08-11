@@ -1,23 +1,29 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#include <mock_stdlib.h>
 #include <mock_unistd.h>
+#include <sys/mock_wait.h>
 
 #include <com_util/base/platform.h>
 #include <com_util/base/result_internal.h>
 #include <com_util/crt/path.h>
 #include <com_util/runtime/process.h>
+#include <com_util/runtime/process_internal.h>
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 using testing::_;
+using testing::DoAll;
 using testing::NiceMock;
 using testing::Return;
+using testing::SetArgPointee;
 using testing::StrEq;
 
 #if defined(PLATFORM_LINUX)
     #include <fcntl.h>
+    #include <signal.h>
     #include <unistd.h>
 static void make_temp_path(char *buf, size_t size, const char *tag)
 {
@@ -475,5 +481,217 @@ TEST(processTest, RejectsInvalidArgumentVectors)
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               empty_first_result); // [確認_異常系] - argv[0] 空文字列の戻り値が INVALID_ARGUMENT であること。
     EXPECT_EQ(nullptr, process);   // [確認_異常系] - 不正な argv で process が NULL のままであること。
+}
+
+// 環境変数上書きの形式が不正な場合に process_start が拒否することの確認
+TEST(processTest, RejectsInvalidEnvironmentOverride)
+{
+    // Arrange
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char invalid_override[] = "INVALID_ENVIRONMENT_ENTRY";
+    char *overrides[] = {invalid_override, nullptr};
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, nullptr};
+    options.argv = argv;
+    options.env_overrides = overrides; // [状態] - '=' を含まない不正な環境変数上書きを指定する。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - 不正な環境変数上書きでプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - 不正な環境変数上書きで process が NULL のままであること。
+}
+
+// プロセス ハンドル確保に失敗した場合に process_start が失敗することの確認
+TEST(processTest, StartReportsProcessAllocationFailure)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, nullptr};
+    options.argv = argv;
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(
+            Return(nullptr)); // [Pre-Assert確認_異常系] - 環境配列後の process ハンドル確保で calloc が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - process ハンドル確保失敗を注入して開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);           // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - 確保失敗時に process が NULL のままであること。
+}
+
+// fork が失敗した場合に process_start が失敗することの確認
+TEST(processTest, StartReportsForkFailure)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, nullptr};
+    options.argv = argv;
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(-1))); // [Pre-Assert確認_異常系] - fork が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - fork 失敗を注入してプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);           // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - fork 失敗時に process が NULL のままであること。
+}
+
+// 待機が終了コードとシグナル終了を分類し、割り込みを再試行することの確認
+TEST(processTest, WaitMapsExitStatesAndRetriesEintr)
+{
+    // Arrange
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process *normal_process = com_util_process_adopt_native(123);
+    com_util_process *signaled_process = com_util_process_adopt_native(124);
+    int normal_status = 7 << 8;
+    int signaled_status = SIGTERM;
+    int normal_exit_code = 0;
+    int signaled_exit_code = 0;
+    ASSERT_NE(nullptr, normal_process);
+    ASSERT_NE(nullptr, signaled_process);
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 123, _, _))
+        .WillOnce(DoAll(SetArgPointee<4>(normal_status), Return(static_cast<pid_t>(-1))))
+        .WillOnce(DoAll(SetArgPointee<4>(normal_status), Return(static_cast<pid_t>(123))));
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 124, _, _))
+        .WillOnce(DoAll(SetArgPointee<4>(signaled_status), Return(static_cast<pid_t>(124))));
+    errno = EINTR; // [状態] - 1 回目の waitpid が EINTR を返す状態とする。
+
+    // Pre-Assert
+
+    // Act
+    int normal_wait = com_util_process_wait(
+        normal_process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - EINTR 後に正常終了する process を待機する。
+    int normal_get = com_util_process_get_exit_code(
+        normal_process, &normal_exit_code); // [手順] - 正常終了 process の終了コードを取得する。
+    int signaled_wait = com_util_process_wait(
+        signaled_process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - シグナル終了 process を待機する。
+    int signaled_get = com_util_process_get_exit_code(
+        signaled_process, &signaled_exit_code); // [手順] - シグナル終了 process の終了コードを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              normal_wait); // [確認_正常系] - 1 回目の EINTR 後の com_util_process_wait が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        normal_get); // [確認_正常系] - 正常終了 process の com_util_process_get_exit_code が COM_UTIL_OK であること。
+    EXPECT_EQ(7, normal_exit_code); // [確認_正常系] - 正常終了 process の終了コードが 7 であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        signaled_wait); // [確認_正常系] - シグナル終了 process の com_util_process_wait が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              signaled_get); // [確認_正常系] - シグナル終了 process の終了コード取得が COM_UTIL_OK であること。
+    EXPECT_EQ(-1, signaled_exit_code); // [確認_正常系] - シグナル終了 process の終了コードが -1 であること。
+
+    // Cleanup
+    com_util_process_destroy(normal_process);
+    com_util_process_destroy(signaled_process);
+}
+
+// waitpid の OS エラーを未知エラーへ変換することの確認
+TEST(processTest, WaitReportsWaitpidFailure)
+{
+    // Arrange
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process *process = com_util_process_adopt_native(125);
+    ASSERT_NE(nullptr, process);
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 125, _, _)).WillOnce(Return(static_cast<pid_t>(-1)));
+    errno = ECHILD; // [状態] - waitpid が子プロセスなしで失敗する状態とする。
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - waitpid 失敗を注入して待機する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_process_wait の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// terminate の kill 失敗を未知エラーへ変換することの確認
+TEST(processTest, TerminateReportsKillFailure)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    com_util_process *process = com_util_process_adopt_native(126);
+    ASSERT_NE(nullptr, process);
+    EXPECT_CALL(mock_unistd, kill(_, _, _, 126, SIGTERM)).WillOnce(Return(-1));
+    errno = ESRCH; // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_terminate(process); // [手順] - kill 失敗を注入して process を terminate する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_process_terminate の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// process API が NULL、負値、終了前の状態を拒否することの確認
+TEST(processTest, RejectsInvalidWaitAndExitArguments)
+{
+    // Arrange
+    com_util_process *process = com_util_process_adopt_native(127);
+    int exit_code = 0;
+    ASSERT_NE(nullptr, process);
+
+    // Pre-Assert
+
+    // Act
+    int null_wait = com_util_process_wait(NULL, COM_UTIL_PROCESS_NO_WAIT); // [手順] - NULL process で待機する。
+    int negative_wait = com_util_process_wait(process, -1);                // [手順] - 負の timeout で待機する。
+    int null_exit_process =
+        com_util_process_get_exit_code(NULL, &exit_code); // [手順] - NULL process から終了コードを取得する。
+    int null_exit_output =
+        com_util_process_get_exit_code(process, NULL); // [手順] - NULL 出力先へ終了コードを取得する。
+    int running_exit =
+        com_util_process_get_exit_code(process, &exit_code); // [手順] - 待機前 process から終了コードを取得する。
+    int null_terminate = com_util_process_terminate(NULL);   // [手順] - NULL process を terminate する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_wait); // [確認_異常系] - NULL process の com_util_process_wait が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              negative_wait); // [確認_異常系] - 負の timeout の com_util_process_wait が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_exit_process); // [確認_異常系] - NULL process の終了コード取得が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_exit_output); // [確認_異常系] - NULL 出力先の終了コード取得が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              running_exit); // [確認_異常系] - 実行中 process の終了コード取得が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_terminate); // [確認_異常系] - NULL process の terminate が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+    com_util_process_destroy(NULL);
 }
 #endif /* PLATFORM_LINUX */

@@ -4,6 +4,7 @@
 
     #include <testfw.h>
     #include <mock_com_util.h>
+    #include <mock_stdio.h>
     #include <mock_stdlib.h>
     #include <sys/mock_socket.h>
 
@@ -11,12 +12,14 @@
     #include <com_util/trace/backends/syslog/syslog_internal.h>
 
     #include <errno.h>
+    #include <string>
     #include <syslog.h>
 
 using testing::_;
 using testing::Assign;
 using testing::DoAll;
 using testing::DoDefault;
+using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
 
@@ -152,6 +155,545 @@ TEST_F(syslogFailureInjectionTest, write_drops_message_when_send_buffer_is_full)
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc); // [確認_正常系] - 送信バッファー満杯は再接続を伴わない破棄として COM_UTIL_OK を返すこと。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 再接続ロックの生成に失敗した場合に生成が失敗することの確認
+TEST_F(syslogFailureInjectionTest, create_returns_null_when_reconnect_lock_creation_fails)
+{
+    // Arrange
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_create(_))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 再接続ロックの生成が失敗すること。
+
+    // Act
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslogFailureInjectionTest",
+                                    LOG_USER); // [手順] - 再接続ロック生成失敗を注入して sink を生成する。
+
+    // Assert
+    EXPECT_EQ((com_util_syslog_sink *)NULL,
+              handle); // [確認_異常系] - ロック生成失敗時の戻り値が NULL であること。
+}
+
+// 現在時刻の解決にも失敗した場合に書き込みが失敗することの確認
+TEST_F(syslogFailureInjectionTest, write_returns_unknown_when_fallback_timestamp_is_invalid)
+{
+    // Arrange
+    com_util_timespec invalid_timestamp = {1, 1000000000L};
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    ON_CALL(mock_com_util_, com_util_get_realtime(_))
+        .WillByDefault(Invoke(
+            [](com_util_timespec *timestamp)
+            {
+                timestamp->tv_sec = 1;
+                timestamp->tv_nsec = 1000000000L;
+            })); // [Pre-Assert確認_異常系] - 代替時刻も不正な値になること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            "message"); // [手順] - 不正な時刻で書き込みを実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 時刻解決失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 送信後の再接続抑制期間中はメッセージを破棄することの確認
+TEST_F(syslogFailureInjectionTest, write_drops_message_during_reconnect_backoff)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, _, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, ECONNREFUSED), Return(-1)))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 初回送信を ECONNREFUSED で失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int first_result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                  "first"); // [手順] - 初回送信を実行する。
+    int backoff_result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                    "backoff"); // [手順] - 再接続抑制期間中に再送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              first_result); // [確認_正常系] - 初回送信失敗が破棄扱いになること。
+    EXPECT_EQ(COM_UTIL_OK,
+              backoff_result); // [確認_正常系] - 再接続抑制期間中も破棄扱いになること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// ソケット送信が成功した場合にバックオフを初期値へ戻して成功することの確認
+TEST_F(syslogFailureInjectionTest, write_returns_ok_when_send_succeeds)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, _, _, _, _, _, _))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - syslog ソケットへの送信が成功すること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                            "message"); // [手順] - メッセージを送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - 送信成功時の戻り値が COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 不正時刻の代替後に通常ソケット送信が成功しても UNKNOWN を返すことの確認
+TEST_F(syslogFailureInjectionTest, write_reports_unknown_after_fallback_timestamp_with_successful_send)
+{
+    // Arrange
+    com_util_timespec invalid_timestamp = {1, 1000000000L};
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, _, _, _, _, _, _))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - 代替時刻での送信が成功すること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            "message"); // [手順] - 不正時刻を指定して送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 代替時刻を使用した場合も UNKNOWN が保持されること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// テスト用 FD への長大なメッセージが切り詰められることの確認
+TEST_F(syslogFailureInjectionTest, write_truncates_message_for_test_fd)
+{
+    // Arrange
+    int pipe_fds[2];
+    char actual[2200];
+    std::string message(3000, 'x');
+    const char *saved_fd = getenv("SYSLOG_TEST_FD");
+    std::string saved_fd_value;
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    ASSERT_EQ(0, pipe(pipe_fds));
+    std::string fd_text = std::to_string(pipe_fds[1]);
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text.c_str(), 1)); // [状態] - テスト用 FD を設定する。
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                            message.c_str()); // [手順] - 長大なメッセージをテスト用 FD へ書き込む。
+    close(pipe_fds[1]);
+    pipe_fds[1] = -1;
+    ssize_t read_size = read(pipe_fds[0], actual, sizeof(actual) - 1); // [手順] - 切り詰め後のメッセージを読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result);       // [確認_正常系] - 長大なメッセージの書き込みが成功扱いになること。
+    EXPECT_GT(read_size, 0); // [確認_正常系] - 切り詰め後のメッセージが出力されること。
+    EXPECT_LE(read_size,
+              static_cast<ssize_t>(sizeof(actual) - 1)); // [確認_正常系] - 出力が受信バッファー内に収まること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+    close(pipe_fds[0]);
+    if (saved_fd != NULL)
+    {
+        setenv("SYSLOG_TEST_FD", saved_fd_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("SYSLOG_TEST_FD");
+    }
+}
+
+// テスト用時刻整形に失敗した場合に本文だけを書き込むことの確認
+TEST_F(syslogFailureInjectionTest, write_uses_plain_line_when_test_timestamp_format_fails)
+{
+    // Arrange
+    int pipe_fds[2];
+    char actual[256];
+    com_util_timespec timestamp = {1, 0};
+    const char *saved_fd = getenv("SYSLOG_TEST_FD");
+    std::string saved_fd_value;
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    ASSERT_EQ(0, pipe(pipe_fds));
+    std::string fd_text = std::to_string(pipe_fds[1]);
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text.c_str(), 1)); // [状態] - テスト用 FD を設定する。
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    EXPECT_CALL(mock_com_util_, com_util_format_realtime_iso8601_local(_, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 時刻整形を失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                            "message"); // [手順] - 時刻整形失敗時の書き込みを実行する。
+    close(pipe_fds[1]);
+    pipe_fds[1] = -1;
+    ssize_t read_size = read(pipe_fds[0], actual, sizeof(actual) - 1); // [手順] - 本文だけの出力を読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result);       // [確認_正常系] - 時刻整形失敗でも本文出力が成功扱いになること。
+    EXPECT_GT(read_size, 0); // [確認_正常系] - 本文が出力されること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+    close(pipe_fds[0]);
+    if (saved_fd != NULL)
+    {
+        setenv("SYSLOG_TEST_FD", saved_fd_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("SYSLOG_TEST_FD");
+    }
+}
+
+// 識別子複製用メモリの確保に失敗した場合の戻り値を確認する
+TEST_F(syslogFailureInjectionTest, rename_reports_out_of_memory_when_duplication_fails)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_stdlib> mock_stdlib;
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 新しい識別子の確保を失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_rename(handle, "renamed"); // [手順] - 識別子を変更する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              result); // [確認_異常系] - 識別子確保失敗時の戻り値が OUT_OF_MEMORY であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 識別子変更時のロック失敗を呼び出し元へ返すことの確認
+TEST_F(syslogFailureInjectionTest, rename_reports_lock_failure)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 識別子変更前のロック取得を失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_rename(handle, "renamed"); // [手順] - ロック失敗を注入して識別子を変更する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - ロック失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// shutdown 用破棄が NULL と有効なハンドルを処理することの確認
+TEST_F(syslogFailureInjectionTest, dispose_on_shutdown_handles_null_and_active_sink)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_syslog_sink_dispose_on_shutdown(NULL);   // [手順] - NULL ハンドルを shutdown 破棄する。
+    com_util_syslog_sink_dispose_on_shutdown(handle); // [手順] - 有効なハンドルを shutdown 破棄する。
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - NULL と有効なハンドルの shutdown 破棄が完了すること。
+}
+
+// syslog 本文の書式化に失敗した場合に成功扱いで戻ることの確認
+TEST_F(syslogFailureInjectionTest, write_returns_ok_when_message_formatting_fails)
+{
+    // Arrange
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_stdio> mock_stdio;
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - syslog 本文の書式化を失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                            "message"); // [手順] - 書式化失敗時の書き込みを実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - 書式化失敗時の戻り値が COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// テスト用 FD の時刻付き行の書式化に失敗した場合に UNKNOWN を返すことの確認
+TEST_F(syslogFailureInjectionTest, write_returns_unknown_when_test_timestamp_formatting_fails)
+{
+    // Arrange
+    int pipe_fds[2];
+    com_util_timespec timestamp = {1, 0};
+    const char *saved_fd = getenv("SYSLOG_TEST_FD");
+    std::string saved_fd_value;
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    ASSERT_EQ(0, pipe(pipe_fds));
+    std::string fd_text = std::to_string(pipe_fds[1]);
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text.c_str(), 1)); // [状態] - テスト用 FD を設定する。
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_stdio> mock_stdio;
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 時刻付き行の書式化を失敗させる。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                            "message"); // [手順] - 時刻付き行の書式化失敗を実行する。
+    close(pipe_fds[1]);
+    pipe_fds[1] = -1;
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 時刻付き行の書式化失敗時の戻り値が UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+    close(pipe_fds[0]);
+    if (saved_fd != NULL)
+    {
+        setenv("SYSLOG_TEST_FD", saved_fd_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("SYSLOG_TEST_FD");
+    }
+}
+
+// テスト用 FD の時刻付き行が長い場合に末尾を改行へ補正することの確認
+TEST_F(syslogFailureInjectionTest, write_truncates_test_timestamp_line)
+{
+    // Arrange
+    int pipe_fds[2];
+    char actual[2200];
+    com_util_timespec timestamp = {1, 0};
+    const char *saved_fd = getenv("SYSLOG_TEST_FD");
+    std::string saved_fd_value;
+    if (saved_fd != NULL)
+    {
+        saved_fd_value = saved_fd;
+    }
+    ASSERT_EQ(0, pipe(pipe_fds));
+    std::string fd_text = std::to_string(pipe_fds[1]);
+    ASSERT_EQ(0, setenv("SYSLOG_TEST_FD", fd_text.c_str(), 1)); // [状態] - テスト用 FD を設定する。
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_stdio> mock_stdio;
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(3000)); // [Pre-Assert確認_異常系] - 時刻付き行の長さをバッファーより大きくする。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+                                            "message"); // [手順] - 長い時刻付き行を書き込む。
+    close(pipe_fds[1]);
+    pipe_fds[1] = -1;
+    ssize_t read_size = read(pipe_fds[0], actual, sizeof(actual) - 1); // [手順] - 補正後の行を読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result);       // [確認_正常系] - 長い時刻付き行の書き込みが成功扱いになること。
+    EXPECT_GT(read_size, 0); // [確認_正常系] - 補正後の行が出力されること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+    close(pipe_fds[0]);
+    if (saved_fd != NULL)
+    {
+        setenv("SYSLOG_TEST_FD", saved_fd_value.c_str(), 1);
+    }
+    else
+    {
+        unsetenv("SYSLOG_TEST_FD");
+    }
+}
+
+// 代替時刻を用いた送信が EAGAIN の場合に UNKNOWN を返すことの確認
+TEST_F(syslogFailureInjectionTest, write_reports_unknown_when_fallback_send_buffer_is_full)
+{
+    // Arrange
+    com_util_timespec invalid_timestamp = {1, 1000000000L};
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, _, _, _, _, _, _))
+        .WillOnce(
+            DoAll(Assign(&errno, EAGAIN), Return(-1))); // [Pre-Assert確認_異常系] - 代替時刻での送信を EAGAIN にする。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            "message"); // [手順] - 代替時刻で送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - EAGAIN 発生時の戻り値が UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 代替時刻を用いた送信が一般エラーの場合に UNKNOWN を返すことの確認
+TEST_F(syslogFailureInjectionTest, write_reports_unknown_when_fallback_send_fails)
+{
+    // Arrange
+    com_util_timespec invalid_timestamp = {1, 1000000000L};
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - 生成済みのハンドルを用意する。
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, _, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, ECONNREFUSED),
+                        Return(-1))); // [Pre-Assert確認_異常系] - 代替時刻での送信を一般エラーにする。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            "message"); // [手順] - 代替時刻で送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 一般送信エラー時の戻り値が UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 代替時刻の送信先ソケットが未接続の場合に UNKNOWN を返すことの確認
+TEST_F(syslogFailureInjectionTest, write_reports_unknown_when_fallback_socket_is_unavailable)
+{
+    // Arrange
+    com_util_timespec invalid_timestamp = {1, 1000000000L};
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 初回ソケット生成を失敗させる。
+    com_util_syslog_sink *handle = com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER);
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態] - ソケット未接続のハンドルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+                                            "message"); // [手順] - 再接続抑制期間中に代替時刻で送信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - ソケット未接続時の戻り値が UNKNOWN であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
+// 連続するソケット生成失敗でバックオフ上限が適用されることの確認
+TEST_F(syslogFailureInjectionTest, socket_failure_caps_backoff_interval)
+{
+    // Arrange
+    int realtime_call = 0;
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))
+        .WillOnce(Return(-1))
+        .WillOnce(Return(-1))
+        .WillOnce(Return(-1))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 連続するソケット生成を失敗させる。
+    ON_CALL(mock_com_util_, com_util_get_realtime(_))
+        .WillByDefault(Invoke(
+            [&realtime_call](com_util_timespec *timestamp)
+            {
+                if (realtime_call == 0)
+                {
+                    timestamp->tv_sec = 0;
+                }
+                else if (realtime_call == 1)
+                {
+                    timestamp->tv_sec = 10;
+                }
+                else if (realtime_call == 2)
+                {
+                    timestamp->tv_sec = 20;
+                }
+                else
+                {
+                    timestamp->tv_sec = 40;
+                }
+                timestamp->tv_nsec = 0;
+                ++realtime_call;
+            })); // [Pre-Assert確認_異常系] - バックオフ期間経過後の時刻を順に返す。
+
+    // Pre-Assert
+
+    // Act
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [手順] - 初回接続を試行する。
+    int first_retry = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                 "first"); // [手順] - 1 回目の再接続を試行する。
+    int second_retry = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                  "second"); // [手順] - 2 回目の再接続を試行する。
+    int third_retry = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                                 "third"); // [手順] - 3 回目の再接続を試行する。
+
+    // Assert
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [確認_正常系] - 接続失敗後もハンドルが維持されること。
+    EXPECT_EQ(COM_UTIL_OK, first_retry);             // [確認_正常系] - 1 回目の再接続失敗が破棄扱いになること。
+    EXPECT_EQ(COM_UTIL_OK, second_retry);            // [確認_正常系] - 2 回目の再接続失敗が破棄扱いになること。
+    EXPECT_EQ(COM_UTIL_OK, third_retry);             // [確認_正常系] - 3 回目の再接続失敗が破棄扱いになること。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);

@@ -358,4 +358,103 @@ TEST(pinnedPromptTest, platform_read_char_nb_handles_select_timeout)
     com_util_pinned_prompt_dispose(screen);
 }
 
+// TTY の readline が通常文字を受け取り Enter で入力を確定することの確認
+TEST(pinnedPromptTest, tty_readline_accepts_character_and_enter)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    struct termios original = {};
+    struct winsize size = {};
+    char output[16] = {};
+    unsigned char first = 'a';
+    unsigned char second = '\n';
+    size.ws_col = 80;
+    size.ws_row = 24;
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                            void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillOnce(DoAll(Invoke([first](const char *, const int, const char *, const int, void *arg, const size_t)
+                               { *static_cast<unsigned char *>(arg) = first; }),
+                        Return(static_cast<ssize_t>(1))))
+        .WillOnce(DoAll(Invoke([second](const char *, const int, const char *, const int, void *arg, const size_t)
+                               { *static_cast<unsigned char *>(arg) = second; }),
+                        Return(static_cast<ssize_t>(1))));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_pinned_prompt_readline(screen, output, sizeof(output),
+                                                 "prompt> "); // [手順] - TTY の readline へ文字 a と Enter を入力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result);         // [確認_正常系] - TTY の com_util_pinned_prompt_readline が COM_UTIL_OK を返すこと。
+    EXPECT_STREQ("a", output); // [確認_正常系] - 確定した入力が "a" であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// TTY の readline が Ctrl-C をキャンセルとして返すことの確認
+TEST(pinnedPromptTest, tty_readline_reports_canceled_on_ctrl_c)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    struct termios original = {};
+    struct winsize size = {};
+    char output[16] = "stale";
+    unsigned char cancel = 0x03U;
+    size.ws_col = 80;
+    size.ws_row = 24;
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                            void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillOnce(DoAll(Invoke([cancel](const char *, const int, const char *, const int, void *arg, const size_t)
+                               { *static_cast<unsigned char *>(arg) = cancel; }),
+                        Return(static_cast<ssize_t>(1))));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_pinned_prompt_readline(screen, output, sizeof(output),
+                                                 "prompt> "); // [手順] - TTY の readline へ Ctrl-C を入力する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_CANCELED,
+        result); // [確認_異常系] - Ctrl-C の com_util_pinned_prompt_readline が COM_UTIL_ERR_CANCELED を返すこと。
+    EXPECT_STREQ("", output); // [確認_異常系] - キャンセル時の出力が空文字列になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
 #endif /* PLATFORM_LINUX */
