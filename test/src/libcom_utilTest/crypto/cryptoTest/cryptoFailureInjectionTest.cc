@@ -1,3 +1,5 @@
+#if defined(PLATFORM_LINUX)
+
 #include <testfw.h>
 #include <mock_openssl.h>
 #include <com_util/base/result.h>
@@ -206,3 +208,5 @@ TEST_F(cryptoFailureInjectionTest, passphrase_to_key_returns_unknown_when_digest
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc); // [確認_異常系] - com_util_passphrase_to_key の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
+
+#endif /* PLATFORM_LINUX */

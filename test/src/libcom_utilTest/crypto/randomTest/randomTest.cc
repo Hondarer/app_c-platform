@@ -1,7 +1,9 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crypto/random.h>
+#if defined(PLATFORM_LINUX)
 #include <mock_openssl.h>
+#endif /* PLATFORM_LINUX */
 
 #include <climits>
 #include <cstring>
