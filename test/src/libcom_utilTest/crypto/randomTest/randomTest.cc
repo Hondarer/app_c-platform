@@ -5,7 +5,6 @@
 #include <mock_openssl.h>
 #endif /* PLATFORM_LINUX */
 
-#include <climits>
 #include <cstring>
 
 class randomTest : public Test
@@ -87,8 +86,8 @@ TEST_F(randomTest, null_buffer_returns_invalid_argument)
               rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
-// 要求バイト数が INT_MAX を超える場合に拒否されることの確認
-// RAND_bytes が要求バイト数を int で受けるため、範囲外は引数不正として扱われる
+// 要求バイト数が共通最大サイズを超える場合に拒否されることの確認
+// OS ごとの乱数 API に渡す前に、クロスプラットフォームの最大サイズを検査する
 TEST_F(randomTest, size_over_int_max_returns_invalid_argument)
 {
     // Arrange
@@ -98,7 +97,8 @@ TEST_F(randomTest, size_over_int_max_returns_invalid_argument)
 
     // Act
     int rtc = com_util_random_bytes(
-        buf, (size_t)INT_MAX + 1U); // [手順] - INT_MAX を 1 超えるサイズで com_util_random_bytes を呼び出す。
+        buf, COM_UTIL_CRYPTO_RANDOM_MAX_BYTES +
+                 1U); // [手順] - 共通最大サイズを 1 byte 超えるサイズで com_util_random_bytes を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

@@ -219,11 +219,12 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
 8. **上のいずれにも当てはまらない**  
    → `stdio` のブロック単位読み書きを既定とします。性能が問題になった時点で本書の表と照らして mmap への切り替えを検討してください。
 
-## プロセス間共有が要る場合
+## プロセス間共有が必要な場合
 
 複数プロセスから同一ファイルを排他制御しながら読み書きする場合は mmap を選びます。  
 `com_util_mmap_get_rwlock()` で得たプロセス横断リーダー ライター ロックを、`com_util_interprocess_rwlock_lock_shared()` および `com_util_interprocess_rwlock_lock_exclusive()` と組み合わせて使用します。
 
+共有モードと排他制御の関係は、[コーディング規範のプラットフォーム差異の共通契約](coding-guideline.md#プラットフォーム差異の共通契約) を参照してください。  
 `stdio` ラッパー API にはプロセス間の排他機構がありません。
 
 ロックはアタッチ時ではなく `com_util_mmap_get_rwlock()` の初回呼び出し時に生成されます。  

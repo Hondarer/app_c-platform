@@ -28,7 +28,10 @@
 
 #include <com_util/base/result.h>
 #include <com_util/com_util_export.h>
+#include <limits.h>
 #include <stddef.h>
+
+#define COM_UTIL_CRYPTO_RANDOM_MAX_BYTES ((size_t)INT_MAX) /**< @ref com_util_random_bytes で指定できる最大バイト数。 */
 
 /**
  *  @ingroup        COM_UTIL_CRYPTO
@@ -43,12 +46,14 @@ extern "C"
     /**
      *  @brief          暗号論的に安全な乱数でバッファーを満たします。
      *  @param[out]     buf   乱数の格納先。@p size が 0 の場合に限り NULL も指定できます。
-     *  @param[in]      size  @p buf のバイト数。
+     *  @param[in]      size  @p buf のバイト数。@ref COM_UTIL_CRYPTO_RANDOM_MAX_BYTES 以下を指定します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  要求したバイト数をすべて満たした場合のみ @ref COM_UTIL_OK を返します。\n
      *  部分的に満たすことはありません。
+     *  @p size が @ref COM_UTIL_CRYPTO_RANDOM_MAX_BYTES を超える場合は、
+     *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      *
      *  @warning        戻り値を無視してはなりません。乱数源が利用できない場合に
      *                  @p buf の内容は不定であり、そのまま鍵やノンスとして使用すると

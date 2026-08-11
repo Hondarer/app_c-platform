@@ -44,6 +44,12 @@ extern "C"
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。
      *
+     *  @par            共有モード
+     *  Linux の `open` は共有拒否モードを持たないため、他プロセスの読み書きを拒否しません。\n
+     *  Windows では `_wsopen_s` を `_SH_DENYNO` 指定で呼び出し、Linux と同じ既定動作にします。
+     *  本関数は共有モードによるアクセス排他を提供しないため、プロセス間のアクセスを直列化する場合は
+     *  @ref com_util_interprocess_lock または @ref com_util_interprocess_rwlock を使用してください。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。

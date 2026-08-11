@@ -18,8 +18,6 @@
 
 #if defined(PLATFORM_LINUX)
 
-    #include <limits.h>
-
     #include <openssl/rand.h>
 
     #include <com_util/base/result.h>
@@ -37,8 +35,8 @@ int com_util_random_bytes(void *buf, const size_t size)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    /* RAND_bytes は要求バイト数を int で受けるため、範囲外は引数不正として扱う */
-    if (size > (size_t)INT_MAX)
+    /* クロスプラットフォームの最大値を超える要求は、OS API へ渡す前に引数不正として扱う */
+    if (size > COM_UTIL_CRYPTO_RANDOM_MAX_BYTES)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
