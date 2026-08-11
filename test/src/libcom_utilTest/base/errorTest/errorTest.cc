@@ -147,7 +147,7 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     const com_util_error_domain mismatched_domain =
         com_util_error_get_domain(&windows_error); // [手順] - Windows ドメインを取得する。
     const com_util_error_cause windows_cause =
-        com_util_error_get_cause(&windows_error); // [手順] - Linux で Windows ドメインの要因を取得する。
+        com_util_error_get_cause(&windows_error); // [手順] - Windows ドメインの要因を取得する。
     const com_util_error_domain invalid_domain =
         com_util_error_get_domain(&invalid_error); // [手順] - 未知のドメインを取得する。
     const com_util_error_cause invalid_cause =
@@ -171,8 +171,13 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
               com_util_error_get_cause(&empty)); // [確認_正常系] - 空の値の要因が COM_UTIL_CAUSE_NONE であること。
     EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_WINDOWS,
               mismatched_domain); // [確認_正常系] - Windows ドメインがそのまま取得できること。
+#if defined(PLATFORM_LINUX)
     EXPECT_EQ(COM_UTIL_CAUSE_OTHER,
-              windows_cause); // [確認_正常系] - Linux で Windows ドメインの要因が OTHER になること。
+              windows_cause); // [確認_正常系] - Linux で Windows ドメイン エラー コード 5 の要因が OTHER になること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_EQ(COM_UTIL_CAUSE_ACCESS_DENIED,
+              windows_cause); // [確認_正常系] - Windows で Windows ドメイン エラー コード 5 の要因が ACCESS_DENIED になること。
+#endif /* PLATFORM_ */
     EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
               invalid_domain); // [確認_異常系] - 未知のドメインが NONE へ正規化されること。
     EXPECT_EQ(COM_UTIL_CAUSE_OTHER,
