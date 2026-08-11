@@ -428,6 +428,30 @@ int com_util_socket_join_multicast_group(const com_util_socket sock, const uint3
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_socket_leave_multicast_group(const com_util_socket sock, const uint32_t group_address,
+                                          const uint32_t interface_address, com_util_error *detail_out)
+{
+    struct ip_mreq request;
+
+    if (sock == COM_UTIL_INVALID_SOCKET)
+    {
+        return com_util_error_report_errno_as(detail_out, EINVAL, COM_UTIL_ERR_INVALID_ARGUMENT);
+    }
+
+    memset(&request, 0, sizeof(request));
+    memcpy(&request.imr_multiaddr.s_addr, &group_address, sizeof(request.imr_multiaddr.s_addr));
+    memcpy(&request.imr_interface.s_addr, &interface_address, sizeof(request.imr_interface.s_addr));
+
+    if (setsockopt((int)sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &request, (socklen_t)sizeof(request)) != 0)
+    {
+        return com_util_error_report_socket_errno(detail_out, errno);
+    }
+
+    return com_util_error_report_success(detail_out);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_socket_send(const com_util_socket sock, const void *buf, const size_t len, size_t *sent_out,
                          com_util_error *detail_out)
 {

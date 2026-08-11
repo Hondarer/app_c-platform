@@ -41,6 +41,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_reuse_address)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_broadcast)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_multicast_interface)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_join_multicast_group)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_leave_multicast_group)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_send)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_recv)
 MOCK_COM_UTIL_LINK_IMPL(com_util_socket_sendto)
@@ -168,6 +169,7 @@ extern int delegate_real_com_util_socket_set_reuse_address(com_util_socket, int,
 extern int delegate_real_com_util_socket_set_broadcast(com_util_socket, int, com_util_error *);
 extern int delegate_real_com_util_socket_set_multicast_interface(com_util_socket, uint32_t, com_util_error *);
 extern int delegate_real_com_util_socket_join_multicast_group(com_util_socket, uint32_t, uint32_t, com_util_error *);
+extern int delegate_real_com_util_socket_leave_multicast_group(com_util_socket, uint32_t, uint32_t, com_util_error *);
 extern int delegate_real_com_util_socket_send(com_util_socket, const void *, size_t, size_t *, com_util_error *);
 extern int delegate_real_com_util_socket_recv(com_util_socket, void *, size_t, size_t *, com_util_error *);
 extern int delegate_real_com_util_socket_sendto(com_util_socket, const void *, size_t, const com_util_ipv4_endpoint *, size_t *, com_util_error *);
@@ -668,6 +670,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_socket_set_broadcast, (com_util_socket, int, com_util_error *));
     MOCK_METHOD(int, com_util_socket_set_multicast_interface, (com_util_socket, uint32_t, com_util_error *));
     MOCK_METHOD(int, com_util_socket_join_multicast_group, (com_util_socket, uint32_t, uint32_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_leave_multicast_group, (com_util_socket, uint32_t, uint32_t, com_util_error *));
     MOCK_METHOD(int, com_util_socket_send, (com_util_socket, const void *, size_t, size_t *, com_util_error *));
     MOCK_METHOD(int, com_util_socket_recv, (com_util_socket, void *, size_t, size_t *, com_util_error *));
     MOCK_METHOD(int, com_util_socket_sendto, (com_util_socket, const void *, size_t, const com_util_ipv4_endpoint *, size_t *, com_util_error *));

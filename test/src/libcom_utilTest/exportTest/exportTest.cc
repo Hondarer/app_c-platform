@@ -422,6 +422,9 @@
     EXPORT_ENTRY(com_util_socket_join_multicast_group, \
                  int(COM_UTIL_API *)(com_util_socket sock, uint32_t group_address, uint32_t interface_address, \
                                      com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_leave_multicast_group, \
+                 int(COM_UTIL_API *)(com_util_socket sock, uint32_t group_address, uint32_t interface_address, \
+                                     com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_send, \
                  int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, size_t *sent_out, \
                                      com_util_error *detail_out)) \

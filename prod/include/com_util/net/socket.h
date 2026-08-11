@@ -298,6 +298,30 @@ extern "C"
                                                                           com_util_error *detail_out);
 
     /**
+     *  @brief          マルチキャスト グループから離脱します。
+     *  @param[in]      sock       対象のソケット。
+     *  @param[in]      group_address マルチキャスト グループのアドレス
+     *                             (ネットワーク バイト オーダー)。
+     *  @param[in]      interface_address 受信に使用していたローカル インターフェースのアドレス
+     *                             (ネットワーク バイト オーダー)。
+     *                             @ref com_util_socket_join_multicast_group へ指定した値と同じ値を指定します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  ソケットを閉じると参加中のグループからは自動的に離脱するため、閉じる前に
+     *  明示的な離脱を通知する場合に使用します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_socket_leave_multicast_group(com_util_socket sock,
+                                                                           uint32_t group_address,
+                                                                           uint32_t interface_address,
+                                                                           com_util_error *detail_out);
+
+    /**
      *  @brief          接続済みソケットへ送信します。
      *  @param[in]      sock       対象のソケット。
      *  @param[in]      buf        送信するデータ。

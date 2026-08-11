@@ -732,7 +732,7 @@ TEST_F(socketTest, socket_options_succeed)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の setsockopt API が SO_REUSEADDR と SO_BROADCAST を有効と無効で 1 回ずつ、IP_MULTICAST_IF と IP_ADD_MEMBERSHIP を 1 回ずつ指定して呼び出されること。
+    // [Pre-Assert確認_正常系] - 下位の setsockopt API が SO_REUSEADDR と SO_BROADCAST を有効と無効で 1 回ずつ、IP_MULTICAST_IF、IP_ADD_MEMBERSHIP、IP_DROP_MEMBERSHIP を 1 回ずつ指定して呼び出されること。
     // [Pre-Assert手順] - 下位の setsockopt API から成功を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
@@ -745,6 +745,8 @@ TEST_F(socketTest, socket_options_succeed)
         .WillOnce(Return(0));
     EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
         .WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, _, _))
+        .WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(Return(0))
@@ -755,6 +757,8 @@ TEST_F(socketTest, socket_options_succeed)
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
         .WillOnce(Return(0));
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
+        .WillOnce(Return(0));
+    EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, _, _))
         .WillOnce(Return(0));
 #endif /* PLATFORM_ */
 
@@ -769,6 +773,8 @@ TEST_F(socketTest, socket_options_succeed)
         kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, &detail); // [手順] - マルチキャスト インターフェースを設定する。
     int rtc_join = com_util_socket_join_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
                                                         &detail); // [手順] - マルチキャスト グループへ参加する。
+    int rtc_leave = com_util_socket_leave_multicast_group(
+        kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY, &detail); // [手順] - マルチキャスト グループから離脱する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
@@ -783,6 +789,8 @@ TEST_F(socketTest, socket_options_succeed)
               rtc_interface); // [確認_正常系] - マルチキャスト インターフェース設定の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
               rtc_join); // [確認_正常系] - マルチキャスト参加の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_leave); // [確認_正常系] - マルチキャスト離脱の戻り値が COM_UTIL_OK であること。
 }
 
 // ソケット オプションの引数不正と OS 失敗が処理されることの確認
@@ -792,7 +800,7 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の setsockopt API が SO_REUSEADDR、IP_MULTICAST_IF、IP_ADD_MEMBERSHIP を指定して 1 回ずつ呼び出されること。
+    // [Pre-Assert確認_異常系] - 下位の setsockopt API が SO_REUSEADDR、IP_MULTICAST_IF、IP_ADD_MEMBERSHIP、IP_DROP_MEMBERSHIP を指定して 1 回ずつ呼び出されること。
     // [Pre-Assert手順] - 下位の setsockopt API から失敗を返却し、それぞれの失敗要因を通知する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
@@ -801,6 +809,8 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
         .WillOnce(DoAll(Assign(&errno, ENODEV), Return(-1)));
     EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
         .WillOnce(DoAll(Assign(&errno, ENODEV), Return(-1)));
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, _, _))
+        .WillOnce(DoAll(Assign(&errno, ENODEV), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(Return(SOCKET_ERROR));
@@ -808,8 +818,11 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
         .WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
         .WillOnce(Return(SOCKET_ERROR));
+    EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, _, _))
+        .WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, WSAGetLastError)
         .WillOnce(Return(WSAENOPROTOOPT))
+        .WillOnce(Return(WSAENETDOWN))
         .WillOnce(Return(WSAENETDOWN))
         .WillOnce(Return(WSAENETDOWN));
 #endif /* PLATFORM_ */
@@ -825,6 +838,9 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
     int rtc_join_invalid = com_util_socket_join_multicast_group(
         COM_UTIL_INVALID_SOCKET, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
         &detail); // [手順] - 無効なソケットでグループ参加を設定する。
+    int rtc_leave_invalid = com_util_socket_leave_multicast_group(
+        COM_UTIL_INVALID_SOCKET, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
+        &detail); // [手順] - 無効なソケットでグループ離脱を設定する。
     int rtc_failure =
         com_util_socket_set_reuse_address(kSocket, 1, &detail); // [手順] - オプション設定の失敗を注入する。
     int rtc_interface_failure = com_util_socket_set_multicast_interface(
@@ -832,6 +848,9 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
     int rtc_join_failure =
         com_util_socket_join_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
                                              &detail); // [手順] - グループ参加の失敗を注入する。
+    int rtc_leave_failure =
+        com_util_socket_leave_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
+                                              &detail); // [手順] - グループ離脱の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
@@ -853,6 +872,12 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
         rtc_interface_failure); // [確認_異常系] - インターフェース設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc_join_failure); // [確認_異常系] - グループ参加失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc_leave_invalid); // [確認_異常系] - 無効なソケットを指定したグループ離脱の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc_leave_failure); // [確認_異常系] - グループ離脱失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 送受信の引数不正、成功、失敗が処理されることの確認

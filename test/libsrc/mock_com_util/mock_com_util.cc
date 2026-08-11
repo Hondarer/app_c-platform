@@ -31,6 +31,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_socket_set_broadcast(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_broadcast));
     ON_CALL(*this, com_util_socket_set_multicast_interface(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_multicast_interface));
     ON_CALL(*this, com_util_socket_join_multicast_group(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_join_multicast_group));
+    ON_CALL(*this, com_util_socket_leave_multicast_group(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_leave_multicast_group));
     ON_CALL(*this, com_util_socket_send(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_send));
     ON_CALL(*this, com_util_socket_recv(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_recv));
     ON_CALL(*this, com_util_socket_sendto(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_sendto));
