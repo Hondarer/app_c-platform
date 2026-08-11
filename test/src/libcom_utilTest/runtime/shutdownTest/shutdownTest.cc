@@ -308,6 +308,8 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
 TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
 {
     // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
 
     // Pre-Assert
 
