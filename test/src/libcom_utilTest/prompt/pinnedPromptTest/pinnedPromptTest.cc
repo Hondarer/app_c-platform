@@ -752,6 +752,194 @@ TEST(pinnedPromptTest, tty_readline_continues_after_resize)
 
 #endif /* PLATFORM_LINUX */
 
+// 固定プロンプトの文字幅と ANSI 解析が境界値を処理することの確認
+TEST(pinnedPromptTest, static_text_helpers_cover_boundary_sequences)
+{
+    // Arrange
+    const char two_byte[] = "\xC3\xA9";
+    const char three_byte[] = "\xE2\x82\xAC";
+    const char astral_wide[] = "\xF0\xB0\x80\x80";
+    const char truncated_three[] = "\xE3\x81";
+    const char truncated_four[] = "\xF0\x9F\x98";
+    const char valid_sgr[] = "\x1B[1;31mX";
+    const char invalid_sgr[] = "\x1B[1x";
+    const char incomplete_sgr[] = "\x1B[1";
+
+    // Pre-Assert
+
+    // Act
+    size_t at_end = test_pinned_prompt_utf8_width("A", 1U, 1U); // [手順] - 文字列末尾の表示幅を取得する。
+    size_t two_byte_width =
+        test_pinned_prompt_utf8_width(two_byte, sizeof(two_byte) - 1U, 0U); // [手順] - 2 バイト文字の表示幅を取得する。
+    size_t three_byte_width = test_pinned_prompt_utf8_width(
+        three_byte, sizeof(three_byte) - 1U, 0U); // [手順] - CJK 以外の 3 バイト文字の表示幅を取得する。
+    size_t astral_wide_width = test_pinned_prompt_utf8_width(
+        astral_wide, sizeof(astral_wide) - 1U, 0U); // [手順] - 2FFFF を超える 4 バイト文字の表示幅を取得する。
+    size_t truncated_three_width = test_pinned_prompt_utf8_width(
+        truncated_three, sizeof(truncated_three) - 1U, 0U); // [手順] - 不完全な 3 バイト文字の表示幅を取得する。
+    size_t truncated_four_width = test_pinned_prompt_utf8_width(
+        truncated_four, sizeof(truncated_four) - 1U, 0U); // [手順] - 不完全な 4 バイト文字の表示幅を取得する。
+    size_t valid_sgr_len = test_pinned_prompt_ansi_len(valid_sgr, sizeof(valid_sgr) - 1U, 0U); // [手順] - パラメーター付き SGR の長さを取得する。
+    size_t invalid_sgr_len = test_pinned_prompt_ansi_len(invalid_sgr, sizeof(invalid_sgr) - 1U, 0U); // [手順] - 不正終端 SGR の長さを取得する。
+    size_t incomplete_sgr_len = test_pinned_prompt_ansi_len(incomplete_sgr, sizeof(incomplete_sgr) - 1U, 0U); // [手順] - 未完了 SGR の長さを取得する。
+    size_t zero_visible = test_pinned_prompt_visible_bytes("A", 1U, 0U, 0U); // [手順] - 表示列数 0 の可視バイト数を取得する。
+    size_t clipped_display = test_pinned_prompt_display_width("ABC", 3U, 1U, 8U); // [手順] - 終端を超える表示幅を取得する。
+
+    // Assert
+    EXPECT_EQ(0U, at_end); // [確認_正常系] - 末尾位置の UTF-8 表示幅が 0 であること。
+    EXPECT_EQ(1U, two_byte_width); // [確認_正常系] - 2 バイト文字の表示幅が 1 であること。
+    EXPECT_EQ(1U, three_byte_width); // [確認_正常系] - CJK 以外の 3 バイト文字の表示幅が 1 であること。
+    EXPECT_EQ(1U, astral_wide_width); // [確認_正常系] - 2FFFF を超える 4 バイト文字の表示幅が 1 であること。
+    EXPECT_EQ(1U, truncated_three_width); // [確認_異常系] - 不完全な 3 バイト文字の表示幅が 1 であること。
+    EXPECT_EQ(1U, truncated_four_width); // [確認_異常系] - 不完全な 4 バイト文字の表示幅が 1 であること。
+    EXPECT_EQ(7U, valid_sgr_len); // [確認_正常系] - パラメーター付き SGR の長さが 7 であること。
+    EXPECT_EQ(0U, invalid_sgr_len); // [確認_異常系] - 不正終端 SGR の長さが 0 であること。
+    EXPECT_EQ(0U, incomplete_sgr_len); // [確認_異常系] - 未完了 SGR の長さが 0 であること。
+    EXPECT_EQ(0U, zero_visible); // [確認_正常系] - 列数 0 の可視バイト数が 0 であること。
+    EXPECT_EQ(2U, clipped_display); // [確認_正常系] - 範囲を終端で切った表示幅が 2 であること。
+}
+
+// 固定プロンプトの履歴補助関数が空状態と重複入力を処理することの確認
+TEST(pinnedPromptTest, history_helpers_cover_empty_and_duplicate_entries)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_history_edge_cases(screen); // [手順] - 空履歴、重複履歴、履歴移動の境界を処理する。
+
+    // Assert
+    EXPECT_STREQ("same", test_pinned_prompt_edit_text(screen)); // [確認_正常系] - 履歴から復元した入力が "same" であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#if defined(PLATFORM_LINUX)
+
+// 固定プロンプトの Linux raw モードが失敗と再入を処理することの確認
+TEST(pinnedPromptTest, platform_raw_mode_handles_failures_and_reentry)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_signal> mock_signal;
+    struct termios original = {};
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(Return(-1))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _))
+        .WillOnce(Return(-1))
+        .WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).Times(2).WillRepeatedly(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_enter_raw(screen); // [手順] - tcgetattr 失敗を含む raw モード移行を行う。
+    int after_getattr_failure = test_pinned_prompt_raw_active(screen); // [手順] - tcgetattr 失敗後の raw 状態を取得する。
+    test_pinned_prompt_enter_raw(screen); // [手順] - tcsetattr 失敗を含む raw モード移行を行う。
+    int after_setattr_failure = test_pinned_prompt_raw_active(screen); // [手順] - tcsetattr 失敗後の raw 状態を取得する。
+    test_pinned_prompt_enter_raw(screen); // [手順] - raw モードを正常に開始する。
+    int after_enter = test_pinned_prompt_raw_active(screen); // [手順] - raw モード開始後の状態を取得する。
+    test_pinned_prompt_enter_raw(screen); // [手順] - raw モード中に再度開始する。
+    test_pinned_prompt_leave_raw(screen); // [手順] - raw モードを解除する。
+    int after_leave = test_pinned_prompt_raw_active(screen); // [手順] - raw モード解除後の状態を取得する。
+    test_pinned_prompt_leave_raw(screen); // [手順] - raw モード解除済みの状態で再度解除する。
+
+    // Assert
+    EXPECT_EQ(0, after_getattr_failure); // [確認_異常系] - tcgetattr 失敗後の raw 状態が無効であること。
+    EXPECT_EQ(0, after_setattr_failure); // [確認_異常系] - tcsetattr 失敗後の raw 状態が無効であること。
+    EXPECT_EQ(1, after_enter); // [確認_正常系] - raw モード開始後の状態が有効であること。
+    EXPECT_EQ(0, after_leave); // [確認_正常系] - raw モード解除後の状態が無効であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 固定プロンプトの Linux 入力が EINTR、非 EINTR、select 結果を分類することの確認
+TEST(pinnedPromptTest, platform_read_helpers_handle_interrupt_and_select_results)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+    int read_count = 0;
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillOnce(Invoke([&read_count](const char *, const int, const char *, const int, void *, const size_t)
+                         {
+                             read_count++;
+                             errno = EINTR;
+                             return static_cast<ssize_t>(-1);
+                         }))
+        .WillOnce(Invoke([](const char *, const int, const char *, const int, void *, const size_t)
+                         {
+                             errno = EAGAIN;
+                             return static_cast<ssize_t>(-1);
+                         }))
+        .WillOnce(Invoke([](const char *, const int, const char *, const int, void *arg, const size_t)
+                         {
+                             *static_cast<unsigned char *>(arg) = static_cast<unsigned char>('Q');
+                             return static_cast<ssize_t>(1);
+                         }));
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillOnce(Return(0)).WillOnce(Return(1));
+
+    // Pre-Assert
+
+    // Act
+    int non_eintr_result = test_pinned_prompt_read_char(screen); // [手順] - EINTR 後に非 EINTR read 失敗を処理する。
+    int select_timeout_result = test_pinned_prompt_read_char_nb(screen); // [手順] - select のタイムアウトを処理する。
+    int select_read_result = test_pinned_prompt_read_char_nb(screen); // [手順] - select 成功後に 1 文字を読み取る。
+
+    // Assert
+    EXPECT_EQ(-1, non_eintr_result); // [確認_異常系] - 非 EINTR read 失敗の結果が -1 であること。
+    EXPECT_EQ(-1, select_timeout_result); // [確認_異常系] - select タイムアウトの結果が -1 であること。
+    EXPECT_EQ(static_cast<int>('Q'), select_read_result); // [確認_正常系] - select 成功後の入力文字が Q であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 固定プロンプトの出力準備が非 TTY と表示中 TTY を処理することの確認
+TEST(pinnedPromptTest, prepare_output_handles_tty_visibility)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_ioctl> mock_ioctl;
+    struct winsize size = {};
+    size.ws_col = 40U;
+    size.ws_row = 8U;
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                             void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_set_tty(screen, 0); // [手順] - 非 TTY 状態へ変更する。
+    test_pinned_prompt_prepare_output(screen); // [手順] - 非 TTY の出力準備を行う。
+    test_pinned_prompt_render_state(screen, 1, 1, 0, 0, "P> ", "text", NULL, NULL, NULL, NULL); // [手順] - 表示中の TTY 状態を用意する。
+    test_pinned_prompt_prepare_output(screen); // [手順] - 表示中 TTY の出力準備を行う。
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - 非 TTY と表示中 TTY の出力準備が完了すること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#endif /* PLATFORM_LINUX */
+
 // 書き込み API が引数、ストリーム、短い書き込みを分類することの確認
 TEST(pinnedPromptTest, write_and_printf_handle_arguments_and_short_write)
 {

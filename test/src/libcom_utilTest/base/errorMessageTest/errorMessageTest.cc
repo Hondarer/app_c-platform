@@ -6,6 +6,10 @@
 
 #include <errno.h>
 
+#if defined(PLATFORM_LINUX)
+    #include <netdb.h>
+#endif
+
 #include <cstring>
 #include <set>
 #include <string>
@@ -203,6 +207,25 @@ TEST_F(errorMessageTest, windows_error_domain_is_rejected_on_linux)
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               result); // [確認_異常系] - Windows ドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - Windows ドメインでは出力バッファーが空になること。
+}
+
+// GAI ドメインが Linux の gai_strerror() で文字列化されることの確認
+TEST_F(errorMessageTest, gai_domain_is_converted_to_message_on_linux)
+{
+    // Arrange
+    char buf[128] = {};
+    const com_util_error error = {COM_UTIL_ERROR_DOMAIN_GAI, COM_UTIL_ERR_UNKNOWN,
+                                  static_cast<unsigned long>(EAI_NONAME)};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_error_message(buf, sizeof(buf), &error); // [手順] - GAI ドメインを文字列化する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - GAI ドメインの文字列化が成功すること。
+    EXPECT_NE('\0', buf[0]); // [確認_正常系] - GAI エラー メッセージが格納されること。
 }
 
 // 未知のエラー ドメインが不正引数として拒否されることの確認

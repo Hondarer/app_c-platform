@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <cstdio>
+#include <limits>
 #include <string>
 
 #if defined(PLATFORM_LINUX)
@@ -117,6 +118,202 @@ TEST_F(fileFailureInjectionTest, get_id_reports_errno_when_fstat_fails)
     EXPECT_EQ(
         EBADF,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EBADF であること。
+}
+
+// NULL のファイル ハンドル初期化が安全に完了することの確認
+TEST_F(fileFailureInjectionTest, init_accepts_null)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    com_util_file_init(NULL); // [手順] - NULL を指定して com_util_file_init を呼び出す。
+
+    // Assert
+    // [確認_正常系] - クラッシュせずに完了すること。
+}
+
+// 既存ハンドルのクローズに失敗した場合にオープン処理を中断することの確認
+TEST_F(fileFailureInjectionTest, open_reports_close_failure_before_opening_new_path)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    com_util_file_init(&file);
+    file.handle = std::numeric_limits<int>::max(); // [状態] - クローズできない無効なファイル記述子を設定する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_open(&file, path_.c_str(), COM_UTIL_FILE_OPEN_READ,
+                                 &detail); // [手順] - 既存ハンドルを持つ状態で別のファイルを開く。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - 既存ハンドルのクローズ失敗が返ること。
+    EXPECT_EQ(EBADF,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - クローズ失敗の errno が EBADF であること。
+}
+
+// 書き込み長 0 の場合に OS API を呼ばず成功することの確認
+TEST_F(fileFailureInjectionTest, write_succeeds_for_zero_length)
+{
+    // Arrange
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_write(&file_, NULL, 0u,
+                                  &detail); // [手順] - NULL バッファーと長さ 0 を指定して書き込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 長さ 0 の書き込みが成功すること。
+}
+
+// 読み取り長 0 の場合に OS API を呼ばず成功することの確認
+TEST_F(fileFailureInjectionTest, read_succeeds_for_zero_length)
+{
+    // Arrange
+    char buf[1] = {};
+    size_t read = 99u;
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_read(&file_, buf, 0u, &read,
+                                 &detail); // [手順] - 長さ 0 を指定して読み込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 長さ 0 の読み取りが成功すること。
+    EXPECT_EQ(0u, read);          // [確認_正常系] - 読み取ったバイト数が 0 であること。
+}
+
+// 未オープンのファイルに対する flush が拒否されることの確認
+TEST_F(fileFailureInjectionTest, flush_rejects_unopened_file)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_flush(&file,
+                                  &detail); // [手順] - 未オープンのファイルを flush する。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - 未オープンのファイルが拒否されること。
+    EXPECT_EQ(EINVAL,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
+}
+
+// NULL のファイル クローズが拒否されることの確認
+TEST_F(fileFailureInjectionTest, close_rejects_null_file)
+{
+    // Arrange
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_close(NULL,
+                                  &detail); // [手順] - NULL を指定して com_util_file_close を呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - NULL のファイルが拒否されること。
+    EXPECT_EQ(EINVAL,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
+}
+
+// 無効なファイル記述子への書き込み失敗が通知されることの確認
+TEST_F(fileFailureInjectionTest, write_reports_os_failure)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    const char byte = 'x';
+    com_util_file_init(&file);
+    file.handle = std::numeric_limits<int>::max();
+    file.writable = 1; // [状態] - 無効な記述子を書き込み可能状態で用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_write(&file, &byte, sizeof(byte),
+                                  &detail); // [手順] - 無効な記述子へ 1 バイトを書き込む。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - OS の書き込み失敗が通知されること。
+    EXPECT_EQ(EBADF,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EBADF であること。
+}
+
+// 無効なファイル記述子からの読み取り失敗が通知されることの確認
+TEST_F(fileFailureInjectionTest, read_reports_os_failure)
+{
+    // Arrange
+    com_util_file file;
+    char buf[1] = {};
+    size_t read = 0u;
+    com_util_error detail;
+    com_util_file_init(&file);
+    file.handle = std::numeric_limits<int>::max(); // [状態] - 無効なファイル記述子を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_read(&file, buf, sizeof(buf), &read,
+                                 &detail); // [手順] - 無効な記述子から 1 バイトを読み取る。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - OS の読み取り失敗が通知されること。
+    EXPECT_EQ(EBADF,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EBADF であること。
+}
+
+// 無効なファイル記述子の flush 失敗が通知されることの確認
+TEST_F(fileFailureInjectionTest, flush_reports_os_failure)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    com_util_file_init(&file);
+    file.handle = std::numeric_limits<int>::max(); // [状態] - 無効なファイル記述子を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_flush(&file,
+                                  &detail); // [手順] - 無効な記述子を flush する。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - OS の flush 失敗が通知されること。
+    EXPECT_EQ(EBADF,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EBADF であること。
+}
+
+// 無効なファイル記述子のクローズ失敗が通知されることの確認
+TEST_F(fileFailureInjectionTest, close_reports_os_failure)
+{
+    // Arrange
+    com_util_file file;
+    com_util_error detail;
+    com_util_file_init(&file);
+    file.handle = std::numeric_limits<int>::max(); // [状態] - 無効なファイル記述子を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_close(&file,
+                                  &detail); // [手順] - 無効な記述子をクローズする。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - OS のクローズ失敗が通知されること。
+    EXPECT_EQ(EBADF,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EBADF であること。
 }
 
 #endif /* PLATFORM_LINUX */

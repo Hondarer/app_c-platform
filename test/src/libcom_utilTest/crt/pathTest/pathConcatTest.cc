@@ -153,3 +153,90 @@ TEST_F(pathConcatTest, get_temp_dir_records_error_for_null_output)
               com_util_error_is(&last_error,
                                 COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - TLS の要因が EINVAL であること。
 }
+
+// TMPDIR 未設定時に標準の一時ディレクトリが返ることの確認
+TEST_F(pathConcatTest, get_temp_dir_uses_default_when_tmpdir_is_empty)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char output[PLATFORM_PATH_MAX] = {};
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
+                         {
+                             buffer[0] = '\0';
+                             return COM_UTIL_OK;
+                         }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - TMPDIR が空の状態で一時ディレクトリを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - TMPDIR 未設定時の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/tmp", output); // [確認_正常系] - 標準の一時ディレクトリ /tmp が返ること。
+}
+
+// TMPDIR 末尾のセパレーターが除去されることの確認
+TEST_F(pathConcatTest, get_temp_dir_removes_trailing_separators)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char output[PLATFORM_PATH_MAX] = {};
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
+                         {
+                             std::strcpy(buffer, "/var/tmp///");
+                             return COM_UTIL_OK;
+                         }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 末尾セパレーターを含む TMPDIR を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - TMPDIR 末尾セパレーターの戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/var/tmp", output); // [確認_正常系] - 末尾セパレーターを除いたパスが返ること。
+}
+
+// TMPDIR が取得バッファーへ収まらない場合に失敗することの確認
+TEST_F(pathConcatTest, get_temp_dir_rejects_overlong_tmpdir)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char output[PLATFORM_PATH_MAX] = "stale";
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _)).WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 長過ぎる TMPDIR の取得結果を処理する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, result); // [確認_異常系] - 長過ぎる TMPDIR が BUFFER_TOO_SMALL になること。
+    EXPECT_STREQ("", output); // [確認_異常系] - 失敗時の出力が空文字列になること。
+}
+
+// 一時ディレクトリの出力整形失敗がエラーになることの確認
+TEST_F(pathConcatTest, get_temp_dir_reports_formatting_failure)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char output[PLATFORM_PATH_MAX] = {};
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
+                         {
+                             std::strcpy(buffer, "/tmp");
+                             return COM_UTIL_OK;
+                         }));
+    EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _)).WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 一時ディレクトリの出力整形失敗を注入する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, result); // [確認_異常系] - 出力整形失敗が BUFFER_TOO_SMALL になること。
+}

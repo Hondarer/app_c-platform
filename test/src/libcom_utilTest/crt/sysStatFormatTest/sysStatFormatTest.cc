@@ -136,3 +136,42 @@ TEST_F(sysStatFormatTest, test_stat_returns_error)
     EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
               ret); // [確認_異常系] - com_util_stat_fmt から COM_UTIL_ERR_NOT_FOUND が返されること。
 }
+
+// format が NULL の場合に com_util_mkdir を呼び出さず COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
+TEST_F(sysStatFormatTest, mkdir_fmt_rejects_null_format)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_mkdir(_, _))
+        .Times(0); // [Pre-Assert確認_異常系] - com_util_mkdir が呼び出されないこと。
+
+    // Act
+    const int result =
+        com_util_mkdir_fmt(NULL, NULL); // [手順] - format に NULL を指定して com_util_mkdir_fmt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_mkdir_fmt の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// フォーマット文字列を展開したパスで com_util_mkdir が呼び出されることの確認
+TEST_F(sysStatFormatTest, mkdir_fmt_passes_formatted_path)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_error detail;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_mkdir(StrEq("temporary_42"), &detail))
+        .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - 展開後のパスで com_util_mkdir が呼び出されること。
+
+    // Act
+    const int result = com_util_mkdir_fmt(
+        &detail, "temporary_%d", 42); // [手順] - 書式引数 42 を指定して com_util_mkdir_fmt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_mkdir_fmt の戻り値が COM_UTIL_OK であること。
+}

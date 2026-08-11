@@ -37,6 +37,12 @@ std::wstring transform(const wchar_t *text)
     return traits.transform(value.cbegin(), value.cend());
 }
 
+wchar_t translate(wchar_t target)
+{
+    regex_traits traits;
+    return traits.translate(target);
+}
+
 std::wstring transform_primary(const wchar_t *text)
 {
     regex_traits traits;
@@ -119,6 +125,11 @@ int test_regex_value(wchar_t target, int radix)
 wchar_t test_regex_translate_nocase(wchar_t target)
 {
     return translate_nocase(target);
+}
+
+wchar_t test_regex_translate(wchar_t target)
+{
+    return translate(target);
 }
 
 std::wstring test_regex_transform(const wchar_t *text)

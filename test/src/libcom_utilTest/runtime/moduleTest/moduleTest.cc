@@ -4,8 +4,12 @@
 #include <com_util/crt/path.h>
 #include <com_util/runtime/module.h>
 
+#include <cerrno>
 #include <cstring>
 #include <string>
+
+using testing::_;
+using testing::NiceMock;
 
 #include "module.inject.h"
 
@@ -136,6 +140,75 @@ TEST_F(moduleTest, get_path_returns_buffer_too_small)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
               rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+}
+
+// 所属モジュールのパス正規化が失敗した場合に UNKNOWN を返すことの確認
+TEST_F(moduleTest, get_path_returns_unknown_when_normalization_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_path_get_full(_, _, _, _))
+        .WillOnce(
+            [](char *, size_t, com_util_error *detail_out, const char *)
+            {
+                *detail_out = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, EIO};
+                return COM_UTIL_ERR_UNKNOWN;
+            });
+
+    // Act
+    const int result = com_util_module_get_path(
+        path, sizeof(path), self_func_addr()); // [手順] - パス正規化失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 所属モジュールのパスが長過ぎる場合に BUFFER_TOO_SMALL を返すことの確認
+TEST_F(moduleTest, get_path_returns_buffer_too_small_when_normalization_reports_long_name)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_path_get_full(_, _, _, _))
+        .WillOnce(
+            [](char *, size_t, com_util_error *detail_out, const char *)
+            {
+                *detail_out = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_BUFFER_TOO_SMALL, ENAMETOOLONG};
+                return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+            });
+
+    // Act
+    const int result = com_util_module_get_path(
+        path, sizeof(path), self_func_addr()); // [手順] - 長過ぎるパスのエラーを注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+}
+
+// 不正引数時に出力バッファーが空文字列へ初期化されることの確認
+TEST_F(moduleTest, get_path_clears_output_for_null_function_address)
+{
+    // Arrange
+    char path[PLATFORM_PATH_MAX];
+    std::memset(path, 'X', sizeof(path));
+
+    // Pre-Assert
+
+    // Act
+    const int result = com_util_module_get_path(
+        path, sizeof(path), NULL); // [手順] - func_addr に NULL を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 出力バッファーの先頭が空文字列になること。
 }
 
 /*

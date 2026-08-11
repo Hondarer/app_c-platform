@@ -330,6 +330,22 @@ TEST_F(stringTest, strtok_r_null_delimiter_returns_null)
     EXPECT_EQ((char *)NULL, token); // [確認_異常系] - com_util_strtok_r の戻り値が NULL であること。
 }
 
+// saveptr が NULL の場合に NULL を返すことの確認
+TEST_F(stringTest, strtok_r_null_saveptr_returns_null)
+{
+    // Arrange
+    char text[] = "a,b"; // [状態] - カンマ区切りの文字列 "a,b" を用意する。
+
+    // Pre-Assert
+
+    // Act
+    char *token =
+        com_util_strtok_r(text, ",", NULL); // [手順] - saveptr に NULL を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ((char *)NULL, token); // [確認_異常系] - com_util_strtok_r の戻り値が NULL であること。
+}
+
 // 3 つのトークンが読み取られることの確認
 TEST_F(stringTest, sscanf_reads_three_tokens)
 {

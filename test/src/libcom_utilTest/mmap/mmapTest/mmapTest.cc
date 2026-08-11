@@ -3,6 +3,8 @@
 #include <com_util/mmap/mmap.h>
 #include <com_util/sync/sync.h>
 
+#include <errno.h>
+
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -119,6 +121,39 @@ TEST_F(mmapTest, attach_fails_for_empty_existing_file)
     std::remove(path.c_str());
 }
 
+// 既存ファイルを読み取り専用でマップできることの確認
+TEST_F(mmapTest, attach_read_only_maps_existing_file)
+{
+    // Arrange
+    std::string path = make_path("read_only.dat");
+    const std::string content(64u, 'r');
+    com_util_mmap *map = NULL;
+
+    std::remove(path.c_str());
+    std::ofstream file(path, std::ios::binary);
+    file.write(content.data(), static_cast<std::streamsize>(content.size()));
+    file.close(); // [状態] - サイズ 64 バイトの既存ファイルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
+                                   NULL); // [手順] - 既存ファイルを読み取り専用でアタッチする。
+
+    // Assert
+    ASSERT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 読み取り専用アタッチの戻り値が COM_UTIL_OK であること。
+    ASSERT_NE((com_util_mmap *)NULL, map);
+    EXPECT_EQ(64u,
+              com_util_mmap_get_size(map)); // [確認_正常系] - マップ サイズが既存ファイルの 64 バイトと一致すること。
+    const char *address = (const char *)com_util_mmap_get_address(map);
+    ASSERT_NE((const char *)NULL, address);
+    EXPECT_EQ('r', address[0]); // [確認_正常系] - 読み取り専用マップから先頭バイトを読み取れること。
+
+    // Cleanup
+    com_util_mmap_detach(map, NULL);
+    std::remove(path.c_str());
+}
+
 // 読み取り専用アクセスで存在しないファイルを指定すると失敗することの確認 (新規作成しない)
 TEST_F(mmapTest, attach_read_only_fails_for_missing_file)
 {
@@ -225,6 +260,36 @@ TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
               lock_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が NULL でないこと。
     EXPECT_EQ(lock_first,
               lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインターであること。
+
+    // Cleanup
+    com_util_mmap_detach(map, NULL);
+    std::remove(path.c_str());
+}
+
+// ロック出力先が NULL の場合に get_rwlock が拒否することの確認
+TEST_F(mmapTest, get_rwlock_rejects_null_output)
+{
+    // Arrange
+    std::string path = make_path("lazy_rwlock_null_output.dat");
+    com_util_mmap *map = NULL;
+    com_util_error detail;
+
+    std::remove(path.c_str());
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   NULL)); // [状態] - create_size 64 でマップ ハンドルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_mmap_get_rwlock(map, NULL,
+                                       &detail); // [手順] - ロック出力先に NULL を指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - get_rwlock の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(EINVAL,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
 
     // Cleanup
     com_util_mmap_detach(map, NULL);

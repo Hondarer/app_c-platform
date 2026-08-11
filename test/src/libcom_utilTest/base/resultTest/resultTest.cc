@@ -147,6 +147,7 @@ TEST_F(resultTest, errno_values_map_to_expected_results)
         {EBUSY, COM_UTIL_ERR_BUSY},
         {EAGAIN, COM_UTIL_ERR_BUSY},
         {ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY},
+        {ENOENT, COM_UTIL_ERR_NOT_FOUND},
         {ENAMETOOLONG, COM_UTIL_ERR_BUFFER_TOO_SMALL},
         {ERANGE, COM_UTIL_ERR_BUFFER_TOO_SMALL},
         {EIO, COM_UTIL_ERR_UNKNOWN}}; // [状態] - errno と期待する共通結果コードの対応表を用意する。

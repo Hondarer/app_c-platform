@@ -9,6 +9,11 @@
 #include <set>
 #include <string>
 
+using testing::_;
+using testing::NiceMock;
+using testing::Return;
+using testing::StrEq;
+
 #if defined(PLATFORM_LINUX)
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
@@ -233,3 +238,97 @@ TEST_F(stdioTempTest, prefix_longer_than_three_chars_is_truncated)
     fclose(fp);
     std::remove(path);
 }
+
+#if defined(PLATFORM_LINUX)
+// TMPDIR の取得結果がバッファーに収まらない場合に失敗することの確認
+TEST_F(stdioTempTest, tmpdir_buffer_too_small_returns_enametoolong)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(StrEq("TMPDIR"), _, _, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
+
+    // Act
+    FILE *fp = com_util_fopen_temp("ptr", "wb", path, sizeof(path),
+                                   &err); // [手順] - バッファー不足を返す TMPDIR を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
+    EXPECT_EQ(1, com_util_error_is(
+                     &err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が格納されること。
+}
+
+// 一時ディレクトリが存在しない場合に mkostemp のエラーを返すことの確認
+TEST_F(stdioTempTest, mkostemp_failure_reports_errno)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(StrEq("TMPDIR"), _, _, _, _))
+        .WillOnce(
+            [](const char *, char *buffer, size_t buffer_size, int *, com_util_error *)
+            {
+                std::strncpy(buffer, "/com_util/no-such-temp-directory", buffer_size);
+                buffer[buffer_size - 1u] = '\0';
+                return COM_UTIL_OK;
+            });
+
+    // Act
+    FILE *fp = com_util_fopen_temp("ptr", "wb", path, sizeof(path),
+                                   &err); // [手順] - 存在しない TMPDIR を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
+    EXPECT_EQ(ENOENT,
+              com_util_error_get_errno(&err)); // [確認_異常系] - mkostemp の ENOENT が格納されること。
+}
+
+// 一時ファイルのモードが不正な場合に fdopen のエラーを返すことの確認
+TEST_F(stdioTempTest, invalid_modes_reports_fdopen_error)
+{
+    // Arrange
+    char path[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+
+    // Pre-Assert
+
+    // Act
+    FILE *fp = com_util_fopen_temp("ptr", "q", path, sizeof(path),
+                                   &err); // [手順] - 不正なモードを指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
+    EXPECT_EQ(EINVAL,
+              com_util_error_get_errno(&err)); // [確認_異常系] - fdopen の EINVAL が格納されること。
+    EXPECT_FALSE(path_exists(path)); // [確認_異常系] - fdopen 失敗後に一時ファイルが削除されること。
+}
+
+// 一時ファイルのパス整形に失敗した場合に ENAMETOOLONG で失敗することの確認
+TEST_F(stdioTempTest, path_formatting_failure_returns_enametoolong)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char path[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+
+    // Act
+    FILE *fp = com_util_fopen_temp("ptr", "wb", path, sizeof(path),
+                                   &err); // [手順] - パス整形失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ((FILE *)nullptr, fp); // [確認_異常系] - com_util_fopen_temp の戻り値が NULL であること。
+    EXPECT_EQ(1, com_util_error_is(
+                     &err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が格納されること。
+}
+#endif /* PLATFORM_LINUX */

@@ -68,6 +68,10 @@ extern "C"
                                                 const char *bottom_right);
     extern void test_pinned_prompt_render(com_util_pinned_prompt *screen);
 
+    /* 履歴と出力準備の境界経路へ直接アクセスする。 */
+    extern void test_pinned_prompt_history_edge_cases(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_prepare_output(com_util_pinned_prompt *screen);
+
 #if defined(PLATFORM_LINUX)
     /* Linux プラットフォーム層の static 状態をテスト開始状態へ戻す。 */
     extern void test_pinned_prompt_reset_platform_state(void);

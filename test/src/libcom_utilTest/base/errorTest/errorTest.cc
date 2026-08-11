@@ -5,8 +5,14 @@
 
 #include <errno.h>
 
+#if defined(PLATFORM_LINUX)
+    #include <netdb.h>
+#endif
+
 #include <cstring>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 /* 値はライブラリの ABI の一部であり、既存の値を変更してはならない */
 static_assert(std::is_trivially_copyable<com_util_error>::value, "com_util_error must be trivially copyable");
@@ -319,4 +325,176 @@ TEST_F(errorTest, report_success_clears_detail_and_last_error)
               detail.domain); // [確認_正常系] - 出力詳細エラーのドメインが空であること。
     EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
               last_error.domain); // [確認_正常系] - TLS 詳細エラーのドメインが空であること。
+}
+
+// ソケット errno が待機要因と通常要因を区別して記録されることの確認
+TEST_F(errorTest, report_socket_errno_uses_socket_domain_and_would_block_cause)
+{
+    // Arrange
+    com_util_error error;
+    com_util_error last_error;
+
+    // Pre-Assert
+
+    // Act
+    int blocked_result = com_util_error_report_socket_errno(&error, EAGAIN); // [手順] - EAGAIN をソケット errno として記録する。
+    const com_util_error_domain blocked_domain = com_util_error_get_domain(&error); // [手順] - EAGAIN の記録ドメインを取得する。
+    const com_util_error_cause blocked_cause = com_util_error_get_cause(&error); // [手順] - ソケット EAGAIN の要因を取得する。
+    int success_result = com_util_error_report_socket_errno(&error, 0); // [手順] - errno 0 をソケット成功として記録する。
+    com_util_error_get_last(&last_error); // [手順] - ソケット成功後の TLS 詳細エラーを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUSY, blocked_result); // [確認_正常系] - ソケット EAGAIN の戻り値が COM_UTIL_ERR_BUSY であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, blocked_domain); // [確認_正常系] - EAGAIN の記録ドメインが SOCKET_ERRNO であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_WOULD_BLOCK, blocked_cause); // [確認_正常系] - ソケット EAGAIN の要因が WOULD_BLOCK であること。
+    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - ソケット errno 0 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE, last_error.domain); // [確認_正常系] - ソケット成功後の TLS ドメインが NONE であること。
+}
+
+// getaddrinfo のエラー コードが要因と結果へ分類されることの確認
+TEST_F(errorTest, report_gai_error_maps_standard_codes_and_unknown_code)
+{
+    // Arrange
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+#if defined(PLATFORM_LINUX)
+    int not_found_result = com_util_error_report_gai_error(&error, EAI_NONAME); // [手順] - EAI_NONAME を記録する。
+    const com_util_error_cause not_found_cause = com_util_error_get_cause(&error); // [手順] - EAI_NONAME の要因を取得する。
+    int again_result = com_util_error_report_gai_error(&error, EAI_AGAIN); // [手順] - EAI_AGAIN を記録する。
+    const com_util_error_cause again_cause = com_util_error_get_cause(&error); // [手順] - EAI_AGAIN の要因を取得する。
+    int memory_result = com_util_error_report_gai_error(&error, EAI_MEMORY); // [手順] - EAI_MEMORY を記録する。
+    const com_util_error_cause memory_cause = com_util_error_get_cause(&error); // [手順] - EAI_MEMORY の要因を取得する。
+    int family_result = com_util_error_report_gai_error(&error, EAI_FAMILY); // [手順] - EAI_FAMILY を記録する。
+    const com_util_error_cause family_cause = com_util_error_get_cause(&error); // [手順] - EAI_FAMILY の要因を取得する。
+    int flags_result = com_util_error_report_gai_error(&error, EAI_BADFLAGS); // [手順] - EAI_BADFLAGS を記録する。
+    const com_util_error_cause flags_cause = com_util_error_get_cause(&error); // [手順] - EAI_BADFLAGS の要因を取得する。
+    int unknown_result = com_util_error_report_gai_error(&error, -9999); // [手順] - 未知の EAI 値を記録する。
+    const com_util_error_cause unknown_cause = com_util_error_get_cause(&error); // [手順] - 未知の EAI 値の要因を取得する。
+    int success_result = com_util_error_report_gai_error(&error, 0); // [手順] - EAI 0 を成功として記録する。
+#else
+    int not_found_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause not_found_cause = COM_UTIL_CAUSE_OTHER;
+    int again_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause again_cause = COM_UTIL_CAUSE_OTHER;
+    int memory_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause memory_cause = COM_UTIL_CAUSE_OTHER;
+    int family_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause family_cause = COM_UTIL_CAUSE_OTHER;
+    int flags_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause flags_cause = COM_UTIL_CAUSE_OTHER;
+    int unknown_result = COM_UTIL_ERR_UNKNOWN;
+    const com_util_error_cause unknown_cause = COM_UTIL_CAUSE_OTHER;
+    int success_result = COM_UTIL_OK;
+#endif
+
+    // Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND, not_found_result); // [確認_正常系] - EAI_NONAME の戻り値が COM_UTIL_ERR_NOT_FOUND であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_NOT_FOUND, not_found_cause); // [確認_正常系] - EAI_NONAME の要因が NOT_FOUND であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, again_result); // [確認_正常系] - EAI_AGAIN の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_BUSY, again_cause); // [確認_正常系] - EAI_AGAIN の要因が BUSY であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, memory_result); // [確認_正常系] - EAI_MEMORY の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OUT_OF_MEMORY, memory_cause); // [確認_正常系] - EAI_MEMORY の要因が OUT_OF_MEMORY であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, family_result); // [確認_正常系] - EAI_FAMILY の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_UNSUPPORTED, family_cause); // [確認_正常系] - EAI_FAMILY の要因が UNSUPPORTED であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, flags_result); // [確認_正常系] - EAI_BADFLAGS の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_INVALID_ARGUMENT, flags_cause); // [確認_正常系] - EAI_BADFLAGS の要因が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 未知の EAI 値の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OTHER, unknown_cause); // [確認_異常系] - 未知の EAI 値の要因が OTHER であること。
+#endif
+    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - EAI 0 の戻り値が COM_UTIL_OK であること。
+}
+
+// 詳細エラーの全ドメインと errno の追加分類が取得できることの確認
+TEST_F(errorTest, accessors_cover_socket_gai_and_extended_errno_causes)
+{
+    // Arrange
+    const std::vector<std::pair<int, com_util_error_cause>> cases = {
+#if defined(EINPROGRESS)
+        {EINPROGRESS, COM_UTIL_CAUSE_IN_PROGRESS},
+#endif
+#if defined(ECONNREFUSED)
+        {ECONNREFUSED, COM_UTIL_CAUSE_CONNECTION_REFUSED},
+#endif
+#if defined(ECONNRESET)
+        {ECONNRESET, COM_UTIL_CAUSE_CONNECTION_RESET},
+#endif
+#if defined(ECONNABORTED)
+        {ECONNABORTED, COM_UTIL_CAUSE_CONNECTION_ABORTED},
+#endif
+#if defined(ENOTCONN)
+        {ENOTCONN, COM_UTIL_CAUSE_NOT_CONNECTED},
+#endif
+#if defined(EISCONN)
+        {EISCONN, COM_UTIL_CAUSE_ALREADY_CONNECTED},
+#endif
+#if defined(EADDRINUSE)
+        {EADDRINUSE, COM_UTIL_CAUSE_ADDRESS_IN_USE},
+#endif
+#if defined(EADDRNOTAVAIL)
+        {EADDRNOTAVAIL, COM_UTIL_CAUSE_ADDRESS_NOT_AVAILABLE},
+#endif
+#if defined(ENETDOWN)
+        {ENETDOWN, COM_UTIL_CAUSE_NETWORK_DOWN},
+#endif
+#if defined(ENETUNREACH)
+        {ENETUNREACH, COM_UTIL_CAUSE_NETWORK_UNREACHABLE},
+#endif
+#if defined(EHOSTUNREACH)
+        {EHOSTUNREACH, COM_UTIL_CAUSE_HOST_UNREACHABLE},
+#endif
+#if defined(EMSGSIZE)
+        {EMSGSIZE, COM_UTIL_CAUSE_MESSAGE_SIZE},
+#endif
+#if defined(ESHUTDOWN)
+        {ESHUTDOWN, COM_UTIL_CAUSE_SHUTDOWN},
+#endif
+        {EAGAIN, COM_UTIL_CAUSE_BUSY},
+        {EPERM, COM_UTIL_CAUSE_ACCESS_DENIED}};
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+    com_util_error_report_socket_errno(&error, EIO); // [手順] - EIO をソケット errno として記録する。
+    const com_util_error_cause socket_io_cause = com_util_error_get_cause(&error); // [手順] - ソケット EIO の要因を取得する。
+    com_util_error_report_gai_error(&error, 0); // [手順] - GAI 0 を記録する。
+    const com_util_error_domain gai_domain = com_util_error_get_domain(&error); // [手順] - GAI 成功値のドメインを取得する。
+    com_util_error winsock_error = {COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN, 1UL};
+    const com_util_error_cause winsock_cause = com_util_error_get_cause(&winsock_error); // [手順] - 非 Windows の WINSOCK ドメイン要因を取得する。
+    std::vector<com_util_error_cause> causes;
+    for (const std::pair<int, com_util_error_cause> &item : cases)
+    {
+        com_util_error_capture_errno(&error, item.first); // [手順] - 追加 errno を順番に取り込む。
+        causes.push_back(com_util_error_get_cause(&error));
+    }
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_CAUSE_IO_ERROR, socket_io_cause); // [確認_正常系] - ソケット EIO の要因が IO_ERROR であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE, gai_domain); // [確認_正常系] - GAI 成功値のドメインが NONE であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OTHER, winsock_cause); // [確認_正常系] - Linux の WINSOCK ドメイン要因が OTHER であること。
+    ASSERT_EQ(cases.size(), causes.size());
+    for (std::size_t index = 0U; index < cases.size(); ++index)
+    {
+        EXPECT_EQ(cases[index].second, causes[index]); // [確認_正常系] - 追加 errno が期待する要因へ分類されること。
+    }
+}
+
+// errno 0 と非成功結果の組合せがエラー ドメインとして保持されることの確認
+TEST_F(errorTest, report_errno_as_keeps_domain_when_result_is_not_success)
+{
+    // Arrange
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_error_report_errno_as(&error, 0, COM_UTIL_ERR_UNKNOWN); // [手順] - errno 0 と非成功結果を明示して記録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, result); // [確認_正常系] - 明示した非成功結果がそのまま返ること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_ERRNO, error.domain); // [確認_正常系] - 非成功結果のドメインが ERRNO であること。
 }

@@ -72,6 +72,100 @@ TEST_F(makedirsTest, empty_path_returns_invalid_argument)
               ret); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
+// com_util_stat が NULL 引数を拒否することの確認
+TEST_F(makedirsTest, stat_rejects_null_arguments)
+{
+    // Arrange
+    com_util_file_stat_t stat_buffer;
+
+    // Pre-Assert
+
+    // Act
+    const int null_buffer_result =
+        com_util_stat(NULL, NULL, "missing"); // [手順] - stat の出力先に NULL を指定する。
+    const int null_path_result =
+        com_util_stat(&stat_buffer, NULL, NULL); // [手順] - stat のパスに NULL を指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_buffer_result); // [確認_異常系] - 出力先 NULL の com_util_stat が INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_path_result); // [確認_異常系] - パス NULL の com_util_stat が INVALID_ARGUMENT を返すこと。
+}
+
+// 存在しないパスの stat が失敗することの確認
+TEST_F(makedirsTest, stat_reports_missing_path)
+{
+    // Arrange
+    com_util_file_stat_t stat_buffer;
+    const std::string path = temp_path("makedirsTest_missing_stat");
+    remove_dir(path); // [状態] - 対象パスが存在しないことを保証する。
+
+    // Pre-Assert
+
+    // Act
+    const int result =
+        com_util_stat(&stat_buffer, NULL, path.c_str()); // [手順] - 存在しないパスを指定して stat を呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              result); // [確認_異常系] - 存在しないパスの com_util_stat が COM_UTIL_OK 以外を返すこと。
+}
+
+// com_util_mkdir が NULL パスを拒否することの確認
+TEST_F(makedirsTest, mkdir_rejects_null_path)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    const int result = com_util_mkdir(NULL, NULL); // [手順] - パスに NULL を指定して mkdir を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - NULL パスの com_util_mkdir が INVALID_ARGUMENT を返すこと。
+}
+
+// 既存ディレクトリの mkdir が失敗することの確認
+TEST_F(makedirsTest, mkdir_reports_existing_directory)
+{
+    // Arrange
+    const std::string dir = temp_path("makedirsTest_existing_mkdir");
+    remove_dir(dir);
+    std::filesystem::create_directories(dir); // [状態] - 既存ディレクトリを用意する。
+
+    // Pre-Assert
+
+    // Act
+    const int result =
+        com_util_mkdir(dir.c_str(), NULL); // [手順] - 既存ディレクトリを指定して mkdir を呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              result); // [確認_異常系] - 既存ディレクトリの com_util_mkdir が COM_UTIL_OK 以外を返すこと。
+
+    // Cleanup
+    remove_dir(dir);
+}
+
+// PLATFORM_PATH_MAX 以上のパスが拒否されることの確認
+TEST_F(makedirsTest, overlong_path_returns_name_too_long)
+{
+    // Arrange
+    const std::string path(PLATFORM_PATH_MAX, 'x'); // [状態] - PLATFORM_PATH_MAX 以上のパスを用意する。
+
+    // Pre-Assert
+
+    // Act
+    const int result =
+        com_util_makedirs(path.c_str(), NULL); // [手順] - 長過ぎるパスを指定して makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result); // [確認_異常系] - 長過ぎるパスの com_util_makedirs が BUFFER_TOO_SMALL を返すこと。
+}
+
 // 単一階層ディレクトリの新規作成とべき等性の確認
 TEST_F(makedirsTest, single_level_creates_directory)
 {
@@ -123,6 +217,28 @@ TEST_F(makedirsTest, nested_levels_creates_all_directories)
 
     // Cleanup
     remove_dir(root);
+}
+
+// 相対パスの複数階層ディレクトリを作成できることの確認
+TEST_F(makedirsTest, relative_path_creates_nested_directories)
+{
+    // Arrange
+    const std::string path = "makedirsTest_relative/sub";
+    remove_dir(path); // [状態] - 相対パスの残留物があれば削除しておく。
+
+    // Pre-Assert
+
+    // Act
+    const int result =
+        com_util_makedirs(path.c_str(), NULL); // [手順] - 相対パスの複数階層を指定して makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - 相対パスの com_util_makedirs が COM_UTIL_OK を返すこと。
+    EXPECT_TRUE(std::filesystem::is_directory(path)); // [確認_正常系] - 相対パスの末尾ディレクトリが作成されること。
+
+    // Cleanup
+    remove_dir("makedirsTest_relative");
 }
 
 #if defined(PLATFORM_WINDOWS)

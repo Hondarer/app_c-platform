@@ -1321,3 +1321,199 @@ TEST_F(regexTest, translate_exception_maps_regex_and_runtime_errors)
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, alloc_result); // [確認_異常系] - bad_alloc が OUT_OF_MEMORY になること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 未知の例外が UNKNOWN になること。
 }
+
+// 正規表現の追加フラグが変換されて照合へ渡ることの確認
+TEST_F(regexTest, option_and_match_flags_cover_basic_optimize_and_boundaries)
+{
+    // Arrange
+    com_util_regex *regex = NULL;
+    int matched = -1;
+    const std::string text = "a";
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_BASIC | COM_UTIL_REGEX_OPTIMIZE, &regex,
+                                                 NULL)); // [状態] - BASIC と OPTIMIZE を指定してコンパイルしておく。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_regex_search(regex, text.data(), text.size(), 0,
+                                       COM_UTIL_REGEX_MATCH_NOTBOL | COM_UTIL_REGEX_MATCH_NOTEOL |
+                                           COM_UTIL_REGEX_MATCH_NOTEMPTY,
+                                       NULL, 0, &matched,
+                                       NULL); // [手順] - 行境界、空一致、最適化に関する照合フラグを指定して検索する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 追加フラグ付き検索の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, matched); // [確認_正常系] - 追加フラグ付き検索が一致を返すこと。
+    EXPECT_EQ(L'a', test_regex_translate(L'a')); // [確認_正常系] - traits の translate が入力文字を保持すること。
+
+    // Cleanup
+    com_util_regex_dispose(regex);
+}
+
+// 置換、列挙、分割の境界引数が分類されることの確認
+TEST_F(regexTest, replace_iter_split_reject_limits_and_invalid_encoding)
+{
+    // Arrange
+    com_util_regex *regex = NULL;
+    com_util_regex_iter *iter = NULL;
+    com_util_regex_match parts[2];
+    char buffer[8] = {};
+    size_t part_count = 0U;
+    int matched = -1;
+    const std::string invalid("\xC0\x80", 2);
+    const std::string large(COM_UTIL_REGEX_MAX_LENGTH + 1U, 'a');
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - 境界テスト用のパターンをコンパイルしておく。
+
+    // Pre-Assert
+
+    // Act
+    int replace_null_result = com_util_regex_replace(regex, "a", 1U, "x", COM_UTIL_REGEX_DEFAULT, NULL, 1U, NULL,
+                                                     NULL); // [手順] - 出力先 NULL と非ゼロ容量を指定して置換する。
+    int replace_flag_result = com_util_regex_replace(regex, "a", 1U, "x", 0x8000U, buffer, sizeof(buffer), NULL,
+                                                     NULL); // [手順] - 未定義フラグを指定して置換する。
+    int replace_text_limit_result = com_util_regex_replace(regex, large.data(), large.size(), "x",
+                                                           COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
+                                                           NULL); // [手順] - 最大長を超える入力を置換する。
+    int replace_text_encoding_result = com_util_regex_replace(regex, invalid.data(), invalid.size(), "x",
+                                                              COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
+                                                              NULL); // [手順] - 不正 UTF-8 の入力を置換する。
+    int replace_replacement_encoding_result = com_util_regex_replace(regex, "a", 1U, invalid.data(),
+                                                                      COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer),
+                                                                      NULL,
+                                                                      NULL); // [手順] - 不正 UTF-8 の置換文字列を指定する。
+    int search_flag_result = com_util_regex_search(regex, "a", 1U, 0U, 0x8000U, NULL, 0U, &matched,
+                                                   NULL); // [手順] - 未定義照合フラグを指定して検索する。
+    int search_limit_result = com_util_regex_search(regex, large.data(), large.size(), 0U,
+                                                    COM_UTIL_REGEX_DEFAULT, NULL, 0U, &matched,
+                                                    NULL); // [手順] - 最大長を超える入力を検索する。
+    int iter_flag_result = com_util_regex_iter_create(regex, "a", 1U, 0x8000U, &iter,
+                                                      NULL); // [手順] - 未定義列挙フラグを指定する。
+    int iter_limit_result = com_util_regex_iter_create(regex, large.data(), large.size(), COM_UTIL_REGEX_DEFAULT,
+                                                       &iter, NULL); // [手順] - 最大長を超える入力で列挙する。
+    int iter_encoding_result = com_util_regex_iter_create(regex, invalid.data(), invalid.size(),
+                                                          COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
+                                                          NULL); // [手順] - 不正 UTF-8 の入力で列挙する。
+    int split_null_result = com_util_regex_split(regex, "a", 1U, 0U, COM_UTIL_REGEX_DEFAULT, NULL, 1U, &part_count,
+                                                 NULL); // [手順] - 分割出力 NULL と非ゼロ容量を指定する。
+    int split_flag_result = com_util_regex_split(regex, "a", 1U, 0U, 0x8000U, parts, 2U, &part_count,
+                                                 NULL); // [手順] - 未定義分割フラグを指定する。
+    int split_limit_result = com_util_regex_split(regex, large.data(), large.size(), 0U, COM_UTIL_REGEX_DEFAULT,
+                                                  parts, 2U, &part_count,
+                                                  NULL); // [手順] - 最大長を超える入力を分割する。
+    int split_encoding_result = com_util_regex_split(regex, invalid.data(), invalid.size(), 0U,
+                                                     COM_UTIL_REGEX_DEFAULT, parts, 2U, &part_count,
+                                                     NULL); // [手順] - 不正 UTF-8 の入力を分割する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, replace_null_result); // [確認_異常系] - 出力先 NULL の置換が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, replace_flag_result); // [確認_異常系] - 不正置換フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, replace_text_limit_result); // [確認_異常系] - 長過ぎる置換入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, replace_text_encoding_result); // [確認_異常系] - 不正置換入力が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, replace_replacement_encoding_result); // [確認_異常系] - 不正置換文字列が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, search_flag_result); // [確認_異常系] - 不正検索フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, search_limit_result); // [確認_異常系] - 長過ぎる検索入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, iter_flag_result); // [確認_異常系] - 不正列挙フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, iter_limit_result); // [確認_異常系] - 長過ぎる列挙入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, iter_encoding_result); // [確認_異常系] - 不正列挙入力が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, split_null_result); // [確認_異常系] - 分割出力 NULL が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, split_flag_result); // [確認_異常系] - 不正分割フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, split_limit_result); // [確認_異常系] - 長過ぎる分割入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, split_encoding_result); // [確認_異常系] - 不正分割入力が INVALID_ENCODING になること。
+
+    // Cleanup
+    com_util_regex_iter_dispose(iter);
+    com_util_regex_dispose(regex);
+}
+
+// イテレーターがサロゲート ペアを飛び越えて空一致を進めることの確認
+TEST_F(regexTest, iter_advances_empty_match_over_astral_code_point)
+{
+    // Arrange
+    com_util_regex *regex = NULL;
+    com_util_regex_iter *iter = NULL;
+    int has_match = -1;
+    const std::string text = u8"\U0001F600";
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a*", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - 空一致するパターンをコンパイルしておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, text.data(), text.size(), COM_UTIL_REGEX_DEFAULT, &iter,
+                                                      NULL)); // [状態] - BMP 外文字の列挙器を生成しておく。
+
+    // Pre-Assert
+
+    // Act
+    int first_result = com_util_regex_iter_next(iter, NULL, 0U, &has_match,
+                                                NULL); // [手順] - BMP 外文字上の空一致を取得する。
+    int second_result = com_util_regex_iter_next(iter, NULL, 0U, &has_match,
+                                                 NULL); // [手順] - サロゲート ペアを越えた次の空一致を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, first_result); // [確認_正常系] - 1 回目の列挙が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, second_result); // [確認_正常系] - 2 回目の列挙が COM_UTIL_OK であること。
+    EXPECT_EQ(1, has_match); // [確認_正常系] - 2 回目も空一致を示すこと。
+
+    // Cleanup
+    com_util_regex_iter_dispose(iter);
+    com_util_regex_dispose(regex);
+}
+
+// 置換文字列の上限と sed 書式が処理されることの確認
+TEST_F(regexTest, replace_checks_replacement_limit_and_sed_flag)
+{
+    // Arrange
+    com_util_regex *regex = NULL;
+    char buffer[32] = {};
+    const std::string large_replacement(COM_UTIL_REGEX_MAX_LENGTH + 1U, 'x');
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("(a)", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - 捕捉グループを持つパターンをコンパイルしておく。
+
+    // Pre-Assert
+
+    // Act
+    int limit_result = com_util_regex_replace(regex, "a", 1U, large_replacement.data(), COM_UTIL_REGEX_DEFAULT,
+                                              buffer, sizeof(buffer), NULL,
+                                              NULL); // [手順] - 最大長を超える置換文字列を指定する。
+    int sed_result = com_util_regex_replace(regex, "a", 1U, "\\1", COM_UTIL_REGEX_REPLACE_SED, buffer,
+                                            sizeof(buffer), NULL,
+                                            NULL); // [手順] - sed 書式の後方参照を指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, limit_result); // [確認_異常系] - 長過ぎる置換文字列が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_OK, sed_result); // [確認_正常系] - sed 書式の置換が COM_UTIL_OK になること。
+    EXPECT_STREQ("a", buffer); // [確認_正常系] - sed 書式の後方参照結果が a であること。
+
+    // Cleanup
+    com_util_regex_dispose(regex);
+}
+
+// 空一致する区切りがサロゲート ペア内で無限ループしないことの確認
+TEST_F(regexTest, split_advances_empty_match_over_astral_code_point)
+{
+    // Arrange
+    com_util_regex *regex = NULL;
+    com_util_regex_match parts[2];
+    size_t part_count = 0U;
+    const std::string text = u8"\U0001F600";
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a*", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - 空一致する区切りパターンをコンパイルしておく。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_regex_split(regex, text.data(), text.size(), 0U, COM_UTIL_REGEX_DEFAULT, parts, 2U,
+                                      &part_count,
+                                      NULL); // [手順] - BMP 外文字を空一致パターンで分割する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 空一致分割の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1U, part_count); // [確認_正常系] - 空一致分割で入力全体の 1 件が返ること。
+    EXPECT_EQ(text, std::string(text.data() + parts[0].begin, parts[0].end - parts[0].begin)); // [確認_正常系] - 入力全体が保持されること。
+
+    // Cleanup
+    com_util_regex_dispose(regex);
+}

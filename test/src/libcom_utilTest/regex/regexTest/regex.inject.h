@@ -8,6 +8,7 @@ unsigned int test_regex_lookup_classname(const wchar_t *name, bool icase);
 bool test_regex_isctype(wchar_t target, unsigned int mask);
 int test_regex_value(wchar_t target, int radix);
 wchar_t test_regex_translate_nocase(wchar_t target);
+wchar_t test_regex_translate(wchar_t target);
 std::wstring test_regex_transform(const wchar_t *text);
 std::wstring test_regex_transform_primary(const wchar_t *text);
 std::wstring test_regex_lookup_collatename(const wchar_t *text);

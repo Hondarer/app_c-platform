@@ -59,6 +59,30 @@ TEST_F(pathsEqualTest, returns_einval_for_null_lhs)
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
+// 右辺パスの取得に失敗した場合にそのエラーを返すことの確認
+TEST_F(pathsEqualTest, returns_error_when_rhs_path_cannot_be_resolved)
+{
+    // Arrange
+    char lhs[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+    int equal = 1;
+
+    // Pre-Assert
+    ASSERT_EQ(COM_UTIL_OK, com_util_path_get_full(lhs, sizeof(lhs), NULL,
+                                                  ".")); // [Pre-Assert確認_正常系] - 左辺に有効なパスを用意する。
+
+    // Act
+    int result = com_util_paths_equal(lhs, NULL, &equal,
+                                      &err); // [手順] - 右辺に NULL を渡して com_util_paths_equal を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_paths_equal の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(1, com_util_error_is(&err,
+                                   COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - 右辺取得時の EINVAL が返ること。
+    EXPECT_EQ(1, equal); // [確認_異常系] - 右辺取得に失敗して比較結果が変更されないこと。
+}
+
 // 比較結果の出力先が NULL の場合に不正引数で失敗することの確認
 TEST_F(pathsEqualTest, returns_invalid_argument_for_null_equal_out)
 {

@@ -99,6 +99,28 @@ void test_pinned_prompt_render(com_util_pinned_prompt *screen)
     pinned_prompt_render_locked(screen);
 }
 
+void test_pinned_prompt_history_edge_cases(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_history_ctx *ctx;
+
+    ctx = pinned_prompt_find_or_create_history_ctx(screen, "edge.c", 1);
+    pinned_prompt_history_prev(screen, NULL);
+    pinned_prompt_history_next(screen, NULL);
+    pinned_prompt_clear_edit_line(screen, NULL);
+    pinned_prompt_history_prev(screen, ctx);
+    pinned_prompt_history_add(screen, ctx, "same");
+    pinned_prompt_history_add(screen, ctx, "same");
+    pinned_prompt_history_prev(screen, ctx);
+    pinned_prompt_history_prev(screen, ctx);
+    pinned_prompt_history_next(screen, ctx);
+    pinned_prompt_history_prev(screen, ctx);
+}
+
+void test_pinned_prompt_prepare_output(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_prepare_output_locked(screen);
+}
+
 #if defined(PLATFORM_LINUX)
 
 void test_pinned_prompt_reset_platform_state(void)

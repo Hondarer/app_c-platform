@@ -429,6 +429,43 @@ TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
+// 不正な nsec と NULL バッファーを local formatter が拒否することの確認
+TEST_F(clockTest, format_realtime_iso8601_local_rejects_invalid_arguments)
+{
+    // Arrange
+    const com_util_timespec invalid_timestamp = {0, -1};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_format_realtime_iso8601_local(
+        NULL, 0U, &invalid_timestamp); // [手順] - NULL バッファーと不正な nsec で local formatter を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - 不正な引数が INVALID_ARGUMENT として通知されること。
+}
+
+// UTC formatter が不正な nsec に対してフォールバックすることの確認
+TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_nsec_is_invalid)
+{
+    // Arrange
+    const com_util_timespec invalid_timestamp = {0, 1000000000LL};
+    char actual[COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1];
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_format_realtime_iso8601_utc(
+        actual, sizeof(actual), &invalid_timestamp); // [手順] - 不正な nsec で UTC formatter を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - 不正な nsec が INVALID_ARGUMENT として通知されること。
+    EXPECT_STREQ("0000-00-00T00:00:00.000Z",
+                 actual); // [確認_異常系] - UTC のフォールバック文字列になること。
+}
+
 // gmtime が失敗した場合に COM_UTIL_ERR_UNKNOWN を返しゼロ埋め文字列へフォールバックすることの確認
 TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
 {
@@ -458,6 +495,105 @@ TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
         COM_UTIL_ERR_UNKNOWN,
         rtc_format_realtime_iso8601_utc); // [確認_異常系] - com_util_format_realtime_iso8601_utc の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
+}
+
+// ISO 8601 local formatter が小さいバッファーを検出してフォールバックすることの確認
+TEST_F(clockTest, format_realtime_iso8601_local_rejects_small_buffer)
+{
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL, 123000000LL};
+    char actual[1] = {'x'};
+    struct tm local_tm;
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+    set_tm(&local_tm, 2024, 4, 5, 15, 7, 8);
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _)).WillOnce(
+        [&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = local_tm;
+            return 0;
+        });
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
+        [&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    // Act
+    int result = com_util_format_realtime_iso8601_local(
+        actual, sizeof(actual), &timestamp); // [手順] - 小さいバッファーで local formatter を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 小さいバッファーが UNKNOWN として通知されること。
+    EXPECT_EQ('\0', actual[0]); // [確認_異常系] - フォールバック文字列の先頭だけが格納されること。
+}
+
+// ISO 8601 UTC formatter が小さいバッファーを検出してフォールバックすることの確認
+TEST_F(clockTest, format_realtime_iso8601_utc_rejects_small_buffer)
+{
+    // Arrange
+    const com_util_timespec timestamp = {1712297228LL, 123000000LL};
+    char actual[1] = {'x'};
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+    set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
+        [&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    // Act
+    int result = com_util_format_realtime_iso8601_utc(
+        actual, sizeof(actual), &timestamp); // [手順] - 小さいバッファーで UTC formatter を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - 小さいバッファーが UNKNOWN として通知されること。
+    EXPECT_EQ('\0', actual[0]); // [確認_異常系] - フォールバック文字列の先頭だけが格納されること。
+}
+
+// 年初および紀元前相当の時刻を local formatter が処理できることの確認
+TEST_F(clockTest, format_realtime_iso8601_local_supports_early_date)
+{
+    // Arrange
+    const com_util_timespec timestamp = {0, 0};
+    char actual[COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
+    struct tm local_tm;
+    struct tm utc_tm;
+    Mock_com_util mock_com_util;
+    set_tm(&local_tm, -1, 1, 1, 0, 0, 0);
+    set_tm(&utc_tm, -1, 1, 1, 0, 0, 0);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _)).WillOnce(
+        [&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = local_tm;
+            return 0;
+        });
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
+        [&](struct tm *tm_value, const time_t *)
+        {
+            *tm_value = utc_tm;
+            return 0;
+        });
+
+    // Act
+    int result = com_util_format_realtime_iso8601_local(
+        actual, sizeof(actual), &timestamp); // [手順] - 年初の早い日付で local formatter を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - 年初の早い日付を正常に整形できること。
 }
 
 // 実時刻 deadline 計算でナノ秒 overflow がない場合にそのまま加算されることの確認

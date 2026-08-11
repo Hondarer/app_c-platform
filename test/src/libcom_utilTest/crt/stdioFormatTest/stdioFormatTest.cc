@@ -250,3 +250,42 @@ TEST_F(stdioFormatTest, test_fopen_success_clears_error)
     EXPECT_EQ(expected_fp, fp);                  // [確認_正常系] - com_util_fopen_fmt から expected_fp が返されること。
     EXPECT_EQ(0, com_util_error_is_set(&error)); // [確認_正常系] - 成功時は詳細エラーが空であること。
 }
+
+// format が NULL の場合に com_util_remove を呼び出さず -1 を返すことの確認
+TEST_F(stdioFormatTest, remove_fmt_rejects_null_format)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_remove(_, _))
+        .Times(0); // [Pre-Assert確認_異常系] - com_util_remove が呼び出されないこと。
+
+    // Act
+    const int result =
+        com_util_remove_fmt(NULL, NULL); // [手順] - format に NULL を指定して com_util_remove_fmt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1,
+              result); // [確認_異常系] - com_util_remove_fmt の戻り値が -1 であること。
+}
+
+// フォーマット文字列を展開したファイル名で com_util_remove が呼び出されることの確認
+TEST_F(stdioFormatTest, remove_fmt_passes_formatted_path)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_error detail;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_remove(StrEq("temporary_42.txt"), &detail))
+        .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - 展開後のパスで com_util_remove が呼び出されること。
+
+    // Act
+    const int result = com_util_remove_fmt(
+        &detail, "temporary_%d.txt", 42); // [手順] - 書式引数 42 を指定して com_util_remove_fmt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_remove_fmt の戻り値が COM_UTIL_OK であること。
+}

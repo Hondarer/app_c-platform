@@ -109,6 +109,46 @@ TEST_F(pathGetFullTest, normalizes_dotdot_and_backslash_segments)
     EXPECT_STREQ(expected, actual); // [確認_正常系] - セパレータと dot segment が正規化されること。
 }
 
+// 連続したセパレーターを含む絶対パスが正規化されることの確認
+TEST_F(pathGetFullTest, normalizes_repeated_separators)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_path_get_full(actual, sizeof(actual), NULL,
+                                        "/tmp//"); // [手順] - 連続したセパレーターを含む絶対パスを正規化する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/tmp", actual); // [確認_正常系] - 連続したセパレーターが除去されたパスになること。
+}
+
+// カレント ディレクトリとの連結結果が長過ぎる場合に失敗することの確認
+TEST_F(pathGetFullTest, returns_enametoolong_when_relative_path_is_too_long)
+{
+    // Arrange
+    char relative[PLATFORM_PATH_MAX] = {};
+    char output[PLATFORM_PATH_MAX] = {'x'};
+    com_util_error err;
+    std::memset(relative, 'a', sizeof(relative) - 1u);
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_path_get_full(output, sizeof(output), &err,
+                                        relative); // [手順] - カレント ディレクトリとの連結結果が長過ぎる相対パスを指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(1, com_util_error_is(&err,
+                                   COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が返ること。
+    EXPECT_EQ('\0', output[0]); // [確認_異常系] - 失敗時に出力先が空文字列になること。
+}
+
 // 出力バッファーが小さすぎる場合に ENAMETOOLONG で失敗することの確認
 TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
 {
