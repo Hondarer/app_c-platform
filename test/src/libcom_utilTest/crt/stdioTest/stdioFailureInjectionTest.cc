@@ -19,6 +19,7 @@ TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
+#if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_stdio, fopen(_, _, _, _, _))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const char *, const char *)
@@ -26,6 +27,15 @@ TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
                 errno = EACCES;
                 return static_cast<FILE *>(NULL);
             })); // [Pre-Assert確認_異常系] - fopen が EACCES で失敗すること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_stdio, _wfsopen(_, _, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const wchar_t *, const wchar_t *, int)
+            {
+                errno = EACCES;
+                return static_cast<FILE *>(NULL);
+            })); // [Pre-Assert確認_異常系] - _wfsopen が EACCES で失敗すること。
+#endif /* PLATFORM_ */
 
     // Pre-Assert
 
@@ -131,7 +141,12 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    FILE *stream = tmpfile();
+    FILE *stream = nullptr;
+#if defined(PLATFORM_LINUX)
+    stream = tmpfile();
+#elif defined(PLATFORM_WINDOWS)
+    (void)tmpfile_s(&stream);
+#endif /* PLATFORM_ */
     char data[2] = {};
     com_util_error read_detail = {};
     com_util_error write_detail = {};

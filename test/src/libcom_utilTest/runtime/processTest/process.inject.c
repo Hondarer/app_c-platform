@@ -1,6 +1,8 @@
 /* process.c の Linux static 関数へアクセスするテスト用アクセサーです。 */
 #include "process.inject.h"
 
+#if defined(PLATFORM_LINUX)
+
 uint64_t test_process_monotonic_ms(void)
 {
     return monotonic_ms();
@@ -50,3 +52,5 @@ void test_process_exec_with_path(char *const *argv, char *const *envp)
 {
     exec_with_path(argv, envp);
 }
+
+#endif /* PLATFORM_LINUX */
