@@ -173,6 +173,15 @@ static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_ad
 
 int com_util_module_get_path(char *out_path, const size_t out_path_sz, const void *func_addr)
 {
+    if (out_path == NULL || out_path_sz == 0u || func_addr == NULL)
+    {
+        if (out_path != NULL && out_path_sz > 0u)
+        {
+            out_path[0] = '\0';
+        }
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+
 #if defined(PLATFORM_LINUX)
     return get_self_path_posix(out_path, out_path_sz, func_addr);
 #elif defined(PLATFORM_WINDOWS)

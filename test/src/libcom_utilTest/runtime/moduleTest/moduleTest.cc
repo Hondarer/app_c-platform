@@ -25,8 +25,9 @@ class moduleTest : public Test
  * com_util_module_get_path
  */
 
-// 関数アドレスから所属モジュールの絶対パスが取得できることの確認
-TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module)
+#if defined(PLATFORM_LINUX)
+// 関数アドレスから所属モジュールの絶対パスが取得できることの確認 (Linux)
+TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
 {
     // Arrange
     char path[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
@@ -36,15 +37,40 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_path(path, sizeof(path),
-                                       self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
+    int rtc =
+        com_util_module_get_path(path, sizeof(path),
+                                 self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ('/', path[0]);     // [確認_正常系] - 絶対パスが返ること。
+    EXPECT_EQ('/', path[0]);     // [確認_正常系] - 絶対パスが '/' から始まること。
     EXPECT_NE(nullptr,
               std::strstr(path, "moduleTest")); // [確認_正常系] - パスに所属モジュール名 moduleTest が含まれること。
 }
+#elif defined(PLATFORM_WINDOWS)
+// 関数アドレスから所属モジュールの絶対パスが取得できることの確認 (Windows)
+TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_windows)
+{
+    // Arrange
+    char path[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+
+    std::memset(path, 0, sizeof(path));
+
+    // Pre-Assert
+
+    // Act
+    int rtc =
+        com_util_module_get_path(path, sizeof(path),
+                                 self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(':', path[1]);     // [確認_正常系] - 絶対パスがドライブ レター形式であること。
+    EXPECT_EQ('/', path[2]);     // [確認_正常系] - 絶対パスが '/' 区切りへ正規化されていること。
+    EXPECT_NE(nullptr,
+              std::strstr(path, "moduleTest")); // [確認_正常系] - パスに所属モジュール名 moduleTest が含まれること。
+}
+#endif /* PLATFORM_ */
 
 // out_path に NULL を渡した場合に拒否されることの確認
 TEST_F(moduleTest, get_path_rejects_null_out_path)
@@ -131,7 +157,7 @@ TEST_F(moduleTest, get_basename_returns_module_name_without_extension)
         basename, sizeof(basename), self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);        // [確認_正常系] - com_util_module_get_basename の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_basename の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("moduleTest", basename); // [確認_正常系] - 拡張子を持たないモジュール名 "moduleTest" が返ること。
 }
 
