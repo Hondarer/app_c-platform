@@ -719,12 +719,13 @@ int com_util_error_is(const com_util_error *error, const com_util_error_cause ca
 {
     int matches = 0;
 
-    if ((error != NULL) && (cause >= COM_UTIL_CAUSE_NONE) && (cause <= COM_UTIL_CAUSE_IO_ERROR))
+    /* 引数の要因が有効な列挙値であるかは検査しない。com_util_error_get_cause() は
+       定義済みの要因しか返さないため、未定義の値を指定しても一致しない。
+       上限を列挙の末尾と比較する形にすると、要因を追加するたびに更新が必要になり、
+       更新漏れがあると追加した要因の判定が常に不一致になる。 */
+    if ((error != NULL) && (com_util_error_get_cause(error) == cause))
     {
-        if (com_util_error_get_cause(error) == cause)
-        {
-            matches = 1;
-        }
+        matches = 1;
     }
 
     return matches;
