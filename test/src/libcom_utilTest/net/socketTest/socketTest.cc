@@ -28,6 +28,7 @@
 using testing::_;
 using testing::Assign;
 using testing::DoAll;
+using testing::Mock;
 using testing::NiceMock;
 using testing::Return;
 
@@ -53,9 +54,47 @@ class socketTest : public Test
   protected:
     NiceMock<Mock_com_util> mock_com_util_;
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_sys_socket> mock_sys_socket_;
+    NiceMock<Mock_fcntl> mock_fcntl_;
+    NiceMock<Mock_poll> mock_poll_;
+#elif defined(PLATFORM_WINDOWS)
     NiceMock<Mock_winsock> mock_winsock_;
+#endif /* PLATFORM_ */
 
+    /* プラットフォームごとにモック対象が異なるため、呼び出し期待の検証はヘルパーへ限定する。 */
+    bool verifyExpectations()
+    {
+#if defined(PLATFORM_LINUX)
+        return Mock::VerifyAndClearExpectations(&mock_com_util_) &&
+               Mock::VerifyAndClearExpectations(&mock_sys_socket_);
+#elif defined(PLATFORM_WINDOWS)
+        return Mock::VerifyAndClearExpectations(&mock_com_util_) &&
+               Mock::VerifyAndClearExpectations(&mock_winsock_);
+#endif /* PLATFORM_ */
+    }
+
+    /* 下位のクローズ API が呼び出されないことを期待する。 */
+    void expectNoCloseCall()
+    {
+#if defined(PLATFORM_LINUX)
+        EXPECT_CALL(mock_com_util_, com_util_close(_, _)).Times(0);
+#elif defined(PLATFORM_WINDOWS)
+        EXPECT_CALL(mock_winsock_, closesocket(_, _, _, _)).Times(0);
+#endif /* PLATFORM_ */
+    }
+
+    /* 下位のシャットダウン API が呼び出されないことを期待する。 */
+    void expectNoShutdownCall()
+    {
+#if defined(PLATFORM_LINUX)
+        EXPECT_CALL(mock_sys_socket_, shutdown(_, _, _, _, _)).Times(0);
+#elif defined(PLATFORM_WINDOWS)
+        EXPECT_CALL(mock_winsock_, shutdown(_, _, _, _, _)).Times(0);
+#endif /* PLATFORM_ */
+    }
+
+#if defined(PLATFORM_WINDOWS)
     void SetUp() override
     {
         ON_CALL(mock_com_util_, com_util_call_once)
@@ -103,14 +142,13 @@ TEST_F(socketTest, open_returns_socket_for_each_kind)
     com_util_socket tcp_socket = COM_UTIL_INVALID_SOCKET;
     com_util_socket udp_socket = COM_UTIL_INVALID_SOCKET;
 
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のソケット生成 API が AF_INET と SOCK_STREAM で 1 回、AF_INET と SOCK_DGRAM で 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位のソケット生成 API から TCP に 7、UDP に 8 のハンドルを返却する。
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
-    // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, socket(_, _, _, AF_INET, SOCK_STREAM, 0)).WillOnce(Return(7));
-    EXPECT_CALL(mock_sys_socket, socket(_, _, _, AF_INET, SOCK_DGRAM, 0)).WillOnce(Return(8));
+    EXPECT_CALL(mock_sys_socket_, socket(_, _, _, AF_INET, SOCK_STREAM, 0)).WillOnce(Return(7));
+    EXPECT_CALL(mock_sys_socket_, socket(_, _, _, AF_INET, SOCK_DGRAM, 0)).WillOnce(Return(8));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, socket(_, _, _, AF_INET, SOCK_STREAM, 0)).WillOnce(Return((SOCKET)7));
     EXPECT_CALL(mock_winsock_, socket(_, _, _, AF_INET, SOCK_DGRAM, 0)).WillOnce(Return((SOCKET)8));
 #endif /* PLATFORM_ */
@@ -137,19 +175,18 @@ TEST_F(socketTest, open_reports_socket_failure)
     com_util_socket socket = kSocket;
     com_util_error detail = {};
 
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - 下位のソケット生成 API が AF_INET と SOCK_STREAM を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位のソケット生成 API から失敗を返却し、失敗要因を EMFILE 相当として通知する。
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
-    // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, socket(_, _, _, AF_INET, SOCK_STREAM, 0))
+    EXPECT_CALL(mock_sys_socket_, socket(_, _, _, AF_INET, SOCK_STREAM, 0))
         .WillOnce(DoAll(Assign(&errno, EMFILE),
-                        Return(-1))); // [Pre-Assert確認_異常系] - socket が EMFILE を設定して失敗すること。
+                        Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, socket(_, _, _, AF_INET, SOCK_STREAM, 0)).WillOnce(Return(INVALID_SOCKET));
     EXPECT_CALL(mock_winsock_, WSAGetLastError)
         .WillOnce(
-            Return(WSAEMFILE)); // [Pre-Assert確認_異常系] - socket 失敗後の Winsock エラーが WSAEMFILE であること。
+            Return(WSAEMFILE));
 #endif /* PLATFORM_ */
 
     // Act
@@ -161,6 +198,7 @@ TEST_F(socketTest, open_reports_socket_failure)
         rtc); // [確認_異常系] - ソケット生成失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_異常系] - ソケット生成失敗時に無効値が返されること。
+    // [確認_異常系] - 詳細エラーに実行環境に応じた OS のエラー ドメインとエラー値が記録されること。
 #if defined(PLATFORM_LINUX)
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN, static_cast<unsigned long>(EMFILE));
 #elif defined(PLATFORM_WINDOWS)
@@ -177,8 +215,10 @@ TEST_F(socketTest, open_propagates_startup_failure)
     com_util_error detail = {};
 
     // Pre-Assert
+    // [Pre-Assert確認_異常系] - WSAStartup が 1 回呼び出されること。
+    // [Pre-Assert手順] - WSAStartup から WSASYSNOTREADY を返却する。
     EXPECT_CALL(mock_winsock_, WSAStartup(_, _, _, _, _))
-        .WillOnce(Return(WSASYSNOTREADY)); // [Pre-Assert確認_異常系] - WSAStartup が初期化失敗を返すこと。
+        .WillOnce(Return(WSASYSNOTREADY));
 
     // Act
     int rtc = com_util_socket_open(COM_UTIL_SOCKET_TCP, &socket,
@@ -189,6 +229,7 @@ TEST_F(socketTest, open_propagates_startup_failure)
               rtc); // [確認_異常系] - 初期化失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_異常系] - 初期化失敗時に無効値が返されること。
+    // [確認_異常系] - 詳細エラーに Winsock ドメインと OS のエラー値が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN,
                   static_cast<unsigned long>(WSASYSNOTREADY));
 }
@@ -200,12 +241,15 @@ TEST_F(socketTest, close_ignores_invalid_socket)
     // Arrange
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のクローズ API が呼び出されないこと。
+    expectNoCloseCall();
 
     // Act
     com_util_socket_close(COM_UTIL_INVALID_SOCKET); // [手順] - 無効なソケットを閉じる。
 
     // Assert
-    SUCCEED(); // [確認_正常系] - 無効なソケットの処理が完了すること。
+    EXPECT_TRUE(verifyExpectations());
+    // [確認_正常系] - 無効なソケットの指定時に下位のクローズ API が呼び出されないこと。
 }
 
 // 有効なソケットを閉じる場合に OS API が呼ばれることの確認
@@ -214,6 +258,8 @@ TEST_F(socketTest, close_calls_os_close)
     // Arrange
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のクローズ API がクローズ対象のソケットを引数として 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位のクローズ API から成功を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_com_util_, com_util_close(kSocket, _)).WillOnce(Return(COM_UTIL_OK));
 #elif defined(PLATFORM_WINDOWS)
@@ -224,7 +270,59 @@ TEST_F(socketTest, close_calls_os_close)
     com_util_socket_close(kSocket); // [手順] - 有効なソケットを閉じる。
 
     // Assert
-    SUCCEED(); // [確認_正常系] - 有効なソケットのクローズ処理が完了すること。
+    EXPECT_TRUE(verifyExpectations());
+    // [確認_正常系] - 下位のクローズ API への呼び出し期待が満たされること。
+}
+
+// クローズが呼び出し前の直前エラーを保存および復元することの確認
+TEST_F(socketTest, close_preserves_last_error)
+{
+    // Arrange
+    const com_util_error saved = {COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN,
+                                  static_cast<unsigned long>(ECONNRESET)};
+    com_util_error actual = {};
+
+    com_util_error_set_last(&saved); // [状態] - 呼び出し前の直前エラーを ECONNRESET とする。
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のクローズ API がクローズ対象のソケットを引数として 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位のクローズ API から直前エラーを EACCES へ書き換える。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_com_util_, com_util_close(kSocket, _))
+        .WillOnce(
+            [](int, com_util_error *)
+            {
+                const com_util_error overwritten = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_PERMISSION_DENIED,
+                                                    static_cast<unsigned long>(EACCES)};
+                com_util_error_set_last(&overwritten);
+                return COM_UTIL_OK;
+            });
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_winsock_, closesocket(_, _, _, (SOCKET)kSocket))
+        .WillOnce(
+            [](const char *, const int, const char *, SOCKET)
+            {
+                const com_util_error overwritten = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_PERMISSION_DENIED,
+                                                    static_cast<unsigned long>(EACCES)};
+                com_util_error_set_last(&overwritten);
+                return 0;
+            });
+#endif /* PLATFORM_ */
+
+    // Act
+    com_util_socket_close(kSocket); // [手順] - 直前エラーを書き換えるクローズ API を伴ってソケットを閉じる。
+
+    // Assert
+    com_util_error_get_last(&actual);
+    EXPECT_EQ(saved.domain,
+              actual.domain); // [確認_正常系] - クローズ後の直前エラーのドメインが呼び出し前と同じであること。
+    EXPECT_EQ(saved.result,
+              actual.result); // [確認_正常系] - クローズ後の直前エラーの結果コードが呼び出し前と同じであること。
+    EXPECT_EQ(saved.code,
+              actual.code); // [確認_正常系] - クローズ後の直前エラーのエラー値が呼び出し前と同じであること。
+
+    // Cleanup
+    com_util_error_clear_last();
 }
 
 // 無効なソケットのシャットダウンが無視されることの確認
@@ -233,12 +331,15 @@ TEST_F(socketTest, shutdown_ignores_invalid_socket)
     // Arrange
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のシャットダウン API が呼び出されないこと。
+    expectNoShutdownCall();
 
     // Act
     com_util_socket_shutdown(COM_UTIL_INVALID_SOCKET); // [手順] - 無効なソケットをシャットダウンする。
 
     // Assert
-    SUCCEED(); // [確認_正常系] - 無効なソケットの処理が完了すること。
+    EXPECT_TRUE(verifyExpectations());
+    // [確認_正常系] - 無効なソケットの指定時に下位のシャットダウン API が呼び出されないこと。
 }
 
 // 有効なソケットのシャットダウンが OS API へ委譲されることの確認
@@ -247,9 +348,10 @@ TEST_F(socketTest, shutdown_calls_os_shutdown)
     // Arrange
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位のシャットダウン API が両方向の停止を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位のシャットダウン API から成功を返却する。
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-    EXPECT_CALL(mock_sys_socket, shutdown(_, _, _, (int)kSocket, SHUT_RDWR)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, shutdown(_, _, _, (int)kSocket, SHUT_RDWR)).WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, shutdown(_, _, _, (SOCKET)kSocket, SD_BOTH)).WillOnce(Return(0));
 #endif /* PLATFORM_ */
@@ -258,7 +360,8 @@ TEST_F(socketTest, shutdown_calls_os_shutdown)
     com_util_socket_shutdown(kSocket); // [手順] - 有効なソケットをシャットダウンする。
 
     // Assert
-    SUCCEED(); // [確認_正常系] - OS のシャットダウン処理が呼ばれること。
+    EXPECT_TRUE(verifyExpectations());
+    // [確認_正常系] - 下位のシャットダウン API への呼び出し期待が満たされること。
 }
 
 // bind、listen、connect の引数不正が拒否されることの確認
@@ -308,16 +411,15 @@ TEST_F(socketTest, connection_operations_succeed)
 {
     // Arrange
 
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の bind と connect が対象のソケットを引数として 1 回ずつ、listen が既定と 3 の待ち受けキュー長で 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 下位の bind、listen、connect の各 API から成功を返却する。
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
-    // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, bind(_, _, _, (int)kSocket, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, listen(_, _, _, (int)kSocket, SOMAXCONN)).WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, listen(_, _, _, (int)kSocket, 3)).WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, connect(_, _, _, (int)kSocket, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, bind(_, _, _, (int)kSocket, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, listen(_, _, _, (int)kSocket, SOMAXCONN)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, listen(_, _, _, (int)kSocket, 3)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _)).WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, bind(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(0));
     EXPECT_CALL(mock_winsock_, listen(_, _, _, (SOCKET)kSocket, SOMAXCONN)).WillOnce(Return(0));
     EXPECT_CALL(mock_winsock_, listen(_, _, _, (SOCKET)kSocket, 3)).WillOnce(Return(0));
@@ -349,17 +451,16 @@ TEST_F(socketTest, connection_operations_report_os_failures)
     // Arrange
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, bind(_, _, _, (int)kSocket, _, _))
+    // [Pre-Assert確認_異常系] - 下位の bind、listen、connect の各 API が対象のソケットを引数として 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 下位の bind、listen、connect の各 API から失敗を返却し、それぞれの失敗要因を通知する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, bind(_, _, _, (int)kSocket, _, _))
         .WillOnce(DoAll(Assign(&errno, EADDRINUSE), Return(-1)));
-    EXPECT_CALL(mock_sys_socket, listen(_, _, _, (int)kSocket, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
-    EXPECT_CALL(mock_sys_socket, connect(_, _, _, (int)kSocket, _, _))
+    EXPECT_CALL(mock_sys_socket_, listen(_, _, _, (int)kSocket, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
         .WillOnce(DoAll(Assign(&errno, ECONNREFUSED), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, bind(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, listen(_, _, _, (SOCKET)kSocket, _)).WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, connect(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(SOCKET_ERROR));
@@ -412,11 +513,11 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
     com_util_ipv4_endpoint peer = {};
     com_util_socket accepted = COM_UTIL_INVALID_SOCKET;
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, accept(_, _, _, (int)kSocket, _, _))
+    // [Pre-Assert確認_正常系] - 下位の accept API が待ち受けソケットを引数として呼び出されること。
+    // [Pre-Assert手順] - 下位の accept API から接続元の端点と新しいソケットのハンドルを返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, accept(_, _, _, (int)kSocket, _, _))
         .WillRepeatedly(
             [](const char *, const int, const char *, int, struct sockaddr *address, socklen_t *length)
             {
@@ -427,7 +528,6 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
                 return 8;
             });
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, accept(_, _, _, (SOCKET)kSocket, _, _))
         .WillRepeatedly(
             [](const char *, const int, const char *, SOCKET, struct sockaddr *address, int *length)
@@ -465,13 +565,12 @@ TEST_F(socketTest, accept_reports_os_failure)
     com_util_socket accepted = kSocket;
     com_util_error detail = {};
 
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - 下位の accept API が待ち受けソケットを引数として 1 回呼び出されること。
+    // [Pre-Assert手順] - 下位の accept API から失敗を返却し、失敗要因を通知する。
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
-    // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, accept(_, _, _, (int)kSocket, _, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
+    EXPECT_CALL(mock_sys_socket_, accept(_, _, _, (int)kSocket, _, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, accept(_, _, _, (SOCKET)kSocket, _, _)).WillOnce(Return(INVALID_SOCKET));
     EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAEWOULDBLOCK));
 #endif /* PLATFORM_ */
@@ -492,11 +591,11 @@ TEST_F(socketTest, pending_error_reports_empty_pending_and_failure)
     // Arrange
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, getsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_ERROR, _, _))
+    // [Pre-Assert確認_正常系] - 下位の getsockopt API が SOL_SOCKET と SO_ERROR を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の getsockopt API から、保留エラーなし、保留エラーあり、取得失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_ERROR, _, _))
         .WillOnce(
             [](const char *, const int, const char *, int, int, int, void *value, socklen_t *)
             {
@@ -511,7 +610,6 @@ TEST_F(socketTest, pending_error_reports_empty_pending_and_failure)
             })
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, getsockopt(_, _, _, (SOCKET)kSocket, SOL_SOCKET, SO_ERROR, _, _))
         .WillOnce(
             [](const char *, const int, const char *, SOCKET, int, int, char *value, int *)
@@ -554,18 +652,17 @@ TEST_F(socketTest, nonblocking_reports_invalid_and_os_failure)
     // Arrange
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_fcntl> mock_fcntl;
-
     // Pre-Assert
-    EXPECT_CALL(mock_fcntl, fcntl(_, _, _, (int)kSocket, F_GETFL, 0))
+    // [Pre-Assert確認_正常系] - 下位の非ブロッキング設定 API が対象のソケットを引数として呼び出されること。
+    // [Pre-Assert手順] - 下位の非ブロッキング設定 API から、有効化の成功、無効化の成功、失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_GETFL, 0))
         .WillOnce(Return(O_RDONLY))
         .WillOnce(Return(O_NONBLOCK))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
-    EXPECT_CALL(mock_fcntl, fcntl(_, _, _, (int)kSocket, F_SETFL, O_RDONLY | O_NONBLOCK)).WillOnce(Return(0));
-    EXPECT_CALL(mock_fcntl, fcntl(_, _, _, (int)kSocket, F_SETFL, 0)).WillOnce(Return(0));
+    EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_SETFL, O_RDONLY | O_NONBLOCK)).WillOnce(Return(0));
+    EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_SETFL, 0)).WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, ioctlsocket(_, _, _, (SOCKET)kSocket, FIONBIO, _))
         .WillOnce(
             [](const char *, const int, const char *, SOCKET, long, u_long *mode)
@@ -610,13 +707,13 @@ TEST_F(socketTest, nonblocking_reports_set_failure)
     // Arrange
     com_util_error detail = {};
 
-    NiceMock<Mock_fcntl> mock_fcntl;
-
     // Pre-Assert
-    EXPECT_CALL(mock_fcntl, fcntl(_, _, _, (int)kSocket, F_GETFL, 0)).WillOnce(Return(O_RDONLY));
-    EXPECT_CALL(mock_fcntl, fcntl(_, _, _, (int)kSocket, F_SETFL, O_NONBLOCK))
+    // [Pre-Assert確認_異常系] - 下位の非ブロッキング設定 API が対象のソケットを引数として呼び出されること。
+    // [Pre-Assert手順] - 下位の非ブロッキング設定 API から、現在の設定の取得に成功したのち設定の反映で失敗を返却する。
+    EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_GETFL, 0)).WillOnce(Return(O_RDONLY));
+    EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_SETFL, O_NONBLOCK))
         .WillOnce(DoAll(Assign(&errno, EIO),
-                        Return(-1))); // [Pre-Assert確認_異常系] - F_SETFL が EIO を設定して失敗すること。
+                        Return(-1)));
 
     // Act
     int rtc = com_util_socket_set_nonblocking(kSocket, 1, &detail); // [手順] - F_SETFL の失敗を注入する。
@@ -634,22 +731,21 @@ TEST_F(socketTest, socket_options_succeed)
     // Arrange
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
+    // [Pre-Assert確認_正常系] - 下位の setsockopt API が SO_REUSEADDR と SO_BROADCAST を有効と無効で 1 回ずつ、IP_MULTICAST_IF と IP_ADD_MEMBERSHIP を 1 回ずつ指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の setsockopt API から成功を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(Return(0))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_BROADCAST, _, _))
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_BROADCAST, _, _))
         .WillOnce(Return(0))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
         .WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(Return(0))
         .WillOnce(Return(0));
@@ -695,18 +791,17 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
     // Arrange
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
+    // [Pre-Assert確認_異常系] - 下位の setsockopt API が SO_REUSEADDR、IP_MULTICAST_IF、IP_ADD_MEMBERSHIP を指定して 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 下位の setsockopt API から失敗を返却し、それぞれの失敗要因を通知する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(DoAll(Assign(&errno, ENOPROTOOPT), Return(-1)));
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
         .WillOnce(DoAll(Assign(&errno, ENODEV), Return(-1)));
-    EXPECT_CALL(mock_sys_socket, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
+    EXPECT_CALL(mock_sys_socket_, setsockopt(_, _, _, (int)kSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, _, _))
         .WillOnce(DoAll(Assign(&errno, ENODEV), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, SOL_SOCKET, SO_REUSEADDR, _, _))
         .WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, setsockopt(_, _, _, (SOCKET)kSocket, IPPROTO_IP, IP_MULTICAST_IF, _, _))
@@ -771,18 +866,17 @@ TEST_F(socketTest, send_and_recv_report_results)
     size_t received_failure = 99U;
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, send(_, _, _, (int)kSocket, _, 4U, 0))
+    // [Pre-Assert確認_正常系] - 下位の send と recv の各 API が 4 バイトの要求で 2 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 下位の send から 3 バイト送信ののち失敗、recv から 2 バイト受信ののち失敗を返却し、それぞれの失敗要因を通知する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
         .WillOnce(Return((ssize_t)3))
         .WillOnce(DoAll(Assign(&errno, EPIPE), Return((ssize_t)-1)));
-    EXPECT_CALL(mock_sys_socket, recv(_, _, _, (int)kSocket, _, 4U, 0))
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0))
         .WillOnce(Return((ssize_t)2))
         .WillOnce(DoAll(Assign(&errno, ECONNRESET), Return((ssize_t)-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 4, 0))
         .WillOnce(Return(3))
         .WillOnce(Return(SOCKET_ERROR));
@@ -866,12 +960,12 @@ TEST_F(socketTest, datagram_operations_succeed)
     size_t transferred = 0U;
     com_util_ipv4_endpoint peer = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _)).WillOnce(Return((ssize_t)4));
-    EXPECT_CALL(mock_sys_socket, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
+    // [Pre-Assert確認_正常系] - 下位の sendto と recvfrom の各 API が 4 バイトの要求で呼び出されること。
+    // [Pre-Assert手順] - 下位の sendto から 4 バイトの送信を、recvfrom から送信元の端点と受信バイト数を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _)).WillOnce(Return((ssize_t)4));
+    EXPECT_CALL(mock_sys_socket_, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
         .WillRepeatedly(
             [](const char *, const int, const char *, int, void *, size_t, int, struct sockaddr *address, socklen_t *)
             {
@@ -881,7 +975,6 @@ TEST_F(socketTest, datagram_operations_succeed)
                 return (ssize_t)2;
             });
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, sendto(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _)).WillOnce(Return(4));
     EXPECT_CALL(mock_winsock_, recvfrom(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _))
         .WillRepeatedly(
@@ -927,16 +1020,15 @@ TEST_F(socketTest, datagram_operations_report_invalid_and_os_failure)
     size_t transferred = 0U;
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _))
+    // [Pre-Assert確認_異常系] - 下位の sendto と recvfrom の各 API が 4 バイトの要求で 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 下位の sendto と recvfrom から失敗を返却し、それぞれの失敗要因を通知する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _))
         .WillOnce(DoAll(Assign(&errno, ENETUNREACH), Return((ssize_t)-1)));
-    EXPECT_CALL(mock_sys_socket, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
+    EXPECT_CALL(mock_sys_socket_, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
         .WillOnce(DoAll(Assign(&errno, ECONNREFUSED), Return((ssize_t)-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, sendto(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _)).WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, recvfrom(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _)).WillOnce(Return(SOCKET_ERROR));
     EXPECT_CALL(mock_winsock_, WSAGetLastError).WillOnce(Return(WSAENETUNREACH)).WillOnce(Return(WSAECONNREFUSED));
@@ -1014,18 +1106,17 @@ TEST_F(socketTest, send_all_reports_results)
     const char buffer[4] = {'a', 'b', 'c', 'd'};
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, send(_, _, _, (int)kSocket, _, 4U, 0))
+    // [Pre-Assert確認_正常系] - 下位の send API が、未送信の残量に応じて 4 バイトと 2 バイトの要求で呼び出されること。
+    // [Pre-Assert手順] - 下位の send から、全量送信、部分送信、0 バイト送信、失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
         .WillOnce(Return((ssize_t)4))
         .WillOnce(Return((ssize_t)2))
         .WillOnce(Return((ssize_t)0))
         .WillOnce(DoAll(Assign(&errno, EPIPE), Return((ssize_t)-1)));
-    EXPECT_CALL(mock_sys_socket, send(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)2));
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)2));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 4, 0))
         .WillOnce(Return(4))
         .WillOnce(Return(2))
@@ -1081,18 +1172,17 @@ TEST_F(socketTest, recv_all_reports_results)
     char buffer[4] = {};
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, recv(_, _, _, (int)kSocket, _, 4U, 0))
+    // [Pre-Assert確認_正常系] - 下位の recv API が、未受信の残量に応じて 4 バイトと 2 バイトの要求で呼び出されること。
+    // [Pre-Assert手順] - 下位の recv から、全量受信、部分受信、0 バイト受信、失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0))
         .WillOnce(Return((ssize_t)4))
         .WillOnce(Return((ssize_t)2))
         .WillOnce(Return((ssize_t)0))
         .WillOnce(DoAll(Assign(&errno, ECONNRESET), Return((ssize_t)-1)));
-    EXPECT_CALL(mock_sys_socket, recv(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)2));
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)2));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, recv(_, _, _, (SOCKET)kSocket, _, 4, 0))
         .WillOnce(Return(4))
         .WillOnce(Return(2))
@@ -1148,11 +1238,11 @@ TEST_F(socketTest, wait_single_reports_results)
     int ready_after_not_ready = 9;
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_poll> mock_poll;
-
     // Pre-Assert
-    EXPECT_CALL(mock_poll, poll(_, _, _, _, 1, 0))
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 1 個のソケットとタイムアウト 0 を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から、タイムアウト、条件成立、シグナルによる中断、失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 0))
         .WillOnce(Return(0))
         .WillOnce(
             [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
@@ -1169,7 +1259,6 @@ TEST_F(socketTest, wait_single_reports_results)
         .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, WSAPoll(_, _, _, _, 1, 0))
         .WillOnce(Return(0))
         .WillOnce(
@@ -1239,6 +1328,7 @@ TEST_F(socketTest, wait_multi_rejects_invalid_and_waits_without_valid_socket)
     com_util_error detail = {};
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 有効なソケットがない場合に com_util_sleep_ms がタイムアウト時間を引数として 1 回呼び出されること。
     EXPECT_CALL(mock_com_util_, com_util_sleep_ms(5)).Times(1);
 
     // Act
@@ -1282,11 +1372,11 @@ TEST_F(socketTest, wait_multi_reports_results)
     unsigned char ready_after_ready[3] = {0U, 0U, 0U};
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_poll> mock_poll;
-
     // Pre-Assert
-    EXPECT_CALL(mock_poll, poll(_, _, _, _, 2, 0))
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 2 個のソケットとタイムアウト 0 を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から、一部のソケットが受信可能、いずれも非受信、シグナルによる中断、失敗の順に応答する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 2, 0))
         .WillOnce(
             [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
             {
@@ -1304,7 +1394,6 @@ TEST_F(socketTest, wait_multi_reports_results)
         .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, WSAPoll(_, _, _, _, 2, 0))
         .WillOnce(
             [](const char *, const int, const char *, LPWSAPOLLFD fds, ULONG, INT)
@@ -1364,15 +1453,14 @@ TEST_F(socketTest, shutdown_receive_reports_results)
     com_util_socket invalid_socket = COM_UTIL_INVALID_SOCKET;
     com_util_error detail = {};
 
-#if defined(PLATFORM_LINUX)
-    NiceMock<Mock_sys_socket> mock_sys_socket;
-
     // Pre-Assert
-    EXPECT_CALL(mock_sys_socket, shutdown(_, _, _, (int)kSocket, SHUT_RD))
+    // [Pre-Assert確認_正常系] - 下位の受信停止 API が対象のソケットを引数として 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の受信停止 API から、成功ののち失敗を返却し、失敗要因を通知する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, shutdown(_, _, _, (int)kSocket, SHUT_RD))
         .WillOnce(Return(0))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
-    // Pre-Assert
     EXPECT_CALL(mock_winsock_, closesocket(_, _, _, (SOCKET)kSocket))
         .WillOnce(Return(0))
         .WillOnce(Return(SOCKET_ERROR));

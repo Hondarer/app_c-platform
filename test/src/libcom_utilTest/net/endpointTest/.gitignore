@@ -2,5 +2,3 @@
 /endpoint_windows.c
 /error.c
 /result.c
-/socket_linux.c
-/socket_windows.c
