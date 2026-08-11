@@ -25,6 +25,32 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_console_dispose_on_shutdown)
 MOCK_COM_UTIL_LINK_IMPL(com_util_path_basename)
 MOCK_COM_UTIL_LINK_IMPL(com_util_shutdown_register)
 MOCK_COM_UTIL_LINK_IMPL(com_util_call_once)
+MOCK_COM_UTIL_LINK_IMPL(com_util_ipv4_parse)
+MOCK_COM_UTIL_LINK_IMPL(com_util_ipv4_resolve)
+MOCK_COM_UTIL_LINK_IMPL(com_util_ipv4_to_string)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_open)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_close)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_shutdown)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_bind)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_listen)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_accept)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_connect)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_get_pending_error)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_nonblocking)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_reuse_address)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_broadcast)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_set_multicast_interface)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_join_multicast_group)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_send)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_recv)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_sendto)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_recvfrom)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_send_all)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_recv_all)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_wait_readable)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_wait_writable)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_wait_readable_multi)
+MOCK_COM_UTIL_LINK_IMPL(com_util_socket_shutdown_receive)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_create)
 MOCK_COM_UTIL_LINK_IMPL(com_util_fclose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_fflush)
@@ -74,6 +100,8 @@ MOCK_COM_UTIL_LINK_IMPL(StartServiceCtrlDispatcherU)
 #include <com_util/compress/compress.h>
 #include <com_util/crypto/crypto.h>
 #include <com_util/crypto/random.h>
+#include <com_util/net/endpoint.h>
+#include <com_util/net/socket.h>
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/time.h>
 #include <com_util/crt/stdio.h>
@@ -124,6 +152,32 @@ extern int delegate_real_com_util_decrypt(uint8_t *dst, size_t *dst_len, const u
                                           const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
 extern int delegate_real_com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len);
 extern int delegate_real_com_util_random_bytes(void *buf, size_t size);
+extern int delegate_real_com_util_ipv4_parse(const char *, uint32_t *);
+extern int delegate_real_com_util_ipv4_resolve(const char *, uint32_t *, com_util_error *);
+extern int delegate_real_com_util_ipv4_to_string(uint32_t, char *, size_t, com_util_error *);
+extern int delegate_real_com_util_socket_open(com_util_socket_kind, com_util_socket *, com_util_error *);
+extern void delegate_real_com_util_socket_close(com_util_socket);
+extern void delegate_real_com_util_socket_shutdown(com_util_socket);
+extern int delegate_real_com_util_socket_bind(com_util_socket, const com_util_ipv4_endpoint *, com_util_error *);
+extern int delegate_real_com_util_socket_listen(com_util_socket, int, com_util_error *);
+extern int delegate_real_com_util_socket_accept(com_util_socket, com_util_ipv4_endpoint *, com_util_socket *, com_util_error *);
+extern int delegate_real_com_util_socket_connect(com_util_socket, const com_util_ipv4_endpoint *, com_util_error *);
+extern int delegate_real_com_util_socket_get_pending_error(com_util_socket, com_util_error *);
+extern int delegate_real_com_util_socket_set_nonblocking(com_util_socket, int, com_util_error *);
+extern int delegate_real_com_util_socket_set_reuse_address(com_util_socket, int, com_util_error *);
+extern int delegate_real_com_util_socket_set_broadcast(com_util_socket, int, com_util_error *);
+extern int delegate_real_com_util_socket_set_multicast_interface(com_util_socket, uint32_t, com_util_error *);
+extern int delegate_real_com_util_socket_join_multicast_group(com_util_socket, uint32_t, uint32_t, com_util_error *);
+extern int delegate_real_com_util_socket_send(com_util_socket, const void *, size_t, size_t *, com_util_error *);
+extern int delegate_real_com_util_socket_recv(com_util_socket, void *, size_t, size_t *, com_util_error *);
+extern int delegate_real_com_util_socket_sendto(com_util_socket, const void *, size_t, const com_util_ipv4_endpoint *, size_t *, com_util_error *);
+extern int delegate_real_com_util_socket_recvfrom(com_util_socket, void *, size_t, com_util_ipv4_endpoint *, size_t *, com_util_error *);
+extern int delegate_real_com_util_socket_send_all(com_util_socket, const void *, size_t, com_util_error *);
+extern int delegate_real_com_util_socket_recv_all(com_util_socket, void *, size_t, com_util_error *);
+extern int delegate_real_com_util_socket_wait_readable(com_util_socket, int, int *, com_util_error *);
+extern int delegate_real_com_util_socket_wait_writable(com_util_socket, int, int *, com_util_error *);
+extern int delegate_real_com_util_socket_wait_readable_multi(const com_util_socket *, size_t, int, unsigned char *, com_util_error *);
+extern int delegate_real_com_util_socket_shutdown_receive(com_util_socket *, com_util_error *);
 
 // crt
 extern FILE *delegate_real_com_util_fopen(const char *path, const char *modes, com_util_error *detail_out);
@@ -598,6 +652,32 @@ class Mock_com_util
                  size_t));
     MOCK_METHOD(int, com_util_passphrase_to_key, (uint8_t *, const uint8_t *, size_t));
     MOCK_METHOD(int, com_util_random_bytes, (void *, size_t));
+    MOCK_METHOD(int, com_util_ipv4_parse, (const char *, uint32_t *));
+    MOCK_METHOD(int, com_util_ipv4_resolve, (const char *, uint32_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_ipv4_to_string, (uint32_t, char *, size_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_open, (com_util_socket_kind, com_util_socket *, com_util_error *));
+    MOCK_METHOD(void, com_util_socket_close, (com_util_socket));
+    MOCK_METHOD(void, com_util_socket_shutdown, (com_util_socket));
+    MOCK_METHOD(int, com_util_socket_bind, (com_util_socket, const com_util_ipv4_endpoint *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_listen, (com_util_socket, int, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_accept, (com_util_socket, com_util_ipv4_endpoint *, com_util_socket *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_connect, (com_util_socket, const com_util_ipv4_endpoint *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_get_pending_error, (com_util_socket, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_set_nonblocking, (com_util_socket, int, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_set_reuse_address, (com_util_socket, int, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_set_broadcast, (com_util_socket, int, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_set_multicast_interface, (com_util_socket, uint32_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_join_multicast_group, (com_util_socket, uint32_t, uint32_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_send, (com_util_socket, const void *, size_t, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_recv, (com_util_socket, void *, size_t, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_sendto, (com_util_socket, const void *, size_t, const com_util_ipv4_endpoint *, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_recvfrom, (com_util_socket, void *, size_t, com_util_ipv4_endpoint *, size_t *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_send_all, (com_util_socket, const void *, size_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_recv_all, (com_util_socket, void *, size_t, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_wait_readable, (com_util_socket, int, int *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_wait_writable, (com_util_socket, int, int *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_wait_readable_multi, (const com_util_socket *, size_t, int, unsigned char *, com_util_error *));
+    MOCK_METHOD(int, com_util_socket_shutdown_receive, (com_util_socket *, com_util_error *));
 
     // crt
     MOCK_METHOD(FILE *, com_util_fopen, (const char *, const char *, com_util_error *));

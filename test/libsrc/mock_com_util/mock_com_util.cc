@@ -15,6 +15,32 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_decrypt(_, _, _, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_decrypt));
     ON_CALL(*this, com_util_passphrase_to_key(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_passphrase_to_key));
     ON_CALL(*this, com_util_random_bytes(_, _)).WillByDefault(Invoke(delegate_real_com_util_random_bytes));
+    ON_CALL(*this, com_util_ipv4_parse(_, _)).WillByDefault(Invoke(delegate_real_com_util_ipv4_parse));
+    ON_CALL(*this, com_util_ipv4_resolve(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_ipv4_resolve));
+    ON_CALL(*this, com_util_ipv4_to_string(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_ipv4_to_string));
+    ON_CALL(*this, com_util_socket_open(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_open));
+    ON_CALL(*this, com_util_socket_close(_)).WillByDefault(Invoke(delegate_real_com_util_socket_close));
+    ON_CALL(*this, com_util_socket_shutdown(_)).WillByDefault(Invoke(delegate_real_com_util_socket_shutdown));
+    ON_CALL(*this, com_util_socket_bind(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_bind));
+    ON_CALL(*this, com_util_socket_listen(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_listen));
+    ON_CALL(*this, com_util_socket_accept(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_accept));
+    ON_CALL(*this, com_util_socket_connect(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_connect));
+    ON_CALL(*this, com_util_socket_get_pending_error(_, _)).WillByDefault(Invoke(delegate_real_com_util_socket_get_pending_error));
+    ON_CALL(*this, com_util_socket_set_nonblocking(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_nonblocking));
+    ON_CALL(*this, com_util_socket_set_reuse_address(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_reuse_address));
+    ON_CALL(*this, com_util_socket_set_broadcast(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_broadcast));
+    ON_CALL(*this, com_util_socket_set_multicast_interface(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_set_multicast_interface));
+    ON_CALL(*this, com_util_socket_join_multicast_group(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_join_multicast_group));
+    ON_CALL(*this, com_util_socket_send(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_send));
+    ON_CALL(*this, com_util_socket_recv(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_recv));
+    ON_CALL(*this, com_util_socket_sendto(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_sendto));
+    ON_CALL(*this, com_util_socket_recvfrom(_, _, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_recvfrom));
+    ON_CALL(*this, com_util_socket_send_all(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_send_all));
+    ON_CALL(*this, com_util_socket_recv_all(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_recv_all));
+    ON_CALL(*this, com_util_socket_wait_readable(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_wait_readable));
+    ON_CALL(*this, com_util_socket_wait_writable(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_wait_writable));
+    ON_CALL(*this, com_util_socket_wait_readable_multi(_, _, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_socket_wait_readable_multi));
+    ON_CALL(*this, com_util_socket_shutdown_receive(_, _)).WillByDefault(Invoke(delegate_real_com_util_socket_shutdown_receive));
 
     // crt
     ON_CALL(*this, com_util_fopen(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_fopen));
