@@ -1,5 +1,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#include <mock_unistd.h>
 
 #include <com_util/base/platform.h>
 #include <com_util/base/result_internal.h>
@@ -9,6 +10,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+using testing::_;
+using testing::NiceMock;
+using testing::Return;
+using testing::StrEq;
 
 #if defined(PLATFORM_LINUX)
     #include <fcntl.h>
@@ -393,3 +399,81 @@ TEST(processTest, ExecutablePathReportsSmallBuffer)
         result); // [確認_異常系] - com_util_process_get_executable_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ('\0', path[0]); // [確認_異常系] - バッファー不足時に出力先が空文字列であること。
 }
+
+#if defined(PLATFORM_LINUX)
+// 実行ファイルのパス取得が readlink の OS エラーを共通結果へ変換することの確認
+TEST(processTest, ExecutablePathReportsReadlinkFailure)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    char path[PLATFORM_PATH_MAX] = {'x'};
+    errno = EACCES;
+    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
+        .WillOnce(Return(static_cast<ssize_t>(-1)));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_get_executable_path(
+        path, sizeof(path)); // [手順] - readlink が EACCES で失敗する状態で実行ファイルのパスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_PERMISSION_DENIED,
+              result);        // [確認_異常系] - readlink の EACCES が PERMISSION_DENIED へ変換されること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - readlink 失敗時に出力先が空文字列であること。
+}
+
+// readlink が出力バッファーを超える長さを返した場合に不足を報告することの確認
+TEST(processTest, ExecutablePathReportsReadlinkLengthOverflow)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    char path[8] = {'x'};
+    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
+        .WillOnce(Return(static_cast<ssize_t>(8)));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_get_executable_path(
+        path, sizeof(path)); // [手順] - readlink が出力先容量以上の長さを返す状態でパスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result);        // [確認_異常系] - readlink の長さ超過が BUFFER_TOO_SMALL になること。
+    EXPECT_EQ('\0', path[0]); // [確認_異常系] - 長さ超過時に出力先が空文字列であること。
+}
+
+// argv の NULL、空文字列を process_start が拒否することの確認
+TEST(processTest, RejectsInvalidArgumentVectors)
+{
+    // Arrange
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char empty_arg0[] = "";
+    char *null_first_argv[] = {nullptr};
+    char *empty_argv[] = {empty_arg0, nullptr};
+
+    // Pre-Assert
+
+    // Act
+    options.argv = nullptr;
+    int null_argv_result =
+        com_util_process_start(&options, &process); // [手順] - argv 自体が NULL の options でプロセスを開始する。
+    options.argv = null_first_argv;
+    int null_first_result =
+        com_util_process_start(&options, &process); // [手順] - argv[0] が NULL の options でプロセスを開始する。
+    options.argv = empty_argv;
+    int empty_first_result =
+        com_util_process_start(&options, &process); // [手順] - argv[0] が空文字列の options でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_argv_result); // [確認_異常系] - argv NULL の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_first_result); // [確認_異常系] - argv[0] NULL の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              empty_first_result); // [確認_異常系] - argv[0] 空文字列の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(nullptr, process);   // [確認_異常系] - 不正な argv で process が NULL のままであること。
+}
+#endif /* PLATFORM_LINUX */

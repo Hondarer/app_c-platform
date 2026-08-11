@@ -1,9 +1,18 @@
 #include <testfw.h>
+#include <mock_pthread.h>
+#include <mock_stdlib.h>
+#include <sys/mock_mman.h>
 #include <mock_com_util.h>
 #include <com_util/runtime/memory_lock.h>
 
 #include <cstdlib>
+#include <cerrno>
 #include <thread>
+
+using testing::_;
+using testing::DoAll;
+using testing::NiceMock;
+using testing::Return;
 
 class memoryLockTest : public Test
 {
@@ -83,6 +92,155 @@ TEST_F(memoryLockTest, test_range_locks_and_unlocks_heap_buffer)
     // Cleanup
     free(buffer);
 }
+
+#if defined(PLATFORM_LINUX)
+// mlock と munlock の OS エラーがメモリ ロック結果へ変換されることの確認
+TEST_F(memoryLockTest, test_range_maps_mlock_errors)
+{
+    // Arrange
+    NiceMock<Mock_sys_mman> mock_mman;
+    unsigned char buffer[32] = {};
+    EXPECT_CALL(mock_mman, mlock(_, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_mman, munlock(_, _, _, _, _)).WillOnce(Return(-1));
+    errno = ENOMEM;
+
+    // Pre-Assert
+
+    // Act
+    int lock_result = com_util_memory_lock_range(
+        buffer, sizeof(buffer)); // [手順] - mlock が ENOMEM で失敗する状態で範囲をロックする。
+    errno = EACCES;
+    int unlock_result = com_util_memory_unlock_range(
+        buffer, sizeof(buffer)); // [手順] - munlock が EACCES で失敗する状態で範囲を解除する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              lock_result); // [確認_異常系] - mlock の ENOMEM が LIMIT_EXCEEDED へ変換されること。
+    EXPECT_EQ(COM_UTIL_ERR_PERMISSION_DENIED,
+              unlock_result); // [確認_異常系] - munlock の EACCES が PERMISSION_DENIED へ変換されること。
+}
+
+// mlockall の失敗が self lock の生成失敗として通知されることの確認
+TEST_F(memoryLockTest, test_lock_self_reports_mlockall_failure)
+{
+    // Arrange
+    NiceMock<Mock_sys_mman> mock_mman;
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    EXPECT_CALL(mock_mman, mlockall(_, _, _, _))
+        .WillOnce(testing::Invoke(
+            [](const char *, const int, const char *, const int)
+            {
+                errno = ENOMEM;
+                return -1;
+            }));
+    EXPECT_CALL(mock_com_util, com_util_call_once(_, _))
+        .WillOnce(testing::Invoke(
+            [](com_util_once_flag *flag, com_util_once_fn func)
+            {
+                func();
+                flag->state = 2;
+            }));
+    EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
+        .WillOnce(testing::Invoke(delegate_real_com_util_local_lock_create));
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER)).WillOnce(Return(COM_UTIL_OK));
+    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_)).WillOnce(Return(COM_UTIL_OK));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_memory_lock_self(
+        &options, &scope); // [手順] - mlockall が ENOMEM で失敗する状態で self lock を生成する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              result);         // [確認_異常系] - mlockall の ENOMEM が LIMIT_EXCEEDED へ変換されること。
+    EXPECT_EQ(nullptr, scope); // [確認_異常系] - self lock の scope が生成されないこと。
+}
+
+// self lock の解除が munlockall のエラーを返すことの確認
+TEST_F(memoryLockTest, test_scope_release_reports_munlockall_failure)
+{
+    // Arrange
+    NiceMock<Mock_sys_mman> mock_mman;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    EXPECT_CALL(mock_mman, mlockall(_, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_mman, munlockall(_, _, _)).WillOnce(Return(-1));
+
+    // Pre-Assert
+    ASSERT_EQ(COM_UTIL_OK, com_util_memory_lock_self(&options, &scope));
+    ASSERT_NE(nullptr, scope);
+    errno = EACCES;
+
+    // Act
+    int result =
+        com_util_memory_lock_scope_release(scope); // [手順] - munlockall が EACCES で失敗する状態で scope を解放する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_PERMISSION_DENIED,
+              result); // [確認_異常系] - munlockall の EACCES が PERMISSION_DENIED へ変換されること。
+}
+
+// stack prefault の pthread_getattr_np 失敗が self lock の生成失敗になることの確認
+TEST_F(memoryLockTest, test_lock_self_reports_stack_attribute_failure)
+{
+    // Arrange
+    NiceMock<Mock_pthread> mock_pthread;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    options.stack_prefault_bytes = 1U;
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(EINVAL));
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_memory_lock_self(&options, &scope); // [手順] - スタック属性取得が失敗する状態で self lock を生成する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);         // [確認_異常系] - スタック属性取得失敗が UNKNOWN になること。
+    EXPECT_EQ(nullptr, scope); // [確認_異常系] - stack prefault 失敗時に scope が生成されないこと。
+}
+
+// stack の取得範囲が安全余白を満たさない場合に制限超過を返すことの確認
+TEST_F(memoryLockTest, test_lock_self_rejects_insufficient_stack_range)
+{
+    // Arrange
+    NiceMock<Mock_pthread> mock_pthread;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    options.stack_prefault_bytes = 1U;
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
+        .WillOnce(DoAll(
+            testing::Invoke(
+                [](const char *, const int, const char *, const pthread_attr_t *, void **stack_addr, size_t *stack_size)
+                {
+                    *stack_addr = nullptr;
+                    *stack_size = 1U;
+                }),
+            Return(0)));
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).WillOnce(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_memory_lock_self(
+        &options, &scope); // [手順] - スタック安全余白を満たさない状態で self lock を生成する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              result);         // [確認_異常系] - スタック不足が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(nullptr, scope); // [確認_異常系] - スタック不足時に scope が生成されないこと。
+}
+#endif /* PLATFORM_LINUX */
 
 // self ロック API が不正引数を検出することの確認
 TEST_F(memoryLockTest, test_lock_self_rejects_invalid_arguments)

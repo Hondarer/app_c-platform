@@ -281,7 +281,9 @@ static int setup_child_stdio_one(const com_util_process_stdio *spec, const int t
 
     if (spec->mode == COM_UTIL_PROCESS_STDIO_NULL_DEVICE)
     {
-        source_fd = open("/dev/null", null_flags);
+        /* mode は O_CREAT を指定しないため使用されないが、testfw の open mock と
+           Linux/Windows の可変引数差異を避けるため明示的に渡す。 */
+        source_fd = open("/dev/null", null_flags, 0);
         if (source_fd < 0)
         {
             return -1;

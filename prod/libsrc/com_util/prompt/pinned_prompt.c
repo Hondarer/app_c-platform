@@ -8,6 +8,9 @@
 #include <com_util/base/result.h>
 #include <com_util/prompt/pinned_prompt.h>
 
+#if defined(PLATFORM_LINUX)
+    #include <signal.h>
+#endif
 #include <com_util/console/console.h>
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/string.h>
@@ -24,7 +27,6 @@
 
 #if defined(PLATFORM_LINUX)
     #include <errno.h>
-    #include <signal.h>
     #include <sys/ioctl.h>
     #include <sys/select.h>
     #include <termios.h>
