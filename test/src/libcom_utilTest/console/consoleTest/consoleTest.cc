@@ -13,6 +13,9 @@ class consoleTest : public Test
 
     void SetUp() override
     {
+        // 終了コールバックの実行はこのテストの対象外とする。実ライブラリへ登録すると、共有ライブラリの解放後に呼び出されて
+        // セグメンテーション違反が発生するため、登録処理をモックして成功を返す。
+        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
         _mock_com_util = &mock_;
     }
 
