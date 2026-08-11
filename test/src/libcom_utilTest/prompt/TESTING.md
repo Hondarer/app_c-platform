@@ -1,47 +1,34 @@
-# prompt 系テストの現状と引き継ぎ
+# prompt 系テスト
 
-`app/com_util/prod/libsrc/com_util/prompt/` 配下 5 本のソースに対するテストの状況と、未着手部分を進めるための手順をまとめます。
+`app/com_util/prod/libsrc/com_util/prompt/` の Linux および Windows 実装を対象とするテスト構成と、Linux の gcov によるカバレッジ結果を記載します。
 
-規約は [framework/testfw/docs/how-to-test.md](../../../../../../framework/testfw/docs/how-to-test.md) の「カバレッジの基準」と「テストの構成単位」に従います。カバレッジの原則は条件網羅 (C2) で、最新値の計測は Linux (gcov) を正本とします。
+## カバレッジ基準
 
-## 対応状況
+カバレッジは条件網羅 (C2) を基準とし、Linux の gcov 結果を計測値として扱います。
 
-| 対象ソース | テスト ディレクトリ | テスト数 | 現状 |
-|---|---|---:|---|
-| `prompt_edit.c` | `promptEditTest` | 19 | 基本経路と `realloc` 失敗経路をテスト実装済み |
-| `prompt_linux.c` | `promptLinuxTest` | 12 | `tcsetattr` 失敗経路を含む主要経路をテスト実装済み |
-| `prompt.c` | `promptTest` | 37 | `realloc` 失敗経路を含む主要経路をテスト実装済み |
-| `pinned_prompt.c` | `pinnedPromptTest` | 1 | ステータス API の NULL 引数だけを確認。拡充が必要 |
-| `prompt_windows.c` | `promptWindowsTest` | 13 | Windows API の主要経路をテスト実装済み |
+テスト対象ソースとテスト数、2026-08-11 の計測結果は次のとおりです。
 
-`pinned_prompt.c` (1,860 行) のテストは未完了です。`prompt_windows.c` は Windows 専用実装のため、Linux ではテストが 0 件となり、行/C2 の数値も計測されません。
+| 対象ソース | テスト ディレクトリ | テスト数 | 行カバレッジ | C2 カバレッジ |
+|---|---|---:|---:|---:|
+| `prompt_edit.c` | `promptEditTest` | 19 | 100% (64/64) | 100% (54/54) |
+| `prompt_linux.c` | `promptLinuxTest` | 12 | 100% (48/48) | 100% (22/22) |
+| `prompt.c` | `promptTest` | 37 | 91% (310/340) | 94% (170/181) |
+| `pinned_prompt.c` | `pinnedPromptTest` | 11 | 31% (248/806) | 33% (154/473) |
+| `prompt_windows.c` | `promptWindowsTest` | 13 | Linux では計測対象外 | Linux では計測対象外 |
 
-## カバレッジ計測結果
+## テスト構成
 
-2026-08-11 に Linux (gcov) で `make test` を実行した結果です。行カバレッジと C2 カバレッジは、各テストでリンクした対象ソースに対する値です。
+### promptEditTest
 
-| 対象ソース | テスト数 | 行カバレッジ | C2 カバレッジ | 状況 |
-|---|---:|---:|---:|---|
-| `prompt_edit.c` | 19 | 100% (64/64) | 100% (54/54) | 到達済み |
-| `prompt_linux.c` | 12 | 100% (48/48) | 100% (22/22) | 到達済み |
-| `prompt.c` | 37 | 91% (310/340) | 94% (170/181) | 未到達行あり |
-| `pinned_prompt.c` | 1 | 1% (6/806) | 0% (2/473) | テスト拡充が必要 |
-| `prompt_windows.c` | 0 (Linux) | 計測対象外 | 計測対象外 | Windows で実行 |
+`prompt_edit.c` の文字境界、バッファー容量、オプション解決をテストします。
 
-`promptWindowsTest` には Windows 用のテストを 13 件定義しています。Linux 実行時は Windows 専用コードがコンパイル対象外となるため、テスト数は 0 件です。
+`realloc` の失敗、NULL 引数、容量上限、UTF-8 の継続バイトを含む境界条件を扱います。
 
-計測を再現する場合は、次のディレクトリで実行します。
+### promptTest
 
-```bash
-cd app/com_util/test/src/libcom_utilTest/prompt
-make test
-```
+`prompt.c` が呼び出す端末制御関数を `promptPlatformFake.cc` で差し替え、実端末を使わずに入力処理をテストします。
 
-## テストの構成
-
-### promptTest: プラットフォーム層を fake で差し替える
-
-`prompt.c` は端末制御を `prompt_platform_enter_raw` / `leave_raw` / `read_char` / `read_char_nb` の 4 関数へ委ねています。実機の端末を必要とせずキー入力を再現するため、`promptPlatformFake.cc` でこの 4 関数を差し替えています。
+テスト ディレクトリ内の `promptPlatformFake.cc` は自動収集されるため、`makepart.mk` の `ADD_SRCS` には指定しません。
 
 ```makefile
 TEST_SRCS := \
@@ -51,77 +38,72 @@ ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/prompt_edit.c
 ```
 
-`prompt_linux.c` / `prompt_windows.c` はリンクしません。
-
-`promptPlatformFake.cc` は `makepart.mk` に現れません。テスト ディレクトリ直下のソースは `SRCS_CPP` として自動収集されるためです。`ADD_SRCS` は自ディレクトリ外のソースを引き込むための指定であり、同ディレクトリのファイルに使う必要はありません。
-
-テストからは `promptFakeSetInput()` へバイト列を渡し、`com_util_prompt_readline_at()` を呼び出します。列を消費し切ると EOF (-1) を返します。
+`promptFakeSetInput()` に入力バイト列を渡し、`com_util_prompt_readline_at()` で行編集、履歴、UTF-8、エスケープ シーケンス、EOF を確認します。
 
 ```cpp
-promptFakeSetInput("abc\r");                 // "abc" と Enter
-promptFakeSetInput("abc\x1B[D\x1B[3~\r");    // "abc"、左矢印、Delete、Enter
+promptFakeSetInput("abc\r");              // "abc" と Enter
+promptFakeSetInput("abc\x1B[D\x1B[3~\r"); // "abc"、左矢印、Delete、Enter
 ```
 
-`enter_raw` / `leave_raw` の呼び出し回数は `promptFakeEnterRawCount()` / `promptFakeLeaveRawCount()` で取得できます。
-
-### TTY 状態の扱い
-
-`com_util_prompt_readline_at()` は `p->is_tty` が 0 のとき `fgets()` フォールバックへ分岐します。CI では標準入力が端末ではないため、対話パスを通すにはハンドル生成後に直接立てます。
+`prompt.c` の非 TTY 経路を試験するときは、ハンドル生成後に内部状態 `is_tty` を 1 以外へ設定します。
 
 ```cpp
 prompt_ = com_util_prompt_create(NULL);
-prompt_->is_tty = 1;
+prompt_->is_tty = 0;
 ```
 
-構造体の実体は `prod/include_internal/com_util/prompt/prompt_internal.h` にあり、テストから参照できます。
+`promptAllocFailureTest` では、ハンドル、編集バッファー、履歴、コンテキスト、書式付き入力におけるメモリ確保失敗を `Mock_stdlib` で注入します。
 
-### promptLinuxTest: 標準入力の差し替えと inject
+### promptLinuxTest
 
-`prompt_linux.c` は `STDIN_FILENO` を直接扱うため、`dup2()` で標準入力をパイプまたは疑似端末へ差し替えて検証します。
+`prompt_linux.c` の標準入力をパイプまたは疑似端末へ差し替え、raw モード、SIGWINCH、blocking 読み取り、non-blocking 読み取りをテストします。
 
-- パイプ: `tcgetattr` が失敗する経路、`read` の通常読み取りと EOF、`select` のタイムアウト
-- 疑似端末 (`posix_openpt`): raw モードへの移行と復帰、`tcsetattr` の失敗、SIGWINCH ハンドラーの登録と復元
+`Mock_unistd`、`Mock_termios`、`Mock_signal`、`Mock_sys_select` を使い、`read` の EINTR、EOF、`tcsetattr` の失敗、`select` のタイムアウトを再現します。
 
-`s_resize_pending` と `s_sigwinch_installed` はファイル内 `static` のため、`prompt_linux.inject.c` でアクセサーを通しています。リサイズ通知の経路 (`read` が EINTR で失敗し、かつリサイズ待ちがある) は `Mock_unistd` で `read` に EINTR を注入して到達させます。
+ファイル内 static 状態の `s_resize_pending` と `s_sigwinch_installed` は、`prompt_linux.inject.c` のアクセサーから操作します。
 
-### promptWindowsTest: Win32 API を Mock_windows でモックする
+### pinnedPromptTest
 
-`prompt_windows.c` は `GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile` を直接呼び出します。これらは `framework/testfw` の `mock_windows.h`/`Mock_windows` (`include_override/windows.h` による差し替え) でモック化しています。`GetTickCount64` などの既存モックと同じ仕組みで、実コンソールや実プロセスを一切必要とせず、`SetConsoleMode` の失敗経路や `WaitForSingleObject` のタイムアウト経路も含めて全分岐を決定的に再現できます。
+`pinned_prompt.c` の static 関数は `pinned_prompt.inject.c` のアクセサーから直接呼び出し、文字列処理と Linux プラットフォーム処理を分離してテストします。
 
-```cpp
-Mock_windows mock_windows;
+```makefile
+TEST_SRCS := \
+	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/pinned_prompt.c
 
-EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(dummy_handle));
-EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
-    .WillOnce(DoAll(SetArgPointee<4>(orig_mode), Return(TRUE)));
+ADD_SRCS := \
+	$(MYAPP_DIR)/prod/libsrc/com_util/prompt/prompt_edit.c \
+	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 ```
 
-`MOCK_METHOD` の各引数は `(__FILE__, __LINE__, __func__, 実引数...)` の順であるため、実引数の位置は 4 番目以降になります (`SetArgPointee<4>` などのインデックスに注意)。モック未注入時 (`_mock_windows == nullptr`) は自動的に実 API へ委譲されるため、`console.c`/`process.c`/`sync_windows.c` など他の `TEST_SRCS` が同じ関数を呼んでいても挙動は変化しません。
+テスト対象は次のとおりです。
 
-## 未到達として残している箇所
+- UTF-8 文字幅、ANSI SGR シーケンス、表示バイト数、表示幅
+- 非 TTY の `fgets` fallback と EOF
+- status API の上下位置、左右配置、NULL 引数
+- `ioctl` による端末サイズ取得と既定値 fallback
+- raw モードの移行と復帰、SIGWINCH ハンドラーの登録
+- 入力の EINTR、リサイズ通知、通常読み取り、EOF
+- `select` のタイムアウトと入力可能状態
 
-| 箇所 | 理由 |
-|---|---|
-| `prompt.c` の入力解析 | 未知のエスケープ シーケンス、リサイズ通知、制御文字の未到達経路が残っています (55, 101, 126, 175, 199, 206, 214 行)。 |
-| `prompt.c` の履歴処理 | NULL エントリ、容量不足、履歴の境界条件が未到達です (246, 251, 255, 268, 278, 283, 296, 300 行)。 |
-| `prompt.c` のフォールバックと書式付き API | TTY でない場合とコンテキスト作成失敗時の出力、改行除去、NULL 書式、書式化失敗、再確保成功の経路が未到達です (336, 471-472, 478-479, 496-497, 679, 689-690, 705-706 行)。 |
-| `pinned_prompt.c` | 806 行中 6 行の実行にとどまり、473 分岐中 2 分岐だけを実行しています。固定表示の描画、端末制御、履歴、解放処理などのテストが必要です。 |
+Linux では `Mock_ioctl`、`Mock_signal`、`Mock_termios`、`Mock_unistd`、`Mock_sys_select` を使用します。
 
-`tcsetattr` と `realloc` の失敗経路は、対応する testfw のモックとテストを追加済みです。
+### promptWindowsTest
 
-## 今後の対応
+`prompt_windows.c` の Win32 API を `Mock_windows` で差し替え、コンソール取得、モード変更、入力待機、読み取り、タイムアウト、API 失敗をテストします。
 
-### pinned_prompt.c (1,860 行)
+Windows 専用実装のため、Linux で実行した場合はテスト数とカバレッジを計測しません。
 
-現状の `pinnedPromptTest` は `com_util_pinned_prompt_status_*` の NULL 引数検証 1 件のみです。まず `pinned_prompt.c` の static 関数と OS 関連 API を分類し、static 関数は inject、端末や標準 OS 関数は testfw のモックで差し替えます。
+## 計測方法
 
-`prompt.c` は未到達行を個別に確認し、入力解析と履歴境界のテストを追加します。画面制御の出力だけで分岐を持たない行は、C2 の対象として必要かをソースの条件単位で判断します。
+prompt 系テストをまとめて実行する場合は、次のコマンドを使用します。
 
-`prompt_edit.c` を `ADD_SRCS` で取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。fake を追加する場合は、そのディレクトリへ `.cc` を置くだけで自動収集されます。
+```bash
+cd app/com_util/test/src/libcom_utilTest/prompt
+make test
+```
 
-## 作業時の注意
+各テストの詳細なカバレッジ結果は、テスト ディレクトリ下の `results/all_tests/summary.log` と `coverage.xml` に出力されます。
 
-- テスト ディレクトリを改名した場合は `obj/` を削除してから再ビルドしてください。`.gcno` に埋め込まれた旧パスと実体がずれ、テストは通るのにカバレッジが 0% と表示されます
-- `ADD_SRCS` に指定したソースは override ヘッダーの対象外です。モックを前提とするテストがある場合、実装を `ADD_SRCS` で取り込むと実物が優先されてテストが壊れます
-- `ADD_SRCS` は自ディレクトリ外のソースを引き込むための指定です。テスト ディレクトリ直下に置いた補助ソースは自動収集されるため、記載すると重複になります
-- `prompt_internal.h` には `extern "C"` を追加済みです。テスト コード (C++) からプラットフォーム層を差し替えるために必要でした
+テスト ディレクトリを改名した場合は、旧パスを含む `obj/` を削除してから再ビルドします。
+
+`ADD_SRCS` に指定したソースは testfw の override ヘッダーによる API 差し替え対象にならないため、OS API mock を必要とする実装を `ADD_SRCS` で取り込まないようにします。
