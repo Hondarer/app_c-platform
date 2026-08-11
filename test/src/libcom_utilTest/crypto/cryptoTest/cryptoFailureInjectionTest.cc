@@ -1,12 +1,13 @@
+#include <testfw.h>
+#include <com_util/base/platform.h>
 #if defined(PLATFORM_LINUX)
 
-#include <testfw.h>
-#include <mock_openssl.h>
-#include <com_util/base/result.h>
-#include <com_util/crypto/crypto.h>
+    #include <mock_openssl.h>
+    #include <com_util/base/result.h>
+    #include <com_util/crypto/crypto.h>
 
-#include <cstring>
-#include <vector>
+    #include <cstring>
+    #include <vector>
 
 using testing::_;
 using testing::DoDefault;
@@ -79,6 +80,29 @@ TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_init_fails)
               rtc); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
+// 暗号化の鍵・ノンス設定に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_key_setting_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_CIPHER_CTX_ctrl(_, _, _, _, _, _, _))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - 鍵設定へ進むため、ノンス長設定が成功すること。
+    EXPECT_CALL(mock_openssl, EVP_EncryptInit_ex(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(1))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_EncryptInit_ex が 2 回呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は成功を示す 1、2 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = encrypt(); // [手順] - com_util_encrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
 // ノンス長の設定に失敗した場合に通知されることの確認
 TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_nonce_length_setting_fails)
 {
@@ -119,6 +143,29 @@ TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_update_fails)
               rtc); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
+// AAD の入力に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_aad_update_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+    const uint8_t aad[] = "header"; // [状態] - 暗号化に渡す AAD を用意する。
+    cipher_len_ = cipher_.size();
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_EncryptUpdate(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - AAD の入力で EVP_EncryptUpdate が呼び出されること。
+                                      // [Pre-Assert手順] - AAD の入力で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_encrypt(cipher_.data(), &cipher_len_, plain_, sizeof(plain_), key_, nonce_, aad,
+                               sizeof(aad) - 1u); // [手順] - AAD を指定して com_util_encrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - AAD の入力失敗時に com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
 // 暗号化の終端処理に失敗した場合に通知されることの確認
 TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_final_fails)
 {
@@ -137,6 +184,28 @@ TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_final_fails)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 認証タグの取得に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, encrypt_returns_unknown_when_tag_get_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_CIPHER_CTX_ctrl(_, _, _, _, _, _, _))
+        .WillOnce(Return(1))
+        .WillOnce(Return(0))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - EVP_CIPHER_CTX_ctrl がノンス長設定とタグ取得で呼び出されること。
+                          // [Pre-Assert手順] - ノンス長設定は成功させ、タグ取得で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = encrypt(); // [手順] - com_util_encrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - タグ取得失敗時に com_util_encrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 復号コンテキストの確保に失敗した場合にメモリ不足が返ることの確認
@@ -163,6 +232,205 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_out_of_memory_when_context_al
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               rtc); // [確認_異常系] - com_util_decrypt の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+}
+
+// 復号の初期化に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_init_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DecryptInit_ex(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_DecryptInit_ex が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 復号のノンス長設定に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_nonce_length_setting_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_CIPHER_CTX_ctrl(_, _, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - 復号のノンス長設定で EVP_CIPHER_CTX_ctrl が呼び出されること。
+                          // [Pre-Assert手順] - ノンス長設定で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - ノンス長設定失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 復号の鍵・ノンス設定に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_key_setting_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_CIPHER_CTX_ctrl(_, _, _, _, _, _, _))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - 鍵設定へ進むため、ノンス長設定が成功すること。
+    EXPECT_CALL(mock_openssl, EVP_DecryptInit_ex(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(1))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_DecryptInit_ex が 2 回呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は成功を示す 1、2 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - 鍵・ノンス設定失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// AAD の入力に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_aad_update_fails)
+{
+    // Arrange
+    const uint8_t aad[] = "header";
+    const uint8_t plain[] = "payload";
+    const size_t plain_len = sizeof(plain) - 1u;
+    const size_t aad_len = sizeof(aad) - 1u;
+    std::vector<uint8_t> cipher(plain_len + COM_UTIL_CRYPTO_TAG_SIZE);
+    size_t cipher_len = cipher.size();
+    std::vector<uint8_t> restored(plain_len);
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
+                                            aad_len)); // [状態] - AAD 付きの復号対象を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DecryptUpdate(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - AAD の入力で EVP_DecryptUpdate が呼び出されること。
+                                      // [Pre-Assert手順] - AAD の入力で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
+                               aad_len); // [手順] - AAD を指定して com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - AAD の入力失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 平文の復号に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_update_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DecryptUpdate(_, _, _, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 平文の復号で EVP_DecryptUpdate が呼び出されること。
+                                      // [Pre-Assert手順] - 平文の復号で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - 平文の復号失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 認証タグの設定に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_tag_setting_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_CIPHER_CTX_ctrl(_, _, _, _, _, _, _))
+        .WillOnce(Return(1))
+        .WillOnce(Return(0))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - 認証タグ設定で EVP_CIPHER_CTX_ctrl が呼び出されること。
+                          // [Pre-Assert手順] - 認証タグ設定で失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - 認証タグ設定失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 認証の終端処理に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_final_fails)
+{
+    // Arrange
+    std::vector<uint8_t> restored(sizeof(plain_));
+    size_t restored_len = restored.size();
+
+    ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+
+    NiceMock<Mock_openssl> mock_openssl;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DecryptFinal_ex(_, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_DecryptFinal_ex が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher_.data(), cipher_len_, key_, nonce_, NULL,
+                               0u); // [手順] - com_util_decrypt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - 認証終端処理失敗時に com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // ダイジェスト コンテキストの確保に失敗した場合にメモリ不足が返ることの確認
@@ -207,6 +475,52 @@ TEST_F(cryptoFailureInjectionTest, passphrase_to_key_returns_unknown_when_digest
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc); // [確認_異常系] - com_util_passphrase_to_key の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// ダイジェスト更新に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, passphrase_to_key_returns_unknown_when_digest_update_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+    uint8_t derived[COM_UTIL_CRYPTO_KEY_SIZE]; // [状態] - 導出結果の格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DigestUpdate(_, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_DigestUpdate が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_passphrase_to_key(derived, (const uint8_t *)"secret",
+                                         6u); // [手順] - com_util_passphrase_to_key を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - ダイジェスト更新失敗時に com_util_passphrase_to_key の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// ダイジェスト終端処理に失敗した場合に通知されることの確認
+TEST_F(cryptoFailureInjectionTest, passphrase_to_key_returns_unknown_when_digest_final_fails)
+{
+    // Arrange
+    NiceMock<Mock_openssl> mock_openssl;
+    uint8_t derived[COM_UTIL_CRYPTO_KEY_SIZE]; // [状態] - 導出結果の格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_openssl, EVP_DigestFinal_ex(_, _, _, _, _, _))
+        .WillOnce(Return(0))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - EVP_DigestFinal_ex が 1 回目に呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却する。
+
+    // Act
+    int rtc = com_util_passphrase_to_key(derived, (const uint8_t *)"secret",
+                                         6u); // [手順] - com_util_passphrase_to_key を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - ダイジェスト終端処理失敗時に com_util_passphrase_to_key の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #endif /* PLATFORM_LINUX */

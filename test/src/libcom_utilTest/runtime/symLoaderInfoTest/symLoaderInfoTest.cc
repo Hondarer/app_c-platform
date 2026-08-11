@@ -3,6 +3,8 @@
 #include <com_util/base/result.h>
 #include <com_util/runtime/sym_loader.h>
 
+#include <cstring>
+
 // シンボル情報 API が空の配列を受け付けることの確認
 TEST(symLoaderInfoTest, sym_loader_info_accepts_empty_array)
 {
@@ -65,4 +67,24 @@ TEST(symLoaderInfoTest, sym_loader_info_reports_resolution_state)
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
         unresolved_result); // [確認_異常系] - 解決失敗済みエントリに対する戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// 未解決エントリを情報表示時に解決してから状態を表示することの確認
+TEST(symLoaderInfoTest, sym_loader_info_resolves_unresolved_entry)
+{
+    // Arrange
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("default_entry", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry};
+    std::strcpy(entry.lib_name, "default"); // [状態] - 明示的デフォルトとして解決できるエントリを用意する。
+    std::strcpy(entry.func_name, "default");
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_sym_loader_info(entries, 1u); // [手順] - 未解決エントリの情報を表示する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result);            // [確認_正常系] - com_util_sym_loader_info の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(2, entry.resolved); // [確認_正常系] - 情報表示前の解決により resolved が 2 になること。
 }

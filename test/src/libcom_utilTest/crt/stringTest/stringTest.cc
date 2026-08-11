@@ -51,6 +51,28 @@ TEST_F(stringTest, strcpy_null_argument)
               ret); // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
+// コピー先が NULL またはサイズ 0 の場合に引数エラーになることの確認
+TEST_F(stringTest, strcpy_rejects_null_destination_and_zero_size)
+{
+    // Arrange
+    char buf[4] = "old"; // [状態] - 内容を保持した 4 バイトのバッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_destination_result = com_util_strcpy(NULL, sizeof(buf), "new"); // [手順] - コピー先に NULL を渡す。
+    int zero_size_result = com_util_strcpy(buf, 0, "new");                   // [手順] - コピー先サイズに 0 を渡す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_destination_result); // [確認_異常系] - コピー先が NULL の com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - コピー先サイズが 0 の com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("old", buf); // [確認_異常系] - サイズ 0 の呼び出しでコピー先が変更されないこと。
+}
+
 // バッファー不足の場合に ERANGE を返しバッファーが空になることの確認
 TEST_F(stringTest, strcpy_buffer_shortage)
 {
@@ -84,6 +106,29 @@ TEST_F(stringTest, strncpy_truncates_to_count)
     // Assert
     EXPECT_EQ(0, ret);        // [確認_正常系] - com_util_strncpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - 先頭 3 文字 "abc" だけがコピーされること。
+}
+
+// コピー先容量と NULL 引数が com_util_strncpy で検証されることの確認
+TEST_F(stringTest, strncpy_rejects_null_and_limits_destination)
+{
+    // Arrange
+    char buf[4] = "old"; // [状態] - 4 バイトのコピー先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_destination_result = com_util_strncpy(NULL, sizeof(buf), "abc", 3u); // [手順] - コピー先に NULL を渡す。
+    int limited_destination_result =
+        com_util_strncpy(buf, sizeof(buf), "abcdef", 6u); // [手順] - コピー先容量を超える文字列を指定する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_destination_result); // [確認_異常系] - コピー先が NULL の com_util_strncpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        limited_destination_result); // [確認_正常系] - コピー先容量に合わせて切り詰める com_util_strncpy の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("abc", buf); // [確認_正常系] - コピー先容量に合わせて "abc" が格納されること。
 }
 
 // 文字列が連結されることの確認
@@ -199,6 +244,48 @@ TEST_F(stringTest, strncat_null_argument)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               ret); // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+}
+
+// strcat が NULL 引数または終端のないコピー先を拒否することの確認
+TEST_F(stringTest, strcat_rejects_invalid_arguments)
+{
+    // Arrange
+    char terminated[8] = "abc";                  // [状態] - 終端済みのコピー先を用意する。
+    char unterminated[4] = {'a', 'b', 'c', 'd'}; // [状態] - NULL 終端のないコピー先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_source_result = com_util_strcat(terminated, sizeof(terminated), NULL); // [手順] - コピー元に NULL を渡す。
+    int unterminated_result =
+        com_util_strcat(unterminated, sizeof(unterminated), "e"); // [手順] - 終端のないコピー先へ連結する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_source_result); // [確認_異常系] - コピー元が NULL の com_util_strcat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        unterminated_result); // [確認_異常系] - 終端のないコピー先の com_util_strcat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_EQ('\0', unterminated[0]); // [確認_異常系] - 終端のないコピー先が空文字列へクリアされること。
+}
+
+// 連結結果が収まらない場合にコピー先を変更しないことの確認
+TEST_F(stringTest, strcat_returns_buffer_too_small_when_result_does_not_fit)
+{
+    // Arrange
+    char buf[6] = "abc"; // [状態] - 連結先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_strcat(buf, sizeof(buf), "def"); // [手順] - 終端を含めて容量を超える文字列を連結する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        result); // [確認_異常系] - 結果が収まらない com_util_strcat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("abc", buf); // [確認_異常系] - 容量不足時にコピー先が変更されないこと。
 }
 
 // 文字列がトークンへ分割されることの確認
@@ -367,4 +454,43 @@ TEST_F(stringTest, strdup_null_returns_null)
 
     // Assert
     EXPECT_EQ(nullptr, dup); // [確認_異常系] - com_util_strdup の戻り値が NULL であること。
+}
+
+// ワイド文字列がコピーされることの確認
+TEST_F(stringTest, wcscpy_success)
+{
+    // Arrange
+    wchar_t buf[8]; // [状態] - 8 要素のワイド文字列コピー先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_wcscpy(buf, sizeof(buf) / sizeof(buf[0]), L"abc"); // [手順] - L"abc" をワイド文字列としてコピーする。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_wcscpy の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ(L"abc", buf);      // [確認_正常系] - ワイド文字列の内容が L"abc" であること。
+}
+
+// ワイド文字列の NULL 引数と容量不足が拒否されることの確認
+TEST_F(stringTest, wcscpy_rejects_invalid_arguments)
+{
+    // Arrange
+    wchar_t buf[4] = L"old"; // [状態] - 内容を保持した 4 要素のワイド文字列バッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_source_result = com_util_wcscpy(buf, 4, NULL);     // [手順] - ワイド文字列のコピー元に NULL を渡す。
+    int short_buffer_result = com_util_wcscpy(buf, 4, L"abcd"); // [手順] - 終端を含めて容量を超える文字列を渡す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_source_result); // [確認_異常系] - コピー元が NULL の com_util_wcscpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUFFER_TOO_SMALL,
+        short_buffer_result); // [確認_異常系] - 容量不足の com_util_wcscpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(L'\0', buf[0]); // [確認_異常系] - 容量不足時にコピー先が空文字列へクリアされること。
 }

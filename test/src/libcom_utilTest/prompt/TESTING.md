@@ -14,11 +14,32 @@
 | `pinned_prompt.c` | `pinnedPromptTest` | 1 | ステータス API の NULL 引数だけを確認。拡充が必要 |
 | `prompt_windows.c` | `promptWindowsTest` | 13 | Windows API の主要経路をテスト実装済み |
 
-`pinned_prompt.c` (1,662 行) のテストは未完了です。`prompt_windows.c` は Windows 専用実装のため、行/C2 の数値は Linux (gcov) では計測されません。行/C2 の最新値は、Linux で各テストを実行した結果に基づいて更新します。
+`pinned_prompt.c` (1,860 行) のテストは未完了です。`prompt_windows.c` は Windows 専用実装のため、Linux ではテストが 0 件となり、行/C2 の数値も計測されません。
+
+## カバレッジ計測結果
+
+2026-08-11 に Linux (gcov) で `make test` を実行した結果です。行カバレッジと C2 カバレッジは、各テストでリンクした対象ソースに対する値です。
+
+| 対象ソース | テスト数 | 行カバレッジ | C2 カバレッジ | 状況 |
+|---|---:|---:|---:|---|
+| `prompt_edit.c` | 19 | 100% (64/64) | 100% (54/54) | 到達済み |
+| `prompt_linux.c` | 12 | 100% (48/48) | 100% (22/22) | 到達済み |
+| `prompt.c` | 37 | 91% (310/340) | 94% (170/181) | 未到達行あり |
+| `pinned_prompt.c` | 1 | 1% (6/806) | 0% (2/473) | テスト拡充が必要 |
+| `prompt_windows.c` | 0 (Linux) | 計測対象外 | 計測対象外 | Windows で実行 |
+
+`promptWindowsTest` には Windows 用のテストを 13 件定義しています。Linux 実行時は Windows 専用コードがコンパイル対象外となるため、テスト数は 0 件です。
+
+計測を再現する場合は、次のディレクトリで実行します。
+
+```bash
+cd app/com_util/test/src/libcom_utilTest/prompt
+make test
+```
 
 ## テストの構成
 
-### promptTest — プラットフォーム層を fake で差し替える
+### promptTest: プラットフォーム層を fake で差し替える
 
 `prompt.c` は端末制御を `prompt_platform_enter_raw` / `leave_raw` / `read_char` / `read_char_nb` の 4 関数へ委ねています。実機の端末を必要とせずキー入力を再現するため、`promptPlatformFake.cc` でこの 4 関数を差し替えています。
 
@@ -54,16 +75,16 @@ prompt_->is_tty = 1;
 
 構造体の実体は `prod/include_internal/com_util/prompt/prompt_internal.h` にあり、テストから参照できます。
 
-### promptLinuxTest — 標準入力の差し替えと inject
+### promptLinuxTest: 標準入力の差し替えと inject
 
 `prompt_linux.c` は `STDIN_FILENO` を直接扱うため、`dup2()` で標準入力をパイプまたは疑似端末へ差し替えて検証します。
 
-- パイプ — `tcgetattr` が失敗する経路、`read` の通常読み取りと EOF、`select` のタイムアウト
-- 疑似端末 (`posix_openpt`) — raw モードへの移行と復帰、`tcsetattr` の失敗、SIGWINCH ハンドラーの登録と復元
+- パイプ: `tcgetattr` が失敗する経路、`read` の通常読み取りと EOF、`select` のタイムアウト
+- 疑似端末 (`posix_openpt`): raw モードへの移行と復帰、`tcsetattr` の失敗、SIGWINCH ハンドラーの登録と復元
 
 `s_resize_pending` と `s_sigwinch_installed` はファイル内 `static` のため、`prompt_linux.inject.c` でアクセサーを通しています。リサイズ通知の経路 (`read` が EINTR で失敗し、かつリサイズ待ちがある) は `Mock_unistd` で `read` に EINTR を注入して到達させます。
 
-### promptWindowsTest — Win32 API を Mock_windows でモックする
+### promptWindowsTest: Win32 API を Mock_windows でモックする
 
 `prompt_windows.c` は `GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile` を直接呼び出します。これらは `framework/testfw` の `mock_windows.h`/`Mock_windows` (`include_override/windows.h` による差し替え) でモック化しています。`GetTickCount64` などの既存モックと同じ仕組みで、実コンソールや実プロセスを一切必要とせず、`SetConsoleMode` の失敗経路や `WaitForSingleObject` のタイムアウト経路も含めて全分岐を決定的に再現できます。
 
@@ -81,15 +102,20 @@ EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
 
 | 箇所 | 理由 |
 |---|---|
-| `prompt.c` の `redisplay` 周辺 | 画面制御の出力のみで分岐がない行、および履歴ブラウズ中の一部境界 |
+| `prompt.c` の入力解析 | 未知のエスケープ シーケンス、リサイズ通知、制御文字の未到達経路が残っています (55, 101, 126, 175, 199, 206, 214 行)。 |
+| `prompt.c` の履歴処理 | NULL エントリ、容量不足、履歴の境界条件が未到達です (246, 251, 255, 268, 278, 283, 296, 300 行)。 |
+| `prompt.c` のフォールバックと書式付き API | TTY でない場合とコンテキスト作成失敗時の出力、改行除去、NULL 書式、書式化失敗、再確保成功の経路が未到達です (336, 471-472, 478-479, 496-497, 679, 689-690, 705-706 行)。 |
+| `pinned_prompt.c` | 806 行中 6 行の実行にとどまり、473 分岐中 2 分岐だけを実行しています。固定表示の描画、端末制御、履歴、解放処理などのテストが必要です。 |
 
 `tcsetattr` と `realloc` の失敗経路は、対応する testfw のモックとテストを追加済みです。
 
-## 未着手分の進め方
+## 今後の対応
 
-### pinned_prompt.c (1,662 行)
+### pinned_prompt.c (1,860 行)
 
-現状の `pinnedPromptTest` は `com_util_pinned_prompt_status_*` の引数検証 1 件のみです。`prompt.c` と同様にプラットフォーム層を持つ構造であれば、`promptPlatformFake.cc` と同じ方式で差し替えられます。着手前に依存の切り口を確認してください。
+現状の `pinnedPromptTest` は `com_util_pinned_prompt_status_*` の NULL 引数検証 1 件のみです。まず `pinned_prompt.c` の static 関数と OS 関連 API を分類し、static 関数は inject、端末や標準 OS 関数は testfw のモックで差し替えます。
+
+`prompt.c` は未到達行を個別に確認し、入力解析と履歴境界のテストを追加します。画面制御の出力だけで分岐を持たない行は、C2 の対象として必要かをソースの条件単位で判断します。
 
 `prompt_edit.c` を `ADD_SRCS` で取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。fake を追加する場合は、そのディレクトリへ `.cc` を置くだけで自動収集されます。
 

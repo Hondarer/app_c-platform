@@ -3,6 +3,7 @@
 #include <com_util/runtime/sym_loader.h>
 #include <mock_cjson.h>
 #include <mock_com_util.h>
+#include <mock_stdlib.h>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -294,6 +295,227 @@ TEST_F(symLoaderInitTest, ignores_document_when_cjson_parse_fails)
     // Assert
     EXPECT_STREQ("", entry.lib_name);  // [確認_異常系] - lib_name が空のままであること。
     EXPECT_STREQ("", entry.func_name); // [確認_異常系] - func_name が空のままであること。
+
+    // Cleanup
+    com_util_remove(path.c_str(), NULL);
+}
+
+// cJSON の文字列取得が NULL を返した場合に設定を反映しないことの確認
+TEST_F(symLoaderInitTest, ignores_entry_when_cjson_string_value_is_null)
+{
+    // Arrange
+    NiceMock<Mock_cjson> mock_cjson;
+    const char *json = "{\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}";
+    std::string path = make_path("injected_string_failure.json");
+    write_file(path, json);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 正常な JSON と未設定の sample_func エントリを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cjson, cJSON_GetStringValue(_))
+        .WillOnce(Return(nullptr))
+        .WillOnce(
+            DoDefault()); // [Pre-Assert確認_異常系] - cJSON_GetStringValue が lib と func で 2 回呼び出されること。
+                          // [Pre-Assert手順] - lib の文字列値の取得で NULL を返却する。
+
+    // Act
+    com_util_sym_loader_init(entries, 1u,
+                             path.c_str()); // [手順] - cJSON_GetStringValue の失敗を注入して設定を読み込む。
+
+    // Assert
+    EXPECT_STREQ("", entry.lib_name);  // [確認_異常系] - 文字列取得失敗時に lib_name が空のままであること。
+    EXPECT_STREQ("", entry.func_name); // [確認_異常系] - 文字列取得失敗時に func_name が空のままであること。
+
+    // Cleanup
+    com_util_remove(path.c_str(), NULL);
+}
+
+// 設定パスが NULL または空文字列の場合に何も行わないことの確認
+TEST_F(symLoaderInitTest, ignores_null_or_empty_config_path)
+{
+    // Arrange
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 未設定のエントリを用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sym_loader_init(entries, 1u, NULL); // [手順] - NULL の設定パスで初期化する。
+    com_util_sym_loader_init(entries, 1u, "");   // [手順] - 空文字列の設定パスで初期化する。
+
+    // Assert
+    EXPECT_STREQ("",
+                 entry.lib_name); // [確認_正常系] - NULL または空文字列の設定パスで lib_name が未設定のままであること。
+    EXPECT_STREQ(
+        "", entry.func_name); // [確認_正常系] - NULL または空文字列の設定パスで func_name が未設定のままであること。
+}
+
+// ファイル操作の各失敗時にファイルを閉じて終了することの確認
+TEST_F(symLoaderInitTest, closes_file_when_seek_or_size_operation_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    FILE *file = reinterpret_cast<FILE *>(1);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 擬似ファイルと未設定エントリを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("seek_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Act
+    com_util_sym_loader_init(entries, 1u, "seek_error"); // [手順] - 末尾への seek が失敗するファイルを読み込む。
+
+    // Assert
+    EXPECT_STREQ("", entry.lib_name); // [確認_異常系] - seek 失敗時に lib_name が未設定のままであること。
+
+    // Cleanup
+    Mock::VerifyAndClearExpectations(&mock_com_util);
+
+    // Arrange_2
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("size_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Pre-Assert_2
+
+    // Act_2
+    com_util_sym_loader_init(entries, 1u, "size_error"); // [手順] - サイズが 0 のファイルを読み込む。
+
+    // Assert_2
+    EXPECT_STREQ("", entry.func_name); // [確認_異常系] - サイズ不正時に func_name が未設定のままであること。
+}
+
+// 読み込み前の seek、メモリ確保、読み込みの失敗時に後処理することの確認
+TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    FILE *file = reinterpret_cast<FILE *>(1);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 擬似ファイルと未設定エントリを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("reset_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Act
+    com_util_sym_loader_init(entries, 1u,
+                             "reset_error"); // [手順] - 読み込み開始位置への seek が失敗するファイルを読み込む。
+
+    // Assert
+    EXPECT_STREQ(
+        "", entry.lib_name); // [確認_異常系] - 読み込み開始位置の seek 失敗時に lib_name が未設定のままであること。
+
+    // Cleanup
+    Mock::VerifyAndClearExpectations(&mock_com_util);
+
+    // Arrange_2
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("alloc_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(0));
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u)).WillOnce(Return(nullptr)).WillRepeatedly(DoDefault());
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Pre-Assert_2
+
+    // Act_2
+    com_util_sym_loader_init(entries, 1u, "alloc_error"); // [手順] - 設定バッファーの確保が失敗するファイルを読み込む。
+
+    // Assert_2
+    EXPECT_STREQ("", entry.func_name); // [確認_異常系] - 確保失敗時に func_name が未設定のままであること。
+
+    // Cleanup
+    Mock::VerifyAndClearExpectations(&mock_com_util);
+
+    // Arrange_3
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("read_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(0));
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u)).WillOnce(DoDefault()).WillRepeatedly(DoDefault());
+    EXPECT_CALL(mock_com_util, com_util_fread(_, 1u, 4u, file, nullptr)).WillOnce(Return(3u));
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Pre-Assert_3
+
+    // Act_3
+    com_util_sym_loader_init(entries, 1u, "read_error"); // [手順] - 設定内容の読み込みが短くなるファイルを読み込む。
+
+    // Assert_3
+    EXPECT_STREQ("", entry.lib_name); // [確認_異常系] - 読み込み不足時に lib_name が未設定のままであること。
+}
+
+// JSON エントリの型、キー、値の境界条件を無視することの確認
+TEST_F(symLoaderInitTest, ignores_invalid_json_entries)
+{
+    // Arrange
+    const char *json = "{\"number\":1,\"\":{\"lib\":\"x\",\"func\":\"y\"},"
+                       "\"bad_type\":{\"lib\":1,\"func\":\"y\"},"
+                       "\"empty_value\":{\"lib\":\"\",\"func\":\"y\"}}";
+    std::string path = make_path("invalid_entries.json");
+    write_file(path, json);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("number", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 不正な型、空キー、空値を含む JSON を用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sym_loader_init(entries, 1u, path.c_str()); // [手順] - 不正な JSON エントリを含む設定を読み込む。
+
+    // Assert
+    EXPECT_STREQ("", entry.lib_name);  // [確認_異常系] - 不正な JSON エントリが lib_name に反映されないこと。
+    EXPECT_STREQ("", entry.func_name); // [確認_異常系] - 不正な JSON エントリが func_name に反映されないこと。
+
+    // Cleanup
+    com_util_remove(path.c_str(), NULL);
+}
+
+// 配列が NULL の場合に一致設定を読み飛ばすことの確認
+TEST_F(symLoaderInitTest, ignores_matching_entry_when_object_array_is_null)
+{
+    // Arrange
+    const char *json = "{\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}";
+    std::string path = make_path("null_array.json");
+    write_file(path, json); // [状態] - 一致する設定を含む JSON ファイルを用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sym_loader_init(NULL, 0u, path.c_str()); // [手順] - エントリ配列に NULL を指定して設定を読み込む。
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - NULL 配列の設定読み込みが異常終了しないこと。
+
+    // Cleanup
+    com_util_remove(path.c_str(), NULL);
+}
+
+// NULL エントリと func_key NULL の配列要素を読み飛ばすことの確認
+TEST_F(symLoaderInitTest, skips_null_cache_entries)
+{
+    // Arrange
+    const char *json = "{\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}";
+    std::string path = make_path("null_cache_entries.json");
+    write_file(path, json);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    entry.func_key = NULL;
+    com_util_sym_loader_entry *entries[] = {NULL, &entry}; // [状態] - NULL 要素と func_key が NULL の要素を用意する。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sym_loader_init(entries, 2u, path.c_str()); // [手順] - 不正なキャッシュ配列を指定して設定を読み込む。
+
+    // Assert
+    EXPECT_STREQ("", entry.lib_name); // [確認_異常系] - 不正なキャッシュ要素へ設定が反映されないこと。
 
     // Cleanup
     com_util_remove(path.c_str(), NULL);

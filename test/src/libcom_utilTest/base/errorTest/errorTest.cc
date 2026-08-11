@@ -1,9 +1,11 @@
 #include <testfw.h>
 #include <com_util/base/error.h>
+#include <com_util/base/error_internal.h>
 #include <com_util/base/result.h>
 
 #include <errno.h>
 
+#include <cstring>
 #include <type_traits>
 
 /* 値はライブラリの ABI の一部であり、既存の値を変更してはならない */
@@ -123,8 +125,12 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     // Arrange
     com_util_error empty;
     com_util_error windows_error = {COM_UTIL_ERROR_DOMAIN_WINDOWS, COM_UTIL_ERR_UNKNOWN, 5UL};
+    com_util_error invalid_error = {COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL};
+    const int invalid_domain_value = 99;
 
     com_util_error_capture_errno(&empty, 0); // [状態] - errno 0 を取り込んで空の値を作る。
+    std::memcpy(&invalid_error.domain, &invalid_domain_value,
+                sizeof(invalid_error.domain)); // [状態] - 未知のドメイン値を持つ不正な詳細エラーを用意する。
 
     // Pre-Assert
 
@@ -138,6 +144,14 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     const int null_result = com_util_error_to_result(NULL); // [手順] - NULL を共通結果コードへ変換する。
     const com_util_error_cause null_cause = com_util_error_get_cause(NULL); // [手順] - NULL の要因を取得する。
     const int null_matches = com_util_error_is(NULL, COM_UTIL_CAUSE_NONE);  // [手順] - NULL の要因一致を判定する。
+    const com_util_error_domain mismatched_domain =
+        com_util_error_get_domain(&windows_error); // [手順] - Windows ドメインを取得する。
+    const com_util_error_cause windows_cause =
+        com_util_error_get_cause(&windows_error); // [手順] - Linux で Windows ドメインの要因を取得する。
+    const com_util_error_domain invalid_domain =
+        com_util_error_get_domain(&invalid_error); // [手順] - 未知のドメインを取得する。
+    const com_util_error_cause invalid_cause =
+        com_util_error_get_cause(&invalid_error); // [手順] - 未知のドメインの要因を取得する。
     const int mismatched_errno =
         com_util_error_get_errno(&windows_error); // [手順] - Windows ドメインから errno を取得する。
 
@@ -155,7 +169,15 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
               com_util_error_to_result(&empty)); // [確認_正常系] - 空の値に対する変換結果が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_CAUSE_NONE,
               com_util_error_get_cause(&empty)); // [確認_正常系] - 空の値の要因が COM_UTIL_CAUSE_NONE であること。
-    EXPECT_EQ(0, mismatched_errno);              // [確認_異常系] - Windows ドメインから取得した errno が 0 であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_WINDOWS,
+              mismatched_domain); // [確認_正常系] - Windows ドメインがそのまま取得できること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OTHER,
+              windows_cause); // [確認_正常系] - Linux で Windows ドメインの要因が OTHER になること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
+              invalid_domain); // [確認_異常系] - 未知のドメインが NONE へ正規化されること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OTHER,
+              invalid_cause);       // [確認_異常系] - 未知のドメインの要因が OTHER になること。
+    EXPECT_EQ(0, mismatched_errno); // [確認_異常系] - Windows ドメインから取得した errno が 0 であること。
 }
 
 TEST_F(errorTest, errno_values_map_to_one_cause)
@@ -217,4 +239,79 @@ TEST_F(errorTest, unknown_errno_maps_to_other)
     // Assert
     EXPECT_EQ(COM_UTIL_CAUSE_OTHER,
               com_util_error_get_cause(&error)); // [確認_正常系] - 対応表にない errno の要因が OTHER であること。
+}
+
+#if defined(ENOSYS)
+// ENOSYS が UNSUPPORTED の要因へ変換されることの確認
+TEST_F(errorTest, enosys_maps_to_unsupported)
+{
+    // Arrange
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+    com_util_error_capture_errno(&error, ENOSYS); // [手順] - ENOSYS を詳細エラーへ取り込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_CAUSE_UNSUPPORTED,
+              com_util_error_get_cause(&error)); // [確認_正常系] - ENOSYS の要因が UNSUPPORTED であること。
+}
+#endif
+
+// errno の成功値と明示結果コードが詳細エラーへ記録されることの確認
+TEST_F(errorTest, report_errno_records_success_and_explicit_result)
+{
+    // Arrange
+    com_util_error detail;
+    com_util_error last_error;
+
+    // Pre-Assert
+
+    // Act
+    int success_result = com_util_error_report_errno(&detail, 0); // [手順] - errno 0 を成功として記録する。
+    int mapped_result =
+        com_util_error_report_errno(&detail, ENOENT); // [手順] - ENOENT を対応する結果コードへ変換して記録する。
+    int explicit_result = com_util_error_report_errno_as(&detail, EIO, COM_UTIL_ERR_BUSY);
+    // [手順] - EIO に対して明示した COM_UTIL_ERR_BUSY を記録する。
+    com_util_error_get_last(&last_error); // [手順] - 最後に記録された詳細エラーを取得する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        success_result); // [確認_正常系] - errno 0 を指定した com_util_error_report_errno の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        mapped_result); // [確認_正常系] - ENOENT を指定した com_util_error_report_errno の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUSY,
+        explicit_result); // [確認_正常系] - 明示結果を指定した com_util_error_report_errno_as の戻り値が COM_UTIL_ERR_BUSY であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_ERRNO,
+              detail.domain); // [確認_正常系] - 明示結果の詳細エラーが errno ドメインであること。
+    EXPECT_EQ(EIO, com_util_error_get_errno(&detail)); // [確認_正常系] - 詳細エラーへ EIO が記録されること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_BUSY,
+        com_util_error_to_result(&last_error)); // [確認_正常系] - TLS の結果コードが COM_UTIL_ERR_BUSY であること。
+}
+
+// 成功報告が詳細エラーと TLS の双方をクリアすることの確認
+TEST_F(errorTest, report_success_clears_detail_and_last_error)
+{
+    // Arrange
+    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, EIO};
+    com_util_error last_error;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_error_report_success(&detail); // [手順] - 詳細エラーを成功状態へ更新する。
+    com_util_error_get_last(&last_error);                // [手順] - 更新後の TLS 詳細エラーを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_error_report_success の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
+              detail.domain); // [確認_正常系] - 出力詳細エラーのドメインが空であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE,
+              last_error.domain); // [確認_正常系] - TLS 詳細エラーのドメインが空であること。
 }

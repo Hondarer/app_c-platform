@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -89,6 +90,33 @@ TEST_F(mmapTest, attach_fails_when_create_size_is_zero_for_new_file)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               result); // [確認_異常系] - attach (create_size 0、新規作成) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+}
+
+// サイズ 0 の既存ファイルへのアタッチが失敗することの確認
+TEST_F(mmapTest, attach_fails_for_empty_existing_file)
+{
+    // Arrange
+    std::string path = make_path("empty_existing.dat");
+    com_util_mmap *map = NULL;
+
+    std::remove(path.c_str());
+    std::ofstream file(path); // [状態] - サイズ 0 の既存ファイルを用意する。
+    file.close();
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   NULL); // [手順] - サイズ 0 の既存ファイルへアタッチする。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc); // [確認_異常系] - 空の既存ファイルに対する com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - 空の既存ファイルではマップ ハンドルが設定されないこと。
+
+    // Cleanup
+    std::remove(path.c_str());
 }
 
 // 読み取り専用アクセスで存在しないファイルを指定すると失敗することの確認 (新規作成しない)
@@ -228,6 +256,35 @@ TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
     EXPECT_EQ(COM_UTIL_OK,
               com_util_mmap_flush(map, NULL, 0, NULL)); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が
                                                         // COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_mmap_detach(map, NULL);
+    std::remove(path.c_str());
+}
+
+// 指定したアドレス範囲の書き戻しが成功することの確認
+TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
+{
+    // Arrange
+    std::string path = make_path("flush_range.dat");
+    com_util_mmap *map = NULL;
+    void *address;
+
+    std::remove(path.c_str());
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                                NULL)); // [状態] - 書き戻し対象のマップを用意する。
+    address = com_util_mmap_get_address(map);
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_mmap_flush(map, address, 1u,
+                                  NULL); // [手順] - マップ先頭の 1 byte を指定して書き戻す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        rtc); // [確認_正常系] - 明示したアドレス範囲に対する com_util_mmap_flush の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_mmap_detach(map, NULL);

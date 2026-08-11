@@ -162,6 +162,74 @@ TEST_F(errorMessageTest, error_message_dispatches_by_domain)
                                NULL)); // [確認_異常系] - NULL の詳細エラーが COM_UTIL_ERR_INVALID_ARGUMENT になること。
 }
 
+// 空の詳細エラーが小さいバッファーへ切り詰めて格納されることの確認
+TEST_F(errorMessageTest, empty_error_message_is_truncated_to_buffer)
+{
+    // Arrange
+    char buf[4] = {'X', 'X', 'X', 'X'};
+    com_util_error error;
+
+    com_util_error_clear(&error); // [状態] - 空の詳細エラーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_error_message(buf, sizeof(buf),
+                                        &error); // [手順] - 4 バイトのバッファーへ空の詳細エラーを文字列化する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        result); // [確認_正常系] - 小さいバッファーでも com_util_error_message の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("no ", buf); // [確認_正常系] - バッファーへ終端付きで "no " が格納されること。
+}
+
+#if defined(PLATFORM_LINUX)
+
+// Windows ドメインが Linux では不正引数として拒否されることの確認
+TEST_F(errorMessageTest, windows_error_domain_is_rejected_on_linux)
+{
+    // Arrange
+    char buf[32] = {'X'};
+    const com_util_error error = {COM_UTIL_ERROR_DOMAIN_WINDOWS, COM_UTIL_ERR_UNKNOWN, 1UL};
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_error_message(buf, sizeof(buf), &error); // [手順] - Windows ドメインを持つ詳細エラーを文字列化する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - Windows ドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("", buf); // [確認_異常系] - Windows ドメインでは出力バッファーが空になること。
+}
+
+// 未知のエラー ドメインが不正引数として拒否されることの確認
+TEST_F(errorMessageTest, unknown_error_domain_is_rejected)
+{
+    // Arrange
+    char buf[32] = {'X'};
+    com_util_error error = {COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_ERR_UNKNOWN, 1UL};
+    const int invalid_domain_value = 99;
+
+    std::memcpy(&error.domain, &invalid_domain_value,
+                sizeof(error.domain)); // [状態] - 未知のドメイン値を持つ不正な詳細エラーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_error_message(buf, sizeof(buf), &error); // [手順] - 未知のドメインを持つ詳細エラーを文字列化する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result);     // [確認_異常系] - 未知のドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("", buf); // [確認_異常系] - 未知のドメインでは出力バッファーが空になること。
+}
+
+#endif /* PLATFORM_LINUX */
+
 #if defined(PLATFORM_LINUX)
 
 // errno 文字列の取得に失敗した場合に拒否されることの確認

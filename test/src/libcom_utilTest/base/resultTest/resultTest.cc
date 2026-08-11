@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <set>
+#include <utility>
 #include <vector>
 
 /* result.h の値は ABI として凍結する。値を変更した場合、以下の静的検査が失敗する。 */
@@ -131,4 +132,38 @@ TEST_F(resultTest, length_errors_map_to_buffer_too_small)
         name_too_long_result); // [確認_正常系] - ENAMETOOLONG の変換結果が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
               range_result); // [確認_正常系] - ERANGE の変換結果が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+}
+
+// 代表的な errno が対応する共通結果コードへ変換されることの確認
+TEST_F(resultTest, errno_values_map_to_expected_results)
+{
+    // Arrange
+    const std::vector<std::pair<int, int>> cases = {
+        {EINVAL, COM_UTIL_ERR_INVALID_ARGUMENT},
+        {EACCES, COM_UTIL_ERR_PERMISSION_DENIED},
+        {EPERM, COM_UTIL_ERR_PERMISSION_DENIED},
+        {ETIMEDOUT, COM_UTIL_ERR_TIMEOUT},
+        {EBUSY, COM_UTIL_ERR_BUSY},
+        {EAGAIN, COM_UTIL_ERR_BUSY},
+        {ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY},
+        {ENAMETOOLONG, COM_UTIL_ERR_BUFFER_TOO_SMALL},
+        {ERANGE, COM_UTIL_ERR_BUFFER_TOO_SMALL},
+        {EIO, COM_UTIL_ERR_UNKNOWN}}; // [状態] - errno と期待する共通結果コードの対応表を用意する。
+    std::vector<int> actual;
+
+    // Pre-Assert
+
+    // Act
+    for (const std::pair<int, int> &item : cases)
+    {
+        actual.push_back(com_util_result_from_errno(item.first)); // [手順] - 対応表の errno を順番に変換する。
+    }
+
+    // Assert
+    ASSERT_EQ(cases.size(), actual.size()); // [確認_正常系] - 全ての errno に変換結果が得られること。
+    for (std::size_t index = 0U; index < cases.size(); ++index)
+    {
+        EXPECT_EQ(cases[index].second,
+                  actual[index]); // [確認_正常系] - errno ごとの共通結果コードが期待値と一致すること。
+    }
 }

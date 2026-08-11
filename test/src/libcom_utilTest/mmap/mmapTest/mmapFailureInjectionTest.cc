@@ -70,6 +70,31 @@ TEST_F(mmapFailureInjectionTest, attach_reports_errno_when_mmap_fails)
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が ENOMEM であること。
 }
 
+// マップ ハンドルの確保に失敗した場合にアタッチが失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_out_of_memory_when_handle_allocation_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_mmap *map = NULL; // [状態] - ハンドルの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_mmap_attach のハンドル確保で calloc が呼び出されること。
+                          // [Pre-Assert手順] - ハンドル確保で NULL を返却する。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   NULL); // [手順] - com_util_mmap_attach を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_MEMORY,
+        rtc); // [確認_異常系] - ハンドル確保失敗時に com_util_mmap_attach の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+    EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
+}
+
 // 識別子の複製に失敗した場合にメモリ マップが解除されることの確認
 // Windows は識別子の複製を伴わないため、この失敗経路は Linux のみに存在する
 TEST_F(mmapFailureInjectionTest, attach_unmaps_when_identity_duplication_fails)
@@ -84,8 +109,9 @@ TEST_F(mmapFailureInjectionTest, attach_unmaps_when_identity_duplication_fails)
     /* ハンドルは calloc で確保されるため、attach 内の最初の malloc が識別子の複製になる */
     EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - malloc が識別子の複製のために 1 回目に呼び出されること。
-                                      // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - malloc が識別子の複製のために 1 回目に呼び出されること。
+                          // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
     EXPECT_CALL(mock_sys_mman, munmap(_, _, _, _, _))
         .Times(1); // [Pre-Assert確認_異常系] - 確保済みのマップが munmap で 1 回解除されること。
 
@@ -125,11 +151,41 @@ TEST_F(mmapFailureInjectionTest, flush_reports_errno_when_msync_fails)
 
     // Assert
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
-    EXPECT_EQ(EIO,
-              com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EIO であること。
+    EXPECT_EQ(
+        EIO,
+        com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EIO であること。
 
     // Cleanup
     com_util_mmap_detach(map, NULL);
+}
+
+// マップ解除に失敗した場合に errno が通知されることの確認
+TEST_F(mmapFailureInjectionTest, detach_reports_errno_when_munmap_fails)
+{
+    // Arrange
+    com_util_mmap *map = NULL;
+    com_util_error detail;
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                                NULL)); // [状態] - アタッチ済みのメモリ マップを用意する。
+
+    NiceMock<Mock_sys_mman> mock_sys_mman;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_mman, munmap(_, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EIO), Return(-1)))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - munmap が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - errno に EIO を設定し、munmap が -1 を返却する。
+
+    // Act
+    int rtc = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              rtc); // [確認_異常系] - munmap 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ(
+        EIO,
+        com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_mmap_detach の詳細 errno が EIO であること。
 }
 
 #endif /* PLATFORM_LINUX */
