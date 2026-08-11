@@ -9,6 +9,8 @@
  */
 #include <testfw.h>
 #include <mock_com_util.h>
+#include <mock_stdlib.h>
+#include <com_util/runtime/shutdown.h>
 #include <com_util/trace/tracer.h>
 #include <string>
 #include <cstring>
@@ -96,6 +98,7 @@ class traceHookTest : public Test
 {
   protected:
     NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_stdlib> stdlib_mock_;
     com_util_trace_file_sink *file_handle_ =
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2200));
 
@@ -109,6 +112,7 @@ class traceHookTest : public Test
     {
         reset_hook_records();
 
+        ON_CALL(stdlib_mock_, atexit(_, _, _, _)).WillByDefault(Return(0));
         ON_CALL(mock_, com_util_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
         ON_CALL(mock_, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
@@ -133,6 +137,12 @@ class traceHookTest : public Test
         ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif
+    }
+
+    void TearDown() override
+    {
+        // Mock_com_util の破棄前に、実体へ登録した shutdown callback を破棄する。
+        _com_util_shutdown_reset_for_test();
     }
 
     com_util_tracer *create_tracer()

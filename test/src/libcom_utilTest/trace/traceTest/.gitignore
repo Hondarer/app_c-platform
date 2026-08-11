@@ -4,6 +4,5 @@
 /mock_com_util_trace_file_sink_dispose_on_unload.cc
 /path_name.c
 /result.c
-/shutdown.c
 /trace_common.c
 /tracer.c
