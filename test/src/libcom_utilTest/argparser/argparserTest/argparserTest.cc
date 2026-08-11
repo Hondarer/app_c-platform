@@ -8,6 +8,8 @@
 #include <string>
 #include <thread>
 
+#include "argparser.inject.h"
+
 namespace
 {
 
@@ -76,6 +78,40 @@ TEST_F(argparserTest, create_returns_null_on_alloc_failure)
 
     // Assert
     EXPECT_EQ(nullptr, parser); // [確認_異常系] - _com_util_argparser_create の戻り値が NULL であること。
+}
+
+// 短いオプション名の各形式を正しく判定することの確認
+TEST_F(argparserTest, is_valid_short_name_rejects_invalid_names)
+{
+    // Arrange
+    const char *name_without_dash = "a-";     // [状態] - 先頭が '-' ではない 2 文字の名前を用意する。
+    const char *name_with_double_dash = "--"; // [状態] - 2 文字とも '-' である名前を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_name_result = test_argparser_is_valid_short_name(
+        NULL); // [手順] - NULL を指定して test_argparser_is_valid_short_name を呼び出す。
+    int name_without_dash_result = test_argparser_is_valid_short_name(
+        name_without_dash); // [手順] - 先頭が '-' ではない名前を指定して test_argparser_is_valid_short_name を呼び出す。
+    int name_with_double_dash_result = test_argparser_is_valid_short_name(
+        name_with_double_dash); // [手順] - "--" を指定して test_argparser_is_valid_short_name を呼び出す。
+    int valid_name_result = test_argparser_is_valid_short_name(
+        "-a"); // [手順] - "-a" を指定して test_argparser_is_valid_short_name を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        0,
+        null_name_result); // [確認_異常系] - NULL を指定した test_argparser_is_valid_short_name の戻り値が 0 であること。
+    EXPECT_EQ(
+        0,
+        name_without_dash_result); // [確認_異常系] - 先頭が '-' ではない名前を指定した test_argparser_is_valid_short_name の戻り値が 0 であること。
+    EXPECT_EQ(
+        0,
+        name_with_double_dash_result); // [確認_異常系] - "--" を指定した test_argparser_is_valid_short_name の戻り値が 0 であること。
+    EXPECT_EQ(
+        1,
+        valid_name_result); // [確認_正常系] - "-a" を指定した test_argparser_is_valid_short_name の戻り値が 1 であること。
 }
 
 // default() の終了コールバックを並行実行しても共有ロックを破棄しないことの確認
@@ -332,6 +368,34 @@ TEST_F(argparserTest, register_rejects_required_positional_after_optional)
         _com_util_argparser_register_positional_string(
             parser, "second", NULL, COM_UTIL_ARGPARSER_REQUIRED,
             &second)); // [確認_異常系] - 任意の位置引数の後の必須位置引数 "second" の登録が INVALID_ARGUMENT になること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 必須位置引数を連続して登録できることの確認
+TEST_F(argparserTest, register_accepts_required_positionals_in_sequence)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *first = NULL;
+    const char *second = NULL;
+
+    // Pre-Assert
+
+    // Act
+    int first_result =
+        _com_util_argparser_register_positional_string(parser, "first", NULL, COM_UTIL_ARGPARSER_REQUIRED,
+                                                       &first); // [手順] - 必須位置引数 "first" を登録する。
+    int second_result =
+        _com_util_argparser_register_positional_string(parser, "second", NULL, COM_UTIL_ARGPARSER_REQUIRED,
+                                                       &second); // [手順] - 必須位置引数 "second" を続けて登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, first_result); // [確認_正常系] - 1 件目の必須位置引数登録結果が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              second_result); // [確認_正常系] - 必須位置引数を連続して登録した結果が COM_UTIL_OK であること。
 
     // Cleanup
     _com_util_argparser_dispose(parser);
@@ -2041,6 +2105,852 @@ TEST_F(argparserTest, parse_rejects_invalid_arguments)
                            NULL)); // [確認_異常系] - get_error_target が NULL ハンドルで NULL を返すこと。
     EXPECT_EQ(-1, _com_util_argparser_get_error_index(
                       NULL)); // [確認_異常系] - get_error_index が NULL ハンドルで -1 を返すこと。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 長いオプション名の各形式を正しく判定することの確認
+TEST_F(argparserTest, is_valid_long_name_rejects_invalid_names)
+{
+    // Arrange
+    const char *short_name = "--";           // [状態] - 長さが不足する長い名前を用意する。
+    const char *wrong_prefix = "-name";      // [状態] - 接頭辞が不正な長い名前を用意する。
+    const char *with_equal = "--name=value"; // [状態] - "=" を含む長い名前を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int null_result = test_argparser_is_valid_long_name(NULL);        // [手順] - NULL を指定して長い名前を検証する。
+    int short_result = test_argparser_is_valid_long_name(short_name); // [手順] - 短すぎる名前を検証する。
+    int wrong_prefix_result =
+        test_argparser_is_valid_long_name(wrong_prefix);              // [手順] - 接頭辞が不正な名前を検証する。
+    int equal_result = test_argparser_is_valid_long_name(with_equal); // [手順] - "=" を含む名前を検証する。
+    int valid_result = test_argparser_is_valid_long_name("--name");   // [手順] - 正しい長い名前を検証する。
+
+    // Assert
+    EXPECT_EQ(0, null_result);         // [確認_異常系] - NULL の検証結果が 0 であること。
+    EXPECT_EQ(0, short_result);        // [確認_異常系] - 長さ不足の検証結果が 0 であること。
+    EXPECT_EQ(0, wrong_prefix_result); // [確認_異常系] - 接頭辞不正の検証結果が 0 であること。
+    EXPECT_EQ(0, equal_result);        // [確認_異常系] - "=" を含む名前の検証結果が 0 であること。
+    EXPECT_EQ(1, valid_result);        // [確認_正常系] - 正しい長い名前の検証結果が 1 であること。
+}
+
+// 位置引数登録の parser NULL と不正フラグが検出されることの確認
+TEST_F(argparserTest, positional_register_rejects_null_parser_and_invalid_flags)
+{
+    // Arrange
+    int storage = 0;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+
+    // Pre-Assert
+
+    // Act
+    int null_parser_result = _com_util_argparser_register_positional_int(
+        NULL, "value", NULL, 0u, &storage); // [手順] - parser NULL で位置引数を登録する。
+    int invalid_flags_result = _com_util_argparser_register_positional_int(
+        parser, "value", NULL, 0x100u, &storage); // [手順] - 未定義フラグで位置引数を登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_parser_result); // [確認_異常系] - parser NULL の登録結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              invalid_flags_result); // [確認_異常系] - 不正フラグの登録結果が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// default parser の初期化失敗と shutdown callback の入力検証が動作することの確認
+TEST_F(argparserTest, default_returns_null_when_lock_creation_fails)
+{
+    // Arrange
+    com_util_shutdown_event event = {};
+    event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_create(_))
+        .WillOnce(
+            Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - default 用ロックの生成が 1 回失敗すること。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_default(NULL);                  // [手順] - ロック生成失敗状態で default parser を取得する。
+    test_argparser_default_dispose_on_shutdown(NULL, NULL); // [手順] - NULL event で shutdown callback を呼び出す。
+    event.reason = COM_UTIL_SHUTDOWN_REASON_PROCESS_TERMINATING;
+    test_argparser_default_dispose_on_shutdown(&event, NULL); // [手順] - 通常終了以外の event で callback を呼び出す。
+    event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
+    test_argparser_default_dispose_on_shutdown(&event,
+                                               NULL); // [手順] - ロック未生成状態で通常終了 callback を呼び出す。
+
+    // Assert
+    EXPECT_EQ(nullptr, parser); // [確認_異常系] - ロック生成失敗時の default parser が NULL であること。
+}
+
+// shutdown 登録失敗時に default parser が NULL を返しロックを破棄することの確認
+TEST_F(argparserTest, default_returns_null_when_shutdown_registration_fails)
+{
+    // Arrange
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_shutdown_register(_, _))
+        .WillOnce(
+            Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - shutdown callback 登録が 1 回失敗すること。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_default(NULL); // [手順] - shutdown 登録失敗状態で default parser を取得する。
+
+    // Assert
+    EXPECT_EQ(nullptr, parser); // [確認_異常系] - shutdown 登録失敗時の default parser が NULL であること。
+}
+
+// default shutdown callback がロック取得失敗時に処理を中断することの確認
+TEST_F(argparserTest, default_shutdown_callback_returns_when_locking_fails)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_default(NULL);
+    ASSERT_NE(nullptr, parser);
+    com_util_shutdown_event event = {};
+    event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(_, _))
+        .WillOnce(
+            Return(COM_UTIL_ERR_BUSY)); // [Pre-Assert確認_異常系] - shutdown callback のロック取得が失敗すること。
+
+    // Act
+    test_argparser_default_dispose_on_shutdown(&event,
+                                               NULL); // [手順] - ロック取得失敗状態で shutdown callback を呼び出す。
+
+    // Assert
+    SUCCEED(); // [確認_異常系] - ロック取得失敗時も shutdown callback がクラッシュせず終了すること。
+}
+
+// default parser のロック取得失敗時に NULL が返ることの確認
+TEST_F(argparserTest, default_returns_null_when_locking_fails)
+{
+    // Arrange
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(_, _))
+        .WillOnce(Return(COM_UTIL_ERR_BUSY)); // [Pre-Assert確認_異常系] - default parser のロック取得が失敗すること。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_default(NULL); // [手順] - ロック取得失敗状態で default parser を取得する。
+
+    // Assert
+    EXPECT_EQ(nullptr, parser); // [確認_異常系] - ロック取得失敗時の default parser が NULL であること。
+}
+
+// 各登録 API の引数検証と登録結果伝播が動作することの確認
+TEST_F(argparserTest, register_wrappers_reject_invalid_storage_and_registration)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int int_array[1] = {};
+    size_t int_count = 0;
+    const char *string_array[1] = {};
+    size_t string_count = 0;
+
+    // Pre-Assert
+
+    // Act
+    int option_int_null = _com_util_argparser_register_option_int(
+        parser, "-i", NULL, NULL, NULL, 0u, NULL); // [手順] - int オプションの storage NULL を検証する。
+    int option_string_null = _com_util_argparser_register_option_string(
+        parser, "-s", NULL, NULL, NULL, 0u, NULL); // [手順] - string オプションの storage NULL を検証する。
+    int option_int_array_storage_null = _com_util_argparser_register_option_int_array(
+        parser, "-a", NULL, NULL, NULL, 0u, NULL, 1u, &int_count); // [手順] - int 配列の storage NULL を検証する。
+    int option_int_array_capacity_zero = _com_util_argparser_register_option_int_array(
+        parser, "-b", NULL, NULL, NULL, 0u, int_array, 0u, &int_count); // [手順] - int 配列の capacity 0 を検証する。
+    int option_int_array_count_null = _com_util_argparser_register_option_int_array(
+        parser, "-c", NULL, NULL, NULL, 0u, int_array, 1u, NULL); // [手順] - int 配列の count NULL を検証する。
+    int option_string_array_storage_null = _com_util_argparser_register_option_string_array(
+        parser, "-d", NULL, NULL, NULL, 0u, NULL, 1u,
+        &string_count); // [手順] - string 配列の storage NULL を検証する。
+    int option_string_array_capacity_zero = _com_util_argparser_register_option_string_array(
+        parser, "-e", NULL, NULL, NULL, 0u, string_array, 0u,
+        &string_count); // [手順] - string 配列の capacity 0 を検証する。
+    int option_string_array_count_null = _com_util_argparser_register_option_string_array(
+        parser, "-f", NULL, NULL, NULL, 0u, string_array, 1u, NULL); // [手順] - string 配列の count NULL を検証する。
+    int positional_int_null = _com_util_argparser_register_positional_int(
+        parser, "value", NULL, 0u, NULL); // [手順] - int 位置引数の storage NULL を検証する。
+    int positional_string_null = _com_util_argparser_register_positional_string(
+        parser, "text", NULL, 0u, NULL); // [手順] - string 位置引数の storage NULL を検証する。
+    int positional_int_array_storage_null = _com_util_argparser_register_positional_int_array(
+        parser, "values", NULL, 0u, NULL, 1u, &int_count); // [手順] - int 配列位置引数の storage NULL を検証する。
+    int positional_int_array_capacity_zero = _com_util_argparser_register_positional_int_array(
+        parser, "values2", NULL, 0u, int_array, 0u, &int_count); // [手順] - int 配列位置引数の capacity 0 を検証する。
+    int positional_int_array_count_null = _com_util_argparser_register_positional_int_array(
+        parser, "values3", NULL, 0u, int_array, 1u, NULL); // [手順] - int 配列位置引数の count NULL を検証する。
+    int positional_string_array_storage_null = _com_util_argparser_register_positional_string_array(
+        parser, "texts", NULL, 0u, NULL, 1u, &string_count); // [手順] - string 配列位置引数の storage NULL を検証する。
+    int positional_string_array_capacity_zero = _com_util_argparser_register_positional_string_array(
+        parser, "texts2", NULL, 0u, string_array, 0u,
+        &string_count); // [手順] - string 配列位置引数の capacity 0 を検証する。
+    int positional_string_array_count_null = _com_util_argparser_register_positional_string_array(
+        parser, "texts3", NULL, 0u, string_array, 1u, NULL); // [手順] - string 配列位置引数の count NULL を検証する。
+
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int_array(parser, "-x", "--x", NULL, NULL, 0u, int_array,
+                                                                         1u, &int_count));
+    int option_int_array_duplicate = _com_util_argparser_register_option_int_array(
+        parser, "-x", "--x2", NULL, NULL, 0u, int_array, 1u, &int_count); // [手順] - int 配列の重複登録を検証する。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string_array(parser, "-y", "--y", NULL, NULL, 0u,
+                                                                            string_array, 1u, &string_count));
+    int option_string_array_duplicate =
+        _com_util_argparser_register_option_string_array(parser, "-y", "--y2", NULL, NULL, 0u, string_array, 1u,
+                                                         &string_count); // [手順] - string 配列の重複登録を検証する。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string_array(parser, "tail", NULL, 0u, string_array,
+                                                                                1u, &string_count));
+    int positional_int_array_duplicate = _com_util_argparser_register_positional_int_array(
+        parser, "tail2", NULL, 0u, int_array, 1u, &int_count); // [手順] - 可変長位置引数後の int 配列登録を検証する。
+    int positional_string_array_duplicate = _com_util_argparser_register_positional_string_array(
+        parser, "tail3", NULL, 0u, string_array, 1u,
+        &string_count); // [手順] - 可変長位置引数後の string 配列登録を検証する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              option_int_null); // [確認_異常系] - int オプションの storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              option_string_null); // [確認_異常系] - string オプションの storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        option_int_array_storage_null); // [確認_異常系] - int 配列の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              option_int_array_capacity_zero); // [確認_異常系] - int 配列の capacity 0 が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              option_int_array_count_null); // [確認_異常系] - int 配列の count NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        option_string_array_storage_null); // [確認_異常系] - string 配列の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        option_string_array_capacity_zero); // [確認_異常系] - string 配列の capacity 0 が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        option_string_array_count_null); // [確認_異常系] - string 配列の count NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              positional_int_null); // [確認_異常系] - int 位置引数の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_string_null); // [確認_異常系] - string 位置引数の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_int_array_storage_null); // [確認_異常系] - int 配列位置引数の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_int_array_capacity_zero); // [確認_異常系] - int 配列位置引数の capacity 0 が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_int_array_count_null); // [確認_異常系] - int 配列位置引数の count NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_string_array_storage_null); // [確認_異常系] - string 配列位置引数の storage NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_string_array_capacity_zero); // [確認_異常系] - string 配列位置引数の capacity 0 が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_string_array_count_null); // [確認_異常系] - string 配列位置引数の count NULL が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
+              option_int_array_duplicate); // [確認_異常系] - int 配列の重複登録が DUPLICATE_DEFINITION であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_DUPLICATE_DEFINITION,
+        option_string_array_duplicate); // [確認_異常系] - string 配列の重複登録が DUPLICATE_DEFINITION であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_int_array_duplicate); // [確認_異常系] - 可変長位置引数後の int 配列登録が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_string_array_duplicate); // [確認_異常系] - 可変長位置引数後の string 配列登録が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// parse の NULL token、値不足、位置引数判定が検出されることの確認
+TEST_F(argparserTest, parse_rejects_null_tokens_and_handles_negative_positionals)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int count = 0;
+    int values[2] = {};
+    size_t value_count = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int(parser, "-c", "--count", NULL, NULL, 0u, &count));
+    ASSERT_EQ(COM_UTIL_OK,
+              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 2u, &value_count));
+
+    // Pre-Assert
+
+    // Act
+    char *null_token_argv[] = {cstr("prog"), NULL};
+    int null_token_result =
+        _com_util_argparser_parse(parser, 2, null_token_argv); // [手順] - argv 中の NULL token を解析する。
+    char *long_null_value_argv[] = {cstr("prog"), cstr("--count"), NULL};
+    int long_null_value_result =
+        _com_util_argparser_parse(parser, 3, long_null_value_argv); // [手順] - 長形式オプションの NULL 値を解析する。
+    char *short_null_value_argv[] = {cstr("prog"), cstr("-c"), NULL};
+    int short_null_value_result =
+        _com_util_argparser_parse(parser, 3, short_null_value_argv); // [手順] - 短形式オプションの NULL 値を解析する。
+    char *short_missing_value_argv[] = {cstr("prog"), cstr("-c")};
+    int short_missing_value_result =
+        _com_util_argparser_parse(parser, 2, short_missing_value_argv); // [手順] - 末尾の短形式オプションを解析する。
+    char *negative_array_argv[] = {cstr("prog"), cstr("-1")};
+    int negative_array_result =
+        _com_util_argparser_parse(parser, 2, negative_array_argv); // [手順] - 負数を可変長 int 位置引数として解析する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_token_result); // [確認_異常系] - NULL token の解析結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              long_null_value_result); // [確認_異常系] - 長形式の NULL 値の解析結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              short_null_value_result); // [確認_異常系] - 短形式の NULL 値の解析結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_MISSING_VALUE,
+        short_missing_value_result); // [確認_異常系] - 末尾の短形式オプションの解析結果が MISSING_VALUE であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              negative_array_result);  // [確認_正常系] - 負数の可変長 int 位置引数の解析結果が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)1, value_count); // [確認_正常系] - 負数の可変長 int 位置引数が 1 件格納されること。
+    EXPECT_EQ(-1, values[0]);          // [確認_正常系] - 負数 -1 が可変長 int 位置引数へ格納されること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 位置引数を含む未知長形式オプションと int 配列の変換失敗が検出されることの確認
+TEST_F(argparserTest, parse_handles_positional_search_and_array_conversion_failure)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const char *text = NULL;
+    int values[1] = {};
+    size_t value_count = 0;
+    int numbers[1] = {};
+    size_t number_count = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "text", NULL, 0u, &text));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int_array(parser, "-n", "--number", NULL, NULL, 0u,
+                                                                         numbers, 1u, &number_count));
+    ASSERT_EQ(COM_UTIL_OK,
+              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 1u, &value_count));
+
+    // Pre-Assert
+
+    // Act
+    char *unknown_long_argv[] = {cstr("prog"), cstr("--unknown")};
+    int unknown_long_result = _com_util_argparser_parse(
+        parser, 2, unknown_long_argv); // [手順] - 位置引数登録済み parser で未知長形式オプションを解析する。
+    char *negative_string_argv[] = {cstr("prog"), cstr("-1")};
+    int negative_string_result = _com_util_argparser_parse(
+        parser, 2, negative_string_argv); // [手順] - 文字列位置引数へ負数形式のトークンを解析する。
+    char *invalid_array_argv[] = {cstr("prog"), cstr("--number=bad")};
+    int invalid_array_result =
+        _com_util_argparser_parse(parser, 2, invalid_array_argv); // [手順] - int 配列へ変換できない値を解析する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        unknown_long_result); // [確認_異常系] - 位置引数を含む未知長形式オプションの解析結果が UNKNOWN_OPTION であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        negative_string_result); // [確認_異常系] - 文字列位置引数へ負数形式のトークンを渡した解析結果が UNKNOWN_OPTION であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
+              invalid_array_result); // [確認_異常系] - int 配列の不正値の解析結果が INVALID_INTEGER であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// argv[0] が NULL の場合と解決済みプログラム名が usage に反映されない場合の確認
+TEST_F(argparserTest, parse_accepts_null_program_name)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    char *argv[] = {NULL};
+
+    // Pre-Assert
+
+    // Act
+    int result = _com_util_argparser_parse(parser, 1, argv); // [手順] - argv[0] が NULL の argv を解析する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - argv[0] が NULL の解析結果が COM_UTIL_OK であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 短い名前のみの表示名、既定値名、長い usage ラベルが処理されることの確認
+TEST_F(argparserTest, usage_handles_short_name_default_value_and_long_label)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int flag = 0;
+    const char *value = NULL;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", NULL, NULL, &flag));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(parser, "-n", NULL, NULL, NULL, 0u, &value));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "123456789012345678901234567890",
+                                                                          NULL, 0u, &value));
+    char usage[512] = {};
+    char *unexpected_argv[] = {cstr("prog"), cstr("-v=1")};
+
+    // Pre-Assert
+
+    // Act
+    int unexpected_result =
+        _com_util_argparser_parse(parser, 2, unexpected_argv); // [手順] - 短い名前のみのフラグへ値を指定する。
+    int usage_result = _com_util_argparser_get_usage(parser, usage, sizeof(usage),
+                                                     NULL); // [手順] - 既定値名と長いラベルを含む usage を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNEXPECTED_VALUE,
+              unexpected_result); // [確認_異常系] - 短い名前のみのフラグの値指定が UNEXPECTED_VALUE であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              usage_result); // [確認_正常系] - 既定値名と長いラベルを含む usage の取得結果が COM_UTIL_OK であること。
+    EXPECT_THAT(std::string(usage),
+                HasSubstr("-n VALUE")); // [確認_正常系] - value_name 未指定のオプションに VALUE が表示されること。
+    EXPECT_THAT(
+        std::string(usage),
+        HasSubstr(
+            "  123456789012345678901234567890\n                            \n")); // [確認_正常系] - 長いラベルの説明列が次行へ移ること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 解析エラーの全メッセージ分岐が組み立てられることの確認
+TEST_F(argparserTest, error_message_formats_all_error_results)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    const int results[] = {
+        COM_UTIL_ERR_UNKNOWN_OPTION,     COM_UTIL_ERR_MISSING_VALUE,
+        COM_UTIL_ERR_INVALID_INTEGER,    COM_UTIL_ERR_OUT_OF_RANGE,
+        COM_UTIL_ERR_MISSING_REQUIRED,   COM_UTIL_ERR_DUPLICATE_OPTION,
+        COM_UTIL_ERR_TOO_MANY_ARGUMENTS, COM_UTIL_ERR_TOO_MANY_OCCURRENCES,
+        COM_UTIL_ERR_UNEXPECTED_VALUE,   COM_UTIL_OK,
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+    };
+    char message[128] = {};
+
+    // Pre-Assert
+
+    // Act
+    std::vector<int> return_codes;
+    for (int result : results)
+    {
+        test_argparser_set_last_error(parser, result);
+        return_codes.push_back(_com_util_argparser_get_error_message(
+            parser, message, sizeof(message))); // [手順] - 各解析結果のエラーメッセージを取得する。
+    }
+
+    // Assert
+    ASSERT_EQ(sizeof(results) / sizeof(results[0]),
+              return_codes.size()); // [確認_正常系] - 全解析結果のメッセージ取得件数が一致すること。
+    for (int return_code : return_codes)
+    {
+        EXPECT_EQ(COM_UTIL_OK,
+                  return_code); // [確認_正常系] - 各解析結果のメッセージ取得結果が COM_UTIL_OK であること。
+    }
+    EXPECT_STREQ("no error", message); // [確認_正常系] - 既定分岐のメッセージが no error であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// snprintf が失敗した場合に解析エラーメッセージが失敗することの確認
+TEST_F(argparserTest, error_message_returns_invalid_argument_when_snprintf_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    char message[128] = {'x'};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - エラーメッセージの snprintf が失敗すること。
+
+    // Act
+    int result = _com_util_argparser_get_error_message(
+        parser, message, sizeof(message)); // [手順] - snprintf 失敗状態で解析エラーメッセージを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result);           // [確認_異常系] - snprintf 失敗時の取得結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ('\0', message[0]); // [確認_異常系] - snprintf 失敗時にメッセージ先頭が NUL になること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 登録エラーメッセージの全分岐と対象名既定値が組み立てられることの確認
+TEST_F(argparserTest, register_error_message_formats_all_results)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int storage = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
+              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage));
+    ASSERT_EQ((size_t)1, _com_util_argparser_get_register_error_count(parser));
+    char message[128] = {};
+    const int results[] = {
+        COM_UTIL_ERR_INVALID_ARGUMENT, COM_UTIL_ERR_OUT_OF_MEMORY, COM_UTIL_ERR_DUPLICATE_DEFINITION, COM_UTIL_OK,
+        COM_UTIL_ERR_BUFFER_TOO_SMALL, COM_UTIL_ERR_UNKNOWN,
+    };
+
+    // Pre-Assert
+
+    // Act
+    std::vector<int> return_codes;
+    for (int result : results)
+    {
+        test_argparser_set_register_error_result(parser, 0u, result);
+        return_codes.push_back(_com_util_argparser_get_register_error_message(
+            parser, 0u, message, sizeof(message))); // [手順] - 各登録結果のエラーメッセージを取得する。
+    }
+    test_argparser_clear_register_error_target(parser, 0u);
+    int null_target_result = _com_util_argparser_get_register_error_message(
+        parser, 0u, message, sizeof(message)); // [手順] - 対象名 NULL の登録エラーメッセージを取得する。
+
+    // Assert
+    EXPECT_EQ(sizeof(results) / sizeof(results[0]),
+              return_codes.size()); // [確認_正常系] - 全登録結果のメッセージ取得件数が一致すること。
+    for (int return_code : return_codes)
+    {
+        EXPECT_EQ(COM_UTIL_OK,
+                  return_code); // [確認_正常系] - 各登録結果のメッセージ取得結果が COM_UTIL_OK であること。
+    }
+    EXPECT_EQ(COM_UTIL_OK,
+              null_target_result); // [確認_正常系] - 対象名 NULL のメッセージ取得結果が COM_UTIL_OK であること。
+    EXPECT_THAT(std::string(message), HasSubstr("'?'")); // [確認_正常系] - 対象名 NULL が ? として表示されること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 登録エラーメッセージの snprintf 失敗が処理されることの確認
+TEST_F(argparserTest, register_error_message_returns_invalid_argument_when_snprintf_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int storage = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
+              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage));
+    char message[128] = {'x'};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - 登録エラーメッセージの snprintf が失敗すること。
+
+    // Act
+    int result = _com_util_argparser_get_register_error_message(
+        parser, 0u, message, sizeof(message)); // [手順] - snprintf 失敗状態で登録エラーメッセージを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result);           // [確認_異常系] - snprintf 失敗時の取得結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ('\0', message[0]); // [確認_異常系] - snprintf 失敗時にメッセージ先頭が NUL になること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 公開 API の登録、解析、取得、出力ラッパーが呼び出せることの確認
+TEST_F(argparserTest, public_api_wrappers_are_callable)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    int flag = 0;
+    int int_value = 0;
+    const char *string_value = NULL;
+    int int_values[2] = {};
+    size_t int_value_count = 0;
+    const char *string_values[2] = {};
+    size_t string_value_count = 0;
+    int positional_int = 0;
+    const char *positional_string = NULL;
+    int positional_int_values[2] = {};
+    size_t positional_int_value_count = 0;
+    const char *positional_string_values[2] = {};
+    size_t positional_string_value_count = 0;
+    char usage[1024] = {};
+    char error_message[512] = {};
+    char register_error_message[512] = {};
+    size_t required_size = 0;
+
+    // Pre-Assert
+
+    // Act
+    com_util_argparser_init("public API"); // [手順] - 公開 default parser を初期化する。
+    int flag_result =
+        com_util_argparser_register_flag("-f", "--flag", NULL, &flag); // [手順] - 公開 flag 登録 API を呼び出す。
+    int int_result = com_util_argparser_register_option_int(
+        "-i", "--integer", NULL, NULL, 0u, &int_value); // [手順] - 公開 int オプション登録 API を呼び出す。
+    int string_result = com_util_argparser_register_option_string(
+        "-s", "--string", NULL, NULL, 0u, &string_value); // [手順] - 公開 string オプション登録 API を呼び出す。
+    int int_array_result =
+        com_util_argparser_register_option_int_array("-a", "--array-int", NULL, NULL, 0u, int_values, 2u,
+                                                     &int_value_count); // [手順] - 公開 int 配列登録 API を呼び出す。
+    int string_array_result = com_util_argparser_register_option_string_array(
+        "-b", "--array-string", NULL, NULL, 0u, string_values, 2u,
+        &string_value_count); // [手順] - 公開 string 配列登録 API を呼び出す。
+    int positional_int_result = com_util_argparser_register_positional_int(
+        "posint", NULL, 0u, &positional_int); // [手順] - 公開 int 位置引数登録 API を呼び出す。
+    int positional_string_result = com_util_argparser_register_positional_string(
+        "posstr", NULL, 0u, &positional_string); // [手順] - 公開 string 位置引数登録 API を呼び出す。
+    int positional_string_array_result = com_util_argparser_register_positional_string_array(
+        "posstrs", NULL, 0u, positional_string_values, 2u,
+        &positional_string_value_count); // [手順] - 公開 string 配列位置引数登録 API を呼び出す。
+    int invalid_register_result = com_util_argparser_register_flag(
+        NULL, NULL, NULL, &flag); // [手順] - 公開登録 API で登録エラーを 1 件発生させる。
+    int positional_int_array_result = com_util_argparser_register_positional_int_array(
+        "posints", NULL, 0u, positional_int_values, 2u,
+        &positional_int_value_count); // [手順] - 公開 int 配列位置引数登録 API を呼び出す。
+    char *parse_argv[] = {cstr("prog")};
+    int parse_result = com_util_argparser_parse(1, parse_argv); // [手順] - 公開 parse API を引数なしで呼び出す。
+    char *error_argv[] = {cstr("prog"), cstr("--unknown")};
+    int error_parse_result =
+        com_util_argparser_parse(2, error_argv);       // [手順] - 公開 parse API で解析エラーを発生させる。
+    int error_result = com_util_argparser_get_error(); // [手順] - 公開 get_error API を呼び出す。
+    const char *error_target = com_util_argparser_get_error_target(); // [手順] - 公開 get_error_target API を呼び出す。
+    int error_index = com_util_argparser_get_error_index();           // [手順] - 公開 get_error_index API を呼び出す。
+    int error_message_result = com_util_argparser_get_error_message(
+        error_message, sizeof(error_message)); // [手順] - 公開 get_error_message API を呼び出す。
+    int usage_result =
+        com_util_argparser_get_usage(usage, sizeof(usage), &required_size); // [手順] - 公開 get_usage API を呼び出す。
+    int print_usage_result = com_util_argparser_print_usage(stdout); // [手順] - 公開 print_usage API を呼び出す。
+    int print_error_result =
+        com_util_argparser_print_error_messages(stderr); // [手順] - 公開 print_error_messages API を呼び出す。
+    size_t register_error_count =
+        com_util_argparser_get_register_error_count(); // [手順] - 公開登録エラー件数 API を呼び出す。
+    int register_error_result =
+        com_util_argparser_get_register_error(0u); // [手順] - 公開登録エラー取得 API を呼び出す。
+    const char *register_error_target =
+        com_util_argparser_get_register_error_target(0u); // [手順] - 公開登録エラー対象 API を呼び出す。
+    int register_error_message_result = com_util_argparser_get_register_error_message(
+        0u, register_error_message,
+        sizeof(register_error_message)); // [手順] - 公開登録エラーメッセージ API を呼び出す。
+    int print_register_error_result =
+        com_util_argparser_print_register_error_messages(stderr); // [手順] - 公開登録エラー出力 API を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, flag_result); // [確認_正常系] - 公開 flag 登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              int_result); // [確認_正常系] - 公開 int オプション登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              string_result); // [確認_正常系] - 公開 string オプション登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              int_array_result); // [確認_正常系] - 公開 int 配列登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              string_array_result); // [確認_正常系] - 公開 string 配列登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              positional_int_result); // [確認_正常系] - 公開 int 位置引数登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        positional_string_result); // [確認_正常系] - 公開 string 位置引数登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        positional_string_array_result); // [確認_正常系] - 公開 string 配列位置引数登録 API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        positional_int_array_result); // [確認_異常系] - 可変長位置引数後の公開 int 配列登録 API が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_OK, parse_result); // [確認_正常系] - 公開 parse API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              invalid_register_result); // [確認_異常系] - 公開登録 API の不正引数結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
+              error_parse_result); // [確認_異常系] - 公開 parse API の未知オプション結果が UNKNOWN_OPTION であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
+              error_result); // [確認_異常系] - 公開 get_error API の戻り値が UNKNOWN_OPTION であること。
+    EXPECT_STREQ("--unknown", error_target); // [確認_異常系] - 公開 get_error_target API が未知オプション名を返すこと。
+    EXPECT_EQ(1, error_index);               // [確認_異常系] - 公開 get_error_index API が 1 を返すこと。
+    EXPECT_EQ(COM_UTIL_OK,
+              error_message_result); // [確認_正常系] - 公開 get_error_message API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, usage_result); // [確認_正常系] - 公開 get_usage API の戻り値が COM_UTIL_OK であること。
+    EXPECT_GT(required_size, (size_t)0);  // [確認_正常系] - 公開 get_usage API が正の required_size を返すこと。
+    EXPECT_EQ(COM_UTIL_OK,
+              print_usage_result); // [確認_正常系] - 公開 print_usage API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              print_error_result); // [確認_正常系] - 公開 print_error_messages API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)2, register_error_count); // [確認_正常系] - 公開登録エラー件数 API が 2 を返すこと。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              register_error_result); // [確認_異常系] - 公開登録エラー取得 API が INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(nullptr, register_error_target); // [確認_異常系] - 公開登録エラー対象 API が NULL を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        register_error_message_result); // [確認_正常系] - 公開登録エラーメッセージ API の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        print_register_error_result); // [確認_正常系] - 公開登録エラー出力 API の戻り値が COM_UTIL_OK であること。
+}
+
+// usage 再計算時のバッファー不足が print_usage の戻り値へ伝播することの確認
+TEST_F(argparserTest, print_usage_returns_buffer_too_small_when_usage_changes)
+{
+    // Arrange
+    com_util_argparser_options options = {};
+    options.program_description = "short";
+    com_util_argparser *parser = _com_util_argparser_create(&options);
+    ASSERT_NE(nullptr, parser);
+    NiceMock<Mock_stdio> mock_stdio;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char *previous_description = NULL;
+    static char long_description[] = "This description is intentionally much longer than the initial usage buffer.";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, fprintf(_, _, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - usage のバッファー不足時に fprintf が呼び出されないこと。
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(
+            [&](const char *file, const int line, const char *function, size_t size)
+            {
+                previous_description = test_argparser_replace_program_description(parser, long_description);
+                return delegate_real_malloc(file, line, function, size);
+            }); // [Pre-Assert確認_異常系] - usage バッファー確保前に説明文が変更されること。
+
+    // Act
+    int result = _com_util_argparser_print_usage(
+        parser, stdout); // [手順] - usage 組み立て中に説明文を変更して print_usage を呼び出す。
+    test_argparser_replace_program_description(
+        parser, previous_description); // [手順] - parser の説明文を元のポインターへ戻す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, result); // [確認_異常系] - usage 再計算時のバッファー不足が返ること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// print_error_messages が長いエラーをバッファー不足として出力することの確認
+TEST_F(argparserTest, print_error_messages_writes_buffer_too_small_message)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    std::string unknown_option = "--" + std::string(600u, 'x');
+    char *argv[] = {cstr("prog"), const_cast<char *>(unknown_option.c_str())};
+    ASSERT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        _com_util_argparser_parse(parser, 2, argv)); // [状態] - 600 文字の未知オプションで解析エラーを発生させる。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
+        .Times(AnyNumber()); // [Pre-Assert手順] - error message と区切り行の fprintf を許容する。
+
+    // Act
+    int result = _com_util_argparser_print_error_messages(
+        parser, stderr); // [手順] - 長いエラーを print_error_messages で出力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result); // [確認_異常系] - 長いエラーの出力結果が BUFFER_TOO_SMALL であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// print_error_messages がメッセージ組み立て失敗時に改行だけ出力することの確認
+TEST_F(argparserTest, print_error_messages_skips_message_when_snprintf_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    char *argv[] = {cstr("prog"), cstr("--unknown")};
+    ASSERT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
+              _com_util_argparser_parse(parser, 2, argv)); // [状態] - 未知オプションで解析エラーを発生させる。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - エラーメッセージの snprintf が失敗すること。
+    EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
+        .Times(1); // [Pre-Assert確認_正常系] - メッセージを省略した区切り改行だけが出力されること。
+
+    // Act
+    int result = _com_util_argparser_print_error_messages(
+        parser, stderr); // [手順] - snprintf 失敗状態で print_error_messages を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - snprintf 失敗時の出力結果が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// print_register_error_messages が長い対象をバッファー不足として出力することの確認
+TEST_F(argparserTest, print_register_error_messages_writes_buffer_too_small_message)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    std::string long_name = "--" + std::string(600u, 'x');
+    int storage = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", long_name.c_str(), NULL, &storage));
+    ASSERT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
+              _com_util_argparser_register_flag(parser, "-b", long_name.c_str(), NULL,
+                                                &storage)); // [状態] - 長い対象名の登録エラーを発生させる。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
+        .Times(AnyNumber()); // [Pre-Assert手順] - 登録エラーと区切り行の fprintf を許容する。
+
+    // Act
+    int result =
+        _com_util_argparser_print_register_error_messages(parser, stderr); // [手順] - 長い対象の登録エラーを出力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              result); // [確認_異常系] - 長い登録エラーの出力結果が BUFFER_TOO_SMALL であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// print_register_error_messages がメッセージ組み立て失敗時に改行だけ出力することの確認
+TEST_F(argparserTest, print_register_error_messages_skips_message_when_snprintf_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int storage = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    ASSERT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
+              _com_util_argparser_register_flag(parser, "-b", "--alpha", NULL,
+                                                &storage)); // [状態] - 登録エラーを 1 件発生させる。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - 登録エラーメッセージの snprintf が失敗すること。
+    EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
+        .Times(1); // [Pre-Assert確認_正常系] - メッセージを省略した区切り改行だけが出力されること。
+
+    // Act
+    int result = _com_util_argparser_print_register_error_messages(
+        parser, stderr); // [手順] - snprintf 失敗状態で登録エラーを出力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - snprintf 失敗時の出力結果が INVALID_ARGUMENT であること。
 
     // Cleanup
     _com_util_argparser_dispose(parser);

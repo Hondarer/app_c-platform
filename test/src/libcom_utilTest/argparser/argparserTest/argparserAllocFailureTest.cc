@@ -109,3 +109,182 @@ TEST_F(argparserAllocFailureTest, print_usage_fails_when_buffer_allocation_fails
         COM_UTIL_ERR_OUT_OF_MEMORY,
         rtc); // [確認_異常系] - _com_util_argparser_print_usage の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
+
+// short_name の複製に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, register_fails_when_short_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - short_name の複製で malloc が失敗すること。
+
+    // Act
+    int rtc =
+        _com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
+                                                   &storage_); // [手順] - short_name を含む文字列オプションを登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rtc); // [確認_異常系] - short_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+}
+
+// long_name の複製に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, register_fails_when_long_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - long_name の複製で malloc が失敗すること。
+
+    // Act
+    int rtc =
+        _com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
+                                                   &storage_); // [手順] - long_name を含む文字列オプションを登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rtc); // [確認_異常系] - long_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+}
+
+// value_name の複製に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, register_fails_when_value_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(DoDefault())
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - value_name の複製で malloc が失敗すること。
+
+    // Act
+    int rtc =
+        _com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
+                                                   &storage_); // [手順] - value_name を含む文字列オプションを登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rtc); // [確認_異常系] - value_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+}
+
+// description の複製に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, register_fails_when_description_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(DoDefault())
+        .WillOnce(DoDefault())
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - description の複製で malloc が失敗すること。
+
+    // Act
+    int rtc = _com_util_argparser_register_option_string(
+        parser_, "-a", "--alpha", "VALUE", "説明", 0u,
+        &storage_); // [手順] - description を含む文字列オプションを登録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rtc); // [確認_異常系] - description 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+}
+
+// 登録エラー配列の realloc に失敗した場合に登録結果だけが返ることの確認
+TEST_F(argparserAllocFailureTest, register_error_is_not_recorded_when_realloc_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    int storage = 0;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 登録エラー配列の realloc が失敗すること。
+
+    // Act
+    int rtc = _com_util_argparser_register_flag(parser_, NULL, NULL, NULL,
+                                                &storage); // [手順] - 名前なし登録で登録エラーを発生させる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - 登録エラー配列確保失敗後も登録結果が INVALID_ARGUMENT であること。
+    EXPECT_EQ((size_t)0, _com_util_argparser_get_register_error_count(
+                             parser_)); // [確認_異常系] - realloc 失敗時に登録エラー件数が 0 のままであること。
+}
+
+// create の program_name 複製に失敗した場合に NULL が返ることの確認
+TEST_F(argparserAllocFailureTest, create_fails_when_program_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_argparser_options options = {};
+    options.program_name = "program";
+    options.program_description = "description";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - program_name の複製で malloc が失敗すること。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_create(&options); // [手順] - program_name と description を指定して parser を生成する。
+
+    // Assert
+    EXPECT_EQ(nullptr, parser); // [確認_異常系] - program_name 複製失敗時の parser が NULL であること。
+}
+
+// create の program_description 複製に失敗した場合に NULL が返ることの確認
+TEST_F(argparserAllocFailureTest, create_fails_when_program_description_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_argparser_options options = {};
+    options.program_name = "program";
+    options.program_description = "description";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - program_description の複製で malloc が失敗すること。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_create(&options); // [手順] - program_name と description を指定して parser を生成する。
+
+    // Assert
+    EXPECT_EQ(nullptr, parser); // [確認_異常系] - program_description 複製失敗時の parser が NULL であること。
+}
+
+// argv[0] のベース名複製に失敗した場合も解析が継続することの確認
+TEST_F(argparserAllocFailureTest, parse_continues_when_program_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char *argv[] = {const_cast<char *>("/usr/local/bin/tool")};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - argv[0] のベース名複製で malloc が失敗すること。
+
+    // Act
+    int rtc = _com_util_argparser_parse(parser_, 1, argv); // [手順] - argv[0] のベース名複製失敗状態で解析する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        rtc); // [確認_正常系] - ベース名複製失敗時も _com_util_argparser_parse の戻り値が COM_UTIL_OK であること。
+}
