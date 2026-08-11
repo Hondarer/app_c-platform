@@ -2,19 +2,19 @@
 
 `app/com_util/prod/libsrc/com_util/prompt/` 配下 5 本のソースに対するテストの状況と、未着手部分を進めるための手順をまとめます。
 
-規約は [framework/testfw/docs/how-to-test.md](../../../../../../framework/testfw/docs/how-to-test.md) の「カバレッジの基準」と「テストの構成単位」に従います。カバレッジの原則は条件網羅 (C2) で、計測は Linux (gcov) を正本とします。
+規約は [framework/testfw/docs/how-to-test.md](../../../../../../framework/testfw/docs/how-to-test.md) の「カバレッジの基準」と「テストの構成単位」に従います。カバレッジの原則は条件網羅 (C2) で、最新値の計測は Linux (gcov) を正本とします。
 
 ## 対応状況
 
-| 対象ソース | テスト ディレクトリ | 行 | C2 | テスト数 |
-|---|---|---|---|---|
-| `prompt_edit.c` | `promptEditTest` | 98% | 100% | 18 |
-| `prompt_linux.c` | `promptLinuxTest` | 98% | 100% | 11 |
-| `prompt.c` | `promptTest` | 85% | 91% | 30 |
-| `pinned_prompt.c` | `pinnedPromptTest` | 1% | 0% | 1 |
-| `prompt_windows.c` | `promptWindowsTest` | - | - | 11 |
+| 対象ソース | テスト ディレクトリ | テスト数 | 現状 |
+|---|---|---:|---|
+| `prompt_edit.c` | `promptEditTest` | 19 | 基本経路と `realloc` 失敗経路をテスト実装済み |
+| `prompt_linux.c` | `promptLinuxTest` | 12 | `tcsetattr` 失敗経路を含む主要経路をテスト実装済み |
+| `prompt.c` | `promptTest` | 37 | `realloc` 失敗経路を含む主要経路をテスト実装済み |
+| `pinned_prompt.c` | `pinnedPromptTest` | 1 | ステータス API の NULL 引数だけを確認。拡充が必要 |
+| `prompt_windows.c` | `promptWindowsTest` | 13 | Windows API の主要経路をテスト実装済み |
 
-`pinned_prompt.c` (806 行) が未着手です。`prompt_windows.c` は Windows 専用実装のため、行/C2 の数値は Linux (gcov) では計測されません。
+`pinned_prompt.c` (1,662 行) のテストは未完了です。`prompt_windows.c` は Windows 専用実装のため、行/C2 の数値は Linux (gcov) では計測されません。行/C2 の最新値は、Linux で各テストを実行した結果に基づいて更新します。
 
 ## テストの構成
 
@@ -59,13 +59,13 @@ prompt_->is_tty = 1;
 `prompt_linux.c` は `STDIN_FILENO` を直接扱うため、`dup2()` で標準入力をパイプまたは疑似端末へ差し替えて検証します。
 
 - パイプ — `tcgetattr` が失敗する経路、`read` の通常読み取りと EOF、`select` のタイムアウト
-- 疑似端末 (`posix_openpt`) — raw モードへの移行と復帰、SIGWINCH ハンドラーの登録と復元
+- 疑似端末 (`posix_openpt`) — raw モードへの移行と復帰、`tcsetattr` の失敗、SIGWINCH ハンドラーの登録と復元
 
 `s_resize_pending` と `s_sigwinch_installed` はファイル内 `static` のため、`prompt_linux.inject.c` でアクセサーを通しています。リサイズ通知の経路 (`read` が EINTR で失敗し、かつリサイズ待ちがある) は `Mock_unistd` で `read` に EINTR を注入して到達させます。
 
 ### promptWindowsTest — Win32 API を Mock_windows でモックする
 
-`prompt_windows.c` は `GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile` を直接呼び出します。これらは `framework/testfw` の `mock_windows.h`/`Mock_windows` ( `include_override/windows.h` による差し替え ) でモック化しています。`GetTickCount64` などの既存モックと同じ仕組みで、実コンソールや実プロセスを一切必要とせず、`SetConsoleMode` の失敗経路や `WaitForSingleObject` のタイムアウト経路も含めて全分岐を決定的に再現できます。
+`prompt_windows.c` は `GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile` を直接呼び出します。これらは `framework/testfw` の `mock_windows.h`/`Mock_windows` (`include_override/windows.h` による差し替え) でモック化しています。`GetTickCount64` などの既存モックと同じ仕組みで、実コンソールや実プロセスを一切必要とせず、`SetConsoleMode` の失敗経路や `WaitForSingleObject` のタイムアウト経路も含めて全分岐を決定的に再現できます。
 
 ```cpp
 Mock_windows mock_windows;
@@ -75,36 +75,23 @@ EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
     .WillOnce(DoAll(SetArgPointee<4>(orig_mode), Return(TRUE)));
 ```
 
-`MOCK_METHOD` の各引数は `(__FILE__, __LINE__, __func__, 実引数...)` の順であるため、実引数の位置は 4 番目以降になります ( `SetArgPointee<4>` などのインデックスに注意 ) 。モック未注入時 (`_mock_windows == nullptr`) は自動的に実 API へ委譲されるため、`console.c`/`process.c`/`sync_windows.c` など他の `TEST_SRCS` が同じ関数を呼んでいても挙動は変化しません。
+`MOCK_METHOD` の各引数は `(__FILE__, __LINE__, __func__, 実引数...)` の順であるため、実引数の位置は 4 番目以降になります (`SetArgPointee<4>` などのインデックスに注意)。モック未注入時 (`_mock_windows == nullptr`) は自動的に実 API へ委譲されるため、`console.c`/`process.c`/`sync_windows.c` など他の `TEST_SRCS` が同じ関数を呼んでいても挙動は変化しません。
 
 ## 未到達として残している箇所
 
 | 箇所 | 理由 |
 |---|---|
-| `prompt_linux.c:52` | `tcsetattr` の失敗経路。`tcsetattr` のモックが testfw にない |
 | `prompt.c` の `redisplay` 周辺 | 画面制御の出力のみで分岐がない行、および履歴ブラウズ中の一部境界 |
-| `prompt.c` の `find_or_create_ctx` の確保失敗 | `realloc` の失敗注入が必要。`mock_stdlib` は `calloc` と `getenv` のみ |
-| `prompt_edit.c:98` | `realloc` の失敗経路。同上 |
 
-`realloc` のモックを testfw へ追加すれば、`prompt.c` と `prompt_edit.c` の確保失敗経路をまとめて到達させられます。追加方法は `.claude/skills/create-testfw-mock/SKILL.md` に従ってください。
+`tcsetattr` と `realloc` の失敗経路は、対応する testfw のモックとテストを追加済みです。
 
 ## 未着手分の進め方
 
-### pinned_prompt.c (806 行)
+### pinned_prompt.c (1,662 行)
 
 現状の `pinnedPromptTest` は `com_util_pinned_prompt_status_*` の引数検証 1 件のみです。`prompt.c` と同様にプラットフォーム層を持つ構造であれば、`promptPlatformFake.cc` と同じ方式で差し替えられます。着手前に依存の切り口を確認してください。
 
 `prompt_edit.c` を `ADD_SRCS` で取り込む構成は `pinnedPromptTest/makepart.mk` に反映済みです。fake を追加する場合は、そのディレクトリへ `.cc` を置くだけで自動収集されます。
-
-### prompt_windows.c (89 行) — 対応済み
-
-`promptWindowsTest` として実装済みです。`prompt_linux.c` と対になる 4 関数が extern リンクのため、`promptLinuxTest` のテスト構成をそのまま写像しています。標準入力の差し替えは、実コンソールではなく `Mock_windows` ( 「promptWindowsTest — Win32 API を Mock_windows でモックする」を参照 ) による決定的なモックで行っています。実コンソールの確保 (`AllocConsole`) や `GTEST_SKIP()` は使用していません。
-
-`Mock_windows` への 5 関数 (`GetStdHandle`/`GetConsoleMode`/`SetConsoleMode`/`WaitForSingleObject`/`ReadFile`) の追加は `framework/testfw/include/mock_windows.h`、`framework/testfw/libsrc/mock_libc/mock_windows.cc`、`framework/testfw/libsrc/mock_libc/mock_<Func>.cc` ( 関数ごと ) で行いました。`framework/testfw` は別 git ルートのため、変更する際は `framework/testfw/AGENTS.md` に従ってください。
-
-Windows CI での初回確認はまだ実施できていません。
-
-同様に Windows 専用で未着手のソースは com_util 全体で 8 本あります。`trace_etw_session.c`、`trace_eventlog.c`、`win32/` 配下 4 本、`wchar_conv.c`、`crypto_windows.c` です。
 
 ## 作業時の注意
 
