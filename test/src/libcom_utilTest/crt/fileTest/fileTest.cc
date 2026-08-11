@@ -334,7 +334,7 @@ TEST_F(fileTest, file_id_differs_after_path_is_recreated)
     std::remove(renamed.c_str());
 }
 
-// 同一性 ID 取得が不正な引数で COM_UTIL_ERR_INVALID_ARGUMENT を、存在しないパスで COM_UTIL_ERR_UNKNOWN を返すことの確認
+// 同一性 ID 取得が不正な引数で COM_UTIL_ERR_INVALID_ARGUMENT を、存在しないパスで COM_UTIL_ERR_NOT_FOUND を返すことの確認
 TEST_F(fileTest, file_id_invalid_arguments_fail)
 {
     // Arrange
@@ -359,10 +359,10 @@ TEST_F(fileTest, file_id_invalid_arguments_fail)
         COM_UTIL_ERR_INVALID_ARGUMENT,
         com_util_file_get_path_id(
             NULL, &id, NULL)); // [確認_異常系] - get_path_id (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
               com_util_file_get_path_id(
                   "crt_fileTest_no_such_file.log", &id,
-                  NULL)); // [確認_異常系] - get_path_id (存在しないパス) が COM_UTIL_ERR_UNKNOWN を返すこと。
+                  NULL)); // [確認_異常系] - get_path_id (存在しないパス) が COM_UTIL_ERR_NOT_FOUND を返すこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         com_util_file_get_path_id(
@@ -444,8 +444,9 @@ TEST_F(fileTest, read_only_open_fails_for_missing_file)
                                            NULL); // [手順] - CREATE を伴わずに READ のみでオープンを試みる。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_file_open); // [確認_異常系] - 存在しないファイルに対するオープンが COM_UTIL_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_NOT_FOUND,
+        rtc_file_open); // [確認_異常系] - 存在しないファイルに対するオープンが COM_UTIL_ERR_NOT_FOUND を返すこと。
 }
 
 // READ | WRITE を指定した場合に読み書き両用でオープンできることの確認

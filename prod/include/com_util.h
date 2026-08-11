@@ -98,6 +98,12 @@
  */
 
 /**
+ *  @defgroup       COM_UTIL_NET ネットワーク (net)
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @brief          IPv4 ソケットの生成、接続、送受信、アドレス解決 API です。
+ */
+
+/**
  *  @defgroup       COM_UTIL_PROMPT プロンプト (prompt)
  *  @ingroup        COM_UTIL_PUBLIC_API
  *  @brief          対話プロンプトの入力・表示 API です。
@@ -170,6 +176,10 @@
 #include <com_util/crypto/random.h>
 
 #include <com_util/mmap/mmap.h>
+
+#include <com_util/net/byteorder.h>
+#include <com_util/net/endpoint.h>
+#include <com_util/net/socket.h>
 
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>

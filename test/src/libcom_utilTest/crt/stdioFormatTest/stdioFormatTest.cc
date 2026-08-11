@@ -200,7 +200,7 @@ TEST_F(stdioFormatTest, test_fopen_returns_null_with_errno)
 {
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
-    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
+    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
     com_util_error error_code; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
@@ -232,7 +232,7 @@ TEST_F(stdioFormatTest, test_fopen_success_clears_error)
     FILE *expected_fp =
         (FILE *)(uintptr_t)0x12345678; // [状態] - com_util_fopen が返すファイル ポインターの期待値を用意する。
     com_util_error empty_error = {COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL};
-    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
+    com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("success.txt"), StrEq("r"), _))

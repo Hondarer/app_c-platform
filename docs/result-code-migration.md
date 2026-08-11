@@ -52,6 +52,65 @@ com_util は戻り値規約を、共通結果コード (`COM_UTIL_OK` + 負値�
 
 **`com_util_prompt_readline` 系は特に注意してください。** シグネチャが変わらないため、旧来の `if (readline(...))` や `== 0`/`!= 0` の真偽値判定は **コンパイルは通ったまま意味が反転** します。呼び出し元をすべて洗い出し、`== COM_UTIL_OK` / `!= COM_UTIL_OK` の明示比較へ書き換えてください。
 
+## COM_UTIL_ERR_NOT_FOUND の新設 (追加の破壊的変更)
+
+`COM_UTIL_ERR_NOT_FOUND` (-6) を「引数・状態・権限」の帯へ新設しました。  
+「対象が存在しない」失敗を、それまでの `COM_UTIL_ERR_UNKNOWN` から独立した分類として表します。
+
+### 戻り値が変わる条件
+
+OS エラー値を共通結果コードへ写像する `com_util_result_from_errno()` と `com_util_result_from_windows_error()` の対応先を、以下のとおり変更しました。
+
+| プラットフォーム | OS エラー値 | 旧 | 新 |
+|---|---|---|---|
+| Linux | `ENOENT` | `COM_UTIL_ERR_UNKNOWN` (-1) | `COM_UTIL_ERR_NOT_FOUND` (-6) |
+| Windows | `ERROR_FILE_NOT_FOUND` | `COM_UTIL_ERR_UNKNOWN` (-1) | `COM_UTIL_ERR_NOT_FOUND` (-6) |
+| Windows | `ERROR_PATH_NOT_FOUND` | `COM_UTIL_ERR_UNKNOWN` (-1) | `COM_UTIL_ERR_NOT_FOUND` (-6) |
+
+上記の写像は `com_util_error_report_errno()` と `com_util_error_report_windows_error()` を経由して戻り値へ反映されます。  
+したがって、これらを内部で使用する API が「存在しない対象」に対して返す値が `COM_UTIL_ERR_UNKNOWN` から `COM_UTIL_ERR_NOT_FOUND` へ変わります。  
+存在しないパスのオープン (`com_util_file_open` の `COM_UTIL_FILE_OPEN_READ` 単独指定など) や、存在しないパスへの `stat` (`com_util_file_get_path_id` など) が該当します。  
+`com_util_error` の `result` メンバーにも同じ値が記録されるため、詳細エラー経由で結果コードを読み出している箇所も同様に変わります。
+
+CRT ラッパー (`com_util_fopen` など、「対象外カテゴリ」に挙げた API) は元 API の戻り値規約を保存するため、戻り値そのものは変わりません。
+
+### 利用者側の対処
+
+シグネチャは変わらないため、**コンパイル エラーとしては検出できません**。  
+`COM_UTIL_ERR_UNKNOWN` との比較で「見つからない」を判定していた箇所を grep で洗い出してください。
+
+```bash
+grep -rn 'COM_UTIL_ERR_UNKNOWN' <対象ディレクトリ>
+```
+
+見つからないことだけを区別していた判定は、比較先を差し替えます。
+
+```c
+/* 旧 */
+if (ret == COM_UTIL_ERR_UNKNOWN)
+{
+    /* 対象が存在しない場合の処理 */
+}
+
+/* 新 */
+if (ret == COM_UTIL_ERR_NOT_FOUND)
+{
+    /* 対象が存在しない場合の処理 */
+}
+```
+
+`COM_UTIL_ERR_UNKNOWN` を「分類できないその他のエラー」の受け皿として使っていた判定は、書き換えが不要です。  
+ただし、その分岐が「見つからない」も併せて拾っていた場合は、`COM_UTIL_ERR_NOT_FOUND` の分岐が先に必要かどうかを確認してください。
+
+### 要因コードは変更なし
+
+要因コード `COM_UTIL_CAUSE_NOT_FOUND` の値と対応する OS エラー値は、従来から変わっていません。  
+`com_util_error_get_cause()` や `com_util_error_is(&err, COM_UTIL_CAUSE_NOT_FOUND)` で「見つからない」を判定していた箇所は、修正が不要です。
+
+> [!NOTE]
+> 今回の変更は、要因コードでしか区別できなかった「見つからない」を、戻り値だけでも区別できるようにするものです。
+> 要因コードは詳細エラーの解釈専用であり、関数の戻り値には使用しません (詳細は [`coding-guideline.md`](coding-guideline.md) の「詳細分類の扱い」を参照してください)。
+
 ## 移行手順
 
 1. **コンパイル エラー駆動で検出できる箇所**: 旧 `enum` 型名・メンバー名の参照、シグネチャが変わった API (`com_util_paths_equal` 等) の呼び出しはビルドで機械的に検出できます。まずビルドしてエラー箇所を洗い出してください。

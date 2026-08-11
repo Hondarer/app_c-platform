@@ -75,6 +75,7 @@
 #define COM_UTIL_ERR_UNSUPPORTED       (-3) /**< 現在のプラットフォームまたは状態では操作がサポートされていません。 */
 #define COM_UTIL_ERR_PERMISSION_DENIED (-4) /**< 権限が不足しています。 */
 #define COM_UTIL_ERR_DUPLICATE_DEFINITION (-5) /**< 同名の定義が登録済みです。 */
+#define COM_UTIL_ERR_NOT_FOUND            (-6) /**< 対象が存在しません (ホスト名を解決できない場合など)。 */
 
 /* リソース・バッファー: -10 〜 -19 */
 #define COM_UTIL_ERR_OUT_OF_MEMORY      (-10) /**< メモリを確保できません。 */

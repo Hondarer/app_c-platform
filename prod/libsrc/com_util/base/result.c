@@ -29,6 +29,10 @@ int com_util_result_from_errno(const int errno_value)
     {
         result = COM_UTIL_ERR_INVALID_ARGUMENT;
     }
+    else if (errno_value == ENOENT)
+    {
+        result = COM_UTIL_ERR_NOT_FOUND;
+    }
     else if ((errno_value == EACCES) || (errno_value == EPERM))
     {
         result = COM_UTIL_ERR_PERMISSION_DENIED;
@@ -60,6 +64,53 @@ int com_util_result_from_errno(const int errno_value)
 #if defined(PLATFORM_WINDOWS)
 /* Doxygen コメントは、ヘッダーに記載 */
 
+int com_util_result_from_winsock_error(const unsigned long error_code)
+{
+    int result;
+
+    if ((error_code == (unsigned long)WSAEINVAL) || (error_code == (unsigned long)WSAEFAULT))
+    {
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    else if (error_code == (unsigned long)WSAEACCES)
+    {
+        result = COM_UTIL_ERR_PERMISSION_DENIED;
+    }
+    else if (error_code == (unsigned long)WSAETIMEDOUT)
+    {
+        result = COM_UTIL_ERR_TIMEOUT;
+    }
+    else if (error_code == (unsigned long)WSAEWOULDBLOCK)
+    {
+        result = COM_UTIL_ERR_BUSY;
+    }
+    else if (error_code == (unsigned long)WSAENOBUFS)
+    {
+        result = COM_UTIL_ERR_OUT_OF_MEMORY;
+    }
+    else if (error_code == (unsigned long)WSAEMSGSIZE)
+    {
+        result = COM_UTIL_ERR_BUFFER_TOO_SMALL;
+    }
+    else if ((error_code == (unsigned long)WSAEOPNOTSUPP) || (error_code == (unsigned long)WSAEAFNOSUPPORT) ||
+             (error_code == (unsigned long)WSAEPROTONOSUPPORT))
+    {
+        result = COM_UTIL_ERR_UNSUPPORTED;
+    }
+    else if (error_code == (unsigned long)WSAHOST_NOT_FOUND)
+    {
+        result = COM_UTIL_ERR_NOT_FOUND;
+    }
+    else
+    {
+        result = COM_UTIL_ERR_UNKNOWN;
+    }
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int com_util_result_from_windows_error(const unsigned long error_code)
 {
     int result;
@@ -67,6 +118,10 @@ int com_util_result_from_windows_error(const unsigned long error_code)
     if (error_code == ERROR_INVALID_PARAMETER)
     {
         result = COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    else if ((error_code == ERROR_FILE_NOT_FOUND) || (error_code == ERROR_PATH_NOT_FOUND))
+    {
+        result = COM_UTIL_ERR_NOT_FOUND;
     }
     else if ((error_code == ERROR_ACCESS_DENIED) || (error_code == ERROR_PRIVILEGE_NOT_HELD))
     {

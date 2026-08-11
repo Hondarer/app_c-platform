@@ -114,7 +114,7 @@ TEST_F(sysStatFormatTest, test_successful_call_with_multiple_parameters)
     EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_stat_fmt から COM_UTIL_OK が返されること。
 }
 
-// com_util_stat が失敗した場合に COM_UTIL_ERR_UNKNOWN を返すことの確認
+// com_util_stat が失敗した場合に、その結果コードをそのまま返すことの確認
 TEST_F(sysStatFormatTest, test_stat_returns_error)
 {
     // Arrange
@@ -124,8 +124,8 @@ TEST_F(sysStatFormatTest, test_stat_returns_error)
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_stat(&st, _, StrEq("nonexistent.txt")))
         .WillOnce(Return(
-            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - com_util_stat がファイル名 "nonexistent.txt" で 1 回呼び出されること。
-                                    // [Pre-Assert手順] - com_util_stat から COM_UTIL_ERR_UNKNOWN を返却する。
+            COM_UTIL_ERR_NOT_FOUND)); // [Pre-Assert確認_異常系] - com_util_stat がファイル名 "nonexistent.txt" で 1 回呼び出されること。
+                                      // [Pre-Assert手順] - com_util_stat から COM_UTIL_ERR_NOT_FOUND を返却する。
 
     // Act
     int ret = com_util_stat_fmt(
@@ -133,6 +133,6 @@ TEST_F(sysStatFormatTest, test_stat_returns_error)
         "nonexistent.txt"); // [手順] - 存在しないファイル名 "nonexistent.txt" を指定して com_util_stat_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              ret); // [確認_異常系] - com_util_stat_fmt から COM_UTIL_ERR_UNKNOWN が返されること。
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
+              ret); // [確認_異常系] - com_util_stat_fmt から COM_UTIL_ERR_NOT_FOUND が返されること。
 }

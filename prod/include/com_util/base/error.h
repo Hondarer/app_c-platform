@@ -54,9 +54,12 @@ extern "C"
      */
     typedef enum com_util_error_domain
     {
-        COM_UTIL_ERROR_DOMAIN_NONE = 0,   /**< 詳細エラーが設定されていません。 */
-        COM_UTIL_ERROR_DOMAIN_ERRNO = 1,  /**< errno の値を保持しています。 */
-        COM_UTIL_ERROR_DOMAIN_WINDOWS = 2 /**< Win32 エラー コードを保持しています。 */
+        COM_UTIL_ERROR_DOMAIN_NONE = 0,         /**< 詳細エラーが設定されていません。 */
+        COM_UTIL_ERROR_DOMAIN_ERRNO = 1,        /**< errno の値を保持しています。 */
+        COM_UTIL_ERROR_DOMAIN_WINDOWS = 2,      /**< Win32 エラー コードを保持しています。 */
+        COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO = 3, /**< ソケット操作が設定した errno の値を保持しています。 */
+        COM_UTIL_ERROR_DOMAIN_WINSOCK = 4,      /**< Winsock エラー コード (WSAGetLastError) を保持しています。 */
+        COM_UTIL_ERROR_DOMAIN_GAI = 5           /**< getaddrinfo のエラー コード (EAI_*) を保持しています。 */
     } com_util_error_domain;
 
     /**
@@ -87,7 +90,22 @@ extern "C"
         COM_UTIL_CAUSE_READ_ONLY = 18,
         COM_UTIL_CAUSE_BUFFER_TOO_SMALL = 19,
         COM_UTIL_CAUSE_UNSUPPORTED = 20,
-        COM_UTIL_CAUSE_IO_ERROR = 21
+        COM_UTIL_CAUSE_IO_ERROR = 21,
+        COM_UTIL_CAUSE_WOULD_BLOCK = 22,
+        COM_UTIL_CAUSE_IN_PROGRESS = 23,
+        COM_UTIL_CAUSE_CONNECTION_REFUSED = 24,
+        COM_UTIL_CAUSE_CONNECTION_RESET = 25,
+        COM_UTIL_CAUSE_CONNECTION_ABORTED = 26,
+        COM_UTIL_CAUSE_NOT_CONNECTED = 27,
+        COM_UTIL_CAUSE_ALREADY_CONNECTED = 28,
+        COM_UTIL_CAUSE_ADDRESS_IN_USE = 29,
+        COM_UTIL_CAUSE_ADDRESS_NOT_AVAILABLE = 30,
+        COM_UTIL_CAUSE_NETWORK_DOWN = 31,
+        COM_UTIL_CAUSE_NETWORK_UNREACHABLE = 32,
+        COM_UTIL_CAUSE_HOST_UNREACHABLE = 33,
+        COM_UTIL_CAUSE_MESSAGE_SIZE = 34,
+        COM_UTIL_CAUSE_SHUTDOWN = 35,
+        COM_UTIL_CAUSE_NOT_INITIALIZED = 36
     } com_util_error_cause;
 
     /**

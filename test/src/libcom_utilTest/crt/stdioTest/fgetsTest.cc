@@ -291,7 +291,7 @@ TEST_F(fgetsTest, clears_detail_on_success)
     // Arrange
     std::string path = make_path("detail.txt");
     FILE *fp = open_with_content(path, "abc\n"); // [状態] - 1 行だけを持つファイルを開く。
-    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN,
+    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND,
                              ENOENT}; // [状態] - 詳細エラーへあらかじめ ENOENT を設定する。
     char buf[16];
     int ret;

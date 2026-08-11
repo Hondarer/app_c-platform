@@ -4,6 +4,8 @@
 #include <com_util/base/result.h>
 #include <com_util/regex/regex.h>
 
+#include "regex.inject.h"
+
 #include <cstring>
 #include <string>
 #include <vector>
@@ -1197,4 +1199,125 @@ TEST_F(regexTest, replace_iter_split_reject_null_arguments)
     // Cleanup
     com_util_regex_iter_dispose(iter);
     com_util_regex_dispose(regex);
+}
+
+// regex_traits が ASCII 文字クラス、大小変換、基数変換を実装することの確認
+TEST_F(regexTest, traits_cover_ascii_classes_and_conversions)
+{
+    // Arrange
+    const unsigned int alnum = test_regex_lookup_classname(L"ALNUM", false);
+    const unsigned int alpha = test_regex_lookup_classname(L"alpha", false);
+    const unsigned int blank = test_regex_lookup_classname(L"blank", false);
+    const unsigned int cntrl = test_regex_lookup_classname(L"cntrl", false);
+    const unsigned int digit = test_regex_lookup_classname(L"digit", false);
+    const unsigned int digit_short = test_regex_lookup_classname(L"D", false);
+    const unsigned int graph = test_regex_lookup_classname(L"graph", false);
+    const unsigned int lower = test_regex_lookup_classname(L"lower", false);
+    const unsigned int print = test_regex_lookup_classname(L"print", false);
+    const unsigned int punct = test_regex_lookup_classname(L"punct", false);
+    const unsigned int space = test_regex_lookup_classname(L"space", false);
+    const unsigned int space_short = test_regex_lookup_classname(L"S", false);
+    const unsigned int upper = test_regex_lookup_classname(L"upper", false);
+    const unsigned int xdigit = test_regex_lookup_classname(L"xdigit", false);
+    const unsigned int word = test_regex_lookup_classname(L"w", false);
+    const unsigned int unknown = test_regex_lookup_classname(L"unknown", false);
+    const unsigned int lower_icase = test_regex_lookup_classname(L"lower", true);
+    const unsigned int upper_icase = test_regex_lookup_classname(L"upper", true);
+
+    // Pre-Assert
+
+    // Act
+    bool alpha_result = test_regex_isctype(L'A', alpha); // [手順] - 大文字を alpha クラスで判定する。
+    bool lower_result = test_regex_isctype(L'a', lower); // [手順] - 小文字を lower クラスで判定する。
+    bool digit_result = test_regex_isctype(L'9', digit); // [手順] - 数字を digit クラスで判定する。
+    bool blank_result = test_regex_isctype(L'\t', blank); // [手順] - タブを blank クラスで判定する。
+    bool space_result = test_regex_isctype(L' ', space); // [手順] - 空白を space クラスで判定する。
+    bool control_result = test_regex_isctype(L'\x01', cntrl); // [手順] - 制御文字を cntrl クラスで判定する。
+    bool graph_result = test_regex_isctype(L'!', graph); // [手順] - 記号を graph クラスで判定する。
+    bool print_result = test_regex_isctype(L' ', print); // [手順] - 空白を print クラスで判定する。
+    bool punct_result = test_regex_isctype(L'!', punct); // [手順] - 記号を punct クラスで判定する。
+    bool xdigit_result = test_regex_isctype(L'F', xdigit); // [手順] - 16 進数字を xdigit クラスで判定する。
+    bool word_result = test_regex_isctype(L'_', word); // [手順] - 下線を word クラスで判定する。
+    bool non_ascii_result = test_regex_isctype(L'あ', alpha); // [手順] - 非 ASCII 文字を alpha クラスで判定する。
+    wchar_t upper_fold = test_regex_translate_nocase(L'Q'); // [手順] - 大文字を小文字へ変換する。
+    wchar_t lower_fold = test_regex_translate_nocase(L'q'); // [手順] - 小文字をそのまま変換する。
+    std::wstring transformed = test_regex_transform(L"Ab"); // [手順] - 文字列をそのまま変換する。
+    std::wstring primary = test_regex_transform_primary(L"Ab"); // [手順] - 文字列を primary 変換する。
+    std::wstring collatename = test_regex_lookup_collatename(L"x"); // [手順] - 未対応の照合要素を変換する。
+    int digit_value = test_regex_value(L'7', 10); // [手順] - 10 進数字の値を取得する。
+    int lower_hex_value = test_regex_value(L'f', 16); // [手順] - 小文字の 16 進数字の値を取得する。
+    int upper_hex_value = test_regex_value(L'F', 16); // [手順] - 大文字の 16 進数字の値を取得する。
+    int invalid_value = test_regex_value(L'z', 16); // [手順] - 不正な数字の値を取得する。
+    int radix_value = test_regex_value(L'F', 10); // [手順] - 基数外の数字の値を取得する。
+    std::string locale_name = test_regex_imbue(L""); // [手順] - classic locale を traits へ設定する。
+    bool classic_locale = test_regex_getloc_is_classic(); // [手順] - traits の locale を取得する。
+
+    // Assert
+    EXPECT_NE(0U, alnum); // [確認_正常系] - alnum クラスが定義されること。
+    EXPECT_NE(0U, alpha); // [確認_正常系] - alpha クラスが定義されること。
+    EXPECT_NE(0U, blank); // [確認_正常系] - blank クラスが定義されること。
+    EXPECT_NE(0U, cntrl); // [確認_正常系] - cntrl クラスが定義されること。
+    EXPECT_NE(0U, digit); // [確認_正常系] - digit クラスが定義されること。
+    EXPECT_EQ(digit, digit_short); // [確認_正常系] - d 短縮名が digit と同じであること。
+    EXPECT_NE(0U, graph); // [確認_正常系] - graph クラスが定義されること。
+    EXPECT_NE(0U, lower); // [確認_正常系] - lower クラスが定義されること。
+    EXPECT_NE(0U, print); // [確認_正常系] - print クラスが定義されること。
+    EXPECT_NE(0U, punct); // [確認_正常系] - punct クラスが定義されること。
+    EXPECT_NE(0U, space); // [確認_正常系] - space クラスが定義されること。
+    EXPECT_EQ(space, space_short); // [確認_正常系] - s 短縮名が space と同じであること。
+    EXPECT_NE(0U, upper); // [確認_正常系] - upper クラスが定義されること。
+    EXPECT_NE(0U, xdigit); // [確認_正常系] - xdigit クラスが定義されること。
+    EXPECT_NE(0U, word); // [確認_正常系] - w 短縮名が word と同じであること。
+    EXPECT_EQ(0U, unknown); // [確認_異常系] - 未知のクラス名が 0 になること。
+    EXPECT_EQ(alpha, lower_icase); // [確認_正常系] - lower の icase が alpha になること。
+    EXPECT_EQ(alpha, upper_icase); // [確認_正常系] - upper の icase が alpha になること。
+    EXPECT_TRUE(alpha_result); // [確認_正常系] - 大文字が alpha と判定されること。
+    EXPECT_TRUE(lower_result); // [確認_正常系] - 小文字が lower と判定されること。
+    EXPECT_TRUE(digit_result); // [確認_正常系] - 数字が digit と判定されること。
+    EXPECT_TRUE(blank_result); // [確認_正常系] - タブが blank と判定されること。
+    EXPECT_TRUE(space_result); // [確認_正常系] - 空白が space と判定されること。
+    EXPECT_TRUE(control_result); // [確認_正常系] - 制御文字が cntrl と判定されること。
+    EXPECT_TRUE(graph_result); // [確認_正常系] - 記号が graph と判定されること。
+    EXPECT_TRUE(print_result); // [確認_正常系] - 空白が print と判定されること。
+    EXPECT_TRUE(punct_result); // [確認_正常系] - 記号が punct と判定されること。
+    EXPECT_TRUE(xdigit_result); // [確認_正常系] - F が xdigit と判定されること。
+    EXPECT_TRUE(word_result); // [確認_正常系] - 下線が word と判定されること。
+    EXPECT_FALSE(non_ascii_result); // [確認_異常系] - 非 ASCII 文字が alpha と判定されないこと。
+    EXPECT_EQ(L'q', upper_fold); // [確認_正常系] - Q が q へ変換されること。
+    EXPECT_EQ(L'q', lower_fold); // [確認_正常系] - q が q のままであること。
+    EXPECT_EQ(L"Ab", transformed); // [確認_正常系] - transform が入力を保持すること。
+    EXPECT_EQ(L"ab", primary); // [確認_正常系] - transform_primary が大小を変換すること。
+    EXPECT_TRUE(collatename.empty()); // [確認_正常系] - 未対応照合要素が空になること。
+    EXPECT_EQ(7, digit_value); // [確認_正常系] - 7 の値が 7 であること。
+    EXPECT_EQ(15, lower_hex_value); // [確認_正常系] - f の値が 15 であること。
+    EXPECT_EQ(15, upper_hex_value); // [確認_正常系] - F の値が 15 であること。
+    EXPECT_EQ(-1, invalid_value); // [確認_異常系] - z の値が -1 であること。
+    EXPECT_EQ(-1, radix_value); // [確認_異常系] - 基数外の F の値が -1 であること。
+    EXPECT_FALSE(locale_name.empty()); // [確認_正常系] - imbue の locale 名が空でないこと。
+    EXPECT_TRUE(classic_locale); // [確認_正常系] - getloc が classic locale を返すこと。
+}
+
+// regex の例外変換が主要な std::regex 例外を共通結果へ分類することの確認
+TEST_F(regexTest, translate_exception_maps_regex_and_runtime_errors)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int complexity_result = test_regex_translate_error(std::regex_constants::error_complexity); // [手順] - complexity 例外を変換する。
+    int space_result = test_regex_translate_error(std::regex_constants::error_space); // [手順] - space 例外を変換する。
+    int pattern_result = test_regex_translate_error(std::regex_constants::error_paren); // [手順] - pattern 例外を変換する。
+    int invalid_error_value = 999;
+    int default_result = test_regex_translate_error(static_cast<std::regex_constants::error_type>(invalid_error_value)); // [手順] - 未分類の regex 例外を変換する。
+    int alloc_result = test_regex_translate_bad_alloc(); // [手順] - bad_alloc 例外を変換する。
+    int unknown_result = test_regex_translate_unknown(); // [手順] - 未知の例外を変換する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, complexity_result); // [確認_異常系] - complexity が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, space_result); // [確認_異常系] - space が OUT_OF_MEMORY になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_PATTERN, pattern_result); // [確認_異常系] - pattern が INVALID_PATTERN になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_PATTERN, default_result); // [確認_異常系] - 未分類 regex 例外が INVALID_PATTERN になること。
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, alloc_result); // [確認_異常系] - bad_alloc が OUT_OF_MEMORY になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 未知の例外が UNKNOWN になること。
 }

@@ -61,7 +61,7 @@ TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)
     EXPECT_EQ(
         ENOENT,
         com_util_error_get_errno(&error)); // [確認_正常系] - com_util_error_get_errno の戻り値が ENOENT であること。
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
               com_util_error_to_result(&error)); // [確認_正常系] - 共通結果コードが errno から変換した値であること。
     EXPECT_EQ(COM_UTIL_CAUSE_NOT_FOUND,
               com_util_error_get_cause(&error)); // [確認_正常系] - ENOENT の要因が NOT_FOUND であること。
@@ -92,7 +92,7 @@ TEST_F(errorTest, capture_current_errno_preserves_current_value)
 TEST_F(errorTest, set_last_copies_saved_error_and_null_clears_it)
 {
     // Arrange
-    const com_util_error saved_error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, ENOENT};
+    const com_util_error saved_error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
     com_util_error copied_error;
     com_util_error cleared_error;
 
@@ -286,8 +286,8 @@ TEST_F(errorTest, report_errno_records_success_and_explicit_result)
         COM_UTIL_OK,
         success_result); // [確認_正常系] - errno 0 を指定した com_util_error_report_errno の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
-        COM_UTIL_ERR_UNKNOWN,
-        mapped_result); // [確認_正常系] - ENOENT を指定した com_util_error_report_errno の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        COM_UTIL_ERR_NOT_FOUND,
+        mapped_result); // [確認_正常系] - ENOENT を指定した com_util_error_report_errno の戻り値が COM_UTIL_ERR_NOT_FOUND であること。
     EXPECT_EQ(
         COM_UTIL_ERR_BUSY,
         explicit_result); // [確認_正常系] - 明示結果を指定した com_util_error_report_errno_as の戻り値が COM_UTIL_ERR_BUSY であること。

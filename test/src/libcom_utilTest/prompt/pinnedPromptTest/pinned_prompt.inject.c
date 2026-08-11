@@ -35,6 +35,70 @@ void test_pinned_prompt_set_tty(com_util_pinned_prompt *screen, int is_tty)
     screen->is_tty = is_tty;
 }
 
+int test_pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
+{
+    return (int)pinned_prompt_read_key(screen, out_ch);
+}
+
+void test_pinned_prompt_set_edit_line(com_util_pinned_prompt *screen, const char *line)
+{
+    pinned_prompt_set_edit_line(screen, line);
+}
+
+void test_pinned_prompt_set_cursor(com_util_pinned_prompt *screen, size_t cursor)
+{
+    screen->cursor = cursor;
+}
+
+void test_pinned_prompt_insert_byte(com_util_pinned_prompt *screen, int ch)
+{
+    pinned_prompt_insert_byte(screen, ch);
+}
+
+void test_pinned_prompt_backspace(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_backspace(screen);
+}
+
+void test_pinned_prompt_delete(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_delete(screen);
+}
+
+const char *test_pinned_prompt_edit_text(const com_util_pinned_prompt *screen)
+{
+    return screen->edit_buf;
+}
+
+size_t test_pinned_prompt_edit_length(const com_util_pinned_prompt *screen)
+{
+    return screen->edit_len;
+}
+
+void test_pinned_prompt_render_state(com_util_pinned_prompt *screen, int is_tty, int prompt_visible,
+                                     int status_top_enabled, int status_bottom_enabled, const char *prompt,
+                                     const char *edit_line, const char *top_left, const char *top_right,
+                                     const char *bottom_left, const char *bottom_right)
+{
+    screen->is_tty = is_tty;
+    screen->prompt_visible = prompt_visible;
+    screen->status_top_enabled = status_top_enabled;
+    screen->status_bottom_enabled = status_bottom_enabled;
+    screen->status_dirty = 1;
+    (void)pinned_prompt_set_prompt(screen, prompt);
+    (void)pinned_prompt_set_status_content(&screen->status_top_left, &screen->status_top_left_cap, top_left);
+    (void)pinned_prompt_set_status_content(&screen->status_top_right, &screen->status_top_right_cap, top_right);
+    (void)pinned_prompt_set_status_content(&screen->status_bottom_left, &screen->status_bottom_left_cap, bottom_left);
+    (void)pinned_prompt_set_status_content(&screen->status_bottom_right, &screen->status_bottom_right_cap,
+                                           bottom_right);
+    pinned_prompt_set_edit_line(screen, edit_line);
+}
+
+void test_pinned_prompt_render(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_render_locked(screen);
+}
+
 #if defined(PLATFORM_LINUX)
 
 void test_pinned_prompt_reset_platform_state(void)

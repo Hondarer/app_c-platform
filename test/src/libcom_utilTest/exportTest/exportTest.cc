@@ -29,6 +29,9 @@
 #include <com_util/base/error_message.h>
 #include <com_util/crypto/crypto.h>
 #include <com_util/crypto/random.h>
+#include <com_util/net/byteorder.h>
+#include <com_util/net/endpoint.h>
+#include <com_util/net/socket.h>
 #include <com_util/mmap/mmap.h>
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/prompt/prompt.h>
@@ -381,6 +384,74 @@
     EXPORT_ENTRY(com_util_mmap_flush, \
                  int(COM_UTIL_API *)(com_util_mmap * map, void *address, size_t length, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_mmap_detach, int(COM_UTIL_API *)(com_util_mmap * map, com_util_error * detail_out)) \
+    /* com_util/net/endpoint.h */ \
+    EXPORT_ENTRY(com_util_ipv4_parse, int(COM_UTIL_API *)(const char *text, uint32_t *address_out)) \
+    EXPORT_ENTRY(com_util_ipv4_resolve, \
+                 int(COM_UTIL_API *)(const char *text, uint32_t *address_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_ipv4_to_string, \
+                 int(COM_UTIL_API *)(uint32_t address, char *buffer, size_t buffer_size, \
+                                     com_util_error *detail_out)) \
+    /* com_util/net/socket.h */ \
+    EXPORT_ENTRY(com_util_socket_open, \
+                 int(COM_UTIL_API *)(com_util_socket_kind kind, com_util_socket *sock_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_close, void(COM_UTIL_API *)(com_util_socket sock)) \
+    EXPORT_ENTRY(com_util_socket_shutdown, void(COM_UTIL_API *)(com_util_socket sock)) \
+    EXPORT_ENTRY(com_util_socket_bind, \
+                 int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_listen, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int backlog, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_accept, \
+                 int(COM_UTIL_API *)(com_util_socket sock, com_util_ipv4_endpoint *peer_out, \
+                                     com_util_socket *sock_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_connect, \
+                 int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_get_pending_error, \
+                 int(COM_UTIL_API *)(com_util_socket sock, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_set_nonblocking, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int enable, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_set_reuse_address, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int enable, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_set_broadcast, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int enable, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_set_multicast_interface, \
+                 int(COM_UTIL_API *)(com_util_socket sock, uint32_t interface_address, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_join_multicast_group, \
+                 int(COM_UTIL_API *)(com_util_socket sock, uint32_t group_address, uint32_t interface_address, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_send, \
+                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, size_t *sent_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_recv, \
+                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, size_t *received_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_sendto, \
+                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
+                                     const com_util_ipv4_endpoint *endpoint, size_t *sent_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_recvfrom, \
+                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, \
+                                     com_util_ipv4_endpoint *peer_out, size_t *received_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_send_all, \
+                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_recv_all, \
+                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_wait_readable, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, int *ready_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_wait_writable, \
+                 int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, int *ready_out, \
+                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_wait_readable_multi, \
+                 int(COM_UTIL_API *)(const com_util_socket *socks, size_t count, int timeout_ms, \
+                                     unsigned char *ready_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_shutdown_receive, \
+                 int(COM_UTIL_API *)(com_util_socket * sock_inout, com_util_error * detail_out)) \
     /* com_util/prompt/pinned_prompt.h */ \
     EXPORT_ENTRY(com_util_pinned_prompt_create, \
                  com_util_pinned_prompt *(COM_UTIL_API *)(const com_util_pinned_prompt_options *options)) \

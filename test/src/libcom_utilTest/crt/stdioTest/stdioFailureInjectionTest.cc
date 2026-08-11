@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <mock_stdio.h>
 
+#include <com_util/base/platform.h>
 #include <com_util/crt/stdio.h>
 
 #include <errno.h>
@@ -73,6 +74,105 @@ TEST(stdioFailureInjectionTest, fflush_reports_eio_when_errno_is_empty)
     // Assert
     EXPECT_EQ(EOF, result);                            // [確認_異常系] - com_util_fflush の戻り値が EOF であること。
     EXPECT_EQ(EIO, com_util_error_get_errno(&detail)); // [確認_異常系] - errno が空の場合に EIO が記録されること。
+}
+
+// fclose が errno を保持している失敗を詳細エラーへ記録することの確認
+TEST(stdioFailureInjectionTest, fclose_preserves_nonzero_errno)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_error detail = {};
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(4));
+    EXPECT_CALL(mock_stdio, fclose(_, _, _, stream))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, FILE *)
+            {
+                errno = EACCES;
+                return EOF;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_fclose(stream, &detail); // [手順] - errno が EACCES の fclose 失敗を注入する。
+
+    // Assert
+    EXPECT_EQ(EOF, result); // [確認_異常系] - fclose の戻り値が EOF であること。
+    EXPECT_EQ(EACCES, com_util_error_get_errno(&detail)); // [確認_異常系] - EACCES が詳細エラーへ記録されること。
+}
+
+// fflush が errno を保持している失敗を詳細エラーへ記録することの確認
+TEST(stdioFailureInjectionTest, fflush_preserves_nonzero_errno)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    com_util_error detail = {};
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(5));
+    EXPECT_CALL(mock_stdio, fflush(_, _, _, stream))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, FILE *)
+            {
+                errno = EACCES;
+                return EOF;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_fflush(stream, &detail); // [手順] - errno が EACCES の fflush 失敗を注入する。
+
+    // Assert
+    EXPECT_EQ(EOF, result); // [確認_異常系] - fflush の戻り値が EOF であること。
+    EXPECT_EQ(EACCES, com_util_error_get_errno(&detail)); // [確認_異常系] - EACCES が詳細エラーへ記録されること。
+}
+
+// fread と fwrite が引数、全量、短い入出力を分類することの確認
+TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *stream = tmpfile();
+    char data[2] = {};
+    com_util_error read_detail = {};
+    com_util_error write_detail = {};
+    ASSERT_NE(static_cast<FILE *>(NULL), stream);
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream))
+        .WillOnce(Return(1u))
+        .WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream))
+        .WillOnce(Return(1u))
+        .WillOnce(Return(0u));
+
+    // Pre-Assert
+
+    // Act
+    size_t read_null_buffer = com_util_fread(NULL, 1u, 1u, stream, &read_detail); // [手順] - NULL 読み込み先を指定する。
+    size_t read_null_stream = com_util_fread(data, 1u, 1u, NULL, &read_detail); // [手順] - NULL ストリームを指定する。
+    size_t read_zero_size = com_util_fread(NULL, 0u, 1u, stream, &read_detail); // [手順] - サイズ 0 の読み込みを指定する。
+    size_t read_full = com_util_fread(data, 1u, 1u, stream, &read_detail); // [手順] - 全量読み込みを指定する。
+    size_t read_short = com_util_fread(data, 1u, 1u, stream, &read_detail); // [手順] - 短い読み込みを指定する。
+    size_t write_null_buffer = com_util_fwrite(NULL, 1u, 1u, stream, &write_detail); // [手順] - NULL 書き込み元を指定する。
+    size_t write_null_stream = com_util_fwrite(data, 1u, 1u, NULL, &write_detail); // [手順] - NULL ストリームへ書き込む。
+    size_t write_zero_size = com_util_fwrite(NULL, 0u, 1u, stream, &write_detail); // [手順] - サイズ 0 の書き込みを指定する。
+    size_t write_full = com_util_fwrite(data, 1u, 1u, stream, &write_detail); // [手順] - 全量書き込みを指定する。
+    size_t write_short = com_util_fwrite(data, 1u, 1u, stream, &write_detail); // [手順] - 短い書き込みを指定する。
+
+    // Assert
+    EXPECT_EQ(0u, read_null_buffer); // [確認_異常系] - NULL 読み込み先が 0 件になること。
+    EXPECT_EQ(0u, read_null_stream); // [確認_異常系] - NULL ストリームが 0 件になること。
+    EXPECT_EQ(0u, read_zero_size); // [確認_正常系] - サイズ 0 の読み込みが 0 件になること。
+    EXPECT_EQ(1u, read_full); // [確認_正常系] - 全量読み込みが 1 件になること。
+    EXPECT_EQ(0u, read_short); // [確認_正常系] - エラー フラグのない短い読み込みが 0 件になること。
+    EXPECT_EQ(0u, write_null_buffer); // [確認_異常系] - NULL 書き込み元が 0 件になること。
+    EXPECT_EQ(0u, write_null_stream); // [確認_異常系] - NULL ストリームが 0 件になること。
+    EXPECT_EQ(0u, write_zero_size); // [確認_正常系] - サイズ 0 の書き込みが 0 件になること。
+    EXPECT_EQ(1u, write_full); // [確認_正常系] - 全量書き込みが 1 件になること。
+    EXPECT_EQ(0u, write_short); // [確認_異常系] - 短い書き込みが 0 件になること。
+
+    // Cleanup
+    fclose(stream);
 }
 
 // fwrite の短い書き込みを未知エラーとして報告することの確認

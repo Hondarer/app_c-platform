@@ -37,6 +37,27 @@ extern "C"
      */
     int com_util_error_report_errno_as(com_util_error *detail_out, int errno_value, int result);
 
+    /**
+     *  @brief          ソケット操作の errno と対応する共通結果コードを記録します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *  @param[in]      errno_value errno の値。
+     *  @return         errno に対応する共通結果コードを返します。
+     *
+     *  @ref COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO として記録するため、EAGAIN の要因が
+     *  @ref COM_UTIL_CAUSE_WOULD_BLOCK と解釈されます。
+     */
+    int com_util_error_report_socket_errno(com_util_error *detail_out, int errno_value);
+
+    /**
+     *  @brief          getaddrinfo のエラー コードと対応する共通結果コードを記録します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *  @param[in]      error_code getaddrinfo が返した EAI_* の値。
+     *  @return         EAI_* に対応する共通結果コードを返します。
+     */
+    int com_util_error_report_gai_error(com_util_error *detail_out, int error_code);
+
 #if defined(PLATFORM_WINDOWS)
     /**
      *  @brief          Win32 エラーと対応する共通結果コードを記録します。
@@ -56,6 +77,18 @@ extern "C"
      *  @return         @p result を返します。
      */
     int com_util_error_report_windows_error_as(com_util_error *detail_out, unsigned long error_code, int result);
+
+    /**
+     *  @brief          Winsock エラーと対応する共通結果コードを記録します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *  @param[in]      error_code WSAGetLastError() が返した値。
+     *  @return         Winsock エラーに対応する共通結果コードを返します。
+     *
+     *  Winsock のエラー番号空間は Win32 の GetLastError() と異なるため、
+     *  com_util_error_report_windows_error() では分類できません。
+     */
+    int com_util_error_report_winsock_error(com_util_error *detail_out, unsigned long error_code);
 #endif
 
     /**

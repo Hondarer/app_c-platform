@@ -44,6 +44,16 @@ extern "C"
     int com_util_result_from_windows_error(unsigned long error_code);
 
     /**
+     *  @brief          Winsock エラーを共通結果コードへ変換します。
+     *  @param[in]      error_code WSAGetLastError() が返した値。
+     *  @return         対応する共通結果コードを返します。
+     *
+     *  Winsock のエラー番号空間は Win32 の GetLastError() と異なるため、
+     *  com_util_result_from_windows_error() では分類できません。
+     */
+    int com_util_result_from_winsock_error(unsigned long error_code);
+
+    /**
      *  @brief          GetLastError() の値を errno 相当の値へ変換します。
      *  @param[in]      error_code GetLastError() で取得したエラー コード。
      *  @return         対応する errno の値。対応がない値は `EIO` を返します。

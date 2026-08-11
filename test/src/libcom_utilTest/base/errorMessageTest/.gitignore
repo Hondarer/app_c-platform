@@ -1,4 +1,5 @@
 /error.c
 /error_message.c
 /result.c
+/string.c
 /wchar_conv.c

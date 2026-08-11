@@ -53,6 +53,9 @@ TEST(pinnedPromptTest, static_text_helpers_cover_empty_and_utf8_cases)
     // Arrange
     const char combining[] = "\xCC\x81";
     const char cjk[] = "\xE6\x97\xA5";
+    const char hiragana[] = "\xE3\x81\x82";
+    const char katakana[] = "\xE3\x82\xA2";
+    const char compatibility_ideograph[] = "\xE3\x90\x80";
     const char emoji[] = "\xF0\x9F\x98\x80";
     const char sgr[] = "\x1B[31mX";
     const char invalid_sgr[] = "\x1B[X";
@@ -66,6 +69,12 @@ TEST(pinnedPromptTest, static_text_helpers_cover_empty_and_utf8_cases)
         test_pinned_prompt_utf8_width(combining, sizeof(combining) - 1U, 0U); // [手順] - 結合文字の表示幅を取得する。
     size_t cjk_width =
         test_pinned_prompt_utf8_width(cjk, sizeof(cjk) - 1U, 0U); // [手順] - CJK 文字の表示幅を取得する。
+    size_t hiragana_width =
+        test_pinned_prompt_utf8_width(hiragana, sizeof(hiragana) - 1U, 0U); // [手順] - ひらがなの表示幅を取得する。
+    size_t katakana_width =
+        test_pinned_prompt_utf8_width(katakana, sizeof(katakana) - 1U, 0U); // [手順] - カタカナの表示幅を取得する。
+    size_t compatibility_width = test_pinned_prompt_utf8_width(
+        compatibility_ideograph, sizeof(compatibility_ideograph) - 1U, 0U); // [手順] - CJK 拡張文字の表示幅を取得する。
     size_t emoji_width =
         test_pinned_prompt_utf8_width(emoji, sizeof(emoji) - 1U, 0U); // [手順] - 4 バイト文字の表示幅を取得する。
     size_t invalid_width =
@@ -79,6 +88,9 @@ TEST(pinnedPromptTest, static_text_helpers_cover_empty_and_utf8_cases)
     EXPECT_EQ(1U, ascii_width);     // [確認_正常系] - ASCII の表示幅が 1 であること。
     EXPECT_EQ(0U, combining_width); // [確認_正常系] - 結合文字の表示幅が 0 であること。
     EXPECT_EQ(2U, cjk_width);       // [確認_正常系] - CJK 文字の表示幅が 2 であること。
+    EXPECT_EQ(2U, hiragana_width);  // [確認_正常系] - ひらがなの表示幅が 2 であること。
+    EXPECT_EQ(2U, katakana_width);  // [確認_正常系] - カタカナの表示幅が 2 であること。
+    EXPECT_EQ(2U, compatibility_width); // [確認_正常系] - CJK 拡張文字の表示幅が 2 であること。
     EXPECT_EQ(1U, emoji_width);     // [確認_正常系] - 2FFFF 未満の絵文字の表示幅が 1 であること。
     EXPECT_EQ(1U, invalid_width);   // [確認_正常系] - 不完全な UTF-8 の表示幅が 1 であること。
     EXPECT_EQ(5U, sgr_len);         // [確認_正常系] - ANSI SGR シーケンスの長さが 5 であること。
@@ -452,6 +464,400 @@ TEST(pinnedPromptTest, tty_readline_reports_canceled_on_ctrl_c)
         COM_UTIL_ERR_CANCELED,
         result); // [確認_異常系] - Ctrl-C の com_util_pinned_prompt_readline が COM_UTIL_ERR_CANCELED を返すこと。
     EXPECT_STREQ("", output); // [確認_異常系] - キャンセル時の出力が空文字列になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 端末入力の各キー表現が内部キーへ分類されることの確認
+TEST(pinnedPromptTest, read_key_classifies_control_and_escape_sequences)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+    const unsigned char input[] = {
+        'A', '\n', 0x7FU, 0x01U, 0x80U,
+        0x1BU,
+        0x1BU, 'x',
+        0x1BU, '[', 'A',
+        0x1BU, '[', 'B',
+        0x1BU, '[', 'C',
+        0x1BU, '[', 'D',
+        0x1BU, '[', 'H',
+        0x1BU, '[', 'F',
+        0x1BU, '[', '1', '~',
+        0x1BU, '[', '3', '~',
+        0x1BU, '[', '4', '~',
+        0x1BU, '[', '1', 'x',
+        0x1BU, '[', 'Z'};
+    size_t input_pos = 0U;
+    int out_ch = -1;
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke([&input, &input_pos](const char *, const int, const char *, const int, void *arg,
+                                                    const size_t)
+                               {
+                                   if (input_pos < sizeof(input))
+                                   {
+                                       *static_cast<unsigned char *>(arg) = input[input_pos++];
+                                       return static_cast<ssize_t>(1);
+                                   }
+                                   errno = (input_pos == sizeof(input)) ? EINTR : 0;
+                                   input_pos++;
+                                   return (input_pos == sizeof(input) + 1U) ? static_cast<ssize_t>(-1)
+                                                                            : static_cast<ssize_t>(0);
+                               }));
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillOnce(Return(0)).WillRepeatedly(Return(1));
+
+    // Pre-Assert
+
+    // Act
+    int char_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ASCII 文字をキー分類する。
+    int char_value = out_ch;
+    int enter_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 改行をキー分類する。
+    int backspace_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - DEL をキー分類する。
+    int control_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 制御文字をキー分類する。
+    int high_bit_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 8 ビット文字をキー分類する。
+    int clear_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 単独の ESC をキー分類する。
+    int unknown_escape_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 未知の ESC 文字列を分類する。
+    int up_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 上矢印を分類する。
+    int down_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 下矢印を分類する。
+    int right_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 右矢印を分類する。
+    int left_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 左矢印を分類する。
+    int home_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - Home を分類する。
+    int end_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - End を分類する。
+    int home_tilde_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 1 ~ を分類する。
+    int delete_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 3 ~ を分類する。
+    int end_tilde_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 4 ~ を分類する。
+    int invalid_tilde_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 不正な終端を分類する。
+    int invalid_csi_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 未知の CSI を分類する。
+
+    test_pinned_prompt_set_resize_pending(1);
+    errno = EINTR;
+    int resize_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - リサイズ通知をキー分類する。
+    int eof_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - EOF をキー分類する。
+
+    // Assert
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_CHAR, char_key); // [確認_正常系] - ASCII 文字が CHAR になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_ENTER, enter_key); // [確認_正常系] - 改行が ENTER になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_BACKSPACE, backspace_key); // [確認_正常系] - DEL が BACKSPACE になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, control_key); // [確認_異常系] - 制御文字が UNKNOWN になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_CHAR, high_bit_key); // [確認_正常系] - 8 ビット文字が CHAR になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_CLEAR, clear_key); // [確認_正常系] - 単独 ESC が CLEAR になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, unknown_escape_key); // [確認_異常系] - 未知 ESC が UNKNOWN になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UP, up_key); // [確認_正常系] - 上矢印が UP になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_DOWN, down_key); // [確認_正常系] - 下矢印が DOWN になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_RIGHT, right_key); // [確認_正常系] - 右矢印が RIGHT になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_LEFT, left_key); // [確認_正常系] - 左矢印が LEFT になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_HOME, home_key); // [確認_正常系] - Home が HOME になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_END, end_key); // [確認_正常系] - End が END になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_HOME, home_tilde_key); // [確認_正常系] - ESC [ 1 ~ が HOME になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_DELETE, delete_key); // [確認_正常系] - ESC [ 3 ~ が DELETE になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_END, end_tilde_key); // [確認_正常系] - ESC [ 4 ~ が END になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, invalid_tilde_key); // [確認_異常系] - 不正終端が UNKNOWN になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, invalid_csi_key); // [確認_異常系] - 未知 CSI が UNKNOWN になること。
+    EXPECT_EQ(char_value, static_cast<int>('A')); // [確認_正常系] - CHAR の値が A になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_RESIZE, resize_key); // [確認_正常系] - リサイズ通知が RESIZE になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_EOF, eof_key); // [確認_正常系] - EOF が EOF になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 行編集 static 関数が UTF-8 境界とカーソル端点を処理することの確認
+TEST(pinnedPromptTest, edit_helpers_update_line_at_boundaries)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_set_edit_line(screen, "ab"); // [手順] - ASCII の編集行を設定する。
+    test_pinned_prompt_insert_byte(screen, 'X'); // [手順] - 編集行末尾へ X を挿入する。
+    test_pinned_prompt_backspace(screen); // [手順] - 編集行末尾の X を削除する。
+    test_pinned_prompt_set_edit_line(screen, "ab"); // [手順] - 削除対象を持つ編集行を設定する。
+    test_pinned_prompt_set_cursor(screen, 1U); // [手順] - カーソルを b の直前へ移動する。
+    test_pinned_prompt_delete(screen); // [手順] - カーソル位置の b を削除する。
+    test_pinned_prompt_backspace(screen); // [手順] - カーソル先頭で backspace を実行する。
+    test_pinned_prompt_set_edit_line(screen, "\xE6\x97\xA5"); // [手順] - UTF-8 の編集行を設定する。
+    test_pinned_prompt_backspace(screen); // [手順] - UTF-8 文字を境界単位で削除する。
+    test_pinned_prompt_delete(screen); // [手順] - 編集行末尾で delete を実行する。
+
+    // Assert
+    EXPECT_EQ(0U, test_pinned_prompt_edit_length(screen)); // [確認_正常系] - 編集行の長さが 0 になること。
+    EXPECT_STREQ("", test_pinned_prompt_edit_text(screen)); // [確認_正常系] - 編集行が空になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#if defined(PLATFORM_LINUX)
+
+// TTY 描画がステータス領域、区切り線、入力カーソルを描画することの確認
+TEST(pinnedPromptTest, render_handles_status_regions_and_empty_layout)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_ioctl> mock_ioctl;
+    struct winsize full_size = {};
+    full_size.ws_col = 24U;
+    full_size.ws_row = 8U;
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([full_size](const char *, const int, const char *, const int, const unsigned long,
+                                                 void *arg) { *static_cast<struct winsize *>(arg) = full_size; }),
+                              Return(0)));
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_render_state(screen, 1, 1, 1, 1, "P> ", "abc", "TOP", "RIGHT", "BOTTOM", "BR"); // [手順] - 上下ステータスと入力行を描画する。
+    test_pinned_prompt_render(screen); // [手順] - ステータス領域を含む TTY 描画を実行する。
+    test_pinned_prompt_render(screen); // [手順] - status_dirty が解除された状態で再描画する。
+    test_pinned_prompt_render_state(screen, 1, 1, 1, 1, "", "", NULL, NULL, NULL, NULL); // [手順] - 空のプロンプトとステータスを描画する。
+    test_pinned_prompt_render(screen); // [手順] - 空状態の描画を実行する。
+
+    // Assert
+    EXPECT_STREQ("", test_pinned_prompt_edit_text(screen)); // [確認_正常系] - 空状態の編集行が空文字列であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// TTY の編集操作と同一呼び出し元の履歴参照が入力結果へ反映されることの確認
+TEST(pinnedPromptTest, tty_readline_handles_editing_and_history)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+    struct termios original = {};
+    struct winsize size = {};
+    const unsigned char input[] = {
+        'a', 'b', 0x1BU, '[', 'D', 0x7FU, 'c', 0x1BU, '[', '3', '~', '\n',
+        'd', '\n',
+        0x1BU, '[', 'A', 0x1BU, '[', 'A', 0x1BU, '[', 'B', 0x1BU, '[', 'B', '\n'};
+    size_t input_pos = 0U;
+    char first_output[16] = {};
+    char second_output[16] = {};
+    char third_output[16] = {};
+    size.ws_col = 80U;
+    size.ws_row = 24U;
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .Times(3)
+        .WillRepeatedly(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(6).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).Times(3).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).Times(6).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                            void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke([&input, &input_pos](const char *, const int, const char *, const int, void *arg,
+                                                    const size_t)
+                               {
+                                   if (input_pos >= sizeof(input))
+                                   {
+                                       return static_cast<ssize_t>(0);
+                                   }
+                                   *static_cast<unsigned char *>(arg) = input[input_pos++];
+                                   return static_cast<ssize_t>(1);
+                               }));
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillRepeatedly(Return(1));
+
+    // Pre-Assert
+
+    // Act
+    int first_result = _com_util_pinned_prompt_readline(screen, first_output, sizeof(first_output), "", "history.c",
+                                                         10); // [手順] - 編集キーを含む最初の入力を確定する。
+    int second_result = _com_util_pinned_prompt_readline(screen, second_output, sizeof(second_output), "", "history.c",
+                                                          10); // [手順] - 2 件目の入力を同じ履歴へ追加する。
+    int third_result = _com_util_pinned_prompt_readline(screen, third_output, sizeof(third_output), "", "history.c",
+                                                         10); // [手順] - 上下キーで履歴を参照して入力を確定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, first_result); // [確認_正常系] - 1 件目の readline が COM_UTIL_OK を返すこと。
+    EXPECT_STREQ("c", first_output); // [確認_正常系] - 編集後の 1 件目の入力が c であること。
+    EXPECT_EQ(COM_UTIL_OK, second_result); // [確認_正常系] - 2 件目の readline が COM_UTIL_OK を返すこと。
+    EXPECT_STREQ("d", second_output); // [確認_正常系] - 2 件目の入力が d であること。
+    EXPECT_EQ(COM_UTIL_OK, third_result); // [確認_正常系] - 履歴参照後の readline が COM_UTIL_OK を返すこと。
+    EXPECT_STREQ("", third_output); // [確認_正常系] - 履歴の末尾から下へ移動すると保存行へ戻ること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// TTY のリサイズ通知が readline の再描画後に入力を継続することの確認
+TEST(pinnedPromptTest, tty_readline_continues_after_resize)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    struct termios original = {};
+    struct winsize size = {};
+    char output[8] = {};
+    int read_count = 0;
+    size.ws_col = 80U;
+    size.ws_row = 24U;
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                            void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke([&read_count](const char *, const int, const char *, const int, void *arg, const size_t)
+                               {
+                                   if (read_count++ == 0)
+                                   {
+                                       errno = EINTR;
+                                       return static_cast<ssize_t>(-1);
+                                   }
+                                   *static_cast<unsigned char *>(arg) = '\n';
+                                   return static_cast<ssize_t>(1);
+                               }));
+    test_pinned_prompt_set_resize_pending(1);
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_pinned_prompt_readline(screen, output, sizeof(output), ""); // [手順] - リサイズ通知後に Enter を入力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - リサイズ後の readline が COM_UTIL_OK を返すこと。
+    EXPECT_STREQ("", output); // [確認_正常系] - リサイズ後に確定した入力が空であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#endif /* PLATFORM_LINUX */
+
+// 書き込み API が引数、ストリーム、短い書き込みを分類することの確認
+TEST(pinnedPromptTest, write_and_printf_handle_arguments_and_short_write)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_stdio> mock_stdio;
+    const char data[] = "abc";
+    size_t written = 99U;
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, _, _, _))
+        .WillOnce(Return(2U))
+        .WillRepeatedly(ReturnArg<5>());
+
+    // Pre-Assert
+
+    // Act
+    int invalid_screen = com_util_pinned_prompt_write(NULL, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, data, 3U, &written); // [手順] - NULL ハンドルで書き込む。
+    int invalid_data = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, NULL, 1U, &written); // [手順] - NULL データを正のサイズで書き込む。
+    int short_result = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, data, 3U, &written); // [手順] - 標準出力へ短い書き込みを行う。
+    int stdout_result = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, data, 3U, &written); // [手順] - 標準出力へ全量を書き込む。
+    int stderr_result = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDERR, data, 3U, &written); // [手順] - 標準エラーへ全量を書き込む。
+    int empty_result = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, NULL, 0U, &written); // [手順] - NULL データをサイズ 0 で書き込む。
+    int printf_result = com_util_pinned_prompt_printf(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, "%s-%d", "value", 7); // [手順] - 書式付き文字列を書き込む。
+    int null_fmt_result = com_util_pinned_prompt_printf(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, NULL); // [手順] - NULL 書式で空文字列を書き込む。
+    int null_printf_result = com_util_pinned_prompt_printf(NULL, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, "x"); // [手順] - NULL ハンドルで書式付き書き込みを行う。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_screen); // [確認_異常系] - NULL ハンドルの write が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_data); // [確認_異常系] - NULL データの write が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, short_result); // [確認_異常系] - 短い write が UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_OK, stdout_result); // [確認_正常系] - stdout への全量 write が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, stderr_result); // [確認_正常系] - stderr への全量 write が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, empty_result); // [確認_正常系] - サイズ 0 の write が OK になること。
+    EXPECT_EQ(7, printf_result); // [確認_正常系] - printf が書き込んだ 7 バイトを返すこと。
+    EXPECT_EQ(0, null_fmt_result); // [確認_正常系] - NULL 書式の printf が 0 を返すこと。
+    EXPECT_EQ(-1, null_printf_result); // [確認_異常系] - NULL ハンドルの printf が -1 を返すこと。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 書式付き readline がプロンプトを生成して fallback 入力へ渡すことの確認
+TEST(pinnedPromptTest, readline_fmt_formats_and_accepts_null_format)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_stdio> mock_stdio;
+    char first_input[] = "first\n";
+    char second_input[] = "second\n";
+    char first_output[16] = {};
+    char second_output[16] = {};
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<3>(first_input, first_input + sizeof(first_input)), ReturnArg<3>()))
+        .WillOnce(DoAll(SetArrayArgument<3>(second_input, second_input + sizeof(second_input)), ReturnArg<3>()));
+
+    // Pre-Assert
+
+    // Act
+    int formatted_result = com_util_pinned_prompt_readline_fmt(screen, first_output, sizeof(first_output), "%s-%d", "p", 3); // [手順] - 書式付き readline を呼び出す。
+    int null_format_result = com_util_pinned_prompt_readline_fmt(screen, second_output, sizeof(second_output), NULL); // [手順] - NULL 書式の readline を呼び出す。
+    int null_screen_result = _com_util_pinned_prompt_readline_fmt(NULL, second_output, sizeof(second_output), "file", 1, "%s", "x"); // [手順] - NULL ハンドルの書式付き readline を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, formatted_result); // [確認_正常系] - 書式付き readline が OK を返すこと。
+    EXPECT_STREQ("first", first_output); // [確認_正常系] - 書式付き readline の入力が first になること。
+    EXPECT_EQ(COM_UTIL_OK, null_format_result); // [確認_正常系] - NULL 書式の readline が OK を返すこと。
+    EXPECT_STREQ("second", second_output); // [確認_正常系] - NULL 書式の入力が second になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, null_screen_result); // [確認_異常系] - NULL ハンドルの readline_fmt が INVALID_ARGUMENT になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// ステータス API が不正な位置と配置を拒否することの確認
+TEST(pinnedPromptTest, status_apis_reject_invalid_position_and_alignment)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    int invalid_position_value = 99;
+    int invalid_align_value = 99;
+    const com_util_pinned_prompt_status_position invalid_position =
+        static_cast<com_util_pinned_prompt_status_position>(invalid_position_value);
+    const com_util_pinned_prompt_status_align invalid_align =
+        static_cast<com_util_pinned_prompt_status_align>(invalid_align_value);
+
+    // Pre-Assert
+
+    // Act
+    int invalid_enable = com_util_pinned_prompt_status_enable(screen, invalid_position, 1); // [手順] - 不正な位置を有効化する。
+    int invalid_top_align = com_util_pinned_prompt_status_set(screen, COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
+                                                               invalid_align, "x"); // [手順] - 上部へ不正な配置を設定する。
+    int invalid_bottom_align = com_util_pinned_prompt_status_set(screen, COM_UTIL_PINNED_PROMPT_STATUS_POSITION_BOTTOM,
+                                                                  invalid_align, "x"); // [手順] - 下部へ不正な配置を設定する。
+    int invalid_set_position = com_util_pinned_prompt_status_set(screen, invalid_position,
+                                                                  COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT,
+                                                                  "x"); // [手順] - 不正な位置へ内容を設定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_enable); // [確認_異常系] - 不正位置の status_enable が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_top_align); // [確認_異常系] - 上部の不正配置が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_bottom_align); // [確認_異常系] - 下部の不正配置が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, invalid_set_position); // [確認_異常系] - 不正位置の status_set が INVALID_ARGUMENT になること。
 
     // Cleanup
     com_util_pinned_prompt_dispose(screen);

@@ -37,6 +37,7 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | | `COM_UTIL_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
 | | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
 | | `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
+| | `COM_UTIL_ERR_NOT_FOUND` | -6 | 対象が存在しない (ファイル、ディレクトリ、ホスト名など) |
 | リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できない |
 | | `COM_UTIL_ERR_BUSY` | -11 | リソースがビジー状態 |
 | | `COM_UTIL_ERR_TIMEOUT` | -12 | タイムアウト |
@@ -102,7 +103,7 @@ if (ret != COM_UTIL_OK)
 | `com_util_error *detail_out` 出力引数 | OS エラーのドメイン、共通結果コード、生の詳細値 |
 | スレッド ローカルの直前値 | `com_util_error_get_last()` で取得する、直前の対応 API と同じ詳細 |
 
-分類済みコードでは失われる詳細 (`ENOENT` と `EACCES` の区別など) が必要な API は、`detail_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
+分類済みコードでは失われる詳細 (ともに `COM_UTIL_ERR_UNKNOWN` へ写像される `ENOSPC` と `EIO` の区別など) が必要な API は、`detail_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
 対応 API は失敗時に出力引数とスレッド ローカルの直前値へ同じ詳細を記録し、成功時は両方をクリアします。  
 `errno`、`GetLastError()`、`HRESULT` などの OS エラー値を、共通結果コードとして直接返しません。
 
@@ -235,13 +236,15 @@ CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいの�
 
 | 条件 | 例 |
 |---|---|
-| プラットフォームで異なる API を呼び分ける | `com_util_fseek` (`fseeko` と `_fseeki64`)、`com_util_gmtime` (`gmtime_r` と `gmtime_s`) |
+| プラットフォームで異なる API を呼び分ける | `com_util_fseek` (`fseeko` と `_fseeki64`)、`com_util_gmtime` (`gmtime_r` と `gmtime_s`)、`com_util_socket_*` (BSD ソケットと Winsock) |
 | Windows で UTF-8 と UTF-16 を変換する | `com_util_fopen`、`com_util_access`、`CreateFileU` |
 | 戻り値やエラー伝達の規約を正規化する | `com_util_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`com_util_strcpy` (`ERANGE` を返す) |
 | MSVC のセキュア版と意味のある挙動差がある | `com_util_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
 | 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化する | `com_util_snprintf` (切り詰めを検出する)、`com_util_parse_int64` (完全消費と範囲を検査する)、`com_util_fgets` (切り詰めと EOF を区別する) |
 | com_util 定義の型を扱う | `com_util_timespec_*`、`com_util_file_*` |
 | com_util の他機能と統合する必要がある | `com_util_exit` (登録済みシャットダウン コールバックを実行する) |
+
+通信 API 固有の規範 (ソケット ハンドル、エンドポイント型、エラー ドメイン) は [ネットワーク API ガイドライン](net-api-guideline.md) に定めます。
 
 境界検査または失敗通知を欠く標準関数の正規化は、[危険な標準関数の代替](#危険な標準関数の代替) が定める代替先を com_util 側に用意するための条件です。  
 戻り値やエラー伝達の規約を正規化する条件の延長であり、元 API が呼び出し側に委ねている検査を、ラッパーが必ず実施する形へ移します。

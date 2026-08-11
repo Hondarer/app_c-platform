@@ -6,6 +6,7 @@
 
     #include <mock_pthread.h>
     #include <mock_stdlib.h>
+    #include <mock_time.h>
     #include <sys/mock_file.h>
 
     #include <com_util/sync/sync.h>
@@ -255,6 +256,168 @@ TEST(syncAdditionalFailureTest, thread_create_reports_context_allocation_failure
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               result); // [確認_異常系] - com_util_thread_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_thread *)NULL, thread); // [確認_異常系] - 生成失敗時に thread が NULL であること。
+}
+
+// interprocess rwlock の有限待機が成功、未知エラー、タイムアウトを分類することの確認
+TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_results)
+{
+    // Arrange
+    char path[256];
+    make_test_interprocess_path(path, sizeof(path), "finite_rwlock");
+    com_util_interprocess_rwlock *lock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    NiceMock<Mock_sys_file> mock_sys_file;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH | LOCK_NB))
+        .WillOnce(Return(0))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EIO;
+                return -1;
+            }))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EWOULDBLOCK;
+                return -1;
+            }));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
+    int clock_count = 0;
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(4)
+        .WillRepeatedly(Invoke(
+            [&clock_count](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int null_result = com_util_interprocess_rwlock_lock_shared(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL ハンドルを有限待機する。
+    int success_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - 有限待機で共有ロックを取得する。
+    int unlock_result = com_util_interprocess_rwlock_unlock(lock); // [手順] - 取得した共有ロックを解放する。
+    int unknown_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - flock の未知エラーを処理する。
+    int timeout_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - 有限待機の期限到達を処理する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, null_result); // [確認_異常系] - NULL ハンドルが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機の共有ロック取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - 共有ロックの解放が OK になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - flock の未知エラーが UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - 有限待機の期限到達が TIMEOUT になること。
+
+    // Cleanup
+    com_util_interprocess_rwlock_destroy(lock);
+    TEST_INTERPROCESS_UNLINK(path);
+}
+
+// interprocess lock の有限待機とブロッキング待機のエラーを分類することの確認
+TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classify_errors)
+{
+    // Arrange
+    char path[256];
+    make_test_interprocess_path(path, sizeof(path), "finite_lock");
+    com_util_interprocess_lock *lock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock));
+    NiceMock<Mock_sys_file> mock_sys_file;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
+        .WillOnce(Return(0))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EIO;
+                return -1;
+            }))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EWOULDBLOCK;
+                return -1;
+            }));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EIO;
+                return -1;
+            }));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
+    int clock_count = 0;
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(4)
+        .WillRepeatedly(Invoke(
+            [&clock_count](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int success_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限待機でロックを取得する。
+    int unlock_result = com_util_interprocess_lock_unlock(lock); // [手順] - 取得したロックを解放する。
+    int unknown_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限 flock の未知エラーを処理する。
+    int timeout_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限 flock の期限到達を処理する。
+    int forever_error = com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER); // [手順] - ブロッキング flock の未知エラーを処理する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機のロック取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - ロック解放が OK になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 有限 flock の未知エラーが UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - 有限 flock の期限到達が TIMEOUT になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, forever_error); // [確認_異常系] - ブロッキング flock の未知エラーが UNKNOWN になること。
+
+    // Cleanup
+    com_util_interprocess_lock_destroy(lock);
+    TEST_INTERPROCESS_UNLINK(path);
+}
+
+// local lock の有限待機が成功、未知エラー、タイムアウトを分類することの確認
+TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
+{
+    // Arrange
+    com_util_local_lock *lock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    NiceMock<Mock_pthread> mock_pthread;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _))
+        .WillOnce(Return(0))
+        .WillOnce(Return(EINVAL))
+        .WillOnce(Return(EBUSY));
+    int clock_count = 0;
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(4)
+        .WillRepeatedly(Invoke(
+            [&clock_count](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int success_result = com_util_local_lock_lock(lock, 1); // [手順] - 有限待機で mutex を取得する。
+    int unlock_result = com_util_local_lock_unlock(lock); // [手順] - 取得した mutex を解放する。
+    int unknown_result = com_util_local_lock_lock(lock, 1); // [手順] - trylock の未知エラーを処理する。
+    int timeout_result = com_util_local_lock_lock(lock, 1); // [手順] - trylock の期限到達を処理する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機の mutex 取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - mutex 解放が OK になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - trylock の未知エラーが UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - trylock の期限到達が TIMEOUT になること。
+
+    // Cleanup
+    com_util_local_lock_destroy(lock);
 }
 
 #endif /* PLATFORM_LINUX */

@@ -13,6 +13,7 @@ static_assert(COM_UTIL_ERR_UNKNOWN == -1, "COM_UTIL_ERR_UNKNOWN の ABI 値を�
 static_assert(COM_UTIL_ERR_INVALID_ARGUMENT == -2, "COM_UTIL_ERR_INVALID_ARGUMENT の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_UNSUPPORTED == -3, "COM_UTIL_ERR_UNSUPPORTED の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_PERMISSION_DENIED == -4, "COM_UTIL_ERR_PERMISSION_DENIED の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_NOT_FOUND == -6, "COM_UTIL_ERR_NOT_FOUND の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_DUPLICATE_DEFINITION == -5,
               "COM_UTIL_ERR_DUPLICATE_DEFINITION の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_OUT_OF_MEMORY == -10, "COM_UTIL_ERR_OUT_OF_MEMORY の ABI 値を変更してはなりません。");

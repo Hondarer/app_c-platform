@@ -16,9 +16,14 @@
 #include <errno.h>
 #include <stddef.h>
 
-#if defined(PLATFORM_WINDOWS)
+/* EAI_* の定数を参照するために取り込む。Linux の EAI_* は errno とも Winsock とも
+   異なる番号体系であり、COM_UTIL_ERROR_DOMAIN_GAI の解釈に必要となる。
+   Windows の EAI_* は Winsock エラー コードと同一値であるため windows_sdk.h で足りる。 */
+#if defined(PLATFORM_LINUX)
+    #include <netdb.h>
+#elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
-#endif
+#endif /* PLATFORM_ */
 
 /* TLS 実体はヘッダーへ公開せず、エクスポート関数経由でのみ参照する。 */
 static THREAD_LOCAL com_util_error com_util_error_last;
@@ -136,6 +141,162 @@ static com_util_error_cause com_util_error_cause_from_errno(const int errno_valu
     case EIO:
         cause = COM_UTIL_CAUSE_IO_ERROR;
         break;
+#if defined(EINPROGRESS)
+    case EINPROGRESS:
+        cause = COM_UTIL_CAUSE_IN_PROGRESS;
+        break;
+#endif
+#if defined(ECONNREFUSED)
+    case ECONNREFUSED:
+        cause = COM_UTIL_CAUSE_CONNECTION_REFUSED;
+        break;
+#endif
+#if defined(ECONNRESET)
+    case ECONNRESET:
+        cause = COM_UTIL_CAUSE_CONNECTION_RESET;
+        break;
+#endif
+#if defined(ECONNABORTED)
+    case ECONNABORTED:
+        cause = COM_UTIL_CAUSE_CONNECTION_ABORTED;
+        break;
+#endif
+#if defined(ENOTCONN)
+    case ENOTCONN:
+        cause = COM_UTIL_CAUSE_NOT_CONNECTED;
+        break;
+#endif
+#if defined(EISCONN)
+    case EISCONN:
+        cause = COM_UTIL_CAUSE_ALREADY_CONNECTED;
+        break;
+#endif
+#if defined(EADDRINUSE)
+    case EADDRINUSE:
+        cause = COM_UTIL_CAUSE_ADDRESS_IN_USE;
+        break;
+#endif
+#if defined(EADDRNOTAVAIL)
+    case EADDRNOTAVAIL:
+        cause = COM_UTIL_CAUSE_ADDRESS_NOT_AVAILABLE;
+        break;
+#endif
+#if defined(ENETDOWN)
+    case ENETDOWN:
+        cause = COM_UTIL_CAUSE_NETWORK_DOWN;
+        break;
+#endif
+#if defined(ENETUNREACH)
+    case ENETUNREACH:
+        cause = COM_UTIL_CAUSE_NETWORK_UNREACHABLE;
+        break;
+#endif
+#if defined(EHOSTUNREACH)
+    case EHOSTUNREACH:
+        cause = COM_UTIL_CAUSE_HOST_UNREACHABLE;
+        break;
+#endif
+#if defined(EMSGSIZE)
+    case EMSGSIZE:
+        cause = COM_UTIL_CAUSE_MESSAGE_SIZE;
+        break;
+#endif
+#if defined(ESHUTDOWN)
+    case ESHUTDOWN:
+        cause = COM_UTIL_CAUSE_SHUTDOWN;
+        break;
+#endif
+    default:
+        cause = COM_UTIL_CAUSE_OTHER;
+        break;
+    }
+
+    return cause;
+}
+
+/**
+ *  @brief          ソケット操作の errno をプラットフォーム共通の要因へ変換します。
+ *  @param[in]      errno_value errno の値。
+ *  @return         対応する要因を返します。
+ *
+ *  ソケット操作の EAGAIN は非ブロッキング操作の待機を意味するため、共通の
+ *  errno マッピングとは別に @ref COM_UTIL_CAUSE_WOULD_BLOCK として扱います。\n
+ *  Linux では EWOULDBLOCK が EAGAIN と同値です。\n
+ *  それ以外の errno は com_util_error_cause_from_errno() の分類に委譲します。
+ *
+ *  fork() や pthread_create() が返す EAGAIN は資源の上限超過を意味し、待機とは
+ *  異なるため、共通の errno マッピングでは @ref COM_UTIL_CAUSE_BUSY のままとします。
+ */
+static com_util_error_cause com_util_error_cause_from_socket_errno(const int errno_value)
+{
+    com_util_error_cause cause;
+
+    if (errno_value == EAGAIN)
+    {
+        cause = COM_UTIL_CAUSE_WOULD_BLOCK;
+    }
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+    else if (errno_value == EWOULDBLOCK)
+    {
+        cause = COM_UTIL_CAUSE_WOULD_BLOCK;
+    }
+#endif
+    else
+    {
+        cause = com_util_error_cause_from_errno(errno_value);
+    }
+
+    return cause;
+}
+
+/**
+ *  @brief          getaddrinfo のエラー コードをプラットフォーム共通の要因へ変換します。
+ *  @param[in]      error_code getaddrinfo が返した EAI_* の値。
+ *  @return         対応する要因を返します。
+ *
+ *  EAI_* は errno とも Winsock エラーとも異なる番号体系のため、専用の変換を行います。
+ *  see: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getaddrinfo.html
+ */
+static com_util_error_cause com_util_error_cause_from_gai_error(const int error_code)
+{
+    com_util_error_cause cause;
+
+    switch (error_code)
+    {
+#if defined(EAI_NONAME)
+    case EAI_NONAME:
+#endif
+#if defined(EAI_NODATA) && (!defined(EAI_NONAME) || (EAI_NODATA != EAI_NONAME))
+    case EAI_NODATA:
+#endif
+        cause = COM_UTIL_CAUSE_NOT_FOUND;
+        break;
+#if defined(EAI_AGAIN)
+    case EAI_AGAIN:
+        cause = COM_UTIL_CAUSE_BUSY;
+        break;
+#endif
+#if defined(EAI_MEMORY)
+    case EAI_MEMORY:
+        cause = COM_UTIL_CAUSE_OUT_OF_MEMORY;
+        break;
+#endif
+#if defined(EAI_FAMILY)
+    case EAI_FAMILY:
+#endif
+#if defined(EAI_SOCKTYPE)
+    case EAI_SOCKTYPE:
+#endif
+#if defined(EAI_SERVICE)
+    case EAI_SERVICE:
+#endif
+        cause = COM_UTIL_CAUSE_UNSUPPORTED;
+        break;
+#if defined(EAI_BADFLAGS)
+    case EAI_BADFLAGS:
+        cause = COM_UTIL_CAUSE_INVALID_ARGUMENT;
+        break;
+#endif
     default:
         cause = COM_UTIL_CAUSE_OTHER;
         break;
@@ -145,6 +306,98 @@ static com_util_error_cause com_util_error_cause_from_errno(const int errno_valu
 }
 
 #if defined(PLATFORM_WINDOWS)
+/**
+ *  @brief          Winsock エラーをプラットフォーム共通の要因へ変換します。
+ *  @param[in]      error_code WSAGetLastError() が返した値。
+ *  @return         対応する要因を返します。
+ *
+ *  Winsock のエラー番号空間は Win32 の GetLastError() と異なるため、
+ *  com_util_error_cause_from_windows_error() では分類できません。
+ *  see: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
+ */
+static com_util_error_cause com_util_error_cause_from_winsock_error(const unsigned long error_code)
+{
+    com_util_error_cause cause;
+
+    switch (error_code)
+    {
+    case WSAEWOULDBLOCK:
+        cause = COM_UTIL_CAUSE_WOULD_BLOCK;
+        break;
+    case WSAEINPROGRESS:
+    case WSAEALREADY:
+        cause = COM_UTIL_CAUSE_IN_PROGRESS;
+        break;
+    case WSAEINTR:
+        cause = COM_UTIL_CAUSE_INTERRUPTED;
+        break;
+    case WSAECONNREFUSED:
+        cause = COM_UTIL_CAUSE_CONNECTION_REFUSED;
+        break;
+    case WSAECONNRESET:
+        cause = COM_UTIL_CAUSE_CONNECTION_RESET;
+        break;
+    case WSAECONNABORTED:
+        cause = COM_UTIL_CAUSE_CONNECTION_ABORTED;
+        break;
+    case WSAENOTCONN:
+        cause = COM_UTIL_CAUSE_NOT_CONNECTED;
+        break;
+    case WSAEISCONN:
+        cause = COM_UTIL_CAUSE_ALREADY_CONNECTED;
+        break;
+    case WSAEADDRINUSE:
+        cause = COM_UTIL_CAUSE_ADDRESS_IN_USE;
+        break;
+    case WSAEADDRNOTAVAIL:
+        cause = COM_UTIL_CAUSE_ADDRESS_NOT_AVAILABLE;
+        break;
+    case WSAENETDOWN:
+        cause = COM_UTIL_CAUSE_NETWORK_DOWN;
+        break;
+    case WSAENETUNREACH:
+        cause = COM_UTIL_CAUSE_NETWORK_UNREACHABLE;
+        break;
+    case WSAEHOSTUNREACH:
+        cause = COM_UTIL_CAUSE_HOST_UNREACHABLE;
+        break;
+    case WSAEMSGSIZE:
+        cause = COM_UTIL_CAUSE_MESSAGE_SIZE;
+        break;
+    case WSAESHUTDOWN:
+        cause = COM_UTIL_CAUSE_SHUTDOWN;
+        break;
+    case WSANOTINITIALISED:
+        cause = COM_UTIL_CAUSE_NOT_INITIALIZED;
+        break;
+    case WSAETIMEDOUT:
+        cause = COM_UTIL_CAUSE_TIMEOUT;
+        break;
+    case WSAEINVAL:
+        cause = COM_UTIL_CAUSE_INVALID_ARGUMENT;
+        break;
+    case WSAEACCES:
+        cause = COM_UTIL_CAUSE_ACCESS_DENIED;
+        break;
+    case WSAEMFILE:
+        cause = COM_UTIL_CAUSE_TOO_MANY_OPEN_FILES;
+        break;
+    case WSAENOBUFS:
+        cause = COM_UTIL_CAUSE_OUT_OF_MEMORY;
+        break;
+    case WSAEOPNOTSUPP:
+    case WSAEAFNOSUPPORT:
+    case WSAEPROTONOSUPPORT:
+        cause = COM_UTIL_CAUSE_UNSUPPORTED;
+        break;
+    default:
+        cause = COM_UTIL_CAUSE_OTHER;
+        break;
+    }
+
+    return cause;
+}
+
 /**
  *  @brief          Win32 エラーをプラットフォーム共通の要因へ変換します。
  *  @param[in]      error_code Win32 エラー コード。
@@ -335,7 +588,7 @@ int com_util_error_is_set(const com_util_error *error)
 
     if (error != NULL)
     {
-        if ((error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) || (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS))
+        if (error->domain != COM_UTIL_ERROR_DOMAIN_NONE)
         {
             is_set = 1;
         }
@@ -353,7 +606,9 @@ com_util_error_domain com_util_error_get_domain(const com_util_error *error)
     if (error != NULL)
     {
         if ((error->domain == COM_UTIL_ERROR_DOMAIN_NONE) || (error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) ||
-            (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS))
+            (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO) ||
+            (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS) || (error->domain == COM_UTIL_ERROR_DOMAIN_WINSOCK) ||
+            (error->domain == COM_UTIL_ERROR_DOMAIN_GAI))
         {
             domain = error->domain;
         }
@@ -404,7 +659,7 @@ int com_util_error_to_result(const com_util_error *error)
         {
             result = COM_UTIL_OK;
         }
-        else if ((error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) || (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS))
+        else
         {
             result = error->result;
         }
@@ -425,10 +680,26 @@ com_util_error_cause com_util_error_get_cause(const com_util_error *error)
         {
             cause = com_util_error_cause_from_errno((int)error->code);
         }
+        else if (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO)
+        {
+            cause = com_util_error_cause_from_socket_errno((int)error->code);
+        }
+        else if (error->domain == COM_UTIL_ERROR_DOMAIN_GAI)
+        {
+            cause = com_util_error_cause_from_gai_error((int)error->code);
+        }
         else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS)
         {
 #if defined(PLATFORM_WINDOWS)
             cause = com_util_error_cause_from_windows_error(error->code);
+#else
+            cause = COM_UTIL_CAUSE_OTHER;
+#endif
+        }
+        else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINSOCK)
+        {
+#if defined(PLATFORM_WINDOWS)
+            cause = com_util_error_cause_from_winsock_error(error->code);
 #else
             cause = COM_UTIL_CAUSE_OTHER;
 #endif
@@ -490,6 +761,81 @@ int com_util_error_report_errno_as(com_util_error *detail_out, const int errno_v
 
     com_util_error_store(detail_out, domain, result, (unsigned long)errno_value);
     com_util_error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
+
+    return result;
+}
+
+#if defined(PLATFORM_WINDOWS)
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_report_winsock_error(com_util_error *detail_out, const unsigned long error_code)
+{
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_WINSOCK;
+    int result;
+
+    if (error_code == 0UL)
+    {
+        domain = COM_UTIL_ERROR_DOMAIN_NONE;
+        result = COM_UTIL_OK;
+    }
+    else
+    {
+        result = com_util_result_from_winsock_error(error_code);
+    }
+
+    com_util_error_store(detail_out, domain, result, error_code);
+    com_util_error_store(&com_util_error_last, domain, result, error_code);
+
+    return result;
+}
+#endif /* PLATFORM_WINDOWS */
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_report_socket_errno(com_util_error *detail_out, const int errno_value)
+{
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO;
+    int result;
+
+    if (errno_value == 0)
+    {
+        domain = COM_UTIL_ERROR_DOMAIN_NONE;
+        result = COM_UTIL_OK;
+    }
+    else
+    {
+        result = com_util_result_from_errno(errno_value);
+    }
+
+    com_util_error_store(detail_out, domain, result, (unsigned long)errno_value);
+    com_util_error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
+
+    return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_report_gai_error(com_util_error *detail_out, const int error_code)
+{
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_GAI;
+    int result;
+
+    if (error_code == 0)
+    {
+        domain = COM_UTIL_ERROR_DOMAIN_NONE;
+        result = COM_UTIL_OK;
+    }
+    else if (com_util_error_cause_from_gai_error(error_code) == COM_UTIL_CAUSE_NOT_FOUND)
+    {
+        result = COM_UTIL_ERR_NOT_FOUND;
+    }
+    else
+    {
+        result = COM_UTIL_ERR_UNKNOWN;
+    }
+
+    com_util_error_store(detail_out, domain, result, (unsigned long)error_code);
+    com_util_error_store(&com_util_error_last, domain, result, (unsigned long)error_code);
 
     return result;
 }

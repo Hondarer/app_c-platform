@@ -13,8 +13,15 @@
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 
+#include <com_util/crt/string.h>
+
 #include <errno.h>
 #include <string.h>
+
+/* gai_strerror() を参照するために取り込む。EAI_* の文字列化に必要となる。 */
+#if defined(PLATFORM_LINUX)
+    #include <netdb.h>
+#endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
@@ -137,12 +144,31 @@ int com_util_error_message(char *buf, const size_t buf_size, const com_util_erro
         buf[copy_size - 1U] = '\0';
         result = COM_UTIL_OK;
     }
-    else if (error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO)
+    else if ((error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) ||
+             (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO))
     {
         result = com_util_errno_message(buf, buf_size, (int)error->code);
     }
-    else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS)
+    else if (error->domain == COM_UTIL_ERROR_DOMAIN_GAI)
     {
+#if defined(PLATFORM_LINUX)
+        /* glibc の gai_strerror() はスレッド セーフであり、静的な定数文字列を返す。
+           see: https://man7.org/linux/man-pages/man3/gai_strerror.3.html */
+        result = com_util_strcpy(buf, buf_size, gai_strerror((int)error->code));
+#elif defined(PLATFORM_WINDOWS)
+        /* Windows の EAI_* は Winsock エラー コードと同一値のため FormatMessage で
+           文字列化できる。gai_strerrorA() は静的バッファーを使用しスレッド セーフでない。
+           see: https://learn.microsoft.com/en-us/windows/win32/api/ws2tcpip/nf-ws2tcpip-gai_strerrora */
+        result = com_util_win32_error_message(buf, buf_size, error->code);
+#else
+        buf[0] = '\0';
+        result = COM_UTIL_ERR_INVALID_ARGUMENT;
+#endif /* PLATFORM_ */
+    }
+    else if ((error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS) || (error->domain == COM_UTIL_ERROR_DOMAIN_WINSOCK))
+    {
+        /* Winsock エラーも Win32 と同じく FormatMessage が文字列化できる。
+           see: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2 */
 #if defined(PLATFORM_WINDOWS)
         result = com_util_win32_error_message(buf, buf_size, error->code);
 #else
