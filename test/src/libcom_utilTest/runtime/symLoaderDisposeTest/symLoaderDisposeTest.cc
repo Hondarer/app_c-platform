@@ -2,16 +2,14 @@
 #include <mock_com_util.h>
 #include <com_util/runtime/sym_loader.h>
 
-#include <cstring>
-
 class symLoaderDisposeTest : public Test
 {
   protected:
     /* lib_name / func_name は固定長配列のため、テストからは直接書き込む */
     static void set_names(com_util_sym_loader_entry *entry, const char *lib_name, const char *func_name)
     {
-        std::strncpy(entry->lib_name, lib_name, sizeof(entry->lib_name) - 1u);
-        std::strncpy(entry->func_name, func_name, sizeof(entry->func_name) - 1u);
+        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry->lib_name, sizeof(entry->lib_name), lib_name));
+        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry->func_name, sizeof(entry->func_name), func_name));
     }
 };
 

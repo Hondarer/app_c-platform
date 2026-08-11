@@ -3,8 +3,6 @@
 #include <com_util/base/result.h>
 #include <com_util/runtime/sym_loader.h>
 
-#include <cstring>
-
 // シンボル情報 API が空の配列を受け付けることの確認
 TEST(symLoaderInfoTest, sym_loader_info_accepts_empty_array)
 {
@@ -75,8 +73,9 @@ TEST(symLoaderInfoTest, sym_loader_info_resolves_unresolved_entry)
     // Arrange
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("default_entry", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry};
-    std::strcpy(entry.lib_name, "default"); // [状態] - 明示的デフォルトとして解決できるエントリを用意する。
-    std::strcpy(entry.func_name, "default");
+    ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry.lib_name, sizeof(entry.lib_name),
+                                           "default")); // [状態] - 明示的デフォルトとして解決できるエントリを用意する。
+    ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry.func_name, sizeof(entry.func_name), "default"));
 
     // Pre-Assert
 
