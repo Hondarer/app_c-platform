@@ -459,11 +459,11 @@ TEST_F(traceFileCoverageTest, write_avoids_current_size_overflow)
         .WillOnce(
             [](const com_util_file *, size_t *size_out, com_util_error *)
             {
-                *size_out = std::numeric_limits<size_t>::max();
+                *size_out = (std::numeric_limits<size_t>::max)();
                 return COM_UTIL_OK;
             });
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "size-overflow.log", std::numeric_limits<size_t>::max(), 1, 0);
+        "size-overflow.log", (std::numeric_limits<size_t>::max)(), 1, 0);
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態] - current_bytes が SIZE_MAX の sink を用意する。
 
     // Pre-Assert
