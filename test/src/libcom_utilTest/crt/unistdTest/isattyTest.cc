@@ -9,7 +9,7 @@ class isattyTest : public Test
 TEST_F(isattyTest, invalid_stream_returns_zero)
 {
     // Arrange
-    /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
+    // 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由)
     int invalid_stream_value = 99;
     com_util_stream invalid_stream = (com_util_stream)invalid_stream_value; // [状態] - 定義外の enum 値 99 とする。
 

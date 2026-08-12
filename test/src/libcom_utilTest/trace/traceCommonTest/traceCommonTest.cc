@@ -285,7 +285,7 @@ TEST(traceCommonTest, propagates_error_for_zero_buffer_size)
 TEST(traceCommonTest, maps_all_trace_levels)
 {
     // Arrange
-    /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
+    // 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由)
     int negative_level_value = -1;
     int too_large_level_value = 999;
     const com_util_trace_level negative_level =

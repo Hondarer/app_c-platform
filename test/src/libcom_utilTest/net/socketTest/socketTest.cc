@@ -116,12 +116,14 @@ TEST_F(socketTest, open_rejects_invalid_arguments)
 {
     // Arrange
     com_util_socket socket = kSocket;
+    // 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由)
+    int invalid_kind_value = COM_UTIL_SOCKET_UDP + 1; // [状態] - 未定義の種別を表す値とする。
 
     // Pre-Assert
 
     // Act
     int rtc_null_output = com_util_socket_open(COM_UTIL_SOCKET_TCP, NULL, NULL); // [手順] - 出力先に NULL を指定する。
-    int rtc_invalid_kind = com_util_socket_open(static_cast<com_util_socket_kind>(COM_UTIL_SOCKET_UDP + 1), &socket,
+    int rtc_invalid_kind = com_util_socket_open(static_cast<com_util_socket_kind>(invalid_kind_value), &socket,
                                                 NULL); // [手順] - 未定義の種別を指定する。
 
     // Assert
