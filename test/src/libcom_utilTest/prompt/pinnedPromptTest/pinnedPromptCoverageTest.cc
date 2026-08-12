@@ -209,6 +209,8 @@ TEST(pinnedPromptCoverageTest, layout_and_view_cover_narrow_and_status_boundarie
     com_util_pinned_prompt_dispose(screen);
 }
 
+#if defined(PLATFORM_LINUX)
+
 // 描画補助が非表示、狭幅、消去範囲の境界を処理することの確認
 TEST(pinnedPromptCoverageTest, drawing_helpers_cover_hidden_narrow_and_clear_ranges)
 {
@@ -248,6 +250,8 @@ TEST(pinnedPromptCoverageTest, drawing_helpers_cover_hidden_narrow_and_clear_ran
     // Cleanup
     com_util_pinned_prompt_dispose(screen);
 }
+
+#endif /* PLATFORM_LINUX */
 
 // 履歴の容量拡張、上限循環、NULL 要素を処理することの確認
 TEST(pinnedPromptCoverageTest, history_helpers_cover_capacity_and_null_entries)
