@@ -269,6 +269,102 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
 #endif /* PLATFORM_LINUX */
 }
 
+// com_util_exit が範囲外 (COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE 以上) の終了コードを
+// COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE へ差し替えることの確認
+TEST_F(shutdownTest, test_com_util_exit_clamps_code_above_range)
+{
+    // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
+
+    // Pre-Assert
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
+
+    // Act
+    // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、下位 8 bit 切り捨てで 0 になる
+    //          com_util_exit(256) を呼び出す。
+    // Assert
+    // [確認_異常系] - 終了コードが COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE (125) へ差し替わり、
+    //                callback にも code=125 のイベントが渡ること。
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif /* PLATFORM_LINUX */
+    EXPECT_EXIT(
+        {
+            _com_util_shutdown_reset_for_test();
+            com_util_shutdown_register(print_callback, NULL);
+            com_util_exit(256);
+        },
+        ::testing::ExitedWithCode(COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE), "reason=0 kind=1 code=125");
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
+}
+
+// com_util_exit が負の終了コードも COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE へ差し替えることの確認
+TEST_F(shutdownTest, test_com_util_exit_clamps_negative_code)
+{
+    // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
+
+    // Pre-Assert
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
+
+    // Act
+    // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(-1) を呼び出す。
+    // Assert
+    // [確認_異常系] - 終了コードが COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE (125) へ差し替わり、
+    //                callback にも code=125 のイベントが渡ること。
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif /* PLATFORM_LINUX */
+    EXPECT_EXIT(
+        {
+            _com_util_shutdown_reset_for_test();
+            com_util_shutdown_register(print_callback, NULL);
+            com_util_exit(-1);
+        },
+        ::testing::ExitedWithCode(COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE), "reason=0 kind=1 code=125");
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
+}
+
+// com_util_exit が範囲上限 (COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1) の終了コードを
+// 差し替えずにそのまま使うことの確認
+TEST_F(shutdownTest, test_com_util_exit_preserves_upper_bound_code)
+{
+    // Arrange
+    // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
+    testing::Mock::AllowLeak(&mock_stdlib_);
+
+    // Pre-Assert
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
+
+    // Act
+    // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、
+    //          範囲上限の com_util_exit(COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1) を呼び出す。
+    // Assert
+    // [確認_正常系] - 終了コード 124 のまま差し替わらずに終了し、callback にも code=124 のイベントが渡ること。
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif /* PLATFORM_LINUX */
+    EXPECT_EXIT(
+        {
+            _com_util_shutdown_reset_for_test();
+            com_util_shutdown_register(print_callback, NULL);
+            com_util_exit(COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1);
+        },
+        ::testing::ExitedWithCode(COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1), "reason=0 kind=1 code=124");
+#if defined(PLATFORM_LINUX)
+    #pragma GCC diagnostic pop
+#endif /* PLATFORM_LINUX */
+}
+
 // 明示的な shutdown 実行後に atexit で二重実行されないことの確認
 TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
 {

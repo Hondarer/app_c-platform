@@ -291,9 +291,16 @@ int com_util_shutdown_register(com_util_shutdown_fn callback, void *context)
 
 void com_util_exit(const int code)
 {
-    s_exit_code = code;
+    int effective_code = code;
+
+    if (code < 0 || code > (COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1))
+    {
+        effective_code = COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE;
+    }
+
+    s_exit_code = effective_code;
     s_exit_code_valid = 1;
-    exit(code);
+    exit(effective_code);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

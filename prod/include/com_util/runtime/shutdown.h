@@ -86,6 +86,15 @@ extern "C"
      */
     typedef void (*com_util_shutdown_fn)(const com_util_shutdown_event *event, void *context);
 
+/**
+ *  @brief          `com_util_exit()` が範囲外の終了コードを差し替える際に使う予約値です。
+ *
+ *  アプリケーションが `com_util_exit()` へ指定できる終了コードは `0` から
+ *  `COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE - 1` (`124`) までです。\n
+ *  この値自体はアプリケーション固有の終了コードとして使用しないでください。
+ */
+#define COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE 125
+
     /**
      *  @brief          終了コールバックを登録します。
      *
@@ -127,22 +136,27 @@ extern "C"
      *
      *  本関数は、`com_util_shutdown_register()` で登録した終了コールバックへ終了コードを渡します。\n
      *  イベントの `code_kind` は `COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE` です。\n
-     *  イベントの `code` は @p code です。
+     *  イベントの `code` は @p code です。範囲外指定により差し替えが発生した場合は、差し替え後の値になります。
      *
      *  @note
      *  @parblock
      *  Linux と Windows の両方で動作し、シェルから利用される CLI では、独自に定義する終了コードに
-     *  0-125 の範囲を推奨します。
+     *  0-124 の範囲を推奨します。
      *
      *  **推奨する終了コード**
      *
      *  - 0: 正常終了。
-     *  - 1-125: アプリケーション固有の失敗。
+     *  - 1-124: アプリケーション固有の失敗。
+     *  - 125: 範囲外の値を指定した場合に自動的に差し替わる予約値 (@ref COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE)。
      *
-     *  本関数は値の範囲を検証しません。\n
-     *  呼び出し側がクロスプラットフォームの終了コード規約として 0-125 を使用してください。
+     *  @p code に `0`-`124` の範囲外 (負数、`125` 以上) を指定した場合、本関数は
+     *  @ref COM_UTIL_EXIT_CODE_RESERVED_OUT_OF_RANGE (`125`) へ差し替えたうえで `exit()` します。\n
+     *  これは、POSIX の `wait()`/`waitpid()` が終了コードの下位 8 bit しか呼び出し元へ伝えないため、
+     *  例えば `256` を指定すると呼び出し元からは `0` (正常終了) として観測されてしまう問題への対策です。\n
+     *  それ以外の範囲検証は行わないため、呼び出し側がクロスプラットフォームの終了コード規約として
+     *  0-124 を使用してください。
      *
-     *  **0-125 を推奨する理由**
+     *  **0-124 を推奨する理由**
      *
      *  POSIX の `wait()` と `waitpid()` から利用できる通常終了コードは、`exit()` などへ渡した値の
      *  下位 8 bit です。\n
