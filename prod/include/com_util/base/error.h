@@ -89,8 +89,8 @@ extern "C"
          *  @brief          Win32 エラー コードを保持しています (Windows 専用)。
          *
          *  @ref com_util_error::code は `GetLastError()` が返す値です。\n
-         *  @ref com_util_error_capture_windows_error()、
-         *  @ref com_util_error_capture_current_windows_error() で設定されます。\n
+         *  `com_util_error_capture_windows_error()`、
+         *  `com_util_error_capture_current_windows_error()` で設定されます。\n
          *  ソケット操作の失敗は、このドメインではなく `WINSOCK` になります。
          */
         COM_UTIL_ERROR_DOMAIN_WINDOWS = 2,
