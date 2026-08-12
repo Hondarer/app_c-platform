@@ -8,10 +8,13 @@
 #include <cstring>
 
 #if defined(PLATFORM_LINUX)
+    #include <mock_signal.h>
     #include <signal.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
 #endif
+
+#include "shutdown.inject.h"
 
 namespace
 {
@@ -426,6 +429,134 @@ TEST_F(shutdownTest, test_sigint_is_reported_to_callback)
         },
         ::testing::ExitedWithCode(0), "reason=2 kind=2 code=2.*after-sigint");
     #pragma GCC diagnostic pop
+}
+
+// callback がないシグナルを最終 shutdown 後に既定処理へ戻すことの確認
+TEST_F(shutdownTest, test_unhandled_signal_invokes_final_callbacks_and_reraises)
+{
+    // Arrange
+    NiceMock<Mock_signal> mock_signal;
+    int id = 1;
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id));
+    EXPECT_CALL(mock_signal, signal(_, _, _, _, SIG_DFL))
+        .WillOnce(Return(SIG_DFL)); // [Pre-Assert確認_正常系] - シグナル処理を既定動作へ戻すこと。
+    EXPECT_CALL(mock_signal, raise(_, _, _, SIGTERM))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - SIGTERM を再送すること。
+
+    // Pre-Assert
+
+    // Act
+    test_shutdown_signal_handler(SIGTERM); // [手順] - callback がない SIGTERM のシグナル ハンドラーを実行する。
+
+    // Assert
+    EXPECT_EQ(1, g_call_count);            // [確認_正常系] - 最終 shutdown callback が 1 回実行されること。
+    EXPECT_EQ(SIGTERM, g_last_event.code); // [確認_正常系] - callback へ SIGTERM の番号が渡ること。
+}
+
+// 処理済みの終了要求ではシグナルの既定処理を再実行しないことの確認
+TEST_F(shutdownTest, test_repeated_signal_request_returns_without_reraise)
+{
+    // Arrange
+    com_util_shutdown_event event =
+        make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER, SIGINT);
+    ASSERT_EQ(COM_UTIL_OK, _com_util_shutdown_request_invoke_for_test(&event, NULL));
+    NiceMock<Mock_signal> mock_signal;
+    EXPECT_CALL(mock_signal, signal(_, _, _, _, _)).Times(0);
+    EXPECT_CALL(mock_signal, raise(_, _, _, _)).Times(0);
+
+    // Pre-Assert
+
+    // Act
+    test_shutdown_signal_handler(SIGINT); // [手順] - 終了要求処理済みの状態で SIGINT のハンドラーを実行する。
+
+    // Assert
+    EXPECT_EQ(0, g_call_count); // [確認_正常系] - callback が追加実行されないこと。
+}
+
+// shutdown API が不正引数とメモリ確保失敗を通知することの確認
+TEST_F(shutdownTest, test_registration_and_invoke_reject_invalid_inputs)
+{
+    // Arrange
+    EXPECT_CALL(mock_stdlib_, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 2 種類の callback 登録で malloc が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int register_null_result =
+        com_util_shutdown_register(NULL, NULL); // [手順] - NULL callback を最終 shutdown へ登録する。
+    int request_register_null_result =
+        com_util_shutdown_request_register(NULL, NULL); // [手順] - NULL callback を終了要求へ登録する。
+    int register_oom_result =
+        com_util_shutdown_register(record_callback, NULL); // [手順] - malloc 失敗時に最終 callback を登録する。
+    int request_register_oom_result = com_util_shutdown_request_register(
+        record_callback, NULL); // [手順] - malloc 失敗時に終了要求 callback を登録する。
+    int invoke_null_result =
+        _com_util_shutdown_invoke_for_test(NULL, NULL); // [手順] - NULL イベントで最終 shutdown を実行する。
+    int request_invoke_null_result =
+        _com_util_shutdown_request_invoke_for_test(NULL, NULL); // [手順] - NULL イベントで終了要求を実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              register_null_result); // [確認_異常系] - com_util_shutdown_register が NULL callback を拒否すること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        request_register_null_result); // [確認_異常系] - com_util_shutdown_request_register が NULL callback を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              register_oom_result); // [確認_異常系] - com_util_shutdown_register がメモリ不足を通知すること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_MEMORY,
+        request_register_oom_result); // [確認_異常系] - com_util_shutdown_request_register がメモリ不足を通知すること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        invoke_null_result); // [確認_異常系] - _com_util_shutdown_invoke_for_test が NULL イベントを拒否すること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        request_invoke_null_result); // [確認_異常系] - _com_util_shutdown_request_invoke_for_test が NULL イベントを拒否すること。
+}
+
+// 最終 shutdown 開始後の終了要求 callback 登録を拒否することの確認
+TEST_F(shutdownTest, test_request_registration_after_final_shutdown_is_rejected)
+{
+    // Arrange
+    com_util_shutdown_event event =
+        make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0);
+    ASSERT_EQ(COM_UTIL_OK, _com_util_shutdown_invoke_for_test(&event, NULL));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_shutdown_request_register(
+        record_callback, NULL); // [手順] - 最終 shutdown 開始後に終了要求 callback を登録する。
+    int request_invoked = 1;
+    int invoke_result = _com_util_shutdown_request_invoke_for_test(
+        &event, &request_invoked); // [手順] - 最終 shutdown 開始後に終了要求 callback の実行を試みる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_shutdown_request_register が COM_UTIL_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        invoke_result); // [確認_正常系] - _com_util_shutdown_request_invoke_for_test の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, request_invoked); // [確認_正常系] - 最終 shutdown 開始後は終了要求 callback が実行されないこと。
+}
+
+// 未実行の callback をテスト状態のリセット時に解放することの確認
+TEST_F(shutdownTest, test_reset_discards_pending_callbacks)
+{
+    // Arrange
+    int id = 1;
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id));
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_request_register(record_callback, &id));
+
+    // Pre-Assert
+
+    // Act
+    _com_util_shutdown_reset_for_test(); // [手順] - 未実行の 2 種類の callback を登録した状態をリセットする。
+
+    // Assert
+    EXPECT_EQ(0, g_call_count); // [確認_正常系] - リセット時に callback が実行されないこと。
 }
 #elif defined(PLATFORM_WINDOWS)
 // コンソール イベントが終了要求 callback へ報告されることの確認

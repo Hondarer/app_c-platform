@@ -28,11 +28,6 @@ static int com_util_copy_path_text(char *path_out, const size_t path_size, com_u
 {
     size_t len;
 
-    if (path_out == NULL || path_size == 0u || text == NULL)
-    {
-        return com_util_error_report_errno(detail_out, EINVAL);
-    }
-
     len = strlen(text);
     if (len + 1u > path_size)
     {
@@ -83,11 +78,6 @@ static int com_util_normalize_absolute_posix_path(char *path)
     size_t write_idx;
     size_t *restore_points;
     size_t restore_count = 0u;
-
-    if (path == NULL || path[0] != PLATFORM_PATH_SEP_CHR)
-    {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-    }
 
     restore_points = (size_t *)calloc(PLATFORM_PATH_MAX, sizeof(*restore_points));
     if (restore_points == NULL)
@@ -143,11 +133,6 @@ static int com_util_normalize_absolute_posix_path(char *path)
         write_idx += seg_len;
     }
 
-    if (write_idx == 0u)
-    {
-        path[0] = PLATFORM_PATH_SEP_CHR;
-        write_idx = 1u;
-    }
     path[write_idx] = '\0';
     free(restore_points);
     return COM_UTIL_OK;
@@ -156,16 +141,6 @@ static int com_util_normalize_absolute_posix_path(char *path)
 static int com_util_build_absolute_posix_path(char *path_out, const size_t path_size, com_util_error *detail_out,
                                               const char *path)
 {
-
-    if (path == NULL || path[0] == '\0')
-    {
-        if (path_out != NULL && path_size > 0u)
-        {
-            path_out[0] = '\0';
-        }
-        return com_util_error_report_errno(detail_out, EINVAL);
-    }
-
     if (path[0] == PLATFORM_PATH_SEP_CHR)
     {
         return com_util_copy_path_text(path_out, path_size, detail_out, path);
@@ -178,10 +153,7 @@ static int com_util_build_absolute_posix_path(char *path_out, const size_t path_
         {
             const int errno_value = errno;
 
-            if (path_out != NULL && path_size > 0u)
-            {
-                path_out[0] = '\0';
-            }
+            path_out[0] = '\0';
             return com_util_error_report_errno(detail_out, errno_value);
         }
 
@@ -291,11 +263,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, com_util_erro
             if (normalize_result != COM_UTIL_OK)
             {
                 path_out[0] = '\0';
-                if (normalize_result == COM_UTIL_ERR_OUT_OF_MEMORY)
-                {
-                    return com_util_error_report_errno(detail_out, ENOMEM);
-                }
-                return com_util_error_report_errno(detail_out, EINVAL);
+                return com_util_error_report_errno(detail_out, ENOMEM);
             }
         }
 

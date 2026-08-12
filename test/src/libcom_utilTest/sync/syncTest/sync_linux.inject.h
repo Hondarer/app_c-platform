@@ -7,6 +7,7 @@
 #if defined(PLATFORM_LINUX)
 
     #include <time.h>
+    #include <com_util/sync/sync.h>
 
     #ifdef __cplusplus
 extern "C"
@@ -15,6 +16,8 @@ extern "C"
 
     extern int test_sync_map_wait_rc(int rc);
     extern void test_sync_monotonic_deadline(struct timespec *abs_ts, int timeout_ms);
+    extern void test_sync_set_local_rwlock_state(com_util_local_rwlock *rwlock, int writer_active,
+                                                 unsigned int active_readers, unsigned int waiting_writers);
 
     #ifdef __cplusplus
 }

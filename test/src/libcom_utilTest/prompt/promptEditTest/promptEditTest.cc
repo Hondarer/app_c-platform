@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 class promptEditTest : public Test
 {
@@ -59,6 +60,21 @@ TEST_F(promptEditTest, prev_boundary_skips_continuation_bytes)
     EXPECT_EQ(1u, pos); // [確認_正常系] - 継続バイトを読み飛ばして日本語文字の先頭である位置 1 が返ること。
 }
 
+// 先頭文字の直後から戻る場合に継続バイト判定を行わないことの確認
+TEST_F(promptEditTest, prev_boundary_stops_after_moving_to_zero)
+{
+    // Arrange
+    const char text[] = "a"; // [状態] - ASCII 1 文字の文字列を用意する。
+
+    // Pre-Assert
+
+    // Act
+    size_t pos = com_util_prompt_edit_utf8_prev_boundary(text, 1u); // [手順] - 位置 1 を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(0u, pos); // [確認_正常系] - 文字列の先頭である位置 0 が返ること。
+}
+
 /*
  * com_util_prompt_edit_utf8_next_boundary
  */
@@ -106,6 +122,21 @@ TEST_F(promptEditTest, next_boundary_skips_continuation_bytes)
 
     // Assert
     EXPECT_EQ(3u, pos); // [確認_正常系] - 継続バイトを読み飛ばして次の文字の先頭である位置 3 が返ること。
+}
+
+// 末尾直前から進む場合に継続バイト判定を行わないことの確認
+TEST_F(promptEditTest, next_boundary_stops_after_moving_to_end)
+{
+    // Arrange
+    const char text[] = "a"; // [状態] - ASCII 1 文字の文字列を用意する。
+
+    // Pre-Assert
+
+    // Act
+    size_t pos = com_util_prompt_edit_utf8_next_boundary(text, 1u, 0u); // [手順] - 位置 0 を指定して呼び出す。
+
+    // Assert
+    EXPECT_EQ(1u, pos); // [確認_正常系] - 文字列の末尾である位置 1 が返ること。
 }
 
 /*
@@ -373,4 +404,28 @@ TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
 
     // Cleanup
     std::free(buf);
+}
+
+// 容量の 2 倍計算がオーバーフローした場合に入力上限を使用することの確認
+TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char dummy = '\0';
+    char *buf = &dummy;
+    const size_t max_size = std::numeric_limits<size_t>::max();
+    size_t cap = (max_size / 2u) + 1u; // [状態] - 2 倍すると size_t の上限を超える容量を指定する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, buf, max_size))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - realloc が size_t の上限を指定して 1 回呼び出されること。
+                                   // [Pre-Assert手順] - realloc から NULL を返却する。
+
+    // Act
+    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, max_size,
+                                                   cap + 1u); // [手順] - 現在容量より 1 byte 大きい必要量を指定する。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ((max_size / 2u) + 1u, cap); // [確認_異常系] - 再確保失敗後も容量が変化しないこと。
 }

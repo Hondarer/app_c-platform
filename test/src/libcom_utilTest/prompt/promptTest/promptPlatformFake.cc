@@ -4,13 +4,14 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "promptPlatformFake.h"
 
 namespace
 {
 
-std::string g_input;
+std::vector<int> g_input;
 size_t g_pos = 0u;
 int g_enter_raw = 0;
 int g_leave_raw = 0;
@@ -22,14 +23,24 @@ int next_byte()
         return -1;
     }
 
-    return static_cast<unsigned char>(g_input[g_pos++]);
+    return g_input[g_pos++];
 }
 
 } // namespace
 
 void promptFakeSetInput(const std::string &bytes)
 {
-    g_input = bytes;
+    g_input.clear();
+    for (char byte : bytes)
+    {
+        g_input.push_back((int)(unsigned char)byte);
+    }
+    g_pos = 0u;
+}
+
+void promptFakeSetResults(const std::vector<int> &results)
+{
+    g_input = results;
     g_pos = 0u;
 }
 

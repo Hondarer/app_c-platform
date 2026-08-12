@@ -69,6 +69,41 @@ TEST_F(pathGetFullTest, returns_einval_for_null_path)
     EXPECT_EQ('\0', path[0]);                         // [確認_異常系] - 出力は空文字列に初期化されること。
 }
 
+// 出力先、出力サイズ、空パスの異常入力が EINVAL になることの確認
+TEST_F(pathGetFullTest, rejects_invalid_output_and_empty_path)
+{
+    // Arrange
+    char zero_size_output = 'x'; // [状態] - サイズ 0 の呼び出しで変更されないことを確認するため 'x' で初期化する。
+    char empty_path_output[8] = "stale"; // [状態] - 空パスの呼び出しで空文字列へ変更されることを確認する。
+    com_util_error null_detail;
+    com_util_error zero_detail;
+    com_util_error empty_detail;
+
+    // Pre-Assert
+
+    // Act
+    int null_result = com_util_path_get_full(
+        NULL, 8u, &null_detail, "."); // [手順] - 出力先に NULL を指定して com_util_path_get_full を呼び出す。
+    int zero_result =
+        com_util_path_get_full(&zero_size_output, 0u, &zero_detail,
+                               "."); // [手順] - 出力サイズに 0 を指定して com_util_path_get_full を呼び出す。
+    int empty_result = com_util_path_get_full(empty_path_output, sizeof(empty_path_output), &empty_detail,
+                                              ""); // [手順] - 空パスを指定して com_util_path_get_full を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_result); // [確認_異常系] - 出力先が NULL の com_util_path_get_full の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_result); // [確認_異常系] - 出力サイズが 0 の com_util_path_get_full の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ('x', zero_size_output); // [確認_異常系] - サイズ 0 の出力先が変更されないこと。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        empty_result); // [確認_異常系] - 空パスを渡した com_util_path_get_full の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("", empty_path_output); // [確認_異常系] - 空パスの失敗時に出力先が空文字列になること。
+}
+
 // カレント ディレクトリが絶対パスへ展開されることの確認
 TEST_F(pathGetFullTest, expands_current_directory_to_absolute_path)
 {
@@ -125,6 +160,47 @@ TEST_F(pathGetFullTest, normalizes_repeated_separators)
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/tmp", actual); // [確認_正常系] - 連続したセパレーターが除去されたパスになること。
+}
+
+// ルートを越える親参照と 2 文字の通常セグメントが正規化されることの確認
+TEST_F(pathGetFullTest, normalizes_parent_above_root_and_two_character_segments)
+{
+    // Arrange
+    char parent_actual[PLATFORM_PATH_MAX] = {};
+    char plain_actual[PLATFORM_PATH_MAX] = {};
+    char leading_dot_actual[PLATFORM_PATH_MAX] = {};
+    char trailing_dot_actual[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+
+    // Act
+    int parent_result = com_util_path_get_full(parent_actual, sizeof(parent_actual), NULL,
+                                               "/../../a"); // [手順] - ルートを越える親参照を含む絶対パスを正規化する。
+    int plain_result = com_util_path_get_full(plain_actual, sizeof(plain_actual), NULL,
+                                              "/ab"); // [手順] - 2 文字の通常セグメントを持つ絶対パスを正規化する。
+    int leading_dot_result =
+        com_util_path_get_full(leading_dot_actual, sizeof(leading_dot_actual), NULL,
+                               "/.x"); // [手順] - 先頭だけがドットの 2 文字セグメントを正規化する。
+    int trailing_dot_result =
+        com_util_path_get_full(trailing_dot_actual, sizeof(trailing_dot_actual), NULL,
+                               "/x."); // [手順] - 末尾だけがドットの 2 文字セグメントを正規化する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              parent_result); // [確認_正常系] - 親参照を含む com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/a", parent_actual); // [確認_正常系] - ルートを越える親参照がルートに留まり "/a" になること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        plain_result); // [確認_正常系] - 2 文字セグメントに対する com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/ab", plain_actual); // [確認_正常系] - 2 文字の通常セグメントが保持されること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        leading_dot_result); // [確認_正常系] - 先頭ドットのセグメントに対する com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/.x", leading_dot_actual); // [確認_正常系] - 先頭だけがドットのセグメントが保持されること。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        trailing_dot_result); // [確認_正常系] - 末尾ドットのセグメントに対する com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/x.", trailing_dot_actual); // [確認_正常系] - 末尾だけがドットのセグメントが保持されること。
 }
 #endif /* PLATFORM_LINUX */
 

@@ -9,6 +9,8 @@
 #include <cerrno>
 #include <thread>
 
+#include "memory_lock.inject.h"
+
 using testing::_;
 using testing::DoAll;
 using testing::NiceMock;
@@ -45,23 +47,34 @@ TEST_F(memoryLockTest, test_range_rejects_invalid_arguments)
 {
     // Arrange
     unsigned char buffer[16] = {}; // [状態] - 16 バイトのバッファーを用意する。
+    int null_address_lock_result;
+    int zero_size_lock_result;
+    int null_address_unlock_result;
+    int zero_size_unlock_result;
 
     // Pre-Assert
 
     // Act
+    null_address_lock_result =
+        com_util_memory_lock_range(NULL, sizeof(buffer)); // [手順] - NULL アドレスを指定して範囲をロックする。
+    zero_size_lock_result = com_util_memory_lock_range(buffer, 0U); // [手順] - サイズ 0 を指定して範囲をロックする。
+    null_address_unlock_result =
+        com_util_memory_unlock_range(NULL, sizeof(buffer)); // [手順] - NULL アドレスを指定して範囲を解除する。
+    zero_size_unlock_result = com_util_memory_unlock_range(buffer, 0U); // [手順] - サイズ 0 を指定して範囲を解除する。
+
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_lock_range(
-                  NULL, sizeof(buffer))); // [確認_異常系] - lock_range (addr NULL) が INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_memory_lock_range(buffer, 0U)); // [確認_異常系] - lock_range (size 0) が INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_unlock_range(
-                  NULL, sizeof(buffer))); // [確認_異常系] - unlock_range (addr NULL) が INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_unlock_range(
-                  buffer, 0U)); // [確認_異常系] - unlock_range (size 0) が INVALID_ARGUMENT を返すこと。
+        null_address_lock_result); // [確認_異常系] - NULL アドレスに対する com_util_memory_lock_range の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_lock_result); // [確認_異常系] - サイズ 0 に対する com_util_memory_lock_range の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_address_unlock_result); // [確認_異常系] - NULL アドレスに対する com_util_memory_unlock_range の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_unlock_result); // [確認_異常系] - サイズ 0 に対する com_util_memory_unlock_range の戻り値が INVALID_ARGUMENT であること。
 }
 
 // ヒープ バッファーの range ロックと解除が成功することの確認
@@ -208,6 +221,229 @@ TEST_F(memoryLockTest, test_lock_self_reports_stack_attribute_failure)
     EXPECT_EQ(nullptr, scope); // [確認_異常系] - stack prefault 失敗時に scope が生成されないこと。
 }
 
+// stack 情報の取得失敗と十分な stack 範囲を分類することの確認
+TEST_F(memoryLockTest, test_prefault_stack_classifies_stack_ranges)
+{
+    // Arrange
+    NiceMock<Mock_pthread> mock_pthread;
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
+        .WillOnce(Return(EINVAL))
+        .WillOnce(DoAll(
+            testing::Invoke(
+                [](const char *, const int, const char *, const pthread_attr_t *, void **stack_addr, size_t *stack_size)
+                {
+                    *stack_addr = nullptr;
+                    *stack_size = static_cast<size_t>(-1);
+                }),
+            Return(0))); // [Pre-Assert確認_正常系] - 2 回目は現在位置を含む十分な stack 範囲を返すこと。
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).Times(2).WillRepeatedly(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    int failure_result =
+        test_memory_lock_prefault_stack(1U); // [手順] - pthread_attr_getstack 失敗時に stack prefault を実行する。
+    int success_result =
+        test_memory_lock_prefault_stack(1U);          // [手順] - 十分な stack 範囲で stack prefault を実行する。
+    test_memory_lock_prefault_stack_recursive(4097U); // [手順] - 2 ページ分の再帰的 stack prefault を実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              failure_result); // [確認_異常系] - test_memory_lock_prefault_stack が属性取得失敗を通知すること。
+    EXPECT_EQ(COM_UTIL_OK,
+              success_result); // [確認_正常系] - test_memory_lock_prefault_stack が十分な stack 範囲で成功すること。
+}
+
+// 現在位置を含まない stack 範囲を制限超過として扱うことの確認
+TEST_F(memoryLockTest, test_prefault_stack_rejects_range_above_current_position)
+{
+    // Arrange
+    NiceMock<Mock_pthread> mock_pthread;
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
+        .WillOnce(DoAll(
+            testing::Invoke(
+                [](const char *, const int, const char *, const pthread_attr_t *, void **stack_addr, size_t *stack_size)
+                {
+                    *stack_addr = reinterpret_cast<void *>(static_cast<uintptr_t>(-1));
+                    *stack_size = 0U;
+                }),
+            Return(0))); // [Pre-Assert確認_異常系] - 現在位置より上の空 stack 範囲を返すこと。
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).WillOnce(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    int result = test_memory_lock_prefault_stack(1U); // [手順] - 現在位置を含まない stack 範囲で prefault を実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              result); // [確認_異常系] - test_memory_lock_prefault_stack が COM_UTIL_ERR_LIMIT_EXCEEDED を返すこと。
+}
+
+// Linux の self lock flag を各 native flag へ変換することの確認
+TEST_F(memoryLockTest, test_convert_flags_covers_each_flag_combination)
+{
+    // Arrange
+    int native_flags = 0;
+
+    // Pre-Assert
+
+    // Act
+    int zero_result = test_memory_lock_convert_flags(0, &native_flags);        // [手順] - flag 0 を変換する。
+    int unknown_result = test_memory_lock_convert_flags(0x100, &native_flags); // [手順] - 未定義 flag を変換する。
+    int current_result = test_memory_lock_convert_flags(COM_UTIL_MEMORY_LOCK_CURRENT,
+                                                        &native_flags); // [手順] - CURRENT flag を変換する。
+    int future_result =
+        test_memory_lock_convert_flags(COM_UTIL_MEMORY_LOCK_FUTURE, &native_flags); // [手順] - FUTURE flag を変換する。
+    int onfault_result = test_memory_lock_convert_flags(COM_UTIL_MEMORY_LOCK_ONFAULT,
+                                                        &native_flags); // [手順] - ONFAULT flag を変換する。
+    int null_output_result = test_memory_lock_convert_flags(COM_UTIL_MEMORY_LOCK_CURRENT,
+                                                            NULL); // [手順] - native flag の出力先を省略して変換する。
+
+    // Assert
+    EXPECT_EQ(-1, zero_result);       // [確認_異常系] - test_memory_lock_convert_flags が flag 0 を拒否すること。
+    EXPECT_EQ(-1, unknown_result);    // [確認_異常系] - test_memory_lock_convert_flags が未定義 flag を拒否すること。
+    EXPECT_EQ(0, current_result);     // [確認_正常系] - CURRENT flag の変換が成功すること。
+    EXPECT_EQ(0, future_result);      // [確認_正常系] - FUTURE flag の変換が成功すること。
+    EXPECT_EQ(0, onfault_result);     // [確認_正常系] - ONFAULT flag の変換が成功すること。
+    EXPECT_EQ(0, null_output_result); // [確認_正常系] - 出力先を省略した変換が成功すること。
+}
+
+// 内部 local lock の生成失敗と取得失敗を通知することの確認
+TEST_F(memoryLockTest, test_internal_lock_classifies_initialization_and_lock_failures)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_local_lock *saved_lock = test_memory_lock_get_internal_lock();
+    int saved_state = test_memory_lock_get_once_state();
+    test_memory_lock_set_internal_lock(NULL, 2);
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int missing_result = test_memory_lock_internal_lock(); // [手順] - 内部 local lock が存在しない状態で取得する。
+    test_memory_lock_internal_unlock();                    // [手順] - 内部 local lock が存在しない状態で解放する。
+    test_memory_lock_set_internal_lock(reinterpret_cast<com_util_local_lock *>(1), 2);
+    int lock_failure_result = test_memory_lock_internal_lock(); // [手順] - 内部 local lock の取得失敗を発生させる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              missing_result); // [確認_異常系] - test_memory_lock_internal_lock が未初期化を通知すること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              lock_failure_result); // [確認_異常系] - test_memory_lock_internal_lock が取得失敗を通知すること。
+
+    // Cleanup
+    test_memory_lock_set_internal_lock(saved_lock, saved_state);
+}
+
+// self lock scope の内部状態不整合と参照数を分類することの確認
+TEST_F(memoryLockTest, test_scope_release_classifies_internal_states)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_local_lock *saved_lock = test_memory_lock_get_internal_lock();
+    int saved_state = test_memory_lock_get_once_state();
+    test_memory_lock_set_internal_lock(reinterpret_cast<com_util_local_lock *>(1), 2);
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_OK))
+        .WillOnce(Return(COM_UTIL_OK))
+        .WillOnce(Return(COM_UTIL_OK))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_)).Times(3).WillRepeatedly(Return(COM_UTIL_OK));
+    NiceMock<Mock_sys_mman> mock_mman;
+    EXPECT_CALL(mock_mman, munlockall(_, _, _)).WillOnce(Return(0));
+    com_util_memory_lock_scope *unlocked_scope = test_memory_lock_create_scope(0);
+    com_util_memory_lock_scope *empty_count_scope = test_memory_lock_create_scope(1);
+    com_util_memory_lock_scope *shared_scope = test_memory_lock_create_scope(1);
+    com_util_memory_lock_scope *lock_failure_scope = test_memory_lock_create_scope(1);
+    com_util_memory_lock_scope *last_scope = test_memory_lock_create_scope(1);
+    ASSERT_NE(nullptr, unlocked_scope);
+    ASSERT_NE(nullptr, empty_count_scope);
+    ASSERT_NE(nullptr, shared_scope);
+    ASSERT_NE(nullptr, lock_failure_scope);
+    ASSERT_NE(nullptr, last_scope);
+
+    // Pre-Assert
+
+    // Act
+    int unlocked_result =
+        com_util_memory_lock_scope_release(unlocked_scope); // [手順] - mlockall 未実行の scope を解放する。
+    test_memory_lock_set_scope_count(0U);
+    int empty_count_result =
+        com_util_memory_lock_scope_release(empty_count_scope); // [手順] - 参照数 0 の mlockall scope を解放する。
+    test_memory_lock_set_scope_count(2U);
+    int shared_result =
+        com_util_memory_lock_scope_release(shared_scope); // [手順] - 複数参照中の mlockall scope を解放する。
+    test_memory_lock_set_scope_count(1U);
+    int last_result =
+        com_util_memory_lock_scope_release(last_scope); // [手順] - 最後の mlockall scope を正常に解放する。
+    int lock_failure_result = com_util_memory_lock_scope_release(
+        lock_failure_scope); // [手順] - 内部 local lock の取得失敗中に scope を解放する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, unlocked_result); // [確認_正常系] - mlockall 未実行 scope の解放が成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              empty_count_result);         // [確認_異常系] - 参照数 0 の解放が内部状態不整合を通知すること。
+    EXPECT_EQ(COM_UTIL_OK, shared_result); // [確認_正常系] - 複数参照中の scope 解放が成功すること。
+    EXPECT_EQ(COM_UTIL_OK, last_result);   // [確認_正常系] - 最後の scope 解放と munlockall が成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              lock_failure_result); // [確認_異常系] - 内部 local lock の取得失敗が通知されること。
+
+    // Cleanup
+    test_memory_lock_set_scope_count(0U);
+    test_memory_lock_set_internal_lock(saved_lock, saved_state);
+}
+
+// self lock の内部 local lock 取得失敗を通知することの確認
+TEST_F(memoryLockTest, test_lock_self_reports_internal_lock_failure)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    NiceMock<Mock_sys_mman> mock_mman;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
+    EXPECT_CALL(mock_mman, mlockall(_, _, _, _)).Times(0);
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_memory_lock_self(&options, &scope); // [手順] - 内部 local lock の取得失敗を注入する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);         // [確認_異常系] - com_util_memory_lock_self が内部 lock 取得失敗を通知すること。
+    EXPECT_EQ(nullptr, scope); // [確認_異常系] - 内部 lock 取得失敗時に scope が NULL のままであること。
+}
+
+// self lock scope の確保失敗を通知することの確認
+TEST_F(memoryLockTest, test_lock_self_reports_scope_allocation_failure)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_memory_lock_self_options options = {};
+    com_util_memory_lock_scope *scope = nullptr;
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - scope の calloc が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_memory_lock_self(&options, &scope); // [手順] - scope のメモリ確保失敗を注入する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);         // [確認_異常系] - com_util_memory_lock_self がメモリ確保失敗を通知すること。
+    EXPECT_EQ(nullptr, scope); // [確認_異常系] - メモリ確保失敗時に scope が NULL のままであること。
+}
+
 // stack の取得範囲が安全余白を満たさない場合に制限超過を返すことの確認
 TEST_F(memoryLockTest, test_lock_self_rejects_insufficient_stack_range)
 {
@@ -250,23 +486,35 @@ TEST_F(memoryLockTest, test_lock_self_rejects_invalid_arguments)
     com_util_memory_lock_self_options options = {};
     options.flags =
         COM_UTIL_MEMORY_LOCK_CURRENT; // [状態] - flags を COM_UTIL_MEMORY_LOCK_CURRENT としたオプションを用意する。
+    int null_options_result;
+    int null_output_result;
+    int zero_flags_result;
+    int unknown_flags_result;
 
     // Pre-Assert
 
     // Act
+    null_options_result = com_util_memory_lock_self(NULL, &scope);  // [手順] - NULL options で self lock を生成する。
+    null_output_result = com_util_memory_lock_self(&options, NULL); // [手順] - NULL 出力先で self lock を生成する。
+    options.flags = 0;
+    zero_flags_result = com_util_memory_lock_self(&options, &scope); // [手順] - flags 0 で self lock を生成する。
+    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT | 0x100;
+    unknown_flags_result =
+        com_util_memory_lock_self(&options, &scope); // [手順] - 未定義フラグ 0x100 で self lock を生成する。
+
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_lock_self(NULL, &scope)); // [確認_異常系] - options NULL が INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_memory_lock_self(&options, NULL)); // [確認_異常系] - scope_out NULL が INVALID_ARGUMENT を返すこと。
-    options.flags = 0;
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_lock_self(&options, &scope)); // [確認_異常系] - flags 0 が INVALID_ARGUMENT を返すこと。
-    options.flags = COM_UTIL_MEMORY_LOCK_CURRENT | 0x100;
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_memory_lock_self(&options,
-                                        &scope)); // [確認_異常系] - 未定義フラグ 0x100 が INVALID_ARGUMENT を返すこと。
+        null_options_result); // [確認_異常系] - NULL options に対する com_util_memory_lock_self の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_output_result); // [確認_異常系] - NULL 出力先に対する com_util_memory_lock_self の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_flags_result); // [確認_異常系] - flags 0 に対する com_util_memory_lock_self の戻り値が INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        unknown_flags_result); // [確認_異常系] - 未定義フラグ 0x100 に対する com_util_memory_lock_self の戻り値が INVALID_ARGUMENT であること。
 }
 
 // scope 解放が NULL を受理することの確認
@@ -356,20 +604,30 @@ TEST_F(memoryLockTest, test_lock_self_rejects_unsupported_flags_on_windows)
     // Arrange
     com_util_memory_lock_scope *scope = nullptr;
     com_util_memory_lock_self_options options = {}; // [状態] - 空のオプションを用意する。
+    int future_result;
+    int onfault_result;
+    int combined_result;
 
     // Pre-Assert
 
     // Act
-    // Assert
     options.flags = COM_UTIL_MEMORY_LOCK_FUTURE;
-    EXPECT_EQ(COM_UTIL_ERR_UNSUPPORTED,
-              com_util_memory_lock_self(&options, &scope)); // [確認_異常系] - FUTURE フラグが UNSUPPORTED になること。
+    future_result = com_util_memory_lock_self(&options, &scope); // [手順] - FUTURE フラグで self lock を生成する。
     options.flags = COM_UTIL_MEMORY_LOCK_ONFAULT;
-    EXPECT_EQ(COM_UTIL_ERR_UNSUPPORTED,
-              com_util_memory_lock_self(&options, &scope)); // [確認_異常系] - ONFAULT フラグが UNSUPPORTED になること。
+    onfault_result = com_util_memory_lock_self(&options, &scope); // [手順] - ONFAULT フラグで self lock を生成する。
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT | COM_UTIL_MEMORY_LOCK_FUTURE;
-    EXPECT_EQ(COM_UTIL_ERR_UNSUPPORTED,
-              com_util_memory_lock_self(&options,
-                                        &scope)); // [確認_異常系] - CURRENT と FUTURE の併用が UNSUPPORTED になること。
+    combined_result =
+        com_util_memory_lock_self(&options, &scope); // [手順] - CURRENT と FUTURE の組み合わせで self lock を生成する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNSUPPORTED,
+        future_result); // [確認_異常系] - FUTURE フラグに対する com_util_memory_lock_self の戻り値が UNSUPPORTED であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNSUPPORTED,
+        onfault_result); // [確認_異常系] - ONFAULT フラグに対する com_util_memory_lock_self の戻り値が UNSUPPORTED であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNSUPPORTED,
+        combined_result); // [確認_異常系] - CURRENT と FUTURE の組み合わせに対する com_util_memory_lock_self の戻り値が UNSUPPORTED であること。
 }
 #endif

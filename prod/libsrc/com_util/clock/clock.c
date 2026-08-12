@@ -84,18 +84,13 @@ static int64_t clock_days_from_civil(const int year, const unsigned month, const
     return (int64_t)era * 146097 + (int64_t)doe - 719468;
 }
 
-static int clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *utc_tm, int *offset_minutes)
+static void clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *utc_tm, int *offset_minutes)
 {
     int64_t local_days;
     int64_t utc_days;
     int local_seconds;
     int utc_seconds;
     int64_t delta_seconds;
-
-    if (local_tm == NULL || utc_tm == NULL || offset_minutes == NULL)
-    {
-        return -1;
-    }
 
     local_days =
         clock_days_from_civil(local_tm->tm_year + 1900, (unsigned)local_tm->tm_mon + 1, (unsigned)local_tm->tm_mday);
@@ -105,13 +100,12 @@ static int clock_utc_offset_minutes(const struct tm *local_tm, const struct tm *
     delta_seconds = (local_days - utc_days) * SEC_PER_DAY + (local_seconds - utc_seconds);
 
     *offset_minutes = (int)(delta_seconds / 60);
-    return 0;
 }
 
 static int clock_format_iso8601_utc_from_tm(char *buf, const size_t buf_size, const struct tm *utc_tm,
                                             const int64_t tv_nsec)
 {
-    if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1) || utc_tm == NULL)
+    if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_UTC_MSEC_LEN + 1))
     {
         return -1;
     }
@@ -136,7 +130,7 @@ static int clock_format_iso8601_local_from_tm(char *buf, const size_t buf_size, 
     int offset_hours;
     int offset_mins;
 
-    if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1) || local_tm == NULL)
+    if (buf == NULL || buf_size < (size_t)(COM_UTIL_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1))
     {
         return -1;
     }
@@ -244,9 +238,13 @@ int com_util_format_realtime_iso8601_local(char *buf, const size_t buf_size, con
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    if (com_util_localtime(&local_tm, &timestamp->tv_sec) != 0 || com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0 ||
-        clock_utc_offset_minutes(&local_tm, &utc_tm, &offset_minutes) != 0 ||
-        clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, timestamp->tv_nsec, offset_minutes) != 0)
+    if (com_util_localtime(&local_tm, &timestamp->tv_sec) != 0 || com_util_gmtime(&utc_tm, &timestamp->tv_sec) != 0)
+    {
+        clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
+        return COM_UTIL_ERR_UNKNOWN;
+    }
+    clock_utc_offset_minutes(&local_tm, &utc_tm, &offset_minutes);
+    if (clock_format_iso8601_local_from_tm(buf, buf_size, &local_tm, timestamp->tv_nsec, offset_minutes) != 0)
     {
         clock_write_fallback(buf, buf_size, s_iso8601_local_fallback);
         return COM_UTIL_ERR_UNKNOWN;

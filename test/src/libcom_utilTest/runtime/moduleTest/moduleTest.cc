@@ -467,4 +467,61 @@ TEST_F(moduleTest, extension_cut_returns_null_for_short_name)
     EXPECT_EQ(nullptr, cut); // [確認_正常系] - 比較対象に満たないため NULL が返ること。
 }
 
+// 任意パスの共有ライブラリ拡張子と通常拡張子を除去することの確認
+TEST_F(moduleTest, basename_core_handles_shared_and_regular_extensions)
+{
+    // Arrange
+    char shared_basename[32] = {};
+    char regular_basename[32] = {};
+
+    // Pre-Assert
+
+    // Act
+    int shared_result =
+        test_get_basename_from_path(shared_basename, sizeof(shared_basename),
+                                    "/usr/lib/libsample.so.1"); // [手順] - バージョン付き共有ライブラリ名を取得する。
+    int regular_result = test_get_basename_from_path(
+        regular_basename, sizeof(regular_basename), "/usr/bin/sample.txt"); // [手順] - 通常拡張子を持つ名前を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              shared_result); // [確認_正常系] - 共有ライブラリ名取得の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("libsample", shared_basename); // [確認_正常系] - バージョン付き .so が除去されること。
+    EXPECT_EQ(COM_UTIL_OK,
+              regular_result);                // [確認_正常系] - 通常拡張子名取得の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("sample", regular_basename); // [確認_正常系] - 通常拡張子が除去されること。
+}
+
+// basename 内部処理が空文字列と容量不足を分類することの確認
+TEST_F(moduleTest, basename_core_rejects_empty_and_small_outputs)
+{
+    // Arrange
+    char empty_basename[8] = {'x'};
+    char shared_basename[4] = {'x'};
+    char regular_basename[4] = {'x'};
+
+    // Pre-Assert
+
+    // Act
+    int empty_result = test_get_basename_from_path(empty_basename, sizeof(empty_basename),
+                                                   ""); // [手順] - 空のパスから basename を取得する。
+    int shared_result =
+        test_get_basename_from_path(shared_basename, sizeof(shared_basename),
+                                    "libsample.so"); // [手順] - 容量不足の出力先へ共有ライブラリ名を取得する。
+    int regular_result =
+        test_get_basename_from_path(regular_basename, sizeof(regular_basename),
+                                    "sample.txt"); // [手順] - 容量不足の出力先へ通常拡張子名を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              empty_result);          // [確認_異常系] - 空パスの戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_STREQ("", empty_basename); // [確認_異常系] - 空パス時の出力が空文字列であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              shared_result);          // [確認_異常系] - 共有ライブラリ名の容量不足が BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("", shared_basename); // [確認_異常系] - 共有ライブラリ名の容量不足時に出力が空であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              regular_result);          // [確認_異常系] - 通常拡張子名の容量不足が BUFFER_TOO_SMALL であること。
+    EXPECT_STREQ("", regular_basename); // [確認_異常系] - 通常拡張子名の容量不足時に出力が空であること。
+}
+
 #endif /* PLATFORM_LINUX */

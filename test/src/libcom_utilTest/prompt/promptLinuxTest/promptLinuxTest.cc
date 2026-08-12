@@ -183,6 +183,36 @@ TEST_F(promptLinuxTest, enter_raw_is_ignored_while_already_raw)
     handle_.raw_active = 0;
 }
 
+// SIGWINCH ハンドラーの登録済み状態を保持して raw モードへ移行することの確認
+TEST_F(promptLinuxTest, enter_raw_does_not_reinstall_sigwinch_handler)
+{
+    // Arrange
+    NiceMock<Mock_termios> mock_termios;
+    struct termios original = {};
+
+    test_prompt_set_sigwinch_installed(1); // [状態] - SIGWINCH ハンドラーを登録済みの状態とする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    // [Pre-Assert確認_正常系] - tcgetattr が標準入力を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - tcgetattr が元の端末設定を返却する。
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).WillOnce(Return(0));
+    // [Pre-Assert確認_正常系] - tcsetattr が標準入力を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - tcsetattr が 0 を返却する。
+
+    // Act
+    prompt_platform_enter_raw(&handle_); // [手順] - 登録済み状態で prompt_platform_enter_raw を呼び出す。
+
+    // Assert
+    EXPECT_EQ(1, handle_.raw_active); // [確認_正常系] - raw モードが有効になること。
+    EXPECT_EQ(1, test_prompt_sigwinch_installed()); // [確認_正常系] - SIGWINCH ハンドラーの登録済み状態が維持されること。
+
+    // Cleanup
+    handle_.raw_active = 0;
+    test_prompt_set_sigwinch_installed(0);
+}
+
 // raw モードでないときの復帰が何もしないことの確認
 TEST_F(promptLinuxTest, leave_raw_is_ignored_when_not_raw)
 {
@@ -196,6 +226,28 @@ TEST_F(promptLinuxTest, leave_raw_is_ignored_when_not_raw)
 
     // Assert
     EXPECT_EQ(0, handle_.raw_active); // [確認_正常系] - raw モードの状態が変化しないこと。
+}
+
+// SIGWINCH ハンドラーが未登録でも raw モードを解除できることの確認
+TEST_F(promptLinuxTest, leave_raw_handles_uninstalled_sigwinch_handler)
+{
+    // Arrange
+    NiceMock<Mock_termios> mock_termios;
+
+    handle_.raw_active = 1;
+    test_prompt_set_sigwinch_installed(0); // [状態] - raw モード中で SIGWINCH ハンドラーが未登録の状態とする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).WillOnce(Return(0));
+    // [Pre-Assert確認_正常系] - tcsetattr が標準入力を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - tcsetattr が 0 を返却する。
+
+    // Act
+    prompt_platform_leave_raw(&handle_); // [手順] - 未登録状態で prompt_platform_leave_raw を呼び出す。
+
+    // Assert
+    EXPECT_EQ(0, handle_.raw_active); // [確認_正常系] - raw モードが無効になること。
+    EXPECT_EQ(0, test_prompt_sigwinch_installed()); // [確認_正常系] - SIGWINCH ハンドラーの未登録状態が維持されること。
 }
 
 // SIGWINCH の受信がリサイズ待ちとして記録されることの確認

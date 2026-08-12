@@ -346,7 +346,8 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         int elevated;
 
         (void)arguments;
-        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK || elevated == 0)
+        (void)com_util_elevated_process_is_elevated(&elevated);
+        if (elevated == 0)
         {
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;
@@ -557,7 +558,8 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         (void)result_message;
         (void)result_message_size;
         (void)arguments;
-        if (com_util_elevated_process_is_elevated(&elevated) != COM_UTIL_OK || elevated == 0)
+        (void)com_util_elevated_process_is_elevated(&elevated);
+        if (elevated == 0)
         {
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;

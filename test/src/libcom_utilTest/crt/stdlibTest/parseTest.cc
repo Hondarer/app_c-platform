@@ -288,16 +288,24 @@ TEST_F(parseTest, parse_int_boundary_values)
 TEST_F(parseTest, parse_int_out_of_range)
 {
     // Arrange
-    int value = 0; // [状態] - 変換結果の格納先を 0 で初期化する。
+    int upper_value = 0;
+    int lower_value = 0; // [状態] - 上限超過用と下限超過用の格納先を 0 で初期化する。
 
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int(&value, "2147483648", 10); // [手順] - INT_MAX を 1 超える 2147483648 を渡す。
+    int upper_ret =
+        com_util_parse_int(&upper_value, "2147483648", 10); // [手順] - INT_MAX を 1 超える 2147483648 を渡す。
+    int lower_ret =
+        com_util_parse_int(&lower_value, "-2147483649", 10); // [手順] - INT_MIN を 1 下回る -2147483649 を渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              ret); // [確認_異常系] - com_util_parse_int の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_RANGE,
+        upper_ret); // [確認_異常系] - INT_MAX を超える値を渡した com_util_parse_int の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_RANGE,
+        lower_ret); // [確認_異常系] - INT_MIN を下回る値を渡した com_util_parse_int の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // 浮動小数の文字列が変換されることの確認
@@ -346,6 +354,41 @@ TEST_F(parseTest, parse_double_invalid_text)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
               ret); // [確認_異常系] - com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+}
+
+// 空文字列が浮動小数として変換されないことの確認
+TEST_F(parseTest, parse_double_rejects_empty_text)
+{
+    // Arrange
+    double value = 0.0; // [状態] - 変換結果の格納先を 0.0 で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_parse_double(&value, ""); // [手順] - 空文字列を com_util_parse_double に渡す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_INTEGER,
+        ret); // [確認_異常系] - 空文字列を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+}
+
+// 数値の後ろに文字が残る浮動小数文字列が拒否されることの確認
+TEST_F(parseTest, parse_double_rejects_trailing_garbage)
+{
+    // Arrange
+    double value = 0.0; // [状態] - 変換結果の格納先を 0.0 で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int ret = com_util_parse_double(&value,
+                                    "1.5x"); // [手順] - 数値の後ろに文字が残る "1.5x" を com_util_parse_double に渡す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_INTEGER,
+        ret); // [確認_異常系] - 末尾に文字が残る入力を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // double の範囲を超える入力が範囲外エラーになることの確認
@@ -403,6 +446,23 @@ TEST_F(parseTest, parse_uint64_trailing_garbage)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
               rtc); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+}
+
+// 空文字列が符号なし整数として変換されないことの確認
+TEST_F(parseTest, parse_uint64_rejects_empty_text)
+{
+    // Arrange
+    uint64_t value = 0u; // [状態] - 変換結果の格納先を 0 で初期化する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_parse_uint64(&value, "", 10); // [手順] - 空文字列を com_util_parse_uint64 に渡す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_INTEGER,
+        rtc); // [確認_異常系] - 空文字列を渡した com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // com_util_parse_uint64 が uint64_t の範囲を超える入力を拒否することの確認

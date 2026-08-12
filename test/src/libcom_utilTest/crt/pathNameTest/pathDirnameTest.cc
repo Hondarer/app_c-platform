@@ -153,6 +153,26 @@ TEST_F(pathDirnameTest, returns_einval_for_zero_path_size)
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
+// NULL path で EINVAL が返ることの確認
+TEST_F(pathDirnameTest, returns_einval_for_null_path)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+    com_util_error err;             // [状態] - 詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+                                    NULL); // [手順] - path に NULL を指定して com_util_path_dirname を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc); // [確認_異常系] - path が NULL の com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
+}
+
 // 空文字列パスで EINVAL が返ることの確認
 TEST_F(pathDirnameTest, returns_einval_for_empty_path)
 {

@@ -67,6 +67,27 @@ TEST_F(pathStripExtensionTest, returns_einval_for_null_path_out)
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
+// path_size が 0 の場合に EINVAL が返ることの確認
+TEST_F(pathStripExtensionTest, returns_einval_for_zero_path_size)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+    com_util_error err;             // [状態] - 詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_path_strip_extension(
+        actual, 0u, &err,
+        "a.txt"); // [手順] - path_size に 0 を指定して com_util_path_strip_extension を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rtc); // [確認_異常系] - path_size が 0 の com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
+}
+
 // NULL path で EINVAL が返ることの確認
 TEST_F(pathStripExtensionTest, returns_einval_for_null_path)
 {

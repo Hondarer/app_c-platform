@@ -92,3 +92,79 @@ TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
               result);         // [確認_異常系] - import の戻り値が COM_UTIL_ERR_UNKNOWN になること。
     EXPECT_EQ(NULL, identity); // [確認_異常系] - identity が設定されないこと。
 }
+
+TEST(syncDescriptorTest, reports_required_size_for_absent_and_small_buffers)
+{
+    // Arrange
+    unsigned char descriptor[64] = {0};
+    size_t absent_size = 0U;
+    size_t small_size = 1U;
+
+    // Pre-Assert
+
+    // Act
+    int absent_result = interprocess_sync_descriptor_export(
+        "identity", 1U, 1U, NULL, &absent_size); // [手順] - descriptor を省略して必要サイズを問い合わせる。
+    int small_result = interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor,
+                                                           &small_size); // [手順] - 容量不足の descriptor へ出力する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              absent_result); // [確認_正常系] - descriptor 省略時の戻り値が BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
+              small_result);            // [確認_異常系] - descriptor 容量不足時の戻り値が BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(absent_size, small_size); // [確認_正常系] - 両方の呼び出しが同じ必要サイズを返すこと。
+}
+
+TEST(syncDescriptorTest, rejects_each_corrupt_header_field)
+{
+    // Arrange
+    unsigned char descriptor[64] = {0};
+    unsigned char original[64] = {0};
+    size_t descriptor_size = sizeof(descriptor);
+    char *identity = NULL;
+    ASSERT_EQ(COM_UTIL_OK, interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor, &descriptor_size));
+    memcpy(original, descriptor, descriptor_size);
+
+    // Pre-Assert
+
+    // Act
+    int short_header_result =
+        interprocess_sync_descriptor_import(descriptor, INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE - 1U, 1U, 1U,
+                                            &identity); // [手順] - ヘッダーより短い descriptor を import する。
+    descriptor[0] ^= 0xffU;
+    int magic_result = interprocess_sync_descriptor_import(
+        descriptor, descriptor_size, 1U, 1U, &identity); // [手順] - magic が異なる descriptor を import する。
+    memcpy(descriptor, original, descriptor_size);
+    descriptor[4]++;
+    int version_result = interprocess_sync_descriptor_import(
+        descriptor, descriptor_size, 1U, 1U, &identity); // [手順] - version が異なる descriptor を import する。
+    memcpy(descriptor, original, descriptor_size);
+    descriptor[5]++;
+    int kind_result = interprocess_sync_descriptor_import(
+        descriptor, descriptor_size, 1U, 1U, &identity); // [手順] - kind が異なる descriptor を import する。
+    memcpy(descriptor, original, descriptor_size);
+    descriptor[6]++;
+    int backend_result = interprocess_sync_descriptor_import(
+        descriptor, descriptor_size, 1U, 1U, &identity); // [手順] - backend が異なる descriptor を import する。
+    memcpy(descriptor, original, descriptor_size);
+    descriptor[8]++;
+    int length_result = interprocess_sync_descriptor_import(
+        descriptor, descriptor_size, 1U, 1U,
+        &identity); // [手順] - identity 長と全体サイズが異なる descriptor を import する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              short_header_result); // [確認_異常系] - 短いヘッダーが CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              magic_result); // [確認_異常系] - magic 不一致が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              version_result); // [確認_異常系] - version 不一致が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              kind_result); // [確認_異常系] - kind 不一致が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              backend_result); // [確認_異常系] - backend 不一致が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              length_result);  // [確認_異常系] - identity 長不一致が CORRUPT_DESCRIPTOR になること。
+    EXPECT_EQ(NULL, identity); // [確認_異常系] - 不正 descriptor から identity が生成されないこと。
+}

@@ -31,6 +31,16 @@
 #endif /* PLATFORM_WINDOWS */
 #include <string.h>
 
+#if defined(PLATFORM_LINUX)
+static void wait_for_entry_lock_initialization(com_util_sym_loader_entry *fobj)
+{
+    (void)fobj;
+    sched_yield();
+}
+
+static void (*s_entry_lock_wait_hook)(com_util_sym_loader_entry *fobj) = wait_for_entry_lock_initialization;
+#endif /* PLATFORM_LINUX */
+
 static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
 {
 #if defined(PLATFORM_LINUX)
@@ -49,7 +59,7 @@ static int ensure_entry_lock_initialized(com_util_sym_loader_entry *fobj)
 
     while ((expected = __atomic_load_n(&fobj->lock_state, __ATOMIC_ACQUIRE)) == 1)
     {
-        sched_yield();
+        s_entry_lock_wait_hook(fobj);
     }
 
     if (expected == 2)

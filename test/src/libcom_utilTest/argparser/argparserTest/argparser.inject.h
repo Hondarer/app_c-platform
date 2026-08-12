@@ -31,6 +31,9 @@ extern "C"
     /* 登録エラー対象の既定値分岐を確認するためのテスト用設定関数。 */
     extern void test_argparser_clear_register_error_target(com_util_argparser *parser, size_t index);
 
+    /* 登録結果記録の早期終了条件を直接確認するためのテスト用関数。 */
+    extern void test_argparser_record_register_result(com_util_argparser *parser, int result);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

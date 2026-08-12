@@ -239,7 +239,7 @@ int com_util_parse_int64(int64_t *value_out, const char *text, const int base)
     parsed = strtoll(text, &end, base);
 
     /* end == text は 1 文字も変換できなかったことを表す。空文字列はこの条件だけで検出される。 */
-    if (end == NULL || end == text || *end != '\0')
+    if (end == text || *end != '\0')
     {
         return COM_UTIL_ERR_INVALID_INTEGER;
     }
@@ -290,7 +290,7 @@ int com_util_parse_uint64(uint64_t *value_out, const char *text, const int base)
     errno = 0;
     parsed = strtoull(text, &end, base);
 
-    if (end == NULL || end == text || *end != '\0')
+    if (end == text || *end != '\0')
     {
         return COM_UTIL_ERR_INVALID_INTEGER;
     }
@@ -356,7 +356,7 @@ int com_util_parse_double(double *value_out, const char *text)
     errno = 0;
     parsed = strtod(text, &end);
 
-    if (end == NULL || end == text || *end != '\0')
+    if (end == text || *end != '\0')
     {
         return COM_UTIL_ERR_INVALID_INTEGER;
     }

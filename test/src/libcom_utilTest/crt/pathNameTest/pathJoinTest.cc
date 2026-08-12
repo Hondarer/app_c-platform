@@ -42,6 +42,40 @@ TEST_F(pathJoinTest, collapses_duplicate_separators_at_boundary)
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 重複セパレータが畳まれて "a/b" になること。
 }
 
+// 前の断片だけがセパレータで終わる場合に補完せず結合されることの確認
+TEST_F(pathJoinTest, preserves_trailing_separator_at_boundary)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_path_join(actual, sizeof(actual), NULL, "a/",
+                                 "b"); // [手順] - 末尾だけにセパレータを持つ断片を com_util_path_join で結合する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("a/b", actual); // [確認_正常系] - 既存の末尾セパレータを使って "a/b" が返ること。
+}
+
+// 後ろの断片だけがセパレータで始まる場合に補完せず結合されることの確認
+TEST_F(pathJoinTest, preserves_leading_separator_at_boundary)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_path_join(actual, sizeof(actual), NULL, "a",
+                                 "/b"); // [手順] - 先頭だけにセパレータを持つ断片を com_util_path_join で結合する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_join の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("a/b", actual); // [確認_正常系] - 既存の先頭セパレータを使って "a/b" が返ること。
+}
+
 // 先頭断片の絶対パス性が保持されることの確認
 TEST_F(pathJoinTest, preserves_absolute_first_fragment)
 {

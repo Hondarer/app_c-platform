@@ -2188,6 +2188,28 @@ TEST_F(argparserTest, default_returns_null_when_lock_creation_fails)
     EXPECT_EQ(nullptr, parser); // [確認_異常系] - ロック生成失敗時の default parser が NULL であること。
 }
 
+// default parser 本体の確保に失敗した場合に NULL が返ることの確認
+TEST_F(argparserTest, default_returns_null_when_parser_allocation_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(
+            nullptr)); // [Pre-Assert確認_異常系] - default parser 本体を確保する calloc が 1 回呼び出されること。
+                       // [Pre-Assert手順] - calloc から NULL を返却する。
+
+    // Act
+    com_util_argparser *parser =
+        _com_util_argparser_default(NULL); // [手順] - parser 本体の確保が失敗する状態で default parser を取得する。
+
+    // Assert
+    EXPECT_EQ(
+        nullptr,
+        parser); // [確認_異常系] - parser 本体の確保失敗時に _com_util_argparser_default の戻り値が NULL であること。
+}
+
 // shutdown 登録失敗時に default parser が NULL を返しロックを破棄することの確認
 TEST_F(argparserTest, default_returns_null_when_shutdown_registration_fails)
 {
@@ -2418,6 +2440,99 @@ TEST_F(argparserTest, parse_rejects_null_tokens_and_handles_negative_positionals
               negative_array_result);  // [確認_正常系] - 負数の可変長 int 位置引数の解析結果が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)1, value_count); // [確認_正常系] - 負数の可変長 int 位置引数が 1 件格納されること。
     EXPECT_EQ(-1, values[0]);          // [確認_正常系] - 負数 -1 が可変長 int 位置引数へ格納されること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// オプション接頭辞だけのトークンと登録のない負数が分類されることの確認
+TEST_F(argparserTest, parse_classifies_bare_prefixes_and_unregistered_negative_value)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+
+    // Pre-Assert
+
+    // Act
+    char *double_dash_argv[] = {cstr("prog"), cstr("--")};
+    int double_dash_result = _com_util_argparser_parse(
+        parser, 2, double_dash_argv); // [手順] - 長形式オプションの接頭辞だけである "--" を解析する。
+    char *single_dash_argv[] = {cstr("prog"), cstr("-")};
+    int single_dash_result = _com_util_argparser_parse(
+        parser, 2, single_dash_argv); // [手順] - 短形式オプションの接頭辞だけである "-" を解析する。
+    char *negative_argv[] = {cstr("prog"), cstr("-1")};
+    int negative_result = _com_util_argparser_parse(
+        parser, 2, negative_argv); // [手順] - 位置引数登録のない parser で負数形式の "-1" を解析する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        double_dash_result); // [確認_異常系] - "--" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_TOO_MANY_ARGUMENTS,
+        single_dash_result); // [確認_異常系] - "-" を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_TOO_MANY_ARGUMENTS であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        negative_result); // [確認_異常系] - 登録のない負数を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 長短の名前を片方だけ持つ登録項目を検索時に除外できることの確認
+TEST_F(argparserTest, parse_searches_options_with_only_one_name)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int short_flag = 0;
+    int long_flag = 0;
+    const char *positional = NULL;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &short_flag));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "input", NULL, 0u, &positional));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, NULL, "--beta", NULL, &long_flag));
+
+    // Pre-Assert
+
+    // Act
+    char *unknown_long_argv[] = {cstr("prog"), cstr("--zeta")};
+    int unknown_long_result = _com_util_argparser_parse(
+        parser, 2, unknown_long_argv); // [手順] - 同じ長さの未登録長形式オプション --zeta を解析する。
+    char *unknown_short_argv[] = {cstr("prog"), cstr("-b")};
+    int unknown_short_result = _com_util_argparser_parse(
+        parser, 2, unknown_short_argv); // [手順] - 同じ長さの未登録短形式オプション -b を解析する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        unknown_long_result); // [確認_異常系] - --zeta を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN_OPTION,
+        unknown_short_result); // [確認_異常系] - -b を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}
+
+// 登録結果記録が NULL parser と成功結果を無視することの確認
+TEST_F(argparserTest, record_register_result_ignores_null_parser_and_success)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+
+    // Pre-Assert
+
+    // Act
+    test_argparser_record_register_result(NULL, COM_UTIL_OK); // [手順] - NULL parser と成功結果を登録結果記録へ渡す。
+    test_argparser_record_register_result(parser,
+                                          COM_UTIL_OK); // [手順] - 有効な parser と成功結果を登録結果記録へ渡す。
+
+    // Assert
+    EXPECT_EQ((size_t)0,
+              _com_util_argparser_get_register_error_count(
+                  parser)); // [確認_正常系] - 成功結果を無視した後の登録エラー件数が 0 であること。
 
     // Cleanup
     _com_util_argparser_dispose(parser);

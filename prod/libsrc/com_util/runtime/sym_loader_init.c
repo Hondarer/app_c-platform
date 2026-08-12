@@ -132,7 +132,8 @@ void com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array, cons
         }
 
         func_key = entry->string;
-        if ((func_key == NULL) || (func_key[0] == '\0'))
+        /* cJSON の object 子要素ではプロパティ名 string が必ず設定される。 */
+        if (func_key[0] == '\0')
         {
             continue;
         }

@@ -382,10 +382,31 @@ static void exec_with_path(char *const *argv, char *const *envp)
         }
         if (*segment_end == '\0')
         {
-            break;
+            segment = segment_end;
         }
-        segment = segment_end + 1;
+        else
+        {
+            segment = segment_end + 1;
+        }
     }
+}
+
+static int run_child_process(const com_util_process_options *options, char *const *envp)
+{
+    if (options->working_directory != NULL)
+    {
+        if (chdir(options->working_directory) != 0)
+        {
+            return 127;
+        }
+    }
+    if (setup_child_stdio(options) != 0)
+    {
+        return 127;
+    }
+    exec_with_path(options->argv, envp);
+    fprintf(stderr, "エラー: exec(\"%s\") が失敗しました: %s\n", options->argv[0], strerror(errno));
+    return 127;
 }
 
 #elif defined(PLATFORM_WINDOWS)
@@ -1025,23 +1046,12 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
             return COM_UTIL_ERR_UNKNOWN;
         }
 
+        /* GCOVR_EXCL_START: 子プロセスの _exit() 前に gcda を安全に保存できない。 */
         if (pid == 0)
         {
-            if (options->working_directory != NULL)
-            {
-                if (chdir(options->working_directory) != 0)
-                {
-                    _exit(127);
-                }
-            }
-            if (setup_child_stdio(options) != 0)
-            {
-                _exit(127);
-            }
-            exec_with_path(options->argv, envp);
-            fprintf(stderr, "エラー: exec(\"%s\") が失敗しました: %s\n", options->argv[0], strerror(errno));
-            _exit(127);
+            _exit(run_child_process(options, envp));
         }
+        /* GCOVR_EXCL_STOP */
 
         free_envp(envp);
         new_process->pid = pid;

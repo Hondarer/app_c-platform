@@ -1,5 +1,4 @@
 /error.c
-/file.c
 /file_api.c
 /mmap_linux.c
 /mmap_windows.c

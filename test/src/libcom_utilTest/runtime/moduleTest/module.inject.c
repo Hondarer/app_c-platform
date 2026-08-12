@@ -12,3 +12,8 @@ const char *test_find_shared_lib_extension_cut(const char *s)
 {
     return find_shared_lib_extension_cut(s);
 }
+
+int test_get_basename_from_path(char *out_basename, size_t out_basename_sz, const char *path)
+{
+    return get_basename_from_path(out_basename, out_basename_sz, path);
+}

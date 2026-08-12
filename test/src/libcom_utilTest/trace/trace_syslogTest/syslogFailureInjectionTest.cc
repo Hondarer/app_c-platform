@@ -101,6 +101,53 @@ TEST_F(syslogFailureInjectionTest, create_succeeds_when_socket_creation_fails)
     com_util_syslog_sink_dispose(handle);
 }
 
+// バックオフ経過後の再接続に成功した場合に送信を再開することの確認
+TEST_F(syslogFailureInjectionTest, write_reconnects_after_backoff_elapsed)
+{
+    // Arrange
+    int realtime_call = 0;
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+    ON_CALL(mock_com_util_, com_util_get_realtime(_))
+        .WillByDefault(Invoke(
+            [&realtime_call](com_util_timespec *timestamp)
+            {
+                if (realtime_call == 0)
+                {
+                    timestamp->tv_sec = 0;
+                }
+                else
+                {
+                    timestamp->tv_sec = 10;
+                }
+                timestamp->tv_nsec = 0;
+                ++realtime_call;
+            }));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))
+        .WillOnce(Return(-1))
+        .WillOnce(Return(123)); // [Pre-Assert確認_正常系] - 初回接続とバックオフ経過後の再接続で socket を呼び出すこと。
+                                 // [Pre-Assert手順] - 初回は失敗し、再接続時は fd 123 を返却する。
+    EXPECT_CALL(mock_sys_socket, sendto(_, _, _, 123, _, _, _, _, _))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - 再接続した fd へメッセージを送信すること。
+                              // [Pre-Assert手順] - sendto から 1 を返却する。
+
+    // Act
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [手順] - 初回接続が失敗する sink を生成する。
+    int result = com_util_syslog_sink_write(
+        handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+        "message"); // [手順] - バックオフ経過後の時刻でメッセージを書き込む。
+
+    // Assert
+    ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [確認_正常系] - com_util_syslog_sink_create の戻り値が NULL でないこと。
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_syslog_sink_dispose(handle);
+}
+
 // 送信に失敗した場合に書き込みが破棄されることの確認
 // Windows は ETW / イベント ログを使うため、この経路は Linux のみに存在する
 TEST_F(syslogFailureInjectionTest, write_drops_message_when_sendto_fails)
@@ -442,6 +489,28 @@ TEST_F(syslogFailureInjectionTest, dispose_on_shutdown_handles_null_and_active_s
 
     // Assert
     SUCCEED(); // [確認_正常系] - NULL と有効なハンドルの shutdown 破棄が完了すること。
+}
+
+// ソケット未接続の sink を shutdown 時に破棄できることの確認
+TEST_F(syslogFailureInjectionTest, dispose_on_shutdown_handles_disconnected_sink)
+{
+    // Arrange
+    NiceMock<Mock_sys_socket> mock_sys_socket;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 初回のソケット生成を 1 回試みること。
+                              // [Pre-Assert手順] - socket から -1 を返却する。
+
+    // Act
+    com_util_syslog_sink *handle =
+        com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [手順] - ソケット未接続の sink を生成する。
+    com_util_syslog_sink_dispose_on_shutdown(
+        handle); // [手順] - ソケット未接続の sink を shutdown 経路で破棄する。
+
+    // Assert
+    EXPECT_NE((com_util_syslog_sink *)NULL,
+              handle); // [確認_正常系] - ソケット生成に失敗しても com_util_syslog_sink_create の戻り値が NULL でないこと。
 }
 
 // syslog 本文の書式化に失敗した場合に成功扱いで戻ることの確認

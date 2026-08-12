@@ -118,6 +118,8 @@ TEST_F(stringTest, strncpy_rejects_null_and_limits_destination)
 
     // Act
     int null_destination_result = com_util_strncpy(NULL, sizeof(buf), "abc", 3u); // [手順] - コピー先に NULL を渡す。
+    int zero_size_result = com_util_strncpy(buf, 0u, "abc", 3u);           // [手順] - コピー先サイズに 0 を渡す。
+    int null_source_result = com_util_strncpy(buf, sizeof(buf), NULL, 3u); // [手順] - コピー元に NULL を渡す。
     int limited_destination_result =
         com_util_strncpy(buf, sizeof(buf), "abcdef", 6u); // [手順] - コピー先容量を超える文字列を指定する。
 
@@ -125,6 +127,12 @@ TEST_F(stringTest, strncpy_rejects_null_and_limits_destination)
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         null_destination_result); // [確認_異常系] - コピー先が NULL の com_util_strncpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - コピー先サイズが 0 の com_util_strncpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_source_result); // [確認_異常系] - コピー元が NULL の com_util_strncpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_OK,
         limited_destination_result); // [確認_正常系] - コピー先容量に合わせて切り詰める com_util_strncpy の戻り値が COM_UTIL_OK であること。
@@ -238,12 +246,20 @@ TEST_F(stringTest, strncat_null_argument)
     // Pre-Assert
 
     // Act
+    int null_destination_result = com_util_strncat(NULL, sizeof(buf), "def", 1u); // [手順] - 連結先に NULL を渡す。
+    int zero_size_result = com_util_strncat(buf, 0u, "def", 1u);                  // [手順] - 連結先サイズに 0 を渡す。
     int ret =
         com_util_strncat(buf, sizeof(buf), NULL, 1u); // [手順] - 連結元に NULL を渡して com_util_strncat を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               ret); // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_destination_result); // [確認_異常系] - 連結先が NULL の com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - 連結先サイズが 0 の com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // strcat が NULL 引数または終端のないコピー先を拒否することの確認
@@ -256,6 +272,8 @@ TEST_F(stringTest, strcat_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
+    int null_destination_result = com_util_strcat(NULL, sizeof(terminated), "new"); // [手順] - コピー先に NULL を渡す。
+    int zero_size_result = com_util_strcat(terminated, 0u, "new"); // [手順] - コピー先サイズに 0 を渡す。
     int null_source_result = com_util_strcat(terminated, sizeof(terminated), NULL); // [手順] - コピー元に NULL を渡す。
     int unterminated_result =
         com_util_strcat(unterminated, sizeof(unterminated), "e"); // [手順] - 終端のないコピー先へ連結する。
@@ -264,6 +282,12 @@ TEST_F(stringTest, strcat_rejects_invalid_arguments)
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         null_source_result); // [確認_異常系] - コピー元が NULL の com_util_strcat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_destination_result); // [確認_異常系] - コピー先が NULL の com_util_strcat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - コピー先サイズが 0 の com_util_strcat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
         unterminated_result); // [確認_異常系] - 終端のないコピー先の com_util_strcat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
@@ -498,6 +522,8 @@ TEST_F(stringTest, wcscpy_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
+    int null_destination_result = com_util_wcscpy(NULL, 4u, L"abc"); // [手順] - ワイド文字列のコピー先に NULL を渡す。
+    int zero_size_result = com_util_wcscpy(buf, 0u, L"abc");    // [手順] - ワイド文字列のコピー先サイズに 0 を渡す。
     int null_source_result = com_util_wcscpy(buf, 4, NULL);     // [手順] - ワイド文字列のコピー元に NULL を渡す。
     int short_buffer_result = com_util_wcscpy(buf, 4, L"abcd"); // [手順] - 終端を含めて容量を超える文字列を渡す。
 
@@ -505,6 +531,12 @@ TEST_F(stringTest, wcscpy_rejects_invalid_arguments)
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         null_source_result); // [確認_異常系] - コピー元が NULL の com_util_wcscpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_destination_result); // [確認_異常系] - コピー先が NULL の com_util_wcscpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_size_result); // [確認_異常系] - コピー先サイズが 0 の com_util_wcscpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
         short_buffer_result); // [確認_異常系] - 容量不足の com_util_wcscpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。

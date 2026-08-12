@@ -20,6 +20,9 @@ extern "C"
     /* prompt_linux.c のファイル内 static 変数 s_sigwinch_installed の値を返す。 */
     extern int test_prompt_sigwinch_installed(void);
 
+    /* prompt_linux.c のファイル内 static 変数 s_sigwinch_installed を設定する。 */
+    extern void test_prompt_set_sigwinch_installed(int value);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

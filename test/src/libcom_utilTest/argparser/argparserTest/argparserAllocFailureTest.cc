@@ -83,6 +83,51 @@ TEST_F(argparserAllocFailureTest, register_fails_when_name_duplication_fails)
         rtc); // [確認_異常系] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
+// 位置引数の登録項目配列拡張に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, positional_register_fails_when_spec_array_expansion_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - realloc が位置引数の登録項目配列拡張で 1 回失敗すること。
+                          // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物の realloc へ委譲する。
+
+    // Act
+    int rtc = _com_util_argparser_register_positional_string(parser_, "input", "説明", 0u,
+                                                             &storage_); // [手順] - 文字列位置引数 input を登録する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_MEMORY,
+        rtc); // [確認_異常系] - 配列拡張失敗時の _com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+}
+
+// 位置引数名の複製に失敗した場合に登録が失敗することの確認
+TEST_F(argparserAllocFailureTest, positional_register_fails_when_name_duplication_fails)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - malloc が位置引数名の複製で 1 回失敗すること。
+                                      // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物の malloc へ委譲する。
+
+    // Act
+    int rtc = _com_util_argparser_register_positional_string(parser_, "input", NULL, 0u,
+                                                             &storage_); // [手順] - 文字列位置引数 input を登録する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_OUT_OF_MEMORY,
+        rtc); // [確認_異常系] - 名前複製失敗時の _com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+}
+
 // 使用方法の出力バッファー確保に失敗した場合に出力が失敗することの確認
 TEST_F(argparserAllocFailureTest, print_usage_fails_when_buffer_allocation_fails)
 {

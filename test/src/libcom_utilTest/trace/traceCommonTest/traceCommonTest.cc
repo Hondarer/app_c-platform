@@ -216,6 +216,25 @@ TEST(traceCommonTest, rejects_invalid_timestamp_for_formatting)
     EXPECT_EQ(-1, rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
 }
 
+// NULL タイムスタンプを書式化せず拒否することの確認
+TEST(traceCommonTest, rejects_null_timestamp_for_formatting)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char buf[32] = "before";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - NULL タイムスタンプを書式化しないこと。
+
+    // Act
+    int rtc = trace_format_local_timestamp(
+        buf, sizeof(buf), NULL); // [手順] - timestamp に NULL を指定して trace_format_local_timestamp を呼び出す。
+
+    // Assert
+    EXPECT_EQ(-1, rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
+}
+
 // buf が NULL の場合に書式化関数の結果を伝搬することの確認
 TEST(traceCommonTest, propagates_error_for_null_buffer)
 {

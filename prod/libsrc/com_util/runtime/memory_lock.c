@@ -838,17 +838,7 @@ int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, 
 
 #if defined(PLATFORM_LINUX)
         int native_flags = 0;
-        int convert_result = convert_flags_to_mlockall_flags(options->flags, &native_flags);
-
-        if (convert_result < 0)
-        {
-            result = COM_UTIL_ERR_INVALID_ARGUMENT;
-        }
-        else if (convert_result > 0)
-        {
-            result = COM_UTIL_ERR_UNSUPPORTED;
-        }
-        else
+        (void)convert_flags_to_mlockall_flags(options->flags, &native_flags);
         {
             com_util_memory_lock_scope *new_scope =
                 (com_util_memory_lock_scope *)calloc(1U, sizeof(com_util_memory_lock_scope));

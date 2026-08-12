@@ -8,6 +8,11 @@ uint64_t test_process_monotonic_ms(void)
     return monotonic_ms();
 }
 
+char *test_process_string_duplicate(const char *text)
+{
+    return string_duplicate(text);
+}
+
 size_t test_process_env_key_len(const char *entry)
 {
     return env_key_len(entry);
@@ -51,6 +56,11 @@ int test_process_setup_child_stdio(const com_util_process_options *options)
 void test_process_exec_with_path(char *const *argv, char *const *envp)
 {
     exec_with_path(argv, envp);
+}
+
+int test_process_run_child(const com_util_process_options *options, char *const *envp)
+{
+    return run_child_process(options, envp);
 }
 
 #endif /* PLATFORM_LINUX */

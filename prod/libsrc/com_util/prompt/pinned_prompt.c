@@ -296,7 +296,7 @@ static FILE *pinned_prompt_channel_file(com_util_pinned_prompt_channel channel)
 
 static void pinned_prompt_lock(com_util_pinned_prompt *screen)
 {
-    if (screen != NULL && screen->mutex_active)
+    if (screen->mutex_active)
     {
         (void)com_util_local_lock_lock(screen->mutex, COM_UTIL_SYNC_WAIT_FOREVER);
     }
@@ -304,7 +304,7 @@ static void pinned_prompt_lock(com_util_pinned_prompt *screen)
 
 static void pinned_prompt_unlock(com_util_pinned_prompt *screen)
 {
-    if (screen != NULL && screen->mutex_active)
+    if (screen->mutex_active)
     {
         (void)com_util_local_lock_unlock(screen->mutex);
     }
@@ -565,26 +565,7 @@ static int pinned_prompt_platform_read_char_nb(com_util_pinned_prompt *screen)
 
 static void pinned_prompt_update_size(com_util_pinned_prompt *screen)
 {
-    int cols;
-    int rows;
-
-    pinned_prompt_platform_get_size(&cols, &rows);
-    if (cols > 0)
-    {
-        screen->cols = cols;
-    }
-    else
-    {
-        screen->cols = 80;
-    }
-    if (rows > 0)
-    {
-        screen->rows = rows;
-    }
-    else
-    {
-        screen->rows = 24;
-    }
+    pinned_prompt_platform_get_size(&screen->cols, &screen->rows);
 }
 
 static int pinned_prompt_set_prompt(com_util_pinned_prompt *screen, const char *prompt_str)
@@ -846,14 +827,7 @@ static void pinned_prompt_render_locked(com_util_pinned_prompt *screen)
     }
 
     (void)printf("\033[%d;1H\033[2K", layout.prompt_row);
-    if (screen->prompt_buf != NULL)
-    {
-        (void)fputs(screen->prompt_buf, stdout);
-    }
-    else
-    {
-        (void)fputs("", stdout);
-    }
+    (void)fputs(screen->prompt_buf, stdout);
     if (visible_bytes > 0U)
     {
         (void)fwrite(screen->edit_buf + screen->view_start, 1U, visible_bytes, stdout);
@@ -1008,7 +982,7 @@ static pinned_prompt_key pinned_prompt_read_key(com_util_pinned_prompt *screen, 
         }
         return PINNED_PROMPT_KEY_UNKNOWN;
     }
-    if (c >= 0x20 || (unsigned char)c >= 0x80U)
+    if (c >= 0x20)
     {
         *out_ch = c;
         return PINNED_PROMPT_KEY_CHAR;
@@ -1117,10 +1091,6 @@ static void pinned_prompt_set_edit_line(com_util_pinned_prompt *screen, const ch
     len = cstr_len(line);
     if (com_util_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, len + 1U) !=
         0)
-    {
-        len = screen->edit_cap - 1U;
-    }
-    if (len >= screen->edit_cap)
     {
         len = screen->edit_cap - 1U;
     }

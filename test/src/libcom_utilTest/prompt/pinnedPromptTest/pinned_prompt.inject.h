@@ -72,6 +72,35 @@ extern "C"
     extern void test_pinned_prompt_history_edge_cases(com_util_pinned_prompt *screen);
     extern void test_pinned_prompt_prepare_output(com_util_pinned_prompt *screen);
 
+    /* 内部状態と描画ヘルパーの境界条件を個別に検証する。 */
+    extern void test_pinned_prompt_set_internal_state(com_util_pinned_prompt *screen, int cols, int rows,
+                                                      int previous_main_bottom_row, int prompt_visible,
+                                                      int status_top_enabled, int status_bottom_enabled,
+                                                      size_t cursor, size_t view_start);
+    extern size_t test_pinned_prompt_view_start(const com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_set_mutex_active(com_util_pinned_prompt *screen, int mutex_active);
+    extern void test_pinned_prompt_set_input_limits(com_util_pinned_prompt *screen, size_t history_max,
+                                                    size_t input_max_bytes);
+    extern void test_pinned_prompt_lock_and_unlock(com_util_pinned_prompt *screen);
+    extern int test_pinned_prompt_set_prompt(com_util_pinned_prompt *screen, const char *prompt_string);
+    extern void test_pinned_prompt_adjust_view(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_layout(com_util_pinned_prompt *screen, int *prompt_row, int *prompt_separator_row,
+                                          int *main_bottom_row, int *show_top_status, int *show_bottom_status);
+    extern void test_pinned_prompt_clear_control_area(com_util_pinned_prompt *screen, int main_bottom_row);
+    extern void test_pinned_prompt_hide(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_finish(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_cleanup_terminal(com_util_pinned_prompt *screen);
+    extern int test_pinned_prompt_format(com_util_pinned_prompt *screen, const char *format, ...);
+    extern int test_pinned_prompt_set_status_content(com_util_pinned_prompt *screen, const char *content);
+
+    /* 履歴の内部状態を構築して境界経路を検証する。 */
+    extern void test_pinned_prompt_history_null_inputs(com_util_pinned_prompt *screen);
+    extern int test_pinned_prompt_history_fill(com_util_pinned_prompt *screen, size_t count);
+    extern int test_pinned_prompt_history_count(const com_util_pinned_prompt *screen);
+    extern int test_pinned_prompt_history_failure_state(com_util_pinned_prompt *screen, const char *file, int line);
+    extern void test_pinned_prompt_history_null_entry_paths(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_history_release_entries(com_util_pinned_prompt *screen);
+
 #if defined(PLATFORM_LINUX)
     /* Linux プラットフォーム層の static 状態をテスト開始状態へ戻す。 */
     extern void test_pinned_prompt_reset_platform_state(void);
@@ -85,6 +114,9 @@ extern "C"
     /* raw モード状態を取得する。 */
     extern int test_pinned_prompt_raw_active(const com_util_pinned_prompt *screen);
 
+    /* raw モードの後処理を伴う API の失敗経路を直接開始する。 */
+    extern void test_pinned_prompt_set_raw_active(com_util_pinned_prompt *screen, int active);
+
     /* 端末サイズ取得へ直接アクセスする。 */
     extern void test_pinned_prompt_get_size(int *cols, int *rows);
 
@@ -95,6 +127,11 @@ extern "C"
     /* 端末入力の blocking/non-blocking 読み取りへ直接アクセスする。 */
     extern int test_pinned_prompt_read_char(com_util_pinned_prompt *screen);
     extern int test_pinned_prompt_read_char_nb(com_util_pinned_prompt *screen);
+
+    /* Linux プラットフォーム分岐の状態を個別に設定、呼び出す。 */
+    extern void test_pinned_prompt_set_sigwinch_installed(int installed);
+    extern void test_pinned_prompt_raise_resize_handler(void);
+    extern int test_pinned_prompt_platform_is_tty(void);
 #endif /* PLATFORM_LINUX */
 
 #ifdef __cplusplus

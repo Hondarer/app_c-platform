@@ -45,3 +45,8 @@ void test_argparser_clear_register_error_target(com_util_argparser *parser, size
 {
     parser->register_errors[index].target = NULL;
 }
+
+void test_argparser_record_register_result(com_util_argparser *parser, int result)
+{
+    argparser_record_register_result(parser, result, NULL, NULL);
+}

@@ -21,6 +21,7 @@
     #include <string.h>
 
     #include "syncTestHelper.h"
+    #include "sync_linux.inject.h"
 
 using testing::_;
 using testing::DoDefault;
@@ -150,7 +151,8 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_allocation_failure)
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_condvar *cv = NULL;
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの calloc が失敗すること。
+        .WillOnce(
+            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの calloc が失敗すること。
 
     // Pre-Assert
 
@@ -170,7 +172,8 @@ TEST(syncAdditionalFailureTest, local_rwlock_create_reports_allocation_failure)
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_local_rwlock *rwlock = NULL;
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの calloc が失敗すること。
+        .WillOnce(Return(
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの calloc が失敗すること。
 
     // Pre-Assert
 
@@ -261,8 +264,8 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_pthread_failure
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
+                               rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
     NiceMock<Mock_pthread> mock_pthread;
     EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
     EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _)).WillOnce(Return(EINVAL));
@@ -290,8 +293,8 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_timeout)
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
+                               rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
     NiceMock<Mock_pthread> mock_pthread;
     EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
     EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _)).WillOnce(Return(ETIMEDOUT));
@@ -400,7 +403,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_unlock_signals_waiting_write
     // Act
     int unlock_result =
         com_util_local_rwlock_unlock_shared(rwlock); // [手順] - 待機中 writer がいる状態で共有ロックを解放する。
-    writer.join(); // [手順] - 通知された writer の終了を待つ。
+    writer.join();                                   // [手順] - 通知された writer の終了を待つ。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
@@ -415,8 +418,8 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_unlock_signals_waiting_wr
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_local_rwlock_lock_exclusive(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
+                               rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
     std::atomic<bool> writer_started(false);
     std::atomic<int> writer_result(COM_UTIL_ERR_UNKNOWN);
     std::thread writer(
@@ -440,7 +443,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_unlock_signals_waiting_wr
     // Act
     int unlock_result =
         com_util_local_rwlock_unlock_exclusive(rwlock); // [手順] - 待機中 writer がいる状態で排他ロックを解放する。
-    writer.join(); // [手順] - 通知された writer の終了を待つ。
+    writer.join();                                      // [手順] - 通知された writer の終了を待つ。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
@@ -528,7 +531,7 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_pthread_failure)
 
     // Act
     int result = com_util_thread_join(thread, 5); // [手順] - 未知の pthread エラーを返す有限 join を実行する。
-    com_util_thread_detach(thread); // [手順] - join 失敗後の thread を detach して解放する。
+    com_util_thread_detach(thread);               // [手順] - join 失敗後の thread を detach して解放する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -641,16 +644,18 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
     // Pre-Assert
 
     // Act
-    int null_result = com_util_interprocess_rwlock_lock_shared(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL ハンドルを有限待機する。
+    int null_result =
+        com_util_interprocess_rwlock_lock_shared(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL ハンドルを有限待機する。
     int success_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - 有限待機で共有ロックを取得する。
-    int unlock_result = com_util_interprocess_rwlock_unlock(lock); // [手順] - 取得した共有ロックを解放する。
+    int unlock_result = com_util_interprocess_rwlock_unlock(lock);          // [手順] - 取得した共有ロックを解放する。
     int unknown_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - flock の未知エラーを処理する。
     int timeout_result = com_util_interprocess_rwlock_lock_shared(lock, 1); // [手順] - 有限待機の期限到達を処理する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, null_result); // [確認_異常系] - NULL ハンドルが INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機の共有ロック取得が OK になること。
-    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - 共有ロックの解放が OK になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_result);                          // [確認_異常系] - NULL ハンドルが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_OK, success_result);          // [確認_正常系] - 有限待機の共有ロック取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result);           // [確認_正常系] - 共有ロックの解放が OK になること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - flock の未知エラーが UNKNOWN になること。
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - 有限待機の期限到達が TIMEOUT になること。
 
@@ -706,17 +711,19 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
 
     // Act
     int success_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限待機でロックを取得する。
-    int unlock_result = com_util_interprocess_lock_unlock(lock); // [手順] - 取得したロックを解放する。
+    int unlock_result = com_util_interprocess_lock_unlock(lock);   // [手順] - 取得したロックを解放する。
     int unknown_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限 flock の未知エラーを処理する。
     int timeout_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限 flock の期限到達を処理する。
-    int forever_error = com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER); // [手順] - ブロッキング flock の未知エラーを処理する。
+    int forever_error = com_util_interprocess_lock_lock(
+        lock, COM_UTIL_SYNC_WAIT_FOREVER); // [手順] - ブロッキング flock の未知エラーを処理する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機のロック取得が OK になること。
-    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - ロック解放が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, success_result);          // [確認_正常系] - 有限待機のロック取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result);           // [確認_正常系] - ロック解放が OK になること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 有限 flock の未知エラーが UNKNOWN になること。
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - 有限 flock の期限到達が TIMEOUT になること。
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, forever_error); // [確認_異常系] - ブロッキング flock の未知エラーが UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              forever_error); // [確認_異常系] - ブロッキング flock の未知エラーが UNKNOWN になること。
 
     // Cleanup
     com_util_interprocess_lock_destroy(lock);
@@ -750,13 +757,13 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
 
     // Act
     int success_result = com_util_local_lock_lock(lock, 1); // [手順] - 有限待機で mutex を取得する。
-    int unlock_result = com_util_local_lock_unlock(lock); // [手順] - 取得した mutex を解放する。
+    int unlock_result = com_util_local_lock_unlock(lock);   // [手順] - 取得した mutex を解放する。
     int unknown_result = com_util_local_lock_lock(lock, 1); // [手順] - trylock の未知エラーを処理する。
     int timeout_result = com_util_local_lock_lock(lock, 1); // [手順] - trylock の期限到達を処理する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - 有限待機の mutex 取得が OK になること。
-    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - mutex 解放が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, success_result);          // [確認_正常系] - 有限待機の mutex 取得が OK になること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result);           // [確認_正常系] - mutex 解放が OK になること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - trylock の未知エラーが UNKNOWN になること。
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - trylock の期限到達が TIMEOUT になること。
 
@@ -777,13 +784,13 @@ TEST(syncAdditionalFailureTest, lock_apis_reject_null_arguments)
     // Pre-Assert
 
     // Act
-    int local_create_result = com_util_local_lock_create(NULL); // [手順] - local lock の出力先へ NULL を指定する。
-    int local_unlock_result = com_util_local_lock_unlock(NULL); // [手順] - NULL の local lock を解放する。
+    int local_create_result = com_util_local_lock_create(NULL);    // [手順] - local lock の出力先へ NULL を指定する。
+    int local_unlock_result = com_util_local_lock_unlock(NULL);    // [手順] - NULL の local lock を解放する。
     int rwlock_create_result = com_util_local_rwlock_create(NULL); // [手順] - local rwlock の出力先へ NULL を指定する。
-    int rwlock_shared_result =
-        com_util_local_rwlock_lock_shared(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の local rwlock を共有取得する。
-    int rwlock_exclusive_result =
-        com_util_local_rwlock_lock_exclusive(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の local rwlock を排他取得する。
+    int rwlock_shared_result = com_util_local_rwlock_lock_shared(
+        NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の local rwlock を共有取得する。
+    int rwlock_exclusive_result = com_util_local_rwlock_lock_exclusive(
+        NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の local rwlock を排他取得する。
     int rwlock_shared_unlock_result =
         com_util_local_rwlock_unlock_shared(NULL); // [手順] - NULL の local rwlock を共有解放する。
     int rwlock_exclusive_unlock_result =
@@ -812,20 +819,19 @@ TEST(syncAdditionalFailureTest, lock_apis_reject_null_arguments)
         com_util_interprocess_lock_lock(NULL, -1); // [手順] - 負の待機時間で lock を取得する。
     int lock_export_result =
         com_util_interprocess_lock_export_descriptor(NULL, NULL, NULL); // [手順] - NULL の lock を export する。
-    int lock_import_result =
-        com_util_interprocess_lock_import_descriptor(NULL, 0U, NULL); // [手順] - NULL の出力先へ lock descriptor を import する。
-    int lock_unlock_result =
-        com_util_interprocess_lock_unlock(NULL); // [手順] - NULL の lock を解放する。
-    int interprocess_shared_result =
-        com_util_interprocess_rwlock_lock_shared(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の interprocess rwlock を共有取得する。
+    int lock_import_result = com_util_interprocess_lock_import_descriptor(
+        NULL, 0U, NULL); // [手順] - NULL の出力先へ lock descriptor を import する。
+    int lock_unlock_result = com_util_interprocess_lock_unlock(NULL); // [手順] - NULL の lock を解放する。
+    int interprocess_shared_result = com_util_interprocess_rwlock_lock_shared(
+        NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL の interprocess rwlock を共有取得する。
     int interprocess_shared_negative_timeout_result =
         com_util_interprocess_rwlock_lock_shared(NULL, -1); // [手順] - 負の待機時間で共有ロックを取得する。
     int interprocess_exclusive_negative_timeout_result =
         com_util_interprocess_rwlock_lock_exclusive(NULL, -1); // [手順] - 負の待機時間で排他ロックを取得する。
     int interprocess_export_result =
         com_util_interprocess_rwlock_export_descriptor(NULL, NULL, NULL); // [手順] - NULL のハンドルを export する。
-    int interprocess_import_result =
-        com_util_interprocess_rwlock_import_descriptor(NULL, 0U, NULL); // [手順] - NULL の出力先へ descriptor を import する。
+    int interprocess_import_result = com_util_interprocess_rwlock_import_descriptor(
+        NULL, 0U, NULL); // [手順] - NULL の出力先へ descriptor を import する。
     int interprocess_unlock_result =
         com_util_interprocess_rwlock_unlock(NULL); // [手順] - NULL の interprocess rwlock を解放する。
 
@@ -840,10 +846,12 @@ TEST(syncAdditionalFailureTest, lock_apis_reject_null_arguments)
               rwlock_shared_result); // [確認_異常系] - NULL の local rwlock 共有取得が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               rwlock_exclusive_result); // [確認_異常系] - NULL の local rwlock 排他取得が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rwlock_shared_unlock_result); // [確認_異常系] - NULL の local rwlock 共有解放が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rwlock_exclusive_unlock_result); // [確認_異常系] - NULL の local rwlock 排他解放が INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rwlock_shared_unlock_result); // [確認_異常系] - NULL の local rwlock 共有解放が INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        rwlock_exclusive_unlock_result); // [確認_異常系] - NULL の local rwlock 排他解放が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               thread_create_output_result); // [確認_異常系] - NULL の thread 出力先が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -872,12 +880,15 @@ TEST(syncAdditionalFailureTest, lock_apis_reject_null_arguments)
               lock_import_result); // [確認_異常系] - NULL 出力先の lock import が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               lock_unlock_result); // [確認_異常系] - NULL の lock 解放が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              interprocess_shared_result); // [確認_異常系] - NULL の interprocess rwlock 共有取得が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              interprocess_shared_negative_timeout_result); // [確認_異常系] - 負の待機時間の共有取得が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              interprocess_exclusive_negative_timeout_result); // [確認_異常系] - 負の待機時間の排他取得が INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        interprocess_shared_result); // [確認_異常系] - NULL の interprocess rwlock 共有取得が INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        interprocess_shared_negative_timeout_result); // [確認_異常系] - 負の待機時間の共有取得が INVALID_ARGUMENT になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        interprocess_exclusive_negative_timeout_result); // [確認_異常系] - 負の待機時間の排他取得が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               interprocess_export_result); // [確認_異常系] - NULL ハンドルの export が INVALID_ARGUMENT になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -923,8 +934,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_identity_duplic
     // Pre-Assert
 
     // Act
-    int result =
-        com_util_interprocess_rwlock_open(path, &lock); // [手順] - 識別子複製失敗を注入して rwlock を開く。
+    int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - 識別子複製失敗を注入して rwlock を開く。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -945,7 +955,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_allocation_fail
     com_util_interprocess_rwlock *lock = NULL;
     make_test_interprocess_path(path, sizeof(path), "rwlock_calloc_failure");
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が失敗すること。
+        .WillOnce(
+            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が失敗すること。
 
     // Pre-Assert
 
@@ -1038,8 +1049,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_unlock_reports_flock_failure
     com_util_interprocess_rwlock *lock = NULL;
     make_test_interprocess_path(path, sizeof(path), "rwlock_unlock_error");
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_lock_exclusive(
+                               lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
         .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - unlock の flock が失敗すること。
 
@@ -1111,11 +1122,406 @@ TEST(syncAdditionalFailureTest, call_once_waits_for_running_callback)
 
     // Act
     s_once_callback_release.store(true); // [手順] - 初回 callback を終了させる。
-    initializer.join(); // [手順] - 初期化側 thread の終了を待つ。
-    waiter.join(); // [手順] - 待機側 thread の終了を待つ。
+    initializer.join();                  // [手順] - 初期化側 thread の終了を待つ。
+    waiter.join();                       // [手順] - 待機側 thread の終了を待つ。
 
     // Assert
     EXPECT_EQ(2, flag.state); // [確認_正常系] - callback 完了後に初期化済み状態になること。
+}
+
+// interprocess lock が重複取得、有限 EINTR、再試行成功を分類することの確認
+TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry_paths)
+{
+    // Arrange
+    char lock_path[256];
+    char rwlock_path[256];
+    make_test_interprocess_path(lock_path, sizeof(lock_path), "locked_retry_lock");
+    make_test_interprocess_path(rwlock_path, sizeof(rwlock_path), "locked_retry_rwlock");
+    com_util_interprocess_lock *lock = NULL;
+    com_util_interprocess_rwlock *rwlock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock));
+    NiceMock<Mock_sys_file> mock_sys_file;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(4)
+        .WillRepeatedly(Invoke(
+            [](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = 0;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EINTR;
+                return -1;
+            }))
+        .WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH | LOCK_NB))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const int, const int)
+            {
+                errno = EINTR;
+                return -1;
+            }))
+        .WillOnce(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    int lock_result = com_util_interprocess_lock_lock(lock, 1);    // [手順] - EINTR 後に有限待機の lock を取得する。
+    int lock_duplicate = com_util_interprocess_lock_lock(lock, 1); // [手順] - 取得済み lock を再取得する。
+    int rwlock_result =
+        com_util_interprocess_rwlock_lock_shared(rwlock, 1); // [手順] - EINTR 後に有限待機の rwlock を取得する。
+    int rwlock_duplicate =
+        com_util_interprocess_rwlock_lock_shared(rwlock, 1); // [手順] - 取得済み rwlock を再取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, lock_result); // [確認_正常系] - com_util_interprocess_lock_lock が EINTR 後に成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              lock_duplicate); // [確認_異常系] - com_util_interprocess_lock_lock が重複取得を拒否すること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rwlock_result); // [確認_正常系] - com_util_interprocess_rwlock_lock_shared が EINTR 後に成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rwlock_duplicate); // [確認_異常系] - com_util_interprocess_rwlock_lock_shared が重複取得を拒否すること。
+
+    // Cleanup
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).Times(2).WillRepeatedly(Return(0));
+    (void)com_util_interprocess_lock_unlock(lock);
+    (void)com_util_interprocess_rwlock_unlock(rwlock);
+    com_util_interprocess_lock_destroy(lock);
+    com_util_interprocess_rwlock_destroy(rwlock);
+    TEST_INTERPROCESS_UNLINK(lock_path);
+    TEST_INTERPROCESS_UNLINK(rwlock_path);
+}
+
+// local synchronization API が非 NULL ハンドルの負値と不足引数を拒否することの確認
+TEST(syncAdditionalFailureTest, local_sync_rejects_negative_and_partial_arguments)
+{
+    // Arrange
+    com_util_local_lock *lock = NULL;
+    com_util_local_rwlock *rwlock = NULL;
+    com_util_condvar *cv = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv));
+
+    // Pre-Assert
+
+    // Act
+    int null_lock_result =
+        com_util_local_lock_lock(NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL local lock を取得する。
+    int lock_result = com_util_local_lock_lock(lock, -2);      // [手順] - 非 NULL lock に負の待機時間を指定する。
+    int shared_result =
+        com_util_local_rwlock_lock_shared(rwlock, -2); // [手順] - 非 NULL rwlock の共有取得へ負の待機時間を指定する。
+    int exclusive_result = com_util_local_rwlock_lock_exclusive(
+        rwlock, -2); // [手順] - 非 NULL rwlock の排他取得へ負の待機時間を指定する。
+    int null_lock_wait = com_util_condvar_wait(cv, NULL, 0); // [手順] - condvar 待機の lock を NULL とする。
+    int negative_wait = com_util_condvar_wait(cv, lock, -2); // [手順] - condvar 待機へ負の待機時間を指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_lock_result); // [確認_異常系] - com_util_local_lock_lock が NULL lock を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              lock_result); // [確認_異常系] - com_util_local_lock_lock が負の待機時間を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              shared_result); // [確認_異常系] - com_util_local_rwlock_lock_shared が負の待機時間を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              exclusive_result); // [確認_異常系] - com_util_local_rwlock_lock_exclusive が負の待機時間を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_lock_wait); // [確認_異常系] - com_util_condvar_wait が NULL lock を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              negative_wait); // [確認_異常系] - com_util_condvar_wait が負の待機時間を拒否すること。
+
+    // Cleanup
+    com_util_condvar_destroy(cv);
+    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_lock_destroy(lock);
+}
+
+// local rwlock 初期化が readers と writers の condvar 失敗を分類することの確認
+TEST(syncAdditionalFailureTest, local_rwlock_create_reports_each_condvar_failure)
+{
+    // Arrange
+    NiceMock<Mock_pthread> mock_pthread;
+    com_util_local_rwlock *readers_failure = NULL;
+    com_util_local_rwlock *writers_failure = NULL;
+    EXPECT_CALL(mock_pthread, pthread_cond_init(_, _, _, _, _))
+        .WillOnce(Return(EINVAL))
+        .WillOnce(Return(0))
+        .WillOnce(
+            Return(EINVAL)); // [Pre-Assert確認_異常系] - readers、続いて writers の condvar 初期化を失敗させること。
+
+    // Pre-Assert
+
+    // Act
+    int readers_result =
+        com_util_local_rwlock_create(&readers_failure); // [手順] - readers condvar 初期化失敗を発生させる。
+    int writers_result =
+        com_util_local_rwlock_create(&writers_failure); // [手順] - writers condvar 初期化失敗を発生させる。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              readers_result); // [確認_異常系] - com_util_local_rwlock_create が readers 初期化失敗を通知すること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              writers_result); // [確認_異常系] - com_util_local_rwlock_create が writers 初期化失敗を通知すること。
+    EXPECT_EQ((com_util_local_rwlock *)NULL,
+              readers_failure); // [確認_異常系] - readers 初期化失敗時に NULL のままであること。
+    EXPECT_EQ((com_util_local_rwlock *)NULL,
+              writers_failure); // [確認_異常系] - writers 初期化失敗時に NULL のままであること。
+}
+
+// waiting writer を待つ reader が通知後に取得を完了することの確認
+TEST(syncAdditionalFailureTest, local_rwlock_reader_resumes_after_writer_state_clears)
+{
+    // Arrange
+    com_util_local_rwlock *rwlock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    test_sync_set_local_rwlock_state(rwlock, 0, 0U, 1U);
+    NiceMock<Mock_pthread> mock_pthread;
+    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [rwlock](const char *, const int, const char *, pthread_cond_t *, pthread_mutex_t *)
+            {
+                test_sync_set_local_rwlock_state(rwlock, 0, 0U, 0U);
+                return 0;
+            })); // [Pre-Assert確認_正常系] - 通知時に waiting writer がなくなること。
+
+    // Pre-Assert
+
+    // Act
+    int lock_result = com_util_local_rwlock_lock_shared(
+        rwlock, COM_UTIL_SYNC_WAIT_FOREVER); // [手順] - waiting writer の完了後に共有 lock を取得する。
+    int unlock_result = com_util_local_rwlock_unlock_shared(rwlock); // [手順] - 取得した共有 lock を解放する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, lock_result);   // [確認_正常系] - com_util_local_rwlock_lock_shared が通知後に成功すること。
+    EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - com_util_local_rwlock_unlock_shared が成功すること。
+
+    // Cleanup
+    com_util_local_rwlock_destroy(rwlock);
+}
+
+// thread API が context 確保失敗と NULL detach を処理することの確認
+TEST(syncAdditionalFailureTest, thread_apis_cover_context_failure_and_null_detach)
+{
+    // Arrange
+    NiceMock<Mock_stdlib> mock_stdlib;
+    com_util_thread *allocation_failure = NULL;
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(
+            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - thread context の malloc が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    int allocation_result =
+        com_util_thread_create(&allocation_failure, [](void *) {}, NULL); // [手順] - context 確保失敗を注入する。
+    com_util_thread_detach(NULL);                                         // [手順] - NULL thread を detach する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              allocation_result); // [確認_異常系] - com_util_thread_create が context 確保失敗を通知すること。
+    SUCCEED();                    // [確認_正常系] - com_util_thread_detach が NULL thread を安全に処理すること。
+}
+
+// thread join が非 NULL thread に対する負の待機時間を拒否することの確認
+TEST(syncAdditionalFailureTest, thread_join_rejects_negative_timeout)
+{
+    // Arrange
+    com_util_thread *thread = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+
+    // Pre-Assert
+
+    // Act
+    int negative_result =
+        com_util_thread_join(thread, -2); // [手順] - 非 NULL thread の join へ負の待機時間を指定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              negative_result); // [確認_異常系] - com_util_thread_join が負の待機時間を拒否すること。
+
+    // Cleanup
+    com_util_thread_detach(thread);
+}
+
+// thread の有限 join が期限前に再試行することの確認
+TEST(syncAdditionalFailureTest, thread_join_finite_retry_uses_monotonic_deadline)
+{
+    // Arrange
+    com_util_thread *thread = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    NiceMock<Mock_pthread> mock_pthread;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EBUSY)).WillOnce(Return(0));
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = 0;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_thread_join(thread, 1); // [手順] - deadline 前の EBUSY 後に thread join を再試行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_thread_join が再試行後に成功すること。
+}
+
+// thread の有限 join が deadline 到達時に timeout を返すことの確認
+TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_deadline_timeout)
+{
+    // Arrange
+    com_util_thread *thread = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    NiceMock<Mock_pthread> mock_pthread;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EBUSY));
+    int clock_count = 0;
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [&clock_count](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = clock_count++;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_thread_join(thread, 1); // [手順] - EBUSY のまま deadline に到達する有限 join を実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, result); // [確認_正常系] - com_util_thread_join が deadline timeout を返すこと。
+
+    // Cleanup
+    com_util_thread_detach(thread);
+}
+
+// interprocess lock API が未取得ハンドルと NULL destroy を処理することの確認
+TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_null_destroy)
+{
+    // Arrange
+    char lock_path[256];
+    char rwlock_path[256];
+    make_test_interprocess_path(lock_path, sizeof(lock_path), "unlocked_lock");
+    make_test_interprocess_path(rwlock_path, sizeof(rwlock_path), "unlocked_rwlock");
+    com_util_interprocess_lock *lock = NULL;
+    com_util_interprocess_rwlock *rwlock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock));
+
+    // Pre-Assert
+
+    // Act
+    int lock_result = com_util_interprocess_lock_unlock(lock); // [手順] - 未取得の interprocess lock を解放する。
+    int rwlock_result =
+        com_util_interprocess_rwlock_unlock(rwlock); // [手順] - 未取得の interprocess rwlock を解放する。
+    com_util_local_rwlock_destroy(NULL);             // [手順] - NULL local rwlock を破棄する。
+    com_util_interprocess_lock_destroy(NULL);        // [手順] - NULL interprocess lock を破棄する。
+    com_util_interprocess_rwlock_destroy(NULL);      // [手順] - NULL interprocess rwlock を破棄する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              lock_result); // [確認_異常系] - com_util_interprocess_lock_unlock が未取得を拒否すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rwlock_result); // [確認_異常系] - com_util_interprocess_rwlock_unlock が未取得を拒否すること。
+
+    // Cleanup
+    com_util_interprocess_lock_destroy(lock);
+    com_util_interprocess_rwlock_destroy(rwlock);
+    TEST_INTERPROCESS_UNLINK(lock_path);
+    TEST_INTERPROCESS_UNLINK(rwlock_path);
+}
+
+// sleep が EINTR の残時間を使って再試行することの確認
+TEST(syncAdditionalFailureTest, sleep_retries_interrupted_nanosleep)
+{
+    // Arrange
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_time, nanosleep(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const struct timespec *, struct timespec *rem)
+            {
+                rem->tv_sec = 0;
+                rem->tv_nsec = 1;
+                errno = EINTR;
+                return -1;
+            }))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - nanosleep が EINTR 後に成功すること。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sleep_ms(1); // [手順] - EINTR を発生させて 1 ms sleep を実行する。
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - com_util_sleep_ms が EINTR 後に戻ること。
+}
+
+// local lock の有限待機が EBUSY 後に取得へ成功することの確認
+TEST(syncAdditionalFailureTest, local_lock_finite_wait_retries_before_deadline)
+{
+    // Arrange
+    com_util_local_lock *lock = NULL;
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    NiceMock<Mock_pthread> mock_pthread;
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _)).WillOnce(Return(EBUSY)).WillOnce(Return(0));
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [](const char *, const int, const char *, const clockid_t, struct timespec *ts)
+            {
+                ts->tv_sec = 0;
+                ts->tv_nsec = 0;
+                return 0;
+            }));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_local_lock_lock(lock, 1); // [手順] - deadline 前の EBUSY 後に local lock 取得を再試行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_local_lock_lock が再試行後に成功すること。
+
+    // Cleanup
+    com_util_local_lock_unlock(lock);
+    com_util_local_lock_destroy(lock);
+}
+
+// sleep が EINTR 以外の失敗では再試行しないことの確認
+TEST(syncAdditionalFailureTest, sleep_stops_after_non_interrupt_error)
+{
+    // Arrange
+    NiceMock<Mock_time> mock_time;
+    EXPECT_CALL(mock_time, nanosleep(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, const int, const char *, const struct timespec *, struct timespec *)
+            {
+                errno = EINVAL;
+                return -1;
+            })); // [Pre-Assert確認_異常系] - nanosleep が EINVAL で失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    com_util_sleep_ms(1); // [手順] - EINVAL を発生させて 1 ms sleep を実行する。
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - com_util_sleep_ms が EINVAL 後に再試行せず戻ること。
 }
 
 #endif /* PLATFORM_LINUX */

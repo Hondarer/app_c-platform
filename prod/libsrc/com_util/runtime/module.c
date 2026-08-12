@@ -94,9 +94,6 @@ static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *f
     const char *p;
     com_util_error err;
 
-    if (!out_path || out_path_sz == 0 || !func_addr)
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-
     memset(&info, 0, sizeof(info));
     if (dladdr(func_addr, &info) == 0)
     {
@@ -169,6 +166,52 @@ static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_ad
 
 #endif /* PLATFORM_ */
 
+/**
+ *  @brief          パスの basename から共有ライブラリ拡張子または通常拡張子を除去します。
+ *  @param[out]     out_basename    basename の出力先。
+ *  @param[in]      out_basename_sz 出力先のサイズ。
+ *  @param[in]      path            basename を取得するパス。
+ *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
+ */
+static int get_basename_from_path(char *out_basename, size_t out_basename_sz, const char *path)
+{
+    const char *fname = com_util_path_basename(path);
+    const char *shared_lib_cut;
+
+    if (fname[0] == '\0')
+    {
+        out_basename[0] = '\0';
+        return COM_UTIL_ERR_UNKNOWN;
+    }
+
+    shared_lib_cut = find_shared_lib_extension_cut(fname);
+    if (shared_lib_cut != NULL)
+    {
+        size_t len = (size_t)(shared_lib_cut - fname);
+
+        if (len + 1u > out_basename_sz)
+        {
+            out_basename[0] = '\0';
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        }
+        memcpy(out_basename, fname, len);
+        out_basename[len] = '\0';
+        return COM_UTIL_OK;
+    }
+
+    {
+        com_util_error path_error;
+
+        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_error, fname) != COM_UTIL_OK)
+        {
+            out_basename[0] = '\0';
+            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
+        }
+    }
+
+    return COM_UTIL_OK;
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_module_get_path(char *out_path, const size_t out_path_sz, const void *func_addr)
@@ -224,8 +267,6 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
 {
     int st;
     char path_buf[4096];
-    const char *fname;
-    const char *shared_lib_cut;
 
     if (!out_basename || out_basename_sz == 0)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
@@ -237,44 +278,5 @@ int com_util_module_get_basename(char *out_basename, const size_t out_basename_s
         return st;
     }
 
-    fname = com_util_path_basename(path_buf);
-    if (fname == NULL || fname[0] == '\0')
-    {
-        out_basename[0] = '\0';
-        return COM_UTIL_ERR_UNKNOWN;
-    }
-
-    shared_lib_cut = find_shared_lib_extension_cut(fname);
-    if (shared_lib_cut != NULL)
-    {
-        size_t len = (size_t)(shared_lib_cut - fname);
-
-        if (len + 1u > out_basename_sz)
-        {
-            out_basename[0] = '\0';
-            return COM_UTIL_ERR_BUFFER_TOO_SMALL;
-        }
-        memcpy(out_basename, fname, len);
-        out_basename[len] = '\0';
-        return COM_UTIL_OK;
-    }
-
-    {
-        com_util_error path_error;
-
-        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_error, fname) != COM_UTIL_OK)
-        {
-            out_basename[0] = '\0';
-            if (com_util_error_is(&path_error, COM_UTIL_CAUSE_NAME_TOO_LONG))
-            {
-                return COM_UTIL_ERR_BUFFER_TOO_SMALL;
-            }
-            else
-            {
-                return COM_UTIL_ERR_UNKNOWN;
-            }
-        }
-    }
-
-    return COM_UTIL_OK;
+    return get_basename_from_path(out_basename, out_basename_sz, path_buf);
 }

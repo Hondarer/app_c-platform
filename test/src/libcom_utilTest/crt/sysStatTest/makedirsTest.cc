@@ -241,6 +241,37 @@ TEST_F(makedirsTest, relative_path_creates_nested_directories)
 }
 
 #if defined(PLATFORM_LINUX)
+// ルート直後の連続区切り文字を中間ディレクトリとして扱わないことの確認
+TEST_F(makedirsTest, repeated_root_separators_do_not_create_intermediate_directory)
+{
+    // Arrange
+    NiceMock<Mock_sys_stat> mock_sys_stat;
+    InSequence sequence;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("///target"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - 完全なパス ///target に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - stat で errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("///target"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 完全なパス ///target に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - mkdir で 0 を返却する。
+
+    // Act
+    const int result =
+        com_util_makedirs("///target", NULL); // [手順] - ルート直後に区切り文字が連続するパスで makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+}
+#endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_LINUX)
 // 対象が存在せず mkdir が成功した場合に成功することの確認
 TEST_F(makedirsTest, returns_success_when_mkdir_creates_target)
 {

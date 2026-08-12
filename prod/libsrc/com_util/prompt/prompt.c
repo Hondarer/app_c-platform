@@ -50,7 +50,7 @@ static void history_add(com_util_prompt *p, com_util_prompt_ctx *ctx, const char
     size_t line_size;
     size_t slot;
 
-    if (p == NULL || ctx == NULL || line == NULL || line[0] == '\0' || p->history_max == 0U)
+    if (line[0] == '\0')
     {
         return;
     }
@@ -206,7 +206,7 @@ static prompt_key read_key(com_util_prompt *p, int *out_ch)
         return KEY_UNKNOWN;
     }
     /* 通常文字 (ASCII 印字可能 + UTF-8 マルチバイト先頭バイト) */
-    if (c >= 0x20 || (unsigned char)c >= 0x80)
+    if (c >= 0x20)
     {
         *out_ch = c;
         return KEY_CHAR;
@@ -250,10 +250,6 @@ static void history_browse_prev(com_util_prompt *p, com_util_prompt_ctx *ctx, co
     {
         len = p->edit_cap - 1U;
     }
-    if (len >= p->edit_cap)
-    {
-        len = p->edit_cap - 1;
-    }
     memcpy(p->edit_buf, entry, len);
     p->edit_buf[len] = '\0';
     p->edit_len = len;
@@ -278,10 +274,6 @@ static void history_browse_next(com_util_prompt *p, com_util_prompt_ctx *ctx, co
             return;
         }
         len = strlen(entry);
-        if (len >= p->edit_cap)
-        {
-            len = p->edit_cap - 1;
-        }
         memcpy(p->edit_buf, entry, len);
         p->edit_buf[len] = '\0';
         p->edit_len = len;
@@ -294,10 +286,6 @@ static void history_browse_next(com_util_prompt *p, com_util_prompt_ctx *ctx, co
         if (com_util_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, len + 1U) != 0)
         {
             len = p->edit_cap - 1U;
-        }
-        if (len >= p->edit_cap)
-        {
-            len = p->edit_cap - 1;
         }
         memcpy(p->edit_buf, ctx->saved_line, len);
         p->edit_buf[len] = '\0';

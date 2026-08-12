@@ -88,6 +88,33 @@ TEST_F(pathConcatTest, returns_einval_for_zero_part_count)
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
 
+// 連結先が NULL またはサイズ 0 の場合に EINVAL で失敗することの確認
+TEST_F(pathConcatTest, returns_einval_for_invalid_output_buffer)
+{
+    // Arrange
+    char path[8] = {'x'}; // [状態] - サイズ 0 の呼び出しで変更されないことを確認するため 'x' で初期化する。
+    com_util_error null_detail;
+    com_util_error zero_detail;
+
+    // Pre-Assert
+
+    // Act
+    int null_result =
+        com_util_path_concat_n(NULL, sizeof(path), &null_detail, 1u,
+                               "a"); // [手順] - 連結先に NULL を指定して com_util_path_concat_n を呼び出す。
+    int zero_result = com_util_path_concat_n(
+        path, 0u, &zero_detail, 1u, "a"); // [手順] - 連結先サイズに 0 を指定して com_util_path_concat_n を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        null_result); // [確認_異常系] - 連結先が NULL の com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        zero_result); // [確認_異常系] - 連結先サイズが 0 の com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ('x', path[0]); // [確認_異常系] - サイズ 0 の連結先が変更されないこと。
+}
+
 // NULL 断片が含まれる場合に EINVAL で失敗することの確認
 TEST_F(pathConcatTest, returns_einval_for_null_fragment)
 {
@@ -152,6 +179,26 @@ TEST_F(pathConcatTest, get_temp_dir_records_error_for_null_output)
     EXPECT_EQ(1,
               com_util_error_is(&last_error,
                                 COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - TLS の要因が EINVAL であること。
+}
+
+// 一時ディレクトリの格納先サイズが 0 の場合に引数エラーになることの確認
+TEST_F(pathConcatTest, get_temp_dir_rejects_zero_output_size)
+{
+    // Arrange
+    char output = 'x'; // [状態] - サイズ 0 の呼び出しで変更されないことを確認するため 'x' で初期化する。
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(
+        &output, 0u, &detail); // [手順] - 格納先サイズに 0 を指定して com_util_get_temp_dir を呼び出す。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        result); // [確認_異常系] - 格納先サイズが 0 の com_util_get_temp_dir の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ('x', output); // [確認_異常系] - サイズ 0 の格納先が変更されないこと。
 }
 
 #if defined(PLATFORM_WINDOWS)
@@ -221,6 +268,34 @@ TEST_F(pathConcatTest, get_temp_dir_removes_trailing_separators)
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - TMPDIR 末尾セパレーターの戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/var/tmp", output); // [確認_正常系] - 末尾セパレーターを除いたパスが返ること。
+}
+
+// ルートを示す TMPDIR のセパレーターが保持されることの確認
+TEST_F(pathConcatTest, get_temp_dir_preserves_root_directory)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    char output[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, char *buffer, size_t, int *, com_util_error *)
+            {
+                std::memcpy(buffer, "/", sizeof("/"));
+                return COM_UTIL_OK;
+            })); // [Pre-Assert確認_正常系] - TMPDIR の取得が 1 回呼び出されること。
+                 // [Pre-Assert手順] - TMPDIR としてルートディレクトリ "/" を返却する。
+
+    // Act
+    int result = com_util_get_temp_dir(
+        output, sizeof(output), NULL); // [手順] - TMPDIR がルートディレクトリの状態で一時ディレクトリを取得する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        result); // [確認_正常系] - ルート TMPDIR に対する com_util_get_temp_dir の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/", output); // [確認_正常系] - ルートディレクトリのセパレーターが保持されること。
 }
 
 // TMPDIR が取得バッファーへ収まらない場合に失敗することの確認

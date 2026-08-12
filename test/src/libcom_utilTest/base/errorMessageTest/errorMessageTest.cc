@@ -41,7 +41,8 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_INVALID_PATTERN,
                             COM_UTIL_ERR_INVALID_ENCODING,
                             COM_UTIL_ERR_EOF,
-                            COM_UTIL_ERR_CANCELED};
+                            COM_UTIL_ERR_CANCELED,
+                            COM_UTIL_ERR_IN_PROGRESS};
 }
 
 class errorMessageTest : public Test
@@ -143,6 +144,10 @@ TEST_F(errorMessageTest, error_message_dispatches_by_domain)
     com_util_error_capture_errno(&error, ENOENT); // [手順] - errno ドメインの詳細エラーを文字列化する。
     const int errno_result = com_util_error_message(buf, sizeof(buf), &error);
     const std::string errno_message(buf);
+    error.domain = COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO;
+    const int socket_errno_result =
+        com_util_error_message(buf, sizeof(buf), &error); // [手順] - socket errno ドメインの詳細エラーを文字列化する。
+    const std::string socket_errno_message(buf);
 
     // Assert
     EXPECT_EQ(
@@ -153,6 +158,9 @@ TEST_F(errorMessageTest, error_message_dispatches_by_domain)
         COM_UTIL_OK,
         errno_result); // [確認_正常系] - errno ドメインに対する com_util_error_message の戻り値が COM_UTIL_OK であること。
     EXPECT_FALSE(errno_message.empty()); // [確認_正常系] - errno ドメインのメッセージが空でないこと。
+    EXPECT_EQ(COM_UTIL_OK,
+              socket_errno_result); // [確認_正常系] - socket errno ドメインの戻り値が COM_UTIL_OK であること。
+    EXPECT_FALSE(socket_errno_message.empty()); // [確認_正常系] - socket errno ドメインのメッセージが空でないこと。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         com_util_error_message(NULL, sizeof(buf),
@@ -194,19 +202,28 @@ TEST_F(errorMessageTest, empty_error_message_is_truncated_to_buffer)
 TEST_F(errorMessageTest, windows_error_domain_is_rejected_on_linux)
 {
     // Arrange
-    char buf[32] = {'X'};
-    const com_util_error error = {COM_UTIL_ERROR_DOMAIN_WINDOWS, COM_UTIL_ERR_UNKNOWN, 1UL};
+    char windows_buf[32] = {'X'};
+    char winsock_buf[32] = {'X'};
+    const com_util_error windows_error = {COM_UTIL_ERROR_DOMAIN_WINDOWS, COM_UTIL_ERR_UNKNOWN, 1UL};
+    const com_util_error winsock_error = {COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN, 1UL};
 
     // Pre-Assert
 
     // Act
-    int result =
-        com_util_error_message(buf, sizeof(buf), &error); // [手順] - Windows ドメインを持つ詳細エラーを文字列化する。
+    const int windows_result = com_util_error_message(
+        windows_buf, sizeof(windows_buf), &windows_error); // [手順] - Windows ドメインを持つ詳細エラーを文字列化する。
+    const int winsock_result = com_util_error_message(
+        winsock_buf, sizeof(winsock_buf), &winsock_error); // [手順] - Winsock ドメインを持つ詳細エラーを文字列化する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              result); // [確認_異常系] - Windows ドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_STREQ("", buf); // [確認_異常系] - Windows ドメインでは出力バッファーが空になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        windows_result); // [確認_異常系] - Windows ドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("", windows_buf); // [確認_異常系] - Windows ドメインでは出力バッファーが空になること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        winsock_result); // [確認_異常系] - Winsock ドメインに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_STREQ("", winsock_buf); // [確認_異常系] - Winsock ドメインでは出力バッファーが空になること。
 }
 
 // GAI ドメインが Linux の gai_strerror() で文字列化されることの確認

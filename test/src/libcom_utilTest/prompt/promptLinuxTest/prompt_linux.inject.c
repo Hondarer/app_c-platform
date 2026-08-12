@@ -25,4 +25,9 @@ int test_prompt_sigwinch_installed(void)
     return s_sigwinch_installed;
 }
 
+void test_prompt_set_sigwinch_installed(int value)
+{
+    s_sigwinch_installed = value;
+}
+
 #endif /* PLATFORM_LINUX */

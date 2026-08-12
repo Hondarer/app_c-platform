@@ -520,3 +520,80 @@ TEST_F(symLoaderInitTest, skips_null_cache_entries)
     // Cleanup
     com_util_remove(path.c_str(), NULL);
 }
+
+// 上限超過の設定ファイルを読み込まないことの確認
+TEST_F(symLoaderInitTest, ignores_config_file_larger_than_limit)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    FILE *file = reinterpret_cast<FILE *>(1);
+    com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry *entries[] = {&entry};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("large_file"), StrEq("rb"), nullptr)).WillOnce(Return(file));
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(1024 * 1024 + 1));
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+
+    // Act
+    com_util_sym_loader_init(entries, 1u,
+                             "large_file"); // [手順] - 上限を 1 バイト超える設定ファイルを読み込む。
+
+    // Assert
+    EXPECT_STREQ("",
+                 entry.lib_name); // [確認_異常系] - 上限超過の設定が lib_name に反映されないこと。
+}
+
+// func の NULL、空文字列、上限超過をそれぞれ無視することの確認
+TEST_F(symLoaderInitTest, ignores_invalid_function_values)
+{
+    // Arrange
+    NiceMock<Mock_cjson> mock_cjson;
+    const char *valid_json = "{\"sample_func\":{\"lib\":\"liboverride\",\"func\":\"override_func\"}}";
+    std::string null_path = make_path("null_func.json");
+    std::string boundary_path = make_path("invalid_func_values.json");
+    std::string long_func(256u, 'f');
+    std::string boundary_json =
+        "{\"empty\":{\"lib\":\"lib\",\"func\":\"\"},\"long\":{\"lib\":\"lib\",\"func\":\"" + long_func + "\"}}";
+    write_file(null_path, valid_json);
+    write_file(boundary_path, boundary_json.c_str());
+    com_util_sym_loader_entry null_entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
+    com_util_sym_loader_entry empty_entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("empty", void (*)(void));
+    com_util_sym_loader_entry long_entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("long", void (*)(void));
+    com_util_sym_loader_entry *null_entries[] = {&null_entry};
+    com_util_sym_loader_entry *boundary_entries[] = {&empty_entry, &long_entry};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cjson, cJSON_GetStringValue(_))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - func の文字列取得が 2 回目に呼び出されること。
+                                      // [Pre-Assert手順] - func の文字列取得で NULL を返却する。
+
+    // Act
+    com_util_sym_loader_init(null_entries, 1u,
+                             null_path.c_str()); // [手順] - func の文字列取得失敗を注入して設定を読み込む。
+
+    // Assert
+    EXPECT_STREQ("", null_entry.func_name); // [確認_異常系] - NULL の func が反映されないこと。
+
+    // Cleanup
+    Mock::VerifyAndClearExpectations(&mock_cjson);
+
+    // Arrange_2
+
+    // Pre-Assert_2
+
+    // Act_2
+    com_util_sym_loader_init(boundary_entries, 2u,
+                             boundary_path.c_str()); // [手順] - 空または上限超過の func を含む設定を読み込む。
+
+    // Assert_2
+    EXPECT_STREQ("", empty_entry.func_name); // [確認_異常系] - 空の func が反映されないこと。
+    EXPECT_STREQ("", long_entry.func_name);  // [確認_異常系] - 上限超過の func が反映されないこと。
+
+    // Cleanup
+    com_util_remove(null_path.c_str(), NULL);
+    com_util_remove(boundary_path.c_str(), NULL);
+}

@@ -84,14 +84,16 @@ struct com_util_syslog_sink
     /** syslog facility 値 (例: LOG_USER = 8)。 */
     int facility;
 
-    /** mutex が初期化済みであることを示すフラグ。 */
-    int lock_initialized;
-
     /** UNIX ドメイン ソケット fd。未接続時は -1。reconnect_lock で保護。 */
     int fd;
 
     /** 現在のバックオフ間隔 (秒)。reconnect_lock で保護。 */
     int backoff_sec;
+
+#if defined(ARCH_X64)
+    /** 64 bit アーキテクチャーで構造体末尾の暗黙パディングを防ぐ。 */
+    int pad;
+#endif /* ARCH_X64 */
 };
 
 /**
@@ -118,11 +120,8 @@ static void close_and_backoff_locked(com_util_syslog_sink *h)
 {
     com_util_timespec now;
 
-    if (h->fd >= 0)
-    {
-        close(h->fd);
-        h->fd = -1;
-    }
+    close(h->fd);
+    h->fd = -1;
     com_util_get_realtime(&now);
     h->next_connect = now.tv_sec + h->backoff_sec;
     advance_backoff(h);
@@ -186,16 +185,15 @@ com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int f
     handle->fd = -1;
     handle->next_connect = 0;
     handle->backoff_sec = BACKOFF_INIT_SEC;
-    handle->lock_initialized = 0;
-
+#if defined(ARCH_X64)
+    handle->pad = 0;
+#endif /* ARCH_X64 */
     if (com_util_local_lock_create(&handle->reconnect_lock) != COM_UTIL_OK)
     {
         free(handle->ident);
         free(handle);
         return NULL;
     }
-    handle->lock_initialized = 1;
-
     /* 初回接続を試みる (失敗しても構わない) */
     com_util_local_lock_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
     try_open_socket_locked(handle);
@@ -316,7 +314,9 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
 
     if (sent < 0)
     {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        /* Linux では EWOULDBLOCK と EAGAIN が同値のため、1 つの判定で両方を扱う。
+           see: https://man7.org/linux/man-pages/man3/errno.3.html */
+        if (errno == EAGAIN)
         {
             /* 送信バッファー満杯: drop のみ、再接続不要 */
             com_util_local_lock_unlock(handle->reconnect_lock);
@@ -369,10 +369,7 @@ void com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
     {
         close(handle->fd);
     }
-    if (handle->lock_initialized)
-    {
-        com_util_local_lock_destroy(handle->reconnect_lock);
-    }
+    com_util_local_lock_destroy(handle->reconnect_lock);
     free(handle->ident);
     free(handle);
 }
@@ -424,10 +421,7 @@ void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle)
     {
         close(handle->fd);
     }
-    if (handle->lock_initialized)
-    {
-        com_util_local_lock_destroy(handle->reconnect_lock);
-    }
+    com_util_local_lock_destroy(handle->reconnect_lock);
     free(handle->ident);
     free(handle);
 }

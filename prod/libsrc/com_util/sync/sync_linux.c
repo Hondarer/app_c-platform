@@ -344,7 +344,11 @@ int com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms)
 {
     uint64_t deadline;
 
-    if (mtx == NULL || timeout_ms < 0)
+    if (mtx == NULL)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if (timeout_ms < 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }

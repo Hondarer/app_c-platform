@@ -248,6 +248,49 @@ TEST_F(envTest, getenv_does_not_write_when_buffer_size_is_zero)
     EXPECT_EQ('X', buf[0]);      // [確認_正常系] - buf_size が 0 のため出力バッファーへ書き込まないこと。
 }
 
+// 未設定の環境変数を出力バッファーなしで照会できることの確認
+TEST_F(envTest, getenv_accepts_null_buffer_when_variable_is_absent)
+{
+    // Arrange
+    int exists = 1; // [状態] - 未設定への書き換えを確認するため 1 で初期化する。
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
+                                             NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
+                              NULL); // [手順] - 未設定の環境変数を出力バッファーなしで照会する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0, exists);        // [確認_正常系] - 環境変数が未設定として報告されること。
+}
+
+// 設定済みの環境変数を出力バッファーなしで照会できることの確認
+TEST_F(envTest, getenv_accepts_null_buffer_when_variable_exists)
+{
+    // Arrange
+    int exists = 0; // [状態] - 設定済みへの書き換えを確認するため 0 で初期化する。
+
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, NULL)); // [状態] - 対象の環境変数へ値を設定しておく。
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
+                              NULL); // [手順] - 設定済みの環境変数を出力バッファーなしで照会する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1, exists);        // [確認_正常系] - 環境変数が設定済みとして報告されること。
+
+    // Cleanup
+    com_util_unsetenv("COM_UTIL_ENV_TEST", NULL);
+}
+
 // 出力バッファーが値の長さに満たない場合に com_util_getenv が ERANGE を返すことの確認
 TEST_F(envTest, getenv_returns_erange_when_buffer_too_small)
 {

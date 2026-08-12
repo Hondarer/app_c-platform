@@ -57,6 +57,13 @@ static void remove_temp_path(const char *path)
 {
     unlink(path);
 }
+
+static void set_invalid_stdio_mode(com_util_process_stdio *spec)
+{
+    int invalid_mode = 99;
+
+    memcpy(&spec->mode, &invalid_mode, sizeof(spec->mode));
+}
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
 static void make_temp_path(char *buf, size_t size, const char *tag)
@@ -157,7 +164,7 @@ TEST(processTest, MapsErrnoToCommonResults)
     int timeout_result = com_util_result_from_errno(ETIMEDOUT); // [手順] - ETIMEDOUT を共通結果コードへ変換する。
     int busy_result = com_util_result_from_errno(EBUSY);        // [手順] - EBUSY を共通結果コードへ変換する。
     int memory_result = com_util_result_from_errno(ENOMEM);     // [手順] - ENOMEM を共通結果コードへ変換する。
-    int not_found_result = com_util_result_from_errno(ENOENT);   // [手順] - ENOENT を共通結果コードへ変換する。
+    int not_found_result = com_util_result_from_errno(ENOENT);  // [手順] - ENOENT を共通結果コードへ変換する。
     int other_result = com_util_result_from_errno(EDOM);        // [手順] - EDOM を共通結果コードへ変換する。
 
     // Assert
@@ -702,7 +709,7 @@ TEST(processTest, RejectsInvalidWaitAndExitArguments)
     com_util_process_destroy(NULL);
 }
 
-#if defined(PLATFORM_LINUX)
+    #if defined(PLATFORM_LINUX)
 
 // Linux の環境変数補助関数がキー境界、上書き、容量不足を処理することの確認
 TEST(processTest, environment_helpers_handle_keys_and_capacity)
@@ -723,33 +730,36 @@ TEST(processTest, environment_helpers_handle_keys_and_capacity)
 
     // Act
     size_t key_len = test_process_env_key_len("KEY=value"); // [手順] - 環境変数エントリのキー長を取得する。
-    size_t no_key_len = test_process_env_key_len("KEY"); // [手順] - 区切りを持たないエントリのキー長を取得する。
-    int matching_key = test_process_env_key_matches("KEY=value", "KEY", 3U); // [手順] - 一致するキーを判定する。
-    int prefix_key = test_process_env_key_matches("KEY=value", "KE", 2U); // [手順] - 接頭辞だけのキーを判定する。
+    size_t no_key_len = test_process_env_key_len("KEY");    // [手順] - 区切りを持たないエントリのキー長を取得する。
+    int matching_key = test_process_env_key_matches("KEY=value", "KEY", 3U);    // [手順] - 一致するキーを判定する。
+    int prefix_key = test_process_env_key_matches("KEY=value", "KE", 2U);       // [手順] - 接頭辞だけのキーを判定する。
     int different_key = test_process_env_key_matches("KEY=value", "OTHER", 5U); // [手順] - 異なるキーを判定する。
-    int replace_result = test_process_set_env_entry(envp, 3U, replace_entry); // [手順] - 既存キーを上書きする。
-    int add_result = test_process_set_env_entry(envp, 3U, add_entry); // [手順] - 新しいキーを追加する。
+    int replace_result = test_process_set_env_entry(envp, 3U, replace_entry);   // [手順] - 既存キーを上書きする。
+    int add_result = test_process_set_env_entry(envp, 3U, add_entry);           // [手順] - 新しいキーを追加する。
     int overflow_result = test_process_set_env_entry(envp, 3U, overflow_entry); // [手順] - 容量超過のキーを追加する。
-    char **built_env = test_process_build_environment(overrides); // [手順] - 現在の環境へ上書きを適用する。
-    char **invalid_env = test_process_build_environment(invalid_overrides); // [手順] - 不正な上書きを適用する。
-    const char *updated_value = test_process_find_env_value(envp, "KEY"); // [手順] - 上書き後の値を検索する。
+    char **built_env = test_process_build_environment(overrides);             // [手順] - 現在の環境へ上書きを適用する。
+    char **invalid_env = test_process_build_environment(invalid_overrides);   // [手順] - 不正な上書きを適用する。
+    const char *updated_value = test_process_find_env_value(envp, "KEY");     // [手順] - 上書き後の値を検索する。
     const char *missing_value = test_process_find_env_value(envp, "MISSING"); // [手順] - 存在しない値を検索する。
 
     // Assert
-    EXPECT_EQ(3U, key_len); // [確認_正常系] - KEY の長さが 3 であること。
-    EXPECT_EQ(0U, no_key_len); // [確認_異常系] - 区切りなしエントリの長さが 0 であること。
-    EXPECT_EQ(1, matching_key); // [確認_正常系] - 一致するキーが 1 になること。
-    EXPECT_EQ(0, prefix_key); // [確認_異常系] - 接頭辞だけのキーが不一致になること。
-    EXPECT_EQ(0, different_key); // [確認_異常系] - 異なるキーが不一致になること。
-    EXPECT_EQ(0, replace_result); // [確認_正常系] - 既存キーの上書きが成功すること。
-    EXPECT_EQ(0, add_result); // [確認_正常系] - 新しいキーの追加が成功すること。
-    EXPECT_EQ(-1, overflow_result); // [確認_異常系] - 容量超過の追加が失敗すること。
+    EXPECT_EQ(3U, key_len);             // [確認_正常系] - KEY の長さが 3 であること。
+    EXPECT_EQ(0U, no_key_len);          // [確認_異常系] - 区切りなしエントリの長さが 0 であること。
+    EXPECT_EQ(1, matching_key);         // [確認_正常系] - 一致するキーが 1 になること。
+    EXPECT_EQ(0, prefix_key);           // [確認_異常系] - 接頭辞だけのキーが不一致になること。
+    EXPECT_EQ(0, different_key);        // [確認_異常系] - 異なるキーが不一致になること。
+    EXPECT_EQ(0, replace_result);       // [確認_正常系] - 既存キーの上書きが成功すること。
+    EXPECT_EQ(0, add_result);           // [確認_正常系] - 新しいキーの追加が成功すること。
+    EXPECT_EQ(-1, overflow_result);     // [確認_異常系] - 容量超過の追加が失敗すること。
     EXPECT_STREQ("new", updated_value); // [確認_正常系] - 上書き後の KEY が new になること。
     EXPECT_EQ(static_cast<const char *>(NULL), missing_value); // [確認_異常系] - 未登録キーが NULL になること。
-    ASSERT_NE(static_cast<char **>(NULL), built_env); // [確認_正常系] - 環境配列が生成されること。
-    EXPECT_STREQ("/custom/bin", test_process_find_env_value(built_env, "PATH")); // [確認_正常系] - PATH が上書きされること。
-    EXPECT_STREQ("helper", test_process_find_env_value(built_env, "COM_UTIL_PROCESS_TEST_HELPER")); // [確認_正常系] - 追加変数が検索できること。
-    EXPECT_EQ(static_cast<char **>(NULL), invalid_env); // [確認_異常系] - 不正な上書きで NULL が返ること。
+    ASSERT_NE(static_cast<char **>(NULL), built_env);          // [確認_正常系] - 環境配列が生成されること。
+    EXPECT_STREQ("/custom/bin",
+                 test_process_find_env_value(built_env, "PATH")); // [確認_正常系] - PATH が上書きされること。
+    EXPECT_STREQ("helper",
+                 test_process_find_env_value(
+                     built_env, "COM_UTIL_PROCESS_TEST_HELPER")); // [確認_正常系] - 追加変数が検索できること。
+    EXPECT_EQ(static_cast<char **>(NULL), invalid_env);           // [確認_異常系] - 不正な上書きで NULL が返ること。
 
     // Cleanup
     test_process_free_envp(built_env);
@@ -763,10 +773,7 @@ TEST(processTest, child_stdio_helpers_handle_modes_and_errors)
     NiceMock<Mock_unistd> mock_unistd;
     com_util_process_stdio spec = {};
     com_util_process_options options = {};
-    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
-        .WillOnce(Return(10))
-        .WillOnce(Return(13))
-        .WillOnce(Return(-1));
+    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _)).WillOnce(Return(10)).WillOnce(Return(13)).WillOnce(Return(-1));
     EXPECT_CALL(mock_unistd, dup2(_, _, _, 10, STDIN_FILENO)).WillOnce(Return(0));
     EXPECT_CALL(mock_unistd, close(_, _, _, 10)).WillOnce(Return(0));
     EXPECT_CALL(mock_unistd, dup2(_, _, _, 13, STDOUT_FILENO)).WillOnce(Return(-1));
@@ -777,36 +784,44 @@ TEST(processTest, child_stdio_helpers_handle_modes_and_errors)
     // Pre-Assert
 
     // Act
-    int inherit_result = test_process_setup_child_stdio_one(&spec, STDIN_FILENO, O_RDONLY); // [手順] - 継承モードを設定する。
+    int inherit_result =
+        test_process_setup_child_stdio_one(&spec, STDIN_FILENO, O_RDONLY); // [手順] - 継承モードを設定する。
     spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
-    int null_result = test_process_setup_child_stdio_one(&spec, STDIN_FILENO, O_RDONLY); // [手順] - NULL デバイスへ接続する。
-    int null_dup_failure_result = test_process_setup_child_stdio_one(&spec, STDOUT_FILENO, O_WRONLY); // [手順] - NULL デバイスの dup2 失敗を処理する。
-    int null_open_result = test_process_setup_child_stdio_one(&spec, STDOUT_FILENO, O_WRONLY); // [手順] - NULL デバイスの open 失敗を処理する。
+    int null_result =
+        test_process_setup_child_stdio_one(&spec, STDIN_FILENO, O_RDONLY); // [手順] - NULL デバイスへ接続する。
+    int null_dup_failure_result = test_process_setup_child_stdio_one(
+        &spec, STDOUT_FILENO, O_WRONLY); // [手順] - NULL デバイスの dup2 失敗を処理する。
+    int null_open_result = test_process_setup_child_stdio_one(
+        &spec, STDOUT_FILENO, O_WRONLY); // [手順] - NULL デバイスの open 失敗を処理する。
     spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
     spec.native_handle = -1;
-    int invalid_handle_result = test_process_setup_child_stdio_one(&spec, STDOUT_FILENO, O_WRONLY); // [手順] - 負のネイティブハンドルを設定する。
+    int invalid_handle_result = test_process_setup_child_stdio_one(
+        &spec, STDOUT_FILENO, O_WRONLY); // [手順] - 負のネイティブハンドルを設定する。
     spec.native_handle = 11;
-    int dup_failure_result = test_process_setup_child_stdio_one(&spec, STDOUT_FILENO, O_WRONLY); // [手順] - dup2 の失敗を処理する。
+    int dup_failure_result =
+        test_process_setup_child_stdio_one(&spec, STDOUT_FILENO, O_WRONLY); // [手順] - dup2 の失敗を処理する。
     spec.native_handle = 12;
-    int native_result = test_process_setup_child_stdio_one(&spec, STDERR_FILENO, O_WRONLY); // [手順] - ネイティブハンドルを接続する。
+    int native_result =
+        test_process_setup_child_stdio_one(&spec, STDERR_FILENO, O_WRONLY); // [手順] - ネイティブハンドルを接続する。
     int invalid_mode_value = 99;
     spec.mode = static_cast<com_util_process_stdio_mode>(invalid_mode_value);
-    int invalid_mode_result = test_process_setup_child_stdio_one(&spec, STDERR_FILENO, O_WRONLY); // [手順] - 不正な標準入出力モードを設定する。
+    int invalid_mode_result = test_process_setup_child_stdio_one(
+        &spec, STDERR_FILENO, O_WRONLY); // [手順] - 不正な標準入出力モードを設定する。
     options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
     options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
     options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
     int all_inherit_result = test_process_setup_child_stdio(&options); // [手順] - 3 標準ストリームを継承する。
 
     // Assert
-    EXPECT_EQ(0, inherit_result); // [確認_正常系] - 継承モードが成功すること。
-    EXPECT_EQ(0, null_result); // [確認_正常系] - NULL デバイス接続が成功すること。
+    EXPECT_EQ(0, inherit_result);           // [確認_正常系] - 継承モードが成功すること。
+    EXPECT_EQ(0, null_result);              // [確認_正常系] - NULL デバイス接続が成功すること。
     EXPECT_EQ(-1, null_dup_failure_result); // [確認_異常系] - NULL デバイスの dup2 失敗が -1 になること。
-    EXPECT_EQ(-1, null_open_result); // [確認_異常系] - NULL デバイス open 失敗が -1 になること。
-    EXPECT_EQ(-1, invalid_handle_result); // [確認_異常系] - 負のハンドルが -1 になること。
-    EXPECT_EQ(-1, dup_failure_result); // [確認_異常系] - dup2 失敗が -1 になること。
-    EXPECT_EQ(0, native_result); // [確認_正常系] - ネイティブハンドル接続が成功すること。
-    EXPECT_EQ(-1, invalid_mode_result); // [確認_異常系] - 不正モードが -1 になること。
-    EXPECT_EQ(0, all_inherit_result); // [確認_正常系] - 全ストリーム継承が成功すること。
+    EXPECT_EQ(-1, null_open_result);        // [確認_異常系] - NULL デバイス open 失敗が -1 になること。
+    EXPECT_EQ(-1, invalid_handle_result);   // [確認_異常系] - 負のハンドルが -1 になること。
+    EXPECT_EQ(-1, dup_failure_result);      // [確認_異常系] - dup2 失敗が -1 になること。
+    EXPECT_EQ(0, native_result);            // [確認_正常系] - ネイティブハンドル接続が成功すること。
+    EXPECT_EQ(-1, invalid_mode_result);     // [確認_異常系] - 不正モードが -1 になること。
+    EXPECT_EQ(0, all_inherit_result);       // [確認_正常系] - 全ストリーム継承が成功すること。
 }
 
 // Linux の PATH 探索が絶対パス、空要素、既定値、候補長を処理することの確認
@@ -833,7 +848,7 @@ TEST(processTest, exec_path_helper_searches_path_segments)
     test_process_exec_with_path(relative_argv, envp); // [手順] - PATH の各要素から相対パスを探索する。
     char *empty_path_env[] = {NULL};
     test_process_exec_with_path(relative_argv, empty_path_env); // [手順] - PATH 不在時の既定値から探索する。
-    test_process_exec_with_path(long_argv, envp); // [手順] - 長すぎる候補を exec しない。
+    test_process_exec_with_path(long_argv, envp);               // [手順] - 長すぎる候補を exec しない。
 
     // Assert
     SUCCEED(); // [確認_正常系] - exec 失敗後も PATH 探索ヘルパーが戻ること。
@@ -875,12 +890,12 @@ TEST(processTest, wait_reports_timeout_at_finite_deadline)
     second.tv_sec = 2;
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(2)
-        .WillRepeatedly(Invoke([&clock_count, first, second](const char *, const int, const char *, const clockid_t,
-                                                              struct timespec *arg)
-                               {
-                                   *arg = (clock_count++ == 0) ? first : second;
-                                   return 0;
-                               }));
+        .WillRepeatedly(Invoke(
+            [&clock_count, first, second](const char *, const int, const char *, const clockid_t, struct timespec *arg)
+            {
+                *arg = (clock_count++ == 0) ? first : second;
+                return 0;
+            }));
     EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 128, _, WNOHANG)).WillOnce(Return(static_cast<pid_t>(0)));
 
     // Pre-Assert
@@ -925,7 +940,7 @@ TEST(processTest, wait_sleeps_before_finite_deadline_and_detects_exit)
     // Assert
     EXPECT_EQ(COM_UTIL_OK, wait_result); // [確認_正常系] - 有限待機が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK, exit_result); // [確認_正常系] - 終了コード取得が COM_UTIL_OK であること。
-    EXPECT_EQ(4, exit_code); // [確認_正常系] - 子プロセスの終了コードが 4 であること。
+    EXPECT_EQ(4, exit_code);             // [確認_正常系] - 子プロセスの終了コードが 4 であること。
 
     // Cleanup
     com_util_process_destroy(process);
@@ -945,26 +960,22 @@ TEST(processTest, environment_helpers_report_invalid_and_allocation_failures)
     char **calloc_result;
     char **duplicate_result;
 
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr))
-        .WillOnce(Return(nullptr));
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr))
-        .WillOnce(DoDefault());
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr)).WillOnce(DoDefault());
 
     // Pre-Assert
 
     // Act
     set_result = test_process_set_env_entry(envp, 2U, valid_entry); // [手順] - 環境変数エントリの確保失敗を処理する。
-    test_process_free_envp(NULL); // [手順] - NULL の環境配列を解放する。
+    test_process_free_envp(NULL);                                   // [手順] - NULL の環境配列を解放する。
     invalid_result = test_process_build_environment(invalid_overrides); // [手順] - 不正な上書き形式を処理する。
-    calloc_result = test_process_build_environment(NULL); // [手順] - 環境配列の確保失敗を処理する。
-    duplicate_result = test_process_build_environment(NULL); // [手順] - 環境エントリの複製失敗を処理する。
+    calloc_result = test_process_build_environment(NULL);               // [手順] - 環境配列の確保失敗を処理する。
+    duplicate_result = test_process_build_environment(NULL);            // [手順] - 環境エントリの複製失敗を処理する。
 
     // Assert
-    EXPECT_EQ(-1, set_result); // [確認_異常系] - エントリ確保失敗が -1 になること。
-    EXPECT_EQ(static_cast<char **>(NULL), invalid_result); // [確認_異常系] - 不正な上書きで NULL が返ること。
-    EXPECT_EQ(static_cast<char **>(NULL), calloc_result); // [確認_異常系] - 環境配列の確保失敗で NULL が返ること。
+    EXPECT_EQ(-1, set_result);                               // [確認_異常系] - エントリ確保失敗が -1 になること。
+    EXPECT_EQ(static_cast<char **>(NULL), invalid_result);   // [確認_異常系] - 不正な上書きで NULL が返ること。
+    EXPECT_EQ(static_cast<char **>(NULL), calloc_result);    // [確認_異常系] - 環境配列の確保失敗で NULL が返ること。
     EXPECT_EQ(static_cast<char **>(NULL), duplicate_result); // [確認_異常系] - エントリ複製失敗で NULL が返ること。
 }
 
@@ -982,14 +993,17 @@ TEST(processTest, completed_process_wait_and_terminate_are_idempotent)
     // Pre-Assert
 
     // Act
-    int first_wait = com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - プロセスの終了を待機する。
-    int second_wait = com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 終了済みプロセスを再度待機する。
-    int terminate_result = com_util_process_terminate(process); // [手順] - 終了済みプロセスを terminate する。
+    int first_wait =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - プロセスの終了を待機する。
+    int second_wait =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 終了済みプロセスを再度待機する。
+    int terminate_result = com_util_process_terminate(process);        // [手順] - 終了済みプロセスを terminate する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, first_wait); // [確認_正常系] - 1 回目の com_util_process_wait が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, first_wait);  // [確認_正常系] - 1 回目の com_util_process_wait が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK, second_wait); // [確認_正常系] - 終了済みプロセスの 2 回目の待機が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, terminate_result); // [確認_正常系] - 終了済みプロセスの terminate が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              terminate_result); // [確認_正常系] - 終了済みプロセスの terminate が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_process_destroy(process);
@@ -1025,13 +1039,17 @@ TEST(processTest, run_sync_rejects_invalid_output_and_start_failure)
     // Pre-Assert
 
     // Act
-    int null_output = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, NULL); // [手順] - 終了コード出力先に NULL を渡す。
+    int null_output = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                                NULL); // [手順] - 終了コード出力先に NULL を渡す。
     options.argv = nullptr;
-    int start_failure = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &exit_code); // [手順] - 不正な options で同期実行する。
+    int start_failure = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                                  &exit_code); // [手順] - 不正な options で同期実行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, null_output); // [確認_異常系] - NULL 出力先が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, start_failure); // [確認_異常系] - start 失敗が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              null_output); // [確認_異常系] - NULL 出力先が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              start_failure);    // [確認_異常系] - start 失敗が INVALID_ARGUMENT になること。
     EXPECT_EQ(nullptr, process); // [確認_異常系] - 使用していない process が NULL のままであること。
 }
 
@@ -1053,23 +1071,204 @@ TEST(processTest, child_start_failures_return_exit_code_127)
     // Pre-Assert
 
     // Act
-    int chdir_result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &chdir_exit_code); // [手順] - 存在しない作業ディレクトリで子プロセスを起動する。
+    int chdir_result =
+        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                  &chdir_exit_code); // [手順] - 存在しない作業ディレクトリで子プロセスを起動する。
     options.working_directory = nullptr;
     options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
     options.stdout_spec.native_handle = -1;
-    int stdio_result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &stdio_exit_code); // [手順] - 不正な標準出力ハンドルで子プロセスを起動する。
+    int stdio_result =
+        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                  &stdio_exit_code); // [手順] - 不正な標準出力ハンドルで子プロセスを起動する。
     options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
     options.argv = missing_argv;
-    int exec_result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER, &exec_exit_code); // [手順] - 存在しない実行ファイルで子プロセスを起動する。
+    int exec_result =
+        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
+                                  &exec_exit_code); // [手順] - 存在しない実行ファイルで子プロセスを起動する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, chdir_result); // [確認_正常系] - chdir 失敗後も親側の run_sync が COM_UTIL_OK であること。
-    EXPECT_EQ(127, chdir_exit_code); // [確認_異常系] - chdir 失敗時の子プロセス終了コードが 127 であること。
-    EXPECT_EQ(COM_UTIL_OK, stdio_result); // [確認_正常系] - stdio 設定失敗後も親側の run_sync が COM_UTIL_OK であること。
+    EXPECT_EQ(127, chdir_exit_code);      // [確認_異常系] - chdir 失敗時の子プロセス終了コードが 127 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              stdio_result);         // [確認_正常系] - stdio 設定失敗後も親側の run_sync が COM_UTIL_OK であること。
     EXPECT_EQ(127, stdio_exit_code); // [確認_異常系] - stdio 設定失敗時の子プロセス終了コードが 127 であること。
     EXPECT_EQ(COM_UTIL_OK, exec_result); // [確認_正常系] - exec 失敗後も親側の run_sync が COM_UTIL_OK であること。
-    EXPECT_EQ(127, exec_exit_code); // [確認_異常系] - exec 失敗時の子プロセス終了コードが 127 であること。
+    EXPECT_EQ(127, exec_exit_code);      // [確認_異常系] - exec 失敗時の子プロセス終了コードが 127 であること。
 }
 
-#endif /* PLATFORM_LINUX */
-#endif /* PLATFORM_LINUX */
+// Linux の環境変数補助関数が NULL、空配列、上書き失敗を処理することの確認
+TEST(processTest, environment_helpers_cover_empty_and_override_failure_paths)
+{
+    // Arrange
+    extern char **environ;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    char **saved_environ = environ;
+    char *empty_environment[] = {NULL};
+    char valid_override[] = "KEY=value";
+    char invalid_entry[] = "INVALID";
+    char *overrides[] = {valid_override, NULL};
+    char *empty_envp[] = {NULL};
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 環境変数上書きの文字列確保が失敗すること。
+
+    // Pre-Assert
+
+    // Act
+    char *null_copy = test_process_string_duplicate(NULL); // [手順] - NULL 文字列を複製する。
+    int invalid_set =
+        test_process_set_env_entry(empty_envp, 1U, invalid_entry);     // [手順] - '=' がない環境変数を設定する。
+    const char *null_find = test_process_find_env_value(NULL, "PATH"); // [手順] - NULL 環境配列から PATH を検索する。
+    const char *empty_find =
+        test_process_find_env_value(empty_envp, "PATH"); // [手順] - 空の環境配列から PATH を検索する。
+    environ = empty_environment;
+    char **override_result =
+        test_process_build_environment(overrides); // [手順] - 環境変数上書きの文字列確保失敗を発生させる。
+
+    // Assert
+    EXPECT_EQ(nullptr, null_copy);  // [確認_異常系] - test_process_string_duplicate が NULL を返すこと。
+    EXPECT_EQ(-1, invalid_set);     // [確認_異常系] - test_process_set_env_entry が不正形式を拒否すること。
+    EXPECT_EQ(nullptr, null_find);  // [確認_正常系] - test_process_find_env_value が NULL 環境配列で NULL を返すこと。
+    EXPECT_EQ(nullptr, empty_find); // [確認_正常系] - test_process_find_env_value が空の環境配列で NULL を返すこと。
+    EXPECT_EQ(nullptr,
+              override_result); // [確認_異常系] - test_process_build_environment が上書き失敗時に NULL を返すこと。
+
+    // Cleanup
+    environ = saved_environ;
+}
+
+// Linux の標準入出力設定が各ストリームの失敗位置を通知することの確認
+TEST(processTest, child_stdio_setup_reports_each_stream_failure)
+{
+    // Arrange
+    com_util_process_options options = {};
+    set_invalid_stdio_mode(&options.stdin_spec);
+
+    // Pre-Assert
+
+    // Act
+    int stdin_result = test_process_setup_child_stdio(&options); // [手順] - stdin 設定を不正モードで実行する。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
+    set_invalid_stdio_mode(&options.stdout_spec);
+    int stdout_result = test_process_setup_child_stdio(&options); // [手順] - stdout 設定を不正モードで実行する。
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
+    set_invalid_stdio_mode(&options.stderr_spec);
+    int stderr_result = test_process_setup_child_stdio(&options); // [手順] - stderr 設定を不正モードで実行する。
+
+    // Assert
+    EXPECT_EQ(-1, stdin_result);  // [確認_異常系] - test_process_setup_child_stdio が stdin 設定失敗を通知すること。
+    EXPECT_EQ(-1, stdout_result); // [確認_異常系] - test_process_setup_child_stdio が stdout 設定失敗を通知すること。
+    EXPECT_EQ(-1, stderr_result); // [確認_異常系] - test_process_setup_child_stdio が stderr 設定失敗を通知すること。
+}
+
+// Linux の子プロセス準備が作業ディレクトリ、stdio、exec の失敗を 127 へ変換することの確認
+TEST(processTest, child_runner_classifies_each_preparation_failure)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    com_util_process_options options = {};
+    char arg0[] = "missing-tool";
+    char path_entry[] = "PATH=";
+    char current_directory[PLATFORM_PATH_MAX] = {};
+    char *argv[] = {arg0, NULL};
+    char *envp[] = {path_entry, NULL};
+    options.argv = argv;
+    ASSERT_NE(nullptr, getcwd(current_directory, sizeof(current_directory)));
+    options.working_directory = "/com_util/process/directory/does/not/exist";
+    EXPECT_CALL(mock_unistd, execve(_, _, _, _, _, _)).WillRepeatedly(Return(-1));
+
+    // Pre-Assert
+
+    // Act
+    int chdir_result =
+        test_process_run_child(&options, envp); // [手順] - 存在しない作業ディレクトリで子プロセス準備を実行する。
+    options.working_directory = NULL;
+    set_invalid_stdio_mode(&options.stdin_spec);
+    int stdio_result = test_process_run_child(&options, envp); // [手順] - 不正な stdin 設定で子プロセス準備を実行する。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
+    int exec_result = test_process_run_child(&options, envp); // [手順] - 空の PATH で実在しないコマンドを実行する。
+    options.working_directory = current_directory;
+    int chdir_success_result =
+        test_process_run_child(&options, envp); // [手順] - 存在する作業ディレクトリで exec 失敗まで実行する。
+
+    // Assert
+    EXPECT_EQ(127, chdir_result); // [確認_異常系] - test_process_run_child が chdir 失敗を 127 へ変換すること。
+    EXPECT_EQ(127, stdio_result); // [確認_異常系] - test_process_run_child が stdio 失敗を 127 へ変換すること。
+    EXPECT_EQ(127, exec_result);  // [確認_異常系] - test_process_run_child が exec 失敗を 127 へ変換すること。
+    EXPECT_EQ(
+        127,
+        chdir_success_result); // [確認_異常系] - test_process_run_child が chdir 成功後の exec 失敗を 127 へ変換すること。
+}
+
+// Linux の process start が NULL の出力先を拒否することの確認
+TEST(processTest, start_rejects_null_process_output)
+{
+    // Arrange
+    com_util_process_options options = {};
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, NULL};
+    options.argv = argv;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_start(&options, NULL); // [手順] - process の出力先を NULL として起動する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - com_util_process_start が NULL 出力先を拒否すること。
+}
+
+// Linux の無期限待機が未終了状態から終了状態へ遷移することの確認
+TEST(processTest, wait_forever_retries_unexpected_nonblocking_result)
+{
+    // Arrange
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    NiceMock<Mock_unistd> mock_unistd;
+    com_util_process *process = com_util_process_adopt_native(132);
+    int status = 0;
+    ASSERT_NE(nullptr, process);
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 132, _, 0))
+        .WillOnce(Return(static_cast<pid_t>(0)))
+        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(132))));
+    EXPECT_CALL(mock_unistd, usleep(_, _, _, 1000U)).WillOnce(Return(0));
+
+    // Pre-Assert
+
+    // Act
+    int result =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 未終了応答後に無期限待機を継続する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_wait が再試行後に成功すること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// Linux の同期実行が wait timeout を呼び出し元へ返すことの確認
+TEST(processTest, run_sync_returns_wait_failure)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process_options options = {};
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, NULL};
+    int exit_code = 0;
+    options.argv = argv;
+    EXPECT_CALL(mock_unistd, fork(_, _, _)).WillOnce(Return(static_cast<pid_t>(133)));
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 133, _, WNOHANG)).WillOnce(Return(static_cast<pid_t>(0)));
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_NO_WAIT,
+                                           &exit_code); // [手順] - 未終了プロセスを即時 timeout で同期実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, result); // [確認_正常系] - com_util_process_run_sync が wait timeout を返すこと。
+    EXPECT_EQ(EXIT_FAILURE, exit_code); // [確認_正常系] - wait timeout 時の終了コードが EXIT_FAILURE のままであること。
+}
+
+    #endif /* PLATFORM_LINUX */
+#endif     /* PLATFORM_LINUX */

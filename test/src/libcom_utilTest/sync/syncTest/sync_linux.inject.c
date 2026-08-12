@@ -17,4 +17,12 @@ void test_sync_monotonic_deadline(struct timespec *abs_ts, const int timeout_ms)
     monotonic_deadline(abs_ts, timeout_ms);
 }
 
+void test_sync_set_local_rwlock_state(com_util_local_rwlock *rwlock, const int writer_active,
+                                      const unsigned int active_readers, const unsigned int waiting_writers)
+{
+    rwlock->writer_active = writer_active;
+    rwlock->active_readers = active_readers;
+    rwlock->waiting_writers = waiting_writers;
+}
+
 #endif /* PLATFORM_LINUX */
