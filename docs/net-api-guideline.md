@@ -7,7 +7,7 @@
 本書は `net` カテゴリ固有の規範を定めます。  
 プラットフォーム分岐の書き方は [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)、結果コードと命名は [コーディング規範](coding-guideline.md) に従います。
 
-利用側のコードは、`socket`、`bind`、`listen`、`accept`、`connect`、`send`、`recv`、`sendto`、`recvfrom`、`poll`、`WSAPoll`、`setsockopt`、`getsockopt`、`closesocket`、`ioctlsocket`、`htons`、`ntohs`、`htonl`、`ntohl` を直接呼び出しません。
+利用側のコードは、`socket`、`bind`、`listen`、`accept`、`connect`、`send`、`recv`、`sendto`、`recvfrom`、`poll`、`WSAPoll`、`setsockopt`、`getsockopt`、`shutdown`、`closesocket`、`ioctlsocket`、`htons`、`ntohs`、`htonl`、`ntohl` を直接呼び出しません。
 
 ## 公開ヘッダーにシステム ヘッダーを漏らさない
 
@@ -51,7 +51,11 @@
 ソケット オプションは、用途ごとの名前付き API で提供します。  
 `level` と `optname` を引数に取る汎用の `setsockopt` 相当 API は公開しません。
 
-システム ヘッダーが定義する `SOL_SOCKET`、`SO_BROADCAST`、`IPPROTO_IP`、`IP_ADD_MEMBERSHIP` などの定数は、`net` の実装ファイル内部でのみ使用します。
+マルチキャスト グループへの参加と離脱は対で提供します。  
+`com_util_socket_join_multicast_group()` で参加したグループは、`com_util_socket_leave_multicast_group()` で明示的に離脱できます。  
+ソケットを閉じれば参加中のグループからは自動的に離脱するため、離脱 API は閉じる前に明示的に通知する場合に使用します。
+
+システム ヘッダーが定義する `SOL_SOCKET`、`SO_REUSEADDR`、`SO_BROADCAST`、`IPPROTO_IP`、`IP_MULTICAST_IF`、`IP_ADD_MEMBERSHIP`、`IP_DROP_MEMBERSHIP` などの定数は、`net` の実装ファイル内部でのみ使用します。
 
 ## ライブラリの初期化と終了
 
@@ -77,9 +81,13 @@ OS 由来の詳細は `com_util_error *detail_out` へ格納します。
 
 | ドメイン | 用途 |
 |---|---|
-| `COM_UTIL_ERROR_DOMAIN_ERRNO` | Linux のソケット API が設定した `errno` |
+| `COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO` | Linux のソケット API が設定した `errno` |
 | `COM_UTIL_ERROR_DOMAIN_WINSOCK` | Windows の `WSAGetLastError()` が返す値 |
 | `COM_UTIL_ERROR_DOMAIN_GAI` | `getaddrinfo` が返す `EAI_*` |
+
+一般の `errno` を扱う `COM_UTIL_ERROR_DOMAIN_ERRNO` とは区別します。  
+ソケット操作の `EAGAIN` は非ブロッキング操作の待機を意味しますが、`fork()` や `pthread_create()` が返す `EAGAIN` は資源の上限超過を意味し、両者は同じ `errno` 値でも要因が異なります。  
+ドメインを分けることで、ソケット操作の `errno` だけを `COM_UTIL_CAUSE_WOULD_BLOCK` として解釈できます。
 
 Winsock のエラー番号空間は Win32 の `GetLastError()` と異なるため、`COM_UTIL_ERROR_DOMAIN_WINDOWS` を使用しません。  
 `getaddrinfo` の `EAI_*` はさらに別の体系であるため、Winsock ドメインとも区別します。

@@ -14,7 +14,7 @@ com_util の OS エラー詳細は、生の `errno` を格納する `int *errno_
 
 | メンバー | 内容 |
 |---|---|
-| `domain` | `COM_UTIL_ERROR_DOMAIN_NONE`、`COM_UTIL_ERROR_DOMAIN_ERRNO`、`COM_UTIL_ERROR_DOMAIN_WINDOWS` のいずれか |
+| `domain` | `COM_UTIL_ERROR_DOMAIN_NONE`、`COM_UTIL_ERROR_DOMAIN_ERRNO`、`COM_UTIL_ERROR_DOMAIN_WINDOWS`、`COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO`、`COM_UTIL_ERROR_DOMAIN_WINSOCK`、`COM_UTIL_ERROR_DOMAIN_GAI` のいずれか |
 | `result` | 生の OS エラー値に対応する `COM_UTIL_ERR_*` |
 | `code` | ドメイン固有の生のエラー値 |
 
