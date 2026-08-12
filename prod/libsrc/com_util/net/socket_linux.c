@@ -867,10 +867,6 @@ int com_util_socket_wait_readable_multi(const com_util_socket *socks, const size
     poll_result = poll_with_deadline(poll_fds, (nfds_t)valid_count, timeout_ms);
     if (poll_result < 0)
     {
-        if (errno == EINTR)
-        {
-            return com_util_error_report_success(detail_out);
-        }
         return com_util_error_report_socket_errno(detail_out, errno);
     }
 
