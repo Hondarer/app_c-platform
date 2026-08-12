@@ -178,30 +178,34 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
 {
     // Arrange
     com_util_mmap *map = NULL;
+    int invalid_access_value = 99;
+    com_util_mmap_access invalid_access = (com_util_mmap_access)invalid_access_value;
+    int null_path_result;
+    int null_map_result;
+    int empty_path_result;
+    int invalid_access_result;
 
     // Pre-Assert
 
     // Act
+    null_path_result = com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map, NULL);
+    null_map_result = com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, NULL, NULL);
+    empty_path_result = com_util_mmap_attach("", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map, NULL);
+    invalid_access_result = com_util_mmap_attach("x", invalid_access, 64, &map, NULL);
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
-                             NULL)); // [確認_異常系] - attach (path NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+        null_path_result); // [確認_異常系] - path NULL の com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, NULL,
-                             NULL)); // [確認_異常系] - attach (map NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    {
-        /* 列挙範囲外の不正値を意図的に渡す (定数キャストは -Wconversion になるため変数経由) */
-        int invalid_access_value = 99;
-        com_util_mmap_access invalid_access = (com_util_mmap_access)invalid_access_value;
-
-        EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-                  com_util_mmap_attach(
-                      "x", invalid_access, 64, &map,
-                      NULL)); // [確認_異常系] - attach (access 不正値) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    }
+        null_map_result); // [確認_異常系] - map NULL の com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        empty_path_result); // [確認_異常系] - 空文字列 path の com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_INVALID_ARGUMENT,
+        invalid_access_result); // [確認_異常系] - access 不正値の com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // NULL ハンドルに対する get_address/get_size/get_rwlock/flush/detach が安全であることの確認

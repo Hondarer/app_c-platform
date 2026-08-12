@@ -74,6 +74,35 @@ TEST_F(cryptoTest, round_trip_with_aad)
     EXPECT_EQ(0, memcmp(plain, restored.data(), plain_len)); // [確認_正常系] - 復号結果が平文と一致すること。
 }
 
+// AAD のポインターが非 NULL でも長さ 0 の場合に往復が成功することの確認
+TEST_F(cryptoTest, round_trip_with_nonnull_zero_length_aad)
+{
+    // Arrange
+    const uint8_t plain[] = "payload";
+    const uint8_t aad[] = "ignored";
+    const size_t plain_len = sizeof(plain) - 1u;
+    const size_t aad_len = 0u;
+    std::vector<uint8_t> cipher(plain_len + COM_UTIL_CRYPTO_TAG_SIZE);
+    std::vector<uint8_t> restored(plain_len);
+    size_t cipher_len = cipher.size();
+    size_t restored_len = restored.size(); // [状態] - 平文と非 NULL かつ長さ 0 の AAD を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int rtc_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
+                                       aad_len); // [手順] - 非 NULL かつ長さ 0 の AAD を指定して暗号化する。
+    int rtc_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
+                                       aad_len); // [手順] - 非 NULL かつ長さ 0 の AAD を指定して復号する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, rtc_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, rtc_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(plain_len,
+              restored_len); // [確認_正常系] - 非 NULL かつ長さ 0 の AAD を指定した復号後の長さが平文長と一致すること。
+    EXPECT_EQ(0, memcmp(plain, restored.data(), plain_len)); // [確認_正常系] - 復号結果が平文と一致すること。
+}
+
 // 改ざんされた暗号文の復号が認証に失敗することの確認
 TEST_F(cryptoTest, decrypt_rejects_tampered_cipher_text)
 {

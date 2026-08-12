@@ -6,10 +6,12 @@
 #include <errno.h>
 
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 #if defined(PLATFORM_LINUX)
 
+    #include <mock_com_util.h>
     #include <mock_stdlib.h>
     #include <sys/mman.h>
     #include <sys/mock_mman.h>
@@ -18,6 +20,7 @@ using testing::_;
 using testing::Assign;
 using testing::DoAll;
 using testing::DoDefault;
+using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
 
@@ -42,6 +45,240 @@ class mmapFailureInjectionTest : public Test
         std::filesystem::remove(path_);
     }
 };
+
+// 読み取り専用ファイルのサイズ取得に失敗した場合にファイルを閉じて失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_error_when_read_only_size_lookup_fails)
+{
+    // Arrange
+    std::ofstream file(path_, std::ios::binary);
+    file << std::string(64u, 'r');
+    file.close();
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_mmap *map = NULL;
+    com_util_error detail; // [状態] - サイズ 64 バイトの既存ファイルと詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_file_get_size(_, _, _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 読み取り専用アタッチのサイズ取得が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_file_get_size にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
+                                   &detail); // [手順] - サイズ取得失敗を注入して読み取り専用アタッチを呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              rtc); // [確認_異常系] - サイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_mmap *)NULL,
+              map); // [確認_異常系] - サイズ取得失敗時に com_util_mmap_attach のマップが NULL であること。
+}
+
+// 新規ファイルのサイズ設定に失敗した場合にファイルを削除して失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_error_when_new_file_size_setting_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_mmap *map = NULL;
+    com_util_error detail; // [状態] - 新規作成するマップと詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_file_set_size(_, _, _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 新規ファイルのサイズ設定が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_file_set_size にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   &detail); // [手順] - サイズ設定失敗を注入して新規ファイルへのアタッチを呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              rtc); // [確認_異常系] - サイズ設定失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_mmap *)NULL,
+              map); // [確認_異常系] - サイズ設定失敗時に com_util_mmap_attach のマップが NULL であること。
+}
+
+// 既存ファイルの再オープンに失敗した場合にアタッチが失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_file_reopen_fails)
+{
+    // Arrange
+    std::ofstream file(path_, std::ios::binary);
+    file << std::string(64u, 'r');
+    file.close();
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_mmap *map = NULL;
+    com_util_error detail; // [状態] - サイズ 64 バイトの既存ファイルと詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, _, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - CREATE_NEW と既存ファイル再オープンの com_util_file_open が順に呼び出されること。
+                                    // [Pre-Assert手順] - 2 回の com_util_file_open にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   &detail); // [手順] - 既存ファイルの再オープン失敗を注入してアタッチを呼び出す。
+
+    // Assert
+    EXPECT_NE(COM_UTIL_OK,
+              rtc); // [確認_異常系] - 再オープン失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_mmap *)NULL,
+              map); // [確認_異常系] - 再オープン失敗時に com_util_mmap_attach のマップが NULL であること。
+}
+
+// 既存ファイルのサイズ取得に失敗した場合にファイルを閉じて失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_size_lookup_fails)
+{
+    // Arrange
+    std::ofstream file(path_, std::ios::binary);
+    file << std::string(64u, 'r');
+    file.close();
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_mmap *map = NULL;
+    com_util_error detail; // [状態] - サイズ 64 バイトの既存ファイルと詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, _, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(
+            DoDefault()); // [Pre-Assert確認_異常系] - CREATE_NEW の com_util_file_open が失敗し、既存ファイル再オープンは成功すること。
+    // [Pre-Assert手順] - CREATE_NEW の com_util_file_open だけエラーを返し、再オープンは本物へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_file_get_size(_, _, _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 既存ファイルのサイズ取得が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_file_get_size にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   &detail); // [手順] - 既存ファイルのサイズ取得失敗を注入してアタッチを呼び出す。
+
+    // Assert
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc); // [確認_異常系] - 既存ファイルのサイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ(
+        (com_util_mmap *)NULL,
+        map); // [確認_異常系] - 既存ファイルのサイズ取得失敗時に com_util_mmap_attach のマップが NULL であること。
+}
+
+// ローカル ロックの生成に失敗した場合にマップを解放して失敗することの確認
+TEST_F(mmapFailureInjectionTest, attach_returns_error_when_local_lock_creation_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_mmap *map = NULL;
+    com_util_error detail; // [状態] - ローカル ロック生成前のマップと詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
+        .WillOnce(
+            Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - ローカル ロック生成が 1 回呼び出されること。
+                                           // [Pre-Assert手順] - com_util_local_lock_create にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                   &detail); // [手順] - ローカル ロック生成失敗を注入してアタッチを呼び出す。
+
+    // Assert
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc); // [確認_異常系] - ローカル ロック生成失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_mmap *)NULL,
+              map); // [確認_異常系] - ローカル ロック生成失敗時に com_util_mmap_attach のマップが NULL であること。
+}
+
+// ローカル ロックの取得に失敗した場合に get_rwlock が失敗することの確認
+TEST_F(mmapFailureInjectionTest, get_rwlock_reports_error_when_local_lock_lock_fails)
+{
+    // Arrange
+    com_util_mmap *map = NULL;
+    com_util_interprocess_rwlock *lock = NULL;
+    com_util_error detail;
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                                NULL)); // [状態] - get_rwlock 呼び出し前のマップを用意する。
+    NiceMock<Mock_com_util> mock_com_util;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - get_rwlock のローカル ロック取得が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_local_lock_lock にエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_get_rwlock(map, &lock,
+                                       &detail); // [手順] - ローカル ロック取得失敗を注入して get_rwlock を呼び出す。
+
+    // Assert
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc); // [確認_異常系] - ローカル ロック取得失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
+              lock); // [確認_異常系] - ローカル ロック取得失敗時のロック出力が NULL であること。
+
+    // Cleanup
+    com_util_mmap_detach(map, NULL);
+}
+
+// プロセス間 RW ロックの生成に失敗した場合に get_rwlock が失敗することの確認
+TEST_F(mmapFailureInjectionTest, get_rwlock_reports_error_when_interprocess_lock_open_fails)
+{
+    // Arrange
+    com_util_mmap *map = NULL;
+    com_util_interprocess_rwlock *lock = NULL;
+    com_util_error detail;
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                                NULL)); // [状態] - get_rwlock 呼び出し前のマップを用意する。
+    NiceMock<Mock_com_util> mock_com_util;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_interprocess_rwlock_open(_, _))
+        .WillOnce(
+            Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 遅延 RW ロック生成が 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_interprocess_rwlock_open にエラーを返却させる。
+
+    // Act
+    int rtc =
+        com_util_mmap_get_rwlock(map, &lock,
+                                 &detail); // [手順] - プロセス間 RW ロック生成失敗を注入して get_rwlock を呼び出す。
+
+    // Assert
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc); // [確認_異常系] - プロセス間 RW ロック生成失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
+              lock); // [確認_異常系] - プロセス間 RW ロック生成失敗時のロック出力が NULL であること。
+
+    // Cleanup
+    com_util_mmap_detach(map, NULL);
+}
+
+// ファイルのクローズに失敗した場合に detach が失敗を返すことの確認
+TEST_F(mmapFailureInjectionTest, detach_reports_error_when_file_close_fails)
+{
+    // Arrange
+    com_util_mmap *map = NULL;
+    com_util_error detail;
+    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path_.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+                                                NULL)); // [状態] - detach 前のマップと詳細エラーの格納先を用意する。
+    NiceMock<Mock_com_util> mock_com_util;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_file_close(_, _))
+        .WillOnce(DoAll(Invoke(delegate_real_com_util_file_close), Return(COM_UTIL_ERR_UNKNOWN)));
+    // [Pre-Assert確認_異常系] - detach のファイル クローズが 1 回呼び出されること。
+    // [Pre-Assert手順] - 実ファイルを閉じたうえでエラーを返却させる。
+
+    // Act
+    int rtc = com_util_mmap_detach(map,
+                                   &detail); // [手順] - ファイル クローズ失敗を注入して detach を呼び出す。
+
+    // Assert
+    EXPECT_NE(
+        COM_UTIL_OK,
+        rtc); // [確認_異常系] - ファイル クローズ失敗時の com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
+}
 
 // メモリ マップの作成に失敗した場合に errno が通知されることの確認
 // Windows は CreateFileMapping / MapViewOfFile を使うため、この失敗経路は Linux のみに存在する
