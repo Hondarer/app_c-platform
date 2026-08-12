@@ -154,6 +154,29 @@ TEST_F(pathConcatTest, get_temp_dir_records_error_for_null_output)
                                 COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - TLS の要因が EINVAL であること。
 }
 
+#if defined(PLATFORM_WINDOWS)
+// Windows の GetTempPathW で取得した一時ディレクトリが公開 API のパス形式になることの確認
+TEST_F(pathConcatTest, get_temp_dir_returns_normalized_windows_path)
+{
+    // Arrange
+    char output[PLATFORM_PATH_MAX] = {};
+    com_util_error err;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_get_temp_dir(output, sizeof(output), &err); // [手順] - Windows の一時ディレクトリを取得する。
+
+    // Assert
+    ASSERT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_get_temp_dir の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE('\0', output[0]); // [確認_正常系] - 一時ディレクトリの絶対パスが返ること。
+    EXPECT_EQ(nullptr, std::strchr(output, '\\')); // [確認_正常系] - 出力に Windows 固有の区切り文字が残らないこと。
+    EXPECT_NE(PLATFORM_PATH_SEP_CHR,
+              output[std::strlen(output) - 1u]); // [確認_正常系] - 末尾の区切り文字が除去されること。
+}
+#endif /* PLATFORM_WINDOWS */
+
+#if defined(PLATFORM_LINUX)
 // TMPDIR 未設定時に標準の一時ディレクトリが返ることの確認
 TEST_F(pathConcatTest, get_temp_dir_uses_default_when_tmpdir_is_empty)
 {
@@ -186,7 +209,7 @@ TEST_F(pathConcatTest, get_temp_dir_removes_trailing_separators)
     EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
         .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
                          {
-                             std::strcpy(buffer, "/var/tmp///");
+                             std::memcpy(buffer, "/var/tmp///", sizeof("/var/tmp///"));
                              return COM_UTIL_OK;
                          }));
 
@@ -227,7 +250,7 @@ TEST_F(pathConcatTest, get_temp_dir_reports_formatting_failure)
     EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
         .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
                          {
-                             std::strcpy(buffer, "/tmp");
+                             std::memcpy(buffer, "/tmp", sizeof("/tmp"));
                              return COM_UTIL_OK;
                          }));
     EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _)).WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
@@ -240,3 +263,4 @@ TEST_F(pathConcatTest, get_temp_dir_reports_formatting_failure)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, result); // [確認_異常系] - 出力整形失敗が BUFFER_TOO_SMALL になること。
 }
+#endif /* PLATFORM_LINUX */

@@ -91,8 +91,8 @@ extern "C"
         COM_UTIL_CAUSE_BUFFER_TOO_SMALL = 19,
         COM_UTIL_CAUSE_UNSUPPORTED = 20,
         COM_UTIL_CAUSE_IO_ERROR = 21,
-        COM_UTIL_CAUSE_WOULD_BLOCK = 22,
-        COM_UTIL_CAUSE_IN_PROGRESS = 23,
+        COM_UTIL_CAUSE_WOULD_BLOCK = 22, /**< 非ブロッキングの送受信・accept などを直ちに完了できず、同じ操作を再試行する要因です。 */
+        COM_UTIL_CAUSE_IN_PROGRESS = 23, /**< 非同期操作が開始済みで、完了通知を待つ要因です。 */
         COM_UTIL_CAUSE_CONNECTION_REFUSED = 24,
         COM_UTIL_CAUSE_CONNECTION_RESET = 25,
         COM_UTIL_CAUSE_CONNECTION_ABORTED = 26,

@@ -112,6 +112,9 @@ const char *com_util_result_to_string(const int result)
     case COM_UTIL_ERR_CANCELED:
         text = "canceled";
         break;
+    case COM_UTIL_ERR_IN_PROGRESS:
+        text = "in progress";
+        break;
     default:
         text = "unknown result code";
         break;

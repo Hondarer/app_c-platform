@@ -285,6 +285,10 @@ int com_util_socket_connect(const com_util_socket sock, const com_util_ipv4_endp
 
     if (connect((int)sock, (const struct sockaddr *)&native, (socklen_t)sizeof(native)) != 0)
     {
+        if (errno == EINPROGRESS)
+        {
+            return com_util_error_report_socket_errno_as(detail_out, errno, COM_UTIL_ERR_IN_PROGRESS);
+        }
         return com_util_error_report_socket_errno(detail_out, errno);
     }
 

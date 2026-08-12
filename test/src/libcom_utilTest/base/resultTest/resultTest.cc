@@ -38,6 +38,7 @@ static_assert(COM_UTIL_ERR_INVALID_PATTERN == -29, "COM_UTIL_ERR_INVALID_PATTERN
 static_assert(COM_UTIL_ERR_INVALID_ENCODING == -30, "COM_UTIL_ERR_INVALID_ENCODING の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_EOF == -40, "COM_UTIL_ERR_EOF の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_CANCELED == -41, "COM_UTIL_ERR_CANCELED の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_IN_PROGRESS == -42, "COM_UTIL_ERR_IN_PROGRESS の ABI 値を変更してはなりません。");
 
 /* result.h が定義するエラー コードの一覧 (COM_UTIL_OK を除く)。 */
 static std::vector<int> all_error_codes()
@@ -65,7 +66,8 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_INVALID_PATTERN,
                             COM_UTIL_ERR_INVALID_ENCODING,
                             COM_UTIL_ERR_EOF,
-                            COM_UTIL_ERR_CANCELED};
+                            COM_UTIL_ERR_CANCELED,
+                            COM_UTIL_ERR_IN_PROGRESS};
 }
 
 class resultTest : public Test

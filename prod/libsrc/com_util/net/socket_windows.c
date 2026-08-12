@@ -117,6 +117,29 @@ static int report_last_winsock_error(com_util_error *detail_out)
 }
 
 /**
+ *  @brief          connect の非同期継続状態を共通結果コードへ変換します。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
+ *  @param[in]      error_code WSAGetLastError() が返した値。
+ *  @return         共通結果コードを返します。
+ *
+ *  WSAEWOULDBLOCK は一般のソケット操作では WOULD_BLOCK ですが、
+ *  非ブロッキング connect では接続処理が継続中であることを表します。
+ *  生の Winsock エラーは detail_out に保持し、戻り値だけを IN_PROGRESS へ正規化します。
+ *  see: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
+ */
+static int report_connect_winsock_error(com_util_error *detail_out, const unsigned long error_code)
+{
+    if ((error_code == (unsigned long)WSAEWOULDBLOCK) ||
+        (error_code == (unsigned long)WSAEINPROGRESS) ||
+        (error_code == (unsigned long)WSAEALREADY))
+    {
+        return com_util_error_report_winsock_error_as(detail_out, error_code, COM_UTIL_ERR_IN_PROGRESS);
+    }
+
+    return com_util_error_report_winsock_error(detail_out, error_code);
+}
+
+/**
  *  @brief          ソケット オプションへ整数値を設定します。
  *  @param[in]      sock       対象のソケット。
  *  @param[in]      level      オプションの階層。
@@ -350,7 +373,7 @@ int com_util_socket_connect(const com_util_socket sock, const com_util_ipv4_endp
 
     if (connect((SOCKET)sock, (const struct sockaddr *)&native, (int)sizeof(native)) == SOCKET_ERROR)
     {
-        return report_last_winsock_error(detail_out);
+        return report_connect_winsock_error(detail_out, (unsigned long)WSAGetLastError());
     }
 
     return com_util_error_report_success(detail_out);

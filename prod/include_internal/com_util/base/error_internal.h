@@ -50,6 +50,19 @@ extern "C"
     int com_util_error_report_socket_errno(com_util_error *detail_out, int errno_value);
 
     /**
+     *  @brief          ソケット操作の errno と指定された共通結果コードを記録します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *  @param[in]      errno_value errno の値。
+     *  @param[in]      result 記録して返す共通結果コード。
+     *  @return         @p result を返します。
+     *
+     *  ソケット操作が持つ生の errno を保持したまま、操作固有の結果コードを返す場合に使用します。
+     *  非ブロッキング connect の EINPROGRESS は @ref COM_UTIL_ERR_IN_PROGRESS として記録します。
+     */
+    int com_util_error_report_socket_errno_as(com_util_error *detail_out, int errno_value, int result);
+
+    /**
      *  @brief          getaddrinfo のエラー コードと対応する共通結果コードを記録します。
      *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
@@ -89,6 +102,19 @@ extern "C"
      *  com_util_error_report_windows_error() では分類できません。
      */
     int com_util_error_report_winsock_error(com_util_error *detail_out, unsigned long error_code);
+
+    /**
+     *  @brief          Winsock エラーと指定された共通結果コードを記録します。
+     *  @param[out]     detail_out エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *  @param[in]      error_code WSAGetLastError() が返した値。
+     *  @param[in]      result 記録して返す共通結果コード。
+     *  @return         @p result を返します。
+     *
+     *  Winsock の生のエラー番号を保持したまま、操作固有の結果コードを返す場合に使用します。
+     *  非ブロッキング connect の WSAEWOULDBLOCK は @ref COM_UTIL_ERR_IN_PROGRESS として記録します。
+     */
+    int com_util_error_report_winsock_error_as(com_util_error *detail_out, unsigned long error_code, int result);
 #endif
 
     /**

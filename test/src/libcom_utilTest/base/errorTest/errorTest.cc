@@ -375,18 +375,6 @@ TEST_F(errorTest, report_gai_error_maps_standard_codes_and_unknown_code)
     const com_util_error_cause unknown_cause = com_util_error_get_cause(&error); // [手順] - 未知の EAI 値の要因を取得する。
     int success_result = com_util_error_report_gai_error(&error, 0); // [手順] - EAI 0 を成功として記録する。
 #else
-    int not_found_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause not_found_cause = COM_UTIL_CAUSE_OTHER;
-    int again_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause again_cause = COM_UTIL_CAUSE_OTHER;
-    int memory_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause memory_cause = COM_UTIL_CAUSE_OTHER;
-    int family_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause family_cause = COM_UTIL_CAUSE_OTHER;
-    int flags_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause flags_cause = COM_UTIL_CAUSE_OTHER;
-    int unknown_result = COM_UTIL_ERR_UNKNOWN;
-    const com_util_error_cause unknown_cause = COM_UTIL_CAUSE_OTHER;
     int success_result = COM_UTIL_OK;
 #endif
 

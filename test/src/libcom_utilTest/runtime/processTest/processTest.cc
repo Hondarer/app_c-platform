@@ -301,7 +301,7 @@ TEST(processTest, WaitNoWaitReportsTimeoutForRunningProcess)
 #elif defined(PLATFORM_WINDOWS)
     char arg0[] = "cmd.exe";
     char arg1[] = "/C";
-    char arg2[] = "ping -n 3 127.0.0.1 > NUL";
+    char arg2[] = "ping -n 3 127.0.0.1 > " PLATFORM_NULL_DEVICE_PATH;
 #endif /* PLATFORM_ */
     char *argv[] = {arg0, arg1, arg2, NULL};
 

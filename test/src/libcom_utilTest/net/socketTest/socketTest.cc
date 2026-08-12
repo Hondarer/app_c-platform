@@ -484,6 +484,39 @@ TEST_F(socketTest, connection_operations_report_os_failures)
               rtc_connect); // [確認_異常系] - connect の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
+// 非ブロッキング connect の継続状態がプラットフォーム共通の結果コードになることの確認
+TEST_F(socketTest, connect_reports_in_progress_for_nonblocking_completion)
+{
+    // Arrange
+    com_util_error detail = {};
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINPROGRESS), Return(-1))); // [Pre-Assert手順] - connect から EINPROGRESS を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_winsock_, connect(_, _, _, (SOCKET)kSocket, _, _))
+        .WillOnce(Return(SOCKET_ERROR)); // [Pre-Assert手順] - connect から SOCKET_ERROR を返却する。
+    EXPECT_CALL(mock_winsock_, WSAGetLastError)
+        .WillOnce(Return(WSAEWOULDBLOCK)); // [Pre-Assert手順] - WSAGetLastError から WSAEWOULDBLOCK を返却する。
+#endif /* PLATFORM_ */
+
+    // Act
+    int result = com_util_socket_connect(kSocket, &kEndpoint,
+                                         &detail); // [手順] - 非ブロッキング connect の継続状態を処理する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_IN_PROGRESS,
+              result); // [確認_正常系] - com_util_socket_connect の戻り値が COM_UTIL_ERR_IN_PROGRESS であること。
+#if defined(PLATFORM_LINUX)
+    EXPECT_EQ(COM_UTIL_CAUSE_IN_PROGRESS,
+              com_util_error_get_cause(&detail)); // [確認_正常系] - Linux の詳細要因が IN_PROGRESS であること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_EQ(COM_UTIL_CAUSE_WOULD_BLOCK,
+              com_util_error_get_cause(&detail)); // [確認_正常系] - Windows の生の詳細要因が WOULD_BLOCK であること。
+#endif /* PLATFORM_ */
+}
+
 // accept が無効な引数を拒否することの確認
 TEST_F(socketTest, accept_rejects_invalid_arguments)
 {

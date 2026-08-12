@@ -183,11 +183,13 @@ extern "C"
      *  @param[in]      sock       対象のソケット。
      *  @param[in]      endpoint   接続先の端点。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
-     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_IN_PROGRESS 、
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
-     *  非ブロッキング モードで接続が完了しなかった場合は、@p detail_out の要因が
-     *  @ref COM_UTIL_CAUSE_IN_PROGRESS になります。\n
+     *  非ブロッキング モードで接続が完了しなかった場合は、戻り値が
+     *  @ref COM_UTIL_ERR_IN_PROGRESS になります。@p detail_out にはプラットフォームの
+     *  詳細エラーを保持しますが、要因は Linux の @c EINPROGRESS と Windows の
+     *  @c WSAEWOULDBLOCK 、@c WSAEINPROGRESS 、@c WSAEALREADY で異なる場合があります。\n
      *  この場合は @ref com_util_socket_wait_writable で完了を待ち、
      *  @ref com_util_socket_get_pending_error で結果を確認します。
      *

@@ -2,6 +2,7 @@
 #include <mock_stdio.h>
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
 
 #include <errno.h>
@@ -175,7 +176,12 @@ TEST(stdioFailureInjectionTest, fflush_preserves_nonzero_errno)
 TEST(stdioFailureInjectionTest, fflush_reports_success_for_valid_stream)
 {
     // Arrange
-    FILE *stream = std::tmpfile();
+    FILE *stream = NULL;
+#if defined(PLATFORM_LINUX)
+    stream = std::tmpfile();
+#elif defined(PLATFORM_WINDOWS)
+    (void)tmpfile_s(&stream);
+#endif /* PLATFORM_ */
     com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
     ASSERT_NE(static_cast<FILE *>(NULL), stream);
 
@@ -276,8 +282,15 @@ TEST(stdioFailureInjectionTest, fread_and_fgets_report_stream_errors)
     char data[2] = {};
     com_util_error fread_detail = {};
     com_util_error fgets_detail = {};
-    FILE *fread_stream = std::fopen("/dev/null", "wb");
-    FILE *fgets_stream = std::fopen("/dev/null", "wb");
+    FILE *fread_stream = NULL;
+    FILE *fgets_stream = NULL;
+#if defined(PLATFORM_LINUX)
+    fread_stream = std::fopen(PLATFORM_NULL_DEVICE_PATH, "wb");
+    fgets_stream = std::fopen(PLATFORM_NULL_DEVICE_PATH, "wb");
+#elif defined(PLATFORM_WINDOWS)
+    (void)fopen_s(&fread_stream, PLATFORM_NULL_DEVICE_PATH, "wb");
+    (void)fopen_s(&fgets_stream, PLATFORM_NULL_DEVICE_PATH, "wb");
+#endif /* PLATFORM_ */
     ASSERT_NE(static_cast<FILE *>(NULL), fread_stream);
     ASSERT_NE(static_cast<FILE *>(NULL), fgets_stream);
 
@@ -305,7 +318,12 @@ TEST(stdioFailureInjectionTest, remove_and_rename_classify_file_operations)
     const char *old_path = "/tmp/com_util_stdio_old.txt";
     const char *new_path = "/tmp/com_util_stdio_new.txt";
     com_util_error detail = {};
-    FILE *stream = std::fopen(old_path, "wb");
+    FILE *stream = NULL;
+#if defined(PLATFORM_LINUX)
+    stream = std::fopen(old_path, "wb");
+#elif defined(PLATFORM_WINDOWS)
+    (void)fopen_s(&stream, old_path, "wb");
+#endif /* PLATFORM_ */
     ASSERT_NE(static_cast<FILE *>(NULL), stream);
     std::fclose(stream);
     (void)std::remove(new_path);
@@ -349,7 +367,12 @@ TEST(stdioFailureInjectionTest, rename_reports_os_failure)
 TEST(stdioFailureInjectionTest, formatted_output_and_file_position_wrappers_work)
 {
     // Arrange
-    FILE *stream = std::tmpfile();
+    FILE *stream = NULL;
+#if defined(PLATFORM_LINUX)
+    stream = std::tmpfile();
+#elif defined(PLATFORM_WINDOWS)
+    (void)tmpfile_s(&stream);
+#endif /* PLATFORM_ */
     ASSERT_NE(static_cast<FILE *>(NULL), stream);
 
     // Pre-Assert

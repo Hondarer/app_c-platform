@@ -110,6 +110,7 @@ TEST_F(pathGetFullTest, normalizes_dotdot_and_backslash_segments)
 }
 
 // 連続したセパレーターを含む絶対パスが正規化されることの確認
+#if defined(PLATFORM_LINUX)
 TEST_F(pathGetFullTest, normalizes_repeated_separators)
 {
     // Arrange
@@ -125,6 +126,28 @@ TEST_F(pathGetFullTest, normalizes_repeated_separators)
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/tmp", actual); // [確認_正常系] - 連続したセパレーターが除去されたパスになること。
 }
+#endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_WINDOWS)
+// Windows の GetFullPathNameW で連続したセパレーターと '\\' が公開 API の形式へ正規化されることの確認
+TEST_F(pathGetFullTest, normalizes_repeated_windows_separators)
+{
+    // Arrange
+    char actual[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_path_get_full(actual, sizeof(actual), NULL,
+                                        ".\\pathGetFullTest\\\\child"); // [手順] - '\\' と連続したセパレーターを含む相対パスを絶対化する。
+
+    // Assert
+    ASSERT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE('\0', actual[0]); // [確認_正常系] - 絶対パスが返ること。
+    EXPECT_EQ(nullptr, std::strchr(actual, '\\')); // [確認_正常系] - '\\' が '/' に正規化されること。
+    EXPECT_EQ(nullptr, std::strstr(actual, "//")); // [確認_正常系] - 連続したセパレーターが除去されること。
+}
+#endif /* PLATFORM_WINDOWS */
 
 // カレント ディレクトリとの連結結果が長過ぎる場合に失敗することの確認
 TEST_F(pathGetFullTest, returns_enametoolong_when_relative_path_is_too_long)

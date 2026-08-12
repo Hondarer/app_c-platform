@@ -248,6 +248,12 @@ size_t com_util_fread(void *buffer, const size_t size, const size_t count, FILE 
     read_count = fread(buffer, size, count, stream);
     if (read_count < count && ferror(stream) != 0)
     {
+        /* NOTE: Windows UCRT では NUL の書き込み専用ストリームを fread で読み取ると、
+         * ストリームのエラー指示は ferror に反映されても errno が 0 の場合がある。
+         * ferror はストリームのエラー指示を返すが、errno はシステム呼び出しのエラー値と
+         * 常に一致するとは限らないため、errno == 0 のストリーム エラーを EIO で表す。
+         * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/ferror?view=msvc-170
+         * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/errno-doserrno-sys-errlist-and-sys-nerr?view=msvc-170 */
         int errno_value = errno;
 
         if (errno_value == 0)
@@ -554,7 +560,18 @@ int com_util_fgets(char *dest, const size_t dest_size, FILE *stream, com_util_er
     {
         if (ferror(stream) != 0)
         {
-            const int errno_value = errno;
+            /* NOTE: Windows UCRT では NUL の書き込み専用ストリームを fgets で読み取ると、
+             * ストリームのエラー指示は ferror に反映されても errno が 0 の場合がある。
+             * ferror はストリームのエラー指示を返すが、errno はシステム呼び出しのエラー値と
+             * 常に一致するとは限らないため、errno == 0 のストリーム エラーを EIO で表す。
+             * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/ferror?view=msvc-170
+             * see: https://learn.microsoft.com/en-us/cpp/c-runtime-library/errno-doserrno-sys-errlist-and-sys-nerr?view=msvc-170 */
+            int errno_value = errno;
+
+            if (errno_value == 0)
+            {
+                errno_value = EIO;
+            }
 
             return com_util_error_report_errno(detail_out, errno_value);
         }

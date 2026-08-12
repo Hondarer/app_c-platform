@@ -85,6 +85,18 @@
  */
 #define PLATFORM_PATH_SEP_CHR '/'
 
+/**
+ *  @brief          標準入出力を破棄する null device のパスです。
+ *                  Linux では `"/dev/null"`、Windows では `"NUL"` です。
+ */
+#ifdef DOXYGEN
+    #define PLATFORM_NULL_DEVICE_PATH "/dev/null"
+#elif defined(PLATFORM_LINUX)
+    #define PLATFORM_NULL_DEVICE_PATH "/dev/null"
+#elif defined(PLATFORM_WINDOWS)
+    #define PLATFORM_NULL_DEVICE_PATH "NUL"
+#endif /* DOXYGEN */
+
 #define COM_UTIL_PATH_CONCAT_COUNT_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, count, \
                                         ...) \
     count

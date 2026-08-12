@@ -771,17 +771,29 @@ int com_util_error_report_errno_as(com_util_error *detail_out, const int errno_v
 
 int com_util_error_report_winsock_error(com_util_error *detail_out, const unsigned long error_code)
 {
-    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_WINSOCK;
     int result;
 
     if (error_code == 0UL)
     {
-        domain = COM_UTIL_ERROR_DOMAIN_NONE;
         result = COM_UTIL_OK;
     }
     else
     {
         result = com_util_result_from_winsock_error(error_code);
+    }
+
+    return com_util_error_report_winsock_error_as(detail_out, error_code, result);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_report_winsock_error_as(com_util_error *detail_out, const unsigned long error_code, const int result)
+{
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_WINSOCK;
+
+    if ((error_code == 0UL) && (result == COM_UTIL_OK))
+    {
+        domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
     com_util_error_store(detail_out, domain, result, error_code);
@@ -795,17 +807,29 @@ int com_util_error_report_winsock_error(com_util_error *detail_out, const unsign
 
 int com_util_error_report_socket_errno(com_util_error *detail_out, const int errno_value)
 {
-    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO;
     int result;
 
     if (errno_value == 0)
     {
-        domain = COM_UTIL_ERROR_DOMAIN_NONE;
         result = COM_UTIL_OK;
     }
     else
     {
         result = com_util_result_from_errno(errno_value);
+    }
+
+    return com_util_error_report_socket_errno_as(detail_out, errno_value, result);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_error_report_socket_errno_as(com_util_error *detail_out, const int errno_value, const int result)
+{
+    com_util_error_domain domain = COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO;
+
+    if ((errno_value == 0) && (result == COM_UTIL_OK))
+    {
+        domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
     com_util_error_store(detail_out, domain, result, (unsigned long)errno_value);

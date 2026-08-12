@@ -101,6 +101,7 @@
 /* 制御: -40 〜 */
 #define COM_UTIL_ERR_EOF      (-40) /**< 入力が EOF に達しました。 */
 #define COM_UTIL_ERR_CANCELED (-41) /**< ユーザー操作 (Ctrl+C など) により中断しました。 */
+#define COM_UTIL_ERR_IN_PROGRESS (-42) /**< 非同期処理が開始済みで、完了を待つ必要があります。@ref com_util_socket_connect などが返します。 */
 /** @} */
 
 #endif /* COM_UTIL_RESULT_H */

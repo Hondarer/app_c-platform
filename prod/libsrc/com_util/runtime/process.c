@@ -40,6 +40,7 @@ extern char **environ;
 #elif defined(PLATFORM_WINDOWS)
     #include <com_util/base/windows_sdk.h>
     #include <com_util/crt/wchar_conv.h>
+    #include <com_util/win32/win32.h>
     #include <wchar.h>
 #endif /* PLATFORM_ */
 
@@ -283,7 +284,7 @@ static int setup_child_stdio_one(const com_util_process_stdio *spec, const int t
     {
         /* mode は O_CREAT を指定しないため使用されないが、testfw の open mock と
            Linux/Windows の可変引数差異を避けるため明示的に渡す。 */
-        source_fd = open("/dev/null", null_flags, 0);
+        source_fd = open(PLATFORM_NULL_DEVICE_PATH, null_flags, 0);
         if (source_fd < 0)
         {
             return -1;
@@ -805,9 +806,8 @@ static wchar_t *build_environment_block(char *const *overrides)
 
 static HANDLE open_windows_null_device(const DWORD access)
 {
-    /* ワイド文字列リテラルを渡すため CreateFileU を使わない */
-    return CreateFileW(L"NUL", access, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
-                       NULL);
+    return CreateFileU(PLATFORM_NULL_DEVICE_PATH, access, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                       FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
 static int duplicate_inheritable_handle(HANDLE source, HANDLE *duplicated)
