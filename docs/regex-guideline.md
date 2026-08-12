@@ -2,6 +2,8 @@
 
 `com_util/regex/regex.h` が提供する正規表現 API の設計方針と、POSIX `<regex.h>` との対応を示します。
 
+com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+
 ## 実装の背景
 
 正規表現は C 標準に存在せず、POSIX `<regex.h>` は Linux の libc には含まれますが Windows (MSVC) には存在しません。  

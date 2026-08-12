@@ -12,6 +12,7 @@ com_util 固有の規則、制限、遵守事項は、今後もすべて本書�
 
 ### 関連ドキュメント
 
+- [`api-cheatsheet.md`](api-cheatsheet.md) - com_util API チート シート (公開 API 全体の一覧、入り口)
 - [`platform-abstraction-guideline.md`](platform-abstraction-guideline.md) - `platform.h` / `compiler.h` の共通マクロ利用規則
 - [`error-detail-migration.md`](error-detail-migration.md) - 生の OS エラー値から `com_util_error` への移行手順
 

@@ -9,6 +9,8 @@ C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッ
 
 利用側のコードは、処理系依存マクロを直接判定するのではなく、`PLATFORM_*` / `ARCH_*` / `COMPILER_*` / `FORCE_INLINE` / `NO_INLINE` を使って分岐してください。
 
+com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+
 ## 基本ルール
 
 ### OS 判定は PLATFORM_* を使う

@@ -88,6 +88,7 @@ Windows では `dumpbin /dependents` を使い、実行ファイルが `libcom_u
 
 ## 関連ドキュメント
 
+- [com_util API チート シート](api-cheatsheet.md)
 - [コーディング規範 (特化事項)](coding-guideline.md)
 - [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
 - [makepart.mk の記述](../../../framework/makefw/docs/makeparts.md)

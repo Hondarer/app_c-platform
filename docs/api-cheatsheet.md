@@ -1,8 +1,8 @@
-# com_util 生 API 対応チート シート
+# com_util API チート シート
 
 ## 概要
 
-このチート シートは、`app/` 配下のコードで生の CRT / POSIX / Win32 API を書こうとしたときに、対応する com_util の代替関数を素早く引くための一覧です。  
+本チート シートは、`app/` 配下のコードで生の CRT / POSIX / Win32 API を書こうとしたときに、対応する com_util の代替関数を素早く引くための一覧です。  
 同時に、com_util が公開する API 全体を用途から引ける逆引き辞書でもあります。  
 規範本文と根拠は [coding-guideline.md](coding-guideline.md) の「[ラッパーの設計方針](coding-guideline.md#ラッパーの設計方針)」「[危険な標準関数の代替](coding-guideline.md#危険な標準関数の代替)」に集約されています。  
 本チート シートは対応表の抽出であり、規範としての正典は `coding-guideline.md` です。  
@@ -100,7 +100,8 @@
 | `ftell` | `com_util_ftell(stream)` | 戻り値が 64bit (`int64_t`) 対応 |
 
 書式指定パスでファイルを開く/削除する用途には `com_util_fopen_fmt` / `com_util_vfopen_fmt` / `com_util_remove_fmt` / `com_util_vremove_fmt` を使用します。  
-一意な一時ファイルの作成には `com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out)` を使用します。
+一意な一時ファイルの作成には `com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out)` を使用します。  
+`stdio` ラッパーとメモリ マップド ファイル (後述) のどちらを使うべきかの選定基準は [fileio-api-selection-guideline.md](fileio-api-selection-guideline.md) を参照してください。
 
 ### 低レベル fd 操作
 
@@ -198,7 +199,11 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `munmap()` (POSIX) / `UnmapViewOfFile` +`CloseHandle` (Win32) | `com_util_mmap_detach(...)` | 内包するロックの破棄も合わせて行う |
 | `msync(MS_SYNC)` (POSIX) / `FlushViewOfFile` +`FlushFileBuffers` (Win32) | `com_util_mmap_flush(...)` | - |
 
+`stdio` ラッパーとの使い分けは [fileio-api-selection-guideline.md](fileio-api-selection-guideline.md) を参照してください。
+
 ### ネットワーク バイト オーダー
+
+本節、「IPv4 アドレス」節、「ソケット」節が扱う `net` カテゴリの規範は [net-api-guideline.md](net-api-guideline.md) を参照してください。
 
 対象ヘッダー: `com_util/net/byteorder.h`
 
@@ -265,6 +270,8 @@ IPv4 ソケットの生成、接続、送受信、待機は com_util のソケ�
 | `mlockall()` (Linux) | `com_util_memory_lock_self(...)` | Windows には相当 API が無いため、`VirtualQuery` で列挙し各領域へ `VirtualLock` を適用する合成実装 (参照カウント管理付き) |
 | `munlockall()` (Linux) | `com_util_memory_lock_scope_release(...)` | Windows では各範囲へ `VirtualUnlock` を参照カウント管理で適用 |
 
+scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.md) を参照してください。
+
 ### モジュール / プロセス情報
 
 対象ヘッダー: `com_util/runtime/module.h`、`com_util/runtime/process.h`
@@ -303,13 +310,14 @@ IPv4 ソケットの生成、接続、送受信、待機は com_util のソケ�
 
 POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 API へ置き換えます。
 
-| 生 API | com_util 代替 | 差異の要点 |
-|---|---|---|
-| `regcomp()` | `com_util_regex_create(...)` | 既定は ECMAScript 方言。`COM_UTIL_REGEX_EXTENDED`/`COM_UTIL_REGEX_BASIC` で POSIX ERE/BRE にも対応 |
-| `regexec()` | `com_util_regex_search(...)` (部分一致) / `com_util_regex_matches(...)` (全体一致) | 捕捉グループを UTF-8 バイト オフセットで返す。`regmatch_t` 配列とは形式が異なる |
-| `regfree()` | `com_util_regex_dispose(...)` | - |
+| 生 API | com_util 代替 |
+|---|---|
+| `regcomp()` | `com_util_regex_create(...)` |
+| `regexec()` | `com_util_regex_search(...)` (部分一致) / `com_util_regex_matches(...)` (全体一致) |
+| `regfree()` | `com_util_regex_dispose(...)` |
 
-置換 (`com_util_regex_replace`)、イテレーター (`com_util_regex_iter_*`)、分割 (`com_util_regex_split`) は POSIX regex にない機能で、対応する単一の生 API はありません。
+置換 (`com_util_regex_replace`)、イテレーター (`com_util_regex_iter_*`)、分割 (`com_util_regex_split`) は POSIX regex にない機能で、対応する単一の生 API はありません。  
+フラグの対応関係、文字モデル、制限事項の詳細は [regex-guideline.md](regex-guideline.md) を参照してください。
 
 ### コンソール制御 (Windows 専用)
 
@@ -343,7 +351,11 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 | `__declspec(dllexport)` / `__declspec(dllimport)` (Win32)、`__attribute__((visibility("default")))` (Linux/GCC) | `COM_UTIL_DLL_EXPORT(prefix)` |
 | `__stdcall` (Win32) | `COM_UTIL_DLL_API(prefix)` (Linux では空) |
 
+リンク方式や動的ライブラリの成果物構成は [link-policy.md](link-policy.md) を参照してください。
+
 ### プラットフォームとアーキテクチャーの検出
+
+本節と「コンパイラの検出とインライン制御」節が扱う分岐の書き方の規範は [platform-abstraction-guideline.md](platform-abstraction-guideline.md) を参照してください。
 
 対象ヘッダー: `com_util/base/platform.h`
 

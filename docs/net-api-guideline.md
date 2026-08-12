@@ -122,6 +122,7 @@ Linux は読み取り方向を停止してハンドルを保持し、Windows は
 
 ## 参照
 
+- [com_util API チート シート](api-cheatsheet.md)
 - [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
 - [コーディング規範](coding-guideline.md)
 - [Windows Sockets Error Codes](https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2)

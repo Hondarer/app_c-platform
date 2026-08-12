@@ -99,4 +99,6 @@ make -C app/com_util test
 
 ## 関連ドキュメント
 
+com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を入り口として参照してください。
+
 \toc depth=-1 exclude-basedir=true exclude="doxybook2_public/*" exclude="doxybook2_internal/*"

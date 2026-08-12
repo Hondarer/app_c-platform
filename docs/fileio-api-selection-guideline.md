@@ -2,6 +2,8 @@
 
 固定レコード長バイナリ ファイルや構造体配列の入出力で、`com_util` の `stdio` ラッパー API とメモリ マップド ファイル API のどちらを使うかを、実測に基づいて判断するための基準をまとめます。
 
+com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+
 測定方法は [ベンチマークの測定方法](https://github.com/Hondarer/app_com_util/blob/main/prod/src/cmd/bench-io/benchmark-method.md) を参照してください。  
 本書の表は `bench-io` の出力から転記したものです。CSV そのものは実行環境ごとに値が変わるため、リポジトリでは管理していません。
 
