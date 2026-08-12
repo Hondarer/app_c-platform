@@ -1,5 +1,8 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#if defined(PLATFORM_LINUX)
+    #include <mock_dlfcn.h>
+#endif
 #include <com_util/base/result.h>
 #include <com_util/crt/path.h>
 #include <com_util/runtime/module.h>
@@ -50,6 +53,80 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
     EXPECT_EQ('/', path[0]);     // [確認_正常系] - 絶対パスが '/' から始まること。
     EXPECT_NE(nullptr,
               std::strstr(path, "moduleTest")); // [確認_正常系] - パスに所属モジュール名 moduleTest が含まれること。
+}
+
+// dladdr が失敗した場合に UNKNOWN を返すことの確認
+TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_fails)
+{
+    // Arrange
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    // [Pre-Assert手順] - dladdr から失敗を返却する。
+    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _)).WillOnce(Return(0));
+
+    // Act
+    int rtc = com_util_module_get_path(path, sizeof(path),
+                                       self_func_addr()); // [手順] - dladdr の失敗を注入してモジュール パスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// dladdr がモジュール名を返さない場合に UNKNOWN を返すことの確認
+TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_no_filename)
+{
+    // Arrange
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    // [Pre-Assert手順] - dladdr から dli_fname が NULL の情報を返却する。
+    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
+        .WillOnce(
+            [](const char *, int, const char *, const void *, void *raw_info)
+            {
+                Dl_info *info = static_cast<Dl_info *>(raw_info);
+                info->dli_fname = NULL;
+                return 1;
+            });
+
+    // Act
+    int rtc = com_util_module_get_path(
+        path, sizeof(path), self_func_addr()); // [手順] - ファイル名のない dladdr 情報でモジュール パスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+
+// dladdr が空のモジュール名を返す場合に UNKNOWN を返すことの確認
+TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_empty_filename)
+{
+    // Arrange
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+    char path[PLATFORM_PATH_MAX] = {};
+
+    // Pre-Assert
+    // [Pre-Assert手順] - dladdr から空の dli_fname を返却する。
+    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
+        .WillOnce(
+            [](const char *, int, const char *, const void *, void *raw_info)
+            {
+                Dl_info *info = static_cast<Dl_info *>(raw_info);
+                info->dli_fname = "";
+                return 1;
+            });
+
+    // Act
+    int rtc = com_util_module_get_path(
+        path, sizeof(path), self_func_addr()); // [手順] - 空のファイル名を持つ dladdr 情報でモジュール パスを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 #elif defined(PLATFORM_WINDOWS)
 // 関数アドレスから所属モジュールの絶対パスが取得できることの確認 (Windows)
@@ -159,8 +236,8 @@ TEST_F(moduleTest, get_path_returns_unknown_when_normalization_fails)
             });
 
     // Act
-    const int result = com_util_module_get_path(
-        path, sizeof(path), self_func_addr()); // [手順] - パス正規化失敗を注入して呼び出す。
+    const int result =
+        com_util_module_get_path(path, sizeof(path), self_func_addr()); // [手順] - パス正規化失敗を注入して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -184,8 +261,8 @@ TEST_F(moduleTest, get_path_returns_buffer_too_small_when_normalization_reports_
             });
 
     // Act
-    const int result = com_util_module_get_path(
-        path, sizeof(path), self_func_addr()); // [手順] - 長過ぎるパスのエラーを注入して呼び出す。
+    const int result = com_util_module_get_path(path, sizeof(path),
+                                                self_func_addr()); // [手順] - 長過ぎるパスのエラーを注入して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
@@ -202,8 +279,8 @@ TEST_F(moduleTest, get_path_clears_output_for_null_function_address)
     // Pre-Assert
 
     // Act
-    const int result = com_util_module_get_path(
-        path, sizeof(path), NULL); // [手順] - func_addr に NULL を指定して呼び出す。
+    const int result =
+        com_util_module_get_path(path, sizeof(path), NULL); // [手順] - func_addr に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

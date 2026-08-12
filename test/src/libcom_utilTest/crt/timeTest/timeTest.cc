@@ -184,6 +184,39 @@ TEST_F(timeTest, localtime_null_time)
         rtc_localtime); // [確認_異常系] - com_util_localtime の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
+// OS のローカル時刻変換が失敗した場合に出力構造体をゼロ クリアすることの確認
+TEST_F(timeTest, localtime_zeroes_tm_when_platform_conversion_fails)
+{
+    // Arrange
+    struct tm local_tm;
+    time_t epoch = 0;                          // [状態] - 変換対象のエポック秒を 0 とする。
+    memset(&local_tm, 0xff, sizeof(local_tm)); // [状態] - 出力構造体を 0xff で埋め、ゼロ クリアを検出できるようにする。
+    Mock_time mock_time;
+
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - OS のローカル時刻変換関数が有効な引数で 1 回呼び出されること。
+    // [Pre-Assert手順] - OS のローカル時刻変換関数から失敗を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_time, localtime_r(_, _, _, _, _)).WillOnce(Return((struct tm *)NULL));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_time, localtime_s(_, _, _, _, _)).WillOnce(Return(1));
+#endif
+
+    // Act
+    int rtc_localtime =
+        com_util_localtime(&local_tm, &epoch); // [手順] - OS の変換失敗を注入して com_util_localtime を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc_localtime);       // [確認_異常系] - com_util_localtime の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(0, local_tm.tm_year); // [確認_異常系] - tm_year が 0 にクリアされること。
+    EXPECT_EQ(0, local_tm.tm_mon);  // [確認_異常系] - tm_mon が 0 にクリアされること。
+    EXPECT_EQ(0, local_tm.tm_mday); // [確認_異常系] - tm_mday が 0 にクリアされること。
+    EXPECT_EQ(0, local_tm.tm_hour); // [確認_異常系] - tm_hour が 0 にクリアされること。
+    EXPECT_EQ(0, local_tm.tm_min);  // [確認_異常系] - tm_min が 0 にクリアされること。
+    EXPECT_EQ(0, local_tm.tm_sec);  // [確認_異常系] - tm_sec が 0 にクリアされること。
+}
+
 // エポック 0 秒が ctime 形式の文字列に変換されることの確認
 TEST_F(timeTest, ctime_success_epoch)
 {

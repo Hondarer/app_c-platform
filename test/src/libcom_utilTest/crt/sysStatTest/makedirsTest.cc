@@ -1,5 +1,8 @@
 #include <testfw.h>
 #include <mock_com_util.h>
+#if defined(PLATFORM_LINUX)
+    #include <sys/mock_stat.h>
+#endif
 #include <com_util/base/result.h>
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
@@ -81,10 +84,8 @@ TEST_F(makedirsTest, stat_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    const int null_buffer_result =
-        com_util_stat(NULL, NULL, "missing"); // [手順] - stat の出力先に NULL を指定する。
-    const int null_path_result =
-        com_util_stat(&stat_buffer, NULL, NULL); // [手順] - stat のパスに NULL を指定する。
+    const int null_buffer_result = com_util_stat(NULL, NULL, "missing");  // [手順] - stat の出力先に NULL を指定する。
+    const int null_path_result = com_util_stat(&stat_buffer, NULL, NULL); // [手順] - stat のパスに NULL を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -138,8 +139,7 @@ TEST_F(makedirsTest, mkdir_reports_existing_directory)
     // Pre-Assert
 
     // Act
-    const int result =
-        com_util_mkdir(dir.c_str(), NULL); // [手順] - 既存ディレクトリを指定して mkdir を呼び出す。
+    const int result = com_util_mkdir(dir.c_str(), NULL); // [手順] - 既存ディレクトリを指定して mkdir を呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
@@ -158,8 +158,7 @@ TEST_F(makedirsTest, overlong_path_returns_name_too_long)
     // Pre-Assert
 
     // Act
-    const int result =
-        com_util_makedirs(path.c_str(), NULL); // [手順] - 長過ぎるパスを指定して makedirs を呼び出す。
+    const int result = com_util_makedirs(path.c_str(), NULL); // [手順] - 長過ぎるパスを指定して makedirs を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
@@ -240,6 +239,115 @@ TEST_F(makedirsTest, relative_path_creates_nested_directories)
     // Cleanup
     remove_dir("makedirsTest_relative");
 }
+
+#if defined(PLATFORM_LINUX)
+// 対象が存在せず mkdir が成功した場合に成功することの確認
+TEST_F(makedirsTest, returns_success_when_mkdir_creates_target)
+{
+    // Arrange
+    NiceMock<Mock_sys_stat> mock_sys_stat;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - target に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - stat で errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("target"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - stat の後に target に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - mkdir で 0 を返却する。
+
+    // Act
+    int result =
+        com_util_makedirs("target", NULL); // [手順] - stat 失敗後に mkdir が成功する条件で makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+}
+
+// mkdir と競合した後の再確認で対象を検出した場合に成功することの確認
+TEST_F(makedirsTest, returns_success_when_target_appears_after_mkdir_failure)
+{
+    // Arrange
+    NiceMock<Mock_sys_stat> mock_sys_stat;
+    InSequence sequence;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - mkdir の前に target に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - mkdir の前の stat で errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("target"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, mode_t)
+            {
+                errno = EEXIST;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - 1 回目の stat の後に target に対する mkdir が 1 回呼び出されること。
+                // [Pre-Assert手順] - mkdir で errno に EEXIST を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - mkdir の後に target に対する stat が 1 回呼び出されること。
+                              // [Pre-Assert手順] - mkdir の後の stat で 0 を返却する。
+
+    // Act
+    int result = com_util_makedirs(
+        "target", NULL); // [手順] - mkdir 失敗後の stat が成功する競合生成の条件で makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              result); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+}
+
+// 中間ディレクトリの生成と再確認が失敗した場合に処理を中断することの確認
+TEST_F(makedirsTest, returns_unknown_when_intermediate_directory_cannot_be_created)
+{
+    // Arrange
+    NiceMock<Mock_sys_stat> mock_sys_stat;
+    InSequence sequence;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("parent"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - mkdir の前に parent に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - mkdir の前の stat で errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("parent"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, mode_t)
+            {
+                errno = EACCES;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - 1 回目の stat の後に parent に対する mkdir が 1 回呼び出されること。
+                // [Pre-Assert手順] - mkdir で errno に EACCES を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("parent"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - mkdir の後に parent に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - mkdir の後の stat で errno に ENOENT を設定し、-1 を返却する。
+
+    // Act
+    int result = com_util_makedirs(
+        "parent/leaf", NULL); // [手順] - 中間ディレクトリの stat、mkdir、再 stat が失敗する条件で makedirs を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+}
+#endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
 // Windows スタイル区切りの絶対パスで再帰作成できることの確認
