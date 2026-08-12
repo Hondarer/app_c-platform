@@ -170,7 +170,7 @@ extern "C"
      *  相対パスはカレント ディレクトリ基準で絶対化します。\n
      *  Linux では realpath() による symlink 解決を可能な範囲で試み、失敗した場合は
      *  '.' / '..' を解消した絶対パス文字列を返します。\n
-     *  正規化用メモリを確保できない場合、@p detail_out に errno ドメインの @c ENOMEM を格納します。\n
+     *  正規化用メモリを確保できない場合、@p detail_out に errno ドメインの `ENOMEM` を格納します。\n
      *  Windows では GetFullPathNameW() により絶対化し、返却値は常に
      *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
      *
@@ -215,8 +215,8 @@ extern "C"
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
-     *  Linux 環境では環境変数 @c TMPDIR を参照し、未設定または空の場合は @c "/tmp" を使用します。\n
-     *  Windows 環境では @c GetTempPathW() で取得したパスを UTF-8 に変換して使用します。\n
+     *  Linux 環境では環境変数 `TMPDIR` を参照し、未設定または空の場合は `"/tmp"` を使用します。\n
+     *  Windows 環境では `GetTempPathW()` で取得したパスを UTF-8 に変換して使用します。\n
      *  出力パスは常に @ref PLATFORM_PATH_SEP (`"/"`) 区切りで正規化されており、末尾の区切り文字は含まれません。\n
      *  ファイル パスを構築する際は @ref PLATFORM_PATH_SEP を挟んでください。
      *

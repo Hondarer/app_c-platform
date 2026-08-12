@@ -4,8 +4,8 @@
  *
  *  Windows 環境で接続先コンソールの入出力コード ページを UTF-8 に設定し、
  *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
- *  Linux 環境では @c com_util_console_init は何もしません。\n
- *  呼び出し側は @c \#ifdef @c _WIN32 ガード不要でクロスプラットフォームに
+ *  Linux 環境では `com_util_console_init` は何もしません。\n
+ *  呼び出し側は `#ifdef _WIN32` ガード不要でクロスプラットフォームに
  *  使用できます。
  *
  *  @par            使用例
@@ -62,7 +62,7 @@ extern "C"
      *  何もせずに返ります。
      *
      *  @note           初回利用時に shutdown コールバックが自動登録されます。\n
-     *                  明示的に解放する場合は @c com_util_console_dispose を呼び出してください。
+     *                  明示的に解放する場合は `com_util_console_dispose` を呼び出してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -73,10 +73,10 @@ extern "C"
     /**
      *  @brief          コンソール ヘルパーを終了し、リソースを解放します。
      *
-     *  Windows 環境では @c com_util_console_init で変更した
+     *  Windows 環境では `com_util_console_init` で変更した
      *  コンソール入出力コード ページとコンソール モードを元に戻します。\n
      *  Linux 環境では何もしません。\n
-     *                  @c com_util_console_init を呼び出していない場合も安全に呼び出せます。
+     *                  `com_util_console_init` を呼び出していない場合も安全に呼び出せます。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -94,14 +94,14 @@ extern "C"
      *
      *  Windows 環境では、com_util_elevated_process_run_if_needed() が UAC 昇格で
      *  自プロセスを再起動した際に付与する引き継ぎフラグを検出し、親プロセスの
-     *  コンソールへ @c AttachConsole で再接続します。\n
+     *  コンソールへ `AttachConsole` で再接続します。\n
      *  再接続後、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へ
      *  つなぎ直すため、昇格プロセスの出力が元のコンソールにそのまま表示されます。\n
      *  検出した引き継ぎフラグは @p argv から取り除き、@p argc を 1 減らします。\n
      *  Linux 環境では何もせず @p attached_out に 0 を設定して @ref COM_UTIL_OK を返します。
      *
      *  @note           本関数はプログラム開始直後、引数解析および
-     *                  @c com_util_console_init より前に 1 度だけ呼び出してください。\n
+     *                  `com_util_console_init` より前に 1 度だけ呼び出してください。\n
      *                  親プロセスにコンソールが無い場合 (GUI 起動など) は引き継ぎ
      *                  フラグが付与されないため、@p attached_out には 0 が設定されます。
      *
@@ -122,7 +122,7 @@ extern "C"
      *  Windows 環境では、com_util_console_attach_parent() による昇格後の親コンソール
      *  再接続直後に、stdout / stderr の CRT ストリーム (FILE*) 経由の printf / fprintf が
      *  fd 自体は正常であるにもかかわらず書き込みを拒否する事象が実機調査で確認されている。\n
-     *  本関数は @c GetStdHandle で取得した Win32 ハンドルへ @c WriteConsoleA で直接書き込み、
+     *  本関数は `GetStdHandle` で取得した Win32 ハンドルへ `WriteConsoleA` で直接書き込み、
      *  この問題を回避する。\n
      *  Linux 環境では対象の fd へ直接書き込みます。
      *

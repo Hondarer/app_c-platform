@@ -106,7 +106,7 @@ extern "C"
 
         /**
          *  @brief  各コンテキストで保持する履歴エントリ数の上限です。
-         *          0 の場合は @c COM_UTIL_PROMPT_HISTORY_DEFAULT を使用します。
+         *          0 の場合は `COM_UTIL_PROMPT_HISTORY_DEFAULT` を使用します。
          */
         size_t history_max;
 
@@ -118,7 +118,7 @@ extern "C"
 
         /**
          *  @brief  NUL 終端を含む入力編集バッファーの最大バイト数です。
-         *          0 の場合は @c COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT を使用します。
+         *          0 の場合は `COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT` を使用します。
          */
         size_t input_max_bytes;
     } com_util_prompt_options;

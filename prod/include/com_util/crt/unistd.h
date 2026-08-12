@@ -76,10 +76,10 @@ extern "C"
      *  @return         端末に接続されている場合は 1、それ以外 (リダイレクト、パイプ、
      *                  不正な @p stream 値) は 0 を返します。
      *
-     *  Windows 環境では @c GetFileType が @c FILE_TYPE_CHAR を返し、
-     *  かつ @c GetConsoleMode が成功する場合にのみ 1 を返します。\n
-     *  Linux 環境では POSIX の @c isatty() を使用します。\n
-     *  POSIX の @c isatty() と異なり、引数はファイル記述子ではなく
+     *  Windows 環境では `GetFileType` が `FILE_TYPE_CHAR` を返し、
+     *  かつ `GetConsoleMode` が成功する場合にのみ 1 を返します。\n
+     *  Linux 環境では POSIX の `isatty()` を使用します。\n
+     *  POSIX の `isatty()` と異なり、引数はファイル記述子ではなく
      *  ストリーム enum (@ref com_util_stream) です。
      *
      *  @par            スレッド セーフ
@@ -92,7 +92,7 @@ extern "C"
      *  @brief          ファイル記述子の読み書き位置を移動します (`lseek` / `_lseeki64` ラッパー)。
      *  @param[in]      fd      対象のファイル記述子。com_util_open() が返した値を渡します。
      *  @param[in]      offset  @p whence を基準とする移動量 (バイト)。
-     *  @param[in]      whence  基準位置 (@c SEEK_SET 、@c SEEK_CUR 、@c SEEK_END のいずれか)。
+     *  @param[in]      whence  基準位置 (`SEEK_SET`、`SEEK_CUR`、`SEEK_END` のいずれか)。
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
@@ -153,8 +153,8 @@ extern "C"
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
-     *  POSIX の @c dup2 は成功時に @p newfd を返しますが、
-     *  本関数は Windows の @c _dup2 と挙動を揃えるため、成功時は常に 0 を返します。
+     *  POSIX の `dup2` は成功時に @p newfd を返しますが、
+     *  本関数は Windows の `_dup2` と挙動を揃えるため、成功時は常に 0 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -175,7 +175,7 @@ extern "C"
      *  @return         成功時は読み取ったバイト数 (ファイル終端では 0)、失敗時は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
-     *  Windows 環境では 1 回の呼び出しで読み取れる上限が @c INT_MAX バイトであり、
+     *  Windows 環境では 1 回の呼び出しで読み取れる上限が `INT_MAX` バイトであり、
      *  それを超える @p count は上限までに切り詰められます。\n
      *  必要なバイト数に達するまで読み取る場合は、呼び出し側でループしてください。
      *
@@ -200,7 +200,7 @@ extern "C"
      *  @return         成功時は書き込んだバイト数、失敗時は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
-     *  Windows 環境では 1 回の呼び出しで書き込める上限が @c INT_MAX バイトであり、
+     *  Windows 環境では 1 回の呼び出しで書き込める上限が `INT_MAX` バイトであり、
      *  それを超える @p count は上限までに切り詰められます。\n
      *  必要なバイト数を書き終えるまで、呼び出し側でループしてください。
      *

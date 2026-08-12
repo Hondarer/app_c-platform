@@ -42,7 +42,7 @@ extern "C"
      *
      *  指定された環境変数が設定されている場合、その値を @p buf に格納する。\n
      *  @p buf に NULL を渡した場合は存在確認のみ行い、値のコピーを省略する。\n
-     *  Windows では @c _dupenv_s を使用して MSVC セキュリティ警告を回避します。
+     *  Windows では `_dupenv_s` を使用して MSVC セキュリティ警告を回避します。
      *
      *  @param[in]      name        環境変数名 (null 終端文字列)。NULL を渡してはなりません。
      *  @param[out]     buf         値の格納先です。NULL を指定すると存在確認のみ行います。\n
@@ -68,7 +68,7 @@ extern "C"
     /**
      *  @brief          環境変数の値を設定します。
      *
-     *  Linux では @c setenv 、Windows では @c _putenv_s を使用します。\n
+     *  Linux では `setenv`、Windows では `_putenv_s` を使用します。\n
      *  設定は呼び出し元プロセスにのみ反映され、親プロセスへは伝わりません。
      *
      *  @param[in]      name       環境変数名 (null 終端文字列)。NULL、空文字列、
@@ -92,7 +92,7 @@ extern "C"
     /**
      *  @brief          環境変数を削除します。
      *
-     *  Linux では @c unsetenv 、Windows では値に空文字列を指定した @c _putenv_s を使用します。\n
+     *  Linux では `unsetenv`、Windows では値に空文字列を指定した `_putenv_s` を使用します。\n
      *  Windows は空文字列の設定を削除として扱うため、値が空の環境変数を作ることはできません。
      *
      *  @param[in]      name  環境変数名 (null 終端文字列)。NULL、空文字列、

@@ -8,7 +8,7 @@
  *
  *  Windows (ETW) と Linux (syslog) の差異を抽象化し、
  *  共通のトレース レベルとインターフェースを提供します。\n
- *  内部で @c com_util/trace/etw.h (Windows) または @c com_util/trace/syslog.h (Linux) を
+ *  内部で `com_util/trace/etw.h` (Windows) または `com_util/trace/syslog.h` (Linux) を
  *  使用します。
  *
  *  @par            アーキテクチャー
@@ -124,7 +124,7 @@
  *  ETW (約 65,000 バイト) と syslog (RFC 3164: 1,024 バイト) の
  *  推奨上限のうち小さい方を採用し、クロスプラットフォームでの
  *  安全な転送を保証します。\n
- *  本文の最大長は @c COM_UTIL_TRACER_MESSAGE_MAX_BYTES @c - @c 1 (= 1,023) バイトです。
+ *  本文の最大長は `COM_UTIL_TRACER_MESSAGE_MAX_BYTES` @c - @c 1 (= 1,023) バイトです。
  */
 #define COM_UTIL_TRACER_MESSAGE_MAX_BYTES 1024
 
@@ -135,7 +135,7 @@
  *  ラベル (@p message) を指定した場合はラベル長 + セパレータ (": ") 分だけ
  *  出力可能なバイナリ データ量が減少します。\n
  *  データがこの上限を超える場合は切り詰めが行われ、
- *  末尾に @c "..." が付与されます。
+ *  末尾に `"..."` が付与されます。
  */
 #define COM_UTIL_TRACER_HEX_MAX_DATA_BYTES 341
 
@@ -211,7 +211,7 @@ typedef enum com_util_tracer_state
  *  ユーザーが com_util_tracer_set_file_level() で変更するまで有効な初期値です。\n
  *  ファイル トレースはデフォルトで有効であり、com_util_tracer_set_file_level() を呼び出さない場合、
  *  com_util_tracer_start() 時にデフォルト パス
- *  (実行ファイルのディレクトリ配下の @c log/{ファイル名}.log。
+ *  (実行ファイルのディレクトリ配下の `log/{ファイル名}.log`。
  *  ファイル名のデフォルトはプロセス名) へ出力されます。
  */
 #define COM_UTIL_TRACER_DEFAULT_FILE_LEVEL COM_UTIL_TRACE_LEVEL_INFO
@@ -283,21 +283,21 @@ extern "C"
      *  @brief          トレース プロバイダーを初期化します。
      *
      *  自プロセスの実行ファイル名をデフォルト識別名として初期化します
-     *  (例: Linux @c /usr/bin/myapp → @c "myapp",
-     *  Windows @c C:\\bin\\myapp.exe → @c "myapp.exe")。\n
-     *  プロセス名の取得に失敗した場合は @c "unknown" を使用します。\n
+     *  (例: Linux `/usr/bin/myapp` → `"myapp"`,
+     *  Windows `C:\bin\myapp.exe` → `"myapp.exe"`)。\n
+     *  プロセス名の取得に失敗した場合は `"unknown"` を使用します。\n
      *  Linux 環境では syslog を LOG_USER facility で初期化します。\n
      *  Windows 環境ではライブラリ内蔵の ETW デフォルト プロバイダー
-     *  (@c COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME) を使用します。\n
+     *  (`COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME`) を使用します。\n
      *  識別名を変更するには com_util_tracer_set_name を呼び出してください。
      *
      *  デフォルトの出力先はファイル トレースのみです
      *  (OS トレースと stderr トレースのデフォルト レベルは COM_UTIL_TRACE_LEVEL_NONE)。\n
      *  ファイル トレースの出力先はデフォルトで実行ファイルのディレクトリ配下の
-     *  @c log/{ファイル名}.log であり、占有モード、最大
+     *  `log/{ファイル名}.log` であり、占有モード、最大
      *  COM_UTIL_TRACE_FILE_SINK_DEFAULT_MAX_BYTES バイト、
      *  COM_UTIL_TRACE_FILE_SINK_DEFAULT_GENERATIONS 世代で運用されます。
-     *  ファイル名のデフォルトはプロセス名 (実行ファイルのベース名。Windows は末尾の @c .exe を除く) です。\n
+     *  ファイル名のデフォルトはプロセス名 (実行ファイルのベース名。Windows は末尾の `.exe` を除く) です。\n
      *  パスとパラメーターは com_util_tracer_set_file_level で、
      *  ファイル名とファイル識別は com_util_tracer_set_file_name で変更できます。
      *
@@ -539,7 +539,7 @@ extern "C"
      *
      *  OS トレース (syslog ident / EventLog のインスタンス名) と ETW (サービス名) で
      *  使用する識別名を設定します。
-     *  識別名は @c {name} (identifier が 0 の場合) または @c {name}_{identifier} です。\n
+     *  識別名は `{name}` (identifier が 0 の場合) または `{name}_{identifier}` です。\n
      *  EventLog はソースが com_util 共通のため、本識別名を本文先頭に付与して
      *  インスタンスを判別可能にします。\n
      *  本関数はトレース ファイル名には影響しません。トレース ファイル名とファイル識別は
@@ -600,10 +600,10 @@ extern "C"
      *  @brief          トレース ファイル名とファイル識別を設定します。
      *
      *  ファイル トレースのデフォルト パス (実行ファイルのディレクトリ配下の
-     *  @c log/{ファイル名}.log) に使用するファイル名を設定します。
-     *  ファイル名は @c {name} (identifier が 0 の場合) または @c {name}_{identifier} です。\n
+     *  `log/{ファイル名}.log`) に使用するファイル名を設定します。
+     *  ファイル名は `{name}` (identifier が 0 の場合) または `{name}_{identifier}` です。\n
      *  name に NULL を指定した場合はプロセス名 (実行ファイルのベース名。Windows は末尾の
-     *  @c .exe を除く) を使用します。明示設定した名前には @c .exe の除去を適用しません。\n
+     *  `.exe` を除く) を使用します。明示設定した名前には `.exe` の除去を適用しません。\n
      *  本関数は OS トレースの識別名 (com_util_tracer_set_name) には影響しません。\n
      *  com_util_tracer_set_file_level で出力ファイル パスを明示設定している場合、
      *  本設定はデフォルト パスの解決に使用されないため効果を持ちません。
@@ -628,9 +628,9 @@ extern "C"
      *  @brief          解決済みのトレース ファイル名 (ファイル識別サフィックス込み) を取得します。
      *
      *  ファイル トレースのデフォルト パスで実際に使用されるファイル名
-     *  (拡張子 @c .log を除く) を返します。\n
+     *  (拡張子 `.log` を除く) を返します。\n
      *  com_util_tracer_set_file_name 未呼び出しの場合はプロセス名
-     *  (実行ファイルのベース名。Windows は末尾の @c .exe を除く) です。
+     *  (実行ファイルのベース名。Windows は末尾の `.exe` を除く) です。
      *
      *  @param[in]      handle    com_util_tracer_create の戻り値。
      *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
@@ -744,12 +744,12 @@ extern "C"
      *  com_util_tracer_start の戻り値で報告されます。
      *
      *  path に NULL を指定した場合はデフォルト パスを使用します。
-     *  デフォルト パスは実行ファイルのディレクトリ配下の @c log/{ファイル名}.log であり、
+     *  デフォルト パスは実行ファイルのディレクトリ配下の `log/{ファイル名}.log` であり、
      *  ファイル名は start 時点の設定 (com_util_tracer_set_file_name のファイル名とファイル識別)
      *  で解決されます。ファイル名のデフォルトはプロセス名です
-     *  (例: @c myapp または Windows の @c myapp.exe → @c log/myapp.log)。\n
+     *  (例: `myapp` または Windows の `myapp.exe` → `log/myapp.log`)。\n
      *  実行ファイル パスの取得に失敗した場合は、カレント ディレクトリからの相対パス
-     *  @c log/{ファイル名}.log へ出力します。\n
+     *  `log/{ファイル名}.log` へ出力します。\n
      *  ファイル トレースを無効化するには level に COM_UTIL_TRACE_LEVEL_NONE を指定します。
      *
      *  flags は com_util_trace_file_sink_create にそのまま渡されます。\n
@@ -881,7 +881,7 @@ extern "C"
      *  コールバック内から呼び出し、前のフックへ処理を継続させます。\n
      *  @p prev が NULL の場合は何もしません (チェーン末端)。
      *
-     *  @param[in]      prev       コールバックに渡された @c prev 引数。
+     *  @param[in]      prev       コールバックに渡された `prev` 引数。
      *  @param[in]      handle     trace を行った tracer ハンドル。
      *  @param[in]      level      trace レベル。
      *  @param[in]      timestamp  解決済みタイムスタンプ。

@@ -169,9 +169,9 @@ extern "C"
      *  @par            解放タイミング
      *  @p scope は、対応する com_util_memory_lock_self() が成功した後、ロック状態を必要とする処理が終わった時点で
      *  1 回だけ解放します。\n
-     *  Linux では最後の self scope が解放された時点で @c munlockall() を呼び出します。\n
+     *  Linux では最後の self scope が解放された時点で `munlockall()` を呼び出します。\n
      *  Windows では @p scope が保持する各範囲の ref-count を下げ、最後の参照がなくなった範囲だけ
-     *  @c VirtualUnlock() を呼び出します。
+     *  `VirtualUnlock()` を呼び出します。
      *
     @startuml com_util_memory_lock_scope_release のロック解放
         caption com_util_memory_lock_scope_release のロック解放

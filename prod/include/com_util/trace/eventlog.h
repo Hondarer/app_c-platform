@@ -17,11 +17,11 @@
  *
  *  Windows のアプリケーション イベント ログへ書き込むための
  *  ヘルパー関数群と、共通イベント ソースの登録/削除 API を提供します。\n
- *  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
+ *  Windows 専用ライブラリです。呼び出し元は `#if defined(PLATFORM_WINDOWS)` の
  *  中でのみ使用してください。
  *
  *  イベント ソースは com_util 全体で共通とし、ソース名には
- *  @c COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME を用います。\n
+ *  `COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME` を用います。\n
  *  分析性を高めるため、トレース レベル毎にイベント タイプとイベント ID を
  *  分けて書き込みます。
  *
@@ -60,7 +60,7 @@ extern "C"
      *  @param[in]      source_name  イベント ソース名 (UTF-8)。NULL は失敗。
      *  @return         成功時はハンドル、失敗時は NULL を返します。
      *
-     *  内部で @c RegisterEventSourceW を呼び出します。\n
+     *  内部で `RegisterEventSourceW` を呼び出します。\n
      *  ソースが未登録でも呼び出しは成功しますが、その場合 Event Viewer 上での
      *  表示はソース名の解決が行われません。事前に
      *  com_util_eventlog_register_source() で登録してください。
@@ -84,11 +84,11 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  level をイベント タイプ (Error / Warning / Information) とイベント ID に
-     *  写像して @c ReportEventW を呼び出します。\n
+     *  写像して `ReportEventW` を呼び出します。\n
      *  EventLog の置換文字列は、メッセージ文字列、実行体ファイル パス、ファイル識別子、
      *  インスタンス名、インスタンス識別子の 5 件です。\n
      *  Event Viewer の「全般」では、実行体ファイル パス、インスタンス名、メッセージ文字列の
-     *  3 行を表示します。識別子が 0 以外の場合は各行に @c _識別子 を付与します。\n
+     *  3 行を表示します。識別子が 0 以外の場合は各行に `_識別子` を付与します。\n
      *  実行ファイル絶対パスはプロセス内で初回だけ解決され、以後はキャッシュを使用します。
      *
      *  @par            スレッド セーフ
@@ -120,7 +120,7 @@ extern "C"
      *                  COM_UTIL_ERR_INVALID_ARGUMENT、権限不足の場合は COM_UTIL_ERR_PERMISSION_DENIED、
      *                  その他のシステム エラーの場合は COM_UTIL_ERR_UNKNOWN を返します。
      *
-     *  @c HKLM\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\{source_name}
+     *  `HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\{source_name}`
      *  キーを作成し、TypesSupported と CategoryCount を設定します。\n
      *  @p message_file_path が非 NULL の場合は EventMessageFile と CategoryMessageFile に
      *  そのパスを設定します。これにより Event Viewer はメッセージ本文とカテゴリ名を解決し、

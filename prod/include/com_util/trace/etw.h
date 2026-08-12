@@ -17,7 +17,7 @@
  *
  *  TraceLogging ベースの ETW プロバイダーを簡易に操作するための
  *  ヘルパー関数群を提供します。\n
- *  Windows 専用ライブラリです。呼び出し元は @c \#if defined(PLATFORM_WINDOWS) の
+ *  Windows 専用ライブラリです。呼び出し元は `#if defined(PLATFORM_WINDOWS)` の
  *  中でのみ使用してください。
  *
  *  @hideincludedbygraph
