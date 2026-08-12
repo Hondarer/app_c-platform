@@ -1,3 +1,7 @@
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef COM_UTIL_REGEX_TEST_INJECT_H
 #define COM_UTIL_REGEX_TEST_INJECT_H
 

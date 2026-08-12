@@ -1,4 +1,7 @@
-// sym_loader_resolve.c の static 関数へテストからアクセスするための宣言
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef SYM_LOADER_RESOLVE_INJECT_H
 #define SYM_LOADER_RESOLVE_INJECT_H
 

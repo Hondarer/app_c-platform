@@ -1,4 +1,8 @@
-// sync_linux.c の static 関数へテスト用アクセサーを追加する
+/* テスト対象ソース ファイルの注入用追加ソース
+ * このソースはテスト対象ソースの末尾に結合されます
+ * この static 関数へのアクセサーによって
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef _IN_TEST_SRC
     #include "sync_linux.c"
 #endif /* _IN_TEST_SRC */

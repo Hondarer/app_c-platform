@@ -1,3 +1,7 @@
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef PROMPT_INJECT_H
 #define PROMPT_INJECT_H
 
@@ -16,8 +20,7 @@ extern "C"
                                          const char *prompt_string);
 
     /* prompt.c の呼び出し位置別コンテキスト検索へ直接アクセスする。 */
-    extern com_util_prompt_ctx *test_prompt_find_or_create_context(com_util_prompt *prompt, const char *file,
-                                                                   int line);
+    extern com_util_prompt_ctx *test_prompt_find_or_create_context(com_util_prompt *prompt, const char *file, int line);
 
 #ifdef __cplusplus
 }

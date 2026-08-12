@@ -1,4 +1,7 @@
-// sync_linux.c の static 関数へテストからアクセスするための宣言
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef SYNC_LINUX_INJECT_H
 #define SYNC_LINUX_INJECT_H
 

@@ -1,4 +1,7 @@
-// memory_lock.c の static 関数と内部状態へテストからアクセスするための宣言
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef MEMORY_LOCK_INJECT_H
 #define MEMORY_LOCK_INJECT_H
 

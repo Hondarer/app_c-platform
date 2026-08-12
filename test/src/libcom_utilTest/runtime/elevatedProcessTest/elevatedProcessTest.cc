@@ -134,8 +134,13 @@ TEST(elevatedProcessTest, linux_helpers_accept_optional_output_and_report_unavai
     // Act
     int extract_result = com_util_elevated_process_extract_result_target(
         &argc, argv, NULL); // [手順] - detected_out を省略して結果報告先を抽出する。
+#if defined(PLATFORM_LINUX)
     int report_result =
         com_util_elevated_process_report_result("result"); // [手順] - Linux で結果メッセージの報告を試行する。
+#elif defined(PLATFORM_WINDOWS)
+    (void)com_util_elevated_process_report_result(
+        "result"); // [手順] - Windows でも結果メッセージの報告呼び出しを実行する (戻り値は未使用)。
+#endif /* PLATFORM_ */
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,

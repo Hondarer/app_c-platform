@@ -1,4 +1,12 @@
-/* process.c の Linux static 関数へアクセスするテスト用アクセサーです。 */
+/* テスト対象ソース ファイルの注入用追加ソース
+ * このソースはテスト対象ソースの末尾に結合されます
+ * この static 関数へのアクセサーによって
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
+#ifndef _IN_TEST_SRC
+    #include "process.c"
+#endif /* _IN_TEST_SRC */
+
 #include "process.inject.h"
 
 #if defined(PLATFORM_LINUX)

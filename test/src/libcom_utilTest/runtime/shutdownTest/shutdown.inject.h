@@ -1,4 +1,7 @@
-// shutdown.c の static 関数へテストからアクセスするための宣言
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef SHUTDOWN_INJECT_H
 #define SHUTDOWN_INJECT_H
 

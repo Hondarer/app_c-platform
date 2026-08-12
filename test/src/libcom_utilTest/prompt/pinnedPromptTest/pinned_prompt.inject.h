@@ -1,3 +1,7 @@
+/* テスト対象ソース ファイルの注入用追加ヘッダー
+ * このヘッダーをテスト プログラムが参照することで
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #ifndef PINNED_PROMPT_INJECT_H
 #define PINNED_PROMPT_INJECT_H
 
@@ -62,10 +66,9 @@ extern "C"
 
     /* TTY 描画 static 関数を検証するための状態設定と描画。 */
     extern void test_pinned_prompt_render_state(com_util_pinned_prompt *screen, int is_tty, int prompt_visible,
-                                                int status_top_enabled, int status_bottom_enabled,
-                                                const char *prompt, const char *edit_line, const char *top_left,
-                                                const char *top_right, const char *bottom_left,
-                                                const char *bottom_right);
+                                                int status_top_enabled, int status_bottom_enabled, const char *prompt,
+                                                const char *edit_line, const char *top_left, const char *top_right,
+                                                const char *bottom_left, const char *bottom_right);
     extern void test_pinned_prompt_render(com_util_pinned_prompt *screen);
 
     /* 履歴と出力準備の境界経路へ直接アクセスする。 */
@@ -75,8 +78,8 @@ extern "C"
     /* 内部状態と描画ヘルパーの境界条件を個別に検証する。 */
     extern void test_pinned_prompt_set_internal_state(com_util_pinned_prompt *screen, int cols, int rows,
                                                       int previous_main_bottom_row, int prompt_visible,
-                                                      int status_top_enabled, int status_bottom_enabled,
-                                                      size_t cursor, size_t view_start);
+                                                      int status_top_enabled, int status_bottom_enabled, size_t cursor,
+                                                      size_t view_start);
     extern size_t test_pinned_prompt_view_start(const com_util_pinned_prompt *screen);
     extern void test_pinned_prompt_set_mutex_active(com_util_pinned_prompt *screen, int mutex_active);
     extern void test_pinned_prompt_set_input_limits(com_util_pinned_prompt *screen, size_t history_max,

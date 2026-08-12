@@ -1,4 +1,8 @@
-/* regex.cc の anonymous namespace 内部へアクセスするテスト用アクセサーです。 */
+/* テスト対象ソース ファイルの注入用追加ソース
+ * このソースはテスト対象ソースの末尾に結合されます
+ * この static 関数へのアクセサーによって
+ * テスト プログラムからテスト対象ソースの static 関数にアクセスできます
+ */
 #include "regex.inject.h"
 
 #ifdef _IN_TEST_SRC
