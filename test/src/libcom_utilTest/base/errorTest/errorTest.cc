@@ -375,7 +375,9 @@ TEST_F(errorTest, report_socket_errno_as_keeps_domain_when_result_is_not_success
 TEST_F(errorTest, report_gai_error_maps_standard_codes_and_unknown_code)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
     com_util_error error;
+#endif
 
     // Pre-Assert
 

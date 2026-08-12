@@ -2,6 +2,7 @@
 #include <mock_stdio.h>
 #include <mock_stdlib.h>
 #include <com_util/base/result.h>
+#include <com_util/crt/string.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/prompt_internal.h>
 
@@ -202,7 +203,7 @@ TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
     prompt_->input_max_bytes = 4u;
     context->browse_idx = -1;
     test_prompt_history_prev(prompt_, context, NULL);
-    strcpy(context->saved_line, "saved");
+    (void)com_util_strcpy(context->saved_line, COM_UTIL_PROMPT_INPUT_BYTES_DEFAULT, "saved");
     context->browse_idx = 0;
     test_prompt_history_next(prompt_, context, NULL);
     context->count = 2u;

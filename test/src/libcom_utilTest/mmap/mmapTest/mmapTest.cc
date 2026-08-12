@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 
 #include <com_util/mmap/mmap.h>
 #include <com_util/sync/sync.h>
