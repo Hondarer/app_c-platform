@@ -68,21 +68,111 @@
 #define COM_UTIL_OK 0 /**< 処理に成功しました。 */
 
 /* 分類不能 */
-#define COM_UTIL_ERR_UNKNOWN (-1) /**< -2 以下の分類済みコードに該当しない、その他のエラーです。 */
+
+/**
+ *  @brief          -2 以下の分類済みコードに該当しない、その他のエラーです。
+ *
+ *  `com_util_error_report_errno()`/`_windows_error()`/`_winsock_error()` (`base/error.c`) が
+ *  内部で呼ぶ `com_util_result_from_errno()`/`_windows_error()`/`_winsock_error()`
+ *  (`base/result.c`) は、以下で個別に文書化する OS エラー値のいずれにも
+ *  一致しない場合、フォールバックとしてこの値を返します。
+ */
+#define COM_UTIL_ERR_UNKNOWN (-1)
 
 /* 引数・状態・権限: -2 〜 -9 */
-#define COM_UTIL_ERR_INVALID_ARGUMENT  (-2) /**< API 引数が不正です (NULL、負値など)。 */
-#define COM_UTIL_ERR_UNSUPPORTED       (-3) /**< 現在のプラットフォームまたは状態では操作がサポートされていません。 */
-#define COM_UTIL_ERR_PERMISSION_DENIED (-4) /**< 権限が不足しています。 */
+
+/**
+ *  @brief          API 引数が不正です (NULL、負値など)。
+ *
+ *  - errno: `EINVAL`
+ *  - Win32: `ERROR_INVALID_PARAMETER`
+ *  - Winsock: `WSAEINVAL` / `WSAEFAULT`
+ *
+ *  @note           上記は OS API 呼び出しの失敗を `detail_out` 経由で本コードへ変換する
+ *                  場合の対応です。com_util 自身の引数検査による
+ *                  `COM_UTIL_ERR_INVALID_ARGUMENT` はこの変換を経由しません。
+ */
+#define COM_UTIL_ERR_INVALID_ARGUMENT (-2)
+
+/**
+ *  @brief          現在のプラットフォームまたは状態では操作がサポートされていません。
+ *
+ *  - Winsock: `WSAEOPNOTSUPP` / `WSAEAFNOSUPPORT` / `WSAEPROTONOSUPPORT`
+ *
+ *  @note           `com_util_result_from_errno()`/`_windows_error()` (`base/result.c`) は
+ *                  errno の `ENOTSUP`/`ENOSYS` や Win32 の `ERROR_NOT_SUPPORTED` を
+ *                  この結果コードへ変換しません (`COM_UTIL_ERR_UNKNOWN` になります)。\n
+ *                  要因レベルの分類 (`com_util_error_cause` の
+ *                  @ref COM_UTIL_CAUSE_UNSUPPORTED) は 4 ドメインすべてに対応するため、
+ *                  errno/Win32 由来の未サポートを判定したい場合は
+ *                  `com_util_error_get_cause()` の戻り値を確認してください。
+ */
+#define COM_UTIL_ERR_UNSUPPORTED (-3)
+
+/**
+ *  @brief          権限が不足しています。
+ *
+ *  - errno: `EACCES` / `EPERM`
+ *  - Win32: `ERROR_ACCESS_DENIED` / `ERROR_PRIVILEGE_NOT_HELD`
+ *  - Winsock: `WSAEACCES`
+ */
+#define COM_UTIL_ERR_PERMISSION_DENIED (-4)
+
 #define COM_UTIL_ERR_DUPLICATE_DEFINITION (-5) /**< 同名の定義が登録済みです。 */
-#define COM_UTIL_ERR_NOT_FOUND            (-6) /**< 対象が存在しません (ホスト名を解決できない場合など)。 */
+
+/**
+ *  @brief          対象が存在しません (ホスト名を解決できない場合など)。
+ *
+ *  - errno: `ENOENT`
+ *  - Win32: `ERROR_FILE_NOT_FOUND` / `ERROR_PATH_NOT_FOUND`
+ *  - Winsock: `WSAHOST_NOT_FOUND`
+ */
+#define COM_UTIL_ERR_NOT_FOUND (-6)
 
 /* リソース・バッファー: -10 〜 -19 */
-#define COM_UTIL_ERR_OUT_OF_MEMORY      (-10) /**< メモリを確保できません。 */
-#define COM_UTIL_ERR_BUSY               (-11) /**< リソースがビジー状態です。 */
-#define COM_UTIL_ERR_TIMEOUT            (-12) /**< タイムアウトが発生しました。 */
-#define COM_UTIL_ERR_LIMIT_EXCEEDED     (-13) /**< リソースの上限を超過しました。 */
-#define COM_UTIL_ERR_BUFFER_TOO_SMALL   (-14) /**< 出力バッファーが不足しています。 */
+
+/**
+ *  @brief          メモリを確保できません。
+ *
+ *  - errno: `ENOMEM`
+ *  - Win32: `ERROR_NOT_ENOUGH_MEMORY` / `ERROR_OUTOFMEMORY`
+ *  - Winsock: `WSAENOBUFS`
+ */
+#define COM_UTIL_ERR_OUT_OF_MEMORY (-10)
+
+/**
+ *  @brief          リソースがビジー状態です。
+ *
+ *  - errno: `EBUSY` / `EAGAIN`
+ *  - Win32: `ERROR_BUSY`
+ *  - Winsock: `WSAEWOULDBLOCK`
+ *
+ *  @note           ソケットの非ブロッキング操作を再試行させたい場合は、
+ *                  この結果コードではなく `COM_UTIL_ERR_IN_PROGRESS` や、
+ *                  要因レベルの `COM_UTIL_CAUSE_WOULD_BLOCK` を使用します。
+ */
+#define COM_UTIL_ERR_BUSY (-11)
+
+/**
+ *  @brief          タイムアウトが発生しました。
+ *
+ *  - errno: `ETIMEDOUT`
+ *  - Win32: `WAIT_TIMEOUT` / `ERROR_TIMEOUT`
+ *  - Winsock: `WSAETIMEDOUT`
+ */
+#define COM_UTIL_ERR_TIMEOUT (-12)
+
+#define COM_UTIL_ERR_LIMIT_EXCEEDED (-13) /**< リソースの上限を超過しました。 */
+
+/**
+ *  @brief          出力バッファーが不足しています。
+ *
+ *  - errno: `ENAMETOOLONG` / `ERANGE`
+ *  - Win32: `ERROR_INSUFFICIENT_BUFFER`
+ *  - Winsock: `WSAEMSGSIZE`
+ */
+#define COM_UTIL_ERR_BUFFER_TOO_SMALL (-14)
+
 #define COM_UTIL_ERR_CORRUPT_DESCRIPTOR (-15) /**< ディスクリプタが破損しています。 */
 
 /* 入力解析: -20 〜 -39 */
@@ -101,7 +191,19 @@
 /* 制御: -40 〜 */
 #define COM_UTIL_ERR_EOF      (-40) /**< 入力が EOF に達しました。 */
 #define COM_UTIL_ERR_CANCELED (-41) /**< ユーザー操作 (Ctrl+C など) により中断しました。 */
-#define COM_UTIL_ERR_IN_PROGRESS (-42) /**< 非同期処理が開始済みで、完了を待つ必要があります。@ref com_util_socket_connect などが返します。 */
+
+/**
+ *  @brief          非同期処理が開始済みで、完了を待つ必要があります。
+ *
+ *  - errno: `EINPROGRESS`
+ *  - Winsock: `WSAEWOULDBLOCK` / `WSAEINPROGRESS` / `WSAEALREADY`
+ *
+ *  @note           汎用の OS エラー変換表 (`com_util_result_from_errno()` 等) には
+ *                  含まれません。@ref com_util_socket_connect の非ブロッキング
+ *                  connect が、上記の値を検出した場合に限り明示的にこの値を返します
+ *                  (`net/socket_linux.c`、`net/socket_windows.c`)。
+ */
+#define COM_UTIL_ERR_IN_PROGRESS (-42)
 /** @} */
 
 #endif /* COM_UTIL_RESULT_H */
