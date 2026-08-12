@@ -150,6 +150,7 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     const int null_result = com_util_error_to_result(NULL); // [手順] - NULL を共通結果コードへ変換する。
     const com_util_error_cause null_cause = com_util_error_get_cause(NULL); // [手順] - NULL の要因を取得する。
     const int null_matches = com_util_error_is(NULL, COM_UTIL_CAUSE_NONE);  // [手順] - NULL の要因一致を判定する。
+    const int empty_is_set = com_util_error_is_set(&empty); // [手順] - 空の詳細エラーの設定状態を取得する。
     const com_util_error_domain mismatched_domain =
         com_util_error_get_domain(&windows_error); // [手順] - Windows ドメインを取得する。
     const com_util_error_cause windows_cause =
@@ -171,6 +172,7 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     EXPECT_EQ(COM_UTIL_CAUSE_NONE,
               null_cause);      // [確認_異常系] - NULL に対する要因が COM_UTIL_CAUSE_NONE であること。
     EXPECT_EQ(0, null_matches); // [確認_異常系] - NULL に対する要因一致が 0 であること。
+    EXPECT_EQ(0, empty_is_set); // [確認_正常系] - 空の詳細エラーの設定状態が 0 であること。
     EXPECT_EQ(COM_UTIL_OK,
               com_util_error_to_result(&empty)); // [確認_正常系] - 空の値に対する変換結果が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_CAUSE_NONE,
@@ -351,6 +353,24 @@ TEST_F(errorTest, report_socket_errno_uses_socket_domain_and_would_block_cause)
     EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE, last_error.domain); // [確認_正常系] - ソケット成功後の TLS ドメインが NONE であること。
 }
 
+// errno 0 と非成功結果をソケット エラーとして記録するとドメインが保持されることの確認
+TEST_F(errorTest, report_socket_errno_as_keeps_domain_when_result_is_not_success)
+{
+    // Arrange
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_error_report_socket_errno_as(
+        &error, 0, COM_UTIL_ERR_UNKNOWN); // [手順] - errno 0 と非成功結果をソケット エラーとして記録する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, result); // [確認_正常系] - 明示した非成功結果がそのまま返ること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO,
+              error.domain); // [確認_正常系] - 非成功結果のドメインが SOCKET_ERRNO であること。
+}
+
 // getaddrinfo のエラー コードが要因と結果へ分類されることの確認
 TEST_F(errorTest, report_gai_error_maps_standard_codes_and_unknown_code)
 {
@@ -476,6 +496,8 @@ TEST_F(errorTest, accessors_cover_socket_gai_and_extended_errno_causes)
         {EAGAIN, COM_UTIL_CAUSE_BUSY},
         {EPERM, COM_UTIL_CAUSE_ACCESS_DENIED}};
     com_util_error error;
+    com_util_error winsock_error = {COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN, 1UL};
+    com_util_error gai_error = {COM_UTIL_ERROR_DOMAIN_GAI, COM_UTIL_ERR_UNKNOWN, 1UL};
 
     // Pre-Assert
 
@@ -484,7 +506,10 @@ TEST_F(errorTest, accessors_cover_socket_gai_and_extended_errno_causes)
     const com_util_error_cause socket_io_cause = com_util_error_get_cause(&error); // [手順] - ソケット EIO の要因を取得する。
     com_util_error_report_gai_error(&error, 0); // [手順] - GAI 0 を記録する。
     const com_util_error_domain gai_domain = com_util_error_get_domain(&error); // [手順] - GAI 成功値のドメインを取得する。
-    com_util_error winsock_error = {COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN, 1UL};
+    const com_util_error_domain winsock_domain =
+        com_util_error_get_domain(&winsock_error); // [手順] - WINSOCK ドメインを取得する。
+    const com_util_error_domain explicit_gai_domain =
+        com_util_error_get_domain(&gai_error); // [手順] - GAI ドメインを取得する。
     const com_util_error_cause winsock_cause = com_util_error_get_cause(&winsock_error); // [手順] - 非 Windows の WINSOCK ドメイン要因を取得する。
     std::vector<com_util_error_cause> causes;
     for (const std::pair<int, com_util_error_cause> &item : cases)
@@ -496,12 +521,31 @@ TEST_F(errorTest, accessors_cover_socket_gai_and_extended_errno_causes)
     // Assert
     EXPECT_EQ(COM_UTIL_CAUSE_IO_ERROR, socket_io_cause); // [確認_正常系] - ソケット EIO の要因が IO_ERROR であること。
     EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_NONE, gai_domain); // [確認_正常系] - GAI 成功値のドメインが NONE であること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_WINSOCK,
+              winsock_domain); // [確認_正常系] - WINSOCK ドメインがそのまま取得できること。
+    EXPECT_EQ(COM_UTIL_ERROR_DOMAIN_GAI, explicit_gai_domain); // [確認_正常系] - GAI ドメインがそのまま取得できること。
     EXPECT_EQ(COM_UTIL_CAUSE_OTHER, winsock_cause); // [確認_正常系] - Linux の WINSOCK ドメイン要因が OTHER であること。
     ASSERT_EQ(cases.size(), causes.size());
     for (std::size_t index = 0U; index < cases.size(); ++index)
     {
         EXPECT_EQ(cases[index].second, causes[index]); // [確認_正常系] - 追加 errno が期待する要因へ分類されること。
     }
+}
+
+// 詳細エラーの要因が一致しない場合に不一致となることの確認
+TEST_F(errorTest, error_is_rejects_nonmatching_cause)
+{
+    // Arrange
+    const com_util_error error = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
+
+    // Pre-Assert
+
+    // Act
+    int matches = com_util_error_is(
+        &error, COM_UTIL_CAUSE_ACCESS_DENIED); // [手順] - NOT_FOUND の詳細エラーを ACCESS_DENIED と比較する。
+
+    // Assert
+    EXPECT_EQ(0, matches); // [確認_異常系] - 異なる要因の比較結果が 0 であること。
 }
 
 // errno 0 と非成功結果の組合せがエラー ドメインとして保持されることの確認

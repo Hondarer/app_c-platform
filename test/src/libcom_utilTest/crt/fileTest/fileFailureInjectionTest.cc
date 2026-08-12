@@ -171,6 +171,26 @@ TEST_F(fileFailureInjectionTest, write_succeeds_for_zero_length)
     EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 長さ 0 の書き込みが成功すること。
 }
 
+// オープン済みファイルへの NULL バッファー付き書き込みが拒否されることの確認
+TEST_F(fileFailureInjectionTest, write_rejects_null_buffer_for_positive_length)
+{
+    // Arrange
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc =
+        com_util_file_write(&file_, NULL, 1u,
+                            &detail); // [手順] - オープン済みファイルへ NULL バッファーと長さ 1 を指定して書き込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - NULL バッファー付き書き込みが COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(EINVAL, com_util_error_get_errno(
+                          &detail)); // [確認_異常系] - NULL バッファー付き書き込みの errno が EINVAL であること。
+}
+
 // 読み取り長 0 の場合に OS API を呼ばず成功することの確認
 TEST_F(fileFailureInjectionTest, read_succeeds_for_zero_length)
 {
@@ -188,6 +208,88 @@ TEST_F(fileFailureInjectionTest, read_succeeds_for_zero_length)
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 長さ 0 の読み取りが成功すること。
     EXPECT_EQ(0u, read);          // [確認_正常系] - 読み取ったバイト数が 0 であること。
+}
+
+// オープン済みファイルからの NULL バッファー付き読み取りが拒否されることの確認
+TEST_F(fileFailureInjectionTest, read_rejects_null_buffer_when_open)
+{
+    // Arrange
+    size_t read = 0u;
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc =
+        com_util_file_read(&file_, NULL, 1u, &read,
+                           &detail); // [手順] - オープン済みファイルへ NULL バッファーと長さ 1 を指定して読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - NULL バッファー付き読み取りが COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(EINVAL, com_util_error_get_errno(
+                          &detail)); // [確認_異常系] - NULL バッファー付き読み取りの errno が EINVAL であること。
+}
+
+// オープン済みファイルからの NULL 出力先付き読み取りが拒否されることの確認
+TEST_F(fileFailureInjectionTest, read_rejects_null_output_when_open)
+{
+    // Arrange
+    char buffer[1] = {};
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_read(
+        &file_, buffer, 1u, NULL,
+        &detail); // [手順] - オープン済みファイルへ NULL の読み取りバイト数出力先を指定して読み取る。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - NULL 出力先付き読み取りが COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(EINVAL, com_util_error_get_errno(
+                          &detail)); // [確認_異常系] - NULL 出力先付き読み取りの errno が EINVAL であること。
+}
+
+// オープン済みファイルのサイズ取得で NULL 出力先が拒否されることの確認
+TEST_F(fileFailureInjectionTest, get_size_rejects_null_output_when_open)
+{
+    // Arrange
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc = com_util_file_get_size(
+        &file_, NULL,
+        &detail); // [手順] - オープン済みファイルへ NULL のサイズ出力先を指定してサイズを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - NULL 出力先付きサイズ取得が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(EINVAL, com_util_error_get_errno(
+                          &detail)); // [確認_異常系] - NULL 出力先付きサイズ取得の errno が EINVAL であること。
+}
+
+// オープン済みファイルの ID 取得で NULL 出力先が拒否されることの確認
+TEST_F(fileFailureInjectionTest, get_id_rejects_null_output_when_open)
+{
+    // Arrange
+    com_util_error detail;
+
+    // Pre-Assert
+
+    // Act
+    int rtc =
+        com_util_file_get_id(&file_, NULL,
+                             &detail); // [手順] - オープン済みファイルへ NULL の ID 出力先を指定して ID を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              rtc); // [確認_異常系] - NULL 出力先付き ID 取得が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(EINVAL, com_util_error_get_errno(
+                          &detail)); // [確認_異常系] - NULL 出力先付き ID 取得の errno が EINVAL であること。
 }
 
 // 未オープンのファイルに対する flush が拒否されることの確認

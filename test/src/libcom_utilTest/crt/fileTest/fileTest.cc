@@ -3,6 +3,7 @@
 #include <com_util/base/result.h>
 #include <com_util/crt/file.h>
 #include <com_util/crt/stdio.h>
+#include <errno.h>
 #include <filesystem>
 #include <cstdio>
 #include <cstring>
@@ -245,6 +246,33 @@ TEST_F(fileTest, invalid_arguments_fail)
             &file, NULL, NULL)); // [確認_異常系] - get_size (size NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
 }
 
+// 負のフラグでオープンすると COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
+TEST_F(fileTest, open_rejects_negative_flags)
+{
+    // Arrange
+    std::string path = make_path("negative_flags.log");
+    com_util_file file;
+    com_util_error detail;
+
+    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int result = com_util_file_open(&file, path.c_str(), -1,
+                                    &detail); // [手順] - 負のフラグを指定して com_util_file_open を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              result); // [確認_異常系] - 負のフラグに対する戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ(EINVAL,
+              com_util_error_get_errno(&detail)); // [確認_異常系] - 負のフラグに対する errno が EINVAL であること。
+
+    // Cleanup
+    std::remove(path.c_str());
+}
+
 // ハンドル由来とパス由来のファイル同一性 ID が一致することの確認
 TEST_F(fileTest, file_id_matches_between_handle_and_path)
 {
@@ -391,6 +419,35 @@ TEST_F(fileTest, default_access_remains_write_only)
         COM_UTIL_OK,
         rtc_file_open); // [確認_正常系] - READ/WRITE 無指定で呼び出した com_util_file_open の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK, rtc_file_write); // [確認_正常系] - 既定 (書き込み専用) で書き込みが成功すること。
+
+    // Cleanup
+    com_util_file_close(&file, NULL);
+    std::remove(path.c_str());
+}
+
+// COM_UTIL_FILE_OPEN_WRITE のみを指定した場合に書き込み可能であることの確認
+TEST_F(fileTest, explicit_write_only_open_allows_write)
+{
+    // Arrange
+    std::string path = make_path("explicit_write_only.log");
+    com_util_file file;
+
+    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
+    com_util_file_init(&file);
+
+    // Pre-Assert
+
+    // Act
+    int open_result = com_util_file_open(&file, path.c_str(), COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_WRITE,
+                                         NULL); // [手順] - CREATE | WRITE でオープンする。
+    int write_result =
+        com_util_file_write(&file, "abc", 3u, NULL); // [手順] - オープンしたファイルへ 3 バイトを書き込む。
+
+    // Assert
+    ASSERT_EQ(COM_UTIL_OK,
+              open_result); // [確認_正常系] - CREATE | WRITE の com_util_file_open の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              write_result); // [確認_正常系] - WRITE のみでオープンしたファイルへの書き込みが成功すること。
 
     // Cleanup
     com_util_file_close(&file, NULL);
