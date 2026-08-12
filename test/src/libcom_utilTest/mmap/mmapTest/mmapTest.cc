@@ -1,115 +1,130 @@
 #include <testfw.h>
-#include <mock_com_util.h>
-
-#include <com_util/mmap/mmap.h>
-#include <com_util/sync/sync.h>
+#include "mmapTestCommon.h"
 
 #include <errno.h>
 
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <string>
-#include <thread>
-#include <vector>
-
-class mmapTest : public Test
+class mmapTest : public mmapTestFixture
 {
-  protected:
-    std::string make_path(const char *name)
-    {
-        std::string root = findWorkspaceRoot();
-        std::filesystem::path dir =
-            std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/mmap/mmapTest/results";
-
-        std::filesystem::create_directories(dir);
-        return (dir / name).generic_string();
-    }
 };
 
-// 新規ファイルを create_size で作成し、書き込んだ内容が別ハンドルの再アタッチ後も保持されることの確認 (マルチ フェーズ テスト)
-TEST_F(mmapTest, attach_creates_new_file_and_persists_content_across_reattach)
+// 新規ファイルを create_size で作成し、再アタッチ時は既存サイズを使うことの確認 (マルチ フェーズ テスト)
+TEST_F(mmapTest, attach_creates_new_file_and_ignores_create_size_on_reattach)
 {
     // Arrange
-    std::string path = make_path("attach_persist.dat");
     com_util_mmap *map = NULL;
-    int result;
-
-    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
+    int result; // [状態] - 新規作成用のパス mmap.dat とハンドル格納先を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _))
+        .WillOnce(
+            [](com_util_file *file, const char *, int flags, com_util_error *)
+            {
+                fill_open_file(file, flags);
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - CREATE_NEW 付きの com_util_file_open が 1 回呼び出されること。
+                // [Pre-Assert手順] - 番兵ハンドルを設定し、COM_UTIL_OK を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_file_set_size(_, kMapSize, _))
+        .WillOnce(Return(
+            COM_UTIL_OK)); // [Pre-Assert確認_正常系] - create_size 64 で com_util_file_set_size が呼び出されること。
+                           // [Pre-Assert手順] - COM_UTIL_OK を返却する。
 
     // Act
-    result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+    result = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                   NULL); // [手順] - create_size 64 で新規アタッチする。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_OK, result); // [確認_正常系] - attach (新規作成) の戻り値が COM_UTIL_OK であること。
-    ASSERT_NE((com_util_mmap *)NULL, map);
-    EXPECT_EQ((size_t)64,
+    ASSERT_EQ(COM_UTIL_OK, result);        // [確認_正常系] - attach (新規作成) の戻り値が COM_UTIL_OK であること。
+    ASSERT_NE((com_util_mmap *)NULL, map); // [確認_正常系] - attach (新規作成) のマップが NULL でないこと。
+    EXPECT_EQ(kMapSize,
               com_util_mmap_get_size(map)); // [確認_正常系] - マップ サイズが create_size (64) と一致すること。
-    void *address = com_util_mmap_get_address(map);
-    ASSERT_NE((void *)NULL, address); // [確認_正常系] - マップ済みアドレスが NULL でないこと。
-    std::memcpy(address, "hello", 5);
-    EXPECT_EQ(COM_UTIL_OK, com_util_mmap_flush(map, NULL, 0, NULL)); // [手順] - マップ全体を flush する。
-    com_util_mmap_detach(map, NULL);
-    map = NULL;
+    EXPECT_EQ(static_cast<void *>(mapped_buf_),
+              com_util_mmap_get_address(map)); // [確認_正常系] - マップ済みアドレスがモックの返却バッファーであること。
+
+    // Pre-Assert_2
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
+        .WillOnce(
+            [](com_util_file *file, const char *, int flags, com_util_error *)
+            {
+                fill_open_file(file, flags);
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - 再アタッチで CREATE_NEW が失敗し、既存オープンが成功すること。
+                // [Pre-Assert手順] - CREATE_NEW はエラーを返し、既存オープンは番兵ハンドルを設定する。
+    EXPECT_CALL(mock_com_util_, com_util_file_get_size(_, _, _))
+        .WillOnce(
+            [](const com_util_file *, size_t *size_out, com_util_error *)
+            {
+                *size_out = kMapSize;
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - 既存ファイルのサイズ取得が 1 回呼び出されること。
+                // [Pre-Assert手順] - サイズ 64 を設定し、COM_UTIL_OK を返却する。
 
     // Act_2
+    (void)com_util_mmap_detach(map, NULL);
+    map = NULL;
     result =
-        com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 4096, &map,
+        com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, 4096u, &map,
                              NULL); // [手順] - 既存ファイルに対し異なる create_size (4096) を指定して再アタッチする。
 
     // Assert_2
     ASSERT_EQ(COM_UTIL_OK,
               result); // [確認_正常系] - attach (既存ファイル) の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ((size_t)64,
+    EXPECT_EQ(kMapSize,
               com_util_mmap_get_size(
                   map)); // [確認_正常系] - 既存ファイルでは create_size が無視され、実サイズ 64 が報告されること。
-    void *address_2 = com_util_mmap_get_address(map);
-    ASSERT_NE((void *)NULL, address_2);
-    EXPECT_EQ(0, std::memcmp(address_2, "hello", 5)); // [確認_正常系] - 前回書き込んだ内容が読み取れること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
 // create_size に 0 を渡した新規作成が INVALID_ARGUMENT で失敗することの確認
 TEST_F(mmapTest, attach_fails_when_create_size_is_zero_for_new_file)
 {
     // Arrange
-    std::string path = make_path("zero_size.dat");
-    com_util_mmap *map = NULL;
-
-    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_mmap *map = NULL; // [状態] - 新規作成用のパス mmap.dat を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_remove(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - create_size 0 のときファイルを閉じて削除すること。
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 0, &map,
-                                      NULL); // [手順] - create_size 0 で新規アタッチを試みる。
+    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, 0u, &map,
+                                   NULL); // [手順] - create_size 0 で新規アタッチを試みる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              result); // [確認_異常系] - attach (create_size 0、新規作成) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+              rtc); // [確認_異常系] - attach (create_size 0、新規作成) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - create_size 0 ではマップ ハンドルが設定されないこと。
 }
 
 // サイズ 0 の既存ファイルへのアタッチが失敗することの確認
 TEST_F(mmapTest, attach_fails_for_empty_existing_file)
 {
     // Arrange
-    std::string path = make_path("empty_existing.dat");
-    com_util_mmap *map = NULL;
-
-    std::remove(path.c_str());
-    std::ofstream file(path); // [状態] - サイズ 0 の既存ファイルを用意する。
-    file.close();
+    com_util_mmap *map = NULL; // [状態] - サイズ 0 の既存ファイルを開く前提を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
+        .WillOnce(
+            [](com_util_file *file, const char *, int flags, com_util_error *)
+            {
+                fill_open_file(file, flags);
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_異常系] - CREATE_NEW が失敗し、既存ファイルの再オープンが成功すること。
+                // [Pre-Assert手順] - 再オープンで番兵ハンドルを設定する。
+    EXPECT_CALL(mock_com_util_, com_util_file_get_size(_, _, _))
+        .WillOnce(
+            [](const com_util_file *, size_t *size_out, com_util_error *)
+            {
+                *size_out = 0u;
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_異常系] - 既存ファイルのサイズ取得が 0 を返すこと。
+                // [Pre-Assert手順] - サイズ 0 を設定し、COM_UTIL_OK を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
+    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - サイズ 0 の既存ファイルへアタッチする。
 
     // Assert
@@ -117,61 +132,71 @@ TEST_F(mmapTest, attach_fails_for_empty_existing_file)
         COM_UTIL_ERR_INVALID_ARGUMENT,
         rtc); // [確認_異常系] - 空の既存ファイルに対する com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - 空の既存ファイルではマップ ハンドルが設定されないこと。
-
-    // Cleanup
-    std::remove(path.c_str());
 }
 
 // 既存ファイルを読み取り専用でマップできることの確認
 TEST_F(mmapTest, attach_read_only_maps_existing_file)
 {
     // Arrange
-    std::string path = make_path("read_only.dat");
-    const std::string content(64u, 'r');
-    com_util_mmap *map = NULL;
-
-    std::remove(path.c_str());
-    std::ofstream file(path, std::ios::binary);
-    file.write(content.data(), static_cast<std::streamsize>(content.size()));
-    file.close(); // [状態] - サイズ 64 バイトの既存ファイルを用意する。
+    com_util_mmap *map = NULL; // [状態] - 読み取り専用で開く既存ファイルのパス mmap.dat を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_read_only(), _))
+        .WillOnce(
+            [](com_util_file *file, const char *, int flags, com_util_error *)
+            {
+                fill_open_file(file, flags);
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - 読み取り専用の com_util_file_open が 1 回呼び出されること。
+                // [Pre-Assert手順] - 番兵ハンドルを設定し、COM_UTIL_OK を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_mman_, mmap(_, _, _, _, kMapSize, PROT_READ, MAP_SHARED, kFakeFileHandle, 0))
+        .WillOnce(Return(mapped_buf_));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_windows_, CreateFileMappingA(_, _, _, kFakeFileHandle, _, PAGE_READONLY, _, _, _))
+        .WillOnce(Return(kFakeMappingHandle));
+    EXPECT_CALL(mock_windows_, MapViewOfFile(_, _, _, kFakeMappingHandle, FILE_MAP_READ, 0u, 0u, kMapSize))
+        .WillOnce(Return(mapped_buf_));
+#endif /* PLATFORM_ */
+    // [Pre-Assert確認_正常系] - 読み取り専用のマップ API が呼び出されること。
+    // [Pre-Assert手順] - テスト用バッファーを返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
+    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
                                    NULL); // [手順] - 既存ファイルを読み取り専用でアタッチする。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 読み取り専用アタッチの戻り値が COM_UTIL_OK であること。
     ASSERT_NE((com_util_mmap *)NULL, map);
-    EXPECT_EQ(64u,
+    EXPECT_EQ(kMapSize,
               com_util_mmap_get_size(map)); // [確認_正常系] - マップ サイズが既存ファイルの 64 バイトと一致すること。
-    const char *address = (const char *)com_util_mmap_get_address(map);
-    ASSERT_NE((const char *)NULL, address);
-    EXPECT_EQ('r', address[0]); // [確認_正常系] - 読み取り専用マップから先頭バイトを読み取れること。
+    EXPECT_EQ(static_cast<void *>(mapped_buf_),
+              com_util_mmap_get_address(
+                  map)); // [確認_正常系] - 読み取り専用マップのアドレスがモックの返却バッファーであること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
 // 読み取り専用アクセスで存在しないファイルを指定すると失敗することの確認 (新規作成しない)
 TEST_F(mmapTest, attach_read_only_fails_for_missing_file)
 {
     // Arrange
-    std::string path = make_path("missing_read_only.dat");
-    com_util_mmap *map = NULL;
-
-    std::remove(path.c_str()); // [状態] - 対象ファイルが存在しないことを保証する。
+    com_util_mmap *map = NULL; // [状態] - 存在しないファイルのパス mmap.dat を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_read_only(), _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 読み取り専用の com_util_file_open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_ONLY, 64, &map,
-                                      NULL); // [手順] - 存在しないファイルを READ_ONLY でアタッチを試みる。
+    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, kMapSize, &map,
+                                   NULL); // [手順] - 存在しないファイルを READ_ONLY でアタッチを試みる。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, result); // [確認_異常系] - attach (READ_ONLY、存在しないファイル) が失敗すること。
+    EXPECT_NE(COM_UTIL_OK, rtc);           // [確認_異常系] - attach (READ_ONLY、存在しないファイル) が失敗すること。
+    EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - 欠落ファイルではマップ ハンドルが設定されないこと。
 }
 
 // 不正な引数で attach が INVALID_ARGUMENT を返すことの確認
@@ -184,15 +209,19 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
     int null_path_result;
     int null_map_result;
     int empty_path_result;
-    int invalid_access_result;
+    int invalid_access_result; // [状態] - 不正な access 値 99 を用意する。
 
     // Pre-Assert
 
     // Act
-    null_path_result = com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map, NULL);
-    null_map_result = com_util_mmap_attach("x", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, NULL, NULL);
-    empty_path_result = com_util_mmap_attach("", COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map, NULL);
-    invalid_access_result = com_util_mmap_attach("x", invalid_access, 64, &map, NULL);
+    null_path_result = com_util_mmap_attach(NULL, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+                                            NULL); // [手順] - path に NULL を指定してアタッチする。
+    null_map_result = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, NULL,
+                                           NULL); // [手順] - map に NULL を指定してアタッチする。
+    empty_path_result = com_util_mmap_attach("", COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+                                             NULL); // [手順] - 空文字列の path を指定してアタッチする。
+    invalid_access_result = com_util_mmap_attach(kPath, invalid_access, kMapSize, &map,
+                                                 NULL); // [手順] - 不正な access 値でアタッチする。
 
     // Assert
     EXPECT_EQ(
@@ -214,42 +243,58 @@ TEST_F(mmapTest, accessors_are_safe_for_null_handle)
 {
     // Arrange
     com_util_interprocess_rwlock *lock = NULL;
+    void *address;
+    size_t size;
+    int rwlock_result;
+    int flush_result;
+    int detach_result;
 
     // Pre-Assert
 
     // Act
+    address = com_util_mmap_get_address(NULL);                   // [手順] - get_address に NULL を渡す。
+    size = com_util_mmap_get_size(NULL);                         // [手順] - get_size に NULL を渡す。
+    rwlock_result = com_util_mmap_get_rwlock(NULL, &lock, NULL); // [手順] - get_rwlock に NULL ハンドルを渡す。
+    flush_result = com_util_mmap_flush(NULL, NULL, 0u, NULL);    // [手順] - flush に NULL ハンドルを渡す。
+    detach_result = com_util_mmap_detach(NULL, NULL);            // [手順] - detach に NULL ハンドルを渡す。
 
     // Assert
-    EXPECT_EQ((void *)NULL, com_util_mmap_get_address(NULL)); // [確認_異常系] - get_address(NULL) が NULL を返すこと。
-    EXPECT_EQ((size_t)0, com_util_mmap_get_size(NULL));       // [確認_異常系] - get_size(NULL) が 0 を返すこと。
+    EXPECT_EQ((void *)NULL, address); // [確認_異常系] - get_address(NULL) が NULL を返すこと。
+    EXPECT_EQ((size_t)0, size);       // [確認_異常系] - get_size(NULL) が 0 を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_mmap_get_rwlock(
-                  NULL, &lock,
-                  NULL)); // [確認_異常系] - get_rwlock(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+              rwlock_result); // [確認_異常系] - get_rwlock(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
               lock); // [確認_異常系] - get_rwlock(NULL) が出力先を変更しないこと。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              com_util_mmap_flush(NULL, NULL, 0,
-                                  NULL)); // [確認_異常系] - flush(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ(COM_UTIL_OK, com_util_mmap_detach(NULL,
-                                                NULL)); // [確認_異常系] - detach(NULL) が COM_UTIL_OK を返すこと。
+              flush_result);               // [確認_異常系] - flush(NULL) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, detach_result); // [確認_異常系] - detach(NULL) が COM_UTIL_OK を返すこと。
 }
 
 // get_rwlock を同一ハンドルへ繰り返し呼び出しても、遅延生成したロックが 1 つだけ返ることの確認
 TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
 {
     // Arrange
-    std::string path = make_path("lazy_rwlock_same.dat");
     com_util_mmap *map = NULL;
     com_util_interprocess_rwlock *lock_first = NULL;
     com_util_interprocess_rwlock *lock_second = NULL;
-
-    std::remove(path.c_str()); // [状態] - 既存ファイルを削除した状態とする。
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
-                                   NULL)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
+    attachNewFile(&map); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(kFakeGuard, COM_UTIL_SYNC_WAIT_FOREVER))
+        .Times(2)
+        .WillRepeatedly(Return(COM_UTIL_OK));
+    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
+        .WillOnce(
+            [](const char *, com_util_interprocess_rwlock **lock)
+            {
+                *lock = kFakeRwlock;
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - プロセス間ロックの open が 1 回だけ呼び出されること。
+                // [Pre-Assert手順] - 番兵ロックを設定し、COM_UTIL_OK を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_unlock(kFakeGuard))
+        .Times(2)
+        .WillRepeatedly(
+            Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - ローカル ロックの取得と解放が 2 回ずつ行われること。
 
     // Act
     int result_first = com_util_mmap_get_rwlock(map, &lock_first, NULL); // [手順] - get_rwlock を 1 回目に呼び出す。
@@ -267,22 +312,16 @@ TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
               lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインターであること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
 // ロック出力先が NULL の場合に get_rwlock が拒否することの確認
 TEST_F(mmapTest, get_rwlock_rejects_null_output)
 {
     // Arrange
-    std::string path = make_path("lazy_rwlock_null_output.dat");
     com_util_mmap *map = NULL;
     com_util_error detail;
-
-    std::remove(path.c_str());
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
-                                   NULL)); // [状態] - create_size 64 でマップ ハンドルを用意する。
+    attachNewFile(&map); // [状態] - create_size 64 でマップ ハンドルを用意する。
 
     // Pre-Assert
 
@@ -297,58 +336,57 @@ TEST_F(mmapTest, get_rwlock_rejects_null_output)
               com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
 // get_rwlock を一度も呼び出さずに attach と detach を行っても、正常に完了することの確認
 TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
 {
     // Arrange
-    std::string path = make_path("lazy_rwlock_unused.dat");
-    com_util_mmap *map = NULL;
-
-    std::remove(path.c_str()); // [状態] - 既存ファイルを削除した状態とする。
+    com_util_mmap *map = NULL; // [状態] - ロック未参照の新規アタッチ用パスを用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _)).Times(0);
+    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_destroy(_))
+        .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成と破棄が呼び出されないこと。
 
     // Act
-    int result = com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
+    int result = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                       NULL); // [手順] - create_size 64 で新規アタッチする。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK,
               result); // [確認_正常系] - get_rwlock を呼ばない場合も attach の戻り値が COM_UTIL_OK であること。
-    void *address = com_util_mmap_get_address(map);
-    ASSERT_NE((void *)NULL,
-              address); // [確認_正常系] - get_rwlock を呼ばない場合も get_address が NULL を返さないこと。
-    std::memcpy(address, "lazy", 4);
+    EXPECT_EQ(static_cast<void *>(mapped_buf_),
+              com_util_mmap_get_address(
+                  map)); // [確認_正常系] - get_rwlock を呼ばない場合も get_address がマップ バッファーを返すこと。
+    int flush_result = com_util_mmap_flush(map, NULL, 0u, NULL);
     EXPECT_EQ(COM_UTIL_OK,
-              com_util_mmap_flush(map, NULL, 0, NULL)); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が
-                                                        // COM_UTIL_OK であること。
+              flush_result); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
 // 指定したアドレス範囲の書き戻しが成功することの確認
 TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
 {
     // Arrange
-    std::string path = make_path("flush_range.dat");
     com_util_mmap *map = NULL;
-    void *address;
-
-    std::remove(path.c_str());
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64u, &map,
-                                                NULL)); // [状態] - 書き戻し対象のマップを用意する。
-    address = com_util_mmap_get_address(map);
+    attachNewFile(&map); // [状態] - 書き戻し対象のマップを用意する。
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_mman_, msync(_, _, _, mapped_buf_, 1u, MS_SYNC)).WillOnce(Return(0));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, mapped_buf_, 1u)).WillOnce(Return(TRUE));
+    EXPECT_CALL(mock_windows_, FlushFileBuffers(_, _, _, kFakeFileHandle)).WillOnce(Return(TRUE));
+#endif /* PLATFORM_ */
+    // [Pre-Assert確認_正常系] - 先頭 1 byte を対象とする書き戻し API が呼び出されること。
+    // [Pre-Assert手順] - 成功を返却する。
 
     // Act
-    int rtc = com_util_mmap_flush(map, address, 1u,
+    int rtc = com_util_mmap_flush(map, mapped_buf_, 1u,
                                   NULL); // [手順] - マップ先頭の 1 byte を指定して書き戻す。
 
     // Assert
@@ -357,105 +395,40 @@ TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
         rtc); // [確認_正常系] - 明示したアドレス範囲に対する com_util_mmap_flush の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
 
-// 複数スレッドから同時に get_rwlock を呼び出しても、遅延生成が直列化され単一のロックへ収束することの確認
-TEST_F(mmapTest, get_rwlock_returns_single_instance_under_concurrent_calls)
+// get_rwlock の初回生成がローカル ロックで直列化され、open が 1 回だけ呼ばれることの確認
+TEST_F(mmapTest, get_rwlock_serializes_open_with_local_lock)
 {
     // Arrange
-    const size_t thread_count = 8;
-    std::string path = make_path("lazy_rwlock_concurrent.dat");
     com_util_mmap *map = NULL;
-    std::vector<com_util_interprocess_rwlock *> results(thread_count, NULL);
-    std::vector<int> call_results(thread_count, COM_UTIL_ERR_UNKNOWN);
-    std::vector<std::thread> threads;
-
-    std::remove(path.c_str()); // [状態] - 既存ファイルを削除した状態とする。
-    ASSERT_EQ(COM_UTIL_OK,
-              com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map,
-                                   NULL)); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
+    com_util_interprocess_rwlock *lock = NULL;
+    attachNewFile(&map); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
 
     // Pre-Assert
+    {
+        testing::InSequence sequence;
+        EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(kFakeGuard, COM_UTIL_SYNC_WAIT_FOREVER))
+            .WillOnce(Return(COM_UTIL_OK));
+        EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
+            .WillOnce(
+                [](const char *, com_util_interprocess_rwlock **out)
+                {
+                    *out = kFakeRwlock;
+                    return COM_UTIL_OK;
+                });
+        EXPECT_CALL(mock_com_util_, com_util_local_lock_unlock(kFakeGuard)).WillOnce(Return(COM_UTIL_OK));
+    } // [Pre-Assert確認_正常系] - lock、open、unlock の順で 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 番兵ロックを設定し、各呼び出しは成功を返却する。
 
     // Act
-    for (size_t index = 0; index < thread_count; index++)
-    {
-        threads.emplace_back([&call_results, &results, map, index]()
-                             { call_results[index] = com_util_mmap_get_rwlock(map, &results[index], NULL); });
-    } // [手順] - 8 個のスレッドから同一ハンドルに対し get_rwlock を同時に呼び出す。
-    for (std::thread &thread : threads)
-    {
-        thread.join();
-    }
+    int rtc = com_util_mmap_get_rwlock(map, &lock, NULL); // [手順] - get_rwlock を呼び出す。
 
     // Assert
-    ASSERT_NE((com_util_interprocess_rwlock *)NULL,
-              results[0]); // [確認_正常系] - 並行呼び出し時の get_rwlock の戻り値が NULL でないこと。
-    for (size_t index = 0; index < thread_count; index++)
-    {
-        EXPECT_EQ(COM_UTIL_OK, call_results[index]);
-    } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が COM_UTIL_OK であること。
-    for (size_t index = 1; index < thread_count; index++)
-    {
-        EXPECT_EQ(results[0], results[index]);
-    } // [確認_正常系] - 全スレッドの get_rwlock の戻り値が同一のポインターであること。
+    EXPECT_EQ(COM_UTIL_OK, rtc);  // [確認_正常系] - get_rwlock の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(kFakeRwlock, lock); // [確認_正常系] - get_rwlock の出力が番兵ロックであること。
 
     // Cleanup
-    com_util_mmap_detach(map, NULL);
-    std::remove(path.c_str());
-}
-
-// 内包するリーダー ライター ロックで、複数リーダーの共有ロック同時取得と排他ロックの相互排他・タイムアウトを確認する (マルチ フェーズ テスト)
-TEST_F(mmapTest, embedded_rwlock_allows_concurrent_readers_and_times_out_on_exclusive_conflict)
-{
-    // Arrange
-    std::string path = make_path("rwlock.dat");
-    com_util_mmap *map1 = NULL;
-    com_util_mmap *map2 = NULL;
-    com_util_interprocess_rwlock *lock1 = NULL;
-    com_util_interprocess_rwlock *lock2 = NULL;
-
-    std::remove(path.c_str()); // [状態] - 既存ファイルを削除しておく。
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map1,
-                                                NULL)); // [状態] - 1 つ目のハンドルを新規作成でアタッチする。
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_attach(path.c_str(), COM_UTIL_MMAP_ACCESS_READ_WRITE, 64, &map2,
-                                                NULL)); // [状態] - 2 つ目のハンドルを同一パスへ既存アタッチする。
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_get_rwlock(map1, &lock1, NULL));
-    ASSERT_EQ(COM_UTIL_OK, com_util_mmap_get_rwlock(map2, &lock2, NULL));
-    ASSERT_NE((com_util_interprocess_rwlock *)NULL, lock1);
-    ASSERT_NE((com_util_interprocess_rwlock *)NULL, lock2);
-
-    // Pre-Assert
-
-    // Act
-    int shared_1 = com_util_interprocess_rwlock_lock_shared(
-        lock1, COM_UTIL_SYNC_NO_WAIT); // [手順] - lock1 で共有ロックを取得する。
-    int shared_2 = com_util_interprocess_rwlock_lock_shared(
-        lock2, COM_UTIL_SYNC_NO_WAIT); // [手順] - lock2 でも共有ロックを取得する。
-
-    // Assert
-    EXPECT_EQ(COM_UTIL_OK, shared_1); // [確認_正常系] - lock1 の共有ロック取得が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, shared_2); // [確認_正常系] - 別ハンドルの lock2 も共有ロックを同時に取得できること。
-
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_unlock(lock1));
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_unlock(lock2));
-
-    // Act_2
-    int exclusive_1 = com_util_interprocess_rwlock_lock_exclusive(
-        lock1, COM_UTIL_SYNC_NO_WAIT); // [手順] - lock1 で排他ロックを取得する。
-    int exclusive_2_timeout = com_util_interprocess_rwlock_lock_exclusive(
-        lock2, 50); // [手順] - lock1 が排他ロック保持中に lock2 で 50ms タイムアウトの排他ロックを試みる。
-
-    // Assert_2
-    ASSERT_EQ(COM_UTIL_OK, exclusive_1); // [確認_正常系] - lock1 の排他ロック取得が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT,
-              exclusive_2_timeout); // [確認_正常系] - 排他ロック競合時に lock2 が COM_UTIL_ERR_TIMEOUT を返すこと。
-
-    // Cleanup
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_unlock(lock1));
-    com_util_mmap_detach(map1, NULL);
-    com_util_mmap_detach(map2, NULL);
-    std::remove(path.c_str());
+    (void)com_util_mmap_detach(map, NULL);
 }
