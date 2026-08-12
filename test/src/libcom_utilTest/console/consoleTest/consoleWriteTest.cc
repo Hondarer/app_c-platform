@@ -135,4 +135,26 @@ TEST_F(consoleWriteTest, returns_unknown_when_write_fails)
               rtc); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
+// 書き込みがシグナルで中断された場合に再試行されることの確認
+TEST_F(consoleWriteTest, retries_write_after_interrupt)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR),
+                        Return(-1))) // [Pre-Assert確認_正常系] - write が 2 回呼び出されること。
+                                     // [Pre-Assert手順] - errno に EINTR を設定し、write から -1 を返却する。
+        .WillOnce(Return(5));        // [Pre-Assert手順] - 2 回目の write から 5 を返却する。
+
+    // Act
+    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+                                     "abcde"); // [手順] - 5 byte の文字列を com_util_console_write で書き込む。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 中断後に再試行した com_util_console_write の戻り値が COM_UTIL_OK であること。
+}
+
 #endif /* PLATFORM_LINUX */

@@ -36,7 +36,11 @@ int com_util_open(const char *path, const int flags, const int mode, com_util_er
 
 #if defined(PLATFORM_LINUX)
     errno = 0;
-    fd = open(path, flags, mode);
+    /* FIFO のオープンなど待機を伴う場合はシグナルで中断されうる。中断を吸収する。 */
+    do
+    {
+        fd = open(path, flags, mode);
+    } while ((fd < 0) && (errno == EINTR));
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wpath[PLATFORM_PATH_MAX];

@@ -297,6 +297,13 @@ static com_util_error_cause com_util_error_cause_from_gai_error(const int error_
         cause = COM_UTIL_CAUSE_INVALID_ARGUMENT;
         break;
 #endif
+#if defined(EAI_SYSTEM)
+    case EAI_SYSTEM:
+        /* 要因は EAI_* ではなく errno 側にある。名前解決はソケット操作ではないため、
+           一般の errno として分類する。 */
+        cause = com_util_error_cause_from_errno(errno);
+        break;
+#endif
     default:
         cause = COM_UTIL_CAUSE_OTHER;
         break;

@@ -3,6 +3,7 @@
 #include <com_util/crt/fcntl.h>
 #include <mock_unistd.h>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <cstdio>
@@ -340,6 +341,53 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
+
+#if defined(PLATFORM_LINUX)
+/* シグナルによる中断は Linux 固有のため、再試行の確認は Linux でのみ実施する */
+// 下位の read 系 API がシグナルで中断された場合に再試行されることの確認
+TEST_F(fdTest, read_retries_after_interrupt)
+{
+    // Arrange
+    char buf[4];
+    Mock_unistd mock_unistd; // [状態] - 下位の read 系 API をモック化する。
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の read 系 API が 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の read 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
+    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(4));
+
+    // Act
+    int64_t rtc = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+
+    // Assert
+    EXPECT_EQ((int64_t)4,
+              rtc); // [確認_正常系] - com_util_read の戻り値が、再試行後の転送量である 4 であること。
+}
+
+// 下位の write 系 API がシグナルで中断された場合に再試行されることの確認
+TEST_F(fdTest, write_retries_after_interrupt)
+{
+    // Arrange
+    const char buf[4] = "abc";
+    Mock_unistd mock_unistd; // [状態] - 下位の write 系 API をモック化する。
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の write 系 API が 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の write 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(4));
+
+    // Act
+    int64_t rtc = com_util_write(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+
+    // Assert
+    EXPECT_EQ((int64_t)4,
+              rtc); // [確認_正常系] - com_util_write の戻り値が、再試行後の転送量である 4 であること。
+}
+#endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_LINUX)
 /* Windows の CRT はクローズ済み記述子で invalid parameter handler を起動するため、Linux でのみ実施する */

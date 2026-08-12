@@ -22,6 +22,7 @@
 
     #include <com_util/base/error_internal.h>
     #include <com_util/base/result.h>
+    #include <com_util/clock/clock.h>
     #include <com_util/crt/unistd.h>
     #include <com_util/net/socket.h>
     #include <com_util/sync/sync.h>
@@ -76,6 +77,54 @@ static int set_int_option(com_util_socket sock, int level, int optname, int valu
 }
 
 /**
+ *  @brief          シグナルによる中断を吸収して poll を実行します。
+ *  @param[in,out]  fds        poll へ渡す記述子の配列。
+ *  @param[in]      count      @p fds の要素数。
+ *  @param[in]      timeout_ms タイムアウト時間 (ミリ秒)。負値は無期限を表します。
+ *  @return         poll の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ *
+ *  中断された場合は、単調時刻から残り時間を再計算して待機を継続します。
+ *  要求した時間より早く復帰しないため、シグナルの配信によって呼び出し側の
+ *  タイムアウト判定が変化しません。
+ */
+static int poll_with_deadline(struct pollfd *fds, nfds_t count, int timeout_ms)
+{
+    uint64_t deadline = 0U;
+    int remaining_ms = timeout_ms;
+
+    if (timeout_ms > 0)
+    {
+        deadline = com_util_get_monotonic_ms() + (uint64_t)timeout_ms;
+    }
+
+    for (;;)
+    {
+        const int poll_result = poll(fds, count, remaining_ms);
+
+        if (poll_result >= 0)
+        {
+            return poll_result;
+        }
+        if (errno != EINTR)
+        {
+            return poll_result;
+        }
+
+        if (timeout_ms > 0)
+        {
+            const uint64_t now = com_util_get_monotonic_ms();
+
+            if (now >= deadline)
+            {
+                /* 残り時間が尽きた。タイムアウトと同じく条件不成立を返す。 */
+                return 0;
+            }
+            remaining_ms = (int)(deadline - now);
+        }
+    }
+}
+
+/**
  *  @brief          単一のソケットに対して poll による待機を行います。
  *  @param[in]      sock       対象のソケット。
  *  @param[in]      events     待機するイベント。
@@ -101,15 +150,9 @@ static int wait_single(com_util_socket sock, short events, int timeout_ms, int *
     poll_fd.events = events;
     poll_fd.revents = 0;
 
-    poll_result = poll(&poll_fd, (nfds_t)1, timeout_ms);
+    poll_result = poll_with_deadline(&poll_fd, (nfds_t)1, timeout_ms);
     if (poll_result < 0)
     {
-        /* シグナルによる中断はタイムアウトと同じ扱いにする。呼び出し側が再試行の
-           判断をしなくても済むようにするため。 */
-        if (errno == EINTR)
-        {
-            return com_util_error_report_success(detail_out);
-        }
         return com_util_error_report_socket_errno(detail_out, errno);
     }
 
@@ -119,6 +162,105 @@ static int wait_single(com_util_socket sock, short events, int timeout_ms, int *
     }
 
     return com_util_error_report_success(detail_out);
+}
+
+/**
+ *  @brief          シグナルによる中断を吸収して accept を実行します。
+ *  @param[in]      fd       待ち受けソケットの記述子。
+ *  @param[out]     addr     接続元アドレスの格納先。
+ *  @param[in,out]  addr_len @p addr のバイト数。復帰時に実際の長さが格納されます。
+ *  @return         accept の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ */
+static int retry_accept(int fd, struct sockaddr *addr, socklen_t *addr_len)
+{
+    int accepted;
+
+    do
+    {
+        accepted = accept(fd, addr, addr_len);
+    } while ((accepted < 0) && (errno == EINTR));
+
+    return accepted;
+}
+
+/**
+ *  @brief          シグナルによる中断を吸収して send を実行します。
+ *  @param[in]      fd  対象のソケットの記述子。
+ *  @param[in]      buf 送信するデータ。
+ *  @param[in]      len @p buf のバイト数。
+ *  @return         send の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ */
+static ssize_t retry_send(int fd, const void *buf, size_t len)
+{
+    ssize_t transferred;
+
+    do
+    {
+        transferred = send(fd, buf, len, 0);
+    } while ((transferred < 0) && (errno == EINTR));
+
+    return transferred;
+}
+
+/**
+ *  @brief          シグナルによる中断を吸収して recv を実行します。
+ *  @param[in]      fd  対象のソケットの記述子。
+ *  @param[out]     buf 受信したデータの格納先。
+ *  @param[in]      len @p buf のバイト数。
+ *  @return         recv の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ */
+static ssize_t retry_recv(int fd, void *buf, size_t len)
+{
+    ssize_t transferred;
+
+    do
+    {
+        transferred = recv(fd, buf, len, 0);
+    } while ((transferred < 0) && (errno == EINTR));
+
+    return transferred;
+}
+
+/**
+ *  @brief          シグナルによる中断を吸収して sendto を実行します。
+ *  @param[in]      fd       対象のソケットの記述子。
+ *  @param[in]      buf      送信するデータ。
+ *  @param[in]      len      @p buf のバイト数。
+ *  @param[in]      addr     送信先アドレス。
+ *  @param[in]      addr_len @p addr のバイト数。
+ *  @return         sendto の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ */
+static ssize_t retry_sendto(int fd, const void *buf, size_t len, const struct sockaddr *addr, socklen_t addr_len)
+{
+    ssize_t transferred;
+
+    do
+    {
+        transferred = sendto(fd, buf, len, 0, addr, addr_len);
+    } while ((transferred < 0) && (errno == EINTR));
+
+    return transferred;
+}
+
+/**
+ *  @brief          シグナルによる中断を吸収して recvfrom を実行します。
+ *  @param[in]      fd       対象のソケットの記述子。
+ *  @param[out]     buf      受信したデータの格納先。
+ *  @param[in]      len      @p buf のバイト数。
+ *  @param[out]     addr     送信元アドレスの格納先。
+ *  @param[in,out]  addr_len @p addr のバイト数。復帰時に実際の長さが格納されます。
+ *  @return         recvfrom の戻り値を返します。失敗した場合は負値を返し、errno を保持します。
+ */
+static ssize_t retry_recvfrom(int fd, void *buf, size_t len, struct sockaddr *addr, socklen_t *addr_len)
+{
+    ssize_t transferred;
+
+    do
+    {
+        transferred = recvfrom(fd, buf, len, 0, addr, addr_len);
+    } while ((transferred < 0) && (errno == EINTR));
+
+    return transferred;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -173,6 +315,9 @@ void com_util_socket_close(const com_util_socket sock)
     /* com_util_close() は TLS の直前エラーを更新するため、解放経路で呼び出しても
        呼び出し前の診断情報が失われないように保存と復元を行う。 */
     com_util_error_get_last(&saved);
+    /* EINTR で復帰した場合も再試行しない。Linux では中断された時点で記述子が
+       解放済みであり、呼び直すと別スレッドが再利用した記述子を閉じうる。
+       see: https://man7.org/linux/man-pages/man2/close.2.html */
     (void)com_util_close((int)sock, NULL);
     com_util_error_set_last(&saved);
 }
@@ -253,7 +398,7 @@ int com_util_socket_accept(const com_util_socket sock, com_util_ipv4_endpoint *p
     *sock_out = COM_UTIL_INVALID_SOCKET;
     memset(&native, 0, sizeof(native));
 
-    accepted = accept((int)sock, (struct sockaddr *)&native, &native_len);
+    accepted = retry_accept((int)sock, (struct sockaddr *)&native, &native_len);
     if (accepted < 0)
     {
         return com_util_error_report_socket_errno(detail_out, errno);
@@ -267,6 +412,31 @@ int com_util_socket_accept(const com_util_socket sock, com_util_ipv4_endpoint *p
     *sock_out = (com_util_socket)accepted;
 
     return com_util_error_report_success(detail_out);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+/**
+ *  @brief          中断された接続確立の完了を待機します。
+ *  @param[in]      sock       対象のソケット。
+ *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
+ *  @return         共通結果コードを返します。
+ */
+static int wait_connect_completion(com_util_socket sock, com_util_error *detail_out)
+{
+    int ready = 0;
+    const int wait_result = com_util_socket_wait_writable(sock, COM_UTIL_SOCKET_WAIT_FOREVER, &ready, detail_out);
+
+    if (wait_result != COM_UTIL_OK)
+    {
+        return wait_result;
+    }
+    if (ready == 0)
+    {
+        return com_util_error_report_errno_as(detail_out, ETIMEDOUT, COM_UTIL_ERR_TIMEOUT);
+    }
+
+    return com_util_socket_get_pending_error(sock, detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -289,7 +459,16 @@ int com_util_socket_connect(const com_util_socket sock, const com_util_ipv4_endp
         {
             return com_util_error_report_socket_errno_as(detail_out, errno, COM_UTIL_ERR_IN_PROGRESS);
         }
-        return com_util_error_report_socket_errno(detail_out, errno);
+        if (errno != EINTR)
+        {
+            return com_util_error_report_socket_errno(detail_out, errno);
+        }
+
+        /* シグナルで中断された接続確立は非同期に継続する。connect を呼び直すと
+           EALREADY または EISCONN になるため、書き込み可能になるまで待機し、
+           SO_ERROR で結果を確認する。
+           see: https://man7.org/linux/man-pages/man2/connect.2.html */
+        return wait_connect_completion(sock, detail_out);
     }
 
     return com_util_error_report_success(detail_out);
@@ -469,7 +648,7 @@ int com_util_socket_send(const com_util_socket sock, const void *buf, const size
 
     *sent_out = 0U;
 
-    transferred = send((int)sock, buf, len, 0);
+    transferred = retry_send((int)sock, buf, len);
     if (transferred < 0)
     {
         return com_util_error_report_socket_errno(detail_out, errno);
@@ -495,7 +674,7 @@ int com_util_socket_recv(const com_util_socket sock, void *buf, const size_t len
 
     *received_out = 0U;
 
-    transferred = recv((int)sock, buf, len, 0);
+    transferred = retry_recv((int)sock, buf, len);
     if (transferred < 0)
     {
         return com_util_error_report_socket_errno(detail_out, errno);
@@ -523,7 +702,7 @@ int com_util_socket_sendto(const com_util_socket sock, const void *buf, const si
     *sent_out = 0U;
     endpoint_to_native(endpoint, &native);
 
-    transferred = sendto((int)sock, buf, len, 0, (const struct sockaddr *)&native, (socklen_t)sizeof(native));
+    transferred = retry_sendto((int)sock, buf, len, (const struct sockaddr *)&native, (socklen_t)sizeof(native));
     if (transferred < 0)
     {
         return com_util_error_report_socket_errno(detail_out, errno);
@@ -552,7 +731,7 @@ int com_util_socket_recvfrom(const com_util_socket sock, void *buf, const size_t
     *received_out = 0U;
     memset(&native, 0, sizeof(native));
 
-    transferred = recvfrom((int)sock, buf, len, 0, (struct sockaddr *)&native, &native_len);
+    transferred = retry_recvfrom((int)sock, buf, len, (struct sockaddr *)&native, &native_len);
     if (transferred < 0)
     {
         return com_util_error_report_socket_errno(detail_out, errno);
@@ -583,7 +762,7 @@ int com_util_socket_send_all(const com_util_socket sock, const void *buf, const 
 
     while (sent < len)
     {
-        ssize_t transferred = send((int)sock, cursor + sent, len - sent, 0);
+        const ssize_t transferred = retry_send((int)sock, cursor + sent, len - sent);
 
         if (transferred < 0)
         {
@@ -614,7 +793,7 @@ int com_util_socket_recv_all(const com_util_socket sock, void *buf, const size_t
 
     while (received < len)
     {
-        ssize_t transferred = recv((int)sock, cursor + received, len - received, 0);
+        const ssize_t transferred = retry_recv((int)sock, cursor + received, len - received);
 
         if (transferred < 0)
         {
@@ -685,7 +864,7 @@ int com_util_socket_wait_readable_multi(const com_util_socket *socks, const size
         return com_util_error_report_success(detail_out);
     }
 
-    poll_result = poll(poll_fds, (nfds_t)valid_count, timeout_ms);
+    poll_result = poll_with_deadline(poll_fds, (nfds_t)valid_count, timeout_ms);
     if (poll_result < 0)
     {
         if (errno == EINTR)

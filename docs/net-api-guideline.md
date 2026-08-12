@@ -106,6 +106,11 @@ Winsock のエラー番号空間は Win32 の `GetLastError()` と異なるた�
 非ブロッキングの `connect` が完了待ちになった場合は、共通の要因 `COM_UTIL_CAUSE_IN_PROGRESS` で表します。  
 Linux の `EINPROGRESS` と Windows の `WSAEWOULDBLOCK` の差はここで吸収します。
 
+## シグナルによる中断
+
+Linux のソケット API がシグナルで中断された場合の扱いは、[コーディング規範](coding-guideline.md) の「シグナル割り込み (EINTR) の扱い」に従います。  
+`net` の API 契約として固有の規則は設けません。
+
 ## 非対称な動作の明示
 
 プラットフォームで意味論を完全に揃えられない API は、共通契約をヘッダーの Doxygen へ明記します。  

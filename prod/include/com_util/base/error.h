@@ -84,6 +84,8 @@ extern "C"
         COM_UTIL_CAUSE_DISK_FULL = 12,
         COM_UTIL_CAUSE_BUSY = 13,
         COM_UTIL_CAUSE_TIMEOUT = 14,
+        /* シグナルによる中断は Linux 実装が吸収するため、公開 API が本要因を通知することはない。
+           errno と Winsock エラーの分類結果としては維持する。 */
         COM_UTIL_CAUSE_INTERRUPTED = 15,
         COM_UTIL_CAUSE_BROKEN_PIPE = 16,
         COM_UTIL_CAUSE_TOO_MANY_OPEN_FILES = 17,

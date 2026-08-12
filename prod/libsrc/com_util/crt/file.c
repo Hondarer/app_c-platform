@@ -270,7 +270,15 @@ int com_util_file_write(com_util_file *file, const void *buf, size_t len, com_ut
 
         while (remaining > 0u)
         {
-            ssize_t written = write(file->handle, cursor, remaining);
+            ssize_t written;
+
+            /* シグナルによる中断を吸収する。転送済みのバイトがある場合、write は
+               成功として転送量を返すため、この再試行は転送量を重複させない。 */
+            do
+            {
+                written = write(file->handle, cursor, remaining);
+            } while ((written < 0) && (errno == EINTR));
+
             if (written <= 0)
             {
                 return com_util_error_report_errno(detail_out, errno);
@@ -374,7 +382,13 @@ int com_util_file_read(com_util_file *file, void *buf, const size_t len, size_t 
 
 #if defined(PLATFORM_LINUX)
     {
-        ssize_t bytes = read(file->handle, buf, len);
+        ssize_t bytes;
+
+        /* シグナルによる中断を吸収する。EINTR を利用者へ観測させない規範に従う。 */
+        do
+        {
+            bytes = read(file->handle, buf, len);
+        } while ((bytes < 0) && (errno == EINTR));
 
         if (bytes < 0)
         {

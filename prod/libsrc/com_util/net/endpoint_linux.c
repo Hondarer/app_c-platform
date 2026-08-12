@@ -64,7 +64,13 @@ int com_util_ipv4_resolve(const char *text, uint32_t *address_out, com_util_erro
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
 
-    gai_result = getaddrinfo(text, NULL, &hints, &resolved);
+    /* EAI_SYSTEM は errno に要因が入る。シグナルによる中断であれば再試行し、
+       利用者へ中断を観測させない。 */
+    do
+    {
+        gai_result = getaddrinfo(text, NULL, &hints, &resolved);
+    } while ((gai_result == EAI_SYSTEM) && (errno == EINTR));
+
     if (gai_result != 0)
     {
         if (resolved != NULL)

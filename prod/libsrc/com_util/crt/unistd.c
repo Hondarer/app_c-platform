@@ -143,6 +143,9 @@ int com_util_close(const int fd, com_util_error *detail_out)
 
     errno = 0;
 #if defined(PLATFORM_LINUX)
+    /* EINTR で復帰した場合も再試行しない。Linux では中断された時点で記述子が
+       解放済みであり、呼び直すと別スレッドが再利用した記述子を閉じうる。
+       see: https://man7.org/linux/man-pages/man2/close.2.html */
     result = close(fd);
 #elif defined(PLATFORM_WINDOWS)
     result = _close(fd);
@@ -232,7 +235,11 @@ int64_t com_util_read(const int fd, void *buf, const size_t count, com_util_erro
 
     errno = 0;
 #if defined(PLATFORM_LINUX)
-    result = (int64_t)read(fd, buf, count);
+    /* シグナルによる中断を吸収する。EINTR を利用者へ観測させない規範に従う。 */
+    do
+    {
+        result = (int64_t)read(fd, buf, count);
+    } while ((result < 0) && (errno == EINTR));
 #elif defined(PLATFORM_WINDOWS)
     {
         unsigned int request;
@@ -276,7 +283,11 @@ int64_t com_util_write(const int fd, const void *buf, const size_t count, com_ut
 
     errno = 0;
 #if defined(PLATFORM_LINUX)
-    result = (int64_t)write(fd, buf, count);
+    /* シグナルによる中断を吸収する。EINTR を利用者へ観測させない規範に従う。 */
+    do
+    {
+        result = (int64_t)write(fd, buf, count);
+    } while ((result < 0) && (errno == EINTR));
 #elif defined(PLATFORM_WINDOWS)
     {
         unsigned int request;

@@ -5,6 +5,10 @@
 #include <com_util/crt/unistd.h>
 #include <mock_com_util.h>
 
+#if defined(PLATFORM_LINUX)
+    #include <mock_fcntl.h>
+#endif /* PLATFORM_LINUX */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -125,6 +129,32 @@ TEST_F(fcntlTest, accepts_null_detail_out)
     // Assert
     EXPECT_EQ(-1, fd); // [確認_異常系] - com_util_open の戻り値が -1 であること。
 }
+
+#if defined(PLATFORM_LINUX)
+/* シグナルによる中断は Linux 固有のため、再試行の確認は Linux でのみ実施する */
+// オープンがシグナルで中断された場合に再試行されることの確認
+TEST_F(fcntlTest, open_retries_after_interrupt)
+{
+    // Arrange
+    NiceMock<Mock_fcntl> mock_fcntl;
+    com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の open API が 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の open API から、errno に EINTR を設定した -1 ののち記述子 5 を返却する。
+    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(5));
+
+    // Act
+    int fd = com_util_open(path_.c_str(), O_RDONLY, 0,
+                           &detail); // [手順] - 中断ののち成功する com_util_open を呼び出す。
+
+    // Assert
+    EXPECT_EQ(5,
+              fd); // [確認_正常系] - 再試行後の com_util_open の戻り値が 5 であること。
+}
+#endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
 

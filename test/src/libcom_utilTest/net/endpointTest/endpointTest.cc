@@ -429,6 +429,88 @@ TEST_F(endpointTest, resolve_returns_first_ipv4_address)
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
 }
 
+#if defined(PLATFORM_LINUX)
+// 名前解決がシグナル中断後に再試行することの確認
+TEST_F(endpointTest, resolve_retries_after_interrupt)
+{
+    // Arrange
+    uint32_t address = 0U;
+    com_util_error detail = {};
+    const uint32_t expected = COM_UTIL_IPV4_ADDR_LOOPBACK;
+    struct sockaddr_in native = {};
+    struct addrinfo resolved = {};
+    native.sin_addr.s_addr = expected;
+    resolved.ai_addr = reinterpret_cast<struct sockaddr *>(&native);
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - getaddrinfo が 2 回呼び出されること。
+    // [Pre-Assert手順] - getaddrinfo から、errno に EINTR を設定した EAI_SYSTEM ののち、有効な IPv4 の解決結果と成功を示す 0 を返却する。
+    EXPECT_CALL(mock_netdb_, getaddrinfo(_, _, _, _, _, _, _))
+        .WillOnce(
+            [](const char *, const int, const char *, const char *, const char *, const struct addrinfo *,
+               struct addrinfo **result)
+            {
+                *result = NULL;
+                errno = EINTR;
+                return EAI_SYSTEM;
+            })
+        .WillOnce(
+            [&resolved](const char *, const int, const char *, const char *, const char *, const struct addrinfo *,
+                        struct addrinfo **result)
+            {
+                *result = &resolved;
+                return 0;
+            });
+    // [Pre-Assert確認_正常系] - freeaddrinfo が getaddrinfo の格納した解決結果を引数として 1 回呼び出されること。
+    EXPECT_CALL(mock_netdb_, freeaddrinfo(_, _, _, _))
+        .WillOnce(
+            [&resolved](const char *, const int, const char *, struct addrinfo *actual)
+            { EXPECT_EQ(&resolved, actual); });
+
+    // Act
+    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断ののち成功する名前解決を実行する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 中断後に成功した com_util_ipv4_resolve の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(expected,
+              address); // [確認_正常系] - 再試行で解決した IPv4 アドレスが返されること。
+    // [確認_正常系] - 詳細エラーが記録されないこと。
+    expect_detail(detail, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+}
+
+// 名前解決の EAI_SYSTEM が中断以外の errno では再試行されないことの確認
+TEST_F(endpointTest, resolve_reports_system_error_without_retry)
+{
+    // Arrange
+    uint32_t address = 0U;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - getaddrinfo が 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - getaddrinfo から、errno に ENOMEM を設定した EAI_SYSTEM を返却する。
+    EXPECT_CALL(mock_netdb_, getaddrinfo(_, _, _, _, _, _, _))
+        .WillOnce(
+            [](const char *, const int, const char *, const char *, const char *, const struct addrinfo *,
+               struct addrinfo **result)
+            {
+                *result = NULL;
+                errno = ENOMEM;
+                return EAI_SYSTEM;
+            });
+
+    // Act
+    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断以外の EAI_SYSTEM を注入する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - EAI_SYSTEM を返した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    // [確認_異常系] - 詳細エラーに getaddrinfo ドメインと EAI_SYSTEM が記録されること。
+    expect_detail(detail, COM_UTIL_ERROR_DOMAIN_GAI, COM_UTIL_ERR_UNKNOWN, static_cast<unsigned long>(EAI_SYSTEM));
+}
+#endif /* PLATFORM_LINUX */
+
 #if defined(PLATFORM_WINDOWS)
 // Winsock の初期化に失敗した場合、名前解決が失敗することの確認
 TEST_F(endpointTest, resolve_propagates_startup_failure)

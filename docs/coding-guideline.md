@@ -262,12 +262,111 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 |---|---|---|
 | 引数の限界値 | 両プラットフォームのうち、より厳しい限界値を採用する | `RAND_bytes` と `BCryptGenRandom` の要求サイズを `INT_MAX` に統一 |
 | オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一する | `com_util_fopen` と `com_util_open` の Windows 実装で `_SH_DENYNO` を指定 |
+| シグナルによる待機の中断 | 中断されない Windows の動作に統一する | Linux 実装が `EINTR` を吸収する。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
 
 製品実装は、プラットフォーム固有の API を呼び出す前に共通契約を検査または設定します。  
-より緩い限界値を持つプラットフォームの追加容量は、共通 API では公開しません。
+より緩い限界値を持つプラットフォームの追加差分は、共通 API では公開しません。
 
 共有可能なオープンは排他制御を意味しません。  
 プロセス間のアクセスを直列化する場合は、`com_util_interprocess_lock` または `com_util_interprocess_rwlock` を使用します。
+
+### シグナル割り込み (EINTR) の扱い
+
+#### 基本原則
+
+com_util の公開 API は、シグナルによる中断を利用者へ観測させません。
+
+Linux では、ユーザー コードの中断を意図しないシグナルが配信されただけでも、ブロッキング中のシステム コールが `EINTR` で復帰します。
+Windows には対応する機構がなく、非アラータブル待機が同じ理由で中断されることはありません。
+この差異は Linux 実装が吸収し、両プラットフォームで同じ契約を提供します。
+
+`SA_RESTART` には依存しません。
+ライブラリは利用者が設置するシグナル ハンドラーのフラグを制御できず、`SA_RESTART` を指定しても再開されない呼び出しが存在するためです。
+
+> [!NOTE]
+> `man 7 signal` は、`epoll_wait(2)`、`poll(2)`、`select(2)`、`nanosleep(2)` について「`SA_RESTART` を使っているかどうかに関わらず、再スタートすることは決してない」と規定しています。
+> また Linux では、一時停止シグナルによってプロセスが停止し `SIGCONT` で再開された後、シグナル ハンドラーが設定されていなくても `EINTR` で失敗する場合があります。
+> 出典は [参照](#参照-シグナル割り込み) にまとめます。
+
+#### API 分類ごとの規範
+
+| 分類 | 対象 | 規範 |
+|---|---|---|
+| 期限付き待機 | `poll` 系、`nanosleep` | 単調時刻で期限を保持し、`EINTR` では残り時間を再計算して待機を継続する。要求時間より早く復帰しない |
+| 無期限ブロッキング I/O | `accept`、`send`、`recv`、`sendto`、`recvfrom`、`read`、`write`、`open` | `EINTR` では同じ引数で再試行する。部分転送済みで復帰した場合は OS の規定どおり成功として転送量を返し、再試行しない |
+| 接続確立 | `connect` | 再呼び出ししない。書き込み可能待ちと `SO_ERROR` の確認によって完了を判定する |
+| 記述子の解放 | `close` | 再試行しない |
+| stdio | `fopen`、`fread`、`fwrite`、`fgets`、`fclose` | 再試行しない。適用対象を通常ファイルに限定することで中断を回避する |
+| pthread 同期 | mutex、condvar、`pthread_join` | `EINTR` を返さないため、`EINTR` の分岐を書かない |
+| Windows 実装 | 全般 | 中断されないため `EINTR` 相当の分岐を書かない。アラータブル待機を使用しない |
+
+`close` を再試行しないのは、Linux では `EINTR` で復帰した時点で記述子が解放済みであり、再呼び出しが別スレッドの再利用した記述子を対象にしうるためです。
+
+`connect` を呼び直さないのは、中断された接続確立が非同期に継続するためです。
+同じソケットに対する 2 回目の `connect` は `EALREADY` または `EISCONN` を返します。
+
+stdio を再試行しないのは、`FILE *` の内部状態と読み書き位置が中断時点で確定しないためです。  
+その代わり、stdio ラッパーの適用対象を通常ファイルに限定します。端末、パイプ、ソケットを `FILE *` として扱う場合は、stdio ラッパーではなく記述子を扱う API を使用します。
+
+> [!NOTE]
+> Linux では通常ファイルに対する入出力はシグナルで中断されません。
+> `man 7 signal` は、中断されうる「低速デバイス」を端末、パイプ、ソケットと定義し、ローカル ディスクはこれに当たらないと規定しています。
+> 適用対象を通常ファイルに限定することで、stdio 分類でも実際にはプラットフォーム間の動作差が生じません。
+
+Windows でアラータブル待機を使用しないのは、`WaitForSingleObjectEx` や `SleepEx` が APC の実行によって `WAIT_IO_COMPLETION` で復帰し、Linux と同種の中断を持ち込むためです。
+
+#### com_util 内部での EINTR の利用
+
+com_util の内部実装が `EINTR` を検出手段として利用することは認めます。
+ただし公開契約には出さず、抽象化した通知へ変換します。
+
+コンソール入力の実装は、`SIGWINCH` によって `read` が中断されたことを端末サイズの変更として扱います。
+利用者が受け取るのは `EINTR` ではなく、サイズ変更を表す抽象化された結果です。
+
+#### 意図的な中断の代替手段
+
+シグナルによってブロッキング呼び出しを打ち切る設計は採用しません。
+Windows へ移植できず、プラットフォームで動作が変わるためです。
+
+停止要求には次の形を使用します。
+
+- ソケットは `com_util_socket_set_nonblocking()` で非ブロッキングに設定し、`com_util_socket_wait_readable()` などへ短いタイムアウトを与えたループの中で停止フラグを判定する
+- スレッド間の停止通知は `com_util_condvar` で行う
+
+#### COM_UTIL_CAUSE_INTERRUPTED の位置付け
+
+`COM_UTIL_CAUSE_INTERRUPTED` の値は ABI として維持します。
+`com_util_error_cause_from_errno()` と `com_util_error_cause_from_winsock_error()` の写像も維持します。
+
+一方、公開 API がこの要因を通知することはありません。
+利用者のコードに `COM_UTIL_CAUSE_INTERRUPTED` の判定と再試行を求めません。
+
+受信タイムアウト (`SO_RCVTIMEO`) と送信タイムアウト (`SO_SNDTIMEO`) を設定する API は公開しません。  
+これらを設定したソケットの送受信は `SA_RESTART` の有無にかかわらず中断され、再試行によって指定した時間を超過するためです。  
+待機時間を制限する場合は `com_util_socket_wait_readable()` などの期限付き待機を使用します。
+
+> [!IMPORTANT]
+> 本節の規範に未適合の実装が残っています。
+> `com_util_socket_accept()`、`com_util_socket_connect()`、`com_util_socket_send()`、`com_util_socket_recv()`、`com_util_socket_sendto()`、`com_util_socket_recvfrom()`、`com_util_socket_send_all()`、`com_util_socket_recv_all()`、`com_util_read()`、`com_util_write()`、`com_util_open()`、`com_util_file_read()`、`com_util_file_write()`、およびコンソール出力は `EINTR` を吸収していません。
+> `com_util_socket_wait_readable()`、`com_util_socket_wait_writable()`、`com_util_socket_wait_readable_multi()` は `EINTR` をタイムアウトと同じ扱いにするため、要求した時間より早く復帰します。
+> これらは規範に合わせて是正する対象であり、是正の完了後に本注記を除去します。
+
+#### 検証 (シグナル割り込み)
+
+```bash
+# EINTR を参照している箇所が、本節の分類に沿っているかを確認する
+grep -rn "EINTR" app/com_util/prod/libsrc/ --include=*.c
+
+# アラータブル待機を使用していないことを確認する
+grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/com_util/prod/libsrc/
+```
+
+#### 参照 (シグナル割り込み)
+
+- [signal(7) - Interruption of system calls and library functions by signal handlers](https://man7.org/linux/man-pages/man7/signal.7.html)
+- [close(2) - NOTES](https://man7.org/linux/man-pages/man2/close.2.html)
+- [connect(2) - EINTR](https://man7.org/linux/man-pages/man2/connect.2.html)
+- [WaitForSingleObjectEx function](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobjectex)
 
 ### ラッパーを作らないもの
 

@@ -396,6 +396,39 @@ TEST_F(errorTest, report_gai_error_maps_standard_codes_and_unknown_code)
     EXPECT_EQ(COM_UTIL_OK, success_result); // [確認_正常系] - EAI 0 の戻り値が COM_UTIL_OK であること。
 }
 
+#if defined(PLATFORM_LINUX)
+// getaddrinfo の EAI_SYSTEM が errno に基づいて分類されることの確認
+TEST_F(errorTest, report_gai_error_classifies_system_error_by_errno)
+{
+    // Arrange
+    com_util_error error;
+
+    // Pre-Assert
+
+    // Act
+    errno = ENOMEM;                                                       // [手順] - errno に ENOMEM を設定する。
+    int memory_result = com_util_error_report_gai_error(&error, EAI_SYSTEM); // [手順] - EAI_SYSTEM を記録する。
+    const com_util_error_cause memory_cause =
+        com_util_error_get_cause(&error); // [手順] - errno が ENOMEM の EAI_SYSTEM の要因を取得する。
+    const unsigned long memory_code =
+        (unsigned long)error.code; // [手順] - errno が ENOMEM の EAI_SYSTEM の生値を取得する。
+    errno = EINTR;                                                          // [手順] - errno に EINTR を設定する。
+    com_util_error_report_gai_error(&error, EAI_SYSTEM);                     // [手順] - EAI_SYSTEM を記録する。
+    const com_util_error_cause interrupted_cause =
+        com_util_error_get_cause(&error); // [手順] - errno が EINTR の EAI_SYSTEM の要因を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              memory_result); // [確認_異常系] - EAI_SYSTEM の com_util_error_report_gai_error の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_OUT_OF_MEMORY,
+              memory_cause); // [確認_異常系] - errno が ENOMEM の EAI_SYSTEM の要因が OUT_OF_MEMORY であること。
+    EXPECT_EQ(static_cast<unsigned long>(EAI_SYSTEM),
+              memory_code); // [確認_異常系] - 生値として EAI_SYSTEM が保持されること。
+    EXPECT_EQ(COM_UTIL_CAUSE_INTERRUPTED,
+              interrupted_cause); // [確認_異常系] - errno が EINTR の EAI_SYSTEM の要因が INTERRUPTED であること。
+}
+#endif /* PLATFORM_LINUX */
+
 // 詳細エラーの全ドメインと errno の追加分類が取得できることの確認
 TEST_F(errorTest, accessors_cover_socket_gai_and_extended_errno_causes)
 {

@@ -1298,7 +1298,7 @@ TEST_F(socketTest, wait_single_reports_results)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 下位の待機 API が 1 個のソケットとタイムアウト 0 を指定して呼び出されること。
-    // [Pre-Assert手順] - 下位の待機 API から、タイムアウト、条件成立、シグナルによる中断、失敗の順に応答する。
+    // [Pre-Assert手順] - 下位の待機 API から、タイムアウト、条件成立、失敗の順に応答する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 0))
         .WillOnce(Return(0))
@@ -1314,7 +1314,6 @@ TEST_F(socketTest, wait_single_reports_results)
                 fds->revents = fds->events;
                 return 1;
             })
-        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, WSAPoll(_, _, _, _, 1, 0))
@@ -1345,10 +1344,6 @@ TEST_F(socketTest, wait_single_reports_results)
         com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - イベント不一致を注入する。
     ready_after_not_ready = ready;
     int rtc_ready = com_util_socket_wait_writable(kSocket, 0, &ready, &detail); // [手順] - 書き込み可能を注入する。
-#if defined(PLATFORM_LINUX)
-    int rtc_interrupted =
-        com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - シグナル中断を注入する。
-#endif                                                              /* PLATFORM_ */
     int rtc_failure =
         com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - 待機 API の失敗を注入する。
 
@@ -1367,10 +1362,6 @@ TEST_F(socketTest, wait_single_reports_results)
               ready_after_not_ready); // [確認_正常系] - イベント不一致時の準備完了フラグが 0 であること。
     EXPECT_EQ(COM_UTIL_OK,
               rtc_ready); // [確認_正常系] - 書き込み待機の準備完了戻り値が COM_UTIL_OK であること。
-#if defined(PLATFORM_LINUX)
-    EXPECT_EQ(COM_UTIL_OK,
-              rtc_interrupted); // [確認_正常系] - シグナル中断時の読み取り待機戻り値が COM_UTIL_OK であること。
-#endif                          /* PLATFORM_ */
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc_failure); // [確認_異常系] - 待機 API 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(0,
@@ -1432,7 +1423,7 @@ TEST_F(socketTest, wait_multi_reports_results)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 下位の待機 API が 2 個のソケットとタイムアウト 0 を指定して呼び出されること。
-    // [Pre-Assert手順] - 下位の待機 API から、一部のソケットが受信可能、いずれも非受信、シグナルによる中断、失敗の順に応答する。
+    // [Pre-Assert手順] - 下位の待機 API から、一部のソケットが受信可能、いずれも非受信、失敗の順に応答する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_poll_, poll(_, _, _, _, 2, 0))
         .WillOnce(
@@ -1449,7 +1440,6 @@ TEST_F(socketTest, wait_multi_reports_results)
                 fds[1].revents = POLLHUP;
                 return 2;
             })
-        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
         .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, WSAPoll(_, _, _, _, 2, 0))
@@ -1477,10 +1467,6 @@ TEST_F(socketTest, wait_multi_reports_results)
     int rtc_ready = com_util_socket_wait_readable_multi(socks, 3U, 0, ready,
                                                         &detail); // [手順] - 複数ソケットの準備完了を注入する。
     std::memcpy(ready_after_ready, ready, sizeof(ready_after_ready));
-#if defined(PLATFORM_LINUX)
-    int rtc_interrupted =
-        com_util_socket_wait_readable_multi(socks, 3U, 0, ready, &detail); // [手順] - 待機中断を注入する。
-#endif                                                                     /* PLATFORM_ */
     int rtc_failure =
         com_util_socket_wait_readable_multi(socks, 3U, 0, ready, &detail); // [手順] - 待機失敗を注入する。
 
@@ -1495,13 +1481,437 @@ TEST_F(socketTest, wait_multi_reports_results)
               ready_after_ready[1]); // [確認_正常系] - 無効ソケットの準備完了が 0 であること。
     EXPECT_EQ(1U,
               ready_after_ready[2]); // [確認_正常系] - 3 番目のソケットが準備完了になること。
-#if defined(PLATFORM_LINUX)
-    EXPECT_EQ(COM_UTIL_OK,
-              rtc_interrupted); // [確認_正常系] - シグナル中断時の複数待機戻り値が COM_UTIL_OK であること。
-#endif                          /* PLATFORM_ */
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               rtc_failure); // [確認_異常系] - 待機失敗時の複数待機戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
+
+#if defined(PLATFORM_LINUX)
+
+// 単一ソケット待機がシグナル中断後に再待機することの確認
+TEST_F(socketTest, wait_single_retries_after_interrupt)
+{
+    // Arrange
+    int ready = 9;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 1 個のソケットとタイムアウト 0 を指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から、シグナルによる中断ののち条件成立を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds->revents = fds->events;
+                return 1;
+            });
+
+    // Act
+    int rtc = com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - タイムアウト 0 で受信可能を待機する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1,
+              ready); // [確認_正常系] - 再待機で条件が成立し、準備完了フラグが 1 になること。
+}
+
+// 無期限の単一ソケット待機がシグナル中断後に期限を計算せず再待機することの確認
+TEST_F(socketTest, wait_single_retries_without_deadline_after_interrupt)
+{
+    // Arrange
+    int ready = 9;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 無期限待機では単調時刻が取得されないこと。
+    EXPECT_CALL(mock_com_util_, com_util_get_monotonic_ms()).Times(0);
+    // [Pre-Assert確認_正常系] - 下位の待機 API が無期限のタイムアウトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から、シグナルによる中断ののち条件成立を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, COM_UTIL_SOCKET_WAIT_FOREVER))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds->revents = fds->events;
+                return 1;
+            });
+
+    // Act
+    int rtc = com_util_socket_wait_readable(kSocket, COM_UTIL_SOCKET_WAIT_FOREVER, &ready,
+                                            &detail); // [手順] - 無期限で受信可能を待機する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 無期限指定の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1,
+              ready); // [確認_正常系] - 再待機で条件が成立し、準備完了フラグが 1 になること。
+}
+
+// 期限付きの単一ソケット待機がシグナル中断後に残り時間で再待機することの確認
+TEST_F(socketTest, wait_single_recomputes_remaining_after_interrupt)
+{
+    // Arrange
+    int ready = 9;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 単調時刻が待機の開始時と中断時の 2 回取得されること。
+    // [Pre-Assert手順] - 単調時刻から、開始時に 1000 ms、中断時に 1040 ms を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_get_monotonic_ms())
+        .WillOnce(Return((uint64_t)1000U))
+        .WillOnce(Return((uint64_t)1040U));
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 1 回目に要求どおりの 100 ms を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 100)).WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 2 回目に残り時間の 60 ms を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から条件成立を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 60))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds->revents = fds->events;
+                return 1;
+            });
+
+    // Act
+    int rtc =
+        com_util_socket_wait_readable(kSocket, 100, &ready, &detail); // [手順] - タイムアウト 100 ms で待機する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - タイムアウト 100 ms の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1,
+              ready); // [確認_正常系] - 残り時間での再待機で条件が成立し、準備完了フラグが 1 になること。
+}
+
+// 期限付きの単一ソケット待機がシグナル中断で期限を過ぎた場合に条件不成立となることの確認
+TEST_F(socketTest, wait_single_reports_not_ready_when_deadline_expires_after_interrupt)
+{
+    // Arrange
+    int ready = 9;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 単調時刻が待機の開始時と中断時の 2 回取得されること。
+    // [Pre-Assert手順] - 単調時刻から、開始時に 1000 ms、中断時に期限を過ぎた 1100 ms を返却する。
+    EXPECT_CALL(mock_com_util_, com_util_get_monotonic_ms())
+        .WillOnce(Return((uint64_t)1000U))
+        .WillOnce(Return((uint64_t)1100U));
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 50 ms を指定して 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 50)).WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+
+    // Act
+    int rtc = com_util_socket_wait_readable(kSocket, 50, &ready, &detail); // [手順] - タイムアウト 50 ms で待機する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        rtc); // [確認_正常系] - 期限超過後の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(0,
+              ready); // [確認_正常系] - 期限を過ぎたため準備完了フラグが 0 のままであること。
+}
+
+// 複数ソケット待機がシグナル中断後に再待機することの確認
+TEST_F(socketTest, wait_multi_retries_after_interrupt)
+{
+    // Arrange
+    const com_util_socket socks[2] = {kSocket, (com_util_socket)8};
+    unsigned char ready[2] = {9U, 9U};
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の待機 API が 2 個のソケットとタイムアウト 0 を指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から、シグナルによる中断ののち 1 番目のソケットの受信可能を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 2, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds[0].revents = POLLIN;
+                fds[1].revents = 0;
+                return 1;
+            });
+
+    // Act
+    int rtc = com_util_socket_wait_readable_multi(socks, 2U, 0, ready,
+                                                  &detail); // [手順] - 2 個のソケットで受信可能を待機する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - com_util_socket_wait_readable_multi の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(1U,
+              ready[0]); // [確認_正常系] - 再待機で 1 番目のソケットが準備完了になること。
+    EXPECT_EQ(0U,
+              ready[1]); // [確認_正常系] - 2 番目のソケットの準備完了が 0 であること。
+}
+
+// 接続受け付けがシグナル中断後に再試行することの確認
+TEST_F(socketTest, accept_retries_after_interrupt)
+{
+    // Arrange
+    com_util_socket accepted = COM_UTIL_INVALID_SOCKET;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の accept API が待ち受けソケットを引数として 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の accept API から、シグナルによる中断ののち新しいソケットのハンドルを返却する。
+    EXPECT_CALL(mock_sys_socket_, accept(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(8));
+
+    // Act
+    int rtc = com_util_socket_accept(kSocket, NULL, &accepted, &detail); // [手順] - 接続を受け付ける。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - com_util_socket_accept の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((com_util_socket)8,
+              accepted); // [確認_正常系] - 再試行で受け付けたソケットが返されること。
+}
+
+// 送信と受信がシグナル中断後に再試行することの確認
+TEST_F(socketTest, send_and_recv_retry_after_interrupt)
+{
+    // Arrange
+    unsigned char buffer[4] = {0U, 0U, 0U, 0U};
+    size_t sent = 0U;
+    size_t received = 0U;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の send API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の send API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+    // [Pre-Assert確認_正常系] - 下位の recv API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の recv API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+
+    // Act
+    int rtc_send = com_util_socket_send(kSocket, buffer, sizeof(buffer), &sent, &detail); // [手順] - 4 バイト送信する。
+    int rtc_recv = com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received, &detail); // [手順] - 4 バイト受信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_send); // [確認_正常系] - com_util_socket_send の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)4,
+              sent); // [確認_正常系] - 再試行後の送信バイト数が 4 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_recv); // [確認_正常系] - com_util_socket_recv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)4,
+              received); // [確認_正常系] - 再試行後の受信バイト数が 4 であること。
+}
+
+// データグラムの送信と受信がシグナル中断後に再試行することの確認
+TEST_F(socketTest, sendto_and_recvfrom_retry_after_interrupt)
+{
+    // Arrange
+    unsigned char buffer[4] = {0U, 0U, 0U, 0U};
+    com_util_ipv4_endpoint peer = {};
+    size_t sent = 0U;
+    size_t received = 0U;
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の sendto API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の sendto API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+    // [Pre-Assert確認_正常系] - 下位の recvfrom API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の recvfrom API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+
+    // Act
+    int rtc_sendto = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &sent,
+                                            &detail); // [手順] - 4 バイトを指定した端点へ送信する。
+    int rtc_recvfrom = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &received,
+                                                &detail); // [手順] - 4 バイトを受信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_sendto); // [確認_正常系] - com_util_socket_sendto の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)4,
+              sent); // [確認_正常系] - 再試行後の送信バイト数が 4 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_recvfrom); // [確認_正常系] - com_util_socket_recvfrom の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)4,
+              received); // [確認_正常系] - 再試行後の受信バイト数が 4 であること。
+}
+
+// 全量送信と全量受信がシグナル中断後に再試行することの確認
+TEST_F(socketTest, send_all_and_recv_all_retry_after_interrupt)
+{
+    // Arrange
+    unsigned char buffer[4] = {0U, 0U, 0U, 0U};
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の send API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の send API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+    // [Pre-Assert確認_正常系] - 下位の recv API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の recv API から、シグナルによる中断ののち 4 バイトの転送を返却する。
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
+        .WillOnce(Return((ssize_t)4));
+
+    // Act
+    int rtc_send_all =
+        com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量送信する。
+    int rtc_recv_all =
+        com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量受信する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_send_all); // [確認_正常系] - com_util_socket_send_all の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc_recv_all); // [確認_正常系] - com_util_socket_recv_all の戻り値が COM_UTIL_OK であること。
+}
+
+// ブロッキング接続がシグナル中断後に完了を待って成功を確定することの確認
+TEST_F(socketTest, connect_completes_after_interrupt)
+{
+    // Arrange
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の connect API が 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - 下位の connect API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+    // [Pre-Assert確認_正常系] - 下位の待機 API が無期限のタイムアウトを指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から書き込み可能を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, COM_UTIL_SOCKET_WAIT_FOREVER))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds->revents = fds->events;
+                return 1;
+            });
+    // [Pre-Assert確認_正常系] - 下位の getsockopt API が SOL_SOCKET と SO_ERROR を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の getsockopt API から保留エラーなしを返却する。
+    EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_ERROR, _, _))
+        .WillOnce(
+            [](const char *, const int, const char *, int, int, int, void *value, socklen_t *)
+            {
+                *static_cast<int *>(value) = 0;
+                return 0;
+            });
+
+    // Act
+    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 中断後の com_util_socket_connect の戻り値が COM_UTIL_OK であること。
+}
+
+// ブロッキング接続がシグナル中断後の完了確認で保留エラーを検出することの確認
+TEST_F(socketTest, connect_reports_pending_error_after_interrupt)
+{
+    // Arrange
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - 下位の connect API が 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - 下位の connect API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+    // [Pre-Assert確認_異常系] - 下位の待機 API が無期限のタイムアウトを指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から書き込み可能を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, COM_UTIL_SOCKET_WAIT_FOREVER))
+        .WillOnce(
+            [](const char *, const int, const char *, struct pollfd *fds, nfds_t, int)
+            {
+                fds->revents = fds->events;
+                return 1;
+            });
+    // [Pre-Assert確認_異常系] - 下位の getsockopt API が SOL_SOCKET と SO_ERROR を指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の getsockopt API から接続拒否の保留エラーを返却する。
+    EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, (int)kSocket, SOL_SOCKET, SO_ERROR, _, _))
+        .WillOnce(
+            [](const char *, const int, const char *, int, int, int, void *value, socklen_t *)
+            {
+                *static_cast<int *>(value) = ECONNREFUSED;
+                return 0;
+            });
+
+    // Act
+    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              rtc); // [確認_異常系] - 保留エラーがある場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    expect_detail(detail, COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN,
+                  (unsigned long)ECONNREFUSED); // [確認_異常系] - 詳細に接続拒否が記録されること。
+}
+
+// ブロッキング接続がシグナル中断後の待機失敗を通知することの確認
+TEST_F(socketTest, connect_reports_wait_failure_after_interrupt)
+{
+    // Arrange
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - 下位の connect API が 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - 下位の connect API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+    // [Pre-Assert確認_異常系] - 下位の待機 API が無期限のタイムアウトを指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から不正な記述子による失敗を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, COM_UTIL_SOCKET_WAIT_FOREVER))
+        .WillOnce(DoAll(Assign(&errno, EBADF), Return(-1)));
+    // [Pre-Assert確認_異常系] - 下位の getsockopt API が呼び出されないこと。
+    EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, _, _, _, _, _)).Times(0);
+
+    // Act
+    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        rtc); // [確認_異常系] - 待機に失敗した場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    expect_detail(detail, COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN,
+                  (unsigned long)EBADF); // [確認_異常系] - 詳細に待機失敗の要因が記録されること。
+}
+
+// ブロッキング接続がシグナル中断後の待機で条件不成立となった場合にタイムアウトを通知することの確認
+TEST_F(socketTest, connect_reports_timeout_when_not_writable_after_interrupt)
+{
+    // Arrange
+    com_util_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_異常系] - 下位の connect API が 1 回だけ呼び出されること。
+    // [Pre-Assert手順] - 下位の connect API からシグナルによる中断を返却する。
+    EXPECT_CALL(mock_sys_socket_, connect(_, _, _, (int)kSocket, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
+    // [Pre-Assert確認_異常系] - 下位の待機 API が無期限のタイムアウトを指定して呼び出されること。
+    // [Pre-Assert手順] - 下位の待機 API から条件不成立を返却する。
+    EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, COM_UTIL_SOCKET_WAIT_FOREVER)).WillOnce(Return(0));
+    // [Pre-Assert確認_異常系] - 下位の getsockopt API が呼び出されないこと。
+    EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, _, _, _, _, _)).Times(0);
+
+    // Act
+    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+
+    // Assert
+    EXPECT_EQ(
+        COM_UTIL_ERR_TIMEOUT,
+        rtc); // [確認_異常系] - 条件不成立の場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_TIMEOUT であること。
+}
+
+#endif /* PLATFORM_LINUX */
 
 // 受信停止の引数不正、成功、失敗が処理されることの確認
 TEST_F(socketTest, shutdown_receive_reports_results)

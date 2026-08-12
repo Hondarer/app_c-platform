@@ -193,6 +193,9 @@ extern "C"
      *  この場合は @ref com_util_socket_wait_writable で完了を待ち、
      *  @ref com_util_socket_get_pending_error で結果を確認します。
      *
+     *  ブロッキング モードの接続がシグナルで中断された場合は、本関数が完了を待って
+     *  結果を確定します。呼び出し側が中断を意識する必要はありません。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
@@ -448,8 +451,9 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
-     *  待機がシグナルで中断された場合は、タイムアウトと同じく @p ready_out へ 0 を格納し、
-     *  @ref COM_UTIL_OK を返します。
+     *  待機がシグナルで中断された場合は、残り時間を再計算して待機を継続します。\n
+     *  @p timeout_ms より早く復帰しないため、シグナルの配信によってタイムアウトの
+     *  判定が変化することはありません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -469,8 +473,9 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
-     *  待機がシグナルで中断された場合は、タイムアウトと同じく @p ready_out へ 0 を格納し、
-     *  @ref COM_UTIL_OK を返します。
+     *  待機がシグナルで中断された場合は、残り時間を再計算して待機を継続します。\n
+     *  @p timeout_ms より早く復帰しないため、シグナルの配信によってタイムアウトの
+     *  判定が変化することはありません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -495,7 +500,7 @@ extern "C"
      *  @p socks の全要素が @ref COM_UTIL_INVALID_SOCKET の場合、@p timeout_ms だけ待機してから
      *  @ref COM_UTIL_OK を返します。呼び出し側のポーリング ループが待機なしで回り続けることを
      *  避けるためです。\n
-     *  待機がシグナルで中断された場合も、@p ready_out をすべて 0 にして @ref COM_UTIL_OK を返します。
+     *  待機がシグナルで中断された場合は、残り時間を再計算して待機を継続します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

@@ -295,6 +295,55 @@ TEST_F(fileFailureInjectionTest, flush_reports_os_failure)
               com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EBADF であること。
 }
 
+// 読み取りがシグナルで中断された場合に再試行されることの確認
+TEST_F(fileFailureInjectionTest, read_retries_after_interrupt)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    unsigned char buffer[4] = {0u, 0u, 0u, 0u};
+    size_t read_bytes = 0u;
+    com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - read が 2 回呼び出されること。
+                              // [Pre-Assert手順] - errno に EINTR を設定した -1 ののち 4 を返却する。
+
+    // Act
+    int rtc = com_util_file_read(&file_, buffer, sizeof(buffer), &read_bytes,
+                                 &detail); // [手順] - com_util_file_read を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 中断後に再試行した com_util_file_read の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ((size_t)4,
+              read_bytes); // [確認_正常系] - 再試行後の読み取りバイト数が 4 であること。
+}
+
+// 書き込みがシグナルで中断された場合に再試行されることの確認
+TEST_F(fileFailureInjectionTest, write_retries_after_interrupt)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    const unsigned char buffer[4] = {1u, 2u, 3u, 4u};
+    com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - write が 2 回呼び出されること。
+                              // [Pre-Assert手順] - errno に EINTR を設定した -1 ののち 4 を返却する。
+
+    // Act
+    int rtc = com_util_file_write(&file_, buffer, sizeof(buffer),
+                                  &detail); // [手順] - com_util_file_write を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              rtc); // [確認_正常系] - 中断後に再試行した com_util_file_write の戻り値が COM_UTIL_OK であること。
+}
+
 // 無効なファイル記述子のクローズ失敗が通知されることの確認
 TEST_F(fileFailureInjectionTest, close_reports_os_failure)
 {

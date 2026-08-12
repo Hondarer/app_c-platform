@@ -713,6 +713,7 @@ int com_util_console_write(com_util_stream stream, const char *text)
 
 #elif defined(PLATFORM_LINUX)
 
+    #include <errno.h> /* errno, EINTR */
     #include <string.h> /* strlen */
     #include <unistd.h> /* write, STDOUT_FILENO, STDERR_FILENO */
 
@@ -772,7 +773,13 @@ int com_util_console_write(com_util_stream stream, const char *text)
     len = strlen(text);
     while (len > 0)
     {
-        ssize_t written = write(fd, cursor, len);
+        ssize_t written;
+
+        /* 端末は低速デバイスであり、シグナルで write が中断されうる。中断を吸収する。 */
+        do
+        {
+            written = write(fd, cursor, len);
+        } while ((written < 0) && (errno == EINTR));
 
         if (written < 0)
         {
