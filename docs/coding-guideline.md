@@ -335,21 +335,22 @@ Windows へ移植できず、プラットフォームで動作が変わるため
 
 #### COM_UTIL_CAUSE_INTERRUPTED の位置付け
 
-`COM_UTIL_CAUSE_INTERRUPTED` の値は ABI として維持します。
-`com_util_error_cause_from_errno()` と `com_util_error_cause_from_winsock_error()` の写像も維持します。
+`COM_UTIL_CAUSE_INTERRUPTED` は、実行中の操作が中断されたことを表します。
+次の 2 つの経路でこの要因が設定されます。
 
-一方、公開 API がこの要因を通知することはありません。
-利用者のコードに `COM_UTIL_CAUSE_INTERRUPTED` の判定と再試行を求めません。
+| 経路 | 設定元 | 内容 |
+|---|---|---|
+| Windows の I/O キャンセル | `ERROR_OPERATION_ABORTED` | `CancelIo` などによる中断であり、シグナルとは無関係に発生する |
+| 利用者が持ち込んだ errno | `com_util_error_capture_errno()` | 利用者が自前で呼び出した OS API の `EINTR` を分類する |
+
+com_util がシグナルによる中断を理由にこの要因を返すことはありません。
+利用者のコードに、シグナル中断への対処として `COM_UTIL_CAUSE_INTERRUPTED` の判定と再試行を求めません。
+
+#### 受信タイムアウトと送信タイムアウト
 
 受信タイムアウト (`SO_RCVTIMEO`) と送信タイムアウト (`SO_SNDTIMEO`) を設定する API は公開しません。  
 これらを設定したソケットの送受信は `SA_RESTART` の有無にかかわらず中断され、再試行によって指定した時間を超過するためです。  
 待機時間を制限する場合は `com_util_socket_wait_readable()` などの期限付き待機を使用します。
-
-> [!IMPORTANT]
-> 本節の規範に未適合の実装が残っています。
-> `com_util_socket_accept()`、`com_util_socket_connect()`、`com_util_socket_send()`、`com_util_socket_recv()`、`com_util_socket_sendto()`、`com_util_socket_recvfrom()`、`com_util_socket_send_all()`、`com_util_socket_recv_all()`、`com_util_read()`、`com_util_write()`、`com_util_open()`、`com_util_file_read()`、`com_util_file_write()`、およびコンソール出力は `EINTR` を吸収していません。
-> `com_util_socket_wait_readable()`、`com_util_socket_wait_writable()`、`com_util_socket_wait_readable_multi()` は `EINTR` をタイムアウトと同じ扱いにするため、要求した時間より早く復帰します。
-> これらは規範に合わせて是正する対象であり、是正の完了後に本注記を除去します。
 
 #### 検証 (シグナル割り込み)
 
