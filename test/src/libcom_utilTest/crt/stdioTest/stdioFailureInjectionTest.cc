@@ -6,9 +6,11 @@
 #include <com_util/crt/stdio.h>
 
 #include <errno.h>
+#include <filesystem>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string>
 
 using testing::_;
 using testing::Invoke;
@@ -59,13 +61,14 @@ TEST(stdioFailureInjectionTest, fopen_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    FILE *null_path = com_util_fopen(NULL, "rb", &detail); // [手順] - path に NULL を指定して fopen する。
+    FILE *null_path = com_util_fopen(NULL, "rb", &detail);    // [手順] - path に NULL を指定して fopen する。
     FILE *null_modes = com_util_fopen("file", NULL, &detail); // [手順] - modes に NULL を指定して fopen する。
 
     // Assert
-    EXPECT_EQ(static_cast<FILE *>(NULL), null_path); // [確認_異常系] - path NULL の fopen が NULL を返すこと。
+    EXPECT_EQ(static_cast<FILE *>(NULL), null_path);  // [確認_異常系] - path NULL の fopen が NULL を返すこと。
     EXPECT_EQ(static_cast<FILE *>(NULL), null_modes); // [確認_異常系] - modes NULL の fopen が NULL を返すこと。
-    EXPECT_EQ(COM_UTIL_CAUSE_INVALID_ARGUMENT, com_util_error_get_cause(&detail)); // [確認_異常系] - NULL 引数の要因が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_CAUSE_INVALID_ARGUMENT,
+              com_util_error_get_cause(&detail)); // [確認_異常系] - NULL 引数の要因が INVALID_ARGUMENT であること。
 }
 
 // fclose の失敗時に EIO を補完して記録することの確認
@@ -100,8 +103,9 @@ TEST(stdioFailureInjectionTest, fclose_rejects_null_stream)
 
     // Assert
     EXPECT_EQ(EOF, result); // [確認_異常系] - NULL stream の fclose が EOF を返すこと。
-    EXPECT_EQ(COM_UTIL_CAUSE_INVALID_ARGUMENT,
-              com_util_error_get_cause(&detail)); // [確認_異常系] - NULL stream が INVALID_ARGUMENT として記録されること。
+    EXPECT_EQ(
+        COM_UTIL_CAUSE_INVALID_ARGUMENT,
+        com_util_error_get_cause(&detail)); // [確認_異常系] - NULL stream が INVALID_ARGUMENT として記録されること。
 }
 
 // fflush の失敗時に EIO を補完して記録することの確認
@@ -144,7 +148,7 @@ TEST(stdioFailureInjectionTest, fclose_preserves_nonzero_errno)
     int result = com_util_fclose(stream, &detail); // [手順] - errno が EACCES の fclose 失敗を注入する。
 
     // Assert
-    EXPECT_EQ(EOF, result); // [確認_異常系] - fclose の戻り値が EOF であること。
+    EXPECT_EQ(EOF, result);                               // [確認_異常系] - fclose の戻り値が EOF であること。
     EXPECT_EQ(EACCES, com_util_error_get_errno(&detail)); // [確認_異常系] - EACCES が詳細エラーへ記録されること。
 }
 
@@ -169,7 +173,7 @@ TEST(stdioFailureInjectionTest, fflush_preserves_nonzero_errno)
     int result = com_util_fflush(stream, &detail); // [手順] - errno が EACCES の fflush 失敗を注入する。
 
     // Assert
-    EXPECT_EQ(EOF, result); // [確認_異常系] - fflush の戻り値が EOF であること。
+    EXPECT_EQ(EOF, result);                               // [確認_異常系] - fflush の戻り値が EOF であること。
     EXPECT_EQ(EACCES, com_util_error_get_errno(&detail)); // [確認_異常系] - EACCES が詳細エラーへ記録されること。
 }
 
@@ -238,13 +242,9 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
     com_util_error write_detail = {};
     ASSERT_NE(static_cast<FILE *>(NULL), stream);
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
-    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream))
-        .WillOnce(Return(1u))
-        .WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
     EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream))
-        .WillOnce(Return(1u))
-        .WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 0u, stream))
@@ -255,34 +255,39 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
                                // [Pre-Assert手順] - fwrite から書き込み件数 0 を返却する。
 
     // Act
-    size_t read_null_buffer = com_util_fread(NULL, 1u, 1u, stream, &read_detail); // [手順] - NULL 読み込み先を指定する。
+    size_t read_null_buffer =
+        com_util_fread(NULL, 1u, 1u, stream, &read_detail);                     // [手順] - NULL 読み込み先を指定する。
     size_t read_null_stream = com_util_fread(data, 1u, 1u, NULL, &read_detail); // [手順] - NULL ストリームを指定する。
-    size_t read_zero_size = com_util_fread(NULL, 0u, 1u, stream, &read_detail); // [手順] - サイズ 0 の読み込みを指定する。
+    size_t read_zero_size =
+        com_util_fread(NULL, 0u, 1u, stream, &read_detail); // [手順] - サイズ 0 の読み込みを指定する。
     size_t read_zero_count =
-        com_util_fread(NULL, 1u, 0u, stream, &read_detail);                // [手順] - 要素数 0 の読み込みを指定する。
-    size_t read_full = com_util_fread(data, 1u, 1u, stream, &read_detail); // [手順] - 全量読み込みを指定する。
+        com_util_fread(NULL, 1u, 0u, stream, &read_detail);                 // [手順] - 要素数 0 の読み込みを指定する。
+    size_t read_full = com_util_fread(data, 1u, 1u, stream, &read_detail);  // [手順] - 全量読み込みを指定する。
     size_t read_short = com_util_fread(data, 1u, 1u, stream, &read_detail); // [手順] - 短い読み込みを指定する。
-    size_t write_null_buffer = com_util_fwrite(NULL, 1u, 1u, stream, &write_detail); // [手順] - NULL 書き込み元を指定する。
-    size_t write_null_stream = com_util_fwrite(data, 1u, 1u, NULL, &write_detail); // [手順] - NULL ストリームへ書き込む。
-    size_t write_zero_size = com_util_fwrite(NULL, 0u, 1u, stream, &write_detail); // [手順] - サイズ 0 の書き込みを指定する。
+    size_t write_null_buffer =
+        com_util_fwrite(NULL, 1u, 1u, stream, &write_detail); // [手順] - NULL 書き込み元を指定する。
+    size_t write_null_stream =
+        com_util_fwrite(data, 1u, 1u, NULL, &write_detail); // [手順] - NULL ストリームへ書き込む。
+    size_t write_zero_size =
+        com_util_fwrite(NULL, 0u, 1u, stream, &write_detail); // [手順] - サイズ 0 の書き込みを指定する。
     size_t write_zero_count =
         com_util_fwrite(NULL, 1u, 0u, stream, &write_detail); // [手順] - 要素数 0 の書き込みを指定する。
-    size_t write_full = com_util_fwrite(data, 1u, 1u, stream, &write_detail); // [手順] - 全量書き込みを指定する。
+    size_t write_full = com_util_fwrite(data, 1u, 1u, stream, &write_detail);  // [手順] - 全量書き込みを指定する。
     size_t write_short = com_util_fwrite(data, 1u, 1u, stream, &write_detail); // [手順] - 短い書き込みを指定する。
 
     // Assert
-    EXPECT_EQ(0u, read_null_buffer); // [確認_異常系] - NULL 読み込み先が 0 件になること。
-    EXPECT_EQ(0u, read_null_stream); // [確認_異常系] - NULL ストリームが 0 件になること。
-    EXPECT_EQ(0u, read_zero_size); // [確認_正常系] - サイズ 0 の読み込みが 0 件になること。
-    EXPECT_EQ(0u, read_zero_count); // [確認_正常系] - 要素数 0 の com_util_fread の戻り値が 0 件であること。
-    EXPECT_EQ(1u, read_full); // [確認_正常系] - 全量読み込みが 1 件になること。
-    EXPECT_EQ(0u, read_short); // [確認_正常系] - エラー フラグのない短い読み込みが 0 件になること。
+    EXPECT_EQ(0u, read_null_buffer);  // [確認_異常系] - NULL 読み込み先が 0 件になること。
+    EXPECT_EQ(0u, read_null_stream);  // [確認_異常系] - NULL ストリームが 0 件になること。
+    EXPECT_EQ(0u, read_zero_size);    // [確認_正常系] - サイズ 0 の読み込みが 0 件になること。
+    EXPECT_EQ(0u, read_zero_count);   // [確認_正常系] - 要素数 0 の com_util_fread の戻り値が 0 件であること。
+    EXPECT_EQ(1u, read_full);         // [確認_正常系] - 全量読み込みが 1 件になること。
+    EXPECT_EQ(0u, read_short);        // [確認_正常系] - エラー フラグのない短い読み込みが 0 件になること。
     EXPECT_EQ(0u, write_null_buffer); // [確認_異常系] - NULL 書き込み元が 0 件になること。
     EXPECT_EQ(0u, write_null_stream); // [確認_異常系] - NULL ストリームが 0 件になること。
-    EXPECT_EQ(0u, write_zero_size); // [確認_正常系] - サイズ 0 の書き込みが 0 件になること。
-    EXPECT_EQ(0u, write_zero_count); // [確認_正常系] - 要素数 0 の com_util_fwrite の戻り値が 0 件であること。
-    EXPECT_EQ(1u, write_full); // [確認_正常系] - 全量書き込みが 1 件になること。
-    EXPECT_EQ(0u, write_short); // [確認_異常系] - 短い書き込みが 0 件になること。
+    EXPECT_EQ(0u, write_zero_size);   // [確認_正常系] - サイズ 0 の書き込みが 0 件になること。
+    EXPECT_EQ(0u, write_zero_count);  // [確認_正常系] - 要素数 0 の com_util_fwrite の戻り値が 0 件であること。
+    EXPECT_EQ(1u, write_full);        // [確認_正常系] - 全量書き込みが 1 件になること。
+    EXPECT_EQ(0u, write_short);       // [確認_異常系] - 短い書き込みが 0 件になること。
 
     // Cleanup
     fclose(stream);
@@ -310,14 +315,18 @@ TEST(stdioFailureInjectionTest, fread_and_fgets_report_stream_errors)
     // Pre-Assert
 
     // Act
-    size_t read_count = com_util_fread(data, 1U, 1U, fread_stream, &fread_detail); // [手順] - 書き込み専用ストリームを fread へ渡す。
-    int fgets_result = com_util_fgets(data, sizeof(data), fgets_stream, &fgets_detail); // [手順] - 書き込み専用ストリームを fgets へ渡す。
+    size_t read_count =
+        com_util_fread(data, 1U, 1U, fread_stream, &fread_detail); // [手順] - 書き込み専用ストリームを fread へ渡す。
+    int fgets_result = com_util_fgets(data, sizeof(data), fgets_stream,
+                                      &fgets_detail); // [手順] - 書き込み専用ストリームを fgets へ渡す。
 
     // Assert
     EXPECT_EQ(0U, read_count); // [確認_異常系] - 読み込みエラー時の fread 件数が 0 であること。
-    EXPECT_NE(COM_UTIL_OK, com_util_error_to_result(&fread_detail)); // [確認_異常系] - fread の詳細エラーが成功以外であること。
+    EXPECT_NE(COM_UTIL_OK,
+              com_util_error_to_result(&fread_detail)); // [確認_異常系] - fread の詳細エラーが成功以外であること。
     EXPECT_NE(COM_UTIL_OK, fgets_result); // [確認_異常系] - 読み込みエラー時の fgets 結果が成功以外であること。
-    EXPECT_NE(COM_UTIL_OK, com_util_error_to_result(&fgets_detail)); // [確認_異常系] - fgets の詳細エラーが成功以外であること。
+    EXPECT_NE(COM_UTIL_OK,
+              com_util_error_to_result(&fgets_detail)); // [確認_異常系] - fgets の詳細エラーが成功以外であること。
 
     // Cleanup
     std::fclose(fread_stream);
@@ -328,8 +337,14 @@ TEST(stdioFailureInjectionTest, fread_and_fgets_report_stream_errors)
 TEST(stdioFailureInjectionTest, remove_and_rename_classify_file_operations)
 {
     // Arrange
-    const char *old_path = "/tmp/com_util_stdio_old.txt";
-    const char *new_path = "/tmp/com_util_stdio_new.txt";
+    std::string root = findWorkspaceRoot();
+    std::filesystem::path dir =
+        std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/crt/stdioTest/results";
+    std::filesystem::create_directories(dir);
+    std::string old_path_str = (dir / "com_util_stdio_old.txt").generic_string();
+    std::string new_path_str = (dir / "com_util_stdio_new.txt").generic_string();
+    const char *old_path = old_path_str.c_str();
+    const char *new_path = new_path_str.c_str();
     com_util_error detail = {};
     FILE *stream = NULL;
 #if defined(PLATFORM_LINUX)
@@ -344,20 +359,21 @@ TEST(stdioFailureInjectionTest, remove_and_rename_classify_file_operations)
     // Pre-Assert
 
     // Act
-    int rename_result = com_util_rename(old_path, new_path, &detail); // [手順] - 既存ファイルを新しいパスへ rename する。
-    int remove_result = com_util_remove(new_path, &detail); // [手順] - rename 後のファイルを remove する。
+    int rename_result =
+        com_util_rename(old_path, new_path, &detail);        // [手順] - 既存ファイルを新しいパスへ rename する。
+    int remove_result = com_util_remove(new_path, &detail);  // [手順] - rename 後のファイルを remove する。
     int missing_result = com_util_remove(new_path, &detail); // [手順] - 存在しないファイルを remove する。
-    int null_rename_result = com_util_rename(NULL, new_path, &detail); // [手順] - oldpath NULL の rename を実行する。
+    int null_rename_result = com_util_rename(NULL, new_path, &detail);  // [手順] - oldpath NULL の rename を実行する。
     int null_newpath_result = com_util_rename(old_path, NULL, &detail); // [手順] - newpath NULL の rename を実行する。
-    int null_remove_result = com_util_remove(NULL, &detail); // [手順] - path NULL の remove を実行する。
+    int null_remove_result = com_util_remove(NULL, &detail);            // [手順] - path NULL の remove を実行する。
 
     // Assert
-    EXPECT_EQ(0, rename_result); // [確認_正常系] - rename の戻り値が 0 であること。
-    EXPECT_EQ(0, remove_result); // [確認_正常系] - remove の戻り値が 0 であること。
-    EXPECT_NE(0, missing_result); // [確認_異常系] - 存在しないファイルの remove が失敗すること。
-    EXPECT_EQ(-1, null_rename_result); // [確認_異常系] - oldpath NULL の rename が -1 を返すこと。
+    EXPECT_EQ(0, rename_result);        // [確認_正常系] - rename の戻り値が 0 であること。
+    EXPECT_EQ(0, remove_result);        // [確認_正常系] - remove の戻り値が 0 であること。
+    EXPECT_NE(0, missing_result);       // [確認_異常系] - 存在しないファイルの remove が失敗すること。
+    EXPECT_EQ(-1, null_rename_result);  // [確認_異常系] - oldpath NULL の rename が -1 を返すこと。
     EXPECT_EQ(-1, null_newpath_result); // [確認_異常系] - newpath NULL の com_util_rename の戻り値が -1 であること。
-    EXPECT_EQ(-1, null_remove_result); // [確認_異常系] - path NULL の remove が -1 を返すこと。
+    EXPECT_EQ(-1, null_remove_result);  // [確認_異常系] - path NULL の remove が -1 を返すこと。
 }
 
 // rename の OS 失敗が詳細エラーへ記録されることの確認
@@ -370,7 +386,7 @@ TEST(stdioFailureInjectionTest, rename_reports_os_failure)
 
     // Act
     int result = com_util_rename("/com_util/path/does/not/exist", "/tmp/com_util_stdio_target.txt",
-                                &detail); // [手順] - 存在しないパスを rename して OS 失敗を発生させる。
+                                 &detail); // [手順] - 存在しないパスを rename して OS 失敗を発生させる。
 
     // Assert
     EXPECT_NE(0, result); // [確認_異常系] - com_util_rename の戻り値が 0 以外であること。
@@ -394,13 +410,13 @@ TEST(stdioFailureInjectionTest, formatted_output_and_file_position_wrappers_work
 
     // Act
     int print_result = com_util_fprintf(stream, "%s", "abc"); // [手順] - 一時ファイルへ文字列を fprintf する。
-    int seek_result = com_util_fseek(stream, 0, SEEK_SET); // [手順] - ファイル位置を先頭へ移動する。
-    int64_t position = com_util_ftell(stream); // [手順] - 現在のファイル位置を取得する。
+    int seek_result = com_util_fseek(stream, 0, SEEK_SET);    // [手順] - ファイル位置を先頭へ移動する。
+    int64_t position = com_util_ftell(stream);                // [手順] - 現在のファイル位置を取得する。
 
     // Assert
     EXPECT_EQ(3, print_result); // [確認_正常系] - fprintf の出力文字数が 3 であること。
-    EXPECT_EQ(0, seek_result); // [確認_正常系] - fseek の戻り値が 0 であること。
-    EXPECT_EQ(0, position); // [確認_正常系] - 先頭へ移動後の ftell が 0 であること。
+    EXPECT_EQ(0, seek_result);  // [確認_正常系] - fseek の戻り値が 0 であること。
+    EXPECT_EQ(0, position);     // [確認_正常系] - 先頭へ移動後の ftell が 0 であること。
 
     // Cleanup
     std::fclose(stream);
