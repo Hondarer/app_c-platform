@@ -95,9 +95,10 @@ TEST(pinnedPromptCoverageTest, platform_helpers_cover_short_circuits_and_install
         .WillOnce(Return(1))
         .WillOnce(Return(0))
         .WillOnce(Return(1))
-        .WillOnce(Return(1));
+        .WillOnce(Return(1))
+        .WillRepeatedly(Return(1)); // com_util_pinned_prompt_create() の内部呼び出し分
     EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
-        .WillOnce(DoAll(Invoke([column_only_size](const char *, const int, const char *, const int,
+        .WillRepeatedly(DoAll(Invoke([column_only_size](const char *, const int, const char *, const int,
                                                   const unsigned long, void *argument)
                                { *static_cast<struct winsize *>(argument) = column_only_size; }),
                         Return(0)));
@@ -296,9 +297,15 @@ TEST(pinnedPromptCoverageTest, history_context_reports_allocation_failures)
     int malloc_failure = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr));
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr));
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))              // realloc.c: 配列確保失敗
+        .WillOnce(Invoke(delegate_real_realloc)); // calloc.c: 配列確保は成功させる
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))               // calloc.c: 要素配列確保失敗
+        .WillOnce(Invoke(delegate_real_calloc));  // malloc.c: 要素配列確保は成功させる
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Invoke(delegate_real_malloc))  // calloc.c: saved_line 確保は成功 (calloc 失敗と対で必ず呼ばれる)
+        .WillOnce(Return(nullptr));              // malloc.c: saved_line 確保失敗
 
     // Act
     realloc_failure = test_pinned_prompt_history_failure_state(
@@ -357,8 +364,12 @@ TEST(pinnedPromptCoverageTest, format_helper_handles_allocation_and_format_failu
     int realloc_failure = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr));
-    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))              // 1回目: 初回確保失敗
+        .WillOnce(Invoke(delegate_real_malloc)); // 2回目: 初回確保は成功させる
+    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
+        .WillOnce(Return(-1))  // 2回目: 書式処理失敗
+        .WillOnce(Return(500)); // 3回目: fmt_cap(256) を超える長さを返し realloc を誘発する
     EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr));
 
     // Act
@@ -453,7 +464,10 @@ TEST(pinnedPromptCoverageTest, readline_reports_setup_failures)
     EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(2).WillRepeatedly(Return(0));
     EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
         .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))               // history-failure.c: 履歴コンテキスト配列確保失敗
+        .WillOnce(Invoke(delegate_real_realloc))  // prompt-failure.c の事前生成: 配列確保は成功させる
+        .WillOnce(Return(nullptr));              // 6回目の readline: プロンプト文字列の再確保失敗
 
     // Act
     invalid_screen = _com_util_pinned_prompt_readline(NULL, output, sizeof(output), "", "invalid.c",
@@ -572,9 +586,17 @@ TEST(pinnedPromptCoverageTest, tty_write_and_printf_cover_empty_short_and_failur
     size_t written = 0U;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, _, _, _)).WillOnce(Return(2U)).WillOnce(Return(1U));
-    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, _, _, _))
+        .WillOnce(Return(2U))  // short_result: 3バイト書き込みに対し2バイトの短い書き込み
+        .WillOnce(Return(0U)); // write_failure: 1バイト書き込みに対し0バイト (完全な書き込み失敗)
+    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
+        .WillOnce(Return(-1)) // format_failure: 書式長計算そのものを失敗させる
+        .WillOnce(Return(1))  // malloc_failure: 書式長計算 (needed=1) は成功させる
+        .WillOnce(Return(1))  // write_failure: 書式長計算 (needed=1) は成功させる
+        .WillOnce(Return(1)); // write_failure: 出力バッファーへの書式書き込み (戻り値未使用)
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))              // malloc_failure: 出力バッファー確保失敗
+        .WillOnce(Invoke(delegate_real_malloc)); // write_failure: 出力バッファー確保は成功させる
 
     // Act
     int empty_result = com_util_pinned_prompt_write(
