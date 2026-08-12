@@ -51,66 +51,437 @@ extern "C"
 
     /**
      *  @brief          詳細エラー値の由来を表します。
+     *
+     *  @ref com_util_error::code の値をどの番号体系で解釈するかを示します。\n
+     *  @ref com_util_error_get_cause() は、ドメインごとに専用の変換表で
+     *  @ref com_util_error_cause へ変換します。
+     *
+     *  @note           `ERRNO` と `SOCKET_ERRNO` は Linux では同じ errno の番号体系ですが、
+     *                  ドメインを分けています。\n
+     *                  ソケット操作の `EAGAIN`/`EWOULDBLOCK` は非ブロッキング操作の待機を表し
+     *                  @ref COM_UTIL_CAUSE_WOULD_BLOCK になりますが、
+     *                  通常のファイル I/O やプロセス生成の `EAGAIN`
+     *                  (`fork()`/`pthread_create()` の資源上限超過など) は
+     *                  @ref COM_UTIL_CAUSE_BUSY のままです。\n
+     *                  同じ生の値でも呼び出し文脈で意味が異なるため、ドメインで区別します。
      */
     typedef enum com_util_error_domain
     {
-        COM_UTIL_ERROR_DOMAIN_NONE = 0,         /**< 詳細エラーが設定されていません。 */
-        COM_UTIL_ERROR_DOMAIN_ERRNO = 1,        /**< errno の値を保持しています。 */
-        COM_UTIL_ERROR_DOMAIN_WINDOWS = 2,      /**< Win32 エラー コードを保持しています。 */
-        COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO = 3, /**< ソケット操作が設定した errno の値を保持しています。 */
-        COM_UTIL_ERROR_DOMAIN_WINSOCK = 4,      /**< Winsock エラー コード (WSAGetLastError) を保持しています。 */
-        COM_UTIL_ERROR_DOMAIN_GAI = 5           /**< getaddrinfo のエラー コード (EAI_*) を保持しています。 */
+        /**
+         *  @brief          詳細エラーが設定されていません。
+         *
+         *  @ref com_util_error::code は未定義であり、参照してはなりません。\n
+         *  成功時、および詳細エラーの初期化直後 (@ref com_util_error_clear()) はこの値です。
+         */
+        COM_UTIL_ERROR_DOMAIN_NONE = 0,
+
+        /**
+         *  @brief          errno の値を保持しています。
+         *
+         *  @ref com_util_error::code は `<errno.h>` の errno 値です。\n
+         *  @ref com_util_error_capture_errno()、@ref com_util_error_capture_current_errno()、
+         *  および CRT/POSIX ラッパー (ファイル I/O、環境変数など) の失敗時に設定されます。\n
+         *  ソケット操作の失敗は、このドメインではなく `SOCKET_ERRNO` になります。
+         */
+        COM_UTIL_ERROR_DOMAIN_ERRNO = 1,
+
+        /**
+         *  @brief          Win32 エラー コードを保持しています (Windows 専用)。
+         *
+         *  @ref com_util_error::code は `GetLastError()` が返す値です。\n
+         *  @ref com_util_error_capture_windows_error()、
+         *  @ref com_util_error_capture_current_windows_error() で設定されます。\n
+         *  ソケット操作の失敗は、このドメインではなく `WINSOCK` になります。
+         */
+        COM_UTIL_ERROR_DOMAIN_WINDOWS = 2,
+
+        /**
+         *  @brief          ソケット操作が設定した errno の値を保持しています。
+         *
+         *  @ref com_util_error::code は `<errno.h>` の errno 値で、番号体系自体は
+         *  `ERRNO` ドメインと同じです。\n
+         *  `socket`/`connect`/`send`/`recv` など Linux のソケット API が失敗した際に設定され、
+         *  `EAGAIN`/`EWOULDBLOCK` を @ref COM_UTIL_CAUSE_WOULD_BLOCK
+         *  として解釈させるために `ERRNO` と区別しています。
+         */
+        COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO = 3,
+
+        /**
+         *  @brief          Winsock エラー コード (WSAGetLastError) を保持しています (Windows 専用)。
+         *
+         *  @ref com_util_error::code は `WSAGetLastError()` が返す値です。\n
+         *  `WSAE*` の番号体系は Win32 の `GetLastError()` とは異なるため、
+         *  `WINDOWS` ドメインとは別に扱います。
+         */
+        COM_UTIL_ERROR_DOMAIN_WINSOCK = 4,
+
+        /**
+         *  @brief          getaddrinfo のエラー コード (EAI_*) を保持しています。
+         *
+         *  @ref com_util_error::code は `getaddrinfo()` が返す `EAI_*` の値です。\n
+         *  `EAI_*` は errno とも Winsock エラーとも異なる番号体系です。\n
+         *
+         *  @note           `EAI_SYSTEM` (Linux) の場合、実際の要因は `EAI_*` ではなく
+         *                  呼び出し時点の `errno` 側にあります。\n
+         *                  @ref com_util_error_get_cause() はこのケースを検出すると、
+         *                  `errno` を素の errno として分類します
+         *                  (ソケット操作ではないため `SOCKET_ERRNO` の特別扱いは適用しません)。
+         */
+        COM_UTIL_ERROR_DOMAIN_GAI = 5
     } com_util_error_domain;
 
     /**
      *  @brief          OS エラーをプラットフォーム共通で判定する要因を表します。
      *
+     *  @ref com_util_error_get_cause() が @ref com_util_error::domain に応じて、
+     *  errno、Win32 エラー コード、Winsock エラー コード、`getaddrinfo()` の `EAI_*` の
+     *  いずれかから変換します。各値の Doxygen コメントに、変換元の生の定数を
+     *  ドメインごとに記載します。
+     *
      *  値は ABI として固定し、新しい要因は末尾へ追加します。
      */
     typedef enum com_util_error_cause
     {
-        COM_UTIL_CAUSE_NONE = 0,
-        COM_UTIL_CAUSE_OTHER = 1,
-        COM_UTIL_CAUSE_NOT_FOUND = 2,
-        COM_UTIL_CAUSE_ALREADY_EXISTS = 3,
-        COM_UTIL_CAUSE_ACCESS_DENIED = 4,
-        COM_UTIL_CAUSE_SHARING_VIOLATION = 5,
-        COM_UTIL_CAUSE_NOT_A_DIRECTORY = 6,
-        COM_UTIL_CAUSE_IS_A_DIRECTORY = 7,
-        COM_UTIL_CAUSE_DIRECTORY_NOT_EMPTY = 8,
-        COM_UTIL_CAUSE_NAME_TOO_LONG = 9,
-        COM_UTIL_CAUSE_INVALID_ARGUMENT = 10,
-        COM_UTIL_CAUSE_OUT_OF_MEMORY = 11,
-        COM_UTIL_CAUSE_DISK_FULL = 12,
-        COM_UTIL_CAUSE_BUSY = 13,
-        COM_UTIL_CAUSE_TIMEOUT = 14,
         /**
-         *  実行中の操作が中断された要因です。\n
-         *  シグナルによる中断は Linux 実装が吸収するため、com_util の API がこの要因を返すのは
-         *  Windows の I/O キャンセル (ERROR_OPERATION_ABORTED) の場合です。\n
-         *  com_util_error_capture_errno() へ利用者が EINTR を渡した場合も、この要因になります。
+         *  @brief          要因が設定されていません。
+         *
+         *  @ref com_util_error::domain が @ref COM_UTIL_ERROR_DOMAIN_NONE の場合、
+         *  および @p error が NULL の場合に返ります。
+         */
+        COM_UTIL_CAUSE_NONE = 0,
+
+        /**
+         *  @brief          いずれの分類にも該当しない要因です。
+         *
+         *  各ドメインの変換表に定数が見つからない場合のフォールバック値です。\n
+         *  新しい errno/Win32/Winsock/EAI_* 定数が追加され、まだ com_util 側の
+         *  分類表に反映されていない場合もこの値になります。
+         */
+        COM_UTIL_CAUSE_OTHER = 1,
+
+        /**
+         *  @brief          対象が存在しません。
+         *
+         *  - errno: `ENOENT` / `ENODEV` / `ENXIO`
+         *  - Win32: `ERROR_FILE_NOT_FOUND` / `ERROR_PATH_NOT_FOUND` / `ERROR_BAD_NETPATH` /
+         *    `ERROR_INVALID_DRIVE` / `ERROR_SERVICE_DOES_NOT_EXIST`
+         *  - GAI:   `EAI_NONAME` / `EAI_NODATA`
+         */
+        COM_UTIL_CAUSE_NOT_FOUND = 2,
+
+        /**
+         *  @brief          対象がすでに存在します。
+         *
+         *  - errno: `EEXIST`
+         *  - Win32: `ERROR_FILE_EXISTS` / `ERROR_ALREADY_EXISTS` / `ERROR_SERVICE_EXISTS`
+         */
+        COM_UTIL_CAUSE_ALREADY_EXISTS = 3,
+
+        /**
+         *  @brief          アクセスが拒否されました。
+         *
+         *  - errno: `EACCES` / `EPERM`
+         *  - Win32: `ERROR_ACCESS_DENIED` / `ERROR_PRIVILEGE_NOT_HELD`
+         *  - Winsock: `WSAEACCES`
+         */
+        COM_UTIL_CAUSE_ACCESS_DENIED = 4,
+
+        /**
+         *  @brief          他プロセスが排他的に開いているため共有できません (Windows 専用)。
+         *
+         *  - Win32: `ERROR_SHARING_VIOLATION`
+         *
+         *  @note           errno には対応する概念がありません。\n
+         *                  POSIX の `open`/`fopen` は既定で共有可のため、Linux ではこの要因は発生しません。
+         */
+        COM_UTIL_CAUSE_SHARING_VIOLATION = 5,
+
+        /**
+         *  @brief          ディレクトリを期待した対象がディレクトリではありません。
+         *
+         *  - errno: `ENOTDIR`
+         *  - Win32: `ERROR_DIRECTORY`
+         */
+        COM_UTIL_CAUSE_NOT_A_DIRECTORY = 6,
+
+        /**
+         *  @brief          ファイルを期待した対象がディレクトリでした。
+         *
+         *  - errno: `EISDIR`
+         *
+         *  @note           Win32 の変換表には対応する定数がありません。\n
+         *                  Windows でこの状況は別のエラー コードで表現され、
+         *                  @ref COM_UTIL_CAUSE_OTHER になる場合があります。
+         */
+        COM_UTIL_CAUSE_IS_A_DIRECTORY = 7,
+
+        /**
+         *  @brief          ディレクトリが空ではないため削除できません。
+         *
+         *  - errno: `ENOTEMPTY`
+         *  - Win32: `ERROR_DIR_NOT_EMPTY`
+         */
+        COM_UTIL_CAUSE_DIRECTORY_NOT_EMPTY = 8,
+
+        /**
+         *  @brief          パスまたはファイル名が長すぎます。
+         *
+         *  - errno: `ENAMETOOLONG`
+         *  - Win32: `ERROR_FILENAME_EXCED_RANGE` / `ERROR_BUFFER_OVERFLOW`
+         */
+        COM_UTIL_CAUSE_NAME_TOO_LONG = 9,
+
+        /**
+         *  @brief          引数が不正です。
+         *
+         *  - errno: `EINVAL`
+         *  - Win32: `ERROR_INVALID_PARAMETER`
+         *  - Winsock: `WSAEINVAL`
+         *  - GAI: `EAI_BADFLAGS`
+         */
+        COM_UTIL_CAUSE_INVALID_ARGUMENT = 10,
+
+        /**
+         *  @brief          メモリを確保できません。
+         *
+         *  - errno: `ENOMEM`
+         *  - Win32: `ERROR_NOT_ENOUGH_MEMORY` / `ERROR_OUTOFMEMORY`
+         *  - Winsock: `WSAENOBUFS`
+         *  - GAI: `EAI_MEMORY`
+         */
+        COM_UTIL_CAUSE_OUT_OF_MEMORY = 11,
+
+        /**
+         *  @brief          ディスク容量が不足しています。
+         *
+         *  - errno: `ENOSPC` / `EDQUOT`
+         *  - Win32: `ERROR_DISK_FULL` / `ERROR_HANDLE_DISK_FULL`
+         */
+        COM_UTIL_CAUSE_DISK_FULL = 12,
+
+        /**
+         *  @brief          リソースがビジー状態です。
+         *
+         *  - errno: `EBUSY` / `EAGAIN` / `ETXTBSY`
+         *  - Win32: `ERROR_BUSY` / `ERROR_SERVICE_ALREADY_RUNNING` /
+         *    `ERROR_SERVICE_MARKED_FOR_DELETE` / `ERROR_DEPENDENT_SERVICES_RUNNING` /
+         *    `ERROR_SERVICE_CANNOT_ACCEPT_CTRL`
+         *  - GAI: `EAI_AGAIN`
+         *
+         *  @note           `EAGAIN` がこの要因になるのは、@ref com_util_error::domain が
+         *                  @ref COM_UTIL_ERROR_DOMAIN_ERRNO (通常のファイル I/O、
+         *                  `fork()`/`pthread_create()` の資源上限超過など) の場合だけです。\n
+         *                  @ref COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO の `EAGAIN`/`EWOULDBLOCK` は
+         *                  @ref COM_UTIL_CAUSE_WOULD_BLOCK になります。
+         */
+        COM_UTIL_CAUSE_BUSY = 13,
+
+        /**
+         *  @brief          タイムアウトが発生しました。
+         *
+         *  - errno: `ETIMEDOUT`
+         *  - Win32: `WAIT_TIMEOUT` / `ERROR_TIMEOUT` / `ERROR_SERVICE_REQUEST_TIMEOUT`
+         *  - Winsock: `WSAETIMEDOUT`
+         */
+        COM_UTIL_CAUSE_TIMEOUT = 14,
+
+        /**
+         *  @brief          実行中の操作が中断されました。
+         *
+         *  - errno: `EINTR`
+         *  - Win32: `ERROR_OPERATION_ABORTED` (I/O キャンセル)
+         *  - Winsock: `WSAEINTR`
+         *
+         *  @note           シグナルによる中断は Linux の com_util 実装が内部でリトライして
+         *                  吸収するため、com_util の API がこの要因を返すのは、
+         *                  Windows の I/O キャンセル (`ERROR_OPERATION_ABORTED`) の場合です。\n
+         *                  @ref com_util_error_capture_errno() へ利用者が明示的に `EINTR` を
+         *                  渡した場合も、この要因になります。
          */
         COM_UTIL_CAUSE_INTERRUPTED = 15,
+
+        /**
+         *  @brief          パイプの読み取り側が閉じられています。
+         *
+         *  - errno: `EPIPE`
+         *  - Win32: `ERROR_BROKEN_PIPE`
+         */
         COM_UTIL_CAUSE_BROKEN_PIPE = 16,
+
+        /**
+         *  @brief          開いているファイル記述子/ハンドルが上限に達しました。
+         *
+         *  - errno: `EMFILE` / `ENFILE`
+         *  - Win32: `ERROR_TOO_MANY_OPEN_FILES`
+         *  - Winsock: `WSAEMFILE`
+         */
         COM_UTIL_CAUSE_TOO_MANY_OPEN_FILES = 17,
+
+        /**
+         *  @brief          対象が読み取り専用です。
+         *
+         *  - errno: `EROFS`
+         *  - Win32: `ERROR_WRITE_PROTECT`
+         */
         COM_UTIL_CAUSE_READ_ONLY = 18,
+
+        /**
+         *  @brief          出力バッファーが不足しています。
+         *
+         *  - errno: `ERANGE`
+         *  - Win32: `ERROR_INSUFFICIENT_BUFFER`
+         *
+         *  @note           ソケットの `EMSGSIZE`/`WSAEMSGSIZE` は、この要因ではなく
+         *                  @ref COM_UTIL_CAUSE_MESSAGE_SIZE になります。
+         */
         COM_UTIL_CAUSE_BUFFER_TOO_SMALL = 19,
+
+        /**
+         *  @brief          現在のプラットフォームまたは状態では操作がサポートされていません。
+         *
+         *  - errno: `ENOTSUP` / `EOPNOTSUPP` (Linux では `ENOTSUP` と同値の場合は重複を避けて省略) /
+         *    `ENOSYS`
+         *  - Win32: `ERROR_NOT_SUPPORTED` / `ERROR_CALL_NOT_IMPLEMENTED`
+         *  - Winsock: `WSAEOPNOTSUPP` / `WSAEAFNOSUPPORT` / `WSAEPROTONOSUPPORT`
+         *  - GAI: `EAI_FAMILY` / `EAI_SOCKTYPE` / `EAI_SERVICE`
+         */
         COM_UTIL_CAUSE_UNSUPPORTED = 20,
+
+        /**
+         *  @brief          入出力エラーが発生しました。
+         *
+         *  - errno: `EIO`
+         *  - Win32: `ERROR_IO_DEVICE`
+         */
         COM_UTIL_CAUSE_IO_ERROR = 21,
-        COM_UTIL_CAUSE_WOULD_BLOCK = 22, /**< 非ブロッキングの送受信・accept などを直ちに完了できず、同じ操作を再試行する要因です。 */
-        COM_UTIL_CAUSE_IN_PROGRESS = 23, /**< 非同期操作が開始済みで、完了通知を待つ要因です。 */
+
+        /**
+         *  @brief          非ブロッキング操作を直ちに完了できず、再試行が必要です。
+         *
+         *  - errno (@ref COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO のみ): `EAGAIN` / `EWOULDBLOCK`
+         *  - Winsock: `WSAEWOULDBLOCK`
+         *
+         *  @note           @ref COM_UTIL_ERROR_DOMAIN_ERRNO (通常のファイル I/O など) の
+         *                  `EAGAIN` は、この要因ではなく @ref COM_UTIL_CAUSE_BUSY になります。
+         */
+        COM_UTIL_CAUSE_WOULD_BLOCK = 22,
+
+        /**
+         *  @brief          非同期操作が開始済みで、完了通知を待つ必要があります。
+         *
+         *  - errno: `EINPROGRESS`
+         *  - Winsock: `WSAEINPROGRESS` / `WSAEALREADY`
+         *
+         *  @note           `com_util_socket_connect()` などは、この要因につながる
+         *                  errno/Winsock 値を検出した場合、共通結果コードとして
+         *                  `COM_UTIL_ERR_IN_PROGRESS` (result.h) を明示的に返します。
+         */
+        COM_UTIL_CAUSE_IN_PROGRESS = 23,
+
+        /**
+         *  @brief          接続が拒否されました。
+         *
+         *  - errno: `ECONNREFUSED`
+         *  - Winsock: `WSAECONNREFUSED`
+         */
         COM_UTIL_CAUSE_CONNECTION_REFUSED = 24,
+
+        /**
+         *  @brief          接続が相手側にリセットされました。
+         *
+         *  - errno: `ECONNRESET`
+         *  - Winsock: `WSAECONNRESET`
+         */
         COM_UTIL_CAUSE_CONNECTION_RESET = 25,
+
+        /**
+         *  @brief          接続が中断されました。
+         *
+         *  - errno: `ECONNABORTED`
+         *  - Winsock: `WSAECONNABORTED`
+         */
         COM_UTIL_CAUSE_CONNECTION_ABORTED = 26,
+
+        /**
+         *  @brief          ソケットが接続されていません。
+         *
+         *  - errno: `ENOTCONN`
+         *  - Winsock: `WSAENOTCONN`
+         */
         COM_UTIL_CAUSE_NOT_CONNECTED = 27,
+
+        /**
+         *  @brief          ソケットがすでに接続されています。
+         *
+         *  - errno: `EISCONN`
+         *  - Winsock: `WSAEISCONN`
+         */
         COM_UTIL_CAUSE_ALREADY_CONNECTED = 28,
+
+        /**
+         *  @brief          アドレスがすでに使用されています。
+         *
+         *  - errno: `EADDRINUSE`
+         *  - Winsock: `WSAEADDRINUSE`
+         */
         COM_UTIL_CAUSE_ADDRESS_IN_USE = 29,
+
+        /**
+         *  @brief          アドレスを割り当てられません。
+         *
+         *  - errno: `EADDRNOTAVAIL`
+         *  - Winsock: `WSAEADDRNOTAVAIL`
+         */
         COM_UTIL_CAUSE_ADDRESS_NOT_AVAILABLE = 30,
+
+        /**
+         *  @brief          ネットワークがダウンしています。
+         *
+         *  - errno: `ENETDOWN`
+         *  - Winsock: `WSAENETDOWN`
+         */
         COM_UTIL_CAUSE_NETWORK_DOWN = 31,
+
+        /**
+         *  @brief          ネットワークに到達できません。
+         *
+         *  - errno: `ENETUNREACH`
+         *  - Winsock: `WSAENETUNREACH`
+         */
         COM_UTIL_CAUSE_NETWORK_UNREACHABLE = 32,
+
+        /**
+         *  @brief          ホストに到達できません。
+         *
+         *  - errno: `EHOSTUNREACH`
+         *  - Winsock: `WSAEHOSTUNREACH`
+         */
         COM_UTIL_CAUSE_HOST_UNREACHABLE = 33,
+
+        /**
+         *  @brief          メッセージが送受信バッファーの上限を超えています。
+         *
+         *  - errno: `EMSGSIZE`
+         *  - Winsock: `WSAEMSGSIZE`
+         */
         COM_UTIL_CAUSE_MESSAGE_SIZE = 34,
+
+        /**
+         *  @brief          ソケットがすでにシャットダウンされています。
+         *
+         *  - errno: `ESHUTDOWN`
+         *  - Winsock: `WSAESHUTDOWN`
+         */
         COM_UTIL_CAUSE_SHUTDOWN = 35,
+
+        /**
+         *  @brief          Winsock が初期化されていません (Windows 専用)。
+         *
+         *  - Winsock: `WSANOTINITIALISED`
+         *
+         *  @note           errno/Win32 には対応する概念がありません。\n
+         *                  `WSAStartup()` を呼び出さずに Winsock API を使用した場合に発生します。
+         */
         COM_UTIL_CAUSE_NOT_INITIALIZED = 36
     } com_util_error_cause;
 
