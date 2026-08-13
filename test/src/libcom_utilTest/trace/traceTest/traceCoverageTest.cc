@@ -47,7 +47,11 @@ class traceCoverageTest : public Test
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2200));
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink *os_handle_ = reinterpret_cast<com_util_syslog_sink *>(static_cast<uintptr_t>(0x1100));
-#endif /* PLATFORM_LINUX */
+#elif defined(PLATFORM_WINDOWS)
+    com_util_etw_provider *os_handle_ = reinterpret_cast<com_util_etw_provider *>(static_cast<uintptr_t>(0x1100));
+    com_util_eventlog_sink *eventlog_handle_ =
+        reinterpret_cast<com_util_eventlog_sink *>(static_cast<uintptr_t>(0x1300));
+#endif /* PLATFORM_ */
 
     void SetUp() override
     {
@@ -68,7 +72,14 @@ class traceCoverageTest : public Test
         ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
-#endif /* PLATFORM_LINUX */
+#elif defined(PLATFORM_WINDOWS)
+        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
+        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
+#endif /* PLATFORM_ */
     }
 
     void TearDown() override
@@ -235,18 +246,20 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
     // Arrange
     com_util_tracer *handle = com_util_tracer_create();
     ASSERT_NE((com_util_tracer *)NULL, handle);
-    NiceMock<Mock_stdlib> mock_stdlib;
-    NiceMock<Mock_string> mock_string;
     int negative_name = COM_UTIL_OK;
     int name_null = COM_UTIL_OK;
     int file_name_inactive = COM_UTIL_OK;
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_string> mock_string;
     int file_name_oom = COM_UTIL_OK;
     int file_level_oom = COM_UTIL_OK;
     int rename_failure = COM_UTIL_OK;
+#endif /* PLATFORM_LINUX */
     int stderr_inactive = COM_UTIL_OK;
     int os_inactive = COM_UTIL_OK;
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_string, strdup(_, _, _, _))
         .WillOnce(Invoke(delegate_real_strdup))
         .WillOnce(Return(nullptr))
@@ -257,6 +270,7 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(-1))
         .WillRepeatedly(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - 2 回目の syslog rename が失敗すること。
+#endif                                        /* PLATFORM_LINUX */
 
     // Act
     negative_name = com_util_tracer_set_name(handle, "n", -1); // [手順] - 負の identifier で set_name する。
@@ -265,11 +279,13 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
     file_name_inactive =
         com_util_tracer_set_file_name(handle, "log", 0); // [手順] - 非アクティブ ハンドルで set_file_name する。
     test_tracer_set_lifecycle_state(handle, 0);
+#if defined(PLATFORM_LINUX)
     file_name_oom = com_util_tracer_set_file_name(handle, "log", 0); // [手順] - strdup 失敗状態で set_file_name する。
     file_level_oom = com_util_tracer_set_file_level(handle, "/tmp/a.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0,
                                                     0); // [手順] - パス複製失敗状態で set_file_level する。
     rename_failure =
         com_util_tracer_set_name(handle, "renamed", 0); // [手順] - syslog rename 失敗状態で set_name する。
+#endif                                                  /* PLATFORM_LINUX */
     test_tracer_set_lifecycle_state(handle, kLifecycleDisposed);
     stderr_inactive = com_util_tracer_set_stderr_level(
         handle, COM_UTIL_TRACE_LEVEL_ERROR); // [手順] - 非アクティブで stderr レベルを設定する。
@@ -285,11 +301,13 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
     EXPECT_EQ(COM_UTIL_OK, name_null); // [確認_正常系] - name NULL の set_name が OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               file_name_inactive); // [確認_異常系] - 非アクティブの set_file_name が UNKNOWN であること。
+#if defined(PLATFORM_LINUX)
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               file_name_oom); // [確認_異常系] - strdup 失敗の set_file_name が OUT_OF_MEMORY であること。
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               file_level_oom); // [確認_異常系] - パス複製失敗の set_file_level が OUT_OF_MEMORY であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, rename_failure); // [確認_異常系] - rename 失敗の set_name が UNKNOWN であること。
+#endif                                               /* PLATFORM_LINUX */
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
               stderr_inactive); // [確認_異常系] - 非アクティブの set_stderr_level が UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, os_inactive); // [確認_異常系] - 非アクティブの set_os_level が UNKNOWN であること。
@@ -611,7 +629,9 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
     // Arrange
     com_util_tracer *handle = com_util_tracer_create();
     ASSERT_NE((com_util_tracer *)NULL, handle);
+#if defined(PLATFORM_LINUX)
     com_util_tracer *rejected = NULL;
+#endif /* PLATFORM_LINUX */
     int stop_result = COM_UTIL_OK;
     int file_level_result = COM_UTIL_OK;
     int os_level_seen = 0;
@@ -822,10 +842,15 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_異常系] - 既定パス構築で空パスとファイル名だけのパスを返すこと。
                 // [Pre-Assert手順] - resolve 用、空文字、resolve 用、"myapp"、以降は通常パスを返却する。
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _))
+    // [Pre-Assert確認_異常系] - 1 回目の OS バックエンド書き込みが失敗すること。
+    // [Pre-Assert手順] - 1 回目は -1、以降は OK を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillOnce(Return(-1)).WillRepeatedly(Return(COM_UTIL_OK));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .WillOnce(Return(-1))
-        .WillRepeatedly(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - 1 回目の syslog 書き込みが失敗すること。
-                                              // [Pre-Assert手順] - 1 回目は -1、以降は OK を返却する。
+        .WillRepeatedly(Return(COM_UTIL_OK));
+#endif /* PLATFORM_ */
     EXPECT_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _))
         .WillOnce(Return(-1))
         .WillRepeatedly(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - 1 回目の file 書き込みが失敗すること。
@@ -857,7 +882,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
                                            "fallback"); // [手順] - 不正な明示時刻で write する。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_DEBUG));
     os_fail_write = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
-                                          "os"); // [手順] - syslog 書き込み失敗状態で write する。
+                                          "os"); // [手順] - OS バックエンド書き込み失敗状態で write する。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
     test_tracer_set_file_handle(handle, file_handle_);
@@ -938,7 +963,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
         fallback_write); // [確認_異常系] - 不正時刻の com_util_tracer_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        os_fail_write); // [確認_異常系] - syslog 失敗時の com_util_tracer_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        os_fail_write); // [確認_異常系] - OS バックエンド書き込み失敗時の com_util_tracer_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
         file_fail_write); // [確認_異常系] - file 失敗時の com_util_tracer_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
