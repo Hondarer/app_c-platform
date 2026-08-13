@@ -401,7 +401,7 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_create_file_mapping_f
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
-        ERROR_NOT_ENOUGH_MEMORY,
+        static_cast<unsigned long>(ERROR_NOT_ENOUGH_MEMORY),
         com_util_error_get_windows_error(
             &detail)); // [確認_異常系] - com_util_error_get_windows_error の戻り値が ERROR_NOT_ENOUGH_MEMORY であること。
 }
@@ -428,7 +428,7 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_map_view_fails)
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
-        ERROR_NOT_ENOUGH_MEMORY,
+        static_cast<unsigned long>(ERROR_NOT_ENOUGH_MEMORY),
         com_util_error_get_windows_error(
             &detail)); // [確認_異常系] - com_util_error_get_windows_error の戻り値が ERROR_NOT_ENOUGH_MEMORY であること。
 }
@@ -453,7 +453,7 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_view_fails)
     // Assert
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
-        ERROR_LOCK_VIOLATION,
+        static_cast<unsigned long>(ERROR_LOCK_VIOLATION),
         com_util_error_get_windows_error(
             &detail)); // [確認_異常系] - com_util_error_get_windows_error の戻り値が ERROR_LOCK_VIOLATION であること。
 
@@ -482,7 +482,7 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_file_buffers_fai
     // Assert
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
-        ERROR_LOCK_VIOLATION,
+        static_cast<unsigned long>(ERROR_LOCK_VIOLATION),
         com_util_error_get_windows_error(
             &detail)); // [確認_異常系] - com_util_error_get_windows_error の戻り値が ERROR_LOCK_VIOLATION であること。
 
@@ -511,7 +511,7 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_unmap_view_fails)
     EXPECT_NE(
         COM_UTIL_OK,
         rtc); // [確認_異常系] - UnmapViewOfFile 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
-    EXPECT_EQ(ERROR_INVALID_PARAMETER,
+    EXPECT_EQ(static_cast<unsigned long>(ERROR_INVALID_PARAMETER),
               com_util_error_get_windows_error(
                   &detail)); // [確認_異常系] - com_util_mmap_detach の詳細エラーが ERROR_INVALID_PARAMETER であること。
 }
