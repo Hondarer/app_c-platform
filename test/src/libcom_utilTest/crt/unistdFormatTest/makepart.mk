@@ -2,13 +2,11 @@
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/crt/unistd_format.c
 
-# 書式展開と詳細エラーの記録。各ソースのカバレッジは
-# pathFormatTest / errorTest が担う
+# 詳細エラーの記録。書式展開の内部 API は stub_com_util。path_format.c のカバレッジは pathFormatTest が担う
 ADD_SRCS := \
-	$(MYAPP_DIR)/prod/libsrc/com_util/crt/path_format.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # ライブラリの指定
-# 書式展開は mock_com_util、実アクセス確認は mock_com_util 経由で実実装へ委譲する
-LIBS += mock_libc mock_com_util
+# stub が mock_com_util の公開 API を参照するため、アーカイブは stub を先に置く
+LIBS += mock_libc stub_com_util mock_com_util

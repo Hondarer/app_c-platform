@@ -2,13 +2,11 @@
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/crt/sys_stat_format.c
 
-# テスト対象が依存するソース ファイル
-# sys_stat_format.c が共有のパス書式処理と詳細エラー記録を呼ぶため追加する
-# (path_format.c 自体の試験は pathFormatTest で行う)
+# 詳細エラーの記録。書式展開の内部 API は stub_com_util。path_format.c のカバレッジは pathFormatTest が担う
 ADD_SRCS := \
-	$(MYAPP_DIR)/prod/libsrc/com_util/crt/path_format.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/error.c \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # ライブラリの指定
-LIBS += mock_libc mock_com_util
+# stub が mock_com_util の公開 API を参照するため、アーカイブは stub を先に置く
+LIBS += mock_libc stub_com_util mock_com_util

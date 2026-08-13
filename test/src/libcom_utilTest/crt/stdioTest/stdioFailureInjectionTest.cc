@@ -2,20 +2,22 @@
 #include <mock_stdio.h>
 
 #include <com_util/base/platform.h>
-#include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
 
 #include <errno.h>
-#include <filesystem>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string>
+
+#if defined(PLATFORM_LINUX)
+    #include <sys/types.h>
+#endif /* PLATFORM_LINUX */
 
 using testing::_;
 using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
+using testing::StrEq;
 
 // fopen の OS エラーを詳細エラーへ記録することの確認
 TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
@@ -71,6 +73,35 @@ TEST(stdioFailureInjectionTest, fopen_rejects_null_arguments)
               com_util_error_get_cause(&detail)); // [確認_異常系] - NULL 引数の要因が INVALID_ARGUMENT であること。
 }
 
+// fopen の成功時に詳細エラーがクリアされることの確認
+TEST(stdioFailureInjectionTest, fopen_reports_success_and_clears_detail)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *opened = reinterpret_cast<FILE *>(static_cast<uintptr_t>(19));
+    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND,
+                             ENOENT}; // [状態] - 詳細エラーへあらかじめ ENOENT を設定する。
+
+    // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_stdio, fopen(_, _, _, StrEq("opened.txt"), StrEq("rb")))
+        .WillOnce(Return(opened)); // [Pre-Assert確認_正常系] - fopen が opened.txt で 1 回呼び出されること。
+                                   // [Pre-Assert手順] - 番兵ストリームを返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_stdio, _wfsopen(_, _, _, _, _, _))
+        .WillOnce(Return(opened)); // [Pre-Assert確認_正常系] - _wfsopen が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - 番兵ストリームを返却する。
+#endif /* PLATFORM_ */
+
+    // Act
+    FILE *stream = com_util_fopen("opened.txt", "rb", &detail); // [手順] - 成功する fopen を注入してファイルを開く。
+
+    // Assert
+    EXPECT_EQ(opened, stream); // [確認_正常系] - com_util_fopen の戻り値が番兵ストリームであること。
+    EXPECT_EQ(COM_UTIL_OK,
+              com_util_error_to_result(&detail)); // [確認_正常系] - 成功時に詳細エラーがクリアされること。
+}
+
 // fclose の失敗時に EIO を補完して記録することの確認
 TEST(stdioFailureInjectionTest, fclose_reports_eio_when_errno_is_empty)
 {
@@ -106,6 +137,29 @@ TEST(stdioFailureInjectionTest, fclose_rejects_null_stream)
     EXPECT_EQ(
         COM_UTIL_CAUSE_INVALID_ARGUMENT,
         com_util_error_get_cause(&detail)); // [確認_異常系] - NULL stream が INVALID_ARGUMENT として記録されること。
+}
+
+// fclose の成功時に詳細エラーがクリアされることの確認
+TEST(stdioFailureInjectionTest, fclose_reports_success_and_clears_detail)
+{
+    // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(20));
+    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND,
+                             ENOENT}; // [状態] - 詳細エラーへあらかじめ ENOENT を設定する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdio, fclose(_, _, _, stream))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - fclose が番兵ストリームで 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+
+    // Act
+    int result = com_util_fclose(stream, &detail); // [手順] - 成功する fclose を注入して閉じる。
+
+    // Assert
+    EXPECT_EQ(0, result); // [確認_正常系] - com_util_fclose の戻り値が 0 であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              com_util_error_to_result(&detail)); // [確認_正常系] - 成功時に詳細エラーがクリアされること。
 }
 
 // fflush の失敗時に EIO を補完して記録することの確認
@@ -181,39 +235,53 @@ TEST(stdioFailureInjectionTest, fflush_preserves_nonzero_errno)
 TEST(stdioFailureInjectionTest, fflush_reports_success_for_valid_stream)
 {
     // Arrange
-    FILE *stream = NULL;
-#if defined(PLATFORM_LINUX)
-    stream = std::tmpfile();
-#elif defined(PLATFORM_WINDOWS)
-    (void)tmpfile_s(&stream);
-#endif /* PLATFORM_ */
-    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND, ENOENT};
-    ASSERT_NE(static_cast<FILE *>(NULL), stream);
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(13));
+    com_util_error detail = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_NOT_FOUND,
+                             ENOENT}; // [状態] - 詳細エラーへあらかじめ ENOENT を設定する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, fflush(_, _, _, stream))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - fflush が番兵ストリームで 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int result = com_util_fflush(stream, &detail); // [手順] - 有効な一時ファイルへ fflush を実行する。
+    int result = com_util_fflush(stream, &detail); // [手順] - 番兵ストリームへ fflush を実行する。
 
     // Assert
     EXPECT_EQ(0, result); // [確認_正常系] - com_util_fflush の戻り値が 0 であること。
     EXPECT_EQ(COM_UTIL_OK,
               com_util_error_to_result(&detail)); // [確認_正常系] - 成功時に詳細エラーがクリアされること。
-
-    // Cleanup
-    std::fclose(stream);
 }
 
-#if defined(PLATFORM_LINUX)
 // freopen の OS 失敗が詳細エラーへ記録されることの確認
 TEST(stdioFailureInjectionTest, freopen_reports_os_failure)
 {
     // Arrange
-    FILE *stream = std::tmpfile();
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(14));
     com_util_error detail = {};
-    ASSERT_NE(static_cast<FILE *>(NULL), stream);
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_stdio, freopen(_, _, _, StrEq("/com_util/path/does/not/exist"), StrEq("rb"), stream))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, const char *, FILE *)
+            {
+                errno = ENOENT;
+                return static_cast<FILE *>(NULL);
+            }); // [Pre-Assert確認_異常系] - freopen が存在しないパスで 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、NULL を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_stdio, _wfsopen(_, _, _, _, _, _))
+        .WillOnce(
+            [](const char *, int, const char *, const wchar_t *, const wchar_t *, int)
+            {
+                errno = ENOENT;
+                return static_cast<FILE *>(NULL);
+            }); // [Pre-Assert確認_異常系] - _wfsopen が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、NULL を返却する。
+#endif /* PLATFORM_ */
 
     // Act
     FILE *reopened = com_util_freopen("/com_util/path/does/not/exist", "rb", stream,
@@ -224,29 +292,23 @@ TEST(stdioFailureInjectionTest, freopen_reports_os_failure)
     EXPECT_NE(COM_UTIL_OK,
               com_util_error_to_result(&detail)); // [確認_異常系] - OS 失敗が詳細エラーへ記録されること。
 }
-#endif /* PLATFORM_LINUX */
 
 // fread と fwrite が引数、全量、短い入出力を分類することの確認
 TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    FILE *stream = nullptr;
-#if defined(PLATFORM_LINUX)
-    stream = tmpfile();
-#elif defined(PLATFORM_WINDOWS)
-    (void)tmpfile_s(&stream);
-#endif /* PLATFORM_ */
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(15));
     char data[2] = {};
     com_util_error read_detail = {};
     com_util_error write_detail = {};
-    ASSERT_NE(static_cast<FILE *>(NULL), stream);
+
+    // Pre-Assert
+    ON_CALL(mock_stdio, ferror(_, _, _, stream)).WillByDefault(Return(0));
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
     EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
     EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
-
-    // Pre-Assert
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 0u, stream))
         .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread が要素数 0 で 1 回呼び出されること。
                                // [Pre-Assert手順] - fread から読み込み件数 0 を返却する。
@@ -288,37 +350,39 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
     EXPECT_EQ(0u, write_zero_count);  // [確認_正常系] - 要素数 0 の com_util_fwrite の戻り値が 0 件であること。
     EXPECT_EQ(1u, write_full);        // [確認_正常系] - 全量書き込みが 1 件になること。
     EXPECT_EQ(0u, write_short);       // [確認_異常系] - 短い書き込みが 0 件になること。
-
-    // Cleanup
-    fclose(stream);
 }
 
-// 実ストリームの読み込みエラーが詳細エラーへ記録されることの確認
+// 読み込みエラーが詳細エラーへ記録されることの確認
 TEST(stdioFailureInjectionTest, fread_and_fgets_report_stream_errors)
 {
     // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
     char data[2] = {};
     com_util_error fread_detail = {};
     com_util_error fgets_detail = {};
-    FILE *fread_stream = NULL;
-    FILE *fgets_stream = NULL;
-#if defined(PLATFORM_LINUX)
-    fread_stream = std::fopen(PLATFORM_NULL_DEVICE_PATH, "wb");
-    fgets_stream = std::fopen(PLATFORM_NULL_DEVICE_PATH, "wb");
-#elif defined(PLATFORM_WINDOWS)
-    (void)fopen_s(&fread_stream, PLATFORM_NULL_DEVICE_PATH, "wb");
-    (void)fopen_s(&fgets_stream, PLATFORM_NULL_DEVICE_PATH, "wb");
-#endif /* PLATFORM_ */
-    ASSERT_NE(static_cast<FILE *>(NULL), fread_stream);
-    ASSERT_NE(static_cast<FILE *>(NULL), fgets_stream);
+    FILE *fread_stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(16));
+    FILE *fgets_stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(17));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, fread(_, _, _, data, 1U, 1U, fread_stream))
+        .WillOnce(Return(0U)); // [Pre-Assert確認_異常系] - fread が対象バッファーとストリームで 1 回呼び出されること。
+                               // [Pre-Assert手順] - 0 件を返却する。
+    EXPECT_CALL(mock_stdio, ferror(_, _, _, fread_stream))
+        .WillOnce(Return(1)); // [Pre-Assert確認_異常系] - fread 後に ferror が 1 回呼び出されること。
+                              // [Pre-Assert手順] - エラーありを返却する。
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, data, static_cast<int>(sizeof(data)), fgets_stream))
+        .WillOnce(Return(static_cast<char *>(
+            NULL))); // [Pre-Assert確認_異常系] - fgets が対象バッファーとストリームで 1 回呼び出されること。
+                     // [Pre-Assert手順] - NULL を返却する。
+    EXPECT_CALL(mock_stdio, ferror(_, _, _, fgets_stream))
+        .WillOnce(Return(1)); // [Pre-Assert確認_異常系] - fgets 後に ferror が 1 回呼び出されること。
+                              // [Pre-Assert手順] - エラーありを返却する。
 
     // Act
     size_t read_count =
-        com_util_fread(data, 1U, 1U, fread_stream, &fread_detail); // [手順] - 書き込み専用ストリームを fread へ渡す。
+        com_util_fread(data, 1U, 1U, fread_stream, &fread_detail); // [手順] - エラー状態のストリームを fread へ渡す。
     int fgets_result = com_util_fgets(data, sizeof(data), fgets_stream,
-                                      &fgets_detail); // [手順] - 書き込み専用ストリームを fgets へ渡す。
+                                      &fgets_detail); // [手順] - エラー状態のストリームを fgets へ渡す。
 
     // Assert
     EXPECT_EQ(0U, read_count); // [確認_異常系] - 読み込みエラー時の fread 件数が 0 であること。
@@ -327,62 +391,76 @@ TEST(stdioFailureInjectionTest, fread_and_fgets_report_stream_errors)
     EXPECT_NE(COM_UTIL_OK, fgets_result); // [確認_異常系] - 読み込みエラー時の fgets 結果が成功以外であること。
     EXPECT_NE(COM_UTIL_OK,
               com_util_error_to_result(&fgets_detail)); // [確認_異常系] - fgets の詳細エラーが成功以外であること。
-
-    // Cleanup
-    std::fclose(fread_stream);
-    std::fclose(fgets_stream);
 }
 
 // remove と rename の成功・失敗が結果コードへ反映されることの確認
 TEST(stdioFailureInjectionTest, remove_and_rename_classify_file_operations)
 {
     // Arrange
-    std::string root = findWorkspaceRoot();
-    std::filesystem::path dir =
-        std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/crt/stdioTest/results";
-    std::filesystem::create_directories(dir);
-    std::string old_path_str = (dir / "com_util_stdio_old.txt").generic_string();
-    std::string new_path_str = (dir / "com_util_stdio_new.txt").generic_string();
-    const char *old_path = old_path_str.c_str();
-    const char *new_path = new_path_str.c_str();
-    com_util_error detail = {};
-    FILE *stream = NULL;
 #if defined(PLATFORM_LINUX)
-    stream = std::fopen(old_path, "wb");
-#elif defined(PLATFORM_WINDOWS)
-    (void)fopen_s(&stream, old_path, "wb");
-#endif /* PLATFORM_ */
-    ASSERT_NE(static_cast<FILE *>(NULL), stream);
-    std::fclose(stream);
-    (void)std::remove(new_path);
+    NiceMock<Mock_stdio> mock_stdio;
+#endif /* PLATFORM_LINUX */
+    const char *old_path = "com_util_stdio_old.txt";
+    const char *new_path = "com_util_stdio_new.txt";
+    com_util_error detail = {}; // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_stdio, rename(_, _, _, StrEq(old_path), StrEq(new_path)))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - rename が旧パスと新パスで 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_stdio, remove(_, _, _, StrEq(new_path)))
+        .WillOnce(Return(0))
+        .WillOnce(
+            [](const char *, int, const char *, const char *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - remove が新パスで 2 回呼び出されること。
+                // [Pre-Assert手順] - 1 回目は 0、2 回目は ENOENT で -1 を返却する。
+#endif          /* PLATFORM_LINUX */
 
     // Act
+#if defined(PLATFORM_LINUX)
     int rename_result =
         com_util_rename(old_path, new_path, &detail);        // [手順] - 既存ファイルを新しいパスへ rename する。
     int remove_result = com_util_remove(new_path, &detail);  // [手順] - rename 後のファイルを remove する。
     int missing_result = com_util_remove(new_path, &detail); // [手順] - 存在しないファイルを remove する。
+#endif                                                       /* PLATFORM_LINUX */
     int null_rename_result = com_util_rename(NULL, new_path, &detail);  // [手順] - oldpath NULL の rename を実行する。
     int null_newpath_result = com_util_rename(old_path, NULL, &detail); // [手順] - newpath NULL の rename を実行する。
     int null_remove_result = com_util_remove(NULL, &detail);            // [手順] - path NULL の remove を実行する。
 
     // Assert
+#if defined(PLATFORM_LINUX)
     EXPECT_EQ(0, rename_result);        // [確認_正常系] - rename の戻り値が 0 であること。
     EXPECT_EQ(0, remove_result);        // [確認_正常系] - remove の戻り値が 0 であること。
     EXPECT_NE(0, missing_result);       // [確認_異常系] - 存在しないファイルの remove が失敗すること。
+#endif                                  /* PLATFORM_LINUX */
     EXPECT_EQ(-1, null_rename_result);  // [確認_異常系] - oldpath NULL の rename が -1 を返すこと。
     EXPECT_EQ(-1, null_newpath_result); // [確認_異常系] - newpath NULL の com_util_rename の戻り値が -1 であること。
     EXPECT_EQ(-1, null_remove_result);  // [確認_異常系] - path NULL の remove が -1 を返すこと。
 }
 
+#if defined(PLATFORM_LINUX)
 // rename の OS 失敗が詳細エラーへ記録されることの確認
+// Windows の com_util_rename は MoveFileExW を呼ぶため、その mock が揃うまで Linux のみで検証する
 TEST(stdioFailureInjectionTest, rename_reports_os_failure)
 {
     // Arrange
+    NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio,
+                rename(_, _, _, StrEq("/com_util/path/does/not/exist"), StrEq("/tmp/com_util_stdio_target.txt")))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, const char *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - rename が存在しないパスで 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
 
     // Act
     int result = com_util_rename("/com_util/path/does/not/exist", "/tmp/com_util_stdio_target.txt",
@@ -393,33 +471,48 @@ TEST(stdioFailureInjectionTest, rename_reports_os_failure)
     EXPECT_NE(COM_UTIL_OK,
               com_util_error_to_result(&detail)); // [確認_異常系] - OS 失敗が詳細エラーへ記録されること。
 }
+#endif /* PLATFORM_LINUX */
 
-// fprintf、fseek、ftell の Linux ラッパーが標準 I/O を通過させることの確認
+// fprintf、fseek、ftell のラッパーが標準 I/O を通過させることの確認
 TEST(stdioFailureInjectionTest, formatted_output_and_file_position_wrappers_work)
 {
     // Arrange
-    FILE *stream = NULL;
-#if defined(PLATFORM_LINUX)
-    stream = std::tmpfile();
-#elif defined(PLATFORM_WINDOWS)
-    (void)tmpfile_s(&stream);
-#endif /* PLATFORM_ */
-    ASSERT_NE(static_cast<FILE *>(NULL), stream);
+    NiceMock<Mock_stdio> mock_stdio;
+    FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(18));
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_stdio, vfprintf(_, _, _, stream, StrEq("abc")))
+        .WillOnce(Return(3)); // [Pre-Assert確認_正常系] - vfprintf が "abc" で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 出力文字数 3 を返却する。
+    EXPECT_CALL(mock_stdio, fseeko(_, _, _, stream, static_cast<off_t>(0), SEEK_SET))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - fseeko が先頭へ 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_stdio, ftello(_, _, _, stream))
+        .WillOnce(Return(static_cast<off_t>(0))); // [Pre-Assert確認_正常系] - ftello が 1 回呼び出されること。
+                                                  // [Pre-Assert手順] - 位置 0 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_stdio, _fseeki64(_, _, _, stream, static_cast<__int64>(0), SEEK_SET))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - _fseeki64 が先頭へ 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_stdio, _ftelli64(_, _, _, stream))
+        .WillOnce(Return(static_cast<__int64>(0))); // [Pre-Assert確認_正常系] - _ftelli64 が 1 回呼び出されること。
+                                                    // [Pre-Assert手順] - 位置 0 を返却する。
+#endif /* PLATFORM_ */
 
     // Act
-    int print_result = com_util_fprintf(stream, "%s", "abc"); // [手順] - 一時ファイルへ文字列を fprintf する。
+#if defined(PLATFORM_LINUX)
+    int print_result = com_util_fprintf(stream, "%s", "abc"); // [手順] - 番兵ストリームへ文字列を fprintf する。
+#endif                                                        /* PLATFORM_LINUX */
     int seek_result = com_util_fseek(stream, 0, SEEK_SET);    // [手順] - ファイル位置を先頭へ移動する。
     int64_t position = com_util_ftell(stream);                // [手順] - 現在のファイル位置を取得する。
 
     // Assert
+#if defined(PLATFORM_LINUX)
     EXPECT_EQ(3, print_result); // [確認_正常系] - fprintf の出力文字数が 3 であること。
+#endif                          /* PLATFORM_LINUX */
     EXPECT_EQ(0, seek_result);  // [確認_正常系] - fseek の戻り値が 0 であること。
     EXPECT_EQ(0, position);     // [確認_正常系] - 先頭へ移動後の ftell が 0 であること。
-
-    // Cleanup
-    std::fclose(stream);
 }
 
 // fwrite の短い書き込みを未知エラーとして報告することの確認

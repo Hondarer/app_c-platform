@@ -4,12 +4,13 @@
 
 #include <mock_stdlib.h>
 
+#include <cstdlib>
+#include <cstring>
+
 using testing::_;
 using testing::DoDefault;
 using testing::NiceMock;
 using testing::Return;
-
-#include "syncTestHelper.h"
 
 TEST(syncDescriptorTest, rejects_invalid_export_and_import_arguments)
 {
@@ -67,6 +68,36 @@ TEST(syncDescriptorTest, rejects_zero_and_mismatched_identity_lengths)
               zero_length_result); // [確認_異常系] - identity length 0 が CORRUPT_DESCRIPTOR になること。
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
               short_descriptor_result); // [確認_異常系] - サイズ不一致が CORRUPT_DESCRIPTOR になること。
+}
+
+// identity が同じ種別とバックエンドで往復することの確認
+TEST(syncDescriptorTest, exports_and_imports_identity)
+{
+    // Arrange
+    unsigned char descriptor[64] = {0};
+    size_t descriptor_size = sizeof(descriptor);
+    char *identity = NULL; // [状態] - 出力バッファーと identity 格納先を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int export_result = interprocess_sync_descriptor_export(
+        "lock-path", INTERPROCESS_SYNC_KIND_LOCK, 1U, descriptor,
+        &descriptor_size); // [手順] - identity "lock-path" を descriptor へ出力する。
+    int import_result =
+        interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_LOCK, 1U,
+                                            &identity); // [手順] - 同じ種別とバックエンドで import する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              export_result); // [確認_正常系] - interprocess_sync_descriptor_export の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              import_result); // [確認_正常系] - interprocess_sync_descriptor_import の戻り値が COM_UTIL_OK であること。
+    ASSERT_NE((char *)NULL, identity);   // [確認_正常系] - import した identity が NULL でないこと。
+    EXPECT_STREQ("lock-path", identity); // [確認_正常系] - import した identity が "lock-path" であること。
+
+    // Cleanup
+    free(identity);
 }
 
 TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)

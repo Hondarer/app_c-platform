@@ -1,15 +1,12 @@
-#include <testfw.h>
+#include "fileTestCommon.h"
+
 #include <com_util/base/result.h>
 #include <com_util/crt/file.h>
 #include <mock_unistd.h>
 #include <sys/mock_stat.h>
 
 #include <errno.h>
-
-#include <filesystem>
-#include <cstdio>
 #include <limits>
-#include <string>
 
 #if defined(PLATFORM_LINUX)
 
@@ -23,27 +20,18 @@ using testing::Return;
 class fileFailureInjectionTest : public Test
 {
   protected:
-    std::string path_;
     com_util_file file_ = {};
 
     void SetUp() override
     {
-        std::string root = findWorkspaceRoot();
-        std::filesystem::path dir =
-            std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/crt/fileTest/results";
-
-        std::filesystem::create_directories(dir);
-        path_ = (dir / "fileFailureInjectionTest_work.bin").generic_string();
-
         com_util_file_init(&file_);
-        ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file_, path_.c_str(),
-                                                  COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE, NULL));
+        file_.handle = kFakeFd;
+        file_.writable = 1;
     }
 
     void TearDown() override
     {
-        com_util_file_close(&file_, NULL);
-        std::remove(path_.c_str());
+        file_.handle = -1;
     }
 };
 
@@ -66,8 +54,9 @@ TEST_F(fileFailureInjectionTest, set_size_reports_errno_when_ftruncate_fails)
 
     // Assert
     EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_file_set_size の戻り値が COM_UTIL_OK 以外であること。
-    EXPECT_EQ(EIO,
-              com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EIO であること。
+    EXPECT_EQ(
+        EIO,
+        com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EIO であること。
 }
 
 // サイズ取得に失敗した場合に errno が通知されることの確認
@@ -146,7 +135,7 @@ TEST_F(fileFailureInjectionTest, open_reports_close_failure_before_opening_new_p
     // Pre-Assert
 
     // Act
-    int rtc = com_util_file_open(&file, path_.c_str(), COM_UTIL_FILE_OPEN_READ,
+    int rtc = com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_READ,
                                  &detail); // [手順] - 既存ハンドルを持つ状態で別のファイルを開く。
 
     // Assert
@@ -207,7 +196,7 @@ TEST_F(fileFailureInjectionTest, read_succeeds_for_zero_length)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 長さ 0 の読み取りが成功すること。
-    EXPECT_EQ(0u, read);          // [確認_正常系] - 読み取ったバイト数が 0 であること。
+    EXPECT_EQ(0u, read);         // [確認_正常系] - 読み取ったバイト数が 0 であること。
 }
 
 // オープン済みファイルからの NULL バッファー付き読み取りが拒否されることの確認

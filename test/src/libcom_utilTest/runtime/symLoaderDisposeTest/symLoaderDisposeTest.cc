@@ -1,17 +1,24 @@
 #include <testfw.h>
-#include <mock_com_util.h>
+#include <com_util/base/platform.h>
 #include <com_util/runtime/sym_loader.h>
+
+#if defined(PLATFORM_LINUX)
+    #include <mock_dlfcn.h>
+#endif /* PLATFORM_LINUX */
+
+using testing::_;
+using testing::NiceMock;
+using testing::Return;
 
 class symLoaderDisposeTest : public Test
 {
-  protected:
-    /* lib_name / func_name は固定長配列のため、テストからは直接書き込む */
-    static void set_names(com_util_sym_loader_entry *entry, const char *lib_name, const char *func_name)
-    {
-        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry->lib_name, sizeof(entry->lib_name), lib_name));
-        ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry->func_name, sizeof(entry->func_name), func_name));
-    }
 };
+
+namespace
+{
+void *const kFakeHandle = reinterpret_cast<void *>(static_cast<uintptr_t>(0x51));
+void *const kFakeFunc = reinterpret_cast<void *>(static_cast<uintptr_t>(0x52));
+} // namespace
 
 // 解決済みエントリのハンドルと関数ポインターが解放されることの確認
 TEST_F(symLoaderDisposeTest, releases_handle_and_func_ptr_of_resolved_entry)
@@ -19,12 +26,18 @@ TEST_F(symLoaderDisposeTest, releases_handle_and_func_ptr_of_resolved_entry)
     // Arrange
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("test_key", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry};
-
-    set_names(&entry, "libcom_util", "com_util_path_basename");
-    ASSERT_NE(nullptr, com_util_sym_loader_resolve(&entry)); // [状態] - 解決済みのエントリを 1 件用意する。
-    ASSERT_NE(nullptr, entry.handle);
+    entry.handle = kFakeHandle;
+    entry.func_ptr = kFakeFunc; // [状態] - ハンドルと関数ポインターが入ったエントリを用意する。
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_dlfcn, dlclose(_, _, _, kFakeHandle)).WillOnce(Return(0));
+#endif /* PLATFORM_LINUX */
+    // [Pre-Assert確認_正常系] - 解放 API がエントリのハンドルを 1 回閉じること。
+    // [Pre-Assert手順] - 閉じる操作は成功を返却する。
 
     // Act
     com_util_sym_loader_dispose(entries, 1u); // [手順] - 解決済みエントリ 1 件を指定して解放する。
@@ -40,8 +53,15 @@ TEST_F(symLoaderDisposeTest, skips_entry_without_handle)
     // Arrange
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("test_key", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 未解決のままハンドルを持たないエントリを用意する。
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_dlfcn, dlclose(_, _, _, _)).Times(0);
+#endif /* PLATFORM_LINUX */
+    // [Pre-Assert確認_正常系] - ハンドルが無いとき解放 API が呼び出されないこと。
 
     // Act
     com_util_sym_loader_dispose(entries, 1u); // [手順] - ハンドルを持たないエントリを指定して解放する。
@@ -56,20 +76,23 @@ TEST_F(symLoaderDisposeTest, accepts_zero_length)
     // Arrange
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("test_key", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry};
-
-    set_names(&entry, "libcom_util", "com_util_path_basename");
-    ASSERT_NE(nullptr, com_util_sym_loader_resolve(&entry)); // [状態] - 解決済みのエントリを 1 件用意する。
+    entry.handle = kFakeHandle;
+    entry.func_ptr = kFakeFunc; // [状態] - ハンドル入りのエントリを用意する。
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_dlfcn, dlclose(_, _, _, _)).Times(0);
+#endif /* PLATFORM_LINUX */
+    // [Pre-Assert確認_正常系] - 要素数 0 のとき解放 API が呼び出されないこと。
 
     // Act
     com_util_sym_loader_dispose(entries, 0u); // [手順] - 要素数に 0 を指定して解放する。
 
     // Assert
-    EXPECT_NE(nullptr, entry.handle); // [確認_正常系] - 走査されないため handle が保持されたままであること。
-
-    // Cleanup
-    com_util_sym_loader_dispose(entries, 1u);
+    EXPECT_EQ(kFakeHandle, entry.handle); // [確認_正常系] - 走査されないため handle が保持されたままであること。
 }
 
 // 複数エントリがまとめて解放されることの確認
@@ -79,13 +102,22 @@ TEST_F(symLoaderDisposeTest, releases_multiple_entries)
     com_util_sym_loader_entry first = COM_UTIL_SYM_LOADER_ENTRY_INIT("first", void (*)(void));
     com_util_sym_loader_entry second = COM_UTIL_SYM_LOADER_ENTRY_INIT("second", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&first, &second};
-
-    set_names(&first, "libcom_util", "com_util_path_basename");
-    set_names(&second, "libcom_util", "com_util_path_extension");
-    ASSERT_NE(nullptr, com_util_sym_loader_resolve(&first));
-    ASSERT_NE(nullptr, com_util_sym_loader_resolve(&second)); // [状態] - 解決済みのエントリを 2 件用意する。
+    first.handle = kFakeHandle;
+    first.func_ptr = kFakeFunc;
+    second.handle = reinterpret_cast<void *>(static_cast<uintptr_t>(0x53));
+    second.func_ptr =
+        reinterpret_cast<void *>(static_cast<uintptr_t>(0x54)); // [状態] - ハンドル入りのエントリを 2 件用意する。
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_dlfcn, dlclose(_, _, _, first.handle)).WillOnce(Return(0));
+    EXPECT_CALL(mock_dlfcn, dlclose(_, _, _, second.handle)).WillOnce(Return(0));
+#endif /* PLATFORM_LINUX */
+    // [Pre-Assert確認_正常系] - 2 件のハンドルがそれぞれ閉じられること。
+    // [Pre-Assert手順] - 閉じる操作は成功を返却する。
 
     // Act
     com_util_sym_loader_dispose(entries, 2u); // [手順] - 解決済みエントリ 2 件を指定して解放する。
