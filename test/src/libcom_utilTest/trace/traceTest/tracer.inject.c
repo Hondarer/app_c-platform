@@ -9,6 +9,9 @@
 
 #include "tracer.inject.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 void test_trace_registry_reset_shutdown_state(void)
 {
     com_util_once_flag reset_once = {0};
@@ -96,4 +99,49 @@ com_util_local_rwlock *test_tracer_get_config_rwlock(com_util_tracer *handle)
 void test_tracer_set_hook_fn(com_util_tracer_hook_entry *entry, com_util_tracer_hook_fn fn)
 {
     entry->fn = fn;
+}
+
+void test_tracer_unregister(com_util_tracer *handle)
+{
+    registry_unregister_handle(handle);
+}
+
+void test_tracer_install_null_fn_hook(com_util_tracer *handle)
+{
+    com_util_tracer_hook_entry *entry = (com_util_tracer_hook_entry *)calloc(1, sizeof(*entry));
+    handle->hook_head = entry;
+}
+
+void test_tracer_clear_hook_head(com_util_tracer *handle)
+{
+    free(handle->hook_head);
+    handle->hook_head = NULL;
+}
+
+void test_tracer_call_next_null(com_util_tracer *handle)
+{
+    com_util_tracer_call_next_hook(NULL, handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "x");
+}
+
+void test_tracer_call_next_null_fn(com_util_tracer *handle)
+{
+    com_util_tracer_hook_entry entry;
+
+    memset(&entry, 0, sizeof(entry));
+    com_util_tracer_call_next_hook(&entry, handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "x");
+}
+
+void test_tracer_call_next_with_fn(com_util_tracer *handle, com_util_tracer_hook_fn fn)
+{
+    com_util_tracer_hook_entry entry;
+
+    memset(&entry, 0, sizeof(entry));
+    entry.fn = fn;
+    com_util_tracer_call_next_hook(&entry, handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "x");
+}
+
+void test_tracer_clear_file_path(com_util_tracer *handle)
+{
+    free(handle->file_path);
+    handle->file_path = NULL;
 }

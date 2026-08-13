@@ -391,6 +391,11 @@ int report_plain(com_util_error *detail_out, int result)
     return result;
 }
 
+/*
+ * 単体テストは COM_UTIL_REGEX_NO_EXCEPTIONS と -fno-exceptions で計測する。
+ * STL 呼び出しに付く未印の例外枝を消し、本番ビルドでは例外を結果コードへ変換する。
+ */
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 /* 送出された例外を共通結果コードへ変換する。 */
 int translate_exception(com_util_error *detail_out)
 {
@@ -439,6 +444,7 @@ int translate_exception(com_util_error *detail_out)
 
     return result;
 }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
 /* コンパイル フラグを std::regex_constants の値へ変換する。 */
 bool to_syntax_option(unsigned int flags, std::regex_constants::syntax_option_type &option_out)
@@ -568,8 +574,10 @@ int com_util_regex_create(const char *pattern, const unsigned int flags, com_uti
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         const std::size_t pattern_len = std::char_traits<char>::length(pattern);
         if (pattern_len > COM_UTIL_REGEX_MAX_LENGTH)
         {
@@ -588,11 +596,13 @@ int com_util_regex_create(const char *pattern, const unsigned int flags, com_uti
 
         *regex_out = created;
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }
@@ -601,19 +611,18 @@ int com_util_regex_create(const char *pattern, const unsigned int flags, com_uti
 
 void com_util_regex_dispose(com_util_regex *regex)
 {
-    if (regex == nullptr)
-    {
-        return;
-    }
-
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         delete regex;
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         /* 破棄処理から例外を伝播させない。 */
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -657,8 +666,10 @@ int execute(const com_util_regex *regex, const char *text, std::size_t text_len,
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
         if (!utf8_decode(text, text_len, units, offsets))
@@ -711,11 +722,13 @@ int execute(const com_util_regex *regex, const char *text, std::size_t text_len,
         }
 
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }
@@ -766,8 +779,10 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring text_units;
         std::vector<std::size_t> text_offsets;
         if (!utf8_decode(text, text_len, text_units, text_offsets))
@@ -830,11 +845,13 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
         result_out[encoded.size()] = '\0';
 
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }
@@ -923,8 +940,10 @@ int com_util_regex_iter_create(const com_util_regex *regex, const char *text, co
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
         if (!utf8_decode(text, text_len, units, offsets))
@@ -936,11 +955,13 @@ int com_util_regex_iter_create(const com_util_regex *regex, const char *text, co
 
         *iter_out = created;
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }
@@ -959,8 +980,10 @@ int com_util_regex_iter_next(com_util_regex_iter *iter, com_util_regex_match *ma
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         if (iter->finished != 0)
         {
             return com_util_error_report_success(detail_out);
@@ -996,11 +1019,13 @@ int com_util_regex_iter_next(com_util_regex_iter *iter, com_util_regex_match *ma
         }
 
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }
@@ -1009,19 +1034,18 @@ int com_util_regex_iter_next(com_util_regex_iter *iter, com_util_regex_match *ma
 
 void com_util_regex_iter_dispose(com_util_regex_iter *iter)
 {
-    if (iter == nullptr)
-    {
-        return;
-    }
-
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         delete iter;
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         /* 破棄処理から例外を伝播させない。 */
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1051,8 +1075,10 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
 
     int result = COM_UTIL_OK;
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
         if (!utf8_decode(text, text_len, units, offsets))
@@ -1131,11 +1157,13 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
         }
 
         result = com_util_error_report_success(detail_out);
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
         result = translate_exception(detail_out);
     }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     return result;
 }

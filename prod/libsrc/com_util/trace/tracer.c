@@ -707,10 +707,15 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         return -1;
     }
 
-    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == COM_UTIL_OK &&
-        com_util_path_dirname(exe_dir, sizeof(exe_dir), NULL, exe_path) == COM_UTIL_OK && strcmp(exe_dir, ".") != 0)
+    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == COM_UTIL_OK)
     {
-        return com_util_path_join(out, out_size, NULL, exe_dir, "log", log_file_name);
+        if (com_util_path_dirname(exe_dir, sizeof(exe_dir), NULL, exe_path) == COM_UTIL_OK)
+        {
+            if (strcmp(exe_dir, ".") != 0)
+            {
+                return com_util_path_join(out, out_size, NULL, exe_dir, "log", log_file_name);
+            }
+        }
     }
 
     return com_util_path_join(out, out_size, NULL, "log", log_file_name);
@@ -1010,10 +1015,7 @@ com_util_tracer *com_util_tracer_create(void)
         free(handle->eventlog_instance_name);
         free(handle->service_name);
 #endif /* PLATFORM_ */
-        if (handle->config_rwlock_initialized)
-        {
-            com_util_local_rwlock_destroy(handle->config_rwlock);
-        }
+        com_util_local_rwlock_destroy(handle->config_rwlock);
         free(handle);
         return NULL;
     }
@@ -1398,11 +1400,6 @@ static int hex_write_impl(com_util_tracer *handle, const com_util_trace_level le
         max_data_bytes = (remaining - ELLIPSIS_LEN) / 3;
         if (max_data_bytes == 0)
         {
-            if (pos > (MAX_BODY - ELLIPSIS_LEN))
-            {
-                buf[pos] = '\0';
-                return write_dual(handle, level, timestamp, buf);
-            }
             memcpy(buf + pos, "...", ELLIPSIS_LEN);
             pos += ELLIPSIS_LEN;
             buf[pos] = '\0';

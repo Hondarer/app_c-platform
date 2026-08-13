@@ -496,6 +496,7 @@ TEST_F(regexTest, search_with_anchored_matches_only_at_start_offset)
     com_util_regex_dispose(regex);
 }
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 // 不正なパターンが COM_UTIL_ERR_INVALID_PATTERN になることの確認
 TEST_F(regexTest, create_rejects_invalid_pattern)
 {
@@ -521,6 +522,7 @@ TEST_F(regexTest, create_rejects_invalid_pattern)
                                               // 戻り値が COM_UTIL_ERR_INVALID_PATTERN であること。
     EXPECT_EQ((com_util_regex *)NULL, regex); // [確認_異常系] - 失敗時にハンドルが NULL のままであること。
 }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
 // 不正なフラグの組み合わせが COM_UTIL_ERR_INVALID_ARGUMENT になることの確認
 TEST_F(regexTest, create_rejects_invalid_flags)
@@ -704,6 +706,7 @@ TEST_F(regexTest, reports_error_detail)
     // Assert
     EXPECT_EQ(0, com_util_error_is_set(&detail)); // [確認_正常系] - 成功時に detail_out がクリアされること。
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     // Arrange_2
 
     // Pre-Assert_2
@@ -718,6 +721,10 @@ TEST_F(regexTest, reports_error_detail)
                      &detail)); // [確認_2_正常系] - OS 由来ではない失敗のため detail_out がクリアされること。
     com_util_error_get_last(&last);
     EXPECT_EQ(0, com_util_error_is_set(&last)); // [確認_2_正常系] - 直前値もクリアされること。
+#else
+    (void)invalid_regex;
+    (void)last;
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
     // Cleanup
     com_util_regex_dispose(regex);
@@ -1227,76 +1234,77 @@ TEST_F(regexTest, traits_cover_ascii_classes_and_conversions)
     // Pre-Assert
 
     // Act
-    bool alpha_result = test_regex_isctype(L'A', alpha); // [手順] - 大文字を alpha クラスで判定する。
-    bool lower_result = test_regex_isctype(L'a', lower); // [手順] - 小文字を lower クラスで判定する。
-    bool digit_result = test_regex_isctype(L'9', digit); // [手順] - 数字を digit クラスで判定する。
-    bool blank_result = test_regex_isctype(L'\t', blank); // [手順] - タブを blank クラスで判定する。
-    bool space_result = test_regex_isctype(L' ', space); // [手順] - 空白を space クラスで判定する。
-    bool control_result = test_regex_isctype(L'\x01', cntrl); // [手順] - 制御文字を cntrl クラスで判定する。
-    bool graph_result = test_regex_isctype(L'!', graph); // [手順] - 記号を graph クラスで判定する。
-    bool print_result = test_regex_isctype(L' ', print); // [手順] - 空白を print クラスで判定する。
-    bool punct_result = test_regex_isctype(L'!', punct); // [手順] - 記号を punct クラスで判定する。
-    bool xdigit_result = test_regex_isctype(L'F', xdigit); // [手順] - 16 進数字を xdigit クラスで判定する。
-    bool word_result = test_regex_isctype(L'_', word); // [手順] - 下線を word クラスで判定する。
-    bool non_ascii_result = test_regex_isctype(L'あ', alpha); // [手順] - 非 ASCII 文字を alpha クラスで判定する。
-    wchar_t upper_fold = test_regex_translate_nocase(L'Q'); // [手順] - 大文字を小文字へ変換する。
-    wchar_t lower_fold = test_regex_translate_nocase(L'q'); // [手順] - 小文字をそのまま変換する。
-    std::wstring transformed = test_regex_transform(L"Ab"); // [手順] - 文字列をそのまま変換する。
-    std::wstring primary = test_regex_transform_primary(L"Ab"); // [手順] - 文字列を primary 変換する。
+    bool alpha_result = test_regex_isctype(L'A', alpha);            // [手順] - 大文字を alpha クラスで判定する。
+    bool lower_result = test_regex_isctype(L'a', lower);            // [手順] - 小文字を lower クラスで判定する。
+    bool digit_result = test_regex_isctype(L'9', digit);            // [手順] - 数字を digit クラスで判定する。
+    bool blank_result = test_regex_isctype(L'\t', blank);           // [手順] - タブを blank クラスで判定する。
+    bool space_result = test_regex_isctype(L' ', space);            // [手順] - 空白を space クラスで判定する。
+    bool control_result = test_regex_isctype(L'\x01', cntrl);       // [手順] - 制御文字を cntrl クラスで判定する。
+    bool graph_result = test_regex_isctype(L'!', graph);            // [手順] - 記号を graph クラスで判定する。
+    bool print_result = test_regex_isctype(L' ', print);            // [手順] - 空白を print クラスで判定する。
+    bool punct_result = test_regex_isctype(L'!', punct);            // [手順] - 記号を punct クラスで判定する。
+    bool xdigit_result = test_regex_isctype(L'F', xdigit);          // [手順] - 16 進数字を xdigit クラスで判定する。
+    bool word_result = test_regex_isctype(L'_', word);              // [手順] - 下線を word クラスで判定する。
+    bool non_ascii_result = test_regex_isctype(L'あ', alpha);       // [手順] - 非 ASCII 文字を alpha クラスで判定する。
+    wchar_t upper_fold = test_regex_translate_nocase(L'Q');         // [手順] - 大文字を小文字へ変換する。
+    wchar_t lower_fold = test_regex_translate_nocase(L'q');         // [手順] - 小文字をそのまま変換する。
+    std::wstring transformed = test_regex_transform(L"Ab");         // [手順] - 文字列をそのまま変換する。
+    std::wstring primary = test_regex_transform_primary(L"Ab");     // [手順] - 文字列を primary 変換する。
     std::wstring collatename = test_regex_lookup_collatename(L"x"); // [手順] - 未対応の照合要素を変換する。
-    int digit_value = test_regex_value(L'7', 10); // [手順] - 10 進数字の値を取得する。
-    int lower_hex_value = test_regex_value(L'f', 16); // [手順] - 小文字の 16 進数字の値を取得する。
-    int upper_hex_value = test_regex_value(L'F', 16); // [手順] - 大文字の 16 進数字の値を取得する。
-    int invalid_value = test_regex_value(L'z', 16); // [手順] - 不正な数字の値を取得する。
-    int radix_value = test_regex_value(L'F', 10); // [手順] - 基数外の数字の値を取得する。
-    std::string locale_name = test_regex_imbue(L""); // [手順] - classic locale を traits へ設定する。
-    bool classic_locale = test_regex_getloc_is_classic(); // [手順] - traits の locale を取得する。
+    int digit_value = test_regex_value(L'7', 10);                   // [手順] - 10 進数字の値を取得する。
+    int lower_hex_value = test_regex_value(L'f', 16);               // [手順] - 小文字の 16 進数字の値を取得する。
+    int upper_hex_value = test_regex_value(L'F', 16);               // [手順] - 大文字の 16 進数字の値を取得する。
+    int invalid_value = test_regex_value(L'z', 16);                 // [手順] - 不正な数字の値を取得する。
+    int radix_value = test_regex_value(L'F', 10);                   // [手順] - 基数外の数字の値を取得する。
+    std::string locale_name = test_regex_imbue(L"");                // [手順] - classic locale を traits へ設定する。
+    bool classic_locale = test_regex_getloc_is_classic();           // [手順] - traits の locale を取得する。
 
     // Assert
-    EXPECT_NE(0U, alnum); // [確認_正常系] - alnum クラスが定義されること。
-    EXPECT_NE(0U, alpha); // [確認_正常系] - alpha クラスが定義されること。
-    EXPECT_NE(0U, blank); // [確認_正常系] - blank クラスが定義されること。
-    EXPECT_NE(0U, cntrl); // [確認_正常系] - cntrl クラスが定義されること。
-    EXPECT_NE(0U, digit); // [確認_正常系] - digit クラスが定義されること。
-    EXPECT_EQ(digit, digit_short); // [確認_正常系] - d 短縮名が digit と同じであること。
-    EXPECT_NE(0U, graph); // [確認_正常系] - graph クラスが定義されること。
-    EXPECT_NE(0U, lower); // [確認_正常系] - lower クラスが定義されること。
-    EXPECT_NE(0U, print); // [確認_正常系] - print クラスが定義されること。
-    EXPECT_NE(0U, punct); // [確認_正常系] - punct クラスが定義されること。
-    EXPECT_NE(0U, space); // [確認_正常系] - space クラスが定義されること。
-    EXPECT_EQ(space, space_short); // [確認_正常系] - s 短縮名が space と同じであること。
-    EXPECT_NE(0U, upper); // [確認_正常系] - upper クラスが定義されること。
-    EXPECT_NE(0U, xdigit); // [確認_正常系] - xdigit クラスが定義されること。
-    EXPECT_NE(0U, word); // [確認_正常系] - w 短縮名が word と同じであること。
-    EXPECT_EQ(0U, unknown); // [確認_異常系] - 未知のクラス名が 0 になること。
-    EXPECT_EQ(alpha, lower_icase); // [確認_正常系] - lower の icase が alpha になること。
-    EXPECT_EQ(alpha, upper_icase); // [確認_正常系] - upper の icase が alpha になること。
-    EXPECT_TRUE(alpha_result); // [確認_正常系] - 大文字が alpha と判定されること。
-    EXPECT_TRUE(lower_result); // [確認_正常系] - 小文字が lower と判定されること。
-    EXPECT_TRUE(digit_result); // [確認_正常系] - 数字が digit と判定されること。
-    EXPECT_TRUE(blank_result); // [確認_正常系] - タブが blank と判定されること。
-    EXPECT_TRUE(space_result); // [確認_正常系] - 空白が space と判定されること。
-    EXPECT_TRUE(control_result); // [確認_正常系] - 制御文字が cntrl と判定されること。
-    EXPECT_TRUE(graph_result); // [確認_正常系] - 記号が graph と判定されること。
-    EXPECT_TRUE(print_result); // [確認_正常系] - 空白が print と判定されること。
-    EXPECT_TRUE(punct_result); // [確認_正常系] - 記号が punct と判定されること。
-    EXPECT_TRUE(xdigit_result); // [確認_正常系] - F が xdigit と判定されること。
-    EXPECT_TRUE(word_result); // [確認_正常系] - 下線が word と判定されること。
-    EXPECT_FALSE(non_ascii_result); // [確認_異常系] - 非 ASCII 文字が alpha と判定されないこと。
-    EXPECT_EQ(L'q', upper_fold); // [確認_正常系] - Q が q へ変換されること。
-    EXPECT_EQ(L'q', lower_fold); // [確認_正常系] - q が q のままであること。
-    EXPECT_EQ(L"Ab", transformed); // [確認_正常系] - transform が入力を保持すること。
-    EXPECT_EQ(L"ab", primary); // [確認_正常系] - transform_primary が大小を変換すること。
-    EXPECT_TRUE(collatename.empty()); // [確認_正常系] - 未対応照合要素が空になること。
-    EXPECT_EQ(7, digit_value); // [確認_正常系] - 7 の値が 7 であること。
-    EXPECT_EQ(15, lower_hex_value); // [確認_正常系] - f の値が 15 であること。
-    EXPECT_EQ(15, upper_hex_value); // [確認_正常系] - F の値が 15 であること。
-    EXPECT_EQ(-1, invalid_value); // [確認_異常系] - z の値が -1 であること。
-    EXPECT_EQ(-1, radix_value); // [確認_異常系] - 基数外の F の値が -1 であること。
+    EXPECT_NE(0U, alnum);              // [確認_正常系] - alnum クラスが定義されること。
+    EXPECT_NE(0U, alpha);              // [確認_正常系] - alpha クラスが定義されること。
+    EXPECT_NE(0U, blank);              // [確認_正常系] - blank クラスが定義されること。
+    EXPECT_NE(0U, cntrl);              // [確認_正常系] - cntrl クラスが定義されること。
+    EXPECT_NE(0U, digit);              // [確認_正常系] - digit クラスが定義されること。
+    EXPECT_EQ(digit, digit_short);     // [確認_正常系] - d 短縮名が digit と同じであること。
+    EXPECT_NE(0U, graph);              // [確認_正常系] - graph クラスが定義されること。
+    EXPECT_NE(0U, lower);              // [確認_正常系] - lower クラスが定義されること。
+    EXPECT_NE(0U, print);              // [確認_正常系] - print クラスが定義されること。
+    EXPECT_NE(0U, punct);              // [確認_正常系] - punct クラスが定義されること。
+    EXPECT_NE(0U, space);              // [確認_正常系] - space クラスが定義されること。
+    EXPECT_EQ(space, space_short);     // [確認_正常系] - s 短縮名が space と同じであること。
+    EXPECT_NE(0U, upper);              // [確認_正常系] - upper クラスが定義されること。
+    EXPECT_NE(0U, xdigit);             // [確認_正常系] - xdigit クラスが定義されること。
+    EXPECT_NE(0U, word);               // [確認_正常系] - w 短縮名が word と同じであること。
+    EXPECT_EQ(0U, unknown);            // [確認_異常系] - 未知のクラス名が 0 になること。
+    EXPECT_EQ(alpha, lower_icase);     // [確認_正常系] - lower の icase が alpha になること。
+    EXPECT_EQ(alpha, upper_icase);     // [確認_正常系] - upper の icase が alpha になること。
+    EXPECT_TRUE(alpha_result);         // [確認_正常系] - 大文字が alpha と判定されること。
+    EXPECT_TRUE(lower_result);         // [確認_正常系] - 小文字が lower と判定されること。
+    EXPECT_TRUE(digit_result);         // [確認_正常系] - 数字が digit と判定されること。
+    EXPECT_TRUE(blank_result);         // [確認_正常系] - タブが blank と判定されること。
+    EXPECT_TRUE(space_result);         // [確認_正常系] - 空白が space と判定されること。
+    EXPECT_TRUE(control_result);       // [確認_正常系] - 制御文字が cntrl と判定されること。
+    EXPECT_TRUE(graph_result);         // [確認_正常系] - 記号が graph と判定されること。
+    EXPECT_TRUE(print_result);         // [確認_正常系] - 空白が print と判定されること。
+    EXPECT_TRUE(punct_result);         // [確認_正常系] - 記号が punct と判定されること。
+    EXPECT_TRUE(xdigit_result);        // [確認_正常系] - F が xdigit と判定されること。
+    EXPECT_TRUE(word_result);          // [確認_正常系] - 下線が word と判定されること。
+    EXPECT_FALSE(non_ascii_result);    // [確認_異常系] - 非 ASCII 文字が alpha と判定されないこと。
+    EXPECT_EQ(L'q', upper_fold);       // [確認_正常系] - Q が q へ変換されること。
+    EXPECT_EQ(L'q', lower_fold);       // [確認_正常系] - q が q のままであること。
+    EXPECT_EQ(L"Ab", transformed);     // [確認_正常系] - transform が入力を保持すること。
+    EXPECT_EQ(L"ab", primary);         // [確認_正常系] - transform_primary が大小を変換すること。
+    EXPECT_TRUE(collatename.empty());  // [確認_正常系] - 未対応照合要素が空になること。
+    EXPECT_EQ(7, digit_value);         // [確認_正常系] - 7 の値が 7 であること。
+    EXPECT_EQ(15, lower_hex_value);    // [確認_正常系] - f の値が 15 であること。
+    EXPECT_EQ(15, upper_hex_value);    // [確認_正常系] - F の値が 15 であること。
+    EXPECT_EQ(-1, invalid_value);      // [確認_異常系] - z の値が -1 であること。
+    EXPECT_EQ(-1, radix_value);        // [確認_異常系] - 基数外の F の値が -1 であること。
     EXPECT_FALSE(locale_name.empty()); // [確認_正常系] - imbue の locale 名が空でないこと。
-    EXPECT_TRUE(classic_locale); // [確認_正常系] - getloc が classic locale を返すこと。
+    EXPECT_TRUE(classic_locale);       // [確認_正常系] - getloc が classic locale を返すこと。
 }
 
+#if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 // regex の例外変換が主要な std::regex 例外を共通結果へ分類することの確認
 TEST_F(regexTest, translate_exception_maps_regex_and_runtime_errors)
 {
@@ -1305,22 +1313,28 @@ TEST_F(regexTest, translate_exception_maps_regex_and_runtime_errors)
     // Pre-Assert
 
     // Act
-    int complexity_result = test_regex_translate_error(std::regex_constants::error_complexity); // [手順] - complexity 例外を変換する。
+    int complexity_result =
+        test_regex_translate_error(std::regex_constants::error_complexity); // [手順] - complexity 例外を変換する。
     int space_result = test_regex_translate_error(std::regex_constants::error_space); // [手順] - space 例外を変換する。
-    int pattern_result = test_regex_translate_error(std::regex_constants::error_paren); // [手順] - pattern 例外を変換する。
+    int pattern_result =
+        test_regex_translate_error(std::regex_constants::error_paren); // [手順] - pattern 例外を変換する。
     int invalid_error_value = 999;
-    int default_result = test_regex_translate_error(static_cast<std::regex_constants::error_type>(invalid_error_value)); // [手順] - 未分類の regex 例外を変換する。
-    int alloc_result = test_regex_translate_bad_alloc(); // [手順] - bad_alloc 例外を変換する。
-    int unknown_result = test_regex_translate_unknown(); // [手順] - 未知の例外を変換する。
+    int default_result = test_regex_translate_error(
+        static_cast<std::regex_constants::error_type>(invalid_error_value)); // [手順] - 未分類の regex 例外を変換する。
+    int alloc_result = test_regex_translate_bad_alloc();                     // [手順] - bad_alloc 例外を変換する。
+    int unknown_result = test_regex_translate_unknown();                     // [手順] - 未知の例外を変換する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, complexity_result); // [確認_異常系] - complexity が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              complexity_result);                        // [確認_異常系] - complexity が LIMIT_EXCEEDED になること。
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, space_result); // [確認_異常系] - space が OUT_OF_MEMORY になること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_PATTERN, pattern_result); // [確認_異常系] - pattern が INVALID_PATTERN になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_PATTERN, default_result); // [確認_異常系] - 未分類 regex 例外が INVALID_PATTERN になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_PATTERN,
+              default_result); // [確認_異常系] - 未分類 regex 例外が INVALID_PATTERN になること。
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, alloc_result); // [確認_異常系] - bad_alloc が OUT_OF_MEMORY になること。
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result); // [確認_異常系] - 未知の例外が UNKNOWN になること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, unknown_result);     // [確認_異常系] - 未知の例外が UNKNOWN になること。
 }
+#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
 // 正規表現の追加フラグが変換されて照合へ渡ることの確認
 TEST_F(regexTest, option_and_match_flags_cover_basic_optimize_and_boundaries)
@@ -1336,15 +1350,14 @@ TEST_F(regexTest, option_and_match_flags_cover_basic_optimize_and_boundaries)
     // Pre-Assert
 
     // Act
-    int result = com_util_regex_search(regex, text.data(), text.size(), 0,
-                                       COM_UTIL_REGEX_MATCH_NOTBOL | COM_UTIL_REGEX_MATCH_NOTEOL |
-                                           COM_UTIL_REGEX_MATCH_NOTEMPTY,
-                                       NULL, 0, &matched,
-                                       NULL); // [手順] - 行境界、空一致、最適化に関する照合フラグを指定して検索する。
+    int result = com_util_regex_search(
+        regex, text.data(), text.size(), 0,
+        COM_UTIL_REGEX_MATCH_NOTBOL | COM_UTIL_REGEX_MATCH_NOTEOL | COM_UTIL_REGEX_MATCH_NOTEMPTY, NULL, 0, &matched,
+        NULL); // [手順] - 行境界、空一致、最適化に関する照合フラグを指定して検索する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 追加フラグ付き検索の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(1, matched); // [確認_正常系] - 追加フラグ付き検索が一致を返すこと。
+    EXPECT_EQ(1, matched);          // [確認_正常系] - 追加フラグ付き検索が一致を返すこと。
     EXPECT_EQ(L'a', test_regex_translate(L'a')); // [確認_正常系] - traits の translate が入力文字を保持すること。
 
     // Cleanup
@@ -1380,48 +1393,61 @@ TEST_F(regexTest, replace_iter_split_reject_limits_and_invalid_encoding)
     int replace_text_encoding_result = com_util_regex_replace(regex, invalid.data(), invalid.size(), "x",
                                                               COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
                                                               NULL); // [手順] - 不正 UTF-8 の入力を置換する。
-    int replace_replacement_encoding_result = com_util_regex_replace(regex, "a", 1U, invalid.data(),
-                                                                      COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer),
-                                                                      NULL,
-                                                                      NULL); // [手順] - 不正 UTF-8 の置換文字列を指定する。
+    int replace_replacement_encoding_result =
+        com_util_regex_replace(regex, "a", 1U, invalid.data(), COM_UTIL_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
+                               NULL); // [手順] - 不正 UTF-8 の置換文字列を指定する。
     int search_flag_result = com_util_regex_search(regex, "a", 1U, 0U, 0x8000U, NULL, 0U, &matched,
                                                    NULL); // [手順] - 未定義照合フラグを指定して検索する。
-    int search_limit_result = com_util_regex_search(regex, large.data(), large.size(), 0U,
-                                                    COM_UTIL_REGEX_DEFAULT, NULL, 0U, &matched,
-                                                    NULL); // [手順] - 最大長を超える入力を検索する。
+    int search_limit_result =
+        com_util_regex_search(regex, large.data(), large.size(), 0U, COM_UTIL_REGEX_DEFAULT, NULL, 0U, &matched,
+                              NULL); // [手順] - 最大長を超える入力を検索する。
     int iter_flag_result = com_util_regex_iter_create(regex, "a", 1U, 0x8000U, &iter,
                                                       NULL); // [手順] - 未定義列挙フラグを指定する。
-    int iter_limit_result = com_util_regex_iter_create(regex, large.data(), large.size(), COM_UTIL_REGEX_DEFAULT,
-                                                       &iter, NULL); // [手順] - 最大長を超える入力で列挙する。
-    int iter_encoding_result = com_util_regex_iter_create(regex, invalid.data(), invalid.size(),
-                                                          COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
-                                                          NULL); // [手順] - 不正 UTF-8 の入力で列挙する。
+    int iter_limit_result = com_util_regex_iter_create(regex, large.data(), large.size(), COM_UTIL_REGEX_DEFAULT, &iter,
+                                                       NULL); // [手順] - 最大長を超える入力で列挙する。
+    int iter_encoding_result =
+        com_util_regex_iter_create(regex, invalid.data(), invalid.size(), COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
+                                   NULL); // [手順] - 不正 UTF-8 の入力で列挙する。
     int split_null_result = com_util_regex_split(regex, "a", 1U, 0U, COM_UTIL_REGEX_DEFAULT, NULL, 1U, &part_count,
                                                  NULL); // [手順] - 分割出力 NULL と非ゼロ容量を指定する。
     int split_flag_result = com_util_regex_split(regex, "a", 1U, 0U, 0x8000U, parts, 2U, &part_count,
                                                  NULL); // [手順] - 未定義分割フラグを指定する。
-    int split_limit_result = com_util_regex_split(regex, large.data(), large.size(), 0U, COM_UTIL_REGEX_DEFAULT,
-                                                  parts, 2U, &part_count,
-                                                  NULL); // [手順] - 最大長を超える入力を分割する。
-    int split_encoding_result = com_util_regex_split(regex, invalid.data(), invalid.size(), 0U,
-                                                     COM_UTIL_REGEX_DEFAULT, parts, 2U, &part_count,
-                                                     NULL); // [手順] - 不正 UTF-8 の入力を分割する。
+    int split_limit_result =
+        com_util_regex_split(regex, large.data(), large.size(), 0U, COM_UTIL_REGEX_DEFAULT, parts, 2U, &part_count,
+                             NULL); // [手順] - 最大長を超える入力を分割する。
+    int split_encoding_result =
+        com_util_regex_split(regex, invalid.data(), invalid.size(), 0U, COM_UTIL_REGEX_DEFAULT, parts, 2U, &part_count,
+                             NULL); // [手順] - 不正 UTF-8 の入力を分割する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, replace_null_result); // [確認_異常系] - 出力先 NULL の置換が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, replace_flag_result); // [確認_異常系] - 不正置換フラグが INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, replace_text_limit_result); // [確認_異常系] - 長過ぎる置換入力が LIMIT_EXCEEDED になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, replace_text_encoding_result); // [確認_異常系] - 不正置換入力が INVALID_ENCODING になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, replace_replacement_encoding_result); // [確認_異常系] - 不正置換文字列が INVALID_ENCODING になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, search_flag_result); // [確認_異常系] - 不正検索フラグが INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, search_limit_result); // [確認_異常系] - 長過ぎる検索入力が LIMIT_EXCEEDED になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, iter_flag_result); // [確認_異常系] - 不正列挙フラグが INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, iter_limit_result); // [確認_異常系] - 長過ぎる列挙入力が LIMIT_EXCEEDED になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, iter_encoding_result); // [確認_異常系] - 不正列挙入力が INVALID_ENCODING になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, split_null_result); // [確認_異常系] - 分割出力 NULL が INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, split_flag_result); // [確認_異常系] - 不正分割フラグが INVALID_ARGUMENT になること。
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, split_limit_result); // [確認_異常系] - 長過ぎる分割入力が LIMIT_EXCEEDED になること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING, split_encoding_result); // [確認_異常系] - 不正分割入力が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              replace_null_result); // [確認_異常系] - 出力先 NULL の置換が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              replace_flag_result); // [確認_異常系] - 不正置換フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              replace_text_limit_result); // [確認_異常系] - 長過ぎる置換入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING,
+              replace_text_encoding_result); // [確認_異常系] - 不正置換入力が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING,
+              replace_replacement_encoding_result); // [確認_異常系] - 不正置換文字列が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              search_flag_result); // [確認_異常系] - 不正検索フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              search_limit_result); // [確認_異常系] - 長過ぎる検索入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              iter_flag_result); // [確認_異常系] - 不正列挙フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              iter_limit_result); // [確認_異常系] - 長過ぎる列挙入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING,
+              iter_encoding_result); // [確認_異常系] - 不正列挙入力が INVALID_ENCODING になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              split_null_result); // [確認_異常系] - 分割出力 NULL が INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              split_flag_result); // [確認_異常系] - 不正分割フラグが INVALID_ARGUMENT になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              split_limit_result); // [確認_異常系] - 長過ぎる分割入力が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ENCODING,
+              split_encoding_result); // [確認_異常系] - 不正分割入力が INVALID_ENCODING になること。
 
     // Cleanup
     com_util_regex_iter_dispose(iter);
@@ -1451,9 +1477,9 @@ TEST_F(regexTest, iter_advances_empty_match_over_astral_code_point)
                                                  NULL); // [手順] - サロゲート ペアを越えた次の空一致を取得する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, first_result); // [確認_正常系] - 1 回目の列挙が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, first_result);  // [確認_正常系] - 1 回目の列挙が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK, second_result); // [確認_正常系] - 2 回目の列挙が COM_UTIL_OK であること。
-    EXPECT_EQ(1, has_match); // [確認_正常系] - 2 回目も空一致を示すこと。
+    EXPECT_EQ(1, has_match);               // [確認_正常系] - 2 回目も空一致を示すこと。
 
     // Cleanup
     com_util_regex_iter_dispose(iter);
@@ -1474,17 +1500,18 @@ TEST_F(regexTest, replace_checks_replacement_limit_and_sed_flag)
     // Pre-Assert
 
     // Act
-    int limit_result = com_util_regex_replace(regex, "a", 1U, large_replacement.data(), COM_UTIL_REGEX_DEFAULT,
-                                              buffer, sizeof(buffer), NULL,
+    int limit_result = com_util_regex_replace(regex, "a", 1U, large_replacement.data(), COM_UTIL_REGEX_DEFAULT, buffer,
+                                              sizeof(buffer), NULL,
                                               NULL); // [手順] - 最大長を超える置換文字列を指定する。
-    int sed_result = com_util_regex_replace(regex, "a", 1U, "\\1", COM_UTIL_REGEX_REPLACE_SED, buffer,
-                                            sizeof(buffer), NULL,
-                                            NULL); // [手順] - sed 書式の後方参照を指定する。
+    int sed_result =
+        com_util_regex_replace(regex, "a", 1U, "\\1", COM_UTIL_REGEX_REPLACE_SED, buffer, sizeof(buffer), NULL,
+                               NULL); // [手順] - sed 書式の後方参照を指定する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED, limit_result); // [確認_異常系] - 長過ぎる置換文字列が LIMIT_EXCEEDED になること。
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              limit_result);            // [確認_異常系] - 長過ぎる置換文字列が LIMIT_EXCEEDED になること。
     EXPECT_EQ(COM_UTIL_OK, sed_result); // [確認_正常系] - sed 書式の置換が COM_UTIL_OK になること。
-    EXPECT_STREQ("a", buffer); // [確認_正常系] - sed 書式の後方参照結果が a であること。
+    EXPECT_STREQ("a", buffer);          // [確認_正常系] - sed 書式の後方参照結果が a であること。
 
     // Cleanup
     com_util_regex_dispose(regex);
@@ -1505,14 +1532,15 @@ TEST_F(regexTest, split_advances_empty_match_over_astral_code_point)
     // Pre-Assert
 
     // Act
-    int result = com_util_regex_split(regex, text.data(), text.size(), 0U, COM_UTIL_REGEX_DEFAULT, parts, 2U,
-                                      &part_count,
-                                      NULL); // [手順] - BMP 外文字を空一致パターンで分割する。
+    int result =
+        com_util_regex_split(regex, text.data(), text.size(), 0U, COM_UTIL_REGEX_DEFAULT, parts, 2U, &part_count,
+                             NULL); // [手順] - BMP 外文字を空一致パターンで分割する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 空一致分割の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(1U, part_count); // [確認_正常系] - 空一致分割で入力全体の 1 件が返ること。
-    EXPECT_EQ(text, std::string(text.data() + parts[0].begin, parts[0].end - parts[0].begin)); // [確認_正常系] - 入力全体が保持されること。
+    EXPECT_EQ(1U, part_count);      // [確認_正常系] - 空一致分割で入力全体の 1 件が返ること。
+    EXPECT_EQ(text, std::string(text.data() + parts[0].begin,
+                                parts[0].end - parts[0].begin)); // [確認_正常系] - 入力全体が保持されること。
 
     // Cleanup
     com_util_regex_dispose(regex);

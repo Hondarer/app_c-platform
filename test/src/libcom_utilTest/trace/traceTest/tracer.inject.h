@@ -39,6 +39,13 @@ extern "C"
     extern void test_tracer_set_config_rwlock_initialized(com_util_tracer *handle, int initialized);
     extern com_util_local_rwlock *test_tracer_get_config_rwlock(com_util_tracer *handle);
     extern void test_tracer_set_hook_fn(com_util_tracer_hook_entry *entry, com_util_tracer_hook_fn fn);
+    extern void test_tracer_unregister(com_util_tracer *handle);
+    extern void test_tracer_install_null_fn_hook(com_util_tracer *handle);
+    extern void test_tracer_clear_hook_head(com_util_tracer *handle);
+    extern void test_tracer_call_next_null(com_util_tracer *handle);
+    extern void test_tracer_call_next_null_fn(com_util_tracer *handle);
+    extern void test_tracer_call_next_with_fn(com_util_tracer *handle, com_util_tracer_hook_fn fn);
+    extern void test_tracer_clear_file_path(com_util_tracer *handle);
 
 #ifdef __cplusplus
 }

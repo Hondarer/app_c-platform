@@ -246,7 +246,7 @@ TEST_F(regexUtf8Test, decode_handles_empty_null_and_invalid_trail_inputs)
     // Pre-Assert
 
     // Act
-    bool empty_result = utf8_decode(NULL, 0U, units, offsets); // [手順] - NULL と長さ 0 の入力を変換する。
+    bool empty_result = utf8_decode(NULL, 0U, units, offsets);         // [手順] - NULL と長さ 0 の入力を変換する。
     bool null_nonempty_result = utf8_decode(NULL, 1U, units, offsets); // [手順] - NULL と長さ 1 の入力を変換する。
     bool invalid_trail_result = utf8_decode(invalid_trail.data(), invalid_trail.size(), units,
                                             offsets); // [手順] - 不正な後続バイトを含む入力を変換する。
@@ -256,12 +256,14 @@ TEST_F(regexUtf8Test, decode_handles_empty_null_and_invalid_trail_inputs)
                                             offsets); // [手順] - 4 バイトのオーバー ロング表現を変換する。
 
     // Assert
-    EXPECT_TRUE(empty_result); // [確認_正常系] - NULL の空入力に対する utf8_decode の戻り値が true であること。
+    EXPECT_TRUE(empty_result);  // [確認_正常系] - NULL の空入力に対する utf8_decode の戻り値が true であること。
     EXPECT_TRUE(units.empty()); // [確認_正常系] - NULL の空入力でコード単位列が空であること。
-    EXPECT_FALSE(null_nonempty_result); // [確認_異常系] - NULL の非空入力に対する utf8_decode の戻り値が false であること。
-    EXPECT_FALSE(invalid_trail_result); // [確認_異常系] - 不正な後続バイトに対する utf8_decode の戻り値が false であること。
+    EXPECT_FALSE(
+        null_nonempty_result); // [確認_異常系] - NULL の非空入力に対する utf8_decode の戻り値が false であること。
+    EXPECT_FALSE(
+        invalid_trail_result); // [確認_異常系] - 不正な後続バイトに対する utf8_decode の戻り値が false であること。
     EXPECT_FALSE(overlong_three_result); // [確認_異常系] - 3 バイトのオーバー ロング表現が拒否されること。
-    EXPECT_FALSE(overlong_four_result); // [確認_異常系] - 4 バイトのオーバー ロング表現が拒否されること。
+    EXPECT_FALSE(overlong_four_result);  // [確認_異常系] - 4 バイトのオーバー ロング表現が拒否されること。
 }
 
 // UTF-16 コード単位の不正なサロゲート構成が符号化を拒否することの確認
@@ -271,7 +273,7 @@ TEST_F(regexUtf8Test, encode_rejects_incomplete_surrogate_pairs)
     std::wstring high_only;
     std::wstring high_then_ascii;
     std::string encoded;
-    high_only.push_back((wchar_t)0xD800); // [状態] - 上位サロゲートだけを用意する。
+    high_only.push_back((wchar_t)0xD800);       // [状態] - 上位サロゲートだけを用意する。
     high_then_ascii.push_back((wchar_t)0xD800); // [状態] - 上位サロゲートの後へ ASCII を置く。
     high_then_ascii.push_back(L'a');
 
@@ -279,14 +281,15 @@ TEST_F(regexUtf8Test, encode_rejects_incomplete_surrogate_pairs)
 
     // Act
     bool high_only_result = utf8_encode(high_only, encoded); // [手順] - 上位サロゲートだけを UTF-8 へ変換する。
-    bool high_then_ascii_result = utf8_encode(high_then_ascii, encoded); // [手順] - 下位サロゲートでない単位に続く上位サロゲートを変換する。
+    bool high_then_ascii_result =
+        utf8_encode(high_then_ascii, encoded); // [手順] - 下位サロゲートでない単位に続く上位サロゲートを変換する。
     const std::wstring two_byte_units = L"\x00E9";
     bool two_byte_result = utf8_encode(two_byte_units, encoded); // [手順] - 2 バイト文字を UTF-8 へ変換する。
 
     // Assert
-    EXPECT_FALSE(high_only_result); // [確認_異常系] - 上位サロゲート単独の utf8_encode が false であること。
+    EXPECT_FALSE(high_only_result);       // [確認_異常系] - 上位サロゲート単独の utf8_encode が false であること。
     EXPECT_FALSE(high_then_ascii_result); // [確認_異常系] - 不完全なサロゲート ペアの utf8_encode が false であること。
-    EXPECT_TRUE(two_byte_result); // [確認_正常系] - 2 バイト文字の utf8_encode が true であること。
+    EXPECT_TRUE(two_byte_result);         // [確認_正常系] - 2 バイト文字の utf8_encode が true であること。
 }
 
 // オフセット変換の空写像、終端超過、サロゲート内部を処理することの確認
@@ -303,20 +306,55 @@ TEST_F(regexUtf8Test, offset_helpers_handle_empty_and_out_of_range_indices)
 
     // Act
     std::size_t empty_begin = offset_of_begin(units, empty_offsets, 0U); // [手順] - 空写像の開始オフセットを取得する。
-    std::size_t out_begin = offset_of_begin(units, offsets, 99U); // [手順] - 範囲外の開始索引を変換する。
-    std::size_t empty_end = offset_of_end(units, empty_offsets, 0U); // [手順] - 空写像の終了オフセットを取得する。
-    std::size_t out_end = offset_of_end(units, offsets, 99U); // [手順] - 範囲外の終了索引を変換する。
+    std::size_t out_begin = offset_of_begin(units, offsets, 99U);        // [手順] - 範囲外の開始索引を変換する。
+    std::size_t empty_end = offset_of_end(units, empty_offsets, 0U);     // [手順] - 空写像の終了オフセットを取得する。
+    std::size_t out_end = offset_of_end(units, offsets, 99U);            // [手順] - 範囲外の終了索引を変換する。
     std::size_t first_end = offset_of_end(units, offsets, 0U); // [手順] - 先頭索引の終了オフセットを変換する。
-    std::size_t regular_end = offset_of_end(two_units, two_offsets, 1U); // [手順] - 通常文字の終了オフセットを変換する。
+    std::size_t regular_end =
+        offset_of_end(two_units, two_offsets, 1U); // [手順] - 通常文字の終了オフセットを変換する。
     std::size_t index = 99U;
     bool empty_index_result = index_of_offset(empty_offsets, 0U, index); // [手順] - 空写像からオフセットを検索する。
 
     // Assert
-    EXPECT_EQ(0U, empty_begin); // [確認_正常系] - 空写像の開始オフセットが 0 であること。
-    EXPECT_EQ(1U, out_begin); // [確認_正常系] - 範囲外の開始オフセットが終端へ丸められること。
-    EXPECT_EQ(0U, empty_end); // [確認_正常系] - 空写像の終了オフセットが 0 であること。
-    EXPECT_EQ(1U, out_end); // [確認_正常系] - 範囲外の終了オフセットが終端へ丸められること。
-    EXPECT_EQ(0U, first_end); // [確認_正常系] - 先頭索引の終了オフセットが 0 であること。
-    EXPECT_EQ(1U, regular_end); // [確認_正常系] - 通常文字の終了オフセットが対応するオフセットであること。
+    EXPECT_EQ(0U, empty_begin);       // [確認_正常系] - 空写像の開始オフセットが 0 であること。
+    EXPECT_EQ(1U, out_begin);         // [確認_正常系] - 範囲外の開始オフセットが終端へ丸められること。
+    EXPECT_EQ(0U, empty_end);         // [確認_正常系] - 空写像の終了オフセットが 0 であること。
+    EXPECT_EQ(1U, out_end);           // [確認_正常系] - 範囲外の終了オフセットが終端へ丸められること。
+    EXPECT_EQ(0U, first_end);         // [確認_正常系] - 先頭索引の終了オフセットが 0 であること。
+    EXPECT_EQ(1U, regular_end);       // [確認_正常系] - 通常文字の終了オフセットが対応するオフセットであること。
     EXPECT_FALSE(empty_index_result); // [確認_異常系] - 空写像の検索が false になること。
+}
+
+// 有効な 2 バイト列と BMP 上位文字、終端索引を処理することの確認
+TEST_F(regexUtf8Test, decode_encode_cover_two_byte_and_boundary_units)
+{
+    // Arrange
+    const std::string two_byte = "\xC3\xA9";
+    std::wstring decoded_units;
+    std::vector<std::size_t> decoded_offsets;
+    std::wstring private_use;
+    std::string encoded;
+    const std::string astral = u8"\U0001F600";
+    std::wstring astral_units;
+    std::vector<std::size_t> astral_offsets;
+    private_use.push_back((wchar_t)0xE000); // [状態] - 下位サロゲート上限を超える BMP 文字 U+E000 を用意する。
+
+    // Pre-Assert
+
+    // Act
+    bool two_byte_result = utf8_decode(two_byte.data(), two_byte.size(), decoded_units,
+                                       decoded_offsets);         // [手順] - 有効な 2 バイト文字 U+00E9 を変換する。
+    bool private_use_result = utf8_encode(private_use, encoded); // [手順] - U+E000 を UTF-8 へ変換する。
+    ASSERT_TRUE(utf8_decode(astral.data(), astral.size(), astral_units, astral_offsets));
+    std::size_t end_index_offset = offset_of_end(
+        astral_units, astral_offsets, astral_units.size()); // [手順] - コード単位数と等しい終了索引を変換する。
+
+    // Assert
+    EXPECT_TRUE(
+        two_byte_result); // [確認_正常系] - 有効な 2 バイト文字に対する utf8_decode の戻り値が true であること。
+    ASSERT_EQ((std::size_t)1, decoded_units.size()); // [確認_正常系] - 2 バイト文字のコード単位数が 1 であること。
+    EXPECT_EQ((wchar_t)0x00E9, decoded_units[0]);    // [確認_正常系] - 変換結果が U+00E9 であること。
+    EXPECT_TRUE(private_use_result);                 // [確認_正常系] - U+E000 の utf8_encode が true であること。
+    EXPECT_EQ(astral_offsets.back(),
+              end_index_offset); // [確認_正常系] - 終端索引の offset_of_end が写像表の末尾と一致すること。
 }

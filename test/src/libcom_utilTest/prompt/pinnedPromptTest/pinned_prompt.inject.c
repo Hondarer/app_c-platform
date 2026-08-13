@@ -250,11 +250,11 @@ int test_pinned_prompt_history_fill(com_util_pinned_prompt *screen, size_t count
     }
     for (i = 0U; i < count; i++)
     {
-        pinned_prompt_history_add(screen, context, "value");
-        if (context->entries[context->head] != NULL)
-        {
-            context->entries[context->head][0] = (char)('a' + (int)(i % 26U));
-        }
+        char line[8];
+
+        line[0] = (char)('a' + (int)(i % 26U));
+        line[1] = '\0';
+        pinned_prompt_history_add(screen, context, line);
     }
     pinned_prompt_history_prev(screen, context);
     pinned_prompt_history_prev(screen, context);
@@ -299,6 +299,66 @@ void test_pinned_prompt_history_null_entry_paths(com_util_pinned_prompt *screen)
     context->browse_idx = 0;
     pinned_prompt_history_next(screen, context);
     context->entries[slot] = entry;
+}
+
+void test_pinned_prompt_render_status(com_util_pinned_prompt *screen, int row, const char *left, const char *right)
+{
+    pinned_prompt_render_status_line(screen, row, left, right);
+}
+
+void test_pinned_prompt_history_next_null(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_history_next(screen, NULL);
+}
+
+void test_pinned_prompt_history_next_null_entry(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_history_ctx *context;
+    size_t slot;
+
+    context = pinned_prompt_find_or_create_history_ctx(screen, "next-null.c", 1);
+    if (context == NULL)
+    {
+        return;
+    }
+    pinned_prompt_history_add(screen, context, "a");
+    pinned_prompt_history_add(screen, context, "b");
+    slot = PINNED_PROMPT_HIST_IDX(screen, context, 1U);
+    free(context->entries[slot]);
+    context->entries[slot] = NULL;
+    context->browse_idx = 0;
+    pinned_prompt_history_next(screen, context);
+}
+
+void test_pinned_prompt_set_status_dirty(com_util_pinned_prompt *screen, int dirty)
+{
+    screen->status_dirty = dirty;
+}
+
+void test_pinned_prompt_history_add_after_null_last(com_util_pinned_prompt *screen)
+{
+    pinned_prompt_history_ctx *context;
+    size_t slot;
+
+    context = pinned_prompt_find_or_create_history_ctx(screen, "null-last.c", 1);
+    if (context == NULL)
+    {
+        return;
+    }
+    pinned_prompt_history_add(screen, context, "first");
+    slot = PINNED_PROMPT_HIST_IDX(screen, context, context->count - 1U);
+    free(context->entries[slot]);
+    context->entries[slot] = NULL;
+    pinned_prompt_history_add(screen, context, "second");
+}
+
+void test_pinned_prompt_destroy_mutex(com_util_pinned_prompt *screen)
+{
+    if (screen->mutex_active)
+    {
+        (void)com_util_local_lock_destroy(screen->mutex);
+        screen->mutex_active = 0;
+    }
 }
 
 void test_pinned_prompt_history_release_entries(com_util_pinned_prompt *screen)

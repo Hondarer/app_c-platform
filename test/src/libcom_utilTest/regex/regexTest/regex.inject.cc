@@ -74,6 +74,7 @@ bool getloc_is_classic(void)
     return traits.getloc() == std::locale::classic();
 }
 
+    #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 int translate_error(std::regex_constants::error_type code)
 {
     try
@@ -109,6 +110,7 @@ int translate_unknown(void)
         return translate_exception(nullptr);
     }
 }
+    #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 } // namespace
 
 unsigned int test_regex_lookup_classname(const wchar_t *name, bool icase)
@@ -161,6 +163,7 @@ bool test_regex_getloc_is_classic(void)
     return getloc_is_classic();
 }
 
+    #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 int test_regex_translate_error(std::regex_constants::error_type code)
 {
     return translate_error(code);
@@ -174,6 +177,36 @@ int test_regex_translate_bad_alloc(void)
 int test_regex_translate_unknown(void)
 {
     return translate_unknown();
+}
+    #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
+
+void test_regex_iter_set_position(com_util_regex_iter *iter, std::size_t position)
+{
+    iter->position = position;
+}
+
+bool test_regex_find_next_rejects_position_past_end(const com_util_regex *regex)
+{
+    match_type matched;
+    std::size_t begin_index = 0;
+    std::size_t end_index = 0;
+    const std::wstring units;
+
+    return find_next(regex, units, 0U, 1U, matched, begin_index, end_index);
+}
+
+bool test_regex_to_syntax_option(unsigned int flags)
+{
+    std::regex_constants::syntax_option_type option = std::regex_constants::ECMAScript;
+
+    return to_syntax_option(flags, option);
+}
+
+std::size_t test_regex_advance_position(const wchar_t *text, std::size_t position)
+{
+    const std::wstring units(text);
+
+    return advance_position(units, position);
 }
 
 #endif /* _IN_TEST_SRC */

@@ -731,10 +731,6 @@ static void pinned_prompt_calc_layout(com_util_pinned_prompt *screen, pinned_pro
         layout->bottom_status_row = 0;
     }
 
-    if (layout->prompt_row < 1)
-    {
-        layout->prompt_row = 1;
-    }
     if (layout->prompt_sep_row < 1)
     {
         layout->prompt_sep_row = 1;

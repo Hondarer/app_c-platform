@@ -103,6 +103,13 @@ extern "C"
     extern int test_pinned_prompt_history_failure_state(com_util_pinned_prompt *screen, const char *file, int line);
     extern void test_pinned_prompt_history_null_entry_paths(com_util_pinned_prompt *screen);
     extern void test_pinned_prompt_history_release_entries(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_render_status(com_util_pinned_prompt *screen, int row, const char *left,
+                                                 const char *right);
+    extern void test_pinned_prompt_history_next_null(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_history_next_null_entry(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_set_status_dirty(com_util_pinned_prompt *screen, int dirty);
+    extern void test_pinned_prompt_destroy_mutex(com_util_pinned_prompt *screen);
+    extern void test_pinned_prompt_history_add_after_null_last(com_util_pinned_prompt *screen);
 
 #if defined(PLATFORM_LINUX)
     /* Linux プラットフォーム層の static 状態をテスト開始状態へ戻す。 */

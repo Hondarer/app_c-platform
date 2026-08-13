@@ -35,6 +35,9 @@ extern "C"
     /* 登録結果記録の早期終了条件を直接確認するためのテスト用関数。 */
     extern void test_argparser_record_register_result(com_util_argparser *parser, int result);
 
+    /* 短い名前の長さ不一致枝を確認するため、登録済み short_name を差し替える。 */
+    extern void test_argparser_replace_short_name(com_util_argparser *parser, size_t index, const char *name);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

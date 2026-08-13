@@ -3070,3 +3070,28 @@ TEST_F(argparserTest, print_register_error_messages_skips_message_when_snprintf_
     // Cleanup
     _com_util_argparser_dispose(parser);
 }
+
+// 短い名前の長さが照合長と一致しない登録項目を検索から除外することの確認
+TEST_F(argparserTest, parse_skips_short_name_when_length_differs)
+{
+    // Arrange
+    com_util_argparser *parser = _com_util_argparser_create(NULL);
+    ASSERT_NE(nullptr, parser);
+    int flag = 0;
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &flag));
+    test_argparser_replace_short_name(parser, 0u, "-abc"); // [状態] - 登録済み短い名前を長さ 4 の "-abc" へ差し替える。
+
+    // Pre-Assert
+
+    // Act
+    char *argv[] = {cstr("prog"), cstr("-a")};
+    int result = _com_util_argparser_parse(parser, 2, argv); // [手順] - 長さ 2 の短いオプション -a を解析する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
+              result); // [確認_異常系] - 長さが一致しない短い名前を解析した _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
+    EXPECT_EQ(0, flag); // [確認_異常系] - 長さが一致しない短い名前では flag が変化しないこと。
+
+    // Cleanup
+    _com_util_argparser_dispose(parser);
+}

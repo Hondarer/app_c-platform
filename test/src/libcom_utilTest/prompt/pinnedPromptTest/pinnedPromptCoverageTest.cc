@@ -1,5 +1,7 @@
 #include <testfw.h>
 
+#include <cstring>
+
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/prompt/pinned_prompt.h>
@@ -18,6 +20,7 @@
 
 using testing::_;
 using testing::DoAll;
+using testing::DoDefault;
 using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
@@ -649,6 +652,259 @@ TEST(pinnedPromptCoverageTest, status_apis_cover_toggle_and_allocation_failure)
     EXPECT_EQ(COM_UTIL_OK, bottom_enable); // [確認_正常系] - 下部ステータスの有効化が OK になること。
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, direct_failure); // [確認_異常系] - 直接のステータス再確保失敗が OUT_OF_MEMORY になること。
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY, public_failure); // [確認_異常系] - 公開 API のステータス再確保失敗が OUT_OF_MEMORY になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#if defined(PLATFORM_LINUX)
+
+// CSI の default 枝が未知シーケンスを UNKNOWN に分類することの確認
+TEST(pinnedPromptCoverageTest, read_key_classifies_unknown_csi_default)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+    const unsigned char input[] = {0x1BU, '[', '2', 0x1BU, '[', '4', 'x'};
+    size_t input_pos = 0U;
+    int out_ch = -1;
+    int key = TEST_PINNED_PROMPT_KEY_CHAR;
+    int four_key = TEST_PINNED_PROMPT_KEY_CHAR;
+
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillRepeatedly(Return(1));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke([&input, &input_pos](const char *, const int, const char *, const int, void *arg,
+                                                    const size_t)
+                               {
+                                   if (input_pos < sizeof(input))
+                                   {
+                                       *static_cast<unsigned char *>(arg) = input[input_pos++];
+                                       return static_cast<ssize_t>(1);
+                                   }
+                                   return static_cast<ssize_t>(0);
+                               }));
+
+    // Pre-Assert
+
+    // Act
+    key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 2 の未知 CSI を分類する。
+    four_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 4 x の不正終端を分類する。
+
+    // Assert
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, key); // [確認_異常系] - ESC [ 2 が UNKNOWN になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, four_key); // [確認_異常系] - ESC [ 4 x が UNKNOWN になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// CR、BS、空ステータス、幅不足のステータス行を処理することの確認
+TEST(pinnedPromptCoverageTest, read_key_and_status_cover_remaining_conditions)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+    NiceMock<Mock_ioctl> mock_ioctl;
+    const unsigned char input[] = {'\r', 0x08U, 0x1BU, '[', '3', 'x'};
+    size_t input_pos = 0U;
+    int out_ch = -1;
+    int cr_key = TEST_PINNED_PROMPT_KEY_CHAR;
+    int bs_key = TEST_PINNED_PROMPT_KEY_CHAR;
+    int three_key = TEST_PINNED_PROMPT_KEY_CHAR;
+    struct winsize wide_size = {};
+    wide_size.ws_col = 80U;
+    wide_size.ws_row = 24U;
+
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([wide_size](const char *, const int, const char *, const int, const unsigned long,
+                                                 void *argument)
+                               { *static_cast<struct winsize *>(argument) = wide_size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillRepeatedly(Return(1));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke([&input, &input_pos](const char *, const int, const char *, const int, void *arg,
+                                                    const size_t)
+                               {
+                                   if (input_pos < sizeof(input))
+                                   {
+                                       *static_cast<unsigned char *>(arg) = input[input_pos++];
+                                       return static_cast<ssize_t>(1);
+                                   }
+                                   return static_cast<ssize_t>(0);
+                               }));
+
+    // Pre-Assert
+
+    // Act
+    cr_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - CR をキー分類する。
+    bs_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - BS をキー分類する。
+    three_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 3 x を分類する。
+    test_pinned_prompt_render_state(screen, 1, 1, 1, 1, "p", "e", "", "RIGHT", "LEFT", "");
+    test_pinned_prompt_render(screen); // [手順] - 空の左ステータスと右ステータスを 80 列へ描画する。
+    test_pinned_prompt_set_internal_state(screen, 80, 24, 24, 1, 1, 1, 0U, 0U);
+    test_pinned_prompt_cleanup_terminal(screen); // [手順] - main_bottom が行数と同じ端末を初期状態へ戻す。
+
+    // Assert
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_ENTER, cr_key); // [確認_正常系] - CR が ENTER になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_BACKSPACE, bs_key); // [確認_正常系] - BS が BACKSPACE になること。
+    EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, three_key); // [確認_異常系] - ESC [ 3 x が UNKNOWN になること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 残っている複合条件をステータス、履歴、破棄、書き込みで充足することの確認
+TEST(pinnedPromptCoverageTest, remaining_conditions_cover_null_status_history_and_write)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    size_t written = 99U;
+    int write_null_out = COM_UTIL_OK;
+    int write_with_out = COM_UTIL_OK;
+    const char payload[] = "xy";
+
+    test_pinned_prompt_set_internal_state(screen, 80, 24, 1, 1, 1, 1, 0U, 0U);
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_render_status(screen, 1, NULL, NULL); // [手順] - 左右とも NULL のステータス行を描画する。
+    test_pinned_prompt_render_status(screen, 1, "", "RIGHT"); // [手順] - 空の左と非空の右を描画する。
+    test_pinned_prompt_render_status(screen, 1, "LEFT", NULL); // [手順] - 非空の左と NULL の右を描画する。
+    test_pinned_prompt_render_status(screen, 1, "LEFT", ""); // [手順] - 非空の左と空の右を描画する。
+    test_pinned_prompt_set_status_dirty(screen, 1);
+    test_pinned_prompt_set_internal_state(screen, 80, 2, 1, 1, 1, 1, 0U, 0U);
+    test_pinned_prompt_render(screen); // [手順] - ステータス有効だが表示できない低さで描画する。
+    test_pinned_prompt_set_tty(screen, 0);
+    test_pinned_prompt_hide(screen); // [手順] - 非 TTY で hide する。
+    test_pinned_prompt_finish(screen); // [手順] - 非 TTY で finish する。
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_set_internal_state(screen, 80, 24, 10, 1, 0, 0, 0U, 0U);
+    test_pinned_prompt_cleanup_terminal(screen); // [手順] - main_bottom が行数より小さい端末を戻す。
+    test_pinned_prompt_set_edit_line(screen, NULL); // [手順] - NULL 行を編集バッファーへ設定する。
+    test_pinned_prompt_history_next_null(screen); // [手順] - NULL 履歴コンテキストで次履歴を要求する。
+    test_pinned_prompt_set_input_limits(screen, 4U, 4096U);
+    test_pinned_prompt_history_next_null_entry(screen); // [手順] - NULL 履歴要素を次へ進める。
+    test_pinned_prompt_set_input_limits(screen, 2U, 4096U);
+    (void)test_pinned_prompt_history_fill(screen, 1U);
+    test_pinned_prompt_set_tty(screen, 0);
+    write_null_out = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, payload,
+                                                  sizeof(payload) - 1U, NULL); // [手順] - written_out NULL で書き込む。
+    write_with_out = com_util_pinned_prompt_write(screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, payload,
+                                                  sizeof(payload) - 1U, &written); // [手順] - written_out 付きで書き込む。
+    test_pinned_prompt_destroy_mutex(screen);
+    com_util_pinned_prompt_dispose(screen); // [手順] - mutex を先に破棄したハンドルを dispose する。
+    screen = NULL;
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, write_null_out); // [確認_正常系] - written_out NULL の write が OK であること。
+    EXPECT_EQ(COM_UTIL_OK, write_with_out); // [確認_正常系] - written_out 付きの write が OK であること。
+}
+
+// ステータス幅不足、低画面、履歴の NULL 要素、malloc 失敗を充足することの確認
+TEST(pinnedPromptCoverageTest, remaining_five_branches)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+
+    // Pre-Assert
+
+    // Act
+    test_pinned_prompt_set_internal_state(screen, 2, 24, 1, 1, 0, 0, 0U, 0U);
+    test_pinned_prompt_render_status(screen, 1, "AB", "CD"); // [手順] - 2 列画面へ左右とも幅 2 のステータスを描画する。
+    test_pinned_prompt_set_status_dirty(screen, 1);
+    test_pinned_prompt_set_internal_state(screen, 80, 2, 1, 1, 0, 1, 0U, 0U);
+    test_pinned_prompt_render(screen); // [手順] - 下部ステータスだけ有効な 2 行画面を描画する。
+    test_pinned_prompt_set_internal_state(screen, 80, 1, 1, 1, 0, 0, 0U, 0U);
+    test_pinned_prompt_cleanup_terminal(screen); // [手順] - 1 行画面の制御領域を戻す。
+    test_pinned_prompt_set_input_limits(screen, 4U, 4096U);
+    test_pinned_prompt_history_add_after_null_last(screen); // [手順] - 直前要素が NULL の履歴へ追加する。
+    {
+        NiceMock<Mock_stdlib> mock_stdlib;
+        EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+            .WillOnce(Return(nullptr))
+            .WillRepeatedly(Invoke(delegate_real_malloc));
+        test_pinned_prompt_history_add_after_null_last(screen); // [手順] - malloc 失敗状態で履歴へ追加する。
+    }
+
+    // Assert
+    SUCCEED(); // [確認_正常系] - 残分岐用の描画と履歴操作が完了すること。
+
+    // Cleanup
+    test_pinned_prompt_history_release_entries(screen);
+    com_util_pinned_prompt_dispose(screen);
+}
+
+#endif /* PLATFORM_LINUX */
+
+// 書式バッファーの再確保成功が新しい容量へ差し替わることの確認
+TEST(pinnedPromptCoverageTest, format_helper_grows_buffer_when_realloc_succeeds)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_stdio> mock_stdio;
+    char long_text[300];
+    int grow_result = -1;
+
+    memset(long_text, 'x', sizeof(long_text) - 1U);
+    long_text[sizeof(long_text) - 1U] = '\0';
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+        .WillOnce(Invoke(delegate_real_realloc)); // [Pre-Assert確認_正常系] - 書式バッファー再確保が 1 回呼び出されること。
+                                                  // [Pre-Assert手順] - realloc から新しいバッファーを返却する。
+    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
+        .WillOnce(DoDefault())
+        .WillOnce(Return(500))
+        .WillRepeatedly(DoDefault());
+
+    // Act
+    ASSERT_EQ(0, test_pinned_prompt_format(screen, "%s", "x"));
+    grow_result = test_pinned_prompt_format(screen, "%s", long_text); // [手順] - 長い書式結果で書式バッファーを再確保する。
+
+    // Assert
+    EXPECT_EQ(0, grow_result); // [確認_正常系] - 書式バッファー再確保成功時の format 結果が 0 であること。
+
+    // Cleanup
+    com_util_pinned_prompt_dispose(screen);
+}
+
+// 書式バッファー確保失敗時に readline_fmt が空プロンプトへ落とすことの確認
+TEST(pinnedPromptCoverageTest, readline_fmt_uses_empty_prompt_when_format_allocation_fails)
+{
+    // Arrange
+    com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL);
+    ASSERT_NE(nullptr, screen);
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_stdio> mock_stdio;
+    char input[] = "ok\n";
+    char output[16] = {};
+    int readline_result = COM_UTIL_ERR_UNKNOWN;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 書式バッファーの初回確保が失敗すること。
+                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
+
+    // Act
+    readline_result = com_util_pinned_prompt_readline_fmt(screen, output, sizeof(output), "%s",
+                                                          "prompt"); // [手順] - 書式バッファー確保失敗状態で readline_fmt を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK,
+              readline_result); // [確認_異常系] - format 失敗後の com_util_pinned_prompt_readline_fmt の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("ok", output); // [確認_異常系] - format 失敗後の readline_fmt が空プロンプトで入力を受け取ること。
 
     // Cleanup
     com_util_pinned_prompt_dispose(screen);

@@ -51,3 +51,9 @@ void test_argparser_record_register_result(com_util_argparser *parser, int resul
 {
     argparser_record_register_result(parser, result, NULL, NULL);
 }
+
+void test_argparser_replace_short_name(com_util_argparser *parser, size_t index, const char *name)
+{
+    free(parser->specs[index].short_name);
+    parser->specs[index].short_name = argparser_strdup(name);
+}
