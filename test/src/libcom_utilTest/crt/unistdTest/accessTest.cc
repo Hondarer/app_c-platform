@@ -1,53 +1,39 @@
 #include <testfw.h>
-#include <mock_com_util.h>
+#include <com_util/base/platform.h>
 #include <com_util/crt/unistd.h>
-#include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
 
 #include <errno.h>
-#include <fcntl.h>
-#include <filesystem>
-#include <cstdio>
 #include <string>
 
-#if defined(PLATFORM_WINDOWS)
-    #include <sys/stat.h>
-#endif /* PLATFORM_WINDOWS */
+#if defined(PLATFORM_LINUX)
+    #include <mock_unistd.h>
+#endif /* PLATFORM_LINUX */
 
-class accessTest : public Test
+using testing::_;
+using testing::Assign;
+using testing::DoAll;
+using testing::NiceMock;
+using testing::Return;
+using testing::StrEq;
+
+#if defined(PLATFORM_LINUX)
+
+class accessTest : public testing::Test
 {
   protected:
-    std::string path_;
-
-    void SetUp() override
-    {
-        std::string root = findWorkspaceRoot();
-        std::filesystem::path dir =
-            std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/crt/unistdTest/results";
-
-        std::filesystem::create_directories(dir);
-        path_ = (dir / "accessTest_work.bin").generic_string();
-
-        int fd = open_work_file();
-        ASSERT_LE(0, fd);
-        com_util_close(fd, NULL);
-    }
-
-    void TearDown() override
-    {
-        std::remove(path_.c_str());
-    }
-
-    int open_work_file()
-    {
-#if defined(PLATFORM_LINUX)
-        return com_util_open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644, NULL);
-#elif defined(PLATFORM_WINDOWS)
-        return com_util_open(path_.c_str(), _O_RDWR | _O_CREAT | _O_TRUNC | _O_BINARY, _S_IREAD | _S_IWRITE, NULL);
-#endif /* PLATFORM_ */
-    }
+    NiceMock<Mock_unistd> mock_unistd_;
 };
 
+#else /* PLATFORM_LINUX */
+
+class accessTest : public testing::Test
+{
+};
+
+#endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_LINUX)
 // 存在するファイルに対して com_util_access が 0 を返すことの確認
 TEST_F(accessTest, returns_zero_for_existing_file)
 {
@@ -55,10 +41,13 @@ TEST_F(accessTest, returns_zero_for_existing_file)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd_, access(_, _, _, StrEq("work.bin"), COM_UTIL_ACCESS_FMT_F_OK))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - access が work.bin と F_OK で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int rtc = com_util_access(path_.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
-                              &detail); // [手順] - 存在する作業ファイルに F_OK を指定して com_util_access を呼び出す。
+    int rtc = com_util_access("work.bin", COM_UTIL_ACCESS_FMT_F_OK,
+                              &detail); // [手順] - 存在するパスに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
     EXPECT_EQ(0, rtc);                            // [確認_正常系] - com_util_access の戻り値が 0 であること。
@@ -69,13 +58,16 @@ TEST_F(accessTest, returns_zero_for_existing_file)
 TEST_F(accessTest, returns_minus1_for_missing_file)
 {
     // Arrange
-    std::string missing = path_ + ".missing"; // [状態] - 存在しないパスを用意する。
-    com_util_error detail;                    // [状態] - 詳細エラーの格納先を用意する。
+    com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd_, access(_, _, _, StrEq("missing.bin"), COM_UTIL_ACCESS_FMT_F_OK))
+        .WillOnce(DoAll(Assign(&errno, ENOENT),
+                        Return(-1))); // [Pre-Assert確認_異常系] - access が missing.bin で 1 回呼び出されること。
+                                      // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
 
     // Act
-    int rtc = com_util_access(missing.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
+    int rtc = com_util_access("missing.bin", COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 存在しないパスに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
@@ -83,6 +75,7 @@ TEST_F(accessTest, returns_minus1_for_missing_file)
     EXPECT_EQ(1, com_util_error_is(&detail,
                                    COM_UTIL_CAUSE_NOT_FOUND)); // [確認_異常系] - 見つからないことが要因であること。
 }
+#endif /* PLATFORM_LINUX */
 
 // パスに NULL を渡した場合に com_util_access が EINVAL とともに -1 を返すことの確認
 TEST_F(accessTest, returns_minus1_for_null_path)

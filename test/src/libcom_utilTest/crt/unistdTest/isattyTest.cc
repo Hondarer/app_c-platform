@@ -1,9 +1,31 @@
 #include <testfw.h>
+#include <com_util/base/platform.h>
 #include <com_util/crt/unistd.h>
 
-class isattyTest : public Test
+#if defined(PLATFORM_LINUX)
+    #include <mock_unistd.h>
+    #include <unistd.h>
+#endif /* PLATFORM_LINUX */
+
+using testing::_;
+using testing::NiceMock;
+using testing::Return;
+
+#if defined(PLATFORM_LINUX)
+
+class isattyTest : public testing::Test
+{
+  protected:
+    NiceMock<Mock_unistd> mock_unistd_;
+};
+
+#else /* PLATFORM_LINUX */
+
+class isattyTest : public testing::Test
 {
 };
+
+#endif /* PLATFORM_LINUX */
 
 // 定義外のストリーム指定で 0 が返ることの確認
 TEST_F(isattyTest, invalid_stream_returns_zero)
@@ -22,51 +44,77 @@ TEST_F(isattyTest, invalid_stream_returns_zero)
     EXPECT_EQ(0, ret); // [確認_異常系] - com_util_isatty の戻り値が 0 であること。
 }
 
-// stdin の判定が 0 か 1 の範囲で返ることの確認
+// stdin の判定が STDIN_FILENO の isatty 結果になることの確認
 TEST_F(isattyTest, stdin_returns_int)
 {
     // Arrange
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, isatty(_, _, _, STDIN_FILENO))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - isatty が STDIN_FILENO で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 1 を返却する。
+#endif                        /* PLATFORM_LINUX */
 
     // Act
     int ret =
         com_util_isatty(COM_UTIL_STREAM_STDIN); // [手順] - COM_UTIL_STREAM_STDIN を渡して com_util_isatty を呼び出す。
 
     // Assert
-    /* テスト ハーネス下では stdin はリダイレクトされているため戻り値は環境依存 */
+#if defined(PLATFORM_LINUX)
+    EXPECT_EQ(1, ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_TRUE(ret == 0 ||
                 ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+#endif /* PLATFORM_ */
 }
 
-// stdout の判定が 0 か 1 の範囲で返ることの確認
+// stdout の判定が STDOUT_FILENO の isatty 結果になることの確認
 TEST_F(isattyTest, stdout_returns_int)
 {
     // Arrange
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, isatty(_, _, _, STDOUT_FILENO))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - isatty が STDOUT_FILENO で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+#endif                        /* PLATFORM_LINUX */
 
     // Act
     int ret = com_util_isatty(
         COM_UTIL_STREAM_STDOUT); // [手順] - COM_UTIL_STREAM_STDOUT を渡して com_util_isatty を呼び出す。
 
     // Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_EQ(0, ret); // [確認_正常系] - com_util_isatty の戻り値が 0 であること。
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_TRUE(ret == 0 ||
                 ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+#endif /* PLATFORM_ */
 }
 
-// stderr の判定が 0 か 1 の範囲で返ることの確認
+// stderr の判定が STDERR_FILENO の isatty 結果になることの確認
 TEST_F(isattyTest, stderr_returns_int)
 {
     // Arrange
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, isatty(_, _, _, STDERR_FILENO))
+        .WillOnce(Return(1)); // [Pre-Assert確認_正常系] - isatty が STDERR_FILENO で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 1 を返却する。
+#endif                        /* PLATFORM_LINUX */
 
     // Act
     int ret = com_util_isatty(
         COM_UTIL_STREAM_STDERR); // [手順] - COM_UTIL_STREAM_STDERR を渡して com_util_isatty を呼び出す。
 
     // Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_EQ(1, ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
+#elif defined(PLATFORM_WINDOWS)
     EXPECT_TRUE(ret == 0 ||
                 ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+#endif /* PLATFORM_ */
 }

@@ -1,57 +1,27 @@
 #include <testfw.h>
+#include <com_util/base/platform.h>
 #include <com_util/crt/unistd.h>
-#include <com_util/crt/fcntl.h>
 #include <mock_unistd.h>
 
-#include <errno.h>
-#include <fcntl.h>
-#include <filesystem>
-#include <cstdio>
+#include <cerrno>
 #include <cstring>
-#include <string>
 
-#if defined(PLATFORM_WINDOWS)
-    #include <sys/stat.h>
-#endif /* PLATFORM_WINDOWS */
+using testing::_;
+using testing::Assign;
+using testing::DoAll;
+using testing::NiceMock;
+using testing::Return;
 
-class fdTest : public Test
+namespace
+{
+const int kFakeFd = 7;
+const int kDupFd = 8;
+} // namespace
+
+class fdTest : public testing::Test
 {
   protected:
-    std::string path_;
-    int fd_ = -1;
-    int pad_ = 0;
-
-    void SetUp() override
-    {
-        std::string root = findWorkspaceRoot();
-        std::filesystem::path dir =
-            std::filesystem::path(root) / "app/com_util/test/src/libcom_utilTest/crt/unistdTest/results";
-
-        std::filesystem::create_directories(dir);
-        path_ = (dir / "fdTest_work.bin").generic_string();
-
-        fd_ = open_work_file();
-        ASSERT_LE(0, fd_);
-    }
-
-    void TearDown() override
-    {
-        if (fd_ >= 0)
-        {
-            com_util_close(fd_, NULL);
-            fd_ = -1;
-        }
-        std::remove(path_.c_str());
-    }
-
-    int open_work_file()
-    {
-#if defined(PLATFORM_LINUX)
-        return com_util_open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644, NULL);
-#elif defined(PLATFORM_WINDOWS)
-        return com_util_open(path_.c_str(), _O_RDWR | _O_CREAT | _O_TRUNC | _O_BINARY, _S_IREAD | _S_IWRITE, NULL);
-#endif /* PLATFORM_ */
-    }
+    NiceMock<Mock_unistd> mock_unistd_;
 };
 
 // write、lseek、read の一連の操作でデータが往復することの確認
@@ -59,15 +29,49 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
 {
     // Arrange
     const char data[] = "abcdef"; // [状態] - 書き込みデータを "abcdef" (6 バイト) とする。
-    char buf[16];
+    char buf[16] = {};
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, data, 6u))
+        .WillOnce(Return(6)); // [Pre-Assert確認_正常系] - write が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 6 を返却する。
+    EXPECT_CALL(mock_unistd_, lseek(_, _, _, kFakeFd, static_cast<off_t>(0), SEEK_SET))
+        .WillOnce(
+            Return(static_cast<off_t>(0))); // [Pre-Assert確認_正常系] - lseek が SEEK_SET で 1 回呼び出されること。
+                                            // [Pre-Assert手順] - 位置 0 を返却する。
+    EXPECT_CALL(mock_unistd_, read(_, _, _, kFakeFd, buf, sizeof(buf)))
+        .WillOnce(
+            [](const char *, int, const char *, int, void *dest, size_t)
+            {
+                std::memcpy(dest, "abcdef", 6u);
+                return static_cast<ssize_t>(6);
+            }); // [Pre-Assert確認_正常系] - read が番兵記述子 7 で 1 回呼び出されること。
+                // [Pre-Assert手順] - "abcdef" を格納し、6 を返却する。
+    EXPECT_CALL(mock_unistd_, lseek(_, _, _, kFakeFd, static_cast<off_t>(0), SEEK_END))
+        .WillOnce(
+            Return(static_cast<off_t>(6))); // [Pre-Assert確認_正常系] - lseek が SEEK_END で 1 回呼び出されること。
+                                            // [Pre-Assert手順] - 位置 6 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, kFakeFd, data, 6u)).WillOnce(Return(6));
+    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_SET))
+        .WillOnce(Return(static_cast<__int64>(0)));
+    EXPECT_CALL(mock_unistd_, _read(_, _, _, kFakeFd, buf, 16u))
+        .WillOnce(
+            [](const char *, int, const char *, int, void *dest, unsigned int)
+            {
+                std::memcpy(dest, "abcdef", 6u);
+                return 6;
+            });
+    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_END))
+        .WillOnce(Return(static_cast<__int64>(6)));
+#endif /* PLATFORM_ */
 
     // Act
-    int64_t written = com_util_write(fd_, data, 6, NULL);          // [手順] - 6 バイトを書き込む。
-    int64_t pos_head = com_util_lseek(fd_, 0, SEEK_SET, NULL);     // [手順] - 読み書き位置を先頭へ移動する。
-    int64_t read_len = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - ファイル全体を読み取る。
-    int64_t pos_end = com_util_lseek(fd_, 0, SEEK_END, NULL);      // [手順] - 読み書き位置を終端へ移動する。
+    int64_t written = com_util_write(kFakeFd, data, 6, NULL);          // [手順] - 6 バイトを書き込む。
+    int64_t pos_head = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL);     // [手順] - 読み書き位置を先頭へ移動する。
+    int64_t read_len = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - ファイル全体を読み取る。
+    int64_t pos_end = com_util_lseek(kFakeFd, 0, SEEK_END, NULL);      // [手順] - 読み書き位置を終端へ移動する。
 
     // Assert
     EXPECT_EQ(6, written);  // [確認_正常系] - 書き込んだバイト数が 6 であること。
@@ -81,57 +85,84 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
 TEST_F(fdTest, read_reaches_eof_returns_zero)
 {
     // Arrange
-    char buf[8]; // [状態] - 読み取り先バッファーを用意する。ファイルは空のままとする。
+    char buf[8]; // [状態] - 読み取り先バッファーを用意する。
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, read(_, _, _, kFakeFd, buf, sizeof(buf)))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - read が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_unistd_, _read(_, _, _, kFakeFd, buf, 8u)).WillOnce(Return(0));
+#endif /* PLATFORM_ */
 
     // Act
-    int64_t read_len = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 空ファイルから読み取る。
+    int64_t read_len = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 空ファイルから読み取る。
 
     // Assert
     EXPECT_EQ(0, read_len); // [確認_正常系] - com_util_read の戻り値として、ファイル終端では 0 が返ること。
 }
 
-// dup で複製した記述子が読み書き位置を共有することの確認
+// dup で複製した記述子へ書き込めることの確認
 TEST_F(fdTest, dup_shares_file_offset)
 {
     // Arrange
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, dup(_, _, _, kFakeFd))
+        .WillOnce(Return(kDupFd)); // [Pre-Assert確認_正常系] - dup が番兵記述子 7 で 1 回呼び出されること。
+                                   // [Pre-Assert手順] - 複製記述子 8 を返却する。
+    EXPECT_CALL(mock_unistd_, write(_, _, _, kDupFd, _, 4u))
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - write が複製記述子 8 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 4 を返却する。
+    EXPECT_CALL(mock_unistd_, lseek(_, _, _, kFakeFd, static_cast<off_t>(0), SEEK_CUR))
+        .WillOnce(
+            Return(static_cast<off_t>(4))); // [Pre-Assert確認_正常系] - lseek が SEEK_CUR で 1 回呼び出されること。
+                                            // [Pre-Assert手順] - 位置 4 を返却する。
+    EXPECT_CALL(mock_unistd_, close(_, _, _, kDupFd))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - close が複製記述子 8 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_unistd_, _dup(_, _, _, kFakeFd)).WillOnce(Return(kDupFd));
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, kDupFd, _, 4u)).WillOnce(Return(4));
+    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_CUR))
+        .WillOnce(Return(static_cast<__int64>(4)));
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, kDupFd)).WillOnce(Return(0));
+#endif /* PLATFORM_ */
 
     // Act
-    int dup_fd = com_util_dup(fd_, NULL); // [手順] - ファイル記述子を複製する。
+    int dup_fd = com_util_dup(kFakeFd, NULL);                  // [手順] - ファイル記述子を複製する。
+    int64_t written = com_util_write(dup_fd, "wxyz", 4, NULL); // [手順] - 複製側へ 4 バイト書き込む。
+    int64_t pos = com_util_lseek(kFakeFd, 0, SEEK_CUR, NULL);  // [手順] - 複製元の現在位置を取得する。
+    int close_rtc = com_util_close(dup_fd, NULL);              // [手順] - 複製側を閉じる。
 
     // Assert
-    ASSERT_LE(0, dup_fd);                                  // [確認_正常系] - 複製された記述子が有効であること。
-    EXPECT_EQ(4, com_util_write(dup_fd, "wxyz", 4, NULL)); // [確認_正常系] - 複製側で 4 バイト書き込めること。
-    EXPECT_EQ(4, com_util_lseek(fd_, 0, SEEK_CUR,
-                                NULL)); // [確認_正常系] - 複製元の読み書き位置が共有され 4 に進んでいること。
-    EXPECT_EQ(
-        0,
-        com_util_close(
-            dup_fd, NULL)); // [確認_正常系] - com_util_close の戻り値から、複製側のクローズが成功したと判断できること。
+    EXPECT_EQ(kDupFd, dup_fd); // [確認_正常系] - com_util_dup の戻り値が複製記述子 8 であること。
+    EXPECT_EQ(4, written);     // [確認_正常系] - 複製側へ書き込んだバイト数が 4 であること。
+    EXPECT_EQ(4, pos);         // [確認_正常系] - SEEK_CUR を指定した com_util_lseek の戻り値が 4 であること。
+    EXPECT_EQ(0, close_rtc);   // [確認_正常系] - 複製側の com_util_close の戻り値が 0 であること。
 }
 
 // dup2 の成功時に 0 が返ることの確認
 TEST_F(fdTest, dup2_returns_zero_on_success)
 {
     // Arrange
-    int target_fd = com_util_dup(fd_, NULL); // [状態] - 複製先とする有効な記述子番号を確保する。
-
-    ASSERT_LE(0, target_fd);
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, dup2(_, _, _, kFakeFd, kDupFd))
+        .WillOnce(Return(kDupFd)); // [Pre-Assert確認_正常系] - dup2 が 7 から 8 へ 1 回呼び出されること。
+                                   // [Pre-Assert手順] - 複製先記述子 8 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, kFakeFd, kDupFd)).WillOnce(Return(0));
+#endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup2(fd_, target_fd, NULL); // [手順] - fd_ を target_fd へ複製する。
+    int rtc = com_util_dup2(kFakeFd, kDupFd, NULL); // [手順] - 番兵記述子 7 を 8 へ複製する。
 
     // Assert
     EXPECT_EQ(0, rtc); // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
-    EXPECT_EQ(0,
-              com_util_close(
-                  target_fd,
-                  NULL)); // [確認_正常系] - com_util_close の戻り値から、複製先のクローズが成功したと判断できること。
 }
 
 // close の成功時に 0 が返ることの確認
@@ -140,13 +171,19 @@ TEST_F(fdTest, close_success_returns_zero)
     // Arrange
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd_, close(_, _, _, kFakeFd))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - close が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, kFakeFd)).WillOnce(Return(0));
+#endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_close(fd_, NULL); // [手順] - 開いている記述子を閉じる。
+    int rtc = com_util_close(kFakeFd, NULL); // [手順] - 開いている記述子を閉じる。
 
     // Assert
     EXPECT_EQ(0, rtc); // [確認_正常系] - com_util_close の戻り値として、クローズ成功時は 0 が返ること。
-    fd_ = -1;
 }
 
 // 負のファイル記述子で各関数が -1 を返すことの確認
@@ -162,8 +199,8 @@ TEST_F(fdTest, negative_fd_returns_minus1)
     int64_t rtc_lseek = com_util_lseek(-1, 0, SEEK_SET, NULL);
     int rtc_close = com_util_close(-1, NULL);
     int rtc_dup = com_util_dup(-1, NULL);
-    int rtc_dup2_oldfd = com_util_dup2(-1, fd_, NULL);
-    int rtc_dup2_newfd = com_util_dup2(fd_, -1, NULL);
+    int rtc_dup2_oldfd = com_util_dup2(-1, kFakeFd, NULL);
+    int rtc_dup2_newfd = com_util_dup2(kFakeFd, -1, NULL);
     int64_t rtc_read = com_util_read(-1, buf, sizeof(buf), NULL);
     int64_t rtc_write = com_util_write(-1, buf, sizeof(buf), NULL);
 
@@ -186,8 +223,8 @@ TEST_F(fdTest, null_buf_returns_minus1)
 
     // Act
     // [手順] - NULL バッファーで read と write を呼び出す。
-    int64_t rtc_read = com_util_read(fd_, NULL, 4, NULL);
-    int64_t rtc_write = com_util_write(fd_, NULL, 4, NULL);
+    int64_t rtc_read = com_util_read(kFakeFd, NULL, 4, NULL);
+    int64_t rtc_write = com_util_write(kFakeFd, NULL, 4, NULL);
 
     // Assert
     EXPECT_EQ(-1, rtc_read);  // [確認_異常系] - read (buf NULL) が -1 を返すこと。
@@ -202,7 +239,7 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
     // Pre-Assert
 
     // Act
-    int64_t rtc = com_util_lseek(fd_, 0, 99, NULL); // [手順] - 定義外の whence を与える。
+    int64_t rtc = com_util_lseek(kFakeFd, 0, 99, NULL); // [手順] - 定義外の whence を与える。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の API を呼び出さずに -1 が返ること。
@@ -212,19 +249,19 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
 TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の lseek 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の lseek 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の lseek 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, lseek(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, lseek(_, _, _, _, _, _))
+        .WillOnce(
+            Return(static_cast<off_t>(-1))); // [Pre-Assert確認_異常系] - 下位の lseek 系 API が 1 回呼び出されること。
+                                             // [Pre-Assert手順] - 下位の lseek 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _lseeki64(_, _, _, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, _, _, _)).WillOnce(Return(static_cast<__int64>(-1)));
+#endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_lseek(fd_, 0, SEEK_SET, NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -234,19 +271,18 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
 TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の close 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の close 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の close 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, close(_, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, close(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の close 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の close 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _close(_, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, _)).WillOnce(Return(-1));
+#endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_close(fd_, NULL); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_close(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_close の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -256,19 +292,18 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
 TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の dup 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の dup 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の dup 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, dup(_, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, dup(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _dup(_, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _dup(_, _, _, _)).WillOnce(Return(-1));
+#endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup(fd_, NULL); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_dup(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -278,19 +313,18 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
 TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
 {
     // Arrange
-    Mock_unistd mock_unistd; // [状態] - 下位の dup2 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の dup2 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の dup2 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, dup2(_, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup2 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup2 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _dup2(_, _, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, _, _)).WillOnce(Return(-1));
+#endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup2(fd_, fd_, NULL); // [手順] - 有効な記述子で呼び出す。
+    int rtc = com_util_dup2(kFakeFd, kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup2 の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -301,19 +335,18 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
 {
     // Arrange
     char buf[4];
-    Mock_unistd mock_unistd; // [状態] - 下位の read 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の read 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の read 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, read(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の read 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の read 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _read(_, _, _, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _read(_, _, _, _, _, _)).WillOnce(Return(-1));
+#endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_read の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -324,19 +357,18 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
 {
     // Arrange
     const char buf[4] = "abc";
-    Mock_unistd mock_unistd; // [状態] - 下位の write 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_異常系] - 下位の write 系 API が 1 回呼び出されること。
-    // [Pre-Assert手順] - 下位の write 系 API から -1 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, write(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の write 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の write 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd, _write(_, _, _, _, _, _)).WillOnce(Return(-1));
-#endif
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, _, _, _)).WillOnce(Return(-1));
+#endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_write(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
@@ -349,17 +381,15 @@ TEST_F(fdTest, read_retries_after_interrupt)
 {
     // Arrange
     char buf[4];
-    Mock_unistd mock_unistd; // [状態] - 下位の read 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の read 系 API が 2 回呼び出されること。
-    // [Pre-Assert手順] - 下位の read 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
-    EXPECT_CALL(mock_unistd, read(_, _, _, _, _, _))
+    EXPECT_CALL(mock_unistd_, read(_, _, _, _, _, _))
         .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
-        .WillOnce(Return(4));
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - 下位の read 系 API が 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の read 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
 
     // Act
-    int64_t rtc = com_util_read(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ((int64_t)4,
@@ -371,46 +401,57 @@ TEST_F(fdTest, write_retries_after_interrupt)
 {
     // Arrange
     const char buf[4] = "abc";
-    Mock_unistd mock_unistd; // [状態] - 下位の write 系 API をモック化する。
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の write 系 API が 2 回呼び出されること。
-    // [Pre-Assert手順] - 下位の write 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
-    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+    EXPECT_CALL(mock_unistd_, write(_, _, _, _, _, _))
         .WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)))
-        .WillOnce(Return(4));
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - 下位の write 系 API が 2 回呼び出されること。
+    // [Pre-Assert手順] - 下位の write 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
 
     // Act
-    int64_t rtc = com_util_write(fd_, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t rtc = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ((int64_t)4,
               rtc); // [確認_正常系] - com_util_write の戻り値が、再試行後の転送量である 4 であること。
 }
-#endif /* PLATFORM_LINUX */
 
-#if defined(PLATFORM_LINUX)
 /* Windows の CRT はクローズ済み記述子で invalid parameter handler を起動するため、Linux でのみ実施する */
 // クローズ済みの記述子で各関数が -1 を返すことの確認
 TEST_F(fdTest, closed_fd_operations_return_minus1)
 {
     // Arrange
-    int closed_fd = fd_; // [状態] - クローズ済みの記述子を用意する。
     char buf[4];
 
-    ASSERT_EQ(0, com_util_close(fd_, NULL));
-    fd_ = -1;
-
     // Pre-Assert
+    EXPECT_CALL(mock_unistd_, lseek(_, _, _, kFakeFd, _, _))
+        .WillOnce(Return(
+            static_cast<off_t>(-1))); // [Pre-Assert確認_異常系] - lseek がクローズ済み記述子で 1 回呼び出されること。
+                                      // [Pre-Assert手順] - -1 を返却する。
+    EXPECT_CALL(mock_unistd_, read(_, _, _, kFakeFd, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - read がクローズ済み記述子で 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
+    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - write がクローズ済み記述子で 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
+    EXPECT_CALL(mock_unistd_, dup(_, _, _, kFakeFd))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - dup がクローズ済み記述子で 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
+    EXPECT_CALL(mock_unistd_, dup2(_, _, _, kFakeFd, kFakeFd))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - dup2 がクローズ済み記述子で 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
+    EXPECT_CALL(mock_unistd_, close(_, _, _, kFakeFd))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - close がクローズ済み記述子で 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
 
     // Act
     // [手順] - クローズ済みのファイル記述子で lseek、read、write、dup、dup2、close を呼び出す。
-    int64_t rtc_lseek = com_util_lseek(closed_fd, 0, SEEK_SET, NULL);
-    int64_t rtc_read = com_util_read(closed_fd, buf, sizeof(buf), NULL);
-    int64_t rtc_write = com_util_write(closed_fd, buf, sizeof(buf), NULL);
-    int rtc_dup = com_util_dup(closed_fd, NULL);
-    int rtc_dup2 = com_util_dup2(closed_fd, closed_fd, NULL);
-    int rtc_close = com_util_close(closed_fd, NULL);
+    int64_t rtc_lseek = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL);
+    int64_t rtc_read = com_util_read(kFakeFd, buf, sizeof(buf), NULL);
+    int64_t rtc_write = com_util_write(kFakeFd, buf, sizeof(buf), NULL);
+    int rtc_dup = com_util_dup(kFakeFd, NULL);
+    int rtc_dup2 = com_util_dup2(kFakeFd, kFakeFd, NULL);
+    int rtc_close = com_util_close(kFakeFd, NULL);
 
     // Assert
     EXPECT_EQ(-1, rtc_lseek); // [確認_異常系] - lseek が -1 を返すこと。

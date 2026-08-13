@@ -1,32 +1,42 @@
 #include <testfw.h>
-#include <mock_com_util.h>
-#if defined(PLATFORM_LINUX)
-    #include <sys/mock_stat.h>
-#endif
+#include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
-#include <filesystem>
-#include <string>
+#include <cerrno>
 #include <cstring>
+#include <string>
 
-// 後始末: テスト用ディレクトリをリーフから再帰削除する
-static void remove_dir(const std::string &path)
+#if defined(PLATFORM_LINUX)
+    #include <sys/mock_stat.h>
+    #include <sys/stat.h>
+#endif /* PLATFORM_LINUX */
+
+using testing::_;
+using testing::InSequence;
+using testing::NiceMock;
+using testing::Return;
+using testing::StrEq;
+
+#if defined(PLATFORM_LINUX)
+
+class makedirsTest : public testing::Test
 {
-    std::error_code ec;
-    (void)std::filesystem::remove_all(path, ec);
-}
+  protected:
+    NiceMock<Mock_sys_stat> mock_sys_stat_;
+};
 
-// 一時ディレクトリ配下のテスト用パスを組み立てる
-static std::string temp_path(const std::string &relative)
+#else /* PLATFORM_LINUX */
+
+class makedirsTest : public testing::Test
 {
-    std::error_code ec;
-    std::filesystem::path dir = std::filesystem::temp_directory_path(ec);
+};
 
-    return (dir / relative).generic_string();
-}
+#endif /* PLATFORM_LINUX */
 
 #if defined(PLATFORM_WINDOWS)
+    #include <filesystem>
+
 static std::string to_windows_sep(const char *path)
 {
     std::string result(path);
@@ -40,10 +50,6 @@ static std::string to_windows_sep(const char *path)
     return result;
 }
 #endif /* PLATFORM_WINDOWS */
-
-class makedirsTest : public Test
-{
-};
 
 // NULL パスは COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
 TEST_F(makedirsTest, null_path_returns_invalid_argument)
@@ -94,24 +100,32 @@ TEST_F(makedirsTest, stat_rejects_null_arguments)
               null_path_result); // [確認_異常系] - パス NULL の com_util_stat が INVALID_ARGUMENT を返すこと。
 }
 
+#if defined(PLATFORM_LINUX)
 // 存在しないパスの stat が失敗することの確認
 TEST_F(makedirsTest, stat_reports_missing_path)
 {
     // Arrange
     com_util_file_stat_t stat_buffer;
-    const std::string path = temp_path("makedirsTest_missing_stat");
-    remove_dir(path); // [状態] - 対象パスが存在しないことを保証する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("missing"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - stat が missing で 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
 
     // Act
     const int result =
-        com_util_stat(&stat_buffer, NULL, path.c_str()); // [手順] - 存在しないパスを指定して stat を呼び出す。
+        com_util_stat(&stat_buffer, NULL, "missing"); // [手順] - 存在しないパスを指定して stat を呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
               result); // [確認_異常系] - 存在しないパスの com_util_stat が COM_UTIL_OK 以外を返すこと。
 }
+#endif /* PLATFORM_LINUX */
 
 // com_util_mkdir が NULL パスを拒否することの確認
 TEST_F(makedirsTest, mkdir_rejects_null_path)
@@ -128,26 +142,30 @@ TEST_F(makedirsTest, mkdir_rejects_null_path)
               result); // [確認_異常系] - NULL パスの com_util_mkdir が INVALID_ARGUMENT を返すこと。
 }
 
+#if defined(PLATFORM_LINUX)
 // 既存ディレクトリの mkdir が失敗することの確認
 TEST_F(makedirsTest, mkdir_reports_existing_directory)
 {
     // Arrange
-    const std::string dir = temp_path("makedirsTest_existing_mkdir");
-    remove_dir(dir);
-    std::filesystem::create_directories(dir); // [状態] - 既存ディレクトリを用意する。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("existing"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, mode_t)
+            {
+                errno = EEXIST;
+                return -1;
+            }); // [Pre-Assert確認_異常系] - mkdir が existing で 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に EEXIST を設定し、-1 を返却する。
 
     // Act
-    const int result = com_util_mkdir(dir.c_str(), NULL); // [手順] - 既存ディレクトリを指定して mkdir を呼び出す。
+    const int result = com_util_mkdir("existing", NULL); // [手順] - 既存ディレクトリを指定して mkdir を呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
               result); // [確認_異常系] - 既存ディレクトリの com_util_mkdir が COM_UTIL_OK 以外を返すこと。
-
-    // Cleanup
-    remove_dir(dir);
 }
+#endif /* PLATFORM_LINUX */
 
 // PLATFORM_PATH_MAX 以上のパスが拒否されることの確認
 TEST_F(makedirsTest, overlong_path_returns_name_too_long)
@@ -165,91 +183,133 @@ TEST_F(makedirsTest, overlong_path_returns_name_too_long)
               result); // [確認_異常系] - 長過ぎるパスの com_util_makedirs が BUFFER_TOO_SMALL を返すこと。
 }
 
+#if defined(PLATFORM_LINUX)
 // 単一階層ディレクトリの新規作成とべき等性の確認
 TEST_F(makedirsTest, single_level_creates_directory)
 {
     // Arrange
-    com_util_file_stat_t st;
-    std::string dir = temp_path("makedirsTest_single"); // [状態] - 一時ディレクトリ配下の作成対象パスを組み立てる。
-
-    remove_dir(dir); // [状態] - 残留物があれば削除しておく。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("dir1"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            })
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - dir1 に対する stat が 2 回呼び出されること。
+                              // [Pre-Assert手順] - 1 回目は ENOENT の -1、2 回目は 0 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("dir1"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - dir1 に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 
     // Act
+    int ret =
+        com_util_makedirs("dir1", NULL); // [手順] - 存在しない単一階層ディレクトリを com_util_makedirs で作成する。
+    int ret2 = com_util_makedirs("dir1", NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
+
     // Assert
-    int ret = com_util_makedirs(dir.c_str(),
-                                NULL); // [手順] - 存在しない単一階層ディレクトリを com_util_makedirs で作成する。
-    EXPECT_EQ(COM_UTIL_OK, ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, com_util_stat(&st, NULL, dir.c_str())); // [確認_正常系] - ディレクトリが存在すること。
-
-    int ret2 = com_util_makedirs(dir.c_str(), NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
-    EXPECT_EQ(
-        COM_UTIL_OK,
-        ret2); // [確認_正常系] - 既存ディレクトリに対する com_util_makedirs の戻り値が COM_UTIL_OK であり、べき等であること。
-
-    // Cleanup
-    remove_dir(dir);
+    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - 1 回目の com_util_makedirs の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              ret2); // [確認_正常系] - 2 回目の com_util_makedirs の戻り値が COM_UTIL_OK であり、べき等であること。
 }
 
 // 複数階層ディレクトリの再帰作成の確認
 TEST_F(makedirsTest, nested_levels_creates_all_directories)
 {
     // Arrange
-    com_util_file_stat_t st;
-    std::string root = temp_path("makedirsTest_root");
-    std::string nested =
-        root + "/sub/leaf"; // [状態] - 中間ディレクトリが欠けた root/sub/leaf の 2 階層パスを組み立てる。
-
-    remove_dir(root); // [状態] - 残留物があれば削除しておく。
+    InSequence sequence;
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("root"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - root に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("root"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - root に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("root/sub"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - root/sub に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("root/sub"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - root/sub に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("root/sub/leaf"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - root/sub/leaf に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("root/sub/leaf"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - root/sub/leaf に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int ret = com_util_makedirs(nested.c_str(),
+    int ret = com_util_makedirs("root/sub/leaf",
                                 NULL); // [手順] - 中間ディレクトリが欠けた 2 階層パスを com_util_makedirs で作成する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK,
-              com_util_stat(&st, NULL, nested.c_str())); // [確認_正常系] - リーフ ディレクトリが存在すること。
-
-    // Cleanup
-    remove_dir(root);
 }
 
 // 相対パスの複数階層ディレクトリを作成できることの確認
 TEST_F(makedirsTest, relative_path_creates_nested_directories)
 {
     // Arrange
-    const std::string path = "makedirsTest_relative/sub";
-    remove_dir(path); // [状態] - 相対パスの残留物があれば削除しておく。
+    InSequence sequence;
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("rel"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - rel に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("rel"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - rel に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("rel/sub"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, struct stat *)
+            {
+                errno = ENOENT;
+                return -1;
+            }); // [Pre-Assert確認_正常系] - rel/sub に対する stat が 1 回呼び出されること。
+                // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("rel/sub"), _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - rel/sub に対する mkdir が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 
     // Act
     const int result =
-        com_util_makedirs(path.c_str(), NULL); // [手順] - 相対パスの複数階層を指定して makedirs を呼び出す。
+        com_util_makedirs("rel/sub", NULL); // [手順] - 相対パスの複数階層を指定して makedirs を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
               result); // [確認_正常系] - 相対パスの com_util_makedirs が COM_UTIL_OK を返すこと。
-    EXPECT_TRUE(std::filesystem::is_directory(path)); // [確認_正常系] - 相対パスの末尾ディレクトリが作成されること。
-
-    // Cleanup
-    remove_dir("makedirsTest_relative");
 }
 
-#if defined(PLATFORM_LINUX)
 // ルート直後の連続区切り文字を中間ディレクトリとして扱わないことの確認
 TEST_F(makedirsTest, repeated_root_separators_do_not_create_intermediate_directory)
 {
     // Arrange
-    NiceMock<Mock_sys_stat> mock_sys_stat;
     InSequence sequence;
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("///target"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("///target"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, struct stat *)
             {
@@ -257,7 +317,7 @@ TEST_F(makedirsTest, repeated_root_separators_do_not_create_intermediate_directo
                 return -1;
             }); // [Pre-Assert確認_正常系] - 完全なパス ///target に対する stat が 1 回呼び出されること。
                 // [Pre-Assert手順] - stat で errno に ENOENT を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("///target"), _))
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("///target"), _))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 完全なパス ///target に対する mkdir が 1 回呼び出されること。
                               // [Pre-Assert手順] - mkdir で 0 を返却する。
 
@@ -269,17 +329,14 @@ TEST_F(makedirsTest, repeated_root_separators_do_not_create_intermediate_directo
     EXPECT_EQ(COM_UTIL_OK,
               result); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
 }
-#endif /* PLATFORM_LINUX */
 
-#if defined(PLATFORM_LINUX)
 // 対象が存在せず mkdir が成功した場合に成功することの確認
 TEST_F(makedirsTest, returns_success_when_mkdir_creates_target)
 {
     // Arrange
-    NiceMock<Mock_sys_stat> mock_sys_stat;
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("target"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, struct stat *)
             {
@@ -287,7 +344,7 @@ TEST_F(makedirsTest, returns_success_when_mkdir_creates_target)
                 return -1;
             }); // [Pre-Assert確認_正常系] - target に対する stat が 1 回呼び出されること。
                 // [Pre-Assert手順] - stat で errno に ENOENT を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("target"), _))
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("target"), _))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - stat の後に target に対する mkdir が 1 回呼び出されること。
                               // [Pre-Assert手順] - mkdir で 0 を返却する。
 
@@ -304,11 +361,10 @@ TEST_F(makedirsTest, returns_success_when_mkdir_creates_target)
 TEST_F(makedirsTest, returns_success_when_target_appears_after_mkdir_failure)
 {
     // Arrange
-    NiceMock<Mock_sys_stat> mock_sys_stat;
     InSequence sequence;
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("target"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, struct stat *)
             {
@@ -316,7 +372,7 @@ TEST_F(makedirsTest, returns_success_when_target_appears_after_mkdir_failure)
                 return -1;
             }); // [Pre-Assert確認_正常系] - mkdir の前に target に対する stat が 1 回呼び出されること。
                 // [Pre-Assert手順] - mkdir の前の stat で errno に ENOENT を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("target"), _))
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("target"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, mode_t)
             {
@@ -324,7 +380,7 @@ TEST_F(makedirsTest, returns_success_when_target_appears_after_mkdir_failure)
                 return -1;
             }); // [Pre-Assert確認_正常系] - 1 回目の stat の後に target に対する mkdir が 1 回呼び出されること。
                 // [Pre-Assert手順] - mkdir で errno に EEXIST を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("target"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("target"), _))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - mkdir の後に target に対する stat が 1 回呼び出されること。
                               // [Pre-Assert手順] - mkdir の後の stat で 0 を返却する。
 
@@ -341,11 +397,10 @@ TEST_F(makedirsTest, returns_success_when_target_appears_after_mkdir_failure)
 TEST_F(makedirsTest, returns_unknown_when_intermediate_directory_cannot_be_created)
 {
     // Arrange
-    NiceMock<Mock_sys_stat> mock_sys_stat;
     InSequence sequence;
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("parent"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("parent"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, struct stat *)
             {
@@ -353,7 +408,7 @@ TEST_F(makedirsTest, returns_unknown_when_intermediate_directory_cannot_be_creat
                 return -1;
             }); // [Pre-Assert確認_異常系] - mkdir の前に parent に対する stat が 1 回呼び出されること。
                 // [Pre-Assert手順] - mkdir の前の stat で errno に ENOENT を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, mkdir(_, _, _, StrEq("parent"), _))
+    EXPECT_CALL(mock_sys_stat_, mkdir(_, _, _, StrEq("parent"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, mode_t)
             {
@@ -361,7 +416,7 @@ TEST_F(makedirsTest, returns_unknown_when_intermediate_directory_cannot_be_creat
                 return -1;
             }); // [Pre-Assert確認_異常系] - 1 回目の stat の後に parent に対する mkdir が 1 回呼び出されること。
                 // [Pre-Assert手順] - mkdir で errno に EACCES を設定し、-1 を返却する。
-    EXPECT_CALL(mock_sys_stat, stat(_, _, _, StrEq("parent"), _))
+    EXPECT_CALL(mock_sys_stat_, stat(_, _, _, StrEq("parent"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, struct stat *)
             {
@@ -386,10 +441,10 @@ TEST_F(makedirsTest, windows_separator_path_creates_directory)
 {
     // Arrange
     com_util_file_stat_t st;
-    std::string root = temp_path("makedirsTest_windows_sep");
+    std::string root = "makedirsTest_windows_sep";
     std::string nested = root + "/sub/leaf";
-
-    remove_dir(root); // [状態] - 残留物があれば削除しておく。
+    std::error_code ec;
+    (void)std::filesystem::remove_all(root, ec);
 
     std::string windows_path =
         to_windows_sep(nested.c_str()); // [状態] - 区切りを '\\' に置き換えた Windows スタイルのパスとする。
@@ -397,20 +452,20 @@ TEST_F(makedirsTest, windows_separator_path_creates_directory)
     // Pre-Assert
 
     // Act
-    // Assert
     int ret = com_util_makedirs(windows_path.c_str(),
                                 NULL); // [手順] - Windows スタイル区切りの 2 階層パスを com_util_makedirs で作成する。
-    EXPECT_EQ(COM_UTIL_OK, ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK,
-              com_util_stat(&st, NULL, nested.c_str())); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
-
+    int exist_rtc = com_util_stat(&st, NULL, nested.c_str()); // [手順] - 正規化後のパスでリーフの存在を確認する。
     int ret2 = com_util_makedirs(windows_path.c_str(),
                                  NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, exist_rtc); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
     EXPECT_EQ(
         COM_UTIL_OK,
         ret2); // [確認_正常系] - 既存ディレクトリに対する com_util_makedirs の戻り値が COM_UTIL_OK であり、べき等であること。
 
     // Cleanup
-    remove_dir(root);
+    (void)std::filesystem::remove_all(root, ec);
 }
 #endif /* PLATFORM_WINDOWS */
