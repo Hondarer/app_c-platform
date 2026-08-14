@@ -170,9 +170,11 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_unlock_reports_flock_failure)
     // Arrange
     com_util_interprocess_lock *lock = NULL;
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(kLockIdentity, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(kLockIdentity, &lock)); // [状態] - interprocess lock を開いた状態とする。
+                                                                                   // [状態確認] - com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - ロックを取得済みにする。
+                                                                             // [状態確認] - com_util_interprocess_lock_lock の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(os_.sys_file, flock(_, _, _, _, LOCK_UN))
@@ -224,7 +226,8 @@ TEST_F(syncFailureInjectionTest, local_lock_maps_pthread_failure_results)
 {
     // Arrange
     com_util_local_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
 
     // Pre-Assert

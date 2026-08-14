@@ -32,13 +32,20 @@ TEST_F(argparser_sampleTest, main_parses_and_prints_all_kinds)
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 解析結果が標準出力に表示されること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("verbose: 2"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("count: 3"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("name: alice"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("includes: 2"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("include[0]: dir1"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("include[1]: dir2"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("input: in.txt"))).Times(1);
-    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("output: out.txt"))).Times(1);
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("count: 3")))
+        .Times(1); // [Pre-Assert確認_正常系] - count: 3 が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("name: alice")))
+        .Times(1); // [Pre-Assert確認_正常系] - name: alice が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("includes: 2")))
+        .Times(1); // [Pre-Assert確認_正常系] - includes: 2 が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("include[0]: dir1")))
+        .Times(1); // [Pre-Assert確認_正常系] - include[0]: dir1 が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("include[1]: dir2")))
+        .Times(1); // [Pre-Assert確認_正常系] - include[1]: dir2 が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("input: in.txt")))
+        .Times(1); // [Pre-Assert確認_正常系] - input: in.txt が標準出力に表示されること。
+    EXPECT_CALL(mock_stdio_, printf(_, _, _, HasSubstr("output: out.txt")))
+        .Times(1); // [Pre-Assert確認_正常系] - output: out.txt が標準出力に表示されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - 全種別の引数で main を呼び出す。

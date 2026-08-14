@@ -46,6 +46,7 @@ class errorTest : public Test
 {
 };
 
+// capture_errno が domain、結果、コードを保持することの確認
 TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)
 {
     // Arrange
@@ -76,6 +77,7 @@ TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)
                                 COM_UTIL_CAUSE_NOT_FOUND)); // [確認_正常系] - NOT_FOUND との一致判定が 1 であること。
 }
 
+// capture_current_errno が現在の errno を保持することの確認
 TEST_F(errorTest, capture_current_errno_preserves_current_value)
 {
     // Arrange
@@ -95,6 +97,7 @@ TEST_F(errorTest, capture_current_errno_preserves_current_value)
                           &error)); // [確認_正常系] - com_util_error_get_errno の戻り値が ENOENT であること。
 }
 
+// set_last がコピーし NULL でクリアすることの確認
 TEST_F(errorTest, set_last_copies_saved_error_and_null_clears_it)
 {
     // Arrange
@@ -126,6 +129,7 @@ TEST_F(errorTest, set_last_copies_saved_error_and_null_clears_it)
     EXPECT_EQ(0UL, cleared_error.code); // [確認_正常系] - NULL 指定後の TLS の code が 0 であること。
 }
 
+// アクセサが NULL、空、ドメイン不一致を拒否することの確認
 TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
 {
     // Arrange
@@ -193,6 +197,7 @@ TEST_F(errorTest, accessors_reject_null_empty_and_mismatched_domain)
     EXPECT_EQ(0, mismatched_errno); // [確認_異常系] - Windows ドメインから取得した errno が 0 であること。
 }
 
+// 各 errno が単一の要因へ変換されることの確認
 TEST_F(errorTest, errno_values_map_to_one_cause)
 {
     // Arrange
@@ -239,6 +244,7 @@ TEST_F(errorTest, errno_values_map_to_one_cause)
     }
 }
 
+// 未知の errno が OTHER へ変換されることの確認
 TEST_F(errorTest, unknown_errno_maps_to_other)
 {
     // Arrange

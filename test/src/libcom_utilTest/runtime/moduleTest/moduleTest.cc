@@ -63,8 +63,9 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_fails)
     char path[PLATFORM_PATH_MAX] = {};
 
     // Pre-Assert
-    // [Pre-Assert手順] - dladdr から失敗を返却する。
-    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - dladdr が 1 回呼び出されること。
+                              // [Pre-Assert手順] - dladdr から失敗を返却する。
 
     // Act
     int rtc = com_util_module_get_path(path, sizeof(path),
@@ -83,7 +84,6 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_no_filename)
     char path[PLATFORM_PATH_MAX] = {};
 
     // Pre-Assert
-    // [Pre-Assert手順] - dladdr から dli_fname が NULL の情報を返却する。
     EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
         .WillOnce(
             [](const char *, int, const char *, const void *, void *raw_info)
@@ -91,7 +91,8 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_no_filename)
                 Dl_info *info = static_cast<Dl_info *>(raw_info);
                 info->dli_fname = NULL;
                 return 1;
-            });
+            }); // [Pre-Assert確認_異常系] - dladdr が 1 回呼び出されること。
+                // [Pre-Assert手順] - dli_fname が NULL の情報を返却する。
 
     // Act
     int rtc = com_util_module_get_path(
@@ -110,7 +111,6 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_empty_filename)
     char path[PLATFORM_PATH_MAX] = {};
 
     // Pre-Assert
-    // [Pre-Assert手順] - dladdr から空の dli_fname を返却する。
     EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
         .WillOnce(
             [](const char *, int, const char *, const void *, void *raw_info)
@@ -118,7 +118,8 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_empty_filename)
                 Dl_info *info = static_cast<Dl_info *>(raw_info);
                 info->dli_fname = "";
                 return 1;
-            });
+            }); // [Pre-Assert確認_異常系] - dladdr が 1 回呼び出されること。
+                // [Pre-Assert手順] - 空の dli_fname を返却する。
 
     // Act
     int rtc = com_util_module_get_path(
@@ -233,7 +234,8 @@ TEST_F(moduleTest, get_path_returns_unknown_when_normalization_fails)
             {
                 *detail_out = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_UNKNOWN, EIO};
                 return COM_UTIL_ERR_UNKNOWN;
-            });
+            }); // [Pre-Assert確認_異常系] - com_util_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 詳細に EIO を設定し、COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
     const int result =
@@ -258,7 +260,8 @@ TEST_F(moduleTest, get_path_returns_buffer_too_small_when_normalization_reports_
             {
                 *detail_out = {COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_BUFFER_TOO_SMALL, ENAMETOOLONG};
                 return COM_UTIL_ERR_BUFFER_TOO_SMALL;
-            });
+            }); // [Pre-Assert確認_異常系] - com_util_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 詳細に ENAMETOOLONG を設定し、COM_UTIL_ERR_BUFFER_TOO_SMALL を返却する。
 
     // Act
     const int result = com_util_module_get_path(path, sizeof(path),

@@ -329,15 +329,18 @@ TEST_F(pathGetFullTest, resolves_symlink_to_target_path_when_target_exists)
     char actual[PLATFORM_PATH_MAX] = {};
     FILE *file;
 
-    ASSERT_NE(nullptr, dir_path);
+    ASSERT_NE(nullptr, dir_path); // [状態確認] - mkdtemp の戻り値が非 NULL であること。
     build_path(target_path, sizeof(target_path), dir_path, "target.bin");
     build_path(link_path, sizeof(link_path), dir_path, "target-link.bin");
 
-    file = std::fopen(target_path, "wb");
-    ASSERT_NE(nullptr, file);
-    ASSERT_EQ(1u, std::fwrite("x", 1u, 1u, file));
+    file = std::fopen(target_path, "wb"); // [状態] - 実体ファイル target.bin を書き込み用に開く。
+    ASSERT_NE(nullptr, file);             // [状態確認] - fopen の戻り値が非 NULL であること。
+    ASSERT_EQ(1u, std::fwrite("x", 1u, 1u, file)); // [状態] - target.bin へ 1 バイトを書き込む。
+                                                   // [状態確認] - fwrite の戻り値が 1 であること。
     ASSERT_EQ(0, std::fclose(file));               // [状態] - 実体ファイル target.bin を作成する。
+                                                   // [状態確認] - fclose の戻り値が 0 であること。
     ASSERT_EQ(0, symlink(target_path, link_path)); // [状態] - target.bin への symlink target-link.bin を作成する。
+                                                   // [状態確認] - symlink の戻り値が 0 であること。
 
     assert_path_get_full_success(expected, sizeof(expected), target_path);
 

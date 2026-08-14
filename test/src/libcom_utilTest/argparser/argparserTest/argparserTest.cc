@@ -122,11 +122,12 @@ TEST_F(argparserTest, default_shutdown_callback_keeps_process_lifetime_lock)
     std::thread threads[kThreadCount];
     com_util_argparser *parser =
         _com_util_argparser_default(NULL); // [状態] - 終了コールバックを登録した default ハンドルを用意する。
-    ASSERT_NE(nullptr, parser);
-    ASSERT_NE(nullptr, g_default_shutdown_callback);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_NE(nullptr, g_default_shutdown_callback); // [状態確認] - 終了コールバックが非 NULL であること。
     com_util_shutdown_event event = {};
     event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
     event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_NONE;
+    // [状態] - com_util_local_lock_destroy が呼び出された際に何もしないようにモックを設定する。
     ON_CALL(mock_com_util_, com_util_local_lock_destroy(_)).WillByDefault([](com_util_local_lock *) {});
 
     // Pre-Assert
@@ -174,11 +175,12 @@ TEST_F(argparserTest, default_options_applied_only_on_first_call)
     // Arrange
     com_util_argparser *first =
         _com_util_argparser_default(NULL); // [状態] - 初回呼び出し済みの default ハンドルを用意する。
-    ASSERT_NE(nullptr, first);
+    ASSERT_NE(nullptr, first); // [状態確認] - ハンドルが非 NULL であること。
 
     char before[256];
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_get_usage(first, before, sizeof(before),
                                                          NULL)); // [状態] - 初回時点の usage を記録する。
+                                                                 // [状態確認] - _com_util_argparser_get_usage の戻り値が COM_UTIL_OK であること。
 
     com_util_argparser_options options = {};
     options.program_name =
@@ -209,7 +211,7 @@ TEST_F(argparserTest, dispose_ignores_default_handle)
 {
     // Arrange
     com_util_argparser *first = _com_util_argparser_default(NULL); // [状態] - default ハンドルを取得しておく。
-    ASSERT_NE(nullptr, first);
+    ASSERT_NE(nullptr, first); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -256,7 +258,7 @@ TEST_F(argparserTest, register_rejects_invalid_arguments)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int storage = 0;
     const char *string_storage = NULL;
 
@@ -323,12 +325,13 @@ TEST_F(argparserTest, register_rejects_invalid_arguments)
 TEST_F(argparserTest, register_rejects_duplicate_definition)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int storage = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &storage)); // [状態] - "-v" / "--verbose" を登録済みとする。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -351,13 +354,14 @@ TEST_F(argparserTest, register_rejects_duplicate_definition)
 TEST_F(argparserTest, register_rejects_required_positional_after_optional)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *first = NULL;
     const char *second = NULL;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(
                                parser, "first", NULL, 0,
                                &first)); // [状態] - 任意の位置引数 "first" を登録済みとする。
+                                         // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -377,8 +381,8 @@ TEST_F(argparserTest, register_rejects_required_positional_after_optional)
 TEST_F(argparserTest, register_accepts_required_positionals_in_sequence)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *first = NULL;
     const char *second = NULL;
 
@@ -405,8 +409,8 @@ TEST_F(argparserTest, register_accepts_required_positionals_in_sequence)
 TEST_F(argparserTest, register_requires_variadic_positional_to_be_last)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *values[2] = {};
     size_t value_count = 0;
     const char *trailing = NULL;
@@ -414,6 +418,7 @@ TEST_F(argparserTest, register_requires_variadic_positional_to_be_last)
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string_array(
                                parser, "values", NULL, 0, values, 2,
                                &value_count)); // [状態] - 可変長位置引数 "values" を登録済みとする。
+                                               // [状態確認] - _com_util_argparser_register_positional_string_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -440,7 +445,7 @@ TEST_F(argparserTest, register_error_collection_accumulates_all_failures)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int a = 0;
     int b = 0;
 
@@ -494,11 +499,12 @@ TEST_F(argparserTest, register_error_collection_accumulates_all_failures)
 TEST_F(argparserTest, register_error_getters_default_when_absent_or_out_of_range)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int a = 0;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--aa", NULL,
                                                              &a)); // [状態] - 正常な登録のみ行った parser とする。
+                                                                   // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -554,14 +560,16 @@ TEST_F(argparserTest, register_error_getters_default_when_absent_or_out_of_range
 TEST_F(argparserTest, register_error_message_formatting)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int a = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--aa", NULL, &a));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--aa", NULL, &a)); // [状態] - フラグ "-a" / "--aa" を登録する。
+                                                                                               // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
               _com_util_argparser_register_flag(parser, "-a", "--bb", NULL,
                                                 &a)); // [状態] - 重複登録エラーを 1 件積んだ parser とする。
-    ASSERT_EQ((size_t)1, _com_util_argparser_get_register_error_count(parser));
+                                                      // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
+    ASSERT_EQ((size_t)1, _com_util_argparser_get_register_error_count(parser)); // [状態確認] - _com_util_argparser_get_register_error_count の戻り値が 1 であること。
     char message[128];
 
     // Pre-Assert
@@ -608,7 +616,7 @@ TEST_F(argparserTest, print_register_error_messages_rejects_invalid_arguments)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -631,7 +639,7 @@ TEST_F(argparserTest, print_register_error_messages_is_noop_without_error)
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - register エラーのない parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, _, _))
@@ -655,16 +663,19 @@ TEST_F(argparserTest, print_register_error_messages_writes_all_to_stream)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int a = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--aa", NULL, &a));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--aa", NULL, &a)); // [状態] - フラグ "-a" / "--aa" を登録する。
+                                                                                               // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
         COM_UTIL_ERR_DUPLICATE_DEFINITION,
         _com_util_argparser_register_flag(parser, "-a", "--bb", NULL, &a)); // [状態] - 重複登録エラーを積んでおく。
+                                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         _com_util_argparser_register_flag(parser, "-c", "--cc", NULL, NULL)); // [状態] - 不正引数エラーを積んでおく。
+                                                                              // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
@@ -692,8 +703,8 @@ TEST_F(argparserTest, print_register_error_messages_writes_all_to_stream)
 TEST_F(argparserTest, register_grows_beyond_initial_capacity)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const int spec_count = 20; // [状態] - 初期容量 8 を超える 20 個の登録数とする。
     int storages[spec_count] = {};
 
@@ -727,12 +738,13 @@ TEST_F(argparserTest, register_grows_beyond_initial_capacity)
 TEST_F(argparserTest, flag_counts_occurrences_and_resets_on_reparse)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -765,12 +777,13 @@ TEST_F(argparserTest, flag_counts_occurrences_and_resets_on_reparse)
 TEST_F(argparserTest, flag_with_value_is_unexpected_value)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -796,12 +809,13 @@ TEST_F(argparserTest, flag_with_value_is_unexpected_value)
 TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -827,12 +841,13 @@ TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
 TEST_F(argparserTest, option_int_accepts_all_syntaxes)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = -100;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_int(parser, "-c", "--count", "N", NULL, 0,
                                                       &count)); // [状態] - int オプション "-c" / "--count" を登録する。
+                                                                // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -898,12 +913,13 @@ TEST_F(argparserTest, option_int_accepts_all_syntaxes)
 TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_int(parser, "-c", "--count", "N", NULL, 0,
                                                       &count)); // [状態] - int オプション "-c" / "--count" を登録する。
+                                                                // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -970,12 +986,13 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
 TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unknown_options)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int value = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_positional_int(parser, "value", NULL, COM_UTIL_ARGPARSER_REQUIRED,
                                                           &value)); // [状態] - 必須の int 位置引数 "value" を登録する。
+                                                                    // [状態確認] - _com_util_argparser_register_positional_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1019,12 +1036,13 @@ TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unkno
 TEST_F(argparserTest, option_string_points_into_argv)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *name = NULL;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(
                                parser, "-n", "--name", "NAME", NULL, 0,
                                &name)); // [状態] - 文字列オプション "-n" / "--name" を登録する。
+                                        // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1082,16 +1100,18 @@ TEST_F(argparserTest, option_string_points_into_argv)
 TEST_F(argparserTest, option_string_accepts_value_with_spaces)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *param = NULL;
     const char *input = NULL;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(
                                parser, "-p", "--param", "VALUE", NULL, 0,
                                &param)); // [状態] - 文字列オプション "-p" / "--param" を登録する。
+                                         // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_positional_string(parser, "input", NULL, 0,
                                                              &input)); // [状態] - 位置引数 "input" を登録する。
+                                                                       // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1158,12 +1178,13 @@ TEST_F(argparserTest, option_string_accepts_value_with_spaces)
 TEST_F(argparserTest, option_string_stores_argv_verbatim)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *param = NULL;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(
                                parser, "-p", "--param", "VALUE", NULL, 0,
                                &param)); // [状態] - 文字列オプション "-p" / "--param" を登録する。
+                                         // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1198,16 +1219,18 @@ TEST_F(argparserTest, option_string_stores_argv_verbatim)
 TEST_F(argparserTest, positional_assignment_and_overflow)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *input = NULL;
     int level = -1;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_positional_string(parser, "input", NULL, COM_UTIL_ARGPARSER_REQUIRED,
                                                              &input)); // [状態] - 必須の位置引数 "input" を登録する。
+                                                                       // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_positional_int(parser, "level", NULL, 0,
                                                           &level)); // [状態] - 任意の int 位置引数 "level" を登録する。
+                                                                    // [状態確認] - _com_util_argparser_register_positional_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1269,8 +1292,8 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
 TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *input = NULL;
     const char *files[2] = {};
     size_t file_count = 99;
@@ -1278,12 +1301,15 @@ TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(
                                parser, "input", NULL, COM_UTIL_ARGPARSER_REQUIRED,
                                &input)); // [状態] - 必須の単数位置引数 "input" を登録する。
+                                         // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string_array(
                                parser, "files", NULL, 0, files, 2,
                                &file_count)); // [状態] - 任意の可変長位置引数 "files" を容量 2 で登録する。
+                                              // [状態確認] - _com_util_argparser_register_positional_string_array の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(
                                parser, "-v", "--verbose", NULL,
                                &verbose)); // [状態] - 可変長位置引数の後にフラグ "--verbose" を登録する。
+                                           // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1337,13 +1363,14 @@ TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
 TEST_F(argparserTest, positional_int_array_conversion_and_required)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int values[3] = {};
     size_t value_count = 0;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_int_array(
                                parser, "values", NULL, COM_UTIL_ARGPARSER_REQUIRED, values, 3,
                                &value_count)); // [状態] - 必須の可変長 int 位置引数 "values" を登録する。
+                                               // [状態確認] - _com_util_argparser_register_positional_int_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1416,12 +1443,13 @@ TEST_F(argparserTest, positional_int_array_conversion_and_required)
 TEST_F(argparserTest, unknown_option_detection)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" だけを登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1468,12 +1496,13 @@ TEST_F(argparserTest, unknown_option_detection)
 TEST_F(argparserTest, missing_value_at_end)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_int(parser, "-c", "--count", "N", NULL, 0,
                                                       &count)); // [状態] - int オプション "-c" / "--count" を登録する。
+                                                                // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1497,12 +1526,13 @@ TEST_F(argparserTest, missing_value_at_end)
 TEST_F(argparserTest, duplicate_option_occurrence)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_int(parser, "-c", "--count", "N", NULL, 0,
                                                       &count)); // [状態] - int オプション "-c" / "--count" を登録する。
+                                                                // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1527,14 +1557,15 @@ TEST_F(argparserTest, duplicate_option_occurrence)
 TEST_F(argparserTest, array_option_multiple_occurrences)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *includes[2] = {};
     size_t include_count = 99;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_string_array(
                   parser, "-i", "--include", "DIR", NULL, 0, includes, 2,
                   &include_count)); // [状態] - 容量 2 の文字列配列オプション "-i" / "--include" を登録する。
+                                    // [状態確認] - _com_util_argparser_register_option_string_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1582,13 +1613,14 @@ TEST_F(argparserTest, array_option_multiple_occurrences)
 TEST_F(argparserTest, array_option_int_and_required)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int ports[4] = {};
     size_t port_count = 0;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int_array(
                                parser, "-p", "--port", "PORT", NULL, COM_UTIL_ARGPARSER_REQUIRED, ports, 4,
                                &port_count)); // [状態] - 必須の int 配列オプション "-p" / "--port" を登録する。
+                                              // [状態確認] - _com_util_argparser_register_option_int_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1626,12 +1658,13 @@ TEST_F(argparserTest, array_option_int_and_required)
 TEST_F(argparserTest, missing_required_option)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = 0;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int(
                                parser, "-c", "--count", "N", NULL, COM_UTIL_ARGPARSER_REQUIRED,
                                &count)); // [状態] - 必須の int オプション "-c" / "--count" を登録する。
+                                         // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1656,12 +1689,13 @@ TEST_F(argparserTest, missing_required_option)
 TEST_F(argparserTest, reparse_clears_error_state)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1699,16 +1733,18 @@ TEST_F(argparserTest, reparse_clears_error_state)
 TEST_F(argparserTest, multiple_handles_are_independent)
 {
     // Arrange
-    com_util_argparser *parser1 = _com_util_argparser_create(NULL);
-    com_util_argparser *parser2 = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser1);
-    ASSERT_NE(nullptr, parser2);
+    com_util_argparser *parser1 = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser1 を用意する。
+    com_util_argparser *parser2 = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser2 を用意する。
+    ASSERT_NE(nullptr, parser1); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_NE(nullptr, parser2); // [状態確認] - ハンドルが非 NULL であること。
     int flag1 = 0;
     int flag2 = 0;
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser1, "-a", NULL, NULL,
                                                              &flag1)); // [状態] - parser1 に "-a" を登録する。
+                                                                       // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser2, "-b", NULL, NULL,
                                                              &flag2)); // [状態] - parser2 に "-b" を登録する。
+                                                                       // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1744,12 +1780,13 @@ TEST_F(argparserTest, multiple_handles_are_independent)
 TEST_F(argparserTest, error_message_formatting)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL,
                                                 &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     char message[128];
 
     // Pre-Assert
@@ -1807,8 +1844,8 @@ TEST_F(argparserTest, usage_formatting)
     options.program_name = "sample";
     options.program_description =
         "Sample tool"; // [状態] - program_name "sample"、説明 "Sample tool" の生成オプションとする。
-    com_util_argparser *parser = _com_util_argparser_create(&options);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(&options); // [状態] - 生成オプション付きの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
     int count = 0;
     const char *name = NULL;
@@ -1816,17 +1853,23 @@ TEST_F(argparserTest, usage_formatting)
     const char *output = NULL;
     const char *files[2] = {};
     size_t file_count = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", "verbose output", &verbose));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", "verbose output", &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                                                                                      // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int(parser, "-c", "--count", "N", "count value",
-                                                                   COM_UTIL_ARGPARSER_REQUIRED, &count));
+                                                                   COM_UTIL_ARGPARSER_REQUIRED, &count)); // [状態] - 必須の int オプション "-c" / "--count" を登録する。
+                                                                                                          // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
-              _com_util_argparser_register_option_string(parser, NULL, "--name", "NAME", "display name", 0, &name));
+              _com_util_argparser_register_option_string(parser, NULL, "--name", "NAME", "display name", 0, &name)); // [状態] - 文字列オプション "--name" を登録する。
+                                                                                                                     // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "input", "input file",
-                                                                          COM_UTIL_ARGPARSER_REQUIRED, &input));
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "output", "output file", 0, &output));
+                                                                          COM_UTIL_ARGPARSER_REQUIRED, &input)); // [状態] - 必須の位置引数 "input" を登録する。
+                                                                                                                 // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "output", "output file", 0, &output)); // [状態] - 位置引数 "output" を登録する。
+                                                                                                                         // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string_array(
                                parser, "files", "additional files", 0, files, 2,
                                &file_count)); // [状態] - フラグ、オプション、単数・可変長位置引数を一式登録する。
+                                              // [状態確認] - _com_util_argparser_register_positional_string_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1912,7 +1955,7 @@ TEST_F(argparserTest, print_usage_rejects_invalid_arguments)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -1936,10 +1979,11 @@ TEST_F(argparserTest, print_usage_writes_to_stream)
     NiceMock<Mock_stdio> mock_stdio;
     com_util_argparser_options options = {};
     options.program_name = "sample"; // [状態] - program_name を "sample" とする。
-    com_util_argparser *parser = _com_util_argparser_create(&options);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(&options); // [状態] - 生成オプション付きの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", "verbose output", &verbose));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", "verbose output", &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                                                                                      // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, stdout, HasSubstr("Usage: sample [OPTIONS]")))
@@ -1962,7 +2006,7 @@ TEST_F(argparserTest, print_error_messages_rejects_invalid_arguments)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -1985,7 +2029,7 @@ TEST_F(argparserTest, print_error_messages_is_noop_without_error)
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 解析エラーのない parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, _, _))
@@ -2007,14 +2051,16 @@ TEST_F(argparserTest, print_error_messages_writes_to_stream)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL, &verbose));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", "--verbose", NULL, &verbose)); // [状態] - フラグ "-v" / "--verbose" を登録する。
+                                                                                                          // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     ARGV(cstr("prog"), cstr("--bogus"));
     ASSERT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
               _com_util_argparser_parse(parser, argc, argv)); // [状態] - "--bogus" の解析エラーを発生させた状態とする。
+                                                              // [状態確認] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
@@ -2038,9 +2084,10 @@ TEST_F(argparserTest, usage_program_name_resolution)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - program_name 未指定で parser を生成する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int verbose = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", NULL, NULL, &verbose));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", NULL, NULL, &verbose)); // [状態] - フラグ "-v" を登録する。
+                                                                                                   // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     char usage[256];
 
     // Pre-Assert
@@ -2083,7 +2130,7 @@ TEST_F(argparserTest, parse_rejects_invalid_arguments)
 {
     // Arrange
     com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
-    ASSERT_NE(nullptr, parser);
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     ARGV(cstr("prog"));
 
     // Pre-Assert
@@ -2141,8 +2188,8 @@ TEST_F(argparserTest, positional_register_rejects_null_parser_and_invalid_flags)
 {
     // Arrange
     int storage = 0;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -2232,8 +2279,8 @@ TEST_F(argparserTest, default_returns_null_when_shutdown_registration_fails)
 TEST_F(argparserTest, default_shutdown_callback_returns_when_locking_fails)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_default(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_default(NULL); // [状態] - default ハンドルを用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     com_util_shutdown_event event = {};
     event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
 
@@ -2271,8 +2318,8 @@ TEST_F(argparserTest, default_returns_null_when_locking_fails)
 TEST_F(argparserTest, register_wrappers_reject_invalid_storage_and_registration)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int int_array[1] = {};
     size_t int_count = 0;
     const char *string_array[1] = {};
@@ -2398,14 +2445,16 @@ TEST_F(argparserTest, register_wrappers_reject_invalid_storage_and_registration)
 TEST_F(argparserTest, parse_rejects_null_tokens_and_handles_negative_positionals)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int count = 0;
     int values[2] = {};
     size_t value_count = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int(parser, "-c", "--count", NULL, NULL, 0u, &count));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int(parser, "-c", "--count", NULL, NULL, 0u, &count)); // [状態] - int オプション "-c" / "--count" を登録する。
+                                                                                                                      // [状態確認] - _com_util_argparser_register_option_int の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
-              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 2u, &value_count));
+              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 2u, &value_count)); // [状態] - 可変長 int 位置引数 "values" を登録する。
+                                                                                                                        // [状態確認] - _com_util_argparser_register_positional_int_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -2449,8 +2498,8 @@ TEST_F(argparserTest, parse_rejects_null_tokens_and_handles_negative_positionals
 TEST_F(argparserTest, parse_classifies_bare_prefixes_and_unregistered_negative_value)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -2484,14 +2533,17 @@ TEST_F(argparserTest, parse_classifies_bare_prefixes_and_unregistered_negative_v
 TEST_F(argparserTest, parse_searches_options_with_only_one_name)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int short_flag = 0;
     int long_flag = 0;
     const char *positional = NULL;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &short_flag));
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "input", NULL, 0u, &positional));
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, NULL, "--beta", NULL, &long_flag));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &short_flag)); // [状態] - フラグ "-a" を登録する。
+                                                                                                      // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "input", NULL, 0u, &positional)); // [状態] - 位置引数 "input" を登録する。
+                                                                                                                    // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, NULL, "--beta", NULL, &long_flag)); // [状態] - フラグ "--beta" を登録する。
+                                                                                                         // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -2519,8 +2571,8 @@ TEST_F(argparserTest, parse_searches_options_with_only_one_name)
 TEST_F(argparserTest, record_register_result_ignores_null_parser_and_success)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -2542,18 +2594,21 @@ TEST_F(argparserTest, record_register_result_ignores_null_parser_and_success)
 TEST_F(argparserTest, parse_handles_positional_search_and_array_conversion_failure)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const char *text = NULL;
     int values[1] = {};
     size_t value_count = 0;
     int numbers[1] = {};
     size_t number_count = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "text", NULL, 0u, &text));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "text", NULL, 0u, &text)); // [状態] - 位置引数 "text" を登録する。
+                                                                                                             // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_int_array(parser, "-n", "--number", NULL, NULL, 0u,
-                                                                         numbers, 1u, &number_count));
+                                                                         numbers, 1u, &number_count)); // [状態] - int 配列オプション "-n" / "--number" を登録する。
+                                                                                                       // [状態確認] - _com_util_argparser_register_option_int_array の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
-              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 1u, &value_count));
+              _com_util_argparser_register_positional_int_array(parser, "values", NULL, 0u, values, 1u, &value_count)); // [状態] - 可変長 int 位置引数 "values" を登録する。
+                                                                                                                        // [状態確認] - _com_util_argparser_register_positional_int_array の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -2586,8 +2641,8 @@ TEST_F(argparserTest, parse_handles_positional_search_and_array_conversion_failu
 TEST_F(argparserTest, parse_accepts_null_program_name)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     char *argv[] = {NULL};
 
     // Pre-Assert
@@ -2606,14 +2661,17 @@ TEST_F(argparserTest, parse_accepts_null_program_name)
 TEST_F(argparserTest, usage_handles_short_name_default_value_and_long_label)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int flag = 0;
     const char *value = NULL;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", NULL, NULL, &flag));
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(parser, "-n", NULL, NULL, NULL, 0u, &value));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-v", NULL, NULL, &flag)); // [状態] - フラグ "-v" を登録する。
+                                                                                                // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_option_string(parser, "-n", NULL, NULL, NULL, 0u, &value)); // [状態] - 文字列オプション "-n" を登録する。
+                                                                                                                    // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_positional_string(parser, "123456789012345678901234567890",
-                                                                          NULL, 0u, &value));
+                                                                          NULL, 0u, &value)); // [状態] - 位置引数 "123456789012345678901234567890" を登録する。
+                                                                                              // [状態確認] - _com_util_argparser_register_positional_string の戻り値が COM_UTIL_OK であること。
     char usage[512] = {};
     char *unexpected_argv[] = {cstr("prog"), cstr("-v=1")};
 
@@ -2646,8 +2704,8 @@ TEST_F(argparserTest, error_message_formats_all_error_results)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     const int results[] = {
         COM_UTIL_ERR_UNKNOWN_OPTION,     COM_UTIL_ERR_MISSING_VALUE,
         COM_UTIL_ERR_INVALID_INTEGER,    COM_UTIL_ERR_OUT_OF_RANGE,
@@ -2688,8 +2746,8 @@ TEST_F(argparserTest, error_message_returns_invalid_argument_when_snprintf_fails
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     char message[128] = {'x'};
 
     // Pre-Assert
@@ -2714,13 +2772,15 @@ TEST_F(argparserTest, register_error_message_formats_all_results)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int storage = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage)); // [状態] - フラグ "-a" / "--alpha" を登録する。
+                                                                                                        // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
-              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage));
-    ASSERT_EQ((size_t)1, _com_util_argparser_get_register_error_count(parser));
+              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage)); // [状態] - 重複登録エラーを積んだ状態とする。
+                                                                                          // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
+    ASSERT_EQ((size_t)1, _com_util_argparser_get_register_error_count(parser)); // [状態確認] - _com_util_argparser_get_register_error_count の戻り値が 1 であること。
     char message[128] = {};
     const int results[] = {
         COM_UTIL_ERR_INVALID_ARGUMENT, COM_UTIL_ERR_OUT_OF_MEMORY, COM_UTIL_ERR_DUPLICATE_DEFINITION, COM_UTIL_OK,
@@ -2762,12 +2822,14 @@ TEST_F(argparserTest, register_error_message_returns_invalid_argument_when_snpri
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int storage = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage)); // [状態] - フラグ "-a" / "--alpha" を登録する。
+                                                                                                        // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
-              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage));
+              _com_util_argparser_register_flag(parser, "-a", "--beta", NULL, &storage)); // [状態] - 重複登録エラーを積んだ状態とする。
+                                                                                          // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
     char message[128] = {'x'};
 
     // Pre-Assert
@@ -2921,8 +2983,8 @@ TEST_F(argparserTest, print_usage_returns_buffer_too_small_when_usage_changes)
     // Arrange
     com_util_argparser_options options = {};
     options.program_description = "short";
-    com_util_argparser *parser = _com_util_argparser_create(&options);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(&options); // [状態] - 生成オプション付きの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_stdio> mock_stdio;
     NiceMock<Mock_stdlib> mock_stdlib;
     char *previous_description = NULL;
@@ -2957,13 +3019,14 @@ TEST_F(argparserTest, print_error_messages_writes_buffer_too_small_message)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     std::string unknown_option = "--" + std::string(600u, 'x');
     char *argv[] = {cstr("prog"), const_cast<char *>(unknown_option.c_str())};
     ASSERT_EQ(
         COM_UTIL_ERR_UNKNOWN_OPTION,
         _com_util_argparser_parse(parser, 2, argv)); // [状態] - 600 文字の未知オプションで解析エラーを発生させる。
+                                                     // [状態確認] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
@@ -2986,11 +3049,12 @@ TEST_F(argparserTest, print_error_messages_skips_message_when_snprintf_fails)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     char *argv[] = {cstr("prog"), cstr("--unknown")};
     ASSERT_EQ(COM_UTIL_ERR_UNKNOWN_OPTION,
               _com_util_argparser_parse(parser, 2, argv)); // [状態] - 未知オプションで解析エラーを発生させる。
+                                                           // [状態確認] - _com_util_argparser_parse の戻り値が COM_UTIL_ERR_UNKNOWN_OPTION であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
@@ -3015,14 +3079,16 @@ TEST_F(argparserTest, print_register_error_messages_writes_buffer_too_small_mess
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     std::string long_name = "--" + std::string(600u, 'x');
     int storage = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", long_name.c_str(), NULL, &storage));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", long_name.c_str(), NULL, &storage)); // [状態] - 長い long_name のフラグ "-a" を登録する。
+                                                                                                                // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
               _com_util_argparser_register_flag(parser, "-b", long_name.c_str(), NULL,
                                                 &storage)); // [状態] - 長い対象名の登録エラーを発生させる。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, stderr, _))
@@ -3045,13 +3111,15 @@ TEST_F(argparserTest, print_register_error_messages_skips_message_when_snprintf_
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int storage = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", "--alpha", NULL, &storage)); // [状態] - フラグ "-a" / "--alpha" を登録する。
+                                                                                                        // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
               _com_util_argparser_register_flag(parser, "-b", "--alpha", NULL,
                                                 &storage)); // [状態] - 登録エラーを 1 件発生させる。
+                                                            // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_ERR_DUPLICATE_DEFINITION であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
@@ -3075,10 +3143,11 @@ TEST_F(argparserTest, print_register_error_messages_skips_message_when_snprintf_
 TEST_F(argparserTest, parse_skips_short_name_when_length_differs)
 {
     // Arrange
-    com_util_argparser *parser = _com_util_argparser_create(NULL);
-    ASSERT_NE(nullptr, parser);
+    com_util_argparser *parser = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+    ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     int flag = 0;
-    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &flag));
+    ASSERT_EQ(COM_UTIL_OK, _com_util_argparser_register_flag(parser, "-a", NULL, NULL, &flag)); // [状態] - フラグ "-a" を登録する。
+                                                                                                // [状態確認] - _com_util_argparser_register_flag の戻り値が COM_UTIL_OK であること。
     test_argparser_replace_short_name(parser, 0u, "-abc"); // [状態] - 登録済み短い名前を長さ 4 の "-abc" へ差し替える。
 
     // Pre-Assert

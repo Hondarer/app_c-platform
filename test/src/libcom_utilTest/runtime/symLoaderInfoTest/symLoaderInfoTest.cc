@@ -75,7 +75,10 @@ TEST(symLoaderInfoTest, sym_loader_info_resolves_unresolved_entry)
     com_util_sym_loader_entry *entries[] = {&entry};
     ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry.lib_name, sizeof(entry.lib_name),
                                            "default")); // [状態] - 明示的デフォルトとして解決できるエントリを用意する。
-    ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry.func_name, sizeof(entry.func_name), "default"));
+                                                        // [状態確認] - lib_name への com_util_strcpy の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_strcpy(entry.func_name, sizeof(entry.func_name),
+                                           "default")); // [状態] - func_name に "default" を設定する。
+                                                        // [状態確認] - func_name への com_util_strcpy の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

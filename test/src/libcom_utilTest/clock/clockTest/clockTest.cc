@@ -359,7 +359,8 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
             {
                 *tm_value = utc_tm;
                 return 0;
-            });
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が対象秒で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から UTC の分解値を返却する。
 
     // Act
     int rtc_format_realtime_iso8601_local = com_util_format_realtime_iso8601_local(
@@ -620,18 +621,22 @@ TEST_F(clockTest, format_realtime_iso8601_local_rejects_small_buffer)
     set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_localtime(_, _)).WillOnce(
-        [&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = local_tm;
-            return 0;
-        });
-    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
-        [&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = utc_tm;
-            return 0;
-        });
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = local_tm;
+                return 0;
+            }); // [Pre-Assert確認_正常系] - com_util_localtime が 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_localtime から用意した分解時刻を返却する。
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = utc_tm;
+                return 0;
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から用意した分解時刻を返却する。
 
     // Act
     int result = com_util_format_realtime_iso8601_local(
@@ -654,12 +659,14 @@ TEST_F(clockTest, format_realtime_iso8601_utc_rejects_small_buffer)
     set_tm(&utc_tm, 2024, 4, 5, 6, 7, 8);
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
-        [&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = utc_tm;
-            return 0;
-        });
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = utc_tm;
+                return 0;
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から用意した分解時刻を返却する。
 
     // Act
     int result = com_util_format_realtime_iso8601_utc(
@@ -756,18 +763,22 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_early_date)
     set_tm(&utc_tm, -1, 1, 1, 0, 0, 0);
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_localtime(_, _)).WillOnce(
-        [&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = local_tm;
-            return 0;
-        });
-    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _)).WillOnce(
-        [&](struct tm *tm_value, const time_t *)
-        {
-            *tm_value = utc_tm;
-            return 0;
-        });
+    EXPECT_CALL(mock_com_util, com_util_localtime(_, _))
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = local_tm;
+                return 0;
+            }); // [Pre-Assert確認_正常系] - com_util_localtime が 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_localtime から用意した分解時刻を返却する。
+    EXPECT_CALL(mock_com_util, com_util_gmtime(_, _))
+        .WillOnce(
+            [&](struct tm *tm_value, const time_t *)
+            {
+                *tm_value = utc_tm;
+                return 0;
+            }); // [Pre-Assert確認_正常系] - com_util_gmtime が 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_gmtime から用意した分解時刻を返却する。
 
     // Act
     int result = com_util_format_realtime_iso8601_local(

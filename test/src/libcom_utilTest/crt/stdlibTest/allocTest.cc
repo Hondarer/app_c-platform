@@ -184,8 +184,8 @@ TEST_F(allocTest, realloc_preserves_existing_content)
     int32_t *values = NULL;     // [状態] - 確保結果の格納先を NULL で初期化する。
     int32_t *new_values = NULL; // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 11;
     values[3] = 44;
 
@@ -232,8 +232,8 @@ TEST_F(allocTest, realloc_rejects_zero_count_without_free)
     int32_t *values = NULL; // [状態] - 確保結果の格納先を NULL で初期化する。
     void *ptr = NULL;       // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 55;
 
     // Pre-Assert
@@ -258,8 +258,8 @@ TEST_F(allocTest, realloc_rejects_size_overflow_without_free)
     void *ptr = NULL;                         // [状態] - 再確保結果の格納先を NULL で初期化する。
     const size_t huge = (SIZE_MAX / 8U) + 1U; // [状態] - 8 倍すると size_t を回り込む要素数を用意する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 66;
 
     // Pre-Assert
@@ -286,8 +286,8 @@ TEST_F(allocTest, realloc_zerofill_clears_extended_range_only)
     int nonzero_count = 0;
     size_t i;
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     for (i = 0U; i < 4U; i++)
     {
         values[i] = 7;
@@ -333,8 +333,8 @@ TEST_F(allocTest, realloc_zerofill_skips_when_not_extended)
     int32_t *values = NULL;     // [状態] - 確保結果の格納先を NULL で初期化する。
     int32_t *new_values = NULL; // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(8U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(8U, sizeof(*values)); // [状態] - 8 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 99;
     values[1] = 98;
 
@@ -376,8 +376,8 @@ TEST_F(allocTest, realloc_returns_null_on_failure_without_free)
     int32_t *values = NULL; // [状態] - 確保結果の格納先を NULL で初期化する。
     void *ptr = NULL;       // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 77;
 
     // Pre-Assert
@@ -402,8 +402,8 @@ TEST_F(allocTest, realloc_zerofill_rejects_zero_count_without_free)
     int32_t *values = NULL; // [状態] - 確保結果の格納先を NULL で初期化する。
     void *ptr = NULL;       // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 88;
 
     // Pre-Assert
@@ -429,8 +429,8 @@ TEST_F(allocTest, realloc_zerofill_returns_null_on_failure_without_free)
     int32_t *values = NULL; // [状態] - 確保結果の格納先を NULL で初期化する。
     void *ptr = NULL;       // [状態] - 再確保結果の格納先を NULL で初期化する。
 
-    values = (int32_t *)com_util_calloc(4U, sizeof(*values));
-    ASSERT_NE((int32_t *)NULL, values);
+    values = (int32_t *)com_util_calloc(4U, sizeof(*values)); // [状態] - 4 要素の領域を確保する。
+    ASSERT_NE((int32_t *)NULL, values);                       // [状態確認] - com_util_calloc の戻り値が NULL でないこと。
     values[0] = 89;
 
     // Pre-Assert

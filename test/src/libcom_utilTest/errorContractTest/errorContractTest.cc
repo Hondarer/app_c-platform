@@ -109,6 +109,7 @@ class errorContractTest : public Test
 {
 };
 
+// 全公開 API が detail_out の NULL を受け付けることの確認
 TEST_F(errorContractTest, all_detail_out_apis_accept_null)
 {
     // Arrange
@@ -200,6 +201,7 @@ TEST_F(errorContractTest, all_detail_out_apis_accept_null)
     }
 }
 
+// 実 API が失敗を記録し成功でクリアすることの確認
 TEST_F(errorContractTest, real_api_records_failure_and_clears_it_on_success)
 {
     // Arrange
@@ -233,6 +235,7 @@ TEST_F(errorContractTest, real_api_records_failure_and_clears_it_on_success)
     (void)com_util_remove(temp_path, NULL);
 }
 
+// ネストした成功が直前の失敗をクリアすることの確認
 TEST_F(errorContractTest, nested_paths_equal_success_clears_previous_failure)
 {
     // Arrange
@@ -256,6 +259,7 @@ TEST_F(errorContractTest, nested_paths_equal_success_clears_previous_failure)
               com_util_error_is_set(&last_error)); // [確認_正常系] - ネストした成功後の TLS 詳細エラーが空であること。
 }
 
+// スレッド間で last error が独立することの確認
 TEST_F(errorContractTest, last_error_is_isolated_between_threads)
 {
     // Arrange

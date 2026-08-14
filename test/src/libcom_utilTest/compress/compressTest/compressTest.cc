@@ -179,6 +179,7 @@ TEST_F(compressTest, decompress_returns_buffer_too_small_when_dst_is_shorter_tha
     ASSERT_EQ(COM_UTIL_OK,
               com_util_compress(compressed.data(), &compressed_len, reinterpret_cast<const uint8_t *>(plain.data()),
                                 plain.size())); // [状態] - 平文を圧縮しておく。
+                                                // [状態確認] - com_util_compress の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

@@ -106,6 +106,7 @@ TEST_F(traceFileCoverageTest, create_uses_original_path_when_full_path_resolutio
                                              // [Pre-Assert手順] - フル パス解決から COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("relative.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - 元のパスでファイルを開くこと。
+                                        // [Pre-Assert手順] - com_util_file_open から COM_UTIL_OK を返却する。
 
     // Act
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
@@ -180,16 +181,17 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_identity_is_unavail
     // Arrange
     EXPECT_CALL(mock_, com_util_file_get_id(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
-        .WillOnce(DoDefault());
+        .WillOnce(DoDefault()); // [状態確認] - create 時の com_util_file_get_id が 1 回失敗し、以降は既定動作へ委譲すること。
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "identity-unavailable.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態] - ファイル同一性を保持しない共有 sink を用意する。
+        "identity-unavailable.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [状態] - ファイル同一性を保持しない共有 sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_close(_, _))
         .Times(2); // [Pre-Assert確認_異常系] - 開き直し前と sink 破棄時にファイルを閉じること。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("identity-unavailable.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
+    // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
     // Act
     int result = com_util_trace_file_sink_write(
@@ -209,8 +211,8 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_path_identity_query_fail
 {
     // Arrange
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "path-identity-error.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+        "path-identity-error.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [状態] - 共有モードの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("path-identity-error.log"), _, _))
@@ -218,6 +220,7 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_path_identity_query_fail
                                              // [Pre-Assert手順] - 同一性取得から COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("path-identity-error.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
+    // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
     // Act
     int result = com_util_trace_file_sink_write(
@@ -237,8 +240,8 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_volume_changes)
 {
     // Arrange
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "volume-changed.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+        "volume-changed.log", 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED); // [状態] - 共有モードの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("volume-changed.log"), _, _))
@@ -248,8 +251,10 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_volume_changes)
                 set_file_id(id_out, 2, kFileIndex);
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_異常系] - volume の異なるファイル同一性を返却すること。
+                // [Pre-Assert手順] - volume 2 のファイル同一性を返却する。
     EXPECT_CALL(mock_, com_util_file_open(_, StrEq("volume-changed.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
+    // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
     // Act
     int result = com_util_trace_file_sink_write(
@@ -268,8 +273,8 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_volume_changes)
 TEST_F(traceFileCoverageTest, rotation_stops_after_rename_failure)
 {
     // Arrange
-    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("rename-error.log", 1, 2, 0);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("rename-error.log", 1, 2, 0); // [状態] - ローテーション設定付きの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_rename(_, _, _))
@@ -294,8 +299,8 @@ TEST_F(traceFileCoverageTest, shared_rotation_handles_size_query_outcomes)
 {
     // Arrange
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "shared-size.log", 10, 2, COM_UTIL_TRACE_FILE_SINK_SHARED);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+        "shared-size.log", 10, 2, COM_UTIL_TRACE_FILE_SINK_SHARED); // [状態] - 共有モードの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_get_size(_, _, _))
@@ -370,8 +375,8 @@ TEST_F(traceFileCoverageTest, create_rejects_lock_failure_and_long_path)
 TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_failures)
 {
     // Arrange
-    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("write-errors.log", 0, 0, 0);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("write-errors.log", 0, 0, 0); // [状態] - 初期化済みの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_get_realtime(_))
@@ -417,8 +422,8 @@ TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_fai
 TEST_F(traceFileCoverageTest, write_handles_format_truncation_and_lock_failure)
 {
     // Arrange
-    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("write-format.log", 0, 0, 0);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle);
+    com_util_trace_file_sink *handle = com_util_trace_file_sink_create("write-format.log", 0, 0, 0); // [状態] - 初期化済みの file sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
     std::string long_message(3000, 'x');
 
     // Pre-Assert
@@ -427,7 +432,9 @@ TEST_F(traceFileCoverageTest, write_handles_format_truncation_and_lock_failure)
         .WillOnce(Return(-1))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - トレース行の書式化を 3 回呼び出すこと。
                                       // [Pre-Assert手順] - 初回は -1 を返し、以降は本物へ委譲する。
-    EXPECT_CALL(mock_, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER)).WillOnce(DoDefault());
+    EXPECT_CALL(mock_, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_正常系] - 書式化失敗時のレジストリ ロック取得が呼び出されること。
+                                // [Pre-Assert手順] - com_util_local_lock_lock は既定動作へ委譲する。
     EXPECT_CALL(mock_, com_util_local_lock_lock(_, 100))
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(COM_UTIL_ERR_TIMEOUT)); // [Pre-Assert確認_異常系] - 書式化成功後の書き込みロックを 2 回取得すること。
@@ -461,14 +468,15 @@ TEST_F(traceFileCoverageTest, write_avoids_current_size_overflow)
             {
                 *size_out = (std::numeric_limits<size_t>::max)();
                 return COM_UTIL_OK;
-            });
+            }); // [状態確認] - create 時に com_util_file_get_size が 1 回呼び出されること。
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
-        "size-overflow.log", (std::numeric_limits<size_t>::max)(), 1, 0);
-    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態] - current_bytes が SIZE_MAX の sink を用意する。
+        "size-overflow.log", (std::numeric_limits<size_t>::max)(), 1, 0); // [状態] - current_bytes が SIZE_MAX の sink を用意する。
+    ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_file_write(_, _, _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - ファイル書き込みを 1 回呼び出すこと。
+                                        // [Pre-Assert手順] - com_util_file_write から COM_UTIL_OK を返却する。
 
     // Act
     int result = com_util_trace_file_sink_write(
@@ -494,6 +502,7 @@ TEST_F(traceFileCoverageTest, dispose_handles_registered_and_unregistered_sinks)
     com_util_trace_file_sink *shutdown_unregistered =
         test_trace_file_sink_create_unregistered("shutdown-unregistered.log", 0, 0, 0);
     ASSERT_EQ(first, second); // [状態] - 同一 sink の参照カウントが 2 の状態とする。
+                              // [状態確認] - first と second が同一であること。
 
     // Pre-Assert
 

@@ -48,9 +48,11 @@ TEST(elevatedProcessTest, is_elevated_reflects_effective_user_id)
     // Arrange
     NiceMock<Mock_unistd> mock_unistd;
     int elevated = -1;
-    EXPECT_CALL(mock_unistd, geteuid(_, _, _)).WillOnce(Return(static_cast<uid_t>(0)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .WillOnce(Return(static_cast<uid_t>(0))); // [Pre-Assert確認_正常系] - geteuid が 1 回呼び出されること。
+                                                  // [Pre-Assert手順] - geteuid から実効ユーザー ID 0 を返却する。
 
     // Act
     int root_result =
@@ -68,9 +70,11 @@ TEST(elevatedProcessTest, is_elevated_rejects_non_root_as_not_elevated)
     // Arrange
     NiceMock<Mock_unistd> mock_unistd;
     int elevated = -1;
-    EXPECT_CALL(mock_unistd, geteuid(_, _, _)).WillOnce(Return(static_cast<uid_t>(1000)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .WillOnce(Return(static_cast<uid_t>(1000))); // [Pre-Assert確認_正常系] - geteuid が 1 回呼び出されること。
+                                                     // [Pre-Assert手順] - geteuid から実効ユーザー ID 1000 を返却する。
 
     // Act
     int result =
@@ -160,9 +164,12 @@ TEST(elevatedProcessTest, run_apis_report_linux_elevation_state)
     int exit_code = -1;
     int handled = -1;
     char result_message[16] = "stale";
-    EXPECT_CALL(mock_unistd, geteuid(_, _, _)).Times(2).WillRepeatedly(Return(static_cast<uid_t>(0)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .Times(2)
+        .WillRepeatedly(Return(static_cast<uid_t>(0))); // [Pre-Assert確認_正常系] - geteuid が 2 回呼び出されること。
+                                                        // [Pre-Assert手順] - geteuid から実効ユーザー ID 0 を返却する。
 
     // Act
     int run_result = com_util_elevated_process_run_if_needed(
@@ -190,9 +197,12 @@ TEST(elevatedProcessTest, run_with_result_accepts_absent_or_zero_sized_message_b
     int exit_code = -1;
     int handled = -1;
     char result_message[2] = "x";
-    EXPECT_CALL(mock_unistd, geteuid(_, _, _)).Times(2).WillRepeatedly(Return(static_cast<uid_t>(0)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .Times(2)
+        .WillRepeatedly(Return(static_cast<uid_t>(0))); // [Pre-Assert確認_正常系] - geteuid が 2 回呼び出されること。
+                                                        // [Pre-Assert手順] - geteuid から実効ユーザー ID 0 を返却する。
 
     // Act
     int null_buffer_result = com_util_elevated_process_run_with_result(
@@ -215,9 +225,13 @@ TEST(elevatedProcessTest, run_apis_reject_linux_non_root)
     NiceMock<Mock_unistd> mock_unistd;
     int exit_code = 0;
     int handled = 0;
-    EXPECT_CALL(mock_unistd, geteuid(_, _, _)).Times(2).WillRepeatedly(Return(static_cast<uid_t>(1000)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .Times(2)
+        .WillRepeatedly(
+            Return(static_cast<uid_t>(1000))); // [Pre-Assert確認_異常系] - geteuid が 2 回呼び出されること。
+                                               // [Pre-Assert手順] - geteuid から実効ユーザー ID 1000 を返却する。
 
     // Act
     int run_result = com_util_elevated_process_run_if_needed(

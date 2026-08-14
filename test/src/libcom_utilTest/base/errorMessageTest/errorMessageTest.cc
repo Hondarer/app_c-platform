@@ -128,6 +128,7 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
         rtc_zero_size); // [確認_異常系] - サイズが 0 の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
+// error_message がドメインごとに文字列化することの確認
 TEST_F(errorMessageTest, error_message_dispatches_by_domain)
 {
     // Arrange

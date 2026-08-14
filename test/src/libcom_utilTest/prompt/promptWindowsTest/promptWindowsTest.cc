@@ -69,7 +69,10 @@ TEST_F(promptWindowsTest, enter_raw_succeeds_and_changes_mode)
     DWORD captured_mode = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(dummy_handle));
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE))
+        .WillOnce(Return(
+            dummy_handle)); // [Pre-Assert確認_正常系] - GetStdHandle が STD_INPUT_HANDLE を指定して 1 回呼び出されること。
+                            // [Pre-Assert手順] - ダミー ハンドルを返却する。
     EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
         .WillOnce(DoAll(SetArgPointee<4>(orig_mode),
                         Return(TRUE))); // [Pre-Assert確認_正常系] - GetConsoleMode が 1 回呼び出されること。
@@ -99,9 +102,14 @@ TEST_F(promptWindowsTest, enter_raw_does_nothing_when_set_console_mode_fails)
     DWORD orig_mode = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(dummy_handle));
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE))
+        .WillOnce(Return(
+            dummy_handle)); // [Pre-Assert確認_正常系] - GetStdHandle が STD_INPUT_HANDLE を指定して 1 回呼び出されること。
+                            // [Pre-Assert手順] - ダミー ハンドルを返却する。
     EXPECT_CALL(mock_windows, GetConsoleMode(_, _, _, dummy_handle, _))
-        .WillOnce(DoAll(SetArgPointee<4>(orig_mode), Return(TRUE)));
+        .WillOnce(DoAll(SetArgPointee<4>(orig_mode),
+                        Return(TRUE))); // [Pre-Assert確認_正常系] - GetConsoleMode が 1 回呼び出されること。
+                                        // [Pre-Assert手順] - 元のコンソール モードを返却する。
     EXPECT_CALL(mock_windows, SetConsoleMode(_, _, _, dummy_handle, _))
         .WillOnce(Return(FALSE)); // [Pre-Assert確認_異常系] - SetConsoleMode が 1 回呼び出されること。
                                    // [Pre-Assert手順] - FALSE を返却する。
@@ -216,7 +224,10 @@ TEST_F(promptWindowsTest, read_char_returns_minus1_at_eof)
     handle_.stdin_handle = dummy_handle;
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, dummy_handle, 100U)).WillOnce(Return(WAIT_OBJECT_0));
+    EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, dummy_handle, 100U))
+        .WillOnce(Return(
+            WAIT_OBJECT_0)); // [Pre-Assert確認_正常系] - WaitForSingleObject が 100ms を指定して 1 回呼び出されること。
+                             // [Pre-Assert手順] - WAIT_OBJECT_0 を返却する。
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, dummy_handle, _, 1U, _, _))
         .WillOnce(DoAll(SetArgPointee<6>(0UL),
                         Return(TRUE))); // [Pre-Assert確認_異常系] - ReadFile が 1 回呼び出されること。

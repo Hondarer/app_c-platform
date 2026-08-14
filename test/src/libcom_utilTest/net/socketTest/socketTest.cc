@@ -747,8 +747,10 @@ TEST_F(socketTest, nonblocking_reports_set_failure)
     // [Pre-Assert手順] - 下位の非ブロッキング設定 API から、現在の設定の取得に成功したのち設定の反映で失敗を返却する。
     EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_GETFL, 0)).WillOnce(Return(O_RDONLY));
     EXPECT_CALL(mock_fcntl_, fcntl(_, _, _, (int)kSocket, F_SETFL, O_NONBLOCK))
-        .WillOnce(DoAll(Assign(&errno, EIO),
-                        Return(-1)));
+        .WillOnce(
+            DoAll(Assign(&errno, EIO),
+                  Return(-1))); // [Pre-Assert確認_異常系] - F_SETFL が O_NONBLOCK を指定して 1 回呼び出されること。
+                                // [Pre-Assert手順] - errno に EIO を設定し、-1 を返却する。
 
     // Act
     int rtc = com_util_socket_set_nonblocking(kSocket, 1, &detail); // [手順] - F_SETFL の失敗を注入する。

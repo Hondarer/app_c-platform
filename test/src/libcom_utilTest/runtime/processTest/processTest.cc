@@ -262,7 +262,7 @@ TEST(processTest, EnvironmentOverridesAreVisibleToChild)
     make_temp_path(path, sizeof(path), "env");
     remove_temp_path(path);
     handle = open_output_handle(path); // [状態] - 子プロセスの stdout を受けるテンポラリ ファイルを開く。
-    ASSERT_EQ(0, is_invalid_output_handle(handle));
+    ASSERT_EQ(0, is_invalid_output_handle(handle)); // [状態確認] - 出力ハンドルが有効であること。
 
     memset(&stdout_spec, 0, sizeof(stdout_spec));
     stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
@@ -428,10 +428,12 @@ TEST(processTest, ExecutablePathReportsReadlinkFailure)
     NiceMock<Mock_unistd> mock_unistd;
     char path[PLATFORM_PATH_MAX] = {'x'};
     errno = EACCES;
-    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
-        .WillOnce(Return(static_cast<ssize_t>(-1)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
+        .WillOnce(Return(static_cast<ssize_t>(
+            -1))); // [Pre-Assert確認_異常系] - readlink が /proc/self/exe を指定して 1 回呼び出されること。
+                   // [Pre-Assert手順] - readlink から -1 を返却する。
 
     // Act
     int result = com_util_process_get_executable_path(
@@ -449,10 +451,12 @@ TEST(processTest, ExecutablePathReportsReadlinkLengthOverflow)
     // Arrange
     NiceMock<Mock_unistd> mock_unistd;
     char path[8] = {'x'};
-    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
-        .WillOnce(Return(static_cast<ssize_t>(8)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
+        .WillOnce(Return(static_cast<ssize_t>(
+            8))); // [Pre-Assert確認_異常系] - readlink が /proc/self/exe を指定して 1 回呼び出されること。
+                  // [Pre-Assert手順] - 出力先容量と同じ 8 を返却する。
 
     // Act
     int result = com_util_process_get_executable_path(
@@ -531,12 +535,13 @@ TEST(processTest, StartReportsProcessAllocationFailure)
     char arg0[] = "/bin/true";
     char *argv[] = {arg0, nullptr};
     options.argv = argv;
+
+    // Pre-Assert
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
         .WillOnce(DoDefault())
         .WillOnce(
             Return(nullptr)); // [Pre-Assert確認_異常系] - 環境配列後の process ハンドル確保で calloc が失敗すること。
-
-    // Pre-Assert
+                              // [Pre-Assert手順] - 1 回目は本物へ委譲し、2 回目は NULL を返却する。
 
     // Act
     int result = com_util_process_start(&options, &process); // [手順] - process ハンドル確保失敗を注入して開始する。
@@ -557,10 +562,11 @@ TEST(processTest, StartReportsForkFailure)
     char arg0[] = "/bin/true";
     char *argv[] = {arg0, nullptr};
     options.argv = argv;
-    EXPECT_CALL(mock_unistd, fork(_, _, _))
-        .WillOnce(Return(static_cast<pid_t>(-1))); // [Pre-Assert確認_異常系] - fork が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(-1))); // [Pre-Assert確認_異常系] - fork が 1 回呼び出されること。
+                                                   // [Pre-Assert手順] - fork から -1 を返却する。
 
     // Act
     int result = com_util_process_start(&options, &process); // [手順] - fork 失敗を注入してプロセスを開始する。
@@ -576,22 +582,29 @@ TEST(processTest, WaitMapsExitStatesAndRetriesEintr)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    com_util_process *normal_process = com_util_process_adopt_native(123);
-    com_util_process *signaled_process = com_util_process_adopt_native(124);
+    com_util_process *normal_process = com_util_process_adopt_native(123); // [状態] - pid 123 の process を用意する。
+    com_util_process *signaled_process =
+        com_util_process_adopt_native(124); // [状態] - pid 124 の process を用意する。
     int normal_status = 7 << 8;
     int signaled_status = SIGTERM;
     int normal_exit_code = 0;
     int signaled_exit_code = 0;
-    ASSERT_NE(nullptr, normal_process);
-    ASSERT_NE(nullptr, signaled_process);
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 123, _, _))
-        .WillOnce(DoAll(SetArgPointee<4>(normal_status), Return(static_cast<pid_t>(-1))))
-        .WillOnce(DoAll(SetArgPointee<4>(normal_status), Return(static_cast<pid_t>(123))));
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 124, _, _))
-        .WillOnce(DoAll(SetArgPointee<4>(signaled_status), Return(static_cast<pid_t>(124))));
+    ASSERT_NE(nullptr, normal_process);   // [状態確認] - pid 123 の com_util_process_adopt_native が非 NULL を返すこと。
+    ASSERT_NE(nullptr, signaled_process); // [状態確認] - pid 124 の com_util_process_adopt_native が非 NULL を返すこと。
     errno = EINTR; // [状態] - 1 回目の waitpid が EINTR を返す状態とする。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 123, _, _))
+        .WillOnce(DoAll(SetArgPointee<4>(normal_status), Return(static_cast<pid_t>(-1))))
+        .WillOnce(DoAll(
+            SetArgPointee<4>(normal_status),
+            Return(static_cast<pid_t>(123)))); // [Pre-Assert確認_正常系] - pid 123 の waitpid が 2 回呼び出されること。
+                                               // [Pre-Assert手順] - 1 回目は -1、2 回目は終了ステータス 7 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 124, _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<4>(signaled_status),
+            Return(static_cast<pid_t>(124)))); // [Pre-Assert確認_正常系] - pid 124 の waitpid が 1 回呼び出されること。
+                                               // [Pre-Assert手順] - SIGTERM 終了ステータスを設定して 124 を返却する。
 
     // Act
     int normal_wait = com_util_process_wait(
@@ -627,12 +640,15 @@ TEST(processTest, WaitReportsWaitpidFailure)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    com_util_process *process = com_util_process_adopt_native(125);
-    ASSERT_NE(nullptr, process);
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 125, _, _)).WillOnce(Return(static_cast<pid_t>(-1)));
-    errno = ECHILD; // [状態] - waitpid が子プロセスなしで失敗する状態とする。
+    com_util_process *process = com_util_process_adopt_native(125); // [状態] - pid 125 の process を用意する。
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
+    errno = ECHILD;              // [状態] - waitpid が子プロセスなしで失敗する状態とする。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 125, _, _))
+        .WillOnce(
+            Return(static_cast<pid_t>(-1))); // [Pre-Assert確認_異常系] - pid 125 の waitpid が 1 回呼び出されること。
+                                             // [Pre-Assert手順] - waitpid から -1 を返却する。
 
     // Act
     int result =
@@ -651,12 +667,14 @@ TEST(processTest, TerminateReportsKillFailure)
 {
     // Arrange
     NiceMock<Mock_unistd> mock_unistd;
-    com_util_process *process = com_util_process_adopt_native(126);
-    ASSERT_NE(nullptr, process);
-    EXPECT_CALL(mock_unistd, kill(_, _, _, 126, SIGTERM)).WillOnce(Return(-1));
-    errno = ESRCH; // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
+    com_util_process *process = com_util_process_adopt_native(126); // [状態] - pid 126 の process を用意する。
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
+    errno = ESRCH;              // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, kill(_, _, _, 126, SIGTERM))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - kill が pid 126 と SIGTERM を指定して 1 回呼び出されること。
+                               // [Pre-Assert手順] - kill から -1 を返却する。
 
     // Act
     int result = com_util_process_terminate(process); // [手順] - kill 失敗を注入して process を terminate する。
@@ -673,9 +691,9 @@ TEST(processTest, TerminateReportsKillFailure)
 TEST(processTest, RejectsInvalidWaitAndExitArguments)
 {
     // Arrange
-    com_util_process *process = com_util_process_adopt_native(127);
+    com_util_process *process = com_util_process_adopt_native(127); // [状態] - pid 127 の process を用意する。
     int exit_code = 0;
-    ASSERT_NE(nullptr, process);
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
 
@@ -773,15 +791,31 @@ TEST(processTest, child_stdio_helpers_handle_modes_and_errors)
     NiceMock<Mock_unistd> mock_unistd;
     com_util_process_stdio spec = {};
     com_util_process_options options = {};
-    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _)).WillOnce(Return(10)).WillOnce(Return(13)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, 10, STDIN_FILENO)).WillOnce(Return(0));
-    EXPECT_CALL(mock_unistd, close(_, _, _, 10)).WillOnce(Return(0));
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, 13, STDOUT_FILENO)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_unistd, close(_, _, _, 13)).WillOnce(Return(0));
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, 11, STDOUT_FILENO)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_unistd, dup2(_, _, _, 12, STDERR_FILENO)).WillOnce(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
+        .WillOnce(Return(10))
+        .WillOnce(Return(13))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_正常系] - open が 3 回呼び出されること。
+                               // [Pre-Assert手順] - 1 回目は 10、2 回目は 13、3 回目は -1 を返却する。
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, 10, STDIN_FILENO))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - fd 10 を STDIN へ dup2 すること。
+                              // [Pre-Assert手順] - STDIN 向け dup2 から 0 を返却する。
+    EXPECT_CALL(mock_unistd, close(_, _, _, 10))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 複製後に fd 10 を close すること。
+                              // [Pre-Assert手順] - fd 10 の close から 0 を返却する。
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, 13, STDOUT_FILENO))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - fd 13 を STDOUT へ dup2 すること。
+                               // [Pre-Assert手順] - NULL デバイス向け dup2 から -1 を返却する。
+    EXPECT_CALL(mock_unistd, close(_, _, _, 13))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 失敗後に fd 13 を close すること。
+                              // [Pre-Assert手順] - fd 13 の close から 0 を返却する。
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, 11, STDOUT_FILENO))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - fd 11 を STDOUT へ dup2 すること。
+                               // [Pre-Assert手順] - ネイティブハンドル 11 の dup2 から -1 を返却する。
+    EXPECT_CALL(mock_unistd, dup2(_, _, _, 12, STDERR_FILENO))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - fd 12 を STDERR へ dup2 すること。
+                              // [Pre-Assert手順] - STDERR 向け dup2 から 0 を返却する。
 
     // Act
     int inherit_result =
@@ -839,9 +873,11 @@ TEST(processTest, exec_path_helper_searches_path_segments)
     char *envp[] = {path_value, NULL};
     memset(long_arg, 'x', sizeof(long_arg) - 1U);
     long_arg[sizeof(long_arg) - 1U] = '\0';
-    EXPECT_CALL(mock_unistd, execve(_, _, _, _, _, _)).WillRepeatedly(Return(-1));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, execve(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_正常系] - execve が呼び出されること。
+                                     // [Pre-Assert手順] - PATH 探索中の execve から -1 を返却する。
 
     // Act
     test_process_exec_with_path(absolute_argv, envp); // [手順] - 絶対パスを exec する。
@@ -862,10 +898,13 @@ TEST(processTest, monotonic_time_converts_timespec_to_milliseconds)
     struct timespec value = {};
     value.tv_sec = 12;
     value.tv_nsec = 345000000L;
-    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
-        .WillOnce(DoAll(SetArgPointee<4>(value), Return(0)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .WillOnce(DoAll(
+            SetArgPointee<4>(value),
+            Return(0))); // [Pre-Assert確認_正常系] - clock_gettime が CLOCK_MONOTONIC を指定して 1 回呼び出されること。
+                         // [Pre-Assert手順] - 12 秒 345 ミリ秒の timespec を設定し、0 を返却する。
 
     // Act
     uint64_t result = test_process_monotonic_ms(); // [手順] - 単調時計をミリ秒へ変換する。
@@ -881,13 +920,15 @@ TEST(processTest, wait_reports_timeout_at_finite_deadline)
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_time> mock_time;
     NiceMock<Mock_unistd> mock_unistd;
-    com_util_process *process = com_util_process_adopt_native(128);
+    com_util_process *process = com_util_process_adopt_native(128); // [状態] - pid 128 の process を用意する。
     struct timespec first = {};
     struct timespec second = {};
     int clock_count = 0;
-    ASSERT_NE(nullptr, process);
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
     first.tv_sec = 1;
     second.tv_sec = 2;
+
+    // Pre-Assert
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(2)
         .WillRepeatedly(Invoke(
@@ -895,10 +936,12 @@ TEST(processTest, wait_reports_timeout_at_finite_deadline)
             {
                 *arg = (clock_count++ == 0) ? first : second;
                 return 0;
-            }));
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 128, _, WNOHANG)).WillOnce(Return(static_cast<pid_t>(0)));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - clock_gettime が 2 回呼び出されること。
+                 // [Pre-Assert手順] - 1 回目は 1 秒、2 回目は 2 秒の timespec を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 128, _, WNOHANG))
+        .WillOnce(Return(static_cast<pid_t>(
+            0))); // [Pre-Assert確認_正常系] - pid 128 の非ブロッキング waitpid が 1 回呼び出されること。
+                  // [Pre-Assert手順] - 未終了を示す 0 を返却する。
 
     // Act
     int result = com_util_process_wait(process, 500); // [手順] - 終了しないプロセスを有限時間待機する。
@@ -917,21 +960,30 @@ TEST(processTest, wait_sleeps_before_finite_deadline_and_detects_exit)
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_time> mock_time;
     NiceMock<Mock_unistd> mock_unistd;
-    com_util_process *process = com_util_process_adopt_native(131);
+    com_util_process *process = com_util_process_adopt_native(131); // [状態] - pid 131 の process を用意する。
     struct timespec now = {};
     int status = 4 << 8;
     int exit_code = 0;
-    ASSERT_NE(nullptr, process);
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
     now.tv_sec = 1;
-    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
-        .Times(2)
-        .WillRepeatedly(DoAll(SetArgPointee<4>(now), Return(0)));
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 131, _, WNOHANG))
-        .WillOnce(Return(static_cast<pid_t>(0)))
-        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(131))));
-    EXPECT_CALL(mock_unistd, usleep(_, _, _, 1000U)).WillOnce(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
+        .Times(2)
+        .WillRepeatedly(
+            DoAll(SetArgPointee<4>(now),
+                  Return(0))); // [Pre-Assert確認_正常系] - clock_gettime が同じ時刻で 2 回呼び出されること。
+                               // [Pre-Assert手順] - 1 秒の timespec を設定し、0 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 131, _, WNOHANG))
+        .WillOnce(Return(static_cast<pid_t>(0)))
+        .WillOnce(
+            DoAll(SetArgPointee<4>(status),
+                  Return(static_cast<pid_t>(
+                      131)))); // [Pre-Assert確認_正常系] - pid 131 の非ブロッキング waitpid が 2 回呼び出されること。
+                               // [Pre-Assert手順] - 1 回目は未終了 0、2 回目は終了ステータス 4 を返却する。
+    EXPECT_CALL(mock_unistd, usleep(_, _, _, 1000U))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - usleep が 1000 マイクロ秒で 1 回呼び出されること。
+                              // [Pre-Assert手順] - usleep から 0 を返却する。
 
     // Act
     int wait_result = com_util_process_wait(process, 500); // [手順] - 期限前のプロセスを有限時間待機する。
@@ -960,10 +1012,15 @@ TEST(processTest, environment_helpers_report_invalid_and_allocation_failures)
     char **calloc_result;
     char **duplicate_result;
 
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr)).WillOnce(Return(nullptr));
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr)).WillOnce(DoDefault());
-
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が 2 回呼び出されること。
+                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - calloc が 2 回呼び出されること。
+                                // [Pre-Assert手順] - 1 回目は NULL を返却し、2 回目は本物へ委譲する。
 
     // Act
     set_result = test_process_set_env_entry(envp, 2U, valid_entry); // [手順] - 環境変数エントリの確保失敗を処理する。
@@ -984,13 +1041,16 @@ TEST(processTest, completed_process_wait_and_terminate_are_idempotent)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    com_util_process *process = com_util_process_adopt_native(129);
+    com_util_process *process = com_util_process_adopt_native(129); // [状態] - pid 129 の process を用意する。
     int status = 3 << 8;
-    ASSERT_NE(nullptr, process);
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 129, _, _))
-        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(129))));
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 129, _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<4>(status),
+            Return(static_cast<pid_t>(129)))); // [Pre-Assert確認_正常系] - pid 129 の waitpid が 1 回呼び出されること。
+                                               // [Pre-Assert手順] - 終了ステータス 3 を設定して 129 を返却する。
 
     // Act
     int first_wait =
@@ -1014,9 +1074,11 @@ TEST(processTest, adopt_native_reports_allocation_failure)
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - calloc から NULL を返却する。
 
     // Act
     com_util_process *process = com_util_process_adopt_native(130); // [手順] - プロセス構造体の確保失敗を注入する。
@@ -1108,10 +1170,11 @@ TEST(processTest, environment_helpers_cover_empty_and_override_failure_paths)
     char invalid_entry[] = "INVALID";
     char *overrides[] = {valid_override, NULL};
     char *empty_envp[] = {NULL};
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 環境変数上書きの文字列確保が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 環境変数上書きの文字列確保が失敗すること。
+                                    // [Pre-Assert手順] - malloc から NULL を返却する。
 
     // Act
     char *null_copy = test_process_string_duplicate(NULL); // [手順] - NULL 文字列を複製する。
@@ -1172,11 +1235,16 @@ TEST(processTest, child_runner_classifies_each_preparation_failure)
     char *argv[] = {arg0, NULL};
     char *envp[] = {path_entry, NULL};
     options.argv = argv;
-    ASSERT_NE(nullptr, getcwd(current_directory, sizeof(current_directory)));
+    ASSERT_NE(nullptr,
+              getcwd(current_directory,
+                     sizeof(current_directory))); // [状態] - 現在の作業ディレクトリを取得する。
+                                                  // [状態確認] - getcwd の戻り値が非 NULL であること。
     options.working_directory = "/com_util/process/directory/does/not/exist";
-    EXPECT_CALL(mock_unistd, execve(_, _, _, _, _, _)).WillRepeatedly(Return(-1));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, execve(_, _, _, _, _, _))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - execve が呼び出されること。
+                                     // [Pre-Assert手順] - 子プロセス準備中の execve から -1 を返却する。
 
     // Act
     int chdir_result =
@@ -1224,15 +1292,21 @@ TEST(processTest, wait_forever_retries_unexpected_nonblocking_result)
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_unistd> mock_unistd;
-    com_util_process *process = com_util_process_adopt_native(132);
+    com_util_process *process = com_util_process_adopt_native(132); // [状態] - pid 132 の process を用意する。
     int status = 0;
-    ASSERT_NE(nullptr, process);
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 132, _, 0))
-        .WillOnce(Return(static_cast<pid_t>(0)))
-        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(132))));
-    EXPECT_CALL(mock_unistd, usleep(_, _, _, 1000U)).WillOnce(Return(0));
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 132, _, 0))
+        .WillOnce(Return(static_cast<pid_t>(0)))
+        .WillOnce(
+            DoAll(SetArgPointee<4>(status),
+                  Return(static_cast<pid_t>(
+                      132)))); // [Pre-Assert確認_正常系] - pid 132 のブロッキング waitpid が 2 回呼び出されること。
+                               // [Pre-Assert手順] - 1 回目は未終了 0、2 回目は終了ステータス 0 を返却する。
+    EXPECT_CALL(mock_unistd, usleep(_, _, _, 1000U))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 再試行前の usleep が 1000 マイクロ秒で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 再試行前の usleep から 0 を返却する。
 
     // Act
     int result =
@@ -1256,10 +1330,15 @@ TEST(processTest, run_sync_returns_wait_failure)
     char *argv[] = {arg0, NULL};
     int exit_code = 0;
     options.argv = argv;
-    EXPECT_CALL(mock_unistd, fork(_, _, _)).WillOnce(Return(static_cast<pid_t>(133)));
-    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 133, _, WNOHANG)).WillOnce(Return(static_cast<pid_t>(0)));
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(133))); // [Pre-Assert確認_正常系] - fork が 1 回呼び出されること。
+                                                    // [Pre-Assert手順] - 子プロセス pid 133 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 133, _, WNOHANG))
+        .WillOnce(Return(static_cast<pid_t>(
+            0))); // [Pre-Assert確認_正常系] - pid 133 の非ブロッキング waitpid が 1 回呼び出されること。
+                  // [Pre-Assert手順] - 未終了を示す 0 を返却する。
 
     // Act
     int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_NO_WAIT,

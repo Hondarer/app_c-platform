@@ -20,6 +20,7 @@ using testing::Invoke;
 
 #if defined(PLATFORM_LINUX)
 
+// 待機結果コードが対応する共通結果へ変換されることの確認
 TEST(syncBoundaryTest, map_wait_rc_translates_supported_results)
 {
     // Arrange
@@ -45,6 +46,7 @@ TEST(syncBoundaryTest, map_wait_rc_translates_supported_results)
               unknown_result); // [確認_異常系] - 未知のコードが COM_UTIL_ERR_UNKNOWN に変換されること。
 }
 
+// 単調 deadline のナノ秒が繰り上がり正規化されることの確認
 TEST(syncBoundaryTest, monotonic_deadline_normalizes_nanoseconds)
 {
     // Arrange
@@ -71,6 +73,7 @@ TEST(syncBoundaryTest, monotonic_deadline_normalizes_nanoseconds)
 
 #endif /* PLATFORM_LINUX */
 
+// condvar API が不正引数を拒否することの確認
 TEST(syncBoundaryTest, condvar_rejects_invalid_arguments)
 {
     // Arrange
@@ -100,6 +103,7 @@ TEST(syncBoundaryTest, condvar_rejects_invalid_arguments)
     EXPECT_EQ(NULL, lock);       // [確認_正常系] - NULL 破棄が安全に完了すること。
 }
 
+// condvar の即時タイムアウト、通知、一斉通知が成功することの確認
 TEST(syncBoundaryTest, condvar_timeout_signal_and_broadcast_are_supported)
 {
     // Arrange
@@ -131,6 +135,7 @@ TEST(syncBoundaryTest, condvar_timeout_signal_and_broadcast_are_supported)
     com_util_local_lock_destroy(lock);
 }
 
+// WAIT_FOREVER の condvar 待機が通知で戻ることの確認
 TEST(syncBoundaryTest, condvar_wait_forever_returns_after_signal)
 {
     // Arrange
@@ -138,15 +143,19 @@ TEST(syncBoundaryTest, condvar_wait_forever_returns_after_signal)
     com_util_local_lock *lock = NULL;
     std::atomic<bool> waiter_ready(false);
     int wait_result = COM_UTIL_ERR_UNKNOWN;
-    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv));
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv)); // [状態] - condvar を生成する。
+                                                          // [状態確認] - com_util_condvar_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     std::thread waiter(
         [&]()
         {
-            ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER));
+            ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_lock(lock, COM_UTIL_SYNC_WAIT_FOREVER)); // [状態] - 待機側の lock を取得する。
+                                                                                                // [状態確認] - com_util_local_lock_lock の戻り値が COM_UTIL_OK であること。
             waiter_ready.store(true);
             wait_result = com_util_condvar_wait(cv, lock, COM_UTIL_SYNC_WAIT_FOREVER);
-            EXPECT_EQ(COM_UTIL_OK, com_util_local_lock_unlock(lock));
+            EXPECT_EQ(COM_UTIL_OK, com_util_local_lock_unlock(lock)); // [状態] - 待機側の lock を解放する。
+                                                                      // [状態確認] - com_util_local_lock_unlock の戻り値が COM_UTIL_OK であること。
         });
 
     // Pre-Assert
@@ -179,6 +188,7 @@ static void set_thread_flag(void *arg)
     *flag = 1;
 }
 
+// スレッド生成と join で開始関数が実行されることの確認
 TEST(syncBoundaryTest, thread_create_and_join_runs_start_function)
 {
     // Arrange
@@ -204,6 +214,7 @@ static void count_once_call(void)
     s_once_call_count++;
 }
 
+// call_once が関数を 1 回だけ実行することの確認
 TEST(syncBoundaryTest, call_once_runs_function_only_once)
 {
     // Arrange

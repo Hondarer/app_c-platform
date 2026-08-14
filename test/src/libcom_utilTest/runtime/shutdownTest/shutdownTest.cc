@@ -71,6 +71,7 @@ class shutdownTest : public Test
     {
         _com_util_shutdown_reset_for_test();
         reset_records();
+        // atexit は成功を返す。
         ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Return(0));
     }
 
@@ -91,11 +92,16 @@ TEST_F(shutdownTest, test_callbacks_are_invoked_in_lifo_order)
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE,
                    7); // [状態] - 終了コード 7 を持つ通常終了イベントを用意する。
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &first));
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &second));
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback,
+                                                      &first)); // [状態] - 記録用 callback を id 1 で登録する。
+                                                                // [状態確認] - 1 件目の com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback,
+                                                      &second)); // [状態] - 記録用 callback を id 2 で登録する。
+                                                                 // [状態確認] - 2 件目の com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_register(record_callback,
-                                         &third)); // [状態] - 記録用 callback を id 1、2、3 の順に 3 件登録する。
+                                         &third)); // [状態] - 記録用 callback を id 3 で登録する。
+                                                   // [状態確認] - 3 件目の com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -130,6 +136,7 @@ TEST_F(shutdownTest, test_multiple_invoke_runs_callbacks_only_once)
 
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_register(record_callback, &id)); // [状態] - 記録用 callback を 1 件登録する。
+                                                                // [状態確認] - com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -166,13 +173,17 @@ TEST_F(shutdownTest, test_request_callbacks_do_not_consume_final_shutdown)
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
                    0); // [状態] - 通常終了の最終 shutdown イベントを用意する。
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_request_register(record_callback, &request_first));
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_request_register(
+                              record_callback, &request_first)); // [状態] - 終了要求 callback を id 1 で登録する。
+                                                                 // [状態確認] - 1 件目の com_util_shutdown_request_register の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_request_register(
-                  record_callback, &request_second)); // [状態] - 終了要求 callback を id 1、2 の順に 2 件登録する。
+                  record_callback, &request_second)); // [状態] - 終了要求 callback を id 2 で登録する。
+                                                      // [状態確認] - 2 件目の com_util_shutdown_request_register の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_register(record_callback,
                                          &final_id)); // [状態] - 最終 shutdown callback を id 3 で 1 件登録する。
+                                                      // [状態確認] - com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -217,6 +228,7 @@ TEST_F(shutdownTest, test_request_callback_runs_only_once)
 
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_request_register(record_callback, &id)); // [状態] - 終了要求 callback を 1 件登録する。
+                                                                        // [状態確認] - com_util_shutdown_request_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -245,9 +257,11 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_exit_code)
     // Arrange
     // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
     testing::Mock::AllowLeak(&mock_stdlib_);
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _))
+        .WillByDefault(
+            Invoke(delegate_real_atexit)); // [状態] - atexit が呼び出された際に本物へ委譲するようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(7) を呼び出す。
@@ -279,9 +293,11 @@ TEST_F(shutdownTest, test_com_util_exit_clamps_code_above_range)
     // Arrange
     // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
     testing::Mock::AllowLeak(&mock_stdlib_);
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _))
+        .WillByDefault(
+            Invoke(delegate_real_atexit)); // [状態] - atexit が呼び出された際に本物へ委譲するようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、下位 8 bit 切り捨てで 0 になる
@@ -311,9 +327,11 @@ TEST_F(shutdownTest, test_com_util_exit_clamps_negative_code)
     // Arrange
     // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
     testing::Mock::AllowLeak(&mock_stdlib_);
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _))
+        .WillByDefault(
+            Invoke(delegate_real_atexit)); // [状態] - atexit が呼び出された際に本物へ委譲するようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、com_util_exit(-1) を呼び出す。
@@ -343,9 +361,11 @@ TEST_F(shutdownTest, test_com_util_exit_preserves_upper_bound_code)
     // Arrange
     // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
     testing::Mock::AllowLeak(&mock_stdlib_);
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _))
+        .WillByDefault(
+            Invoke(delegate_real_atexit)); // [状態] - atexit が呼び出された際に本物へ委譲するようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側でイベント内容を出力する callback を登録し、
@@ -374,9 +394,11 @@ TEST_F(shutdownTest, test_explicit_invoke_prevents_atexit_double_execution)
     // Arrange
     // EXPECT_EXIT の子プロセスは exit で fixture を破棄しないため、子プロセス側の mock 登録を解放対象外にする。
     testing::Mock::AllowLeak(&mock_stdlib_);
+    ON_CALL(mock_stdlib_, atexit(_, _, _, _))
+        .WillByDefault(
+            Invoke(delegate_real_atexit)); // [状態] - atexit が呼び出された際に本物へ委譲するようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdlib_, atexit(_, _, _, _)).WillByDefault(Invoke(delegate_real_atexit));
 
     // Act
     // [手順] - 子プロセス側で実行回数を出力する callback を登録し、明示的な shutdown 実行後に exit(0) を呼び出す。
@@ -437,13 +459,16 @@ TEST_F(shutdownTest, test_unhandled_signal_invokes_final_callbacks_and_reraises)
     // Arrange
     NiceMock<Mock_signal> mock_signal;
     int id = 1;
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id));
-    EXPECT_CALL(mock_signal, signal(_, _, _, _, SIG_DFL))
-        .WillOnce(Return(SIG_DFL)); // [Pre-Assert確認_正常系] - シグナル処理を既定動作へ戻すこと。
-    EXPECT_CALL(mock_signal, raise(_, _, _, SIGTERM))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - SIGTERM を再送すること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id)); // [状態] - 最終 shutdown callback を 1 件登録する。
+                                                                            // [状態確認] - com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_signal, signal(_, _, _, _, SIG_DFL))
+        .WillOnce(Return(SIG_DFL)); // [Pre-Assert確認_正常系] - signal が SIG_DFL を指定して 1 回呼び出されること。
+                                    // [Pre-Assert手順] - signal から SIG_DFL を返却する。
+    EXPECT_CALL(mock_signal, raise(_, _, _, SIGTERM))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - raise が SIGTERM を指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - raise から 0 を返却する。
 
     // Act
     test_shutdown_signal_handler(SIGTERM); // [手順] - callback がない SIGTERM のシグナル ハンドラーを実行する。
@@ -459,12 +484,14 @@ TEST_F(shutdownTest, test_repeated_signal_request_returns_without_reraise)
     // Arrange
     com_util_shutdown_event event =
         make_event(COM_UTIL_SHUTDOWN_REASON_SIGNAL_OR_CONSOLE_EVENT, COM_UTIL_SHUTDOWN_CODE_KIND_SIGNAL_NUMBER, SIGINT);
-    ASSERT_EQ(COM_UTIL_OK, _com_util_shutdown_request_invoke_for_test(&event, NULL));
+    ASSERT_EQ(COM_UTIL_OK,
+              _com_util_shutdown_request_invoke_for_test(&event, NULL)); // [状態] - 終了要求を処理済みの状態にする。
+                                                                        // [状態確認] - _com_util_shutdown_request_invoke_for_test の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_signal> mock_signal;
-    EXPECT_CALL(mock_signal, signal(_, _, _, _, _)).Times(0);
-    EXPECT_CALL(mock_signal, raise(_, _, _, _)).Times(0);
 
     // Pre-Assert
+    EXPECT_CALL(mock_signal, signal(_, _, _, _, _)).Times(0); // [Pre-Assert確認_正常系] - signal が呼び出されないこと。
+    EXPECT_CALL(mock_signal, raise(_, _, _, _)).Times(0);     // [Pre-Assert確認_正常系] - raise が呼び出されないこと。
 
     // Act
     test_shutdown_signal_handler(SIGINT); // [手順] - 終了要求処理済みの状態で SIGINT のハンドラーを実行する。
@@ -477,11 +504,12 @@ TEST_F(shutdownTest, test_repeated_signal_request_returns_without_reraise)
 TEST_F(shutdownTest, test_registration_and_invoke_reject_invalid_inputs)
 {
     // Arrange
-    EXPECT_CALL(mock_stdlib_, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 2 種類の callback 登録で malloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib_, malloc(_, _, _, _))
+        .WillOnce(Return(nullptr))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が 2 回呼び出されること。
+                                    // [Pre-Assert手順] - malloc から NULL を返却する。
 
     // Act
     int register_null_result =
@@ -522,7 +550,9 @@ TEST_F(shutdownTest, test_request_registration_after_final_shutdown_is_rejected)
     // Arrange
     com_util_shutdown_event event =
         make_event(COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE, 0);
-    ASSERT_EQ(COM_UTIL_OK, _com_util_shutdown_invoke_for_test(&event, NULL));
+    ASSERT_EQ(COM_UTIL_OK,
+              _com_util_shutdown_invoke_for_test(&event, NULL)); // [状態] - 最終 shutdown を実行済みの状態にする。
+                                                                // [状態確認] - _com_util_shutdown_invoke_for_test の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -547,8 +577,11 @@ TEST_F(shutdownTest, test_reset_discards_pending_callbacks)
 {
     // Arrange
     int id = 1;
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id));
-    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_request_register(record_callback, &id));
+    ASSERT_EQ(COM_UTIL_OK, com_util_shutdown_register(record_callback, &id)); // [状態] - 最終 shutdown callback を 1 件登録する。
+                                                                            // [状態確認] - com_util_shutdown_register の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK,
+              com_util_shutdown_request_register(record_callback, &id)); // [状態] - 終了要求 callback を 1 件登録する。
+                                                                        // [状態確認] - com_util_shutdown_request_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -571,6 +604,7 @@ TEST_F(shutdownTest, test_console_event_is_reported_to_callback)
     ASSERT_EQ(COM_UTIL_OK,
               com_util_shutdown_request_register(record_callback,
                                                  &id)); // [状態] - 記録用の終了要求 callback を 1 件登録する。
+                                                        // [状態確認] - com_util_shutdown_request_register の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

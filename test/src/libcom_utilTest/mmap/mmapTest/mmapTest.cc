@@ -41,7 +41,10 @@ TEST_F(mmapTest, attach_creates_new_file_and_ignores_create_size_on_reattach)
               com_util_mmap_get_address(map)); // [確認_正常系] - マップ済みアドレスがモックの返却バッファーであること。
 
     // Pre-Assert_2
-    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_正常系] - 再アタッチで CREATE_NEW の com_util_file_open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
         .WillOnce(
             [](com_util_file *file, const char *, int flags, com_util_error *)
@@ -84,7 +87,8 @@ TEST_F(mmapTest, attach_fails_when_create_size_is_zero_for_new_file)
     com_util_mmap *map = NULL; // [状態] - 新規作成用のパス mmap.dat を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - create_size 0 のとき com_util_file_close が 1 回呼び出されること。
     EXPECT_CALL(mock_com_util_, com_util_remove(_, _))
         .Times(1); // [Pre-Assert確認_異常系] - create_size 0 のときファイルを閉じて削除すること。
 
@@ -105,7 +109,10 @@ TEST_F(mmapTest, attach_fails_for_empty_existing_file)
     com_util_mmap *map = NULL; // [状態] - サイズ 0 の既存ファイルを開く前提を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - CREATE_NEW の com_util_file_open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
         .WillOnce(
             [](com_util_file *file, const char *, int flags, com_util_error *)
@@ -149,6 +156,8 @@ TEST_F(mmapTest, attach_read_only_maps_existing_file)
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_正常系] - 読み取り専用の com_util_file_open が 1 回呼び出されること。
                 // [Pre-Assert手順] - 番兵ハンドルを設定し、COM_UTIL_OK を返却する。
+    // [Pre-Assert確認_正常系] - 読み取り専用のマップ API が呼び出されること。
+    // [Pre-Assert手順] - テスト用バッファーを返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_mman_, mmap(_, _, _, _, kMapSize, PROT_READ, MAP_SHARED, kFakeFileHandle, 0))
         .WillOnce(Return(mapped_buf_));
@@ -158,8 +167,6 @@ TEST_F(mmapTest, attach_read_only_maps_existing_file)
     EXPECT_CALL(mock_windows_, MapViewOfFile(_, _, _, kFakeMappingHandle, FILE_MAP_READ, 0u, 0u, kMapSize))
         .WillOnce(Return(mapped_buf_));
 #endif /* PLATFORM_ */
-    // [Pre-Assert確認_正常系] - 読み取り専用のマップ API が呼び出されること。
-    // [Pre-Assert手順] - テスト用バッファーを返却する。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
@@ -282,7 +289,9 @@ TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(kFakeGuard, COM_UTIL_SYNC_WAIT_FOREVER))
         .Times(2)
-        .WillRepeatedly(Return(COM_UTIL_OK));
+        .WillRepeatedly(
+            Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - com_util_local_lock_lock が 2 回呼び出されること。
+                                  // [Pre-Assert手順] - COM_UTIL_OK を返却する。
     EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
         .WillOnce(
             [](const char *, com_util_interprocess_rwlock **lock)
@@ -346,7 +355,8 @@ TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
     com_util_mmap *map = NULL; // [状態] - ロック未参照の新規アタッチ用パスを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _)).Times(0);
+    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
+        .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成が呼び出されないこと。
     EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_destroy(_))
         .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成と破棄が呼び出されないこと。
 
@@ -376,14 +386,14 @@ TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
     attachNewFile(&map); // [状態] - 書き戻し対象のマップを用意する。
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - 先頭 1 byte を対象とする書き戻し API が呼び出されること。
+    // [Pre-Assert手順] - 成功を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_mman_, msync(_, _, _, mapped_buf_, 1u, MS_SYNC)).WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, mapped_buf_, 1u)).WillOnce(Return(TRUE));
     EXPECT_CALL(mock_windows_, FlushFileBuffers(_, _, _, kFakeFileHandle)).WillOnce(Return(TRUE));
 #endif /* PLATFORM_ */
-    // [Pre-Assert確認_正常系] - 先頭 1 byte を対象とする書き戻し API が呼び出されること。
-    // [Pre-Assert手順] - 成功を返却する。
 
     // Act
     int rtc = com_util_mmap_flush(map, mapped_buf_, 1u,
@@ -407,6 +417,8 @@ TEST_F(mmapTest, get_rwlock_serializes_open_with_local_lock)
     attachNewFile(&map); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
 
     // Pre-Assert
+    // [Pre-Assert確認_正常系] - lock、open、unlock の順で 1 回ずつ呼び出されること。
+    // [Pre-Assert手順] - 番兵ロックを設定し、各呼び出しは成功を返却する。
     {
         testing::InSequence sequence;
         EXPECT_CALL(mock_com_util_, com_util_local_lock_lock(kFakeGuard, COM_UTIL_SYNC_WAIT_FOREVER))
@@ -419,8 +431,7 @@ TEST_F(mmapTest, get_rwlock_serializes_open_with_local_lock)
                     return COM_UTIL_OK;
                 });
         EXPECT_CALL(mock_com_util_, com_util_local_lock_unlock(kFakeGuard)).WillOnce(Return(COM_UTIL_OK));
-    } // [Pre-Assert確認_正常系] - lock、open、unlock の順で 1 回ずつ呼び出されること。
-    // [Pre-Assert手順] - 番兵ロックを設定し、各呼び出しは成功を返却する。
+    }
 
     // Act
     int rtc = com_util_mmap_get_rwlock(map, &lock, NULL); // [手順] - get_rwlock を呼び出す。

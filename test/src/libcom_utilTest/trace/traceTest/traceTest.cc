@@ -247,11 +247,14 @@ TEST_F(traceTest, macro_write_prefixes_source_location)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
+    // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] macro message")))
@@ -281,8 +284,10 @@ TEST_F(traceTest, macro_write_passes_explicit_timestamp)
     // Arrange
     com_util_tracer *handle = create_logger();
     com_util_timespec timestamp = make_fixed_timestamp();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -320,8 +325,10 @@ TEST_F(traceTest, macro_write_with_null_message_emits_source_location_only)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -355,14 +362,17 @@ TEST_F(traceTest, public_macros_prefix_source_location_with_basename)
     // Arrange
     com_util_tracer *handle = create_logger();
     unsigned char data[] = {0x48, 0x69};
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - write マクロが basename を使うこと。
     // [Pre-Assert確認_正常系] - writef マクロが basename を使うこと。
     // [Pre-Assert確認_正常系] - write_hex マクロが basename を使うこと。
     // [Pre-Assert確認_正常系] - write_hexf マクロが basename を使うこと。
+    // [Pre-Assert手順] - 各 backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] direct write")))
@@ -422,8 +432,10 @@ TEST_F(traceTest, write_routes_info_to_os_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -463,7 +475,9 @@ TEST_F(traceTest, etw_and_os_levels_are_independent)
     ASSERT_EQ(COM_UTIL_OK,
               com_util_tracer_set_os_level(
                   handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS トレース (EventLog) を NONE で無効にする。
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+                                                       // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("only etw")))
@@ -513,14 +527,16 @@ TEST_F(traceTest, write_routes_info_to_eventlog_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    // INFO が EventLog backend へ 1 回送られること。
     EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 0, StrEq("myapp"),
                                                     0, StrEq("to eventlog")))
-        .WillOnce(Return(0));
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が EventLog backend へ 1 回送られること。
+                              // [Pre-Assert手順] - com_util_eventlog_sink_write から 0 を返却する。
 
     // Act
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "to eventlog");
@@ -537,16 +553,21 @@ TEST_F(traceTest, write_routes_eventlog_identity_fields)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_name(handle, "worker", 3));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_name(handle, "trace-file", 7));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_name(handle, "worker", 3)); // [状態] - インスタンス名を worker_3 とする。
+                                                                           // [状態確認] - com_util_tracer_set_name の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_name(handle, "trace-file", 7)); // [状態] - ファイル名を trace-file_7 とする。
+                                                                                    // [状態確認] - com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    // EventLog へファイル識別子、元のインスタンス名、インスタンス識別子が個別に送られること。
     EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 7,
                                                     StrEq("worker"), 3, StrEq("identity fields")))
-        .WillOnce(Return(0));
+        .WillOnce(Return(
+            0)); // [Pre-Assert確認_正常系] - EventLog へファイル識別子、元のインスタンス名、インスタンス識別子が個別に送られること。
+                 // [Pre-Assert手順] - com_util_eventlog_sink_write から 0 を返却する。
 
     // Act
     int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "identity fields");
@@ -565,8 +586,10 @@ TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
     // Arrange
     com_util_tracer *handle = create_logger();
     com_util_timespec timestamp = make_fixed_timestamp();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -628,8 +651,10 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     char msg[1025];
     unsigned char utf8[] = {0xE3, 0x81, 0x82};
@@ -639,6 +664,7 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - UTF-8 境界直前の 1021 バイトだけが backend へ渡ること。
+    // [Pre-Assert手順] - 切り詰め後の 1021 バイト文字列を確認し、0 を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), _))
         .WillOnce(
@@ -679,8 +705,10 @@ TEST_F(traceTest, writef_formats_message)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -709,8 +737,10 @@ TEST_F(traceTest, write_hex_formats_payload)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
     unsigned char data[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F};
 
     // Pre-Assert
@@ -740,14 +770,17 @@ TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
     unsigned char data[] = {0x48, 0x69};
     std::string label(COM_UTIL_TRACER_MESSAGE_MAX_BYTES - 6, 'L');
     std::string expected = label + ": ...";
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - HEX データ本体なしで省略記号だけが backend へ渡ること。
+    // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected.c_str())))
         .WillOnce(Return(0));
@@ -774,7 +807,8 @@ TEST_F(traceTest, identity_config_fails_when_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -800,9 +834,12 @@ TEST_F(traceTest, level_change_allowed_when_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
+                                                                                                 // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -838,8 +875,10 @@ TEST_F(traceTest, os_level_raise_takes_effect_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     // 旧閾値 INFO では VERBOSE は OS backend へ送られない。
@@ -888,9 +927,12 @@ TEST_F(traceTest, set_file_level_threshold_only_no_reopen_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     // パスとパラメーターが同一でしきい値のみ変える場合は再オープンしない。
@@ -921,12 +963,15 @@ TEST_F(traceTest, set_file_level_reopen_on_path_change_while_started)
     com_util_trace_file_sink *file_handle2 =
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2300));
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
-        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - start 時に初期パスで file sink を開くこと。
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+        .WillOnce(Return(file_handle_)); // [状態確認] - start 時に初期パスで file sink を開くこと。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Pre-Assert
@@ -954,12 +999,15 @@ TEST_F(traceTest, set_file_level_disable_while_started)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
-        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - start 時に file sink を開くこと。
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+        .WillOnce(Return(file_handle_)); // [状態確認] - start 時に file sink を開くこと。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Pre-Assert
@@ -1049,7 +1097,8 @@ TEST_F(traceTest, set_file_level_defers_sink_creation_until_start)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
@@ -1084,10 +1133,21 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
     com_util_tracer *handle = create_logger();
     com_util_timespec timestamp = make_fixed_timestamp();
 
+    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+        .WillOnce(Return(file_handle_)); // [状態確認] - start 時に file sink を初期化すること。
+
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
+                                                                                                 // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
+
+    // Pre-Assert
     EXPECT_CALL(mock_, com_util_get_realtime(_))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻取得を行わないこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
-        .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - file sink が初期化されること。
     EXPECT_CALL(
         mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("explicit ts")))
         .WillOnce(
@@ -1098,13 +1158,7 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
                 EXPECT_EQ(678000000, actual->tv_nsec);
                 return 0;
             }); // [Pre-Assert確認_正常系] - file sink へ明示タイムスタンプがそのまま渡ること。
-
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
-
-    // Pre-Assert
+                // [Pre-Assert手順] - 渡された時刻を確認し、0 を返却する。
 
     // Act
     testing::internal::CaptureStderr();
@@ -1130,12 +1184,13 @@ TEST_F(traceTest, file_level_none_disables_file_backend)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     int rtc_tracer_set_file_level = com_util_tracer_set_file_level(
-        handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0); // [手順] - level NONE でファイル トレースを無効化する。
+        handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0); // [状態] - level NONE でファイル トレースを無効化する。
     ASSERT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_set_file_level); // [確認_正常系] - level NONE でファイル トレースを無効化した com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_set_file_level); // [状態確認] - level NONE で無効化した com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
@@ -1191,8 +1246,10 @@ TEST_F(traceTest, os_level_none_suppresses_output)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
@@ -1219,9 +1276,12 @@ TEST_F(traceTest, stderr_level_debug_outputs_markers)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_DEBUG));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_DEBUG)); // [状態] - stderr レベルを DEBUG とする。
+                                                                                                  // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1260,13 +1320,20 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
     com_util_tracer *handle = create_logger();
     com_util_timespec invalid_timestamp = {1714100645LL, 1000000000};
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
+                                                                                                 // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
+    // Pre-Assert
     EXPECT_CALL(mock_, com_util_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
+    // [Pre-Assert確認_異常系] - OS backend へ代替時刻で渡ること。
+    // [Pre-Assert手順] - OS backend へ代替時刻を渡して 0 を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("invalid ts")))
         .WillOnce(
@@ -1275,10 +1342,9 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                 EXPECT_EQ(1714100645LL, timestamp->tv_sec);
                 EXPECT_EQ(678000000, timestamp->tv_nsec);
                 return 0;
-            }); // [Pre-Assert確認_異常系] - syslog backend へ代替時刻で渡ること。
+            });
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, _, StrEq("invalid ts")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - ETW backend への出力は継続すること。
+    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, _, StrEq("invalid ts"))).WillOnce(Return(0));
 #endif
     EXPECT_CALL(mock_,
                 com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("invalid ts")))
@@ -1289,8 +1355,7 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                 EXPECT_EQ(678000000, timestamp->tv_nsec);
                 return 0;
             }); // [Pre-Assert確認_異常系] - file backend へ代替時刻で渡ること。
-
-    // Pre-Assert
+                // [Pre-Assert手順] - file backend へ代替時刻を渡して 0 を返却する。
 
     // Act
     testing::internal::CaptureStderr();
@@ -1316,10 +1381,14 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
     com_util_timespec invalid_timestamp = {1714100645LL, 1000000000};
     unsigned char data[] = {0x48, 0x69};
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
+                                                                                                                     // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
+    // Pre-Assert
     EXPECT_CALL(mock_, com_util_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     EXPECT_CALL(
@@ -1331,8 +1400,7 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
                 EXPECT_EQ(678000000, timestamp->tv_nsec);
                 return 0;
             }); // [Pre-Assert確認_異常系] - HEX 書き込みでも代替時刻が file backend へ渡ること。
-
-    // Pre-Assert
+                // [Pre-Assert手順] - 代替時刻を確認し、0 を返却する。
 
     // Act
     int result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, data, sizeof(data),
@@ -1450,9 +1518,11 @@ TEST_F(traceTest, set_name_does_not_affect_default_file_path)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(
         0, com_util_tracer_set_name(handle, "worker", 3)); // [状態] - インスタンス名を worker_3 に変更した状態とする。
+                                                           // [状態確認] - com_util_tracer_set_name の戻り値が 0 であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1476,9 +1546,11 @@ TEST_F(traceTest, set_file_name_reflects_to_default_file_path)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(
         0, com_util_tracer_set_file_name(handle, "custom", 2)); // [状態] - ファイル名を custom_2 に変更した状態とする。
+                                                                // [状態確認] - com_util_tracer_set_file_name の戻り値が 0 であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/custom_2.log"), 0, 0, 0))
@@ -1501,17 +1573,18 @@ TEST_F(traceTest, set_file_name_null_restores_process_name_default)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     int rtc_tracer_set_file_name =
-        com_util_tracer_set_file_name(handle, "custom", 2); // [手順] - 一度ファイル名を変更する。
+        com_util_tracer_set_file_name(handle, "custom", 2); // [状態] - 一度ファイル名を変更する。
     ASSERT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_set_file_name); // [確認_正常系] - 一度ファイル名を変更した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_set_file_name); // [状態確認] - 一度ファイル名を変更した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
     int rtc_tracer_set_file_name_2 =
-        com_util_tracer_set_file_name(handle, NULL, 0); // [手順] - NULL でデフォルトに戻す。
+        com_util_tracer_set_file_name(handle, NULL, 0); // [状態] - ファイル名を NULL でデフォルトに戻す。
     ASSERT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_set_file_name_2); // [確認_正常系] - NULL でデフォルトに戻した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_set_file_name_2); // [状態確認] - NULL でデフォルトに戻した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1677,14 +1750,15 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
             {
                 snprintf(out_path, out_path_sz, "%s", "C:/bin/myapp.exe");
                 return 0;
-            });
+            }); // [状態] - com_util_process_get_executable_path が呼び出された際に "C:/bin/myapp.exe" を返すようにモックを設定する。
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     int rtc_tracer_set_file_name =
-        com_util_tracer_set_file_name(handle, NULL, 7); // [手順] - ファイル識別 7 を設定する。
+        com_util_tracer_set_file_name(handle, NULL, 7); // [状態] - ファイル識別 7 を設定する。
     ASSERT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_set_file_name); // [確認_正常系] - ファイル識別 7 を設定した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_set_file_name); // [状態確認] - ファイル識別 7 を設定した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
@@ -1709,9 +1783,11 @@ TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
 {
     // Arrange
     ON_CALL(mock_, com_util_process_get_executable_path(_, _))
-        .WillByDefault(Return(-1));            // [状態] - 実行ファイル パスの取得が失敗する。
+        .WillByDefault(Return(
+            -1)); // [状態] - com_util_process_get_executable_path が呼び出された際に -1 を返すようにモックを設定する。
     com_util_tracer *handle = create_logger(); // [手順] - 有効名はフォールバックの unknown になる。
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("log/unknown.log"), 0, 0, 0))
@@ -1735,7 +1811,8 @@ TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
+                                                                                                 // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
@@ -1768,7 +1845,8 @@ TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
 {
     // Arrange
     com_util_tracer *handle = create_logger();
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))

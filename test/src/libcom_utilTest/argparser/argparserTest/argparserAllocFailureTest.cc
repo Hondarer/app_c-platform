@@ -20,8 +20,8 @@ class argparserAllocFailureTest : public Test
 
     void SetUp() override
     {
-        parser_ = _com_util_argparser_create(NULL);
-        ASSERT_NE((com_util_argparser *)NULL, parser_);
+        parser_ = _com_util_argparser_create(NULL); // [状態] - 生成済みの parser を用意する。
+        ASSERT_NE((com_util_argparser *)NULL, parser_); // [状態確認] - ハンドルが非 NULL であること。
     }
 
     void TearDown() override
@@ -137,6 +137,7 @@ TEST_F(argparserAllocFailureTest, print_usage_fails_when_buffer_allocation_fails
     ASSERT_EQ(COM_UTIL_OK,
               _com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
                                                          &storage_)); // [状態] - オプションを 1 件登録しておく。
+                                                                      // [状態確認] - _com_util_argparser_register_option_string の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))

@@ -189,7 +189,8 @@ TEST_F(promptAllocFailureTest, readline_fmt_truncates_prompt_when_reallocation_f
        これにより Act 中の realloc は書式バッファーの拡張だけになる */
     promptFakeSetInput("x\r");
     ASSERT_EQ(COM_UTIL_OK, com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 5,
-                                                           "%s", "short"));
+                                                           "%s", "short")); // [状態] - 同じ呼び出し位置でコンテキストと書式バッファーを確保する。
+                                                                            // [状態確認] - com_util_prompt_readline_fmt_at の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_stdlib> mock_stdlib;
 

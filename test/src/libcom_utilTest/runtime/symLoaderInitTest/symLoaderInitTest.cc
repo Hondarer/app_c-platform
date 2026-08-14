@@ -25,6 +25,8 @@ class symLoaderInitTest : public Test
     void expect_config_read(const char *path, const char *content)
     {
         const size_t size = std::strlen(content);
+
+        // 指定パスを rb で開き、指定本文を読み取って閉じる。
         EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq(path), StrEq("rb"), nullptr)).WillOnce(Return(file_));
         EXPECT_CALL(mock_com_util_, com_util_fseek(file_, 0, SEEK_END)).WillOnce(Return(0));
         EXPECT_CALL(mock_com_util_, com_util_ftell(file_)).WillOnce(Return(static_cast<int64_t>(size)));
@@ -41,6 +43,7 @@ class symLoaderInitTest : public Test
 
     void expect_missing_file(const char *path)
     {
+        // 指定パスの fopen を失敗させる。
         EXPECT_CALL(mock_com_util_, com_util_fopen(StrEq(path), StrEq("rb"), nullptr)).WillOnce(Return(nullptr));
     }
 };
@@ -352,9 +355,16 @@ TEST_F(symLoaderInitTest, closes_file_when_seek_or_size_operation_fails)
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 擬似ファイルと未設定エントリを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("seek_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("seek_error"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が seek_error を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - seek_error 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 末尾への com_util_fseek が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 末尾への com_util_fseek から -1 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - seek 失敗後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - seek 失敗後の com_util_fclose から 0 を返却する。
 
     // Act
     com_util_sym_loader_init(entries, 1u, "seek_error"); // [手順] - 末尾への seek が失敗するファイルを読み込む。
@@ -366,12 +376,21 @@ TEST_F(symLoaderInitTest, closes_file_when_seek_or_size_operation_fails)
     Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Arrange_2
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("size_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
 
     // Pre-Assert_2
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("size_error"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が size_error を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - size_error 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - サイズ確認の com_util_fseek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - サイズ確認の com_util_fseek から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_ftell(file))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - com_util_ftell が 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_ftell から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - サイズ不正後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - サイズ不正後の com_util_fclose から 0 を返却する。
 
     // Act_2
     com_util_sym_loader_init(entries, 1u, "size_error"); // [手順] - サイズが 0 のファイルを読み込む。
@@ -391,11 +410,23 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 擬似ファイルと未設定エントリを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("reset_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("reset_error"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が reset_error を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - reset_error 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - reset_error の末尾 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - reset_error の末尾 seek から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_ftell(file))
+        .WillOnce(Return(4)); // [Pre-Assert確認_異常系] - reset_error の com_util_ftell が 1 回呼び出されること。
+                              // [Pre-Assert手順] - reset_error の com_util_ftell から 4 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET))
+        .WillOnce(
+            Return(-1)); // [Pre-Assert確認_異常系] - 読み込み開始位置への com_util_fseek が 1 回呼び出されること。
+                         // [Pre-Assert手順] - 読み込み開始位置への com_util_fseek から -1 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - reset 失敗後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - reset 失敗後の com_util_fclose から 0 を返却する。
 
     // Act
     com_util_sym_loader_init(entries, 1u,
@@ -409,14 +440,28 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
     Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Arrange_2
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("alloc_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(0));
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u)).WillOnce(Return(nullptr)).WillRepeatedly(DoDefault());
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
 
     // Pre-Assert_2
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("alloc_error"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が alloc_error を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - alloc_error 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - alloc_error の末尾 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - alloc_error の末尾 seek から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_ftell(file))
+        .WillOnce(Return(4)); // [Pre-Assert確認_異常系] - alloc_error の com_util_ftell が 1 回呼び出されること。
+                              // [Pre-Assert手順] - alloc_error の com_util_ftell から 4 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - alloc_error の先頭 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - alloc_error の先頭 seek から 0 を返却する。
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u))
+        .WillOnce(Return(nullptr))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 5 バイト確保の malloc が呼び出されること。
+                                      // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 確保失敗後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 確保失敗後の com_util_fclose から 0 を返却する。
 
     // Act_2
     com_util_sym_loader_init(entries, 1u, "alloc_error"); // [手順] - 設定バッファーの確保が失敗するファイルを読み込む。
@@ -428,15 +473,31 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
     Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Arrange_3
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("read_error"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(4));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET)).WillOnce(Return(0));
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u)).WillOnce(DoDefault()).WillRepeatedly(DoDefault());
-    EXPECT_CALL(mock_com_util, com_util_fread(_, 1u, 4u, file, nullptr)).WillOnce(Return(3u));
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
 
     // Pre-Assert_3
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("read_error"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が read_error を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - read_error 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - read_error の末尾 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - read_error の末尾 seek から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_ftell(file))
+        .WillOnce(Return(4)); // [Pre-Assert確認_異常系] - read_error の com_util_ftell が 1 回呼び出されること。
+                              // [Pre-Assert手順] - read_error の com_util_ftell から 4 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - read_error の先頭 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - read_error の先頭 seek から 0 を返却する。
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u))
+        .WillOnce(DoDefault())
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 読み込み用バッファーの malloc が呼び出されること。
+                                      // [Pre-Assert手順] - malloc は本物へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_fread(_, 1u, 4u, file, nullptr))
+        .WillOnce(Return(3u)); // [Pre-Assert確認_異常系] - com_util_fread が 4 バイト指定で 1 回呼び出されること。
+                               // [Pre-Assert手順] - com_util_fread から 3 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 読み込み不足後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 読み込み不足後の com_util_fclose から 0 を返却する。
 
     // Act_3
     com_util_sym_loader_init(entries, 1u, "read_error"); // [手順] - 設定内容の読み込みが短くなるファイルを読み込む。
@@ -519,10 +580,20 @@ TEST_F(symLoaderInitTest, ignores_config_file_larger_than_limit)
     com_util_sym_loader_entry *entries[] = {&entry};
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("large_file"), StrEq("rb"), nullptr)).WillOnce(Return(file));
-    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END)).WillOnce(Return(0));
-    EXPECT_CALL(mock_com_util, com_util_ftell(file)).WillOnce(Return(1024 * 1024 + 1));
-    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr)).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_fopen(StrEq("large_file"), StrEq("rb"), nullptr))
+        .WillOnce(
+            Return(file)); // [Pre-Assert確認_異常系] - com_util_fopen が large_file を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - large_file 用の擬似 FILE を返却する。
+    EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - large_file の末尾 seek が 1 回呼び出されること。
+                              // [Pre-Assert手順] - large_file の末尾 seek から 0 を返却する。
+    EXPECT_CALL(mock_com_util, com_util_ftell(file))
+        .WillOnce(Return(1024 * 1024 +
+                         1)); // [Pre-Assert確認_異常系] - large_file の com_util_ftell が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 上限を 1 バイト超えるサイズを返却する。
+    EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 上限超過後に com_util_fclose が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 上限超過後の com_util_fclose から 0 を返却する。
 
     // Act
     com_util_sym_loader_init(entries, 1u,

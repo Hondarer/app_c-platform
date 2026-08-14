@@ -76,9 +76,10 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
     std::string path = ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_test.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -119,9 +120,10 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
         ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_filter.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -161,9 +163,10 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     std::string path = ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_debug.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -204,9 +207,10 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
         ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_disable.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -278,17 +282,18 @@ static std::string build_expected_default_path(void)
 TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_to_executable)
 {
     // Arrange
-    std::string path = build_expected_default_path();
-    ASSERT_FALSE(path.empty());
+    std::string path = build_expected_default_path(); // [状態] - デフォルトのトレース ファイル パスを用意する。
+    ASSERT_FALSE(path.empty()); // [状態確認] - デフォルト パスが空でないこと。
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
     int rtc_tracer_set_name = com_util_tracer_set_name(
-        handle, "default_path_it", 0); // [手順] - インスタンス名を設定する (ファイル名には影響しない)。
+        handle, "default_path_it", 0); // [状態] - インスタンス名を設定する (ファイル名には影響しない)。
     ASSERT_EQ(COM_UTIL_OK,
-              rtc_tracer_set_name); // [確認_正常系] - com_util_tracer_set_name の戻り値が COM_UTIL_OK であること。
+              rtc_tracer_set_name); // [状態確認] - com_util_tracer_set_name の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -316,16 +321,18 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
 TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_process)
 {
     // Arrange
-    std::string path = build_expected_default_path();
-    ASSERT_FALSE(path.empty());
+    std::string path = build_expected_default_path(); // [状態] - デフォルトのトレース ファイル パスを用意する。
+    ASSERT_FALSE(path.empty()); // [状態確認] - デフォルト パスが空でないこと。
     remove(path.c_str());
 
-    com_util_tracer *first = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    com_util_tracer *second = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
-    ASSERT_NE((com_util_tracer *)NULL, first);
-    ASSERT_NE((com_util_tracer *)NULL, second);
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(first, COM_UTIL_TRACE_LEVEL_NONE));
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(second, COM_UTIL_TRACE_LEVEL_NONE));
+    com_util_tracer *first = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 1 つ目のトレース ハンドルを用意する。
+    com_util_tracer *second = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 2 つ目のトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, first); // [状態確認] - 1 つ目のハンドルが非 NULL であること。
+    ASSERT_NE((com_util_tracer *)NULL, second); // [状態確認] - 2 つ目のハンドルが非 NULL であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(first, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - 1 つ目の OS レベルを NONE とする。
+                                                                                            // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(second, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - 2 つ目の OS レベルを NONE とする。
+                                                                                             // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

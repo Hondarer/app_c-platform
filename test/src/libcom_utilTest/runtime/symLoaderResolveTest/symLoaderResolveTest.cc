@@ -226,7 +226,8 @@ TEST_F(symLoaderResolveTest, returns_null_when_lock_acquisition_fails)
 TEST_F(symLoaderResolveTest, reuses_lock_initialized_by_another_thread)
 {
     // Arrange
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&entry_.lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&entry_.lock)); // [状態] - エントリのロックを生成する。
+                                                                    // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     entry_.lock_state = 1;
     test_sym_loader_set_entry_lock_wait_hook(complete_entry_lock_initialization);
 
@@ -280,6 +281,8 @@ TEST_F(symLoaderResolveTest, returns_result_resolved_while_waiting_for_lock)
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
     set_names("default", "not_default");
+
+    // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, _))
         .WillOnce(Invoke(
             [this](com_util_local_lock *, int)
@@ -287,9 +290,8 @@ TEST_F(symLoaderResolveTest, returns_result_resolved_while_waiting_for_lock)
                 entry_.resolved = 1;
                 entry_.func_ptr = reinterpret_cast<void *>(1);
                 return COM_UTIL_OK;
-            })); // [Pre-Assert確認_正常系] - ロック取得時に別スレッドの解決完了を再現すること。
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - com_util_local_lock_lock が 1 回呼び出されること。
+                 // [Pre-Assert手順] - resolved と func_ptr を設定し、COM_UTIL_OK を返却する。
 
     // Act
     void *result = com_util_sym_loader_resolve(

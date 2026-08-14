@@ -259,7 +259,7 @@ TEST_F(promptLinuxTest, sigwinch_handler_records_pending_resize)
         GTEST_SKIP() << "疑似端末を確保できないため実行しません";
     }
     prompt_platform_enter_raw(&handle_);
-    ASSERT_EQ(1, test_prompt_sigwinch_installed()); // [状態] - SIGWINCH ハンドラーを登録済みの状態にする。
+    ASSERT_EQ(1, test_prompt_sigwinch_installed()); // [状態確認] - SIGWINCH ハンドラーが登録済みであること。
 
     // Pre-Assert
 
@@ -284,6 +284,7 @@ TEST_F(promptLinuxTest, read_char_returns_next_byte)
     // Arrange
     redirect_stdin_to_pipe();
     ASSERT_EQ(1, write(write_fd_, "A", 1u)); // [状態] - パイプへ 'A' を 1 バイト書き込む。
+                                             // [状態確認] - write の戻り値が 1 であること。
 
     // Pre-Assert
 
@@ -366,6 +367,7 @@ TEST_F(promptLinuxTest, read_char_nb_returns_next_byte_when_available)
     // Arrange
     redirect_stdin_to_pipe();
     ASSERT_EQ(1, write(write_fd_, "B", 1u)); // [状態] - パイプへ 'B' を 1 バイト書き込む。
+                                             // [状態確認] - write の戻り値が 1 であること。
 
     // Pre-Assert
 

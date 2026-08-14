@@ -179,11 +179,13 @@ TEST_F(promptCoverageTest, contexts_distinguish_file_and_line_and_expand_twice)
 TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
 {
     // Arrange
-    com_util_prompt_ctx *context = test_prompt_find_or_create_context(prompt_, "history.c", 1);
-    com_util_prompt_ctx *null_entry_context = test_prompt_find_or_create_context(prompt_, "null-entry.c", 1);
+    com_util_prompt_ctx *context =
+        test_prompt_find_or_create_context(prompt_, "history.c", 1); // [状態] - 空の履歴コンテキストを用意する。
+    com_util_prompt_ctx *null_entry_context =
+        test_prompt_find_or_create_context(prompt_, "null-entry.c", 1); // [状態] - NULL エントリ試験用の履歴コンテキストを用意する。
     char *first_entry = NULL;
-    ASSERT_NE((com_util_prompt_ctx *)NULL, context); // [状態] - 空の履歴コンテキストを用意する。
-    ASSERT_NE((com_util_prompt_ctx *)NULL, null_entry_context);
+    ASSERT_NE((com_util_prompt_ctx *)NULL, context);             // [状態確認] - コンテキストが非 NULL であること。
+    ASSERT_NE((com_util_prompt_ctx *)NULL, null_entry_context); // [状態確認] - NULL エントリ試験用コンテキストが非 NULL であること。
 
     // Pre-Assert
 

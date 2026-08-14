@@ -37,7 +37,7 @@ TEST_F(trace_etwTest, test_write_returns_zero)
     // Arrange
     com_util_etw_provider *handle =
         com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 
@@ -59,7 +59,7 @@ TEST_F(trace_etwTest, test_write_all_levels)
     // Arrange
     com_util_etw_provider *handle =
         com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
 

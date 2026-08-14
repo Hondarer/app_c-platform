@@ -25,12 +25,14 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_read_only_size_lookup
             {
                 fill_open_file(file, flags);
                 return COM_UTIL_OK;
-            });
+            }); // [Pre-Assert確認_異常系] - 読み取り専用の com_util_file_open が 1 回呼び出されること。
+                // [Pre-Assert手順] - 番兵ハンドルを設定し、COM_UTIL_OK を返却する。
     EXPECT_CALL(mock_com_util_, com_util_file_get_size(_, _, _))
         .WillOnce(Return(
             COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 読み取り専用アタッチのサイズ取得が 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_file_get_size にエラーを返却させる。
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - サイズ取得失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
@@ -54,8 +56,10 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_new_file_size_setting
         .WillOnce(Return(
             COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 新規ファイルのサイズ設定が 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_file_set_size にエラーを返却させる。
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
-    EXPECT_CALL(mock_com_util_, com_util_remove(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - サイズ設定失敗時に com_util_file_close が 1 回呼び出されること。
+    EXPECT_CALL(mock_com_util_, com_util_remove(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - サイズ設定失敗時に com_util_remove が 1 回呼び出されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -75,7 +79,10 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_file_reopen_
     com_util_mmap *map = NULL; // [状態] - 既存ファイル再オープン失敗用のパス mmap.dat を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - CREATE_NEW の com_util_file_open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
         .WillOnce(Return(
             COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - CREATE_NEW と既存ファイル再オープンの com_util_file_open が順に呼び出されること。
@@ -99,7 +106,10 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_size_lookup_
     com_util_mmap *map = NULL; // [状態] - 既存ファイルのサイズ取得失敗用のパス mmap.dat を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
+    EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_create_new(), _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 1 回目の CREATE_NEW の com_util_file_open が呼び出されること。
+                                    // [Pre-Assert手順] - 1 回目の com_util_file_open から COM_UTIL_ERR_UNKNOWN を返却する。
     EXPECT_CALL(mock_com_util_, com_util_file_open(_, _, flags_existing_rw(), _))
         .WillOnce(
             [](com_util_file *file, const char *, int flags, com_util_error *)
@@ -112,7 +122,9 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_size_lookup_
         .WillOnce(Return(
             COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 既存ファイルのサイズ取得が 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_file_get_size にエラーを返却させる。
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .Times(
+            1); // [Pre-Assert確認_異常系] - 既存ファイルのサイズ取得失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -138,14 +150,15 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_local_lock_creation_f
         .WillOnce(
             Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - ローカル ロック生成が 1 回呼び出されること。
                                            // [Pre-Assert手順] - com_util_local_lock_create にエラーを返却させる。
+    // [Pre-Assert確認_異常系] - ロック生成失敗時に確保済みのマップが解除されること。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_mman_, munmap(_, _, _, _, _)).Times(1);
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_windows_, UnmapViewOfFile(_, _, _, _)).Times(1);
     EXPECT_CALL(mock_windows_, CloseHandle(_, _, _, kFakeMappingHandle)).Times(1);
 #endif /* PLATFORM_ */
-    // [Pre-Assert確認_異常系] - ロック生成失敗時に確保済みのマップが解除されること。
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).Times(1);
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .Times(1); // [Pre-Assert確認_異常系] - ロック生成失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -229,9 +242,10 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_file_close_fails)
     attachNewFile(&map); // [状態] - detach 前のマップと詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _)).WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
-    // [Pre-Assert確認_異常系] - detach のファイル クローズが 1 回呼び出されること。
-    // [Pre-Assert手順] - com_util_file_close にエラーを返却させる。
+    EXPECT_CALL(mock_com_util_, com_util_file_close(_, _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - detach のファイル クローズが 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_file_close にエラーを返却させる。
 
     // Act
     int rtc = com_util_mmap_detach(map,
@@ -283,13 +297,13 @@ TEST_F(mmapFailureInjectionTest, attach_unmaps_when_identity_duplication_fails)
         .WillRepeatedly(
             DoDefault()); // [Pre-Assert確認_異常系] - malloc が識別子の複製のために 1 回目に呼び出されること。
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
+    // [Pre-Assert確認_異常系] - 確保済みのマップが 1 回解除されること。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_mman_, munmap(_, _, _, _, _)).Times(1);
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_windows_, UnmapViewOfFile(_, _, _, _)).Times(1);
     EXPECT_CALL(mock_windows_, CloseHandle(_, _, _, kFakeMappingHandle)).Times(1);
 #endif /* PLATFORM_ */
-    // [Pre-Assert確認_異常系] - 確保済みのマップが 1 回解除されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -313,9 +327,9 @@ TEST_F(mmapFailureInjectionTest, attach_reports_errno_when_mmap_fails)
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_mman_, mmap(_, _, _, _, _, _, _, _, _))
-        .WillOnce(DoAll(Assign(&errno, ENOMEM), Return(MAP_FAILED)));
-    // [Pre-Assert確認_異常系] - mmap が 1 回呼び出されること。
-    // [Pre-Assert手順] - errno に ENOMEM を設定し、MAP_FAILED を返却する。
+        .WillOnce(DoAll(Assign(&errno, ENOMEM),
+                        Return(MAP_FAILED))); // [Pre-Assert確認_異常系] - mmap が 1 回呼び出されること。
+                                              // [Pre-Assert手順] - errno に ENOMEM を設定し、MAP_FAILED を返却する。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -338,9 +352,10 @@ TEST_F(mmapFailureInjectionTest, flush_reports_errno_when_msync_fails)
     com_util_error detail; // [状態] - アタッチ済みのメモリ マップと詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_mman_, msync(_, _, _, _, _, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
-    // [Pre-Assert確認_異常系] - msync が 1 回呼び出されること。
-    // [Pre-Assert手順] - errno に EIO を設定し、-1 を返却する。
+    EXPECT_CALL(mock_sys_mman_, msync(_, _, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EIO),
+                        Return(-1))); // [Pre-Assert確認_異常系] - msync が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - errno に EIO を設定し、-1 を返却する。
 
     // Act
     int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
@@ -364,9 +379,10 @@ TEST_F(mmapFailureInjectionTest, detach_reports_errno_when_munmap_fails)
     attachNewFile(&map); // [状態] - アタッチ済みのメモリ マップを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_mman_, munmap(_, _, _, _, _)).WillOnce(DoAll(Assign(&errno, EIO), Return(-1)));
-    // [Pre-Assert確認_異常系] - munmap が 1 回呼び出されること。
-    // [Pre-Assert手順] - errno に EIO を設定し、munmap が -1 を返却する。
+    EXPECT_CALL(mock_sys_mman_, munmap(_, _, _, _, _))
+        .WillOnce(DoAll(Assign(&errno, EIO),
+                        Return(-1))); // [Pre-Assert確認_異常系] - munmap が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - errno に EIO を設定し、munmap が -1 を返却する。
 
     // Act
     int rtc = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
@@ -388,10 +404,13 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_create_file_mapping_f
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows_, CreateFileMappingA(_, _, _, _, _, _, _, _, _)).WillOnce(Return((HANDLE)NULL));
-    EXPECT_CALL(mock_windows_, GetLastError(_, _, _)).WillOnce(Return(ERROR_NOT_ENOUGH_MEMORY));
-    // [Pre-Assert確認_異常系] - CreateFileMappingA が 1 回呼び出されること。
-    // [Pre-Assert手順] - NULL を返し、GetLastError に ERROR_NOT_ENOUGH_MEMORY を返却する。
+    EXPECT_CALL(mock_windows_, CreateFileMappingA(_, _, _, _, _, _, _, _, _))
+        .WillOnce(Return((HANDLE)NULL)); // [Pre-Assert確認_異常系] - CreateFileMappingA が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - NULL を返却する。
+    EXPECT_CALL(mock_windows_, GetLastError(_, _, _))
+        .WillOnce(Return(
+            ERROR_NOT_ENOUGH_MEMORY)); // [Pre-Assert確認_異常系] - CreateFileMappingA 失敗時に GetLastError が 1 回呼び出されること。
+                                       // [Pre-Assert手順] - ERROR_NOT_ENOUGH_MEMORY を返却する。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -414,11 +433,16 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_map_view_fails)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows_, MapViewOfFile(_, _, _, _, _, _, _, _)).WillOnce(Return((LPVOID)NULL));
-    EXPECT_CALL(mock_windows_, GetLastError(_, _, _)).WillOnce(Return(ERROR_NOT_ENOUGH_MEMORY));
-    EXPECT_CALL(mock_windows_, CloseHandle(_, _, _, kFakeMappingHandle)).Times(1);
-    // [Pre-Assert確認_異常系] - MapViewOfFile が 1 回呼び出されること。
-    // [Pre-Assert手順] - NULL を返し、GetLastError に ERROR_NOT_ENOUGH_MEMORY を返却する。
+    EXPECT_CALL(mock_windows_, MapViewOfFile(_, _, _, _, _, _, _, _))
+        .WillOnce(Return((LPVOID)NULL)); // [Pre-Assert確認_異常系] - MapViewOfFile が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - NULL を返却する。
+    EXPECT_CALL(mock_windows_, GetLastError(_, _, _))
+        .WillOnce(Return(
+            ERROR_NOT_ENOUGH_MEMORY)); // [Pre-Assert確認_異常系] - MapViewOfFile 失敗時に GetLastError が 1 回呼び出されること。
+                                       // [Pre-Assert手順] - ERROR_NOT_ENOUGH_MEMORY を返却する。
+    EXPECT_CALL(mock_windows_, CloseHandle(_, _, _, kFakeMappingHandle))
+        .Times(
+            1); // [Pre-Assert確認_異常系] - MapViewOfFile 失敗時に CloseHandle がマッピング ハンドルを指定して 1 回呼び出されること。
 
     // Act
     int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
@@ -442,10 +466,13 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_view_fails)
     com_util_error detail; // [状態] - アタッチ済みのメモリ マップと詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, _, _)).WillOnce(Return(FALSE));
-    EXPECT_CALL(mock_windows_, GetLastError(_, _, _)).WillOnce(Return(ERROR_LOCK_VIOLATION));
-    // [Pre-Assert確認_異常系] - FlushViewOfFile が 1 回呼び出されること。
-    // [Pre-Assert手順] - FALSE を返し、GetLastError に ERROR_LOCK_VIOLATION を返却する。
+    EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, _, _))
+        .WillOnce(Return(FALSE)); // [Pre-Assert確認_異常系] - FlushViewOfFile が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - FALSE を返却する。
+    EXPECT_CALL(mock_windows_, GetLastError(_, _, _))
+        .WillOnce(Return(
+            ERROR_LOCK_VIOLATION)); // [Pre-Assert確認_異常系] - FlushViewOfFile 失敗時に GetLastError が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - ERROR_LOCK_VIOLATION を返却する。
 
     // Act
     int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
@@ -470,11 +497,16 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_file_buffers_fai
     com_util_error detail; // [状態] - アタッチ済みのメモリ マップと詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, _, _)).WillOnce(Return(TRUE));
-    EXPECT_CALL(mock_windows_, FlushFileBuffers(_, _, _, _)).WillOnce(Return(FALSE));
-    EXPECT_CALL(mock_windows_, GetLastError(_, _, _)).WillOnce(Return(ERROR_LOCK_VIOLATION));
-    // [Pre-Assert確認_異常系] - FlushFileBuffers が 1 回呼び出されること。
-    // [Pre-Assert手順] - FALSE を返し、GetLastError に ERROR_LOCK_VIOLATION を返却する。
+    EXPECT_CALL(mock_windows_, FlushViewOfFile(_, _, _, _, _))
+        .WillOnce(Return(TRUE)); // [Pre-Assert確認_異常系] - FlushViewOfFile が 1 回呼び出されること。
+                                 // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows_, FlushFileBuffers(_, _, _, _))
+        .WillOnce(Return(FALSE)); // [Pre-Assert確認_異常系] - FlushFileBuffers が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - FALSE を返却する。
+    EXPECT_CALL(mock_windows_, GetLastError(_, _, _))
+        .WillOnce(Return(
+            ERROR_LOCK_VIOLATION)); // [Pre-Assert確認_異常系] - FlushFileBuffers 失敗時に GetLastError が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - ERROR_LOCK_VIOLATION を返却する。
 
     // Act
     int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
@@ -499,10 +531,13 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_unmap_view_fails)
     attachNewFile(&map); // [状態] - アタッチ済みのメモリ マップを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_windows_, UnmapViewOfFile(_, _, _, _)).WillOnce(Return(FALSE));
-    EXPECT_CALL(mock_windows_, GetLastError(_, _, _)).WillOnce(Return(ERROR_INVALID_PARAMETER));
-    // [Pre-Assert確認_異常系] - UnmapViewOfFile が 1 回呼び出されること。
-    // [Pre-Assert手順] - FALSE を返し、GetLastError に ERROR_INVALID_PARAMETER を返却する。
+    EXPECT_CALL(mock_windows_, UnmapViewOfFile(_, _, _, _))
+        .WillOnce(Return(FALSE)); // [Pre-Assert確認_異常系] - UnmapViewOfFile が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - FALSE を返却する。
+    EXPECT_CALL(mock_windows_, GetLastError(_, _, _))
+        .WillOnce(Return(
+            ERROR_INVALID_PARAMETER)); // [Pre-Assert確認_異常系] - UnmapViewOfFile 失敗時に GetLastError が 1 回呼び出されること。
+                                       // [Pre-Assert手順] - ERROR_INVALID_PARAMETER を返却する。
 
     // Act
     int rtc = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。

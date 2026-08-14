@@ -230,14 +230,16 @@ TEST_F(pathConcatTest, get_temp_dir_uses_default_when_tmpdir_is_empty)
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
     char output[PLATFORM_PATH_MAX] = {};
-    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
-        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
-                         {
-                             buffer[0] = '\0';
-                             return COM_UTIL_OK;
-                         }));
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, char *buffer, size_t, int *, com_util_error *)
+            {
+                buffer[0] = '\0';
+                return COM_UTIL_OK;
+            })); // [Pre-Assert確認_正常系] - TMPDIR の取得が 1 回呼び出されること。
+                 // [Pre-Assert手順] - TMPDIR として空文字列を返却する。
 
     // Act
     int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - TMPDIR が空の状態で一時ディレクトリを取得する。
@@ -253,14 +255,16 @@ TEST_F(pathConcatTest, get_temp_dir_removes_trailing_separators)
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
     char output[PLATFORM_PATH_MAX] = {};
-    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
-        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
-                         {
-                             std::memcpy(buffer, "/var/tmp///", sizeof("/var/tmp///"));
-                             return COM_UTIL_OK;
-                         }));
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, char *buffer, size_t, int *, com_util_error *)
+            {
+                std::memcpy(buffer, "/var/tmp///", sizeof("/var/tmp///"));
+                return COM_UTIL_OK;
+            })); // [Pre-Assert確認_正常系] - TMPDIR の取得が 1 回呼び出されること。
+                 // [Pre-Assert手順] - TMPDIR として末尾セパレーター付きの "/var/tmp///" を返却する。
 
     // Act
     int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 末尾セパレーターを含む TMPDIR を取得する。
@@ -304,9 +308,12 @@ TEST_F(pathConcatTest, get_temp_dir_rejects_overlong_tmpdir)
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
     char output[PLATFORM_PATH_MAX] = "stale";
-    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _)).WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(
+            Return(COM_UTIL_ERR_BUFFER_TOO_SMALL)); // [Pre-Assert確認_異常系] - TMPDIR の取得が 1 回呼び出されること。
+                                                    // [Pre-Assert手順] - COM_UTIL_ERR_BUFFER_TOO_SMALL を返却する。
 
     // Act
     int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 長過ぎる TMPDIR の取得結果を処理する。
@@ -322,15 +329,20 @@ TEST_F(pathConcatTest, get_temp_dir_reports_formatting_failure)
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
     char output[PLATFORM_PATH_MAX] = {};
-    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
-        .WillOnce(Invoke([](const char *, char *buffer, size_t, int *, com_util_error *)
-                         {
-                             std::memcpy(buffer, "/tmp", sizeof("/tmp"));
-                             return COM_UTIL_OK;
-                         }));
-    EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _)).WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_getenv(_, _, _, _, _))
+        .WillOnce(Invoke(
+            [](const char *, char *buffer, size_t, int *, com_util_error *)
+            {
+                std::memcpy(buffer, "/tmp", sizeof("/tmp"));
+                return COM_UTIL_OK;
+            })); // [Pre-Assert確認_正常系] - TMPDIR の取得が 1 回呼び出されること。
+                 // [Pre-Assert手順] - TMPDIR として "/tmp" を返却する。
+    EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
+        .WillOnce(Return(
+            COM_UTIL_ERR_BUFFER_TOO_SMALL)); // [Pre-Assert確認_異常系] - 一時ディレクトリの出力整形が 1 回呼び出されること。
+                                             // [Pre-Assert手順] - COM_UTIL_ERR_BUFFER_TOO_SMALL を返却する。
 
     // Act
     int result = com_util_get_temp_dir(output, sizeof(output), NULL); // [手順] - 一時ディレクトリの出力整形失敗を注入する。

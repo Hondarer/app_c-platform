@@ -65,8 +65,8 @@ TEST_F(traceShutdownTest, shutdown_disposes_registry_and_rejects_new_create)
     // Arrange
     com_util_tracer *handle = com_util_tracer_create(
         COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - tracer を 1 件生成し registry に登録された状態とする。
-    ASSERT_NE((com_util_tracer *)NULL, handle);
-    EXPECT_EQ((size_t)1, trace_registry_count()); // [状態] - registry の登録件数を 1 件とする。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    EXPECT_EQ((size_t)1, trace_registry_count()); // [状態確認] - registry の登録件数が 1 件であること。
 
     com_util_shutdown_event event = {COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT, COM_UTIL_SHUTDOWN_CODE_KIND_NONE,
                                      0}; // [状態] - 通常終了 (NORMAL_EXIT) の shutdown イベントを用意する。

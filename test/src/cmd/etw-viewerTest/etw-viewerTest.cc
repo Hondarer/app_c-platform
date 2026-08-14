@@ -82,7 +82,9 @@ TEST_F(etw_viewerTest, main_accepts_pid_filter)
     etw_viewer_context captured_context{};
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_console_init())
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_com_util_, com_util_etw_session_check_access())
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert手順] - 権限確認から OK を返却して通過させる。
     EXPECT_CALL(mock_com_util_, com_util_etw_session_start(_, _, _, _, _))
@@ -115,7 +117,9 @@ TEST_F(etw_viewerTest, main_rejects_invalid_pid)
                           "abc"}; // [状態] - main() に与える引数を数値でない "--pid abc" とする。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_console_init())
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - 不正な pid で main を呼び出す。
@@ -260,7 +264,9 @@ TEST_F(etw_viewerTest, main_prints_usage_on_help)
     const char *argv[] = {"etw-viewer", "-h"}; // [状態] - main() に与える引数を "-h" のみとする。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_console_init()).WillOnce(Return());
+    EXPECT_CALL(mock_com_util_, com_util_console_init())
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に com_util_console_init が 1 回呼び出されること。
 
     // Act
     int rc = __real_main(2, (char **)&argv); // [手順] - help オプションで main() を呼び出す。

@@ -82,7 +82,7 @@ TEST_F(memoryLockTest, test_range_locks_and_unlocks_heap_buffer)
 {
     // Arrange
     void *buffer = malloc(4096U); // [状態] - 4096 バイトのヒープ バッファーを確保する。
-    ASSERT_NE(nullptr, buffer);
+    ASSERT_NE(nullptr, buffer);   // [状態確認] - malloc の戻り値が非 NULL であること。
 
     // Pre-Assert
 
@@ -113,11 +113,15 @@ TEST_F(memoryLockTest, test_range_maps_mlock_errors)
     // Arrange
     NiceMock<Mock_sys_mman> mock_mman;
     unsigned char buffer[32] = {};
-    EXPECT_CALL(mock_mman, mlock(_, _, _, _, _)).WillOnce(Return(-1));
-    EXPECT_CALL(mock_mman, munlock(_, _, _, _, _)).WillOnce(Return(-1));
     errno = ENOMEM;
 
     // Pre-Assert
+    EXPECT_CALL(mock_mman, mlock(_, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - mlock が 1 回呼び出されること。
+                               // [Pre-Assert手順] - mlock から -1 を返却する。
+    EXPECT_CALL(mock_mman, munlock(_, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - munlock が 1 回呼び出されること。
+                               // [Pre-Assert手順] - munlock から -1 を返却する。
 
     // Act
     int lock_result = com_util_memory_lock_range(
@@ -142,26 +146,35 @@ TEST_F(memoryLockTest, test_lock_self_reports_mlockall_failure)
     com_util_memory_lock_self_options options = {};
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
+
+    // Pre-Assert
     EXPECT_CALL(mock_mman, mlockall(_, _, _, _))
         .WillOnce(testing::Invoke(
             [](const char *, const int, const char *, const int)
             {
                 errno = ENOMEM;
                 return -1;
-            }));
+            })); // [Pre-Assert確認_異常系] - mlockall が 1 回呼び出されること。
+                 // [Pre-Assert手順] - errno に ENOMEM を設定し、mlockall から -1 を返却する。
     EXPECT_CALL(mock_com_util, com_util_call_once(_, _))
         .WillOnce(testing::Invoke(
             [](com_util_once_flag *flag, com_util_once_fn func)
             {
                 func();
                 flag->state = 2;
-            }));
+            })); // [Pre-Assert確認_異常系] - com_util_call_once が 1 回呼び出されること。
+                 // [Pre-Assert手順] - 初期化関数を実行し、once 状態を完了にする。
     EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
-        .WillOnce(testing::Invoke(delegate_real_com_util_local_lock_create));
-    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER)).WillOnce(Return(COM_UTIL_OK));
-    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_)).WillOnce(Return(COM_UTIL_OK));
-
-    // Pre-Assert
+        .WillOnce(testing::Invoke(
+            delegate_real_com_util_local_lock_create)); // [Pre-Assert確認_異常系] - com_util_local_lock_create が 1 回呼び出されること。
+    // [Pre-Assert手順] - 本物の com_util_local_lock_create へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - com_util_local_lock_lock が 1 回呼び出されること。
+                                        // [Pre-Assert手順] - com_util_local_lock_lock から COM_UTIL_OK を返却する。
+    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_))
+        .WillOnce(
+            Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - com_util_local_lock_unlock が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - com_util_local_lock_unlock から COM_UTIL_OK を返却する。
 
     // Act
     int result = com_util_memory_lock_self(
@@ -181,13 +194,17 @@ TEST_F(memoryLockTest, test_scope_release_reports_munlockall_failure)
     com_util_memory_lock_self_options options = {};
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
-    EXPECT_CALL(mock_mman, mlockall(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_mman, munlockall(_, _, _)).WillOnce(Return(-1));
+    ON_CALL(mock_mman, mlockall(_, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - mlockall が呼び出された際に 0 を返すようにモックを設定する。
+    ASSERT_EQ(COM_UTIL_OK, com_util_memory_lock_self(&options, &scope)); // [状態] - self lock を生成する。
+                                                                        // [状態確認] - com_util_memory_lock_self の戻り値が COM_UTIL_OK であること。
+    ASSERT_NE(nullptr, scope); // [状態確認] - self lock の scope が非 NULL であること。
+    errno = EACCES;
 
     // Pre-Assert
-    ASSERT_EQ(COM_UTIL_OK, com_util_memory_lock_self(&options, &scope));
-    ASSERT_NE(nullptr, scope);
-    errno = EACCES;
+    EXPECT_CALL(mock_mman, munlockall(_, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - munlockall が 1 回呼び出されること。
+                               // [Pre-Assert手順] - munlockall から -1 を返却する。
 
     // Act
     int result =
@@ -207,9 +224,11 @@ TEST_F(memoryLockTest, test_lock_self_reports_stack_attribute_failure)
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
     options.stack_prefault_bytes = 1U;
-    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(EINVAL));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_getattr_np が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_getattr_np から EINVAL を返却する。
 
     // Act
     int result =
@@ -226,7 +245,11 @@ TEST_F(memoryLockTest, test_prefault_stack_classifies_stack_ranges)
 {
     // Arrange
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillRepeatedly(Return(0));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _))
+        .WillRepeatedly(Return(0)); // [Pre-Assert確認_正常系] - pthread_getattr_np が呼び出されること。
+                                    // [Pre-Assert手順] - pthread_getattr_np から 0 を返却する。
     EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
         .WillOnce(Return(EINVAL))
         .WillOnce(DoAll(
@@ -236,10 +259,12 @@ TEST_F(memoryLockTest, test_prefault_stack_classifies_stack_ranges)
                     *stack_addr = nullptr;
                     *stack_size = static_cast<size_t>(-1);
                 }),
-            Return(0))); // [Pre-Assert確認_正常系] - 2 回目は現在位置を含む十分な stack 範囲を返すこと。
-    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).Times(2).WillRepeatedly(Return(0));
-
-    // Pre-Assert
+            Return(0))); // [Pre-Assert確認_正常系] - pthread_attr_getstack が 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は EINVAL を返却し、2 回目は十分な stack 範囲を設定して 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _))
+        .Times(2)
+        .WillRepeatedly(Return(0)); // [Pre-Assert確認_正常系] - pthread_attr_destroy が 2 回呼び出されること。
+                                    // [Pre-Assert手順] - pthread_attr_destroy から 0 を返却する。
 
     // Act
     int failure_result =
@@ -260,7 +285,11 @@ TEST_F(memoryLockTest, test_prefault_stack_rejects_range_above_current_position)
 {
     // Arrange
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(0));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - pthread_getattr_np が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 範囲拒否経路の pthread_getattr_np から 0 を返却する。
     EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
         .WillOnce(DoAll(
             testing::Invoke(
@@ -269,10 +298,11 @@ TEST_F(memoryLockTest, test_prefault_stack_rejects_range_above_current_position)
                     *stack_addr = reinterpret_cast<void *>(static_cast<uintptr_t>(-1));
                     *stack_size = 0U;
                 }),
-            Return(0))); // [Pre-Assert確認_異常系] - 現在位置より上の空 stack 範囲を返すこと。
-    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).WillOnce(Return(0));
-
-    // Pre-Assert
+            Return(0))); // [Pre-Assert確認_異常系] - pthread_attr_getstack が 1 回呼び出されること。
+                         // [Pre-Assert手順] - 現在位置より上の空 stack 範囲を設定して 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - pthread_attr_destroy が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 範囲拒否後の pthread_attr_destroy から 0 を返却する。
 
     // Act
     int result = test_memory_lock_prefault_stack(1U); // [手順] - 現在位置を含まない stack 範囲で prefault を実行する。
@@ -319,10 +349,11 @@ TEST_F(memoryLockTest, test_internal_lock_classifies_initialization_and_lock_fai
     com_util_local_lock *saved_lock = test_memory_lock_get_internal_lock();
     int saved_state = test_memory_lock_get_once_state();
     test_memory_lock_set_internal_lock(NULL, 2);
-    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
-        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
+    // [Pre-Assert手順] - com_util_local_lock_lock から COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
     int missing_result = test_memory_lock_internal_lock(); // [手順] - 内部 local lock が存在しない状態で取得する。
@@ -348,26 +379,38 @@ TEST_F(memoryLockTest, test_scope_release_classifies_internal_states)
     com_util_local_lock *saved_lock = test_memory_lock_get_internal_lock();
     int saved_state = test_memory_lock_get_once_state();
     test_memory_lock_set_internal_lock(reinterpret_cast<com_util_local_lock *>(1), 2);
+    NiceMock<Mock_sys_mman> mock_mman;
+    com_util_memory_lock_scope *unlocked_scope = test_memory_lock_create_scope(0); // [状態] - mlockall 未実行の scope を用意する。
+    com_util_memory_lock_scope *empty_count_scope =
+        test_memory_lock_create_scope(1); // [状態] - 参照数確認用の mlockall scope を用意する。
+    com_util_memory_lock_scope *shared_scope =
+        test_memory_lock_create_scope(1); // [状態] - 複数参照確認用の mlockall scope を用意する。
+    com_util_memory_lock_scope *lock_failure_scope =
+        test_memory_lock_create_scope(1); // [状態] - 内部 lock 失敗確認用の scope を用意する。
+    com_util_memory_lock_scope *last_scope =
+        test_memory_lock_create_scope(1); // [状態] - 最後の参照確認用の mlockall scope を用意する。
+    ASSERT_NE(nullptr, unlocked_scope);      // [状態確認] - mlockall 未実行 scope が非 NULL であること。
+    ASSERT_NE(nullptr, empty_count_scope);   // [状態確認] - 参照数確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, shared_scope);        // [状態確認] - 複数参照確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, lock_failure_scope);  // [状態確認] - 内部 lock 失敗確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, last_scope);          // [状態確認] - 最後の参照確認用 scope が非 NULL であること。
+
+    // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(COM_UTIL_OK))
-        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN));
-    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_)).Times(3).WillRepeatedly(Return(COM_UTIL_OK));
-    NiceMock<Mock_sys_mman> mock_mman;
-    EXPECT_CALL(mock_mman, munlockall(_, _, _)).WillOnce(Return(0));
-    com_util_memory_lock_scope *unlocked_scope = test_memory_lock_create_scope(0);
-    com_util_memory_lock_scope *empty_count_scope = test_memory_lock_create_scope(1);
-    com_util_memory_lock_scope *shared_scope = test_memory_lock_create_scope(1);
-    com_util_memory_lock_scope *lock_failure_scope = test_memory_lock_create_scope(1);
-    com_util_memory_lock_scope *last_scope = test_memory_lock_create_scope(1);
-    ASSERT_NE(nullptr, unlocked_scope);
-    ASSERT_NE(nullptr, empty_count_scope);
-    ASSERT_NE(nullptr, shared_scope);
-    ASSERT_NE(nullptr, lock_failure_scope);
-    ASSERT_NE(nullptr, last_scope);
-
-    // Pre-Assert
+        .WillOnce(Return(
+            COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - com_util_local_lock_lock が 4 回呼び出されること。
+    // [Pre-Assert手順] - 3 回は COM_UTIL_OK を返却し、4 回目は COM_UTIL_ERR_UNKNOWN を返却する。
+    EXPECT_CALL(mock_com_util, com_util_local_lock_unlock(_))
+        .Times(3)
+        .WillRepeatedly(
+            Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - com_util_local_lock_unlock が 3 回呼び出されること。
+                                  // [Pre-Assert手順] - com_util_local_lock_unlock から COM_UTIL_OK を返却する。
+    EXPECT_CALL(mock_mman, munlockall(_, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - munlockall が 1 回呼び出されること。
+                              // [Pre-Assert手順] - munlockall から 0 を返却する。
 
     // Act
     int unlocked_result =
@@ -407,11 +450,13 @@ TEST_F(memoryLockTest, test_lock_self_reports_internal_lock_failure)
     com_util_memory_lock_self_options options = {};
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
-    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
-        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
-    EXPECT_CALL(mock_mman, mlockall(_, _, _, _)).Times(0);
 
     // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 内部 local lock の取得が失敗すること。
+    // [Pre-Assert手順] - 内部 lock 取得から COM_UTIL_ERR_UNKNOWN を返却する。
+    EXPECT_CALL(mock_mman, mlockall(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 内部 lock 取得失敗時に mlockall が呼び出されないこと。
 
     // Act
     int result = com_util_memory_lock_self(&options, &scope); // [手順] - 内部 local lock の取得失敗を注入する。
@@ -430,10 +475,11 @@ TEST_F(memoryLockTest, test_lock_self_reports_scope_allocation_failure)
     com_util_memory_lock_self_options options = {};
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - scope の calloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - scope の calloc が失敗すること。
+                                    // [Pre-Assert手順] - calloc から NULL を返却する。
 
     // Act
     int result = com_util_memory_lock_self(&options, &scope); // [手順] - scope のメモリ確保失敗を注入する。
@@ -453,7 +499,11 @@ TEST_F(memoryLockTest, test_lock_self_rejects_insufficient_stack_range)
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
     options.stack_prefault_bytes = 1U;
-    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _)).WillOnce(Return(0));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_getattr_np(_, _, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 余白不足経路で pthread_getattr_np が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 余白不足経路の pthread_getattr_np から 0 を返却する。
     EXPECT_CALL(mock_pthread, pthread_attr_getstack(_, _, _, _, _, _))
         .WillOnce(DoAll(
             testing::Invoke(
@@ -462,10 +512,11 @@ TEST_F(memoryLockTest, test_lock_self_rejects_insufficient_stack_range)
                     *stack_addr = nullptr;
                     *stack_size = 1U;
                 }),
-            Return(0)));
-    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _)).WillOnce(Return(0));
-
-    // Pre-Assert
+            Return(0))); // [Pre-Assert確認_異常系] - 余白不足経路で pthread_attr_getstack が 1 回呼び出されること。
+                         // [Pre-Assert手順] - スタック先頭 NULL、サイズ 1 を設定して 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_attr_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 余白不足経路で pthread_attr_destroy が 1 回呼び出されること。
+                              // [Pre-Assert手順] - 余白不足後の pthread_attr_destroy から 0 を返却する。
 
     // Act
     int result = com_util_memory_lock_self(

@@ -61,6 +61,7 @@ TEST_F(regexTest, search_returns_byte_offsets)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a.c", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a.c" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -91,6 +92,7 @@ TEST_F(regexTest, search_reports_no_match_as_success)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("abc", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "abc" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -121,6 +123,7 @@ TEST_F(regexTest, matches_requires_whole_text)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a.c", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a.c" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -152,6 +155,7 @@ TEST_F(regexTest, matches_treats_bmp_character_as_one_character)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^.{3}$", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "^.{3}$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -184,8 +188,10 @@ TEST_F(regexTest, matches_treats_astral_character_as_two_characters)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^.$", COM_UTIL_REGEX_DEFAULT, &one_regex,
                                                  NULL)); // [状態] - パターン "^.$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^.{2}$", COM_UTIL_REGEX_DEFAULT, &two_regex,
                                                  NULL)); // [状態] - パターン "^.{2}$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -220,6 +226,7 @@ TEST_F(regexTest, search_stores_capture_groups)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^(.+)=(.+)$", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "^(.+)=(.+)$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     ASSERT_EQ((size_t)3,
@@ -252,6 +259,7 @@ TEST_F(regexTest, search_marks_unmatched_group_as_npos)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^(a)?(b)$", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "^(a)?(b)$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -284,6 +292,7 @@ TEST_F(regexTest, search_truncates_groups_to_capacity)
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_create("(a)(b)(c)", COM_UTIL_REGEX_DEFAULT, &regex,
                                     NULL)); // [状態] - 捕捉グループを 3 個持つパターンをコンパイルしておく。
+                                            // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     ASSERT_EQ((size_t)4,
@@ -314,6 +323,7 @@ TEST_F(regexTest, create_with_nosub_reports_single_group)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("(a)(b)(c)", COM_UTIL_REGEX_NOSUB, &regex,
                                                  NULL)); // [状態] - COM_UTIL_REGEX_NOSUB を指定してコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -346,9 +356,11 @@ TEST_F(regexTest, icase_folds_ascii_only)
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_create("abc", COM_UTIL_REGEX_ICASE, &ascii_regex,
                                     NULL)); // [状態] - ASCII のパターン "abc" を ICASE でコンパイルしておく。
+                                            // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(u8"Ä", COM_UTIL_REGEX_ICASE, &latin_regex,
                                                  NULL)); // [状態] - 非 ASCII のパターン "Ä" を ICASE で
                                                          // コンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -380,6 +392,7 @@ TEST_F(regexTest, create_with_extended_uses_posix_ere)
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_create("(ab)+c", COM_UTIL_REGEX_EXTENDED, &regex,
                                     NULL)); // [状態] - COM_UTIL_REGEX_EXTENDED を指定してコンパイルしておく。
+                                            // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -409,8 +422,10 @@ TEST_F(regexTest, search_supports_ascii_character_classes)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("[[:digit:]]+", COM_UTIL_REGEX_DEFAULT, &posix_regex,
                                                  NULL)); // [状態] - パターン "[[:digit:]]+" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("\\d+", COM_UTIL_REGEX_DEFAULT, &escape_regex,
                                                  NULL)); // [状態] - パターン "\\d+" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -446,6 +461,7 @@ TEST_F(regexTest, search_from_offset_does_not_treat_offset_as_line_start)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^b", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "^b" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -477,6 +493,7 @@ TEST_F(regexTest, search_with_anchored_matches_only_at_start_offset)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("ab", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "ab" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -558,6 +575,7 @@ TEST_F(regexTest, rejects_invalid_utf8)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -589,6 +607,7 @@ TEST_F(regexTest, rejects_null_arguments)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -639,6 +658,7 @@ TEST_F(regexTest, search_rejects_invalid_start_offset)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -671,6 +691,7 @@ TEST_F(regexTest, matches_accepts_empty_text)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("^$", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "^$" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -742,6 +763,7 @@ TEST_F(regexTest, replace_substitutes_all_matches)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("[0-9]+", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "[0-9]+" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -770,6 +792,7 @@ TEST_F(regexTest, replace_expands_back_references)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("(\\w+)@(\\w+)", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "(\\w+)@(\\w+)" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -797,6 +820,7 @@ TEST_F(regexTest, replace_honors_replace_flags)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("[0-9]", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "[0-9]" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -832,6 +856,7 @@ TEST_F(regexTest, replace_reports_required_size)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -895,9 +920,11 @@ TEST_F(regexTest, iter_enumerates_all_matches)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("[0-9]+", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "[0-9]+" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_iter_create(regex, text.data(), text.size(), COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
                                          NULL)); // [状態] - 入力に対するイテレーターを生成しておく。
+                                                 // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     ASSERT_NE((com_util_regex_iter *)NULL, iter); // [Pre-Assert確認_正常系] - イテレーターが NULL でないこと。
@@ -938,9 +965,11 @@ TEST_F(regexTest, iter_terminates_on_empty_matches)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a*", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 空一致しうるパターン "a*" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_iter_create(regex, text.data(), text.size(), COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
                                          NULL)); // [状態] - 入力 "ab" のイテレーターを生成しておく。
+                                                 // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -978,9 +1007,11 @@ TEST_F(regexTest, iter_copies_input_text)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("b", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "b" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_regex_iter_create(regex, text.data(), text.size(), COM_UTIL_REGEX_MATCH_DEFAULT, &iter,
                                          NULL)); // [状態] - 入力 "abc" のイテレーターを生成しておく。
+                                                 // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
     text = "zzz";                                // [状態] - イテレーター生成後に元の文字列を書き換える。
 
     // Pre-Assert
@@ -1010,6 +1041,7 @@ TEST_F(regexTest, split_divides_text_by_matches)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(",", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 区切りのパターン "," をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1040,6 +1072,7 @@ TEST_F(regexTest, split_keeps_empty_parts_at_boundaries)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(",", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 区切りのパターン "," をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1069,6 +1102,7 @@ TEST_F(regexTest, split_returns_whole_text_when_no_match)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(",", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 区切りのパターン "," をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1096,6 +1130,7 @@ TEST_F(regexTest, split_honors_max_parts)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(",", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 区切りのパターン "," をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1125,6 +1160,7 @@ TEST_F(regexTest, split_reports_required_count)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create(",", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 区切りのパターン "," をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1172,6 +1208,7 @@ TEST_F(regexTest, replace_iter_split_reject_null_arguments)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - パターン "a" をコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1346,6 +1383,7 @@ TEST_F(regexTest, option_and_match_flags_cover_basic_optimize_and_boundaries)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_BASIC | COM_UTIL_REGEX_OPTIMIZE, &regex,
                                                  NULL)); // [状態] - BASIC と OPTIMIZE を指定してコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1379,6 +1417,7 @@ TEST_F(regexTest, replace_iter_split_reject_limits_and_invalid_encoding)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 境界テスト用のパターンをコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1465,8 +1504,10 @@ TEST_F(regexTest, iter_advances_empty_match_over_astral_code_point)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a*", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 空一致するパターンをコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, text.data(), text.size(), COM_UTIL_REGEX_DEFAULT, &iter,
                                                       NULL)); // [状態] - BMP 外文字の列挙器を生成しておく。
+                                                              // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1496,6 +1537,7 @@ TEST_F(regexTest, replace_checks_replacement_limit_and_sed_flag)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("(a)", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 捕捉グループを持つパターンをコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1528,6 +1570,7 @@ TEST_F(regexTest, split_advances_empty_match_over_astral_code_point)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a*", COM_UTIL_REGEX_DEFAULT, &regex,
                                                  NULL)); // [状態] - 空一致する区切りパターンをコンパイルしておく。
+                                                         // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

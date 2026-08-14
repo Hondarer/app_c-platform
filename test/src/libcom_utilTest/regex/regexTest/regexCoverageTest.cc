@@ -82,7 +82,8 @@ TEST_F(regexCoverageTest, public_apis_translate_decode_exceptions)
     char buffer[16] = {};
     size_t part_count = 0U;
     int matched = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
+                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -140,8 +141,10 @@ TEST_F(regexCoverageTest, replace_encode_failure_and_iter_position_past_end)
     com_util_regex_iter *iter = NULL;
     char buffer[16] = {};
     int has_match = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL));
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "a", 1U, COM_UTIL_REGEX_DEFAULT, &iter, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
+                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "a", 1U, COM_UTIL_REGEX_DEFAULT, &iter, NULL)); // [状態] - 入力 "a" のイテレーターを生成する。
+                                                                                                             // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -284,7 +287,8 @@ TEST_F(regexCoverageTest, remaining_source_conditions)
     int split_regex_null = COM_UTIL_OK;
     int split_text_null = COM_UTIL_OK;
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
+                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -355,8 +359,10 @@ TEST_F(regexCoverageTest, iter_next_translates_allocation_failure)
     int has_match = 0;
     int throw_count = 0;
     int fail_after = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL));
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "aaa", 3U, COM_UTIL_REGEX_DEFAULT, &iter, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
+                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "aaa", 3U, COM_UTIL_REGEX_DEFAULT, &iter, NULL)); // [状態] - 入力 "aaa" のイテレーターを生成する。
+                                                                                                               // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

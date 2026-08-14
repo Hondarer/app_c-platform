@@ -454,7 +454,9 @@ TEST_F(fileTest, default_access_remains_write_only)
         .WillOnce(
             Return(kFakeFd)); // [Pre-Assert確認_正常系] - READ/WRITE 無指定が O_WRONLY | O_CREAT の open になること。
                               // [Pre-Assert手順] - 番兵記述子 7 を返却する。
-    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, _, 3u)).WillOnce(Return(3));
+    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, _, 3u))
+        .WillOnce(Return(3)); // [Pre-Assert確認_正常系] - write が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 書き込み長 3 を返却する。
 
     // Act
     int rtc_file_open = com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_CREATE,
@@ -482,8 +484,13 @@ TEST_F(fileTest, explicit_write_only_open_allows_write)
     com_util_file_init(&file); // [状態] - 未オープンのハンドルを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_fcntl_, open(_, _, _, StrEq(kPath), O_WRONLY | O_CREAT, 0644)).WillOnce(Return(kFakeFd));
-    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, _, 3u)).WillOnce(Return(3));
+    EXPECT_CALL(mock_fcntl_, open(_, _, _, StrEq(kPath), O_WRONLY | O_CREAT, 0644))
+        .WillOnce(
+            Return(kFakeFd)); // [Pre-Assert確認_正常系] - CREATE | WRITE が O_WRONLY | O_CREAT の open になること。
+                              // [Pre-Assert手順] - 番兵記述子 7 を返却する。
+    EXPECT_CALL(mock_unistd_, write(_, _, _, kFakeFd, _, 3u))
+        .WillOnce(Return(3)); // [Pre-Assert確認_正常系] - write が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 書き込み長 3 を返却する。
 
     // Act
     int open_result = com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_WRITE,
@@ -514,7 +521,8 @@ TEST_F(fileTest, read_only_open_rejects_write)
     EXPECT_CALL(mock_fcntl_, open(_, _, _, StrEq(kPath), O_RDONLY, 0644))
         .WillOnce(Return(kFakeFd)); // [Pre-Assert確認_正常系] - READ のみが O_RDONLY の open になること。
                                     // [Pre-Assert手順] - 番兵記述子 7 を返却する。
-    EXPECT_CALL(mock_unistd_, write(_, _, _, _, _, _)).Times(0);
+    EXPECT_CALL(mock_unistd_, write(_, _, _, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 読み取り専用オープン後に write が呼び出されないこと。
 
     // Act
     int rtc_file_open = com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_READ,
@@ -574,7 +582,8 @@ TEST_F(fileTest, read_write_open_allows_write_and_reports_size)
             {
                 fill_stat(st, 5, 1, 1);
                 return 0;
-            });
+            }); // [Pre-Assert確認_正常系] - READ | WRITE の open、5 バイトの write、サイズ 5 の fstat が呼び出されること。
+                // [Pre-Assert手順] - 番兵記述子 7 と書き込み長 5、サイズ 5 を返却する。
 
     // Act
     int rtc_file_open =
@@ -665,6 +674,7 @@ TEST_F(fileTest, set_size_extends_and_truncates_file)
               com_util_file_open(&file, kPath,
                                  COM_UTIL_FILE_OPEN_CREATE | COM_UTIL_FILE_OPEN_READ | COM_UTIL_FILE_OPEN_WRITE,
                                  NULL)); // [状態] - CREATE | READ | WRITE でオープンする。
+                                         // [状態確認] - com_util_file_open の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_unistd_, ftruncate(_, _, _, kFakeFd, 128)).WillOnce(Return(0));

@@ -400,10 +400,10 @@ TEST_F(promptTest, readline_stops_accepting_characters_at_input_limit)
     char buf[32];
     com_util_prompt_options options = {};
 
-    options.input_max_bytes = 4u; // [状態] - 入力上限 4 バイトのハンドルを用意する。
+    options.input_max_bytes = 4u;
 
-    com_util_prompt *limited = com_util_prompt_create(&options);
-    ASSERT_NE((com_util_prompt *)NULL, limited);
+    com_util_prompt *limited = com_util_prompt_create(&options); // [状態] - 入力上限 4 バイトのハンドルを用意する。
+    ASSERT_NE((com_util_prompt *)NULL, limited);                // [状態確認] - ハンドルが非 NULL であること。
     limited->is_tty = 1;
     promptFakeSetInput("abcdef\r");
 
@@ -432,6 +432,7 @@ TEST_F(promptTest, history_up_recalls_previous_line)
     char buf[32];
 
     ASSERT_EQ(COM_UTIL_OK, readline("first\r", buf, sizeof(buf))); // [状態] - "first" を履歴へ登録しておく。
+                                                                   // [状態確認] - readline の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -449,8 +450,10 @@ TEST_F(promptTest, history_down_returns_to_newer_entry)
     // Arrange
     char buf[32];
 
-    ASSERT_EQ(COM_UTIL_OK, readline("first\r", buf, sizeof(buf)));
+    ASSERT_EQ(COM_UTIL_OK, readline("first\r", buf, sizeof(buf))); // [状態] - "first" を履歴へ登録する。
+                                                                   // [状態確認] - "first" を登録する readline の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, readline("second\r", buf, sizeof(buf))); // [状態] - 履歴へ 2 件を登録しておく。
+                                                                    // [状態確認] - "second" を登録する readline の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -470,6 +473,7 @@ TEST_F(promptTest, history_down_restores_saved_line_at_newest)
     char buf[32];
 
     ASSERT_EQ(COM_UTIL_OK, readline("first\r", buf, sizeof(buf))); // [状態] - 履歴へ 1 件を登録しておく。
+                                                                   // [状態確認] - readline の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -505,6 +509,7 @@ TEST_F(promptTest, history_does_not_record_empty_line)
     char buf[32];
 
     ASSERT_EQ(COM_UTIL_OK, readline("\r", buf, sizeof(buf))); // [状態] - 空行を確定しておく。
+                                                              // [状態確認] - 空行を確定する readline の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -524,6 +529,7 @@ TEST_F(promptTest, history_is_independent_per_call_site)
 
     ASSERT_EQ(COM_UTIL_OK,
               readline("first\r", buf, sizeof(buf), "a.cc", 10)); // [状態] - 呼び出し位置 a.cc:10 で履歴を作る。
+                                                                  // [状態確認] - 呼び出し位置 a.cc:10 の readline の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -543,17 +549,19 @@ TEST_F(promptTest, history_discards_oldest_entry_over_limit)
     char buf[32];
     com_util_prompt_options options = {};
 
-    options.history_max = 2u; // [状態] - 履歴上限 2 件のハンドルを用意する。
+    options.history_max = 2u;
 
-    com_util_prompt *limited = com_util_prompt_create(&options);
-    ASSERT_NE((com_util_prompt *)NULL, limited);
+    com_util_prompt *limited = com_util_prompt_create(&options); // [状態] - 履歴上限 2 件のハンドルを用意する。
+    ASSERT_NE((com_util_prompt *)NULL, limited);                // [状態確認] - ハンドルが非 NULL であること。
     limited->is_tty = 1;
 
     for (const char *line : {"one\r", "two\r", "three\r"})
     {
         promptFakeSetInput(line);
-        ASSERT_EQ(COM_UTIL_OK, com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc", 1));
-    } // [状態] - 3 件を順に確定して上限を超えさせる。
+        ASSERT_EQ(COM_UTIL_OK, com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc",
+                                                          1)); // [状態] - 3 件を順に確定して上限を超えさせる。
+                                                               // [状態確認] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    }
 
     // Pre-Assert
 

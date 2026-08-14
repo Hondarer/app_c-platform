@@ -35,14 +35,12 @@ TEST(syncInterprocessRwlockTest, descriptor_round_trip_reopens_same_lock)
     EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
         .WillOnce(
             Return(0)); // [Pre-Assert確認_正常系] - 元ハンドルの非ブロッキング排他 flock が 1 回呼び出されること。
+                        // [Pre-Assert手順] - 0 を返却する。
     EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_SH | LOCK_NB))
         .WillOnce(DoAll(
             Assign(&errno, EWOULDBLOCK),
             Return(-1))); // [Pre-Assert確認_正常系] - 復元ハンドルの非ブロッキング共有 flock が 1 回呼び出されること。
                           // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
-    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0));
-    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
-    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
 #endif
 
     // Act
@@ -68,6 +66,11 @@ TEST(syncInterprocessRwlockTest, descriptor_round_trip_reopens_same_lock)
     EXPECT_EQ(COM_UTIL_ERR_BUSY, shared_try); // [確認_正常系] - 復元ハンドルが同じ排他インスタンスを参照すること。
 
     // Cleanup
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));            // 元ハンドルの close を成功させる。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0)); // 復元ハンドルの close を成功させる。
+#endif
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(restored);
     com_util_interprocess_rwlock_destroy(lock);
@@ -97,7 +100,6 @@ TEST(syncInterprocessRwlockTest, export_reports_required_descriptor_size)
     EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
         .WillOnce(Return(kFakeFd)); // [Pre-Assert確認_正常系] - rwlock の open が 1 回呼び出されること。
                                     // [Pre-Assert手順] - 番兵記述子 7 を返却する。
-    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
 #endif
 
     // Act
@@ -113,6 +115,9 @@ TEST(syncInterprocessRwlockTest, export_reports_required_descriptor_size)
     EXPECT_EQ(expected_size, descriptor_size);               // [確認_正常系] - descriptor に必要なサイズが返ること。
 
     // Cleanup
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0)); // rwlock 破棄時の close を成功させる。
+#endif
     com_util_interprocess_rwlock_destroy(lock);
 #if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
@@ -155,13 +160,11 @@ TEST(syncInterprocessRwlockTest, second_handle_observes_exclusive_lock)
                                      // [Pre-Assert手順] - 番兵記述子 7 と 8 を順に返却する。
     EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 1 つ目の非ブロッキング排他 flock が成功すること。
+                              // [Pre-Assert手順] - 0 を返却する。
     EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_SH | LOCK_NB))
         .WillOnce(DoAll(Assign(&errno, EWOULDBLOCK),
                         Return(-1))); // [Pre-Assert確認_正常系] - 2 つ目の非ブロッキング共有 flock が競合すること。
                                       // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
-    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0));
-    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
-    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
 
     // Act
     int open_result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - 1 つ目の interprocess rwlock を開く。
@@ -184,6 +187,9 @@ TEST(syncInterprocessRwlockTest, second_handle_observes_exclusive_lock)
               other_try); // [確認_正常系] - 2 つ目のハンドルの共有 try_lock が BUSY であること。
 
     // Cleanup
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));  // 1 つ目のハンドルの close を成功させる。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0)); // 2 つ目のハンドルの close を成功させる。
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(other);
     com_util_interprocess_rwlock_destroy(lock);

@@ -232,7 +232,7 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
     com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(
         tracer, recording_hook,
         reinterpret_cast<void *>(0xABCD)); // [状態] - context 0xABCD 付きで記録用フックを登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
     com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     com_util_timespec ts = make_fixed_timestamp(); // [状態] - 固定タイムスタンプを用意する。
@@ -269,7 +269,7 @@ TEST_F(traceHookTest, test_hook_is_called_for_none_level)
     com_util_tracer *tracer = create_tracer();
     com_util_tracer_hook_entry *entry =
         com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
     com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     com_util_timespec ts = make_fixed_timestamp();
@@ -321,8 +321,8 @@ TEST_F(traceHookTest, test_hook_not_called_after_remove)
 {
     // Arrange
     com_util_tracer *tracer = create_tracer();
-    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr);
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    com_util_tracer_hook_entry *entry = com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
 
     com_util_tracer_remove_hook(tracer, entry); // [状態] - 登録済みフックを解除した状態とする。
 
@@ -370,8 +370,8 @@ TEST_F(traceHookTest, test_hook_chain_order)
         com_util_tracer_set_hook(tracer, chain_fn, &ctx1); // [状態] - id=1 のフックを先に登録する。
     com_util_tracer_hook_entry *e2 =
         com_util_tracer_set_hook(tracer, chain_fn, &ctx2); // [状態] - id=2 のフックを後から登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, e1);
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, e2);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, e1); // [状態確認] - id=1 のフック エントリが非 NULL であること。
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, e2); // [状態確認] - id=2 のフック エントリが非 NULL であること。
 
     com_util_tracer_start(tracer);
     com_util_timespec ts = make_fixed_timestamp();
@@ -424,7 +424,7 @@ TEST_F(traceHookTest, test_hook_called_via_writef)
     com_util_tracer *tracer = create_tracer();
     com_util_tracer_hook_entry *entry =
         com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
     com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     com_util_timespec ts = make_fixed_timestamp();
@@ -456,7 +456,7 @@ TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
     com_util_tracer *tracer = create_tracer();
     com_util_tracer_hook_entry *entry =
         com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
     com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     // Pre-Assert
@@ -487,7 +487,7 @@ TEST_F(traceHookTest, test_remove_hook_while_started_does_nothing)
     com_util_tracer *tracer = create_tracer();
     com_util_tracer_hook_entry *entry =
         com_util_tracer_set_hook(tracer, recording_hook, nullptr); // [状態] - 記録用フックを登録する。
-    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry);
+    ASSERT_NE((com_util_tracer_hook_entry *)NULL, entry); // [状態確認] - フック エントリが非 NULL であること。
     com_util_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     // Pre-Assert

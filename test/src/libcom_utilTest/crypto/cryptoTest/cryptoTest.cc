@@ -115,7 +115,9 @@ TEST_F(cryptoTest, decrypt_rejects_tampered_cipher_text)
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK,
-              com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL, 0u));
+              com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL,
+                               0u)); // [状態] - 復号対象の暗号文を用意する。
+                                     // [状態確認] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
     cipher[0] = static_cast<uint8_t>(cipher[0] ^ 0xFFu); // [状態] - 暗号文の先頭 1 byte を反転して改ざんする。
 
     // Pre-Assert
@@ -142,7 +144,9 @@ TEST_F(cryptoTest, decrypt_rejects_wrong_key)
     uint8_t other_key[COM_UTIL_CRYPTO_KEY_SIZE];
 
     ASSERT_EQ(COM_UTIL_OK,
-              com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL, 0u));
+              com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL,
+                               0u)); // [状態] - 復号対象の暗号文を用意する。
+                                     // [状態確認] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
     std::memset(other_key, 0x33, sizeof(other_key)); // [状態] - 暗号化に使用したものと異なる鍵を用意する。
 
     // Pre-Assert

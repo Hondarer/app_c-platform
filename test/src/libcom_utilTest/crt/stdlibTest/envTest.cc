@@ -45,6 +45,7 @@ TEST_F(envTest, setenv_without_overwrite_keeps_existing_value)
     memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "first", 1, NULL)); // [状態] - 事前に値 "first" を設定しておく。
+                                                                      // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -75,6 +76,7 @@ TEST_F(envTest, setenv_without_overwrite_sets_value_when_absent)
     memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
                                              NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
+                                                     // [状態確認] - com_util_unsetenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -101,6 +103,7 @@ TEST_F(envTest, unsetenv_removes_variable)
 
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, NULL)); // [状態] - 事前に値 "value1" を設定しておく。
+                                                                      // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -212,6 +215,7 @@ TEST_F(envTest, getenv_clears_buffer_when_variable_is_absent)
     memset(buf, 'X', sizeof(buf)); // [状態] - 出力バッファーを 'X' で埋めておく。
     ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
                                              NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
+                                                     // [状態確認] - com_util_unsetenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -235,6 +239,7 @@ TEST_F(envTest, getenv_does_not_write_when_buffer_size_is_zero)
     memset(buf, 'X', sizeof(buf)); // [状態] - 出力バッファーを 'X' で埋めておく。
     ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
                                              NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
+                                                     // [状態確認] - com_util_unsetenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -256,6 +261,7 @@ TEST_F(envTest, getenv_accepts_null_buffer_when_variable_is_absent)
 
     ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
                                              NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
+                                                     // [状態確認] - com_util_unsetenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -276,6 +282,7 @@ TEST_F(envTest, getenv_accepts_null_buffer_when_variable_exists)
 
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, NULL)); // [状態] - 対象の環境変数へ値を設定しておく。
+                                                                      // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -302,6 +309,7 @@ TEST_F(envTest, getenv_returns_erange_when_buffer_too_small)
     memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, NULL)); // [状態] - 事前に値 "value1" を設定しておく。
+                                                                      // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

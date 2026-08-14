@@ -12,6 +12,7 @@ using testing::DoDefault;
 using testing::NiceMock;
 using testing::Return;
 
+// export / import が不正引数を拒否することの確認
 TEST(syncDescriptorTest, rejects_invalid_export_and_import_arguments)
 {
     // Arrange
@@ -42,6 +43,7 @@ TEST(syncDescriptorTest, rejects_invalid_export_and_import_arguments)
               import_identity_result); // [確認_異常系] - NULL identity 格納先が INVALID_ARGUMENT になること。
 }
 
+// identity 長 0 とサイズ不一致を拒否することの確認
 TEST(syncDescriptorTest, rejects_zero_and_mismatched_identity_lengths)
 {
     // Arrange
@@ -100,6 +102,7 @@ TEST(syncDescriptorTest, exports_and_imports_identity)
     free(identity);
 }
 
+// identity 確保失敗が UNKNOWN になることの確認
 TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
 {
     // Arrange
@@ -107,7 +110,8 @@ TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
     unsigned char descriptor[64] = {0};
     size_t descriptor_size = sizeof(descriptor);
     char *identity = NULL;
-    ASSERT_EQ(COM_UTIL_OK, interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor, &descriptor_size));
+    ASSERT_EQ(COM_UTIL_OK, interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor, &descriptor_size)); // [状態] - 正常な descriptor を生成する。
+                                                                                                                   // [状態確認] - interprocess_sync_descriptor_export の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
@@ -124,6 +128,7 @@ TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
     EXPECT_EQ(NULL, identity); // [確認_異常系] - identity が設定されないこと。
 }
 
+// 省略と容量不足で必要サイズを返すことの確認
 TEST(syncDescriptorTest, reports_required_size_for_absent_and_small_buffers)
 {
     // Arrange
@@ -147,6 +152,7 @@ TEST(syncDescriptorTest, reports_required_size_for_absent_and_small_buffers)
     EXPECT_EQ(absent_size, small_size); // [確認_正常系] - 両方の呼び出しが同じ必要サイズを返すこと。
 }
 
+// 壊れたヘッダー各欄を拒否することの確認
 TEST(syncDescriptorTest, rejects_each_corrupt_header_field)
 {
     // Arrange
@@ -154,7 +160,8 @@ TEST(syncDescriptorTest, rejects_each_corrupt_header_field)
     unsigned char original[64] = {0};
     size_t descriptor_size = sizeof(descriptor);
     char *identity = NULL;
-    ASSERT_EQ(COM_UTIL_OK, interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor, &descriptor_size));
+    ASSERT_EQ(COM_UTIL_OK, interprocess_sync_descriptor_export("identity", 1U, 1U, descriptor, &descriptor_size)); // [状態] - 正常な descriptor を生成する。
+                                                                                                                   // [状態確認] - interprocess_sync_descriptor_export の戻り値が COM_UTIL_OK であること。
     memcpy(original, descriptor, descriptor_size);
 
     // Pre-Assert

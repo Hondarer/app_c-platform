@@ -179,14 +179,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_ascii)
     std::string session_name = make_session_name(); // [状態] - プロセス固有の session 名を生成する。
     EventCollector collector;
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -225,14 +225,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_japanese)
     const char *msg = "\xe8\xa8\x88\xe7\xae\x97\xe7\xb5\x90\xe6\x9e\x9c: "
                       "\xe6\x88\x90\xe5\x8a\x9f";
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -274,14 +274,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_utf8_mixed)
                       "\xf0\x9f\x8c\x8d"
                       " World";
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -318,14 +318,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_multiple_levels)
     std::string session_name = make_session_name(); // [状態] - プロセス固有の session 名を生成する。
     EventCollector collector;
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -403,14 +403,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_empty_string)
     std::string session_name = make_session_name(); // [状態] - プロセス固有の session 名を生成する。
     EventCollector collector;
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -447,14 +447,14 @@ TEST_F(etwSessionSubscribeIntegrationTest, test_subscribe_service_and_message)
     std::string session_name = make_session_name(); // [状態] - プロセス固有の session 名を生成する。
     EventCollector collector;
 
-    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider);
-    ASSERT_NE((com_util_etw_provider *)NULL, handle);
+    com_util_etw_provider *handle = com_util_etw_provider_create(s_test_provider); // [状態] - 登録済みの ETW provider を用意する。
+    ASSERT_NE((com_util_etw_provider *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     com_util_etw_session *session = NULL;
     int start_result =
         com_util_etw_session_start(session_name.c_str(), TEST_PROVIDER_GUID, collect_callback, &collector,
                                    &session); // [状態] - 収集 callback 付きで ETW session を開始する。
-    ASSERT_EQ(COM_UTIL_OK, start_result);
+    ASSERT_EQ(COM_UTIL_OK, start_result); // [状態確認] - com_util_etw_session_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

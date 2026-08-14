@@ -53,18 +53,25 @@ TEST_F(fdTest, write_read_lseek_roundtrip)
             Return(static_cast<off_t>(6))); // [Pre-Assert確認_正常系] - lseek が SEEK_END で 1 回呼び出されること。
                                             // [Pre-Assert手順] - 位置 6 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _write(_, _, _, kFakeFd, data, 6u)).WillOnce(Return(6));
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, kFakeFd, data, 6u))
+        .WillOnce(Return(6)); // [Pre-Assert確認_正常系] - _write が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 6 を返却する。
     EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_SET))
-        .WillOnce(Return(static_cast<__int64>(0)));
+        .WillOnce(Return(
+            static_cast<__int64>(0))); // [Pre-Assert確認_正常系] - _lseeki64 が SEEK_SET で 1 回呼び出されること。
+                                       // [Pre-Assert手順] - 位置 0 を返却する。
     EXPECT_CALL(mock_unistd_, _read(_, _, _, kFakeFd, buf, 16u))
         .WillOnce(
             [](const char *, int, const char *, int, void *dest, unsigned int)
             {
                 std::memcpy(dest, "abcdef", 6u);
                 return 6;
-            });
+            }); // [Pre-Assert確認_正常系] - _read が番兵記述子 7 で 1 回呼び出されること。
+                // [Pre-Assert手順] - "abcdef" を格納し、6 を返却する。
     EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_END))
-        .WillOnce(Return(static_cast<__int64>(6)));
+        .WillOnce(Return(
+            static_cast<__int64>(6))); // [Pre-Assert確認_正常系] - _lseeki64 が SEEK_END で 1 回呼び出されること。
+                                       // [Pre-Assert手順] - 位置 6 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -93,7 +100,9 @@ TEST_F(fdTest, read_reaches_eof_returns_zero)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - read が番兵記述子 7 で 1 回呼び出されること。
                               // [Pre-Assert手順] - 0 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _read(_, _, _, kFakeFd, buf, 8u)).WillOnce(Return(0));
+    EXPECT_CALL(mock_unistd_, _read(_, _, _, kFakeFd, buf, 8u))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - _read が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -124,11 +133,19 @@ TEST_F(fdTest, dup_shares_file_offset)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - close が複製記述子 8 で 1 回呼び出されること。
                               // [Pre-Assert手順] - 0 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _dup(_, _, _, kFakeFd)).WillOnce(Return(kDupFd));
-    EXPECT_CALL(mock_unistd_, _write(_, _, _, kDupFd, _, 4u)).WillOnce(Return(4));
+    EXPECT_CALL(mock_unistd_, _dup(_, _, _, kFakeFd))
+        .WillOnce(Return(kDupFd)); // [Pre-Assert確認_正常系] - _dup が番兵記述子 7 で 1 回呼び出されること。
+                                   // [Pre-Assert手順] - 複製記述子 8 を返却する。
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, kDupFd, _, 4u))
+        .WillOnce(Return(4)); // [Pre-Assert確認_正常系] - _write が複製記述子 8 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 4 を返却する。
     EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, kFakeFd, static_cast<__int64>(0), SEEK_CUR))
-        .WillOnce(Return(static_cast<__int64>(4)));
-    EXPECT_CALL(mock_unistd_, _close(_, _, _, kDupFd)).WillOnce(Return(0));
+        .WillOnce(Return(
+            static_cast<__int64>(4))); // [Pre-Assert確認_正常系] - _lseeki64 が SEEK_CUR で 1 回呼び出されること。
+                                       // [Pre-Assert手順] - 位置 4 を返却する。
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, kDupFd))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - _close が複製記述子 8 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -155,7 +172,9 @@ TEST_F(fdTest, dup2_returns_zero_on_success)
         .WillOnce(Return(kDupFd)); // [Pre-Assert確認_正常系] - dup2 が 7 から 8 へ 1 回呼び出されること。
                                    // [Pre-Assert手順] - 複製先記述子 8 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, kFakeFd, kDupFd)).WillOnce(Return(0));
+    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, kFakeFd, kDupFd))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - _dup2 が 7 から 8 へ 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -176,7 +195,9 @@ TEST_F(fdTest, close_success_returns_zero)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - close が番兵記述子 7 で 1 回呼び出されること。
                               // [Pre-Assert手順] - 0 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _close(_, _, _, kFakeFd)).WillOnce(Return(0));
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, kFakeFd))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - _close が番兵記述子 7 で 1 回呼び出されること。
+                              // [Pre-Assert手順] - 0 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -257,7 +278,10 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
             Return(static_cast<off_t>(-1))); // [Pre-Assert確認_異常系] - 下位の lseek 系 API が 1 回呼び出されること。
                                              // [Pre-Assert手順] - 下位の lseek 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, _, _, _)).WillOnce(Return(static_cast<__int64>(-1)));
+    EXPECT_CALL(mock_unistd_, _lseeki64(_, _, _, _, _, _))
+        .WillOnce(Return(
+            static_cast<__int64>(-1))); // [Pre-Assert確認_異常系] - 下位の lseek 系 API が 1 回呼び出されること。
+                                        // [Pre-Assert手順] - 下位の lseek 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -278,7 +302,9 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の close 系 API が 1 回呼び出されること。
                                // [Pre-Assert手順] - 下位の close 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _close(_, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, _close(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の close 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の close 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -299,7 +325,9 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup 系 API が 1 回呼び出されること。
                                // [Pre-Assert手順] - 下位の dup 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _dup(_, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, _dup(_, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -320,7 +348,9 @@ TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup2 系 API が 1 回呼び出されること。
                                // [Pre-Assert手順] - 下位の dup2 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, _dup2(_, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の dup2 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の dup2 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -342,7 +372,9 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の read 系 API が 1 回呼び出されること。
                                // [Pre-Assert手順] - 下位の read 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _read(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, _read(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の read 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の read 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act
@@ -364,7 +396,9 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の write 系 API が 1 回呼び出されること。
                                // [Pre-Assert手順] - 下位の write 系 API から -1 を返却する。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_unistd_, _write(_, _, _, _, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(mock_unistd_, _write(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - 下位の write 系 API が 1 回呼び出されること。
+                               // [Pre-Assert手順] - 下位の write 系 API から -1 を返却する。
 #endif /* PLATFORM_ */
 
     // Act

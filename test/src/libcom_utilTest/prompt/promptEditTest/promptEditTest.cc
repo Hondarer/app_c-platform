@@ -200,7 +200,7 @@ TEST_F(promptEditTest, ensure_capacity_keeps_buffer_when_enough)
     char *buf = static_cast<char *>(std::malloc(16u));
     size_t cap = 16u; // [状態] - 16 byte を確保済みのバッファーを用意する。
 
-    ASSERT_NE(nullptr, buf);
+    ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
 
@@ -222,7 +222,7 @@ TEST_F(promptEditTest, ensure_capacity_grows_by_doubling)
     char *buf = static_cast<char *>(std::malloc(4u));
     size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
 
-    ASSERT_NE(nullptr, buf);
+    ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
 
@@ -244,7 +244,7 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_bytes)
     char *buf = static_cast<char *>(std::malloc(4u));
     size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
 
-    ASSERT_NE(nullptr, buf);
+    ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
 
@@ -267,7 +267,7 @@ TEST_F(promptEditTest, ensure_capacity_rejects_required_over_max)
     char *buf = static_cast<char *>(std::malloc(4u));
     size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
 
-    ASSERT_NE(nullptr, buf);
+    ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
 
@@ -387,7 +387,7 @@ TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
     char *buf = static_cast<char *>(std::malloc(4u));
     size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
 
-    ASSERT_NE(nullptr, buf);
+    ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, realloc(_, _, _, buf, 32u))

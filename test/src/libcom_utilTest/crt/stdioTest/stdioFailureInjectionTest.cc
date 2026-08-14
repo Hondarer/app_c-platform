@@ -26,6 +26,8 @@ TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
+
+    // Pre-Assert
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_stdio, fopen(_, _, _, _, _))
         .WillOnce(Invoke(
@@ -33,7 +35,8 @@ TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
             {
                 errno = EACCES;
                 return static_cast<FILE *>(NULL);
-            })); // [Pre-Assert確認_異常系] - fopen が EACCES で失敗すること。
+            })); // [Pre-Assert確認_異常系] - fopen が 1 回呼び出されること。
+                 // [Pre-Assert手順] - errno に EACCES を設定し、NULL を返却する。
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_stdio, _wfsopen(_, _, _, _, _, _))
         .WillOnce(Invoke(
@@ -41,10 +44,9 @@ TEST(stdioFailureInjectionTest, fopen_reports_mocked_os_failure)
             {
                 errno = EACCES;
                 return static_cast<FILE *>(NULL);
-            })); // [Pre-Assert確認_異常系] - _wfsopen が EACCES で失敗すること。
+            })); // [Pre-Assert確認_異常系] - _wfsopen が 1 回呼び出されること。
+                 // [Pre-Assert手順] - errno に EACCES を設定し、NULL を返却する。
 #endif /* PLATFORM_ */
-
-    // Pre-Assert
 
     // Act
     FILE *stream =
@@ -110,9 +112,11 @@ TEST(stdioFailureInjectionTest, fclose_reports_eio_when_errno_is_empty)
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
     FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(1));
-    EXPECT_CALL(mock_stdio, fclose(_, _, _, stream)).WillOnce(Return(EOF));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, fclose(_, _, _, stream))
+        .WillOnce(Return(EOF)); // [Pre-Assert確認_異常系] - fclose が番兵ストリームで 1 回呼び出されること。
+                                // [Pre-Assert手順] - EOF を返却する。
 
     // Act
     int result = com_util_fclose(stream, &detail); // [手順] - fclose が EOF を返す失敗を注入する。
@@ -170,9 +174,11 @@ TEST(stdioFailureInjectionTest, fflush_reports_eio_when_errno_is_empty)
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
     FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(2));
-    EXPECT_CALL(mock_stdio, fflush(_, _, _, stream)).WillOnce(Return(EOF));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, fflush(_, _, _, stream))
+        .WillOnce(Return(EOF)); // [Pre-Assert確認_異常系] - fflush が番兵ストリームで 1 回呼び出されること。
+                                // [Pre-Assert手順] - EOF を返却する。
 
     // Act
     int result = com_util_fflush(stream, &detail); // [手順] - fflush が EOF を返す失敗を注入する。
@@ -189,15 +195,16 @@ TEST(stdioFailureInjectionTest, fclose_preserves_nonzero_errno)
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
     FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(4));
+
+    // Pre-Assert
     EXPECT_CALL(mock_stdio, fclose(_, _, _, stream))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, FILE *)
             {
                 errno = EACCES;
                 return EOF;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_異常系] - fclose が番兵ストリームで 1 回呼び出されること。
+                 // [Pre-Assert手順] - errno に EACCES を設定し、EOF を返却する。
 
     // Act
     int result = com_util_fclose(stream, &detail); // [手順] - errno が EACCES の fclose 失敗を注入する。
@@ -214,15 +221,16 @@ TEST(stdioFailureInjectionTest, fflush_preserves_nonzero_errno)
     NiceMock<Mock_stdio> mock_stdio;
     com_util_error detail = {};
     FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(5));
+
+    // Pre-Assert
     EXPECT_CALL(mock_stdio, fflush(_, _, _, stream))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, FILE *)
             {
                 errno = EACCES;
                 return EOF;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_異常系] - fflush が番兵ストリームで 1 回呼び出されること。
+                 // [Pre-Assert手順] - errno に EACCES を設定し、EOF を返却する。
 
     // Act
     int result = com_util_fflush(stream, &detail); // [手順] - errno が EACCES の fflush 失敗を注入する。
@@ -303,13 +311,24 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
     char data[2] = {};
     com_util_error read_detail = {};
     com_util_error write_detail = {};
+    ON_CALL(mock_stdio, ferror(_, _, _, stream))
+        .WillByDefault(Return(0)); // [状態] - ferror が呼び出された際に 0 を返すようにモックを設定する。
 
     // Pre-Assert
-    ON_CALL(mock_stdio, ferror(_, _, _, stream)).WillByDefault(Return(0));
-    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
-    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream)).WillOnce(Return(0u));
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream)).WillOnce(Return(1u)).WillOnce(Return(0u));
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream))
+        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread がサイズ 0 で 1 回呼び出されること。
+                               // [Pre-Assert手順] - サイズ 0 の fread から 0 件を返却する。
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream))
+        .WillOnce(Return(1u))
+        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread がサイズ 1 で 2 回呼び出されること。
+                               // [Pre-Assert手順] - 全量 1 件ののち短い読み込み 0 件を返却する。
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream))
+        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fwrite がサイズ 0 で 1 回呼び出されること。
+                               // [Pre-Assert手順] - サイズ 0 の fwrite から 0 件を返却する。
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream))
+        .WillOnce(Return(1u))
+        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fwrite がサイズ 1 で 2 回呼び出されること。
+                               // [Pre-Assert手順] - 全量 1 件ののち短い書き込み 0 件を返却する。
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 0u, stream))
         .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread が要素数 0 で 1 回呼び出されること。
                                // [Pre-Assert手順] - fread から読み込み件数 0 を返却する。
@@ -524,9 +543,11 @@ TEST(stdioFailureInjectionTest, fwrite_reports_short_write)
     com_util_error detail = {};
     const char data[] = "xy";
     FILE *stream = reinterpret_cast<FILE *>(static_cast<uintptr_t>(3));
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 2u, stream)).WillOnce(Return(1u));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 2u, stream))
+        .WillOnce(Return(1u)); // [Pre-Assert確認_異常系] - fwrite が 2 要素の書き込みで 1 回呼び出されること。
+                               // [Pre-Assert手順] - 1 要素を返却する。
 
     // Act
     size_t result =
@@ -747,9 +768,11 @@ TEST(stdioFailureInjectionTest, snprintf_reports_formatting_failure)
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
     char buffer[8] = "stale";
-    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _)).WillOnce(Return(-1));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - vsnprintf が 1 回呼び出されること。
+                               // [Pre-Assert手順] - -1 を返却する。
 
     // Act
     int result =

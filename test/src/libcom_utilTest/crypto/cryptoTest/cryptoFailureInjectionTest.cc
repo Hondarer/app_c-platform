@@ -216,6 +216,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_out_of_memory_when_context_al
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -242,6 +243,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_init_fails)
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -268,6 +270,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_nonce_length_set
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -296,6 +299,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_key_setting_fail
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -333,6 +337,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_aad_update_fails
 
     ASSERT_EQ(COM_UTIL_OK, com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
                                             aad_len)); // [状態] - AAD 付きの復号対象を用意する。
+                                                       // [状態確認] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -359,6 +364,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_update_fails)
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -385,6 +391,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_tag_setting_fail
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 
@@ -414,6 +421,7 @@ TEST_F(cryptoFailureInjectionTest, decrypt_returns_unknown_when_final_fails)
     size_t restored_len = restored.size();
 
     ASSERT_EQ(COM_UTIL_OK, encrypt()); // [状態] - 復号対象の暗号文を用意する。
+                                       // [状態確認] - encrypt の戻り値が COM_UTIL_OK であること。
 
     NiceMock<Mock_openssl> mock_openssl;
 

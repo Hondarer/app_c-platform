@@ -121,9 +121,9 @@ TEST_F(traceAllocFailureTest, set_name_fails_when_effective_name_allocation_fail
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
 
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
 
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))

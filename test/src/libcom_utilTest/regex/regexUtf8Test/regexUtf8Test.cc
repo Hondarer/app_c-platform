@@ -140,7 +140,7 @@ TEST_F(regexUtf8Test, encode_restores_original_text)
 
     decoded = utf8_decode(text.data(), text.size(), units,
                           offsets); // [状態] - ASCII、日本語、BMP 外を含む文字列をコード単位列へ変換しておく。
-    ASSERT_TRUE(decoded);
+    ASSERT_TRUE(decoded);           // [状態確認] - utf8_decode の戻り値が true であること。
 
     // Pre-Assert
 
@@ -183,6 +183,7 @@ TEST_F(regexUtf8Test, offset_conversion_rounds_inside_surrogate_pair)
 
     ASSERT_TRUE(utf8_decode(text.data(), text.size(), units,
                             offsets)); // [状態] - BMP 外の 1 文字と ASCII 1 文字からなる文字列を変換しておく。
+                                       // [状態確認] - utf8_decode の戻り値が true であること。
 
     // Pre-Assert
     ASSERT_EQ((std::size_t)3, units.size()); // [Pre-Assert確認_正常系] - コード単位数が 3 であること。
@@ -211,6 +212,7 @@ TEST_F(regexUtf8Test, index_of_offset_accepts_code_point_boundary_only)
 
     ASSERT_TRUE(utf8_decode(text.data(), text.size(), units,
                             offsets)); // [状態] - 日本語 2 文字の文字列を変換しておく。
+                                       // [状態確認] - utf8_decode の戻り値が true であること。
 
     // Pre-Assert
 

@@ -50,12 +50,14 @@ TEST(syncAdditionalFailureTest, local_lock_maps_unknown_trylock_error)
 {
     // Arrange
     com_util_local_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _))
-        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_mutex_trylock が EINVAL を返すこと。
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_mutex_trylock が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_mutex_trylock にて EINVAL を返却する。
 
     // Act
     int result = com_util_local_lock_try_lock(lock); // [手順] - EINVAL を返す trylock を実行する。
@@ -74,15 +76,25 @@ TEST(syncAdditionalFailureTest, condvar_maps_wait_signal_and_broadcast_errors)
     // Arrange
     com_util_condvar *cv = NULL;
     com_util_local_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv));
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv)); // [状態] - condvar を生成する。
+                                                          // [状態確認] - com_util_condvar_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _)).WillOnce(Return(ETIMEDOUT));
-    EXPECT_CALL(mock_pthread, pthread_cond_signal(_, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_cond_broadcast(_, _, _, _)).WillOnce(Return(EINVAL));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_cond_wait が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_wait にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _))
+        .WillOnce(Return(ETIMEDOUT)); // [Pre-Assert確認_正常系] - pthread_cond_timedwait が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - pthread_cond_timedwait にて ETIMEDOUT を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_signal(_, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_cond_signal が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_signal にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_broadcast(_, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_cond_broadcast が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_broadcast にて EINVAL を返却する。
 
     // Act
     int wait_result =
@@ -110,10 +122,11 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_clock_attribute_failure)
     // Arrange
     NiceMock<Mock_pthread> mock_pthread;
     com_util_condvar *cv = NULL;
-    EXPECT_CALL(mock_pthread, pthread_condattr_setclock(_, _, _, _, CLOCK_MONOTONIC))
-        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - condvar の時計属性設定が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_condattr_setclock(_, _, _, _, CLOCK_MONOTONIC))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_condattr_setclock が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_condattr_setclock にて EINVAL を返却する。
 
     // Act
     int result = com_util_condvar_create(&cv); // [手順] - 時計属性設定失敗を注入して condvar を生成する。
@@ -130,10 +143,11 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_native_initialization_fai
     // Arrange
     NiceMock<Mock_pthread> mock_pthread;
     com_util_condvar *cv = NULL;
-    EXPECT_CALL(mock_pthread, pthread_cond_init(_, _, _, _, _))
-        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - native condvar 初期化が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_cond_init(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_cond_init が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_init にて EINVAL を返却する。
 
     // Act
     int result = com_util_condvar_create(&cv); // [手順] - native condvar 初期化失敗を注入して生成する。
@@ -150,11 +164,12 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_allocation_failure)
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_condvar *cv = NULL;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(
-            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの calloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの calloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - calloc にて NULL を返却する。
 
     // Act
     int result = com_util_condvar_create(&cv); // [手順] - ハンドル確保失敗を注入して condvar を生成する。
@@ -171,11 +186,12 @@ TEST(syncAdditionalFailureTest, local_rwlock_create_reports_allocation_failure)
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_local_rwlock *rwlock = NULL;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(
-            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの calloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(static_cast<void *>(
+            NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの calloc が 1 回呼び出されること。
+                     // [Pre-Assert手順] - calloc にて NULL を返却する。
 
     // Act
     int result = com_util_local_rwlock_create(&rwlock); // [手順] - ハンドル確保失敗を注入して local rwlock を生成する。
@@ -192,13 +208,17 @@ TEST(syncAdditionalFailureTest, local_rwlock_create_reports_mutex_initialization
     // Arrange
     NiceMock<Mock_pthread> mock_pthread;
     com_util_local_rwlock *rwlock = NULL;
-    EXPECT_CALL(mock_pthread, pthread_mutex_init(_, _, _, _, _))
-        .WillOnce(Return(ENOMEM)); // [Pre-Assert確認_異常系] - local rwlock の mutex 初期化が失敗すること。
-    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
-        .WillRepeatedly(Return(0)); // [Pre-Assert確認_正常系] - 初期化失敗後の後処理が実行されること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_init(_, _, _, _, _))
+        .WillOnce(Return(ENOMEM)); // [Pre-Assert確認_異常系] - pthread_mutex_init が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_mutex_init にて ENOMEM を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 初期化失敗後に pthread_mutex_destroy が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_destroy にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
+        .WillRepeatedly(Return(0)); // [Pre-Assert確認_正常系] - 初期化失敗後に pthread_cond_destroy が呼び出されること。
+                                    // [Pre-Assert手順] - pthread_cond_destroy にて 0 を返却する。
 
     // Act
     int result = com_util_local_rwlock_create(&rwlock); // [手順] - mutex 初期化失敗を注入して local rwlock を生成する。
@@ -214,7 +234,8 @@ TEST(syncAdditionalFailureTest, rwlock_rejects_unlock_without_ownership)
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -239,9 +260,11 @@ TEST(syncAdditionalFailureTest, local_rwlock_try_lock_exclusive_reports_busy)
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 共有ロックを取得しておく。
+                                                                                 // [状態確認] - com_util_local_rwlock_lock_shared の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -263,17 +286,27 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_pthread_failure
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
                                rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+                                                                // [状態確認] - com_util_local_rwlock_lock_exclusive の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _)).WillRepeatedly(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有待機前に pthread_mutex_lock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_lock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - 共有待機の pthread_cond_wait が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_wait にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有待機後に pthread_mutex_unlock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_unlock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // pthread_mutex_destroy は Cleanup の destroy 用
+    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
+        .WillRepeatedly(Return(0)); // pthread_cond_destroy は Cleanup の destroy 用
 
     // Act
     int result = com_util_local_rwlock_lock_shared(
@@ -292,17 +325,27 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_timeout)
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
                                rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+                                                                // [状態確認] - com_util_local_rwlock_lock_exclusive の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _)).WillOnce(Return(ETIMEDOUT));
-    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _)).WillRepeatedly(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有待機前に pthread_mutex_lock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_lock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _))
+        .WillOnce(Return(ETIMEDOUT)); // [Pre-Assert確認_正常系] - 共有待機の pthread_cond_timedwait が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - pthread_cond_timedwait にて ETIMEDOUT を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有待機後に pthread_mutex_unlock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_unlock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // pthread_mutex_destroy は Cleanup の destroy 用
+    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
+        .WillRepeatedly(Return(0)); // pthread_cond_destroy は Cleanup の destroy 用
 
     // Act
     int result = com_util_local_rwlock_lock_shared(rwlock, 1); // [手順] - 共有待機のタイムアウトを注入する。
@@ -320,17 +363,27 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_wait_reports_pthread_fail
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 共有ロックを取得しておく。
+                                                                                 // [状態確認] - com_util_local_rwlock_lock_shared の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _)).WillRepeatedly(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他待機前に pthread_mutex_lock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_lock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - 排他待機の pthread_cond_wait が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_cond_wait にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他待機後に pthread_mutex_unlock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_unlock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // pthread_mutex_destroy は Cleanup の destroy 用
+    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
+        .WillRepeatedly(Return(0)); // pthread_cond_destroy は Cleanup の destroy 用
 
     // Act
     int result = com_util_local_rwlock_lock_exclusive(
@@ -349,17 +402,27 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_wait_reports_timeout)
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 共有ロックを取得しておく。
+                                                                                 // [状態確認] - com_util_local_rwlock_lock_shared の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _)).WillOnce(Return(ETIMEDOUT));
-    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _)).WillOnce(Return(0));
-    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _)).WillRepeatedly(Return(0));
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_lock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他待機前に pthread_mutex_lock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_lock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_cond_timedwait(_, _, _, _, _, _))
+        .WillOnce(Return(ETIMEDOUT)); // [Pre-Assert確認_正常系] - 排他待機の pthread_cond_timedwait が 1 回呼び出されること。
+                                      // [Pre-Assert手順] - pthread_cond_timedwait にて ETIMEDOUT を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_unlock(_, _, _, _))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他待機後に pthread_mutex_unlock が呼び出されること。
+                              // [Pre-Assert手順] - pthread_mutex_unlock にて 0 を返却する。
+    EXPECT_CALL(mock_pthread, pthread_mutex_destroy(_, _, _, _))
+        .WillOnce(Return(0)); // pthread_mutex_destroy は Cleanup の destroy 用
+    EXPECT_CALL(mock_pthread, pthread_cond_destroy(_, _, _, _))
+        .WillRepeatedly(Return(0)); // pthread_cond_destroy は Cleanup の destroy 用
 
     // Act
     int result = com_util_local_rwlock_lock_exclusive(rwlock, 1); // [手順] - 排他待機のタイムアウトを注入する。
@@ -377,9 +440,11 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_unlock_signals_waiting_write
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK,
               com_util_local_rwlock_lock_shared(rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 共有ロックを取得しておく。
+                                                                                 // [状態確認] - com_util_local_rwlock_lock_shared の戻り値が COM_UTIL_OK であること。
     std::atomic<bool> writer_started(false);
     std::atomic<int> writer_result(COM_UTIL_ERR_UNKNOWN);
     std::thread writer(
@@ -417,9 +482,11 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_unlock_signals_waiting_wr
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_lock_exclusive(
                                rwlock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
+                                                                // [状態確認] - com_util_local_rwlock_lock_exclusive の戻り値が COM_UTIL_OK であること。
     std::atomic<bool> writer_started(false);
     std::atomic<int> writer_result(COM_UTIL_ERR_UNKNOWN);
     std::thread writer(
@@ -457,12 +524,17 @@ TEST(syncAdditionalFailureTest, thread_join_reports_pthread_failure)
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_join(_, _, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _)).WillOnce(DoDefault());
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_join(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_join が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_join にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_正常系] - join 失敗後の detach で pthread_detach が呼び出されること。
+                                // [Pre-Assert手順] - pthread_detach は既定動作へ委譲する。
 
     // Act
     int result =
@@ -479,12 +551,17 @@ TEST(syncAdditionalFailureTest, thread_join_no_wait_reports_timeout)
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EBUSY));
-    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _)).WillOnce(DoDefault());
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
+        .WillOnce(Return(EBUSY)); // [Pre-Assert確認_正常系] - pthread_tryjoin_np が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - pthread_tryjoin_np にて EBUSY を返却する。
+    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_正常系] - timeout 後の detach で pthread_detach が呼び出されること。
+                                // [Pre-Assert手順] - pthread_detach は既定動作へ委譲する。
 
     // Act
     int result =
@@ -501,13 +578,15 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_retries_then_succeeds)
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
-        .WillOnce(Return(EBUSY))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - tryjoin が 1 回目に待機し、2 回目に成功すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
+        .WillOnce(Return(EBUSY))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - pthread_tryjoin_np が 2 回呼び出されること。
+                              // [Pre-Assert手順] - 1 回目は EBUSY、2 回目は 0 を返却する。
 
     // Act
     int result = com_util_thread_join(thread, 5); // [手順] - 有限時間で thread join を再試行する。
@@ -522,12 +601,17 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_pthread_failure)
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
-    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EINVAL));
-    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _)).WillOnce(DoDefault());
 
     // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - 有限 join の pthread_tryjoin_np が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - pthread_tryjoin_np にて EINVAL を返却する。
+    EXPECT_CALL(mock_pthread, pthread_detach(_, _, _, _))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_正常系] - join 失敗後の detach で pthread_detach が呼び出されること。
+                                // [Pre-Assert手順] - pthread_detach は既定動作へ委譲する。
 
     // Act
     int result = com_util_thread_join(thread, 5); // [手順] - 未知の pthread エラーを返す有限 join を実行する。
@@ -544,24 +628,28 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
     // Arrange
     InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - flock が呼び出された際に 0 を返すようにモックを設定する。
     const char *path = kLockIdentity;
     com_util_interprocess_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock)); // [状態] - interprocess lock を開いた状態とする。
+                                                                          // [状態確認] - com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
+
+    // Pre-Assert
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
             {
                 errno = EWOULDBLOCK;
                 return -1;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - try_lock が非ブロッキング flock を 1 回呼び出すこと。
+                 // [Pre-Assert手順] - flock は EWOULDBLOCK を設定して -1 を返却する。
 
     // Act
     int busy_result = com_util_interprocess_lock_try_lock(
         lock); // [手順] - 非ブロッキング flock が EWOULDBLOCK になる状態で取得する。
 
+    // Pre-Assert_2
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
@@ -569,7 +657,10 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
                 errno = EINTR;
                 return -1;
             }))
-        .WillOnce(Return(0));
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ブロッキング flock が EINTR のあと成功すること。
+                              // [Pre-Assert手順] - 1 回目は EINTR で -1、2 回目は 0 を返却する。
+
+    // Act_2
     int retry_result = com_util_interprocess_lock_lock(
         lock, COM_UTIL_SYNC_WAIT_FOREVER); // [手順] - EINTR 後に成功する flock を実行する。
 
@@ -580,7 +671,7 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
               retry_result); // [確認_正常系] - EINTR 後の interprocess lock 取得が COM_UTIL_OK であること。
 
     // Cleanup
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(lock);
 }
@@ -591,9 +682,11 @@ TEST(syncAdditionalFailureTest, thread_create_reports_context_allocation_failure
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_thread *thread = NULL;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr));
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - thread ハンドルの calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - calloc にて NULL を返却する。
 
     // Act
     int result =
@@ -612,9 +705,13 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
     InterprocessOpenMocks os;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                            // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_sys_file> mock_sys_file;
     NiceMock<Mock_time> mock_time;
+    int clock_count = 0;
+
+    // Pre-Assert
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH | LOCK_NB))
         .WillOnce(Return(0))
         .WillOnce(Invoke(
@@ -628,9 +725,11 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
             {
                 errno = EWOULDBLOCK;
                 return -1;
-            }));
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
-    int clock_count = 0;
+            })); // [Pre-Assert確認_正常系] - 共有 flock が成功、未知エラー、EWOULDBLOCK の順で 3 回呼び出されること。
+                 // [Pre-Assert手順] - 1 回目は 0、2 回目は EIO で -1、3 回目は EWOULDBLOCK で -1 を返却する。
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 取得した共有ロックの unlock で flock が呼び出されること。
+                              // [Pre-Assert手順] - LOCK_UN の flock にて 0 を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(4)
         .WillRepeatedly(Invoke(
@@ -639,9 +738,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
                 ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限待機の期限判定で clock_gettime が 4 回呼び出されること。
+                 // [Pre-Assert手順] - 3 回目まで tv_sec=0、4 回目は tv_sec=1 を返却する。
 
     // Act
     int null_result =
@@ -670,9 +768,13 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
     InterprocessOpenMocks os;
     const char *path = kLockIdentity;
     com_util_interprocess_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock)); // [状態] - interprocess lock を開いた状態とする。
+                                                                          // [状態確認] - com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_sys_file> mock_sys_file;
     NiceMock<Mock_time> mock_time;
+    int clock_count = 0;
+
+    // Pre-Assert
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
         .WillOnce(Return(0))
         .WillOnce(Invoke(
@@ -686,16 +788,19 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
             {
                 errno = EWOULDBLOCK;
                 return -1;
-            }));
+            })); // [Pre-Assert確認_正常系] - 非ブロッキング flock が成功、未知エラー、EWOULDBLOCK の順で 3 回呼び出されること。
+                 // [Pre-Assert手順] - 1 回目は 0、2 回目は EIO で -1、3 回目は EWOULDBLOCK で -1 を返却する。
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
             {
                 errno = EIO;
                 return -1;
-            }));
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
-    int clock_count = 0;
+            })); // [Pre-Assert確認_異常系] - ブロッキング flock が 1 回呼び出されること。
+                 // [Pre-Assert手順] - flock は EIO を設定して -1 を返却する。
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 取得したロックの unlock で flock が呼び出されること。
+                              // [Pre-Assert手順] - LOCK_UN の flock にて 0 を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(4)
         .WillRepeatedly(Invoke(
@@ -704,9 +809,8 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
                 ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限待機の期限判定で clock_gettime が 4 回呼び出されること。
+                 // [Pre-Assert手順] - 3 回目まで tv_sec=0、4 回目は tv_sec=1 を返却する。
 
     // Act
     int success_result = com_util_interprocess_lock_lock(lock, 1); // [手順] - 有限待機でロックを取得する。
@@ -733,14 +837,18 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
 {
     // Arrange
     com_util_local_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
     NiceMock<Mock_time> mock_time;
+    int clock_count = 0;
+
+    // Pre-Assert
     EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _))
         .WillOnce(Return(0))
         .WillOnce(Return(EINVAL))
-        .WillOnce(Return(EBUSY));
-    int clock_count = 0;
+        .WillOnce(Return(EBUSY)); // [Pre-Assert確認_正常系] - pthread_mutex_trylock が成功、EINVAL、EBUSY の順で 3 回呼び出されること。
+                                  // [Pre-Assert手順] - 1 回目は 0、2 回目は EINVAL、3 回目は EBUSY を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(4)
         .WillRepeatedly(Invoke(
@@ -749,9 +857,8 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
                 ts->tv_sec = (clock_count++ < 3) ? 0 : 1;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限待機の期限判定で clock_gettime が 4 回呼び出されること。
+                 // [Pre-Assert手順] - 3 回目まで tv_sec=0、4 回目は tv_sec=1 を返却する。
 
     // Act
     int success_result = com_util_local_lock_lock(lock, 1); // [手順] - 有限待機で mutex を取得する。
@@ -901,10 +1008,11 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_open_failure)
     NiceMock<Mock_fcntl> mock_fcntl;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
-        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - rwlock の lock file open が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - rwlock の lock file open が 1 回呼び出されること。
+                               // [Pre-Assert手順] - open にて -1 を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - open 失敗を注入して rwlock を開く。
@@ -924,10 +1032,11 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_identity_duplic
     NiceMock<Mock_string> mock_string;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    EXPECT_CALL(mock_string, strdup(_, _, _, _))
-        .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_異常系] - rwlock の識別子複製が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_string, strdup(_, _, _, _))
+        .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_異常系] - rwlock の識別子複製で strdup が 1 回呼び出されること。
+                                                      // [Pre-Assert手順] - strdup にて NULL を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - 識別子複製失敗を注入して rwlock を開く。
@@ -947,11 +1056,12 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_allocation_fail
     NiceMock<Mock_stdlib> mock_stdlib;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(
-            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - calloc にて NULL を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - ハンドル確保失敗を注入して rwlock を開く。
@@ -969,10 +1079,14 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
     // Arrange
     InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - flock が呼び出された際に 0 を返すようにモックを設定する。
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                            // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
+
+    // Pre-Assert
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
@@ -980,9 +1094,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
                 errno = EINTR;
                 return -1;
             }))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - flock が EINTR 後に成功すること。
-
-    // Pre-Assert
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他 flock が EINTR のあと成功すること。
+                              // [Pre-Assert手順] - 1 回目は EINTR で -1、2 回目は 0 を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_lock_exclusive(
@@ -993,7 +1106,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
               result); // [確認_正常系] - EINTR 後の排他ロック取得が COM_UTIL_OK になること。
 
     // Cleanup
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
 }
@@ -1004,19 +1117,22 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_reports_flock_f
     // Arrange
     InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - flock が呼び出された際に 0 を返すようにモックを設定する。
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                            // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
+
+    // Pre-Assert
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
             {
                 errno = EIO;
                 return -1;
-            })); // [Pre-Assert確認_異常系] - blocking flock が未知エラーで失敗すること。
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_異常系] - 共有 blocking flock が 1 回呼び出されること。
+                 // [Pre-Assert手順] - flock は EIO を設定して -1 を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_lock_shared(
@@ -1036,16 +1152,20 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_unlock_reports_flock_failure
     // Arrange
     InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - flock が呼び出された際に 0 を返すようにモックを設定する。
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                            // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_lock_exclusive(
                                lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
-        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - unlock の flock が失敗すること。
+                                                              // [状態確認] - com_util_interprocess_rwlock_lock_exclusive の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
+        .WillRepeatedly(Return(-1)); // [Pre-Assert確認_異常系] - unlock の flock が呼び出されること。
+                                     // [Pre-Assert手順] - LOCK_UN の flock にて -1 を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_unlock(lock); // [手順] - unlock の flock 失敗を注入する。
@@ -1065,7 +1185,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_try_lock_exclusive_succeeds)
     InterprocessOsMocks os;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                            // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1127,11 +1248,16 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
     const char *rwlock_path = kRwlockIdentity;
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock)); // [状態] - interprocess lock を開いた状態とする。
+                                                                               // [状態確認] - com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                                     // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_sys_file> mock_sys_file;
-    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - flock が呼び出された際に 0 を返すようにモックを設定する。
     NiceMock<Mock_time> mock_time;
+
+    // Pre-Assert
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(4)
         .WillRepeatedly(Invoke(
@@ -1140,7 +1266,8 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
                 ts->tv_sec = 0;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
+            })); // [Pre-Assert確認_正常系] - 有限待機の期限判定で clock_gettime が 4 回呼び出されること。
+                 // [Pre-Assert手順] - clock_gettime にて tv_sec=0 を返却する。
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
@@ -1148,7 +1275,8 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
                 errno = EINTR;
                 return -1;
             }))
-        .WillOnce(Return(0));
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 排他非ブロッキング flock が EINTR のあと成功すること。
+                              // [Pre-Assert手順] - 1 回目は EINTR で -1、2 回目は 0 を返却する。
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH | LOCK_NB))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
@@ -1156,9 +1284,8 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
                 errno = EINTR;
                 return -1;
             }))
-        .WillOnce(Return(0));
-
-    // Pre-Assert
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 共有非ブロッキング flock が EINTR のあと成功すること。
+                              // [Pre-Assert手順] - 1 回目は EINTR で -1、2 回目は 0 を返却する。
 
     // Act
     int lock_result = com_util_interprocess_lock_lock(lock, 1);    // [手順] - EINTR 後に有限待機の lock を取得する。
@@ -1178,7 +1305,9 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
               rwlock_duplicate); // [確認_異常系] - com_util_interprocess_rwlock_lock_shared が重複取得を拒否すること。
 
     // Cleanup
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).Times(2).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
+        .Times(2)
+        .WillRepeatedly(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_lock_unlock(lock);
     (void)com_util_interprocess_rwlock_unlock(rwlock);
     com_util_interprocess_lock_destroy(lock);
@@ -1192,9 +1321,12 @@ TEST(syncAdditionalFailureTest, local_sync_rejects_negative_and_partial_argument
     com_util_local_lock *lock = NULL;
     com_util_local_rwlock *rwlock = NULL;
     com_util_condvar *cv = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
-    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_condvar_create(&cv)); // [状態] - condvar を生成する。
+                                                          // [状態確認] - com_util_condvar_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1236,13 +1368,13 @@ TEST(syncAdditionalFailureTest, local_rwlock_create_reports_each_condvar_failure
     NiceMock<Mock_pthread> mock_pthread;
     com_util_local_rwlock *readers_failure = NULL;
     com_util_local_rwlock *writers_failure = NULL;
+
+    // Pre-Assert
     EXPECT_CALL(mock_pthread, pthread_cond_init(_, _, _, _, _))
         .WillOnce(Return(EINVAL))
         .WillOnce(Return(0))
-        .WillOnce(
-            Return(EINVAL)); // [Pre-Assert確認_異常系] - readers、続いて writers の condvar 初期化を失敗させること。
-
-    // Pre-Assert
+        .WillOnce(Return(EINVAL)); // [Pre-Assert確認_異常系] - pthread_cond_init が 3 回呼び出されること。
+                                   // [Pre-Assert手順] - 1 回目は EINVAL、2 回目は 0、3 回目は EINVAL を返却する。
 
     // Act
     int readers_result =
@@ -1266,18 +1398,20 @@ TEST(syncAdditionalFailureTest, local_rwlock_reader_resumes_after_writer_state_c
 {
     // Arrange
     com_util_local_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_rwlock_create(&rwlock)); // [状態] - local rwlock を生成する。
+                                                                   // [状態確認] - com_util_local_rwlock_create の戻り値が COM_UTIL_OK であること。
     test_sync_set_local_rwlock_state(rwlock, 0, 0U, 1U);
     NiceMock<Mock_pthread> mock_pthread;
+
+    // Pre-Assert
     EXPECT_CALL(mock_pthread, pthread_cond_wait(_, _, _, _, _))
         .WillOnce(Invoke(
             [rwlock](const char *, const int, const char *, pthread_cond_t *, pthread_mutex_t *)
             {
                 test_sync_set_local_rwlock_state(rwlock, 0, 0U, 0U);
                 return 0;
-            })); // [Pre-Assert確認_正常系] - 通知時に waiting writer がなくなること。
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - waiting writer 待ちの pthread_cond_wait が 1 回呼び出されること。
+                 // [Pre-Assert手順] - 通知時に waiting writer を消し、0 を返却する。
 
     // Act
     int lock_result = com_util_local_rwlock_lock_shared(
@@ -1298,11 +1432,12 @@ TEST(syncAdditionalFailureTest, thread_apis_cover_context_failure_and_null_detac
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_thread *allocation_failure = NULL;
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(
-            Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - thread context の malloc が失敗すること。
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        .WillOnce(Return(
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - thread context の malloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - malloc にて NULL を返却する。
 
     // Act
     int allocation_result =
@@ -1320,7 +1455,8 @@ TEST(syncAdditionalFailureTest, thread_join_rejects_negative_timeout)
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1341,10 +1477,16 @@ TEST(syncAdditionalFailureTest, thread_join_finite_retry_uses_monotonic_deadline
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
     NiceMock<Mock_time> mock_time;
-    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EBUSY)).WillOnce(Return(0));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
+        .WillOnce(Return(EBUSY))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - pthread_tryjoin_np が 2 回呼び出されること。
+                              // [Pre-Assert手順] - 1 回目は EBUSY、2 回目は 0 を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(2)
         .WillRepeatedly(Invoke(
@@ -1353,9 +1495,8 @@ TEST(syncAdditionalFailureTest, thread_join_finite_retry_uses_monotonic_deadline
                 ts->tv_sec = 0;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限 join の期限判定で clock_gettime が 2 回呼び出されること。
+                 // [Pre-Assert手順] - clock_gettime にて tv_sec=0 を返却する。
 
     // Act
     int result = com_util_thread_join(thread, 1); // [手順] - deadline 前の EBUSY 後に thread join を再試行する。
@@ -1369,11 +1510,16 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_deadline_timeout
 {
     // Arrange
     com_util_thread *thread = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL));
+    ASSERT_EQ(COM_UTIL_OK, com_util_thread_create(&thread, [](void *) {}, NULL)); // [状態] - thread を生成する。
+                                                                                  // [状態確認] - com_util_thread_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
     NiceMock<Mock_time> mock_time;
-    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _)).WillOnce(Return(EBUSY));
     int clock_count = 0;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_tryjoin_np(_, _, _, _, _))
+        .WillOnce(Return(EBUSY)); // [Pre-Assert確認_正常系] - pthread_tryjoin_np が 1 回呼び出されること。
+                                  // [Pre-Assert手順] - pthread_tryjoin_np にて EBUSY を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(2)
         .WillRepeatedly(Invoke(
@@ -1382,9 +1528,8 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_deadline_timeout
                 ts->tv_sec = clock_count++;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限 join の期限判定で clock_gettime が 2 回呼び出されること。
+                 // [Pre-Assert手順] - 1 回目は tv_sec=0、2 回目は tv_sec=1 を返却する。
 
     // Act
     int result = com_util_thread_join(thread, 1); // [手順] - EBUSY のまま deadline に到達する有限 join を実行する。
@@ -1405,8 +1550,10 @@ TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_nu
     const char *rwlock_path = kRwlockIdentity;
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_rwlock *rwlock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock)); // [状態] - interprocess lock を開いた状態とする。
+                                                                               // [状態確認] - com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock)); // [状態] - interprocess rwlock を開いた状態とする。
+                                                                                     // [状態確認] - com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -1434,6 +1581,8 @@ TEST(syncAdditionalFailureTest, sleep_retries_interrupted_nanosleep)
 {
     // Arrange
     NiceMock<Mock_time> mock_time;
+
+    // Pre-Assert
     EXPECT_CALL(mock_time, nanosleep(_, _, _, _, _))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const struct timespec *, struct timespec *rem)
@@ -1443,9 +1592,8 @@ TEST(syncAdditionalFailureTest, sleep_retries_interrupted_nanosleep)
                 errno = EINTR;
                 return -1;
             }))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - nanosleep が EINTR 後に成功すること。
-
-    // Pre-Assert
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - nanosleep が 2 回呼び出されること。
+                              // [Pre-Assert手順] - 1 回目は EINTR で -1、2 回目は 0 を返却する。
 
     // Act
     com_util_sleep_ms(1); // [手順] - EINTR を発生させて 1 ms sleep を実行する。
@@ -1459,10 +1607,16 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_retries_before_deadline)
 {
     // Arrange
     com_util_local_lock *lock = NULL;
-    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_local_lock_create(&lock)); // [状態] - local lock を生成する。
+                                                               // [状態確認] - com_util_local_lock_create の戻り値が COM_UTIL_OK であること。
     NiceMock<Mock_pthread> mock_pthread;
     NiceMock<Mock_time> mock_time;
-    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _)).WillOnce(Return(EBUSY)).WillOnce(Return(0));
+
+    // Pre-Assert
+    EXPECT_CALL(mock_pthread, pthread_mutex_trylock(_, _, _, _))
+        .WillOnce(Return(EBUSY))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - pthread_mutex_trylock が 2 回呼び出されること。
+                              // [Pre-Assert手順] - 1 回目は EBUSY、2 回目は 0 を返却する。
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(2)
         .WillRepeatedly(Invoke(
@@ -1471,9 +1625,8 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_retries_before_deadline)
                 ts->tv_sec = 0;
                 ts->tv_nsec = 0;
                 return 0;
-            }));
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_正常系] - 有限待機の期限判定で clock_gettime が 2 回呼び出されること。
+                 // [Pre-Assert手順] - clock_gettime にて tv_sec=0 を返却する。
 
     // Act
     int result = com_util_local_lock_lock(lock, 1); // [手順] - deadline 前の EBUSY 後に local lock 取得を再試行する。
@@ -1491,15 +1644,16 @@ TEST(syncAdditionalFailureTest, sleep_stops_after_non_interrupt_error)
 {
     // Arrange
     NiceMock<Mock_time> mock_time;
+
+    // Pre-Assert
     EXPECT_CALL(mock_time, nanosleep(_, _, _, _, _))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const struct timespec *, struct timespec *)
             {
                 errno = EINVAL;
                 return -1;
-            })); // [Pre-Assert確認_異常系] - nanosleep が EINVAL で失敗すること。
-
-    // Pre-Assert
+            })); // [Pre-Assert確認_異常系] - nanosleep が 1 回呼び出されること。
+                 // [Pre-Assert手順] - nanosleep は EINVAL を設定して -1 を返却する。
 
     // Act
     com_util_sleep_ms(1); // [手順] - EINVAL を発生させて 1 ms sleep を実行する。
