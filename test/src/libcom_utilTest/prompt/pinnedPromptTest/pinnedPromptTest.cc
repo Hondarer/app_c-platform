@@ -1358,8 +1358,8 @@ TEST(pinnedPromptTest, platform_read_char_handles_timeout_and_eof_on_windows)
         .WillOnce(DoAll(SetArgPointee<4>(0U), Return(TRUE)));
     // [Pre-Assert確認_正常系] - GetConsoleMode が 1 回呼び出されること。
     // [Pre-Assert手順] - 元のコンソール モードを返却する。
-    EXPECT_CALL(mock_windows, SetConsoleMode(_, _, _, in_handle, _)).WillOnce(Return(TRUE));
-    // [Pre-Assert確認_正常系] - SetConsoleMode が raw 開始のために 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, SetConsoleMode(_, _, _, in_handle, _)).WillOnce(Return(TRUE)).WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - SetConsoleMode が開始と解除で 2 回呼び出されること。
     // [Pre-Assert手順] - TRUE を返却する。
     EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, in_handle, 100U))
         .WillOnce(Return(WAIT_TIMEOUT))
@@ -1416,8 +1416,8 @@ TEST(pinnedPromptTest, platform_read_char_nb_handles_wait_timeout_on_windows)
         .WillOnce(DoAll(SetArgPointee<4>(0U), Return(TRUE)));
     // [Pre-Assert確認_正常系] - GetConsoleMode が 1 回呼び出されること。
     // [Pre-Assert手順] - 元のコンソール モードを返却する。
-    EXPECT_CALL(mock_windows, SetConsoleMode(_, _, _, in_handle, _)).WillOnce(Return(TRUE));
-    // [Pre-Assert確認_正常系] - SetConsoleMode が raw 開始のために 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, SetConsoleMode(_, _, _, in_handle, _)).WillOnce(Return(TRUE)).WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - SetConsoleMode が開始と解除で 2 回呼び出されること。
     // [Pre-Assert手順] - TRUE を返却する。
     EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, in_handle, 50U))
         .WillOnce(Return(WAIT_TIMEOUT))
