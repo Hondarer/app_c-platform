@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_com_util.h>
 #include <mock_stdio.h>
 
 #include <com_util/base/platform.h>

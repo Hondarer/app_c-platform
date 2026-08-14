@@ -16,7 +16,7 @@ class symLoaderDisposeTest : public Test
 
 namespace
 {
-void *const kFakeHandle = reinterpret_cast<void *>(static_cast<uintptr_t>(0x51));
+COM_UTIL_MODULE_HANDLE const kFakeHandle = reinterpret_cast<COM_UTIL_MODULE_HANDLE>(static_cast<uintptr_t>(0x51));
 void *const kFakeFunc = reinterpret_cast<void *>(static_cast<uintptr_t>(0x52));
 } // namespace
 
@@ -104,7 +104,7 @@ TEST_F(symLoaderDisposeTest, releases_multiple_entries)
     com_util_sym_loader_entry *entries[] = {&first, &second};
     first.handle = kFakeHandle;
     first.func_ptr = kFakeFunc;
-    second.handle = reinterpret_cast<void *>(static_cast<uintptr_t>(0x53));
+    second.handle = reinterpret_cast<COM_UTIL_MODULE_HANDLE>(static_cast<uintptr_t>(0x53));
     second.func_ptr =
         reinterpret_cast<void *>(static_cast<uintptr_t>(0x54)); // [状態] - ハンドル入りのエントリを 2 件用意する。
 #if defined(PLATFORM_LINUX)

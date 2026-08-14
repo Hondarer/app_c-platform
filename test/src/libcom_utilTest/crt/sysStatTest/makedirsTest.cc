@@ -3,6 +3,7 @@
 #include <com_util/base/result.h>
 #include <com_util/crt/sys/stat.h>
 #include <com_util/crt/path.h>
+#include <mock_com_util.h>
 #include <cerrno>
 #include <cstring>
 #include <string>

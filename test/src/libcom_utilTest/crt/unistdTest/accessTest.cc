@@ -2,6 +2,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/crt/path.h>
+#include <mock_com_util.h>
 
 #include <errno.h>
 #include <string>

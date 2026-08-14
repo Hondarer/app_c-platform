@@ -3,6 +3,7 @@
 #include <com_util/base/result.h>
 #include <com_util/crt/fcntl.h>
 #include <com_util/crt/path.h>
+#include <mock_com_util.h>
 
 #if defined(PLATFORM_LINUX)
     #include <mock_fcntl.h>

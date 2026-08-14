@@ -18,7 +18,7 @@ int fill_token_and_int(va_list args, const char *token, int value)
     char *token_out = va_arg(args, char *);
     int *value_out = va_arg(args, int *);
 
-    std::strcpy(token_out, token);
+    std::memcpy(token_out, token, std::strlen(token) + 1U);
     *value_out = value;
     return 2;
 }

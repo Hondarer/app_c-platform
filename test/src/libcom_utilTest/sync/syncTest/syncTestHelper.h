@@ -4,6 +4,7 @@
 
 #include <com_util/base/platform.h>
 #include <com_util/sync/sync.h>
+#include <mock_com_util.h>
 
 #include <stdio.h>
 #include <string.h>

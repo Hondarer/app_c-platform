@@ -2,6 +2,7 @@
 #include <com_util/base/error.h>
 #include <com_util/base/error_message_internal.h>
 #include <com_util/base/result.h>
+#include <mock_com_util.h>
 #include <mock_string.h>
 
 #include <errno.h>
