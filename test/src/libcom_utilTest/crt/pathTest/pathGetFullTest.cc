@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/path.h>
+#include <mock_com_util.h>
 #include <mock_stdlib.h>
 #include <mock_unistd.h>
 #include <cerrno>
@@ -353,14 +354,14 @@ TEST_F(pathGetFullTest, returns_absolute_path_for_nonexistent_target)
 TEST_F(pathGetFullTest, returns_enomem_when_normalization_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char path[PLATFORM_PATH_MAX] = {'x'}; // [状態] - 出力バッファーを空文字列以外で初期化する。
     com_util_error err;                   // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, PLATFORM_PATH_MAX, sizeof(size_t)))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 正規化用メモリの calloc が 1 回呼び出されること。
-                                    // [Pre-Assert手順] - calloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(PLATFORM_PATH_MAX, sizeof(size_t)))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 正規化用メモリの com_util_calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     int rc = com_util_path_get_full(path, sizeof(path), &err,

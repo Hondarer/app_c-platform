@@ -35,7 +35,7 @@ static THREAD_LOCAL com_util_error com_util_error_last;
  *  @param[in]      result 共通結果コード。
  *  @param[in]      code   ドメイン固有のエラー値。
  */
-static void com_util_error_store(com_util_error *error, const com_util_error_domain domain, const int result,
+static void error_store(com_util_error *error, const com_util_error_domain domain, const int result,
                                  const unsigned long code)
 {
     if (error != NULL)
@@ -51,7 +51,7 @@ static void com_util_error_store(com_util_error *error, const com_util_error_dom
  *  @param[in]      errno_value errno の値。
  *  @return         対応する要因を返します。
  */
-static com_util_error_cause com_util_error_cause_from_errno(const int errno_value)
+static com_util_error_cause error_cause_from_errno(const int errno_value)
 {
     com_util_error_cause cause;
 
@@ -222,12 +222,12 @@ static com_util_error_cause com_util_error_cause_from_errno(const int errno_valu
  *  ソケット操作の EAGAIN は非ブロッキング操作の待機を意味するため、共通の
  *  errno マッピングとは別に @ref COM_UTIL_CAUSE_WOULD_BLOCK として扱います。\n
  *  Linux では EWOULDBLOCK が EAGAIN と同値です。\n
- *  それ以外の errno は com_util_error_cause_from_errno() の分類に委譲します。
+ *  それ以外の errno は error_cause_from_errno() の分類に委譲します。
  *
  *  fork() や pthread_create() が返す EAGAIN は資源の上限超過を意味し、待機とは
  *  異なるため、共通の errno マッピングでは @ref COM_UTIL_CAUSE_BUSY のままとします。
  */
-static com_util_error_cause com_util_error_cause_from_socket_errno(const int errno_value)
+static com_util_error_cause error_cause_from_socket_errno(const int errno_value)
 {
     com_util_error_cause cause;
 
@@ -243,7 +243,7 @@ static com_util_error_cause com_util_error_cause_from_socket_errno(const int err
 #endif
     else
     {
-        cause = com_util_error_cause_from_errno(errno_value);
+        cause = error_cause_from_errno(errno_value);
     }
 
     return cause;
@@ -257,7 +257,7 @@ static com_util_error_cause com_util_error_cause_from_socket_errno(const int err
  *  EAI_* は errno とも Winsock エラーとも異なる番号体系のため、専用の変換を行います。
  *  see: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getaddrinfo.html
  */
-static com_util_error_cause com_util_error_cause_from_gai_error(const int error_code)
+static com_util_error_cause error_cause_from_gai_error(const int error_code)
 {
     com_util_error_cause cause;
 
@@ -301,7 +301,7 @@ static com_util_error_cause com_util_error_cause_from_gai_error(const int error_
     case EAI_SYSTEM:
         /* 要因は EAI_* ではなく errno 側にある。名前解決はソケット操作ではないため、
            一般の errno として分類する。 */
-        cause = com_util_error_cause_from_errno(errno);
+        cause = error_cause_from_errno(errno);
         break;
 #endif
     default:
@@ -319,10 +319,10 @@ static com_util_error_cause com_util_error_cause_from_gai_error(const int error_
  *  @return         対応する要因を返します。
  *
  *  Winsock のエラー番号空間は Win32 の GetLastError() と異なるため、
- *  com_util_error_cause_from_windows_error() では分類できません。
+ *  error_cause_from_windows_error() では分類できません。
  *  see: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
  */
-static com_util_error_cause com_util_error_cause_from_winsock_error(const unsigned long error_code)
+static com_util_error_cause error_cause_from_winsock_error(const unsigned long error_code)
 {
     com_util_error_cause cause;
 
@@ -410,7 +410,7 @@ static com_util_error_cause com_util_error_cause_from_winsock_error(const unsign
  *  @param[in]      error_code Win32 エラー コード。
  *  @return         対応する要因を返します。
  */
-static com_util_error_cause com_util_error_cause_from_windows_error(const unsigned long error_code)
+static com_util_error_cause error_cause_from_windows_error(const unsigned long error_code)
 {
     com_util_error_cause cause;
 
@@ -503,7 +503,7 @@ static com_util_error_cause com_util_error_cause_from_windows_error(const unsign
 
 void com_util_error_clear(com_util_error *error)
 {
-    com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+    error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -512,11 +512,11 @@ void com_util_error_capture_errno(com_util_error *error, const int errno_value)
 {
     if (errno_value == 0)
     {
-        com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+        error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
     }
     else
     {
-        com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_ERRNO, com_util_result_from_errno(errno_value),
+        error_store(error, COM_UTIL_ERROR_DOMAIN_ERRNO, com_util_result_from_errno(errno_value),
                              (unsigned long)errno_value);
     }
 }
@@ -537,11 +537,11 @@ void com_util_error_capture_windows_error(com_util_error *error, const unsigned 
 {
     if (error_code == ERROR_SUCCESS)
     {
-        com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+        error_store(error, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
     }
     else
     {
-        com_util_error_store(error, COM_UTIL_ERROR_DOMAIN_WINDOWS, com_util_result_from_windows_error(error_code),
+        error_store(error, COM_UTIL_ERROR_DOMAIN_WINDOWS, com_util_result_from_windows_error(error_code),
                              error_code);
     }
 }
@@ -572,7 +572,7 @@ void com_util_error_set_last(const com_util_error *error)
 {
     if (error == NULL)
     {
-        com_util_error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+        error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
     }
     else
     {
@@ -584,7 +584,7 @@ void com_util_error_set_last(const com_util_error *error)
 
 void com_util_error_clear_last(void)
 {
-    com_util_error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+    error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -685,20 +685,20 @@ com_util_error_cause com_util_error_get_cause(const com_util_error *error)
     {
         if (error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO)
         {
-            cause = com_util_error_cause_from_errno((int)error->code);
+            cause = error_cause_from_errno((int)error->code);
         }
         else if (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO)
         {
-            cause = com_util_error_cause_from_socket_errno((int)error->code);
+            cause = error_cause_from_socket_errno((int)error->code);
         }
         else if (error->domain == COM_UTIL_ERROR_DOMAIN_GAI)
         {
-            cause = com_util_error_cause_from_gai_error((int)error->code);
+            cause = error_cause_from_gai_error((int)error->code);
         }
         else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINDOWS)
         {
 #if defined(PLATFORM_WINDOWS)
-            cause = com_util_error_cause_from_windows_error(error->code);
+            cause = error_cause_from_windows_error(error->code);
 #else
             cause = COM_UTIL_CAUSE_OTHER;
 #endif
@@ -706,7 +706,7 @@ com_util_error_cause com_util_error_get_cause(const com_util_error *error)
         else if (error->domain == COM_UTIL_ERROR_DOMAIN_WINSOCK)
         {
 #if defined(PLATFORM_WINDOWS)
-            cause = com_util_error_cause_from_winsock_error(error->code);
+            cause = error_cause_from_winsock_error(error->code);
 #else
             cause = COM_UTIL_CAUSE_OTHER;
 #endif
@@ -767,8 +767,8 @@ int com_util_error_report_errno_as(com_util_error *detail_out, const int errno_v
         domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
-    com_util_error_store(detail_out, domain, result, (unsigned long)errno_value);
-    com_util_error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
+    error_store(detail_out, domain, result, (unsigned long)errno_value);
+    error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
 
     return result;
 }
@@ -803,8 +803,8 @@ int com_util_error_report_winsock_error_as(com_util_error *detail_out, const uns
         domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
-    com_util_error_store(detail_out, domain, result, error_code);
-    com_util_error_store(&com_util_error_last, domain, result, error_code);
+    error_store(detail_out, domain, result, error_code);
+    error_store(&com_util_error_last, domain, result, error_code);
 
     return result;
 }
@@ -839,8 +839,8 @@ int com_util_error_report_socket_errno_as(com_util_error *detail_out, const int 
         domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
-    com_util_error_store(detail_out, domain, result, (unsigned long)errno_value);
-    com_util_error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
+    error_store(detail_out, domain, result, (unsigned long)errno_value);
+    error_store(&com_util_error_last, domain, result, (unsigned long)errno_value);
 
     return result;
 }
@@ -857,7 +857,7 @@ int com_util_error_report_gai_error(com_util_error *detail_out, const int error_
         domain = COM_UTIL_ERROR_DOMAIN_NONE;
         result = COM_UTIL_OK;
     }
-    else if (com_util_error_cause_from_gai_error(error_code) == COM_UTIL_CAUSE_NOT_FOUND)
+    else if (error_cause_from_gai_error(error_code) == COM_UTIL_CAUSE_NOT_FOUND)
     {
         result = COM_UTIL_ERR_NOT_FOUND;
     }
@@ -866,8 +866,8 @@ int com_util_error_report_gai_error(com_util_error *detail_out, const int error_
         result = COM_UTIL_ERR_UNKNOWN;
     }
 
-    com_util_error_store(detail_out, domain, result, (unsigned long)error_code);
-    com_util_error_store(&com_util_error_last, domain, result, (unsigned long)error_code);
+    error_store(detail_out, domain, result, (unsigned long)error_code);
+    error_store(&com_util_error_last, domain, result, (unsigned long)error_code);
 
     return result;
 }
@@ -902,8 +902,8 @@ int com_util_error_report_windows_error_as(com_util_error *detail_out, const uns
         domain = COM_UTIL_ERROR_DOMAIN_NONE;
     }
 
-    com_util_error_store(detail_out, domain, result, error_code);
-    com_util_error_store(&com_util_error_last, domain, result, error_code);
+    error_store(detail_out, domain, result, error_code);
+    error_store(&com_util_error_last, domain, result, error_code);
 
     return result;
 }
@@ -913,8 +913,8 @@ int com_util_error_report_windows_error_as(com_util_error *detail_out, const uns
 
 int com_util_error_report_success(com_util_error *detail_out)
 {
-    com_util_error_store(detail_out, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
-    com_util_error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+    error_store(detail_out, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
+    error_store(&com_util_error_last, COM_UTIL_ERROR_DOMAIN_NONE, COM_UTIL_OK, 0UL);
 
     return COM_UTIL_OK;
 }

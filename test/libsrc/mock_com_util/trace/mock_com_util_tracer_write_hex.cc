@@ -1,28 +1,28 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real__com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level level,
+int delegate_real_com_util_tracer_write_hex_at(com_util_tracer *handle, com_util_trace_level level,
                                              const com_util_timespec *timestamp, const void *data, size_t size,
                                              const char *message)
 {
-    static auto real_fn = reinterpret_cast<decltype(&_com_util_tracer_write_hex)>(
-        resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_tracer_write_hex"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_tracer_write_hex_at)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_tracer_write_hex_at"));
 
     return real_fn(handle, level, timestamp, data, size, message);
 }
 
-MOCK_WEAK_IMPL(int, _com_util_tracer_write_hex, com_util_tracer *handle, com_util_trace_level level,
+MOCK_WEAK_IMPL(int, com_util_tracer_write_hex_at, com_util_tracer *handle, com_util_trace_level level,
                const com_util_timespec *timestamp, const void *data, size_t size, const char *message)
 {
     int rtc = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->_com_util_tracer_write_hex(handle, level, timestamp, data, size, message);
+        rtc = _mock_com_util->com_util_tracer_write_hex_at(handle, level, timestamp, data, size, message);
     }
     else
     {
-        rtc = delegate_real__com_util_tracer_write_hex(handle, level, timestamp, data, size, message);
+        rtc = delegate_real_com_util_tracer_write_hex_at(handle, level, timestamp, data, size, message);
     }
 
     if (getTraceLevel() > TRACE_NONE)

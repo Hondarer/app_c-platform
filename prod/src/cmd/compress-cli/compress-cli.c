@@ -18,6 +18,7 @@
 #include <com_util/console/console.h>
 #include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +58,7 @@ static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
     {
         (void)fclose(file);
     }
-    free(data);
+    com_util_free(data);
     return -1;
 }
 
@@ -121,7 +122,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 
     if (file_size > 0u)
     {
-        data = (uint8_t *)malloc(file_size);
+        data = (uint8_t *)com_util_malloc(file_size);
         if (data == NULL)
         {
             fprintf(stderr, "入力バッファの確保に失敗しました。\n");
@@ -229,8 +230,8 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
 
 static int compress_cli_run_compress_return(uint8_t *input_data, uint8_t *compressed_data, int rc)
 {
-    free(compressed_data);
-    free(input_data);
+    com_util_free(compressed_data);
+    com_util_free(input_data);
     return rc;
 }
 
@@ -260,7 +261,7 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
         compressed_capacity = 256u;
     }
 
-    compressed_data = (uint8_t *)malloc(compressed_capacity);
+    compressed_data = (uint8_t *)com_util_malloc(compressed_capacity);
     if (compressed_data == NULL)
     {
         fprintf(stderr, "圧縮バッファの確保に失敗しました。\n");
@@ -284,8 +285,8 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
 
 static int compress_cli_run_decompress_return(uint8_t *input_data, uint8_t *decompressed_data, int rc)
 {
-    free(decompressed_data);
-    free(input_data);
+    com_util_free(decompressed_data);
+    com_util_free(input_data);
     return rc;
 }
 
@@ -323,7 +324,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
-    decompressed_data = (uint8_t *)malloc((size_t)expected_size);
+    decompressed_data = (uint8_t *)com_util_malloc((size_t)expected_size);
     if (decompressed_data == NULL)
     {
         fprintf(stderr, "展開バッファの確保に失敗しました。\n");
@@ -377,41 +378,41 @@ int main(int argc, char *argv[])
     int compress_count = 0;
     int decompress_count = 0;
 
-    com_util_argparser_init("ファイルを圧縮または展開します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
-    com_util_argparser_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
-    com_util_argparser_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
-    com_util_argparser_register_positional_string("input", "入力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+    com_util_argparser_default_init("ファイルを圧縮または展開します。");
+    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    com_util_argparser_default_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
+    com_util_argparser_default_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
+    com_util_argparser_default_register_positional_string("input", "入力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
                                                   &options.input_path);
-    com_util_argparser_register_positional_string("output", "出力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+    com_util_argparser_default_register_positional_string("output", "出力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
                                                   &options.output_path);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (options.need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
     if ((compress_count + decompress_count) != 1)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -425,7 +426,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

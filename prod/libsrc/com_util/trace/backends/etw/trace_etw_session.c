@@ -9,6 +9,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -70,9 +71,9 @@ static void dispose_session(com_util_etw_session *session)
         {
             ControlTraceW(session->session_handle, NULL, session->properties, EVENT_TRACE_CONTROL_STOP);
         }
-        free(session->session_name_w);
-        free(session->properties);
-        free(session);
+        com_util_free(session->session_name_w);
+        com_util_free(session->properties);
+        com_util_free(session);
     }
 }
 
@@ -139,7 +140,7 @@ static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
         return NULL;
     }
 
-    info = (TRACE_EVENT_INFO *)malloc(size);
+    info = (TRACE_EVENT_INFO *)com_util_malloc(size);
     if (info == NULL)
     {
         return NULL;
@@ -148,7 +149,7 @@ static TRACE_EVENT_INFO *get_trace_event_info(PEVENT_RECORD pEvent)
     status = TdhGetEventInformation(pEvent, 0, NULL, info, &size);
     if (status != ERROR_SUCCESS)
     {
-        free(info);
+        com_util_free(info);
         return NULL;
     }
 
@@ -361,7 +362,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
     event_name_w = get_event_name(info);
     if (event_name_w == NULL || wcscmp(event_name_w, L"Trace") != 0)
     {
-        free(info);
+        com_util_free(info);
         return;
     }
     event_name_utf8 = com_util_wstr_to_utf8_alloc(event_name_w);
@@ -370,7 +371,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
     message = NULL;
     payload_process_id = 0U;
     extract_event_fields(pEvent, info, &service, &message, &payload_process_id);
-    free(info);
+    com_util_free(info);
 
     event.level = pEvent->EventHeader.EventDescriptor.Level;
     if (payload_process_id != 0U)
@@ -387,7 +388,7 @@ static VOID WINAPI event_record_callback(PEVENT_RECORD pEvent)
     event.timestamp_100ns = pEvent->EventHeader.TimeStamp.QuadPart;
 
     session->callback(&event, session->context);
-    free(event_name_utf8);
+    com_util_free(event_name_utf8);
 }
 
 /**
@@ -413,7 +414,7 @@ int com_util_etw_session_check_access(void)
     int result;
 
     props_size = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(probe_name);
-    props = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
+    props = (EVENT_TRACE_PROPERTIES *)com_util_malloc(props_size);
     if (props == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -442,7 +443,7 @@ int com_util_etw_session_check_access(void)
         result = COM_UTIL_ERR_UNKNOWN;
     }
 
-    free(props);
+    com_util_free(props);
     return result;
 }
 
@@ -474,7 +475,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    session = (com_util_etw_session *)malloc(sizeof(com_util_etw_session));
+    session = (com_util_etw_session *)com_util_malloc(sizeof(com_util_etw_session));
     if (session == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -501,7 +502,7 @@ int com_util_etw_session_start(const char *session_name, const char *provider_gu
 
     /* EVENT_TRACE_PROPERTIES を確保 (セッション名領域を含む) */
     props_size = sizeof(EVENT_TRACE_PROPERTIES) + (name_len_w * sizeof(wchar_t));
-    session->properties = (EVENT_TRACE_PROPERTIES *)malloc(props_size);
+    session->properties = (EVENT_TRACE_PROPERTIES *)com_util_malloc(props_size);
     if (session->properties == NULL)
     {
         dispose_session(session);
@@ -596,9 +597,9 @@ void com_util_etw_session_stop(com_util_etw_session *session)
         CloseTrace(session->trace_handle);
     }
 
-    free(session->session_name_w);
-    free(session->properties);
-    free(session);
+    com_util_free(session->session_name_w);
+    com_util_free(session->properties);
+    com_util_free(session);
 }
 
 #endif /* PLATFORM_WINDOWS */

@@ -529,7 +529,7 @@ int com_util_vsnprintf(char *dest, const size_t dest_size, const char *format, v
 
     /* MSVC の UCRT では vsnprintf が C99 準拠であり、切り詰め時も必要文字数を返す。
      * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/vsnprintf-vsnprintf-vsnprintf-l-vsnwprintf-vsnwprintf-l */
-    needed = vsnprintf(dest, dest_size, format, args);
+    needed = vsnprintf(dest, dest_size, format, args); /* 置換対象外: ラッパーの実体 */
 
     if (needed < 0)
     {

@@ -419,12 +419,12 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 | 用途 | com_util API |
 |---|---|
-| パーサーを生成/初期化します。 | `_com_util_argparser_create` / `com_util_argparser_init` / `_com_util_argparser_default` / `_com_util_argparser_dispose` |
-| フラグ/オプション/位置引数を登録します。 | `com_util_argparser_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
-| 登録エラーを確認します。 | `com_util_argparser_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
-| コマンド ラインを解析します。 | `com_util_argparser_parse` |
-| 解析エラーを確認します。 | `com_util_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
-| 使用方法を表示します。 | `com_util_argparser_get_usage` / `com_util_argparser_print_usage` |
+| パーサーを生成/初期化します。 | `com_util_argparser_create` / `com_util_argparser_default_init` / `com_util_argparser_default` / `com_util_argparser_dispose` |
+| フラグ/オプション/位置引数を登録します。 | `com_util_argparser_default_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
+| 登録エラーを確認します。 | `com_util_argparser_default_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
+| コマンド ラインを解析します。 | `com_util_argparser_default_parse` |
+| 解析エラーを確認します。 | `com_util_argparser_default_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
+| 使用方法を表示します。 | `com_util_argparser_default_get_usage` / `com_util_argparser_default_print_usage` |
 
 ### 対話的プロンプト
 
@@ -450,7 +450,7 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | トレーサーの名前/識別子/ファイル名を設定/取得します。 | `com_util_tracer_set_name` / `_get_name` / `_get_identifier` / `_set_file_name` / `_get_file_name` / `_get_file_identifier` |
 | メッセージを出力する (ソース ファイル名/行番号を自動付与するマクロ) | `com_util_tracer_write` / `com_util_tracer_writef` |
 | バイナリ データを 16 進数で出力する (同上) | `com_util_tracer_write_hex` / `com_util_tracer_write_hexf` |
-| `va_list` 版や、ソース位置を自前で制御したい場合の低レベル関数 | `_com_util_tracer_writef` / `_com_util_tracer_vwritef` / `_com_util_tracer_write_hexf` / `_com_util_tracer_vwrite_hexf` |
+| `va_list` 版や、ソース位置を自前で制御したい場合の低レベル関数 | `com_util_tracer_writef_at` / `com_util_tracer_vwritef_at` / `com_util_tracer_write_hexf_at` / `com_util_tracer_vwrite_hexf_at` |
 | 出力フックを追加/削除します。 | `com_util_tracer_set_hook` / `com_util_tracer_call_next_hook` / `com_util_tracer_remove_hook` |
 | トレーサーの状態を取得します。 | `com_util_tracer_get_state` |
 | syslog (RFC5424 系、Linux 専用) の書き込みシンクを扱います。 | `com_util_syslog_sink_create` / `com_util_syslog_sink_write` / `com_util_syslog_sink_rename` / `com_util_syslog_sink_dispose` |
@@ -483,7 +483,7 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | 終了時に呼び出されるコールバックを LIFO で登録します。 | `com_util_shutdown_register` |
 | Ctrl+C 等の終了要求を受け取るコールバックを登録します。 | `com_util_shutdown_request_register` |
 
-`_com_util_shutdown_invoke_for_test` / `_com_util_shutdown_request_invoke_for_test` / `_com_util_shutdown_reset_for_test` はテスト専用で、本番コードからは呼び出しません。
+`com_util_shutdown_invoke_for_test` / `com_util_shutdown_request_invoke_for_test` / `com_util_shutdown_reset_for_test` はテスト専用で、本番コードからは呼び出しません。
 
 ### 動的シンボル解決
 
@@ -511,7 +511,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 前節までの表や説明でまとめて扱った公開関数を、完全な関数名から検索できるように補足します。  
 シグネチャを確認する場合は、関数名に対応する [`prod/include/`](../prod/include/) 配下のヘッダーを参照してください。
 
-- 引数解析: `com_util_argparser_register_option_int`、`com_util_argparser_register_option_string`、`com_util_argparser_register_option_int_array`、`com_util_argparser_register_option_string_array`、`com_util_argparser_register_positional_int`、`com_util_argparser_register_positional_int_array`、`com_util_argparser_register_positional_string_array`、`com_util_argparser_get_error_target`、`com_util_argparser_get_error_index`、`com_util_argparser_get_error_message`、`com_util_argparser_print_error_messages`、`com_util_argparser_get_register_error_count`、`com_util_argparser_get_register_error_target`、`com_util_argparser_get_register_error_message`、`com_util_argparser_print_register_error_messages`
+- 引数解析: `com_util_argparser_default_register_option_int`、`com_util_argparser_default_register_option_string`、`com_util_argparser_default_register_option_int_array`、`com_util_argparser_default_register_option_string_array`、`com_util_argparser_default_register_positional_int`、`com_util_argparser_default_register_positional_int_array`、`com_util_argparser_default_register_positional_string_array`、`com_util_argparser_default_get_error_target`、`com_util_argparser_default_get_error_index`、`com_util_argparser_default_get_error_message`、`com_util_argparser_default_print_error_messages`、`com_util_argparser_default_get_register_error_count`、`com_util_argparser_default_get_register_error_target`、`com_util_argparser_default_get_register_error_message`、`com_util_argparser_default_print_register_error_messages`
 - 時刻: `com_util_format_realtime_iso8601_local`、`com_util_format_realtime_iso8601_utc`、`com_util_get_realtime_utc`、`com_util_get_realtime_deadline_ms`、`com_util_timespec_normalize`、`com_util_timespec_add`、`com_util_timespec_sub`、`com_util_timespec_cmp`、`com_util_timespec_add_ms`、`com_util_timespec_diff_ms`、`com_util_timespec_to_native`、`com_util_timespec_from_native`
 - ファイル: `com_util_file_init`、`com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_flush`、`com_util_file_close`
 - パス: `com_util_normalize_path_sep`、`com_util_path_get_full`、`com_util_paths_equal`、`com_util_get_temp_dir`、`com_util_path_concat_n`、`com_util_vpath_concat_n`、`com_util_path_basename`、`com_util_path_dirname`、`com_util_path_extension`、`com_util_path_strip_extension`、`com_util_path_join_n`、`com_util_vpath_join_n`

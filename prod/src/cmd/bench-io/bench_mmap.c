@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <com_util/crt/stdlib.h>
 #include <com_util/mmap/mmap.h>
 #include <com_util/sync/sync.h>
 
@@ -185,7 +186,7 @@ int bench_mmap_setup(bench_context *ctx, const bench_case *item)
         return 0;
     }
 
-    state = (mmap_state *)calloc(1U, sizeof(*state));
+    state = (mmap_state *)com_util_malloc_zerofill(sizeof(*state));
     if (state == NULL)
     {
         return -1;
@@ -193,7 +194,7 @@ int bench_mmap_setup(bench_context *ctx, const bench_case *item)
     if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &state->map, NULL) !=
         COM_UTIL_OK)
     {
-        free(state);
+        com_util_free(state);
         return -1;
     }
     ctx->state = state;
@@ -253,6 +254,6 @@ void bench_mmap_teardown(bench_context *ctx, const bench_case *item)
         return;
     }
     (void)com_util_mmap_detach(state->map, NULL);
-    free(state);
+    com_util_free(state);
     ctx->state = NULL;
 }

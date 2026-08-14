@@ -14,6 +14,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -46,7 +47,7 @@ com_util_etw_provider *com_util_etw_provider_create(com_util_etw_provider_ref_t 
         return NULL;
     }
 
-    handle = (com_util_etw_provider *)malloc(sizeof(com_util_etw_provider));
+    handle = (com_util_etw_provider *)com_util_malloc(sizeof(com_util_etw_provider));
     if (handle == NULL)
     {
         return NULL;
@@ -57,7 +58,7 @@ com_util_etw_provider *com_util_etw_provider_create(com_util_etw_provider_ref_t 
     status = TraceLoggingRegister(provider_ref);
     if (status != S_OK)
     {
-        free(handle);
+        com_util_free(handle);
         return NULL;
     }
 
@@ -158,7 +159,7 @@ void com_util_etw_provider_dispose(com_util_etw_provider *handle)
     }
 
     TraceLoggingUnregister(handle->provider_ref);
-    free(handle);
+    com_util_free(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -174,7 +175,7 @@ void com_util_etw_provider_dispose_on_shutdown(com_util_etw_provider *handle, co
     {
         TraceLoggingUnregister(handle->provider_ref);
     }
-    free(handle);
+    com_util_free(handle);
 }
 
 #endif /* PLATFORM_WINDOWS */

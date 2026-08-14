@@ -56,8 +56,8 @@ TEST_F(argparser_sampleTest, main_parses_and_prints_all_kinds)
 
 // 未知のオプションで失敗終了することの確認
 //
-// エラー メッセージと usage は com_util_argparser_print_error_messages() /
-// com_util_argparser_print_usage() (いずれも argparser.c 側、本テストでは ADD_SRCS として
+// エラー メッセージと usage は com_util_argparser_default_print_error_messages() /
+// com_util_argparser_default_print_usage() (いずれも argparser.c 側、本テストでは ADD_SRCS として
 // ビルドされ mock_stdio の override 対象外) が出力するため、本テストでは mock で検証できない。
 // メッセージ内容の確認は argparserTest.cc の print_error_messages_writes_to_stream /
 // error_message_formatting、usage の内容確認は同ファイルの print_usage_writes_to_stream /

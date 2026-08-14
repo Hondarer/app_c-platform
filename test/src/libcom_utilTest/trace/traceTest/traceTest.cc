@@ -52,7 +52,7 @@ static com_util_timespec make_fixed_timestamp(void)
 class traceTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_trace_file_sink *file_handle_ =
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2200));
 
@@ -66,23 +66,23 @@ class traceTest : public Test
 
     void SetUp() override
     {
-        set_trace_sync_mock_defaults(mock_);
-        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_get_realtime_deadline_ms(_, _))
+        set_trace_sync_mock_defaults(mock_com_util);
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
-        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_com_util, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, size_t buf_size, const com_util_timespec *)
                 {
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
                 });
-        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
-        ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
         // デフォルト パス解決を決定的にするため、実行ファイル パスを固定する
-        ON_CALL(mock_, com_util_process_get_executable_path(_, _))
+        ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
             .WillByDefault(
                 [](char *out_path, size_t out_path_sz)
                 {
@@ -91,17 +91,17 @@ class traceTest : public Test
                 });
 
 #if defined(PLATFORM_LINUX)
-        ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
 #elif defined(PLATFORM_WINDOWS)
-        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
-        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
+        ON_CALL(mock_com_util, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
 #endif
     }
 
@@ -135,12 +135,12 @@ TEST_F(traceTest, init_and_dispose)
 TEST_F(traceTest, caller_managed_mode_does_not_use_handle_rwlock)
 {
     // Arrange
-    EXPECT_CALL(mock_, com_util_local_rwlock_create(_)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_shared(_, _)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_exclusive(_, _)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_unlock_shared(_)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_unlock_exclusive(_)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_destroy(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_create(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_shared(_, _)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_exclusive(_, _)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_unlock_shared(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_unlock_exclusive(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_destroy(_)).Times(0);
 
     // Pre-Assert
 
@@ -163,8 +163,8 @@ TEST_F(traceTest, create_rejects_invalid_concurrency_mode_before_side_effects)
     // Arrange
     com_util_tracer_concurrency_mode invalid_mode;
     memset(&invalid_mode, 0x7F, sizeof(invalid_mode));
-    EXPECT_CALL(mock_, com_util_shutdown_register(_, _)).Times(0);
-    EXPECT_CALL(mock_, com_util_local_rwlock_create(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_shutdown_register(_, _)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_create(_)).Times(0);
 
     // Pre-Assert
 
@@ -256,11 +256,11 @@ TEST_F(traceTest, macro_write_prefixes_source_location)
     // [Pre-Assert確認_正常系] - 公開マクロが source location を付けて backend へ渡すこと。
     // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] macro message")))
         .WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("\\[traceTest\\.cc:\\d+\\] macro message")))
         .WillOnce(Return(0));
 #endif
@@ -291,7 +291,7 @@ TEST_F(traceTest, macro_write_passes_explicit_timestamp)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] explicit macro timestamp")))
         .WillOnce(
             [&timestamp](com_util_syslog_sink *, int, const com_util_timespec *actual_timestamp, const char *)
@@ -301,7 +301,7 @@ TEST_F(traceTest, macro_write_passes_explicit_timestamp)
                 return 0;
             }); // [Pre-Assert確認_正常系] - 公開マクロ経由でも明示タイムスタンプがそのまま渡ること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("\\[traceTest\\.cc:\\d+\\] explicit macro timestamp")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 公開マクロ経由でも ETW backend へメッセージが渡ること。
 #endif
@@ -332,12 +332,12 @@ TEST_F(traceTest, macro_write_with_null_message_emits_source_location_only)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("^\\[traceTest\\.cc:[0-9]+\\]$")))
         .WillOnce(Return(
             0)); // [Pre-Assert確認_正常系] - NULL メッセージでも公開マクロが source location を付けて backend へ渡すこと。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("^\\[traceTest\\.cc:\\d+\\]$")))
         .WillOnce(Return(
             0)); // [Pre-Assert確認_正常系] - NULL メッセージでも公開マクロが source location だけを ETW backend へ渡すこと。
@@ -374,29 +374,29 @@ TEST_F(traceTest, public_macros_prefix_source_location_with_basename)
     // [Pre-Assert確認_正常系] - write_hexf マクロが basename を使うこと。
     // [Pre-Assert手順] - 各 backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] direct write")))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] value=7")))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] hex label: 48 69")))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   MatchesRegex("\\[traceTest\\.cc:[0-9]+\\] hex 7: 48 69")))
         .WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("\\[traceTest\\.cc:\\d+\\] direct write")))
         .WillOnce(Return(0));
     EXPECT_CALL(
-        mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), MatchesRegex("\\[traceTest\\.cc:\\d+\\] value=7")))
+        mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), MatchesRegex("\\[traceTest\\.cc:\\d+\\] value=7")))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("\\[traceTest\\.cc:\\d+\\] hex label: 48 69")))
         .WillOnce(Return(0));
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    MatchesRegex("\\[traceTest\\.cc:\\d+\\] hex 7: 48 69")))
         .WillOnce(Return(0));
 #endif
@@ -439,7 +439,7 @@ TEST_F(traceTest, write_routes_info_to_os_backend)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("test message")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("test message")))
         .WillOnce(
             [](com_util_syslog_sink *, int, const com_util_timespec *timestamp, const char *)
             {
@@ -448,17 +448,17 @@ TEST_F(traceTest, write_routes_info_to_os_backend)
                 return 0;
             }); // [Pre-Assert確認_正常系] - INFO が解決済み時刻付きで syslog backend へ 1 回送られること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("test message")))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("test message")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が ETW backend へ 1 回送られること。
 #endif
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "test message"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - _com_util_tracer_write の戻り値から、書き込みが成功したと判断できること。
+              result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -480,17 +480,17 @@ TEST_F(traceTest, etw_and_os_levels_are_independent)
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("only etw")))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("only etw")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - "only etw" が ETW backend へ 1 回送られること。
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - os_level=NONE のため EventLog へは送られないこと。
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "only etw"); // [手順] - INFO レベルで "only etw" を書き込む。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_tracer_write_at の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -533,13 +533,13 @@ TEST_F(traceTest, write_routes_info_to_eventlog_backend)
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 0, StrEq("myapp"),
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 0, StrEq("myapp"),
                                                     0, StrEq("to eventlog")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が EventLog backend へ 1 回送られること。
                               // [Pre-Assert手順] - com_util_eventlog_sink_write から 0 を返却する。
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "to eventlog");
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "to eventlog");
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result);
@@ -563,14 +563,14 @@ TEST_F(traceTest, write_routes_eventlog_identity_fields)
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 7,
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_INFO, 7,
                                                     StrEq("worker"), 3, StrEq("identity fields")))
         .WillOnce(Return(
             0)); // [Pre-Assert確認_正常系] - EventLog へファイル識別子、元のインスタンス名、インスタンス識別子が個別に送られること。
                  // [Pre-Assert手順] - com_util_eventlog_sink_write から 0 を返却する。
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "identity fields");
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "identity fields");
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result);
@@ -593,7 +593,7 @@ TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("explicit timestamp")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("explicit timestamp")))
         .WillOnce(
             [&timestamp](com_util_syslog_sink *, int, const com_util_timespec *actual_timestamp, const char *)
             {
@@ -602,19 +602,19 @@ TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
                 return 0;
             }); // [Pre-Assert確認_正常系] - 明示タイムスタンプが syslog backend へそのまま渡ること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(),
                                                    StrEq("explicit timestamp")))
         .WillOnce(
             Return(0)); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定でも ETW backend へメッセージが渡ること。
 #endif
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
                                         "explicit timestamp"); // [手順] - 明示タイムスタンプ付き INFO を書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - _com_util_tracer_write の戻り値から、書き込みが成功したと判断できること。
+              result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -630,17 +630,17 @@ TEST_F(traceTest, write_is_null_safe)
 
     // Act
     int null_handle_result =
-        _com_util_tracer_write(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "ignored"); // [手順] - NULL ハンドルで書き込む。
+        com_util_tracer_write_at(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "ignored"); // [手順] - NULL ハンドルで書き込む。
     int null_message_result =
-        _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL); // [手順] - NULL メッセージで書き込む。
+        com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL); // [手順] - NULL メッセージで書き込む。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        null_handle_result); // [確認_異常系] - _com_util_tracer_write の戻り値として、NULL ハンドルで 0 が返ること。
+        null_handle_result); // [確認_異常系] - com_util_tracer_write_at の戻り値として、NULL ハンドルで 0 が返ること。
     EXPECT_EQ(
         COM_UTIL_OK,
-        null_message_result); // [確認_異常系] - _com_util_tracer_write の戻り値として、NULL メッセージで 0 が返ること。
+        null_message_result); // [確認_異常系] - com_util_tracer_write_at の戻り値として、NULL メッセージで 0 が返ること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -666,7 +666,7 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
     // [Pre-Assert確認_正常系] - UTF-8 境界直前の 1021 バイトだけが backend へ渡ること。
     // [Pre-Assert手順] - 切り詰め後の 1021 バイト文字列を確認し、0 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), _))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), _))
         .WillOnce(
             [](com_util_syslog_sink *, int, const com_util_timespec *timestamp, const char *actual)
             {
@@ -677,7 +677,7 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
                 return 0;
             });
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), _))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), _))
         .WillOnce(
             [](com_util_etw_provider *, int, const char *, const char *actual)
             {
@@ -688,13 +688,13 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
 #endif
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         msg); // [手順] - UTF-8 境界を跨ぐ長いメッセージを書き込む。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        result); // [確認_正常系] - _com_util_tracer_write の戻り値から、切り詰め後も書き込みが成功したと判断できること。
+        result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、切り詰め後も書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -712,21 +712,21 @@ TEST_F(traceTest, writef_formats_message)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   StrEq("user=alice count=42")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - format 展開後の文字列が時刻付きで backend へ渡ること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("user=alice count=42")))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("user=alice count=42")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - format 展開後の文字列が backend へ渡ること。
 #endif
 
     // Act
-    int result = _com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "user=%s count=%d", "alice",
+    int result = com_util_tracer_writef_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "user=%s count=%d", "alice",
                                          42); // [手順] - writef を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - _com_util_tracer_writef の戻り値から、書き込みが成功したと判断できること。
+              result); // [確認_正常系] - com_util_tracer_writef_at の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -745,21 +745,21 @@ TEST_F(traceTest, write_hex_formats_payload)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(),
                                                   StrEq("Data: 48 65 6C 6C 6F")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX テキストが時刻付きで backend へ渡ること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("Data: 48 65 6C 6C 6F")))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq("Data: 48 65 6C 6C 6F")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - HEX テキストが backend へ渡ること。
 #endif
 
     // Act
-    int result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+    int result = com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                             "Data"); // [手順] - ラベル付き HEX 書き込みを行う。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - _com_util_tracer_write_hex の戻り値から、書き込みが成功したと判断できること。
+              result); // [確認_正常系] - com_util_tracer_write_hex_at の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -782,21 +782,21 @@ TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
     // [Pre-Assert確認_正常系] - HEX データ本体なしで省略記号だけが backend へ渡ること。
     // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected.c_str())))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected.c_str())))
         .WillOnce(Return(0));
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected.c_str())))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected.c_str())))
         .WillOnce(Return(0));
 #endif
 
     // Act
     int result =
-        _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+        com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                    label.c_str()); // [手順] - 省略記号だけが収まるラベル長で HEX 書き込みを行う。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - _com_util_tracer_write_hex の戻り値から、書き込みが成功したと判断できること。
+              result); // [確認_正常系] - com_util_tracer_write_hex_at の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -883,10 +883,10 @@ TEST_F(traceTest, os_level_raise_takes_effect_while_started)
     // Pre-Assert
     // 旧閾値 INFO では VERBOSE は OS backend へ送られない。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose before")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose before")))
         .Times(0); // [Pre-Assert確認_正常系] - しきい値引き上げ前は VERBOSE が backend へ送られないこと。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, _, _, _,
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, _, _, _,
                                                     HasSubstr("verbose before")))
         .Times(0); // [Pre-Assert確認_正常系] - しきい値引き上げ前は VERBOSE が EventLog へ送られないこと。
 #endif
@@ -894,15 +894,15 @@ TEST_F(traceTest, os_level_raise_takes_effect_while_started)
     // Act
     com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
                           "verbose before"); // [手順] - しきい値引き上げ前に VERBOSE で "verbose before" を書き込む。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Pre-Assert_2
     // 停止せずにしきい値を VERBOSE へ引き上げると VERBOSE が送られる。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose after")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_DEBUG, NotNull(), HasSubstr("verbose after")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - しきい値引き上げ後は VERBOSE が backend へ送られること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, 0,
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(eventlog_handle_, (int)COM_UTIL_TRACE_LEVEL_VERBOSE, 0,
                                                     StrEq("myapp"), 0, HasSubstr("verbose after")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - しきい値引き上げ後は VERBOSE が EventLog へ送られること。
 #endif
@@ -936,9 +936,9 @@ TEST_F(traceTest, set_file_level_threshold_only_no_reopen_while_started)
 
     // Pre-Assert
     // パスとパラメーターが同一でしきい値のみ変える場合は再オープンしない。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - しきい値のみ変更では file sink を再生成しないこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(_))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_dispose(_))
         .Times(0); // [Pre-Assert確認_正常系] - しきい値のみ変更では file sink を破棄しないこと。
 
     // Act
@@ -950,7 +950,7 @@ TEST_F(traceTest, set_file_level_threshold_only_no_reopen_while_started)
         result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、しきい値のみの変更が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_VERBOSE,
               com_util_tracer_get_file_level(handle)); // [確認_正常系] - 変更後の file レベルが反映されること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -966,19 +966,19 @@ TEST_F(traceTest, set_file_level_reopen_on_path_change_while_started)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
                                                                                              // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [状態確認] - start 時に初期パスで file sink を開くこと。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
                                                                                                                      // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Pre-Assert
     // パス変更時は新パスで開き、旧ハンドルを破棄する。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("other.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("other.log"), 0, 0, 0))
         .WillOnce(Return(file_handle2)); // [Pre-Assert確認_正常系] - 新パスで file sink を開くこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(file_handle_))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_dispose(file_handle_))
         .Times(1); // [Pre-Assert確認_正常系] - 旧 file sink を破棄すること。
 
     // Act
@@ -988,7 +988,7 @@ TEST_F(traceTest, set_file_level_reopen_on_path_change_while_started)
     EXPECT_EQ(
         COM_UTIL_OK,
         result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、パス変更を伴う変更が成功したと判断できること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -1002,19 +1002,19 @@ TEST_F(traceTest, set_file_level_disable_while_started)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
                                                                                              // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [状態確認] - start 時に file sink を開くこと。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "trace.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
                                                                                                                      // [状態確認] - com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Pre-Assert
     // 無効化では既存ハンドルを破棄し、再オープンしない。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(file_handle_))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_dispose(file_handle_))
         .Times(1); // [Pre-Assert確認_正常系] - 既存の file sink を破棄すること。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - 無効化では file sink を再生成しないこと。
 
     // Act
@@ -1026,7 +1026,7 @@ TEST_F(traceTest, set_file_level_disable_while_started)
         result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、ファイル出力の無効化が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_NONE,
               com_util_tracer_get_file_level(handle)); // [確認_正常系] - file レベルが NONE になること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -1039,9 +1039,9 @@ TEST_F(traceTest, file_level_routes_to_file_backend)
     com_util_tracer *handle = create_logger();
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - file sink が指定パスで初期化されること。
-    EXPECT_CALL(mock_,
+    EXPECT_CALL(mock_com_util,
                 com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("file info")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - INFO が file sink へ 1 回送られること。
 
@@ -1053,13 +1053,13 @@ TEST_F(traceTest, file_level_routes_to_file_backend)
         COM_UTIL_OK,
         rtc_tracer_set_file_level); // [確認_正常系] - file trace を有効化した com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "file info"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        result); // [確認_正常系] - _com_util_tracer_write の戻り値から、file backend 経由の書き込みが成功したと判断できること。
+        result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、file backend 経由の書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -1072,7 +1072,7 @@ TEST_F(traceTest, set_file_level_passes_flags_to_file_sink)
     com_util_tracer *handle = create_logger();
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, COM_UTIL_TRACE_FILE_SINK_SHARED))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - flags がそのまま create へ渡ること。
 
     // Act
@@ -1101,7 +1101,7 @@ TEST_F(traceTest, set_file_level_defers_sink_creation_until_start)
                                                                                              // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - set_file_level の時点では file sink が生成されないこと。
 
     // Act
@@ -1112,9 +1112,9 @@ TEST_F(traceTest, set_file_level_defers_sink_creation_until_start)
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_tracer_set_file_level); // [確認_正常系] - stopped 中に set_file_level を呼び出した com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
-    ::testing::Mock::VerifyAndClearExpectations(&mock_);
+    ::testing::Mock::VerifyAndClearExpectations(&mock_com_util);
 
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(
             file_handle_)); // [Pre-Assert確認_正常系] - start 時に設定済みパス "trace.log" で file sink が生成されること。
     int rtc_tracer_start = com_util_tracer_start(handle); // [手順] - start で file sink を生成させる。
@@ -1133,7 +1133,7 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
     com_util_tracer *handle = create_logger();
     com_util_timespec timestamp = make_fixed_timestamp();
 
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("trace.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [状態確認] - start 時に file sink を初期化すること。
 
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
@@ -1146,10 +1146,10 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_get_realtime(_))
+    EXPECT_CALL(mock_com_util, com_util_get_realtime(_))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻取得を行わないこと。
     EXPECT_CALL(
-        mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("explicit ts")))
+        mock_com_util, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("explicit ts")))
         .WillOnce(
             [](com_util_trace_file_sink *, int, const com_util_timespec *actual, const char *)
             {
@@ -1162,14 +1162,14 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
 
     // Act
     testing::internal::CaptureStderr();
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, &timestamp,
                                         "explicit ts"); // [手順] - 明示タイムスタンプ付きで書き込む。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        result); // [確認_正常系] - _com_util_tracer_write の戻り値から、明示タイムスタンプ付き書き込みが成功したと判断できること。
+        result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、明示タイムスタンプ付き書き込みが成功したと判断できること。
     EXPECT_NE(
         std::string::npos,
         captured.find(
@@ -1193,14 +1193,14 @@ TEST_F(traceTest, file_level_none_disables_file_backend)
         rtc_tracer_set_file_level); // [状態確認] - level NONE で無効化した com_util_tracer_set_file_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - file sink が生成されないこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_write(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - file sink へは 1 回も送られないこと。
 
     // Act
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL,
                                         "no file output"); // [手順] - ファイル トレース無効のまま書き込む。
 
     // Assert
@@ -1218,7 +1218,7 @@ TEST_F(traceTest, set_name_with_identifier_updates_backend_name)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_rename(os_handle_, StrEq("worker_2")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_rename(os_handle_, StrEq("worker_2")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - syslog ident が worker_2 へ更新されること。
 #endif
 
@@ -1232,9 +1232,9 @@ TEST_F(traceTest, set_name_with_identifier_updates_backend_name)
 #if defined(PLATFORM_WINDOWS)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_INFO));
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, StrEq("worker_2"), StrEq("running as worker_2")))
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, StrEq("worker_2"), StrEq("running as worker_2")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ETW サービス名が worker_2 に更新されること。
-    EXPECT_EQ(COM_UTIL_OK, _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker_2"));
+    EXPECT_EQ(COM_UTIL_OK, com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as worker_2"));
 #endif
 
     // Cleanup
@@ -1253,15 +1253,15 @@ TEST_F(traceTest, os_level_none_suppresses_output)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(_, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - syslog backend が呼ばれないこと。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - EventLog backend が呼ばれないこと。
 #endif
 
     // Act
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_CRITICAL, NULL,
                                         "suppressed"); // [手順] - OS level NONE のまま書き込む。
 
     // Assert
@@ -1287,16 +1287,16 @@ TEST_F(traceTest, stderr_level_debug_outputs_markers)
 
     // Act
     testing::internal::CaptureStderr();
-    int rtc_tracer_write = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
+    int rtc_tracer_write = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_VERBOSE, NULL,
                                                   "verbose to stderr"); // [手順] - VERBOSE を stderr へ出力する。
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_write); // [確認_正常系] - VERBOSE を stderr へ出力した _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    int rtc_tracer_write_2 = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL,
+        rtc_tracer_write); // [確認_正常系] - VERBOSE を stderr へ出力した com_util_tracer_write_at の戻り値が COM_UTIL_OK であること。
+    int rtc_tracer_write_2 = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_DEBUG, NULL,
                                                     "debug to stderr"); // [手順] - DEBUG を stderr へ出力する。
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc_tracer_write_2); // [確認_正常系] - DEBUG を stderr へ出力した _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
+        rtc_tracer_write_2); // [確認_正常系] - DEBUG を stderr へ出力した com_util_tracer_write_at の戻り値が COM_UTIL_OK であること。
     std::string captured = testing::internal::GetCapturedStderr();
 
     // Assert
@@ -1330,12 +1330,12 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_get_realtime(_))
+    EXPECT_CALL(mock_com_util, com_util_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     // [Pre-Assert確認_異常系] - OS backend へ代替時刻で渡ること。
     // [Pre-Assert手順] - OS backend へ代替時刻を渡して 0 を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("invalid ts")))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq("invalid ts")))
         .WillOnce(
             [](com_util_syslog_sink *, int, const com_util_timespec *timestamp, const char *)
             {
@@ -1344,9 +1344,9 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                 return 0;
             });
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_etw_provider_write(os_handle_, 4, _, StrEq("invalid ts"))).WillOnce(Return(0));
+    EXPECT_CALL(mock_com_util, com_util_etw_provider_write(os_handle_, 4, _, StrEq("invalid ts"))).WillOnce(Return(0));
 #endif
-    EXPECT_CALL(mock_,
+    EXPECT_CALL(mock_com_util,
                 com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("invalid ts")))
         .WillOnce(
             [](com_util_trace_file_sink *, int, const com_util_timespec *timestamp, const char *)
@@ -1359,7 +1359,7 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
 
     // Act
     testing::internal::CaptureStderr();
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp,
                                         "invalid ts"); // [手順] - 不正タイムスタンプで書き込む。
     std::string captured = testing::internal::GetCapturedStderr();
 
@@ -1389,10 +1389,10 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
                                                            // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_get_realtime(_))
+    EXPECT_CALL(mock_com_util, com_util_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     EXPECT_CALL(
-        mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("Data: 48 69")))
+        mock_com_util, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(), StrEq("Data: 48 69")))
         .WillOnce(
             [](com_util_trace_file_sink *, int, const com_util_timespec *timestamp, const char *)
             {
@@ -1403,7 +1403,7 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
                 // [Pre-Assert手順] - 代替時刻を確認し、0 を返却する。
 
     // Act
-    int result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, data, sizeof(data),
+    int result = com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_timestamp, data, sizeof(data),
                                             "Data"); // [手順] - 不正タイムスタンプ付きで HEX 書き込みを行う。
 
     // Assert
@@ -1424,28 +1424,28 @@ TEST_F(traceTest, write_fails_when_stopped)
     // Pre-Assert
 
     // Act
-    int write_result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int write_result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                               "stopped message"); // [手順] - stopped 状態で write を呼ぶ。
-    int writef_result = _com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped %s",
+    int writef_result = com_util_tracer_writef_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "stopped %s",
                                                 "msg"); // [手順] - stopped 状態で writef を呼ぶ。
-    int hex_result = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+    int hex_result = com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                                 "hex"); // [手順] - stopped 状態で write_hex を呼ぶ。
-    int hexf_result = _com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex %d",
+    int hexf_result = com_util_tracer_write_hexf_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "hex %d",
                                                   1); // [手順] - stopped 状態で write_hexf を呼ぶ。
 
     // Assert
     EXPECT_EQ(
         -1,
-        write_result); // [確認_異常系] - _com_util_tracer_write の戻り値から、stopped 状態の write が失敗したと判断できること。
+        write_result); // [確認_異常系] - com_util_tracer_write_at の戻り値から、stopped 状態の write が失敗したと判断できること。
     EXPECT_EQ(
         -1,
-        writef_result); // [確認_異常系] - _com_util_tracer_writef の戻り値から、stopped 状態の writef が失敗したと判断できること。
+        writef_result); // [確認_異常系] - com_util_tracer_writef_at の戻り値から、stopped 状態の writef が失敗したと判断できること。
     EXPECT_EQ(
         -1,
-        hex_result); // [確認_異常系] - _com_util_tracer_write_hex の戻り値から、stopped 状態の write_hex が失敗したと判断できること。
+        hex_result); // [確認_異常系] - com_util_tracer_write_hex_at の戻り値から、stopped 状態の write_hex が失敗したと判断できること。
     EXPECT_EQ(
         -1,
-        hexf_result); // [確認_異常系] - _com_util_tracer_write_hexf の戻り値から、stopped 状態の write_hexf が失敗したと判断できること。
+        hexf_result); // [確認_異常系] - com_util_tracer_write_hexf_at の戻り値から、stopped 状態の write_hexf が失敗したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -1489,10 +1489,10 @@ TEST_F(traceTest, start_creates_default_file_sink)
     com_util_tracer *handle = create_logger();
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
         .WillOnce(Return(
             file_handle_)); // [Pre-Assert確認_正常系] - 実行ファイルのディレクトリ配下の log/<有効名>.log を開くこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_write(file_handle_, COM_UTIL_TRACE_LEVEL_INFO, NotNull(),
                                                       StrEq("default file")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - デフォルトの file sink へ INFO が送られること。
 
@@ -1501,13 +1501,13 @@ TEST_F(traceTest, start_creates_default_file_sink)
     ASSERT_EQ(
         COM_UTIL_OK,
         rtc_tracer_start); // [確認_正常系] - 未設定のまま start した com_util_tracer_start の戻り値が COM_UTIL_OK であること。
-    int result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                         "default file"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        result); // [確認_正常系] - _com_util_tracer_write の戻り値から、デフォルトのファイル トレースで書き込みが成功したと判断できること。
+        result); // [確認_正常系] - com_util_tracer_write_at の戻り値から、デフォルトのファイル トレースで書き込みが成功したと判断できること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);
@@ -1525,7 +1525,7 @@ TEST_F(traceTest, set_name_does_not_affect_default_file_path)
                                                            // [状態確認] - com_util_tracer_set_name の戻り値が 0 であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
         .WillOnce(Return(
             file_handle_)); // [Pre-Assert確認_正常系] - set_name に関わらずプロセス名のデフォルト パスを開くこと。
 
@@ -1553,7 +1553,7 @@ TEST_F(traceTest, set_file_name_reflects_to_default_file_path)
                                                                 // [状態確認] - com_util_tracer_set_file_name の戻り値が 0 であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/custom_2.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/custom_2.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - custom_2 のデフォルト パスを開くこと。
 
     // Act
@@ -1587,7 +1587,7 @@ TEST_F(traceTest, set_file_name_null_restores_process_name_default)
         rtc_tracer_set_file_name_2); // [状態確認] - NULL でデフォルトに戻した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - プロセス名のデフォルト パスへ戻ること。
 
     // Act
@@ -1744,7 +1744,7 @@ TEST_F(traceTest, name_getters_fail_safely_for_invalid_arguments)
 TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
 {
     // Arrange
-    ON_CALL(mock_, com_util_process_get_executable_path(_, _))
+    ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillByDefault(
             [](char *out_path, size_t out_path_sz)
             {
@@ -1761,7 +1761,7 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
         rtc_tracer_set_file_name); // [状態確認] - ファイル識別 7 を設定した com_util_tracer_set_file_name の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
         .WillOnce(
             Return(file_handle_)); // [Pre-Assert確認_正常系] - .exe を除いたプロセス名でデフォルト パスを開くこと。
 
@@ -1782,7 +1782,7 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
 TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
 {
     // Arrange
-    ON_CALL(mock_, com_util_process_get_executable_path(_, _))
+    ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillByDefault(Return(
             -1)); // [状態] - com_util_process_get_executable_path が呼び出された際に -1 を返すようにモックを設定する。
     com_util_tracer *handle = create_logger(); // [手順] - 有効名はフォールバックの unknown になる。
@@ -1790,7 +1790,7 @@ TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
                                                                                              // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("log/unknown.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("log/unknown.log"), 0, 0, 0))
         .WillOnce(
             Return(file_handle_)); // [Pre-Assert確認_異常系] - 相対パス log/unknown.log へフォールバックすること。
 
@@ -1815,14 +1815,14 @@ TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails
                                                                                                  // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .WillOnce(
             Return((com_util_trace_file_sink *)NULL)); // [Pre-Assert確認_異常系] - file sink の生成が失敗すること。
 
     // Act
     int start_result = com_util_tracer_start(handle); // [手順] - file sink 生成が失敗する状態で start する。
     testing::internal::CaptureStderr();
-    int write_result = _com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int write_result = com_util_tracer_write_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                               "still works"); // [手順] - ファイル以外の出力を確認する。
     std::string captured = testing::internal::GetCapturedStderr();
 
@@ -1832,7 +1832,7 @@ TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails
               com_util_tracer_get_state(handle)); // [確認_異常系] - それでも started 状態へ遷移すること。
     EXPECT_EQ(
         0,
-        write_result); // [確認_異常系] - _com_util_tracer_write の戻り値から、ファイル以外の書き込みは成功したと判断できること。
+        write_result); // [確認_異常系] - com_util_tracer_write_at の戻り値から、ファイル以外の書き込みは成功したと判断できること。
     EXPECT_NE(std::string::npos,
               captured.find("I still works")); // [確認_異常系] - stderr 出力が継続すること。
 
@@ -1849,11 +1849,11 @@ TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
                                                                                              // [状態確認] - com_util_tracer_set_os_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - 初回 start で従来のファイル名のパスを開くこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(StrEq("/opt/bin/log/renamed.log"), 0, 0, 0))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(StrEq("/opt/bin/log/renamed.log"), 0, 0, 0))
         .WillOnce(Return(file_handle_)); // [Pre-Assert確認_正常系] - 再 start で新しいファイル名のパスを開くこと。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_dispose(file_handle_))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_dispose(file_handle_))
         .Times(2); // [Pre-Assert確認_正常系] - stop 時と dispose 時にトレース ファイルが閉じられること。
 
     // Act

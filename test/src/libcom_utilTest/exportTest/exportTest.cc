@@ -61,108 +61,108 @@
 // 名前一致チェックとシグネチャの static_assert は、いずれも本テーブルから生成する。
 #define COM_UTIL_EXPORT_TABLE_COMMON(EXPORT_ENTRY) \
     /* com_util/argparser/argparser.h */ \
-    EXPORT_ENTRY(_com_util_argparser_create, \
+    EXPORT_ENTRY(com_util_argparser_create, \
                  com_util_argparser *(COM_UTIL_API *)(const com_util_argparser_options *options)) \
-    EXPORT_ENTRY(_com_util_argparser_default, \
+    EXPORT_ENTRY(com_util_argparser_default, \
                  com_util_argparser *(COM_UTIL_API *)(const com_util_argparser_options *options)) \
-    EXPORT_ENTRY(com_util_argparser_init, void(COM_UTIL_API *)(const char *description)) \
-    EXPORT_ENTRY(_com_util_argparser_dispose, void(COM_UTIL_API *)(com_util_argparser * parser)) \
-    EXPORT_ENTRY(_com_util_argparser_register_flag, \
+    EXPORT_ENTRY(com_util_argparser_default_init, void(COM_UTIL_API *)(const char *description)) \
+    EXPORT_ENTRY(com_util_argparser_dispose, void(COM_UTIL_API *)(com_util_argparser * parser)) \
+    EXPORT_ENTRY(com_util_argparser_register_flag, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
                                      const char *description, int *storage)) \
-    EXPORT_ENTRY(com_util_argparser_register_flag, int(COM_UTIL_API *)(const char *short_name, const char *long_name, \
+    EXPORT_ENTRY(com_util_argparser_default_register_flag, int(COM_UTIL_API *)(const char *short_name, const char *long_name, \
                                                                        const char *description, int *storage)) \
-    EXPORT_ENTRY(_com_util_argparser_register_option_int, \
+    EXPORT_ENTRY(com_util_argparser_register_option_int, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
                                      const char *value_name, const char *description, unsigned int flags, \
                                      int *storage)) \
-    EXPORT_ENTRY(com_util_argparser_register_option_int, \
+    EXPORT_ENTRY(com_util_argparser_default_register_option_int, \
                  int(COM_UTIL_API *)(const char *short_name, const char *long_name, const char *value_name, \
                                      const char *description, unsigned int flags, int *storage)) \
-    EXPORT_ENTRY(_com_util_argparser_register_option_string, \
+    EXPORT_ENTRY(com_util_argparser_register_option_string, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
                                      const char *value_name, const char *description, unsigned int flags, \
                                      const char **storage)) \
-    EXPORT_ENTRY(com_util_argparser_register_option_string, \
+    EXPORT_ENTRY(com_util_argparser_default_register_option_string, \
                  int(COM_UTIL_API *)(const char *short_name, const char *long_name, const char *value_name, \
                                      const char *description, unsigned int flags, const char **storage)) \
-    EXPORT_ENTRY(_com_util_argparser_register_option_int_array, \
+    EXPORT_ENTRY(com_util_argparser_register_option_int_array, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
                                      const char *value_name, const char *description, unsigned int flags, \
                                      int *storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(com_util_argparser_register_option_int_array, \
+    EXPORT_ENTRY(com_util_argparser_default_register_option_int_array, \
                  int(COM_UTIL_API *)(const char *short_name, const char *long_name, const char *value_name, \
                                      const char *description, unsigned int flags, int *storage, size_t capacity, \
                                      size_t *count)) \
-    EXPORT_ENTRY(_com_util_argparser_register_option_string_array, \
+    EXPORT_ENTRY(com_util_argparser_register_option_string_array, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
                                      const char *value_name, const char *description, unsigned int flags, \
                                      const char **storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(com_util_argparser_register_option_string_array, \
+    EXPORT_ENTRY(com_util_argparser_default_register_option_string_array, \
                  int(COM_UTIL_API *)(const char *short_name, const char *long_name, const char *value_name, \
                                      const char *description, unsigned int flags, const char **storage, \
                                      size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(_com_util_argparser_register_positional_int, \
+    EXPORT_ENTRY(com_util_argparser_register_positional_int, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *name, const char *description, \
                                      unsigned int flags, int *storage)) \
-    EXPORT_ENTRY(com_util_argparser_register_positional_int, \
+    EXPORT_ENTRY(com_util_argparser_default_register_positional_int, \
                  int(COM_UTIL_API *)(const char *name, const char *description, unsigned int flags, int *storage)) \
-    EXPORT_ENTRY(_com_util_argparser_register_positional_string, \
+    EXPORT_ENTRY(com_util_argparser_register_positional_string, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *name, const char *description, \
                                      unsigned int flags, const char **storage)) \
     EXPORT_ENTRY( \
-        com_util_argparser_register_positional_string, \
+        com_util_argparser_default_register_positional_string, \
         int(COM_UTIL_API *)(const char *name, const char *description, unsigned int flags, const char **storage)) \
-    EXPORT_ENTRY(_com_util_argparser_register_positional_int_array, \
+    EXPORT_ENTRY(com_util_argparser_register_positional_int_array, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *name, const char *description, \
                                      unsigned int flags, int *storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(com_util_argparser_register_positional_int_array, \
+    EXPORT_ENTRY(com_util_argparser_default_register_positional_int_array, \
                  int(COM_UTIL_API *)(const char *name, const char *description, unsigned int flags, int *storage, \
                                      size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(_com_util_argparser_register_positional_string_array, \
+    EXPORT_ENTRY(com_util_argparser_register_positional_string_array, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *name, const char *description, \
                                      unsigned int flags, const char **storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(com_util_argparser_register_positional_string_array, \
+    EXPORT_ENTRY(com_util_argparser_default_register_positional_string_array, \
                  int(COM_UTIL_API *)(const char *name, const char *description, unsigned int flags, \
                                      const char **storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(_com_util_argparser_parse, \
+    EXPORT_ENTRY(com_util_argparser_parse, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, int argc, char *const *argv)) \
-    EXPORT_ENTRY(com_util_argparser_parse, int(COM_UTIL_API *)(int argc, char *const *argv)) \
-    EXPORT_ENTRY(_com_util_argparser_get_error, int(COM_UTIL_API *)(const com_util_argparser *parser)) \
-    EXPORT_ENTRY(com_util_argparser_get_error, int(COM_UTIL_API *)(void)) \
-    EXPORT_ENTRY(_com_util_argparser_get_error_target, const char *(COM_UTIL_API *)(const com_util_argparser *parser)) \
-    EXPORT_ENTRY(com_util_argparser_get_error_target, const char *(COM_UTIL_API *)(void)) \
-    EXPORT_ENTRY(_com_util_argparser_get_error_index, int(COM_UTIL_API *)(const com_util_argparser *parser)) \
-    EXPORT_ENTRY(com_util_argparser_get_error_index, int(COM_UTIL_API *)(void)) \
-    EXPORT_ENTRY(_com_util_argparser_get_error_message, \
+    EXPORT_ENTRY(com_util_argparser_default_parse, int(COM_UTIL_API *)(int argc, char *const *argv)) \
+    EXPORT_ENTRY(com_util_argparser_get_error, int(COM_UTIL_API *)(const com_util_argparser *parser)) \
+    EXPORT_ENTRY(com_util_argparser_default_get_error, int(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_argparser_get_error_target, const char *(COM_UTIL_API *)(const com_util_argparser *parser)) \
+    EXPORT_ENTRY(com_util_argparser_default_get_error_target, const char *(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_argparser_get_error_index, int(COM_UTIL_API *)(const com_util_argparser *parser)) \
+    EXPORT_ENTRY(com_util_argparser_default_get_error_index, int(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_argparser_get_error_message, \
                  int(COM_UTIL_API *)(const com_util_argparser *parser, char *buffer, size_t buffer_size)) \
-    EXPORT_ENTRY(com_util_argparser_get_error_message, int(COM_UTIL_API *)(char *buffer, size_t buffer_size)) \
-    EXPORT_ENTRY(_com_util_argparser_get_usage, int(COM_UTIL_API *)(const com_util_argparser *parser, char *buffer, \
+    EXPORT_ENTRY(com_util_argparser_default_get_error_message, int(COM_UTIL_API *)(char *buffer, size_t buffer_size)) \
+    EXPORT_ENTRY(com_util_argparser_get_usage, int(COM_UTIL_API *)(const com_util_argparser *parser, char *buffer, \
                                                                     size_t buffer_size, size_t *required_size)) \
-    EXPORT_ENTRY(com_util_argparser_get_usage, \
+    EXPORT_ENTRY(com_util_argparser_default_get_usage, \
                  int(COM_UTIL_API *)(char *buffer, size_t buffer_size, size_t *required_size)) \
-    EXPORT_ENTRY(_com_util_argparser_print_usage, int(COM_UTIL_API *)(const com_util_argparser *parser, FILE *stream)) \
-    EXPORT_ENTRY(com_util_argparser_print_usage, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(_com_util_argparser_print_error_messages, \
+    EXPORT_ENTRY(com_util_argparser_print_usage, int(COM_UTIL_API *)(const com_util_argparser *parser, FILE *stream)) \
+    EXPORT_ENTRY(com_util_argparser_default_print_usage, int(COM_UTIL_API *)(FILE * stream)) \
+    EXPORT_ENTRY(com_util_argparser_print_error_messages, \
                  int(COM_UTIL_API *)(const com_util_argparser *parser, FILE *stream)) \
-    EXPORT_ENTRY(com_util_argparser_print_error_messages, int(COM_UTIL_API *)(FILE * stream)) \
-    EXPORT_ENTRY(_com_util_argparser_get_register_error_count, \
+    EXPORT_ENTRY(com_util_argparser_default_print_error_messages, int(COM_UTIL_API *)(FILE * stream)) \
+    EXPORT_ENTRY(com_util_argparser_get_register_error_count, \
                  size_t(COM_UTIL_API *)(const com_util_argparser *parser)) \
-    EXPORT_ENTRY(com_util_argparser_get_register_error_count, size_t(COM_UTIL_API *)(void)) \
-    EXPORT_ENTRY(_com_util_argparser_get_register_error, \
+    EXPORT_ENTRY(com_util_argparser_default_get_register_error_count, size_t(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_argparser_get_register_error, \
                  int(COM_UTIL_API *)(const com_util_argparser *parser, size_t index)) \
-    EXPORT_ENTRY(com_util_argparser_get_register_error, int(COM_UTIL_API *)(size_t index)) \
-    EXPORT_ENTRY(_com_util_argparser_get_register_error_target, \
+    EXPORT_ENTRY(com_util_argparser_default_get_register_error, int(COM_UTIL_API *)(size_t index)) \
+    EXPORT_ENTRY(com_util_argparser_get_register_error_target, \
                  const char *(COM_UTIL_API *)(const com_util_argparser *parser, size_t index)) \
-    EXPORT_ENTRY(com_util_argparser_get_register_error_target, const char *(COM_UTIL_API *)(size_t index)) \
+    EXPORT_ENTRY(com_util_argparser_default_get_register_error_target, const char *(COM_UTIL_API *)(size_t index)) \
     EXPORT_ENTRY( \
-        _com_util_argparser_get_register_error_message, \
+        com_util_argparser_get_register_error_message, \
         int(COM_UTIL_API *)(const com_util_argparser *parser, size_t index, char *buffer, size_t buffer_size)) \
-    EXPORT_ENTRY(com_util_argparser_get_register_error_message, \
+    EXPORT_ENTRY(com_util_argparser_default_get_register_error_message, \
                  int(COM_UTIL_API *)(size_t index, char *buffer, size_t buffer_size)) \
-    EXPORT_ENTRY(_com_util_argparser_print_register_error_messages, \
+    EXPORT_ENTRY(com_util_argparser_print_register_error_messages, \
                  int(COM_UTIL_API *)(const com_util_argparser *parser, FILE *stream)) \
-    EXPORT_ENTRY(com_util_argparser_print_register_error_messages, int(COM_UTIL_API *)(FILE * stream)) \
+    EXPORT_ENTRY(com_util_argparser_default_print_register_error_messages, int(COM_UTIL_API *)(FILE * stream)) \
     /* com_util/clock/clock.h */ \
     EXPORT_ENTRY(com_util_get_monotonic_ms, uint64_t(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_get_monotonic, void(COM_UTIL_API *)(com_util_timespec * ts)) \
@@ -384,6 +384,11 @@
     EXPORT_ENTRY(com_util_mmap_flush, \
                  int(COM_UTIL_API *)(com_util_mmap * map, void *address, size_t length, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_mmap_detach, int(COM_UTIL_API *)(com_util_mmap * map, com_util_error * detail_out)) \
+    /* com_util/net/byteorder.h */ \
+    EXPORT_ENTRY(com_util_hton16, uint16_t(COM_UTIL_API *)(uint16_t value)) \
+    EXPORT_ENTRY(com_util_ntoh16, uint16_t(COM_UTIL_API *)(uint16_t value)) \
+    EXPORT_ENTRY(com_util_hton32, uint32_t(COM_UTIL_API *)(uint32_t value)) \
+    EXPORT_ENTRY(com_util_ntoh32, uint32_t(COM_UTIL_API *)(uint32_t value)) \
     /* com_util/net/endpoint.h */ \
     EXPORT_ENTRY(com_util_ipv4_parse, int(COM_UTIL_API *)(const char *text, uint32_t *address_out)) \
     EXPORT_ENTRY(com_util_ipv4_resolve, \
@@ -448,10 +453,10 @@
     EXPORT_ENTRY(com_util_pinned_prompt_create, \
                  com_util_pinned_prompt *(COM_UTIL_API *)(const com_util_pinned_prompt_options *options)) \
     EXPORT_ENTRY(com_util_pinned_prompt_dispose, void(COM_UTIL_API *)(com_util_pinned_prompt * screen)) \
-    EXPORT_ENTRY(_com_util_pinned_prompt_readline, \
+    EXPORT_ENTRY(com_util_pinned_prompt_readline_at, \
                  int(COM_UTIL_API *)(com_util_pinned_prompt * screen, char *buf, size_t buf_size, \
                                      const char *prompt_str, const char *file, int line)) \
-    EXPORT_ENTRY(_com_util_pinned_prompt_readline_fmt, \
+    EXPORT_ENTRY(com_util_pinned_prompt_readline_fmt_at, \
                  int(COM_UTIL_API *)(com_util_pinned_prompt * screen, char *buf, size_t buf_size, const char *file, \
                                      int line, const char *fmt, ...)) \
     EXPORT_ENTRY(com_util_pinned_prompt_write, \
@@ -541,11 +546,11 @@
     EXPORT_ENTRY(com_util_shutdown_request_register, \
                  int(COM_UTIL_API *)(com_util_shutdown_fn callback, void *context)) \
     EXPORT_ENTRY(com_util_exit, void(COM_UTIL_API *)(int code)) \
-    EXPORT_ENTRY(_com_util_shutdown_invoke_for_test, \
+    EXPORT_ENTRY(com_util_shutdown_invoke_for_test, \
                  int(COM_UTIL_API *)(const com_util_shutdown_event *event, int *invoked_out)) \
-    EXPORT_ENTRY(_com_util_shutdown_request_invoke_for_test, \
+    EXPORT_ENTRY(com_util_shutdown_request_invoke_for_test, \
                  int(COM_UTIL_API *)(const com_util_shutdown_event *event, int *invoked_out)) \
-    EXPORT_ENTRY(_com_util_shutdown_reset_for_test, void(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_shutdown_reset_for_test, void(COM_UTIL_API *)(void)) \
     /* com_util/runtime/sym_loader.h */ \
     EXPORT_ENTRY(com_util_sym_loader_resolve, void *(COM_UTIL_API *)(com_util_sym_loader_entry * fobj)) \
     EXPORT_ENTRY(com_util_sym_loader_is_default, int(COM_UTIL_API *)(com_util_sym_loader_entry * fobj)) \
@@ -627,25 +632,31 @@
     EXPORT_ENTRY(com_util_tracer_start, int(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_stop, int(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_get_state, com_util_tracer_state(COM_UTIL_API *)(com_util_tracer * handle)) \
-    EXPORT_ENTRY(_com_util_tracer_write, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+    EXPORT_ENTRY(com_util_tracer_write_at, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                                              const com_util_timespec *timestamp, const char *message)) \
-    EXPORT_ENTRY(_com_util_tracer_writef, \
+    EXPORT_ENTRY(com_util_tracer_writef_at, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const char *format, ...)) \
-    EXPORT_ENTRY(_com_util_tracer_vwritef, \
+    EXPORT_ENTRY(com_util_tracer_vwritef_at, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const char *format, va_list args)) \
-    EXPORT_ENTRY(_com_util_tracer_write_hex, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+    EXPORT_ENTRY(com_util_tracer_write_hex_at, int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                                                  const com_util_timespec *timestamp, const void *data, \
                                                                  size_t size, const char *message)) \
-    EXPORT_ENTRY(_com_util_tracer_write_hexf, \
+    EXPORT_ENTRY(com_util_tracer_write_hexf_at, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const void *data, size_t size, \
                                      const char *format, ...)) \
-    EXPORT_ENTRY(_com_util_tracer_vwrite_hexf, \
+    EXPORT_ENTRY(com_util_tracer_vwrite_hexf_at, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
                                      const com_util_timespec *timestamp, const void *data, size_t size, \
                                      const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_tracer_hex_sep, const char *(COM_UTIL_API *)(const char *message)) \
+    EXPORT_ENTRY(com_util_tracer_hex_msg, const char *(COM_UTIL_API *)(const char *message)) \
+    EXPORT_ENTRY(com_util_tracer_write_with_source, \
+                 int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level, \
+                                     const com_util_timespec *timestamp, const char *file, int line, \
+                                     const char *message)) \
     EXPORT_ENTRY(com_util_tracer_set_name, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, const char *name, int64_t identifier)) \
     EXPORT_ENTRY(com_util_tracer_get_name, int(COM_UTIL_API *)(com_util_tracer * handle, char *out, size_t out_size)) \

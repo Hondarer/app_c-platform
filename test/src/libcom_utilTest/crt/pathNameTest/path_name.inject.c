@@ -11,5 +11,5 @@
 
 int test_copy_path_name_text(char *path_out, const size_t path_size, com_util_error *detail_out, const char *text)
 {
-    return com_util_copy_path_name_text(path_out, path_size, detail_out, text);
+    return copy_path_name_text(path_out, path_size, detail_out, text);
 }

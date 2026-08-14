@@ -12,7 +12,7 @@ using namespace testing;
 class unistdFormatTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 };
 
 static int call_vaccess_fmt(int mode, com_util_error *detail_out, const char *format, ...)
@@ -33,7 +33,7 @@ TEST_F(unistdFormatTest, passes_formatted_path_to_open)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_access(StrEq("/tmp/sample_42.txt"), COM_UTIL_ACCESS_FMT_F_OK, &detail))
+    EXPECT_CALL(mock_com_util, com_util_access(StrEq("/tmp/sample_42.txt"), COM_UTIL_ACCESS_FMT_F_OK, &detail))
         .WillOnce(Return(
             0)); // [Pre-Assert確認_正常系] - com_util_open が展開後のパス "/tmp/sample_42.txt" を指定して 1 回呼び出されること。
                  // [Pre-Assert手順] - com_util_open から成功を示す 0 を返却する。
@@ -53,7 +53,7 @@ TEST_F(unistdFormatTest, vaccess_fmt_passes_formatted_path_to_open)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_access(StrEq("/tmp/sample_7.txt"), COM_UTIL_ACCESS_FMT_F_OK, &detail))
+    EXPECT_CALL(mock_com_util, com_util_access(StrEq("/tmp/sample_7.txt"), COM_UTIL_ACCESS_FMT_F_OK, &detail))
         .WillOnce(Return(
             0)); // [Pre-Assert確認_正常系] - com_util_open が展開後のパス "/tmp/sample_7.txt" を指定して 1 回呼び出されること。
                  // [Pre-Assert手順] - com_util_open から成功を示す 0 を返却する。
@@ -73,7 +73,7 @@ TEST_F(unistdFormatTest, returns_minus1_without_open_when_format_fails)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_access(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_access(_, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - com_util_open が呼び出されないこと。
 
     // Act

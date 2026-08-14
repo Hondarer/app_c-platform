@@ -165,7 +165,7 @@ flags に 0 を指定した場合は単一プロセス専用であり、プロ�
 通信データやバッファー内容を確認したいときに使います。  
 タイムスタンプ引数の扱いは `com_util_tracer_write` / `com_util_tracer_writef` と同じです。
 
-source location を付けずに生のメッセージを書き込みたい場合は、低レベル関数 `_com_util_tracer_write*()` を直接呼びます。
+source location を付けずに生のメッセージを書き込みたい場合は、低レベル関数 `com_util_tracer_write_at*()` を直接呼びます。
 
 ## 使い方
 

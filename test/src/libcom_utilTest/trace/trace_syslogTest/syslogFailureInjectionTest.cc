@@ -5,7 +5,6 @@
     #include <testfw.h>
     #include <mock_com_util.h>
     #include <mock_stdio.h>
-    #include <mock_stdlib.h>
     #include <sys/mock_socket.h>
 
     #include <com_util/base/result.h>
@@ -33,12 +32,10 @@ class syslogFailureInjectionTest : public Test
 TEST_F(syslogFailureInjectionTest, create_returns_null_when_handle_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_malloc(_))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - malloc がハンドル確保のために 1 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc がハンドル確保のために 1 回目に呼び出されること。
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
@@ -55,14 +52,12 @@ TEST_F(syslogFailureInjectionTest, create_returns_null_when_handle_allocation_fa
 TEST_F(syslogFailureInjectionTest, create_returns_null_when_ident_duplication_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
     /* 1 回目はハンドル、2 回目が識別子の複製になる */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_malloc(_))
         .WillOnce(DoDefault())
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - malloc が識別子の複製のために 2 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc が識別子の複製のために 2 回目に呼び出されること。
                                       // [Pre-Assert手順] - 2 回目は NULL を返却し、他は本物へ委譲する。
 
     // Act
@@ -451,12 +446,10 @@ TEST_F(syslogFailureInjectionTest, rename_reports_out_of_memory_when_duplication
     com_util_syslog_sink *handle =
         com_util_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [状態] - syslog sink を生成する。
     ASSERT_NE((com_util_syslog_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_malloc(_))
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 新しい識別子の確保を失敗させること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     int result = com_util_syslog_sink_rename(handle, "renamed"); // [手順] - 識別子を変更する。

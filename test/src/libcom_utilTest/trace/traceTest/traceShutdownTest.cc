@@ -17,7 +17,7 @@ namespace
 class traceShutdownTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_shutdown_fn shutdown_callback_ = nullptr;
     void *shutdown_context_ = nullptr;
 
@@ -29,9 +29,9 @@ class traceShutdownTest : public Test
 
     void SetUp() override
     {
-        set_trace_sync_mock_defaults(mock_);
+        set_trace_sync_mock_defaults(mock_com_util);
         test_trace_registry_reset_shutdown_state();
-        ON_CALL(mock_, com_util_shutdown_register(_, _))
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _))
             .WillByDefault(
                 [this](com_util_shutdown_fn callback, void *context)
                 {
@@ -41,12 +41,12 @@ class traceShutdownTest : public Test
                 });
 
 #if defined(PLATFORM_LINUX)
-        ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
 #elif defined(PLATFORM_WINDOWS)
-        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif
     }
 

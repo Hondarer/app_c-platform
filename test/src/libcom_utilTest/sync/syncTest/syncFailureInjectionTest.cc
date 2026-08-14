@@ -5,8 +5,6 @@
 #if defined(PLATFORM_LINUX)
 
     #include <mock_pthread.h>
-    #include <mock_stdlib.h>
-    #include <mock_string.h>
 
 using testing::DoDefault;
 using testing::NiceMock;
@@ -49,13 +47,13 @@ TEST_F(syncFailureInjectionTest, local_lock_create_fails_when_mutex_init_fails)
 TEST_F(syncFailureInjectionTest, local_lock_create_fails_when_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_local_lock *lock = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - calloc が 1 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_calloc が 1 回目に呼び出されること。
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
@@ -117,13 +115,13 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_reports_open_failure)
 TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_identity_duplication_fails)
 {
     // Arrange
-    NiceMock<Mock_string> mock_string;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_interprocess_lock *lock = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_string, strdup(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_strdup(_))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - strdup が 1 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_strdup が 1 回目に呼び出されること。
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
@@ -140,13 +138,13 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_identity_dupl
 TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_interprocess_lock *lock = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - calloc が 1 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_calloc が 1 回目に呼び出されること。
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act

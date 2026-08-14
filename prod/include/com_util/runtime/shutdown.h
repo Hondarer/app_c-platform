@@ -221,7 +221,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_invoke_for_test(const com_util_shutdown_event *event,
                                                                         int *invoked_out);
 
     /**
@@ -238,7 +238,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_shutdown_request_invoke_for_test(const com_util_shutdown_event *event,
                                                                                 int *invoked_out);
 
     /**
@@ -251,7 +251,7 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API _com_util_shutdown_reset_for_test(void);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_shutdown_reset_for_test(void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,5 @@
 #include <testfw.h>
 #include <mock_com_util.h>
-#include <mock_stdlib.h>
 #include <com_util/trace/trace_file.h>
 
 #include <cstdio>
@@ -14,19 +13,19 @@ using testing::Return;
 class traceFileAllocFailureTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 
     void SetUp() override
     {
-        ON_CALL(mock_, com_util_file_open(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_file_get_size(_, _, _))
+        ON_CALL(mock_com_util, com_util_file_open(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_file_get_size(_, _, _))
             .WillByDefault(
                 [](const com_util_file *, size_t *size_out, com_util_error *)
                 {
                     *size_out = 0;
                     return 0;
                 });
-        ON_CALL(mock_, com_util_file_close(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_file_close(_, _)).WillByDefault(Return(COM_UTIL_OK));
     }
 };
 
@@ -34,13 +33,11 @@ class traceFileAllocFailureTest : public Test
 TEST_F(traceFileAllocFailureTest, create_returns_null_when_registry_key_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            DoDefault()); // [Pre-Assert確認_異常系] - malloc がレジストリ キーの確保のために 1 回目に呼び出されること。
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc がレジストリ キーの確保のために 1 回目に呼び出されること。
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
@@ -57,14 +54,12 @@ TEST_F(traceFileAllocFailureTest, create_returns_null_when_registry_key_allocati
 TEST_F(traceFileAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
     /* 1 回目はレジストリ キー、2 回目がハンドルの確保になる */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(DoDefault())
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - malloc がハンドルの確保のために 2 回目に呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc がハンドルの確保のために 2 回目に呼び出されること。
                                       // [Pre-Assert手順] - 2 回目は NULL を返却し、他は本物へ委譲する。
 
     // Act
@@ -81,16 +76,14 @@ TEST_F(traceFileAllocFailureTest, create_returns_null_when_handle_allocation_fai
 TEST_F(traceFileAllocFailureTest, create_returns_null_when_path_duplication_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
     /* 1 回目はレジストリ キー、2 回目はハンドル、3 回目がパス文字列の複製になる */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(DoDefault())
         .WillOnce(DoDefault())
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            DoDefault()); // [Pre-Assert確認_異常系] - malloc がパス文字列の複製のために 3 回目に呼び出されること。
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc がパス文字列の複製のために 3 回目に呼び出されること。
                           // [Pre-Assert手順] - 3 回目は NULL を返却し、他は本物へ委譲する。
 
     // Act
@@ -107,13 +100,11 @@ TEST_F(traceFileAllocFailureTest, create_returns_null_when_path_duplication_fail
 TEST_F(traceFileAllocFailureTest, create_returns_null_when_registry_expansion_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            DoDefault()); // [Pre-Assert確認_異常系] - realloc がレジストリ配列の拡張のために 1 回目に呼び出されること。
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_realloc がレジストリ配列の拡張のために 1 回目に呼び出されること。
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act

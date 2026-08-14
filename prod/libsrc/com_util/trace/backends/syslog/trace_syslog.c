@@ -166,17 +166,17 @@ com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int f
         return NULL;
     }
 
-    handle = (com_util_syslog_sink *)malloc(sizeof(com_util_syslog_sink));
+    handle = (com_util_syslog_sink *)com_util_malloc(sizeof(com_util_syslog_sink));
     if (handle == NULL)
     {
         return NULL;
     }
 
     len = strlen(ident) + 1;
-    handle->ident = (char *)malloc(len);
+    handle->ident = (char *)com_util_malloc(len);
     if (handle->ident == NULL)
     {
-        free(handle);
+        com_util_free(handle);
         return NULL;
     }
     memcpy(handle->ident, ident, len);
@@ -190,8 +190,8 @@ com_util_syslog_sink *com_util_syslog_sink_create(const char *ident, const int f
 #endif /* ARCH_X64 */
     if (com_util_local_lock_create(&handle->reconnect_lock) != COM_UTIL_OK)
     {
-        free(handle->ident);
-        free(handle);
+        com_util_free(handle->ident);
+        com_util_free(handle);
         return NULL;
     }
     /* 初回接続を試みる (失敗しても構わない) */
@@ -238,7 +238,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
     prio = (handle->facility & ~7) | (level & 7);
 
     /* RFC 3164 形式: <PRI>TAG[PID]: MSG */
-    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message);
+    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message); /* 置換対象外: 意図的な切り詰め */
     if (n < 0)
     {
         return COM_UTIL_OK;
@@ -257,7 +257,7 @@ int com_util_syslog_sink_write(com_util_syslog_sink *handle, const int level, co
             com_util_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
                 COM_UTIL_OK)
         {
-            debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf);
+            debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf); /* 置換対象外: 意図的な切り詰め */
             if (debug_len < 0)
             {
                 return COM_UTIL_ERR_UNKNOWN;
@@ -370,8 +370,8 @@ void com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
         close(handle->fd);
     }
     com_util_local_lock_destroy(handle->reconnect_lock);
-    free(handle->ident);
-    free(handle);
+    com_util_free(handle->ident);
+    com_util_free(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -388,7 +388,7 @@ int com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_id
     }
 
     len = strlen(new_ident) + 1;
-    dup = (char *)malloc(len);
+    dup = (char *)com_util_malloc(len);
     if (dup == NULL)
     {
         return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -398,10 +398,10 @@ int com_util_syslog_sink_rename(com_util_syslog_sink *handle, const char *new_id
     result = com_util_local_lock_lock(handle->reconnect_lock, COM_UTIL_SYNC_WAIT_FOREVER);
     if (result != COM_UTIL_OK)
     {
-        free(dup);
+        com_util_free(dup);
         return result;
     }
-    free(handle->ident);
+    com_util_free(handle->ident);
     handle->ident = dup;
     result = com_util_local_lock_unlock(handle->reconnect_lock);
 
@@ -422,8 +422,8 @@ void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle)
         close(handle->fd);
     }
     com_util_local_lock_destroy(handle->reconnect_lock);
-    free(handle->ident);
-    free(handle);
+    com_util_free(handle->ident);
+    com_util_free(handle);
 }
 
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)

@@ -128,7 +128,7 @@ OS エラーの原因をプラットフォーム共通で調べる場合は、`e
 
 `result.h` は、粗い分類 (`COM_UTIL_ERR_INVALID_ARGUMENT` など) と細かい操作結果 (`COM_UTIL_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
 モジュール固有の戻り値コード体系は別に設けません。  
-argparser の `_com_util_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`_com_util_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
+argparser の `com_util_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`com_util_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
 
 ### OS エラー詳細の抽象化
 

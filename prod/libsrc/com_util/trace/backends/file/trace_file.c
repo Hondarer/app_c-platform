@@ -14,6 +14,7 @@
  */
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/clock/clock.h>
 #include <com_util/crt/file.h>
 #include <com_util/crt/path.h>
@@ -159,7 +160,7 @@ static char *build_registry_key(const char *path)
     }
 
     len = strlen(src);
-    key = (char *)malloc(len + 1);
+    key = (char *)com_util_malloc(len + 1);
     if (key == NULL)
     {
         return NULL;
@@ -245,8 +246,8 @@ static int sink_registry_register_locked(char *key, com_util_trace_file_sink *si
             new_capacity = s_sink_registry.capacity * 2;
         }
 
-        new_items = (struct sink_registry_entry *)realloc(s_sink_registry.items,
-                                                          new_capacity * sizeof(struct sink_registry_entry));
+        new_items = (struct sink_registry_entry *)com_util_realloc(s_sink_registry.items, new_capacity,
+                                                                   sizeof(struct sink_registry_entry));
         if (new_items == NULL)
         {
             return -1;
@@ -437,24 +438,35 @@ static void rotate_file(com_util_trace_file_sink *p)
     close_file(p);
 
     /* 最老世代のファイルを削除する (失敗は無視) */
-    snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations);
-    (void)com_util_remove(new_path, NULL);
+    if (com_util_snprintf(new_path, sizeof(new_path), "%s.%d", p->path, p->generations) == COM_UTIL_OK)
+    {
+        (void)com_util_remove(new_path, NULL);
+    }
 
     /* path.(gen-1) → path.gen のカスケード リネーム */
     for (gen = p->generations; gen >= 1; gen--)
     {
         /* 移動先: path.gen */
-        snprintf(new_path, sizeof(new_path), "%s.%d", p->path, gen);
+        if (com_util_snprintf(new_path, sizeof(new_path), "%s.%d", p->path, gen) != COM_UTIL_OK)
+        {
+            break;
+        }
 
         /* 移動元: gen==1 のときは path そのもの */
         if (gen == 1)
         {
             /* old_path に path をコピー */
-            snprintf(old_path, sizeof(old_path), "%s", p->path);
+            if (com_util_snprintf(old_path, sizeof(old_path), "%s", p->path) != COM_UTIL_OK)
+            {
+                break;
+            }
         }
         else
         {
-            snprintf(old_path, sizeof(old_path), "%s.%d", p->path, gen - 1);
+            if (com_util_snprintf(old_path, sizeof(old_path), "%s.%d", p->path, gen - 1) != COM_UTIL_OK)
+            {
+                break;
+            }
         }
 
         if (com_util_rename(old_path, new_path, NULL) != 0)
@@ -547,9 +559,9 @@ static void free_sink(com_util_trace_file_sink *p)
         p->mutex_initialized = 0;
     }
 
-    free(p->lock_path);
-    free(p->path);
-    free(p);
+    com_util_free(p->lock_path);
+    com_util_free(p->path);
+    com_util_free(p);
 }
 
 /**
@@ -566,7 +578,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
 {
     com_util_trace_file_sink *handle;
 
-    handle = (com_util_trace_file_sink *)malloc(sizeof(com_util_trace_file_sink));
+    handle = (com_util_trace_file_sink *)com_util_malloc(sizeof(com_util_trace_file_sink));
     if (handle == NULL)
     {
         return NULL;
@@ -606,7 +618,7 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
     }
 
     /* パス文字列をヒープへ複製する */
-    handle->path = (char *)malloc(path_len + 1);
+    handle->path = (char *)com_util_malloc(path_len + 1);
     if (handle->path == NULL)
     {
         free_sink(handle);
@@ -633,13 +645,14 @@ static com_util_trace_file_sink *create_new_sink(const char *path, const size_t 
     /* 共有モード: ローテーション排他用のプロセス間ロックを開く */
     if (handle->shared != 0)
     {
-        handle->lock_path = (char *)malloc(path_len + sizeof(TRACE_FILE_LOCK_SUFFIX));
+        handle->lock_path = (char *)com_util_malloc(path_len + sizeof(TRACE_FILE_LOCK_SUFFIX));
         if (handle->lock_path == NULL)
         {
             free_sink(handle);
             return NULL;
         }
-        snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path, TRACE_FILE_LOCK_SUFFIX);
+        (void)com_util_snprintf(handle->lock_path, path_len + sizeof(TRACE_FILE_LOCK_SUFFIX), "%s%s", path,
+                                TRACE_FILE_LOCK_SUFFIX);
 
         if (com_util_interprocess_lock_open(handle->lock_path, &handle->rotate_lock) != COM_UTIL_OK)
         {
@@ -700,13 +713,13 @@ com_util_trace_file_sink *com_util_trace_file_sink_create(const char *path, cons
         if (entry->sink->shared != requested_shared)
         {
             sink_registry_unlock();
-            free(key);
+            com_util_free(key);
             return NULL;
         }
         entry->refcount++;
         handle = entry->sink;
         sink_registry_unlock();
-        free(key);
+        com_util_free(key);
         return handle;
     }
 
@@ -714,7 +727,7 @@ com_util_trace_file_sink *com_util_trace_file_sink_create(const char *path, cons
     if (handle == NULL)
     {
         sink_registry_unlock();
-        free(key);
+        com_util_free(key);
         return NULL;
     }
 
@@ -722,7 +735,7 @@ com_util_trace_file_sink *com_util_trace_file_sink_create(const char *path, cons
     {
         sink_registry_unlock();
         free_sink(handle);
-        free(key);
+        com_util_free(key);
         return NULL;
     }
 
@@ -758,7 +771,7 @@ int com_util_trace_file_sink_write(com_util_trace_file_sink *handle, const int l
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
-    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level)level), message);
+    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((com_util_trace_level)level), message); /* 置換対象外: 意図的な切り詰め */
     if (len <= 0)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -858,7 +871,7 @@ void com_util_trace_file_sink_dispose(com_util_trace_file_sink *handle)
     }
     sink_registry_unlock();
 
-    free(key_to_free);
+    com_util_free(key_to_free);
     if (should_free)
     {
         free_sink(handle);
@@ -885,7 +898,7 @@ void com_util_trace_file_sink_dispose_on_shutdown(com_util_trace_file_sink *hand
         {
             return;
         }
-        free(entry->key);
+        com_util_free(entry->key);
         sink_registry_remove_locked(entry);
     }
 

@@ -24,7 +24,7 @@
     #include <unistd.h>
 #endif
 
-static int com_util_copy_path_text(char *path_out, const size_t path_size, com_util_error *detail_out, const char *text)
+static int copy_path_text(char *path_out, const size_t path_size, com_util_error *detail_out, const char *text)
 {
     size_t len;
 
@@ -39,7 +39,7 @@ static int com_util_copy_path_text(char *path_out, const size_t path_size, com_u
     return com_util_error_report_success(detail_out);
 }
 
-static int com_util_compare_normalized_paths(const char *lhs, const char *rhs)
+static int compare_normalized_paths(const char *lhs, const char *rhs)
 {
 #if defined(PLATFORM_WINDOWS)
     while (*lhs != '\0' && *rhs != '\0')
@@ -72,14 +72,14 @@ static int com_util_compare_normalized_paths(const char *lhs, const char *rhs)
 }
 
 #if defined(PLATFORM_LINUX)
-static int com_util_normalize_absolute_posix_path(char *path)
+static int normalize_absolute_posix_path(char *path)
 {
     size_t read_idx;
     size_t write_idx;
     size_t *restore_points;
     size_t restore_count = 0u;
 
-    restore_points = (size_t *)calloc(PLATFORM_PATH_MAX, sizeof(*restore_points));
+    restore_points = (size_t *)com_util_calloc(PLATFORM_PATH_MAX, sizeof(*restore_points));
     if (restore_points == NULL)
     {
         return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -134,16 +134,16 @@ static int com_util_normalize_absolute_posix_path(char *path)
     }
 
     path[write_idx] = '\0';
-    free(restore_points);
+    com_util_free(restore_points);
     return COM_UTIL_OK;
 }
 
-static int com_util_build_absolute_posix_path(char *path_out, const size_t path_size, com_util_error *detail_out,
+static int build_absolute_posix_path(char *path_out, const size_t path_size, com_util_error *detail_out,
                                               const char *path)
 {
     if (path[0] == PLATFORM_PATH_SEP_CHR)
     {
-        return com_util_copy_path_text(path_out, path_size, detail_out, path);
+        return copy_path_text(path_out, path_size, detail_out, path);
     }
 
     {
@@ -250,7 +250,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, com_util_erro
         char candidate[PLATFORM_PATH_MAX];
         char resolved[PLATFORM_PATH_MAX];
 
-        int build_result = com_util_build_absolute_posix_path(candidate, sizeof(candidate), detail_out, path);
+        int build_result = build_absolute_posix_path(candidate, sizeof(candidate), detail_out, path);
         if (build_result != COM_UTIL_OK)
         {
             path_out[0] = '\0';
@@ -259,7 +259,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, com_util_erro
 
         com_util_normalize_path_sep(candidate);
         {
-            int normalize_result = com_util_normalize_absolute_posix_path(candidate);
+            int normalize_result = normalize_absolute_posix_path(candidate);
             if (normalize_result != COM_UTIL_OK)
             {
                 path_out[0] = '\0';
@@ -269,10 +269,10 @@ int com_util_path_get_full(char *path_out, const size_t path_size, com_util_erro
 
         if (realpath(candidate, resolved) != NULL)
         {
-            return com_util_copy_path_text(path_out, path_size, detail_out, resolved);
+            return copy_path_text(path_out, path_size, detail_out, resolved);
         }
 
-        return com_util_copy_path_text(path_out, path_size, detail_out, candidate);
+        return copy_path_text(path_out, path_size, detail_out, candidate);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -281,7 +281,7 @@ int com_util_path_get_full(char *path_out, const size_t path_size, com_util_erro
         wchar_t wfull[PLATFORM_PATH_MAX];
         DWORD needed;
 
-        int copy_result = com_util_copy_path_text(normalized_input, sizeof(normalized_input), detail_out, path);
+        int copy_result = copy_path_text(normalized_input, sizeof(normalized_input), detail_out, path);
         if (copy_result != COM_UTIL_OK)
         {
             path_out[0] = '\0';
@@ -325,26 +325,26 @@ int com_util_paths_equal(const char *lhs, const char *rhs, int *equal_out, com_u
 {
     char lhs_full[PLATFORM_PATH_MAX];
     char rhs_full[PLATFORM_PATH_MAX];
-    int rc;
+    int ret;
 
     if (equal_out == NULL)
     {
         return com_util_error_report_errno(detail_out, EINVAL);
     }
 
-    rc = com_util_path_get_full(lhs_full, sizeof(lhs_full), detail_out, lhs);
-    if (rc != COM_UTIL_OK)
+    ret = com_util_path_get_full(lhs_full, sizeof(lhs_full), detail_out, lhs);
+    if (ret != COM_UTIL_OK)
     {
-        return rc;
+        return ret;
     }
 
-    rc = com_util_path_get_full(rhs_full, sizeof(rhs_full), detail_out, rhs);
-    if (rc != COM_UTIL_OK)
+    ret = com_util_path_get_full(rhs_full, sizeof(rhs_full), detail_out, rhs);
+    if (ret != COM_UTIL_OK)
     {
-        return rc;
+        return ret;
     }
 
-    *equal_out = com_util_compare_normalized_paths(lhs_full, rhs_full);
+    *equal_out = compare_normalized_paths(lhs_full, rhs_full);
     return com_util_error_report_success(detail_out);
 }
 

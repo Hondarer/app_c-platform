@@ -4,19 +4,19 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 
-int delegate_real__com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size,
+int delegate_real_com_util_pinned_prompt_readline_fmt_at(com_util_pinned_prompt *screen, char *buf, size_t buf_size,
                                                        const char *file, int line, const char *fmt, va_list args)
 {
     /* 実装側は必要長に応じてバッファーを伸長するため、モックでも切り詰めずに展開する */
     std::vector<char> prompt = mock_com_util_expand_format(fmt, args);
 
-    static auto real_fn = reinterpret_cast<decltype(&_com_util_pinned_prompt_readline)>(
-        resolveSharedSymbolOrExit(kLibComUtilName, "_com_util_pinned_prompt_readline"));
+    static auto real_fn = reinterpret_cast<decltype(&com_util_pinned_prompt_readline_at)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_pinned_prompt_readline_at"));
 
     return real_fn(screen, buf, buf_size, prompt.data(), file, line);
 }
 
-MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt *screen, char *buf, size_t buf_size,
+MOCK_WEAK_IMPL(int, com_util_pinned_prompt_readline_fmt_at, com_util_pinned_prompt *screen, char *buf, size_t buf_size,
                const char *file, int line, const char *fmt, ...)
 {
     int rtc = 0;
@@ -26,11 +26,11 @@ MOCK_WEAK_IMPL(int, _com_util_pinned_prompt_readline_fmt, com_util_pinned_prompt
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->_com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, file, line, fmt, args);
+        rtc = _mock_com_util->com_util_pinned_prompt_readline_fmt_at(screen, buf, buf_size, file, line, fmt, args);
     }
     else
     {
-        rtc = delegate_real__com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, file, line, fmt, args);
+        rtc = delegate_real_com_util_pinned_prompt_readline_fmt_at(screen, buf, buf_size, file, line, fmt, args);
     }
 
     va_end(args);

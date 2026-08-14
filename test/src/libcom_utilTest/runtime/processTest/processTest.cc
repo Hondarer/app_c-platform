@@ -1,7 +1,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 #include <mock_fcntl.h>
-#include <mock_stdlib.h>
 #include <mock_time.h>
 #include <mock_unistd.h>
 #include <sys/mock_wait.h>
@@ -960,7 +959,7 @@ TEST(processTest, RejectsInvalidEnvironmentOverride)
 TEST(processTest, StartReportsProcessAllocationFailure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_process_options options = {};
     com_util_process *process = nullptr;
     char arg0[] = "/bin/true";
@@ -968,10 +967,10 @@ TEST(processTest, StartReportsProcessAllocationFailure)
     options.argv = argv;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(DoDefault())
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - 環境配列後の process ハンドル確保で calloc が失敗すること。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - 環境配列後の process ハンドル確保で com_util_calloc が失敗すること。
                               // [Pre-Assert手順] - 1 回目は本物へ委譲し、2 回目は NULL を返却する。
 
     // Act
@@ -1433,7 +1432,7 @@ TEST(processTest, wait_sleeps_before_finite_deadline_and_detects_exit)
 TEST(processTest, environment_helpers_report_invalid_and_allocation_failures)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char *envp[] = {NULL, NULL};
     char invalid_entry[] = "INVALID";
     char valid_entry[] = "KEY=value";
@@ -1444,13 +1443,13 @@ TEST(processTest, environment_helpers_report_invalid_and_allocation_failures)
     char **duplicate_result;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(nullptr))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が 2 回呼び出されること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が 2 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(nullptr))
-        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - calloc が 2 回呼び出されること。
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - com_util_calloc が 2 回呼び出されること。
                                 // [Pre-Assert手順] - 1 回目は NULL を返却し、2 回目は本物へ委譲する。
 
     // Act
@@ -1504,12 +1503,12 @@ TEST(processTest, completed_process_wait_and_terminate_are_idempotent)
 TEST(processTest, adopt_native_reports_allocation_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - calloc が 1 回呼び出されること。
-                                    // [Pre-Assert手順] - calloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     com_util_process *process = com_util_process_adopt_native(130); // [手順] - プロセス構造体の確保失敗を注入する。
@@ -1551,7 +1550,7 @@ TEST(processTest, environment_helpers_cover_empty_and_override_failure_paths)
 {
     // Arrange
     extern char **environ;
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char **saved_environ = environ;
     char *empty_environment[] = {NULL};
     char valid_override[] = "KEY=value";
@@ -1560,9 +1559,9 @@ TEST(processTest, environment_helpers_cover_empty_and_override_failure_paths)
     char *empty_envp[] = {NULL};
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 環境変数上書きの文字列確保が失敗すること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     char *null_copy = test_process_string_duplicate(NULL); // [手順] - NULL 文字列を複製する。

@@ -16,12 +16,12 @@
 #include <stdarg.h>
 #include <string.h>
 
-static int com_util_path_is_sep(const char c)
+static int path_is_sep(const char c)
 {
     return c == '/' || c == '\\';
 }
 
-static int com_util_copy_path_name_text(char *path_out, const size_t path_size, com_util_error *detail_out,
+static int copy_path_name_text(char *path_out, const size_t path_size, com_util_error *detail_out,
                                         const char *text)
 {
     size_t len;
@@ -56,7 +56,7 @@ const char *com_util_path_basename(const char *path)
 
     for (p = path; *p != '\0'; ++p)
     {
-        if (com_util_path_is_sep(*p))
+        if (path_is_sep(*p))
         {
             last_sep = p;
         }
@@ -86,7 +86,7 @@ int com_util_path_dirname(char *path_out, const size_t path_size, com_util_error
 
     /* 末尾のセパレータ群を除去する (ルートのみの場合は残す) */
     end = path + strlen(path);
-    while (end > path + 1 && com_util_path_is_sep(*(end - 1)))
+    while (end > path + 1 && path_is_sep(*(end - 1)))
     {
         --end;
     }
@@ -94,7 +94,7 @@ int com_util_path_dirname(char *path_out, const size_t path_size, com_util_error
     last_sep = NULL;
     for (p = path; p < end; ++p)
     {
-        if (com_util_path_is_sep(*p))
+        if (path_is_sep(*p))
         {
             last_sep = p;
         }
@@ -102,13 +102,13 @@ int com_util_path_dirname(char *path_out, const size_t path_size, com_util_error
 
     if (last_sep == NULL)
     {
-        return com_util_copy_path_name_text(path_out, path_size, detail_out, ".");
+        return copy_path_name_text(path_out, path_size, detail_out, ".");
     }
 
     /* 最後のセパレータより前がすべてセパレータの場合 (例: "/name") はルートを返す */
     if (last_sep == path)
     {
-        return com_util_copy_path_name_text(path_out, path_size, detail_out, PLATFORM_PATH_SEP);
+        return copy_path_name_text(path_out, path_size, detail_out, PLATFORM_PATH_SEP);
     }
 
     len = (size_t)(last_sep - path);
@@ -120,7 +120,7 @@ int com_util_path_dirname(char *path_out, const size_t path_size, com_util_error
 
     for (p = path; p < last_sep; ++p)
     {
-        if (com_util_path_is_sep(*p))
+        if (path_is_sep(*p))
         {
             path_out[p - path] = PLATFORM_PATH_SEP_CHR;
         }
@@ -235,7 +235,7 @@ int com_util_vpath_join_n(char *path_out, const size_t path_size, com_util_error
                 continue;
             }
 
-            part_starts_with_sep = com_util_path_is_sep(part[0]);
+            part_starts_with_sep = path_is_sep(part[0]);
 
             if (have_prev_nonempty)
             {
@@ -266,7 +266,7 @@ int com_util_vpath_join_n(char *path_out, const size_t path_size, com_util_error
             required_size += part_len - skip_leading;
 
             have_prev_nonempty = 1;
-            prev_ends_with_sep = com_util_path_is_sep(part[part_len - 1u]);
+            prev_ends_with_sep = path_is_sep(part[part_len - 1u]);
         }
     }
     va_end(args_copy);
@@ -285,8 +285,8 @@ int com_util_vpath_join_n(char *path_out, const size_t path_size, com_util_error
 
         if (offset > 0u)
         {
-            int prev_ends_with_sep = com_util_path_is_sep(path_out[offset - 1u]);
-            int part_starts_with_sep = com_util_path_is_sep(part[0]);
+            int prev_ends_with_sep = path_is_sep(path_out[offset - 1u]);
+            int part_starts_with_sep = path_is_sep(part[0]);
 
             if (prev_ends_with_sep && part_starts_with_sep)
             {

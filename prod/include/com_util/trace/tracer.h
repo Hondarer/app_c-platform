@@ -470,7 +470,7 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_write_at(com_util_tracer *handle, com_util_trace_level level,
                                                             const com_util_timespec *timestamp, const char *message);
 
     /**
@@ -489,12 +489,12 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_writef_at(com_util_tracer *handle, com_util_trace_level level,
                                                              const com_util_timespec *timestamp, const char *format,
                                                              ...);
 
     /**
-     *  @brief          書式付きメッセージをトレースに書き込む低レベル関数 (`_com_util_tracer_writef` の `va_list` 版) です。
+     *  @brief          書式付きメッセージをトレースに書き込む低レベル関数 (`com_util_tracer_writef_at` の `va_list` 版) です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level)。
@@ -507,7 +507,7 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwritef(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_vwritef_at(com_util_tracer *handle, com_util_trace_level level,
                                                               const com_util_timespec *timestamp, const char *format,
                                                               va_list args);
 
@@ -528,7 +528,7 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_write_hex_at(com_util_tracer *handle, com_util_trace_level level,
                                                                 const com_util_timespec *timestamp, const void *data,
                                                                 size_t size, const char *message);
 
@@ -550,12 +550,12 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_write_hexf_at(com_util_tracer *handle, com_util_trace_level level,
                                                                  const com_util_timespec *timestamp, const void *data,
                                                                  size_t size, const char *format, ...);
 
     /**
-     *  @brief          バイナリ データを HEX テキスト形式で書き込む低レベル関数 (`_com_util_tracer_write_hexf` の `va_list` 版) です。
+     *  @brief          バイナリ データを HEX テキスト形式で書き込む低レベル関数 (`com_util_tracer_write_hexf_at` の `va_list` 版) です。
      *
      *  @param[in]      handle     com_util_tracer_create の戻り値。
      *  @param[in]      level      トレース レベル (com_util_trace_level)。
@@ -570,7 +570,7 @@ extern "C"
      *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwrite_hexf(com_util_tracer *handle, com_util_trace_level level,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_vwrite_hexf_at(com_util_tracer *handle, com_util_trace_level level,
                                                                   const com_util_timespec *timestamp, const void *data,
                                                                   size_t size, const char *format, va_list args);
 
@@ -868,7 +868,7 @@ extern "C"
      *  @brief          トレース フックを登録します。
      *
      *  フックはプロセス内コールバックとして動作し、
-     *  _com_util_tracer_write 系関数を経由したすべての trace 呼び出しを受信できます。\n
+     *  com_util_tracer_write_at 系関数を経由したすべての trace 呼び出しを受信できます。\n
      *  フィルター条件はなく、COM_UTIL_TRACE_LEVEL_NONE で要求された呼び出しも含め
      *  すべての trace イベントが通知されます。\n
      *  タイムスタンプは解決済みの状態でコールバックに渡されます。\n
@@ -937,92 +937,69 @@ extern "C"
                                                                      const com_util_timespec *timestamp,
                                                                      const char *message);
 
+    /**
+     *  @brief  HEX 出力用ラベル セパレータを返すヘルパー関数です。
+     *  @internal
+     */
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_tracer_hex_sep(const char *message);
+
+    /**
+     *  @brief  HEX 出力用ラベル文字列を返すヘルパー関数 (NULL ガード) です。
+     *  @internal
+     */
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_tracer_hex_msg(const char *message);
+
+    /**
+     *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込みます。
+     *  @param[in]      handle     com_util_tracer_create の戻り値。
+     *  @param[in]      level      トレース レベル (com_util_trace_level)。
+     *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
+     *  @param[in]      file       出力に付与するソース ファイル名。
+     *  @param[in]      line       出力に付与するソース行番号。
+     *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *  @internal
+     *
+     *  @par            スレッド セーフ
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_write_with_source(com_util_tracer *handle,
+                                                                       com_util_trace_level level,
+                                                                       const com_util_timespec *timestamp,
+                                                                       const char *file, int line,
+                                                                       const char *message);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-/* ===== ソース位置自動付与マクロ ===== */
-
-/**
- *  @brief  HEX 出力用ラベル セパレータを返す内部ヘルパー関数です。
- *  @internal
- */
-static inline const char *_com_util_tracer_hex_sep(const char *message)
-{
-    if (message != NULL && message[0] != '\0')
-    {
-        return " ";
-    }
-    return "";
-}
-
-/**
- *  @brief  HEX 出力用ラベル文字列を返す内部ヘルパー関数 (NULL ガード) です。
- *  @internal
- */
-static inline const char *_com_util_tracer_hex_msg(const char *message)
-{
-    if (message != NULL)
-    {
-        return message;
-    }
-    return "";
-}
-
-/**
- *  @brief          ソース位置付きメッセージを組み立てて tracer へ書き込む内部ヘルパーです。
- *  @param[in]      handle     com_util_tracer_create の戻り値。
- *  @param[in]      level      トレース レベル (com_util_trace_level)。
- *  @param[in]      timestamp  使用する実時刻。NULL の場合は API 内部で現在時刻を取得。
- *  @param[in]      file       出力に付与するソース ファイル名。
- *  @param[in]      line       出力に付与するソース行番号。
- *  @param[in]      message    null 終端 UTF-8 文字列。NULL の場合はソース位置のみを出力。
- *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
- *  @internal
- *
- *  @par            スレッド セーフ
- *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
- *  内部で _com_util_tracer_writef に委譲しており、複数スレッドから同時に呼び出せます。
- */
-static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, com_util_trace_level level,
-                                                     const com_util_timespec *timestamp, const char *file, int line,
-                                                     const char *message)
-{
-    if (message != NULL)
-    {
-        return _com_util_tracer_writef(handle, level, timestamp, "[%s:%d] %s", file, line, message);
-    }
-
-    return _com_util_tracer_writef(handle, level, timestamp, "[%s:%d]", file, line);
-}
 
 /**
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write マクロです。
  */
 #define com_util_tracer_write(handle, level, timestamp, message) \
-    _com_util_tracer_write_with_source((handle), (level), (timestamp), com_util_path_basename(__FILE__), __LINE__, \
+    com_util_tracer_write_with_source((handle), (level), (timestamp), com_util_path_basename(__FILE__), __LINE__, \
                                        (message))
 
 /**
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_writef マクロです。
  */
 #define com_util_tracer_writef(handle, level, timestamp, fmt, ...) \
-    _com_util_tracer_writef((handle), (level), (timestamp), "[%s:%d] " fmt, com_util_path_basename(__FILE__), \
+    com_util_tracer_writef_at((handle), (level), (timestamp), "[%s:%d] " fmt, com_util_path_basename(__FILE__), \
                             __LINE__, ##__VA_ARGS__)
 
 /**
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hex マクロです。
  */
 #define com_util_tracer_write_hex(handle, level, timestamp, data, size, message) \
-    _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
-                                com_util_path_basename(__FILE__), __LINE__, _com_util_tracer_hex_sep(message), \
-                                _com_util_tracer_hex_msg(message))
+    com_util_tracer_write_hexf_at((handle), (level), (timestamp), (data), (size), "[%s:%d]%s%s", \
+                                com_util_path_basename(__FILE__), __LINE__, com_util_tracer_hex_sep(message), \
+                                com_util_tracer_hex_msg(message))
 
 /**
  *  @brief          ソース ファイル名と行番号を自動付与する com_util_tracer_write_hexf マクロです。
  */
 #define com_util_tracer_write_hexf(handle, level, timestamp, data, size, fmt, ...) \
-    _com_util_tracer_write_hexf((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
+    com_util_tracer_write_hexf_at((handle), (level), (timestamp), (data), (size), "[%s:%d] " fmt, \
                                 com_util_path_basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /** @} */

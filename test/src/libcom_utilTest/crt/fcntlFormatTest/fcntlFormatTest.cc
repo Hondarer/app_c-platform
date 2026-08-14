@@ -13,7 +13,7 @@ using namespace testing;
 class fcntlFormatTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 };
 
 static int call_vopen_fmt(int flags, int mode, com_util_error *detail_out, const char *format, ...)
@@ -34,7 +34,7 @@ TEST_F(fcntlFormatTest, passes_formatted_path_to_open)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_open(StrEq("/tmp/sample_42.txt"), O_RDONLY, 0, &detail))
+    EXPECT_CALL(mock_com_util, com_util_open(StrEq("/tmp/sample_42.txt"), O_RDONLY, 0, &detail))
         .WillOnce(Return(7)); // [Pre-Assert確認_正常系] - com_util_open が展開後のパス "/tmp/sample_42.txt" を指定して 1 回呼び出されること。
                               // [Pre-Assert手順] - com_util_open からファイル記述子 7 を返却する。
 
@@ -53,7 +53,7 @@ TEST_F(fcntlFormatTest, vopen_fmt_passes_formatted_path_to_open)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_open(StrEq("/tmp/sample_7.txt"), O_RDONLY, 0, &detail))
+    EXPECT_CALL(mock_com_util, com_util_open(StrEq("/tmp/sample_7.txt"), O_RDONLY, 0, &detail))
         .WillOnce(Return(3)); // [Pre-Assert確認_正常系] - com_util_open が展開後のパス "/tmp/sample_7.txt" を指定して 1 回呼び出されること。
                               // [Pre-Assert手順] - com_util_open からファイル記述子 3 を返却する。
 
@@ -72,7 +72,7 @@ TEST_F(fcntlFormatTest, returns_minus1_without_open_when_format_fails)
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_open(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_open(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - com_util_open が呼び出されないこと。
 
     // Act

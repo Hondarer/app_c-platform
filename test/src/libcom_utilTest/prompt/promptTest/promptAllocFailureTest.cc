@@ -1,6 +1,5 @@
 #include <testfw.h>
 #include <mock_com_util.h>
-#include <mock_stdlib.h>
 #include <com_util/base/result.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/prompt_internal.h>
@@ -35,13 +34,13 @@ class promptAllocFailureTest : public Test
 TEST_F(promptAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, 1u, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(1u, _))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - calloc が要素数 1 を指定してハンドル確保のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - calloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_calloc が要素数 1 を指定してハンドル確保のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     com_util_prompt *handle = com_util_prompt_create(NULL); // [手順] - com_util_prompt_create を呼び出す。
@@ -55,13 +54,13 @@ TEST_F(promptAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 TEST_F(promptAllocFailureTest, create_returns_null_when_edit_buffer_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が編集バッファー確保のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - malloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が編集バッファー確保のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     com_util_prompt *handle = com_util_prompt_create(NULL); // [手順] - com_util_prompt_create を呼び出す。
@@ -75,16 +74,16 @@ TEST_F(promptAllocFailureTest, create_returns_null_when_edit_buffer_allocation_f
 TEST_F(promptAllocFailureTest, readline_falls_back_when_context_expansion_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char buf[32]; // [状態] - 出力バッファーを用意する。
 
     promptFakeSetInput("abc\r");
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - realloc がコンテキスト配列の拡張のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - realloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_realloc がコンテキスト配列の拡張のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
@@ -101,16 +100,16 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_context_expansion_fails)
 TEST_F(promptAllocFailureTest, readline_falls_back_when_saved_line_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char buf[32]; // [状態] - 出力バッファーを用意する。
 
     promptFakeSetInput("abc\r");
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が退避バッファー確保のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - malloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が退避バッファー確保のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
@@ -127,17 +126,17 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_saved_line_allocation_fa
 TEST_F(promptAllocFailureTest, readline_succeeds_when_history_entry_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char buf[32]; // [状態] - 出力バッファーを用意する。
 
     promptFakeSetInput("abc\r");
     /* 1 回目はコンテキスト生成時の退避バッファー、2 回目が履歴エントリの確保になる */
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(DoDefault())
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が 2 回呼び出されること。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が 2 回呼び出されること。
                               // [Pre-Assert手順] - 1 回目は本物へ委譲し、2 回目は NULL を返却する。
 
     // Act
@@ -153,7 +152,7 @@ TEST_F(promptAllocFailureTest, readline_succeeds_when_history_entry_allocation_f
 TEST_F(promptAllocFailureTest, readline_fmt_continues_with_empty_prompt_when_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char buf[32]; // [状態] - 出力バッファーを用意する。
 
     promptFakeSetInput("abc\r");
@@ -161,13 +160,13 @@ TEST_F(promptAllocFailureTest, readline_fmt_continues_with_empty_prompt_when_all
     // Pre-Assert
     /* 書式バッファー以外の確保 (コンテキストの退避バッファーなど) は本物へ委譲する。
        gMock は後から宣言した期待値を優先するため、汎用の期待値を先に宣言する */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_正常系] - 書式バッファー以外の malloc が任意の回数呼び出されること。
-                                      // [Pre-Assert手順] - 本物の malloc へ委譲する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 256u))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_正常系] - 書式バッファー以外の com_util_malloc が任意の回数呼び出されること。
+                                      // [Pre-Assert手順] - 本物の com_util_malloc へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_malloc(256u))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が書式バッファーの初期容量 256 を指定して 1 回呼び出されること。
-                              // [Pre-Assert手順] - malloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が書式バッファーの初期容量 256 を指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 4, "[%d] ",
@@ -192,15 +191,15 @@ TEST_F(promptAllocFailureTest, readline_fmt_truncates_prompt_when_reallocation_f
                                                            "%s", "short")); // [状態] - 同じ呼び出し位置でコンテキストと書式バッファーを確保する。
                                                                             // [状態確認] - com_util_prompt_readline_fmt_at の戻り値が COM_UTIL_OK であること。
 
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
 
     promptFakeSetInput("abc\r");
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - realloc が書式バッファーの拡張のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - realloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_realloc が書式バッファーの拡張のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 5, "%s",

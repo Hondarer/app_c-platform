@@ -4,6 +4,7 @@
  */
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/prompt/prompt_internal.h>
 
 #include <com_util/crt/stdio.h>
@@ -67,7 +68,7 @@ static void history_add(com_util_prompt *p, com_util_prompt_ctx *ctx, const char
     if (ctx->count == p->history_max)
     {
         /* 最古エントリを上書き */
-        free(ctx->entries[ctx->head]);
+        com_util_free(ctx->entries[ctx->head]);
         ctx->entries[ctx->head] = NULL;
         ctx->head = (ctx->head + 1) % p->history_max;
     }
@@ -77,7 +78,7 @@ static void history_add(com_util_prompt *p, com_util_prompt_ctx *ctx, const char
     }
     slot = HIST_IDX(ctx, ctx->count - 1);
     line_size = strlen(line) + 1;
-    ctx->entries[slot] = (char *)malloc(line_size);
+    ctx->entries[slot] = (char *)com_util_malloc(line_size);
     if (ctx->entries[slot] != NULL)
     {
         (void)com_util_strcpy(ctx->entries[slot], line_size, line);
@@ -327,7 +328,7 @@ static com_util_prompt_ctx *find_or_create_ctx(com_util_prompt *p, const char *f
         {
             new_cap = 4;
         }
-        new_contexts = (com_util_prompt_ctx *)realloc(p->contexts, new_cap * sizeof(com_util_prompt_ctx));
+        new_contexts = (com_util_prompt_ctx *)com_util_realloc(p->contexts, new_cap, sizeof(com_util_prompt_ctx));
         if (new_contexts == NULL)
         {
             return NULL;
@@ -340,14 +341,14 @@ static com_util_prompt_ctx *find_or_create_ctx(com_util_prompt *p, const char *f
     memset(ctx, 0, sizeof(*ctx));
     ctx->file = file;
     ctx->line = line;
-    ctx->entries = (char **)calloc(p->history_max, sizeof(char *));
-    ctx->saved_line = (char *)malloc(p->input_max_bytes);
+    ctx->entries = (char **)com_util_calloc(p->history_max, sizeof(char *));
+    ctx->saved_line = (char *)com_util_malloc(p->input_max_bytes);
     ctx->browse_idx = -1;
 
     if (ctx->entries == NULL || ctx->saved_line == NULL)
     {
-        free(ctx->entries);
-        free(ctx->saved_line);
+        com_util_free(ctx->entries);
+        com_util_free(ctx->saved_line);
         ctx->entries = NULL;
         ctx->saved_line = NULL;
         p->ctx_count--;
@@ -365,7 +366,7 @@ static com_util_prompt_ctx *find_or_create_ctx(com_util_prompt *p, const char *f
 
 com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
 {
-    com_util_prompt *p = (com_util_prompt *)calloc(1, sizeof(*p));
+    com_util_prompt *p = (com_util_prompt *)com_util_calloc(1, sizeof(*p));
     size_t history_max;
     size_t input_initial_capacity;
     size_t input_max_bytes;
@@ -397,10 +398,10 @@ com_util_prompt *com_util_prompt_create(const com_util_prompt_options *options)
     p->history_max = history_max;
     p->input_max_bytes = input_max_bytes;
     p->edit_cap = input_initial_capacity;
-    p->edit_buf = (char *)malloc(p->edit_cap);
+    p->edit_buf = (char *)com_util_malloc(p->edit_cap);
     if (p->edit_buf == NULL)
     {
-        free(p);
+        com_util_free(p);
         return NULL;
     }
     p->edit_buf[0] = '\0';
@@ -427,15 +428,15 @@ void com_util_prompt_dispose(com_util_prompt *prompt)
         com_util_prompt_ctx *ctx = &prompt->contexts[i];
         for (j = 0; j < prompt->history_max; j++)
         {
-            free(ctx->entries[j]);
+            com_util_free(ctx->entries[j]);
         }
-        free(ctx->entries);
-        free(ctx->saved_line);
+        com_util_free(ctx->entries);
+        com_util_free(ctx->saved_line);
     }
-    free(prompt->contexts);
-    free(prompt->edit_buf);
-    free(prompt->prompt_fmt_buf);
-    free(prompt);
+    com_util_free(prompt->contexts);
+    com_util_free(prompt->edit_buf);
+    com_util_free(prompt->prompt_fmt_buf);
+    com_util_free(prompt);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -651,7 +652,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
     if (p->prompt_fmt_buf == NULL)
     {
         p->prompt_fmt_cap = 256U;
-        p->prompt_fmt_buf = (char *)malloc(p->prompt_fmt_cap);
+        p->prompt_fmt_buf = (char *)com_util_malloc(p->prompt_fmt_cap);
         if (p->prompt_fmt_buf == NULL)
         {
             return com_util_prompt_readline_at(p, buf, buf_size, "", file, line);
@@ -669,7 +670,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
     for (;;)
     {
         va_start(ap, fmt);
-        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap);
+        needed = vsnprintf(p->prompt_fmt_buf, p->prompt_fmt_cap, fmt_str, ap); /* 置換対象外: 必要長の照会 */
         va_end(ap);
 
         if (needed < 0)
@@ -684,7 +685,7 @@ int com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf, size_t buf_si
         /* バッファー不足: 必要サイズへ拡張して再試行 */
         {
             size_t new_cap = (size_t)needed + 1U;
-            char *new_buf = (char *)realloc(p->prompt_fmt_buf, new_cap);
+            char *new_buf = (char *)com_util_realloc(p->prompt_fmt_buf, new_cap, 1U);
             if (new_buf == NULL)
             {
                 p->prompt_fmt_buf[p->prompt_fmt_cap - 1U] = '\0'; /* 切り捨てて続行 */

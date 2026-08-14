@@ -35,6 +35,7 @@
  */
 
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/string.h>
 #include <com_util/runtime/sym_loader.h>
 #include <cJSON.h>
@@ -93,7 +94,7 @@ void com_util_sym_loader_init(com_util_sym_loader_entry *const *fobj_array, cons
     }
 
     file_size = (size_t)size;
-    buffer = (char *)malloc(file_size + 1u);
+    buffer = (char *)com_util_malloc(file_size + 1u);
     if (buffer == NULL)
     {
         goto out_close;
@@ -191,7 +192,7 @@ out_free_json:
     cJSON_Delete(root);
     root = NULL;
 out_free_buffer:
-    free(buffer);
+    com_util_free(buffer);
     buffer = NULL;
 out_close:
     (void)com_util_fclose(fp, NULL);

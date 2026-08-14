@@ -15,6 +15,7 @@
  */
 
 #include <com_util/win32/win32.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -36,7 +37,7 @@ HMODULE LoadLibraryU(const char *utf8_file_name)
     }
 
     result = LoadLibraryW(wfile_name);
-    free(wfile_name);
+    com_util_free(wfile_name);
     return result;
 }
 

@@ -1,8 +1,6 @@
 #include <testfw.h>
 #include "mmapTestCommon.h"
 
-#include <mock_stdlib.h>
-
 #include <errno.h>
 
 using testing::Assign;
@@ -261,14 +259,13 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_file_close_fails)
 TEST_F(mmapFailureInjectionTest, attach_returns_out_of_memory_when_handle_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
     com_util_mmap *map = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_calloc(_, _))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            DoDefault()); // [Pre-Assert確認_異常系] - com_util_mmap_attach のハンドル確保で calloc が呼び出されること。
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_mmap_attach のハンドル確保で com_util_calloc が呼び出されること。
                           // [Pre-Assert手順] - ハンドル確保で NULL を返却する。
 
     // Act
@@ -286,16 +283,15 @@ TEST_F(mmapFailureInjectionTest, attach_returns_out_of_memory_when_handle_alloca
 TEST_F(mmapFailureInjectionTest, attach_unmaps_when_identity_duplication_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
     com_util_mmap *map = NULL;
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
     // Pre-Assert
     /* ハンドルは calloc で確保されるため、attach 内の最初の malloc が識別子の複製になる */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util_, com_util_malloc(_))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            DoDefault()); // [Pre-Assert確認_異常系] - malloc が識別子の複製のために 1 回目に呼び出されること。
+            DoDefault()); // [Pre-Assert確認_異常系] - com_util_malloc が識別子の複製のために 1 回目に呼び出されること。
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
     // [Pre-Assert確認_異常系] - 確保済みのマップが 1 回解除されること。
 #if defined(PLATFORM_LINUX)

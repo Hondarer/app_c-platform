@@ -2,7 +2,6 @@
 
 #include <mock_com_util.h>
 #include <mock_stdio.h>
-#include <mock_stdlib.h>
 
 #include <com_util/trace/trace_file.h>
 #include <com_util/trace/backends/file/trace_file_internal.h>
@@ -37,51 +36,51 @@ static void set_file_id(com_util_file_id *id_out, const uint64_t volume, const u
 class traceFileCoverageTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 
     void SetUp() override
     {
-        ON_CALL(mock_, com_util_get_realtime(_))
+        ON_CALL(mock_com_util, com_util_get_realtime(_))
             .WillByDefault(
                 [](com_util_timespec *timestamp)
                 {
                     timestamp->tv_sec = 1714100645LL;
                     timestamp->tv_nsec = 678000000;
                 });
-        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, const size_t buf_size, const com_util_timespec *)
                 {
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_file_open(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_file_get_size(_, _, _))
+        ON_CALL(mock_com_util, com_util_file_open(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_file_get_size(_, _, _))
             .WillByDefault(
                 [](const com_util_file *, size_t *size_out, com_util_error *)
                 {
                     *size_out = 0;
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_file_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_file_close(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_remove(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_rename(_, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_file_get_id(_, _, _))
+        ON_CALL(mock_com_util, com_util_file_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_file_close(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_remove(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_rename(_, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_file_get_id(_, _, _))
             .WillByDefault(
                 [](const com_util_file *, com_util_file_id *id_out, com_util_error *)
                 {
                     set_file_id(id_out, 1, kFileIndex);
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_file_get_path_id(_, _, _))
+        ON_CALL(mock_com_util, com_util_file_get_path_id(_, _, _))
             .WillByDefault(
                 [](const char *, com_util_file_id *id_out, com_util_error *)
                 {
                     set_file_id(id_out, 1, kFileIndex);
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_interprocess_lock_open(_, _))
+        ON_CALL(mock_com_util, com_util_interprocess_lock_open(_, _))
             .WillByDefault(
                 [](const char *, com_util_interprocess_lock **lock)
                 {
@@ -89,9 +88,9 @@ class traceFileCoverageTest : public Test
                     *lock = (com_util_interprocess_lock *)&dummy_lock;
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
     }
 };
 
@@ -101,10 +100,10 @@ TEST_F(traceFileCoverageTest, create_uses_original_path_when_full_path_resolutio
     // Arrange
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_path_get_full(_, _, _, StrEq("relative.log")))
+    EXPECT_CALL(mock_com_util, com_util_path_get_full(_, _, _, StrEq("relative.log")))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - フル パス解決を 1 回呼び出すこと。
                                              // [Pre-Assert手順] - フル パス解決から COM_UTIL_ERR_UNKNOWN を返却する。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("relative.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, StrEq("relative.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - 元のパスでファイルを開くこと。
                                         // [Pre-Assert手順] - com_util_file_open から COM_UTIL_OK を返却する。
 
@@ -159,7 +158,7 @@ TEST_F(traceFileCoverageTest, create_accepts_empty_path_and_size_query_failure)
     // Arrange
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_get_size(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_size(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 初期ファイル サイズを 1 回取得すること。
                                              // [Pre-Assert手順] - サイズ取得から COM_UTIL_ERR_UNKNOWN を返却する。
 
@@ -179,7 +178,7 @@ TEST_F(traceFileCoverageTest, create_accepts_empty_path_and_size_query_failure)
 TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_identity_is_unavailable)
 {
     // Arrange
-    EXPECT_CALL(mock_, com_util_file_get_id(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_id(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillOnce(DoDefault()); // [状態確認] - create 時の com_util_file_get_id が 1 回失敗し、以降は既定動作へ委譲すること。
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(
@@ -187,9 +186,9 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_identity_is_unavail
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_close(_, _))
+    EXPECT_CALL(mock_com_util, com_util_file_close(_, _))
         .Times(2); // [Pre-Assert確認_異常系] - 開き直し前と sink 破棄時にファイルを閉じること。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("identity-unavailable.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, StrEq("identity-unavailable.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
     // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
@@ -215,10 +214,10 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_path_identity_query_fail
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("path-identity-error.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_path_id(StrEq("path-identity-error.log"), _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - パスのファイル同一性を取得すること。
                                              // [Pre-Assert手順] - 同一性取得から COM_UTIL_ERR_UNKNOWN を返却する。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("path-identity-error.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, StrEq("path-identity-error.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
     // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
@@ -244,7 +243,7 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_volume_changes)
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_get_path_id(StrEq("volume-changed.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_path_id(StrEq("volume-changed.log"), _, _))
         .WillOnce(
             [](const char *, com_util_file_id *id_out, com_util_error *)
             {
@@ -252,7 +251,7 @@ TEST_F(traceFileCoverageTest, shared_write_reopens_when_file_volume_changes)
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_異常系] - volume の異なるファイル同一性を返却すること。
                 // [Pre-Assert手順] - volume 2 のファイル同一性を返却する。
-    EXPECT_CALL(mock_, com_util_file_open(_, StrEq("volume-changed.log"), _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_open(_, StrEq("volume-changed.log"), _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - ファイルを開き直すこと。
     // [Pre-Assert手順] - 開き直しの com_util_file_open から COM_UTIL_OK を返却する。
 
@@ -277,7 +276,7 @@ TEST_F(traceFileCoverageTest, rotation_stops_after_rename_failure)
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_rename(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_rename(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 最初の rename を 1 回呼び出すこと。
                                              // [Pre-Assert手順] - rename から COM_UTIL_ERR_UNKNOWN を返却する。
 
@@ -303,7 +302,7 @@ TEST_F(traceFileCoverageTest, shared_rotation_handles_size_query_outcomes)
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_get_size(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_size(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillOnce(
             [](const com_util_file *, size_t *size_out, com_util_error *)
@@ -353,7 +352,7 @@ TEST_F(traceFileCoverageTest, create_rejects_lock_failure_and_long_path)
     std::string long_path(PLATFORM_PATH_MAX, 'x');
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_local_lock_create(_))
+    EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
         .WillOnce(DoDefault())
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - レジストリ用ロックに続く sink 用ロックを生成すること。
                                                  // [Pre-Assert手順] - sink 用ロック生成から COM_UTIL_ERR_UNKNOWN を返却する。
@@ -379,7 +378,7 @@ TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_fai
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_get_realtime(_))
+    EXPECT_CALL(mock_com_util, com_util_get_realtime(_))
         .WillOnce(
             [](com_util_timespec *timestamp)
             {
@@ -393,7 +392,7 @@ TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_fai
                 timestamp->tv_nsec = 0;
             }); // [Pre-Assert確認_異常系] - 時刻解決を不正値と正常値の順で呼び出すこと。
                 // [Pre-Assert手順] - 初回は不正なナノ秒、2 回目は正常な時刻を返却する。
-    EXPECT_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 正常な時刻の書式化を 1 回呼び出すこと。
                                                  // [Pre-Assert手順] - 書式化から COM_UTIL_ERR_UNKNOWN を返却する。
 
@@ -432,10 +431,10 @@ TEST_F(traceFileCoverageTest, write_handles_format_truncation_and_lock_failure)
         .WillOnce(Return(-1))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - トレース行の書式化を 3 回呼び出すこと。
                                       // [Pre-Assert手順] - 初回は -1 を返し、以降は本物へ委譲する。
-    EXPECT_CALL(mock_, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
         .WillOnce(DoDefault()); // [Pre-Assert確認_正常系] - 書式化失敗時のレジストリ ロック取得が呼び出されること。
                                 // [Pre-Assert手順] - com_util_local_lock_lock は既定動作へ委譲する。
-    EXPECT_CALL(mock_, com_util_local_lock_lock(_, 100))
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, 100))
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(COM_UTIL_ERR_TIMEOUT)); // [Pre-Assert確認_異常系] - 書式化成功後の書き込みロックを 2 回取得すること。
                                                  // [Pre-Assert手順] - 初回は成功し、2 回目は COM_UTIL_ERR_TIMEOUT を返却する。
@@ -462,7 +461,7 @@ TEST_F(traceFileCoverageTest, write_handles_format_truncation_and_lock_failure)
 TEST_F(traceFileCoverageTest, write_avoids_current_size_overflow)
 {
     // Arrange
-    EXPECT_CALL(mock_, com_util_file_get_size(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_get_size(_, _, _))
         .WillOnce(
             [](const com_util_file *, size_t *size_out, com_util_error *)
             {
@@ -474,7 +473,7 @@ TEST_F(traceFileCoverageTest, write_avoids_current_size_overflow)
     ASSERT_NE((com_util_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_file_write(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_file_write(_, _, _, _))
         .WillOnce(Return(COM_UTIL_OK)); // [Pre-Assert確認_正常系] - ファイル書き込みを 1 回呼び出すこと。
                                         // [Pre-Assert手順] - com_util_file_write から COM_UTIL_OK を返却する。
 
@@ -526,16 +525,15 @@ TEST_F(traceFileCoverageTest, dispose_handles_registered_and_unregistered_sinks)
 TEST_F(traceFileCoverageTest, create_shared_returns_null_when_lock_path_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(DoDefault())
         .WillOnce(DoDefault())
         .WillOnce(DoDefault())
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 4 回目の malloc が lock-path 確保のために呼び出されること。
-                                      // [Pre-Assert手順] - 4 回目の malloc から NULL を返却する。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 4 回目の com_util_malloc が lock-path 確保のために呼び出されること。
+                                      // [Pre-Assert手順] - 4 回目の com_util_malloc から NULL を返却する。
 
     // Act
     com_util_trace_file_sink *handle = com_util_trace_file_sink_create(

@@ -126,7 +126,7 @@ extern "C"
  *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
  */
 #define com_util_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
-    _com_util_pinned_prompt_readline((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
+    com_util_pinned_prompt_readline_at((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
 
 /**
  *  @brief          書式指定した固定プロンプトで 1 行のコマンド入力を受け取ります。
@@ -139,7 +139,7 @@ extern "C"
  *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
  */
 #define com_util_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
-    _com_util_pinned_prompt_readline_fmt((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
+    com_util_pinned_prompt_readline_fmt_at((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
     /**
      *  @brief          呼び出し元の位置を明示して 1 行のコマンド入力を受け取ります。
@@ -159,7 +159,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_readline_at(com_util_pinned_prompt *screen, char *buf,
                                                                       size_t buf_size, const char *prompt_str,
                                                                       const char *file, int line);
 
@@ -178,7 +178,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_EOF 、@ref COM_UTIL_ERR_CANCELED 、
      *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_pinned_prompt_readline_fmt_at(com_util_pinned_prompt *screen, char *buf,
                                                                           size_t buf_size, const char *file, int line,
                                                                           const char *fmt, ...)
 #if defined(COMPILER_GCC)

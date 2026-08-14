@@ -6,6 +6,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -34,7 +35,7 @@ struct com_util_mmap
 static char *duplicate_path(const char *path)
 {
     size_t size = strlen(path) + 1;
-    char *copy = (char *)malloc(size);
+    char *copy = (char *)com_util_malloc(size);
 
     if (copy == NULL)
     {
@@ -125,7 +126,7 @@ int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t c
         return com_util_error_report_errno(detail_out, EINVAL);
     }
 
-    new_map = (com_util_mmap *)calloc(1, sizeof(*new_map));
+    new_map = (com_util_mmap *)com_util_calloc(1, sizeof(*new_map));
     if (new_map == NULL)
     {
         return com_util_error_report_errno(detail_out, ENOMEM);
@@ -134,14 +135,14 @@ int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t c
     result = open_backing_file(path, access, create_size, &new_map->file, &size, detail_out);
     if (result != COM_UTIL_OK)
     {
-        free(new_map);
+        com_util_free(new_map);
         return result;
     }
 
     if (size == 0)
     {
         (void)com_util_file_close(&new_map->file, NULL);
-        free(new_map);
+        com_util_free(new_map);
         return com_util_error_report_errno(detail_out, EINVAL);
     }
 
@@ -161,7 +162,7 @@ int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t c
         const DWORD error_code = GetLastError();
 
         (void)com_util_file_close(&new_map->file, NULL);
-        free(new_map);
+        com_util_free(new_map);
         return com_util_error_report_windows_error(detail_out, error_code);
     }
 
@@ -180,7 +181,7 @@ int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t c
 
         CloseHandle(new_map->mapping_handle);
         (void)com_util_file_close(&new_map->file, NULL);
-        free(new_map);
+        com_util_free(new_map);
         return com_util_error_report_windows_error(detail_out, error_code);
     }
 
@@ -192,17 +193,17 @@ int com_util_mmap_attach(const char *path, com_util_mmap_access access, size_t c
         UnmapViewOfFile(address);
         CloseHandle(new_map->mapping_handle);
         (void)com_util_file_close(&new_map->file, NULL);
-        free(new_map);
+        com_util_free(new_map);
         return com_util_error_report_errno(detail_out, ENOMEM);
     }
 
     if (com_util_local_lock_create(&new_map->rwlock_guard) != COM_UTIL_OK)
     {
-        free(new_map->identity);
+        com_util_free(new_map->identity);
         UnmapViewOfFile(address);
         CloseHandle(new_map->mapping_handle);
         (void)com_util_file_close(&new_map->file, NULL);
-        free(new_map);
+        com_util_free(new_map);
         return com_util_error_report_errno(detail_out, EIO);
     }
 
@@ -336,7 +337,7 @@ int com_util_mmap_detach(com_util_mmap *map, com_util_error *detail_out)
         com_util_interprocess_rwlock_destroy(map->rwlock);
     }
     com_util_local_lock_destroy(map->rwlock_guard);
-    free(map->identity);
+    com_util_free(map->identity);
     if (!UnmapViewOfFile(map->address))
     {
         first_error = GetLastError();
@@ -346,7 +347,7 @@ int com_util_mmap_detach(com_util_mmap *map, com_util_error *detail_out)
         first_error = GetLastError();
     }
     close_result = com_util_file_close(&map->file, detail_out);
-    free(map);
+    com_util_free(map);
     if (first_error != ERROR_SUCCESS)
     {
         return com_util_error_report_windows_error(detail_out, first_error);

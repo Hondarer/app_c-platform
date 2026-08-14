@@ -6,6 +6,7 @@
  */
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/prompt/pinned_prompt.h>
 
 #if defined(PLATFORM_LINUX)
@@ -576,7 +577,7 @@ static int pinned_prompt_set_prompt(com_util_pinned_prompt *screen, const char *
     len = cstr_len(prompt_str);
     if (len + 1U > screen->prompt_cap)
     {
-        new_buf = (char *)realloc(screen->prompt_buf, len + 1U);
+        new_buf = (char *)com_util_realloc(screen->prompt_buf, len + 1U, 1U);
         if (new_buf == NULL)
         {
             return -1;
@@ -1013,7 +1014,7 @@ static pinned_prompt_history_ctx *pinned_prompt_find_or_create_history_ctx(com_u
         {
             new_cap = 4U;
         }
-        new_contexts = (pinned_prompt_history_ctx *)realloc(screen->history_contexts, new_cap * sizeof(*new_contexts));
+        new_contexts = (pinned_prompt_history_ctx *)com_util_realloc(screen->history_contexts, new_cap, sizeof(*new_contexts));
         if (new_contexts == NULL)
         {
             return NULL;
@@ -1026,14 +1027,14 @@ static pinned_prompt_history_ctx *pinned_prompt_find_or_create_history_ctx(com_u
     memset(ctx, 0, sizeof(*ctx));
     ctx->file = file;
     ctx->line = line;
-    ctx->entries = (char **)calloc(screen->history_max, sizeof(char *));
-    ctx->saved_line = (char *)malloc(screen->input_max_bytes);
+    ctx->entries = (char **)com_util_calloc(screen->history_max, sizeof(char *));
+    ctx->saved_line = (char *)com_util_malloc(screen->input_max_bytes);
     ctx->browse_idx = -1;
 
     if (ctx->entries == NULL || ctx->saved_line == NULL)
     {
-        free(ctx->entries);
-        free(ctx->saved_line);
+        com_util_free(ctx->entries);
+        com_util_free(ctx->saved_line);
         ctx->entries = NULL;
         ctx->saved_line = NULL;
         screen->history_ctx_count--;
@@ -1062,7 +1063,7 @@ static void pinned_prompt_history_add(com_util_pinned_prompt *screen, pinned_pro
     }
     if (ctx->count == screen->history_max)
     {
-        free(ctx->entries[ctx->head]);
+        com_util_free(ctx->entries[ctx->head]);
         ctx->entries[ctx->head] = NULL;
         ctx->head = (ctx->head + 1U) % screen->history_max;
     }
@@ -1073,7 +1074,7 @@ static void pinned_prompt_history_add(com_util_pinned_prompt *screen, pinned_pro
 
     slot = PINNED_PROMPT_HIST_IDX(screen, ctx, ctx->count - 1U);
     len = strlen(line) + 1U;
-    ctx->entries[slot] = (char *)malloc(len);
+    ctx->entries[slot] = (char *)com_util_malloc(len);
     if (ctx->entries[slot] != NULL)
     {
         (void)com_util_strcpy(ctx->entries[slot], len, line);
@@ -1218,7 +1219,7 @@ static int pinned_prompt_format_prompt(com_util_pinned_prompt *screen, const cha
     if (screen->fmt_buf == NULL)
     {
         screen->fmt_cap = 256U;
-        screen->fmt_buf = (char *)malloc(screen->fmt_cap);
+        screen->fmt_buf = (char *)com_util_malloc(screen->fmt_cap);
         if (screen->fmt_buf == NULL)
         {
             return -1;
@@ -1230,7 +1231,7 @@ static int pinned_prompt_format_prompt(com_util_pinned_prompt *screen, const cha
         va_copy(ap_copy, ap);
         if (fmt != NULL)
         {
-            needed = vsnprintf(screen->fmt_buf, screen->fmt_cap, fmt, ap_copy);
+            needed = vsnprintf(screen->fmt_buf, screen->fmt_cap, fmt, ap_copy); /* 置換対象外: 必要長の照会 */
         }
         else
         {
@@ -1247,7 +1248,7 @@ static int pinned_prompt_format_prompt(com_util_pinned_prompt *screen, const cha
         {
             return 0;
         }
-        new_buf = (char *)realloc(screen->fmt_buf, (size_t)needed + 1U);
+        new_buf = (char *)com_util_realloc(screen->fmt_buf, (size_t)needed + 1U, 1U);
         if (new_buf == NULL)
         {
             screen->fmt_buf[screen->fmt_cap - 1U] = '\0';
@@ -1284,7 +1285,7 @@ com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prom
 
     com_util_console_init();
 
-    screen = (com_util_pinned_prompt *)calloc(1U, sizeof(*screen));
+    screen = (com_util_pinned_prompt *)com_util_calloc(1U, sizeof(*screen));
     if (screen == NULL)
     {
         return NULL;
@@ -1309,17 +1310,17 @@ com_util_pinned_prompt *com_util_pinned_prompt_create(const com_util_pinned_prom
 
     if (com_util_local_lock_create(&screen->mutex) != COM_UTIL_OK)
     {
-        free(screen);
+        com_util_free(screen);
         return NULL;
     }
     screen->mutex_active = 1;
 
-    screen->edit_buf = (char *)malloc(screen->edit_cap);
-    screen->prompt_buf = (char *)malloc(1U);
-    screen->status_top_left = (char *)malloc(1U);
-    screen->status_top_right = (char *)malloc(1U);
-    screen->status_bottom_left = (char *)malloc(1U);
-    screen->status_bottom_right = (char *)malloc(1U);
+    screen->edit_buf = (char *)com_util_malloc(screen->edit_cap);
+    screen->prompt_buf = (char *)com_util_malloc(1U);
+    screen->status_top_left = (char *)com_util_malloc(1U);
+    screen->status_top_right = (char *)com_util_malloc(1U);
+    screen->status_bottom_left = (char *)com_util_malloc(1U);
+    screen->status_bottom_right = (char *)com_util_malloc(1U);
     if (screen->edit_buf == NULL || screen->prompt_buf == NULL || screen->status_top_left == NULL ||
         screen->status_top_right == NULL || screen->status_bottom_left == NULL || screen->status_bottom_right == NULL)
     {
@@ -1370,31 +1371,31 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
             {
                 for (j = 0U; j < screen->history_max; j++)
                 {
-                    free(ctx->entries[j]);
+                    com_util_free(ctx->entries[j]);
                 }
             }
-            free(ctx->entries);
-            free(ctx->saved_line);
+            com_util_free(ctx->entries);
+            com_util_free(ctx->saved_line);
         }
     }
-    free(screen->history_contexts);
-    free(screen->edit_buf);
-    free(screen->prompt_buf);
-    free(screen->fmt_buf);
-    free(screen->status_top_left);
-    free(screen->status_top_right);
-    free(screen->status_bottom_left);
-    free(screen->status_bottom_right);
+    com_util_free(screen->history_contexts);
+    com_util_free(screen->edit_buf);
+    com_util_free(screen->prompt_buf);
+    com_util_free(screen->fmt_buf);
+    com_util_free(screen->status_top_left);
+    com_util_free(screen->status_top_right);
+    com_util_free(screen->status_bottom_left);
+    com_util_free(screen->status_bottom_right);
     if (screen->mutex_active)
     {
         (void)com_util_local_lock_destroy(screen->mutex);
     }
-    free(screen);
+    com_util_free(screen);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *prompt_str,
+int com_util_pinned_prompt_readline_at(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *prompt_str,
                                      const char *file, int line)
 {
     int done;
@@ -1549,7 +1550,7 @@ int _com_util_pinned_prompt_readline(com_util_pinned_prompt *screen, char *buf, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *file,
+int com_util_pinned_prompt_readline_fmt_at(com_util_pinned_prompt *screen, char *buf, size_t buf_size, const char *file,
                                          int line, const char *fmt, ...)
 {
     va_list ap;
@@ -1564,9 +1565,9 @@ int _com_util_pinned_prompt_readline_fmt(com_util_pinned_prompt *screen, char *b
     va_end(ap);
     if (rc != 0)
     {
-        return _com_util_pinned_prompt_readline(screen, buf, buf_size, "", file, line);
+        return com_util_pinned_prompt_readline_at(screen, buf, buf_size, "", file, line);
     }
-    return _com_util_pinned_prompt_readline(screen, buf, buf_size, screen->fmt_buf, file, line);
+    return com_util_pinned_prompt_readline_at(screen, buf, buf_size, screen->fmt_buf, file, line);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1656,7 +1657,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     va_copy(ap_copy, ap);
     if (fmt != NULL)
     {
-        needed = vsnprintf(NULL, 0U, fmt, ap_copy);
+        needed = vsnprintf(NULL, 0U, fmt, ap_copy); /* 置換対象外: 必要長の照会 */
     }
     else
     {
@@ -1669,7 +1670,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
         return -1;
     }
 
-    buf = (char *)malloc((size_t)needed + 1U);
+    buf = (char *)com_util_malloc((size_t)needed + 1U);
     if (buf == NULL)
     {
         va_end(ap);
@@ -1677,7 +1678,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     }
     if (fmt != NULL)
     {
-        (void)vsnprintf(buf, (size_t)needed + 1U, fmt, ap);
+        (void)com_util_vsnprintf(buf, (size_t)needed + 1U, fmt, ap);
     }
     else
     {
@@ -1686,7 +1687,7 @@ int com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, com_util_pinne
     va_end(ap);
 
     write_result = com_util_pinned_prompt_write(screen, channel, buf, (size_t)needed, &written);
-    free(buf);
+    com_util_free(buf);
     if (write_result != COM_UTIL_OK)
     {
         return -1;
@@ -1746,7 +1747,7 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
     len = cstr_len(content);
     if (len + 1U > *cap)
     {
-        new_buf = (char *)realloc(*buf, len + 1U);
+        new_buf = (char *)com_util_realloc(*buf, len + 1U, 1U);
         if (new_buf == NULL)
         {
             return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -1770,7 +1771,7 @@ static int pinned_prompt_set_status_content(char **buf, size_t *cap, const char 
 int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_pinned_prompt_status_position position,
                                       com_util_pinned_prompt_status_align align, const char *content)
 {
-    int rc;
+    int ret;
 
     if (screen == NULL)
     {
@@ -1782,11 +1783,11 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
     {
         if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_top_left, &screen->status_top_left_cap, content);
+            ret = pinned_prompt_set_status_content(&screen->status_top_left, &screen->status_top_left_cap, content);
         }
         else if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_top_right, &screen->status_top_right_cap, content);
+            ret = pinned_prompt_set_status_content(&screen->status_top_right, &screen->status_top_right_cap, content);
         }
         else
         {
@@ -1798,13 +1799,13 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
     {
         if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_LEFT)
         {
-            rc =
+            ret =
                 pinned_prompt_set_status_content(&screen->status_bottom_left, &screen->status_bottom_left_cap, content);
         }
         else if (align == COM_UTIL_PINNED_PROMPT_STATUS_ALIGN_RIGHT)
         {
-            rc = pinned_prompt_set_status_content(&screen->status_bottom_right, &screen->status_bottom_right_cap,
-                                                  content);
+            ret = pinned_prompt_set_status_content(&screen->status_bottom_right, &screen->status_bottom_right_cap,
+                                                   content);
         }
         else
         {
@@ -1818,11 +1819,11 @@ int com_util_pinned_prompt_status_set(com_util_pinned_prompt *screen, com_util_p
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    if (rc == COM_UTIL_OK)
+    if (ret == COM_UTIL_OK)
     {
         screen->status_dirty = 1;
         pinned_prompt_render_locked(screen);
     }
     pinned_prompt_unlock(screen);
-    return rc;
+    return ret;
 }

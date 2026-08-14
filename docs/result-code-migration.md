@@ -51,7 +51,7 @@ com_util は戻り値規約を、共通結果コード (`COM_UTIL_OK` + 負値�
 | `com_util_paths_equal` | `(lhs, rhs, int *errno_out)`。戻り値 1=一致/0=不一致/-1=失敗 | `(lhs, rhs, int *equal_out, int *errno_out)`。戻り値は結果コード、真偽は `equal_out` (成功時のみ有効) |
 | `com_util_console_attach_parent` | `(argc, argv)`。戻り値 1=再接続/0=何もせず/-1=失敗 | `(argc, argv, int *attached_out)`。戻り値は結果コード、真偽は `attached_out` |
 | `com_util_prompt_readline`/`_fmt`/`_at`/`_fmt_at`、`com_util_pinned_prompt_readline`/`_fmt` 系 | **シグネチャは不変**。戻り値 1=入力確定/0=EOF・Ctrl+C・失敗など | 戻り値の意味だけ反転。`COM_UTIL_OK`=入力確定、`COM_UTIL_ERR_EOF`=EOF、`COM_UTIL_ERR_CANCELED`=Ctrl+C、`COM_UTIL_ERR_INVALID_ARGUMENT`=引数不正 |
-| `_com_util_shutdown_invoke_for_test` / `_com_util_shutdown_request_invoke_for_test` (テスト専用) | `(event)`。戻り値 0=実行/1=実行済み/-1=引数不正 | `(event, int *invoked_out)`。戻り値は結果コード、実行有無は `invoked_out` |
+| `com_util_shutdown_invoke_for_test` / `com_util_shutdown_request_invoke_for_test` (テスト専用) | `(event)`。戻り値 0=実行/1=実行済み/-1=引数不正 | `(event, int *invoked_out)`。戻り値は結果コード、実行有無は `invoked_out` |
 | `com_util_elevated_process_extract_result_target` | `(argc, argv)`。戻り値 1=検出/0=未検出 | `(argc, argv, int *detected_out)`。戻り値は常に `COM_UTIL_OK`、検出有無は `detected_out` |
 
 **`com_util_prompt_readline` 系は特に注意してください。** シグネチャが変わらないため、旧来の `if (readline(...))` や `== 0`/`!= 0` の真偽値判定は **コンパイルは通ったまま意味が反転** します。呼び出し元をすべて洗い出し、`== COM_UTIL_OK` / `!= COM_UTIL_OK` の明示比較へ書き換えてください。

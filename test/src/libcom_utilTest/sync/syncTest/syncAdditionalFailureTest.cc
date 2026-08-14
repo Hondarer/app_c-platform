@@ -9,8 +9,6 @@
 
     #include <mock_pthread.h>
     #include <mock_fcntl.h>
-    #include <mock_stdlib.h>
-    #include <mock_string.h>
     #include <mock_time.h>
     #include <sys/mock_file.h>
 
@@ -162,14 +160,14 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_native_initialization_fai
 TEST(syncAdditionalFailureTest, condvar_create_reports_allocation_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_condvar *cv = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(
-            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの calloc が 1 回呼び出されること。
-                                         // [Pre-Assert手順] - calloc にて NULL を返却する。
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - condvar ハンドルの com_util_calloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - com_util_calloc にて NULL を返却する。
 
     // Act
     int result = com_util_condvar_create(&cv); // [手順] - ハンドル確保失敗を注入して condvar を生成する。
@@ -184,14 +182,14 @@ TEST(syncAdditionalFailureTest, condvar_create_reports_allocation_failure)
 TEST(syncAdditionalFailureTest, local_rwlock_create_reports_allocation_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_local_rwlock *rwlock = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(static_cast<void *>(
-            NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの calloc が 1 回呼び出されること。
-                     // [Pre-Assert手順] - calloc にて NULL を返却する。
+            NULL))); // [Pre-Assert確認_異常系] - local rwlock ハンドルの com_util_calloc が 1 回呼び出されること。
+                     // [Pre-Assert手順] - com_util_calloc にて NULL を返却する。
 
     // Act
     int result = com_util_local_rwlock_create(&rwlock); // [手順] - ハンドル確保失敗を注入して local rwlock を生成する。
@@ -680,13 +678,13 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
 TEST(syncAdditionalFailureTest, thread_create_reports_context_allocation_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_thread *thread = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - thread ハンドルの calloc が 1 回呼び出されること。
-                                    // [Pre-Assert手順] - calloc にて NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - thread ハンドルの com_util_calloc が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_calloc にて NULL を返却する。
 
     // Act
     int result =
@@ -1029,14 +1027,14 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_identity_duplic
 {
     // Arrange
     InterprocessOpenMocks os;
-    NiceMock<Mock_string> mock_string;
+    NiceMock<Mock_com_util> mock_com_util;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_string, strdup(_, _, _, _))
-        .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_異常系] - rwlock の識別子複製で strdup が 1 回呼び出されること。
-                                                      // [Pre-Assert手順] - strdup にて NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_strdup(_))
+        .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_異常系] - rwlock の識別子複製で com_util_strdup が 1 回呼び出されること。
+                                                      // [Pre-Assert手順] - com_util_strdup にて NULL を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - 識別子複製失敗を注入して rwlock を開く。
@@ -1053,15 +1051,15 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_allocation_fail
 {
     // Arrange
     InterprocessOpenMocks os;
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(
-            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が 1 回呼び出されること。
-                                         // [Pre-Assert手順] - calloc にて NULL を返却する。
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの com_util_calloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - com_util_calloc にて NULL を返却する。
 
     // Act
     int result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - ハンドル確保失敗を注入して rwlock を開く。
@@ -1430,14 +1428,14 @@ TEST(syncAdditionalFailureTest, local_rwlock_reader_resumes_after_writer_state_c
 TEST(syncAdditionalFailureTest, thread_apis_cover_context_failure_and_null_detach)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_thread *allocation_failure = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(
-            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - thread context の malloc が 1 回呼び出されること。
-                                         // [Pre-Assert手順] - malloc にて NULL を返却する。
+            static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - thread context の com_util_malloc が 1 回呼び出されること。
+                                         // [Pre-Assert手順] - com_util_malloc にて NULL を返却する。
 
     // Act
     int allocation_result =

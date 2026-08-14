@@ -18,6 +18,7 @@
  */
 
 #include <com_util/runtime/memory_lock.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/base/result_internal.h>
 #include <com_util/sync/sync.h>
 
@@ -328,7 +329,7 @@ static int append_scope_range(com_util_memory_lock_scope *scope, uintptr_t base,
         }
 
         com_util_memory_lock_range_entry *new_entries =
-            (com_util_memory_lock_range_entry *)realloc(scope->entries, sizeof(*new_entries) * new_capacity);
+            (com_util_memory_lock_range_entry *)com_util_realloc(scope->entries, new_capacity, sizeof(*new_entries));
         if (new_entries == NULL)
         {
             result = COM_UTIL_ERR_UNKNOWN;
@@ -381,8 +382,8 @@ static int ensure_windows_registry_capacity(size_t required_capacity)
 
         if (result == COM_UTIL_OK)
         {
-            com_util_memory_lock_range_entry *new_ranges = (com_util_memory_lock_range_entry *)realloc(
-                s_windows_locked_ranges, sizeof(*new_ranges) * new_capacity);
+            com_util_memory_lock_range_entry *new_ranges = (com_util_memory_lock_range_entry *)com_util_realloc(
+                s_windows_locked_ranges, new_capacity, sizeof(*new_ranges));
             if (new_ranges == NULL)
             {
                 result = COM_UTIL_ERR_UNKNOWN;
@@ -841,7 +842,7 @@ int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, 
         (void)convert_flags_to_mlockall_flags(options->flags, &native_flags);
         {
             com_util_memory_lock_scope *new_scope =
-                (com_util_memory_lock_scope *)calloc(1U, sizeof(com_util_memory_lock_scope));
+                (com_util_memory_lock_scope *)com_util_calloc(1U, sizeof(com_util_memory_lock_scope));
             if (new_scope == NULL)
             {
                 result = COM_UTIL_ERR_UNKNOWN;
@@ -867,7 +868,7 @@ int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, 
 
                 if (result != COM_UTIL_OK)
                 {
-                    free(new_scope);
+                    com_util_free(new_scope);
                 }
             }
         }
@@ -879,7 +880,7 @@ int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, 
         else
         {
             com_util_memory_lock_scope *new_scope =
-                (com_util_memory_lock_scope *)calloc(1U, sizeof(com_util_memory_lock_scope));
+                (com_util_memory_lock_scope *)com_util_calloc(1U, sizeof(com_util_memory_lock_scope));
             if (new_scope == NULL)
             {
                 result = COM_UTIL_ERR_UNKNOWN;
@@ -935,8 +936,8 @@ int com_util_memory_lock_self(const com_util_memory_lock_self_options *options, 
 
                 if (result != COM_UTIL_OK)
                 {
-                    free(new_scope->entries);
-                    free(new_scope);
+                    com_util_free(new_scope->entries);
+                    com_util_free(new_scope);
                 }
             }
         }
@@ -980,7 +981,7 @@ int com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope)
                 memory_lock_unlock();
             }
         }
-        free(scope);
+        com_util_free(scope);
 #elif defined(PLATFORM_WINDOWS)
         result = memory_lock_lock();
         if (result == COM_UTIL_OK)
@@ -988,10 +989,10 @@ int com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope)
             result = release_windows_scope_ranges(scope);
             memory_lock_unlock();
         }
-        free(scope->entries);
-        free(scope);
+        com_util_free(scope->entries);
+        com_util_free(scope);
 #else
-        free(scope);
+        com_util_free(scope);
         result = COM_UTIL_ERR_UNSUPPORTED;
 #endif
     }

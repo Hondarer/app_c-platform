@@ -735,11 +735,11 @@ TEST(pinnedPromptTest, tty_readline_handles_editing_and_history)
     // [Pre-Assert手順] - select から入力可 (1) を返却する。
 
     // Act
-    int first_result = _com_util_pinned_prompt_readline(screen, first_output, sizeof(first_output), "", "history.c",
+    int first_result = com_util_pinned_prompt_readline_at(screen, first_output, sizeof(first_output), "", "history.c",
                                                         10); // [手順] - 編集キーを含む最初の入力を確定する。
-    int second_result = _com_util_pinned_prompt_readline(screen, second_output, sizeof(second_output), "", "history.c",
+    int second_result = com_util_pinned_prompt_readline_at(screen, second_output, sizeof(second_output), "", "history.c",
                                                          10); // [手順] - 2 件目の入力を同じ履歴へ追加する。
-    int third_result = _com_util_pinned_prompt_readline(screen, third_output, sizeof(third_output), "", "history.c",
+    int third_result = com_util_pinned_prompt_readline_at(screen, third_output, sizeof(third_output), "", "history.c",
                                                         10); // [手順] - 上下キーで履歴を参照して入力を確定する。
 
     // Assert
@@ -1114,7 +1114,7 @@ TEST(pinnedPromptTest, readline_fmt_formats_and_accepts_null_format)
     int null_format_result = com_util_pinned_prompt_readline_fmt(screen, second_output, sizeof(second_output),
                                                                  NULL); // [手順] - NULL 書式の readline を呼び出す。
     int null_screen_result =
-        _com_util_pinned_prompt_readline_fmt(NULL, second_output, sizeof(second_output), "file", 1, "%s",
+        com_util_pinned_prompt_readline_fmt_at(NULL, second_output, sizeof(second_output), "file", 1, "%s",
                                              "x"); // [手順] - NULL ハンドルの書式付き readline を呼び出す。
 
     // Assert

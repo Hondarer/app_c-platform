@@ -1,6 +1,6 @@
 #include <testfw.h>
 #include <mock_stdio.h>
-#include <mock_stdlib.h>
+#include <mock_com_util.h>
 #include <com_util/base/result.h>
 #include <com_util/crt/string.h>
 #include <com_util/prompt/prompt.h>
@@ -114,7 +114,7 @@ TEST_F(promptCoverageTest, readline_fallback_paths_return_input)
 {
     // Arrange
     NiceMock<Mock_stdio> mock_stdio;
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char first_input[] = "first\n";
     char second_input[] = "second\n";
     char first_output[16] = {};
@@ -126,7 +126,7 @@ TEST_F(promptCoverageTest, readline_fallback_paths_return_input)
         .WillOnce(DoAll(SetArrayArgument<3>(second_input, second_input + sizeof(second_input)), ReturnArg<3>()));
     // [Pre-Assert確認_正常系] - fgets が非 TTY とコンテキスト確保失敗の各経路で呼び出されること。
     // [Pre-Assert手順] - fgets が 1 回目に "first"、2 回目に "second" を返却する。
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _)).WillOnce(Return(nullptr));
     // [Pre-Assert確認_異常系] - コンテキスト配列用の realloc が 1 回呼び出されること。
     // [Pre-Assert手順] - realloc から NULL を返却する。
 
@@ -223,12 +223,12 @@ TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
 TEST_F(promptCoverageTest, context_creation_fails_when_entries_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib; // [状態] - calloc の失敗を注入する mock を用意する。
+    NiceMock<Mock_com_util> mock_com_util; // [状態] - calloc の失敗を注入する mock を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - 履歴エントリ配列用の calloc が 1 回呼び出されること。
-    // [Pre-Assert手順] - calloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - 履歴エントリ配列用の com_util_calloc が 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     com_util_prompt_ctx *context = test_prompt_find_or_create_context(prompt_, "failure.c",

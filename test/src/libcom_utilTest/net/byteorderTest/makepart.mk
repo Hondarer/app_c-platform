@@ -1,5 +1,6 @@
-# byteorder.h は static inline のみで構成されるため、テスト対象のソース ファイルはない。
-# テスト実行体はヘッダーをインクルードして展開された実体を検証する。
+# テスト対象のソース ファイル
+TEST_SRCS := \
+	$(MYAPP_DIR)/prod/libsrc/com_util/net/byteorder.c
 
 # ライブラリの指定
 LIBS += mock_libc

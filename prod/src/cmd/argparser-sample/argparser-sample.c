@@ -44,19 +44,19 @@ typedef struct argparser_sample_options
  */
 static int register_argparser(argparser_sample_options *options)
 {
-    com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
-    com_util_argparser_register_flag("-v", "--verbose", "increase verbosity", &options->verbose_count);
-    com_util_argparser_register_option_int("-c", "--count", "N", "repeat count", 0, &options->count_value);
-    com_util_argparser_register_option_string("-n", "--name", "NAME", "display name", 0, &options->name_value);
-    com_util_argparser_register_option_string_array("-i", "--include", "DIR", "include directory", 0, options->includes,
+    com_util_argparser_default_register_flag("-h", "--help", "show this help", &options->need_help);
+    com_util_argparser_default_register_flag("-v", "--verbose", "increase verbosity", &options->verbose_count);
+    com_util_argparser_default_register_option_int("-c", "--count", "N", "repeat count", 0, &options->count_value);
+    com_util_argparser_default_register_option_string("-n", "--name", "NAME", "display name", 0, &options->name_value);
+    com_util_argparser_default_register_option_string_array("-i", "--include", "DIR", "include directory", 0, options->includes,
                                                     ARGPARSER_SAMPLE_INCLUDE_MAX, &options->include_count);
-    com_util_argparser_register_positional_string("input", "input file", COM_UTIL_ARGPARSER_REQUIRED,
+    com_util_argparser_default_register_positional_string("input", "input file", COM_UTIL_ARGPARSER_REQUIRED,
                                                   &options->input_path);
-    com_util_argparser_register_positional_string("output", "output file", 0, &options->output_path);
+    com_util_argparser_default_register_positional_string("output", "output file", 0, &options->output_path);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     { /* オプションの登録に失敗した場合 (コーディング エラーの場合) */
-        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
         return -1;
     }
 
@@ -102,26 +102,26 @@ int main(int argc, char *argv[])
     argparser_sample_options options = {0};
     options.count_value = 1; /* 0 以外の既定値は解析前に設定する */
 
-    com_util_argparser_init("com_util_argparser sample");
+    com_util_argparser_default_init("com_util_argparser sample");
 
     if (register_argparser(&options) != 0)
     {
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (options.need_help != 0)
     {
         /* 必須引数が省略されていても -h, --help を優先する */
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

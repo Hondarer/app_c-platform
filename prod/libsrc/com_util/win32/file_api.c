@@ -15,6 +15,7 @@
  */
 
 #include <com_util/win32/win32.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -42,7 +43,7 @@ HANDLE CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode
 
     result = CreateFileW(wpath, desired_access, share_mode, security_attributes, creation_disposition,
                          flags_and_attributes, template_file);
-    free(wpath);
+    com_util_free(wpath);
     return result;
 }
 
@@ -64,7 +65,7 @@ HANDLE CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
 
     result = CreateNamedPipeW(wname, open_mode, pipe_mode, max_instances, out_buffer_size, in_buffer_size,
                               default_timeout, security_attributes);
-    free(wname);
+    com_util_free(wname);
     return result;
 }
 
@@ -104,14 +105,14 @@ DWORD GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size)
         /* バッファー不足: 切り詰めて NUL 終端する */
         memcpy(utf8_buf, utf8, (size_t)(size - 1U));
         utf8_buf[size - 1U] = '\0';
-        free(utf8);
+        com_util_free(utf8);
         SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return size - 1U;
     }
 
     memcpy(utf8_buf, utf8, utf8_len + 1U);
     written = (DWORD)utf8_len;
-    free(utf8);
+    com_util_free(utf8);
     return written;
 }
 
@@ -135,7 +136,7 @@ BOOL WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length, DWO
     }
 
     /* utf8_length バイトだけを対象とするため、NUL 終端した複製を作ってから変換する */
-    utf8_copy = (char *)malloc((size_t)utf8_length + 1u);
+    utf8_copy = (char *)com_util_malloc((size_t)utf8_length + 1u);
     if (utf8_copy == NULL)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -145,7 +146,7 @@ BOOL WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length, DWO
     utf8_copy[utf8_length] = '\0';
 
     wtext = com_util_utf8_to_wstr_alloc(utf8_copy);
-    free(utf8_copy);
+    com_util_free(utf8_copy);
     if (wtext == NULL)
     {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -157,7 +158,7 @@ BOOL WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length, DWO
     {
         *written_length = utf8_length;
     }
-    free(wtext);
+    com_util_free(wtext);
     return result;
 }
 
@@ -183,13 +184,13 @@ static BOOL copy_wstr_as_utf8(char *utf8_buf, DWORD size, const wchar_t *wtext)
     utf8_len = strlen(utf8);
     if (utf8_len + 1u > (size_t)size)
     {
-        free(utf8);
+        com_util_free(utf8);
         SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return FALSE;
     }
 
     memcpy(utf8_buf, utf8, utf8_len + 1u);
-    free(utf8);
+    com_util_free(utf8);
     return TRUE;
 }
 
@@ -209,10 +210,10 @@ BOOL GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD siz
 
     if (!GetVolumePathNameW(wpath, wroot, (DWORD)(sizeof(wroot) / sizeof(wroot[0]))))
     {
-        free(wpath);
+        com_util_free(wpath);
         return FALSE;
     }
-    free(wpath);
+    com_util_free(wpath);
 
     return copy_wstr_as_utf8(utf8_volume_root, size, wroot);
 }
@@ -243,10 +244,10 @@ BOOL GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name, D
     if (!GetVolumeInformationW(wroot, wvolume, (DWORD)(sizeof(wvolume) / sizeof(wvolume[0])), serial_number,
                                max_component_length, file_system_flags, wfs, (DWORD)(sizeof(wfs) / sizeof(wfs[0]))))
     {
-        free(wroot);
+        com_util_free(wroot);
         return FALSE;
     }
-    free(wroot);
+    com_util_free(wroot);
 
     if (!copy_wstr_as_utf8(utf8_volume_name, volume_name_size, wvolume))
     {

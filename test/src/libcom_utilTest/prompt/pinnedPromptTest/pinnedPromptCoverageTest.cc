@@ -7,7 +7,6 @@
 #include <com_util/prompt/pinned_prompt.h>
 #include <mock_com_util.h>
 #include <mock_stdio.h>
-#include <mock_stdlib.h>
 #if defined(PLATFORM_LINUX)
     #include <mock_ioctl.h>
     #include <mock_signal.h>
@@ -157,14 +156,14 @@ TEST(pinnedPromptCoverageTest, internal_state_handles_inactive_mutex_and_prompt_
     // Arrange
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     int null_prompt_result = 0;
     int allocation_result = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - realloc がプロンプト再確保のために 1 回呼び出されること。
-    // [Pre-Assert手順] - realloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - com_util_realloc がプロンプト再確保のために 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     test_pinned_prompt_set_mutex_active(screen, 0);
@@ -312,26 +311,26 @@ TEST(pinnedPromptCoverageTest, history_context_reports_allocation_failures)
     // Arrange
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     int realloc_failure = 0;
     int calloc_failure = 0;
     int malloc_failure = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr))                // realloc.c: 配列確保失敗
-        .WillOnce(Invoke(delegate_real_realloc)); // calloc.c: 配列確保は成功させる
-    // [Pre-Assert確認_異常系] - realloc が履歴コンテキスト配列の再確保のために呼び出されること。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
+        .WillOnce(Return(nullptr))                         // realloc.c: 配列確保失敗
+        .WillOnce(Invoke(delegate_real_com_util_realloc)); // calloc.c: 配列確保は成功させる
+    // [Pre-Assert確認_異常系] - com_util_realloc が履歴コンテキスト配列の再確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は NULL、2 回目は本物の realloc 結果を返却する。
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr))               // calloc.c: 要素配列確保失敗
-        .WillOnce(Invoke(delegate_real_calloc)); // malloc.c: 要素配列確保は成功させる
-    // [Pre-Assert確認_異常系] - calloc が履歴要素配列の確保のために呼び出されること。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+        .WillOnce(Return(nullptr))                        // calloc.c: 要素配列確保失敗
+        .WillOnce(Invoke(delegate_real_com_util_calloc)); // malloc.c: 要素配列確保は成功させる
+    // [Pre-Assert確認_異常系] - com_util_calloc が履歴要素配列の確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は NULL、2 回目は本物の calloc 結果を返却する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Invoke(delegate_real_malloc)) // calloc.c: saved_line 確保は成功 (calloc 失敗と対で必ず呼ばれる)
-        .WillOnce(Return(nullptr));             // malloc.c: saved_line 確保失敗
-    // [Pre-Assert確認_異常系] - malloc が履歴保存行の確保のために呼び出されること。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Invoke(delegate_real_com_util_malloc)) // calloc.c: saved_line 確保は成功 (calloc 失敗と対で必ず呼ばれる)
+        .WillOnce(Return(nullptr));                      // malloc.c: saved_line 確保失敗
+    // [Pre-Assert確認_異常系] - com_util_malloc が履歴保存行の確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は本物の malloc 結果、2 回目は NULL を返却する。
 
     // Act
@@ -385,7 +384,7 @@ TEST(pinnedPromptCoverageTest, format_helper_handles_allocation_and_format_failu
     // Arrange
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     NiceMock<Mock_stdio> mock_stdio;
     const char long_text[300] = {};
     int malloc_failure = 0;
@@ -393,19 +392,19 @@ TEST(pinnedPromptCoverageTest, format_helper_handles_allocation_and_format_failu
     int realloc_failure = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr))               // 1回目: 初回確保失敗
-        .WillOnce(Invoke(delegate_real_malloc)); // 2回目: 初回確保は成功させる
-    // [Pre-Assert確認_異常系] - malloc が書式バッファーの初回確保のために呼び出されること。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Return(nullptr))                        // 1回目: 初回確保失敗
+        .WillOnce(Invoke(delegate_real_com_util_malloc)); // 2回目: 初回確保は成功させる
+    // [Pre-Assert確認_異常系] - com_util_malloc が書式バッファーの初回確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は NULL、2 回目は本物の malloc 結果を返却する。
     EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
         .WillOnce(Return(-1))   // 2回目: 書式処理失敗
         .WillOnce(Return(500)); // 3回目: fmt_cap(256) を超える長さを返し realloc を誘発する
     // [Pre-Assert確認_異常系] - vsnprintf が書式処理と再確保誘発のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は -1、2 回目は 500 を返却する。
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - realloc が書式バッファー再確保のために 1 回呼び出されること。
-    // [Pre-Assert手順] - realloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - com_util_realloc が書式バッファー再確保のために 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     malloc_failure = test_pinned_prompt_format(screen, "%s", "x"); // [手順] - 書式バッファーの初回確保を失敗させる。
@@ -425,7 +424,6 @@ TEST(pinnedPromptCoverageTest, format_helper_handles_allocation_and_format_failu
 TEST(pinnedPromptCoverageTest, create_reports_each_resource_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
     NiceMock<Mock_com_util> mock_com_util;
     int allocation_call = 0;
     int failure_target = 1;
@@ -434,28 +432,28 @@ TEST(pinnedPromptCoverageTest, create_reports_each_resource_failure)
     com_util_pinned_prompt *allocation_failures[6] = {};
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(Invoke(delegate_real_calloc));
-    // [Pre-Assert確認_異常系] - calloc がハンドル本体の確保のために呼び出されること。
+        .WillRepeatedly(Invoke(delegate_real_com_util_calloc));
+    // [Pre-Assert確認_異常系] - com_util_calloc がハンドル本体の確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は NULL、以降は本物の calloc 結果を返却する。
     EXPECT_CALL(mock_com_util, com_util_local_lock_create(_))
         .WillOnce(Return(COM_UTIL_ERR_OUT_OF_MEMORY))
         .WillRepeatedly(Invoke(delegate_real_com_util_local_lock_create));
     // [Pre-Assert確認_異常系] - com_util_local_lock_create がロック生成のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は COM_UTIL_ERR_OUT_OF_MEMORY、以降は本物の生成結果を返却する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillRepeatedly(Invoke(
-            [&allocation_call, &failure_target](const char *file, const int line, const char *func, size_t size)
+            [&allocation_call, &failure_target](size_t size)
             {
                 allocation_call++;
                 if (allocation_call == failure_target)
                 {
                     return static_cast<void *>(nullptr);
                 }
-                return delegate_real_malloc(file, line, func, size);
+                return delegate_real_com_util_malloc(size);
             }));
-    // [Pre-Assert確認_異常系] - malloc が各文字列バッファーの確保のために呼び出されること。
+    // [Pre-Assert確認_異常系] - com_util_malloc が各文字列バッファーの確保のために呼び出されること。
     // [Pre-Assert手順] - 対象回は NULL、それ以外は本物の malloc 結果を返却する。
 
     // Act
@@ -490,7 +488,7 @@ TEST(pinnedPromptCoverageTest, readline_reports_setup_failures)
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_termios> mock_termios;
     NiceMock<Mock_stdio> mock_stdio;
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char input[] = "fallback\n";
     char output[16] = {};
     int invalid_screen = 0;
@@ -511,30 +509,30 @@ TEST(pinnedPromptCoverageTest, readline_reports_setup_failures)
         .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
     // [Pre-Assert確認_異常系] - fgets が raw 移行失敗後の fallback で 1 回呼び出されること。
     // [Pre-Assert手順] - fgets から改行付き入力 "fallback" を返却する。
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr))               // history-failure.c: 履歴コンテキスト配列確保失敗
-        .WillOnce(Invoke(delegate_real_realloc)) // prompt-failure.c の事前生成: 配列確保は成功させる
-        .WillOnce(Return(nullptr));              // 6回目の readline: プロンプト文字列の再確保失敗
-    // [Pre-Assert確認_異常系] - realloc が履歴確保とプロンプト再確保のために呼び出されること。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
+        .WillOnce(Return(nullptr))                        // history-failure.c: 履歴コンテキスト配列確保失敗
+        .WillOnce(Invoke(delegate_real_com_util_realloc)) // prompt-failure.c の事前生成: 配列確保は成功させる
+        .WillOnce(Return(nullptr));                       // 6回目の readline: プロンプト文字列の再確保失敗
+    // [Pre-Assert確認_異常系] - com_util_realloc が履歴確保とプロンプト再確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目と 3 回目は NULL、2 回目は本物の realloc 結果を返却する。
 
     // Act
-    invalid_screen = _com_util_pinned_prompt_readline(NULL, output, sizeof(output), "", "invalid.c",
+    invalid_screen = com_util_pinned_prompt_readline_at(NULL, output, sizeof(output), "", "invalid.c",
                                                       1); // [手順] - NULL ハンドルで readline を呼び出す。
-    invalid_buffer = _com_util_pinned_prompt_readline(screen, NULL, sizeof(output), "", "invalid.c",
+    invalid_buffer = com_util_pinned_prompt_readline_at(screen, NULL, sizeof(output), "", "invalid.c",
                                                       2); // [手順] - NULL 出力バッファーで readline を呼び出す。
-    invalid_size = _com_util_pinned_prompt_readline(screen, output, 0U, "", "invalid.c",
+    invalid_size = com_util_pinned_prompt_readline_at(screen, output, 0U, "", "invalid.c",
                                                     3); // [手順] - サイズ 0 の出力バッファーで readline を呼び出す。
     test_pinned_prompt_set_tty(screen, 1);
-    raw_failure = _com_util_pinned_prompt_readline(screen, output, sizeof(output), "", "raw.c",
+    raw_failure = com_util_pinned_prompt_readline_at(screen, output, sizeof(output), "", "raw.c",
                                                    4); // [手順] - raw モード移行に失敗した readline を呼び出す。
     test_pinned_prompt_set_raw_active(screen, 1);
     history_failure =
-        _com_util_pinned_prompt_readline(screen, output, sizeof(output), "", "history-failure.c",
+        com_util_pinned_prompt_readline_at(screen, output, sizeof(output), "", "history-failure.c",
                                          5); // [手順] - 履歴コンテキスト確保に失敗した readline を呼び出す。
     ASSERT_EQ(0, test_pinned_prompt_history_failure_state(screen, "prompt-failure.c", 6));
     test_pinned_prompt_set_raw_active(screen, 1);
-    prompt_failure = _com_util_pinned_prompt_readline(screen, output, sizeof(output), "long prompt", "prompt-failure.c",
+    prompt_failure = com_util_pinned_prompt_readline_at(screen, output, sizeof(output), "long prompt", "prompt-failure.c",
                                                       6); // [手順] - プロンプト再確保に失敗した readline を呼び出す。
 
     // Assert
@@ -610,13 +608,13 @@ TEST(pinnedPromptCoverageTest, readline_covers_remaining_key_actions)
     // Act
     test_pinned_prompt_set_raw_active(screen, 1);
     int first_result =
-        _com_util_pinned_prompt_readline(screen, first_output, sizeof(first_output), "", "keys.c",
+        com_util_pinned_prompt_readline_at(screen, first_output, sizeof(first_output), "", "keys.c",
                                          1); // [手順] - 右移動、Home、End、削除、クリア、未知キーを含む入力を確定する。
     test_pinned_prompt_set_raw_active(screen, 1);
-    int short_result = _com_util_pinned_prompt_readline(screen, short_output, sizeof(short_output), "", "keys.c",
+    int short_result = com_util_pinned_prompt_readline_at(screen, short_output, sizeof(short_output), "", "keys.c",
                                                         2); // [手順] - 出力バッファーより長い入力を確定する。
     test_pinned_prompt_set_raw_active(screen, 1);
-    int eof_result = _com_util_pinned_prompt_readline(screen, eof_output, sizeof(eof_output), "", "keys.c",
+    int eof_result = com_util_pinned_prompt_readline_at(screen, eof_output, sizeof(eof_output), "", "keys.c",
                                                       3); // [手順] - EOF を受信して入力を終了する。
 
     // Assert
@@ -640,7 +638,7 @@ TEST(pinnedPromptCoverageTest, tty_write_and_printf_cover_empty_short_and_failur
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 1);
     NiceMock<Mock_stdio> mock_stdio;
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     const char data[] = "abc";
     size_t written = 0U;
 
@@ -653,14 +651,13 @@ TEST(pinnedPromptCoverageTest, tty_write_and_printf_cover_empty_short_and_failur
     EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
         .WillOnce(Return(-1)) // format_failure: 書式長計算そのものを失敗させる
         .WillOnce(Return(1))  // malloc_failure: 書式長計算 (needed=1) は成功させる
-        .WillOnce(Return(1))  // write_failure: 書式長計算 (needed=1) は成功させる
-        .WillOnce(Return(1)); // write_failure: 出力バッファーへの書式書き込み (戻り値未使用)
-    // [Pre-Assert確認_異常系] - vsnprintf が書式長計算と出力書き込みのために呼び出されること。
-    // [Pre-Assert手順] - 1 回目は -1、以降は 1 を返却する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr))               // malloc_failure: 出力バッファー確保失敗
-        .WillOnce(Invoke(delegate_real_malloc)); // write_failure: 出力バッファー確保は成功させる
-    // [Pre-Assert確認_異常系] - malloc が printf の出力バッファー確保のために呼び出されること。
+        .WillOnce(Return(1)); // write_failure: 書式長計算 (needed=1) は成功させる
+    // [Pre-Assert確認_異常系] - vsnprintf が書式長計算のために呼び出されること。
+    // [Pre-Assert手順] - 1 回目は -1、以降は 1 を返却する。出力書き込みは com_util_vsnprintf へ委譲する。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Return(nullptr))                        // malloc_failure: 出力バッファー確保失敗
+        .WillOnce(Invoke(delegate_real_com_util_malloc)); // write_failure: 出力バッファー確保は成功させる
+    // [Pre-Assert確認_異常系] - com_util_malloc が printf の出力バッファー確保のために呼び出されること。
     // [Pre-Assert手順] - 1 回目は NULL、2 回目は本物の malloc 結果を返却する。
 
     // Act
@@ -693,12 +690,12 @@ TEST(pinnedPromptCoverageTest, status_apis_cover_toggle_and_allocation_failure)
     // Arrange
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Return(nullptr)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - realloc がステータス内容の再確保のために 2 回呼び出されること。
-    // [Pre-Assert手順] - realloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _)).WillOnce(Return(nullptr)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - com_util_realloc がステータス内容の再確保のために 2 回呼び出されること。
+    // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     int top_disable = com_util_pinned_prompt_status_enable(screen, COM_UTIL_PINNED_PROMPT_STATUS_POSITION_TOP,
@@ -903,13 +900,13 @@ TEST(pinnedPromptCoverageTest, remaining_five_branches)
 
     // Arrange_2
     {
-        NiceMock<Mock_stdlib> mock_stdlib;
+        NiceMock<Mock_com_util> mock_com_util;
 
         // Pre-Assert_2
-        EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+        EXPECT_CALL(mock_com_util, com_util_malloc(_))
             .WillOnce(Return(nullptr))
-            .WillRepeatedly(Invoke(delegate_real_malloc));
-        // [Pre-Assert確認_異常系] - malloc が履歴追加のために呼び出されること。
+            .WillRepeatedly(Invoke(delegate_real_com_util_malloc));
+        // [Pre-Assert確認_異常系] - com_util_malloc が履歴追加のために呼び出されること。
         // [Pre-Assert手順] - 1 回目は NULL、以降は本物の malloc 結果を返却する。
 
         // Act_2
@@ -932,7 +929,7 @@ TEST(pinnedPromptCoverageTest, format_helper_grows_buffer_when_realloc_succeeds)
     // Arrange
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     NiceMock<Mock_stdio> mock_stdio;
     char long_text[300];
     int grow_result = -1;
@@ -941,9 +938,9 @@ TEST(pinnedPromptCoverageTest, format_helper_grows_buffer_when_realloc_succeeds)
     long_text[sizeof(long_text) - 1U] = '\0';
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _)).WillOnce(Invoke(delegate_real_realloc));
-    // [Pre-Assert確認_正常系] - realloc が書式バッファー再確保のために 1 回呼び出されること。
-    // [Pre-Assert手順] - realloc から新しいバッファーを返却する。
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _)).WillOnce(Invoke(delegate_real_com_util_realloc));
+    // [Pre-Assert確認_正常系] - com_util_realloc が書式バッファー再確保のために 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_realloc から新しいバッファーを返却する。
     EXPECT_CALL(mock_stdio, vsnprintf(_, _, _, _, _, _))
         .WillOnce(DoDefault())
         .WillOnce(Return(500))
@@ -970,16 +967,16 @@ TEST(pinnedPromptCoverageTest, readline_fmt_uses_empty_prompt_when_format_alloca
     com_util_pinned_prompt *screen = com_util_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 0);
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     NiceMock<Mock_stdio> mock_stdio;
     char input[] = "ok\n";
     char output[16] = {};
     int readline_result = COM_UTIL_ERR_UNKNOWN;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - malloc が書式バッファーの初回確保のために 1 回呼び出されること。
-    // [Pre-Assert手順] - malloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - com_util_malloc が書式バッファーの初回確保のために 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
     EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
         .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
     // [Pre-Assert確認_異常系] - fgets が空プロンプトの fallback 入力で 1 回呼び出されること。

@@ -16,7 +16,9 @@
  */
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/string.h>
 #include <com_util/runtime/elevated_process.h>
 #include <com_util/runtime/process.h>
 #include <com_util/runtime/process_internal.h>
@@ -185,8 +187,8 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             unsigned long long parent_console_window;
             size_t arg_len;
             size_t buf_sz;
-            int offset;
-            int written;
+            char extra[80];
+            int ret;
 
             parent_pid = 0;
             /* 親コンソールの window ハンドルを引き継ぎ、子側が一時コンソールではなく
@@ -209,19 +211,18 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 parent_console_window = (unsigned long long)(uintptr_t)GetConsoleWindow();
                 buf_sz += strlen(COM_UTIL_CONSOLE_HANDOVER_FLAG) + 49;
             }
-            combined_arguments = (char *)malloc(buf_sz);
+            combined_arguments = (char *)com_util_malloc(buf_sz);
             if (combined_arguments == NULL)
             {
                 *exit_code = EXIT_FAILURE;
                 return COM_UTIL_ERR_OUT_OF_MEMORY;
             }
-            offset = 0;
             if (arg_len > 0)
             {
-                offset = snprintf(combined_arguments, buf_sz, "%s", arguments);
-                if (offset < 0 || (size_t)offset >= buf_sz)
+                ret = com_util_snprintf(combined_arguments, buf_sz, "%s", arguments);
+                if (ret != COM_UTIL_OK)
                 {
-                    free(combined_arguments);
+                    com_util_free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
                     return COM_UTIL_ERR_UNKNOWN;
                 }
@@ -235,38 +236,50 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
                 const char *separator;
 
                 separator = "";
-                if (offset > 0)
+                if (combined_arguments[0] != '\0')
                 {
                     separator = " ";
                 }
-                written = snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s", separator,
-                                   COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG);
-                if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
+                ret = com_util_snprintf(extra, sizeof(extra), "%s%s", separator, COM_UTIL_CONSOLE_ATTACH_DIAG_FLAG);
+                if (ret != COM_UTIL_OK)
                 {
-                    free(combined_arguments);
+                    com_util_free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
                     return COM_UTIL_ERR_UNKNOWN;
                 }
-                offset += written;
+                ret = com_util_strcat(combined_arguments, buf_sz, extra);
+                if (ret != COM_UTIL_OK)
+                {
+                    com_util_free(combined_arguments);
+                    *exit_code = EXIT_FAILURE;
+                    return COM_UTIL_ERR_UNKNOWN;
+                }
             }
             if (inherit_console != 0)
             {
                 const char *separator;
 
                 separator = "";
-                if (offset > 0)
+                if (combined_arguments[0] != '\0')
                 {
                     separator = " ";
                 }
-                written = snprintf(combined_arguments + offset, buf_sz - (size_t)offset, "%s%s=%lu:%llu", separator,
-                                   COM_UTIL_CONSOLE_HANDOVER_FLAG, (unsigned long)parent_pid, parent_console_window);
-                if (written < 0 || (size_t)written >= buf_sz - (size_t)offset)
+                ret = com_util_snprintf(extra, sizeof(extra), "%s%s=%lu:%llu", separator,
+                                        COM_UTIL_CONSOLE_HANDOVER_FLAG, (unsigned long)parent_pid,
+                                        parent_console_window);
+                if (ret != COM_UTIL_OK)
                 {
-                    free(combined_arguments);
+                    com_util_free(combined_arguments);
                     *exit_code = EXIT_FAILURE;
                     return COM_UTIL_ERR_UNKNOWN;
                 }
-                offset += written;
+                ret = com_util_strcat(combined_arguments, buf_sz, extra);
+                if (ret != COM_UTIL_OK)
+                {
+                    com_util_free(combined_arguments);
+                    *exit_code = EXIT_FAILURE;
+                    return COM_UTIL_ERR_UNKNOWN;
+                }
             }
             effective_arguments = combined_arguments;
         }
@@ -274,7 +287,7 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         wide_exe_path = com_util_utf8_to_wstr_alloc(exe_path);
         if (wide_exe_path == NULL)
         {
-            free(combined_arguments);
+            com_util_free(combined_arguments);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
@@ -283,13 +296,13 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
             wide_arguments = com_util_utf8_to_wstr_alloc(effective_arguments);
             if (wide_arguments == NULL)
             {
-                free(combined_arguments);
-                free(wide_exe_path);
+                com_util_free(combined_arguments);
+                com_util_free(wide_exe_path);
                 *exit_code = EXIT_FAILURE;
                 return COM_UTIL_ERR_OUT_OF_MEMORY;
             }
         }
-        free(combined_arguments);
+        com_util_free(combined_arguments);
         combined_arguments = NULL;
 
         ZeroMemory(&exec_info, sizeof(exec_info));
@@ -314,13 +327,13 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
 
         if (!ShellExecuteExW(&exec_info))
         {
-            free(wide_arguments);
-            free(wide_exe_path);
+            com_util_free(wide_arguments);
+            com_util_free(wide_exe_path);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;
         }
-        free(wide_arguments);
-        free(wide_exe_path);
+        com_util_free(wide_arguments);
+        com_util_free(wide_exe_path);
 
         child_process = com_util_process_adopt_native((intptr_t)exec_info.hProcess);
         if (child_process == NULL)
@@ -447,7 +460,7 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         }
         /* 区切り空白 + フラグ + '=' + '"' + パス + '"' + 終端の余裕を確保する */
         buf_sz = arg_len + 1 + strlen(COM_UTIL_PROCESS_RESULT_TARGET_FLAG) + 1 + 1 + strlen(result_path) + 1 + 1;
-        combined_arguments = (char *)malloc(buf_sz);
+        combined_arguments = (char *)com_util_malloc(buf_sz);
         if (combined_arguments == NULL)
         {
             *exit_code = EXIT_FAILURE;
@@ -460,27 +473,28 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
            see: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments */
         if (arg_len > 0)
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments, COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
-                           result_path);
+            (void)com_util_snprintf(combined_arguments, buf_sz, "%s %s=\"%s\"", arguments,
+                                    COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
         }
         else
         {
-            (void)snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG, result_path);
+            (void)com_util_snprintf(combined_arguments, buf_sz, "%s=\"%s\"", COM_UTIL_PROCESS_RESULT_TARGET_FLAG,
+                                    result_path);
         }
 
         wide_exe_path = com_util_utf8_to_wstr_alloc(exe_path);
         if (wide_exe_path == NULL)
         {
-            free(combined_arguments);
+            com_util_free(combined_arguments);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
         wide_arguments = com_util_utf8_to_wstr_alloc(combined_arguments);
-        free(combined_arguments);
+        com_util_free(combined_arguments);
         if (wide_arguments == NULL)
         {
-            free(wide_exe_path);
+            com_util_free(wide_exe_path);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -500,14 +514,14 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
 
         if (!ShellExecuteExW(&exec_info))
         {
-            free(wide_arguments);
-            free(wide_exe_path);
+            com_util_free(wide_arguments);
+            com_util_free(wide_exe_path);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;
         }
-        free(wide_arguments);
-        free(wide_exe_path);
+        com_util_free(wide_arguments);
+        com_util_free(wide_exe_path);
 
         child_process = com_util_process_adopt_native((intptr_t)exec_info.hProcess);
         if (child_process == NULL)

@@ -18,6 +18,7 @@
 
 #include <com_util/argparser/argparser.h>
 #include <com_util/base/platform.h>
+#include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
 #include <com_util/console/console.h>
 #include <com_util/crt/stdio.h>
@@ -87,15 +88,12 @@ void etw_viewer_options_init(etw_viewer_options *options)
 
 int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer, size_t buffer_size)
 {
-    int written;
-
     if (buffer == NULL || buffer_size == 0U)
     {
         return -1;
     }
 
-    written = snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id);
-    if (written < 0 || (size_t)written >= buffer_size)
+    if (com_util_snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id) != COM_UTIL_OK)
     {
         return -1;
     }
@@ -220,13 +218,13 @@ static void print_access_error(void)
     fflush(stderr);
 }
 
-static void print_start_error(int status, const char *session_name)
+static void print_start_error(int ret, const char *session_name)
 {
-    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
+    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
     {
         print_access_error();
     }
-    else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
+    else if (ret == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
         fprintf(stderr, "ETW session の開始に失敗しました。内部パラメータが不正です。\n");
     }
@@ -242,7 +240,7 @@ int main(int argc, char *argv[])
     etw_viewer_options options;
     etw_viewer_context viewer_context;
     com_util_etw_session *session;
-    int status;
+    int ret;
     char session_name[ETW_VIEWER_SESSION_NAME_MAX];
     const char *pid_value = NULL;
 
@@ -251,29 +249,29 @@ int main(int argc, char *argv[])
 
     etw_viewer_options_init(&options);
 
-    com_util_argparser_init("ETW の com_util トレースを表示します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
-    com_util_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
+    com_util_argparser_default_init("ETW の com_util トレースを表示します。");
+    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    com_util_argparser_default_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (options.need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -281,8 +279,8 @@ int main(int argc, char *argv[])
     {
         if (parse_process_id_arg(pid_value, &options.process_id_filter) != 0)
         {
-            com_util_argparser_print_error_messages(stderr);
-            com_util_argparser_print_usage(stderr);
+            com_util_argparser_default_print_error_messages(stderr);
+            com_util_argparser_default_print_usage(stderr);
             return EXIT_FAILURE;
         }
         options.has_process_id_filter = 1;
@@ -298,13 +296,13 @@ int main(int argc, char *argv[])
     viewer_context.process_id_filter = options.process_id_filter;
     viewer_context.has_process_id_filter = options.has_process_id_filter;
 
-    status = com_util_etw_session_check_access();
-    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
+    ret = com_util_etw_session_check_access();
+    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
     {
         print_access_error();
         return EXIT_ACCESS_DENIED;
     }
-    if (status != COM_UTIL_OK)
+    if (ret != COM_UTIL_OK)
     {
         fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
         return EXIT_FAILURE;
@@ -316,16 +314,16 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    status = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
-                                        etw_viewer_handle_event, &viewer_context, &session);
-    if (status != COM_UTIL_OK)
+    ret = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
+                                     etw_viewer_handle_event, &viewer_context, &session);
+    if (ret != COM_UTIL_OK)
     {
         int exit_code = EXIT_FAILURE;
-        if (status == COM_UTIL_ERR_PERMISSION_DENIED)
+        if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
         {
             exit_code = EXIT_ACCESS_DENIED;
         }
-        print_start_error(status, session_name);
+        print_start_error(ret, session_name);
         return exit_code;
     }
 

@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/prompt_edit.h>
-#include <mock_stdlib.h>
+#include <mock_com_util.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -383,17 +383,17 @@ TEST_F(promptEditTest, resolve_options_accepts_null_outputs)
 TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char *buf = static_cast<char *>(std::malloc(4u));
     size_t cap = 4u; // [状態] - 4 byte を確保済みのバッファーを用意する。
 
     ASSERT_NE(nullptr, buf); // [状態確認] - malloc が非 NULL のポインタを返すこと。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, buf, 32u))
+    EXPECT_CALL(mock_com_util, com_util_realloc(buf, 32u, 1u))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - realloc が拡張後の容量 32 を指定して 1 回呼び出されること。
-                              // [Pre-Assert手順] - realloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_realloc が拡張後の容量 32 を指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
@@ -410,16 +410,16 @@ TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
 TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     char dummy = '\0';
     char *buf = &dummy;
     const size_t max_size = std::numeric_limits<size_t>::max();
     size_t cap = (max_size / 2u) + 1u; // [状態] - 2 倍すると size_t の上限を超える容量を指定する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, buf, max_size))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - realloc が size_t の上限を指定して 1 回呼び出されること。
-                                   // [Pre-Assert手順] - realloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_realloc(buf, max_size, 1u))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_realloc が size_t の上限を指定して 1 回呼び出されること。
+                                   // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, max_size,

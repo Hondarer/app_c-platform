@@ -1,6 +1,5 @@
 #include <testfw.h>
 #include <mock_pthread.h>
-#include <mock_stdlib.h>
 #include <sys/mock_mman.h>
 #include <mock_com_util.h>
 #include <com_util/runtime/memory_lock.h>
@@ -479,15 +478,15 @@ TEST_F(memoryLockTest, test_lock_self_reports_internal_lock_failure)
 TEST_F(memoryLockTest, test_lock_self_reports_scope_allocation_failure)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_memory_lock_self_options options = {};
     com_util_memory_lock_scope *scope = nullptr;
     options.flags = COM_UTIL_MEMORY_LOCK_CURRENT;
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - scope の calloc が失敗すること。
-                                    // [Pre-Assert手順] - calloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - scope の com_util_calloc が失敗すること。
+                                    // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     int result = com_util_memory_lock_self(&options, &scope); // [手順] - scope のメモリ確保失敗を注入する。

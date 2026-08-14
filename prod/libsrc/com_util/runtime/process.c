@@ -16,6 +16,7 @@
  */
 
 #include <com_util/runtime/process.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/runtime/process_internal.h>
 #include <com_util/base/result_internal.h>
 #include <com_util/crt/path.h>
@@ -100,7 +101,7 @@ static char *string_duplicate(const char *text)
     }
 
     len = strlen(text) + 1;
-    copy = (char *)malloc(len);
+    copy = (char *)com_util_malloc(len);
     if (copy != NULL)
     {
         memcpy(copy, text, len);
@@ -145,10 +146,10 @@ static void free_envp(char **envp)
     i = 0;
     while (envp[i] != NULL)
     {
-        free(envp[i]);
+        com_util_free(envp[i]);
         i++;
     }
-    free(envp);
+    com_util_free(envp);
 }
 
 static int set_env_entry(char **envp, const size_t capacity, const char *entry)
@@ -174,7 +175,7 @@ static int set_env_entry(char **envp, const size_t capacity, const char *entry)
     {
         if (env_key_matches(envp[i], entry, key_len) != 0)
         {
-            free(envp[i]);
+            com_util_free(envp[i]);
             envp[i] = copy;
             return 0;
         }
@@ -183,7 +184,7 @@ static int set_env_entry(char **envp, const size_t capacity, const char *entry)
 
     if (i + 1 >= capacity)
     {
-        free(copy);
+        com_util_free(copy);
         return -1;
     }
 
@@ -220,7 +221,7 @@ static char **build_environment(char *const *overrides)
     }
 
     capacity = env_count + override_count + 1;
-    envp = (char **)calloc(capacity, sizeof(*envp));
+    envp = (char **)com_util_calloc(capacity, sizeof(*envp));
     if (envp == NULL)
     {
         return NULL;
@@ -437,7 +438,7 @@ static int wide_buffer_reserve(wide_buffer *buf, const size_t need)
         new_cap *= 2;
     }
 
-    new_data = (wchar_t *)realloc(buf->data, new_cap * sizeof(*new_data));
+    new_data = (wchar_t *)com_util_realloc(buf->data, new_cap, sizeof(*new_data));
     if (new_data == NULL)
     {
         return -1;
@@ -580,23 +581,23 @@ static wchar_t *build_command_line(char *const *argv)
         wide_arg = com_util_utf8_to_wstr_alloc(argv[i]);
         if (wide_arg == NULL)
         {
-            free(buf.data);
+            com_util_free(buf.data);
             return NULL;
         }
         if (i > 0)
         {
             if (wide_buffer_append_char(&buf, L' ') != 0)
             {
-                free(wide_arg);
-                free(buf.data);
+                com_util_free(wide_arg);
+                com_util_free(buf.data);
                 return NULL;
             }
         }
         rc = append_windows_quoted_arg(&buf, wide_arg);
-        free(wide_arg);
+        com_util_free(wide_arg);
         if (rc != 0)
         {
-            free(buf.data);
+            com_util_free(buf.data);
             return NULL;
         }
         i++;
@@ -645,10 +646,10 @@ static void free_wide_env_list(wchar_t **list)
     i = 0;
     while (list[i] != NULL)
     {
-        free(list[i]);
+        com_util_free(list[i]);
         i++;
     }
-    free(list);
+    com_util_free(list);
 }
 
 static wchar_t *wide_string_duplicate(const wchar_t *text)
@@ -657,7 +658,7 @@ static wchar_t *wide_string_duplicate(const wchar_t *text)
     size_t len;
 
     len = wcslen(text) + 1;
-    copy = (wchar_t *)malloc(len * sizeof(*copy));
+    copy = (wchar_t *)com_util_calloc(len, sizeof(*copy));
     if (copy != NULL)
     {
         memcpy(copy, text, len * sizeof(*copy));
@@ -688,7 +689,7 @@ static int set_wide_env_entry(wchar_t **list, const size_t capacity, const wchar
     {
         if (wide_env_key_matches(list[i], entry, key_len) != 0)
         {
-            free(list[i]);
+            com_util_free(list[i]);
             list[i] = copy;
             return 0;
         }
@@ -697,7 +698,7 @@ static int set_wide_env_entry(wchar_t **list, const size_t capacity, const wchar
 
     if (i + 1 >= capacity)
     {
-        free(copy);
+        com_util_free(copy);
         return -1;
     }
     list[i] = copy;
@@ -749,7 +750,7 @@ static wchar_t *build_environment_block(char *const *overrides)
     }
 
     capacity = env_count + override_count + 1;
-    list = (wchar_t **)calloc(capacity, sizeof(*list));
+    list = (wchar_t **)com_util_calloc(capacity, sizeof(*list));
     if (list == NULL)
     {
         FreeEnvironmentStringsW(current);
@@ -786,11 +787,11 @@ static wchar_t *build_environment_block(char *const *overrides)
         }
         if (set_wide_env_entry(list, capacity, wide_entry) != 0)
         {
-            free(wide_entry);
+            com_util_free(wide_entry);
             free_wide_env_list(list);
             return NULL;
         }
-        free(wide_entry);
+        com_util_free(wide_entry);
         i++;
     }
 
@@ -802,7 +803,7 @@ static wchar_t *build_environment_block(char *const *overrides)
         i++;
     }
 
-    block = (wchar_t *)calloc(block_len, sizeof(*block));
+    block = (wchar_t *)com_util_calloc(block_len, sizeof(*block));
     if (block == NULL)
     {
         free_wide_env_list(list);
@@ -930,11 +931,11 @@ static void release_process_start_resources(struct process_start_resources *res)
     {
         DeleteProcThreadAttributeList(res->attribute_list);
     }
-    free(res->attribute_list);
+    com_util_free(res->attribute_list);
     close_stdio_handles(res->stdio_handles);
-    free(res->working_directory);
-    free(res->environment_block);
-    free(res->command_line);
+    com_util_free(res->working_directory);
+    com_util_free(res->environment_block);
+    com_util_free(res->command_line);
 }
 #endif /* PLATFORM_ */
 
@@ -1031,7 +1032,7 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
             return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
 
-        new_process = (com_util_process *)calloc(1, sizeof(*new_process));
+        new_process = (com_util_process *)com_util_calloc(1, sizeof(*new_process));
         if (new_process == NULL)
         {
             free_envp(envp);
@@ -1042,7 +1043,7 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
         if (pid < 0)
         {
             free_envp(envp);
-            free(new_process);
+            com_util_free(new_process);
             return COM_UTIL_ERR_UNKNOWN;
         }
 
@@ -1112,7 +1113,7 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
 
         attr_size = 0;
         InitializeProcThreadAttributeList(NULL, 1, 0, &attr_size);
-        res.attribute_list = (LPPROC_THREAD_ATTRIBUTE_LIST)calloc(1, attr_size);
+        res.attribute_list = (LPPROC_THREAD_ATTRIBUTE_LIST)com_util_calloc(1, attr_size);
         if (res.attribute_list == NULL)
         {
             release_process_start_resources(&res);
@@ -1150,7 +1151,7 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
         }
 
         CloseHandle(process_info.hThread);
-        new_process = (com_util_process *)calloc(1, sizeof(*new_process));
+        new_process = (com_util_process *)com_util_calloc(1, sizeof(*new_process));
         if (new_process == NULL)
         {
             CloseHandle(process_info.hProcess);
@@ -1337,7 +1338,7 @@ void com_util_process_destroy(com_util_process *process)
         CloseHandle(process->process);
     }
 #endif /* PLATFORM_WINDOWS */
-    free(process);
+    com_util_free(process);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1346,7 +1347,7 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 {
     com_util_process *new_process;
 
-    new_process = (com_util_process *)calloc(1, sizeof(*new_process));
+    new_process = (com_util_process *)com_util_calloc(1, sizeof(*new_process));
     if (new_process == NULL)
     {
         return NULL;
@@ -1357,7 +1358,7 @@ com_util_process *com_util_process_adopt_native(const intptr_t native_handle)
 #elif defined(PLATFORM_WINDOWS)
     new_process->process = (HANDLE)native_handle;
 #else
-    free(new_process);
+    com_util_free(new_process);
     return NULL;
 #endif /* PLATFORM_ */
     return new_process;

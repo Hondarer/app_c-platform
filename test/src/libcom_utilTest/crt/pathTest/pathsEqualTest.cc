@@ -1,6 +1,6 @@
 #include <testfw.h>
 #include <com_util/crt/path.h>
-#include <mock_stdlib.h>
+#include <mock_com_util.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -177,15 +177,15 @@ TEST_F(pathsEqualTest, returns_zero_for_different_paths)
 TEST_F(pathsEqualTest, returns_enomem_when_lhs_normalization_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
     int equal = 0;      // [状態] - equal_out の受け取り先を 0 で初期化する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, calloc(_, _, _, PLATFORM_PATH_MAX, sizeof(size_t)))
-        .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - 左辺パスの正規化用メモリの calloc が 1 回呼び出されること。
-                              // [Pre-Assert手順] - calloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_calloc(PLATFORM_PATH_MAX, sizeof(size_t)))
+        .WillOnce(Return(
+            nullptr)); // [Pre-Assert確認_異常系] - 左辺パスの正規化用メモリの com_util_calloc が 1 回呼び出されること。
+                       // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
     // Act
     int rc = com_util_paths_equal("/lhs", "/rhs", &equal,

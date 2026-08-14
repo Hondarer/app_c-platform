@@ -219,7 +219,7 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_,
-                _com_util_tracer_write_hex(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, _, 3U, StrEq("payload bytes")))
+                com_util_tracer_write_hex_at(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, _, 3U, StrEq("payload bytes")))
         .WillOnce(
             [](com_util_tracer *, com_util_trace_level, const com_util_timespec *, const void *data, size_t size,
                const char *)
@@ -230,8 +230,8 @@ TEST_F(trace_cliTest, process_line_write_hex_parses_quoted_hex_and_label)
                 EXPECT_EQ((unsigned char)0xAB, bytes[1]); // [Pre-Assert確認_正常系] - 2 byte 目が 0xAB であること。
                 EXPECT_EQ((unsigned char)0xFF, bytes[2]); // [Pre-Assert確認_正常系] - 3 byte 目が 0xFF であること。
                 return 0;
-            }); // [Pre-Assert確認_正常系] - _com_util_tracer_write_hex がラベル "payload bytes" で 1 回呼び出されること。
-                // [Pre-Assert手順] - _com_util_tracer_write_hex から 0 を返却する。
+            }); // [Pre-Assert確認_正常系] - com_util_tracer_write_hex_at がラベル "payload bytes" で 1 回呼び出されること。
+                // [Pre-Assert手順] - com_util_tracer_write_hex_at から 0 を返却する。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 正常戻り値が緑の "rc=0" として表示されること。
 
@@ -251,11 +251,11 @@ TEST_F(trace_cliTest, process_line_writef_uses_message_as_single_string)
     session_.handle = handle_; // [状態] - 既存 handle を持つ session とする。
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, _com_util_tracer_writef(handle_, COM_UTIL_TRACE_LEVEL_DEBUG, nullptr,
+    EXPECT_CALL(mock_com_util_, com_util_tracer_writef_at(handle_, COM_UTIL_TRACE_LEVEL_DEBUG, nullptr,
                                                         StrEq("message with spaces")))
         .WillOnce(Return(
-            0)); // [Pre-Assert確認_正常系] - _com_util_tracer_writef が空白を含む "message with spaces" 全体で 1 回呼び出されること。
-    // [Pre-Assert手順] - _com_util_tracer_writef から 0 を返却する。
+            0)); // [Pre-Assert確認_正常系] - com_util_tracer_writef_at が空白を含む "message with spaces" 全体で 1 回呼び出されること。
+    // [Pre-Assert手順] - com_util_tracer_writef_at から 0 を返却する。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq(kRcSuccessTty)))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 正常戻り値が緑の "rc=0" として表示されること。
 
@@ -387,10 +387,10 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
             Return(0)); // [Pre-Assert確認_正常系] - start コマンドで com_util_tracer_start が 1 回呼び出されること。
                         // [Pre-Assert手順] - com_util_tracer_start から 0 を返却する。
     EXPECT_CALL(mock_com_util_,
-                _com_util_tracer_write(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, StrEq("hello world")))
+                com_util_tracer_write_at(handle_, COM_UTIL_TRACE_LEVEL_INFO, nullptr, StrEq("hello world")))
         .WillOnce(
             Return(0)); // [Pre-Assert確認_正常系] - write コマンドで message "hello world" がそのまま渡されること。
-                        // [Pre-Assert手順] - _com_util_tracer_write から 0 を返却する。
+                        // [Pre-Assert手順] - com_util_tracer_write_at から 0 を返却する。
     EXPECT_CALL(mock_com_util_, com_util_tracer_stop(handle_))
         .WillOnce(
             Return(0)); // [Pre-Assert確認_正常系] - stop コマンドで com_util_tracer_stop が 1 回呼び出されること。

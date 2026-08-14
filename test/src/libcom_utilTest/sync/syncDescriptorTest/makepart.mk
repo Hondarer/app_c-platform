@@ -4,4 +4,4 @@ TEST_SRCS := \
 
 # ライブラリの指定
 # identity 確保失敗の注入に mock_stdlib を使う
-LIBS += mock_libc
+LIBS += mock_libc mock_com_util

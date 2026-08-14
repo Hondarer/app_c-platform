@@ -49,7 +49,7 @@ int call_com_util_vfscanf(FILE *stream, const char *format, ...)
 class scanfTest : public testing::Test
 {
   protected:
-    NiceMock<Mock_stdio> mock_;
+    NiceMock<Mock_stdio> mock_stdio;
 };
 
 // scanf が標準入力から幅指定した文字列と数値を読み取ることの確認
@@ -60,7 +60,7 @@ TEST_F(scanfTest, scanf_reads_width_limited_token_and_integer)
     int value = 0; // [状態] - 文字列と数値の格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, vscanf(_, _, _, StrEq("%7s %d"), _))
+    EXPECT_CALL(mock_stdio, vscanf(_, _, _, StrEq("%7s %d"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, va_list args)
             {
@@ -85,7 +85,7 @@ TEST_F(scanfTest, vscanf_reads_width_limited_token_and_integer)
     int value = 0; // [状態] - 文字列と数値の格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, vscanf(_, _, _, StrEq("%7s %d"), _))
+    EXPECT_CALL(mock_stdio, vscanf(_, _, _, StrEq("%7s %d"), _))
         .WillOnce(
             [](const char *, int, const char *, const char *, va_list args)
             {
@@ -111,7 +111,7 @@ TEST_F(scanfTest, fscanf_reads_width_limited_token_and_integer)
     int value = 0; // [状態] - 番兵ストリームと、文字列と数値の格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, vfscanf(_, _, _, kStream, StrEq("%7s %d"), _))
+    EXPECT_CALL(mock_stdio, vfscanf(_, _, _, kStream, StrEq("%7s %d"), _))
         .WillOnce(
             [](const char *, int, const char *, FILE *, const char *, va_list args)
             {
@@ -137,7 +137,7 @@ TEST_F(scanfTest, vfscanf_reads_width_limited_token_and_integer)
     int value = 0; // [状態] - 番兵ストリームと、文字列と数値の格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, vfscanf(_, _, _, kStream, StrEq("%7s %d"), _))
+    EXPECT_CALL(mock_stdio, vfscanf(_, _, _, kStream, StrEq("%7s %d"), _))
         .WillOnce(
             [](const char *, int, const char *, FILE *, const char *, va_list args)
             {

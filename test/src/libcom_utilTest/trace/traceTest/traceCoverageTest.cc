@@ -1,8 +1,5 @@
 #include <testfw.h>
 #include <mock_com_util.h>
-#include <mock_stdio.h>
-#include <mock_stdlib.h>
-#include <mock_string.h>
 #include <com_util/runtime/shutdown.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/tracer_internal.h>
@@ -45,7 +42,7 @@ void coverage_hook(com_util_tracer_hook_entry *prev, com_util_tracer *handle, co
 class traceCoverageTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_trace_file_sink *file_handle_ =
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2200));
 #if defined(PLATFORM_LINUX)
@@ -58,13 +55,13 @@ class traceCoverageTest : public Test
 
     void SetUp() override
     {
-        set_trace_sync_mock_defaults(mock_);
+        set_trace_sync_mock_defaults(mock_com_util);
         test_trace_registry_reset_shutdown_state();
-        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
-        ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_, com_util_process_get_executable_path(_, _))
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
             .WillByDefault(
                 [](char *out_path, size_t out_path_sz)
                 {
@@ -72,17 +69,17 @@ class traceCoverageTest : public Test
                     return COM_UTIL_OK;
                 });
 #if defined(PLATFORM_LINUX)
-        ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
 #elif defined(PLATFORM_WINDOWS)
-        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
-        ON_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_eventlog_sink_create(_)).WillByDefault(Return(eventlog_handle_));
+        ON_CALL(mock_com_util, com_util_eventlog_sink_write(_, _, _, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_eventlog_sink_dispose(_)).WillByDefault(Return());
 #endif /* PLATFORM_ */
     }
 
@@ -132,11 +129,11 @@ TEST_F(traceCoverageTest, create_fails_when_syslog_or_rwlock_setup_fails)
     com_util_tracer *rwlock_failure = NULL;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_syslog_sink_create(_, _))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_create(_, _))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(Return(os_handle_)); // [Pre-Assert確認_異常系] - 1 回目の syslog sink 生成が失敗すること。
                                              // [Pre-Assert手順] - 1 回目は NULL、以降はダミー sink を返却する。
-    EXPECT_CALL(mock_, com_util_local_rwlock_create(_))
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_create(_))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 2 回目生成の rwlock 作成が失敗すること。
                                       // [Pre-Assert手順] - 1 回目は UNKNOWN、以降は既定動作を返却する。
@@ -205,7 +202,7 @@ TEST_F(traceCoverageTest, enter_shared_fails_on_timeout_and_lifecycle_change)
     int write_result = COM_UTIL_OK;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_shared(_, _))
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_shared(_, _))
         .WillOnce(Return(COM_UTIL_ERR_TIMEOUT))
         .WillOnce(Invoke(
             [handle](com_util_local_rwlock *, int)
@@ -260,7 +257,6 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
     int name_null = COM_UTIL_OK;
     int file_name_inactive = COM_UTIL_OK;
 #if defined(PLATFORM_LINUX)
-    NiceMock<Mock_string> mock_string;
     int file_name_oom = COM_UTIL_OK;
     int file_level_oom = COM_UTIL_OK;
     int rename_failure = COM_UTIL_OK;
@@ -270,13 +266,13 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
 
     // Pre-Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_string, strdup(_, _, _, _))
-        .WillOnce(Invoke(delegate_real_strdup))
+    EXPECT_CALL(mock_com_util, com_util_strdup(_))
+        .WillOnce(Invoke(delegate_real_com_util_strdup))
         .WillOnce(Return(nullptr))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(
-            Invoke(delegate_real_strdup)); // [Pre-Assert確認_異常系] - 名前複製とパス複製の失敗を注入すること。
-    EXPECT_CALL(mock_, com_util_syslog_sink_rename(_, _))
+            Invoke(delegate_real_com_util_strdup)); // [Pre-Assert確認_異常系] - 名前複製とパス複製の失敗を注入すること。
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_rename(_, _))
         .WillOnce(Return(COM_UTIL_OK))
         .WillOnce(Return(-1))
         .WillRepeatedly(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - 2 回目の syslog rename が失敗すること。
@@ -342,11 +338,11 @@ TEST_F(traceCoverageTest, file_sink_open_failures)
     int reopen_result = COM_UTIL_OK;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_process_get_executable_path(_, _))
+    EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillRepeatedly(
             Return(COM_UTIL_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 実行ファイル パス取得が失敗すること。
     // [Pre-Assert手順] - com_util_process_get_executable_path から COM_UTIL_ERR_UNKNOWN を返却する。
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .WillOnce(Return(nullptr))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(Return(file_handle_)); // [Pre-Assert確認_異常系] - file sink 生成が 2 回失敗すること。
@@ -380,7 +376,6 @@ TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
     com_util_tracer *handle = com_util_tracer_create(
         COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
     ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdio> mock_stdio;
     char name[32] = {};
     const unsigned char data[4] = {0x01, 0x02, 0x03, 0x04};
     std::string long_label(1024, 'L');
@@ -397,27 +392,26 @@ TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
     // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
-        .WillOnce(Return(-1))
-        .WillOnce(Return(-1))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - ファイル名組み立ての snprintf が 2 回失敗すること。
+    EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - ファイル名組み立ての com_util_snprintf が 1 回失敗すること。
 
     // Act
     name_result =
         com_util_tracer_get_file_name(handle, name, sizeof(name)); // [手順] - snprintf 失敗状態でファイル名を取得する。
     hex_null = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL, 1U,
                                           "l"); // [手順] - data NULL で hex を書き込む。
-    hex_empty = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 0U,
+    hex_empty = com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 0U,
                                            "l"); // [手順] - size 0 で hex を書き込む。
     hex_long = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                           long_label.c_str()); // [手順] - MAX_BODY に近い label で hex を書き込む。
     hex_mid = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 400U,
                                          mid_label.c_str()); // [手順] - 省略記号だけが入る残り幅で hex を書き込む。
-    writef_null = _com_util_tracer_writef(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "%s",
+    writef_null = com_util_tracer_writef_at(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, "%s",
                                           "x"); // [手順] - NULL ハンドルで writef する。
-    hexf_null = _com_util_tracer_vwrite_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL, 1U, "%s",
+    hexf_null = com_util_tracer_vwrite_hexf_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL, 1U, "%s",
                                              NULL); // [手順] - data NULL で vwrite_hexf する。
-    int write_hexf_null_format = _com_util_tracer_write_hexf(
+    int write_hexf_null_format = com_util_tracer_write_hexf_at(
         handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), NULL); // [手順] - format NULL で write_hexf する。
 
     // Assert
@@ -442,14 +436,13 @@ TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
     com_util_tracer *handle = com_util_tracer_create(
         COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
     ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
-    NiceMock<Mock_stdlib> mock_stdlib;
     com_util_shutdown_event event = {};
     com_util_tracer_hook_entry *hook = reinterpret_cast<com_util_tracer_hook_entry *>(static_cast<uintptr_t>(0x1));
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - hook エントリ確保が失敗すること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     com_util_tracer_hook_entry *created =
@@ -487,7 +480,7 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
     // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_get_realtime(_))
+    EXPECT_CALL(mock_com_util, com_util_get_realtime(_))
         .WillOnce(
             [](com_util_timespec *resolved)
             {
@@ -495,7 +488,7 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
                 resolved->tv_nsec = -1;
             })
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 1 回目の現在時刻取得が不正な時刻を返すこと。
-    EXPECT_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
+    EXPECT_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 2 回目の時刻整形が失敗すること。
 
@@ -532,7 +525,7 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
     int utf8_cut = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_process_get_executable_path(_, _))
+    EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
             [](char *out_path, size_t out_path_sz)
             {
@@ -561,7 +554,7 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
     start_none = com_util_tracer_start(handle); // [手順] - 既に running のハンドルを再 start する。
     writef_null_fmt =
-        _com_util_tracer_writef(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL); // [手順] - format NULL で writef する。
+        com_util_tracer_writef_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL); // [手順] - format NULL で writef する。
     hex_null_handle = test_tracer_hex_write_impl(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                                  "l"); // [手順] - NULL ハンドルで hex を書く。
     hex_empty_label = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
@@ -588,21 +581,20 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
     test_tracer_set_file_handle(handle, NULL);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "/tmp/opened.log", COM_UTIL_TRACE_LEVEL_INFO, 1, 0,
                                                           0)); // [手順] - 稼働中・旧ハンドルなしで新しい sink を開く。
-    (void)_com_util_tracer_write_hex(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "l");
-    (void)_com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL, sizeof(data), "l");
-    (void)_com_util_tracer_write_hexf(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "%s", "l");
+    (void)com_util_tracer_write_hex_at(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "l");
+    (void)com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, NULL, sizeof(data), "l");
+    (void)com_util_tracer_write_hexf_at(NULL, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "%s", "l");
     (void)com_util_tracer_get_file_name(handle, NULL, 8);
     (void)com_util_tracer_get_file_name(handle, tiny_name, 0);
     (void)com_util_tracer_get_identifier(NULL);
     {
-        NiceMock<Mock_stdio> mock_stdio;
-        EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
             .WillOnce(DoDefault())
             .WillOnce(DoDefault())
-            .WillOnce(Return(400));
+            .WillOnce(Return(COM_UTIL_ERR_BUFFER_TOO_SMALL));
         char path_buf[64] = {};
         (void)test_tracer_build_default_file_path(handle, path_buf,
-                                                  sizeof(path_buf)); // [手順] - .log 付与の snprintf が過大長を返す。
+                                                  sizeof(path_buf)); // [手順] - .log 付与の com_util_snprintf が過大長を返す。
     }
     com_util_tracer_remove_hook(handle, reinterpret_cast<com_util_tracer_hook_entry *>(static_cast<uintptr_t>(0x2)));
     test_tracer_call_next_null(handle);                   // [手順] - NULL prev で次 hook を呼ぶ。
@@ -662,7 +654,7 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
     // [Pre-Assert確認_異常系] - syslog sink 生成中にシャットダウンを開始すること。
     // [Pre-Assert手順] - 生成中に shutdown 開始フラグを立て、ダミー sink を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_create(_, _))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_create(_, _))
         .WillOnce(Invoke(
             [this](const char *, int)
             {
@@ -716,7 +708,7 @@ TEST_F(traceCoverageTest, exclusive_lock_lifecycle_and_set_file_level_enter_fail
     int file_level_result = COM_UTIL_OK;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_exclusive(_, _))
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_exclusive(_, _))
         .WillOnce(Invoke(
             [handle](com_util_local_rwlock *, int)
             {
@@ -762,20 +754,22 @@ TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
     memset(payload, 0xAB, sizeof(payload));
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _))
         .WillRepeatedly(Return(file_handle_)); // [Pre-Assert確認_正常系] - file sink 生成が呼び出されること。
     // [Pre-Assert手順] - com_util_trace_file_sink_create からダミー sink を返却する。
 
     // Act
     {
-        NiceMock<Mock_stdio> mock_stdio;
-        EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
+        EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
             .WillOnce(DoDefault())
             .WillOnce(DoDefault())
-            .WillOnce(Return(-1))
-            .WillRepeatedly(Return(-1));
+            .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+            .WillOnce(DoDefault())
+            .WillOnce(DoDefault())
+            .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+            .WillRepeatedly(DoDefault());
         default_path = test_tracer_build_default_file_path(
-            handle, path, sizeof(path)); // [手順] - ファイル名組み立て後の .log 付与で snprintf を失敗させる。
+            handle, path, sizeof(path)); // [手順] - ファイル名組み立て後の .log 付与で com_util_snprintf を失敗させる。
         ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
         start_result = com_util_tracer_start(handle); // [手順] - 既定パス失敗と sink 生成失敗の状態で start する。
     }
@@ -837,7 +831,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     com_util_shutdown_event event = {};
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_process_get_executable_path(_, _))
+    EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
             [](char *out_path, size_t out_path_sz)
             {
@@ -875,13 +869,13 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     // [Pre-Assert確認_異常系] - 1 回目の OS バックエンド書き込みが失敗すること。
     // [Pre-Assert手順] - 1 回目は -1、以降は OK を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillOnce(Return(-1)).WillRepeatedly(Return(COM_UTIL_OK));
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_write(_, _, _, _)).WillOnce(Return(-1)).WillRepeatedly(Return(COM_UTIL_OK));
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_CALL(mock_, com_util_eventlog_sink_write(_, _, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_eventlog_sink_write(_, _, _, _, _, _))
         .WillOnce(Return(-1))
         .WillRepeatedly(Return(COM_UTIL_OK));
 #endif /* PLATFORM_ */
-    EXPECT_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_trace_file_sink_write(_, _, _, _))
         .WillOnce(Return(-1))
         .WillRepeatedly(Return(COM_UTIL_OK)); // [Pre-Assert確認_異常系] - 1 回目の file 書き込みが失敗すること。
                                               // [Pre-Assert手順] - 1 回目は -1、以降は OK を返却する。
@@ -905,7 +899,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
         (void)com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &only_ts,
                                     "ts-only"); // [手順] - 出力先なし・時刻だけ指定して write する。
     }
-    (void)_com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 0U, "%s",
+    (void)com_util_tracer_write_hexf_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 0U, "%s",
                                       "z"); // [手順] - size 0 で write_hexf する。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_DEBUG));
     fallback_write = com_util_tracer_write(handle, COM_UTIL_TRACE_LEVEL_INFO, &invalid_ts,
@@ -923,9 +917,9 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     hex_size_zero = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, 0U,
                                                "l"); // [手順] - size 0 で hex_write_impl を呼び出す。
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_stop(handle));
-    hex_not_running = _com_util_tracer_write_hex(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+    hex_not_running = com_util_tracer_write_hex_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
                                                  "l"); // [手順] - 停止中に write_hex する。
-    hexf_not_running = _com_util_tracer_write_hexf(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "%s",
+    hexf_not_running = com_util_tracer_write_hexf_at(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, data, sizeof(data), "%s",
                                                    "l"); // [手順] - 停止中に write_hexf する。
     test_tracer_set_file_handle(handle, file_handle_);
     start_already_open = com_util_tracer_start(handle);          // [手順] - 既に file ハンドルがある状態で start する。
@@ -934,10 +928,11 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     name_small =
         com_util_tracer_get_name(handle, tiny_name, sizeof(tiny_name)); // [手順] - 2 バイト出力先で名前を取得する。
     {
-        NiceMock<Mock_stdio> mock_stdio;
-        EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _)).WillOnce(Return(-1)).WillRepeatedly(DoDefault());
+        EXPECT_CALL(mock_com_util, com_util_snprintf(_, _, _))
+            .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+            .WillRepeatedly(DoDefault());
         name_snprintf = com_util_tracer_get_name(handle, name_buf,
-                                                 sizeof(name_buf)); // [手順] - snprintf 失敗状態で名前を取得する。
+                                                 sizeof(name_buf)); // [手順] - com_util_snprintf 失敗状態で名前を取得する。
     }
     disable_open_file = com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0,
                                                        0); // [手順] - 稼働中に開いている file を無効化する。
@@ -968,7 +963,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     test_tracer_call_next_null_fn(handle); // [手順] - fn NULL の prev で次 hook を呼ぶ。
 
     // Pre-Assert_2
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_shared(_, _))
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_shared(_, _))
         .WillOnce(Return(COM_UTIL_ERR_TIMEOUT))
         .WillOnce(Return(COM_UTIL_ERR_TIMEOUT))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 共有ロックが 2 回タイムアウトすること。
@@ -1002,10 +997,10 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
         hex_size_zero); // [確認_正常系] - size 0 の test_tracer_hex_write_impl の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        hex_not_running); // [確認_異常系] - 停止中の _com_util_tracer_write_hex の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        hex_not_running); // [確認_異常系] - 停止中の com_util_tracer_write_hex_at の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        hexf_not_running); // [確認_異常系] - 停止中の _com_util_tracer_write_hexf の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        hexf_not_running); // [確認_異常系] - 停止中の com_util_tracer_write_hexf_at の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_OK,
         start_already_open); // [確認_正常系] - file ハンドルありの com_util_tracer_start の戻り値が COM_UTIL_OK であること。
@@ -1059,7 +1054,7 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
     int dispose_lock_fail = 0;
 
     // Pre-Assert
-    EXPECT_CALL(mock_, com_util_local_lock_lock(_, _))
+    EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
@@ -1083,7 +1078,7 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
                                          "caller"); // [手順] - caller-managed ハンドルへ write する。
 
     // Pre-Assert_2
-    EXPECT_CALL(mock_, com_util_local_rwlock_lock_exclusive(_, _))
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_exclusive(_, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 排他ロックが 2 回失敗すること。
@@ -1108,11 +1103,11 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
     com_util_tracer_dispose(&empty); // [手順] - NULL ハンドル変数を dispose する。
 
     // Pre-Assert_3
-    EXPECT_CALL(mock_, com_util_shutdown_register(_, _))
+    EXPECT_CALL(mock_com_util, com_util_shutdown_register(_, _))
         .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - shutdown 登録が 1 回失敗すること。
                                       // [Pre-Assert手順] - 1 回目は UNKNOWN、以降は既定動作を返却する。
-    EXPECT_CALL(mock_, com_util_process_get_executable_path(_, _))
+    EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
             [](char *out_path, size_t out_path_sz)
             {

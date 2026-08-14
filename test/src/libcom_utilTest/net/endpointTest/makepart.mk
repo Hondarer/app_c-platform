@@ -10,4 +10,4 @@ ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/com_util/base/result.c
 
 # OS API は mock_libc、Windows の内部 socket 初期化は endpointTest.cc の mock で制御する
-LIBS += mock_libc
+LIBS += mock_libc mock_com_util

@@ -10,6 +10,8 @@
 #endif /* _GNU_SOURCE */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/string.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_LINUX)
 
@@ -137,7 +139,7 @@ static void *thread_start_proc(void *opaque)
     com_util_thread_fn func = ctx->func;
     void *arg = ctx->arg;
 
-    free(ctx);
+    com_util_free(ctx);
     func(arg);
     return NULL;
 }
@@ -159,17 +161,17 @@ static int app_lock_open_identity(const char *identity, com_util_interprocess_rw
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    identity_copy = strdup(identity);
+    identity_copy = com_util_strdup(identity);
     if (identity_copy == NULL)
     {
         close(fd);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    new_lock = (com_util_interprocess_rwlock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_rwlock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
-        free(identity_copy);
+        com_util_free(identity_copy);
         close(fd);
         return COM_UTIL_ERR_UNKNOWN;
     }
@@ -197,17 +199,17 @@ static int interprocess_lock_open_identity(const char *identity, com_util_interp
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    identity_copy = strdup(identity);
+    identity_copy = com_util_strdup(identity);
     if (identity_copy == NULL)
     {
         close(fd);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    new_lock = (com_util_interprocess_lock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_lock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
-        free(identity_copy);
+        com_util_free(identity_copy);
         close(fd);
         return COM_UTIL_ERR_UNKNOWN;
     }
@@ -324,14 +326,14 @@ int com_util_local_lock_create(com_util_local_lock **mtx)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_mtx = (com_util_local_lock *)calloc(1, sizeof(*new_mtx));
+    new_mtx = (com_util_local_lock *)com_util_calloc(1, sizeof(*new_mtx));
     if (new_mtx == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
     if (pthread_mutex_init(&new_mtx->native, NULL) != 0)
     {
-        free(new_mtx);
+        com_util_free(new_mtx);
         return COM_UTIL_ERR_UNKNOWN;
     }
     *mtx = new_mtx;
@@ -406,7 +408,7 @@ void com_util_local_lock_destroy(com_util_local_lock *mtx)
     if (mtx != NULL)
     {
         pthread_mutex_destroy(&mtx->native);
-        free(mtx);
+        com_util_free(mtx);
     }
 }
 
@@ -420,14 +422,14 @@ int com_util_condvar_create(com_util_condvar **cv)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_cv = (com_util_condvar *)calloc(1, sizeof(*new_cv));
+    new_cv = (com_util_condvar *)com_util_calloc(1, sizeof(*new_cv));
     if (new_cv == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
     if (cond_init_monotonic(&new_cv->native) != 0)
     {
-        free(new_cv);
+        com_util_free(new_cv);
         return COM_UTIL_ERR_UNKNOWN;
     }
     *cv = new_cv;
@@ -481,7 +483,7 @@ void com_util_condvar_destroy(com_util_condvar *cv)
     if (cv != NULL)
     {
         pthread_cond_destroy(&cv->native);
-        free(cv);
+        com_util_free(cv);
     }
 }
 
@@ -495,7 +497,7 @@ int com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_lock = (com_util_local_rwlock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_local_rwlock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -506,7 +508,7 @@ int com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
         pthread_mutex_destroy(&new_lock->mutex);
         pthread_cond_destroy(&new_lock->readers_cv);
         pthread_cond_destroy(&new_lock->writers_cv);
-        free(new_lock);
+        com_util_free(new_lock);
         return COM_UTIL_ERR_UNKNOWN;
     }
     *rwlock = new_lock;
@@ -685,7 +687,7 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
         pthread_mutex_destroy(&rwlock->mutex);
         pthread_cond_destroy(&rwlock->readers_cv);
         pthread_cond_destroy(&rwlock->writers_cv);
-        free(rwlock);
+        com_util_free(rwlock);
     }
 }
 
@@ -701,12 +703,12 @@ int com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, vo
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_thread = (com_util_thread *)calloc(1, sizeof(*new_thread));
-    ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
+    new_thread = (com_util_thread *)com_util_calloc(1, sizeof(*new_thread));
+    ctx = (struct com_util_thread_start_ctx *)com_util_malloc(sizeof(*ctx));
     if (new_thread == NULL || ctx == NULL)
     {
-        free(new_thread);
-        free(ctx);
+        com_util_free(new_thread);
+        com_util_free(ctx);
         return COM_UTIL_ERR_UNKNOWN;
     }
     ctx->func = func;
@@ -714,8 +716,8 @@ int com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, vo
     rc = pthread_create(&new_thread->native, NULL, thread_start_proc, ctx);
     if (rc != 0)
     {
-        free(ctx);
-        free(new_thread);
+        com_util_free(ctx);
+        com_util_free(new_thread);
         return COM_UTIL_ERR_UNKNOWN;
     }
     *thread = new_thread;
@@ -773,7 +775,7 @@ int com_util_thread_join(com_util_thread *thread, int timeout_ms)
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
-    free(thread);
+    com_util_free(thread);
     return COM_UTIL_OK;
 }
 
@@ -784,7 +786,7 @@ void com_util_thread_detach(com_util_thread *thread)
     if (thread != NULL)
     {
         pthread_detach(thread->native);
-        free(thread);
+        com_util_free(thread);
     }
 }
 
@@ -828,7 +830,7 @@ int com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t 
         return result;
     }
     result = interprocess_lock_open_identity(identity, lock);
-    free(identity);
+    com_util_free(identity);
     return result;
 }
 
@@ -877,8 +879,8 @@ void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
             (void)com_util_interprocess_lock_unlock(lock);
         }
         close(lock->fd);
-        free(lock->identity);
-        free(lock);
+        com_util_free(lock->identity);
+        com_util_free(lock);
     }
 }
 
@@ -922,7 +924,7 @@ int com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_
         return result;
     }
     result = app_lock_open_identity(identity, lock);
-    free(identity);
+    com_util_free(identity);
     return result;
 }
 
@@ -989,8 +991,8 @@ void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
             (void)com_util_interprocess_rwlock_unlock(lock);
         }
         close(lock->fd);
-        free(lock->identity);
-        free(lock);
+        com_util_free(lock->identity);
+        com_util_free(lock);
     }
 }
 

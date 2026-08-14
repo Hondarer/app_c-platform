@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include <com_util/crt/stdio.h>
+#include <com_util/crt/stdlib.h>
 
 #include "bench_case.h"
 
@@ -341,15 +342,15 @@ int bench_stdio_setup(bench_context *ctx, const bench_case *item)
         return 0;
     }
 
-    state = (stdio_state *)calloc(1U, sizeof(*state));
+    state = (stdio_state *)com_util_malloc_zerofill(sizeof(*state));
     if (state == NULL)
     {
         return -1;
     }
-    state->block = (bench_record *)calloc((size_t)BENCH_BLOCK_RECORDS, sizeof(bench_record));
+    state->block = (bench_record *)com_util_calloc((size_t)BENCH_BLOCK_RECORDS, sizeof(bench_record));
     if (state->block == NULL)
     {
-        free(state);
+        com_util_free(state);
         return -1;
     }
     ctx->state = state;
@@ -426,7 +427,7 @@ void bench_stdio_teardown(bench_context *ctx, const bench_case *item)
     {
         return;
     }
-    free(state->block);
-    free(state);
+    com_util_free(state->block);
+    com_util_free(state);
     ctx->state = NULL;
 }

@@ -1,10 +1,10 @@
 #include <testfw.h>
 
+#include <com_util/crt/stdlib.h>
 #include <com_util/sync/sync_descriptor.h>
 
-#include <mock_stdlib.h>
+#include <mock_com_util.h>
 
-#include <cstdlib>
 #include <cstring>
 
 using testing::_;
@@ -99,14 +99,14 @@ TEST(syncDescriptorTest, exports_and_imports_identity)
     EXPECT_STREQ("lock-path", identity); // [確認_正常系] - import した identity が "lock-path" であること。
 
     // Cleanup
-    free(identity);
+    com_util_free(identity);
 }
 
 // identity 確保失敗が UNKNOWN になることの確認
 TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
+    NiceMock<Mock_com_util> mock_com_util;
     unsigned char descriptor[64] = {0};
     size_t descriptor_size = sizeof(descriptor);
     char *identity = NULL;
@@ -114,7 +114,7 @@ TEST(syncDescriptorTest, reports_unknown_when_identity_allocation_fails)
                                                                                                                    // [状態確認] - interprocess_sync_descriptor_export の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
         .WillOnce(Return(nullptr))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - identity 確保が 1 回目に失敗すること。
 

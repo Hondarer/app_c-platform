@@ -496,7 +496,7 @@ static int read_formatted_history(com_util_pinned_prompt *screen, char *buf, siz
 static void process_read(pinned_prompt_cli_session *session, const char *arg)
 {
     char buf[PINNED_PROMPT_CLI_LINE_MAX];
-    int rc;
+    int ret;
 
     if (arg == NULL)
     {
@@ -507,15 +507,15 @@ static void process_read(pinned_prompt_cli_session *session, const char *arg)
 
     if (strcmp(arg, "primary") == 0)
     {
-        rc = read_primary_history(session->screen, buf, sizeof(buf));
+        ret = read_primary_history(session->screen, buf, sizeof(buf));
     }
     else if (strcmp(arg, "secondary") == 0)
     {
-        rc = read_secondary_history(session->screen, buf, sizeof(buf));
+        ret = read_secondary_history(session->screen, buf, sizeof(buf));
     }
     else if (strcmp(arg, "formatted") == 0)
     {
-        rc = read_formatted_history(session->screen, buf, sizeof(buf));
+        ret = read_formatted_history(session->screen, buf, sizeof(buf));
     }
     else
     {
@@ -524,7 +524,7 @@ static void process_read(pinned_prompt_cli_session *session, const char *arg)
         return;
     }
 
-    if (rc == COM_UTIL_OK)
+    if (ret == COM_UTIL_OK)
     {
         com_util_pinned_prompt_printf(session->screen, COM_UTIL_PINNED_PROMPT_CHANNEL_STDOUT, "read %s: %s\n", arg,
                                       buf);
@@ -627,33 +627,33 @@ int main(int argc, char *argv[])
 {
     pinned_prompt_cli_session session;
     char line[PINNED_PROMPT_CLI_LINE_MAX];
-    int rc;
+    int ret;
 
     com_util_console_init();
 
     int need_help = 0;
 
-    com_util_argparser_init("固定プロンプト API を対話的に確認します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    com_util_argparser_default_init("固定プロンプト API を対話的に確認します。");
+    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -665,8 +665,8 @@ int main(int argc, char *argv[])
     print_help(session.screen);
     while (!session.exit_requested)
     {
-        rc = com_util_pinned_prompt_readline(session.screen, line, sizeof(line), "pinned-prompt> ");
-        if (rc != COM_UTIL_OK)
+        ret = com_util_pinned_prompt_readline(session.screen, line, sizeof(line), "pinned-prompt> ");
+        if (ret != COM_UTIL_OK)
         {
             break;
         }

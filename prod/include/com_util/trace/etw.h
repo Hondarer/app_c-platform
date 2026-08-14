@@ -73,6 +73,8 @@ typedef void (*com_util_etw_event_fn)(const com_util_etw_event *event, void *con
  *  @brief          プロバイダー参照型です。
  *
  *  TraceLoggingHProvider (TraceLoggingProvider.h が定義する型) と同等です。
+ *  OS / SDK の `_tlgProvider_t` に対応する alias であるため、_t サフィックスを残す。
+ *  see: コーディング規範「予約識別子の回避」の例外
  */
 struct _tlgProvider_t;
 typedef struct _tlgProvider_t const *com_util_etw_provider_ref_t;

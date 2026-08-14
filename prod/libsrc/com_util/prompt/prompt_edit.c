@@ -6,6 +6,7 @@
 #include <com_util/prompt/prompt_edit.h>
 
 #include <com_util/prompt/prompt.h>
+#include <com_util/crt/stdlib.h>
 
 #include <stdlib.h>
 
@@ -92,7 +93,7 @@ int com_util_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_byt
         new_cap = next_cap;
     }
 
-    new_buf = (char *)realloc(*buf, new_cap);
+    new_buf = (char *)com_util_realloc(*buf, new_cap, 1U);
     if (new_buf == NULL)
     {
         return -1;

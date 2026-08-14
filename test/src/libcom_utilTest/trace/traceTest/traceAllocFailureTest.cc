@@ -1,8 +1,6 @@
 #include <testfw.h>
 #include <mock_com_util.h>
-#include <mock_stdlib.h>
 #include "traceSyncMock.h"
-#include <mock_string.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/tracer_internal.h>
 
@@ -17,7 +15,7 @@ using testing::Return;
 class traceAllocFailureTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink *os_handle_ = reinterpret_cast<com_util_syslog_sink *>(static_cast<uintptr_t>(0x1100));
@@ -27,14 +25,14 @@ class traceAllocFailureTest : public Test
 
     void SetUp() override
     {
-        set_trace_sync_mock_defaults(mock_);
-        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        set_trace_sync_mock_defaults(mock_com_util);
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
 #if defined(PLATFORM_LINUX)
-        ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
 #elif defined(PLATFORM_WINDOWS)
-        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif /* PLATFORM_ */
     }
 };
@@ -43,15 +41,13 @@ class traceAllocFailureTest : public Test
 TEST_F(traceAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
     /* com_util_tracer は不透明型でサイズを指定できない。生成時の malloc はハンドル確保の 1 回だけである */
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc がハンドル確保のために 1 回呼び出されること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc がハンドル確保のために 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_, com_util_syslog_sink_dispose(os_handle_))
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_dispose(os_handle_))
         .Times(1); // [Pre-Assert確認_異常系] - 確保済みの syslog sink が 1 回破棄されること。
 #endif             /* PLATFORM_LINUX */
 
@@ -72,13 +68,11 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 TEST_F(traceAllocFailureTest, create_returns_null_when_name_duplication_fails)
 {
     // Arrange
-    NiceMock<Mock_string> mock_string;
-
     // Pre-Assert
-    EXPECT_CALL(mock_string, strdup(_, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - strdup が 1 回呼び出されること。
-                                    // [Pre-Assert手順] - strdup から NULL を返却する。
-    EXPECT_CALL(mock_, com_util_syslog_sink_dispose(os_handle_))
+    EXPECT_CALL(mock_com_util, com_util_strdup(_))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_strdup が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_strdup から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_syslog_sink_dispose(os_handle_))
         .Times(1); // [Pre-Assert確認_異常系] - 確保済みの syslog sink が 1 回破棄されること。
 
     // Act
@@ -97,13 +91,11 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_name_duplication_fails)
 TEST_F(traceAllocFailureTest, create_returns_null_when_registry_expansion_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, realloc(_, _, _, _, _))
+    EXPECT_CALL(mock_com_util, com_util_realloc(_, _, _))
         .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - realloc がレジストリの拡張のために 1 回呼び出されること。
-                              // [Pre-Assert手順] - realloc から NULL を返却する。
+            Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_realloc がレジストリの拡張のために 1 回呼び出されること。
+                              // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
     com_util_tracer *handle = com_util_tracer_create(
@@ -119,16 +111,14 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_registry_expansion_fails)
 TEST_F(traceAllocFailureTest, set_name_fails_when_effective_name_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_stdlib> mock_stdlib;
-
     com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
 
     ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が名前組み立て用に 1 回呼び出されること。
-                                    // [Pre-Assert手順] - malloc から NULL を返却する。
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が名前組み立て用に 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
     int rtc =

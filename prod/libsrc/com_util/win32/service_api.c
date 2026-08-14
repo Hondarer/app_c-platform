@@ -16,6 +16,7 @@
  */
 
 #include <com_util/win32/win32.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -42,14 +43,14 @@ SC_HANDLE OpenSCManagerU(const char *utf8_machine_name, const char *utf8_databas
     if ((utf8_machine_name != NULL && wmachine == NULL) || (utf8_database_name != NULL && wdatabase == NULL))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
-        free(wmachine);
-        free(wdatabase);
+        com_util_free(wmachine);
+        com_util_free(wdatabase);
         return NULL;
     }
 
     result = OpenSCManagerW(wmachine, wdatabase, desired_access);
-    free(wmachine);
-    free(wdatabase);
+    com_util_free(wmachine);
+    com_util_free(wdatabase);
     return result;
 }
 
@@ -106,26 +107,26 @@ SC_HANDLE CreateServiceU(SC_HANDLE scm, const char *utf8_service_name, const cha
         (utf8_password != NULL && wpassword == NULL))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
-        free(wservice_name);
-        free(wdisplay_name);
-        free(wbinary_path_name);
-        free(wload_order_group);
-        free(wdependencies);
-        free(wservice_start_name);
-        free(wpassword);
+        com_util_free(wservice_name);
+        com_util_free(wdisplay_name);
+        com_util_free(wbinary_path_name);
+        com_util_free(wload_order_group);
+        com_util_free(wdependencies);
+        com_util_free(wservice_start_name);
+        com_util_free(wpassword);
         return NULL;
     }
 
     result =
         CreateServiceW(scm, wservice_name, wdisplay_name, desired_access, service_type, start_type, error_control,
                        wbinary_path_name, wload_order_group, tag_id, wdependencies, wservice_start_name, wpassword);
-    free(wservice_name);
-    free(wdisplay_name);
-    free(wbinary_path_name);
-    free(wload_order_group);
-    free(wdependencies);
-    free(wservice_start_name);
-    free(wpassword);
+    com_util_free(wservice_name);
+    com_util_free(wdisplay_name);
+    com_util_free(wbinary_path_name);
+    com_util_free(wload_order_group);
+    com_util_free(wdependencies);
+    com_util_free(wservice_start_name);
+    com_util_free(wpassword);
     return result;
 }
 
@@ -144,7 +145,7 @@ SC_HANDLE OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desir
     }
 
     result = OpenServiceW(scm, wservice_name, desired_access);
-    free(wservice_name);
+    com_util_free(wservice_name);
     return result;
 }
 
@@ -178,7 +179,7 @@ BOOL ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8
 
     desc_w.lpDescription = wtext;
     result = ChangeServiceConfig2W(service, SERVICE_CONFIG_DESCRIPTION, &desc_w);
-    free(wtext);
+    com_util_free(wtext);
     return result;
 }
 
@@ -198,7 +199,7 @@ SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerExU(const char *utf8_service_nam
     }
 
     result = RegisterServiceCtrlHandlerExW(wservice_name, handler_proc, context);
-    free(wservice_name);
+    com_util_free(wservice_name);
     return result;
 }
 
@@ -226,7 +227,7 @@ BOOL StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
     }
 
     /* W テーブルを確保する (終端要素を含むため count + 1) */
-    w_table = (SERVICE_TABLE_ENTRYW *)calloc(count + 1U, sizeof(SERVICE_TABLE_ENTRYW));
+    w_table = (SERVICE_TABLE_ENTRYW *)com_util_calloc(count + 1U, sizeof(SERVICE_TABLE_ENTRYW));
     if (w_table == NULL)
     {
         SetLastError(ERROR_OUTOFMEMORY);
@@ -264,9 +265,9 @@ BOOL StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table)
 
     for (i = 0; i < count; i++)
     {
-        free(w_table[i].lpServiceName);
+        com_util_free(w_table[i].lpServiceName);
     }
-    free(w_table);
+    com_util_free(w_table);
     return result;
 }
 

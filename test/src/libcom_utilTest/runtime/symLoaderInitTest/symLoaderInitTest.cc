@@ -3,7 +3,6 @@
 #include <com_util/runtime/sym_loader.h>
 #include <mock_cjson.h>
 #include <mock_com_util.h>
-#include <mock_stdlib.h>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -404,7 +403,6 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
 {
     // Arrange
     NiceMock<Mock_com_util> mock_com_util;
-    NiceMock<Mock_stdlib> mock_stdlib;
     FILE *file = reinterpret_cast<FILE *>(1);
     com_util_sym_loader_entry entry = COM_UTIL_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
     com_util_sym_loader_entry *entries[] = {&entry}; // [状態] - 擬似ファイルと未設定エントリを用意する。
@@ -455,9 +453,9 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
     EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - alloc_error の先頭 seek が 1 回呼び出されること。
                               // [Pre-Assert手順] - alloc_error の先頭 seek から 0 を返却する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u))
+    EXPECT_CALL(mock_com_util, com_util_malloc(5u))
         .WillOnce(Return(nullptr))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 5 バイト確保の malloc が呼び出されること。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 5 バイト確保の com_util_malloc が呼び出されること。
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
     EXPECT_CALL(mock_com_util, com_util_fclose(file, nullptr))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 確保失敗後に com_util_fclose が 1 回呼び出されること。
@@ -488,10 +486,10 @@ TEST_F(symLoaderInitTest, releases_resources_when_read_setup_fails)
     EXPECT_CALL(mock_com_util, com_util_fseek(file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - read_error の先頭 seek が 1 回呼び出されること。
                               // [Pre-Assert手順] - read_error の先頭 seek から 0 を返却する。
-    EXPECT_CALL(mock_stdlib, malloc(_, _, _, 5u))
+    EXPECT_CALL(mock_com_util, com_util_malloc(5u))
         .WillOnce(DoDefault())
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 読み込み用バッファーの malloc が呼び出されること。
-                                      // [Pre-Assert手順] - malloc は本物へ委譲する。
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 読み込み用バッファーの com_util_malloc が呼び出されること。
+                                      // [Pre-Assert手順] - com_util_malloc は本物へ委譲する。
     EXPECT_CALL(mock_com_util, com_util_fread(_, 1u, 4u, file, nullptr))
         .WillOnce(Return(3u)); // [Pre-Assert確認_異常系] - com_util_fread が 4 バイト指定で 1 回呼び出されること。
                                // [Pre-Assert手順] - com_util_fread から 3 を返却する。

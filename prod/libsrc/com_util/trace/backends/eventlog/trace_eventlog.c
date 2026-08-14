@@ -15,6 +15,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -207,7 +208,7 @@ static void init_executable_path_cache(void)
     }
 
     copy_wstr(s_executable_path, sizeof(s_executable_path) / sizeof(s_executable_path[0]), wpath);
-    free(wpath);
+    com_util_free(wpath);
 }
 
 /**
@@ -266,8 +267,6 @@ static PSID cached_user_sid(void)
  */
 static int format_identifier_string(const int64_t identifier, char *buf, const size_t buf_size)
 {
-    int written;
-
     if (buf == NULL || buf_size == 0)
     {
         return 0;
@@ -279,10 +278,8 @@ static int format_identifier_string(const int64_t identifier, char *buf, const s
         return 0;
     }
 
-    written = snprintf(buf, buf_size, "%" PRId64, identifier);
-    if (written < 0 || (size_t)written >= buf_size)
+    if (com_util_snprintf(buf, buf_size, "%" PRId64, identifier) != COM_UTIL_OK)
     {
-        buf[0] = '\0';
         return 0;
     }
     return 1;
@@ -307,7 +304,7 @@ static int build_source_key_path(const char *source_name, wchar_t *key_path, con
     }
 
     written = swprintf(key_path, key_count, L"%ls%ls", EVENTLOG_KEY_PREFIX, wsource);
-    free(wsource);
+    com_util_free(wsource);
 
     if (written < 0)
     {
@@ -354,13 +351,13 @@ com_util_eventlog_sink *com_util_eventlog_sink_create(const char *source_name)
     }
 
     source = RegisterEventSourceW(NULL, wsource);
-    free(wsource);
+    com_util_free(wsource);
     if (source == NULL)
     {
         return NULL;
     }
 
-    handle = (com_util_eventlog_sink *)malloc(sizeof(com_util_eventlog_sink));
+    handle = (com_util_eventlog_sink *)com_util_malloc(sizeof(com_util_eventlog_sink));
     if (handle == NULL)
     {
         DeregisterEventSource(source);
@@ -413,10 +410,10 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
 
     if (wmsg == NULL || wfile_id == NULL || winstance == NULL || winstance_id == NULL)
     {
-        free(wmsg);
-        free(wfile_id);
-        free(winstance);
-        free(winstance_id);
+        com_util_free(wmsg);
+        com_util_free(wfile_id);
+        com_util_free(winstance);
+        com_util_free(winstance_id);
         return COM_UTIL_ERR_OUT_OF_MEMORY;
     }
 
@@ -427,10 +424,10 @@ int com_util_eventlog_sink_write(com_util_eventlog_sink *handle, const int level
     strings[4] = winstance_id;
     ok = ReportEventW(handle->source, type, category, event_id, cached_user_sid(), EVENTLOG_STRING_COUNT, 0, strings,
                       NULL);
-    free(wmsg);
-    free(wfile_id);
-    free(winstance);
-    free(winstance_id);
+    com_util_free(wmsg);
+    com_util_free(wfile_id);
+    com_util_free(winstance);
+    com_util_free(winstance_id);
 
     if (!ok)
     {
@@ -452,7 +449,7 @@ void com_util_eventlog_sink_dispose(com_util_eventlog_sink *handle)
     {
         DeregisterEventSource(handle->source);
     }
-    free(handle);
+    com_util_free(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -468,7 +465,7 @@ void com_util_eventlog_sink_dispose_on_shutdown(com_util_eventlog_sink *handle, 
     {
         DeregisterEventSource(handle->source);
     }
-    free(handle);
+    com_util_free(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -541,7 +538,7 @@ int com_util_eventlog_register_source(const char *source_name, const char *messa
             {
                 rc = RegSetValueExW(hkey, L"CategoryMessageFile", 0, REG_SZ, (const BYTE *)wpath, bytes);
             }
-            free(wpath);
+            com_util_free(wpath);
         }
     }
 

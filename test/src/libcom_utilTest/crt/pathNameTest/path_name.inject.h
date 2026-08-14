@@ -13,7 +13,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-    /* path_name.c のファイル内 static 関数 com_util_copy_path_name_text へのアクセサー。
+    /* path_name.c のファイル内 static 関数 copy_path_name_text へのアクセサー。
        公開 API 経由では呼び出し元がすべて事前に引数を検証するため、
        この関数が持つ引数検証の分岐へは到達できない。 */
     extern int test_copy_path_name_text(char *path_out, const size_t path_size, com_util_error *detail_out,

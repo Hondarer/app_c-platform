@@ -33,6 +33,8 @@
 
 #ifndef COM_UTIL_FILE_STAT_T_DEFINED
     #define COM_UTIL_FILE_STAT_T_DEFINED
+    /* OS / SDK が定義する stat 型の alias であるため、_t サフィックスを残す。
+     * see: コーディング規範「予約識別子の回避」の例外 */
     #ifdef DOXYGEN
 /**
  *  @brief  プラットフォーム固有のファイル情報構造体

@@ -69,6 +69,10 @@ typedef struct com_util_service_entry_u
  *  @return         成功時は開いたファイルのハンドル。失敗時は INVALID_HANDLE_VALUE。
  *  @see            CreateFileW
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-createfilew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode,
                                                 LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition,
@@ -92,6 +96,10 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateFileU(const char *utf8_path, DWORD des
  *  @return         成功時はパイプのサーバー エンド ハンドル。失敗時は INVALID_HANDLE_VALUE。
  *  @see            CreateNamedPipeW
  *                  https://learn.microsoft.com/windows/win32/api/namedpipeapi/nf-namedpipeapi-createnamedpipew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
                                                      DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size,
@@ -112,6 +120,10 @@ COM_UTIL_EXPORT HANDLE COM_UTIL_API CreateNamedPipeU(const char *utf8_name, DWOR
  *  @return         書き込んだバイト数 (NUL 終端を除く)。失敗時は 0。
  *  @see            GetModuleFileNameW
  *                  https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size);
 
@@ -137,6 +149,10 @@ COM_UTIL_EXPORT DWORD COM_UTIL_API GetModuleFileNameU(HMODULE module, char *utf8
  *                  部分書き込みを検出する用途には使用しないでください。
  *  @see            WriteConsoleW
  *                  https://learn.microsoft.com/windows/console/writeconsole
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length,
                                                 DWORD *written_length, void *reserved);
@@ -155,6 +171,10 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API WriteConsoleU(HANDLE console, const char *utf8
  *  @return         成功時は非 0。失敗時は 0。
  *  @see            GetVolumePathNameW
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD size);
 
@@ -177,6 +197,10 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumePathNameU(const char *utf8_path, char
  *  @return         成功時は非 0。失敗時は 0。
  *  @see            GetVolumeInformationW
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name,
                                                         DWORD volume_name_size, DWORD *serial_number,
@@ -193,6 +217,10 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API GetVolumeInformationU(const char *utf8_root_pa
  *  @return         成功時はモジュールのハンドル。失敗時は NULL。
  *  @see            LoadLibraryW
  *                  https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT HMODULE COM_UTIL_API LoadLibraryU(const char *utf8_file_name);
 
@@ -225,6 +253,10 @@ COM_UTIL_EXPORT HMODULE COM_UTIL_API LoadLibraryU(const char *utf8_file_name);
  *  @return         成功時は TRUE。失敗時は FALSE。
  *  @see            CreateProcessW
  *                  https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API CreateProcessU(const char *utf8_application_name, const char *utf8_command_line,
                                                  LPSECURITY_ATTRIBUTES process_attributes,
@@ -250,6 +282,10 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API CreateProcessU(const char *utf8_application_na
  *  @return         成功時は SCM へのハンドル。失敗時は NULL。
  *  @see            OpenSCManagerW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-openscmanagerw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_name, const char *utf8_database_name,
                                                       DWORD desired_access);
@@ -279,6 +315,10 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenSCManagerU(const char *utf8_machine_n
  *  @return         成功時はサービス オブジェクトのハンドル。失敗時は NULL。
  *  @see            CreateServiceW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-createservicew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char *utf8_service_name,
                                                       const char *utf8_display_name, DWORD desired_access,
@@ -300,6 +340,10 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API CreateServiceU(SC_HANDLE scm, const char 
  *  @return         成功時はサービス オブジェクトのハンドル。失敗時は NULL。
  *  @see            OpenServiceW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-openservicew
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access);
 
@@ -318,6 +362,10 @@ COM_UTIL_EXPORT SC_HANDLE COM_UTIL_API OpenServiceU(SC_HANDLE scm, const char *u
  *  @return         成功時は TRUE。失敗時は FALSE。
  *  @see            ChangeServiceConfig2W
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-changeserviceconfig2w
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text);
 
@@ -334,6 +382,10 @@ COM_UTIL_EXPORT BOOL COM_UTIL_API ChangeServiceConfig2U(SC_HANDLE service, DWORD
  *  @return         成功時はサービス ステータス ハンドル。失敗時は NULL。
  *  @see            RegisterServiceCtrlHandlerExW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-registerservicectrlhandlerexw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU(const char *utf8_service_name,
                                                                                  LPHANDLER_FUNCTION_EX handler_proc,
@@ -351,6 +403,10 @@ COM_UTIL_EXPORT SERVICE_STATUS_HANDLE COM_UTIL_API RegisterServiceCtrlHandlerExU
  *  @return         成功時は TRUE。失敗時は FALSE。
  *  @see            StartServiceCtrlDispatcherW
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-startservicectrldispatcherw
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。\n
+ *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
  */
 COM_UTIL_EXPORT BOOL COM_UTIL_API StartServiceCtrlDispatcherU(const com_util_service_entry_u *service_table);
 

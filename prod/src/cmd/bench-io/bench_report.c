@@ -167,7 +167,7 @@ static void collect_fs_type(const char *dir, bench_environment *env)
     /* statfs はファイル システム名を返さないため、magic 値をそのまま記録する。 */
     /* 主要な値の対応は Linux の statfs(2) を参照する。                         */
     /* see: https://man7.org/linux/man-pages/man2/statfs.2.html                 */
-    snprintf(text, sizeof(text), "magic=0x%lx", (unsigned long)info.f_type);
+    (void)com_util_snprintf(text, sizeof(text), "magic=0x%lx", (unsigned long)info.f_type);
     copy_text(env->fs_type, sizeof(env->fs_type), text);
 #elif defined(PLATFORM_WINDOWS)
     char fs_name[MAX_PATH + 1];

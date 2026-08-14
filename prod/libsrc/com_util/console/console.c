@@ -40,7 +40,7 @@ static LONG s_initialized = 0;
 static LONG s_attached_parent = 0;
 static com_util_once_flag s_console_shutdown_once = {0};
 
-static void com_util_console_diag_logf(const char *fmt, ...);
+static void console_diag_logf(const char *fmt, ...);
 
 static void register_console_shutdown_callback(void)
 {
@@ -82,7 +82,7 @@ static int reopen_crt_std_fd(HANDLE handle, FILE *stream, const char *name, int 
     expected_fd = _fileno(stream);
     if (expected_fd < 0)
     {
-        com_util_console_diag_logf("reopen %s _fileno failed", name);
+        console_diag_logf("reopen %s _fileno failed", name);
         return -1;
     }
 
@@ -91,17 +91,17 @@ static int reopen_crt_std_fd(HANDLE handle, FILE *stream, const char *name, int 
     new_fd = _open_osfhandle((intptr_t)handle, open_flags);
     if (new_fd < 0)
     {
-        com_util_console_diag_logf("reopen %s _open_osfhandle failed errno=%d expected_fd=%d", name, errno,
+        console_diag_logf("reopen %s _open_osfhandle failed errno=%d expected_fd=%d", name, errno,
                                    expected_fd);
         return -1;
     }
     if (new_fd != expected_fd)
     {
-        com_util_console_diag_logf("reopen %s unexpected fd new_fd=%d expected_fd=%d", name, new_fd, expected_fd);
+        console_diag_logf("reopen %s unexpected fd new_fd=%d expected_fd=%d", name, new_fd, expected_fd);
     }
 
     clearerr(stream);
-    com_util_console_diag_logf("reopen %s success fd=%d", name, new_fd);
+    console_diag_logf("reopen %s success fd=%d", name, new_fd);
     return 0;
 }
 
@@ -155,7 +155,7 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
  *
  *  `COM_UTIL_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
  */
-static void com_util_console_diag_logf(const char *fmt, ...)
+static void console_diag_logf(const char *fmt, ...)
 {
     wchar_t path[PLATFORM_PATH_MAX];
     char line[1024];
@@ -177,17 +177,17 @@ static void com_util_console_diag_logf(const char *fmt, ...)
     }
 
     GetLocalTime(&now);
-    prefix_len =
-        snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ", (unsigned int)now.wYear,
-                 (unsigned int)now.wMonth, (unsigned int)now.wDay, (unsigned int)now.wHour, (unsigned int)now.wMinute,
-                 (unsigned int)now.wSecond, (unsigned int)now.wMilliseconds, (unsigned long)GetCurrentProcessId());
-    if (prefix_len < 0 || prefix_len >= (int)sizeof(line))
+    if (com_util_snprintf(line, sizeof(line), "%04u-%02u-%02u %02u:%02u:%02u.%03u pid=%lu ", (unsigned int)now.wYear,
+                         (unsigned int)now.wMonth, (unsigned int)now.wDay, (unsigned int)now.wHour,
+                         (unsigned int)now.wMinute, (unsigned int)now.wSecond, (unsigned int)now.wMilliseconds,
+                         (unsigned long)GetCurrentProcessId()) != COM_UTIL_OK)
     {
         return;
     }
+    prefix_len = (int)strlen(line);
 
     va_start(args, fmt);
-    message_len = vsnprintf(message, sizeof(message), fmt, args);
+    message_len = vsnprintf(message, sizeof(message), fmt, args); /* 置換対象外: 意図的な切り詰め */
     va_end(args);
     if (message_len < 0)
     {
@@ -236,7 +236,7 @@ void com_util_console_init(void)
     /* stdout がコンソール (TTY) でなければ何もしない */
     if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
     {
-        com_util_console_diag_logf("console_init isatty=0 skip");
+        console_diag_logf("console_init isatty=0 skip");
         InterlockedExchange(&s_initialized, 0);
         return;
     }
@@ -265,14 +265,14 @@ void com_util_console_init(void)
             s_orig_stdout_mode = mode;
             if (!SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
             {
-                com_util_console_diag_logf("console_init SetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
+                console_diag_logf("console_init SetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
                                            (unsigned long)GetLastError());
             }
         }
     }
     else
     {
-        com_util_console_diag_logf("console_init GetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
+        console_diag_logf("console_init GetConsoleMode stdout failed handle=0x%p error=%lu", (void *)h,
                                    (unsigned long)GetLastError());
     }
 
@@ -284,14 +284,14 @@ void com_util_console_init(void)
             s_orig_stderr_mode = mode;
             if (!SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
             {
-                com_util_console_diag_logf("console_init SetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
+                console_diag_logf("console_init SetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
                                            (unsigned long)GetLastError());
             }
         }
     }
     else
     {
-        com_util_console_diag_logf("console_init GetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
+        console_diag_logf("console_init GetConsoleMode stderr failed handle=0x%p error=%lu", (void *)h,
                                    (unsigned long)GetLastError());
     }
 }
@@ -496,7 +496,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
        全試行で一致しない場合は、素の AttachConsole 成功を受理してフォールバックする。 */
     attached = 0;
     attached_once = 0;
-    com_util_console_diag_logf("attach_parent begin parent_pid=%lu parent_hwnd=0x%p argc=%d", (unsigned long)parent_pid,
+    console_diag_logf("attach_parent begin parent_pid=%lu parent_hwnd=0x%p argc=%d", (unsigned long)parent_pid,
                                (void *)parent_window, argc_value);
     for (attempt = 0; attempt < COM_UTIL_CONSOLE_ATTACH_MAX_ATTEMPTS; attempt++)
     {
@@ -507,12 +507,12 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
             SetLastError(ERROR_SUCCESS);
             (void)FreeConsole();
             free_error = GetLastError();
-            com_util_console_diag_logf("attempt=%d FreeConsole last_error=%lu", attempt, (unsigned long)free_error);
+            console_diag_logf("attempt=%d FreeConsole last_error=%lu", attempt, (unsigned long)free_error);
 
             if (AttachConsole(parent_pid))
             {
                 attached_once = 1;
-                com_util_console_diag_logf("attempt=%d AttachConsole success hwnd=0x%p", attempt,
+                console_diag_logf("attempt=%d AttachConsole success hwnd=0x%p", attempt,
                                            (void *)GetConsoleWindow());
                 if (parent_window == NULL)
                 {
@@ -524,7 +524,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
             {
                 DWORD attach_error = GetLastError();
 
-                com_util_console_diag_logf("attempt=%d AttachConsole failed error=%lu", attempt,
+                console_diag_logf("attempt=%d AttachConsole failed error=%lu", attempt,
                                            (unsigned long)attach_error);
             }
         }
@@ -532,7 +532,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
         {
             HWND current_window = GetConsoleWindow();
 
-            com_util_console_diag_logf("attempt=%d attached_once current_hwnd=0x%p parent_hwnd=0x%p", attempt,
+            console_diag_logf("attempt=%d attached_once current_hwnd=0x%p parent_hwnd=0x%p", attempt,
                                        (void *)current_window, (void *)parent_window);
             if (current_window == parent_window)
             {
@@ -545,11 +545,11 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     if (attached == 0 && attached_once == 0)
     {
         /* AttachConsole 自体が一度も成功しなかった場合のみ失敗とする。 */
-        com_util_console_diag_logf("attach_parent failed attached=%d attached_once=%d final_hwnd=0x%p", attached,
+        console_diag_logf("attach_parent failed attached=%d attached_once=%d final_hwnd=0x%p", attached,
                                    attached_once, (void *)GetConsoleWindow());
         return COM_UTIL_ERR_UNKNOWN;
     }
-    com_util_console_diag_logf("attach_parent proceed attached=%d attached_once=%d final_hwnd=0x%p", attached,
+    console_diag_logf("attach_parent proceed attached=%d attached_once=%d final_hwnd=0x%p", attached,
                                attached_once, (void *)GetConsoleWindow());
 
     /* Win32 レベルの標準ハンドルを親コンソールへ付け替える
@@ -560,13 +560,13 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     if (h_out != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_OUTPUT_HANDLE, h_out);
-        com_util_console_diag_logf("SetStdHandle stdout success handle=0x%p", (void *)h_out);
+        console_diag_logf("SetStdHandle stdout success handle=0x%p", (void *)h_out);
     }
     else
     {
         DWORD open_error = GetLastError();
 
-        com_util_console_diag_logf("SetStdHandle stdout skipped CreateFileW failed error=%lu",
+        console_diag_logf("SetStdHandle stdout skipped CreateFileW failed error=%lu",
                                    (unsigned long)open_error);
     }
     h_err = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
@@ -574,13 +574,13 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     if (h_err != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_ERROR_HANDLE, h_err);
-        com_util_console_diag_logf("SetStdHandle stderr success handle=0x%p", (void *)h_err);
+        console_diag_logf("SetStdHandle stderr success handle=0x%p", (void *)h_err);
     }
     else
     {
         DWORD open_error = GetLastError();
 
-        com_util_console_diag_logf("SetStdHandle stderr skipped CreateFileW failed error=%lu",
+        console_diag_logf("SetStdHandle stderr skipped CreateFileW failed error=%lu",
                                    (unsigned long)open_error);
     }
     h_in = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
@@ -588,13 +588,13 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     if (h_in != INVALID_HANDLE_VALUE)
     {
         SetStdHandle(STD_INPUT_HANDLE, h_in);
-        com_util_console_diag_logf("SetStdHandle stdin success handle=0x%p", (void *)h_in);
+        console_diag_logf("SetStdHandle stdin success handle=0x%p", (void *)h_in);
     }
     else
     {
         DWORD open_error = GetLastError();
 
-        com_util_console_diag_logf("SetStdHandle stdin skipped CreateFileW failed error=%lu",
+        console_diag_logf("SetStdHandle stdin skipped CreateFileW failed error=%lu",
                                    (unsigned long)open_error);
     }
 
@@ -619,7 +619,7 @@ int com_util_console_attach_parent(int *argc, char **argv, int *attached_out)
     /* 親コンソールへ再接続したことを記録する。終了時のフラッシュ後に conhost が
        書き込みを処理し終えるのを待ち合わせるために参照する。 */
     InterlockedExchange(&s_attached_parent, 1);
-    com_util_console_diag_logf("attach_parent end attached=%d attached_once=%d", attached, attached_once);
+    console_diag_logf("attach_parent end attached=%d attached_once=%d", attached, attached_once);
 
     if (attached_out != NULL)
     {
@@ -639,7 +639,7 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
     /* stdout/stderr をフラッシュしてからコンソール状態を戻す */
     fflush(stdout);
     fflush(stderr);
-    com_util_console_diag_logf("dispose_on_shutdown after fflush attached_parent=%ld",
+    console_diag_logf("dispose_on_shutdown after fflush attached_parent=%ld",
                                (long)InterlockedCompareExchange(&s_attached_parent, 1, 1));
 
     /* 昇格時に親コンソールへ再接続していた場合、終了時フラッシュで書き込んだ内容を
@@ -654,13 +654,13 @@ void com_util_console_dispose_on_shutdown(const com_util_shutdown_event *event, 
         if (h_out != NULL && h_out != INVALID_HANDLE_VALUE)
         {
             (void)GetConsoleScreenBufferInfo(h_out, &info);
-            com_util_console_diag_logf("dispose_on_shutdown drain GetConsoleScreenBufferInfo handle=0x%p",
+            console_diag_logf("dispose_on_shutdown drain GetConsoleScreenBufferInfo handle=0x%p",
                                        (void *)h_out);
         }
     }
 
     com_util_console_dispose();
-    com_util_console_diag_logf("dispose_on_shutdown end");
+    console_diag_logf("dispose_on_shutdown end");
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -707,7 +707,7 @@ int com_util_console_write(com_util_stream stream, const char *text)
         return COM_UTIL_OK;
     }
 
-    com_util_console_diag_logf("console_write failed error=%lu", (unsigned long)GetLastError());
+    console_diag_logf("console_write failed error=%lu", (unsigned long)GetLastError());
     return COM_UTIL_ERR_UNKNOWN;
 }
 

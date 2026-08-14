@@ -76,7 +76,7 @@ extern "C"
     {
         com_util_process_stdio_mode mode; /**< 標準入出力の扱い。 */
 #if defined(ARCH_X64)
-        unsigned int pad; /**< x64 で native_handle のアラインメントを明示する予約領域。 */
+        unsigned int pad; /**< x64 で native_handle のアラインメントを明示するパディング。 */
 #endif
         intptr_t native_handle; /**< OS ネイティブ ハンドル。 */
     } com_util_process_stdio;

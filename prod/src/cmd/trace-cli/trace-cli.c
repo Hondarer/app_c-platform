@@ -17,15 +17,15 @@
 #include "trace-cli.h"
 
 #include <com_util/argparser/argparser.h>
+#include <com_util/base/result.h>
 #include <com_util/console/console.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/crt/string.h>
 #include <com_util/crt/unistd.h>
 #include <com_util/prompt/prompt.h>
 
 #include <ctype.h>
-#include <errno.h>
 #include <inttypes.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -215,43 +215,29 @@ static int parse_trace_level(const char *token, com_util_trace_level *level)
 
 static int parse_int64_value(const char *token, int64_t *value)
 {
-    char *end = NULL;
-    long long parsed;
-
     if (token == NULL || value == NULL)
     {
         return 0;
     }
 
-    errno = 0;
-    parsed = strtoll(token, &end, 10);
-    if (errno != 0 || end == token || *end != '\0')
+    if (com_util_parse_int64(value, token, 10) != COM_UTIL_OK)
     {
         return 0;
     }
-
-    *value = (int64_t)parsed;
     return 1;
 }
 
 static int parse_int_value(const char *token, int *value)
 {
-    char *end = NULL;
-    long parsed;
-
     if (token == NULL || value == NULL)
     {
         return 0;
     }
 
-    errno = 0;
-    parsed = strtol(token, &end, 10);
-    if (errno != 0 || end == token || *end != '\0' || parsed < INT_MIN || parsed > INT_MAX)
+    if (com_util_parse_int(value, token, 10) != COM_UTIL_OK)
     {
         return 0;
     }
-
-    *value = (int)parsed;
     return 1;
 }
 
@@ -290,21 +276,23 @@ static const char *session_prompt_state_to_name(const trace_cli_session *session
 
 static int parse_size_value(const char *token, size_t *value)
 {
-    char *end = NULL;
-    unsigned long long parsed;
+    uint64_t parsed;
 
     if (token == NULL || value == NULL)
     {
         return 0;
     }
 
-    errno = 0;
-    parsed = strtoull(token, &end, 10);
-    if (errno != 0 || end == token || *end != '\0')
+    if (com_util_parse_uint64(&parsed, token, 10) != COM_UTIL_OK)
     {
         return 0;
     }
-
+#if UINT64_MAX > SIZE_MAX
+    if (parsed > (uint64_t)SIZE_MAX)
+    {
+        return 0;
+    }
+#endif
     *value = (size_t)parsed;
     return 1;
 }
@@ -364,7 +352,7 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
         return 1;
     }
 
-    buf = (unsigned char *)malloc(digits / 2U);
+    buf = (unsigned char *)com_util_malloc(digits / 2U);
     if (buf == NULL)
     {
         return 0;
@@ -382,7 +370,7 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
         nibble = hex_nibble(*p);
         if (nibble < 0)
         {
-            free(buf);
+            com_util_free(buf);
             return 0;
         }
 
@@ -407,21 +395,21 @@ static void print_level_result(com_util_trace_level level)
     printf("level=%s(%d)\n", level_to_name(level), (int)level);
 }
 
-static void print_rc_result(int rc)
+static void print_rc_result(int ret)
 {
     if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
     {
-        printf("rc=%d\n", rc);
+        printf("rc=%d\n", ret);
         return;
     }
 
-    if (rc == 0)
+    if (ret == 0)
     {
-        printf("\x1b[32mrc=%d\x1b[0m\n", rc);
+        printf("\x1b[32mrc=%d\x1b[0m\n", ret);
         return;
     }
 
-    printf("\x1b[31mrc=%d\x1b[0m\n", rc);
+    printf("\x1b[31mrc=%d\x1b[0m\n", ret);
 }
 
 /**
@@ -554,7 +542,7 @@ static int cmd_set_name(trace_cli_session *session, const struct trace_cli_comma
     char *identifier_token;
     const char *name = NULL;
     int64_t identifier = 0;
-    int rc;
+    int ret;
 
     name_token = next_token(cursor);
     if (name_token == NULL)
@@ -578,8 +566,8 @@ static int cmd_set_name(trace_cli_session *session, const struct trace_cli_comma
     {
         name = name_token;
     }
-    rc = com_util_tracer_set_name(session->handle, name, identifier);
-    print_rc_result(rc);
+    ret = com_util_tracer_set_name(session->handle, name, identifier);
+    print_rc_result(ret);
     return 0;
 }
 
@@ -629,7 +617,7 @@ static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli
     com_util_trace_level level;
     size_t max_bytes = 0U;
     int generations = 0;
-    int rc;
+    int ret;
 
     path_token = next_token(cursor);
     level_token = next_token(cursor);
@@ -668,8 +656,8 @@ static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli
     {
         path = path_token;
     }
-    rc = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
-    print_rc_result(rc);
+    ret = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
+    print_rc_result(ret);
     return 0;
 }
 
@@ -706,7 +694,7 @@ static int cmd_write(trace_cli_session *session, const struct trace_cli_command 
     char *level_token;
     char *message;
     com_util_trace_level level;
-    int rc;
+    int ret;
 
     level_token = next_token(cursor);
     if (level_token == NULL)
@@ -728,13 +716,13 @@ static int cmd_write(trace_cli_session *session, const struct trace_cli_command 
 
     if (strcmp(cmd->name, "write") == 0)
     {
-        rc = _com_util_tracer_write(session->handle, level, NULL, message);
+        ret = com_util_tracer_write_at(session->handle, level, NULL, message);
     }
     else
     {
-        rc = _com_util_tracer_writef(session->handle, level, NULL, "%s", message);
+        ret = com_util_tracer_writef_at(session->handle, level, NULL, "%s", message);
     }
-    print_rc_result(rc);
+    print_rc_result(ret);
     return 0;
 }
 
@@ -747,7 +735,7 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     com_util_trace_level level;
     unsigned char *data = NULL;
     size_t size = 0U;
-    int rc;
+    int ret;
 
     level_token = next_token(cursor);
     hex_token = next_token(cursor);
@@ -771,14 +759,14 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     label = rest_argument(cursor);
     if (label == NULL && *skip_spaces(label_cursor) != '\0')
     {
-        free(data);
+        com_util_free(data);
         print_command_usage(cmd);
         return -1;
     }
 
     if (strcmp(cmd->name, "write-hex") == 0)
     {
-        rc = _com_util_tracer_write_hex(session->handle, level, NULL, data, size, label);
+        ret = com_util_tracer_write_hex_at(session->handle, level, NULL, data, size, label);
     }
     else
     {
@@ -791,10 +779,10 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
         {
             label_str = "";
         }
-        rc = _com_util_tracer_write_hexf(session->handle, level, NULL, data, size, "%s", label_str);
+        ret = com_util_tracer_write_hexf_at(session->handle, level, NULL, data, size, "%s", label_str);
     }
-    print_rc_result(rc);
-    free(data);
+    print_rc_result(ret);
+    com_util_free(data);
     return 0;
 }
 
@@ -896,27 +884,27 @@ int main(int argc, char *argv[])
 
     int need_help = 0;
 
-    com_util_argparser_init("tracer API を対話的に確認します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    com_util_argparser_default_init("tracer API を対話的に確認します。");
+    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

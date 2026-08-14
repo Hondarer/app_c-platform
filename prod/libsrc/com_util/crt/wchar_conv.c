@@ -16,6 +16,7 @@
  */
 
 #include <com_util/crt/wchar_conv.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -91,7 +92,7 @@ wchar_t *com_util_utf8_to_wstr_alloc(const char *utf8_text)
         return NULL;
     }
 
-    wtext = (wchar_t *)malloc(sizeof(*wtext) * (size_t)wtext_count);
+    wtext = (wchar_t *)com_util_calloc((size_t)wtext_count, sizeof(*wtext));
     if (wtext == NULL)
     {
         return NULL;
@@ -99,7 +100,7 @@ wchar_t *com_util_utf8_to_wstr_alloc(const char *utf8_text)
 
     if (MultiByteToWideChar(CP_UTF8, 0, utf8_text, -1, wtext, wtext_count) <= 0)
     {
-        free(wtext);
+        com_util_free(wtext);
         return NULL;
     }
 
@@ -124,7 +125,7 @@ char *com_util_wstr_to_utf8_alloc(const wchar_t *wtext)
         return NULL;
     }
 
-    utf8_text = (char *)malloc((size_t)utf8_count);
+    utf8_text = (char *)com_util_malloc((size_t)utf8_count);
     if (utf8_text == NULL)
     {
         return NULL;
@@ -132,7 +133,7 @@ char *com_util_wstr_to_utf8_alloc(const wchar_t *wtext)
 
     if (WideCharToMultiByte(CP_UTF8, 0, wtext, -1, utf8_text, utf8_count, NULL, NULL) <= 0)
     {
-        free(utf8_text);
+        com_util_free(utf8_text);
         return NULL;
     }
 

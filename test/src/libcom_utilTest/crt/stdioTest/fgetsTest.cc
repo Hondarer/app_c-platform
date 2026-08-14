@@ -30,12 +30,12 @@ char *copy_fgets(char *dest, int n, const char *src)
 class fgetsTest : public testing::Test
 {
   protected:
-    NiceMock<Mock_stdio> mock_;
+    NiceMock<Mock_stdio> mock_stdio;
 
     void SetUp() override
     {
-        ON_CALL(mock_, feof(_, _, _, _)).WillByDefault(Return(0));
-        ON_CALL(mock_, ferror(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_stdio, feof(_, _, _, _)).WillByDefault(Return(0));
+        ON_CALL(mock_stdio, ferror(_, _, _, _)).WillByDefault(Return(0));
     }
 };
 
@@ -46,7 +46,7 @@ TEST_F(fgetsTest, reads_line_terminated_by_lf)
     char buf[16]; // [状態] - 16 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)
             { return copy_fgets(dest, n, "abc\n"); }); // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。
@@ -67,7 +67,7 @@ TEST_F(fgetsTest, strips_crlf)
     char buf[16]; // [状態] - 16 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)
             { return copy_fgets(dest, n, "abc\r\n"); }); // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。
@@ -88,7 +88,7 @@ TEST_F(fgetsTest, reads_last_line_without_newline)
     char buf[16]; // [状態] - 16 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce([](const char *, int, const char *, char *dest, int n, FILE *)
                   { return copy_fgets(dest, n, "abc"); }); // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。
     // [Pre-Assert手順] - 改行なしの "abc" を格納して dest を返却する。
@@ -109,7 +109,7 @@ TEST_F(fgetsTest, reads_empty_line)
     char buf[16]; // [状態] - 16 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce([](const char *, int, const char *, char *dest, int n, FILE *)
                   { return copy_fgets(dest, n, "\n"); }); // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。
                                                           // [Pre-Assert手順] - "\n" を格納して dest を返却する。
@@ -130,7 +130,7 @@ TEST_F(fgetsTest, returns_eof_at_end_of_stream)
     char buf[16]; // [状態] - 16 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce([](const char *, int, const char *, char *dest, int n, FILE *)
                   { return copy_fgets(dest, n, "abc\n"); })
         .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_正常系] - fgets が 2 回呼び出されること。
@@ -154,7 +154,7 @@ TEST_F(fgetsTest, returns_buffer_too_small_for_long_line)
     char buf[4]; // [状態] - 4 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, 4, kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, 4, kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)
             {
@@ -178,7 +178,7 @@ TEST_F(fgetsTest, continues_reading_remainder_after_buffer_too_small)
     char buf[5]; // [状態] - 5 バイトの格納先バッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, 5, kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, 5, kStream))
         .WillOnce([](const char *, int, const char *, char *dest, int n, FILE *)
                   { return copy_fgets(dest, n, "abcdef\n"); })
         .WillOnce([](const char *, int, const char *, char *dest, int n, FILE *)
@@ -206,7 +206,7 @@ TEST_F(fgetsTest, buffer_size_one_returns_buffer_too_small)
     char buf[1]; // [状態] - 終端の 1 バイトしか置けないバッファーを用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, 1, kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, 1, kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)
             {
@@ -269,7 +269,7 @@ TEST_F(fgetsTest, clears_detail_on_success)
 
     // Pre-Assert
     ASSERT_NE(0, com_util_error_is_set(&detail)); // [状態確認] - 呼び出し前の詳細エラーが設定済みであること。
-    EXPECT_CALL(mock_, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
+    EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)
             { return copy_fgets(dest, n, "abc\n"); }); // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。

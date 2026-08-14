@@ -26,6 +26,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -186,7 +187,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
      *   [24B header] [4B chunk_size] [2B CK] [raw DEFLATE]
      */
     tmp_len = 24U + 4U + 2U + raw_deflate_len;
-    tmp = (uint8_t *)malloc(tmp_len);
+    tmp = (uint8_t *)com_util_malloc(tmp_len);
     if (tmp == NULL)
     {
         return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -220,13 +221,13 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
     /* MSZIP ストリーミング Decompressor で展開 */
     if (!CreateDecompressor(COMPRESS_ALGORITHM_MSZIP, NULL, &h))
     {
-        free(tmp);
+        com_util_free(tmp);
         return COM_UTIL_ERR_UNKNOWN;
     }
 
     ok = Decompress(h, tmp, (SIZE_T)tmp_len, dst, (SIZE_T)*dst_len, &out_len);
     CloseDecompressor(h);
-    free(tmp);
+    com_util_free(tmp);
 
     if (!ok)
     {

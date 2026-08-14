@@ -59,7 +59,7 @@ static int ensure_elevated(const char *command, int *handled)
 {
     char result_message[256];
     int exit_code;
-    int rc;
+    int ret;
 
     if (handled == NULL)
     {
@@ -67,9 +67,9 @@ static int ensure_elevated(const char *command, int *handled)
     }
 
     exit_code = 1;
-    rc =
+    ret =
         com_util_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
-    if (rc != 0)
+    if (ret != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
         return -1;
@@ -99,21 +99,21 @@ static int ensure_elevated(const char *command, int *handled)
 
 /**
  *  @brief          イベント ソース API のステータスを表示します。
- *  @param[in]      status  com_util_eventlog_register_source / unregister_source の戻り値。
+ *  @param[in]      ret     com_util_eventlog_register_source / unregister_source の戻り値。
  *  @param[in]      action  操作名 ("登録" / "削除")。
  *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  *
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
  *  com_util_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
  */
-static int report_status(const int status, const char *action)
+static int report_status(const int ret, const char *action)
 {
     char message[256];
 
-    if (status == COM_UTIL_OK)
+    if (ret == COM_UTIL_OK)
     {
-        (void)snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                       COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+        (void)com_util_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+                                COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
             (void)com_util_elevated_process_report_result(message);
@@ -124,17 +124,17 @@ static int report_status(const int status, const char *action)
         }
         return 0;
     }
-    if (status == COM_UTIL_ERR_PERMISSION_DENIED)
+    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
     {
-        (void)snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+        (void)com_util_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
-    else if (status == COM_UTIL_ERR_INVALID_ARGUMENT)
+    else if (ret == COM_UTIL_ERR_INVALID_ARGUMENT)
     {
-        (void)snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+        (void)com_util_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
     }
     else
     {
-        (void)snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
+        (void)com_util_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
     }
 
     if (s_is_elevated_worker != 0)
@@ -156,7 +156,7 @@ static int do_install(void)
 {
     int handled = 0;
     int rc;
-    int status;
+    int ret;
     char exe_path[PLATFORM_PATH_MAX];
     const char *message_file;
 
@@ -178,8 +178,8 @@ static int do_install(void)
         fprintf(stderr, "実行ファイルのパスを取得できませんでした。メッセージ リソースなしで登録します。\n");
     }
 
-    status = com_util_eventlog_register_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, message_file);
-    return report_status(status, "登録");
+    ret = com_util_eventlog_register_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, message_file);
+    return report_status(ret, "登録");
 }
 
 /**
@@ -190,7 +190,7 @@ static int do_uninstall(void)
 {
     int handled = 0;
     int rc;
-    int status;
+    int ret;
 
     rc = ensure_elevated("uninstall", &handled);
     if (rc != 0 || handled != 0)
@@ -198,8 +198,8 @@ static int do_uninstall(void)
         return rc;
     }
 
-    status = com_util_eventlog_unregister_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
-    return report_status(status, "削除");
+    ret = com_util_eventlog_unregister_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
+    return report_status(ret, "削除");
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -260,36 +260,36 @@ int main(int argc, char *argv[])
     int need_help = 0;
     const char *command = NULL;
 
-    com_util_argparser_init("com_util 共通イベント ソースを登録または削除します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
-    com_util_argparser_register_positional_string("command", "install または uninstall。", COM_UTIL_ARGPARSER_REQUIRED,
+    com_util_argparser_default_init("com_util 共通イベント ソースを登録または削除します。");
+    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    com_util_argparser_default_register_positional_string("command", "install または uninstall。", COM_UTIL_ARGPARSER_REQUIRED,
                                                   &command);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (com_util_argparser_default_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_default_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_default_parse(argc, argv);
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        com_util_argparser_default_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_error_messages(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
     if (strcmp(command, "install") != 0 && strcmp(command, "uninstall") != 0)
     {
         fprintf(stderr, "不明なコマンド '%s'\n\n", command);
-        com_util_argparser_print_usage(stderr);
+        com_util_argparser_default_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

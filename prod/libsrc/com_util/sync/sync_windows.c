@@ -6,6 +6,7 @@
  */
 
 #include <com_util/base/platform.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -72,7 +73,7 @@ static unsigned __stdcall thread_start_proc(void *opaque)
     com_util_thread_fn func = ctx->func;
     void *arg = ctx->arg;
 
-    free(ctx);
+    com_util_free(ctx);
     func(arg);
     return 0U;
 }
@@ -96,7 +97,7 @@ static char *dup_string(const char *s)
     char *copy;
 
     len = strlen(s);
-    copy = (char *)malloc(len + 1U);
+    copy = (char *)com_util_malloc(len + 1U);
     if (copy != NULL)
     {
         memcpy(copy, s, len + 1U);
@@ -126,10 +127,10 @@ static int app_lock_open_identity(const char *identity, com_util_interprocess_rw
         CloseHandle(handle);
         return COM_UTIL_ERR_UNKNOWN;
     }
-    new_lock = (com_util_interprocess_rwlock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_rwlock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
-        free(identity_copy);
+        com_util_free(identity_copy);
         CloseHandle(handle);
         return COM_UTIL_ERR_UNKNOWN;
     }
@@ -161,10 +162,10 @@ static int interprocess_lock_open_identity(const char *identity, com_util_interp
         CloseHandle(handle);
         return COM_UTIL_ERR_UNKNOWN;
     }
-    new_lock = (com_util_interprocess_lock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_interprocess_lock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
-        free(identity_copy);
+        com_util_free(identity_copy);
         CloseHandle(handle);
         return COM_UTIL_ERR_UNKNOWN;
     }
@@ -250,7 +251,7 @@ int com_util_local_lock_create(com_util_local_lock **mtx)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_mtx = (com_util_local_lock *)calloc(1, sizeof(*new_mtx));
+    new_mtx = (com_util_local_lock *)com_util_calloc(1, sizeof(*new_mtx));
     if (new_mtx == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -314,7 +315,7 @@ int com_util_local_lock_unlock(com_util_local_lock *mtx)
 
 void com_util_local_lock_destroy(com_util_local_lock *mtx)
 {
-    free(mtx);
+    com_util_free(mtx);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -327,7 +328,7 @@ int com_util_condvar_create(com_util_condvar **cv)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_cv = (com_util_condvar *)calloc(1, sizeof(*new_cv));
+    new_cv = (com_util_condvar *)com_util_calloc(1, sizeof(*new_cv));
     if (new_cv == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -397,7 +398,7 @@ int com_util_condvar_broadcast(com_util_condvar *cv)
 
 void com_util_condvar_destroy(com_util_condvar *cv)
 {
-    free(cv);
+    com_util_free(cv);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -410,7 +411,7 @@ int com_util_local_rwlock_create(com_util_local_rwlock **rwlock)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_lock = (com_util_local_rwlock *)calloc(1, sizeof(*new_lock));
+    new_lock = (com_util_local_rwlock *)com_util_calloc(1, sizeof(*new_lock));
     if (new_lock == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -585,7 +586,7 @@ void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
     if (rwlock != NULL)
     {
         DeleteCriticalSection(&rwlock->mutex);
-        free(rwlock);
+        com_util_free(rwlock);
     }
 }
 
@@ -601,12 +602,12 @@ int com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, vo
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    new_thread = (com_util_thread *)calloc(1, sizeof(*new_thread));
-    ctx = (struct com_util_thread_start_ctx *)malloc(sizeof(*ctx));
+    new_thread = (com_util_thread *)com_util_calloc(1, sizeof(*new_thread));
+    ctx = (struct com_util_thread_start_ctx *)com_util_malloc(sizeof(*ctx));
     if (new_thread == NULL || ctx == NULL)
     {
-        free(new_thread);
-        free(ctx);
+        com_util_free(new_thread);
+        com_util_free(ctx);
         return COM_UTIL_ERR_UNKNOWN;
     }
     ctx->func = func;
@@ -614,8 +615,8 @@ int com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, vo
     handle = _beginthreadex(NULL, 0U, thread_start_proc, ctx, 0U, NULL);
     if (handle == 0U)
     {
-        free(ctx);
-        free(new_thread);
+        com_util_free(ctx);
+        com_util_free(new_thread);
         return COM_UTIL_ERR_UNKNOWN;
     }
     new_thread->native = (HANDLE)handle;
@@ -646,7 +647,7 @@ int com_util_thread_join(com_util_thread *thread, int timeout_ms)
     if (status == WAIT_OBJECT_0)
     {
         CloseHandle(thread->native);
-        free(thread);
+        com_util_free(thread);
         return COM_UTIL_OK;
     }
     return wait_status_to_result(status);
@@ -659,7 +660,7 @@ void com_util_thread_detach(com_util_thread *thread)
     if (thread != NULL)
     {
         CloseHandle(thread->native);
-        free(thread);
+        com_util_free(thread);
     }
 }
 
@@ -703,7 +704,7 @@ int com_util_interprocess_lock_import_descriptor(const void *descriptor, size_t 
         return result;
     }
     result = interprocess_lock_open_identity(identity, lock);
-    free(identity);
+    com_util_free(identity);
     return result;
 }
 
@@ -755,8 +756,8 @@ void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
             (void)com_util_interprocess_lock_unlock(lock);
         }
         CloseHandle(lock->handle);
-        free(lock->identity);
-        free(lock);
+        com_util_free(lock->identity);
+        com_util_free(lock);
     }
 }
 
@@ -800,7 +801,7 @@ int com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_
         return result;
     }
     result = app_lock_open_identity(identity, lock);
-    free(identity);
+    com_util_free(identity);
     return result;
 }
 
@@ -870,8 +871,8 @@ void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
             (void)com_util_interprocess_rwlock_unlock(lock);
         }
         CloseHandle(lock->handle);
-        free(lock->identity);
-        free(lock);
+        com_util_free(lock->identity);
+        com_util_free(lock);
     }
 }
 

@@ -9,6 +9,7 @@
  */
 
 #include <com_util/base/error_message.h>
+#include <com_util/crt/stdlib.h>
 #include <com_util/base/error_message_internal.h>
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
@@ -298,7 +299,7 @@ int com_util_win32_error_message(char *buf, const size_t buf_size, const unsigne
     }
     memcpy(buf, utf8, len);
     buf[len] = '\0';
-    free(utf8);
+    com_util_free(utf8);
 
     return COM_UTIL_OK;
 }

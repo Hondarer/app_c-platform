@@ -9,13 +9,13 @@
 class consoleTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
 
     void SetUp() override
     {
         // console.c の単体テストでは shutdown.c を対象外とし、登録 API の呼び出しをフェイクする。
-        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        _mock_com_util = &mock_;
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        _mock_com_util = &mock_com_util;
     }
 
     void TearDown() override

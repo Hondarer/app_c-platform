@@ -96,7 +96,7 @@ static void recording_hook(com_util_tracer_hook_entry *prev, com_util_tracer *ha
 class traceHookTest : public Test
 {
   protected:
-    NiceMock<Mock_com_util> mock_;
+    NiceMock<Mock_com_util> mock_com_util;
     com_util_trace_file_sink *file_handle_ =
         reinterpret_cast<com_util_trace_file_sink *>(static_cast<uintptr_t>(0x2200));
 
@@ -108,33 +108,33 @@ class traceHookTest : public Test
 
     void SetUp() override
     {
-        set_trace_sync_mock_defaults(mock_);
+        set_trace_sync_mock_defaults(mock_com_util);
         reset_hook_records();
 
-        ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_get_realtime_deadline_ms(_, _))
+        ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
-        ON_CALL(mock_, com_util_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_com_util, com_util_get_realtime(_)).WillByDefault([](com_util_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_com_util, com_util_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, size_t buf_size, const com_util_timespec *)
                 {
                     snprintf(buf, buf_size, "%s", "2026-04-26T03:04:05.678+09:00");
                     return 0;
                 });
-        ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
-        ON_CALL(mock_, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
 
 #if defined(PLATFORM_LINUX)
-        ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_syslog_sink_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_rename(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_syslog_sink_dispose(_)).WillByDefault(Return());
 #elif defined(PLATFORM_WINDOWS)
-        ON_CALL(mock_, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
-        ON_CALL(mock_, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_, com_util_etw_provider_dispose(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_etw_provider_create(_)).WillByDefault(Return(os_handle_));
+        ON_CALL(mock_com_util, com_util_etw_provider_write(_, _, _, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_com_util, com_util_etw_provider_dispose(_)).WillByDefault(Return());
 #endif
     }
 
@@ -240,12 +240,12 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
     // Pre-Assert
 
     // Act
-    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+    int rc = com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
                                     "hello hook"); // [手順] - INFO レベルで "hello hook" を書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rc);                        // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
+              rc);                        // [確認_正常系] - com_util_tracer_write_at の戻り値が COM_UTIL_OK であること。
     ASSERT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが 1 回呼ばれること。
     EXPECT_EQ(tracer, g_hook_records[0].handle); // [確認_正常系] - フックに tracer の handle が渡ること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_INFO, g_hook_records[0].level); // [確認_正常系] - フックに INFO レベルが渡ること。
@@ -277,7 +277,7 @@ TEST_F(traceHookTest, test_hook_is_called_for_none_level)
     // Pre-Assert
 
     // Act
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_NONE, &ts,
+    com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_NONE, &ts,
                            "none level message"); // [手順] - NONE レベルで "none level message" を書き込む。
 
     // Assert
@@ -303,12 +303,12 @@ TEST_F(traceHookTest, test_no_hook_write_succeeds)
     // Pre-Assert
 
     // Act
-    int rc = _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+    int rc = com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
                                     "no hook"); // [手順] - INFO レベルで "no hook" を書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rc);                        // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
+              rc);                        // [確認_正常系] - com_util_tracer_write_at の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0u, g_hook_records.size()); // [確認_正常系] - フックが呼ばれないこと。
 
     // Cleanup
@@ -332,7 +332,7 @@ TEST_F(traceHookTest, test_hook_not_called_after_remove)
     // Pre-Assert
 
     // Act
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+    com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
                            "after remove"); // [手順] - INFO レベルで "after remove" を書き込む。
 
     // Assert
@@ -379,7 +379,7 @@ TEST_F(traceHookTest, test_hook_chain_order)
     // Pre-Assert
 
     // Act
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+    com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
                            "chain test"); // [手順] - INFO レベルで "chain test" を書き込む。
 
     // Assert
@@ -432,14 +432,14 @@ TEST_F(traceHookTest, test_hook_called_via_writef)
     // Pre-Assert
 
     // Act
-    _com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, &ts, "fmt %d",
+    com_util_tracer_writef_at(tracer, COM_UTIL_TRACE_LEVEL_WARNING, &ts, "fmt %d",
                             42); // [手順] - WARNING レベルでフォーマット "fmt %d" と引数 42 を書き込む。
 
     // Assert
     ASSERT_EQ(1u, g_hook_records.size()); // [確認_正常系] - フックが 1 回呼ばれること。
     EXPECT_EQ(COM_UTIL_TRACE_LEVEL_WARNING,
               g_hook_records[0].level); // [確認_正常系] - フックに WARNING レベルが渡ること。
-    /* _com_util_tracer_writef はフォーマット展開後の文字列が渡される */
+    /* com_util_tracer_writef_at はフォーマット展開後の文字列が渡される */
     EXPECT_NE(std::string::npos,
               g_hook_records[0].message.find("42")); // [確認_正常系] - フックに展開後の "42" を含む文字列が渡ること。
 
@@ -463,7 +463,7 @@ TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
     // [Pre-Assert手順] - com_util_get_realtime は SetUp のモックで固定値 {1714100645, 678000000} を返却する。
 
     // Act
-    _com_util_tracer_write(
+    com_util_tracer_write_at(
         tracer, COM_UTIL_TRACE_LEVEL_INFO, nullptr,
         "ts resolve test"); // [手順] - timestamp に NULL を渡して書き込み、内部での現在時刻取得を促す。
 
@@ -496,7 +496,7 @@ TEST_F(traceHookTest, test_remove_hook_while_started_does_nothing)
     com_util_tracer_remove_hook(tracer, entry); // [手順] - started 状態のまま com_util_tracer_remove_hook を呼び出す。
 
     com_util_timespec ts = make_fixed_timestamp();
-    _com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
+    com_util_tracer_write_at(tracer, COM_UTIL_TRACE_LEVEL_INFO, &ts,
                            "hook still active"); // [手順] - INFO レベルで "hook still active" を書き込む。
 
     // Assert

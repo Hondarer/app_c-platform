@@ -15,6 +15,7 @@
  */
 
 #include <com_util/win32/win32.h>
+#include <com_util/crt/stdlib.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -50,17 +51,17 @@ BOOL CreateProcessU(const char *utf8_application_name, const char *utf8_command_
         (utf8_current_directory != NULL && wcurdir == NULL))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
-        free(wapp);
-        free(wcmdline);
-        free(wcurdir);
+        com_util_free(wapp);
+        com_util_free(wcmdline);
+        com_util_free(wcurdir);
         return FALSE;
     }
 
     result = CreateProcessW(wapp, wcmdline, process_attributes, thread_attributes, inherit_handles, creation_flags,
                             environment, wcurdir, startup_info, process_information);
-    free(wapp);
-    free(wcmdline);
-    free(wcurdir);
+    com_util_free(wapp);
+    com_util_free(wcmdline);
+    com_util_free(wcurdir);
     return result;
 }
 

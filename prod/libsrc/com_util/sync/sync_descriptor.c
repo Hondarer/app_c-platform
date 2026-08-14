@@ -9,6 +9,7 @@
  */
 
 #include <stdlib.h>
+#include <com_util/crt/stdlib.h>
 #include <string.h>
 
 #include <com_util/sync/sync_descriptor.h>
@@ -77,7 +78,7 @@ int interprocess_sync_descriptor_import(const void *descriptor, const size_t des
     {
         return COM_UTIL_ERR_CORRUPT_DESCRIPTOR;
     }
-    identity = (char *)malloc((size_t)identity_len + 1U);
+    identity = (char *)com_util_malloc((size_t)identity_len + 1U);
     if (identity == NULL)
     {
         return COM_UTIL_ERR_UNKNOWN;
