@@ -413,7 +413,7 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
     NiceMock<Mock_com_util> mock_com_util;
     char dummy = '\0';
     char *buf = &dummy;
-    const size_t max_size = std::numeric_limits<size_t>::max();
+    const size_t max_size = (std::numeric_limits<size_t>::max)();
     size_t cap = (max_size / 2u) + 1u; // [状態] - 2 倍すると size_t の上限を超える容量を指定する。
 
     // Pre-Assert
