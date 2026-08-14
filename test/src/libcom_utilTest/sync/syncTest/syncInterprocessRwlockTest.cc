@@ -2,19 +2,48 @@
 
 #include "syncTestHelper.h"
 
+using testing::Assign;
+using testing::DoAll;
+#if defined(PLATFORM_LINUX)
+using testing::StrEq;
+#endif
+
 // descriptor の出力と復元で同一の interprocess rwlock を再取得できることの確認
 TEST(syncInterprocessRwlockTest, descriptor_round_trip_reopens_same_lock)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_rwlock"); // [状態] - テスト用 lock file パスを用意する。
+#if defined(PLATFORM_LINUX)
+    InterprocessOsMocks os;
+    const char *path = kRwlockIdentity; // [状態] - 識別子を sync.rwlock とする。
+#else
+    char path_buf[256];
+    make_test_interprocess_path(path_buf, sizeof(path_buf), "interprocess_rwlock");
+    const char *path = path_buf; // [状態] - テスト用 lock file パスを用意する。
+#endif
     com_util_interprocess_rwlock *lock = NULL;
     com_util_interprocess_rwlock *restored = NULL;
     unsigned char descriptor[512];
     size_t descriptor_size = sizeof(descriptor);
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd))
+        .WillOnce(
+            Return(kFakeFd2)); // [Pre-Assert確認_正常系] - open が元ハンドルと復元ハンドルで 2 回呼び出されること。
+                               // [Pre-Assert手順] - 番兵記述子 7 と 8 を順に返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
+        .WillOnce(
+            Return(0)); // [Pre-Assert確認_正常系] - 元ハンドルの非ブロッキング排他 flock が 1 回呼び出されること。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_SH | LOCK_NB))
+        .WillOnce(DoAll(
+            Assign(&errno, EWOULDBLOCK),
+            Return(-1))); // [Pre-Assert確認_正常系] - 復元ハンドルの非ブロッキング共有 flock が 1 回呼び出されること。
+                          // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
+#endif
 
     // Act
     int create_result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
@@ -42,20 +71,34 @@ TEST(syncInterprocessRwlockTest, descriptor_round_trip_reopens_same_lock)
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(restored);
     com_util_interprocess_rwlock_destroy(lock);
+#if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
+#endif
 }
 
 // NULL バッファーの export で必要な descriptor サイズが報告されることの確認
 TEST(syncInterprocessRwlockTest, export_reports_required_descriptor_size)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_rwlock_size"); // [状態] - テスト用 lock file パスを用意する。
+#if defined(PLATFORM_LINUX)
+    InterprocessOsMocks os;
+    const char *path = kRwlockIdentity; // [状態] - 識別子を sync.rwlock とする。
+#else
+    char path_buf[256];
+    make_test_interprocess_path(path_buf, sizeof(path_buf), "interprocess_rwlock_size");
+    const char *path = path_buf; // [状態] - テスト用 lock file パスを用意する。
+#endif
     com_util_interprocess_rwlock *lock = NULL;
     size_t descriptor_size = 0U;
+    const size_t expected_size = 3U + strlen(path); // [状態] - stub の必要サイズは種別・backend・長さと識別子である。
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd)); // [Pre-Assert確認_正常系] - rwlock の open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - 番兵記述子 7 を返却する。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+#endif
 
     // Act
     int create_result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
@@ -67,11 +110,13 @@ TEST(syncInterprocessRwlockTest, export_reports_required_descriptor_size)
         COM_UTIL_OK,
         create_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, export_result); // [確認_正常系] - バッファー不足が通知されること。
-    EXPECT_GT(descriptor_size, 20U);                         // [確認_正常系] - descriptor に必要なサイズが返ること。
+    EXPECT_EQ(expected_size, descriptor_size);               // [確認_正常系] - descriptor に必要なサイズが返ること。
 
     // Cleanup
     com_util_interprocess_rwlock_destroy(lock);
+#if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
+#endif
 }
 
 // 不正な descriptor の import が拒否されることの確認
@@ -94,56 +139,54 @@ TEST(syncInterprocessRwlockTest, corrupt_descriptor_is_rejected)
 
 #if defined(PLATFORM_LINUX)
 
-// fork した子プロセスから親プロセスの rwlock 排他ロックが観測できることの確認
-TEST(syncInterprocessRwlockTest, forked_process_observes_exclusive_lock)
+// 2 つ目のハンドルからの共有 try_lock が BUSY になることの確認
+TEST(syncInterprocessRwlockTest, second_handle_observes_exclusive_lock)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_rwlock_fork"); // [状態] - テスト用 lock file パスを用意する。
+    InterprocessOsMocks os;
+    const char *path = kRwlockIdentity; // [状態] - 識別子を sync.rwlock とする。
     com_util_interprocess_rwlock *lock = NULL;
+    com_util_interprocess_rwlock *other = NULL;
 
     // Pre-Assert
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd))
+        .WillOnce(Return(kFakeFd2)); // [Pre-Assert確認_正常系] - 同一識別子の open が 2 回呼び出されること。
+                                     // [Pre-Assert手順] - 番兵記述子 7 と 8 を順に返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 1 つ目の非ブロッキング排他 flock が成功すること。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_SH | LOCK_NB))
+        .WillOnce(DoAll(Assign(&errno, EWOULDBLOCK),
+                        Return(-1))); // [Pre-Assert確認_正常系] - 2 つ目の非ブロッキング共有 flock が競合すること。
+                                      // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
 
     // Act
-    int open_result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - interprocess rwlock を開く。
+    int open_result = com_util_interprocess_rwlock_open(path, &lock); // [手順] - 1 つ目の interprocess rwlock を開く。
+    int other_open = com_util_interprocess_rwlock_open(path, &other); // [手順] - 同一識別子でもう 1 つ開く。
     int lock_result = com_util_interprocess_rwlock_lock_exclusive(
-        lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 親プロセスで排他ロックを取得する。
-    pid_t child = fork();             // [手順] - fork した子プロセスから同じ lock file を開き共有 try_lock を試行する。
+        lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 1 つ目のハンドルで排他ロックを取得する。
+    int other_try =
+        com_util_interprocess_rwlock_try_lock_shared(other); // [手順] - 2 つ目のハンドルで共有 try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(
+    EXPECT_EQ(
         COM_UTIL_OK,
-        open_result); // [確認_正常系] - com_util_interprocess_rwlock_open の戻り値から、interprocess rwlock open が成功したと判断できること。
-    ASSERT_EQ(
+        open_result); // [確認_正常系] - 1 つ目の com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
         COM_UTIL_OK,
-        lock_result); // [確認_正常系] - com_util_interprocess_rwlock_lock_exclusive の戻り値から、親プロセスの排他ロック取得が成功したと判断できること。
-    ASSERT_GE(child, 0);
-    if (child == 0)
-    {
-        com_util_interprocess_rwlock *child_lock = NULL;
-        int child_open = com_util_interprocess_rwlock_open(path, &child_lock);
-        int child_try = com_util_interprocess_rwlock_try_lock_shared(child_lock);
-        if (child_lock != NULL)
-        {
-
-            // Cleanup
-            com_util_interprocess_rwlock_destroy(child_lock);
-        }
-        if (child_open == COM_UTIL_OK && child_try == COM_UTIL_ERR_BUSY)
-        {
-            _exit(0);
-        }
-        _exit(1);
-    }
-    int status = 0;
-    ASSERT_EQ(child, waitpid(child, &status, 0));
-    EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
-    EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ共有 try_lock が BUSY であること。
+        other_open); // [確認_正常系] - 2 つ目の com_util_interprocess_rwlock_open の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              lock_result); // [確認_正常系] - 1 つ目のハンドルの排他ロック取得が成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_BUSY,
+              other_try); // [確認_正常系] - 2 つ目のハンドルの共有 try_lock が BUSY であること。
 
     // Cleanup
     (void)com_util_interprocess_rwlock_unlock(lock);
+    com_util_interprocess_rwlock_destroy(other);
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
+
 #endif /* PLATFORM_LINUX */

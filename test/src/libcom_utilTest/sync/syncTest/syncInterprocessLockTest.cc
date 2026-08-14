@@ -2,19 +2,50 @@
 
 #include "syncTestHelper.h"
 
+using testing::Assign;
+using testing::DoAll;
+#if defined(PLATFORM_LINUX)
+using testing::StrEq;
+#endif
+
 // descriptor の出力と復元で同一の interprocess lock を再取得できることの確認
 TEST(syncInterprocessLockTest, descriptor_round_trip_reopens_same_lock)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_lock"); // [状態] - テスト用 lock file パスを用意する。
+#if defined(PLATFORM_LINUX)
+    InterprocessOsMocks os;
+    const char *path = kLockIdentity; // [状態] - 識別子を sync.lock とする。
+#else
+    char path_buf[256];
+    make_test_interprocess_path(path_buf, sizeof(path_buf), "interprocess_lock");
+    const char *path = path_buf; // [状態] - テスト用 lock file パスを用意する。
+#endif
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_lock *restored = NULL;
     unsigned char descriptor[512];
     size_t descriptor_size = sizeof(descriptor);
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd))
+        .WillOnce(
+            Return(kFakeFd2)); // [Pre-Assert確認_正常系] - open が元ハンドルと復元ハンドルで 2 回呼び出されること。
+                               // [Pre-Assert手順] - 番兵記述子 7 と 8 を順に返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
+        .WillOnce(
+            Return(0)); // [Pre-Assert確認_正常系] - 元ハンドルの非ブロッキング排他 flock が 1 回呼び出されること。
+                        // [Pre-Assert手順] - 0 を返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_EX | LOCK_NB))
+        .WillOnce(DoAll(
+            Assign(&errno, EWOULDBLOCK),
+            Return(-1))); // [Pre-Assert確認_正常系] - 復元ハンドルの非ブロッキング排他 flock が 1 回呼び出されること。
+                          // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 元ハンドルの LOCK_UN が 1 回呼び出されること。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
+#endif
 
     // Act
     int open_result = com_util_interprocess_lock_open(path, &lock); // [手順] - interprocess lock を開く。
@@ -41,22 +72,35 @@ TEST(syncInterprocessLockTest, descriptor_round_trip_reopens_same_lock)
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(restored);
     com_util_interprocess_lock_destroy(lock);
+#if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
+#endif
 }
 
 // rwlock の descriptor を interprocess lock として import できないことの確認
 TEST(syncInterprocessLockTest, rejects_rwlock_descriptor)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_lock_kind"); // [状態] - テスト用 lock file パスを用意する。
+#if defined(PLATFORM_LINUX)
+    InterprocessOsMocks os;
+    const char *path = kRwlockIdentity; // [状態] - 識別子を sync.rwlock とする。
+#else
+    char path_buf[256];
+    make_test_interprocess_path(path_buf, sizeof(path_buf), "interprocess_lock_kind");
+    const char *path = path_buf; // [状態] - テスト用 lock file パスを用意する。
+#endif
     com_util_interprocess_rwlock *rwlock = NULL;
     com_util_interprocess_lock *lock = NULL;
     unsigned char descriptor[512];
     size_t descriptor_size = sizeof(descriptor);
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd)); // [Pre-Assert確認_正常系] - rwlock の open が 1 回呼び出されること。
+                                    // [Pre-Assert手順] - 番兵記述子 7 を返却する。
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+#endif
 
     // Act
     int open_result = com_util_interprocess_rwlock_open(path, &rwlock); // [手順] - interprocess rwlock を開く。
@@ -78,62 +122,60 @@ TEST(syncInterprocessLockTest, rejects_rwlock_descriptor)
 
     // Cleanup
     com_util_interprocess_rwlock_destroy(rwlock);
+#if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
+#endif
 }
 
 #if defined(PLATFORM_LINUX)
 
-// fork した子プロセスから親プロセスの排他ロックが観測できることの確認
-TEST(syncInterprocessLockTest, forked_process_observes_exclusive_lock)
+// 2 つ目のハンドルからの try_lock が BUSY になることの確認
+TEST(syncInterprocessLockTest, second_handle_observes_exclusive_lock)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path),
-                                "interprocess_lock_fork"); // [状態] - テスト用 lock file パスを用意する。
+    InterprocessOsMocks os;
+    const char *path = kLockIdentity; // [状態] - 識別子を sync.lock とする。
     com_util_interprocess_lock *lock = NULL;
+    com_util_interprocess_lock *other = NULL;
 
     // Pre-Assert
+    EXPECT_CALL(os.fcntl, open(_, _, _, StrEq(path), O_RDWR | O_CREAT | O_CLOEXEC, 0666))
+        .WillOnce(Return(kFakeFd))
+        .WillOnce(Return(kFakeFd2)); // [Pre-Assert確認_正常系] - 同一識別子の open が 2 回呼び出されること。
+                                     // [Pre-Assert手順] - 番兵記述子 7 と 8 を順に返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_EX | LOCK_NB))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - 1 つ目の非ブロッキング排他 flock が成功すること。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd2, LOCK_EX | LOCK_NB))
+        .WillOnce(DoAll(Assign(&errno, EWOULDBLOCK),
+                        Return(-1))); // [Pre-Assert確認_正常系] - 2 つ目の非ブロッキング排他 flock が競合すること。
+                                      // [Pre-Assert手順] - errno に EWOULDBLOCK を設定し、-1 を返却する。
+    EXPECT_CALL(os.sys_file, flock(_, _, _, kFakeFd, LOCK_UN)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));
+    EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0));
 
     // Act
-    int open_result = com_util_interprocess_lock_open(path, &lock); // [手順] - interprocess lock を開く。
+    int open_result = com_util_interprocess_lock_open(path, &lock); // [手順] - 1 つ目の interprocess lock を開く。
+    int other_open = com_util_interprocess_lock_open(path, &other); // [手順] - 同一識別子でもう 1 つ開く。
     int lock_result =
-        com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 親プロセスでロックを取得する。
-    pid_t child = fork(); // [手順] - fork した子プロセスから同じ lock file を開き try_lock を試行する。
+        com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT); // [手順] - 1 つ目のハンドルでロックを取得する。
+    int other_try = com_util_interprocess_lock_try_lock(other); // [手順] - 2 つ目のハンドルで try_lock を試行する。
 
     // Assert
-    ASSERT_EQ(
+    EXPECT_EQ(
         COM_UTIL_OK,
-        open_result); // [確認_正常系] - com_util_interprocess_lock_open の戻り値から、interprocess lock open が成功したと判断できること。
-    ASSERT_EQ(
+        open_result); // [確認_正常系] - 1 つ目の com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(
         COM_UTIL_OK,
-        lock_result); // [確認_正常系] - com_util_interprocess_lock_lock の戻り値から、親プロセスのロック取得が成功したと判断できること。
-    ASSERT_GE(child, 0);
-    if (child == 0)
-    {
-        com_util_interprocess_lock *child_lock = NULL;
-        int child_open = com_util_interprocess_lock_open(path, &child_lock);
-        int child_try = com_util_interprocess_lock_try_lock(child_lock);
-        if (child_lock != NULL)
-        {
-
-            // Cleanup
-            com_util_interprocess_lock_destroy(child_lock);
-        }
-        if (child_open == COM_UTIL_OK && child_try == COM_UTIL_ERR_BUSY)
-        {
-            _exit(0);
-        }
-        _exit(1);
-    }
-    int status = 0;
-    ASSERT_EQ(child, waitpid(child, &status, 0));
-    EXPECT_TRUE(WIFEXITED(status));    // [確認_正常系] - 子プロセスが正常終了すること。
-    EXPECT_EQ(0, WEXITSTATUS(status)); // [確認_正常系] - 子プロセスで open 成功かつ try_lock が BUSY であること。
+        other_open); // [確認_正常系] - 2 つ目の com_util_interprocess_lock_open の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              lock_result); // [確認_正常系] - 1 つ目のハンドルのロック取得が成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_BUSY,
+              other_try); // [確認_正常系] - 2 つ目のハンドルの try_lock が BUSY であること。
 
     // Cleanup
     (void)com_util_interprocess_lock_unlock(lock);
+    com_util_interprocess_lock_destroy(other);
     com_util_interprocess_lock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 #endif /* PLATFORM_LINUX */

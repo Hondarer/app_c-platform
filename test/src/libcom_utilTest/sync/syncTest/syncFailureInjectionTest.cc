@@ -4,31 +4,18 @@
 
 #if defined(PLATFORM_LINUX)
 
-    #include <mock_fcntl.h>
     #include <mock_pthread.h>
     #include <mock_stdlib.h>
     #include <mock_string.h>
-    #include <sys/mock_file.h>
 
-using testing::_;
 using testing::DoDefault;
 using testing::NiceMock;
-using testing::Return;
+using testing::StrEq;
 
 class syncFailureInjectionTest : public Test
 {
   protected:
-    char path_[256];
-
-    void SetUp() override
-    {
-        make_test_interprocess_path(path_, sizeof(path_), "failure_injection");
-    }
-
-    void TearDown() override
-    {
-        TEST_INTERPROCESS_UNLINK(path_);
-    }
+    InterprocessOsMocks os_;
 };
 
 /*
@@ -91,10 +78,13 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_for_unopenable_pat
     com_util_interprocess_lock *lock = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
+    EXPECT_CALL(os_.fcntl, open(_, _, _, StrEq(kLockIdentity), _, _))
+        .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - open が識別子 sync.lock で 1 回失敗すること。
+                               // [Pre-Assert手順] - -1 を返却する。
 
     // Act
-    int rtc = com_util_interprocess_lock_open("/proc/com_util_unopenable_for_test/lock",
-                                              &lock); // [手順] - 作成できないパスを指定して呼び出す。
+    int rtc = com_util_interprocess_lock_open(kLockIdentity,
+                                              &lock); // [手順] - open 失敗を注入してロックを開く。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -106,16 +96,15 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_for_unopenable_pat
 TEST_F(syncFailureInjectionTest, interprocess_lock_open_reports_open_failure)
 {
     // Arrange
-    NiceMock<Mock_fcntl> mock_fcntl;
     com_util_interprocess_lock *lock = NULL; // [状態] - ハンドルの格納先を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
+    EXPECT_CALL(os_.fcntl, open(_, _, _, _, _, _))
         .WillOnce(Return(-1))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - open が 1 回目に失敗すること。
 
     // Act
-    int rtc = com_util_interprocess_lock_open(path_, &lock); // [手順] - open 失敗を注入してロックを開く。
+    int rtc = com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - open 失敗を注入してロックを開く。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -138,7 +127,8 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_identity_dupl
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_interprocess_lock_open(path_, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
+    int rtc =
+        com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -160,7 +150,8 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_allocation_fa
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_interprocess_lock_open(path_, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
+    int rtc =
+        com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
@@ -177,19 +168,18 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_allocation_fa
 TEST_F(syncFailureInjectionTest, interprocess_lock_unlock_reports_flock_failure)
 {
     // Arrange
-    NiceMock<Mock_sys_file> mock_sys_file;
     com_util_interprocess_lock *lock = NULL;
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path_, &lock));
+    ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(kLockIdentity, &lock));
     ASSERT_EQ(COM_UTIL_OK,
               com_util_interprocess_lock_lock(lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - ロックを取得済みにする。
 
     // Pre-Assert
-    EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN))
+    EXPECT_CALL(os_.sys_file, flock(_, _, _, _, LOCK_UN))
         .WillOnce(Return(-1))
         .WillRepeatedly(
             DoDefault()); // [Pre-Assert確認_異常系] - flock が LOCK_UN を指定して 1 回目に呼び出されること。
-                          // [Pre-Assert手順] - 1 回目は -1 を返却し、以降は本物へ委譲する。
+                          // [Pre-Assert手順] - 1 回目は -1 を返却し、以降は既定の成功へ戻す。
 
     // Act
     int rtc = com_util_interprocess_lock_unlock(lock); // [手順] - com_util_interprocess_lock_unlock を呼び出す。

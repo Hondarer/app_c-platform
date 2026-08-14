@@ -10,14 +10,45 @@
 #include <string.h>
 
 #if defined(PLATFORM_LINUX)
+    #include <errno.h>
+    #include <fcntl.h>
+    #include <mock_fcntl.h>
+    #include <mock_unistd.h>
+    #include <sys/mock_file.h>
     #include <time.h>
-    #include <unistd.h>
-    #include <sys/wait.h>
-static inline void make_test_interprocess_path(char *buf, size_t size, const char *tag)
+
+using testing::_;
+using testing::Return;
+
+const int kFakeFd = 7;
+const int kFakeFd2 = 8;
+const char kLockIdentity[] = "sync.lock";
+const char kRwlockIdentity[] = "sync.rwlock";
+
+// open / close だけを番兵記述子へ差し替える。flock は各テストが個別に設定する。
+struct InterprocessOpenMocks
 {
-    snprintf(buf, size, "/tmp/com_util_%s_%ld.lock", tag, (long)getpid());
-}
-    #define TEST_INTERPROCESS_UNLINK(path) unlink(path)
+    testing::NiceMock<Mock_fcntl> fcntl;
+    testing::NiceMock<Mock_unistd> unistd;
+
+    InterprocessOpenMocks()
+    {
+        ON_CALL(fcntl, open(_, _, _, _, _, _)).WillByDefault(Return(kFakeFd));
+        ON_CALL(unistd, close(_, _, _, _)).WillByDefault(Return(0));
+    }
+};
+
+// open / close / flock を既定で成功させる。失敗経路は EXPECT_CALL で上書きする。
+struct InterprocessOsMocks : InterprocessOpenMocks
+{
+    testing::NiceMock<Mock_sys_file> sys_file;
+
+    InterprocessOsMocks()
+    {
+        ON_CALL(sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    }
+};
+
 static inline uint64_t test_monotonic_ms(void)
 {
     struct timespec ts;

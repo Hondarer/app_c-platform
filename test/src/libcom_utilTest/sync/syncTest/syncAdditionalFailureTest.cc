@@ -542,11 +542,12 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_pthread_failure)
 TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path), "additional_failure");
+    InterprocessOpenMocks os;
+    NiceMock<Mock_sys_file> mock_sys_file;
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    const char *path = kLockIdentity;
     com_util_interprocess_lock *lock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock));
-    NiceMock<Mock_sys_file> mock_sys_file;
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX | LOCK_NB))
         .WillOnce(Invoke(
             [](const char *, const int, const char *, const int, const int)
@@ -582,7 +583,6 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
     (void)com_util_interprocess_lock_unlock(lock);
     com_util_interprocess_lock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // thread ハンドル確保の malloc 失敗を未知エラーへ変換することの確認
@@ -609,8 +609,8 @@ TEST(syncAdditionalFailureTest, thread_create_reports_context_allocation_failure
 TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_results)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path), "finite_rwlock");
+    InterprocessOpenMocks os;
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
     NiceMock<Mock_sys_file> mock_sys_file;
@@ -661,15 +661,14 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
 
     // Cleanup
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess lock の有限待機とブロッキング待機のエラーを分類することの確認
 TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classify_errors)
 {
     // Arrange
-    char path[256];
-    make_test_interprocess_path(path, sizeof(path), "finite_lock");
+    InterprocessOpenMocks os;
+    const char *path = kLockIdentity;
     com_util_interprocess_lock *lock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(path, &lock));
     NiceMock<Mock_sys_file> mock_sys_file;
@@ -727,7 +726,6 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
 
     // Cleanup
     com_util_interprocess_lock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // local lock の有限待機が成功、未知エラー、タイムアウトを分類することの確認
@@ -775,11 +773,10 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
 TEST(syncAdditionalFailureTest, lock_apis_reject_null_arguments)
 {
     // Arrange
-    char path[256];
+    const char *path = kLockIdentity;
     com_util_thread *thread = NULL;
     com_util_interprocess_lock *interprocess_lock = NULL;
     com_util_interprocess_rwlock *interprocess_rwlock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "null_arguments");
 
     // Pre-Assert
 
@@ -902,9 +899,8 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_open_failure)
 {
     // Arrange
     NiceMock<Mock_fcntl> mock_fcntl;
-    char path[256];
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_open_failure");
     EXPECT_CALL(mock_fcntl, open(_, _, _, _, _, _))
         .WillOnce(Return(-1)); // [Pre-Assert確認_異常系] - rwlock の lock file open が失敗すること。
 
@@ -924,10 +920,10 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_open_failure)
 TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_identity_duplication_failure)
 {
     // Arrange
+    InterprocessOpenMocks os;
     NiceMock<Mock_string> mock_string;
-    char path[256];
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_strdup_failure");
     EXPECT_CALL(mock_string, strdup(_, _, _, _))
         .WillOnce(Return(static_cast<char *>(NULL))); // [Pre-Assert確認_異常系] - rwlock の識別子複製が失敗すること。
 
@@ -941,19 +937,16 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_identity_duplic
               result); // [確認_異常系] - 識別子複製失敗の戻り値が UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
               lock); // [確認_異常系] - 識別子複製失敗時にハンドルが NULL であること。
-
-    // Cleanup
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess rwlock のハンドル確保失敗が通知されることの確認
 TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_allocation_failure)
 {
     // Arrange
+    InterprocessOpenMocks os;
     NiceMock<Mock_stdlib> mock_stdlib;
-    char path[256];
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_calloc_failure");
     EXPECT_CALL(mock_stdlib, calloc(_, _, _, _, _))
         .WillOnce(
             Return(static_cast<void *>(NULL))); // [Pre-Assert確認_異常系] - rwlock ハンドルの calloc が失敗すること。
@@ -968,19 +961,17 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_open_reports_allocation_fail
               result); // [確認_異常系] - ハンドル確保失敗の戻り値が UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
               lock); // [確認_異常系] - ハンドル確保失敗時に NULL が返ること。
-
-    // Cleanup
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess rwlock の WAIT_FOREVER が EINTR 後に再試行することの確認
 TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
 {
     // Arrange
+    InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    char path[256];
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_wait_forever");
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_EX))
         .WillOnce(Invoke(
@@ -1005,17 +996,17 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0));
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess rwlock の WAIT_FOREVER が未知の flock エラーを返すことの確認
 TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_reports_flock_failure)
 {
     // Arrange
+    InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    char path[256];
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_wait_forever_error");
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_SH))
         .WillOnce(Invoke(
@@ -1037,17 +1028,17 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_reports_flock_f
 
     // Cleanup
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess rwlock の unlock 失敗が通知され、destroy が再試行することの確認
 TEST(syncAdditionalFailureTest, interprocess_rwlock_unlock_reports_flock_failure)
 {
     // Arrange
+    InterprocessOpenMocks os;
     NiceMock<Mock_sys_file> mock_sys_file;
-    char path[256];
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_unlock_error");
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_lock_exclusive(
                                lock, COM_UTIL_SYNC_NO_WAIT)); // [状態] - 排他ロックを取得しておく。
@@ -1065,16 +1056,15 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_unlock_reports_flock_failure
 
     // Cleanup
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // interprocess rwlock の try_lock_exclusive がロックを取得できることの確認
 TEST(syncAdditionalFailureTest, interprocess_rwlock_try_lock_exclusive_succeeds)
 {
     // Arrange
-    char path[256];
+    InterprocessOsMocks os;
+    const char *path = kRwlockIdentity;
     com_util_interprocess_rwlock *lock = NULL;
-    make_test_interprocess_path(path, sizeof(path), "rwlock_try_exclusive");
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(path, &lock));
 
     // Pre-Assert
@@ -1090,7 +1080,6 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_try_lock_exclusive_succeeds)
     // Cleanup
     (void)com_util_interprocess_rwlock_unlock(lock);
     com_util_interprocess_rwlock_destroy(lock);
-    TEST_INTERPROCESS_UNLINK(path);
 }
 
 // call_once の待機側が初期化完了まで待つことの確認
@@ -1133,15 +1122,15 @@ TEST(syncAdditionalFailureTest, call_once_waits_for_running_callback)
 TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry_paths)
 {
     // Arrange
-    char lock_path[256];
-    char rwlock_path[256];
-    make_test_interprocess_path(lock_path, sizeof(lock_path), "locked_retry_lock");
-    make_test_interprocess_path(rwlock_path, sizeof(rwlock_path), "locked_retry_rwlock");
+    InterprocessOpenMocks os;
+    const char *lock_path = kLockIdentity;
+    const char *rwlock_path = kRwlockIdentity;
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_rwlock *rwlock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_rwlock_open(rwlock_path, &rwlock));
     NiceMock<Mock_sys_file> mock_sys_file;
+    ON_CALL(mock_sys_file, flock(_, _, _, _, _)).WillByDefault(Return(0));
     NiceMock<Mock_time> mock_time;
     EXPECT_CALL(mock_time, clock_gettime(_, _, _, CLOCK_MONOTONIC, _))
         .Times(4)
@@ -1194,8 +1183,6 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
     (void)com_util_interprocess_rwlock_unlock(rwlock);
     com_util_interprocess_lock_destroy(lock);
     com_util_interprocess_rwlock_destroy(rwlock);
-    TEST_INTERPROCESS_UNLINK(lock_path);
-    TEST_INTERPROCESS_UNLINK(rwlock_path);
 }
 
 // local synchronization API が非 NULL ハンドルの負値と不足引数を拒否することの確認
@@ -1413,10 +1400,9 @@ TEST(syncAdditionalFailureTest, thread_join_finite_wait_reports_deadline_timeout
 TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_null_destroy)
 {
     // Arrange
-    char lock_path[256];
-    char rwlock_path[256];
-    make_test_interprocess_path(lock_path, sizeof(lock_path), "unlocked_lock");
-    make_test_interprocess_path(rwlock_path, sizeof(rwlock_path), "unlocked_rwlock");
+    InterprocessOpenMocks os;
+    const char *lock_path = kLockIdentity;
+    const char *rwlock_path = kRwlockIdentity;
     com_util_interprocess_lock *lock = NULL;
     com_util_interprocess_rwlock *rwlock = NULL;
     ASSERT_EQ(COM_UTIL_OK, com_util_interprocess_lock_open(lock_path, &lock));
@@ -1441,8 +1427,6 @@ TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_nu
     // Cleanup
     com_util_interprocess_lock_destroy(lock);
     com_util_interprocess_rwlock_destroy(rwlock);
-    TEST_INTERPROCESS_UNLINK(lock_path);
-    TEST_INTERPROCESS_UNLINK(rwlock_path);
 }
 
 // sleep が EINTR の残時間を使って再試行することの確認
