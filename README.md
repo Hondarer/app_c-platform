@@ -1,8 +1,13 @@
 # com_util
 
-この Markdown は、機能の入り口としての Markdown で、ドキュメント化対象外です。  
-開発者に対してフォルダーの説明やショートカットを配置し、案内することが目的です。
+com_util は、トレース、同期、コンソール入出力、文字列処理、時計、ファイル操作、圧縮、暗号などを提供するクロスプラットフォームの C ライブラリです。
 
-発行ドキュメントの目次は、[docs/README.md](docs/README.md) です。
+## 入口
 
-Doxygen の目次は、[prod/README.md](prod/README.md) です。
+- [作業規則](AGENTS.md)
+- [発行文書](docs/README.md)
+- [公開 API の逆引き](docs/api-cheatsheet.md)
+- [com_util 固有のコーディング規範](docs/coding-guideline.md)
+- [Doxygen の入口](prod/README.md)
+
+公開 API を変更する場合は、コード、API 逆引き、エクスポート テストを同じ変更で確認してください。

@@ -1,5 +1,9 @@
 # com_util_error 移行ガイド
 
+> [!NOTE]
+> 本書は、`int *errno_out` から `com_util_error *detail_out` への完了済み移行を説明する履歴文書です。
+> 現行規則は [com_util コーディング規範](coding-guideline.md)、現行 API は [API チート シート](api-cheatsheet.md) を参照してください。
+
 ## 概要
 
 com_util の OS エラー詳細は、生の `errno` を格納する `int *errno_out` から、ドメイン付きの値型 `com_util_error *detail_out` へクリーン ブレークで移行しました。  

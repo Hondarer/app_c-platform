@@ -75,6 +75,9 @@ make -C app/com_util test
 ### Doxygen
 
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
+
+生成前またはリンク先を参照できない場合は、[Doxygen の生成入口](../prod/README.md) と [doxyfw の生成手順](../../../framework/doxyfw/docs/makefile-usage.md) を参照してください。
+
 - [com_util (public)](../../../doxygen/com_util_public/index.html)
     - [公開 API (com_util)](../../../doxygen/com_util_public/group__COM__UTIL__PUBLIC__API.html)
 
@@ -99,6 +102,12 @@ make -C app/com_util test
 
 ## 関連ドキュメント
 
-com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を入り口として参照してください。
+com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を入口として参照してください。
+
+- [com_util コーディング規範](coding-guideline.md)
+- [ネットワーク API ガイドライン](net-api-guideline.md)
+- [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
+
+## 文書一覧
 
 \toc depth=-1 exclude-basedir=true exclude="doxybook2_public/*" exclude="doxybook2_internal/*"

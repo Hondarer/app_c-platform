@@ -1,16 +1,19 @@
 # プロセス横断 RW ロックを「ファイルに依存しない」中央集中型へ移行する設計
 
-## Context
+> [!NOTE]
+> 本書は、共有メモリ上の論理ロック表へ移行する案を検討した提案文書です。
+> 現行仕様を確認する場合は、[API チート シート](../api-cheatsheet.md) と公開ヘッダー `prod/include/com_util/sync/sync.h` を参照してください。
 
-`app/com_util/prod/libsrc/com_util/sync/` の `com_util_interprocess_rwlock_*` は、  
-Linux/Windows のいずれも **ファイル パスを識別子に取り、当該ファイルに対する  
-カーネル提供のファイル ロック (`flock` / `LockFileEx`) を共有/排他で取得する** 実装になっている。
+## 背景
+
+`app/com_util/prod/libsrc/com_util/sync/` の `com_util_interprocess_rwlock_*` は、Linux と Windows のいずれでもファイル パスを識別子に取ります。  
+当該ファイルに対して、カーネルが提供するファイル ロック (`flock` / `LockFileEx`) を共有または排他で取得する実装です。
 
 - Linux: `open(identity, O_RDWR|O_CREAT|O_CLOEXEC, 0666)` + `flock(fd, LOCK_SH|LOCK_EX)`  
   (`sync_linux.c:159, 237, 251, 285`)
 - Windows: `CreateFileA(identity, GENERIC_READ|GENERIC_WRITE, ...)` + `LockFileEx`  
   (`sync_windows.c:119, 156, 196, 230`)
-- 現状この API を呼び出すコードは com_util のテスト/モック以外には存在しない
+- 現状この API を呼び出すコードは com_util のテスト/モック以外には存在しません。
 
 ユーザー要件 (確認済):
 
@@ -21,33 +24,33 @@ Linux/Windows のいずれも **ファイル パスを識別子に取り、当�
 
 「(a)+(b) を排除しつつ数千ロックを扱う」を 1 対 1 の OS プリミティブ割り当てで実現すると、  
 Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨張という別の壁に当たる。  
-したがって **「共有メモリ 1 セグメント + その中の論理ロック表」** という構成が必須となる。
+したがって **「共有メモリ 1 セグメント + その中の論理ロック表」** という構成が必須となります。
 
 ---
 
 ## アーキテクチャー概要
 
-- 全参加プロセスが対等。専用デーモンは増やさない。
-- 「ロック ドメイン」 1 つにつき、共有メモリ セグメント 1 個を持つ。
+- すべての参加プロセスを対等に扱い、専用デーモンは追加しません。
+- 「ロック ドメイン」 1 つにつき、共有メモリ セグメント 1 個を持ちます。
     - Linux: `shm_open("/com_util_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
     - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\com_util_lkdomain_<DOMAIN>")` +  
       `MapViewOfFile`
-- セグメント内に「マスター ロック (robust)」と「論理ロック表 (数千 entries)」を置く。
+- セグメント内に「マスター ロック (robust)」と「論理ロック表 (数千 entries)」を配置します。
 - 待機は条件変数プール (Linux: PROCESS_SHARED `pthread_cond_t` × K 個 /  
-  Windows: 名前付き auto-reset Event × K 個) を ID ハッシュで割当て。
-- 識別子 (`identity` 文字列) はロック ドメイン内の論理名としてハッシュ参照する。
+  Windows: 名前付き auto-reset Event × K 個) を ID ハッシュで割り当てます。
+- 識別子 (`identity` 文字列) はロック ドメイン内の論理名としてハッシュ参照します。
 - 参加プロセスはロック ドメインに attach した時点で `ref_count++`、detach 時 `ref_count--`。  
-  最後の detach 時にセグメント自体を破棄 (`shm_unlink` / 全 HANDLE クローズ)。
+  最後の detach 時にセグメント自体を破棄します (`shm_unlink` / 全 HANDLE クローズ)。
 
 ---
 
 ## ロック ドメインの命名と発見
 
 現 API では `identity` がファイル パスを想定したが、新方式では「ドメイン名 + ロック名」の  
-2 階層が必要。後方互換のために以下のルールで識別子を解釈する。
+2 階層が必要。後方互換のために以下のルールで識別子を解釈します。
 
 - `identity` に `'\0'` 区切りなし: ライブラリ既定ドメイン (環境変数 `COM_UTIL_LOCK_DOMAIN`  
-  または UID + 実行バイナリ パスのハッシュから計算) を使用し、`identity` 全体を論理ロック名とする
+  または UID + 実行バイナリ パスのハッシュから計算) を使用し、`identity` 全体を論理ロック名とします。
 - `identity` が `"DOMAIN/LOCK"` 形式: 明示分離
 - (検討項目) パス区切りで悩ましいケースは `identity` 先頭 1 バイトを区切り選択子にする等の運用ルールで吸収
 
@@ -93,8 +96,8 @@ Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨
 +--------------------------------------------------------------+
 ```
 
-固定サイズで設計し、`mmap` / `MapViewOfFile` 後はそのまま使う。サイズ パラメーター (N, K, B,  
-R_MAX, string_pool) は環境変数または初回作成時の hint で決定し、ヘッダーに記録する  
+固定サイズで設計し、`mmap` / `MapViewOfFile` 後はそのまま使用します。サイズ パラメーター (N, K, B,  
+R_MAX, string_pool) は環境変数または初回作成時の hint で決定し、ヘッダーに記録します。  
 (後で attach するプロセスはヘッダーを信用)。
 
 ---
@@ -131,7 +134,7 @@ R_MAX, string_pool) は環境変数または初回作成時の hint で決定し
 
 論理ロックの owner として記録された PID が、マスター ロック取得後の検査時点で  
 本当に生きているかを確認する必要がある。検査は (a) スイープ時、(b) ロック取得待ちが  
-タイムアウトに近づいた時、に行う。
+タイムアウトに近づいた時、に行います。
 
 ### Linux
 
@@ -231,7 +234,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 ---
 
-## Open Questions (実装着手前に確定)
+## 未決事項
 
 1. **「数千」の正確な目安**: 同時アクティブ ロック上限 (table_size N) と、それを超えた  
    ときの挙動 (拡張 / エラー) の方針。
@@ -246,7 +249,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 ---
 
-## Verification
+## 検証方針
 
 ### ユニット テスト
 

@@ -211,7 +211,7 @@ MSVC では、中身のない翻訳単位に対して C4206 ("translation unit i
 
 - 依存ヘッダーが大きく違う
 - 関数本体の大半が分岐で占められる
-- Linux と Windows で別のシステム モデルを使う
+- Linux と Windows で別のシステム モデルを使用します。
 
 ### 分岐の軸を混ぜない
 
@@ -222,9 +222,9 @@ OS 差異は `PLATFORM_*`、コンパイラ差異は `COMPILER_*` で書きま�
 分岐順も軸ごとに扱いを分けます。
 
 - `PLATFORM_*`:  
-  原則は `Linux -> Windows`。ただし、ファイル全体が Windows 向け実装なら Windows を先頭にする
+  原則は `Linux -> Windows`。ただし、ファイル全体が Windows 向け実装なら Windows を先頭にします。
 - `COMPILER_*`:  
-  `GCC -> MSVC` とする
+  `GCC -> MSVC` とします。
 
 判断目安:
 

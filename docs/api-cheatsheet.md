@@ -5,8 +5,9 @@
 本チート シートは、`app/` 配下のコードで生の CRT / POSIX / Win32 API を書こうとしたときに、対応する com_util の代替関数を素早く引くための一覧です。  
 同時に、com_util が公開する API 全体を用途から引ける逆引き辞書でもあります。  
 規範本文と根拠は [coding-guideline.md](coding-guideline.md) の「[ラッパーの設計方針](coding-guideline.md#ラッパーの設計方針)」「[危険な標準関数の代替](coding-guideline.md#危険な標準関数の代替)」に集約されています。  
-本チート シートは対応表の抽出であり、規範としての正典は `coding-guideline.md` です。  
-記載内容に相違がある場合は `coding-guideline.md` を正とします。
+本チート シートは対応表の抽出であり、規範としての正本は `coding-guideline.md` です。  
+公開 API の宣言とシグネチャは、[`prod/include/`](../prod/include/) 配下のヘッダーを正本とします。  
+コード、コーディング規範、または本チート シートに不一致がある場合は、正本を確認したうえで同じ変更の中で一致させてください。
 
 表は 3 種類に分かれます。
 
@@ -28,21 +29,21 @@
 
 | 生 API | 問題 | com_util 代替 |
 |---|---|---|
-| `strcpy` | コピー先の容量を受け取らず、境界を検査しない | `com_util_strcpy(dest, dest_size, src)` |
-| `strncpy` | コピー元が `count` 以上のとき null 終端しない。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy(dest, dest_size, src, count)` |
-| `strcat` | 連結先の容量を受け取らず、境界を検査しない | `com_util_strcat(dest, dest_size, src)` |
+| `strcpy` | コピー先の容量を受け取らず、境界を検査しません。 | `com_util_strcpy(dest, dest_size, src)` |
+| `strncpy` | コピー元が `count` 以上のとき null 終端しません。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy(dest, dest_size, src, count)` |
+| `strcat` | 連結先の容量を受け取らず、境界を検査しません。 | `com_util_strcat(dest, dest_size, src)` |
 | `strncat` | 連結先の容量を受け取らない。`count` は連結元から読む最大文字数であり、終端の 1 バイトも別に必要 | `com_util_strncat(dest, dest_size, src, count)` |
 | `wcscpy` | `strcpy` と同じ | `com_util_wcscpy(dest, dest_size, src)` |
-| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なる | `com_util_strdup(src)` |
-| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できない | `com_util_strtok_r(str, delim, saveptr)` |
-| `gets` | 宛先の容量を指定できない。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
+| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `com_util_strdup(src)` |
+| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `com_util_strtok_r(str, delim, saveptr)` |
+| `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
 
 ### 書式化・行入力
 
 | 生 API | 問題 | com_util 代替 |
 |---|---|---|
 | `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `com_util_fgets(dest, dest_size, stream, detail_out)` |
-| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しない | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
+| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しません。 | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
 | `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `com_util_snprintf` / `com_util_vsnprintf` (戻り値は文字数ではなく共通結果コード) |
 | `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | `com_util_scanf` / `com_util_fscanf` / `com_util_sscanf` と各 `v*` 版 |
 
@@ -50,8 +51,8 @@
 
 | 生 API | 問題 | com_util 代替 |
 |---|---|---|
-| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になる | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` |
-| `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しない | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_uint64` / `com_util_parse_double` |
+| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になります。 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` |
+| `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しません。 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_uint64` / `com_util_parse_double` |
 
 `com_util_parse_uint64` は先頭の符号 `'-'` を範囲外エラーとして拒否します。  
 `strtoull` が負値を符号なしの折り返し値として受け付ける挙動とは異なります。  
@@ -61,14 +62,14 @@
 
 | 生 API | 問題 | com_util 代替 |
 |---|---|---|
-| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なる | `com_util_error_message(buf, buf_size, &error)` |
+| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なります。 | `com_util_error_message(buf, buf_size, &error)` |
 
 ### メモリ確保
 
 | 生 API | 問題 | com_util 代替 |
 |---|---|---|
-| `malloc` | 単一オブジェクト、バイト バッファーの確保に使う。長さ 0 の戻り値が処理系定義 | `com_util_malloc(size)` (ゼロ初期化しない) / `com_util_malloc_zerofill(size)` (ゼロ初期化する) |
-| `calloc` | `malloc(count * size)` は乗算の回り込みを検出しない | `com_util_calloc(count, size)` (乗算オーバーフローを検査し、ゼロ初期化する) |
+| `malloc` | 単一オブジェクト、バイト バッファーの確保に使用します。長さ 0 の戻り値が処理系定義 | `com_util_malloc(size)` (ゼロ初期化しない) / `com_util_malloc_zerofill(size)` (ゼロ初期化する) |
+| `calloc` | `malloc(count * size)` は乗算の回り込みを検出しません。 | `com_util_calloc(count, size)` (乗算オーバーフローを検査し、ゼロ初期化する) |
 | `realloc` | 失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `com_util_realloc(ptr, count, size)` / `com_util_realloc_zerofill(ptr, old_count, count, size)` |
 | `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `com_util_free(ptr)` |
 
@@ -86,7 +87,7 @@
 
 | 生 API | com_util 代替 | 差異の要点 |
 |---|---|---|
-| `fopen` | `com_util_fopen(path, modes, detail_out)` | パスは UTF-8 を受け取り、Windows 内部で `_wfsopen` を `_SH_DENYNO` 指定で呼び出し Linux と同じ共有可の既定にする |
+| `fopen` | `com_util_fopen(path, modes, detail_out)` | パスは UTF-8 を受け取り、Windows 内部で `_wfsopen` を `_SH_DENYNO` 指定で呼び出し Linux と同じ共有可の既定にします。 |
 | `freopen` | `com_util_freopen(path, modes, stream, detail_out)` | `fopen` と同じ共有モード吸収。テキスト/バイナリ モード フラグは元の `stream` を引き継ぐ |
 | `fclose` | `com_util_fclose(stream, detail_out)` | OS エラー詳細を `detail_out` へ格納する以外は元の戻り値規約 (0/EOF) を保持 |
 | `fflush` | `com_util_fflush(stream, detail_out)` | 同上 |
@@ -109,7 +110,7 @@
 
 | 生 API | com_util 代替 | 差異の要点 |
 |---|---|---|
-| `open` / `_wopen` | `com_util_open(path, flags, mode, detail_out)` | パスは UTF-8。Windows は `_wsopen_s` を `_SH_DENYNO` 指定で呼び出し Linux と同じ既定にする |
+| `open` / `_wopen` | `com_util_open(path, flags, mode, detail_out)` | パスは UTF-8。Windows は `_wsopen_s` を `_SH_DENYNO` 指定で呼び出し Linux と同じ既定にします。 |
 | `lseek` / `_lseeki64` | `com_util_lseek(fd, offset, whence, detail_out)` | `offset` が 64bit 対応。`fd` が負の場合は OS API を呼ばず -1 を返す |
 | `close` / `_close` | `com_util_close(fd, detail_out)` | `fd` が負の場合は OS API を呼ばず -1 を返す |
 | `dup` / `_dup` | `com_util_dup(fd, detail_out)` | 同上 |
@@ -130,7 +131,7 @@
 | `stat` / `_wstat64` | `com_util_stat(buf, detail_out, path)` | パスは UTF-8。`buf` の型は `com_util_file_stat_t` (Linux: `struct stat`、Windows: `struct _stat64`) |
 | `mkdir` / `_wmkdir` | `com_util_mkdir(path, detail_out)` | パスは UTF-8 |
 | (`mkdir -p` 相当) | `com_util_makedirs(path, detail_out)` | 中間ディレクトリを再帰的に作成。既存ディレクトリはべき等に成功扱い |
-| `rmdir` / `_wrmdir` | `com_util_rmdir(path, detail_out)` | パスは UTF-8。中間ディレクトリの再帰削除はしない |
+| `rmdir` / `_wrmdir` | `com_util_rmdir(path, detail_out)` | パスは UTF-8。中間ディレクトリの再帰削除はしません。 |
 
 書式指定パスを使う用途には `com_util_stat_fmt` / `com_util_vstat_fmt` / `com_util_mkdir_fmt` / `com_util_vmkdir_fmt` を使用します。
 
@@ -150,7 +151,7 @@
 
 | 生 API | com_util 代替 | 差異の要点 |
 |---|---|---|
-| `gmtime` (非再入版) | `com_util_gmtime(utc_tm, timep)` | Linux は `gmtime_r`、Windows は `gmtime_s` を使用しスレッド セーフにする |
+| `gmtime` (非再入版) | `com_util_gmtime(utc_tm, timep)` | Linux は `gmtime_r`、Windows は `gmtime_s` を使用しスレッド セーフにします。 |
 | `localtime` (非再入版) | `com_util_localtime(local_tm, timep)` | Linux は `localtime_r`、Windows は `localtime_s` を使用 |
 | `ctime` (非再入版) | `com_util_ctime(buf, buf_size, timep)` | Linux は `ctime_r`、Windows は `ctime_s` を使用。`buf_size` は 26 以上が必要 |
 
@@ -195,7 +196,7 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 
 | 生 API | com_util 代替 | 差異の要点 |
 |---|---|---|
-| `mmap()` (POSIX) / `CreateFileMapping` +`MapViewOfFile` (Win32) | `com_util_mmap_attach(...)` | ファイル オープンとマッピングを一括し、新規作成時のサイズ指定と所有ハンドル化を行う |
+| `mmap()` (POSIX) / `CreateFileMapping` +`MapViewOfFile` (Win32) | `com_util_mmap_attach(...)` | ファイル オープンとマッピングを一括し、新規作成時のサイズ指定と所有ハンドル化を行います。 |
 | `munmap()` (POSIX) / `UnmapViewOfFile` +`CloseHandle` (Win32) | `com_util_mmap_detach(...)` | 内包するロックの破棄も合わせて行う |
 | `msync(MS_SYNC)` (POSIX) / `FlushViewOfFile` +`FlushFileBuffers` (Win32) | `com_util_mmap_flush(...)` | - |
 
@@ -266,7 +267,7 @@ IPv4 ソケットの生成、接続、送受信、待機は com_util のソケ�
 |---|---|---|
 | `mlock()` (POSIX) / `VirtualLock()` (Win32) | `com_util_memory_lock_range(...)` | - |
 | `munlock()` (POSIX) / `VirtualUnlock()` (Win32) | `com_util_memory_unlock_range(...)` | - |
-| `explicit_bzero()` (glibc) / `SecureZeroMemory()` (Win32) | `com_util_secure_zero(...)` | コンパイラによるデッド ストア除去が起きないことを保証する。単なる `memset` の代替ではない |
+| `explicit_bzero()` (glibc) / `SecureZeroMemory()` (Win32) | `com_util_secure_zero(...)` | コンパイラによるデッド ストア除去が起きないことを保証します。単なる `memset` の代替ではありません。 |
 | `mlockall()` (Linux) | `com_util_memory_lock_self(...)` | Windows には相当 API が無いため、`VirtualQuery` で列挙し各領域へ `VirtualLock` を適用する合成実装 (参照カウント管理付き) |
 | `munlockall()` (Linux) | `com_util_memory_lock_scope_release(...)` | Windows では各範囲へ `VirtualUnlock` を参照カウント管理で適用 |
 
@@ -408,7 +409,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 | 名前付き `flock`/セマフォ (POSIX) / 名前付き `Mutex` (Win32) | `com_util_interprocess_lock_open` / `com_util_interprocess_lock_lock` / `com_util_interprocess_lock_try_lock` / `com_util_interprocess_lock_unlock` / `com_util_interprocess_lock_destroy` | プロセス横断ミューテックス。プロセス間受け渡しには `_export_descriptor` / `_import_descriptor` を使用 |
 | プロセス横断読み書きロックを取得したい (POSIX/Win32 に単一の生 API なし) | `com_util_interprocess_rwlock_open` / `_lock_shared` / `_lock_exclusive` / `_try_lock_shared` / `_try_lock_exclusive` / `_unlock` / `_destroy` | ロック ファイル バックエンドで実装 |
 | `pthread_once` (POSIX) / `InitOnceExecuteOnce` (Win32) | `com_util_call_once(flag, func)` | - |
-| `sleep`/`usleep`/`nanosleep` (POSIX) / `Sleep` (Win32) | `com_util_sleep_ms(ms)` | Linux はシグナル割り込み時に残り時間を再計算し継続待機する |
+| `sleep`/`usleep`/`nanosleep` (POSIX) / `Sleep` (Win32) | `com_util_sleep_ms(ms)` | Linux はシグナル割り込み時に残り時間を再計算し継続待機します。 |
 
 ### コマンド ライン引数の解析
 
@@ -418,12 +419,12 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 | 用途 | com_util API |
 |---|---|
-| パーサーを生成/初期化する | `_com_util_argparser_create` / `com_util_argparser_init` / `_com_util_argparser_default` / `_com_util_argparser_dispose` |
-| フラグ/オプション/位置引数を登録する | `com_util_argparser_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
-| 登録エラーを確認する | `com_util_argparser_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
-| コマンド ラインを解析する | `com_util_argparser_parse` |
-| 解析エラーを確認する | `com_util_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
-| 使用方法を表示する | `com_util_argparser_get_usage` / `com_util_argparser_print_usage` |
+| パーサーを生成/初期化します。 | `_com_util_argparser_create` / `com_util_argparser_init` / `_com_util_argparser_default` / `_com_util_argparser_dispose` |
+| フラグ/オプション/位置引数を登録します。 | `com_util_argparser_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
+| 登録エラーを確認します。 | `com_util_argparser_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
+| コマンド ラインを解析します。 | `com_util_argparser_parse` |
+| 解析エラーを確認します。 | `com_util_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
+| 使用方法を表示します。 | `com_util_argparser_get_usage` / `com_util_argparser_print_usage` |
 
 ### 対話的プロンプト
 
@@ -444,18 +445,18 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 
 | 用途 | com_util API |
 |---|---|
-| トレーサーを生成しレベル別に出力を開始/停止する | `com_util_tracer_create` / `com_util_tracer_start` / `com_util_tracer_stop` / `com_util_tracer_dispose` |
+| トレーサーを生成しレベル別に出力を開始/停止します。 | `com_util_tracer_create` / `com_util_tracer_start` / `com_util_tracer_stop` / `com_util_tracer_dispose` |
 | 出力先ごとのレベルを設定/取得する (標準エラー、ファイル、OS ログ、ETW) | `com_util_tracer_set_stderr_level` / `_get_stderr_level` / `_set_file_level` / `_get_file_level` / `_set_os_level` / `_get_os_level` / `_set_etw_level` / `_get_etw_level` |
-| トレーサーの名前/識別子/ファイル名を設定/取得する | `com_util_tracer_set_name` / `_get_name` / `_get_identifier` / `_set_file_name` / `_get_file_name` / `_get_file_identifier` |
+| トレーサーの名前/識別子/ファイル名を設定/取得します。 | `com_util_tracer_set_name` / `_get_name` / `_get_identifier` / `_set_file_name` / `_get_file_name` / `_get_file_identifier` |
 | メッセージを出力する (ソース ファイル名/行番号を自動付与するマクロ) | `com_util_tracer_write` / `com_util_tracer_writef` |
 | バイナリ データを 16 進数で出力する (同上) | `com_util_tracer_write_hex` / `com_util_tracer_write_hexf` |
 | `va_list` 版や、ソース位置を自前で制御したい場合の低レベル関数 | `_com_util_tracer_writef` / `_com_util_tracer_vwritef` / `_com_util_tracer_write_hexf` / `_com_util_tracer_vwrite_hexf` |
-| 出力フックを追加/削除する | `com_util_tracer_set_hook` / `com_util_tracer_call_next_hook` / `com_util_tracer_remove_hook` |
-| トレーサーの状態を取得する | `com_util_tracer_get_state` |
-| syslog (RFC5424 系、Linux 専用) の書き込みシンクを扱う | `com_util_syslog_sink_create` / `com_util_syslog_sink_write` / `com_util_syslog_sink_rename` / `com_util_syslog_sink_dispose` |
-| Windows イベント ログの書き込みシンクを扱う | `com_util_eventlog_register_source` / `com_util_eventlog_sink_create` / `com_util_eventlog_sink_write` / `com_util_eventlog_sink_dispose` / `com_util_eventlog_unregister_source` |
-| ETW (TraceLogging) の書き込みシンクを扱う | `com_util_etw_provider_create` / `com_util_etw_provider_write` / `com_util_etw_provider_dispose` / `com_util_etw_session_start` / `com_util_etw_session_stop` / `com_util_etw_session_check_access` |
-| ローテーション付きファイルへ同期書き込みするシンクを扱う | `com_util_trace_file_sink_create` / `com_util_trace_file_sink_write` / `com_util_trace_file_sink_dispose` |
+| 出力フックを追加/削除します。 | `com_util_tracer_set_hook` / `com_util_tracer_call_next_hook` / `com_util_tracer_remove_hook` |
+| トレーサーの状態を取得します。 | `com_util_tracer_get_state` |
+| syslog (RFC5424 系、Linux 専用) の書き込みシンクを扱います。 | `com_util_syslog_sink_create` / `com_util_syslog_sink_write` / `com_util_syslog_sink_rename` / `com_util_syslog_sink_dispose` |
+| Windows イベント ログの書き込みシンクを扱います。 | `com_util_eventlog_register_source` / `com_util_eventlog_sink_create` / `com_util_eventlog_sink_write` / `com_util_eventlog_sink_dispose` / `com_util_eventlog_unregister_source` |
+| ETW (TraceLogging) の書き込みシンクを扱います。 | `com_util_etw_provider_create` / `com_util_etw_provider_write` / `com_util_etw_provider_dispose` / `com_util_etw_session_start` / `com_util_etw_session_stop` / `com_util_etw_session_check_access` |
+| ローテーション付きファイルへ同期書き込みするシンクを扱います。 | `com_util_trace_file_sink_create` / `com_util_trace_file_sink_write` / `com_util_trace_file_sink_dispose` |
 
 ### 管理者権限の確認と昇格
 
@@ -466,9 +467,9 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 
 | 用途 | com_util API |
 |---|---|
-| 現在のプロセスが管理者権限で実行されているか確認する | `com_util_elevated_process_is_elevated` |
-| 必要な場合のみ管理者権限で自己を再起動する | `com_util_elevated_process_run_if_needed` / `com_util_elevated_process_run_with_result` |
-| 昇格プロセスの実行結果を受け渡しする | `com_util_elevated_process_extract_result_target` / `com_util_elevated_process_report_result` |
+| 現在のプロセスが管理者権限で実行されているか確認します。 | `com_util_elevated_process_is_elevated` |
+| 必要な場合のみ管理者権限で自己を再起動します。 | `com_util_elevated_process_run_if_needed` / `com_util_elevated_process_run_with_result` |
+| 昇格プロセスの実行結果を受け渡しします。 | `com_util_elevated_process_extract_result_target` / `com_util_elevated_process_report_result` |
 
 ### プロセス終了時の共通フック
 
@@ -478,9 +479,9 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 
 | 用途 | com_util API |
 |---|---|
-| 終了コードを保ったままプロセスを終了する | `com_util_exit(code)` |
-| 終了時に呼び出されるコールバックを LIFO で登録する | `com_util_shutdown_register` |
-| Ctrl+C 等の終了要求を受け取るコールバックを登録する | `com_util_shutdown_request_register` |
+| 終了コードを保ったままプロセスを終了します。 | `com_util_exit(code)` |
+| 終了時に呼び出されるコールバックを LIFO で登録します。 | `com_util_shutdown_register` |
+| Ctrl+C 等の終了要求を受け取るコールバックを登録します。 | `com_util_shutdown_request_register` |
 
 `_com_util_shutdown_invoke_for_test` / `_com_util_shutdown_request_invoke_for_test` / `_com_util_shutdown_reset_for_test` はテスト専用で、本番コードからは呼び出しません。
 
@@ -493,10 +494,10 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 
 | 用途 | com_util API |
 |---|---|
-| 関数を動的に解決する | `com_util_sym_loader_resolve` (型安全なラッパー マクロ `com_util_sym_loader_resolve_as`) |
-| ローダーを初期化/破棄する | `com_util_sym_loader_init` / `com_util_sym_loader_dispose` |
-| 既定ローダーかどうか確認する | `com_util_sym_loader_is_default` |
-| 解決状況の情報を取得する | `com_util_sym_loader_info` |
+| 関数を動的に解決します。 | `com_util_sym_loader_resolve` (型安全なラッパー マクロ `com_util_sym_loader_resolve_as`) |
+| ローダーを初期化/破棄します。 | `com_util_sym_loader_init` / `com_util_sym_loader_dispose` |
+| 既定ローダーかどうか確認します。 | `com_util_sym_loader_is_default` |
+| 解決状況の情報を取得します。 | `com_util_sym_loader_info` |
 
 ### 共有ライブラリのロード/アンロード フック
 
@@ -504,6 +505,26 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 
 `__attribute__((constructor/destructor))` (Linux/GCC) と `DllMain` (Win32) という異なる仕組みを直接書く代わりに、共通のコールバック規約に統一します。  
 エクスポートされる関数はなく、呼び出し側が `onLoad`/`onUnload` を実装するヘッダー オンリーの仕組みです。
+
+## 公開関数名の補助索引
+
+前節までの表や説明でまとめて扱った公開関数を、完全な関数名から検索できるように補足します。  
+シグネチャを確認する場合は、関数名に対応する [`prod/include/`](../prod/include/) 配下のヘッダーを参照してください。
+
+- 引数解析: `com_util_argparser_register_option_int`、`com_util_argparser_register_option_string`、`com_util_argparser_register_option_int_array`、`com_util_argparser_register_option_string_array`、`com_util_argparser_register_positional_int`、`com_util_argparser_register_positional_int_array`、`com_util_argparser_register_positional_string_array`、`com_util_argparser_get_error_target`、`com_util_argparser_get_error_index`、`com_util_argparser_get_error_message`、`com_util_argparser_print_error_messages`、`com_util_argparser_get_register_error_count`、`com_util_argparser_get_register_error_target`、`com_util_argparser_get_register_error_message`、`com_util_argparser_print_register_error_messages`
+- 時刻: `com_util_format_realtime_iso8601_local`、`com_util_format_realtime_iso8601_utc`、`com_util_get_realtime_utc`、`com_util_get_realtime_deadline_ms`、`com_util_timespec_normalize`、`com_util_timespec_add`、`com_util_timespec_sub`、`com_util_timespec_cmp`、`com_util_timespec_add_ms`、`com_util_timespec_diff_ms`、`com_util_timespec_to_native`、`com_util_timespec_from_native`
+- ファイル: `com_util_file_init`、`com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_flush`、`com_util_file_close`
+- パス: `com_util_normalize_path_sep`、`com_util_path_get_full`、`com_util_paths_equal`、`com_util_get_temp_dir`、`com_util_path_concat_n`、`com_util_vpath_concat_n`、`com_util_path_basename`、`com_util_path_dirname`、`com_util_path_extension`、`com_util_path_strip_extension`、`com_util_path_join_n`、`com_util_vpath_join_n`
+- 書式入力: `com_util_vscanf`、`com_util_vfscanf`、`com_util_vsscanf`
+- 暗号: `com_util_passphrase_to_key`
+- エラー: `com_util_error_clear`、`com_util_error_capture_errno`、`com_util_error_capture_current_errno`、`com_util_error_get_last`、`com_util_error_set_last`、`com_util_error_clear_last`、`com_util_error_is_set`、`com_util_error_get_domain`、`com_util_error_get_errno`、`com_util_error_to_result`、`com_util_error_get_cause`、`com_util_error_is`、`com_util_result_to_string`
+- メモリ マップド ファイル: `com_util_mmap_get_address`、`com_util_mmap_get_size`、`com_util_mmap_get_rwlock`
+- 正規表現: `com_util_regex_get_group_count`、`com_util_regex_iter_create`、`com_util_regex_iter_next`、`com_util_regex_iter_dispose`
+- モジュール: `com_util_module_get_basename`
+- プロセス間ロック: `com_util_interprocess_lock_export_descriptor`、`com_util_interprocess_lock_import_descriptor`、`com_util_interprocess_rwlock_export_descriptor`、`com_util_interprocess_rwlock_import_descriptor`、`com_util_interprocess_rwlock_lock_shared`、`com_util_interprocess_rwlock_try_lock_shared`、`com_util_interprocess_rwlock_lock_exclusive`、`com_util_interprocess_rwlock_try_lock_exclusive`、`com_util_interprocess_rwlock_unlock`、`com_util_interprocess_rwlock_destroy`
+- トレース: `com_util_tracer_get_name`、`com_util_tracer_get_identifier`、`com_util_tracer_set_file_name`、`com_util_tracer_get_file_name`、`com_util_tracer_get_file_identifier`、`com_util_tracer_get_os_level`、`com_util_tracer_set_os_level`、`com_util_tracer_get_etw_level`、`com_util_tracer_set_etw_level`、`com_util_tracer_get_file_level`、`com_util_tracer_set_file_level`、`com_util_tracer_get_stderr_level`
+- Windows 文字列変換: `com_util_utf8_to_wpath`、`com_util_wpath_to_utf8`、`com_util_utf8_to_wstr_alloc`、`com_util_wstr_to_utf8_alloc`
+- Windows エラー: `com_util_error_capture_windows_error`、`com_util_error_capture_current_windows_error`、`com_util_error_get_windows_error`
 
 ## 検証
 

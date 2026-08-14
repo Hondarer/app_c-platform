@@ -11,7 +11,7 @@ short-title: "syslog"
 
 Linux の標準ログ経路へトレースを流し、systemd / rsyslog など既存の収集運用に統合できるようにします。
 
-- Linux 標準のログ基盤に接続できる
+- Linux 標準のログ基盤に接続できます。
 - アプリケーション側は syslog API を直接知らなくてよい
 - `trace` 上位からは Windows EventLog と同じ感覚で OS トレースを使える
 
@@ -20,7 +20,7 @@ Linux の標準ログ経路へトレースを流し、systemd / rsyslog など�
 この backend は `openlog` / `syslog` / `closelog` を包む薄い層です。  
 `trace` 上位は共通レベルを syslog severity に変換して、この backend へ渡します。
 
-- `ident` を持つ sink を作成する
+- `ident` を持つ sink を作成します。
 - メッセージは UTF-8 テキストとして syslog へ送る
 - 通常は `com_util_tracer_set_os_level()` と `com_util_tracer_write()` 系から透過的に利用される
 - `COM_UTIL_TRACE_LEVEL_VERBOSE` と `COM_UTIL_TRACE_LEVEL_DEBUG` はどちらも `LOG_DEBUG` に集約される

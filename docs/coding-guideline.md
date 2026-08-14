@@ -2,7 +2,7 @@
 
 ## 概要
 
-本書は、上位の「コーディング規範」(`docs/general/coding-guideline.md`) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。  
+本書は、上位の [共通コーディング規範](../../general/docs/coding-guideline.md) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。  
 章立ては上位文書の章に対応させ、com_util 固有の追記・上書き事項のみを記載します。
 
 com_util 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
@@ -39,7 +39,7 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
 | | `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
 | | `COM_UTIL_ERR_NOT_FOUND` | -6 | 対象が存在しない (ファイル、ディレクトリ、ホスト名など) |
-| リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できない |
+| リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できません。 |
 | | `COM_UTIL_ERR_BUSY` | -11 | リソースがビジー状態 |
 | | `COM_UTIL_ERR_TIMEOUT` | -12 | タイムアウト |
 | | `COM_UTIL_ERR_LIMIT_EXCEEDED` | -13 | リソースの上限を超過した |
@@ -48,14 +48,14 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | 入力解析<br> (-20 〜 -39) | `COM_UTIL_ERR_UNKNOWN_OPTION` | -20 | 未登録のオプションが指定された |
 | | `COM_UTIL_ERR_MISSING_VALUE` | -21 | 値を要する項目に値が指定されていない |
 | | `COM_UTIL_ERR_UNEXPECTED_VALUE` | -22 | 値を取らない項目に値が指定された |
-| | `COM_UTIL_ERR_INVALID_INTEGER` | -23 | 整数値として解釈できない |
+| | `COM_UTIL_ERR_INVALID_INTEGER` | -23 | 整数値として解釈できません。 |
 | | `COM_UTIL_ERR_OUT_OF_RANGE` | -24 | 値が表現可能な範囲を超えている |
 | | `COM_UTIL_ERR_MISSING_REQUIRED` | -25 | 必須の項目が指定されていない |
 | | `COM_UTIL_ERR_DUPLICATE_OPTION` | -26 | 単数指定の項目が複数回指定された |
 | | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` | -27 | 引数の個数が受入数を超えている |
 | | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` | -28 | 同一項目の出現回数が容量を超えている |
-| | `COM_UTIL_ERR_INVALID_PATTERN` | -29 | 正規表現パターンの構文が不正である |
-| | `COM_UTIL_ERR_INVALID_ENCODING` | -30 | 文字列が UTF-8 として不正である |
+| | `COM_UTIL_ERR_INVALID_PATTERN` | -29 | 正規表現パターンの構文が不正です。 |
+| | `COM_UTIL_ERR_INVALID_ENCODING` | -30 | 文字列が UTF-8 として不正です。 |
 | 制御<br> (-40 〜) | `COM_UTIL_ERR_EOF` | -40 | 入力が EOF に達した |
 | | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
 
@@ -166,8 +166,8 @@ com_util には終了処理の機構が 2 つあり、`abort()` はいずれも�
 | 終了の経路 | shutdown コールバック | 終了コードの伝達 |
 |---|---|---|
 | `com_util_exit(code)` | 実行される | `COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE` として伝わる |
-| `exit()` の直接呼び出し、`main()` からの復帰 | 実行される | 終了コードは取得できない |
-| `abort()` | **実行されない** | 伝達しない |
+| `exit()` の直接呼び出し、`main()` からの復帰 | 実行される | 終了コードは取得できません。 |
+| `abort()` | **実行されない** | 伝達しません。 |
 
 通常終了で終了コードを確実に渡したい場合は `com_util_exit()` を使用します。
 
@@ -238,11 +238,11 @@ CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいの�
 | 条件 | 例 |
 |---|---|
 | プラットフォームで異なる API を呼び分ける | `com_util_fseek` (`fseeko` と `_fseeki64`)、`com_util_gmtime` (`gmtime_r` と `gmtime_s`)、`com_util_socket_*` (BSD ソケットと Winsock) |
-| Windows で UTF-8 と UTF-16 を変換する | `com_util_fopen`、`com_util_access`、`CreateFileU` |
-| 戻り値やエラー伝達の規約を正規化する | `com_util_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`com_util_strcpy` (`ERANGE` を返す) |
+| Windows で UTF-8 と UTF-16 を変換します。 | `com_util_fopen`、`com_util_access`、`CreateFileU` |
+| 戻り値やエラー伝達の規約を正規化します。 | `com_util_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`com_util_strcpy` (`ERANGE` を返す) |
 | MSVC のセキュア版と意味のある挙動差がある | `com_util_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
-| 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化する | `com_util_snprintf` (切り詰めを検出する)、`com_util_parse_int64` (完全消費と範囲を検査する)、`com_util_fgets` (切り詰めと EOF を区別する) |
-| com_util 定義の型を扱う | `com_util_timespec_*`、`com_util_file_*` |
+| 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化します。 | `com_util_snprintf` (切り詰めを検出する)、`com_util_parse_int64` (完全消費と範囲を検査する)、`com_util_fgets` (切り詰めと EOF を区別する) |
+| com_util 定義の型を扱います。 | `com_util_timespec_*`、`com_util_file_*` |
 | com_util の他機能と統合する必要がある | `com_util_exit` (登録済みシャットダウン コールバックを実行する) |
 
 通信 API 固有の規範 (ソケット ハンドル、エンドポイント型、エラー ドメイン) は [ネットワーク API ガイドライン](net-api-guideline.md) に定めます。
@@ -261,9 +261,9 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 
 | 差異 | 共通契約 | 例 |
 |---|---|---|
-| 引数の限界値 | 両プラットフォームのうち、より厳しい限界値を採用する | `RAND_bytes` と `BCryptGenRandom` の要求サイズを `INT_MAX` に統一 |
-| オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一する | `com_util_fopen` と `com_util_open` の Windows 実装で `_SH_DENYNO` を指定 |
-| シグナルによる待機の中断 | 中断されない Windows の動作に統一する | Linux 実装が `EINTR` を吸収する。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
+| 引数の限界値 | 両プラットフォームのうち、より厳しい限界値を採用します。 | `RAND_bytes` と `BCryptGenRandom` の要求サイズを `INT_MAX` に統一 |
+| オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一します。 | `com_util_fopen` と `com_util_open` の Windows 実装で `_SH_DENYNO` を指定 |
+| シグナルによる待機の中断 | 中断されない Windows の動作に統一します。 | Linux 実装が `EINTR` を吸収します。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
 
 製品実装は、プラットフォーム固有の API を呼び出す前に共通契約を検査または設定します。  
 より緩い限界値を持つプラットフォームの追加差分は、共通 API では公開しません。
@@ -277,11 +277,11 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 
 com_util の公開 API は、シグナルによる中断を利用者へ観測させません。
 
-Linux では、ユーザー コードの中断を意図しないシグナルが配信されただけでも、ブロッキング中のシステム コールが `EINTR` で復帰します。
-Windows には対応する機構がなく、非アラータブル待機が同じ理由で中断されることはありません。
+Linux では、ユーザー コードの中断を意図しないシグナルが配信されただけでも、ブロッキング中のシステム コールが `EINTR` で復帰します。  
+Windows には対応する機構がなく、非アラータブル待機が同じ理由で中断されることはありません。  
 この差異は Linux 実装が吸収し、両プラットフォームで同じ契約を提供します。
 
-`SA_RESTART` には依存しません。
+`SA_RESTART` には依存しません。  
 ライブラリは利用者が設置するシグナル ハンドラーのフラグを制御できず、`SA_RESTART` を指定しても再開されない呼び出しが存在するためです。
 
 > [!NOTE]
@@ -293,17 +293,17 @@ Windows には対応する機構がなく、非アラータブル待機が同じ
 
 | 分類 | 対象 | 規範 |
 |---|---|---|
-| 期限付き待機 | `poll` 系、`nanosleep` | 単調時刻で期限を保持し、`EINTR` では残り時間を再計算して待機を継続する。要求時間より早く復帰しない |
-| 無期限ブロッキング I/O | `accept`、`send`、`recv`、`sendto`、`recvfrom`、`read`、`write`、`open` | `EINTR` では同じ引数で再試行する。部分転送済みで復帰した場合は OS の規定どおり成功として転送量を返し、再試行しない |
-| 接続確立 | `connect` | 再呼び出ししない。書き込み可能待ちと `SO_ERROR` の確認によって完了を判定する |
-| 記述子の解放 | `close` | 再試行しない |
-| stdio | `fopen`、`fread`、`fwrite`、`fgets`、`fclose` | 再試行しない。適用対象を通常ファイルに限定することで中断を回避する |
+| 期限付き待機 | `poll` 系、`nanosleep` | 単調時刻で期限を保持し、`EINTR` では残り時間を再計算して待機を継続します。要求時間より早く復帰しません。 |
+| 無期限ブロッキング I/O | `accept`、`send`、`recv`、`sendto`、`recvfrom`、`read`、`write`、`open` | `EINTR` では同じ引数で再試行します。部分転送済みで復帰した場合は OS の規定どおり成功として転送量を返し、再試行しません。 |
+| 接続確立 | `connect` | 再呼び出ししません。書き込み可能待ちと `SO_ERROR` の確認によって完了を判定します。 |
+| 記述子の解放 | `close` | 再試行しません。 |
+| stdio | `fopen`、`fread`、`fwrite`、`fgets`、`fclose` | 再試行しません。適用対象を通常ファイルに限定することで中断を回避します。 |
 | pthread 同期 | mutex、condvar、`pthread_join` | `EINTR` を返さないため、`EINTR` の分岐を書かない |
-| Windows 実装 | 全般 | 中断されないため `EINTR` 相当の分岐を書かない。アラータブル待機を使用しない |
+| Windows 実装 | 全般 | 中断されないため `EINTR` 相当の分岐を書かない。アラータブル待機を使用しません。 |
 
 `close` を再試行しないのは、Linux では `EINTR` で復帰した時点で記述子が解放済みであり、再呼び出しが別スレッドの再利用した記述子を対象にしうるためです。
 
-`connect` を呼び直さないのは、中断された接続確立が非同期に継続するためです。
+`connect` を呼び直さないのは、中断された接続確立が非同期に継続するためです。  
 同じソケットに対する 2 回目の `connect` は `EALREADY` または `EISCONN` を返します。
 
 stdio を再試行しないのは、`FILE *` の内部状態と読み書き位置が中断時点で確定しないためです。  
@@ -318,33 +318,33 @@ Windows でアラータブル待機を使用しないのは、`WaitForSingleObje
 
 #### com_util 内部での EINTR の利用
 
-com_util の内部実装が `EINTR` を検出手段として利用することは認めます。
+com_util の内部実装が `EINTR` を検出手段として利用することは認めます。  
 ただし公開契約には出さず、抽象化した通知へ変換します。
 
-コンソール入力の実装は、`SIGWINCH` によって `read` が中断されたことを端末サイズの変更として扱います。
+コンソール入力の実装は、`SIGWINCH` によって `read` が中断されたことを端末サイズの変更として扱います。  
 利用者が受け取るのは `EINTR` ではなく、サイズ変更を表す抽象化された結果です。
 
 #### 意図的な中断の代替手段
 
-シグナルによってブロッキング呼び出しを打ち切る設計は採用しません。
+シグナルによってブロッキング呼び出しを打ち切る設計は採用しません。  
 Windows へ移植できず、プラットフォームで動作が変わるためです。
 
 停止要求には次の形を使用します。
 
-- ソケットは `com_util_socket_set_nonblocking()` で非ブロッキングに設定し、`com_util_socket_wait_readable()` などへ短いタイムアウトを与えたループの中で停止フラグを判定する
-- スレッド間の停止通知は `com_util_condvar` で行う
+- ソケットは `com_util_socket_set_nonblocking()` で非ブロッキングに設定し、`com_util_socket_wait_readable()` などへ短いタイムアウトを与えたループの中で停止フラグを判定します。
+- スレッド間の停止通知は `com_util_condvar` で行います。
 
 #### COM_UTIL_CAUSE_INTERRUPTED の位置付け
 
-`COM_UTIL_CAUSE_INTERRUPTED` は、実行中の操作が中断されたことを表します。
+`COM_UTIL_CAUSE_INTERRUPTED` は、実行中の操作が中断されたことを表します。  
 次の 2 つの経路でこの要因が設定されます。
 
 | 経路 | 設定元 | 内容 |
 |---|---|---|
-| Windows の I/O キャンセル | `ERROR_OPERATION_ABORTED` | `CancelIo` などによる中断であり、シグナルとは無関係に発生する |
-| 利用者が持ち込んだ errno | `com_util_error_capture_errno()` | 利用者が自前で呼び出した OS API の `EINTR` を分類する |
+| Windows の I/O キャンセル | `ERROR_OPERATION_ABORTED` | `CancelIo` などによる中断であり、シグナルとは無関係に発生します。 |
+| 利用者が持ち込んだ errno | `com_util_error_capture_errno()` | 利用者が自前で呼び出した OS API の `EINTR` を分類します。 |
 
-com_util がシグナルによる中断を理由にこの要因を返すことはありません。
+com_util がシグナルによる中断を理由にこの要因を返すことはありません。  
 利用者のコードに、シグナル中断への対処として `COM_UTIL_CAUSE_INTERRUPTED` の判定と再試行を求めません。
 
 #### 受信タイムアウトと送信タイムアウト
@@ -406,22 +406,22 @@ com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
 
 | 使用しない関数 | 問題 | 代替 |
 |---|---|---|
-| `strcpy` | コピー先の容量を受け取らず、境界を検査しない | `com_util_strcpy(dest, dest_size, src)` |
-| `strncpy` | コピー元が `count` 以上のとき null 終端しない。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy` |
-| `strcat` | 連結先の容量を受け取らず、境界を検査しない | `com_util_strcat(dest, dest_size, src)` |
+| `strcpy` | コピー先の容量を受け取らず、境界を検査しません。 | `com_util_strcpy(dest, dest_size, src)` |
+| `strncpy` | コピー元が `count` 以上のとき null 終端しません。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy` |
+| `strcat` | 連結先の容量を受け取らず、境界を検査しません。 | `com_util_strcat(dest, dest_size, src)` |
 | `strncat` | 連結先の容量を受け取らない。`count` は連結元から読む最大文字数であり、終端の 1 バイトも別に必要 | `com_util_strncat(dest, dest_size, src, count)` |
 | `wcscpy` | `strcpy` と同じ | `com_util_wcscpy(dest, dest_size, src)` |
-| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なる | `com_util_strdup(src)` |
-| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できない | `com_util_strtok_r(str, delim, saveptr)` |
-| `gets` | 宛先の容量を指定できない。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
+| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `com_util_strdup(src)` |
+| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `com_util_strtok_r(str, delim, saveptr)` |
+| `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
 | `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `com_util_fgets(dest, dest_size, stream, detail_out)` |
-| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しない | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
+| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しません。 | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
 | `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `com_util_snprintf` / `com_util_vsnprintf` ([書式化](#書式化) を参照) |
-| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になる | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` ([数値変換](#数値変換) を参照) |
-| `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しない | 同上 |
+| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になります。 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` ([数値変換](#数値変換) を参照) |
+| `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しません。 | 同上 |
 | `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | com_util の対応するラッパー ([scanf 系ラッパー](#scanf-系ラッパー) を参照) |
-| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なる | `com_util_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
-| `malloc` / `calloc` | 長さ 0 の戻り値が処理系定義。`malloc(count * size)` は乗算の回り込みを検出しない | `com_util_malloc` / `com_util_malloc_zerofill` / `com_util_calloc` ([メモリ確保の代替](#メモリ確保の代替) を参照) |
+| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なります。 | `com_util_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
+| `malloc` / `calloc` | 長さ 0 の戻り値が処理系定義。`malloc(count * size)` は乗算の回り込みを検出しません。 | `com_util_malloc` / `com_util_malloc_zerofill` / `com_util_calloc` ([メモリ確保の代替](#メモリ確保の代替) を参照) |
 | `realloc` | 上記に加え、失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `com_util_realloc` / `com_util_realloc_zerofill` (同上) |
 | `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `com_util_free(ptr)` (同上) |
 
@@ -549,10 +549,10 @@ com_util は、そこで呼び出し側の責務としている検査を関数�
 
 | 関数 | 用途 | ゼロ初期化 |
 |---|---|---|
-| `com_util_malloc(size)` | 単一オブジェクト、バイト バッファー | しない |
+| `com_util_malloc(size)` | 単一オブジェクト、バイト バッファー | しません。 |
 | `com_util_malloc_zerofill(size)` | 同上 | 全体 |
 | `com_util_calloc(count, size)` | 要素数を伴う配列 | 全体 |
-| `com_util_realloc(ptr, count, size)` | 配列の伸長・縮小 | しない |
+| `com_util_realloc(ptr, count, size)` | 配列の伸長・縮小 | しません。 |
 | `com_util_realloc_zerofill(ptr, old_count, count, size)` | 同上 | 拡張した範囲のみ |
 | `com_util_free(ptr)` | 上記すべての解放 | - |
 
@@ -654,8 +654,8 @@ com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc
 
 `*W` を直接呼び出してよいのは次の場合です。
 
-- 引数が `L"CONOUT$"` のようなワイド文字列リテラルであり、UTF-8 の文字列が関与しない
-- 呼び出し前後の処理がワイド文字列のまま完結しており、`*U` を経由すると UTF-8 への往復変換が新たに発生する
+- 引数が `L"CONOUT$"` のようなワイド文字列リテラルであり、UTF-8 の文字列が関与しません。
+- 呼び出し前後の処理がワイド文字列のまま完結しており、`*U` を経由すると UTF-8 への往復変換が新たに発生します。
 - 構造体引数に文字列メンバーが含まれない (`SERVICE_PRESHUTDOWN_INFO` など)
 
 いずれの場合も、`*U` を使わない理由を該当箇所へコメントとして残します。
@@ -794,7 +794,7 @@ struct、enum、union、関数ポインターのいずれにも `_t` サフィ�
 
 | 型 | 定義 | 例外とする理由 |
 |---|---|---|
-| `com_util_file_stat_t` | `include/com_util/crt/sys/stat.h` | POSIX の `struct stat` および MSVC の `struct _stat64` の alias であり、元の型名を保存する |
+| `com_util_file_stat_t` | `include/com_util/crt/sys/stat.h` | POSIX の `struct stat` および MSVC の `struct _stat64` の alias であり、元の型名を保存します。 |
 | `com_util_etw_provider_ref_t` | `include/com_util/trace/etw.h` | Windows TraceLogging SDK の内部型への参照の alias であり、SDK の型定義に従う |
 
 ## 引数順序規約
@@ -860,9 +860,9 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | API | 逸脱内容 | 解消結果 |
 |---|---|---|
 | `com_util_getenv` | 0 / -1 (未設定) / `ERANGE` の三値。上位規範の三値禁止に抵触 | 設定有無を `int *exists_out` へ分離し、戻り値を 0 / `EINVAL` / `ERANGE` の二値系へ変更 |
-| argparser の既定ハンドル版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なる | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
-| `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できない | 結果コード戻り + `size_t *written_out` へ変更 |
-| `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なる | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
+| argparser の既定ハンドル版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なります。 | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
+| `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できません。 | 結果コード戻り + `size_t *written_out` へ変更 |
+| `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なります。 | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
 | `com_util_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `com_util_process_options` へ統一。同種の `com_util_process_stdio_t` も `com_util_process_stdio` へ統一 |
 | enum と関数ポインターの `_t` サフィックス (公開 18 型) | POSIX が予約する名前空間の侵犯。struct とも規則が食い違う | `_t` を除去。関数ポインターはサフィックスを `_fn` へ統一。OS / SDK 由来の alias 2 型のみ例外として維持 |
 | `_com_util_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を正名へ、テスト フックを前置きなしへ変更 |
@@ -917,8 +917,8 @@ com_util が **関数側で検査を内包する** 範囲は次のとおりで�
 | 項目 | 内容 |
 |---|---|
 | 型定義 | `time_t tv_sec; int64_t tv_nsec;` (16 バイト)。Linux x86-64 の `struct timespec` とレイアウト互換 |
-| native 変換 | ネイティブ `struct timespec` が必要な OS API 境界では `com_util_timespec_to_native()` / `com_util_timespec_from_native()` に集約する。キャスト・混用はしない |
-| 演算 | `com_util_timespec_normalize/add/sub/cmp/add_ms/diff_ms` を使用する |
+| native 変換 | ネイティブ `struct timespec` が必要な OS API 境界では `com_util_timespec_to_native()` / `com_util_timespec_from_native()` に集約します。キャスト・混用はしません。 |
+| 演算 | `com_util_timespec_normalize/add/sub/cmp/add_ms/diff_ms` を使用します。 |
 
 詳細は `prod/include/com_util/clock/timespec.h` の Doxygen コメントを参照してください。
 

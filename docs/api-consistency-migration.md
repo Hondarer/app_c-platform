@@ -1,5 +1,9 @@
 # API 規約適合の移行ガイド (2026-07 実施分)
 
+> [!NOTE]
+> 本書は、2026 年 7 月に完了した移行の履歴と、旧 API を利用するコード向けの対応表です。
+> 現行規則は [com_util コーディング規範](coding-guideline.md)、現行 API は [API チート シート](api-cheatsheet.md) を参照してください。
+
 ## 概要
 
 com_util は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規約」「引数順序規約」および上位「コーディング規範」への適合のため、「既知の逸脱と移行課題」に整理していた公開 API を一括変更しました。  

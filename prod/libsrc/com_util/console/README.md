@@ -21,8 +21,8 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 このモジュールは、CRT の `printf` / `fprintf` を置き換えません。stdout がコンソール (TTY) である場合にのみ、接続先コンソールの状態を確認し、必要な設定を行います。
 
-- すでに UTF-8 のコード ページは変更しない
-- 変更前のコード ページとコンソール モードは保存し、通常終了時に復元する
+- すでに UTF-8 のコード ページは変更しません。
+- 変更前のコード ページとコンソール モードは保存し、通常終了時に復元します。
 - パイプやファイルへのリダイレクトでは初期化処理を行わない
 - `com_util_console_init` は stdin / stdout / stderr のハンドルを変更しない (昇格時の再接続は `com_util_console_attach_parent` が担当する)
 
@@ -34,17 +34,17 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 コンソール ヘルパーを初期化します。
 
-- Windows ではコンソール入出力コード ページと VT 処理を設定する
-- Linux では何もしない
+- Windows ではコンソール入出力コード ページと VT 処理を設定します。
+- Linux では何もしません。
 - 二重呼び出し時は追加の初期化を行わない
-- stdout がコンソールでない場合は何もしない
+- stdout がコンソールでない場合は何もしません。
 
 ### com_util_console_dispose
 
 コンソール ヘルパーを終了し、変更した状態を元に戻します。
 
-- Windows では変更前のコンソール入出力コード ページとコンソール モードを復元する
-- Linux では何もしない
+- Windows では変更前のコンソール入出力コード ページとコンソール モードを復元します。
+- Linux では何もしません。
 - 未初期化時や複数回呼び出しでも安全
 - 通常はライブラリ アンロード時の自動解放に任せられる
 
@@ -52,10 +52,10 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 昇格起動された場合に、親プロセスのコンソールへ再接続します。
 
-- Windows では `com_util_elevated_process_run_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出する
+- Windows では `com_util_elevated_process_run_if_needed` が UAC 昇格で自プロセスを再起動した際に付与する引き継ぎフラグを検出します。
 - `AttachConsole` で親コンソールへ接続し、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へつなぎ直す
 - 検出したフラグは `argv` から取り除き、`argc` を 1 減らす
-- Linux では何もせず `COM_UTIL_OK` を返し、`attached_out` が NULL でなければ 0 を格納する
+- Linux では何もせず `COM_UTIL_OK` を返し、`attached_out` が NULL でなければ 0 を格納します。
 - プログラム開始直後、引数解析および `com_util_console_init` より前に呼び出す
 
 この関数は次の仕組みで昇格プロセスの出力を元のコンソールに表示します。UAC 昇格 (`ShellExecuteExW` の `runas` 動詞) では昇格プロセスを別セキュリティ コンテキストで生成するため、親のハンドルを継承できません。そこで親プロセス ID と親コンソールの window ハンドルをコマンド ラインで渡し、昇格プロセス側が親コンソールへ接続し直します。親側は昇格プロセスの一時コンソールを隠して起動するため、別ウインドウは表示されません。
@@ -76,8 +76,8 @@ CodeBlock: 昇格時のコンソール引き継ぎ
 昇格直後は、子プロセスの一時コンソール (conhost) の割り当てが非同期に進みます。子プロセスが自前コンソールへ繋がったままの瞬間に `AttachConsole` を呼ぶと `ERROR_ACCESS_DENIED` で失敗します (`AttachConsole` は呼び出し元がすでにコンソールへ接続済みだと失敗します)。この失敗時は標準ハンドルの付け替えを行わず、かつ直前に `FreeConsole` 済みのため、子プロセスはどのコンソールにも繋がらず出力先を失います。これを避けるため、`FreeConsole` と `AttachConsole` を有界リトライし、割り当てが落ち着くまで数回試行します。通常は 1 回目か 2 回目で接続できます。
 
 - 親コンソール接続: `FreeConsole()` と `AttachConsole()` を有界リトライし、親コンソールへ一度でも接続できるまで待つ。
-- 親コンソール確認: 接続成功後、親 HWND が渡されている場合は `GetConsoleWindow()` が親 HWND に一致するまで有界リトライする。この段階では `FreeConsole()` を再度呼ばず、接続済みの親コンソールを保持する。全試行で一致しない場合でも、`AttachConsole()` 自体が成功していれば従来動作を下限として付け替えを続行する。
-- 終了時ドレイン: 親コンソールへ再接続していた場合、終了時のフラッシュ後にコンソールへの同期 API (`GetConsoleScreenBufferInfo`) を 1 度呼び、直前の書き込みが conhost に処理されてからプロセスが終了するようにする。
+- 親コンソール確認: 接続成功後、親 HWND が渡されている場合は `GetConsoleWindow()` が親 HWND に一致するまで有界リトライします。この段階では `FreeConsole()` を再度呼ばず、接続済みの親コンソールを保持します。全試行で一致しない場合でも、`AttachConsole()` 自体が成功していれば従来動作を下限として付け替えを続行します。
+- 終了時ドレイン: 親コンソールへ再接続していた場合、終了時のフラッシュ後にコンソールへの同期 API (`GetConsoleScreenBufferInfo`) を 1 度呼び、直前の書き込みが conhost に処理されてからプロセスが終了するようにします。
 
 これらのリトライはいずれも有界であり、確認に失敗してもコンソールへ繋がっていれば従来動作を下限として付け替えを続行します。
 
@@ -129,10 +129,10 @@ int main(void)
 
 ### Windows
 
-- stdout がコンソールである場合にのみ初期化する
-- `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` でコンソール入出力コード ページを UTF-8 にする
-- stdout / stderr の `ENABLE_VIRTUAL_TERMINAL_PROCESSING` を有効化する
-- 変更前の状態を通常終了時に復元する
+- stdout がコンソールである場合にのみ初期化します。
+- `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` でコンソール入出力コード ページを UTF-8 にします。
+- stdout / stderr の `ENABLE_VIRTUAL_TERMINAL_PROCESSING` を有効化します。
+- 変更前の状態を通常終了時に復元します。
 
 ### Linux / 非 Windows
 

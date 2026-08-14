@@ -14,8 +14,8 @@ OS トレースは運用者が参照する OS ネイティブの運用ログで�
 さらに、OS トレースとは別にファイル出力と `stderr` 出力を併用でき、それぞれに独立したしきい値を設定できます。  
 Windows では、EventLog とは別に、開発者向けの低オーバーヘッド診断チャネルとして ETW を独立した軸で扱います。
 
-- OS ごとのトレース API 差異を吸収する
-- OS トレース (EventLog / syslog) / ETW / ファイル / `stderr` を同じハンドルで管理する
+- OS ごとのトレース API 差異を吸収します。
+- OS トレース (EventLog / syslog) / ETW / ファイル / `stderr` を同じハンドルで管理します。
 - 出力先ごとに `CRITICAL` から `DEBUG` までのしきい値を分けられる
 - 呼び出し側は `trace.h` だけを見ればよい
 
@@ -52,7 +52,7 @@ create -> set_name / set_* -> start -> write -> stop -> dispose
 - `COM_UTIL_TRACE_LEVEL_INFO`: 通常の運用情報
 - `COM_UTIL_TRACE_LEVEL_VERBOSE`: 詳細な診断情報
 - `COM_UTIL_TRACE_LEVEL_DEBUG`: 最も詳細な診断情報
-- `COM_UTIL_TRACE_LEVEL_NONE`: 出力しない
+- `COM_UTIL_TRACE_LEVEL_NONE`: 出力しません。
 
 Linux syslog と Windows ETW には `VERBOSE` より細かい標準レベルがないため、`COM_UTIL_TRACE_LEVEL_DEBUG` は  
 これらでは `COM_UTIL_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
@@ -221,15 +221,15 @@ com_util_tracer_dispose(&tracer);
 
 - OS トレースは EventLog を使う (運用者向け。既定は無効)
 - ETW は独立した診断チャネルとして使う (既定で有効)
-- EventLog のイベント ソースと ETW プロバイダー登録は、いずれも `trace` 上位でプロセス内共有する
-- EventLog のイベント ソースは `eventlog-register` コマンドで登録/削除する
-- `stderr` とファイルは共通の書式で扱う
+- EventLog のイベント ソースと ETW プロバイダー登録は、いずれも `trace` 上位でプロセス内共有します。
+- EventLog のイベント ソースは `eventlog-register` コマンドで登録/削除します。
+- `stderr` とファイルは共通の書式で扱います。
 
 ### Linux
 
-- OS トレースは syslog を使う
-- `stderr` とファイルは共通の書式で扱う
-- syslog の facility や `ident` は内部で `trace` が管理する
+- OS トレースは syslog を使用します。
+- `stderr` とファイルは共通の書式で扱います。
+- syslog の facility や `ident` は内部で `trace` が管理します。
 
 ## 注意点
 

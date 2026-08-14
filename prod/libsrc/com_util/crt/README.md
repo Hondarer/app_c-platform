@@ -14,11 +14,11 @@ short-title: "crt"
 Linux と Windows では、ファイル パス、セキュア関数、ワイド文字 API、時刻変換などの扱いが異なります。  
 このモジュールは、呼び出し側が同じ `com_util_*` API を使えるように、その差異を集約します。
 
-- UTF-8 パスを Windows ではワイド文字 API に変換する
-- `stdio.h`、`sys/stat.h`、`fcntl.h`、`unistd.h` 相当の API を分けて提供する
-- Windows の `HANDLE` と Linux の `fd` を薄い低レベル I/O API で共通化する
-- `string.h` / `time.h` まわりの `_s` 系差異を薄いラッパーで扱う
-- printf 形式のパス生成付き API を対応する CRT ヘッダーに配置する
+- UTF-8 パスを Windows ではワイド文字 API に変換します。
+- `stdio.h`、`sys/stat.h`、`fcntl.h`、`unistd.h` 相当の API を分けて提供します。
+- Windows の `HANDLE` と Linux の `fd` を薄い低レベル I/O API で共通化します。
+- `string.h` / `time.h` まわりの `_s` 系差異を薄いラッパーで扱います。
+- printf 形式のパス生成付き API を対応する CRT ヘッダーに配置します。
 
 ## 公開ヘッダー
 

@@ -36,11 +36,11 @@ Linux の `wchar_t` は 32 ビットですが、内部表現にはあえて UTF-
 
 | POSIX | 本 API | 備考 |
 |---|---|---|
-| `regcomp()` | `com_util_regex_create()` | 生成したハンドルは `com_util_regex_dispose()` で破棄する |
-| `regexec()` | `com_util_regex_search()` | 全体一致の判定には `com_util_regex_matches()` を使う |
+| `regcomp()` | `com_util_regex_create()` | 生成したハンドルは `com_util_regex_dispose()` で破棄します。 |
+| `regexec()` | `com_util_regex_search()` | 全体一致の判定には `com_util_regex_matches()` を使用します。 |
 | `regfree()` | `com_util_regex_dispose()` | |
-| `regerror()` | (なし) | 診断文字列は返さない。結果コードで区別する |
-| `regmatch_t` | `com_util_regex_match` | `rm_so` / `rm_eo` は `begin` / `end` に対応する |
+| `regerror()` | (なし) | 診断文字列は返さない。結果コードで区別します。 |
+| `regmatch_t` | `com_util_regex_match` | `rm_so` / `rm_eo` は `begin` / `end` に対応します。 |
 | `re_nsub` | `com_util_regex_get_group_count()` | 全体マッチの 1 を含めた要素数を返す |
 | `nmatch` | `matches_capacity` | 不足時は先頭から切り捨てる (POSIX と同じ) |
 | `REG_EXTENDED` | `COM_UTIL_REGEX_EXTENDED` | 無指定時の既定は ECMAScript |
