@@ -111,6 +111,16 @@ Linux の `EINPROGRESS` と Windows の `WSAEWOULDBLOCK` の差はここで吸�
 Linux のソケット API がシグナルで中断された場合の扱いは、[コーディング規範](coding-guideline.md) の「シグナル割り込み (EINTR) の扱い」に従います。  
 `net` の API 契約として固有の規則は設けません。
 
+## 接続済みソケット送信時の SIGPIPE
+
+`com_util_socket_send()` と `com_util_socket_send_all()` は、Linux で切断済みの接続へ送信しても SIGPIPE を利用者へ配信しません。  
+Linux 実装は送信ごとに `MSG_NOSIGNAL` を指定し、利用者が登録したシグナル ハンドラーやシグナル マスクを変更しません。
+
+SIGPIPE を抑制しても送信エラーは破棄しません。  
+`send()` が返した `EPIPE` は `COM_UTIL_ERR_UNKNOWN` と `COM_UTIL_CAUSE_BROKEN_PIPE` で通知します。
+
+`com_util_socket_sendto()` は接続済みストリームの送信ではないため、この規則の対象外です。
+
 ## 非対称な動作の明示
 
 プラットフォームで意味論を完全に揃えられない API は、共通契約をヘッダーの Doxygen へ明記します。  
@@ -127,3 +137,4 @@ Linux は読み取り方向を停止してハンドルを保持し、Windows は
 - [コーディング規範](coding-guideline.md)
 - [Windows Sockets Error Codes](https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2)
 - [getaddrinfo (POSIX)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/getaddrinfo.html)
+- [send(2) - MSG_NOSIGNAL](https://man7.org/linux/man-pages/man2/send.2.html)

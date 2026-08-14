@@ -929,10 +929,10 @@ TEST_F(socketTest, send_and_recv_report_results)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の send と recv の各 API が 4 バイトの要求で 2 回ずつ呼び出されること。
+    // [Pre-Assert確認_正常系] - 下位の send が MSG_NOSIGNAL と 4 バイト、recv が 4 バイトの要求で 2 回ずつ呼び出されること。
     // [Pre-Assert手順] - 下位の send から 3 バイト送信ののち失敗、recv から 2 バイト受信ののち失敗を返却し、それぞれの失敗要因を通知する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL))
         .WillOnce(Return((ssize_t)3))
         .WillOnce(DoAll(Assign(&errno, EPIPE), Return((ssize_t)-1)));
     EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0))
@@ -1169,15 +1169,15 @@ TEST_F(socketTest, send_all_reports_results)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の send API が、未送信の残量に応じて 4 バイトと 2 バイトの要求で呼び出されること。
+    // [Pre-Assert確認_正常系] - 下位の send API が MSG_NOSIGNAL と、未送信の残量に応じた 4 バイトまたは 2 バイトの要求で呼び出されること。
     // [Pre-Assert手順] - 下位の send から、全量送信、部分送信、0 バイト送信、失敗の順に応答する。
 #if defined(PLATFORM_LINUX)
-    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL))
         .WillOnce(Return((ssize_t)4))
         .WillOnce(Return((ssize_t)2))
         .WillOnce(Return((ssize_t)0))
         .WillOnce(DoAll(Assign(&errno, EPIPE), Return((ssize_t)-1)));
-    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)2));
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 2U, MSG_NOSIGNAL)).WillOnce(Return((ssize_t)2));
 #elif defined(PLATFORM_WINDOWS)
     EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 4, 0))
         .WillOnce(Return(4))
@@ -1685,9 +1685,9 @@ TEST_F(socketTest, send_and_recv_retry_after_interrupt)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の send API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert確認_正常系] - 下位の send API が MSG_NOSIGNAL と 4 バイトを指定して 2 回呼び出されること。
     // [Pre-Assert手順] - 下位の send API から、シグナルによる中断ののち 4 バイトの転送を返却する。
-    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL))
         .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
         .WillOnce(Return((ssize_t)4));
     // [Pre-Assert確認_正常系] - 下位の recv API が 4 バイトを指定して 2 回呼び出されること。
@@ -1758,9 +1758,9 @@ TEST_F(socketTest, send_all_and_recv_all_retry_after_interrupt)
     com_util_error detail = {};
 
     // Pre-Assert
-    // [Pre-Assert確認_正常系] - 下位の send API が 4 バイトを指定して 2 回呼び出されること。
+    // [Pre-Assert確認_正常系] - 下位の send API が MSG_NOSIGNAL と 4 バイトを指定して 2 回呼び出されること。
     // [Pre-Assert手順] - 下位の send API から、シグナルによる中断ののち 4 バイトの転送を返却する。
-    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, 0))
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL))
         .WillOnce(DoAll(Assign(&errno, EINTR), Return((ssize_t)-1)))
         .WillOnce(Return((ssize_t)4));
     // [Pre-Assert確認_正常系] - 下位の recv API が 4 バイトを指定して 2 回呼び出されること。

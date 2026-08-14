@@ -257,6 +257,7 @@ IPv4 ソケットの生成、接続、送受信、待機は com_util のソケ�
 | `poll()` (Linux) / `WSAPoll()` (Winsock) | `com_util_socket_wait_readable(...)` / `com_util_socket_wait_writable(...)` / `com_util_socket_wait_readable_multi(...)` |
 
 `com_util_socket_send_all`/`com_util_socket_recv_all` は複数回の `send`/`recv` をループさせる合成 API です。  
+Linux の `com_util_socket_send`/`com_util_socket_send_all` は、切断済みの接続への送信による SIGPIPE を送信単位で抑制し、送信エラーは結果コードと `com_util_error` で通知します。  
 `com_util_socket_shutdown_receive` は Linux (`shutdown(SHUT_RD)`) と Windows (実質 close 相当) で意味論が異なる差異を吸収した複合 API です。
 
 ### プロセス内メモリ ロック

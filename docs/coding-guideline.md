@@ -264,12 +264,23 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 | 引数の限界値 | 両プラットフォームのうち、より厳しい限界値を採用します。 | `RAND_bytes` と `BCryptGenRandom` の要求サイズを `INT_MAX` に統一 |
 | オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一します。 | `com_util_fopen` と `com_util_open` の Windows 実装で `_SH_DENYNO` を指定 |
 | シグナルによる待機の中断 | 中断されない Windows の動作に統一します。 | Linux 実装が `EINTR` を吸収します。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
+| 切断済みソケットへの送信 | プロセスを終了させず、送信エラーとして通知します。 | Linux 実装が `MSG_NOSIGNAL` で SIGPIPE を抑制します。 |
 
 製品実装は、プラットフォーム固有の API を呼び出す前に共通契約を検査または設定します。  
 より緩い限界値を持つプラットフォームの追加差分は、共通 API では公開しません。
 
 共有可能なオープンは排他制御を意味しません。  
 プロセス間のアクセスを直列化する場合は、`com_util_interprocess_lock` または `com_util_interprocess_rwlock` を使用します。
+
+### 接続済みソケット送信時の SIGPIPE
+
+Linux の `com_util_socket_send()` と `com_util_socket_send_all()` は、送信ごとに `MSG_NOSIGNAL` を指定します。  
+プロセス全体のシグナル ハンドラーやシグナル マスクを変更せず、切断済みの接続への送信による SIGPIPE だけを抑制します。
+
+`MSG_NOSIGNAL` を指定した送信も `EPIPE` を返すため、送信エラーは従来どおり結果コードと `com_util_error` で通知します。  
+利用者へ SIGPIPE の無視やハンドラー登録を要求しません。
+
+根拠は [send (2) の MSG_NOSIGNAL](https://man7.org/linux/man-pages/man2/send.2.html) を参照してください。
 
 ### シグナル割り込み (EINTR) の扱い
 

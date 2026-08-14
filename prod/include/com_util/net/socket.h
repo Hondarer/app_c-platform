@@ -338,6 +338,8 @@ extern "C"
      *
      *  1 回の呼び出しで @p len 全体を送信するとは限りません。\n
      *  全体の送信を保証する場合は @ref com_util_socket_send_all を使用します。
+     *  Linux では、切断済みの接続への送信による SIGPIPE を配信しません。\n
+     *  送信エラーは @ref COM_UTIL_ERR_UNKNOWN で通知し、@p detail_out へ詳細を格納します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -413,6 +415,8 @@ extern "C"
      *  @p len 全体を送信するまで繰り返します。途中で送信できなくなった場合は
      *  @ref COM_UTIL_ERR_UNKNOWN を返します。\n
      *  ブロッキング モードのソケットで使用します。
+     *  Linux では、切断済みの接続への送信による SIGPIPE を配信しません。\n
+     *  送信エラーの詳細は @p detail_out へ格納します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

@@ -184,7 +184,7 @@ static int retry_accept(int fd, struct sockaddr *addr, socklen_t *addr_len)
 }
 
 /**
- *  @brief          シグナルによる中断を吸収して send を実行します。
+ *  @brief          SIGPIPE とシグナルによる中断を吸収して send を実行します。
  *  @param[in]      fd  対象のソケットの記述子。
  *  @param[in]      buf 送信するデータ。
  *  @param[in]      len @p buf のバイト数。
@@ -196,7 +196,10 @@ static ssize_t retry_send(int fd, const void *buf, size_t len)
 
     do
     {
-        transferred = send(fd, buf, len, 0);
+        /* MSG_NOSIGNAL はプロセス全体の設定を変更せず、この送信による SIGPIPE だけを抑制する。
+         * EPIPE は従来どおり返される。
+         * see: https://man7.org/linux/man-pages/man2/send.2.html */
+        transferred = send(fd, buf, len, MSG_NOSIGNAL);
     } while ((transferred < 0) && (errno == EINTR));
 
     return transferred;
