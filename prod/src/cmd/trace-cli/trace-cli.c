@@ -472,7 +472,7 @@ void trace_cli_session_dispose(trace_cli_session *session)
         return;
     }
 
-    com_util_tracer_dispose(session->handle);
+    com_util_tracer_dispose(&session->handle);
     session->handle = NULL;
     session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
 }
@@ -508,7 +508,7 @@ static int cmd_create(trace_cli_session *session, const struct trace_cli_command
         fprintf(stderr, "エラー: 既存の handle を dispose してから create を実行してください。\n");
         return -1;
     }
-    session->handle = com_util_tracer_create();
+    session->handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     if (session->handle == NULL)
     {
         session->prompt_state = TRACE_CLI_PROMPT_STATE_UNCREATED;
@@ -525,7 +525,7 @@ static int cmd_dispose(trace_cli_session *session, const struct trace_cli_comman
 {
     (void)cmd;
     (void)cursor;
-    com_util_tracer_dispose(session->handle);
+    com_util_tracer_dispose(&session->handle);
     session->handle = NULL;
     session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
     printf("handle=disposed\n");

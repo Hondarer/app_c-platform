@@ -48,7 +48,7 @@
 TRACELOGGING_DEFINE_PROVIDER(s_trace_provider_ref, COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME,
                              COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID);
 
-static volatile LONG s_trace_ref = 0;
+static size_t s_trace_ref = 0;
 static com_util_etw_provider *s_etw_handle = NULL;
 static com_util_eventlog_sink *s_eventlog_handle = NULL;
 static com_util_local_lock *s_registry_lock;
@@ -111,6 +111,7 @@ struct com_util_tracer
     int file_flags;
 
     com_util_local_rwlock *config_rwlock;
+    com_util_tracer_concurrency_mode concurrency_mode;
 
     com_util_trace_level os_level;
 #if defined(PLATFORM_WINDOWS)
@@ -118,10 +119,8 @@ struct com_util_tracer
 #endif /* PLATFORM_WINDOWS */
     com_util_trace_level file_level;
     com_util_trace_level stderr_level;
-    volatile int running;
-    volatile int lifecycle_state;
-
-    int config_rwlock_initialized;
+    int running;
+    int lifecycle_state;
 
     com_util_tracer_hook_entry *hook_head;
 };
@@ -131,22 +130,24 @@ struct trace_registry
     com_util_tracer **items;
     size_t count;
     size_t capacity;
-    volatile size_t shutdown_started;
+    size_t shutdown_started;
 };
 
 static struct trace_registry s_trace_registry = {0};
 static com_util_once_flag s_trace_shutdown_once = {0};
+static int s_registry_lock_init_result = COM_UTIL_ERR_UNKNOWN;
+static int s_shutdown_registration_result = COM_UTIL_ERR_UNKNOWN;
 
 static void trace_shutdown_callback(const com_util_shutdown_event *event, void *context);
 
 static void init_registry_lock(void)
 {
-    (void)com_util_local_lock_create(&s_registry_lock);
+    s_registry_lock_init_result = com_util_local_lock_create(&s_registry_lock);
 }
 
 static void register_trace_shutdown_callback(void)
 {
-    (void)com_util_shutdown_register(trace_shutdown_callback, NULL);
+    s_shutdown_registration_result = com_util_shutdown_register(trace_shutdown_callback, NULL);
 }
 
 static void trace_shutdown_callback(const com_util_shutdown_event *event, void *context)
@@ -158,10 +159,18 @@ static void trace_shutdown_callback(const com_util_shutdown_event *event, void *
 /**
  *  @brief          レジストリの排他ロックを取得します。
  */
-static void registry_lock(void)
+static int registry_lock(void)
 {
     com_util_call_once(&s_registry_lock_once, init_registry_lock);
-    com_util_local_lock_lock(s_registry_lock, COM_UTIL_SYNC_WAIT_FOREVER);
+    if (s_registry_lock_init_result != COM_UTIL_OK)
+    {
+        return -1;
+    }
+    if (com_util_local_lock_lock(s_registry_lock, COM_UTIL_SYNC_WAIT_FOREVER) != COM_UTIL_OK)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 /**
@@ -169,7 +178,7 @@ static void registry_lock(void)
  */
 static void registry_unlock(void)
 {
-    com_util_local_lock_unlock(s_registry_lock);
+    (void)com_util_local_lock_unlock(s_registry_lock);
 }
 
 /**
@@ -187,7 +196,16 @@ static int registry_expand_locked(void)
     }
     else
     {
+        if (s_trace_registry.capacity > SIZE_MAX / 2)
+        {
+            return -1;
+        }
         new_capacity = s_trace_registry.capacity * 2;
+    }
+
+    if (new_capacity > SIZE_MAX / sizeof(com_util_tracer *))
+    {
+        return -1;
     }
 
     new_items = (com_util_tracer **)realloc(s_trace_registry.items, new_capacity * sizeof(com_util_tracer *));
@@ -201,6 +219,39 @@ static int registry_expand_locked(void)
     return 0;
 }
 
+#if defined(PLATFORM_WINDOWS)
+static int windows_backend_acquire_locked(void)
+{
+    if (s_trace_ref == 0)
+    {
+        s_etw_handle = com_util_etw_provider_create(s_trace_provider_ref);
+        if (s_etw_handle == NULL)
+        {
+            return -1;
+        }
+        s_eventlog_handle = com_util_eventlog_sink_create(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
+    }
+    s_trace_ref++;
+    return 0;
+}
+
+static void windows_backend_release_locked(void)
+{
+    if (s_trace_ref == 0)
+    {
+        return;
+    }
+    s_trace_ref--;
+    if (s_trace_ref == 0)
+    {
+        com_util_etw_provider_dispose(s_etw_handle);
+        s_etw_handle = NULL;
+        com_util_eventlog_sink_dispose(s_eventlog_handle);
+        s_eventlog_handle = NULL;
+    }
+}
+#endif /* PLATFORM_WINDOWS */
+
 /**
  *  @brief          ハンドルをレジストリに登録します。
  *  @param[in]      handle  登録するトレース プロバイダー ハンドル。
@@ -210,7 +261,10 @@ static int registry_register_handle(com_util_tracer *handle)
 {
     int rc = 0;
 
-    registry_lock();
+    if (registry_lock() != 0)
+    {
+        return -1;
+    }
 
     if (s_trace_registry.shutdown_started)
     {
@@ -221,6 +275,12 @@ static int registry_register_handle(com_util_tracer *handle)
         if (s_trace_registry.count == s_trace_registry.capacity)
         {
             rc = registry_expand_locked();
+        }
+        if (rc == 0)
+        {
+#if defined(PLATFORM_WINDOWS)
+            rc = windows_backend_acquire_locked();
+#endif /* PLATFORM_WINDOWS */
         }
         if (rc == 0)
         {
@@ -236,11 +296,15 @@ static int registry_register_handle(com_util_tracer *handle)
  *  @brief          ハンドルをレジストリから削除します。
  *  @param[in]      handle  削除するトレース プロバイダー ハンドル。
  */
-static void registry_unregister_handle(com_util_tracer *handle)
+static int registry_unregister_handle(com_util_tracer *handle)
 {
     size_t i;
+    int found = 0;
 
-    registry_lock();
+    if (registry_lock() != 0)
+    {
+        return -1;
+    }
 
     for (i = 0; i < s_trace_registry.count; i++)
     {
@@ -249,11 +313,20 @@ static void registry_unregister_handle(com_util_tracer *handle)
             s_trace_registry.count--;
             s_trace_registry.items[i] = s_trace_registry.items[s_trace_registry.count];
             s_trace_registry.items[s_trace_registry.count] = NULL;
+#if defined(PLATFORM_WINDOWS)
+            windows_backend_release_locked();
+#endif /* PLATFORM_WINDOWS */
+            found = 1;
             break;
         }
     }
 
     registry_unlock();
+    if (found)
+    {
+        return 0;
+    }
+    return -1;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -262,7 +335,10 @@ size_t trace_registry_count(void)
 {
     size_t count;
 
-    registry_lock();
+    if (registry_lock() != 0)
+    {
+        return 0;
+    }
     count = s_trace_registry.count;
     registry_unlock();
     return count;
@@ -274,7 +350,10 @@ size_t trace_registry_capacity(void)
 {
     size_t capacity;
 
-    registry_lock();
+    if (registry_lock() != 0)
+    {
+        return 0;
+    }
     capacity = s_trace_registry.capacity;
     registry_unlock();
     return capacity;
@@ -388,9 +467,13 @@ static const char *get_process_basename(char *buf, const size_t buf_size)
  *  @brief          設定の排他ロック (書き込みロック) を取得します。
  *  @param[in]      handle  ロック対象のトレース プロバイダー ハンドル。
  */
-static void config_lock_exclusive(com_util_tracer *handle)
+static int config_lock_exclusive(com_util_tracer *handle)
 {
-    com_util_local_rwlock_lock_exclusive(handle->config_rwlock, COM_UTIL_SYNC_WAIT_FOREVER);
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED)
+    {
+        return COM_UTIL_OK;
+    }
+    return com_util_local_rwlock_lock_exclusive(handle->config_rwlock, COM_UTIL_SYNC_WAIT_FOREVER);
 }
 
 /**
@@ -399,7 +482,10 @@ static void config_lock_exclusive(com_util_tracer *handle)
  */
 static void config_unlock_exclusive(com_util_tracer *handle)
 {
-    com_util_local_rwlock_unlock_exclusive(handle->config_rwlock);
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+    {
+        (void)com_util_local_rwlock_unlock_exclusive(handle->config_rwlock);
+    }
 }
 
 #define LOCK_TIMEOUT_MS 100
@@ -411,6 +497,10 @@ static void config_unlock_exclusive(com_util_tracer *handle)
  */
 static int config_lock_shared_timed(com_util_tracer *handle)
 {
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED)
+    {
+        return 0;
+    }
     if (com_util_local_rwlock_lock_shared(handle->config_rwlock, LOCK_TIMEOUT_MS) == COM_UTIL_OK)
     {
         return 0;
@@ -427,7 +517,10 @@ static int config_lock_shared_timed(com_util_tracer *handle)
  */
 static void config_unlock_shared(com_util_tracer *handle)
 {
-    com_util_local_rwlock_unlock_shared(handle->config_rwlock);
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+    {
+        (void)com_util_local_rwlock_unlock_shared(handle->config_rwlock);
+    }
 }
 
 /**
@@ -496,7 +589,10 @@ static int tracer_enter_exclusive(com_util_tracer *handle)
     {
         return -1;
     }
-    config_lock_exclusive(handle);
+    if (config_lock_exclusive(handle) != COM_UTIL_OK)
+    {
+        return -1;
+    }
     if (handle->lifecycle_state != TRACE_HANDLE_ACTIVE)
     {
         config_unlock_exclusive(handle);
@@ -763,7 +859,10 @@ static com_util_trace_file_sink *open_file_sink_with(const com_util_tracer *hand
  */
 static int stop_handle_for_cleanup(com_util_tracer *handle)
 {
-    config_lock_exclusive(handle);
+    if (config_lock_exclusive(handle) != COM_UTIL_OK)
+    {
+        return COM_UTIL_ERR_UNKNOWN;
+    }
     if (!handle->running)
     {
         config_unlock_exclusive(handle);
@@ -810,20 +909,17 @@ static void trace_handle_release_normal(com_util_tracer *handle)
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink_dispose(handle->syslog_handle);
     free(handle->effective_name);
-    if (handle->config_rwlock_initialized)
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
     {
-        com_util_local_rwlock_destroy(handle->config_rwlock);
+        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
     }
 #elif defined(PLATFORM_WINDOWS)
-    if (InterlockedDecrement(&s_trace_ref) == 0)
-    {
-        com_util_etw_provider_dispose(s_etw_handle);
-        s_etw_handle = NULL;
-        com_util_eventlog_sink_dispose(s_eventlog_handle);
-        s_eventlog_handle = NULL;
-    }
     free(handle->eventlog_instance_name);
     free(handle->service_name);
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+    {
+        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+    }
 #endif /* PLATFORM_ */
 
     handle->lifecycle_state = TRACE_HANDLE_DISPOSED;
@@ -836,6 +932,9 @@ static void trace_handle_release_normal(com_util_tracer *handle)
  */
 static void trace_handle_release_on_shutdown(com_util_tracer *handle)
 {
+    com_util_tracer_hook_entry *hook;
+    com_util_tracer_hook_entry *next;
+
     if (handle->file_handle != NULL)
     {
         com_util_trace_file_sink_dispose_on_shutdown(handle->file_handle);
@@ -847,6 +946,13 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
     free(handle->file_name);
     handle->file_name = NULL;
 
+    for (hook = handle->hook_head; hook != NULL; hook = next)
+    {
+        next = hook->next;
+        free(hook);
+    }
+    handle->hook_head = NULL;
+
 #if defined(PLATFORM_LINUX)
     com_util_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
     free(handle->effective_name);
@@ -855,19 +961,34 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
     free(handle->service_name);
 #endif /* PLATFORM_ */
 
+    if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+    {
+        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+    }
+
     handle->lifecycle_state = TRACE_HANDLE_DISPOSED;
     free(handle);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_tracer *com_util_tracer_create(void)
+com_util_tracer *com_util_tracer_create(const com_util_tracer_concurrency_mode concurrency_mode)
 {
     com_util_tracer *handle;
     char path_buf[256];
     const char *effective_name;
 
+    if (concurrency_mode != COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED &&
+        concurrency_mode != COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+    {
+        return NULL;
+    }
+
     com_util_call_once(&s_trace_shutdown_once, register_trace_shutdown_callback);
+    if (s_shutdown_registration_result != COM_UTIL_OK)
+    {
+        return NULL;
+    }
 
     if (s_trace_registry.shutdown_started)
     {
@@ -908,7 +1029,8 @@ com_util_tracer *com_util_tracer_create(void)
         handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
         handle->running = 0;
         handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
-        handle->config_rwlock_initialized = 0;
+        handle->config_rwlock = NULL;
+        handle->concurrency_mode = concurrency_mode;
         handle->hook_head = NULL;
 
         if (handle->effective_name == NULL)
@@ -918,14 +1040,14 @@ com_util_tracer *com_util_tracer_create(void)
             return NULL;
         }
 
-        if (com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
+        if (concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED &&
+            com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
         {
             com_util_syslog_sink_dispose(sp);
             free(handle->effective_name);
             free(handle);
             return NULL;
         }
-        handle->config_rwlock_initialized = 1;
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -968,33 +1090,17 @@ com_util_tracer *com_util_tracer_create(void)
         handle->stderr_level = COM_UTIL_TRACER_DEFAULT_STDERR_LEVEL;
         handle->running = 0;
         handle->lifecycle_state = TRACE_HANDLE_ACTIVE;
-        handle->config_rwlock_initialized = 0;
+        handle->config_rwlock = NULL;
+        handle->concurrency_mode = concurrency_mode;
         handle->hook_head = NULL;
 
-        if (com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
+        if (concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED &&
+            com_util_local_rwlock_create(&handle->config_rwlock) != COM_UTIL_OK)
         {
             free(handle->eventlog_instance_name);
             free(handle->service_name);
             free(handle);
             return NULL;
-        }
-        handle->config_rwlock_initialized = 1;
-
-        if (InterlockedIncrement(&s_trace_ref) == 1)
-        {
-            s_etw_handle = com_util_etw_provider_create(s_trace_provider_ref);
-            if (s_etw_handle == NULL)
-            {
-                InterlockedDecrement(&s_trace_ref);
-                free(handle->eventlog_instance_name);
-                free(handle->service_name);
-                free(handle);
-                return NULL;
-            }
-
-            /* EventLog は OS トレースの既定が無効 (NONE) であり、ソース未登録でも
-               運用に影響しないため、生成失敗は致命的としない (best-effort)。 */
-            s_eventlog_handle = com_util_eventlog_sink_create(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
         }
     }
 #endif /* PLATFORM_ */
@@ -1005,17 +1111,13 @@ com_util_tracer *com_util_tracer_create(void)
         com_util_syslog_sink_dispose(handle->syslog_handle);
         free(handle->effective_name);
 #elif defined(PLATFORM_WINDOWS)
-        if (InterlockedDecrement(&s_trace_ref) == 0)
-        {
-            com_util_etw_provider_dispose(s_etw_handle);
-            s_etw_handle = NULL;
-            com_util_eventlog_sink_dispose(s_eventlog_handle);
-            s_eventlog_handle = NULL;
-        }
         free(handle->eventlog_instance_name);
         free(handle->service_name);
 #endif /* PLATFORM_ */
-        com_util_local_rwlock_destroy(handle->config_rwlock);
+        if (concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
+        {
+            (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+        }
         free(handle);
         return NULL;
     }
@@ -1897,20 +1999,32 @@ int com_util_tracer_set_stderr_level(com_util_tracer *handle, const com_util_tra
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_tracer_dispose(com_util_tracer *handle)
+void com_util_tracer_dispose(com_util_tracer **handle)
 {
-    if (handle == NULL)
+    com_util_tracer *target;
+
+    if (handle == NULL || *handle == NULL)
     {
         return;
     }
-    if (begin_dispose(handle) != 0)
+    target = *handle;
+    if (begin_dispose(target) != 0)
     {
         return;
     }
 
-    registry_unregister_handle(handle);
-    stop_handle_for_cleanup(handle);
-    trace_handle_release_normal(handle);
+    if (stop_handle_for_cleanup(target) != COM_UTIL_OK)
+    {
+        target->lifecycle_state = TRACE_HANDLE_ACTIVE;
+        return;
+    }
+    if (registry_unregister_handle(target) != 0)
+    {
+        target->lifecycle_state = TRACE_HANDLE_ACTIVE;
+        return;
+    }
+    trace_handle_release_normal(target);
+    *handle = NULL;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1921,8 +2035,14 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
     size_t count;
     size_t i;
 
-    if (event == NULL || s_trace_registry.shutdown_started)
+    if (event == NULL || registry_lock() != 0)
     {
+        return;
+    }
+
+    if (s_trace_registry.shutdown_started)
+    {
+        registry_unlock();
         return;
     }
 
@@ -1933,6 +2053,7 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
     s_trace_registry.items = NULL;
     s_trace_registry.count = 0;
     s_trace_registry.capacity = 0;
+    registry_unlock();
 
     for (i = 0; i < count; i++)
     {
@@ -1963,6 +2084,12 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
 #endif /* PLATFORM_WINDOWS */
 
     free(items);
+    if (s_registry_lock != NULL)
+    {
+        com_util_local_lock_destroy(s_registry_lock);
+        s_registry_lock = NULL;
+        s_registry_lock_init_result = COM_UTIL_ERR_UNKNOWN;
+    }
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

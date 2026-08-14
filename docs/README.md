@@ -44,7 +44,7 @@ make -C app/com_util test
 
 int main(void)
 {
-    com_util_tracer *tracer = com_util_tracer_create();
+    com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
 
     if (tracer == NULL)
     {
@@ -57,7 +57,7 @@ int main(void)
     com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "timeout=%d", 1000);
 
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 
     return 0;
 }

@@ -27,17 +27,17 @@
     @code{.c}
    #include <com_util/trace/tracer.h>
 
-   com_util_tracer *tracer = com_util_tracer_create();
+   com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
    com_util_tracer_set_name(tracer, "myapp", 0);
    com_util_tracer_start(tracer);
    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "application started");
    com_util_tracer_stop(tracer);
-   com_util_tracer_dispose(tracer);
+   com_util_tracer_dispose(&tracer);
     @endcode
  *
  *  @par            使用例 (設定変更)
     @code{.c}
-   com_util_tracer *tracer = com_util_tracer_create();
+   com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
    com_util_tracer_set_name(tracer, "myapp", 0);
    com_util_tracer_set_os_level(tracer, COM_UTIL_TRACE_LEVEL_VERBOSE);
    com_util_tracer_start(tracer);
@@ -47,7 +47,7 @@
    com_util_tracer_start(tracer);
    com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "running as myapp_1");
    com_util_tracer_stop(tracer);
-   com_util_tracer_dispose(tracer);
+   com_util_tracer_dispose(&tracer);
     @endcode
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -180,6 +180,37 @@ typedef enum com_util_tracer_state
     COM_UTIL_TRACER_STATE_DISPOSED = 2 /**< 利用不可または解放済み。 */
 } com_util_tracer_state;
 
+/**
+ *  @enum           com_util_tracer_concurrency_mode
+ *  @brief          同一 tracer handle への並行呼び出しを管理する主体を指定します。
+ *
+ *  com_util_tracer_create に渡したモードはハンドルの生存期間中に変更できません。
+ *  このモードが制御するのは同一ハンドルの状態と設定へのアクセスです。
+ *  異なるハンドル間で共有されるレジストリや OS バックエンドは、どちらのモードでも tracer が同期します。
+ *
+ *  COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、tracer はハンドル専用の同期オブジェクトを生成しません。
+ *  同一ハンドルに対する start、stop、設定、出力、状態取得、フック操作、dispose が互いに重ならないよう、
+ *  呼び出し側が単一スレッドで使用するか、外部の同期機構で直列化してください。
+ *
+ *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED では、tracer がハンドル専用の同期オブジェクトを生成し、
+ *  通常の API 呼び出しを調停します。同期オブジェクトの所有権は tracer にあり、利用者は取得または破棄できません。
+ *  ただし、com_util_tracer_dispose と同一ハンドルの他の API を並行して呼び出すことはできません。
+ */
+typedef enum com_util_tracer_concurrency_mode
+{
+    /**
+     *  同一ハンドルへの呼び出しを利用者が直列化します。
+     *  tracer はハンドル専用の同期オブジェクトを生成しません。
+     */
+    COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED = 0,
+
+    /**
+     *  同一ハンドルへの通常の呼び出しを tracer が調停します。
+     *  tracer はハンドル専用の同期オブジェクトを生成し、dispose またはプロセス shutdown で破棄します。
+     */
+    COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED = 1
+} com_util_tracer_concurrency_mode;
+
 /* ===== デフォルト トレース レベル ===== */
 
 /**
@@ -304,8 +335,11 @@ extern "C"
      *  識別名 (インスタンス名とインスタンス識別) とトレース ファイル名 (ファイル名とファイル識別) は
      *  独立して管理されます。com_util_tracer_set_name はトレース ファイル名に影響しません。
      *
+     *  @param[in]      concurrency_mode  同一ハンドルへの並行呼び出しを管理する主体。
+     *                                    COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED または
+     *                                    COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED を指定します。
      *  @return         成功時は stopped 状態のハンドルを返します。メモリ確保または同期オブジェクトの
-     *                  初期化に失敗した場合は NULL を返します。
+     *                  初期化に失敗した場合、または concurrency_mode が未定義値の場合は NULL を返します。
      *
      *  @post           戻り値のハンドルは stopped 状態です。
      *                  出力関数を使用するには com_util_tracer_start を呼び出してください。\n
@@ -318,19 +352,25 @@ extern "C"
      *
      *  @par            使用例
         @code{.c}
-       com_util_tracer *tracer = com_util_tracer_create();
+       com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
        com_util_tracer_set_name(tracer, "myapp", 0);
        com_util_tracer_start(tracer);
        com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "application started");
        com_util_tracer_stop(tracer);
-       com_util_tracer_dispose(tracer);
+       com_util_tracer_dispose(&tracer);
         @endcode
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  複数スレッドから独立したハンドルを取得するために並行して呼び出すことができます。
+     *
+     *  @attention      COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED を指定した場合、同一ハンドルへの
+     *                  API 呼び出しを利用者が直列化する必要があります。
+     *  @attention      どちらのモードでも、com_util_tracer_dispose と同一ハンドルの他の API を
+     *                  並行して呼び出してはなりません。
      */
-    COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API com_util_tracer_create(void);
+    COM_UTIL_EXPORT com_util_tracer *COM_UTIL_API
+    com_util_tracer_create(com_util_tracer_concurrency_mode concurrency_mode);
 
     /**
      *  @brief          トレース プロバイダーを開始します。
@@ -360,7 +400,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で排他制御を行います。
      *
      *  @warning        handle が NULL の場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
@@ -389,7 +429,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で排他制御を行います。
      *
      *  @warning        handle が NULL の場合は @ref COM_UTIL_ERR_UNKNOWN を返します。
@@ -410,7 +450,7 @@ extern "C"
      *  @return         現在の状態 (com_util_tracer_state)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  返される状態は取得時点のスナップショットです。呼び出し直後に状態が変化する場合があります。
      */
     COM_UTIL_EXPORT com_util_tracer_state COM_UTIL_API com_util_tracer_get_state(com_util_tracer *handle);
@@ -427,7 +467,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write(com_util_tracer *handle, com_util_trace_level level,
@@ -446,7 +486,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_writef(com_util_tracer *handle, com_util_trace_level level,
@@ -464,7 +504,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwritef(com_util_tracer *handle, com_util_trace_level level,
@@ -485,7 +525,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hex(com_util_tracer *handle, com_util_trace_level level,
@@ -507,7 +547,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_write_hexf(com_util_tracer *handle, com_util_trace_level level,
@@ -527,7 +567,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     COM_UTIL_EXPORT int COM_UTIL_API _com_util_tracer_vwrite_hexf(com_util_tracer *handle, com_util_trace_level level,
@@ -551,7 +591,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped 状態でのみ有効です。started 状態では @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @see            com_util_tracer_get_name
@@ -575,7 +615,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            com_util_tracer_set_name
@@ -589,7 +629,7 @@ extern "C"
      *  @return         現在のインスタンス識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            com_util_tracer_set_name
@@ -614,7 +654,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped 状態でのみ有効です。started 状態では @ref COM_UTIL_ERR_UNKNOWN を返します。
      *
      *  @see            com_util_tracer_get_file_name
@@ -639,7 +679,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            com_util_tracer_set_file_name
@@ -653,7 +693,7 @@ extern "C"
      *  @return         現在のファイル識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            com_util_tracer_set_file_name
@@ -669,7 +709,7 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     COM_UTIL_EXPORT com_util_trace_level COM_UTIL_API com_util_tracer_get_os_level(com_util_tracer *handle);
@@ -684,7 +724,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -701,7 +741,7 @@ extern "C"
      *                  COM_UTIL_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     COM_UTIL_EXPORT com_util_trace_level COM_UTIL_API com_util_tracer_get_etw_level(com_util_tracer *handle);
@@ -718,7 +758,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -731,7 +771,7 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     COM_UTIL_EXPORT com_util_trace_level COM_UTIL_API com_util_tracer_get_file_level(com_util_tracer *handle);
@@ -778,7 +818,7 @@ extern "C"
      *  パスとパラメーターが現状と一致し、しきい値レベルのみを変更する場合はファイルを開き直しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -793,7 +833,7 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は COM_UTIL_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     COM_UTIL_EXPORT com_util_trace_level COM_UTIL_API com_util_tracer_get_stderr_level(com_util_tracer *handle);
@@ -806,7 +846,7 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -816,13 +856,13 @@ extern "C"
     /**
      *  @brief          トレース プロバイダーを終了し、リソースを解放します。
      *
-     *  @param[in]      handle   com_util_tracer_create の戻り値。NULL は無視。
+     *  @param[in,out]  handle   com_util_tracer_create の戻り値を保持するポインター。NULL または *handle が NULL の場合は何もしません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer *handle);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_dispose(com_util_tracer **handle);
 
     /**
      *  @brief          トレース フックを登録します。
@@ -888,7 +928,7 @@ extern "C"
      *  @param[in]      message    解決済みメッセージ文字列。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
+     *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
      *  フック コールバック内から複数スレッドで同時に呼び出せます。
      */
     COM_UTIL_EXPORT void COM_UTIL_API com_util_tracer_call_next_hook(com_util_tracer_hook_entry *prev,
@@ -941,7 +981,7 @@ static inline const char *_com_util_tracer_hex_msg(const char *message)
  *  @internal
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
+ *  COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
  *  内部で _com_util_tracer_writef に委譲しており、複数スレッドから同時に呼び出せます。
  */
 static inline int _com_util_tracer_write_with_source(com_util_tracer *handle, com_util_trace_level level,

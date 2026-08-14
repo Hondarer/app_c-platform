@@ -66,13 +66,13 @@ OS トレースとは別に、アプリケーション自身が追跡しやす�
 ```c
 #include <com_util/trace/tracer.h>
 
-com_util_tracer *tracer = com_util_tracer_create();
+com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
 
 com_util_tracer_set_file_level(tracer, "./logs/myapp.log",
                            COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0);
 com_util_tracer_start(tracer);
 com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
-com_util_tracer_dispose(tracer);
+com_util_tracer_dispose(&tracer);
 ```
 
 `max_bytes == 0` の場合は既定サイズ、`generations <= 0` の場合は既定世代数を使います。  

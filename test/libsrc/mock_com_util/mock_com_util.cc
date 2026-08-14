@@ -154,7 +154,7 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_file_close(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_close));
 
     // trace - tracer
-    ON_CALL(*this, com_util_tracer_create()).WillByDefault(Invoke(delegate_real_com_util_tracer_create));
+    ON_CALL(*this, com_util_tracer_create(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_create));
     ON_CALL(*this, com_util_tracer_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_dispose));
     ON_CALL(*this, com_util_tracer_start(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_start));
     ON_CALL(*this, com_util_tracer_stop(_)).WillByDefault(Invoke(delegate_real_com_util_tracer_stop));

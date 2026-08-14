@@ -389,27 +389,24 @@
     EXPORT_ENTRY(com_util_ipv4_resolve, \
                  int(COM_UTIL_API *)(const char *text, uint32_t *address_out, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_ipv4_to_string, \
-                 int(COM_UTIL_API *)(uint32_t address, char *buffer, size_t buffer_size, \
-                                     com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(uint32_t address, char *buffer, size_t buffer_size, com_util_error *detail_out)) \
     /* com_util/net/socket.h */ \
-    EXPORT_ENTRY(com_util_socket_open, \
-                 int(COM_UTIL_API *)(com_util_socket_kind kind, com_util_socket *sock_out, \
-                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_open, int(COM_UTIL_API *)(com_util_socket_kind kind, com_util_socket * sock_out, \
+                                                           com_util_error * detail_out)) \
     EXPORT_ENTRY(com_util_socket_close, void(COM_UTIL_API *)(com_util_socket sock)) \
     EXPORT_ENTRY(com_util_socket_shutdown, void(COM_UTIL_API *)(com_util_socket sock)) \
-    EXPORT_ENTRY(com_util_socket_bind, \
-                 int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, \
-                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY( \
+        com_util_socket_bind, \
+        int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_listen, \
                  int(COM_UTIL_API *)(com_util_socket sock, int backlog, com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_accept, \
-                 int(COM_UTIL_API *)(com_util_socket sock, com_util_ipv4_endpoint *peer_out, \
-                                     com_util_socket *sock_out, com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_connect, \
-                 int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, \
-                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_accept, int(COM_UTIL_API *)(com_util_socket sock, com_util_ipv4_endpoint * peer_out, \
+                                                             com_util_socket * sock_out, com_util_error * detail_out)) \
+    EXPORT_ENTRY( \
+        com_util_socket_connect, \
+        int(COM_UTIL_API *)(com_util_socket sock, const com_util_ipv4_endpoint *endpoint, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_get_pending_error, \
-                 int(COM_UTIL_API *)(com_util_socket sock, com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(com_util_socket sock, com_util_error * detail_out)) \
     EXPORT_ENTRY(com_util_socket_set_nonblocking, \
                  int(COM_UTIL_API *)(com_util_socket sock, int enable, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_set_reuse_address, \
@@ -417,39 +414,31 @@
     EXPORT_ENTRY(com_util_socket_set_broadcast, \
                  int(COM_UTIL_API *)(com_util_socket sock, int enable, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_set_multicast_interface, \
-                 int(COM_UTIL_API *)(com_util_socket sock, uint32_t interface_address, \
-                                     com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(com_util_socket sock, uint32_t interface_address, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_join_multicast_group, \
                  int(COM_UTIL_API *)(com_util_socket sock, uint32_t group_address, uint32_t interface_address, \
                                      com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_leave_multicast_group, \
                  int(COM_UTIL_API *)(com_util_socket sock, uint32_t group_address, uint32_t interface_address, \
                                      com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_send, \
-                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, size_t *sent_out, \
-                                     com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_recv, \
-                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, size_t *received_out, \
-                                     com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_sendto, \
-                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
-                                     const com_util_ipv4_endpoint *endpoint, size_t *sent_out, \
-                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_send, int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
+                                                           size_t *sent_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_recv, int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, \
+                                                           size_t *received_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_sendto, int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
+                                                             const com_util_ipv4_endpoint *endpoint, size_t *sent_out, \
+                                                             com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_recvfrom, \
-                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, \
-                                     com_util_ipv4_endpoint *peer_out, size_t *received_out, \
-                                     com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, com_util_ipv4_endpoint *peer_out, \
+                                     size_t *received_out, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_send_all, \
-                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, \
-                                     com_util_error *detail_out)) \
+                 int(COM_UTIL_API *)(com_util_socket sock, const void *buf, size_t len, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_recv_all, \
                  int(COM_UTIL_API *)(com_util_socket sock, void *buf, size_t len, com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_wait_readable, \
-                 int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, int *ready_out, \
-                                     com_util_error *detail_out)) \
-    EXPORT_ENTRY(com_util_socket_wait_writable, \
-                 int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, int *ready_out, \
-                                     com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_wait_readable, int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, \
+                                                                    int *ready_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_socket_wait_writable, int(COM_UTIL_API *)(com_util_socket sock, int timeout_ms, \
+                                                                    int *ready_out, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_socket_wait_readable_multi, \
                  int(COM_UTIL_API *)(const com_util_socket *socks, size_t count, int timeout_ms, \
                                      unsigned char *ready_out, com_util_error *detail_out)) \
@@ -634,7 +623,7 @@
                                      const char *message)) \
     EXPORT_ENTRY(com_util_trace_file_sink_dispose, void(COM_UTIL_API *)(com_util_trace_file_sink * handle)) \
     /* com_util/trace/tracer.h */ \
-    EXPORT_ENTRY(com_util_tracer_create, com_util_tracer *(COM_UTIL_API *)(void)) \
+    EXPORT_ENTRY(com_util_tracer_create, com_util_tracer *(COM_UTIL_API *)(com_util_tracer_concurrency_mode)) \
     EXPORT_ENTRY(com_util_tracer_start, int(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_stop, int(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_get_state, com_util_tracer_state(COM_UTIL_API *)(com_util_tracer * handle)) \
@@ -679,7 +668,7 @@
     EXPORT_ENTRY(com_util_tracer_get_stderr_level, com_util_trace_level(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_set_stderr_level, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, com_util_trace_level level)) \
-    EXPORT_ENTRY(com_util_tracer_dispose, void(COM_UTIL_API *)(com_util_tracer * handle)) \
+    EXPORT_ENTRY(com_util_tracer_dispose, void(COM_UTIL_API *)(com_util_tracer * *handle)) \
     EXPORT_ENTRY(com_util_tracer_set_hook, \
                  com_util_tracer_hook_entry *(COM_UTIL_API *)(com_util_tracer * handle, com_util_tracer_hook_fn fn, \
                                                               void *context)) \

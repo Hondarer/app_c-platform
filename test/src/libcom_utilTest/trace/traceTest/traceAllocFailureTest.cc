@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 #include <mock_stdlib.h>
+#include "traceSyncMock.h"
 #include <mock_string.h>
 #include <com_util/trace/tracer.h>
 #include <com_util/trace/tracer_internal.h>
@@ -26,6 +27,7 @@ class traceAllocFailureTest : public Test
 
     void SetUp() override
     {
+        set_trace_sync_mock_defaults(mock_);
         ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_, com_util_syslog_sink_create(_, _)).WillByDefault(Return(os_handle_));
@@ -51,14 +53,15 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_handle_allocation_fails)
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_, com_util_syslog_sink_dispose(os_handle_))
         .Times(1); // [Pre-Assert確認_異常系] - 確保済みの syslog sink が 1 回破棄されること。
-#endif /* PLATFORM_LINUX */
+#endif             /* PLATFORM_LINUX */
 
     // Act
-    com_util_tracer *handle = com_util_tracer_create(); // [手順] - com_util_tracer_create を呼び出す。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - com_util_tracer_create を呼び出す。
 
     // Assert
     EXPECT_EQ((com_util_tracer *)NULL,
-              handle); // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
+              handle);                            // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
 }
 
@@ -79,11 +82,12 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_name_duplication_fails)
         .Times(1); // [Pre-Assert確認_異常系] - 確保済みの syslog sink が 1 回破棄されること。
 
     // Act
-    com_util_tracer *handle = com_util_tracer_create(); // [手順] - com_util_tracer_create を呼び出す。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - com_util_tracer_create を呼び出す。
 
     // Assert
     EXPECT_EQ((com_util_tracer *)NULL,
-              handle); // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
+              handle);                            // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
 }
 
@@ -102,11 +106,12 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_registry_expansion_fails)
                               // [Pre-Assert手順] - realloc から NULL を返却する。
 
     // Act
-    com_util_tracer *handle = com_util_tracer_create(); // [手順] - com_util_tracer_create を呼び出す。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - com_util_tracer_create を呼び出す。
 
     // Assert
     EXPECT_EQ((com_util_tracer *)NULL,
-              handle); // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
+              handle);                            // [確認_異常系] - com_util_tracer_create の戻り値が NULL であること。
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry が空のままであること。
 }
 
@@ -116,24 +121,24 @@ TEST_F(traceAllocFailureTest, set_name_fails_when_effective_name_allocation_fail
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
 
     ASSERT_NE((com_util_tracer *)NULL, handle); // [状態] - 生成済みのトレース ハンドルを用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, malloc(_, _, _, _))
-        .WillOnce(
-            Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が名前組み立て用に 1 回呼び出されること。
-                              // [Pre-Assert手順] - malloc から NULL を返却する。
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - malloc が名前組み立て用に 1 回呼び出されること。
+                                    // [Pre-Assert手順] - malloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_tracer_set_name(handle, "sample",
-                                       42); // [手順] - インスタンス識別 42 を指定して com_util_tracer_set_name を呼び出す。
+    int rtc =
+        com_util_tracer_set_name(handle, "sample",
+                                 42); // [手順] - インスタンス識別 42 を指定して com_util_tracer_set_name を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               rtc); // [確認_異常系] - com_util_tracer_set_name の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }

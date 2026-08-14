@@ -18,6 +18,10 @@ void test_trace_registry_reset_shutdown_state(void)
 
     s_trace_registry.shutdown_started = 0;
     s_trace_shutdown_once = reset_once;
+    s_registry_lock_once = reset_once;
+    s_registry_lock = NULL;
+    s_registry_lock_init_result = COM_UTIL_ERR_UNKNOWN;
+    s_shutdown_registration_result = COM_UTIL_ERR_UNKNOWN;
 }
 
 void test_trace_registry_set_shutdown_started(const size_t shutdown_started)
@@ -86,16 +90,6 @@ void test_tracer_set_file_handle(com_util_tracer *handle, com_util_trace_file_si
     handle->file_handle = file_handle;
 }
 
-void test_tracer_set_config_rwlock_initialized(com_util_tracer *handle, const int initialized)
-{
-    handle->config_rwlock_initialized = initialized;
-}
-
-com_util_local_rwlock *test_tracer_get_config_rwlock(com_util_tracer *handle)
-{
-    return handle->config_rwlock;
-}
-
 void test_tracer_set_hook_fn(com_util_tracer_hook_entry *entry, com_util_tracer_hook_fn fn)
 {
     entry->fn = fn;
@@ -103,7 +97,7 @@ void test_tracer_set_hook_fn(com_util_tracer_hook_entry *entry, com_util_tracer_
 
 void test_tracer_unregister(com_util_tracer *handle)
 {
-    registry_unregister_handle(handle);
+    (void)registry_unregister_handle(handle);
 }
 
 void test_tracer_install_null_fn_hook(com_util_tracer *handle)

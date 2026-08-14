@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include <com_util/trace/tracer_internal.h>
+#include "traceSyncMock.h"
 
 #if defined(PLATFORM_LINUX)
     #include <syslog.h>
@@ -65,6 +66,7 @@ class traceTest : public Test
 
     void SetUp() override
     {
+        set_trace_sync_mock_defaults(mock_);
         ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
@@ -105,7 +107,7 @@ class traceTest : public Test
 
     com_util_tracer *create_logger()
     {
-        com_util_tracer *handle = com_util_tracer_create();
+        com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
         EXPECT_NE((com_util_tracer *)NULL, handle);
         return handle;
     }
@@ -121,12 +123,57 @@ TEST_F(traceTest, init_and_dispose)
     // Act
     com_util_tracer *handle = create_logger(); // [手順] - トレース ハンドルを初期化する。
     size_t registry_count_after_create = trace_registry_count();
-    com_util_tracer_dispose(handle); // [手順] - トレース ハンドルを破棄する。
+    com_util_tracer_dispose(&handle); // [手順] - トレース ハンドルを破棄する。
     size_t registry_count_after_dispose = trace_registry_count();
 
     // Assert
     EXPECT_EQ((size_t)1, registry_count_after_create);  // [確認_正常系] - create 後に registry へ 1 件登録されること。
     EXPECT_EQ((size_t)0, registry_count_after_dispose); // [確認_正常系] - dispose 後に registry が空になること。
+}
+
+// caller-managed モードではハンドル専用 rwlock を使用しないことの確認
+TEST_F(traceTest, caller_managed_mode_does_not_use_handle_rwlock)
+{
+    // Arrange
+    EXPECT_CALL(mock_, com_util_local_rwlock_create(_)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_lock_shared(_, _)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_lock_exclusive(_, _)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_unlock_shared(_)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_unlock_exclusive(_)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_destroy(_)).Times(0);
+
+    // Pre-Assert
+
+    // Act
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
+    ASSERT_NE(nullptr, handle);
+    int start_result = com_util_tracer_start(handle); // [手順] - caller-managed モードの tracer を開始する。
+    int stop_result = com_util_tracer_stop(handle);   // [手順] - caller-managed モードの tracer を停止する。
+    com_util_tracer_dispose(&handle);                 // [手順] - caller-managed モードの tracer を破棄する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, start_result); // [確認_正常系] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, stop_result);  // [確認_正常系] - com_util_tracer_stop の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(nullptr, handle);           // [確認_正常系] - com_util_tracer_dispose がハンドルを NULL にすること。
+}
+
+// 不正な並行処理管理モードを副作用なしで拒否することの確認
+TEST_F(traceTest, create_rejects_invalid_concurrency_mode_before_side_effects)
+{
+    // Arrange
+    com_util_tracer_concurrency_mode invalid_mode;
+    memset(&invalid_mode, 0x7F, sizeof(invalid_mode));
+    EXPECT_CALL(mock_, com_util_shutdown_register(_, _)).Times(0);
+    EXPECT_CALL(mock_, com_util_local_rwlock_create(_)).Times(0);
+
+    // Pre-Assert
+
+    // Act
+    com_util_tracer *handle =
+        com_util_tracer_create(invalid_mode); // [手順] - 未定義の並行処理管理モードで tracer を生成する。
+
+    // Assert
+    EXPECT_EQ(nullptr, handle); // [確認_異常系] - com_util_tracer_create が NULL を返すこと。
 }
 
 // get_state が create/start/stop の状態遷移を返すことの確認
@@ -150,7 +197,7 @@ TEST_F(traceTest, get_state_reports_stopped_started_stopped)
     EXPECT_EQ(COM_UTIL_TRACER_STATE_STOPPED, stopped_state); // [確認_正常系] - stop 後は stopped を返すこと。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // get_state が NULL に対して disposed を返すことの確認
@@ -179,7 +226,8 @@ TEST_F(traceTest, registry_tracks_and_expands)
     // Act
     for (size_t i = 0; i < create_count; i++)
     {
-        handles[i] = create_logger(); // [手順] - com_util_tracer_create() を 12 回呼び出す。
+        handles[i] =
+            create_logger(); // [手順] - com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED) を 12 回呼び出す。
     }
 
     // Assert
@@ -189,7 +237,7 @@ TEST_F(traceTest, registry_tracks_and_expands)
     // Cleanup
     for (com_util_tracer *handle : handles)
     {
-        com_util_tracer_dispose(handle);
+        com_util_tracer_dispose(&handle);
     }
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - すべて破棄後に registry が空になること。
 }
@@ -224,7 +272,7 @@ TEST_F(traceTest, macro_write_prefixes_source_location)
         result); // [確認_正常系] - com_util_tracer_write の戻り値から、公開マクロ経由の書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 公開マクロが明示タイムスタンプを backend へ渡すことの確認
@@ -264,7 +312,7 @@ TEST_F(traceTest, macro_write_passes_explicit_timestamp)
         result); // [確認_正常系] - com_util_tracer_write の戻り値から、明示タイムスタンプ付きの公開マクロ呼び出しが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 公開マクロが NULL メッセージでもソース位置だけを backend へ渡すことの確認
@@ -298,7 +346,7 @@ TEST_F(traceTest, macro_write_with_null_message_emits_source_location_only)
         result); // [確認_正常系] - com_util_tracer_write の戻り値から、NULL メッセージでも公開マクロ呼び出しが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 公開マクロが source location にファイルの basename を使うことの確認
@@ -366,7 +414,7 @@ TEST_F(traceTest, public_macros_prefix_source_location_with_basename)
         hexf_result); // [確認_正常系] - com_util_tracer_write_hexf の戻り値から、write_hexf マクロの書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 状態で INFO 出力が OS backend へ送られることの確認
@@ -401,7 +449,7 @@ TEST_F(traceTest, write_routes_info_to_os_backend)
               result); // [確認_正常系] - _com_util_tracer_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 #if defined(PLATFORM_WINDOWS)
@@ -431,7 +479,7 @@ TEST_F(traceTest, etw_and_os_levels_are_independent)
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 #elif defined(PLATFORM_LINUX)
 // Linux では etw_level が常に NONE を返し、設定が no-op となることの確認
@@ -455,7 +503,7 @@ TEST_F(traceTest, etw_level_is_none_and_noop_on_linux)
               com_util_tracer_get_etw_level(handle)); // [確認_正常系] - 設定後も etw_level が NONE のままであること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 #endif /* PLATFORM_ */
 
@@ -481,7 +529,7 @@ TEST_F(traceTest, write_routes_info_to_eventlog_backend)
     EXPECT_EQ(COM_UTIL_OK, result);
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // EventLog backend へファイル識別子とインスタンス識別子が個別に渡されることの確認 (Windows)
@@ -507,7 +555,7 @@ TEST_F(traceTest, write_routes_eventlog_identity_fields)
     EXPECT_EQ(COM_UTIL_OK, result);
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 #endif /* PLATFORM_WINDOWS */
 
@@ -546,7 +594,7 @@ TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
               result); // [確認_正常系] - _com_util_tracer_write の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // NULL ハンドルと NULL メッセージが安全に無視されることの確認
@@ -572,7 +620,7 @@ TEST_F(traceTest, write_is_null_safe)
         null_message_result); // [確認_異常系] - _com_util_tracer_write の戻り値として、NULL メッセージで 0 が返ること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 1024 バイト超の UTF-8 文字列が安全な境界で切り詰められることの確認
@@ -623,7 +671,7 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
         result); // [確認_正常系] - _com_util_tracer_write の戻り値から、切り詰め後も書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // writef が format 展開後の文字列を backend へ渡すことの確認
@@ -653,7 +701,7 @@ TEST_F(traceTest, writef_formats_message)
               result); // [確認_正常系] - _com_util_tracer_writef の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // HEX 書き込みがラベル付きテキストへ変換されることの確認
@@ -684,7 +732,7 @@ TEST_F(traceTest, write_hex_formats_payload)
               result); // [確認_正常系] - _com_util_tracer_write_hex の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // HEX 書き込みでデータ本体を出力できない残り長の場合に省略記号だけが付与されることの確認
@@ -718,7 +766,7 @@ TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
               result); // [確認_正常系] - _com_util_tracer_write_hex の戻り値から、書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中は識別子・ファイル名の設定関数が失敗することの確認
@@ -744,7 +792,7 @@ TEST_F(traceTest, identity_config_fails_when_started)
         file_name_result); // [確認_異常系] - com_util_tracer_set_file_name の戻り値から、started 中の set_file_name が失敗したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中でも os / etw / stderr のレベル変更が成功し反映されることの確認
@@ -782,7 +830,7 @@ TEST_F(traceTest, level_change_allowed_when_started)
               com_util_tracer_get_stderr_level(handle)); // [確認_正常系] - 変更後の stderr レベルが反映されること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中の os レベル引き上げが即座に出力へ反映されることの確認 (連続性)
@@ -832,7 +880,7 @@ TEST_F(traceTest, os_level_raise_takes_effect_while_started)
     // Assert
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中のしきい値のみ変更では file sink を開き直さないことの確認 (ケース 2)
@@ -863,7 +911,7 @@ TEST_F(traceTest, set_file_level_threshold_only_no_reopen_while_started)
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中にパスを変更すると file sink を開き直すことの確認 (ケース 3)
@@ -898,7 +946,7 @@ TEST_F(traceTest, set_file_level_reopen_on_path_change_while_started)
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中に level=NONE を指定するとファイル出力を無効化することの確認 (ケース 1)
@@ -933,7 +981,7 @@ TEST_F(traceTest, set_file_level_disable_while_started)
     ::testing::Mock::VerifyAndClearExpectations(&mock_);
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // stopped 中の file level 設定が file backend 作成と書き込みへ反映されることの確認
@@ -966,7 +1014,7 @@ TEST_F(traceTest, file_level_routes_to_file_backend)
         result); // [確認_正常系] - _com_util_tracer_write の戻り値から、file backend 経由の書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_file_level の flags が start 時の file sink 生成へ引き渡されることの確認
@@ -993,7 +1041,7 @@ TEST_F(traceTest, set_file_level_passes_flags_to_file_sink)
               result); // [確認_正常系] - com_util_tracer_set_file_level の戻り値から、設定が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_file_level が sink を生成せず start まで遅延されることの確認
@@ -1026,7 +1074,7 @@ TEST_F(traceTest, set_file_level_defers_sink_creation_until_start)
         rtc_tracer_start); // [確認_正常系] - file sink を生成した com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 明示タイムスタンプ指定時に file backend と stderr が同じ時刻を使うことの確認
@@ -1074,7 +1122,7 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
             "2026-04-26T03:04:05.678+09:00 I explicit ts")); // [確認_正常系] - stderr でも同じ時刻文字列が使われること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // file level NONE でファイル トレースが無効化されることの確認
@@ -1104,7 +1152,7 @@ TEST_F(traceTest, file_level_none_disables_file_backend)
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - file 無効でもエラーにならないこと。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_name が識別子付き名称を反映することの確認
@@ -1135,7 +1183,7 @@ TEST_F(traceTest, set_name_with_identifier_updates_backend_name)
 #endif
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // COM_UTIL_TRACE_LEVEL_NONE では OS backend が呼ばれないことの確認
@@ -1163,7 +1211,7 @@ TEST_F(traceTest, os_level_none_suppresses_output)
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - 出力抑止でもエラーにならないこと。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // stderr level DEBUG で V と D の marker が出力されることの確認
@@ -1202,7 +1250,7 @@ TEST_F(traceTest, stderr_level_debug_outputs_markers)
             "2026-04-26T03:04:05.678+09:00 D debug to stderr")); // [確認_正常系] - DEBUG 行が D で出力されること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 不正な明示タイムスタンプ指定時に現在時刻へ代替して各出力先へ書き込みつつ -1 を返すことの確認
@@ -1257,7 +1305,7 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                   "2026-04-26T03:04:05.678+09:00 I invalid ts")); // [確認_異常系] - stderr も代替時刻で出力すること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 不正な明示タイムスタンプ指定時に write_hex でも現在時刻へ代替して -1 を返すことの確認
@@ -1295,7 +1343,7 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
               result); // [確認_異常系] - HEX 書き込みでも代替出力後に COM_UTIL_ERR_UNKNOWN を返すこと。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // stopped 状態では出力関数が失敗することの確認
@@ -1332,7 +1380,7 @@ TEST_F(traceTest, write_fails_when_stopped)
         hexf_result); // [確認_異常系] - _com_util_tracer_write_hexf の戻り値から、stopped 状態の write_hexf が失敗したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // start と stop の二重呼び出しがべき等であることの確認
@@ -1363,7 +1411,7 @@ TEST_F(traceTest, start_and_stop_are_idempotent)
         second_stop); // [確認_正常系] - com_util_tracer_stop の戻り値から、2 回目の stop も成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_file_level 未呼び出しの start でデフォルト パスのファイル トレースが有効になることの確認
@@ -1394,7 +1442,7 @@ TEST_F(traceTest, start_creates_default_file_sink)
         result); // [確認_正常系] - _com_util_tracer_write の戻り値から、デフォルトのファイル トレースで書き込みが成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_name (インスタンス名とインスタンス識別) がデフォルトのトレース ファイル名に影響しないことの確認
@@ -1420,7 +1468,7 @@ TEST_F(traceTest, set_name_does_not_affect_default_file_path)
         rtc_tracer_start); // [確認_正常系] - com_util_tracer_start の戻り値から、start が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_file_name のファイル名とファイル識別がデフォルト パスへ反映されることの確認
@@ -1445,7 +1493,7 @@ TEST_F(traceTest, set_file_name_reflects_to_default_file_path)
         rtc_tracer_start); // [確認_正常系] - com_util_tracer_start の戻り値から、start が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // set_file_name(NULL, 0) でデフォルト (プロセス名、識別なし) に戻ることの確認
@@ -1478,7 +1526,7 @@ TEST_F(traceTest, set_file_name_null_restores_process_name_default)
         rtc_tracer_start); // [確認_正常系] - com_util_tracer_start の戻り値から、start が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 名前と識別の getter がインスタンス側とファイル側を独立して返すことの確認
@@ -1536,7 +1584,7 @@ TEST_F(traceTest, getters_report_instance_and_file_settings_independently)
             handle)); // [確認_正常系] - com_util_tracer_get_file_identifier の戻り値として、ファイル識別番号 5 が返ること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // started 中の set_file_name と負の識別番号が失敗することの確認
@@ -1565,7 +1613,7 @@ TEST_F(traceTest, set_file_name_fails_when_started_or_identifier_negative)
             0)); // [確認_異常系] - com_util_tracer_set_file_name の戻り値として、started 中の set_file_name では COM_UTIL_ERR_UNKNOWN が返ること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 名前と識別の getter が NULL や不足バッファーに対して安全に失敗することの確認
@@ -1615,7 +1663,7 @@ TEST_F(traceTest, name_getters_fail_safely_for_invalid_arguments)
                 small_buf))); // [確認_異常系] - com_util_tracer_get_name の戻り値から、バッファー不足で失敗したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 #if defined(PLATFORM_WINDOWS)
@@ -1652,7 +1700,7 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
         rtc_tracer_start); // [確認_正常系] - com_util_tracer_start の戻り値から、start が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 #endif /* PLATFORM_WINDOWS */
 
@@ -1679,7 +1727,7 @@ TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
         rtc_tracer_start); // [確認_正常系] - com_util_tracer_start の戻り値から、start が成功したと判断できること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // トレース ファイルを開けない場合に start が -1 を返しつつ started 状態になることの確認
@@ -1712,7 +1760,7 @@ TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails
               captured.find("I still works")); // [確認_異常系] - stderr 出力が継続すること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // stop がトレース ファイルを閉じ、再 start で新しいファイル名のデフォルト パスを開き直すことの確認
@@ -1752,5 +1800,5 @@ TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
         rtc_tracer_start_2); // [確認_正常系] - com_util_tracer_start の戻り値として、再度 start を行った結果が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }

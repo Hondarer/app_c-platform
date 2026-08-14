@@ -3,10 +3,70 @@
 #include <com_util/runtime/process.h>
 #include <com_util/trace/tracer.h>
 #include <string>
+#include <thread>
+#include <vector>
 
 class traceFileIntegrationTest : public Test
 {
 };
+
+// tracer-managed モードで実 rwlock を使用した並行参照が成功することの確認
+TEST_F(traceFileIntegrationTest, tracer_managed_mode_supports_concurrent_reads)
+{
+    // Arrange
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
+    ASSERT_NE(nullptr, handle);
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, NULL, COM_UTIL_TRACE_LEVEL_NONE, 0, 0, 0));
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
+    std::vector<std::thread> workers;
+    std::vector<int> results(8, COM_UTIL_ERR_UNKNOWN);
+
+    // Pre-Assert
+
+    // Act
+    for (size_t i = 0; i < results.size(); i++)
+    {
+        workers.emplace_back([handle, &results, i]() { results[i] = com_util_tracer_get_state(handle); });
+    }
+    for (std::thread &worker : workers)
+    {
+        worker.join();
+    }
+    com_util_tracer_dispose(&handle); // [手順] - 並行参照の完了後に tracer を破棄する。
+
+    // Assert
+    for (int result : results)
+    {
+        EXPECT_EQ(COM_UTIL_TRACER_STATE_STARTED,
+                  result); // [確認_正常系] - 各スレッドの com_util_tracer_get_state が STARTED を返すこと。
+    }
+    EXPECT_EQ(nullptr, handle); // [確認_正常系] - com_util_tracer_dispose がハンドルを NULL にすること。
+}
+
+// 両方の並行処理管理モードで生成と破棄を繰り返せることの確認
+TEST_F(traceFileIntegrationTest, both_concurrency_modes_repeat_lifecycle)
+{
+    // Arrange
+    const com_util_tracer_concurrency_mode modes[] = {COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED,
+                                                      COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED};
+
+    // Pre-Assert
+
+    // Act
+    for (com_util_tracer_concurrency_mode mode : modes)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            com_util_tracer *handle =
+                com_util_tracer_create(mode); // [手順] - 各並行処理管理モードで tracer を生成する。
+            ASSERT_NE(nullptr, handle);
+            com_util_tracer_dispose(&handle); // [手順] - 生成した tracer を破棄する。
+            EXPECT_EQ(nullptr, handle);       // [確認_正常系] - com_util_tracer_dispose がハンドルを NULL にすること。
+        }
+    }
+
+    // Assert
+}
 
 // file trace を有効化すると実ファイルへメッセージが書き込まれることの確認
 TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
@@ -16,7 +76,7 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
     std::string path = ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_test.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
 
@@ -39,7 +99,7 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_2); // [確認_正常系] - INFO 行を書き込んだ _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 
     // Assert
     EXPECT_FILE_EXISTS(path);                         // [確認_正常系] - 実ファイルが生成されること。
@@ -59,7 +119,7 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
         ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_filter.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
 
@@ -82,7 +142,7 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_2); // [確認_正常系] - WARNING 行を書き込んだ _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 
     // Assert
     EXPECT_FILE_EXISTS(path);                                           // [確認_正常系] - 実ファイルが生成されること。
@@ -101,7 +161,7 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     std::string path = ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_debug.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
 
@@ -124,7 +184,7 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_2); // [確認_正常系] - DEBUG 行を書き込んだ _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 
     // Assert
     EXPECT_FILE_EXISTS(path);                               // [確認_正常系] - 実ファイルが生成されること。
@@ -144,7 +204,7 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
         ws + "/app/com_util/test/src/integration/trace/traceFileIntegrationTest/results/trace_disable.log";
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
 
@@ -174,7 +234,7 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_2); // [確認_正常系] - 無効化後に呼び出した _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 
     // Assert
     EXPECT_FILE_EXISTS(path);                                   // [確認_正常系] - 最初の実ファイルが残ること。
@@ -222,7 +282,7 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
     ASSERT_FALSE(path.empty());
     remove(path.c_str());
 
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(handle, COM_UTIL_TRACE_LEVEL_NONE));
     int rtc_tracer_set_name = com_util_tracer_set_name(
@@ -242,7 +302,7 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write); // [確認_正常系] - INFO 行を書き込んだ _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 
     // Assert
     EXPECT_FILE_EXISTS(path); // [確認_正常系] - プロセス名のトレース ファイルが log/ に生成されること。
@@ -260,8 +320,8 @@ TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_p
     ASSERT_FALSE(path.empty());
     remove(path.c_str());
 
-    com_util_tracer *first = com_util_tracer_create();
-    com_util_tracer *second = com_util_tracer_create();
+    com_util_tracer *first = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
+    com_util_tracer *second = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, first);
     ASSERT_NE((com_util_tracer *)NULL, second);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_os_level(first, COM_UTIL_TRACE_LEVEL_NONE));
@@ -288,13 +348,13 @@ TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_p
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_2); // [確認_正常系] - 2 つ目から呼び出した _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(first); // [手順] - 1 つ目を解放する。
+    com_util_tracer_dispose(&first); // [手順] - 1 つ目を解放する。
     int rtc_tracer_write_3 = _com_util_tracer_write(second, COM_UTIL_TRACE_LEVEL_ERROR, NULL,
                                                     "after first dispose"); // [手順] - 解放後も 2 つ目から書き込む。
     EXPECT_EQ(
         COM_UTIL_OK,
         rtc_tracer_write_3); // [確認_正常系] - 1 つ目の解放後に 2 つ目から呼び出した _com_util_tracer_write の戻り値が COM_UTIL_OK であること。
-    com_util_tracer_dispose(second);
+    com_util_tracer_dispose(&second);
 
     // Assert
     EXPECT_FILE_EXISTS(path); // [確認_正常系] - 占有モードでも 2 つ目の start が成功し同一ファイルを共有すること。

@@ -22,7 +22,7 @@ Windows では、EventLog とは別に、開発者向けの低オーバーヘッ
 ## 設計の要点
 
 `trace` は、設定フェーズと出力フェーズを分けたライフサイクルを持ちます。  
-`com_util_tracer_create()` 直後は stopped 状態で、`com_util_tracer_set_*()` による設定変更が可能です。  
+`com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)` 直後は stopped 状態で、`com_util_tracer_set_*()` による設定変更が可能です。  
 `com_util_tracer_start()` 後は started 状態となり、`com_util_tracer_write()` 系で出力できます。
 
 ```text
@@ -32,7 +32,15 @@ create -> set_name / set_* -> start -> write -> stop -> dispose
 トレース レベルの変更 (`com_util_tracer_set_os_level()` 系) は started 中でも行えます。停止せずにしきい値を変えられ、変更は排他制御下で原子的に反映されるため、旧しきい値と新しきい値の両方で出力対象となるトレースを取りこぼしません。  
 識別子・ファイル名・フックの設定 (`com_util_tracer_set_name()`, `com_util_tracer_set_file_name()`, `com_util_tracer_set_hook()`, `com_util_tracer_remove_hook()`) は stopped 中のみ変更でき、変える場合は一度 `com_util_tracer_stop()` で stopped に戻します。  
 `com_util_tracer_dispose()` は started / stopped のどちらからでも呼べます。  
+破棄にはハンドル変数のアドレスを渡します。破棄後は変数へ `NULL` が設定され、tracer が所有する同期オブジェクトを利用者が解放する必要はありません。  
 `com_util_tracer_get_state()` を使うと、handle が `started` / `stopped` / `disposed` のどれかを確認できます。
+
+### 並行処理管理モード
+
+`com_util_tracer_create()` は、ハンドルごとの同期方式を明示的に受け取ります。  
+`COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED` は tracer が読み書きロックを生成、使用、破棄するため、同一ハンドルを複数スレッドから呼び出せます。  
+`COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED` はハンドル専用ロックを生成しないため、単一スレッドで利用する場合や、呼び出し側に既存の排他制御がある場合に余分な同期コストを避けられます。  
+このモードでは、同一ハンドルへの呼び出しが重ならないことを利用者が保証します。異なるハンドルを並行して生成、利用、破棄することはできます。
 
 ## トレース レベル
 
@@ -55,7 +63,7 @@ Windows EventLog はイベント タイプが Error / Warning / Information の 
 
 ## デフォルト動作
 
-`com_util_tracer_create()` 直後の既定値は次のとおりです。
+`com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)` 直後の既定値は次のとおりです。
 
 - OS トレース (EventLog / syslog): `COM_UTIL_TRACE_LEVEL_NONE`
 - ETW (Windows のみ): `COM_UTIL_TRACE_LEVEL_VERBOSE`
@@ -168,7 +176,7 @@ source location を付けずに生のメッセージを書き込みたい場合�
 
 int main(void)
 {
-    com_util_tracer *tracer = com_util_tracer_create();
+    com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     if (tracer == NULL) {
         return 1;
     }
@@ -180,7 +188,7 @@ int main(void)
     com_util_tracer_writef(tracer, COM_UTIL_TRACE_LEVEL_WARNING, NULL, "retry=%d", 3);
 
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
     return 0;
 }
 ```
@@ -190,7 +198,7 @@ int main(void)
 ```c
 #include <com_util/trace/tracer.h>
 
-com_util_tracer *tracer = com_util_tracer_create();
+com_util_tracer *tracer = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
 
 com_util_tracer_set_name(tracer, "myapp", 0);
 com_util_tracer_set_os_level(tracer, COM_UTIL_TRACE_LEVEL_WARNING);
@@ -201,7 +209,7 @@ com_util_tracer_start(tracer);
 
 com_util_tracer_write(tracer, COM_UTIL_TRACE_LEVEL_INFO, NULL, "service ready");
 
-com_util_tracer_dispose(tracer);
+com_util_tracer_dispose(&tracer);
 ```
 
 `max_bytes == 0` は既定値、`generations <= 0` も既定値として扱われます。  

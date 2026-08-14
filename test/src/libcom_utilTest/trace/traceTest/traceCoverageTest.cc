@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "tracer.inject.h"
+#include "traceSyncMock.h"
 
 #if defined(PLATFORM_LINUX)
     #include <syslog.h>
@@ -55,6 +56,7 @@ class traceCoverageTest : public Test
 
     void SetUp() override
     {
+        set_trace_sync_mock_defaults(mock_);
         test_trace_registry_reset_shutdown_state();
         ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_, com_util_trace_file_sink_create(_, _, _, _)).WillByDefault(Return(file_handle_));
@@ -138,8 +140,10 @@ TEST_F(traceCoverageTest, create_fails_when_syslog_or_rwlock_setup_fails)
                                       // [Pre-Assert手順] - 1 回目は UNKNOWN、以降は既定動作を返却する。
 
     // Act
-    syslog_failure = com_util_tracer_create(); // [手順] - syslog sink 生成失敗状態で create する。
-    rwlock_failure = com_util_tracer_create(); // [手順] - rwlock 生成失敗状態で create する。
+    syslog_failure = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - syslog sink 生成失敗状態で create する。
+    rwlock_failure = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - rwlock 生成失敗状態で create する。
 
     // Assert
     EXPECT_EQ((com_util_tracer *)NULL,
@@ -155,7 +159,7 @@ TEST_F(traceCoverageTest, shutdown_and_inactive_dispose_paths)
 {
     // Arrange
     com_util_tracer *rejected = NULL;
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     int first_dispose = 0;
     int second_begin = 0;
@@ -164,12 +168,13 @@ TEST_F(traceCoverageTest, shutdown_and_inactive_dispose_paths)
 
     // Act
     test_trace_registry_set_shutdown_started(1U);
-    rejected = com_util_tracer_create(); // [手順] - シャットダウン開始後に create する。
+    rejected = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - シャットダウン開始後に create する。
     test_trace_registry_reset_shutdown_state();
     first_dispose = test_tracer_begin_dispose(handle);    // [手順] - アクティブ ハンドルの解放を開始する。
     second_begin = test_tracer_begin_dispose(handle);     // [手順] - 非アクティブ ハンドルの解放を再開始する。
-    com_util_tracer_dispose(NULL);                        // [手順] - NULL ハンドルを dispose する。
-    com_util_tracer_dispose(handle);                      // [手順] - 解放開始済みハンドルを dispose する。
+    com_util_tracer_dispose(NULL);                        // [手順] - NULL のポインターを dispose する。
+    com_util_tracer_dispose(&handle);                     // [手順] - 解放開始済みハンドルを dispose する。
     int null_active = test_tracer_handle_is_active(NULL); // [手順] - NULL ハンドルのアクティブ判定を行う。
     int null_begin = test_tracer_begin_dispose(NULL);     // [手順] - NULL ハンドルの解放開始を行う。
 
@@ -186,7 +191,7 @@ TEST_F(traceCoverageTest, shutdown_and_inactive_dispose_paths)
 TEST_F(traceCoverageTest, enter_shared_fails_on_timeout_and_lifecycle_change)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     com_util_trace_level file_level = COM_UTIL_TRACE_LEVEL_DEBUG;
     com_util_trace_level stderr_level = COM_UTIL_TRACE_LEVEL_DEBUG;
@@ -237,14 +242,14 @@ TEST_F(traceCoverageTest, enter_shared_fails_on_timeout_and_lifecycle_change)
 
     // Cleanup
     test_tracer_set_lifecycle_state(handle, 0);
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 名前設定とファイル設定の失敗枝を処理することの確認
 TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     int negative_name = COM_UTIL_OK;
     int name_null = COM_UTIL_OK;
@@ -316,14 +321,14 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
 
     // Cleanup
     test_tracer_set_lifecycle_state(handle, 0);
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 既定パス構築失敗と稼働中の file sink 再オープン失敗を処理することの確認
 TEST_F(traceCoverageTest, file_sink_open_failures)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     char path[1] = {};
     int default_path = COM_UTIL_OK;
@@ -355,14 +360,14 @@ TEST_F(traceCoverageTest, file_sink_open_failures)
 
     // Cleanup
     test_tracer_set_file_handle(handle, NULL);
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // snprintf 失敗と write / hex の番兵を処理することの確認
 TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     NiceMock<Mock_stdio> mock_stdio;
     char name[32] = {};
@@ -415,14 +420,14 @@ TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
     EXPECT_EQ(COM_UTIL_OK, write_hexf_null_format); // [確認_正常系] - format NULL の write_hexf が OK であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // hook の確保失敗とシャットダウンの二重呼び出しを処理することの確認
 TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_shutdown_event event = {};
@@ -454,7 +459,7 @@ TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
 TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     com_util_timespec ts = {};
     ts.tv_sec = 1;
@@ -488,14 +493,14 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, format_result); // [確認_異常系] - 時刻整形失敗時の write が UNKNOWN であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 残っている複合条件を inject と設定 API で充足することの確認
 TEST_F(traceCoverageTest, remaining_compound_conditions)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     char tiny_name[2] = {};
     char empty_label[] = "";
@@ -583,13 +588,8 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
     com_util_tracer_remove_hook(handle, reinterpret_cast<com_util_tracer_hook_entry *>(static_cast<uintptr_t>(0x2)));
     test_tracer_call_next_null(handle);                   // [手順] - NULL prev で次 hook を呼ぶ。
     test_tracer_call_next_with_fn(handle, coverage_hook); // [手順] - fn 付き prev で次 hook を呼ぶ。
-    if (test_tracer_get_config_rwlock(handle) != NULL)
-    {
-        (void)com_util_local_rwlock_destroy(test_tracer_get_config_rwlock(handle));
-    }
-    test_tracer_set_config_rwlock_initialized(handle, 0);
     test_tracer_set_file_handle(handle, NULL);
-    com_util_tracer_dispose(handle); // [手順] - rwlock 未初期化として dispose する。
+    com_util_tracer_dispose(&handle); // [手順] - tracer が所有する同期リソースを dispose で解放する。
 
     // Assert
     EXPECT_EQ(0, active_during_shutdown); // [確認_異常系] - シャットダウン中の handle_is_active が 0 であること。
@@ -606,7 +606,7 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
 TEST_F(traceCoverageTest, release_normal_disposes_open_file_and_hooks)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     int started = COM_UTIL_OK;
 
@@ -617,7 +617,7 @@ TEST_F(traceCoverageTest, release_normal_disposes_open_file_and_hooks)
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_file_level(handle, "/tmp/c.log", COM_UTIL_TRACE_LEVEL_INFO, 0, 0, 0));
     started = com_util_tracer_start(handle); // [手順] - ファイル出力を有効にして start する。
     (void)hook;
-    com_util_tracer_dispose(handle); // [手順] - 開いているファイルと hook を持つハンドルを dispose する。
+    com_util_tracer_dispose(&handle); // [手順] - 開いているファイルと hook を持つハンドルを dispose する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, started); // [確認_正常系] - ファイル付き start が OK であること。
@@ -627,7 +627,7 @@ TEST_F(traceCoverageTest, release_normal_disposes_open_file_and_hooks)
 TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
 #if defined(PLATFORM_LINUX)
     com_util_tracer *rejected = NULL;
@@ -650,8 +650,9 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
 
     // Act
 #if defined(PLATFORM_LINUX)
-    rejected = com_util_tracer_create(); // [手順] - syslog 生成中にシャットダウンを開始して create する。
-#endif                                   /* PLATFORM_LINUX */
+    rejected = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - syslog 生成中にシャットダウンを開始して create する。
+#endif                                               /* PLATFORM_LINUX */
     test_trace_registry_reset_shutdown_state();
     test_tracer_set_running(handle, 0);
     test_tracer_set_file_handle(handle, file_handle_);
@@ -685,7 +686,7 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
 TEST_F(traceCoverageTest, exclusive_lock_lifecycle_and_set_file_level_enter_failure)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     int start_result = COM_UTIL_OK;
     int file_level_result = COM_UTIL_OK;
@@ -714,14 +715,14 @@ TEST_F(traceCoverageTest, exclusive_lock_lifecycle_and_set_file_level_enter_fail
 
     // Cleanup
     test_tracer_set_lifecycle_state(handle, 0);
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 既定パスの snprintf 失敗、NULL パスの sink 生成、残存 file の通常解放を処理することの確認
 TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     char path[64] = {};
     int default_path = COM_UTIL_OK;
@@ -753,8 +754,8 @@ TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
     }
     test_tracer_set_running(handle, 0);
     test_tracer_set_file_handle(handle, file_handle_);
-    com_util_tracer_dispose(handle); // [手順] - 停止中に残した file ハンドルを通常解放する。
-    handle = com_util_tracer_create();
+    com_util_tracer_dispose(&handle); // [手順] - 停止中に残した file ハンドルを通常解放する。
+    handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle));
     hex_plain = test_tracer_hex_write_impl(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, payload, sizeof(payload),
@@ -773,16 +774,16 @@ TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
     EXPECT_EQ(COM_UTIL_OK, hex_ellipsis_only);     // [確認_正常系] - 残り幅が狭い hex が OK であること。
 
     // Cleanup
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }
 
 // 残っている C2 分岐を設定変更と inject で充足することの確認
 TEST_F(traceCoverageTest, remaining_gcov_branches)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create();
+    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, handle);
-    com_util_tracer *disposed = com_util_tracer_create();
+    com_util_tracer *disposed = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
     ASSERT_NE((com_util_tracer *)NULL, disposed);
     const unsigned char data[2] = {0xAA, 0xBB};
     com_util_timespec invalid_ts = {};
@@ -999,5 +1000,5 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     test_trace_registry_reset_shutdown_state();
     test_tracer_set_lifecycle_state(handle, 0);
     test_tracer_set_file_handle(handle, NULL);
-    com_util_tracer_dispose(handle);
+    com_util_tracer_dispose(&handle);
 }

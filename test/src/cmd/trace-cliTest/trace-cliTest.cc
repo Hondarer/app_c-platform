@@ -15,6 +15,7 @@ using testing::AnyNumber;
 using testing::AtLeast;
 using testing::HasSubstr;
 using testing::NiceMock;
+using testing::Pointee;
 using testing::Return;
 using testing::StrEq;
 
@@ -98,7 +99,7 @@ TEST_F(trace_cliTest, process_line_create_and_reject_second_create)
     // Arrange
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_tracer_create())
+    EXPECT_CALL(mock_com_util_, com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED))
         .WillOnce(Return(handle_)); // [Pre-Assert確認_正常系] - com_util_tracer_create が 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_tracer_create から handle_ を返却する。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=created\n")))
@@ -195,9 +196,10 @@ TEST_F(trace_cliTest, process_line_dispose_releases_handle)
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(_))
         .Times(AnyNumber())
-        .WillRepeatedly(Return()); // [Pre-Assert手順] - 後処理で発生する com_util_tracer_dispose(NULL) を許容する。
-    EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(handle_))
-        .WillOnce(Return()); // [Pre-Assert確認_正常系] - com_util_tracer_dispose(handle_) が 1 回呼び出されること。
+        .WillRepeatedly(Return()); // [Pre-Assert手順] - 後処理で発生する NULL ハンドルの dispose を許容する。
+    EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(Pointee(handle_)))
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - handle_ を保持するポインターで com_util_tracer_dispose が 1 回呼び出されること。
     EXPECT_CALL(mock_stdio_, printf(_, _, _, StrEq("handle=disposed\n")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - dispose 結果として "handle=disposed" が出力されること。
 
@@ -368,8 +370,8 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
             Return()); // [Pre-Assert確認_正常系] - main() 終了時に com_util_prompt_dispose(prompt_handle) が 1 回呼び出されること。
     EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(_))
         .Times(AnyNumber())
-        .WillRepeatedly(Return()); // [Pre-Assert手順] - 後処理で発生する com_util_tracer_dispose(NULL) を許容する。
-    EXPECT_CALL(mock_com_util_, com_util_tracer_create())
+        .WillRepeatedly(Return()); // [Pre-Assert手順] - 後処理で発生する NULL ハンドルの dispose を許容する。
+    EXPECT_CALL(mock_com_util_, com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED))
         .WillOnce(Return(
             handle_)); // [Pre-Assert確認_正常系] - create コマンドで com_util_tracer_create が 1 回呼び出されること。
                        // [Pre-Assert手順] - com_util_tracer_create から handle_ を返却する。
@@ -393,9 +395,9 @@ TEST_F(trace_cliTest, main_runs_interactive_sequence_and_disposes_handle)
         .WillOnce(
             Return(0)); // [Pre-Assert確認_正常系] - stop コマンドで com_util_tracer_stop が 1 回呼び出されること。
                         // [Pre-Assert手順] - com_util_tracer_stop から 0 を返却する。
-    EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(handle_))
+    EXPECT_CALL(mock_com_util_, com_util_tracer_dispose(Pointee(handle_)))
         .WillOnce(
-            Return()); // [Pre-Assert確認_正常系] - dispose コマンドで com_util_tracer_dispose(handle_) が 1 回呼び出されること。
+            Return()); // [Pre-Assert確認_正常系] - dispose コマンドで handle_ を保持するポインターが 1 回渡されること。
     EXPECT_CALL(mock_com_util_, com_util_prompt_readline_fmt_at(prompt_handle, _, _, _, _, _, _))
         .WillRepeatedly(
             [&](com_util_prompt *, char *buf, size_t buf_size, const char *, int, const char *, va_list) -> int

@@ -559,8 +559,8 @@ extern int delegate_real_com_util_file_flush(com_util_file *file, com_util_error
 extern int delegate_real_com_util_file_close(com_util_file *file, com_util_error *detail_out);
 
 // trace - tracer
-extern com_util_tracer *delegate_real_com_util_tracer_create(void);
-extern void delegate_real_com_util_tracer_dispose(com_util_tracer *handle);
+extern com_util_tracer *delegate_real_com_util_tracer_create(com_util_tracer_concurrency_mode concurrency_mode);
+extern void delegate_real_com_util_tracer_dispose(com_util_tracer **handle);
 extern int delegate_real_com_util_tracer_start(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_stop(com_util_tracer *handle);
 extern int delegate_real__com_util_tracer_write(com_util_tracer *handle, com_util_trace_level level,
@@ -1054,8 +1054,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_file_close, (com_util_file *, com_util_error *));
 
     // trace - tracer
-    MOCK_METHOD(com_util_tracer *, com_util_tracer_create, ());
-    MOCK_METHOD(void, com_util_tracer_dispose, (com_util_tracer *));
+    MOCK_METHOD(com_util_tracer *, com_util_tracer_create, (com_util_tracer_concurrency_mode));
+    MOCK_METHOD(void, com_util_tracer_dispose, (com_util_tracer **));
     MOCK_METHOD(int, com_util_tracer_start, (com_util_tracer *));
     MOCK_METHOD(int, com_util_tracer_stop, (com_util_tracer *));
     MOCK_METHOD(int, _com_util_tracer_write,

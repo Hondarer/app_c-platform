@@ -5,6 +5,7 @@
 #include <com_util/trace/tracer_internal.h>
 
 #include "tracer.inject.h"
+#include "traceSyncMock.h"
 
 using testing::_;
 using testing::NiceMock;
@@ -28,6 +29,7 @@ class traceShutdownTest : public Test
 
     void SetUp() override
     {
+        set_trace_sync_mock_defaults(mock_);
         test_trace_registry_reset_shutdown_state();
         ON_CALL(mock_, com_util_shutdown_register(_, _))
             .WillByDefault(
@@ -61,8 +63,8 @@ class traceShutdownTest : public Test
 TEST_F(traceShutdownTest, shutdown_disposes_registry_and_rejects_new_create)
 {
     // Arrange
-    com_util_tracer *handle =
-        com_util_tracer_create(); // [状態] - tracer を 1 件生成し registry に登録された状態とする。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - tracer を 1 件生成し registry に登録された状態とする。
     ASSERT_NE((com_util_tracer *)NULL, handle);
     EXPECT_EQ((size_t)1, trace_registry_count()); // [状態] - registry の登録件数を 1 件とする。
 
@@ -74,8 +76,8 @@ TEST_F(traceShutdownTest, shutdown_disposes_registry_and_rejects_new_create)
 
     // Act
     shutdown_callback_(&event, shutdown_context_); // [手順] - 登録された tracer shutdown callback を直接呼び出す。
-    com_util_tracer *created_after_shutdown =
-        com_util_tracer_create(); // [手順] - shutdown 後に新しい tracer の生成を試みる。
+    com_util_tracer *created_after_shutdown = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - shutdown 後に新しい tracer の生成を試みる。
 
     // Assert
     EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - shutdown 後に registry が空になること。

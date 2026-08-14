@@ -10,6 +10,7 @@
 #include <testfw.h>
 #include <mock_com_util.h>
 #include <com_util/trace/tracer.h>
+#include "traceSyncMock.h"
 #include <string>
 #include <cstring>
 #include <ctime>
@@ -107,6 +108,7 @@ class traceHookTest : public Test
 
     void SetUp() override
     {
+        set_trace_sync_mock_defaults(mock_);
         reset_hook_records();
 
         ON_CALL(mock_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
@@ -138,7 +140,7 @@ class traceHookTest : public Test
 
     com_util_tracer *create_tracer()
     {
-        com_util_tracer *handle = com_util_tracer_create();
+        com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
         EXPECT_NE((com_util_tracer *)NULL, handle);
         return handle;
     }
@@ -161,7 +163,7 @@ TEST_F(traceHookTest, test_set_hook_returns_non_null)
 
     // Cleanup
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // handle が NULL のとき set_hook が NULL を返すことの確認
@@ -197,7 +199,7 @@ TEST_F(traceHookTest, test_set_hook_null_fn_returns_null)
               entry); // [確認_異常系] - com_util_tracer_set_hook の戻り値が NULL であること。
 
     // Cleanup
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // started 状態では set_hook が NULL を返すことの確認
@@ -219,7 +221,7 @@ TEST_F(traceHookTest, test_set_hook_while_started_returns_null)
 
     // Cleanup
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // フックを登録してから write するとコールバックが呼ばれることの確認
@@ -257,7 +259,7 @@ TEST_F(traceHookTest, test_hook_is_called_on_write)
     // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // COM_UTIL_TRACE_LEVEL_NONE で要求した場合もフックが呼ばれることの確認
@@ -286,7 +288,7 @@ TEST_F(traceHookTest, test_hook_is_called_for_none_level)
     // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // フックが設定されていない場合に write が通常通り成功することの確認 (性能パス)
@@ -311,7 +313,7 @@ TEST_F(traceHookTest, test_no_hook_write_succeeds)
 
     // Cleanup
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // remove_hook 後はコールバックが呼ばれないことの確認
@@ -338,7 +340,7 @@ TEST_F(traceHookTest, test_hook_not_called_after_remove)
 
     // Cleanup
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // 複数フックのチェーンで最後に登録したものから順に呼ばれることの確認
@@ -389,7 +391,7 @@ TEST_F(traceHookTest, test_hook_chain_order)
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, e2);
     com_util_tracer_remove_hook(tracer, e1);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // call_next_hook に NULL を渡しても何も起きないことの確認
@@ -412,7 +414,7 @@ TEST_F(traceHookTest, test_call_next_hook_null_prev)
 
     // Cleanup
     com_util_tracer_stop(tracer);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // writef 経由でもフックが呼ばれることの確認
@@ -444,7 +446,7 @@ TEST_F(traceHookTest, test_hook_called_via_writef)
     // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // タイムスタンプが NULL でも解決済みタイムスタンプがフックに渡ることの確認
@@ -475,7 +477,7 @@ TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
     // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
 
 // started 状態では remove_hook が何もしないことの確認
@@ -503,5 +505,5 @@ TEST_F(traceHookTest, test_remove_hook_while_started_does_nothing)
     // Cleanup
     com_util_tracer_stop(tracer);
     com_util_tracer_remove_hook(tracer, entry);
-    com_util_tracer_dispose(tracer);
+    com_util_tracer_dispose(&tracer);
 }
