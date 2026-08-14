@@ -8,7 +8,6 @@
 #include <cstring>
 
 #if defined(PLATFORM_LINUX)
-    #include <stdlib.h>
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <direct.h>
@@ -18,6 +17,31 @@ using namespace testing;
 
 namespace
 {
+
+#if defined(PLATFORM_LINUX)
+static void stub_linux_path_resolution(Mock_unistd *mock_unistd, Mock_stdlib *mock_stdlib)
+{
+    ON_CALL(*mock_unistd, getcwd(_, _, _, _, _))
+        .WillByDefault(
+            [](const char *, int, const char *, char *buf, size_t size) -> char *
+            {
+                const char cwd[] = "/work";
+                if (size < sizeof(cwd))
+                {
+                    return nullptr;
+                }
+                memcpy(buf, cwd, sizeof(cwd));
+                return buf;
+            });
+    ON_CALL(*mock_stdlib, realpath(_, _, _, _, _))
+        .WillByDefault(
+            [](const char *, int, const char *, const char *path, char *resolved) -> char *
+            {
+                strcpy(resolved, path);
+                return resolved;
+            });
+}
+#endif /* PLATFORM_LINUX */
 
 static void assert_path_get_full_success(char *path_out, size_t path_size, const char *path)
 {
@@ -108,6 +132,12 @@ TEST_F(pathGetFullTest, rejects_invalid_output_and_empty_path)
 TEST_F(pathGetFullTest, expands_current_directory_to_absolute_path)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    stub_linux_path_resolution(&mock_unistd,
+                               &mock_stdlib); // [状態] - getcwd と realpath を既定の作業ディレクトリへ差し替える。
+#endif                                        /* PLATFORM_LINUX */
     char actual[PLATFORM_PATH_MAX] = {};
     char expected[PLATFORM_PATH_MAX] = {}; // [状態] - 出力バッファーを 2 つ用意する。
 
@@ -125,6 +155,12 @@ TEST_F(pathGetFullTest, expands_current_directory_to_absolute_path)
 TEST_F(pathGetFullTest, normalizes_dotdot_and_backslash_segments)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    stub_linux_path_resolution(&mock_unistd,
+                               &mock_stdlib); // [状態] - getcwd と realpath を既定の作業ディレクトリへ差し替える。
+#endif                                        /* PLATFORM_LINUX */
     char base[PLATFORM_PATH_MAX] = {};
     char candidate[PLATFORM_PATH_MAX] = {};
     char actual[PLATFORM_PATH_MAX] = {};
@@ -159,7 +195,7 @@ TEST_F(pathGetFullTest, normalizes_repeated_separators)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
-    EXPECT_STREQ("/tmp", actual); // [確認_正常系] - 連続したセパレーターが除去されたパスになること。
+    EXPECT_STREQ("/tmp", actual);   // [確認_正常系] - 連続したセパレーターが除去されたパスになること。
 }
 
 // ルートを越える親参照と 2 文字の通常セグメントが正規化されることの確認
@@ -214,12 +250,13 @@ TEST_F(pathGetFullTest, normalizes_repeated_windows_separators)
     // Pre-Assert
 
     // Act
-    int result = com_util_path_get_full(actual, sizeof(actual), NULL,
-                                        ".\\pathGetFullTest\\\\child"); // [手順] - '\\' と連続したセパレーターを含む相対パスを絶対化する。
+    int result = com_util_path_get_full(
+        actual, sizeof(actual), NULL,
+        ".\\pathGetFullTest\\\\child"); // [手順] - '\\' と連続したセパレーターを含む相対パスを絶対化する。
 
     // Assert
     ASSERT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
-    EXPECT_NE('\0', actual[0]); // [確認_正常系] - 絶対パスが返ること。
+    EXPECT_NE('\0', actual[0]);     // [確認_正常系] - 絶対パスが返ること。
     EXPECT_EQ(nullptr, std::strchr(actual, '\\')); // [確認_正常系] - '\\' が '/' に正規化されること。
     EXPECT_EQ(nullptr, std::strstr(actual, "//")); // [確認_正常系] - 連続したセパレーターが除去されること。
 }
@@ -229,6 +266,12 @@ TEST_F(pathGetFullTest, normalizes_repeated_windows_separators)
 TEST_F(pathGetFullTest, returns_enametoolong_when_relative_path_is_too_long)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    stub_linux_path_resolution(&mock_unistd,
+                               &mock_stdlib); // [状態] - getcwd と realpath を既定の作業ディレクトリへ差し替える。
+#endif                                        /* PLATFORM_LINUX */
     char relative[PLATFORM_PATH_MAX] = {};
     char output[PLATFORM_PATH_MAX] = {'x'};
     com_util_error err;
@@ -237,8 +280,9 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_relative_path_is_too_long)
     // Pre-Assert
 
     // Act
-    int result = com_util_path_get_full(output, sizeof(output), &err,
-                                        relative); // [手順] - カレント ディレクトリとの連結結果が長過ぎる相対パスを指定する。
+    int result =
+        com_util_path_get_full(output, sizeof(output), &err,
+                               relative); // [手順] - カレント ディレクトリとの連結結果が長過ぎる相対パスを指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
@@ -252,8 +296,14 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_relative_path_is_too_long)
 TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
 {
     // Arrange
-    char path[4] = {};  // [状態] - 4 バイトの小さすぎる出力バッファーを用意する。
-    com_util_error err; // [状態] - 詳細エラーの受け取り先を用意する。
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    stub_linux_path_resolution(&mock_unistd,
+                               &mock_stdlib); // [状態] - getcwd と realpath を既定の作業ディレクトリへ差し替える。
+#endif                                        /* PLATFORM_LINUX */
+    char path[4] = {};                        // [状態] - 4 バイトの小さすぎる出力バッファーを用意する。
+    com_util_error err;                       // [状態] - 詳細エラーの受け取り先を用意する。
 
     // Pre-Assert
 
@@ -273,6 +323,12 @@ TEST_F(pathGetFullTest, returns_enametoolong_when_buffer_is_too_small)
 TEST_F(pathGetFullTest, returns_absolute_path_for_nonexistent_target)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_stdlib> mock_stdlib;
+    stub_linux_path_resolution(&mock_unistd,
+                               &mock_stdlib); // [状態] - getcwd と realpath を既定の作業ディレクトリへ差し替える。
+#endif                                        /* PLATFORM_LINUX */
     char base[PLATFORM_PATH_MAX] = {};
     char candidate[PLATFORM_PATH_MAX] = {};
     char actual[PLATFORM_PATH_MAX] = {};
@@ -321,41 +377,27 @@ TEST_F(pathGetFullTest, returns_enomem_when_normalization_allocation_fails)
 TEST_F(pathGetFullTest, resolves_symlink_to_target_path_when_target_exists)
 {
     // Arrange
-    char dir_template[] = "/tmp/pathGetFullTestXXXXXX";
-    char *dir_path = mkdtemp(dir_template); // [状態] - 一時ディレクトリを作成する。
-    char target_path[PLATFORM_PATH_MAX] = {};
-    char link_path[PLATFORM_PATH_MAX] = {};
-    char expected[PLATFORM_PATH_MAX] = {};
+    NiceMock<Mock_stdlib> mock_stdlib;
     char actual[PLATFORM_PATH_MAX] = {};
-    FILE *file;
-
-    ASSERT_NE(nullptr, dir_path); // [状態確認] - mkdtemp の戻り値が非 NULL であること。
-    build_path(target_path, sizeof(target_path), dir_path, "target.bin");
-    build_path(link_path, sizeof(link_path), dir_path, "target-link.bin");
-
-    file = std::fopen(target_path, "wb"); // [状態] - 実体ファイル target.bin を書き込み用に開く。
-    ASSERT_NE(nullptr, file);             // [状態確認] - fopen の戻り値が非 NULL であること。
-    ASSERT_EQ(1u, std::fwrite("x", 1u, 1u, file)); // [状態] - target.bin へ 1 バイトを書き込む。
-                                                   // [状態確認] - fwrite の戻り値が 1 であること。
-    ASSERT_EQ(0, std::fclose(file));               // [状態] - 実体ファイル target.bin を作成する。
-                                                   // [状態確認] - fclose の戻り値が 0 であること。
-    ASSERT_EQ(0, symlink(target_path, link_path)); // [状態] - target.bin への symlink target-link.bin を作成する。
-                                                   // [状態確認] - symlink の戻り値が 0 であること。
-
-    assert_path_get_full_success(expected, sizeof(expected), target_path);
 
     // Pre-Assert
+    EXPECT_CALL(mock_stdlib, realpath(_, _, _, StrEq("/work/target-link.bin"), _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, char *resolved) -> char *
+            {
+                const char target[] = "/work/target.bin";
+                memcpy(resolved, target, sizeof(target));
+                return resolved;
+            }); // [Pre-Assert確認_正常系] - realpath が symlink パスを指定して 1 回呼び出されること。
+                // [Pre-Assert手順] - 実体ファイルのパスを書き込み、そのアドレスを返却する。
 
     // Act
-    assert_path_get_full_success(actual, sizeof(actual), link_path); // [手順] - symlink のパスを絶対化する。
+    int result = com_util_path_get_full(actual, sizeof(actual), NULL,
+                                        "/work/target-link.bin"); // [手順] - symlink のパスを絶対化する。
 
     // Assert
-    EXPECT_STREQ(expected, actual); // [確認_正常系] - 実体ファイルのパスへ解決されること。
-
-    // Cleanup
-    ASSERT_EQ(0, unlink(link_path));
-    ASSERT_EQ(0, unlink(target_path));
-    ASSERT_EQ(0, rmdir(dir_path));
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ("/work/target.bin", actual); // [確認_正常系] - 実体ファイルのパスへ解決されること。
 }
 #endif /* PLATFORM_LINUX */
 

@@ -81,20 +81,27 @@ TEST_F(memoryLockTest, test_range_rejects_invalid_arguments)
 TEST_F(memoryLockTest, test_range_locks_and_unlocks_heap_buffer)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_sys_mman> mock_mman;
+#endif                            /* PLATFORM_LINUX */
     void *buffer = malloc(4096U); // [状態] - 4096 バイトのヒープ バッファーを確保する。
     ASSERT_NE(nullptr, buffer);   // [状態確認] - malloc の戻り値が非 NULL であること。
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_mman, mlock(_, _, _, buffer, 4096U))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - mlock が対象バッファーを指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - mlock から 0 を返却する。
+    EXPECT_CALL(mock_mman, munlock(_, _, _, buffer, 4096U))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - munlock が対象バッファーを指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - munlock から 0 を返却する。
+#endif                        /* PLATFORM_LINUX */
 
     // Act
     int lock_result =
         com_util_memory_lock_range(buffer, 4096U); // [手順] - バッファーを com_util_memory_lock_range でロックする。
-    int unlock_result = COM_UTIL_ERR_UNKNOWN;
-    if (lock_result == COM_UTIL_OK)
-    {
-        unlock_result = com_util_memory_unlock_range(
-            buffer, 4096U); // [手順] - ロック成功時に com_util_memory_unlock_range で解除する。
-    }
+    int unlock_result =
+        com_util_memory_unlock_range(buffer, 4096U); // [手順] - com_util_memory_unlock_range で解除する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
@@ -197,7 +204,7 @@ TEST_F(memoryLockTest, test_scope_release_reports_munlockall_failure)
     ON_CALL(mock_mman, mlockall(_, _, _, _))
         .WillByDefault(Return(0)); // [状態] - mlockall が呼び出された際に 0 を返すようにモックを設定する。
     ASSERT_EQ(COM_UTIL_OK, com_util_memory_lock_self(&options, &scope)); // [状態] - self lock を生成する。
-                                                                        // [状態確認] - com_util_memory_lock_self の戻り値が COM_UTIL_OK であること。
+    // [状態確認] - com_util_memory_lock_self の戻り値が COM_UTIL_OK であること。
     ASSERT_NE(nullptr, scope); // [状態確認] - self lock の scope が非 NULL であること。
     errno = EACCES;
 
@@ -380,7 +387,8 @@ TEST_F(memoryLockTest, test_scope_release_classifies_internal_states)
     int saved_state = test_memory_lock_get_once_state();
     test_memory_lock_set_internal_lock(reinterpret_cast<com_util_local_lock *>(1), 2);
     NiceMock<Mock_sys_mman> mock_mman;
-    com_util_memory_lock_scope *unlocked_scope = test_memory_lock_create_scope(0); // [状態] - mlockall 未実行の scope を用意する。
+    com_util_memory_lock_scope *unlocked_scope =
+        test_memory_lock_create_scope(0); // [状態] - mlockall 未実行の scope を用意する。
     com_util_memory_lock_scope *empty_count_scope =
         test_memory_lock_create_scope(1); // [状態] - 参照数確認用の mlockall scope を用意する。
     com_util_memory_lock_scope *shared_scope =
@@ -388,12 +396,12 @@ TEST_F(memoryLockTest, test_scope_release_classifies_internal_states)
     com_util_memory_lock_scope *lock_failure_scope =
         test_memory_lock_create_scope(1); // [状態] - 内部 lock 失敗確認用の scope を用意する。
     com_util_memory_lock_scope *last_scope =
-        test_memory_lock_create_scope(1); // [状態] - 最後の参照確認用の mlockall scope を用意する。
-    ASSERT_NE(nullptr, unlocked_scope);      // [状態確認] - mlockall 未実行 scope が非 NULL であること。
-    ASSERT_NE(nullptr, empty_count_scope);   // [状態確認] - 参照数確認用 scope が非 NULL であること。
-    ASSERT_NE(nullptr, shared_scope);        // [状態確認] - 複数参照確認用 scope が非 NULL であること。
-    ASSERT_NE(nullptr, lock_failure_scope);  // [状態確認] - 内部 lock 失敗確認用 scope が非 NULL であること。
-    ASSERT_NE(nullptr, last_scope);          // [状態確認] - 最後の参照確認用 scope が非 NULL であること。
+        test_memory_lock_create_scope(1);   // [状態] - 最後の参照確認用の mlockall scope を用意する。
+    ASSERT_NE(nullptr, unlocked_scope);     // [状態確認] - mlockall 未実行 scope が非 NULL であること。
+    ASSERT_NE(nullptr, empty_count_scope);  // [状態確認] - 参照数確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, shared_scope);       // [状態確認] - 複数参照確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, lock_failure_scope); // [状態確認] - 内部 lock 失敗確認用 scope が非 NULL であること。
+    ASSERT_NE(nullptr, last_scope);         // [状態確認] - 最後の参照確認用 scope が非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_local_lock_lock(_, COM_UTIL_SYNC_WAIT_FOREVER))
@@ -611,8 +619,18 @@ TEST_F(memoryLockTest, test_lock_self_rejects_excessive_stack_prefault)
 TEST_F(memoryLockTest, test_lock_self_allows_independent_scopes_from_multiple_threads)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_sys_mman> mock_mman;
+#endif /* PLATFORM_LINUX */
     self_lock_thread_result first = {};
     self_lock_thread_result second = {}; // [状態] - 2 スレッド分の結果格納先を用意する。
+
+#if defined(PLATFORM_LINUX)
+    ON_CALL(mock_mman, mlockall(_, _, _, _))
+        .WillByDefault(Return(0)); // [状態] - mlockall が呼び出された際に 0 を返すようにモックを設定する。
+    ON_CALL(mock_mman, munlockall(_, _, _))
+        .WillByDefault(Return(0)); // [状態] - munlockall が呼び出された際に 0 を返すようにモックを設定する。
+#endif                             /* PLATFORM_LINUX */
 
     // Pre-Assert
 

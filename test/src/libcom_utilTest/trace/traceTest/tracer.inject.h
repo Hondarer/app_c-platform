@@ -20,6 +20,9 @@ extern "C"
        同一プロセスで実行される他のテストが tracer を生成できるようにする。 */
     extern void test_trace_registry_reset_shutdown_state(void);
     extern void test_trace_registry_set_shutdown_started(size_t shutdown_started);
+    extern void test_trace_registry_set_counts(size_t count, size_t capacity);
+    extern void test_trace_registry_reinit_lock(void);
+    extern void test_trace_registry_null_lock(void);
     extern int test_trace_registry_append_null(void);
 
     extern int test_tracer_handle_is_active(const com_util_tracer *handle);

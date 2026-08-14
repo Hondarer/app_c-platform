@@ -10,10 +10,3 @@ ADD_SRCS := \
 
 # ライブラリの指定
 LIBS += mock_libc
-
-# 本番は例外を捕捉して結果コードへ変換する。
-# Linux の gcov 計測では STL 呼び出しに付く未印の例外枝を消す。
-ifdef PLATFORM_LINUX
-    CXXFLAGS += -DCOM_UTIL_REGEX_NO_EXCEPTIONS
-    obj/regex.o: CXXFLAGS_TEST += -fno-exceptions
-endif

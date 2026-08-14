@@ -4,6 +4,9 @@
 #include <mock_unistd.h>
 
 #include <errno.h>
+#if defined(PLATFORM_LINUX)
+    #include <unistd.h>
+#endif
 
 class consoleWriteTest : public Test
 {
@@ -13,8 +16,18 @@ class consoleWriteTest : public Test
 TEST_F(consoleWriteTest, writes_to_stdout)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    const char text[] = "consoleWriteTest: stdout\n";
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, write(_, _, _, STDOUT_FILENO, _, sizeof(text) - 1U))
+        .WillOnce(Return(static_cast<ssize_t>(sizeof(text) - 1U)));
+    // [Pre-Assert確認_正常系] - write が STDOUT_FILENO を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 要求長と同じバイト数を返却する。
+#endif /* PLATFORM_LINUX */
 
     // Act
     int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
@@ -28,8 +41,18 @@ TEST_F(consoleWriteTest, writes_to_stdout)
 TEST_F(consoleWriteTest, writes_to_stderr)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    const char text[] = "consoleWriteTest: stderr\n";
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, write(_, _, _, STDERR_FILENO, _, sizeof(text) - 1U))
+        .WillOnce(Return(static_cast<ssize_t>(sizeof(text) - 1U)));
+    // [Pre-Assert確認_正常系] - write が STDERR_FILENO を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 要求長と同じバイト数を返却する。
+#endif /* PLATFORM_LINUX */
 
     // Act
     int rtc = com_util_console_write(COM_UTIL_STREAM_STDERR,
@@ -43,8 +66,15 @@ TEST_F(consoleWriteTest, writes_to_stderr)
 TEST_F(consoleWriteTest, writes_empty_text)
 {
     // Arrange
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+#endif /* PLATFORM_LINUX */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, write(_, _, _, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - 空文字列では write が呼び出されないこと。
+#endif             /* PLATFORM_LINUX */
 
     // Act
     int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,

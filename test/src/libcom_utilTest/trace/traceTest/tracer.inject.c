@@ -29,6 +29,26 @@ void test_trace_registry_set_shutdown_started(const size_t shutdown_started)
     s_trace_registry.shutdown_started = shutdown_started;
 }
 
+void test_trace_registry_set_counts(const size_t count, const size_t capacity)
+{
+    s_trace_registry.count = count;
+    s_trace_registry.capacity = capacity;
+}
+
+void test_trace_registry_reinit_lock(void)
+{
+    com_util_once_flag reset_once = {0};
+
+    s_registry_lock_once = reset_once;
+    s_registry_lock = NULL;
+    s_registry_lock_init_result = COM_UTIL_ERR_UNKNOWN;
+}
+
+void test_trace_registry_null_lock(void)
+{
+    s_registry_lock = NULL;
+}
+
 int test_trace_registry_append_null(void)
 {
     if (s_trace_registry.count >= s_trace_registry.capacity)

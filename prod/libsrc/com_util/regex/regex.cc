@@ -392,8 +392,9 @@ int report_plain(com_util_error *detail_out, int result)
 }
 
 /*
- * 単体テストは COM_UTIL_REGEX_NO_EXCEPTIONS と -fno-exceptions で計測する。
- * STL 呼び出しに付く未印の例外枝を消し、本番ビルドでは例外を結果コードへ変換する。
+ * 本番ビルドでは例外を結果コードへ変換する。
+ * コンパイラが STL 呼び出しに挿入する例外枝は、計測側の
+ * --exclude-throw-branches で母数から外す。
  */
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 /* 送出された例外を共通結果コードへ変換する。 */

@@ -1,5 +1,6 @@
 #include <testfw.h>
 
+#include <com_util/base/platform.h>
 #include <com_util/regex/regex.h>
 
 #include <cstdint>
@@ -33,6 +34,16 @@ void *operator new(std::size_t size)
     return memory;
 }
 
+/*
+ * 置換は再入を避けるため malloc / free で裏打ちする。対応は一致している。
+ * GCC 11 以降は -O2 で sized delete を gtest の CreateTest (new T) へインライン展開し、
+ * new 式と free の対だけを見て -Wmismatched-new-delete を出す。
+ * see: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wmismatched-new-delete
+ */
+#if defined(COMPILER_GCC) && (COMPILER_VERSION >= 110000)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmismatched-new-delete"
+#endif /* COMPILER_GCC && COMPILER_VERSION >= 110000 */
 void operator delete(void *memory) noexcept
 {
     std::free(memory);
@@ -57,6 +68,9 @@ void operator delete[](void *memory, std::size_t) noexcept
 {
     operator delete(memory);
 }
+#if defined(COMPILER_GCC) && (COMPILER_VERSION >= 110000)
+    #pragma GCC diagnostic pop
+#endif /* COMPILER_GCC && COMPILER_VERSION >= 110000 */
 
 using testing::Test;
 
@@ -82,8 +96,9 @@ TEST_F(regexCoverageTest, public_apis_translate_decode_exceptions)
     char buffer[16] = {};
     size_t part_count = 0U;
     int matched = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
-                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - パターン "a" をコンパイルする。
+    // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -141,10 +156,12 @@ TEST_F(regexCoverageTest, replace_encode_failure_and_iter_position_past_end)
     com_util_regex_iter *iter = NULL;
     char buffer[16] = {};
     int has_match = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
-                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "a", 1U, COM_UTIL_REGEX_DEFAULT, &iter, NULL)); // [状態] - 入力 "a" のイテレーターを生成する。
-                                                                                                             // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - パターン "a" をコンパイルする。
+    // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "a", 1U, COM_UTIL_REGEX_DEFAULT, &iter,
+                                                      NULL)); // [状態] - 入力 "a" のイテレーターを生成する。
+    // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -275,9 +292,11 @@ TEST_F(regexCoverageTest, remaining_source_conditions)
     size_t part_count = 0;
     const std::string long_pattern(COM_UTIL_REGEX_MAX_LENGTH + 1U, 'a');
     const wchar_t two_low[] = {static_cast<wchar_t>(0xDC00), static_cast<wchar_t>(0xDC00), L'\0'};
+    const wchar_t bmp_pair[] = {L'a', L'b', L'\0'};
     unsigned int class_at = 0;
     unsigned int class_z = 0;
     std::size_t advanced = 0;
+    std::size_t advanced_bmp = 0;
     int create_limit = COM_UTIL_OK;
     int search_extra = COM_UTIL_OK;
     int replace_text_null = COM_UTIL_OK;
@@ -287,8 +306,9 @@ TEST_F(regexCoverageTest, remaining_source_conditions)
     int split_regex_null = COM_UTIL_OK;
     int split_text_null = COM_UTIL_OK;
 
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
-                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - パターン "a" をコンパイルする。
+    // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 
@@ -310,10 +330,11 @@ TEST_F(regexCoverageTest, remaining_source_conditions)
     split_regex_null = com_util_regex_split(NULL, "a", 1U, 0U, COM_UTIL_REGEX_DEFAULT, NULL, 0U, &part_count,
                                             NULL); // [手順] - regex NULL で分割する。
     split_text_null = com_util_regex_split(regex, NULL, 0U, 0U, COM_UTIL_REGEX_DEFAULT, NULL, 0U, &part_count,
-                                           NULL);        // [手順] - text NULL で分割する。
-    advanced = test_regex_advance_position(two_low, 0U); // [手順] - 連続する下位サロゲートで位置を進める。
-    com_util_regex_dispose(NULL);                        // [手順] - NULL のコンパイル済みパターンを破棄する。
-    com_util_regex_iter_dispose(NULL);                   // [手順] - NULL の列挙を破棄する。
+                                           NULL);             // [手順] - text NULL で分割する。
+    advanced = test_regex_advance_position(two_low, 0U);      // [手順] - 連続する下位サロゲートで位置を進める。
+    advanced_bmp = test_regex_advance_position(bmp_pair, 0U); // [手順] - BMP 2 文字の先頭から位置を進める。
+    com_util_regex_dispose(NULL);                             // [手順] - NULL のコンパイル済みパターンを破棄する。
+    com_util_regex_iter_dispose(NULL);                        // [手順] - NULL の列挙を破棄する。
 
     // Assert
     EXPECT_EQ(0U, class_at); // [確認_異常系] - '@' のクラス名が 0 であること。
@@ -343,7 +364,8 @@ TEST_F(regexCoverageTest, remaining_source_conditions)
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         split_text_null); // [確認_異常系] - text NULL の com_util_regex_split の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(2U, advanced); // [確認_正常系] - 連続下位サロゲートの test_regex_advance_position が 2 を返すこと。
+    EXPECT_EQ(2U, advanced);     // [確認_正常系] - 連続下位サロゲートの test_regex_advance_position が 2 を返すこと。
+    EXPECT_EQ(1U, advanced_bmp); // [確認_正常系] - BMP 2 文字の test_regex_advance_position が 1 を返すこと。
 
     // Cleanup
     com_util_regex_dispose(regex);
@@ -359,10 +381,12 @@ TEST_F(regexCoverageTest, iter_next_translates_allocation_failure)
     int has_match = 0;
     int throw_count = 0;
     int fail_after = 0;
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex, NULL)); // [状態] - パターン "a" をコンパイルする。
-                                                                                              // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "aaa", 3U, COM_UTIL_REGEX_DEFAULT, &iter, NULL)); // [状態] - 入力 "aaa" のイテレーターを生成する。
-                                                                                                               // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_create("a", COM_UTIL_REGEX_DEFAULT, &regex,
+                                                 NULL)); // [状態] - パターン "a" をコンパイルする。
+    // [状態確認] - com_util_regex_create の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_regex_iter_create(regex, "aaa", 3U, COM_UTIL_REGEX_DEFAULT, &iter,
+                                                      NULL)); // [状態] - 入力 "aaa" のイテレーターを生成する。
+    // [状態確認] - com_util_regex_iter_create の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
 

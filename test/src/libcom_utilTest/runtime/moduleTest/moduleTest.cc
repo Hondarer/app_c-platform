@@ -13,6 +13,7 @@
 
 using testing::_;
 using testing::NiceMock;
+using testing::StrEq;
 
 #include "module.inject.h"
 
@@ -37,11 +38,37 @@ class moduleTest : public Test
 TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
 {
     // Arrange
+    NiceMock<Mock_dlfcn> mock_dlfcn;
+    NiceMock<Mock_com_util> mock_com_util;
     char path[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+    const char kModulePath[] = "/opt/com_util/moduleTest";
 
     std::memset(path, 0, sizeof(path));
 
     // Pre-Assert
+    EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
+        .WillOnce(
+            [](const char *, int, const char *, const void *, void *raw_info)
+            {
+                Dl_info *info = static_cast<Dl_info *>(raw_info);
+                info->dli_fname = "/opt/com_util/moduleTest";
+                return 1;
+            }); // [Pre-Assert確認_正常系] - dladdr が 1 回呼び出されること。
+                // [Pre-Assert手順] - 所属モジュール パスを持つ情報を返却する。
+    EXPECT_CALL(mock_com_util, com_util_path_get_full(_, _, _, StrEq(kModulePath)))
+        .WillOnce(
+            [](char *out_path, size_t out_path_sz, com_util_error *detail_out, const char *)
+            {
+                const char resolved[] = "/opt/com_util/moduleTest";
+                (void)out_path_sz;
+                if (detail_out != nullptr)
+                {
+                    *detail_out = {};
+                }
+                std::memcpy(out_path, resolved, sizeof(resolved));
+                return COM_UTIL_OK;
+            }); // [Pre-Assert確認_正常系] - com_util_path_get_full がモジュール パスを指定して 1 回呼び出されること。
+                // [Pre-Assert手順] - 正規化済みパスを書き込み、COM_UTIL_OK を返却する。
 
     // Act
     int rtc =
@@ -49,10 +76,8 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
                                  self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ('/', path[0]);     // [確認_正常系] - 絶対パスが '/' から始まること。
-    EXPECT_NE(nullptr,
-              std::strstr(path, "moduleTest")); // [確認_正常系] - パスに所属モジュール名 moduleTest が含まれること。
+    EXPECT_EQ(COM_UTIL_OK, rtc);     // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
+    EXPECT_STREQ(kModulePath, path); // [確認_正常系] - 所属モジュールの絶対パスが返ること。
 }
 
 // dladdr が失敗した場合に UNKNOWN を返すことの確認

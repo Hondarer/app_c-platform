@@ -111,16 +111,6 @@ extern "C"
     extern void test_pinned_prompt_destroy_mutex(com_util_pinned_prompt *screen);
     extern void test_pinned_prompt_history_add_after_null_last(com_util_pinned_prompt *screen);
 
-#if defined(PLATFORM_LINUX)
-    /* Linux プラットフォーム層の static 状態をテスト開始状態へ戻す。 */
-    extern void test_pinned_prompt_reset_platform_state(void);
-
-    /* EINTR とリサイズ通知の経路を指定するための状態変更。 */
-    extern void test_pinned_prompt_set_resize_pending(int value);
-
-    /* リサイズ通知状態を取得する。 */
-    extern int test_pinned_prompt_resize_pending(void);
-
     /* raw モード状態を取得する。 */
     extern int test_pinned_prompt_raw_active(const com_util_pinned_prompt *screen);
 
@@ -138,10 +128,22 @@ extern "C"
     extern int test_pinned_prompt_read_char(com_util_pinned_prompt *screen);
     extern int test_pinned_prompt_read_char_nb(com_util_pinned_prompt *screen);
 
+    /* 標準入出力の TTY 判定へ直接アクセスする。 */
+    extern int test_pinned_prompt_platform_is_tty(void);
+
+#if defined(PLATFORM_LINUX)
+    /* Linux プラットフォーム層の static 状態をテスト開始状態へ戻す。 */
+    extern void test_pinned_prompt_reset_platform_state(void);
+
+    /* EINTR とリサイズ通知の経路を指定するための状態変更。 */
+    extern void test_pinned_prompt_set_resize_pending(int value);
+
+    /* リサイズ通知状態を取得する。 */
+    extern int test_pinned_prompt_resize_pending(void);
+
     /* Linux プラットフォーム分岐の状態を個別に設定、呼び出す。 */
     extern void test_pinned_prompt_set_sigwinch_installed(int installed);
     extern void test_pinned_prompt_raise_resize_handler(void);
-    extern int test_pinned_prompt_platform_is_tty(void);
 #endif /* PLATFORM_LINUX */
 
 #ifdef __cplusplus

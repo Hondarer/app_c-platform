@@ -17,6 +17,8 @@
     #include <syslog.h>
 #endif /* PLATFORM_LINUX */
 
+extern void (*g_test_file_shutdown_hook)(void);
+
 using testing::_;
 using testing::DoDefault;
 using testing::Invoke;
@@ -159,8 +161,9 @@ TEST_F(traceCoverageTest, shutdown_and_inactive_dispose_paths)
 {
     // Arrange
     com_util_tracer *rejected = NULL;
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     int first_dispose = 0;
     int second_begin = 0;
 
@@ -191,8 +194,9 @@ TEST_F(traceCoverageTest, shutdown_and_inactive_dispose_paths)
 TEST_F(traceCoverageTest, enter_shared_fails_on_timeout_and_lifecycle_change)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     com_util_trace_level file_level = COM_UTIL_TRACE_LEVEL_DEBUG;
     com_util_trace_level stderr_level = COM_UTIL_TRACE_LEVEL_DEBUG;
     com_util_trace_level os_level = COM_UTIL_TRACE_LEVEL_DEBUG;
@@ -249,8 +253,9 @@ TEST_F(traceCoverageTest, enter_shared_fails_on_timeout_and_lifecycle_change)
 TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     int negative_name = COM_UTIL_OK;
     int name_null = COM_UTIL_OK;
     int file_name_inactive = COM_UTIL_OK;
@@ -328,8 +333,9 @@ TEST_F(traceCoverageTest, setters_cover_invalid_and_allocation_failures)
 TEST_F(traceCoverageTest, file_sink_open_failures)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     char path[1] = {};
     int default_path = COM_UTIL_OK;
     int start_result = COM_UTIL_OK;
@@ -371,8 +377,9 @@ TEST_F(traceCoverageTest, file_sink_open_failures)
 TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_stdio> mock_stdio;
     char name[32] = {};
     const unsigned char data[4] = {0x01, 0x02, 0x03, 0x04};
@@ -387,7 +394,7 @@ TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
     int hexf_null = COM_UTIL_OK;
 
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
-                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
+    // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, snprintf(_, _, _, _, _, _))
@@ -432,8 +439,9 @@ TEST_F(traceCoverageTest, snprintf_and_hex_edge_paths)
 TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_stdlib> mock_stdlib;
     com_util_shutdown_event event = {};
     com_util_tracer_hook_entry *hook = reinterpret_cast<com_util_tracer_hook_entry *>(static_cast<uintptr_t>(0x1));
@@ -464,17 +472,19 @@ TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
 TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     com_util_timespec ts = {};
     ts.tv_sec = 1;
     ts.tv_nsec = 0;
     int write_result = COM_UTIL_OK;
 
     ASSERT_EQ(COM_UTIL_OK, com_util_tracer_start(handle)); // [状態] - tracer を started 状態とする。
-                                                           // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
-    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(handle, COM_UTIL_TRACE_LEVEL_DEBUG)); // [状態] - stderr レベルを DEBUG とする。
-                                                                                                  // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
+    // [状態確認] - com_util_tracer_start の戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, com_util_tracer_set_stderr_level(
+                               handle, COM_UTIL_TRACE_LEVEL_DEBUG)); // [状態] - stderr レベルを DEBUG とする。
+    // [状態確認] - com_util_tracer_set_stderr_level の戻り値が COM_UTIL_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_, com_util_get_realtime(_))
@@ -507,8 +517,9 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
 TEST_F(traceCoverageTest, remaining_compound_conditions)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     char tiny_name[2] = {};
     char empty_label[] = "";
     const unsigned char data[2] = {0x11, 0x22};
@@ -614,8 +625,9 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
 TEST_F(traceCoverageTest, release_normal_disposes_open_file_and_hooks)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     int started = COM_UTIL_OK;
 
     // Pre-Assert
@@ -635,8 +647,9 @@ TEST_F(traceCoverageTest, release_normal_disposes_open_file_and_hooks)
 TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
 #if defined(PLATFORM_LINUX)
     com_util_tracer *rejected = NULL;
 #endif /* PLATFORM_LINUX */
@@ -696,8 +709,9 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
 TEST_F(traceCoverageTest, exclusive_lock_lifecycle_and_set_file_level_enter_failure)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     int start_result = COM_UTIL_OK;
     int file_level_result = COM_UTIL_OK;
 
@@ -732,8 +746,9 @@ TEST_F(traceCoverageTest, exclusive_lock_lifecycle_and_set_file_level_enter_fail
 TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
     char path[64] = {};
     int default_path = COM_UTIL_OK;
     int start_result = COM_UTIL_OK;
@@ -793,10 +808,12 @@ TEST_F(traceCoverageTest, default_path_snprintf_failure_and_normal_file_release)
 TEST_F(traceCoverageTest, remaining_gcov_branches)
 {
     // Arrange
-    com_util_tracer *handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
-    com_util_tracer *disposed = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 破棄対象のトレース ハンドルを用意する。
-    ASSERT_NE((com_util_tracer *)NULL, disposed); // [状態確認] - 破棄対象ハンドルが非 NULL であること。
+    com_util_tracer *handle = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, handle);      // [状態確認] - ハンドルが非 NULL であること。
+    com_util_tracer *disposed = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - 破棄対象のトレース ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, disposed);    // [状態確認] - 破棄対象ハンドルが非 NULL であること。
     const unsigned char data[2] = {0xAA, 0xBB};
     com_util_timespec invalid_ts = {};
     invalid_ts.tv_sec = -1;
@@ -1013,4 +1030,136 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     test_tracer_set_lifecycle_state(handle, 0);
     test_tracer_set_file_handle(handle, NULL);
     com_util_tracer_dispose(&handle);
+}
+
+// ロック失敗、容量あふれ、caller-managed、二重 shutdown を充足することの確認
+TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
+{
+    // Arrange
+    com_util_tracer *managed = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [状態] - tracer-managed ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, managed);     // [状態確認] - tracer-managed ハンドルが非 NULL であること。
+    com_util_tracer *caller = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - caller-managed ハンドルを用意する。
+    ASSERT_NE((com_util_tracer *)NULL, caller);      // [状態確認] - caller-managed ハンドルが非 NULL であること。
+    com_util_tracer *overflow_half = NULL;
+    com_util_tracer *overflow_max = NULL;
+    com_util_tracer *register_fail = NULL;
+    com_util_tracer *register_fail_caller = NULL;
+    com_util_tracer *shutdown_fail = NULL;
+    com_util_tracer *lock_clear = NULL;
+    com_util_tracer *empty = NULL;
+    com_util_shutdown_event first_event = {};
+    com_util_shutdown_event event = {};
+    com_util_shutdown_event lock_clear_event = {};
+    size_t capacity_on_lock_fail = 99U;
+    int exclusive_fail = COM_UTIL_OK;
+    int caller_start = COM_UTIL_OK;
+    int caller_write = COM_UTIL_OK;
+    int dispose_lock_fail = 0;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_, com_util_local_lock_lock(_, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - レジストリ lock が 3 回失敗すること。
+                                      // [Pre-Assert手順] - 1 回目から 3 回目は UNKNOWN、以降は既定動作を返却する。
+
+    // Act
+    capacity_on_lock_fail = trace_registry_capacity(); // [手順] - lock 失敗状態で容量を取得する。
+    test_tracer_unregister(managed);                   // [手順] - lock 失敗状態で登録解除する。
+    register_fail = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - lock 失敗状態で tracer-managed を生成する。
+    test_trace_registry_set_counts((~(size_t)0) / 2U + 1U, (~(size_t)0) / 2U + 1U);
+    overflow_max = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - 容量が SIZE_MAX/2 を超える状態で生成する。
+    test_trace_registry_set_counts((~(size_t)0) / 2U, (~(size_t)0) / 2U);
+    overflow_half = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - 容量が SIZE_MAX/2 の状態で生成する。
+    test_trace_registry_set_counts(2U, 8U);
+    caller_start = com_util_tracer_start(caller); // [手順] - caller-managed ハンドルを開始する。
+    caller_write = com_util_tracer_write(caller, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+                                         "caller"); // [手順] - caller-managed ハンドルへ write する。
+
+    // Pre-Assert_2
+    EXPECT_CALL(mock_, com_util_local_rwlock_lock_exclusive(_, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 排他ロックが 2 回失敗すること。
+                                      // [Pre-Assert手順] - 1 回目と 2 回目は UNKNOWN、以降は既定動作を返却する。
+
+    // Act_2
+    exclusive_fail = com_util_tracer_set_stderr_level(
+        managed, COM_UTIL_TRACE_LEVEL_DEBUG); // [手順] - 排他ロック失敗状態で stderr レベルを設定する。
+    com_util_tracer_dispose(&managed);        // [手順] - 排他ロック失敗状態で dispose する。
+    if (managed != NULL)
+    {
+        dispose_lock_fail = 1;
+        com_util_tracer_dispose(&managed);
+    }
+    (void)com_util_tracer_stop(caller);
+    (void)com_util_tracer_set_hook(caller, coverage_hook, NULL); // [手順] - shutdown 解放用に hook を登録する。
+    trace_registry_dispose_all_on_shutdown(&first_event); // [手順] - hook 付き caller-managed を shutdown 解放する。
+    test_trace_registry_reinit_lock();
+    (void)trace_registry_capacity();
+    trace_registry_dispose_all_on_shutdown(&event); // [手順] - 既に shutdown 済みのレジストリを再解放する。
+    test_trace_registry_reset_shutdown_state();
+    com_util_tracer_dispose(&empty); // [手順] - NULL ハンドル変数を dispose する。
+
+    // Pre-Assert_3
+    EXPECT_CALL(mock_, com_util_shutdown_register(_, _))
+        .WillOnce(Return(COM_UTIL_ERR_UNKNOWN))
+        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - shutdown 登録が 1 回失敗すること。
+                                      // [Pre-Assert手順] - 1 回目は UNKNOWN、以降は既定動作を返却する。
+    EXPECT_CALL(mock_, com_util_process_get_executable_path(_, _))
+        .WillOnce(
+            [](char *out_path, size_t out_path_sz)
+            {
+                test_trace_registry_set_shutdown_started(1U);
+                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                return COM_UTIL_OK;
+            })
+        .WillRepeatedly(DoDefault());
+    // [Pre-Assert確認_異常系] - caller-managed 生成中にシャットダウンを開始すること。
+    // [Pre-Assert手順] - 実行ファイルパス取得時に shutdown 開始フラグを立て、通常パスを返却する。
+
+    // Act_3
+    shutdown_fail = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - shutdown 登録失敗状態で生成する。
+    test_trace_registry_reset_shutdown_state();
+    register_fail_caller = com_util_tracer_create(
+        COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED); // [手順] - 登録直前シャットダウンで caller-managed を生成する。
+    test_trace_registry_reset_shutdown_state();
+    lock_clear = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED);
+    ASSERT_NE((com_util_tracer *)NULL, lock_clear);
+    test_tracer_set_file_handle(lock_clear, file_handle_);
+    g_test_file_shutdown_hook = test_trace_registry_null_lock;
+    trace_registry_dispose_all_on_shutdown(
+        &lock_clear_event); // [手順] - file sink 解放中にレジストリ lock を NULL にする。
+    g_test_file_shutdown_hook = NULL;
+    lock_clear = NULL;
+
+    // Assert
+    EXPECT_EQ(0U, capacity_on_lock_fail); // [確認_異常系] - lock 失敗時の trace_registry_capacity が 0 であること。
+    EXPECT_EQ((com_util_tracer *)NULL,
+              register_fail); // [確認_異常系] - lock 失敗時の create が NULL であること。
+    EXPECT_EQ((com_util_tracer *)NULL,
+              overflow_max); // [確認_異常系] - 容量あふれ (SIZE_MAX/2 超) の create が NULL であること。
+    EXPECT_EQ((com_util_tracer *)NULL,
+              overflow_half);             // [確認_異常系] - 容量あふれ (SIZE_MAX/2) の create が NULL であること。
+    EXPECT_EQ(COM_UTIL_OK, caller_start); // [確認_正常系] - caller-managed の start が OK であること。
+    EXPECT_EQ(COM_UTIL_OK, caller_write); // [確認_正常系] - caller-managed の write が OK であること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_UNKNOWN,
+        exclusive_fail); // [確認_異常系] - 排他ロック失敗時の com_util_tracer_set_stderr_level の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(1, dispose_lock_fail); // [確認_異常系] - 排他ロック失敗の dispose がハンドルを残すこと。
+    EXPECT_EQ((com_util_tracer *)NULL,
+              shutdown_fail); // [確認_異常系] - shutdown 登録失敗の create が NULL であること。
+    EXPECT_EQ(
+        (com_util_tracer *)NULL,
+        register_fail_caller); // [確認_異常系] - 登録直前シャットダウンの caller-managed create が NULL であること。
+
+    // Cleanup
+    test_trace_registry_reset_shutdown_state();
 }

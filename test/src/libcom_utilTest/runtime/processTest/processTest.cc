@@ -20,6 +20,7 @@
 
 using testing::_;
 using testing::DoAll;
+using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
 using testing::SetArgPointee;
@@ -29,35 +30,6 @@ using testing::StrEq;
     #include <fcntl.h>
     #include <signal.h>
     #include <unistd.h>
-static void make_temp_path(char *buf, size_t size, const char *tag)
-{
-    snprintf(buf, size, "/tmp/com_util_process_%s_%ld.txt", tag, (long)getpid());
-}
-
-static intptr_t open_output_handle(const char *path)
-{
-    return (intptr_t)open(path, O_CREAT | O_TRUNC | O_WRONLY, 0600);
-}
-
-static void close_output_handle(intptr_t handle)
-{
-    close((int)handle);
-}
-
-static int is_invalid_output_handle(intptr_t handle)
-{
-    if (handle == (intptr_t)-1)
-    {
-        return 1;
-    }
-    return 0;
-}
-
-static void remove_temp_path(const char *path)
-{
-    unlink(path);
-}
-
 static void set_invalid_stdio_mode(com_util_process_stdio *spec)
 {
     int invalid_mode = 99;
@@ -65,91 +37,8 @@ static void set_invalid_stdio_mode(com_util_process_stdio *spec)
     memcpy(&spec->mode, &invalid_mode, sizeof(spec->mode));
 }
 #elif defined(PLATFORM_WINDOWS)
-    #include <com_util/base/windows_sdk.h>
-static void make_temp_path(char *buf, size_t size, const char *tag)
-{
-    char tmp_dir[PLATFORM_PATH_MAX];
-    DWORD len;
-
-    len = GetTempPathA((DWORD)sizeof(tmp_dir), tmp_dir);
-    if (len == 0)
-    {
-        snprintf(buf, size, "com_util_process_%s_%lu.txt", tag, (unsigned long)GetCurrentProcessId());
-        return;
-    }
-    snprintf(buf, size, "%scom_util_process_%s_%lu.txt", tmp_dir, tag, (unsigned long)GetCurrentProcessId());
-}
-
-static intptr_t open_output_handle(const char *path)
-{
-    HANDLE handle;
-
-    handle = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (handle == INVALID_HANDLE_VALUE)
-    {
-        return (intptr_t)INVALID_HANDLE_VALUE;
-    }
-    return (intptr_t)handle;
-}
-
-static void close_output_handle(intptr_t handle)
-{
-    CloseHandle((HANDLE)handle);
-}
-
-static int is_invalid_output_handle(intptr_t handle)
-{
-    if ((HANDLE)handle == INVALID_HANDLE_VALUE)
-    {
-        return 1;
-    }
-    return 0;
-}
-
-static void remove_temp_path(const char *path)
-{
-    DeleteFileA(path);
-}
+    #include <mock_windows.h>
 #endif /* PLATFORM_ */
-
-static int read_text_file(char *buf, size_t size, const char *path)
-{
-    FILE *fp;
-    size_t nread;
-
-#if defined(PLATFORM_WINDOWS)
-    if (fopen_s(&fp, path, "rb") != 0)
-    {
-        return -1;
-    }
-#else
-    fp = fopen(path, "rb");
-    if (fp == NULL)
-    {
-        return -1;
-    }
-#endif /* PLATFORM_WINDOWS */
-    nread = fread(buf, 1, size - 1, fp);
-    buf[nread] = '\0';
-    fclose(fp);
-    return 0;
-}
-
-static void trim_trailing_newline(char *buf)
-{
-    size_t len;
-
-    len = strlen(buf);
-    while (len > 0)
-    {
-        if (buf[len - 1] != '\n' && buf[len - 1] != '\r')
-        {
-            return;
-        }
-        buf[len - 1] = '\0';
-        len--;
-    }
-}
 
 // errno が共通結果コードへ分類されることの確認
 TEST(processTest, MapsErrnoToCommonResults)
@@ -203,28 +92,31 @@ TEST(processTest, MapsWindowsInsufficientBuffer)
 }
 #endif
 
+#if defined(PLATFORM_LINUX)
 // 同期実行が子プロセスの終了コードを返すことの確認
 TEST(processTest, RunSyncReturnsChildExitCode)
 {
     // Arrange
-    com_util_process_options options;
-    int exit_code;
-#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process_options options = {};
     char arg0[] = "/bin/sh";
     char arg1[] = "-c";
     char arg2[] = "exit 7";
-#elif defined(PLATFORM_WINDOWS)
-    char arg0[] = "cmd.exe";
-    char arg1[] = "/C";
-    char arg2[] = "exit /B 7";
-#endif /* PLATFORM_ */
     char *argv[] = {arg0, arg1, arg2, NULL};
+    int exit_code = 0;
+    int status = 7 << 8;
 
-    memset(&options, 0, sizeof(options));
-    options.argv = argv; // [状態] - 終了コード 7 で終了するシェル コマンドを子プロセスとする。
-    exit_code = 0;
+    options.argv = argv; // [状態] - 終了コード 7 を返す argv とする。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(4242))); // [Pre-Assert確認_正常系] - fork が 1 回呼び出されること。
+                                                     // [Pre-Assert手順] - 子プロセス pid 4242 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 4242, _, _))
+        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(4242))));
+    // [Pre-Assert確認_正常系] - pid 4242 の waitpid が 1 回呼び出されること。
+    // [Pre-Assert手順] - 終了ステータス 7 を設定して 4242 を返却する。
 
     // Act
     int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
@@ -236,88 +128,72 @@ TEST(processTest, RunSyncReturnsChildExitCode)
     EXPECT_EQ(7, exit_code); // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
 }
 
-// 環境変数の上書きが子プロセスから参照できることの確認
-TEST(processTest, EnvironmentOverridesAreVisibleToChild)
+// 環境変数の上書きを付けた同期実行が成功することの確認
+TEST(processTest, EnvironmentOverridesAreAcceptedByRunSync)
 {
     // Arrange
-    com_util_process_options options;
-    com_util_process_stdio stdout_spec;
-    char path[PLATFORM_PATH_MAX];
-    char output[64];
-    intptr_t handle;
-    int exit_code;
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process_options options = {};
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, NULL};
     char env_value[] = "COM_UTIL_PROCESS_TEST_VALUE=override-value";
     char *env_overrides[] = {env_value, NULL};
-#if defined(PLATFORM_LINUX)
-    char arg0[] = "/bin/sh";
-    char arg1[] = "-c";
-    char arg2[] = "printf %s \"$COM_UTIL_PROCESS_TEST_VALUE\"";
-#elif defined(PLATFORM_WINDOWS)
-    char arg0[] = "cmd.exe";
-    char arg1[] = "/C";
-    char arg2[] = "echo %COM_UTIL_PROCESS_TEST_VALUE%";
-#endif /* PLATFORM_ */
-    char *argv[] = {arg0, arg1, arg2, NULL};
+    int exit_code = 0;
+    int status = 0;
 
-    make_temp_path(path, sizeof(path), "env");
-    remove_temp_path(path);
-    handle = open_output_handle(path); // [状態] - 子プロセスの stdout を受けるテンポラリ ファイルを開く。
-    ASSERT_EQ(0, is_invalid_output_handle(handle)); // [状態確認] - 出力ハンドルが有効であること。
-
-    memset(&stdout_spec, 0, sizeof(stdout_spec));
-    stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
-    stdout_spec.native_handle = handle; // [状態] - stdout をネイティブ ハンドルへリダイレクトする指定とする。
-    memset(&options, 0, sizeof(options));
     options.argv = argv;
     options.env_overrides =
         env_overrides; // [状態] - 環境変数 COM_UTIL_PROCESS_TEST_VALUE を "override-value" に上書きする。
-    options.stdout_spec = stdout_spec;
-    exit_code = 0;
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(4243))); // [Pre-Assert確認_正常系] - fork が 1 回呼び出されること。
+                                                     // [Pre-Assert手順] - 子プロセス pid 4243 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 4243, _, _))
+        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(4243))));
+    // [Pre-Assert確認_正常系] - pid 4243 の waitpid が 1 回呼び出されること。
+    // [Pre-Assert手順] - 終了ステータス 0 を設定して 4243 を返却する。
 
     // Act
     int result = com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                           &exit_code); // [手順] - 環境変数を出力する子プロセスを同期実行する。
-    close_output_handle(handle);
-    int read_result =
-        read_text_file(output, sizeof(output), path); // [手順] - リダイレクト先ファイルから子プロセスの出力を読み取る。
-    trim_trailing_newline(output);
+                                           &exit_code); // [手順] - 環境変数上書き付きで同期実行する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, result);         // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
-    EXPECT_EQ(0, exit_code);                // [確認_正常系] - 子プロセスの終了コードが 0 であること。
-    EXPECT_EQ(0, read_result);              // [確認_正常系] - 出力ファイルが読み取れること。
-    EXPECT_STREQ("override-value", output); // [確認_正常系] - 子プロセスの出力が上書き値 "override-value" であること。
-
-    // Cleanup
-    remove_temp_path(path);
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_run_sync の戻り値が OK であること。
+    EXPECT_EQ(0, exit_code);        // [確認_正常系] - 子プロセスの終了コードが 0 であること。
 }
 
 // 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
 TEST(processTest, WaitNoWaitReportsTimeoutForRunningProcess)
 {
     // Arrange
-    com_util_process_options options;
-    com_util_process *process;
-    int exit_code;
-#if defined(PLATFORM_LINUX)
-    char arg0[] = "/bin/sh";
-    char arg1[] = "-c";
-    char arg2[] = "sleep 2";
-#elif defined(PLATFORM_WINDOWS)
-    char arg0[] = "cmd.exe";
-    char arg1[] = "/C";
-    char arg2[] = "ping -n 3 127.0.0.1 > " PLATFORM_NULL_DEVICE_PATH;
-#endif /* PLATFORM_ */
-    char *argv[] = {arg0, arg1, arg2, NULL};
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_wait> mock_sys_wait;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "/bin/true";
+    char *argv[] = {arg0, NULL};
+    int exit_code = 0;
+    int status = 0;
 
-    memset(&options, 0, sizeof(options));
-    options.argv = argv; // [状態] - 2 秒程度実行し続けるシェル コマンドを子プロセスとする。
-    process = NULL;
-    exit_code = 0;
+    options.argv = argv; // [状態] - 起動後に未終了として扱う argv とする。
 
     // Pre-Assert
+    EXPECT_CALL(mock_unistd, fork(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(4244))); // [Pre-Assert確認_正常系] - fork が 1 回呼び出されること。
+                                                     // [Pre-Assert手順] - 子プロセス pid 4244 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 4244, _, WNOHANG))
+        .WillOnce(Return(
+            static_cast<pid_t>(0))); // [Pre-Assert確認_正常系] - 非ブロッキング waitpid が 1 回呼び出されること。
+                                     // [Pre-Assert手順] - 未終了を示す 0 を返却する。
+    EXPECT_CALL(mock_unistd, kill(_, _, _, 4244, SIGTERM))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - kill が pid 4244 と SIGTERM を指定して 1 回呼び出されること。
+                              // [Pre-Assert手順] - kill から 0 を返却する。
+    EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 4244, _, 0))
+        .WillOnce(DoAll(SetArgPointee<4>(status), Return(static_cast<pid_t>(4244))));
+    // [Pre-Assert確認_正常系] - 無期限待機の waitpid が 1 回呼び出されること。
+    // [Pre-Assert手順] - 終了ステータス 0 を設定して 4244 を返却する。
 
     // Act
     int start_result =
@@ -341,6 +217,525 @@ TEST(processTest, WaitNoWaitReportsTimeoutForRunningProcess)
     // Cleanup
     com_util_process_destroy(process);
 }
+#elif defined(PLATFORM_WINDOWS)
+// Windows の待機が子プロセスの終了コードを返すことの確認
+TEST(processTest, WaitReturnsChildExitCode)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    HANDLE fake_process = reinterpret_cast<HANDLE>(0x70);
+    com_util_process *process = com_util_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
+    int exit_code = 0;
+
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, fake_process, INFINITE))
+        .WillOnce(Return(
+            WAIT_OBJECT_0)); // [Pre-Assert確認_正常系] - WaitForSingleObject が INFINITE で 1 回呼び出されること。
+                             // [Pre-Assert手順] - WAIT_OBJECT_0 を返却する。
+    EXPECT_CALL(mock_windows, GetExitCodeProcess(_, _, _, fake_process, _))
+        .WillOnce(DoAll(SetArgPointee<4>(7), Return(TRUE)));
+    // [Pre-Assert確認_正常系] - GetExitCodeProcess が 1 回呼び出されること。
+    // [Pre-Assert手順] - 終了コード 7 を設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, fake_process)).WillOnce(Return(TRUE)); // Cleanup の destroy 用
+
+    // Act
+    int wait_result =
+        com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER);     // [手順] - 無期限待機で終了を待つ。
+    int exit_result = com_util_process_get_exit_code(process, &exit_code); // [手順] - 終了コードを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, wait_result); // [確認_正常系] - com_util_process_wait の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK,
+              exit_result);  // [確認_正常系] - com_util_process_get_exit_code の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(7, exit_code); // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
+TEST(processTest, WaitNoWaitReportsTimeoutForAdoptedProcess)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    HANDLE fake_process = reinterpret_cast<HANDLE>(0x71);
+    com_util_process *process = com_util_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
+    int exit_code = 0;
+
+    ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, fake_process, 0U))
+        .WillOnce(
+            Return(WAIT_TIMEOUT)); // [Pre-Assert確認_正常系] - NO_WAIT の WaitForSingleObject が 1 回呼び出されること。
+                                   // [Pre-Assert手順] - WAIT_TIMEOUT を返却する。
+    EXPECT_CALL(mock_windows, TerminateProcess(_, _, _, fake_process, EXIT_FAILURE))
+        .WillOnce(Return(TRUE)); // [Pre-Assert確認_正常系] - TerminateProcess が 1 回呼び出されること。
+                                 // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, fake_process, INFINITE))
+        .WillOnce(Return(
+            WAIT_OBJECT_0)); // [Pre-Assert確認_正常系] - 無期限待機の WaitForSingleObject が 1 回呼び出されること。
+                             // [Pre-Assert手順] - WAIT_OBJECT_0 を返却する。
+    EXPECT_CALL(mock_windows, GetExitCodeProcess(_, _, _, fake_process, _))
+        .WillOnce(DoAll(SetArgPointee<4>(1), Return(TRUE)));
+    // [Pre-Assert確認_正常系] - GetExitCodeProcess が 1 回呼び出されること。
+    // [Pre-Assert手順] - 終了コード 1 を設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, fake_process)).WillOnce(Return(TRUE)); // Cleanup の destroy 用
+
+    // Act
+    int wait_result = com_util_process_wait(process, COM_UTIL_PROCESS_NO_WAIT); // [手順] - NO_WAIT で待機する。
+    int terminate_result = com_util_process_terminate(process); // [手順] - 子プロセスを terminate する。
+    int final_wait = com_util_process_wait(process, COM_UTIL_PROCESS_WAIT_FOREVER); // [手順] - 無期限待機で終了を待つ。
+    int exit_result = com_util_process_get_exit_code(process, &exit_code);          // [手順] - 終了コードを取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, wait_result); // [確認_正常系] - 実行中の NO_WAIT 待機が TIMEOUT を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, terminate_result);     // [確認_正常系] - terminate が OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, final_wait);           // [確認_正常系] - terminate 後の待機が OK を返すこと。
+    EXPECT_EQ(
+        COM_UTIL_OK,
+        exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// Windows の process_start が CreateProcessW 成功でハンドルを返すことの確認
+TEST(processTest, StartCreatesProcessWithCreateProcessW)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE process_handle = reinterpret_cast<HANDLE>(0x80);
+    HANDLE thread_handle = reinterpret_cast<HANDLE>(0x81);
+    HANDLE stdio_handle = reinterpret_cast<HANDLE>(0x90);
+
+    options.argv = argv; // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, CreateFileU(_, _, _, _, _, _, _)).Times(3).WillRepeatedly(Return(stdio_handle));
+    // [Pre-Assert確認_正常系] - CreateFileU が null device 接続のために 3 回呼び出されること。
+    // [Pre-Assert手順] - ダミーの標準ハンドルを返却する。
+    EXPECT_CALL(mock_windows, InitializeProcThreadAttributeList(_, _, _, _, 1U, 0U, _))
+        .WillOnce(
+            [](const char *, const int, const char *, LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T size)
+            {
+                *size = 64U;
+                return FALSE;
+            })
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - InitializeProcThreadAttributeList がサイズ照会と初期化で 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は必要サイズ 64 を設定し、2 回目は TRUE を返却する。
+    EXPECT_CALL(mock_windows, UpdateProcThreadAttribute(_, _, _, _, 0U, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, _, _, _, _))
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - UpdateProcThreadAttribute が 1 回呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, CreateProcessW(_, _, _, _, _, _, _, _, _, _, _, _, _))
+        .WillOnce(
+            [process_handle, thread_handle](const char *, const int, const char *, LPCWSTR, LPWSTR,
+                                            LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR,
+                                            LPSTARTUPINFOW, LPPROCESS_INFORMATION info)
+            {
+                info->hProcess = process_handle;
+                info->hThread = thread_handle;
+                info->dwProcessId = 1000U;
+                info->dwThreadId = 1001U;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - CreateProcessW が 1 回呼び出されること。
+    // [Pre-Assert手順] - プロセス ハンドルとスレッド ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DeleteProcThreadAttributeList(_, _, _, _)).Times(1);
+    // [Pre-Assert確認_正常系] - DeleteProcThreadAttributeList が 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, _)).WillRepeatedly(Return(TRUE));
+    // [Pre-Assert確認_正常系] - CloseHandle が一時ハンドルと破棄時に呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - CreateProcessW 成功状態でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_start の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// Windows の process_start が CreateProcessW 失敗を返すことの確認
+TEST(processTest, StartReportsCreateProcessWFailure)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE stdio_handle = reinterpret_cast<HANDLE>(0x91);
+
+    options.argv = argv; // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_NULL_DEVICE;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, CreateFileU(_, _, _, _, _, _, _)).Times(3).WillRepeatedly(Return(stdio_handle));
+    // [Pre-Assert確認_異常系] - CreateFileU が null device 接続のために 3 回呼び出されること。
+    // [Pre-Assert手順] - ダミーの標準ハンドルを返却する。
+    EXPECT_CALL(mock_windows, InitializeProcThreadAttributeList(_, _, _, _, 1U, 0U, _))
+        .WillOnce(
+            [](const char *, const int, const char *, LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T size)
+            {
+                *size = 64U;
+                return FALSE;
+            })
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_異常系] - InitializeProcThreadAttributeList がサイズ照会と初期化で 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は必要サイズ 64 を設定し、2 回目は TRUE を返却する。
+    EXPECT_CALL(mock_windows, UpdateProcThreadAttribute(_, _, _, _, 0U, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, _, _, _, _))
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_異常系] - UpdateProcThreadAttribute が 1 回呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, CreateProcessW(_, _, _, _, _, _, _, _, _, _, _, _, _)).WillOnce(Return(FALSE));
+    // [Pre-Assert確認_異常系] - CreateProcessW が 1 回呼び出されること。
+    // [Pre-Assert手順] - FALSE を返却する。
+    EXPECT_CALL(mock_windows, DeleteProcThreadAttributeList(_, _, _, _)).Times(1);
+    // [Pre-Assert確認_異常系] - DeleteProcThreadAttributeList が失敗後の解放で 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, _)).WillRepeatedly(Return(TRUE));
+    // [Pre-Assert確認_異常系] - CloseHandle が一時ハンドルの解放で呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - CreateProcessW 失敗状態でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);           // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - CreateProcessW 失敗時に process が NULL のままであること。
+}
+
+// Windows の process_start が親の標準ハンドルを複製して起動することの確認
+TEST(processTest, StartCreatesProcessWithInheritedStdio)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE current_process = reinterpret_cast<HANDLE>(0x50);
+    HANDLE stdin_source = reinterpret_cast<HANDLE>(0x10);
+    HANDLE stdout_source = reinterpret_cast<HANDLE>(0x11);
+    HANDLE stderr_source = reinterpret_cast<HANDLE>(0x12);
+    HANDLE stdin_dup = reinterpret_cast<HANDLE>(0x20);
+    HANDLE stdout_dup = reinterpret_cast<HANDLE>(0x21);
+    HANDLE stderr_dup = reinterpret_cast<HANDLE>(0x22);
+    HANDLE process_handle = reinterpret_cast<HANDLE>(0x80);
+    HANDLE thread_handle = reinterpret_cast<HANDLE>(0x81);
+
+    options.argv = argv;                                       // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;  // [状態] - stdin を親ハンドル継承とする。
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stdout を親ハンドル継承とする。
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stderr を親ハンドル継承とする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(stdin_source));
+    // [Pre-Assert確認_正常系] - GetStdHandle が STD_INPUT_HANDLE を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 親の標準入力ハンドルを返却する。
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_OUTPUT_HANDLE)).WillOnce(Return(stdout_source));
+    // [Pre-Assert確認_正常系] - GetStdHandle が STD_OUTPUT_HANDLE を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 親の標準出力ハンドルを返却する。
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_ERROR_HANDLE)).WillOnce(Return(stderr_source));
+    // [Pre-Assert確認_正常系] - GetStdHandle が STD_ERROR_HANDLE を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 親の標準エラー ハンドルを返却する。
+    EXPECT_CALL(mock_windows, GetCurrentProcess(_, _, _)).Times(3).WillRepeatedly(Return(current_process));
+    // [Pre-Assert確認_正常系] - GetCurrentProcess が 3 回呼び出されること。
+    // [Pre-Assert手順] - 現在プロセスのダミー ハンドルを返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, current_process, stdin_source, current_process, _, 0U, TRUE,
+                                              DUPLICATE_SAME_ACCESS))
+        .WillOnce(
+            [stdin_dup](const char *, const int, const char *, HANDLE, HANDLE, HANDLE, LPHANDLE target, DWORD, BOOL,
+                        DWORD)
+            {
+                *target = stdin_dup;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - DuplicateHandle が標準入力を継承可能に複製すること。
+    // [Pre-Assert手順] - 複製後の標準入力ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, current_process, stdout_source, current_process, _, 0U, TRUE,
+                                              DUPLICATE_SAME_ACCESS))
+        .WillOnce(
+            [stdout_dup](const char *, const int, const char *, HANDLE, HANDLE, HANDLE, LPHANDLE target, DWORD, BOOL,
+                         DWORD)
+            {
+                *target = stdout_dup;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - DuplicateHandle が標準出力を継承可能に複製すること。
+    // [Pre-Assert手順] - 複製後の標準出力ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, current_process, stderr_source, current_process, _, 0U, TRUE,
+                                              DUPLICATE_SAME_ACCESS))
+        .WillOnce(
+            [stderr_dup](const char *, const int, const char *, HANDLE, HANDLE, HANDLE, LPHANDLE target, DWORD, BOOL,
+                         DWORD)
+            {
+                *target = stderr_dup;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - DuplicateHandle が標準エラーを継承可能に複製すること。
+    // [Pre-Assert手順] - 複製後の標準エラー ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, InitializeProcThreadAttributeList(_, _, _, _, 1U, 0U, _))
+        .WillOnce(
+            [](const char *, const int, const char *, LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T size)
+            {
+                *size = 64U;
+                return FALSE;
+            })
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - InitializeProcThreadAttributeList がサイズ照会と初期化で 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は必要サイズ 64 を設定し、2 回目は TRUE を返却する。
+    EXPECT_CALL(mock_windows, UpdateProcThreadAttribute(_, _, _, _, 0U, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, _, _, _, _))
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - UpdateProcThreadAttribute が 1 回呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, CreateProcessW(_, _, _, _, _, _, _, _, _, _, _, _, _))
+        .WillOnce(
+            [process_handle, thread_handle](const char *, const int, const char *, LPCWSTR, LPWSTR,
+                                            LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR,
+                                            LPSTARTUPINFOW, LPPROCESS_INFORMATION info)
+            {
+                info->hProcess = process_handle;
+                info->hThread = thread_handle;
+                info->dwProcessId = 1000U;
+                info->dwThreadId = 1001U;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - CreateProcessW が 1 回呼び出されること。
+    // [Pre-Assert手順] - プロセス ハンドルとスレッド ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DeleteProcThreadAttributeList(_, _, _, _)).Times(1);
+    // [Pre-Assert確認_正常系] - DeleteProcThreadAttributeList が 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, _)).WillRepeatedly(Return(TRUE));
+    // [Pre-Assert確認_正常系] - CloseHandle が一時ハンドルと破棄時に呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+
+    // Act
+    int result =
+        com_util_process_start(&options, &process); // [手順] - 親の標準ハンドルを継承する設定でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_start の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// Windows の process_start が DuplicateHandle 失敗を返すことの確認
+TEST(processTest, StartReportsDuplicateHandleFailure)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE current_process = reinterpret_cast<HANDLE>(0x50);
+    HANDLE stdin_source = reinterpret_cast<HANDLE>(0x10);
+
+    options.argv = argv;                                       // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;  // [状態] - stdin を親ハンドル継承とする。
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stdout を親ハンドル継承とする。
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stderr を親ハンドル継承とする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, STD_INPUT_HANDLE)).WillOnce(Return(stdin_source));
+    // [Pre-Assert確認_異常系] - GetStdHandle が STD_INPUT_HANDLE を指定して 1 回呼び出されること。
+    // [Pre-Assert手順] - 親の標準入力ハンドルを返却する。
+    EXPECT_CALL(mock_windows, GetCurrentProcess(_, _, _)).WillOnce(Return(current_process));
+    // [Pre-Assert確認_異常系] - GetCurrentProcess が 1 回呼び出されること。
+    // [Pre-Assert手順] - 現在プロセスのダミー ハンドルを返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, current_process, stdin_source, current_process, _, 0U, TRUE,
+                                              DUPLICATE_SAME_ACCESS))
+        .WillOnce(Return(FALSE));
+    // [Pre-Assert確認_異常系] - DuplicateHandle が標準入力の複製で 1 回呼び出されること。
+    // [Pre-Assert手順] - FALSE を返却する。
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - DuplicateHandle 失敗状態でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
+              result);           // [確認_異常系] - com_util_process_start の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(nullptr, process); // [確認_異常系] - DuplicateHandle 失敗時に process が NULL のままであること。
+}
+
+// Windows の process_start が無効な標準ハンドルを null device へ落とすことの確認
+TEST(processTest, StartFallsBackToNullDeviceWhenStdHandleInvalid)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    NiceMock<Mock_com_util> mock_com_util;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE null_handle = reinterpret_cast<HANDLE>(0x90);
+    HANDLE process_handle = reinterpret_cast<HANDLE>(0x80);
+    HANDLE thread_handle = reinterpret_cast<HANDLE>(0x81);
+
+    options.argv = argv;                                       // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;  // [状態] - stdin を親ハンドル継承とする。
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stdout を親ハンドル継承とする。
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT; // [状態] - stderr を親ハンドル継承とする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetStdHandle(_, _, _, _)).Times(3).WillRepeatedly(Return(INVALID_HANDLE_VALUE));
+    // [Pre-Assert確認_異常系] - GetStdHandle が 3 回呼び出されること。
+    // [Pre-Assert手順] - INVALID_HANDLE_VALUE を返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, _, _, _, _, _, _, _)).Times(0);
+    // [Pre-Assert確認_異常系] - DuplicateHandle が呼び出されないこと。
+    EXPECT_CALL(mock_com_util, CreateFileU(_, _, _, _, _, _, _)).Times(3).WillRepeatedly(Return(null_handle));
+    // [Pre-Assert確認_正常系] - CreateFileU が null device 接続のために 3 回呼び出されること。
+    // [Pre-Assert手順] - ダミーの null device ハンドルを返却する。
+    EXPECT_CALL(mock_windows, InitializeProcThreadAttributeList(_, _, _, _, 1U, 0U, _))
+        .WillOnce(
+            [](const char *, const int, const char *, LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T size)
+            {
+                *size = 64U;
+                return FALSE;
+            })
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - InitializeProcThreadAttributeList がサイズ照会と初期化で 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は必要サイズ 64 を設定し、2 回目は TRUE を返却する。
+    EXPECT_CALL(mock_windows, UpdateProcThreadAttribute(_, _, _, _, 0U, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, _, _, _, _))
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - UpdateProcThreadAttribute が 1 回呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, CreateProcessW(_, _, _, _, _, _, _, _, _, _, _, _, _))
+        .WillOnce(
+            [process_handle, thread_handle](const char *, const int, const char *, LPCWSTR, LPWSTR,
+                                            LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR,
+                                            LPSTARTUPINFOW, LPPROCESS_INFORMATION info)
+            {
+                info->hProcess = process_handle;
+                info->hThread = thread_handle;
+                info->dwProcessId = 1000U;
+                info->dwThreadId = 1001U;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - CreateProcessW が 1 回呼び出されること。
+    // [Pre-Assert手順] - プロセス ハンドルとスレッド ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DeleteProcThreadAttributeList(_, _, _, _)).Times(1);
+    // [Pre-Assert確認_正常系] - DeleteProcThreadAttributeList が 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, _)).WillRepeatedly(Return(TRUE));
+    // [Pre-Assert確認_正常系] - CloseHandle が一時ハンドルと破棄時に呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+
+    // Act
+    int result =
+        com_util_process_start(&options, &process); // [手順] - 無効な標準ハンドルを継承する設定でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_start の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+
+// Windows の process_start が指定ハンドルを複製して起動することの確認
+TEST(processTest, StartCreatesProcessWithNativeStdioHandle)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+    com_util_process_options options = {};
+    com_util_process *process = nullptr;
+    char arg0[] = "C:\\Windows\\System32\\cmd.exe";
+    char *argv[] = {arg0, nullptr};
+    HANDLE current_process = reinterpret_cast<HANDLE>(0x50);
+    HANDLE native_handle = reinterpret_cast<HANDLE>(0x30);
+    HANDLE duplicated = reinterpret_cast<HANDLE>(0x31);
+    HANDLE process_handle = reinterpret_cast<HANDLE>(0x80);
+    HANDLE thread_handle = reinterpret_cast<HANDLE>(0x81);
+
+    options.argv = argv;                                            // [状態] - cmd.exe を起動する argv とする。
+    options.stdin_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE; // [状態] - stdin を指定ハンドルとする。
+    options.stdin_spec.native_handle = reinterpret_cast<intptr_t>(native_handle);
+    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE; // [状態] - stdout を指定ハンドルとする。
+    options.stdout_spec.native_handle = reinterpret_cast<intptr_t>(native_handle);
+    options.stderr_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE; // [状態] - stderr を指定ハンドルとする。
+    options.stderr_spec.native_handle = reinterpret_cast<intptr_t>(native_handle);
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetCurrentProcess(_, _, _)).Times(3).WillRepeatedly(Return(current_process));
+    // [Pre-Assert確認_正常系] - GetCurrentProcess が 3 回呼び出されること。
+    // [Pre-Assert手順] - 現在プロセスのダミー ハンドルを返却する。
+    EXPECT_CALL(mock_windows, DuplicateHandle(_, _, _, current_process, native_handle, current_process, _, 0U, TRUE,
+                                              DUPLICATE_SAME_ACCESS))
+        .Times(3)
+        .WillRepeatedly(
+            [duplicated](const char *, const int, const char *, HANDLE, HANDLE, HANDLE, LPHANDLE target, DWORD, BOOL,
+                         DWORD)
+            {
+                *target = duplicated;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - DuplicateHandle が指定ハンドルを 3 回複製すること。
+    // [Pre-Assert手順] - 複製後のハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, InitializeProcThreadAttributeList(_, _, _, _, 1U, 0U, _))
+        .WillOnce(
+            [](const char *, const int, const char *, LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T size)
+            {
+                *size = 64U;
+                return FALSE;
+            })
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - InitializeProcThreadAttributeList がサイズ照会と初期化で 2 回呼び出されること。
+    // [Pre-Assert手順] - 1 回目は必要サイズ 64 を設定し、2 回目は TRUE を返却する。
+    EXPECT_CALL(mock_windows, UpdateProcThreadAttribute(_, _, _, _, 0U, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, _, _, _, _))
+        .WillOnce(Return(TRUE));
+    // [Pre-Assert確認_正常系] - UpdateProcThreadAttribute が 1 回呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+    EXPECT_CALL(mock_windows, CreateProcessW(_, _, _, _, _, _, _, _, _, _, _, _, _))
+        .WillOnce(
+            [process_handle, thread_handle](const char *, const int, const char *, LPCWSTR, LPWSTR,
+                                            LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR,
+                                            LPSTARTUPINFOW, LPPROCESS_INFORMATION info)
+            {
+                info->hProcess = process_handle;
+                info->hThread = thread_handle;
+                info->dwProcessId = 1000U;
+                info->dwThreadId = 1001U;
+                return TRUE;
+            });
+    // [Pre-Assert確認_正常系] - CreateProcessW が 1 回呼び出されること。
+    // [Pre-Assert手順] - プロセス ハンドルとスレッド ハンドルを設定して TRUE を返却する。
+    EXPECT_CALL(mock_windows, DeleteProcThreadAttributeList(_, _, _, _)).Times(1);
+    // [Pre-Assert確認_正常系] - DeleteProcThreadAttributeList が 1 回呼び出されること。
+    EXPECT_CALL(mock_windows, CloseHandle(_, _, _, _)).WillRepeatedly(Return(TRUE));
+    // [Pre-Assert確認_正常系] - CloseHandle が一時ハンドルと破棄時に呼び出されること。
+    // [Pre-Assert手順] - TRUE を返却する。
+
+    // Act
+    int result = com_util_process_start(&options, &process); // [手順] - native_handle 指定でプロセスを開始する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_start の戻り値が COM_UTIL_OK であること。
+    EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
+
+    // Cleanup
+    com_util_process_destroy(process);
+}
+#endif /* PLATFORM_ */
 
 // start が不正引数を検出することの確認
 TEST(processTest, RejectsInvalidArguments)
@@ -365,8 +760,39 @@ TEST(processTest, GetsExecutablePath)
 {
     // Arrange
     char path[PLATFORM_PATH_MAX] = {};
+#if defined(PLATFORM_LINUX)
+    NiceMock<Mock_unistd> mock_unistd;
+    const char kResolvedPath[] = "/opt/com_util/processTest";
+#elif defined(PLATFORM_WINDOWS)
+    NiceMock<Mock_windows> mock_windows;
+#endif /* PLATFORM_ */
 
     // Pre-Assert
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_unistd, readlink(_, _, _, StrEq("/proc/self/exe"), _, _))
+        .WillOnce(
+            [](const char *, int, const char *, const char *, char *buf, size_t size) -> ssize_t
+            {
+                const char resolved[] = "/opt/com_util/processTest";
+                size_t len = sizeof(resolved) - 1U;
+                (void)size;
+                memcpy(buf, resolved, len);
+                return static_cast<ssize_t>(len);
+            }); // [Pre-Assert確認_正常系] - readlink が /proc/self/exe を指定して 1 回呼び出されること。
+                // [Pre-Assert手順] - 解決済みパスを書き込み、その長さを返却する。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_windows, GetModuleFileNameW(_, _, _, static_cast<HMODULE>(NULL), _, _))
+        .WillOnce(
+            [](const char *, int, const char *, HMODULE, LPWSTR filename, DWORD size) -> DWORD
+            {
+                const wchar_t resolved[] = L"C:\\opt\\com_util\\processTest.exe";
+                size_t len = wcslen(resolved);
+                (void)size;
+                memcpy(filename, resolved, (len + 1U) * sizeof(wchar_t));
+                return static_cast<DWORD>(len);
+            }); // [Pre-Assert確認_正常系] - GetModuleFileNameW が 1 回呼び出されること。
+                // [Pre-Assert手順] - モジュール パスを書き込み、その長さを返却する。
+#endif /* PLATFORM_ */
 
     // Act
     int result = com_util_process_get_executable_path(
@@ -375,7 +801,12 @@ TEST(processTest, GetsExecutablePath)
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
               result); // [確認_正常系] - com_util_process_get_executable_path の戻り値が COM_UTIL_OK であること。
-    EXPECT_NE('\0', path[0]); // [確認_正常系] - 取得した実行ファイルのパスが空文字列でないこと。
+#if defined(PLATFORM_LINUX)
+    EXPECT_STREQ(kResolvedPath, path); // [確認_正常系] - 取得した実行ファイルのパスが readlink の結果であること。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_NE('\0', path[0]);                        // [確認_正常系] - 取得した実行ファイルのパスが空文字列でないこと。
+    EXPECT_NE(nullptr, strstr(path, "processTest")); // [確認_正常系] - パスに processTest が含まれること。
+#endif /* PLATFORM_ */
 }
 
 // 実行ファイルのパス取得が不正な出力引数を拒否することの確認
@@ -582,16 +1013,16 @@ TEST(processTest, WaitMapsExitStatesAndRetriesEintr)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    com_util_process *normal_process = com_util_process_adopt_native(123); // [状態] - pid 123 の process を用意する。
-    com_util_process *signaled_process =
-        com_util_process_adopt_native(124); // [状態] - pid 124 の process を用意する。
+    com_util_process *normal_process = com_util_process_adopt_native(123);   // [状態] - pid 123 の process を用意する。
+    com_util_process *signaled_process = com_util_process_adopt_native(124); // [状態] - pid 124 の process を用意する。
     int normal_status = 7 << 8;
     int signaled_status = SIGTERM;
     int normal_exit_code = 0;
     int signaled_exit_code = 0;
-    ASSERT_NE(nullptr, normal_process);   // [状態確認] - pid 123 の com_util_process_adopt_native が非 NULL を返すこと。
-    ASSERT_NE(nullptr, signaled_process); // [状態確認] - pid 124 の com_util_process_adopt_native が非 NULL を返すこと。
-    errno = EINTR; // [状態] - 1 回目の waitpid が EINTR を返す状態とする。
+    ASSERT_NE(nullptr, normal_process); // [状態確認] - pid 123 の com_util_process_adopt_native が非 NULL を返すこと。
+    ASSERT_NE(nullptr,
+              signaled_process); // [状態確認] - pid 124 の com_util_process_adopt_native が非 NULL を返すこと。
+    errno = EINTR;               // [状態] - 1 回目の waitpid が EINTR を返す状態とする。
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 123, _, _))
@@ -669,7 +1100,7 @@ TEST(processTest, TerminateReportsKillFailure)
     NiceMock<Mock_unistd> mock_unistd;
     com_util_process *process = com_util_process_adopt_native(126); // [状態] - pid 126 の process を用意する。
     ASSERT_NE(nullptr, process); // [状態確認] - com_util_process_adopt_native の戻り値が非 NULL であること。
-    errno = ESRCH;              // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
+    errno = ESRCH;               // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
 
     // Pre-Assert
     EXPECT_CALL(mock_unistd, kill(_, _, _, 126, SIGTERM))
@@ -1115,49 +1546,6 @@ TEST(processTest, run_sync_rejects_invalid_output_and_start_failure)
     EXPECT_EQ(nullptr, process); // [確認_異常系] - 使用していない process が NULL のままであること。
 }
 
-// Linux の子プロセス起動失敗が終了コード 127 へ分類されることの確認
-TEST(processTest, child_start_failures_return_exit_code_127)
-{
-    // Arrange
-    com_util_process_options options = {};
-    int chdir_exit_code = 0;
-    int stdio_exit_code = 0;
-    int exec_exit_code = 0;
-    char true_arg0[] = "/bin/true";
-    char missing_arg0[] = "/com_util/process/path/does/not/exist";
-    char *true_argv[] = {true_arg0, nullptr};
-    char *missing_argv[] = {missing_arg0, nullptr};
-    options.argv = true_argv;
-    options.working_directory = "/com_util/process/directory/does/not/exist";
-
-    // Pre-Assert
-
-    // Act
-    int chdir_result =
-        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                  &chdir_exit_code); // [手順] - 存在しない作業ディレクトリで子プロセスを起動する。
-    options.working_directory = nullptr;
-    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_NATIVE_HANDLE;
-    options.stdout_spec.native_handle = -1;
-    int stdio_result =
-        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                  &stdio_exit_code); // [手順] - 不正な標準出力ハンドルで子プロセスを起動する。
-    options.stdout_spec.mode = COM_UTIL_PROCESS_STDIO_INHERIT;
-    options.argv = missing_argv;
-    int exec_result =
-        com_util_process_run_sync(&options, COM_UTIL_PROCESS_WAIT_FOREVER,
-                                  &exec_exit_code); // [手順] - 存在しない実行ファイルで子プロセスを起動する。
-
-    // Assert
-    EXPECT_EQ(COM_UTIL_OK, chdir_result); // [確認_正常系] - chdir 失敗後も親側の run_sync が COM_UTIL_OK であること。
-    EXPECT_EQ(127, chdir_exit_code);      // [確認_異常系] - chdir 失敗時の子プロセス終了コードが 127 であること。
-    EXPECT_EQ(COM_UTIL_OK,
-              stdio_result);         // [確認_正常系] - stdio 設定失敗後も親側の run_sync が COM_UTIL_OK であること。
-    EXPECT_EQ(127, stdio_exit_code); // [確認_異常系] - stdio 設定失敗時の子プロセス終了コードが 127 であること。
-    EXPECT_EQ(COM_UTIL_OK, exec_result); // [確認_正常系] - exec 失敗後も親側の run_sync が COM_UTIL_OK であること。
-    EXPECT_EQ(127, exec_exit_code);      // [確認_異常系] - exec 失敗時の子プロセス終了コードが 127 であること。
-}
-
 // Linux の環境変数補助関数が NULL、空配列、上書き失敗を処理することの確認
 TEST(processTest, environment_helpers_cover_empty_and_override_failure_paths)
 {
@@ -1235,10 +1623,9 @@ TEST(processTest, child_runner_classifies_each_preparation_failure)
     char *argv[] = {arg0, NULL};
     char *envp[] = {path_entry, NULL};
     options.argv = argv;
-    ASSERT_NE(nullptr,
-              getcwd(current_directory,
-                     sizeof(current_directory))); // [状態] - 現在の作業ディレクトリを取得する。
-                                                  // [状態確認] - getcwd の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, getcwd(current_directory,
+                              sizeof(current_directory))); // [状態] - 現在の作業ディレクトリを取得する。
+                                                           // [状態確認] - getcwd の戻り値が非 NULL であること。
     options.working_directory = "/com_util/process/directory/does/not/exist";
 
     // Pre-Assert

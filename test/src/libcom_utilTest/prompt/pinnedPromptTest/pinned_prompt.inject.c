@@ -379,25 +379,6 @@ void test_pinned_prompt_history_release_entries(com_util_pinned_prompt *screen)
     context->entries = NULL;
 }
 
-#if defined(PLATFORM_LINUX)
-
-void test_pinned_prompt_reset_platform_state(void)
-{
-    s_pinned_resize_pending = 0;
-    memset(&s_pinned_prev_sigwinch, 0, sizeof(s_pinned_prev_sigwinch));
-    s_pinned_sigwinch_installed = 0;
-}
-
-void test_pinned_prompt_set_resize_pending(int value)
-{
-    s_pinned_resize_pending = (sig_atomic_t)value;
-}
-
-int test_pinned_prompt_resize_pending(void)
-{
-    return (int)s_pinned_resize_pending;
-}
-
 int test_pinned_prompt_raw_active(const com_util_pinned_prompt *screen)
 {
     return screen->raw_active;
@@ -433,6 +414,30 @@ int test_pinned_prompt_read_char_nb(com_util_pinned_prompt *screen)
     return pinned_prompt_platform_read_char_nb(screen);
 }
 
+int test_pinned_prompt_platform_is_tty(void)
+{
+    return pinned_prompt_platform_is_tty();
+}
+
+#if defined(PLATFORM_LINUX)
+
+void test_pinned_prompt_reset_platform_state(void)
+{
+    s_pinned_resize_pending = 0;
+    memset(&s_pinned_prev_sigwinch, 0, sizeof(s_pinned_prev_sigwinch));
+    s_pinned_sigwinch_installed = 0;
+}
+
+void test_pinned_prompt_set_resize_pending(int value)
+{
+    s_pinned_resize_pending = (sig_atomic_t)value;
+}
+
+int test_pinned_prompt_resize_pending(void)
+{
+    return (int)s_pinned_resize_pending;
+}
+
 void test_pinned_prompt_set_sigwinch_installed(int installed)
 {
     s_pinned_sigwinch_installed = installed;
@@ -441,11 +446,6 @@ void test_pinned_prompt_set_sigwinch_installed(int installed)
 void test_pinned_prompt_raise_resize_handler(void)
 {
     pinned_prompt_sigwinch_handler(SIGWINCH);
-}
-
-int test_pinned_prompt_platform_is_tty(void)
-{
-    return pinned_prompt_platform_is_tty();
 }
 
 #endif /* PLATFORM_LINUX */
