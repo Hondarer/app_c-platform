@@ -29,10 +29,10 @@ TEST_F(symLoaderIsDefaultTest, resolves_and_reports_explicit_default)
                 // [Pre-Assert手順] - resolved を明示的デフォルトの 2 に設定する。
 
     // Act
-    int rtc = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
+    int actual_ret = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
 
     // Assert
-    EXPECT_EQ(1, rtc);             // [確認_正常系] - com_util_sym_loader_is_default の戻り値が 1 であること。
+    EXPECT_EQ(1, actual_ret);             // [確認_正常系] - com_util_sym_loader_is_default の戻り値が 1 であること。
     EXPECT_EQ(2, entry_.resolved); // [確認_正常系] - 呼び出しの中で解決が行われ resolved が 2 になること。
 }
 
@@ -48,10 +48,10 @@ TEST_F(symLoaderIsDefaultTest, reports_not_default_for_resolved_symbol)
         .Times(0); // [Pre-Assert確認_正常系] - 解決済みのため com_util_sym_loader_resolve が呼び出されないこと。
 
     // Act
-    int rtc = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
+    int actual_ret = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);             // [確認_正常系] - com_util_sym_loader_is_default の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);             // [確認_正常系] - com_util_sym_loader_is_default の戻り値が 0 であること。
     EXPECT_EQ(1, entry_.resolved); // [確認_正常系] - resolved が 1 のまま変化しないこと。
 }
 
@@ -73,9 +73,9 @@ TEST_F(symLoaderIsDefaultTest, reports_not_default_for_unresolved_entry)
                 // [Pre-Assert手順] - resolved を定義なしの -1 に設定する。
 
     // Act
-    int rtc = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
+    int actual_ret = com_util_sym_loader_is_default(&entry_); // [手順] - com_util_sym_loader_is_default を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);              // [確認_異常系] - com_util_sym_loader_is_default の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);              // [確認_異常系] - com_util_sym_loader_is_default の戻り値が 0 であること。
     EXPECT_EQ(-1, entry_.resolved); // [確認_異常系] - resolved が定義なしを示す -1 になること。
 }

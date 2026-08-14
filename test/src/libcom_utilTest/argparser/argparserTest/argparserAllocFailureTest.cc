@@ -48,14 +48,14 @@ TEST_F(argparserAllocFailureTest, register_fails_when_spec_array_expansion_fails
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降 (エラー記録用の確保) は本物へ委譲する。
 
     // Act
-    int rtc = com_util_argparser_register_option_string(
+    int actual_ret = com_util_argparser_register_option_string(
         parser_, "-a", "--alpha", "VALUE", "説明", 0u,
         &storage_); // [手順] - 文字列オプション --alpha を登録する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - com_util_argparser_register_option_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - com_util_argparser_register_option_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 // 登録項目の名前複製に失敗した場合に登録が失敗することの確認
@@ -70,14 +70,14 @@ TEST_F(argparserAllocFailureTest, register_fails_when_name_duplication_fails)
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_argparser_register_option_string(
+    int actual_ret = com_util_argparser_register_option_string(
         parser_, "-a", "--alpha", "VALUE", "説明", 0u,
         &storage_); // [手順] - 文字列オプション --alpha を登録する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - com_util_argparser_register_option_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - com_util_argparser_register_option_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 // 位置引数の登録項目配列拡張に失敗した場合に登録が失敗することの確認
@@ -93,13 +93,13 @@ TEST_F(argparserAllocFailureTest, positional_register_fails_when_spec_array_expa
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物の realloc へ委譲する。
 
     // Act
-    int rtc = com_util_argparser_register_positional_string(parser_, "input", "説明", 0u,
+    int actual_ret = com_util_argparser_register_positional_string(parser_, "input", "説明", 0u,
                                                              &storage_); // [手順] - 文字列位置引数 input を登録する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - 配列拡張失敗時の com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - 配列拡張失敗時の com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 // 位置引数名の複製に失敗した場合に登録が失敗することの確認
@@ -114,13 +114,13 @@ TEST_F(argparserAllocFailureTest, positional_register_fails_when_name_duplicatio
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物の malloc へ委譲する。
 
     // Act
-    int rtc = com_util_argparser_register_positional_string(parser_, "input", NULL, 0u,
+    int actual_ret = com_util_argparser_register_positional_string(parser_, "input", NULL, 0u,
                                                              &storage_); // [手順] - 文字列位置引数 input を登録する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - 名前複製失敗時の com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - 名前複製失敗時の com_util_argparser_register_positional_string の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 // 使用方法の出力バッファー確保に失敗した場合に出力が失敗することの確認
@@ -141,13 +141,13 @@ TEST_F(argparserAllocFailureTest, print_usage_fails_when_buffer_allocation_fails
                           // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_argparser_print_usage(parser_,
+    int actual_ret = com_util_argparser_print_usage(parser_,
                                               stdout); // [手順] - com_util_argparser_print_usage を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - com_util_argparser_print_usage の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - com_util_argparser_print_usage の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 // short_name の複製に失敗した場合に登録が失敗することの確認
@@ -161,13 +161,13 @@ TEST_F(argparserAllocFailureTest, register_fails_when_short_name_duplication_fai
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - short_name の複製で malloc が失敗すること。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
                                                    &storage_); // [手順] - short_name を含む文字列オプションを登録する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - short_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - short_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
 }
 
 // long_name の複製に失敗した場合に登録が失敗することの確認
@@ -182,13 +182,13 @@ TEST_F(argparserAllocFailureTest, register_fails_when_long_name_duplication_fail
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - long_name の複製で malloc が失敗すること。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
                                                    &storage_); // [手順] - long_name を含む文字列オプションを登録する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - long_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - long_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
 }
 
 // value_name の複製に失敗した場合に登録が失敗することの確認
@@ -204,13 +204,13 @@ TEST_F(argparserAllocFailureTest, register_fails_when_value_name_duplication_fai
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - value_name の複製で malloc が失敗すること。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_argparser_register_option_string(parser_, "-a", "--alpha", "VALUE", "説明", 0u,
                                                    &storage_); // [手順] - value_name を含む文字列オプションを登録する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - value_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - value_name 複製失敗時の登録結果が OUT_OF_MEMORY であること。
 }
 
 // description の複製に失敗した場合に登録が失敗することの確認
@@ -227,13 +227,13 @@ TEST_F(argparserAllocFailureTest, register_fails_when_description_duplication_fa
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - description の複製で malloc が失敗すること。
 
     // Act
-    int rtc = com_util_argparser_register_option_string(
+    int actual_ret = com_util_argparser_register_option_string(
         parser_, "-a", "--alpha", "VALUE", "説明", 0u,
         &storage_); // [手順] - description を含む文字列オプションを登録する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - description 複製失敗時の登録結果が OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - description 複製失敗時の登録結果が OUT_OF_MEMORY であること。
 }
 
 // 登録エラー配列の realloc に失敗した場合に登録結果だけが返ることの確認
@@ -248,12 +248,12 @@ TEST_F(argparserAllocFailureTest, register_error_is_not_recorded_when_realloc_fa
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 登録エラー配列の realloc が失敗すること。
 
     // Act
-    int rtc = com_util_argparser_register_flag(parser_, NULL, NULL, NULL,
+    int actual_ret = com_util_argparser_register_flag(parser_, NULL, NULL, NULL,
                                                 &storage); // [手順] - 名前なし登録で登録エラーを発生させる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - 登録エラー配列確保失敗後も登録結果が INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - 登録エラー配列確保失敗後も登録結果が INVALID_ARGUMENT であること。
     EXPECT_EQ((size_t)0, com_util_argparser_get_register_error_count(
                              parser_)); // [確認_異常系] - realloc 失敗時に登録エラー件数が 0 のままであること。
 }
@@ -313,10 +313,10 @@ TEST_F(argparserAllocFailureTest, parse_continues_when_program_name_duplication_
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - argv[0] のベース名複製で malloc が失敗すること。
 
     // Act
-    int rtc = com_util_argparser_parse(parser_, 1, argv); // [手順] - argv[0] のベース名複製失敗状態で解析する。
+    int actual_ret = com_util_argparser_parse(parser_, 1, argv); // [手順] - argv[0] のベース名複製失敗状態で解析する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc); // [確認_正常系] - ベース名複製失敗時も com_util_argparser_parse の戻り値が COM_UTIL_OK であること。
+        actual_ret); // [確認_正常系] - ベース名複製失敗時も com_util_argparser_parse の戻り値が COM_UTIL_OK であること。
 }

@@ -126,12 +126,12 @@ TEST_F(endpointTest, parse_rejects_malformed_text)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_parse("not-an-ip", &address); // [手順] - 不正な IPv4 文字列を解析する。
+    int actual_ret = com_util_ipv4_parse("not-an-ip", &address); // [手順] - 不正な IPv4 文字列を解析する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - 不正な文字列を指定した com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - 不正な文字列を指定した com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(0xA5A5A5A5U,
               address); // [確認_異常系] - 解析に失敗して address_out が変更されないこと。
 }
@@ -165,12 +165,12 @@ TEST_F(endpointTest, parse_converts_valid_text)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_parse("127.0.0.1", &address); // [手順] - ループバックアドレスを解析する。
+    int actual_ret = com_util_ipv4_parse("127.0.0.1", &address); // [手順] - ループバックアドレスを解析する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc); // [確認_正常系] - 正しい IPv4 文字列を指定した com_util_ipv4_parse の戻り値が COM_UTIL_OK であること。
+        actual_ret); // [確認_正常系] - 正しい IPv4 文字列を指定した com_util_ipv4_parse の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(expected,
               address); // [確認_正常系] - com_util_ipv4_parse がネットワークバイトオーダーのアドレスを返すこと。
 }
@@ -190,12 +190,12 @@ TEST_F(endpointTest, parse_returns_invalid_when_startup_fails)
                   { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
-    int rtc = com_util_ipv4_parse("127.0.0.1", &address); // [手順] - 初期化失敗を注入して IPv4 を解析する。
+    int actual_ret = com_util_ipv4_parse("127.0.0.1", &address); // [手順] - 初期化失敗を注入して IPv4 を解析する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - 初期化に失敗した com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - 初期化に失敗した com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 #endif /* PLATFORM_WINDOWS */
 
@@ -256,12 +256,12 @@ TEST_F(endpointTest, resolve_reports_lookup_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_resolve("example.invalid", &address, &detail); // [手順] - 名前解決失敗を注入する。
+    int actual_ret = com_util_ipv4_resolve("example.invalid", &address, &detail); // [手順] - 名前解決失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - 名前解決に失敗した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - 名前解決に失敗した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     // [確認_異常系] - 詳細エラーに getaddrinfo ドメインとエラー コードが記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_GAI, COM_UTIL_ERR_UNKNOWN,
 #if defined(PLATFORM_LINUX)
@@ -320,12 +320,12 @@ TEST_F(endpointTest, resolve_releases_result_when_lookup_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_resolve("example.invalid", &address, &detail); // [手順] - 解決結果を残す失敗を注入する。
+    int actual_ret = com_util_ipv4_resolve("example.invalid", &address, &detail); // [手順] - 解決結果を残す失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - 解決結果を残した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - 解決結果を残した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 名前解決結果が NULL の場合に失敗として扱われることの確認
@@ -358,12 +358,12 @@ TEST_F(endpointTest, resolve_rejects_empty_result)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - NULL の名前解決結果を処理する。
+    int actual_ret = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - NULL の名前解決結果を処理する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_NOT_FOUND,
-        rtc); // [確認_異常系] - 結果が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_NOT_FOUND であること。
+        actual_ret); // [確認_異常系] - 結果が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_NOT_FOUND であること。
 }
 
 // 名前解決結果の先頭 IPv4 アドレスが返されることの確認
@@ -418,11 +418,11 @@ TEST_F(endpointTest, resolve_returns_first_ipv4_address)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 有効な IPv4 解決結果を処理する。
+    int actual_ret = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 有効な IPv4 解決結果を処理する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 有効な結果を指定した com_util_ipv4_resolve の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 有効な結果を指定した com_util_ipv4_resolve の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(expected,
               address); // [確認_正常系] - com_util_ipv4_resolve が先頭の IPv4 アドレスを返すこと。
     // [確認_正常系] - 詳細エラーが記録されないこと。
@@ -468,11 +468,11 @@ TEST_F(endpointTest, resolve_retries_after_interrupt)
             { EXPECT_EQ(&resolved, actual); });
 
     // Act
-    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断ののち成功する名前解決を実行する。
+    int actual_ret = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断ののち成功する名前解決を実行する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 中断後に成功した com_util_ipv4_resolve の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 中断後に成功した com_util_ipv4_resolve の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(expected,
               address); // [確認_正常系] - 再試行で解決した IPv4 アドレスが返されること。
     // [確認_正常系] - 詳細エラーが記録されないこと。
@@ -500,12 +500,12 @@ TEST_F(endpointTest, resolve_reports_system_error_without_retry)
             });
 
     // Act
-    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断以外の EAI_SYSTEM を注入する。
+    int actual_ret = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 中断以外の EAI_SYSTEM を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - EAI_SYSTEM を返した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - EAI_SYSTEM を返した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     // [確認_異常系] - 詳細エラーに getaddrinfo ドメインと EAI_SYSTEM が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_GAI, COM_UTIL_ERR_UNKNOWN, static_cast<unsigned long>(EAI_SYSTEM));
 }
@@ -527,12 +527,12 @@ TEST_F(endpointTest, resolve_propagates_startup_failure)
                   { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
-    int rtc = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 初期化失敗を注入して名前解決する。
+    int actual_ret = com_util_ipv4_resolve("localhost", &address, &detail); // [手順] - 初期化失敗を注入して名前解決する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - 初期化に失敗した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - 初期化に失敗した com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     // [確認_異常系] - 詳細エラーに Winsock ドメインと OS のエラー値が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN,
                   static_cast<unsigned long>(WSASYSNOTREADY));
@@ -573,13 +573,13 @@ TEST_F(endpointTest, to_string_rejects_small_buffer)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, COM_UTIL_IPV4_ADDR_STRLEN - 1U,
+    int actual_ret = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, COM_UTIL_IPV4_ADDR_STRLEN - 1U,
                                       &detail); // [手順] - 必要長未満のバッファーで文字列化する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc); // [確認_異常系] - 小さいバッファーを指定した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+        actual_ret); // [確認_異常系] - 小さいバッファーを指定した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     // [確認_異常系] - 詳細エラーに errno ドメインと ERANGE が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_BUFFER_TOO_SMALL,
                   static_cast<unsigned long>(ERANGE));
@@ -610,13 +610,13 @@ TEST_F(endpointTest, to_string_reports_conversion_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
+    int actual_ret = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
                                       &detail); // [手順] - IPv4 文字列化の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - 文字列化に失敗した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - 文字列化に失敗した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // IPv4 アドレスがドット区切り文字列へ変換されることの確認
@@ -648,12 +648,12 @@ TEST_F(endpointTest, to_string_converts_address)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
+    int actual_ret = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
                                       &detail); // [手順] - IPv4 アドレスを文字列化する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 正常に文字列化した com_util_ipv4_to_string の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 正常に文字列化した com_util_ipv4_to_string の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("127.0.0.1",
                  buffer); // [確認_正常系] - com_util_ipv4_to_string がドット区切りの IPv4 文字列を返すこと。
     // [確認_正常系] - 詳細エラーが記録されないこと。
@@ -676,13 +676,13 @@ TEST_F(endpointTest, to_string_propagates_startup_failure)
                   { return com_util_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
-    int rtc = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
+    int actual_ret = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),
                                       &detail); // [手順] - 初期化失敗を注入して IPv4 を文字列化する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - 初期化に失敗した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - 初期化に失敗した com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     // [確認_異常系] - 詳細エラーに Winsock ドメインと OS のエラー値が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_WINSOCK, COM_UTIL_ERR_UNKNOWN,
                   static_cast<unsigned long>(WSASYSNOTREADY));

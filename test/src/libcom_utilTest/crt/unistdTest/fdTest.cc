@@ -178,10 +178,10 @@ TEST_F(fdTest, dup2_returns_zero_on_success)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup2(kFakeFd, kDupFd, NULL); // [手順] - 番兵記述子 7 を 8 へ複製する。
+    int actual_ret = com_util_dup2(kFakeFd, kDupFd, NULL); // [手順] - 番兵記述子 7 を 8 へ複製する。
 
     // Assert
-    EXPECT_EQ(0, rtc); // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - POSIX/Windows とも成功時は 0 に正規化されること。
 }
 
 // close の成功時に 0 が返ることの確認
@@ -201,10 +201,10 @@ TEST_F(fdTest, close_success_returns_zero)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_close(kFakeFd, NULL); // [手順] - 開いている記述子を閉じる。
+    int actual_ret = com_util_close(kFakeFd, NULL); // [手順] - 開いている記述子を閉じる。
 
     // Assert
-    EXPECT_EQ(0, rtc); // [確認_正常系] - com_util_close の戻り値として、クローズ成功時は 0 が返ること。
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - com_util_close の戻り値として、クローズ成功時は 0 が返ること。
 }
 
 // 負のファイル記述子で各関数が -1 を返すことの確認
@@ -260,10 +260,10 @@ TEST_F(fdTest, lseek_invalid_whence_returns_minus1)
     // Pre-Assert
 
     // Act
-    int64_t rtc = com_util_lseek(kFakeFd, 0, 99, NULL); // [手順] - 定義外の whence を与える。
+    int64_t actual_ret = com_util_lseek(kFakeFd, 0, 99, NULL); // [手順] - 定義外の whence を与える。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の API を呼び出さずに -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_lseek の戻り値として、OS の API を呼び出さずに -1 が返ること。
 }
 
 // 下位の lseek 系 API が失敗した場合に -1 が返ることの確認
@@ -285,10 +285,10 @@ TEST_F(fdTest, lseek_returns_minus1_when_platform_lseek_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t actual_ret = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_lseek の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_lseek の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の close 系 API が失敗した場合に -1 が返ることの確認
@@ -308,10 +308,10 @@ TEST_F(fdTest, close_returns_minus1_when_platform_close_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_close(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
+    int actual_ret = com_util_close(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_close の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_close の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の dup 系 API が失敗した場合に -1 が返ることの確認
@@ -331,10 +331,10 @@ TEST_F(fdTest, dup_returns_minus1_when_platform_dup_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
+    int actual_ret = com_util_dup(kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_dup の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の dup2 系 API が失敗した場合に -1 が返ることの確認
@@ -354,10 +354,10 @@ TEST_F(fdTest, dup2_returns_minus1_when_platform_dup2_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_dup2(kFakeFd, kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
+    int actual_ret = com_util_dup2(kFakeFd, kFakeFd, NULL); // [手順] - 有効な記述子で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_dup2 の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_dup2 の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の read 系 API が失敗した場合に -1 が返ることの確認
@@ -378,10 +378,10 @@ TEST_F(fdTest, read_returns_minus1_when_platform_read_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t actual_ret = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_read の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_read の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 // 下位の write 系 API が失敗した場合に -1 が返ることの確認
@@ -402,10 +402,10 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int64_t rtc = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t actual_ret = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_write の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -423,11 +423,11 @@ TEST_F(fdTest, read_retries_after_interrupt)
     // [Pre-Assert手順] - 下位の read 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
 
     // Act
-    int64_t rtc = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t actual_ret = com_util_read(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ((int64_t)4,
-              rtc); // [確認_正常系] - com_util_read の戻り値が、再試行後の転送量である 4 であること。
+              actual_ret); // [確認_正常系] - com_util_read の戻り値が、再試行後の転送量である 4 であること。
 }
 
 // 下位の write 系 API がシグナルで中断された場合に再試行されることの確認
@@ -443,11 +443,11 @@ TEST_F(fdTest, write_retries_after_interrupt)
     // [Pre-Assert手順] - 下位の write 系 API から、errno に EINTR を設定した -1 ののち 4 を返却する。
 
     // Act
-    int64_t rtc = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
+    int64_t actual_ret = com_util_write(kFakeFd, buf, sizeof(buf), NULL); // [手順] - 有効な引数で呼び出す。
 
     // Assert
     EXPECT_EQ((int64_t)4,
-              rtc); // [確認_正常系] - com_util_write の戻り値が、再試行後の転送量である 4 であること。
+              actual_ret); // [確認_正常系] - com_util_write の戻り値が、再試行後の転送量である 4 であること。
 }
 
 /* Windows の CRT はクローズ済み記述子で invalid parameter handler を起動するため、Linux でのみ実施する */

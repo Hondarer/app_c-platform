@@ -19,12 +19,12 @@ TEST(traceCommonTest, resolves_valid_explicit_timestamp)
         .Times(0); // [Pre-Assert確認_正常系] - 有効な明示タイムスタンプでは現在時刻を取得しないこと。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         &timestamp, &resolved,
         &fallback_used); // [手順] - 有効な明示タイムスタンプを指定して trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);                            // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);                            // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
     EXPECT_EQ(timestamp.tv_sec, resolved.tv_sec); // [確認_正常系] - resolved の秒値が明示タイムスタンプと一致すること。
     EXPECT_EQ(timestamp.tv_nsec,
               resolved.tv_nsec); // [確認_正常系] - resolved のナノ秒値が明示タイムスタンプと一致すること。
@@ -50,11 +50,11 @@ TEST(traceCommonTest, resolves_current_time_for_null_timestamp)
                 // [Pre-Assert手順] - 現在時刻として 789 秒 123 ナノ秒を返却する。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         NULL, &resolved, &fallback_used); // [手順] - timestamp に NULL を指定して trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
     EXPECT_EQ(789, resolved.tv_sec);  // [確認_正常系] - resolved の秒値が取得した現在時刻と一致すること。
     EXPECT_EQ(123, resolved.tv_nsec); // [確認_正常系] - resolved のナノ秒値が取得した現在時刻と一致すること。
     EXPECT_EQ(0, fallback_used);      // [確認_正常系] - NULL 指定は代替と見なさず fallback_used が 0 であること。
@@ -80,12 +80,12 @@ TEST(traceCommonTest, falls_back_from_invalid_explicit_timestamp)
                 // [Pre-Assert手順] - 現在時刻として 456 秒 789 ナノ秒を返却する。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         &timestamp, &resolved,
         &fallback_used); // [手順] - 無効な明示タイムスタンプを指定して trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
     EXPECT_EQ(456, resolved.tv_sec);  // [確認_正常系] - resolved の秒値が代替の現在時刻と一致すること。
     EXPECT_EQ(789, resolved.tv_nsec); // [確認_正常系] - resolved のナノ秒値が代替の現在時刻と一致すること。
     EXPECT_EQ(1, fallback_used);      // [確認_正常系] - fallback_used が 1 であること。
@@ -110,11 +110,11 @@ TEST(traceCommonTest, rejects_invalid_current_time)
                 // [Pre-Assert手順] - 無効なナノ秒値 -1 を返却する。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         NULL, &resolved, &fallback_used); // [手順] - 取得時刻が無効になる条件で trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);          // [確認_異常系] - trace_resolve_timestamp の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);          // [確認_異常系] - trace_resolve_timestamp の戻り値が -1 であること。
     EXPECT_EQ(0, fallback_used); // [確認_異常系] - NULL 指定のため fallback_used が 0 であること。
 }
 
@@ -131,11 +131,11 @@ TEST(traceCommonTest, rejects_null_resolved)
         .Times(0); // [Pre-Assert確認_異常系] - resolved が NULL の場合は現在時刻を取得しないこと。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         &timestamp, NULL, &fallback_used); // [手順] - resolved に NULL を指定して trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc);           // [確認_異常系] - trace_resolve_timestamp の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - trace_resolve_timestamp の戻り値が -1 であること。
     EXPECT_EQ(77, fallback_used); // [確認_異常系] - fallback_used が変更されないこと。
 }
 
@@ -158,11 +158,11 @@ TEST(traceCommonTest, allows_null_fallback_used)
                 // [Pre-Assert手順] - 有効な現在時刻を返却する。
 
     // Act
-    int rtc = trace_resolve_timestamp(
+    int actual_ret = trace_resolve_timestamp(
         &timestamp, &resolved, NULL); // [手順] - fallback_used に NULL を指定して trace_resolve_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);                // [確認_正常系] - trace_resolve_timestamp の戻り値が 0 であること。
     EXPECT_EQ(456, resolved.tv_sec);  // [確認_正常系] - resolved の秒値が代替の現在時刻と一致すること。
     EXPECT_EQ(789, resolved.tv_nsec); // [確認_正常系] - resolved のナノ秒値が代替の現在時刻と一致すること。
 }
@@ -186,12 +186,12 @@ TEST(traceCommonTest, formats_valid_timestamp)
                 // [Pre-Assert手順] - "formatted" を格納して COM_UTIL_OK を返却する。
 
     // Act
-    int rtc = trace_format_local_timestamp(
+    int actual_ret = trace_format_local_timestamp(
         buf, sizeof(buf),
         &timestamp); // [手順] - 有効なタイムスタンプを指定して trace_format_local_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);    // [確認_正常系] - trace_format_local_timestamp の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);    // [確認_正常系] - trace_format_local_timestamp の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("formatted", buf); // [確認_正常系] - buf に書式化した文字列が格納されること。
 }
 
@@ -208,12 +208,12 @@ TEST(traceCommonTest, rejects_invalid_timestamp_for_formatting)
         .Times(0); // [Pre-Assert確認_異常系] - 無効なタイムスタンプを書式化しないこと。
 
     // Act
-    int rtc = trace_format_local_timestamp(
+    int actual_ret = trace_format_local_timestamp(
         buf, sizeof(buf),
         &timestamp); // [手順] - 無効なタイムスタンプを指定して trace_format_local_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
 }
 
 // NULL タイムスタンプを書式化せず拒否することの確認
@@ -228,11 +228,11 @@ TEST(traceCommonTest, rejects_null_timestamp_for_formatting)
         .Times(0); // [Pre-Assert確認_異常系] - NULL タイムスタンプを書式化しないこと。
 
     // Act
-    int rtc = trace_format_local_timestamp(
+    int actual_ret = trace_format_local_timestamp(
         buf, sizeof(buf), NULL); // [手順] - timestamp に NULL を指定して trace_format_local_timestamp を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - trace_format_local_timestamp の戻り値が -1 であること。
 }
 
 // buf が NULL の場合に書式化関数の結果を伝搬することの確認
@@ -249,13 +249,13 @@ TEST(traceCommonTest, propagates_error_for_null_buffer)
                                              // [Pre-Assert手順] - COM_UTIL_ERR_INVALID_ARGUMENT を返却する。
 
     // Act
-    int rtc = trace_format_local_timestamp(
+    int actual_ret = trace_format_local_timestamp(
         NULL, 32, &timestamp); // [手順] - buf に NULL を指定して trace_format_local_timestamp を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - trace_format_local_timestamp の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // buf_size が 0 の場合に書式化関数の結果を伝搬することの確認
@@ -273,12 +273,12 @@ TEST(traceCommonTest, propagates_error_for_zero_buffer_size)
                                     // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
-    int rtc = trace_format_local_timestamp(
+    int actual_ret = trace_format_local_timestamp(
         buf, 0, &timestamp); // [手順] - buf_size に 0 を指定して trace_format_local_timestamp を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - trace_format_local_timestamp の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - trace_format_local_timestamp の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 全トレース レベルと範囲外の値が対応する文字へ変換されることの確認

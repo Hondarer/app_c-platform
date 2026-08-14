@@ -93,12 +93,12 @@ TEST_F(mmapTest, attach_fails_when_create_size_is_zero_for_new_file)
         .Times(1); // [Pre-Assert確認_異常系] - create_size 0 のときファイルを閉じて削除すること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, 0u, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, 0u, &map,
                                    NULL); // [手順] - create_size 0 で新規アタッチを試みる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - attach (create_size 0、新規作成) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
+              actual_ret); // [確認_異常系] - attach (create_size 0、新規作成) が COM_UTIL_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - create_size 0 ではマップ ハンドルが設定されないこと。
 }
 
@@ -131,13 +131,13 @@ TEST_F(mmapTest, attach_fails_for_empty_existing_file)
                 // [Pre-Assert手順] - サイズ 0 を設定し、COM_UTIL_OK を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - サイズ 0 の既存ファイルへアタッチする。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - 空の既存ファイルに対する com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - 空の既存ファイルに対する com_util_mmap_attach の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - 空の既存ファイルではマップ ハンドルが設定されないこと。
 }
 
@@ -169,11 +169,11 @@ TEST_F(mmapTest, attach_read_only_maps_existing_file)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
                                    NULL); // [手順] - 既存ファイルを読み取り専用でアタッチする。
 
     // Assert
-    ASSERT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 読み取り専用アタッチの戻り値が COM_UTIL_OK であること。
+    ASSERT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 読み取り専用アタッチの戻り値が COM_UTIL_OK であること。
     ASSERT_NE((com_util_mmap *)NULL, map);
     EXPECT_EQ(kMapSize,
               com_util_mmap_get_size(map)); // [確認_正常系] - マップ サイズが既存ファイルの 64 バイトと一致すること。
@@ -198,11 +198,11 @@ TEST_F(mmapTest, attach_read_only_fails_for_missing_file)
                                     // [Pre-Assert手順] - COM_UTIL_ERR_UNKNOWN を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, kMapSize, &map,
                                    NULL); // [手順] - 存在しないファイルを READ_ONLY でアタッチを試みる。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc);           // [確認_異常系] - attach (READ_ONLY、存在しないファイル) が失敗すること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret);           // [確認_異常系] - attach (READ_ONLY、存在しないファイル) が失敗すること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - 欠落ファイルではマップ ハンドルが設定されないこと。
 }
 
@@ -335,12 +335,12 @@ TEST_F(mmapTest, get_rwlock_rejects_null_output)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_mmap_get_rwlock(map, NULL,
+    int actual_ret = com_util_mmap_get_rwlock(map, NULL,
                                        &detail); // [手順] - ロック出力先に NULL を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - get_rwlock の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - get_rwlock の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL,
               com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
 
@@ -396,13 +396,13 @@ TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_mmap_flush(map, mapped_buf_, 1u,
+    int actual_ret = com_util_mmap_flush(map, mapped_buf_, 1u,
                                   NULL); // [手順] - マップ先頭の 1 byte を指定して書き戻す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc); // [確認_正常系] - 明示したアドレス範囲に対する com_util_mmap_flush の戻り値が COM_UTIL_OK であること。
+        actual_ret); // [確認_正常系] - 明示したアドレス範囲に対する com_util_mmap_flush の戻り値が COM_UTIL_OK であること。
 
     // Cleanup
     (void)com_util_mmap_detach(map, NULL);
@@ -434,10 +434,10 @@ TEST_F(mmapTest, get_rwlock_serializes_open_with_local_lock)
     }
 
     // Act
-    int rtc = com_util_mmap_get_rwlock(map, &lock, NULL); // [手順] - get_rwlock を呼び出す。
+    int actual_ret = com_util_mmap_get_rwlock(map, &lock, NULL); // [手順] - get_rwlock を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);  // [確認_正常系] - get_rwlock の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);  // [確認_正常系] - get_rwlock の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(kFakeRwlock, lock); // [確認_正常系] - get_rwlock の出力が番兵ロックであること。
 
     // Cleanup

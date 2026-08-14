@@ -240,10 +240,10 @@ TEST_F(promptLinuxTest, read_char_returns_next_byte)
                 // [Pre-Assert手順] - 'A' を書き込み、1 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ('A', rtc); // [確認_正常系] - 読み取ったバイト値 'A' が返ること。
+    EXPECT_EQ('A', actual_ret); // [確認_正常系] - 読み取ったバイト値 'A' が返ること。
 }
 
 // 標準入力が閉じられた場合に EOF が返ることの確認
@@ -259,10 +259,10 @@ TEST_F(promptLinuxTest, read_char_returns_minus1_at_eof)
                         // [Pre-Assert手順] - EOF を示す 0 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - EOF を示す -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - EOF を示す -1 が返ること。
 }
 
 // 端末サイズ変更の通知がリサイズ結果として返ることの確認
@@ -281,10 +281,10 @@ TEST_F(promptLinuxTest, read_char_reports_resize_on_interrupted_read)
                           // [Pre-Assert手順] - errno に EINTR を設定し、read から -1 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-2, rtc);                             // [確認_正常系] - リサイズ通知を示す -2 が返ること。
+    EXPECT_EQ(-2, actual_ret);                             // [確認_正常系] - リサイズ通知を示す -2 が返ること。
     EXPECT_EQ(0, test_prompt_sigwinch_installed()); // [確認_正常系] - ハンドラー登録状態は変化しないこと。
 }
 
@@ -304,10 +304,10 @@ TEST_F(promptLinuxTest, read_char_retries_after_interrupt_without_resize)
     // [Pre-Assert手順] - 1 回目は errno に EINTR、2 回目は errno に EIO を設定して -1 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - 再試行の結果として -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 再試行の結果として -1 が返ること。
 }
 
 /*
@@ -335,10 +335,10 @@ TEST_F(promptLinuxTest, read_char_nb_returns_next_byte_when_available)
                 // [Pre-Assert手順] - 'B' を書き込み、1 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
 
     // Assert
-    EXPECT_EQ('B', rtc); // [確認_正常系] - 読み取ったバイト値 'B' が返ること。
+    EXPECT_EQ('B', actual_ret); // [確認_正常系] - 読み取ったバイト値 'B' が返ること。
 }
 
 // 入力がない場合にタイムアウトすることの確認
@@ -353,10 +353,10 @@ TEST_F(promptLinuxTest, read_char_nb_returns_minus1_on_timeout)
                               // [Pre-Assert手順] - タイムアウトを示す 0 を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - 入力がないため -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 入力がないため -1 が返ること。
 }
 
 #endif /* PLATFORM_LINUX */

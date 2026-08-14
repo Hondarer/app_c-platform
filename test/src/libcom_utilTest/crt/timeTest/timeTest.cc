@@ -19,10 +19,10 @@ TEST_F(timeTest, gmtime_success_epoch)
     // Pre-Assert
 
     // Act
-    int ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
+    int actual_ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);   // [確認_正常系] - com_util_gmtime の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);   // [確認_正常系] - com_util_gmtime の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(70, utc_tm.tm_year); // [確認_正常系] - tm_year が 70 (1970 年) であること。
     EXPECT_EQ(0, utc_tm.tm_mon);   // [確認_正常系] - tm_mon が 0 (1 月) であること。
     EXPECT_EQ(1, utc_tm.tm_mday);  // [確認_正常系] - tm_mday が 1 日であること。
@@ -40,11 +40,11 @@ TEST_F(timeTest, gmtime_null_tm)
     // Pre-Assert
 
     // Act
-    int ret = com_util_gmtime(NULL, &epoch); // [手順] - 出力構造体に NULL を渡して com_util_gmtime を呼び出す。
+    int actual_ret = com_util_gmtime(NULL, &epoch); // [手順] - 出力構造体に NULL を渡して com_util_gmtime を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 時刻が NULL の場合に COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
@@ -56,11 +56,11 @@ TEST_F(timeTest, gmtime_null_time)
     // Pre-Assert
 
     // Act
-    int ret = com_util_gmtime(&utc_tm, NULL); // [手順] - 時刻に NULL を渡して com_util_gmtime を呼び出す。
+    int actual_ret = com_util_gmtime(&utc_tm, NULL); // [手順] - 時刻に NULL を渡して com_util_gmtime を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // OS の変換関数が失敗した場合に COM_UTIL_ERR_UNKNOWN を返し出力構造体がゼロ クリアされることの確認
@@ -103,11 +103,11 @@ TEST_F(timeTest, gmtime_zeroes_tm_when_platform_conversion_fails)
 #endif
 
     // Act
-    int ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
+    int actual_ret = com_util_gmtime(&utc_tm, &epoch); // [手順] - com_util_gmtime(&utc_tm, &epoch) を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              ret);               // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret);               // [確認_異常系] - com_util_gmtime の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(0, utc_tm.tm_year); // [確認_異常系] - tm_year が 0 にクリアされること。
     EXPECT_EQ(0, utc_tm.tm_mon);  // [確認_異常系] - tm_mon が 0 にクリアされること。
     EXPECT_EQ(0, utc_tm.tm_mday); // [確認_異常系] - tm_mday が 0 にクリアされること。
@@ -229,10 +229,10 @@ TEST_F(timeTest, ctime_success_epoch)
     // Pre-Assert
 
     // Act
-    int ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
+    int actual_ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_ctime の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_ctime の戻り値が COM_UTIL_OK であること。
 
     /* ctime はローカル時刻依存のため固定文字列比較は行わず、形式のみを確認する */
     len = strlen(buf);
@@ -390,10 +390,10 @@ TEST_F(timeTest, ctime_zeroes_buf_when_platform_conversion_fails)
 #endif
 
     // Act
-    int ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
+    int actual_ret = com_util_ctime(buf, sizeof(buf), &epoch); // [手順] - com_util_ctime(buf, 26, &epoch) を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, ret); // [確認_異常系] - com_util_ctime の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+    EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, actual_ret); // [確認_異常系] - com_util_ctime の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // [確認_異常系] - 出力バッファーの全バイトが '\0' にクリアされること。
     for (size_t i = 0; i < sizeof(buf); i++)

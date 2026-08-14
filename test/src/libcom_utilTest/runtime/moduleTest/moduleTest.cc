@@ -71,12 +71,12 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
                 // [Pre-Assert手順] - 正規化済みパスを書き込み、COM_UTIL_OK を返却する。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_module_get_path(path, sizeof(path),
                                  self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);     // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);     // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ(kModulePath, path); // [確認_正常系] - 所属モジュールの絶対パスが返ること。
 }
 
@@ -93,12 +93,12 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_fails)
                               // [Pre-Assert手順] - dladdr から失敗を返却する。
 
     // Act
-    int rtc = com_util_module_get_path(path, sizeof(path),
+    int actual_ret = com_util_module_get_path(path, sizeof(path),
                                        self_func_addr()); // [手順] - dladdr の失敗を注入してモジュール パスを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // dladdr がモジュール名を返さない場合に UNKNOWN を返すことの確認
@@ -120,12 +120,12 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_no_filename)
                 // [Pre-Assert手順] - dli_fname が NULL の情報を返却する。
 
     // Act
-    int rtc = com_util_module_get_path(
+    int actual_ret = com_util_module_get_path(
         path, sizeof(path), self_func_addr()); // [手順] - ファイル名のない dladdr 情報でモジュール パスを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // dladdr が空のモジュール名を返す場合に UNKNOWN を返すことの確認
@@ -147,12 +147,12 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_empty_filename)
                 // [Pre-Assert手順] - 空の dli_fname を返却する。
 
     // Act
-    int rtc = com_util_module_get_path(
+    int actual_ret = com_util_module_get_path(
         path, sizeof(path), self_func_addr()); // [手順] - 空のファイル名を持つ dladdr 情報でモジュール パスを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 #elif defined(PLATFORM_WINDOWS)
 // 関数アドレスから所属モジュールの絶対パスが取得できることの確認 (Windows)
@@ -166,12 +166,12 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_windows)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_module_get_path(path, sizeof(path),
                                  self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_module_get_path の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(':', path[1]);     // [確認_正常系] - 絶対パスがドライブ レター形式であること。
     EXPECT_EQ('/', path[2]);     // [確認_正常系] - 絶対パスが '/' 区切りへ正規化されていること。
     EXPECT_NE(nullptr,
@@ -187,12 +187,12 @@ TEST_F(moduleTest, get_path_rejects_null_out_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_path(NULL, 16u,
+    int actual_ret = com_util_module_get_path(NULL, 16u,
                                        self_func_addr()); // [手順] - out_path に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // out_path_sz に 0 を渡した場合に拒否されることの確認
@@ -204,12 +204,12 @@ TEST_F(moduleTest, get_path_rejects_zero_size)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_path(path, 0u,
+    int actual_ret = com_util_module_get_path(path, 0u,
                                        self_func_addr()); // [手順] - out_path_sz に 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // func_addr に NULL を渡した場合に拒否されることの確認
@@ -221,11 +221,11 @@ TEST_F(moduleTest, get_path_rejects_null_func_addr)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_path(path, sizeof(path), NULL); // [手順] - func_addr に NULL を指定して呼び出す。
+    int actual_ret = com_util_module_get_path(path, sizeof(path), NULL); // [手順] - func_addr に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 出力バッファーが不足する場合に拒否されることの確認
@@ -237,12 +237,12 @@ TEST_F(moduleTest, get_path_returns_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_path(path, sizeof(path),
+    int actual_ret = com_util_module_get_path(path, sizeof(path),
                                        self_func_addr()); // [手順] - 不足するバッファーを指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }
 
 // 所属モジュールのパス正規化が失敗した場合に UNKNOWN を返すことの確認
@@ -331,11 +331,11 @@ TEST_F(moduleTest, get_basename_returns_module_name_without_extension)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_basename(
+    int actual_ret = com_util_module_get_basename(
         basename, sizeof(basename), self_func_addr()); // [手順] - テスト バイナリ内の関数アドレスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_module_get_basename の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_module_get_basename の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("moduleTest", basename); // [確認_正常系] - 拡張子を持たないモジュール名 "moduleTest" が返ること。
 }
 
@@ -347,13 +347,13 @@ TEST_F(moduleTest, get_basename_rejects_null_out_basename)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_basename(NULL, 16u,
+    int actual_ret = com_util_module_get_basename(NULL, 16u,
                                            self_func_addr()); // [手順] - out_basename に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // out_basename_sz に 0 を渡した場合に拒否されることの確認
@@ -365,13 +365,13 @@ TEST_F(moduleTest, get_basename_rejects_zero_size)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_basename(basename, 0u,
+    int actual_ret = com_util_module_get_basename(basename, 0u,
                                            self_func_addr()); // [手順] - out_basename_sz に 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // パス取得に失敗した場合にその結果がそのまま返ることの確認
@@ -385,13 +385,13 @@ TEST_F(moduleTest, get_basename_propagates_get_path_failure)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_basename(basename, sizeof(basename),
+    int actual_ret = com_util_module_get_basename(basename, sizeof(basename),
                                            NULL); // [手順] - func_addr に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_module_get_path が返した COM_UTIL_ERR_INVALID_ARGUMENT がそのまま返ること。
+        actual_ret); // [確認_異常系] - com_util_module_get_path が返した COM_UTIL_ERR_INVALID_ARGUMENT がそのまま返ること。
     EXPECT_STREQ("", basename); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
 }
 
@@ -404,13 +404,13 @@ TEST_F(moduleTest, get_basename_returns_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_module_get_basename(basename, sizeof(basename),
+    int actual_ret = com_util_module_get_basename(basename, sizeof(basename),
                                            self_func_addr()); // [手順] - 不足するバッファーを指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+        actual_ret); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", basename); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
 }
 

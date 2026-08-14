@@ -143,10 +143,10 @@ TEST_F(promptTest, readline_returns_typed_line_on_enter)
     // Pre-Assert
 
     // Act
-    int rtc = readline("abc\r", buf, sizeof(buf)); // [手順] - "abc" と Enter を入力する。
+    int actual_ret = readline("abc\r", buf, sizeof(buf)); // [手順] - "abc" と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);   // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);   // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);      // [確認_正常系] - 入力した "abc" が返ること。
     EXPECT_EQ(1, promptFakeEnterRawCount()); // [確認_正常系] - raw モードへ 1 回移行すること。
     EXPECT_EQ(1, promptFakeLeaveRawCount()); // [確認_正常系] - raw モードを 1 回解除すること。
@@ -161,10 +161,10 @@ TEST_F(promptTest, readline_returns_eof_when_input_ends)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ab", buf, sizeof(buf)); // [手順] - Enter を含まない入力を与えて末尾まで読ませる。
+    int actual_ret = readline("ab", buf, sizeof(buf)); // [手順] - Enter を含まない入力を与えて末尾まで読ませる。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_EOF, rtc); // [確認_異常系] - 戻り値が COM_UTIL_ERR_EOF であること。
+    EXPECT_EQ(COM_UTIL_ERR_EOF, actual_ret); // [確認_異常系] - 戻り値が COM_UTIL_ERR_EOF であること。
     EXPECT_STREQ("", buf);            // [確認_異常系] - 出力バッファーが空文字列になること。
     EXPECT_EQ(1, promptFakeLeaveRawCount()); // [確認_異常系] - raw モードが解除されること。
 }
@@ -178,10 +178,10 @@ TEST_F(promptTest, readline_returns_canceled_on_ctrl_c)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ab\x03", buf, sizeof(buf)); // [手順] - "ab" に続けて Ctrl+C (0x03) を入力する。
+    int actual_ret = readline("ab\x03", buf, sizeof(buf)); // [手順] - "ab" に続けて Ctrl+C (0x03) を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_CANCELED, rtc); // [確認_異常系] - 戻り値が COM_UTIL_ERR_CANCELED であること。
+    EXPECT_EQ(COM_UTIL_ERR_CANCELED, actual_ret); // [確認_異常系] - 戻り値が COM_UTIL_ERR_CANCELED であること。
     EXPECT_STREQ("", buf);                 // [確認_異常系] - 出力バッファーが空文字列になること。
 }
 
@@ -194,10 +194,10 @@ TEST_F(promptTest, readline_backspace_removes_previous_character)
     // Pre-Assert
 
     // Act
-    int rtc = readline("abc\x7F\r", buf, sizeof(buf)); // [手順] - "abc" の後に Backspace (0x7F) と Enter を入力する。
+    int actual_ret = readline("abc\x7F\r", buf, sizeof(buf)); // [手順] - "abc" の後に Backspace (0x7F) と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("ab", buf);     // [確認_正常系] - 末尾の 1 文字が削除された "ab" が返ること。
 }
 
@@ -210,10 +210,10 @@ TEST_F(promptTest, readline_backspace_at_head_does_nothing)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x7F" "a\r", buf, sizeof(buf)); // [手順] - 行頭で Backspace を入力してから "a" と Enter を入力する。
+    int actual_ret = readline("\x7F" "a\r", buf, sizeof(buf)); // [手順] - 行頭で Backspace を入力してから "a" と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - Backspace が無視されて "a" が返ること。
 }
 
@@ -226,11 +226,11 @@ TEST_F(promptTest, readline_delete_removes_character_at_cursor)
     // Pre-Assert
 
     // Act
-    int rtc = readline("abc\x1B[D\x1B[3~\r", buf,
+    int actual_ret = readline("abc\x1B[D\x1B[3~\r", buf,
                        sizeof(buf)); // [手順] - "abc" の後に左矢印、Delete、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("ab", buf);     // [確認_正常系] - カーソル位置の 'c' が削除された "ab" が返ること。
 }
 
@@ -243,10 +243,10 @@ TEST_F(promptTest, readline_inserts_at_cursor_after_left_arrow)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ac\x1B[D" "b\r", buf, sizeof(buf)); // [手順] - "ac" の後に左矢印、"b"、Enter を入力する。
+    int actual_ret = readline("ac\x1B[D" "b\r", buf, sizeof(buf)); // [手順] - "ac" の後に左矢印、"b"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - カーソル位置へ挿入された "abc" が返ること。
 }
 
@@ -259,11 +259,11 @@ TEST_F(promptTest, readline_right_arrow_moves_cursor_forward)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ac\x1B[D\x1B[C" "b\r", buf,
+    int actual_ret = readline("ac\x1B[D\x1B[C" "b\r", buf,
                        sizeof(buf)); // [手順] - "ac" の後に左矢印、右矢印、"b"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("acb", buf);    // [確認_正常系] - カーソルが末尾へ戻り "acb" が返ること。
 }
 
@@ -297,10 +297,10 @@ TEST_F(promptTest, readline_clears_line_on_single_escape)
     // Pre-Assert
 
     // Act
-    int rtc = readline("abc\x1B", buf, sizeof(buf)); // [手順] - "abc" の後に ESC を入力し、以降の入力を与えない。
+    int actual_ret = readline("abc\x1B", buf, sizeof(buf)); // [手順] - "abc" の後に ESC を入力し、以降の入力を与えない。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_EOF, rtc); // [確認_異常系] - 行消去の後 EOF に達するため COM_UTIL_ERR_EOF が返ること。
+    EXPECT_EQ(COM_UTIL_ERR_EOF, actual_ret); // [確認_異常系] - 行消去の後 EOF に達するため COM_UTIL_ERR_EOF が返ること。
     EXPECT_STREQ("", buf);            // [確認_異常系] - 出力バッファーが空文字列になること。
 }
 
@@ -313,11 +313,11 @@ TEST_F(promptTest, readline_ignores_unknown_escape_sequence)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[Z" "a\r", buf,
+    int actual_ret = readline("\x1B[Z" "a\r", buf,
                        sizeof(buf)); // [手順] - 未対応の ESC [ Z を入力してから "a" と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - 未対応シーケンスが無視されて "a" が返ること。
 }
 
@@ -352,11 +352,11 @@ TEST_F(promptTest, readline_ignores_incomplete_numeric_escape_sequence)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[3X" "a\r", buf,
+    int actual_ret = readline("\x1B[3X" "a\r", buf,
                        sizeof(buf)); // [手順] - '~' で終わらない ESC [ 3 X を入力してから "a" と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - 未完のシーケンスが無視されて "a" が返ること。
 }
 
@@ -369,11 +369,11 @@ TEST_F(promptTest, readline_backspace_removes_whole_utf8_character)
     // Pre-Assert
 
     // Act
-    int rtc = readline("a\xE3\x81\x82\x7F\r", buf,
+    int actual_ret = readline("a\xE3\x81\x82\x7F\r", buf,
                        sizeof(buf)); // [手順] - "a" と 3 バイトの日本語 1 文字の後に Backspace と Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - 日本語 1 文字が 3 バイトまとめて削除されること。
 }
 
@@ -386,10 +386,10 @@ TEST_F(promptTest, readline_truncates_line_to_buffer_size)
     // Pre-Assert
 
     // Act
-    int rtc = readline("abcdef\r", buf, sizeof(buf)); // [手順] - 6 文字を入力して Enter を押す。
+    int actual_ret = readline("abcdef\r", buf, sizeof(buf)); // [手順] - 6 文字を入力して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 出力バッファーに収まる 3 文字へ切り詰められること。
 }
 
@@ -410,11 +410,11 @@ TEST_F(promptTest, readline_stops_accepting_characters_at_input_limit)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc",
+    int actual_ret = com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc",
                                           1); // [手順] - 上限を超える 6 文字を入力して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(3u, std::strlen(buf)); // [確認_正常系] - 入力上限に収まる 3 文字までが受け付けられること。
 
     // Cleanup
@@ -437,10 +437,10 @@ TEST_F(promptTest, history_up_recalls_previous_line)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[A\r", buf, sizeof(buf)); // [手順] - 上矢印を押して Enter を押す。
+    int actual_ret = readline("\x1B[A\r", buf, sizeof(buf)); // [手順] - 上矢印を押して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("first", buf);  // [確認_正常系] - 履歴の "first" が返ること。
 }
 
@@ -458,11 +458,11 @@ TEST_F(promptTest, history_down_returns_to_newer_entry)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[A\x1B[A\x1B[B\r", buf,
+    int actual_ret = readline("\x1B[A\x1B[A\x1B[B\r", buf,
                        sizeof(buf)); // [手順] - 上矢印を 2 回、下矢印を 1 回押して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("second\0", buf); // [確認_正常系] - 新しい側の履歴 "second" が返ること。
 }
 
@@ -478,11 +478,11 @@ TEST_F(promptTest, history_down_restores_saved_line_at_newest)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ab\x1B[A\x1B[B\r", buf,
+    int actual_ret = readline("ab\x1B[A\x1B[B\r", buf,
                        sizeof(buf)); // [手順] - "ab" を入力後に上矢印と下矢印を押して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("ab", buf);     // [確認_正常系] - 履歴へ入る前の編集内容 "ab" が復元されること。
 }
 
@@ -495,10 +495,10 @@ TEST_F(promptTest, history_up_does_nothing_when_empty)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[A" "a\r", buf, sizeof(buf)); // [手順] - 履歴が空の状態で上矢印、"a"、Enter を入力する。
+    int actual_ret = readline("\x1B[A" "a\r", buf, sizeof(buf)); // [手順] - 履歴が空の状態で上矢印、"a"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - 上矢印が無視されて "a" が返ること。
 }
 
@@ -514,10 +514,10 @@ TEST_F(promptTest, history_does_not_record_empty_line)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[A" "a\r", buf, sizeof(buf)); // [手順] - 上矢印、"a"、Enter を入力する。
+    int actual_ret = readline("\x1B[A" "a\r", buf, sizeof(buf)); // [手順] - 上矢印、"a"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);      // [確認_正常系] - 履歴が空のままのため上矢印が無視されること。
 }
 
@@ -534,11 +534,11 @@ TEST_F(promptTest, history_is_independent_per_call_site)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[A" "x\r", buf, sizeof(buf), "b.cc",
+    int actual_ret = readline("\x1B[A" "x\r", buf, sizeof(buf), "b.cc",
                        20); // [手順] - 別の呼び出し位置 b.cc:20 で上矢印、"x"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("x", buf);      // [確認_正常系] - 別の呼び出し位置の履歴は参照されないこと。
 }
 
@@ -567,11 +567,11 @@ TEST_F(promptTest, history_discards_oldest_entry_over_limit)
 
     // Act
     promptFakeSetInput("\x1B[A\x1B[A\x1B[A\r");
-    int rtc = com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc",
+    int actual_ret = com_util_prompt_readline_at(limited, buf, sizeof(buf), ">> ", "promptTest.cc",
                                           1); // [手順] - 上矢印を 3 回押して Enter を押す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("two", buf); // [確認_正常系] - 最古の "one" が破棄され、遡れる最古が "two" であること。
 
     // Cleanup
@@ -593,11 +593,11 @@ TEST_F(promptTest, readline_fmt_reads_line)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptTest.cc", 1, "[%d] ",
+    int actual_ret = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptTest.cc", 1, "[%d] ",
                                               7); // [手順] - 書式引数 7 を指定して 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 入力した "abc" が返ること。
 }
 
@@ -639,10 +639,10 @@ TEST_F(promptTest, readline_falls_back_to_fgets_when_not_tty)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), NULL, "promptTest.cc",
+    int actual_ret = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), NULL, "promptTest.cc",
                                           1); // [手順] - 標準入力が空の状態で 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_EOF, rtc); // [確認_異常系] - 標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
+    EXPECT_EQ(COM_UTIL_ERR_EOF, actual_ret); // [確認_異常系] - 標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
 }

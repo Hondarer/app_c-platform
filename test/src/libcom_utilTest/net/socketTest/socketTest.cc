@@ -192,12 +192,12 @@ TEST_F(socketTest, open_reports_socket_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_socket_open(COM_UTIL_SOCKET_TCP, &socket, &detail); // [手順] - ソケット生成失敗を注入する。
+    int actual_ret = com_util_socket_open(COM_UTIL_SOCKET_TCP, &socket, &detail); // [手順] - ソケット生成失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - ソケット生成失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - ソケット生成失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_異常系] - ソケット生成失敗時に無効値が返されること。
     // [確認_異常系] - 詳細エラーに実行環境に応じた OS のエラー ドメインとエラー値が記録されること。
@@ -223,12 +223,12 @@ TEST_F(socketTest, open_propagates_startup_failure)
         .WillOnce(Return(WSASYSNOTREADY));
 
     // Act
-    int rtc = com_util_socket_open(COM_UTIL_SOCKET_TCP, &socket,
+    int actual_ret = com_util_socket_open(COM_UTIL_SOCKET_TCP, &socket,
                                    &detail); // [手順] - 初期化失敗を注入してソケットを生成する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - 初期化失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - 初期化失敗時の com_util_socket_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_異常系] - 初期化失敗時に無効値が返されること。
     // [確認_異常系] - 詳細エラーに Winsock ドメインと OS のエラー値が記録されること。
@@ -576,13 +576,13 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_socket_accept(kSocket, &peer, &accepted, NULL); // [手順] - 接続を受け付ける。
+    int actual_ret = com_util_socket_accept(kSocket, &peer, &accepted, NULL); // [手順] - 接続を受け付ける。
     int rtc_without_peer = com_util_socket_accept(kSocket, NULL, &accepted,
                                                   NULL); // [手順] - 接続元端点の出力先を NULL にして接続を受け付ける。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - accept の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - accept の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
               rtc_without_peer); // [確認_正常系] - 接続元端点を要求しない accept の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((com_util_socket)8,
@@ -611,11 +611,11 @@ TEST_F(socketTest, accept_reports_os_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_socket_accept(kSocket, NULL, &accepted, &detail); // [手順] - accept の失敗を注入する。
+    int actual_ret = com_util_socket_accept(kSocket, NULL, &accepted, &detail); // [手順] - accept の失敗を注入する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - accept の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - accept の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               accepted); // [確認_異常系] - accept の失敗時に無効値が返されること。
 }
@@ -753,12 +753,12 @@ TEST_F(socketTest, nonblocking_reports_set_failure)
                                 // [Pre-Assert手順] - errno に EIO を設定し、-1 を返却する。
 
     // Act
-    int rtc = com_util_socket_set_nonblocking(kSocket, 1, &detail); // [手順] - F_SETFL の失敗を注入する。
+    int actual_ret = com_util_socket_set_nonblocking(kSocket, 1, &detail); // [手順] - F_SETFL の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - F_SETFL 失敗時の com_util_socket_set_nonblocking の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - F_SETFL 失敗時の com_util_socket_set_nonblocking の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 #endif /* PLATFORM_LINUX */
 
@@ -1511,11 +1511,11 @@ TEST_F(socketTest, wait_single_retries_after_interrupt)
             });
 
     // Act
-    int rtc = com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - タイムアウト 0 で受信可能を待機する。
+    int actual_ret = com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - タイムアウト 0 で受信可能を待機する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1,
               ready); // [確認_正常系] - 再待機で条件が成立し、準備完了フラグが 1 になること。
 }
@@ -1542,12 +1542,12 @@ TEST_F(socketTest, wait_single_retries_without_deadline_after_interrupt)
             });
 
     // Act
-    int rtc = com_util_socket_wait_readable(kSocket, COM_UTIL_SOCKET_WAIT_FOREVER, &ready,
+    int actual_ret = com_util_socket_wait_readable(kSocket, COM_UTIL_SOCKET_WAIT_FOREVER, &ready,
                                             &detail); // [手順] - 無期限で受信可能を待機する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 無期限指定の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 無期限指定の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1,
               ready); // [確認_正常系] - 再待機で条件が成立し、準備完了フラグが 1 になること。
 }
@@ -1579,12 +1579,12 @@ TEST_F(socketTest, wait_single_recomputes_remaining_after_interrupt)
             });
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_socket_wait_readable(kSocket, 100, &ready, &detail); // [手順] - タイムアウト 100 ms で待機する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - タイムアウト 100 ms の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - タイムアウト 100 ms の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1,
               ready); // [確認_正常系] - 残り時間での再待機で条件が成立し、準備完了フラグが 1 になること。
 }
@@ -1607,12 +1607,12 @@ TEST_F(socketTest, wait_single_reports_not_ready_when_deadline_expires_after_int
     EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, 50)).WillOnce(DoAll(Assign(&errno, EINTR), Return(-1)));
 
     // Act
-    int rtc = com_util_socket_wait_readable(kSocket, 50, &ready, &detail); // [手順] - タイムアウト 50 ms で待機する。
+    int actual_ret = com_util_socket_wait_readable(kSocket, 50, &ready, &detail); // [手順] - タイムアウト 50 ms で待機する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc); // [確認_正常系] - 期限超過後の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
+        actual_ret); // [確認_正常系] - 期限超過後の com_util_socket_wait_readable の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0,
               ready); // [確認_正常系] - 期限を過ぎたため準備完了フラグが 0 のままであること。
 }
@@ -1639,12 +1639,12 @@ TEST_F(socketTest, wait_multi_retries_after_interrupt)
             });
 
     // Act
-    int rtc = com_util_socket_wait_readable_multi(socks, 2U, 0, ready,
+    int actual_ret = com_util_socket_wait_readable_multi(socks, 2U, 0, ready,
                                                   &detail); // [手順] - 2 個のソケットで受信可能を待機する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - com_util_socket_wait_readable_multi の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - com_util_socket_wait_readable_multi の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1U,
               ready[0]); // [確認_正常系] - 再待機で 1 番目のソケットが準備完了になること。
     EXPECT_EQ(0U,
@@ -1666,11 +1666,11 @@ TEST_F(socketTest, accept_retries_after_interrupt)
         .WillOnce(Return(8));
 
     // Act
-    int rtc = com_util_socket_accept(kSocket, NULL, &accepted, &detail); // [手順] - 接続を受け付ける。
+    int actual_ret = com_util_socket_accept(kSocket, NULL, &accepted, &detail); // [手順] - 接続を受け付ける。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - com_util_socket_accept の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - com_util_socket_accept の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((com_util_socket)8,
               accepted); // [確認_正常系] - 再試行で受け付けたソケットが返されること。
 }
@@ -1813,11 +1813,11 @@ TEST_F(socketTest, connect_completes_after_interrupt)
             });
 
     // Act
-    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+    int actual_ret = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 中断後の com_util_socket_connect の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 中断後の com_util_socket_connect の戻り値が COM_UTIL_OK であること。
 }
 
 // ブロッキング接続がシグナル中断後の完了確認で保留エラーを検出することの確認
@@ -1851,11 +1851,11 @@ TEST_F(socketTest, connect_reports_pending_error_after_interrupt)
             });
 
     // Act
-    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+    int actual_ret = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - 保留エラーがある場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - 保留エラーがある場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN,
                   (unsigned long)ECONNREFUSED); // [確認_異常系] - 詳細に接続拒否が記録されること。
 }
@@ -1879,12 +1879,12 @@ TEST_F(socketTest, connect_reports_wait_failure_after_interrupt)
     EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, _, _, _, _, _)).Times(0);
 
     // Act
-    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+    int actual_ret = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - 待機に失敗した場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - 待機に失敗した場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO, COM_UTIL_ERR_UNKNOWN,
                   (unsigned long)EBADF); // [確認_異常系] - 詳細に待機失敗の要因が記録されること。
 }
@@ -1907,12 +1907,12 @@ TEST_F(socketTest, connect_reports_timeout_when_not_writable_after_interrupt)
     EXPECT_CALL(mock_sys_socket_, getsockopt(_, _, _, _, _, _, _, _)).Times(0);
 
     // Act
-    int rtc = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
+    int actual_ret = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - ブロッキング モードで接続する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_TIMEOUT,
-        rtc); // [確認_異常系] - 条件不成立の場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_TIMEOUT であること。
+        actual_ret); // [確認_異常系] - 条件不成立の場合の com_util_socket_connect の戻り値が COM_UTIL_ERR_TIMEOUT であること。
 }
 
 #endif /* PLATFORM_LINUX */

@@ -47,11 +47,11 @@ TEST_F(accessTest, returns_zero_for_existing_file)
                               // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int rtc = com_util_access("work.bin", COM_UTIL_ACCESS_FMT_F_OK,
+    int actual_ret = com_util_access("work.bin", COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 存在するパスに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);                            // [確認_正常系] - com_util_access の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);                            // [確認_正常系] - com_util_access の戻り値が 0 であること。
     EXPECT_EQ(0, com_util_error_is_set(&detail)); // [確認_正常系] - detail に詳細エラーが記録されないこと。
 }
 
@@ -68,11 +68,11 @@ TEST_F(accessTest, returns_minus1_for_missing_file)
                                       // [Pre-Assert手順] - errno に ENOENT を設定し、-1 を返却する。
 
     // Act
-    int rtc = com_util_access("missing.bin", COM_UTIL_ACCESS_FMT_F_OK,
+    int actual_ret = com_util_access("missing.bin", COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 存在しないパスに F_OK を指定して com_util_access を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_access の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_access の戻り値が -1 であること。
     EXPECT_EQ(1, com_util_error_is(&detail,
                                    COM_UTIL_CAUSE_NOT_FOUND)); // [確認_異常系] - 見つからないことが要因であること。
 }
@@ -87,11 +87,11 @@ TEST_F(accessTest, returns_minus1_for_null_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(NULL, COM_UTIL_ACCESS_FMT_F_OK,
+    int actual_ret = com_util_access(NULL, COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - パスに NULL を指定して com_util_access を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_access の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_access の戻り値が -1 であること。
     EXPECT_EQ(
         EINVAL,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EINVAL であること。
@@ -112,11 +112,11 @@ TEST_F(accessTest, returns_enametoolong_when_path_exceeds_wide_buffer)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_access(long_path.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
+    int actual_ret = com_util_access(long_path.c_str(), COM_UTIL_ACCESS_FMT_F_OK,
                               &detail); // [手順] - 変換先バッファーに収まらないパスで com_util_access を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_access の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_access の戻り値が -1 であること。
     EXPECT_EQ(1, com_util_error_is(&detail,
                                    COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }

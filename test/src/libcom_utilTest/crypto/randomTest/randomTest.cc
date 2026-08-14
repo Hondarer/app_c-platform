@@ -24,10 +24,10 @@ TEST_F(randomTest, fills_requested_size)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_random_bytes(buf, sizeof(buf)); // [手順] - 32 byte を要求して com_util_random_bytes を呼び出す。
+    int actual_ret = com_util_random_bytes(buf, sizeof(buf)); // [手順] - 32 byte を要求して com_util_random_bytes を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_random_bytes の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_random_bytes の戻り値が COM_UTIL_OK であること。
     EXPECT_NE(0, memcmp(buf, sentinel,
                         sizeof(buf))); // [確認_正常系] - バッファーが初期値 0xCD のままではなく書き換わること。
 }
@@ -64,11 +64,11 @@ TEST_F(randomTest, zero_size_succeeds)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_random_bytes(NULL, 0U); // [手順] - バッファーに NULL、サイズに 0 を指定して呼び出す。
+    int actual_ret = com_util_random_bytes(NULL, 0U); // [手順] - バッファーに NULL、サイズに 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - サイズ 0 の場合に com_util_random_bytes の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - サイズ 0 の場合に com_util_random_bytes の戻り値が COM_UTIL_OK であること。
 }
 
 // バッファーが NULL の場合に引数不正を返すことの確認
@@ -79,11 +79,11 @@ TEST_F(randomTest, null_buffer_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_random_bytes(NULL, 16U); // [手順] - バッファーに NULL、サイズに 16 を指定して呼び出す。
+    int actual_ret = com_util_random_bytes(NULL, 16U); // [手順] - バッファーに NULL、サイズに 16 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 要求バイト数が共通最大サイズを超える場合に拒否されることの確認
@@ -96,13 +96,13 @@ TEST_F(randomTest, size_over_int_max_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_random_bytes(
+    int actual_ret = com_util_random_bytes(
         buf, COM_UTIL_CRYPTO_RANDOM_MAX_BYTES +
                  1U); // [手順] - 共通最大サイズを 1 byte 超えるサイズで com_util_random_bytes を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -123,11 +123,11 @@ TEST_F(randomTest, returns_unknown_when_rand_bytes_fails)
                           // [Pre-Assert手順] - 1 回目は失敗を示す 0 を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_random_bytes(buf, sizeof(buf)); // [手順] - com_util_random_bytes を呼び出す。
+    int actual_ret = com_util_random_bytes(buf, sizeof(buf)); // [手順] - com_util_random_bytes を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_random_bytes の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #endif /* PLATFORM_LINUX */

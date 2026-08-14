@@ -19,13 +19,13 @@ TEST_F(pathNameInternalTest, copy_path_name_text_returns_einval_for_null_path_ou
     // Pre-Assert
 
     // Act
-    int rtc = test_copy_path_name_text(NULL, 16u, &err,
+    int actual_ret = test_copy_path_name_text(NULL, 16u, &err,
                                        "."); // [手順] - test_copy_path_name_text(NULL, 16, &err, ".") を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -39,13 +39,13 @@ TEST_F(pathNameInternalTest, copy_path_name_text_returns_einval_for_zero_path_si
     // Pre-Assert
 
     // Act
-    int rtc = test_copy_path_name_text(actual, 0u, &err,
+    int actual_ret = test_copy_path_name_text(actual, 0u, &err,
                                        "."); // [手順] - test_copy_path_name_text(actual, 0, &err, ".") を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -59,14 +59,14 @@ TEST_F(pathNameInternalTest, copy_path_name_text_returns_einval_for_null_text)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         test_copy_path_name_text(actual, sizeof(actual), &err,
                                  NULL); // [手順] - test_copy_path_name_text(actual, size, &err, NULL) を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - copy_path_name_text の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -80,10 +80,10 @@ TEST_F(pathNameInternalTest, copy_path_name_text_copies_text_into_buffer)
     // Pre-Assert
 
     // Act
-    int rtc = test_copy_path_name_text(actual, sizeof(actual), &err,
+    int actual_ret = test_copy_path_name_text(actual, sizeof(actual), &err,
                                        "."); // [手順] - test_copy_path_name_text(actual, size, &err, ".") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - copy_path_name_text の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - copy_path_name_text の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ(".", actual);   // [確認_正常系] - 出力バッファーに "." がコピーされること。
 }

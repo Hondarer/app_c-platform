@@ -28,10 +28,10 @@ TEST_F(stringTest, strcpy_success)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strcpy(buf, sizeof(buf), "abc"); // [手順] - "abc" を指定して com_util_strcpy を呼び出す。
+    int actual_ret = com_util_strcpy(buf, sizeof(buf), "abc"); // [手順] - "abc" を指定して com_util_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);        // [確認_正常系] - com_util_strcpy の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);        // [確認_正常系] - com_util_strcpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - バッファーに "abc" がコピーされること。
 }
 
@@ -44,11 +44,11 @@ TEST_F(stringTest, strcpy_null_argument)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して com_util_strcpy を呼び出す。
+    int actual_ret = com_util_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して com_util_strcpy を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // コピー先が NULL またはサイズ 0 の場合に引数エラーになることの確認
@@ -82,12 +82,12 @@ TEST_F(stringTest, strcpy_buffer_shortage)
     // Pre-Assert
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_strcpy(buf, sizeof(buf), "abcd"); // [手順] - 4 文字の "abcd" を指定して com_util_strcpy を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);        // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);        // [確認_異常系] - com_util_strcpy の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
@@ -100,11 +100,11 @@ TEST_F(stringTest, strncpy_truncates_to_count)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncpy(buf, sizeof(buf), "abcdef",
+    int actual_ret = com_util_strncpy(buf, sizeof(buf), "abcdef",
                                3); // [手順] - "abcdef" と count=3 を指定して com_util_strncpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);        // [確認_正常系] - com_util_strncpy の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);        // [確認_正常系] - com_util_strncpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - 先頭 3 文字 "abc" だけがコピーされること。
 }
 
@@ -148,10 +148,10 @@ TEST_F(stringTest, strcat_success)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strcat(buf, sizeof(buf), "def"); // [手順] - "def" を指定して com_util_strcat を呼び出す。
+    int actual_ret = com_util_strcat(buf, sizeof(buf), "def"); // [手順] - "def" を指定して com_util_strcat を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret);           // [確認_正常系] - com_util_strcat の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);           // [確認_正常系] - com_util_strcat の戻り値が 0 であること。
     EXPECT_STREQ("abcdef", buf); // [確認_正常系] - バッファーが "abcdef" になること。
 }
 
@@ -164,10 +164,10 @@ TEST_F(stringTest, strncat_truncates_to_count)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncat(buf, sizeof(buf), "defgh", 2u); // [手順] - "defgh" の先頭 2 文字を連結する。
+    int actual_ret = com_util_strncat(buf, sizeof(buf), "defgh", 2u); // [手順] - "defgh" の先頭 2 文字を連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
 }
 
@@ -180,10 +180,10 @@ TEST_F(stringTest, strncat_copies_whole_source_when_count_exceeds_length)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncat(buf, sizeof(buf), "de", 10u); // [手順] - 長さ 2 の "de" に count 10 を指定して連結する。
+    int actual_ret = com_util_strncat(buf, sizeof(buf), "de", 10u); // [手順] - 長さ 2 の "de" に count 10 を指定して連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
 }
 
@@ -196,10 +196,10 @@ TEST_F(stringTest, strncat_exact_fit_succeeds)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncat(buf, sizeof(buf), "de", 2u); // [手順] - 残り容量ちょうどの "de" を連結する。
+    int actual_ret = com_util_strncat(buf, sizeof(buf), "de", 2u); // [手順] - 残り容量ちょうどの "de" を連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_strncat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
 }
 
@@ -212,11 +212,11 @@ TEST_F(stringTest, strncat_buffer_shortage_keeps_dest)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncat(buf, sizeof(buf), "defg", 4u); // [手順] - 残り容量を超える 4 文字を連結させる。
+    int actual_ret = com_util_strncat(buf, sizeof(buf), "defg", 4u); // [手順] - 残り容量を超える 4 文字を連結させる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);           // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);           // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("abc", buf); // [確認_異常系] - 連結先が "abc" のまま変更されないこと。
 }
 
@@ -229,11 +229,11 @@ TEST_F(stringTest, strncat_unterminated_dest_returns_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int ret = com_util_strncat(buf, sizeof(buf), "e", 1u); // [手順] - 非終端のバッファーへ "e" を連結させる。
+    int actual_ret = com_util_strncat(buf, sizeof(buf), "e", 1u); // [手順] - 非終端のバッファーへ "e" を連結させる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);        // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);        // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
@@ -248,12 +248,12 @@ TEST_F(stringTest, strncat_null_argument)
     // Act
     int null_destination_result = com_util_strncat(NULL, sizeof(buf), "def", 1u); // [手順] - 連結先に NULL を渡す。
     int zero_size_result = com_util_strncat(buf, 0u, "def", 1u);                  // [手順] - 連結先サイズに 0 を渡す。
-    int ret =
+    int actual_ret =
         com_util_strncat(buf, sizeof(buf), NULL, 1u); // [手順] - 連結元に NULL を渡して com_util_strncat を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
         null_destination_result); // [確認_異常系] - 連結先が NULL の com_util_strncat の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。

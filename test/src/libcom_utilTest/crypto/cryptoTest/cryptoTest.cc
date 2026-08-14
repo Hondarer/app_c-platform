@@ -123,12 +123,12 @@ TEST_F(cryptoTest, decrypt_rejects_tampered_cipher_text)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, NULL,
+    int actual_ret = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, NULL,
                                0u); // [手順] - 改ざんした暗号文で com_util_decrypt を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - 認証に失敗するため com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - 認証に失敗するため com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 異なる鍵での復号が認証に失敗することの確認
@@ -152,12 +152,12 @@ TEST_F(cryptoTest, decrypt_rejects_wrong_key)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, other_key, nonce_, NULL,
+    int actual_ret = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, other_key, nonce_, NULL,
                                0u); // [手順] - 異なる鍵で com_util_decrypt を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - 認証に失敗するため com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - 認証に失敗するため com_util_decrypt の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 空の平文が暗号化・復号できることの確認
@@ -229,12 +229,12 @@ TEST_F(cryptoTest, encrypt_returns_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_encrypt(cipher, &cipher_len, plain, plain_len, key_, nonce_, NULL,
+    int actual_ret = com_util_encrypt(cipher, &cipher_len, plain, plain_len, key_, nonce_, NULL,
                                0u); // [手順] - 不足する出力バッファーで com_util_encrypt を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_encrypt の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }
 
 // com_util_decrypt が不正な引数を拒否することの確認
@@ -285,12 +285,12 @@ TEST_F(cryptoTest, decrypt_returns_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_decrypt(restored, &restored_len, cipher, sizeof(cipher), key_, nonce_, NULL,
+    int actual_ret = com_util_decrypt(restored, &restored_len, cipher, sizeof(cipher), key_, nonce_, NULL,
                                0u); // [手順] - 不足する出力バッファーで com_util_decrypt を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_decrypt の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_decrypt の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }
 
 // パスフレーズから鍵が導出されることの確認
@@ -328,11 +328,11 @@ TEST_F(cryptoTest, passphrase_to_key_accepts_empty_passphrase)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_passphrase_to_key(key, NULL,
+    int actual_ret = com_util_passphrase_to_key(key, NULL,
                                          0u); // [手順] - passphrase に NULL、長さに 0 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_passphrase_to_key の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_passphrase_to_key の戻り値が COM_UTIL_OK であること。
 }
 
 // com_util_passphrase_to_key が不正な引数を拒否することの確認

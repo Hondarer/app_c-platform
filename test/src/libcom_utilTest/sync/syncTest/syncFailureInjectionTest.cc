@@ -35,11 +35,11 @@ TEST_F(syncFailureInjectionTest, local_lock_create_fails_when_mutex_init_fails)
                                       // [Pre-Assert手順] - 1 回目は ENOMEM を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_local_lock_create(&lock); // [手順] - com_util_local_lock_create を呼び出す。
+    int actual_ret = com_util_local_lock_create(&lock); // [手順] - com_util_local_lock_create を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_local_lock_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_local_lock_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_local_lock *)NULL, lock); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -57,11 +57,11 @@ TEST_F(syncFailureInjectionTest, local_lock_create_fails_when_allocation_fails)
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_local_lock_create(&lock); // [手順] - com_util_local_lock_create を呼び出す。
+    int actual_ret = com_util_local_lock_create(&lock); // [手順] - com_util_local_lock_create を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_local_lock_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_local_lock_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_local_lock *)NULL, lock); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -81,12 +81,12 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_for_unopenable_pat
                                // [Pre-Assert手順] - -1 を返却する。
 
     // Act
-    int rtc = com_util_interprocess_lock_open(kLockIdentity,
+    int actual_ret = com_util_interprocess_lock_open(kLockIdentity,
                                               &lock); // [手順] - open 失敗を注入してロックを開く。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_lock *)NULL, lock); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -102,11 +102,11 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_reports_open_failure)
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - open が 1 回目に失敗すること。
 
     // Act
-    int rtc = com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - open 失敗を注入してロックを開く。
+    int actual_ret = com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - open 失敗を注入してロックを開く。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - open 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - open 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_lock *)NULL, lock); // [確認_異常系] - open 失敗時にハンドルが NULL であること。
 }
 
@@ -125,12 +125,12 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_identity_dupl
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_lock *)NULL, lock); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -148,12 +148,12 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_open_fails_when_allocation_fa
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_interprocess_lock_open(kLockIdentity, &lock); // [手順] - com_util_interprocess_lock_open を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_interprocess_lock_open の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_interprocess_lock *)NULL, lock); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -182,11 +182,11 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_unlock_reports_flock_failure)
                           // [Pre-Assert手順] - 1 回目は -1 を返却し、以降は既定の成功へ戻す。
 
     // Act
-    int rtc = com_util_interprocess_lock_unlock(lock); // [手順] - com_util_interprocess_lock_unlock を呼び出す。
+    int actual_ret = com_util_interprocess_lock_unlock(lock); // [手順] - com_util_interprocess_lock_unlock を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_interprocess_lock_unlock の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_interprocess_lock_unlock の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
     com_util_interprocess_lock_destroy(lock);
@@ -211,11 +211,11 @@ TEST_F(syncFailureInjectionTest, thread_create_fails_when_pthread_create_fails)
                                       // [Pre-Assert手順] - 1 回目は EAGAIN を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_thread_create(&thread, [](void *) {}, NULL); // [手順] - com_util_thread_create を呼び出す。
+    int actual_ret = com_util_thread_create(&thread, [](void *) {}, NULL); // [手順] - com_util_thread_create を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_thread_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_thread_create の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_thread *)NULL, thread); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -267,11 +267,11 @@ TEST_F(syncFailureInjectionTest, condvar_create_reports_condition_attribute_fail
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 条件変数属性の初期化が失敗すること。
 
     // Act
-    int rtc = com_util_condvar_create(&cv); // [手順] - 条件変数を生成する。
+    int actual_ret = com_util_condvar_create(&cv); // [手順] - 条件変数を生成する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - 属性初期化失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - 属性初期化失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ((com_util_condvar *)NULL, cv); // [確認_異常系] - 生成失敗時にハンドルが NULL であること。
 }
 

@@ -209,10 +209,10 @@ TEST_F(promptWindowsTest, read_char_returns_next_byte)
                 // [Pre-Assert手順] - 出力バッファーへ 'A' を書き込み、読み取りバイト数 1 と TRUE を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ('A', rtc); // [確認_正常系] - 読み取ったバイト値 'A' が返ること。
+    EXPECT_EQ('A', actual_ret); // [確認_正常系] - 読み取ったバイト値 'A' が返ること。
 }
 
 // 標準入力が閉じられた場合に EOF が返ることの確認
@@ -234,10 +234,10 @@ TEST_F(promptWindowsTest, read_char_returns_minus1_at_eof)
                                         // [Pre-Assert手順] - 読み取りバイト数 0 と TRUE を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - EOF を示す -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - EOF を示す -1 が返ること。
 }
 
 // 入力がない場合に待機がタイムアウトしリサイズ チェック通知が返ることの確認
@@ -255,10 +255,10 @@ TEST_F(promptWindowsTest, read_char_returns_minus2_on_timeout)
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, _, _, _, _, _)).Times(0); // [Pre-Assert確認_正常系] - ReadFile が呼び出されないこと。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-2, rtc); // [確認_正常系] - リサイズ チェック用タイムアウトを示す -2 が返ること。
+    EXPECT_EQ(-2, actual_ret); // [確認_正常系] - リサイズ チェック用タイムアウトを示す -2 が返ること。
 }
 
 // 待機に失敗した場合に読み取り失敗が返ることの確認
@@ -276,10 +276,10 @@ TEST_F(promptWindowsTest, read_char_returns_minus1_when_wait_fails)
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, _, _, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - ReadFile が呼び出されないこと。
 
     // Act
-    int rtc = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - 読み取り失敗を示す -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 読み取り失敗を示す -1 が返ること。
 }
 
 /*
@@ -316,10 +316,10 @@ TEST_F(promptWindowsTest, read_char_nb_returns_next_byte_when_available)
                 // [Pre-Assert手順] - 出力バッファーへ 'B' を書き込み、読み取りバイト数 1 と TRUE を返却する。
 
     // Act
-    int rtc = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
 
     // Assert
-    EXPECT_EQ('B', rtc); // [確認_正常系] - 読み取ったバイト値 'B' が返ること。
+    EXPECT_EQ('B', actual_ret); // [確認_正常系] - 読み取ったバイト値 'B' が返ること。
 }
 
 // 入力がない場合にタイムアウトすることの確認
@@ -340,10 +340,10 @@ TEST_F(promptWindowsTest, read_char_nb_returns_minus1_on_timeout)
     EXPECT_CALL(mock_windows, ReadFile(_, _, _, _, _, _, _, _)).Times(0); // [Pre-Assert確認_異常系] - ReadFile が呼び出されないこと。
 
     // Act
-    int rtc = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - 50 ミリ秒待っても入力がないため -1 が返ること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 50 ミリ秒待っても入力がないため -1 が返ること。
 }
 
 #endif /* PLATFORM_WINDOWS */

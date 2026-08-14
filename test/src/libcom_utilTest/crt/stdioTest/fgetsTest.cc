@@ -53,10 +53,10 @@ TEST_F(fgetsTest, reads_line_terminated_by_lf)
                                                        // [Pre-Assert手順] - "abc\n" を格納して dest を返却する。
 
     // Act
-    int ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 1 行目を com_util_fgets で読み取る。
+    int actual_ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 1 行目を com_util_fgets で読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 末尾の LF を除いた "abc" が格納されること。
 }
 
@@ -74,10 +74,10 @@ TEST_F(fgetsTest, strips_crlf)
                                                          // [Pre-Assert手順] - "abc\r\n" を格納して dest を返却する。
 
     // Act
-    int ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - CRLF で終わる行を com_util_fgets で読み取る。
+    int actual_ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - CRLF で終わる行を com_util_fgets で読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - CR と LF を除いた "abc" が格納されること。
 }
 
@@ -94,11 +94,11 @@ TEST_F(fgetsTest, reads_last_line_without_newline)
     // [Pre-Assert手順] - 改行なしの "abc" を格納して dest を返却する。
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 改行のない最終行を com_util_fgets で読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - "abc" が格納されること。
 }
 
@@ -115,11 +115,11 @@ TEST_F(fgetsTest, reads_empty_line)
                                                           // [Pre-Assert手順] - "\n" を格納して dest を返却する。
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 空行である 1 行目を com_util_fgets で読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("", buf);       // [確認_正常系] - 空文字列が格納されること。
 }
 
@@ -163,11 +163,11 @@ TEST_F(fgetsTest, returns_buffer_too_small_for_long_line)
                 // [Pre-Assert手順] - 先頭 3 文字を格納して dest を返却する。
 
     // Act
-    int ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 4 バイトのバッファーで 8 文字の行を読み取る。
+    int actual_ret = com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 4 バイトのバッファーで 8 文字の行を読み取る。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);        // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);        // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - 途中までの内容を残さずバッファーが空文字列になること。
 }
 
@@ -215,12 +215,12 @@ TEST_F(fgetsTest, buffer_size_one_returns_buffer_too_small)
                 // [Pre-Assert手順] - 空文字列を格納して dest を返却する。
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_fgets(buf, sizeof(buf), kStream, NULL); // [手順] - 終端の 1 バイトしか置けないバッファーで読み取る。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              ret);        // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);        // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列になること。
 }
 
@@ -233,12 +233,12 @@ TEST_F(fgetsTest, null_dest_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_fgets(NULL, 16u, kStream, &detail); // [手順] - 格納先に NULL を渡して com_util_fgets を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(EINVAL, com_util_error_get_errno(&detail)); // [確認_異常系] - 詳細エラーへ EINVAL が記録されること。
 }
 
@@ -251,12 +251,12 @@ TEST_F(fgetsTest, null_stream_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_fgets(buf, sizeof(buf), NULL, NULL); // [手順] - ストリームに NULL を渡して com_util_fgets を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_fgets の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 成功時に詳細エラーがクリアされることの確認
@@ -276,9 +276,9 @@ TEST_F(fgetsTest, clears_detail_on_success)
                                                        // [Pre-Assert手順] - "abc\n" を格納して dest を返却する。
 
     // Act
-    int ret = com_util_fgets(buf, sizeof(buf), kStream, &detail); // [手順] - 詳細エラー出力を指定して 1 行を読み取る。
+    int actual_ret = com_util_fgets(buf, sizeof(buf), kStream, &detail); // [手順] - 詳細エラー出力を指定して 1 行を読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);                  // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);                  // [確認_正常系] - com_util_fgets の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, com_util_error_is_set(&detail)); // [確認_正常系] - 成功時に詳細エラーがクリアされること。
 }

@@ -98,10 +98,10 @@ TEST_F(errorMessageTest, errno_is_converted_to_message)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_errno_message(buf, sizeof(buf), ENOENT); // [手順] - ENOENT を指定して呼び出す。
+    int actual_ret = com_util_errno_message(buf, sizeof(buf), ENOENT); // [手順] - ENOENT を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_errno_message の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_errno_message の戻り値が COM_UTIL_OK であること。
     EXPECT_LT(0U, strlen(buf));  // [確認_正常系] - 空でないメッセージが格納されること。
 }
 
@@ -291,11 +291,11 @@ TEST_F(errorMessageTest, errno_message_returns_unknown_when_strerror_r_fails)
                       // [Pre-Assert手順] - strerror_r から EINVAL を返却する。
 
     // Act
-    int rtc = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
+    int actual_ret = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc);        // [確認_異常系] - com_util_errno_message の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret);        // [確認_異常系] - com_util_errno_message の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
 }
 
@@ -318,10 +318,10 @@ TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
     // [Pre-Assert手順] - バッファーへ切り詰め済みの文字列を書き込み、strerror_r から ERANGE を返却する。
 
     // Act
-    int rtc = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
+    int actual_ret = com_util_errno_message(buf, sizeof(buf), EACCES); // [手順] - com_util_errno_message を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 切り詰めは成功として扱われ COM_UTIL_OK が返ること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 切り詰めは成功として扱われ COM_UTIL_OK が返ること。
     EXPECT_STREQ("trunc", buf);  // [確認_正常系] - 書き込まれた文字列が保持されること。
 }
 

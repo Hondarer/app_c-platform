@@ -11,15 +11,15 @@ int delegate_real_com_util_shutdown_request_register(com_util_shutdown_fn callba
 
 MOCK_WEAK_IMPL(int, com_util_shutdown_request_register, com_util_shutdown_fn callback, void *context)
 {
-    int mock_ret = COM_UTIL_ERR_UNKNOWN;
+    int actual_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        mock_ret = _mock_com_util->com_util_shutdown_request_register(callback, context);
+        actual_ret = _mock_com_util->com_util_shutdown_request_register(callback, context);
     }
     else
     {
-        mock_ret = delegate_real_com_util_shutdown_request_register(callback, context);
+        actual_ret = delegate_real_com_util_shutdown_request_register(callback, context);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_shutdown_request_register, com_util_shutdown_fn cal
         printf("  > %s", __func__);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", mock_ret);
+            printf(" -> %d\n", actual_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_shutdown_request_register, com_util_shutdown_fn cal
         }
     }
 
-    return mock_ret;
+    return actual_ret;
 }

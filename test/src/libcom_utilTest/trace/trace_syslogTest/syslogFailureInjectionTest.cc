@@ -161,12 +161,12 @@ TEST_F(syslogFailureInjectionTest, write_drops_message_when_sendto_fails)
                                       // [Pre-Assert手順] - errno に ECONNREFUSED を設定し、1 回目は -1 を返却する。
 
     // Act
-    int rtc = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int actual_ret = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                          "message"); // [手順] - com_util_syslog_sink_write を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 送信に失敗しても破棄扱いとして com_util_syslog_sink_write は COM_UTIL_OK を返すこと。
+              actual_ret); // [確認_正常系] - 送信に失敗しても破棄扱いとして com_util_syslog_sink_write は COM_UTIL_OK を返すこと。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);
@@ -190,13 +190,13 @@ TEST_F(syslogFailureInjectionTest, write_drops_message_when_send_buffer_is_full)
                                       // [Pre-Assert手順] - errno に EAGAIN を設定し、1 回目は -1 を返却する。
 
     // Act
-    int rtc = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
+    int actual_ret = com_util_syslog_sink_write(handle, COM_UTIL_TRACE_LEVEL_INFO, NULL,
                                          "message"); // [手順] - com_util_syslog_sink_write を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc); // [確認_正常系] - 送信バッファー満杯は再接続を伴わない破棄として COM_UTIL_OK を返すこと。
+        actual_ret); // [確認_正常系] - 送信バッファー満杯は再接続を伴わない破棄として COM_UTIL_OK を返すこと。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);

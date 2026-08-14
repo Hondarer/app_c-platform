@@ -205,10 +205,10 @@ TEST_F(promptEditTest, ensure_capacity_keeps_buffer_when_enough)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 8u); // [手順] - 必要量 8 を指定して呼び出す。
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 8u); // [手順] - 必要量 8 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(16u, cap); // [確認_正常系] - 容量が 16 のまま変化しないこと。
 
     // Cleanup
@@ -227,10 +227,10 @@ TEST_F(promptEditTest, ensure_capacity_grows_by_doubling)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(32u, cap); // [確認_正常系] - 4 から 2 倍ずつ拡張されて 32 になること。
 
     // Cleanup
@@ -249,11 +249,11 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_bytes)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 20u,
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, 20u,
                                                    20u); // [手順] - 上限 20、必要量 20 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, rtc);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - com_util_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(20u, cap); // [確認_正常系] - 2 倍では上限を超えるため上限の 20 で頭打ちになること。
 
     // Cleanup
@@ -272,11 +272,11 @@ TEST_F(promptEditTest, ensure_capacity_rejects_required_over_max)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 16u,
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, 16u,
                                                    17u); // [手順] - 上限 16 を超える必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ(4u, cap); // [確認_異常系] - 容量が変化しないこと。
 
     // Cleanup
@@ -396,10 +396,10 @@ TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
                               // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ(4u, cap); // [確認_異常系] - 容量が変化しないこと。
 
     // Cleanup
@@ -422,10 +422,10 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
                                    // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_edit_ensure_capacity(&buf, &cap, max_size,
+    int actual_ret = com_util_prompt_edit_ensure_capacity(&buf, &cap, max_size,
                                                    cap + 1u); // [手順] - 現在容量より 1 byte 大きい必要量を指定する。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ((max_size / 2u) + 1u, cap); // [確認_異常系] - 再確保失敗後も容量が変化しないこと。
 }

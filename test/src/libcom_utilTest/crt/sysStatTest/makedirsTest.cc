@@ -60,11 +60,11 @@ TEST_F(makedirsTest, null_path_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int ret = com_util_makedirs(NULL, NULL); // [手順] - パスに NULL を渡して com_util_makedirs を呼び出す。
+    int actual_ret = com_util_makedirs(NULL, NULL); // [手順] - パスに NULL を渡して com_util_makedirs を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 空文字列パスは COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
@@ -75,11 +75,11 @@ TEST_F(makedirsTest, empty_path_returns_invalid_argument)
     // Pre-Assert
 
     // Act
-    int ret = com_util_makedirs("", NULL); // [手順] - 空文字列パスで com_util_makedirs を呼び出す。
+    int actual_ret = com_util_makedirs("", NULL); // [手順] - 空文字列パスで com_util_makedirs を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_makedirs の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // com_util_stat が NULL 引数を拒否することの確認
@@ -205,12 +205,12 @@ TEST_F(makedirsTest, single_level_creates_directory)
                               // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_makedirs("dir1", NULL); // [手順] - 存在しない単一階層ディレクトリを com_util_makedirs で作成する。
     int ret2 = com_util_makedirs("dir1", NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - 1 回目の com_util_makedirs の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 1 回目の com_util_makedirs の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
               ret2); // [確認_正常系] - 2 回目の com_util_makedirs の戻り値が COM_UTIL_OK であり、べき等であること。
 }
@@ -257,11 +257,11 @@ TEST_F(makedirsTest, nested_levels_creates_all_directories)
                               // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int ret = com_util_makedirs("root/sub/leaf",
+    int actual_ret = com_util_makedirs("root/sub/leaf",
                                 NULL); // [手順] - 中間ディレクトリが欠けた 2 階層パスを com_util_makedirs で作成する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
 }
 
 // 相対パスの複数階層ディレクトリを作成できることの確認
@@ -453,14 +453,14 @@ TEST_F(makedirsTest, windows_separator_path_creates_directory)
     // Pre-Assert
 
     // Act
-    int ret = com_util_makedirs(windows_path.c_str(),
+    int actual_ret = com_util_makedirs(windows_path.c_str(),
                                 NULL); // [手順] - Windows スタイル区切りの 2 階層パスを com_util_makedirs で作成する。
     int exist_rtc = com_util_stat(&st, NULL, nested.c_str()); // [手順] - 正規化後のパスでリーフの存在を確認する。
     int ret2 = com_util_makedirs(windows_path.c_str(),
                                  NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK, exist_rtc); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
     EXPECT_EQ(
         COM_UTIL_OK,

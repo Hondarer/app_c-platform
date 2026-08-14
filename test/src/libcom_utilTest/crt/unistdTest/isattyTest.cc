@@ -38,10 +38,10 @@ TEST_F(isattyTest, invalid_stream_returns_zero)
     // Pre-Assert
 
     // Act
-    int ret = com_util_isatty(invalid_stream); // [手順] - 定義外の enum 値を渡して com_util_isatty を呼び出す。
+    int actual_ret = com_util_isatty(invalid_stream); // [手順] - 定義外の enum 値を渡して com_util_isatty を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, ret); // [確認_異常系] - com_util_isatty の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret); // [確認_異常系] - com_util_isatty の戻り値が 0 であること。
 }
 
 // stdin の判定が STDIN_FILENO の isatty 結果になることの確認
@@ -57,15 +57,15 @@ TEST_F(isattyTest, stdin_returns_int)
 #endif                        /* PLATFORM_LINUX */
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_isatty(COM_UTIL_STREAM_STDIN); // [手順] - COM_UTIL_STREAM_STDIN を渡して com_util_isatty を呼び出す。
 
     // Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_EQ(1, ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
+    EXPECT_EQ(1, actual_ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_TRUE(ret == 0 ||
-                ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+    EXPECT_TRUE(actual_ret == 0 ||
+                actual_ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
 #endif /* PLATFORM_ */
 }
 
@@ -82,15 +82,15 @@ TEST_F(isattyTest, stdout_returns_int)
 #endif                        /* PLATFORM_LINUX */
 
     // Act
-    int ret = com_util_isatty(
+    int actual_ret = com_util_isatty(
         COM_UTIL_STREAM_STDOUT); // [手順] - COM_UTIL_STREAM_STDOUT を渡して com_util_isatty を呼び出す。
 
     // Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_EQ(0, ret); // [確認_正常系] - com_util_isatty の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - com_util_isatty の戻り値が 0 であること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_TRUE(ret == 0 ||
-                ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+    EXPECT_TRUE(actual_ret == 0 ||
+                actual_ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
 #endif /* PLATFORM_ */
 }
 
@@ -107,14 +107,14 @@ TEST_F(isattyTest, stderr_returns_int)
 #endif                        /* PLATFORM_LINUX */
 
     // Act
-    int ret = com_util_isatty(
+    int actual_ret = com_util_isatty(
         COM_UTIL_STREAM_STDERR); // [手順] - COM_UTIL_STREAM_STDERR を渡して com_util_isatty を呼び出す。
 
     // Assert
 #if defined(PLATFORM_LINUX)
-    EXPECT_EQ(1, ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
+    EXPECT_EQ(1, actual_ret); // [確認_正常系] - com_util_isatty の戻り値が 1 であること。
 #elif defined(PLATFORM_WINDOWS)
-    EXPECT_TRUE(ret == 0 ||
-                ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
+    EXPECT_TRUE(actual_ret == 0 ||
+                actual_ret == 1); // [確認_正常系] - com_util_isatty の戻り値が 0 または 1 であり、クラッシュしないこと。
 #endif /* PLATFORM_ */
 }

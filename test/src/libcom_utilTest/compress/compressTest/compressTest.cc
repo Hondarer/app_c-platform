@@ -99,13 +99,13 @@ TEST_F(compressTest, compress_returns_buffer_too_small_for_header_only_buffer)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_compress(dst, &dst_len, src,
                           sizeof(src)); // [手順] - ヘッダー分しかない出力バッファーで com_util_compress を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_compress の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_compress の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }
 
 // 圧縮結果が収まらない出力バッファーで圧縮が失敗することの確認
@@ -123,13 +123,13 @@ TEST_F(compressTest, compress_returns_unknown_when_output_does_not_fit)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_compress(dst, &dst_len, reinterpret_cast<const uint8_t *>(plain.data()),
+    int actual_ret = com_util_compress(dst, &dst_len, reinterpret_cast<const uint8_t *>(plain.data()),
                                 plain.size()); // [手順] - 出力が収まらないサイズで com_util_compress を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - deflate が完了しないため com_util_compress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - deflate が完了しないため com_util_compress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // com_util_decompress が不正な引数を拒否することの確認
@@ -185,12 +185,12 @@ TEST_F(compressTest, decompress_returns_buffer_too_small_when_dst_is_shorter_tha
     // Pre-Assert
 
     // Act
-    int rtc = com_util_decompress(dst, &dst_len, compressed.data(),
+    int actual_ret = com_util_decompress(dst, &dst_len, compressed.data(),
                                   compressed_len); // [手順] - 元サイズに満たない出力バッファーで展開を試みる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
 }
 
 // DEFLATE ストリームとして不正なデータの展開が失敗することの確認
@@ -210,13 +210,13 @@ TEST_F(compressTest, decompress_returns_unknown_for_corrupt_stream)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_decompress(dst, &dst_len, src,
+    int actual_ret = com_util_decompress(dst, &dst_len, src,
                                   sizeof(src)); // [手順] - 不正な DEFLATE ストリームで com_util_decompress を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc); // [確認_異常系] - inflate が完了しないため com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret); // [確認_異常系] - inflate が完了しないため com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -238,11 +238,11 @@ TEST_F(compressTest, compress_returns_unknown_when_deflate_init_fails)
                                       // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_compress(dst, &dst_len, src, sizeof(src) - 1u); // [手順] - com_util_compress を呼び出す。
+    int actual_ret = com_util_compress(dst, &dst_len, src, sizeof(src) - 1u); // [手順] - com_util_compress を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_compress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_compress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 展開ストリームの初期化に失敗した場合に通知されることの確認
@@ -262,11 +262,11 @@ TEST_F(compressTest, decompress_returns_unknown_when_inflate_init_fails)
                                       // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
+    int actual_ret = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #endif /* PLATFORM_LINUX */
@@ -289,11 +289,11 @@ TEST_F(compressTest, decompress_returns_out_of_memory_when_malloc_fails)
                                     // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
+    int actual_ret = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 }
 
 #endif /* PLATFORM_WINDOWS */

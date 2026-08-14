@@ -33,12 +33,12 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_read_only_size_lookup
         .Times(1); // [Pre-Assert確認_異常系] - サイズ取得失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_ONLY, 0u, &map,
                                    NULL); // [手順] - サイズ取得失敗を注入して読み取り専用アタッチを呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
-              rtc); // [確認_異常系] - サイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+              actual_ret); // [確認_異常系] - サイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL,
               map); // [確認_異常系] - サイズ取得失敗時に com_util_mmap_attach のマップが NULL であること。
 }
@@ -60,12 +60,12 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_new_file_size_setting
         .Times(1); // [Pre-Assert確認_異常系] - サイズ設定失敗時に com_util_remove が 1 回呼び出されること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - サイズ設定失敗を注入して新規ファイルへのアタッチを呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
-              rtc); // [確認_異常系] - サイズ設定失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+              actual_ret); // [確認_異常系] - サイズ設定失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL,
               map); // [確認_異常系] - サイズ設定失敗時に com_util_mmap_attach のマップが NULL であること。
 }
@@ -87,12 +87,12 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_file_reopen_
                                     // [Pre-Assert手順] - 2 回の com_util_file_open にエラーを返却させる。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - 既存ファイルの再オープン失敗を注入してアタッチを呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
-              rtc); // [確認_異常系] - 再オープン失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+              actual_ret); // [確認_異常系] - 再オープン失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL,
               map); // [確認_異常系] - 再オープン失敗時に com_util_mmap_attach のマップが NULL であること。
 }
@@ -125,13 +125,13 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_existing_size_lookup_
             1); // [Pre-Assert確認_異常系] - 既存ファイルのサイズ取得失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - 既存ファイルのサイズ取得失敗を注入してアタッチを呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - 既存ファイルのサイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - 既存ファイルのサイズ取得失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         (com_util_mmap *)NULL,
         map); // [確認_異常系] - 既存ファイルのサイズ取得失敗時に com_util_mmap_attach のマップが NULL であること。
@@ -159,13 +159,13 @@ TEST_F(mmapFailureInjectionTest, attach_returns_error_when_local_lock_creation_f
         .Times(1); // [Pre-Assert確認_異常系] - ロック生成失敗時に com_util_file_close が 1 回呼び出されること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - ローカル ロック生成失敗を注入してアタッチを呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - ローカル ロック生成失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - ローカル ロック生成失敗時の com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL,
               map); // [確認_異常系] - ローカル ロック生成失敗時に com_util_mmap_attach のマップが NULL であること。
 }
@@ -186,13 +186,13 @@ TEST_F(mmapFailureInjectionTest, get_rwlock_reports_error_when_local_lock_lock_f
                                     // [Pre-Assert手順] - com_util_local_lock_lock にエラーを返却させる。
 
     // Act
-    int rtc = com_util_mmap_get_rwlock(map, &lock,
+    int actual_ret = com_util_mmap_get_rwlock(map, &lock,
                                        &detail); // [手順] - ローカル ロック取得失敗を注入して get_rwlock を呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - ローカル ロック取得失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - ローカル ロック取得失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
               lock); // [確認_異常系] - ローカル ロック取得失敗時のロック出力が NULL であること。
 
@@ -216,14 +216,14 @@ TEST_F(mmapFailureInjectionTest, get_rwlock_reports_error_when_interprocess_lock
     // [Pre-Assert手順] - com_util_interprocess_rwlock_open にエラーを返却させる。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_mmap_get_rwlock(map, &lock,
                                  &detail); // [手順] - プロセス間 RW ロック生成失敗を注入して get_rwlock を呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - プロセス間 RW ロック生成失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - プロセス間 RW ロック生成失敗時の com_util_mmap_get_rwlock の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_interprocess_rwlock *)NULL,
               lock); // [確認_異常系] - プロセス間 RW ロック生成失敗時のロック出力が NULL であること。
 
@@ -246,13 +246,13 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_file_close_fails)
                                     // [Pre-Assert手順] - com_util_file_close にエラーを返却させる。
 
     // Act
-    int rtc = com_util_mmap_detach(map,
+    int actual_ret = com_util_mmap_detach(map,
                                    &detail); // [手順] - ファイル クローズ失敗を注入して detach を呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - ファイル クローズ失敗時の com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - ファイル クローズ失敗時の com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
 }
 
 // マップ ハンドルの確保に失敗した場合にアタッチが失敗することの確認
@@ -269,13 +269,13 @@ TEST_F(mmapFailureInjectionTest, attach_returns_out_of_memory_when_handle_alloca
                           // [Pre-Assert手順] - ハンドル確保で NULL を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    NULL); // [手順] - com_util_mmap_attach を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_OUT_OF_MEMORY,
-        rtc); // [確認_異常系] - ハンドル確保失敗時に com_util_mmap_attach の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+        actual_ret); // [確認_異常系] - ハンドル確保失敗時に com_util_mmap_attach の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
 }
 
@@ -302,11 +302,11 @@ TEST_F(mmapFailureInjectionTest, attach_unmaps_when_identity_duplication_fails)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    &detail); // [手順] - com_util_mmap_attach を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
         ENOMEM,
@@ -328,11 +328,11 @@ TEST_F(mmapFailureInjectionTest, attach_reports_errno_when_mmap_fails)
                                               // [Pre-Assert手順] - errno に ENOMEM を設定し、MAP_FAILED を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    &detail); // [手順] - com_util_mmap_attach を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
         ENOMEM,
@@ -354,10 +354,10 @@ TEST_F(mmapFailureInjectionTest, flush_reports_errno_when_msync_fails)
                                       // [Pre-Assert手順] - errno に EIO を設定し、-1 を返却する。
 
     // Act
-    int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
+    int actual_ret = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         EIO,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EIO であること。
@@ -381,11 +381,11 @@ TEST_F(mmapFailureInjectionTest, detach_reports_errno_when_munmap_fails)
                                       // [Pre-Assert手順] - errno に EIO を設定し、munmap が -1 を返却する。
 
     // Act
-    int rtc = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
+    int actual_ret = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
 
     // Assert
     EXPECT_NE(COM_UTIL_OK,
-              rtc); // [確認_異常系] - munmap 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
+              actual_ret); // [確認_異常系] - munmap 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         EIO,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_mmap_detach の詳細 errno が EIO であること。
@@ -409,11 +409,11 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_create_file_mapping_f
                                        // [Pre-Assert手順] - ERROR_NOT_ENOUGH_MEMORY を返却する。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    &detail); // [手順] - com_util_mmap_attach を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
         static_cast<unsigned long>(ERROR_NOT_ENOUGH_MEMORY),
@@ -441,11 +441,11 @@ TEST_F(mmapFailureInjectionTest, attach_reports_error_when_map_view_fails)
             1); // [Pre-Assert確認_異常系] - MapViewOfFile 失敗時に CloseHandle がマッピング ハンドルを指定して 1 回呼び出されること。
 
     // Act
-    int rtc = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
+    int actual_ret = com_util_mmap_attach(kPath, COM_UTIL_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
                                    &detail); // [手順] - com_util_mmap_attach を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_attach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ((com_util_mmap *)NULL, map); // [確認_異常系] - ハンドルが設定されないこと。
     EXPECT_EQ(
         static_cast<unsigned long>(ERROR_NOT_ENOUGH_MEMORY),
@@ -471,10 +471,10 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_view_fails)
                                     // [Pre-Assert手順] - ERROR_LOCK_VIOLATION を返却する。
 
     // Act
-    int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
+    int actual_ret = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         static_cast<unsigned long>(ERROR_LOCK_VIOLATION),
         com_util_error_get_windows_error(
@@ -505,10 +505,10 @@ TEST_F(mmapFailureInjectionTest, flush_reports_error_when_flush_file_buffers_fai
                                     // [Pre-Assert手順] - ERROR_LOCK_VIOLATION を返却する。
 
     // Act
-    int rtc = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
+    int actual_ret = com_util_mmap_flush(map, NULL, 0u, &detail); // [手順] - com_util_mmap_flush を呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_mmap_flush の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         static_cast<unsigned long>(ERROR_LOCK_VIOLATION),
         com_util_error_get_windows_error(
@@ -536,12 +536,12 @@ TEST_F(mmapFailureInjectionTest, detach_reports_error_when_unmap_view_fails)
                                        // [Pre-Assert手順] - ERROR_INVALID_PARAMETER を返却する。
 
     // Act
-    int rtc = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
+    int actual_ret = com_util_mmap_detach(map, &detail); // [手順] - com_util_mmap_detach を呼び出す。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc); // [確認_異常系] - UnmapViewOfFile 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
+        actual_ret); // [確認_異常系] - UnmapViewOfFile 失敗時に com_util_mmap_detach の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(static_cast<unsigned long>(ERROR_INVALID_PARAMETER),
               com_util_error_get_windows_error(
                   &detail)); // [確認_異常系] - com_util_mmap_detach の詳細エラーが ERROR_INVALID_PARAMETER であること。

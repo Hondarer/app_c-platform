@@ -422,11 +422,11 @@ TEST_F(pathGetFullTest, reports_errno_when_getcwd_fails)
                                       // [Pre-Assert手順] - errno に EACCES を設定し、1 回目は NULL を返却する。
 
     // Act
-    int rtc = com_util_path_get_full(actual, sizeof(actual), &detail,
+    int actual_ret = com_util_path_get_full(actual, sizeof(actual), &detail,
                                      "relative.txt"); // [手順] - 相対パスを指定して呼び出す。
 
     // Assert
-    EXPECT_NE(COM_UTIL_OK, rtc); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_OK 以外であること。
+    EXPECT_NE(COM_UTIL_OK, actual_ret); // [確認_異常系] - com_util_path_get_full の戻り値が COM_UTIL_OK 以外であること。
     EXPECT_EQ(
         EACCES,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EACCES であること。
@@ -450,11 +450,11 @@ TEST_F(pathGetFullTest, falls_back_to_normalized_path_when_realpath_fails)
                                       // [Pre-Assert手順] - 1 回目は NULL を返却し、以降は本物へ委譲する。
 
     // Act
-    int rtc = com_util_path_get_full(actual, sizeof(actual), NULL,
+    int actual_ret = com_util_path_get_full(actual, sizeof(actual), NULL,
                                      "/tmp/./pathGetFullTest_fallback"); // [手順] - 絶対パスを指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_get_full の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/tmp/pathGetFullTest_fallback",
                  actual); // [確認_正常系] - realpath を使わず '.' を解消した正規化済みパスが返ること。
 }

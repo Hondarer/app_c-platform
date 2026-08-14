@@ -30,11 +30,11 @@ TEST_F(consoleWriteTest, writes_to_stdout)
 #endif /* PLATFORM_LINUX */
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      "consoleWriteTest: stdout\n"); // [手順] - stdout に文字列を書き込む。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
 }
 
 // stderr への書き込みが成功することの確認
@@ -55,11 +55,11 @@ TEST_F(consoleWriteTest, writes_to_stderr)
 #endif /* PLATFORM_LINUX */
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDERR,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDERR,
                                      "consoleWriteTest: stderr\n"); // [手順] - stderr に文字列を書き込む。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
 }
 
 // 空文字列の書き込みが成功することの確認
@@ -77,11 +77,11 @@ TEST_F(consoleWriteTest, writes_empty_text)
 #endif             /* PLATFORM_LINUX */
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      ""); // [手順] - 長さ 0 の文字列を指定して com_util_console_write を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
 }
 
 // text に NULL を渡した場合に拒否されることの確認
@@ -92,12 +92,12 @@ TEST_F(consoleWriteTest, returns_invalid_argument_for_null_text)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      NULL); // [手順] - text に NULL を指定して com_util_console_write を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 未定義のストリーム種別を渡した場合に拒否されることの確認
@@ -110,12 +110,12 @@ TEST_F(consoleWriteTest, returns_invalid_argument_for_unknown_stream)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_console_write(unknown,
+    int actual_ret = com_util_console_write(unknown,
                                      "text"); // [手順] - 未定義のストリーム種別で com_util_console_write を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -136,11 +136,11 @@ TEST_F(consoleWriteTest, repeats_write_until_all_bytes_are_written)
                               // [Pre-Assert手順] - 残り全てを書き込んだものとして 3 を返却する。
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      "abcde"); // [手順] - 5 byte の文字列を com_util_console_write で書き込む。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_console_write の戻り値が COM_UTIL_OK であること。
 }
 
 // 書き込みの失敗が通知されることの確認
@@ -157,12 +157,12 @@ TEST_F(consoleWriteTest, returns_unknown_when_write_fails)
                                       // [Pre-Assert手順] - errno に EIO を設定し、write から -1 を返却する。
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      "abcde"); // [手順] - 5 byte の文字列を com_util_console_write で書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_console_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 書き込みがシグナルで中断された場合に再試行されることの確認
@@ -179,12 +179,12 @@ TEST_F(consoleWriteTest, retries_write_after_interrupt)
         .WillOnce(Return(5));        // [Pre-Assert手順] - 2 回目の write から 5 を返却する。
 
     // Act
-    int rtc = com_util_console_write(COM_UTIL_STREAM_STDOUT,
+    int actual_ret = com_util_console_write(COM_UTIL_STREAM_STDOUT,
                                      "abcde"); // [手順] - 5 byte の文字列を com_util_console_write で書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc); // [確認_正常系] - 中断後に再試行した com_util_console_write の戻り値が COM_UTIL_OK であること。
+              actual_ret); // [確認_正常系] - 中断後に再試行した com_util_console_write の戻り値が COM_UTIL_OK であること。
 }
 
 #endif /* PLATFORM_LINUX */

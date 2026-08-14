@@ -162,12 +162,12 @@ TEST_F(fileTest, set_size_invalid_arguments_fail)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_file_set_size(&file, 16, NULL);
+    int actual_ret = com_util_file_set_size(&file, 16, NULL);
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - set_size (未オープン) の com_util_file_set_size の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - set_size (未オープン) の com_util_file_set_size の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // com_util_file_read が不正な引数で COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認

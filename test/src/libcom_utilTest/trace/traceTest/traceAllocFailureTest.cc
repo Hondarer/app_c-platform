@@ -121,13 +121,13 @@ TEST_F(traceAllocFailureTest, set_name_fails_when_effective_name_allocation_fail
                                     // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_tracer_set_name(handle, "sample",
                                  42); // [手順] - インスタンス識別 42 を指定して com_util_tracer_set_name を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - com_util_tracer_set_name の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - com_util_tracer_set_name の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
 
     // Cleanup
     com_util_tracer_dispose(&handle);

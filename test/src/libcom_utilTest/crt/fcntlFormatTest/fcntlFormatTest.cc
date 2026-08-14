@@ -21,10 +21,10 @@ static int call_vopen_fmt(int flags, int mode, com_util_error *detail_out, const
     va_list args;
 
     va_start(args, format);
-    int rtc = com_util_vopen_fmt(flags, mode, detail_out, format, args);
+    int actual_ret = com_util_vopen_fmt(flags, mode, detail_out, format, args);
     va_end(args);
 
-    return rtc;
+    return actual_ret;
 }
 
 // 書式で組み立てたパスが com_util_open へ渡されることの確認
@@ -39,11 +39,11 @@ TEST_F(fcntlFormatTest, passes_formatted_path_to_open)
                               // [Pre-Assert手順] - com_util_open からファイル記述子 7 を返却する。
 
     // Act
-    int rtc = com_util_open_fmt(O_RDONLY, 0, &detail, "/tmp/sample_%d.txt",
+    int actual_ret = com_util_open_fmt(O_RDONLY, 0, &detail, "/tmp/sample_%d.txt",
                                 42); // [手順] - 書式引数 42 を指定して com_util_open_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ(7, rtc); // [確認_正常系] - com_util_open_fmt の戻り値が com_util_open の戻り値 7 であること。
+    EXPECT_EQ(7, actual_ret); // [確認_正常系] - com_util_open_fmt の戻り値が com_util_open の戻り値 7 であること。
 }
 
 // va_list 版が同じ経路を通ることの確認
@@ -58,11 +58,11 @@ TEST_F(fcntlFormatTest, vopen_fmt_passes_formatted_path_to_open)
                               // [Pre-Assert手順] - com_util_open からファイル記述子 3 を返却する。
 
     // Act
-    int rtc = call_vopen_fmt(O_RDONLY, 0, &detail, "/tmp/sample_%d.txt",
+    int actual_ret = call_vopen_fmt(O_RDONLY, 0, &detail, "/tmp/sample_%d.txt",
                              7); // [手順] - 書式引数 7 を指定して com_util_vopen_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ(3, rtc); // [確認_正常系] - com_util_vopen_fmt の戻り値が com_util_open の戻り値 3 であること。
+    EXPECT_EQ(3, actual_ret); // [確認_正常系] - com_util_vopen_fmt の戻り値が com_util_open の戻り値 3 であること。
 }
 
 // 書式展開に失敗した場合に com_util_open を呼ばずに -1 を返すことの確認
@@ -76,11 +76,11 @@ TEST_F(fcntlFormatTest, returns_minus1_without_open_when_format_fails)
         .Times(0); // [Pre-Assert確認_異常系] - com_util_open が呼び出されないこと。
 
     // Act
-    int rtc = com_util_open_fmt(O_RDONLY, 0, &detail,
+    int actual_ret = com_util_open_fmt(O_RDONLY, 0, &detail,
                                 NULL); // [手順] - 書式文字列に NULL を指定して com_util_open_fmt を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, rtc); // [確認_異常系] - com_util_open_fmt の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - com_util_open_fmt の戻り値が -1 であること。
     EXPECT_EQ(
         EINVAL,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EINVAL であること。

@@ -193,12 +193,12 @@ TEST_F(envTest, getenv_returns_einval_for_null_name)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv(NULL, buf, sizeof(buf), &exists,
+    int actual_ret = com_util_getenv(NULL, buf, sizeof(buf), &exists,
                               &detail); // [手順] - 変数名に NULL を指定して com_util_getenv を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc);       // [確認_異常系] - com_util_getenv の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret);       // [確認_異常系] - com_util_getenv の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(0, exists); // [確認_異常系] - 変数名の検査より前に exists_out が 0 へ初期化されること。
     EXPECT_EQ(
         EINVAL,
@@ -220,11 +220,11 @@ TEST_F(envTest, getenv_clears_buffer_when_variable_is_absent)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", buf, sizeof(buf), &exists,
+    int actual_ret = com_util_getenv("COM_UTIL_ENV_TEST", buf, sizeof(buf), &exists,
                               NULL); // [手順] - 未設定の環境変数に対して com_util_getenv を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, exists);        // [確認_正常系] - 環境変数が未設定として報告されること。
     EXPECT_STREQ("", buf);       // [確認_正常系] - 出力バッファーが空文字列になること。
 }
@@ -244,11 +244,11 @@ TEST_F(envTest, getenv_does_not_write_when_buffer_size_is_zero)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", buf, 0u, &exists,
+    int actual_ret = com_util_getenv("COM_UTIL_ENV_TEST", buf, 0u, &exists,
                               NULL); // [手順] - buf は非 NULL、buf_size に 0 を指定して com_util_getenv を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, exists);        // [確認_正常系] - 環境変数が未設定として報告されること。
     EXPECT_EQ('X', buf[0]);      // [確認_正常系] - buf_size が 0 のため出力バッファーへ書き込まないこと。
 }
@@ -266,11 +266,11 @@ TEST_F(envTest, getenv_accepts_null_buffer_when_variable_is_absent)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
+    int actual_ret = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
                               NULL); // [手順] - 未設定の環境変数を出力バッファーなしで照会する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, exists);        // [確認_正常系] - 環境変数が未設定として報告されること。
 }
 
@@ -287,11 +287,11 @@ TEST_F(envTest, getenv_accepts_null_buffer_when_variable_exists)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
+    int actual_ret = com_util_getenv("COM_UTIL_ENV_TEST", NULL, 0u, &exists,
                               NULL); // [手順] - 設定済みの環境変数を出力バッファーなしで照会する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_getenv の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1, exists);        // [確認_正常系] - 環境変数が設定済みとして報告されること。
 
     // Cleanup
@@ -314,12 +314,12 @@ TEST_F(envTest, getenv_returns_erange_when_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_getenv("COM_UTIL_ENV_TEST", buf, sizeof(buf), &exists,
+    int actual_ret = com_util_getenv("COM_UTIL_ENV_TEST", buf, sizeof(buf), &exists,
                               &detail); // [手順] - 4 バイトのバッファーを指定して com_util_getenv を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc);       // [確認_異常系] - com_util_getenv の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);       // [確認_異常系] - com_util_getenv の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1, exists); // [確認_異常系] - バッファー不足でも環境変数が設定済みとして報告されること。
     EXPECT_EQ(
         ERANGE,
@@ -348,11 +348,11 @@ TEST_F(envTest, setenv_reports_errno_when_platform_setenv_fails)
                        // [Pre-Assert手順] - errno に ENOMEM を設定し、setenv から -1 を返却する。
 
     // Act
-    int rtc = com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, &detail); // [手順] - com_util_setenv を呼び出す。
+    int actual_ret = com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, &detail); // [手順] - com_util_setenv を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
-              rtc); // [確認_異常系] - com_util_setenv の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+              actual_ret); // [確認_異常系] - com_util_setenv の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
     EXPECT_EQ(
         ENOMEM,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が ENOMEM であること。
@@ -375,11 +375,11 @@ TEST_F(envTest, unsetenv_reports_errno_when_platform_unsetenv_fails)
                        // [Pre-Assert手順] - errno に EINVAL を設定し、unsetenv から -1 を返却する。
 
     // Act
-    int rtc = com_util_unsetenv("COM_UTIL_ENV_TEST", &detail); // [手順] - com_util_unsetenv を呼び出す。
+    int actual_ret = com_util_unsetenv("COM_UTIL_ENV_TEST", &detail); // [手順] - com_util_unsetenv を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_unsetenv の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_unsetenv の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         EINVAL,
         com_util_error_get_errno(&detail)); // [確認_異常系] - com_util_error_get_errno の戻り値が EINVAL であること。

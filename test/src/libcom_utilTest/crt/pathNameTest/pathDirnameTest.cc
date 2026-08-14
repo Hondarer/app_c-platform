@@ -17,12 +17,12 @@ TEST_F(pathDirnameTest, returns_parent_of_nested_path)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_path_dirname(actual, sizeof(actual), NULL,
                               "a/b/c"); // [手順] - com_util_path_dirname(actual, size, NULL, "a/b/c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 親ディレクトリが "a/b" であること。
 }
 
@@ -35,11 +35,11 @@ TEST_F(pathDirnameTest, returns_dot_when_no_separator)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), NULL,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), NULL,
                                     "c"); // [手順] - com_util_path_dirname(actual, size, NULL, "c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ(".", actual);   // [確認_正常系] - "." が返ること。
 }
 
@@ -52,11 +52,11 @@ TEST_F(pathDirnameTest, returns_root_for_root_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), NULL,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), NULL,
                                     "/"); // [手順] - com_util_path_dirname(actual, size, NULL, "/") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/", actual);   // [確認_正常系] - "/" が返ること。
 }
 
@@ -69,12 +69,12 @@ TEST_F(pathDirnameTest, returns_root_for_top_level_path)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_path_dirname(actual, sizeof(actual), NULL,
                               "/name"); // [手順] - com_util_path_dirname(actual, size, NULL, "/name") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("/", actual);   // [確認_正常系] - "/" が返ること。
 }
 
@@ -87,11 +87,11 @@ TEST_F(pathDirnameTest, strips_trailing_separator_before_computing_parent)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), NULL,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), NULL,
                                     "a/b/"); // [手順] - com_util_path_dirname(actual, size, NULL, "a/b/") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", actual);   // [確認_正常系] - "a" が返ること。
 }
 
@@ -104,12 +104,12 @@ TEST_F(pathDirnameTest, normalizes_backslash_separator_in_output)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_path_dirname(actual, sizeof(actual), NULL,
                               "a\\b\\c"); // [手順] - com_util_path_dirname(actual, size, NULL, "a\\b\\c") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_dirname の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - '/' 正規化された "a/b" が返ること。
 }
 
@@ -123,13 +123,13 @@ TEST_F(pathDirnameTest, returns_einval_for_null_path_out)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(NULL, 16, &err,
+    int actual_ret = com_util_path_dirname(NULL, 16, &err,
                                     "a/b"); // [手順] - com_util_path_dirname(NULL, 16, &err, "a/b") を呼び出す。
     com_util_error_get_last(&last_error);   // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
@@ -144,12 +144,12 @@ TEST_F(pathDirnameTest, returns_einval_for_zero_path_size)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, 0u, &err,
+    int actual_ret = com_util_path_dirname(actual, 0u, &err,
                                     "a/b"); // [手順] - com_util_path_dirname(actual, 0, &err, "a/b") を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -163,13 +163,13 @@ TEST_F(pathDirnameTest, returns_einval_for_null_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), &err,
                                     NULL); // [手順] - path に NULL を指定して com_util_path_dirname を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - path が NULL の com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - path が NULL の com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -183,12 +183,12 @@ TEST_F(pathDirnameTest, returns_einval_for_empty_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), &err,
                                     ""); // [手順] - com_util_path_dirname(actual, size, &err, "") を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -202,12 +202,12 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), &err,
                                     "ab/c"); // [手順] - com_util_path_dirname(actual, 2, &err, "ab/c") を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }
@@ -222,12 +222,12 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_dot_does_not_fit)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), &err,
                                     "c"); // [手順] - com_util_path_dirname(actual, 1, &err, "c") を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", actual); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
@@ -243,12 +243,12 @@ TEST_F(pathDirnameTest, returns_enametoolong_when_root_does_not_fit)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), &err,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), &err,
                                     "/name"); // [手順] - com_util_path_dirname(actual, 1, &err, "/name") を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              rtc); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", actual); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
@@ -263,11 +263,11 @@ TEST_F(pathDirnameTest, allows_null_detail_out)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_dirname(actual, sizeof(actual), NULL,
+    int actual_ret = com_util_path_dirname(actual, sizeof(actual), NULL,
                                     "a/b"); // [手順] - com_util_path_dirname(actual, 1, NULL, "a/b") を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc); // [確認_異常系] - com_util_path_dirname の戻り値として、detail_out が NULL でもクラッシュせず COM_UTIL_ERR_BUFFER_TOO_SMALL が返ること。
+        actual_ret); // [確認_異常系] - com_util_path_dirname の戻り値として、detail_out が NULL でもクラッシュせず COM_UTIL_ERR_BUFFER_TOO_SMALL が返ること。
 }

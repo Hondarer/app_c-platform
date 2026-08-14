@@ -86,13 +86,13 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_context_expansion_fails)
                               // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
+    int actual_ret = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
                                           1); // [手順] - 1 行読み取る。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_EOF,
-        rtc); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
+        actual_ret); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
 }
 
@@ -112,13 +112,13 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_saved_line_allocation_fa
                               // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
+    int actual_ret = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
                                           2); // [手順] - 1 行読み取る。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_EOF,
-        rtc); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
+        actual_ret); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため COM_UTIL_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
 }
 
@@ -140,11 +140,11 @@ TEST_F(promptAllocFailureTest, readline_succeeds_when_history_entry_allocation_f
                               // [Pre-Assert手順] - 1 回目は本物へ委譲し、2 回目は NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
+    int actual_ret = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
                                           3); // [手順] - "abc" と Enter を入力して 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 履歴へ残せなくても com_util_prompt_readline_at は COM_UTIL_OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 履歴へ残せなくても com_util_prompt_readline_at は COM_UTIL_OK を返すこと。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 入力した "abc" が返ること。
 }
 
@@ -169,11 +169,11 @@ TEST_F(promptAllocFailureTest, readline_fmt_continues_with_empty_prompt_when_all
                               // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 4, "[%d] ",
+    int actual_ret = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 4, "[%d] ",
                                               7); // [手順] - 書式付きプロンプトで 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - 空のプロンプトで継続し COM_UTIL_OK が返ること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 空のプロンプトで継続し COM_UTIL_OK が返ること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 入力した "abc" が返ること。
 }
 
@@ -202,10 +202,10 @@ TEST_F(promptAllocFailureTest, readline_fmt_truncates_prompt_when_reallocation_f
                               // [Pre-Assert手順] - com_util_realloc から NULL を返却する。
 
     // Act
-    int rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 5, "%s",
+    int actual_ret = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "promptAllocFailureTest.cc", 5, "%s",
                                               long_prompt.c_str()); // [手順] - 長いプロンプトで 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - プロンプトを切り捨てて継続し COM_UTIL_OK が返ること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - プロンプトを切り捨てて継続し COM_UTIL_OK が返ること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 入力した "abc" が返ること。
 }

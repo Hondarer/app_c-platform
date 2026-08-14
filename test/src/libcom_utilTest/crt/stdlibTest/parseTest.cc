@@ -16,10 +16,10 @@ TEST_F(parseTest, parse_int64_decimal)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "1234", 10); // [手順] - "1234" を基数 10 で com_util_parse_int64 に渡す。
+    int actual_ret = com_util_parse_int64(&value, "1234", 10); // [手順] - "1234" を基数 10 で com_util_parse_int64 に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);     // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);     // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((int64_t)1234, value); // [確認_正常系] - 変換結果が 1234 であること。
 }
 
@@ -32,10 +32,10 @@ TEST_F(parseTest, parse_int64_negative)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "-42", 10); // [手順] - "-42" を基数 10 で com_util_parse_int64 に渡す。
+    int actual_ret = com_util_parse_int64(&value, "-42", 10); // [手順] - "-42" を基数 10 で com_util_parse_int64 に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);    // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);    // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((int64_t)-42, value); // [確認_正常系] - 変換結果が -42 であること。
 }
 
@@ -48,10 +48,10 @@ TEST_F(parseTest, parse_int64_leading_space)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "   7", 10); // [手順] - 先頭に空白を持つ "   7" を渡す。
+    int actual_ret = com_util_parse_int64(&value, "   7", 10); // [手順] - 先頭に空白を持つ "   7" を渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);  // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);  // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((int64_t)7, value); // [確認_正常系] - 変換結果が 7 であること。
 }
 
@@ -64,10 +64,10 @@ TEST_F(parseTest, parse_int64_base16)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "ff", 16); // [手順] - "ff" を基数 16 で com_util_parse_int64 に渡す。
+    int actual_ret = com_util_parse_int64(&value, "ff", 16); // [手順] - "ff" を基数 16 で com_util_parse_int64 に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);    // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);    // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((int64_t)255, value); // [確認_正常系] - 変換結果が 255 であること。
 }
 
@@ -80,10 +80,10 @@ TEST_F(parseTest, parse_int64_base_auto_detect)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "0x10", 0); // [手順] - "0x10" を基数 0 で com_util_parse_int64 に渡す。
+    int actual_ret = com_util_parse_int64(&value, "0x10", 0); // [手順] - "0x10" を基数 0 で com_util_parse_int64 に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);   // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);   // [確認_正常系] - com_util_parse_int64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((int64_t)16, value); // [確認_正常系] - 0x10 が 16 として変換されること。
 }
 
@@ -120,11 +120,11 @@ TEST_F(parseTest, parse_int64_empty_text)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "", 10); // [手順] - 空文字列を com_util_parse_int64 に渡す。
+    int actual_ret = com_util_parse_int64(&value, "", 10); // [手順] - 空文字列を com_util_parse_int64 に渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // 末尾に余分な文字が残る場合に変換エラーになることの確認
@@ -136,11 +136,11 @@ TEST_F(parseTest, parse_int64_trailing_garbage)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "12abc", 10); // [手順] - 末尾に文字が続く "12abc" を渡す。
+    int actual_ret = com_util_parse_int64(&value, "12abc", 10); // [手順] - 末尾に文字が続く "12abc" を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // int64_t の範囲を超える入力が範囲外エラーになることの確認
@@ -152,12 +152,12 @@ TEST_F(parseTest, parse_int64_out_of_range)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "99999999999999999999",
+    int actual_ret = com_util_parse_int64(&value, "99999999999999999999",
                                    10); // [手順] - INT64_MAX を超える 20 桁の数値を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // 格納先が NULL の場合に引数エラーになることの確認
@@ -168,11 +168,11 @@ TEST_F(parseTest, parse_int64_null_value_out)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(NULL, "1", 10); // [手順] - 格納先に NULL を渡して com_util_parse_int64 を呼び出す。
+    int actual_ret = com_util_parse_int64(NULL, "1", 10); // [手順] - 格納先に NULL を渡して com_util_parse_int64 を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 変換元が NULL の場合に引数エラーになることの確認
@@ -184,12 +184,12 @@ TEST_F(parseTest, parse_int64_null_text)
     // Pre-Assert
 
     // Act
-    int ret =
+    int actual_ret =
         com_util_parse_int64(&value, NULL, 10); // [手順] - 変換元に NULL を渡して com_util_parse_int64 を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 範囲外の基数が引数エラーになることの確認
@@ -201,11 +201,11 @@ TEST_F(parseTest, parse_int64_invalid_base)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_int64(&value, "1", 37); // [手順] - 上限 36 を超える基数 37 を指定して呼び出す。
+    int actual_ret = com_util_parse_int64(&value, "1", 37); // [手順] - 上限 36 を超える基数 37 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 符号なし整数が変換されることの確認
@@ -217,11 +217,11 @@ TEST_F(parseTest, parse_uint64_decimal)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_uint64(&value, "18446744073709551615",
+    int actual_ret = com_util_parse_uint64(&value, "18446744073709551615",
                                     10); // [手順] - UINT64_MAX の 10 進表記を com_util_parse_uint64 に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);  // [確認_正常系] - com_util_parse_uint64 の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);  // [確認_正常系] - com_util_parse_uint64 の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(UINT64_MAX, value); // [確認_正常系] - 変換結果が UINT64_MAX であること。
 }
 
@@ -234,11 +234,11 @@ TEST_F(parseTest, parse_uint64_rejects_negative)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_uint64(&value, "-1", 10); // [手順] - "-1" を com_util_parse_uint64 に渡す。
+    int actual_ret = com_util_parse_uint64(&value, "-1", 10); // [手順] - "-1" を com_util_parse_uint64 に渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+              actual_ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // 先頭に空白を伴う負値も範囲外エラーになることの確認
@@ -250,11 +250,11 @@ TEST_F(parseTest, parse_uint64_rejects_negative_with_leading_space)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_uint64(&value, "  -1", 10); // [手順] - 先頭に空白を持つ "  -1" を渡す。
+    int actual_ret = com_util_parse_uint64(&value, "  -1", 10); // [手順] - 先頭に空白を持つ "  -1" を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+              actual_ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // int の範囲に収まる値が変換されることの確認
@@ -317,10 +317,10 @@ TEST_F(parseTest, parse_double_decimal)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value, "1.5"); // [手順] - "1.5" を com_util_parse_double に渡す。
+    int actual_ret = com_util_parse_double(&value, "1.5"); // [手順] - "1.5" を com_util_parse_double に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);  // [確認_正常系] - com_util_parse_double の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);  // [確認_正常系] - com_util_parse_double の戻り値が COM_UTIL_OK であること。
     EXPECT_DOUBLE_EQ(1.5, value); // [確認_正常系] - 変換結果が 1.5 であること。
 }
 
@@ -333,10 +333,10 @@ TEST_F(parseTest, parse_double_exponent)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value, "2e3"); // [手順] - 指数表記の "2e3" を com_util_parse_double に渡す。
+    int actual_ret = com_util_parse_double(&value, "2e3"); // [手順] - 指数表記の "2e3" を com_util_parse_double に渡す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, ret);     // [確認_正常系] - com_util_parse_double の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);     // [確認_正常系] - com_util_parse_double の戻り値が COM_UTIL_OK であること。
     EXPECT_DOUBLE_EQ(2000.0, value); // [確認_正常系] - 変換結果が 2000.0 であること。
 }
 
@@ -349,11 +349,11 @@ TEST_F(parseTest, parse_double_invalid_text)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value, "abc"); // [手順] - 数値でない "abc" を com_util_parse_double に渡す。
+    int actual_ret = com_util_parse_double(&value, "abc"); // [手順] - 数値でない "abc" を com_util_parse_double に渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
-              ret); // [確認_異常系] - com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+              actual_ret); // [確認_異常系] - com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // 空文字列が浮動小数として変換されないことの確認
@@ -365,12 +365,12 @@ TEST_F(parseTest, parse_double_rejects_empty_text)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value, ""); // [手順] - 空文字列を com_util_parse_double に渡す。
+    int actual_ret = com_util_parse_double(&value, ""); // [手順] - 空文字列を com_util_parse_double に渡す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_INTEGER,
-        ret); // [確認_異常系] - 空文字列を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        actual_ret); // [確認_異常系] - 空文字列を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // 数値の後ろに文字が残る浮動小数文字列が拒否されることの確認
@@ -382,13 +382,13 @@ TEST_F(parseTest, parse_double_rejects_trailing_garbage)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value,
+    int actual_ret = com_util_parse_double(&value,
                                     "1.5x"); // [手順] - 数値の後ろに文字が残る "1.5x" を com_util_parse_double に渡す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_INTEGER,
-        ret); // [確認_異常系] - 末尾に文字が残る入力を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        actual_ret); // [確認_異常系] - 末尾に文字が残る入力を渡した com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // double の範囲を超える入力が範囲外エラーになることの確認
@@ -400,11 +400,11 @@ TEST_F(parseTest, parse_double_out_of_range)
     // Pre-Assert
 
     // Act
-    int ret = com_util_parse_double(&value, "1e400"); // [手順] - double の上限を超える "1e400" を渡す。
+    int actual_ret = com_util_parse_double(&value, "1e400"); // [手順] - double の上限を超える "1e400" を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              ret); // [確認_異常系] - com_util_parse_double の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+              actual_ret); // [確認_異常系] - com_util_parse_double の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // com_util_parse_uint64 が不正な引数を拒否することの確認
@@ -441,11 +441,11 @@ TEST_F(parseTest, parse_uint64_trailing_garbage)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_parse_uint64(&value, "12x", 10); // [手順] - 末尾に 'x' を含む "12x" を渡す。
+    int actual_ret = com_util_parse_uint64(&value, "12x", 10); // [手順] - 末尾に 'x' を含む "12x" を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_INTEGER,
-              rtc); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+              actual_ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // 空文字列が符号なし整数として変換されないことの確認
@@ -457,12 +457,12 @@ TEST_F(parseTest, parse_uint64_rejects_empty_text)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_parse_uint64(&value, "", 10); // [手順] - 空文字列を com_util_parse_uint64 に渡す。
+    int actual_ret = com_util_parse_uint64(&value, "", 10); // [手順] - 空文字列を com_util_parse_uint64 に渡す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_INTEGER,
-        rtc); // [確認_異常系] - 空文字列を渡した com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
+        actual_ret); // [確認_異常系] - 空文字列を渡した com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_INTEGER であること。
 }
 
 // com_util_parse_uint64 が uint64_t の範囲を超える入力を拒否することの確認
@@ -474,12 +474,12 @@ TEST_F(parseTest, parse_uint64_out_of_range)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_parse_uint64(&value, "99999999999999999999999999", 10); // [手順] - uint64_t の上限を超える値を渡す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_RANGE,
-              rtc); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
+              actual_ret); // [確認_異常系] - com_util_parse_uint64 の戻り値が COM_UTIL_ERR_OUT_OF_RANGE であること。
 }
 
 // com_util_parse_int が value_out に NULL を渡された場合に拒否することの確認
@@ -490,12 +490,12 @@ TEST_F(parseTest, parse_int_rejects_null_value_out)
     // Pre-Assert
 
     // Act
-    int rtc =
+    int actual_ret =
         com_util_parse_int(NULL, "1", 10); // [手順] - value_out に NULL を指定して com_util_parse_int を呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc); // [確認_異常系] - com_util_parse_int の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret); // [確認_異常系] - com_util_parse_int の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // com_util_parse_int が com_util_parse_int64 の失敗をそのまま返すことの確認
@@ -507,12 +507,12 @@ TEST_F(parseTest, parse_int_propagates_parse_int64_error)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_parse_int(&value, "abc", 10); // [手順] - 数値でない "abc" を com_util_parse_int に渡す。
+    int actual_ret = com_util_parse_int(&value, "abc", 10); // [手順] - 数値でない "abc" を com_util_parse_int に渡す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_INTEGER,
-        rtc); // [確認_異常系] - com_util_parse_int64 が返した COM_UTIL_ERR_INVALID_INTEGER が com_util_parse_int の戻り値になること。
+        actual_ret); // [確認_異常系] - com_util_parse_int64 が返した COM_UTIL_ERR_INVALID_INTEGER が com_util_parse_int の戻り値になること。
 }
 
 // com_util_parse_double が不正な引数を拒否することの確認

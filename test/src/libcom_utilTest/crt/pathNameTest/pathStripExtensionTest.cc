@@ -17,12 +17,12 @@ TEST_F(pathStripExtensionTest, removes_extension)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, sizeof(actual), NULL,
         "a/b.txt"); // [手順] - com_util_path_strip_extension(actual, size, NULL, "a/b.txt") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a/b", actual); // [確認_正常系] - 拡張子を除いたパスが返ること。
 }
 
@@ -35,12 +35,12 @@ TEST_F(pathStripExtensionTest, copies_as_is_when_no_extension)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, sizeof(actual), NULL,
         "noext"); // [手順] - com_util_path_strip_extension(actual, size, NULL, "noext") を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc);   // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret);   // [確認_正常系] - com_util_path_strip_extension の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("noext", actual); // [確認_正常系] - 入力がそのままコピーされること。
 }
 
@@ -54,7 +54,7 @@ TEST_F(pathStripExtensionTest, returns_einval_for_null_path_out)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         NULL, 16, &err,
         "a.txt"); // [手順] - com_util_path_strip_extension(NULL, 16, &err, "a.txt") を呼び出す。
     com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
@@ -62,7 +62,7 @@ TEST_F(pathStripExtensionTest, returns_einval_for_null_path_out)
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
@@ -77,14 +77,14 @@ TEST_F(pathStripExtensionTest, returns_einval_for_zero_path_size)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, 0u, &err,
         "a.txt"); // [手順] - path_size に 0 を指定して com_util_path_strip_extension を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - path_size が 0 の com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - path_size が 0 の com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -98,14 +98,14 @@ TEST_F(pathStripExtensionTest, returns_einval_for_null_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, sizeof(actual), &err,
         NULL); // [手順] - com_util_path_strip_extension(actual, size, &err, NULL) を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -119,14 +119,14 @@ TEST_F(pathStripExtensionTest, returns_einval_for_empty_path)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, sizeof(actual), &err,
         ""); // [手順] - com_util_path_strip_extension(actual, size, &err, "") を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因であること。
 }
 
@@ -140,14 +140,14 @@ TEST_F(pathStripExtensionTest, returns_enametoolong_when_buffer_too_small)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_path_strip_extension(
+    int actual_ret = com_util_path_strip_extension(
         actual, sizeof(actual), &err,
         "abc.txt"); // [手順] - com_util_path_strip_extension(actual, 2, &err, "abc.txt") を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+        actual_ret); // [確認_異常系] - com_util_path_strip_extension の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }

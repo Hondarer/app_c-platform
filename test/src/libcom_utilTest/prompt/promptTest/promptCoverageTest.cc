@@ -48,11 +48,11 @@ TEST_F(promptCoverageTest, readline_accepts_lf_and_ctrl_h)
     // Pre-Assert
 
     // Act
-    int rtc = readline("ab\x08\n", buf,
+    int actual_ret = readline("ab\x08\n", buf,
                        sizeof(buf)); // [手順] - "ab"、Ctrl+H、LF の順に入力して 1 行読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("a", buf);     // [確認_正常系] - Ctrl+H で末尾を削除した "a" が返ること。
 }
 
@@ -65,11 +65,11 @@ TEST_F(promptCoverageTest, readline_ignores_remaining_unknown_sequences)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x01\x1Bx\x1B[1X\x1B[4Xq\n", buf,
+    int actual_ret = readline("\x01\x1Bx\x1B[1X\x1B[4Xq\n", buf,
                        sizeof(buf)); // [手順] - 未対応制御文字、未知 ESC、終端が不正な Home と End、"q"、LF を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("q", buf);     // [確認_正常系] - 未対応入力が無視されて "q" が返ること。
 }
 
@@ -82,11 +82,11 @@ TEST_F(promptCoverageTest, readline_ignores_editing_keys_at_line_edges)
     // Pre-Assert
 
     // Act
-    int rtc = readline("\x1B[3~\x1B[D\x1B[C\x1B[H\x1B[F\n", buf,
+    int actual_ret = readline("\x1B[3~\x1B[D\x1B[C\x1B[H\x1B[F\n", buf,
                        sizeof(buf)); // [手順] - 空行で Delete、Left、Right、Home、End、LF の順に入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("", buf);      // [確認_正常系] - 行端用の編集キーが無視されて空行が返ること。
 }
 
@@ -101,11 +101,11 @@ TEST_F(promptCoverageTest, readline_redisplays_after_resize_with_null_prompt)
     // Pre-Assert
 
     // Act
-    int rtc = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), NULL, "promptCoverageTest.cc",
+    int actual_ret = com_util_prompt_readline_at(prompt_, buf, sizeof(buf), NULL, "promptCoverageTest.cc",
                                           2); // [手順] - NULL のプロンプトでリサイズ通知後の入力を読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_prompt_readline_at の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("z", buf);     // [確認_正常系] - リサイズ通知後に入力した "z" が返ること。
 }
 
