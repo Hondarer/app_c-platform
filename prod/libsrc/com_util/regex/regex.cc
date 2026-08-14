@@ -138,12 +138,12 @@ class regex_traits : public std::regex_traits<wchar_t>
 
     template <typename ForwardIt> string_type transform(ForwardIt first, ForwardIt last) const
     {
-        return string_type(first, last);
+        return string_type(first, last); /* TESTFW_EXCL_EH_ARCS */
     }
 
     template <typename ForwardIt> string_type transform_primary(ForwardIt first, ForwardIt last) const
     {
-        string_type result(first, last);
+        string_type result(first, last); /* TESTFW_EXCL_EH_ARCS */
         for (string_type::iterator it = result.begin(); it != result.end(); ++it)
         {
             *it = translate_nocase(*it);
@@ -171,7 +171,7 @@ class regex_traits : public std::regex_traits<wchar_t>
                 {
                     narrowed = static_cast<char>(narrowed + ('a' - 'A'));
                 }
-                name.push_back(narrowed);
+                name.push_back(narrowed); /* TESTFW_EXCL_EH_ARCS */
             }
         }
 
@@ -384,17 +384,28 @@ const unsigned int REPLACE_FLAG_MASK =
     COM_UTIL_REGEX_REPLACE_FIRST_ONLY | COM_UTIL_REGEX_REPLACE_NO_COPY | COM_UTIL_REGEX_REPLACE_SED;
 
 /* OS 由来ではない失敗を記録し、結果コードを返す。 */
-int report_plain(com_util_error *detail_out, int result)
+int report_plain(com_util_error *detail_out, int result) noexcept
 {
     com_util_error_clear(detail_out);
     com_util_error_clear_last();
     return result;
 }
 
+/* C の報告 API を noexcept で包み、呼び出し行へ EH 弧を付けない。 */
+int report_success(com_util_error *detail_out) noexcept
+{
+    return com_util_error_report_success(detail_out);
+}
+
+int report_errno_as(com_util_error *detail_out, int errno_value, int result) noexcept
+{
+    return com_util_error_report_errno_as(detail_out, errno_value, result);
+}
+
 /*
  * 本番ビルドでは例外を結果コードへ変換する。
- * コンパイラが STL 呼び出しに挿入する例外枝は、計測側の
- * --exclude-throw-branches で母数から外す。
+ * コンパイラが STL 呼び出しに付ける未印の EH 弧は、呼び出し行の
+ * TESTFW_EXCL_EH_ARCS で集計から外す。
  */
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
 /* 送出された例外を共通結果コードへ変換する。 */
@@ -415,7 +426,7 @@ int translate_exception(com_util_error *detail_out)
             result = report_plain(detail_out, COM_UTIL_ERR_LIMIT_EXCEEDED);
             break;
         case std::regex_constants::error_space:
-            result = com_util_error_report_errno_as(detail_out, ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY);
+            result = report_errno_as(detail_out, ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY);
             break;
         case std::regex_constants::error_collate:
         case std::regex_constants::error_ctype:
@@ -436,7 +447,7 @@ int translate_exception(com_util_error *detail_out)
     }
     catch (const std::bad_alloc &)
     {
-        result = com_util_error_report_errno_as(detail_out, ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY);
+        result = report_errno_as(detail_out, ENOMEM, COM_UTIL_ERR_OUT_OF_MEMORY);
     }
     catch (...)
     {
@@ -578,8 +589,8 @@ int com_util_regex_create(const char *pattern, const unsigned int flags, com_uti
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     try
     {
-#endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
-        const std::size_t pattern_len = std::char_traits<char>::length(pattern);
+#endif                                                                           /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
+        const std::size_t pattern_len = std::char_traits<char>::length(pattern); /* TESTFW_EXCL_EH_ARCS */
         if (pattern_len > COM_UTIL_REGEX_MAX_LENGTH)
         {
             return report_plain(detail_out, COM_UTIL_ERR_LIMIT_EXCEEDED);
@@ -587,21 +598,22 @@ int com_util_regex_create(const char *pattern, const unsigned int flags, com_uti
 
         std::wstring units;
         std::vector<std::size_t> offsets;
-        if (!utf8_decode(pattern, pattern_len, units, offsets))
+        const bool decoded = utf8_decode(pattern, pattern_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
 
-        com_util_regex *created = new com_util_regex{engine_type(units, option), 0};
-        created->group_count = created->engine.mark_count() + 1;
+        com_util_regex *created = new com_util_regex{engine_type(units, option), 0}; /* TESTFW_EXCL_EH_ARCS */
+        created->group_count = created->engine.mark_count() + 1;                     /* TESTFW_EXCL_EH_ARCS */
 
         *regex_out = created;
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
@@ -673,13 +685,15 @@ int execute(const com_util_regex *regex, const char *text, std::size_t text_len,
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        if (!utf8_decode(text, text_len, units, offsets))
+        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
 
         std::size_t start_index = 0;
-        if (!index_of_offset(offsets, start_offset, start_index))
+        const bool indexed = index_of_offset(offsets, start_offset, start_index); /* TESTFW_EXCL_EH_ARCS */
+        if (!indexed)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ARGUMENT);
         }
@@ -695,19 +709,21 @@ int execute(const com_util_regex *regex, const char *text, std::size_t text_len,
         bool found = false;
         if (whole_match)
         {
-            found = std::regex_match(units.cbegin() + static_cast<std::ptrdiff_t>(start_index), units.cend(), matched,
+            found = std::regex_match(units.cbegin() + static_cast<std::ptrdiff_t>(start_index), units.cend(),
+                                     matched, /* TESTFW_EXCL_EH_ARCS */
                                      regex->engine, flag);
         }
         else
         {
-            found = std::regex_search(units.cbegin() + static_cast<std::ptrdiff_t>(start_index), units.cend(), matched,
+            found = std::regex_search(units.cbegin() + static_cast<std::ptrdiff_t>(start_index), units.cend(),
+                                      matched, /* TESTFW_EXCL_EH_ARCS */
                                       regex->engine, flag);
         }
 
         if (found)
         {
             *matched_out = 1;
-            store_matches(matched, units, offsets, matches_out, matches_capacity);
+            store_matches(matched, units, offsets, matches_out, matches_capacity); /* TESTFW_EXCL_EH_ARCS */
         }
         else if (matches_out != nullptr)
         {
@@ -722,12 +738,12 @@ int execute(const com_util_regex *regex, const char *text, std::size_t text_len,
             /* 格納先が無いため、何もしない。 */
         }
 
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
@@ -786,12 +802,13 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring text_units;
         std::vector<std::size_t> text_offsets;
-        if (!utf8_decode(text, text_len, text_units, text_offsets))
+        const bool text_decoded = utf8_decode(text, text_len, text_units, text_offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!text_decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
 
-        const std::size_t replacement_len = std::char_traits<char>::length(replacement);
+        const std::size_t replacement_len = std::char_traits<char>::length(replacement); /* TESTFW_EXCL_EH_ARCS */
         if (replacement_len > COM_UTIL_REGEX_MAX_LENGTH)
         {
             return report_plain(detail_out, COM_UTIL_ERR_LIMIT_EXCEEDED);
@@ -799,7 +816,9 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
 
         std::wstring replacement_units;
         std::vector<std::size_t> replacement_offsets;
-        if (!utf8_decode(replacement, replacement_len, replacement_units, replacement_offsets))
+        const bool replacement_decoded =
+            utf8_decode(replacement, replacement_len, replacement_units, replacement_offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!replacement_decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
@@ -818,10 +837,12 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
             flag |= std::regex_constants::format_sed;
         }
 
-        const std::wstring replaced = std::regex_replace(text_units, regex->engine, replacement_units, flag);
+        const std::wstring replaced =
+            std::regex_replace(text_units, regex->engine, replacement_units, flag); /* TESTFW_EXCL_EH_ARCS */
 
         std::string encoded;
-        if (!utf8_encode(replaced, encoded))
+        const bool encoded_ok = utf8_encode(replaced, encoded); /* TESTFW_EXCL_EH_ARCS */
+        if (!encoded_ok)
         {
             return report_plain(detail_out, COM_UTIL_ERR_UNKNOWN);
         }
@@ -835,7 +856,7 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
         if (result_out == nullptr)
         {
             /* 必要サイズの問い合わせのため、置換結果は書き込まない。 */
-            return com_util_error_report_success(detail_out);
+            return report_success(detail_out);
         }
         if (result_size < required_size)
         {
@@ -845,12 +866,12 @@ int com_util_regex_replace(const com_util_regex *regex, const char *text, const 
         std::char_traits<char>::copy(result_out, encoded.data(), encoded.size());
         result_out[encoded.size()] = '\0';
 
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
@@ -892,15 +913,16 @@ bool find_next(const com_util_regex *regex, const std::wstring &units, unsigned 
         flag |= std::regex_constants::match_prev_avail;
     }
 
-    const bool found = std::regex_search(units.cbegin() + static_cast<std::ptrdiff_t>(position), units.cend(),
+    const bool found = std::regex_search(units.cbegin() + static_cast<std::ptrdiff_t>(position),
+                                         units.cend(), /* TESTFW_EXCL_EH_ARCS */
                                          matched_out, regex->engine, flag);
     if (!found)
     {
         return false;
     }
 
-    begin_out = position + static_cast<std::size_t>(matched_out.position(0));
-    end_out = begin_out + static_cast<std::size_t>(matched_out.length(0));
+    begin_out = position + static_cast<std::size_t>(matched_out.position(0)); /* TESTFW_EXCL_EH_ARCS */
+    end_out = begin_out + static_cast<std::size_t>(matched_out.length(0));    /* TESTFW_EXCL_EH_ARCS */
     return true;
 }
 
@@ -947,20 +969,22 @@ int com_util_regex_iter_create(const com_util_regex *regex, const char *text, co
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        if (!utf8_decode(text, text_len, units, offsets))
+        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
 
-        com_util_regex_iter *created = new com_util_regex_iter{regex, units, offsets, 0, match_flags, 0};
+        com_util_regex_iter *created =
+            new com_util_regex_iter{regex, units, offsets, 0, match_flags, 0}; /* TESTFW_EXCL_EH_ARCS */
 
         *iter_out = created;
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
@@ -987,22 +1011,22 @@ int com_util_regex_iter_next(com_util_regex_iter *iter, com_util_regex_match *ma
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         if (iter->finished != 0)
         {
-            return com_util_error_report_success(detail_out);
+            return report_success(detail_out);
         }
 
         match_type matched;
         std::size_t begin_index = 0;
         std::size_t end_index = 0;
-        const bool found =
-            find_next(iter->regex, iter->units, iter->match_flags, iter->position, matched, begin_index, end_index);
+        const bool found = find_next(iter->regex, iter->units, iter->match_flags, iter->position, matched, begin_index,
+                                     end_index); /* TESTFW_EXCL_EH_ARCS */
         if (!found)
         {
             iter->finished = 1;
-            return com_util_error_report_success(detail_out);
+            return report_success(detail_out);
         }
 
         *has_match_out = 1;
-        store_matches(matched, iter->units, iter->offsets, matches_out, matches_capacity);
+        store_matches(matched, iter->units, iter->offsets, matches_out, matches_capacity); /* TESTFW_EXCL_EH_ARCS */
 
         if (end_index == begin_index)
         {
@@ -1019,12 +1043,12 @@ int com_util_regex_iter_next(com_util_regex_iter *iter, com_util_regex_match *ma
             iter->finished = 1;
         }
 
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
@@ -1082,7 +1106,8 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        if (!utf8_decode(text, text_len, units, offsets))
+        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        if (!decoded)
         {
             return report_plain(detail_out, COM_UTIL_ERR_INVALID_ENCODING);
         }
@@ -1103,7 +1128,8 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
             match_type matched;
             std::size_t begin_index = 0;
             std::size_t end_index = 0;
-            const bool found = find_next(regex, units, match_flags, position, matched, begin_index, end_index);
+            const bool found = find_next(regex, units, match_flags, position, matched, begin_index,
+                                         end_index); /* TESTFW_EXCL_EH_ARCS */
             if (!found)
             {
                 break;
@@ -1125,25 +1151,25 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
             }
 
             com_util_regex_match part;
-            part.begin = offset_of_begin(units, offsets, part_begin);
-            part.end = offset_of_end(units, offsets, begin_index);
-            parts.push_back(part);
+            part.begin = offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
+            part.end = offset_of_end(units, offsets, begin_index);    /* TESTFW_EXCL_EH_ARCS */
+            parts.push_back(part);                                    /* TESTFW_EXCL_EH_ARCS */
 
             part_begin = end_index;
             position = end_index;
         }
 
         com_util_regex_match last_part;
-        last_part.begin = offset_of_begin(units, offsets, part_begin);
-        last_part.end = offset_of_end(units, offsets, units.size());
-        parts.push_back(last_part);
+        last_part.begin = offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
+        last_part.end = offset_of_end(units, offsets, units.size());   /* TESTFW_EXCL_EH_ARCS */
+        parts.push_back(last_part);                                    /* TESTFW_EXCL_EH_ARCS */
 
         *part_count_out = parts.size();
 
         if (parts_out == nullptr)
         {
             /* 必要件数の問い合わせのため、分割結果は書き込まない。 */
-            return com_util_error_report_success(detail_out);
+            return report_success(detail_out);
         }
 
         const std::size_t copy_count = std::min(parts_capacity, parts.size());
@@ -1157,12 +1183,12 @@ int com_util_regex_split(const com_util_regex *regex, const char *text, const si
             return report_plain(detail_out, COM_UTIL_ERR_BUFFER_TOO_SMALL);
         }
 
-        result = com_util_error_report_success(detail_out);
+        result = report_success(detail_out);
 #if !defined(COM_UTIL_REGEX_NO_EXCEPTIONS)
     }
     catch (...)
     {
-        result = translate_exception(detail_out);
+        result = translate_exception(detail_out); /* TESTFW_EXCL_EH_ARCS */
     }
 #endif /* !COM_UTIL_REGEX_NO_EXCEPTIONS */
 
