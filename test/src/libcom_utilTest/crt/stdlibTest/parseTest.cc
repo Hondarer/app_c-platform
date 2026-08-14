@@ -416,20 +416,20 @@ TEST_F(parseTest, parse_uint64_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_value_out = com_util_parse_uint64(NULL, "1", 10); // [手順] - value_out に NULL を指定して呼び出す。
-    int rtc_null_text = com_util_parse_uint64(&value, NULL, 10);   // [手順] - text に NULL を指定して呼び出す。
-    int rtc_invalid_base = com_util_parse_uint64(&value, "1", 1);  // [手順] - base に 1 を指定して呼び出す。
+    int actual_ret_null_value_out = com_util_parse_uint64(NULL, "1", 10); // [手順] - value_out に NULL を指定して呼び出す。
+    int actual_ret_null_text = com_util_parse_uint64(&value, NULL, 10);   // [手順] - text に NULL を指定して呼び出す。
+    int actual_ret_invalid_base = com_util_parse_uint64(&value, "1", 1);  // [手順] - base に 1 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_value_out); // [確認_異常系] - value_out が NULL のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_value_out); // [確認_異常系] - value_out が NULL のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_text); // [確認_異常系] - text が NULL のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_text); // [確認_異常系] - text が NULL のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_base); // [確認_異常系] - base が 1 のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_base); // [確認_異常系] - base が 1 のとき com_util_parse_uint64 の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // com_util_parse_uint64 が末尾に余分な文字を含む入力を拒否することの確認
@@ -524,14 +524,14 @@ TEST_F(parseTest, parse_double_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_value_out = com_util_parse_double(NULL, "1.0"); // [手順] - value_out に NULL を指定して呼び出す。
-    int rtc_null_text = com_util_parse_double(&value, NULL);     // [手順] - text に NULL を指定して呼び出す。
+    int actual_ret_null_value_out = com_util_parse_double(NULL, "1.0"); // [手順] - value_out に NULL を指定して呼び出す。
+    int actual_ret_null_text = com_util_parse_double(&value, NULL);     // [手順] - text に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_value_out); // [確認_異常系] - value_out が NULL のとき com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_value_out); // [確認_異常系] - value_out が NULL のとき com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_text); // [確認_異常系] - text が NULL のとき com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_text); // [確認_異常系] - text が NULL のとき com_util_parse_double の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }

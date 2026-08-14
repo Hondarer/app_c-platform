@@ -11,15 +11,15 @@ FILE *delegate_real_com_util_fopen(const char *path, const char *modes, com_util
 
 MOCK_WEAK_IMPL(FILE *, com_util_fopen, const char *path, const char *modes, com_util_error *detail_out)
 {
-    FILE *fp = nullptr;
+    FILE *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        fp = _mock_com_util->com_util_fopen(path, modes, detail_out);
+        mock_ret = _mock_com_util->com_util_fopen(path, modes, detail_out);
     }
     else
     {
-        fp = delegate_real_com_util_fopen(path, modes, detail_out);
+        mock_ret = delegate_real_com_util_fopen(path, modes, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(FILE *, com_util_fopen, const char *path, const char *modes, com_
         printf("  > %s %s, %s", __func__, path, modes);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)fp);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(FILE *, com_util_fopen, const char *path, const char *modes, com_
         }
     }
 
-    return fp;
+    return mock_ret;
 }

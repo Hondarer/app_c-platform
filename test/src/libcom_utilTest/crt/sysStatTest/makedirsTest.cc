@@ -455,13 +455,13 @@ TEST_F(makedirsTest, windows_separator_path_creates_directory)
     // Act
     int actual_ret = com_util_makedirs(windows_path.c_str(),
                                 NULL); // [手順] - Windows スタイル区切りの 2 階層パスを com_util_makedirs で作成する。
-    int exist_rtc = com_util_stat(&st, NULL, nested.c_str()); // [手順] - 正規化後のパスでリーフの存在を確認する。
+    int actual_ret_exist = com_util_stat(&st, NULL, nested.c_str()); // [手順] - 正規化後のパスでリーフの存在を確認する。
     int ret2 = com_util_makedirs(windows_path.c_str(),
                                  NULL); // [手順] - 既存ディレクトリに com_util_makedirs を再呼び出しする。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret);       // [確認_正常系] - com_util_makedirs の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, exist_rtc); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_exist); // [確認_正常系] - 正規化後のパスでリーフが存在すること。
     EXPECT_EQ(
         COM_UTIL_OK,
         ret2); // [確認_正常系] - 既存ディレクトリに対する com_util_makedirs の戻り値が COM_UTIL_OK であり、べき等であること。

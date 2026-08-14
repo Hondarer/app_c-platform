@@ -95,46 +95,46 @@ TEST_F(etwSessionIntegrationTest, test_session_start_null_params)
     // Pre-Assert
 
     // Act
-    int rtc_null_name =
+    int actual_ret_null_name =
         com_util_etw_session_start(NULL, TEST_PROVIDER_GUID, collect_callback, NULL,
                                    &session); // [手順] - session_name に NULL を渡して session_start を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_name); // [確認_異常系] - session_name が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_name); // [確認_異常系] - session_name が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ((com_util_etw_session *)NULL,
               session); // [確認_異常系] - session_name が NULL の場合に session に NULL が格納されること。
 
     // Act_2
-    int rtc_null_provider_guid =
+    int actual_ret_null_provider_guid =
         com_util_etw_session_start("test", NULL, collect_callback, NULL,
                                    &session); // [手順] - provider_guid に NULL を渡して session_start を呼び出す。
 
     // Assert_2
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_provider_guid); // [確認_異常系] - provider_guid が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_provider_guid); // [確認_異常系] - provider_guid が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 
     // Act_3
-    int rtc_null_callback =
+    int actual_ret_null_callback =
         com_util_etw_session_start("test", TEST_PROVIDER_GUID, NULL, NULL,
                                    &session); // [手順] - callback に NULL を渡して session_start を呼び出す。
 
     // Assert_3
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_callback); // [確認_異常系] - callback が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_callback); // [確認_異常系] - callback が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 
     // Act_4
-    int rtc_null_session_out =
+    int actual_ret_null_session_out =
         com_util_etw_session_start("test", TEST_PROVIDER_GUID, collect_callback, NULL,
                                    NULL); // [手順] - session の受け取り先に NULL を渡して session_start を呼び出す。
 
     // Assert_4
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_session_out); // [確認_異常系] - 受け取り先が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_session_out); // [確認_異常系] - 受け取り先が NULL の場合に com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 不正な GUID 文字列が ERR_INVALID_ARGUMENT で拒否されることの確認
@@ -146,14 +146,14 @@ TEST_F(etwSessionIntegrationTest, test_session_start_invalid_guid)
     // Pre-Assert
 
     // Act
-    int rtc_invalid_guid =
+    int actual_ret_invalid_guid =
         com_util_etw_session_start("test", "not-a-guid", collect_callback, NULL,
                                    &session); // [手順] - 不正な GUID 文字列 "not-a-guid" で session_start を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_guid); // [確認_異常系] - com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_guid); // [確認_異常系] - com_util_etw_session_start の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ((com_util_etw_session *)NULL, session); // [確認_異常系] - session に NULL が格納されること。
 }
 

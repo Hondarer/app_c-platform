@@ -41,15 +41,15 @@ TEST_F(compressTest, round_trip_restores_original_bytes)
     // Pre-Assert
 
     // Act
-    int rtc_compress =
+    int actual_ret_compress =
         com_util_compress(compressed.data(), &compressed_len, reinterpret_cast<const uint8_t *>(plain.data()),
                           plain.size()); // [手順] - 平文を com_util_compress で圧縮する。
-    int rtc_decompress = com_util_decompress(restored.data(), &restored_len, compressed.data(),
+    int actual_ret_decompress = com_util_decompress(restored.data(), &restored_len, compressed.data(),
                                              compressed_len); // [手順] - 圧縮結果を com_util_decompress で展開する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_compress);    // [確認_正常系] - com_util_compress の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_decompress);  // [確認_正常系] - com_util_decompress の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_compress);    // [確認_正常系] - com_util_compress の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_decompress);  // [確認_正常系] - com_util_decompress の戻り値が COM_UTIL_OK であること。
     EXPECT_GT(plain.size(), compressed_len); // [確認_正常系] - 圧縮後のサイズが元のサイズより小さくなること。
     EXPECT_EQ(plain.size(), restored_len);   // [確認_正常系] - 展開後のサイズが元のサイズと一致すること。
     EXPECT_EQ(0, memcmp(plain.data(), restored.data(),
@@ -67,25 +67,25 @@ TEST_F(compressTest, compress_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_dst = com_util_compress(NULL, &dst_len, src, sizeof(src)); // [手順] - dst に NULL を指定して呼び出す。
-    int rtc_null_dst_len =
+    int actual_ret_null_dst = com_util_compress(NULL, &dst_len, src, sizeof(src)); // [手順] - dst に NULL を指定して呼び出す。
+    int actual_ret_null_dst_len =
         com_util_compress(dst, NULL, src, sizeof(src)); // [手順] - dst_len に NULL を指定して呼び出す。
-    int rtc_null_src = com_util_compress(dst, &dst_len, NULL, sizeof(src)); // [手順] - src に NULL を指定して呼び出す。
-    int rtc_zero_src_len = com_util_compress(dst, &dst_len, src, 0u); // [手順] - src_len に 0 を指定して呼び出す。
+    int actual_ret_null_src = com_util_compress(dst, &dst_len, NULL, sizeof(src)); // [手順] - src に NULL を指定して呼び出す。
+    int actual_ret_zero_src_len = com_util_compress(dst, &dst_len, src, 0u); // [手順] - src_len に 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_dst); // [確認_異常系] - dst が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_dst); // [確認_異常系] - dst が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_dst_len); // [確認_異常系] - dst_len が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_dst_len); // [確認_異常系] - dst_len が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_src); // [確認_異常系] - src が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_src); // [確認_異常系] - src が NULL のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_zero_src_len); // [確認_異常系] - src_len が 0 のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_zero_src_len); // [確認_異常系] - src_len が 0 のとき com_util_compress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // ヘッダーと最低 1 byte を収められない出力バッファーが拒否されることの確認
@@ -143,28 +143,28 @@ TEST_F(compressTest, decompress_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_dst =
+    int actual_ret_null_dst =
         com_util_decompress(NULL, &dst_len, src, sizeof(src)); // [手順] - dst に NULL を指定して呼び出す。
-    int rtc_null_dst_len =
+    int actual_ret_null_dst_len =
         com_util_decompress(dst, NULL, src, sizeof(src)); // [手順] - dst_len に NULL を指定して呼び出す。
-    int rtc_null_src =
+    int actual_ret_null_src =
         com_util_decompress(dst, &dst_len, NULL, sizeof(src)); // [手順] - src に NULL を指定して呼び出す。
-    int rtc_header_only = com_util_decompress(
+    int actual_ret_header_only = com_util_decompress(
         dst, &dst_len, src, COM_UTIL_COMPRESS_HEADER_SIZE); // [手順] - src_len をヘッダー長ちょうどに指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_dst); // [確認_異常系] - dst が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_dst); // [確認_異常系] - dst が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_dst_len); // [確認_異常系] - dst_len が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_dst_len); // [確認_異常系] - dst_len が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_src); // [確認_異常系] - src が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_src); // [確認_異常系] - src が NULL のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_header_only); // [確認_異常系] - src_len がヘッダー長以下のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_header_only); // [確認_異常系] - src_len がヘッダー長以下のとき com_util_decompress の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // ヘッダーが示す元サイズに満たない出力バッファーが拒否されることの確認

@@ -33,14 +33,14 @@ TEST_F(cryptoTest, round_trip_restores_original_bytes)
     // Pre-Assert
 
     // Act
-    int rtc_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL,
+    int actual_ret_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, NULL,
                                        0u); // [手順] - AAD なしで com_util_encrypt を呼び出す。
-    int rtc_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, NULL,
+    int actual_ret_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, NULL,
                                        0u); // [手順] - 同じ鍵とノンスで com_util_decrypt を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(plain_len + COM_UTIL_CRYPTO_TAG_SIZE,
               cipher_len);            // [確認_正常系] - 暗号文長が平文長 + タグ長であること。
     EXPECT_EQ(plain_len, restored_len); // [確認_正常系] - 復号後の長さが平文長と一致すること。
@@ -63,14 +63,14 @@ TEST_F(cryptoTest, round_trip_with_aad)
     // Pre-Assert
 
     // Act
-    int rtc_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
+    int actual_ret_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
                                        aad_len); // [手順] - AAD を指定して com_util_encrypt を呼び出す。
-    int rtc_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
+    int actual_ret_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
                                        aad_len); // [手順] - 同じ AAD を指定して com_util_decrypt を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, memcmp(plain, restored.data(), plain_len)); // [確認_正常系] - 復号結果が平文と一致すること。
 }
 
@@ -90,14 +90,14 @@ TEST_F(cryptoTest, round_trip_with_nonnull_zero_length_aad)
     // Pre-Assert
 
     // Act
-    int rtc_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
+    int actual_ret_encrypt = com_util_encrypt(cipher.data(), &cipher_len, plain, plain_len, key_, nonce_, aad,
                                        aad_len); // [手順] - 非 NULL かつ長さ 0 の AAD を指定して暗号化する。
-    int rtc_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
+    int actual_ret_decrypt = com_util_decrypt(restored.data(), &restored_len, cipher.data(), cipher_len, key_, nonce_, aad,
                                        aad_len); // [手順] - 非 NULL かつ長さ 0 の AAD を指定して復号する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_encrypt); // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_decrypt); // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(plain_len,
               restored_len); // [確認_正常系] - 非 NULL かつ長さ 0 の AAD を指定した復号後の長さが平文長と一致すること。
     EXPECT_EQ(0, memcmp(plain, restored.data(), plain_len)); // [確認_正常系] - 復号結果が平文と一致すること。
@@ -172,14 +172,14 @@ TEST_F(cryptoTest, round_trip_of_empty_plain_text)
     // Pre-Assert
 
     // Act
-    int rtc_encrypt = com_util_encrypt(cipher, &cipher_len, NULL, 0u, key_, nonce_, NULL,
+    int actual_ret_encrypt = com_util_encrypt(cipher, &cipher_len, NULL, 0u, key_, nonce_, NULL,
                                        0u); // [手順] - 長さ 0 の平文で com_util_encrypt を呼び出す。
-    int rtc_decrypt = com_util_decrypt(restored, &restored_len, cipher, cipher_len, key_, nonce_, NULL,
+    int actual_ret_decrypt = com_util_decrypt(restored, &restored_len, cipher, cipher_len, key_, nonce_, NULL,
                                        0u); // [手順] - タグのみの暗号文で com_util_decrypt を呼び出す。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_encrypt);          // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_decrypt);          // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_encrypt);          // [確認_正常系] - com_util_encrypt の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_decrypt);          // [確認_正常系] - com_util_decrypt の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_CRYPTO_TAG_SIZE, cipher_len); // [確認_正常系] - 暗号文長がタグ長のみであること。
     EXPECT_EQ(0u, restored_len);                  // [確認_正常系] - 復号後の長さが 0 であること。
 }
@@ -196,25 +196,25 @@ TEST_F(cryptoTest, encrypt_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_dst = com_util_encrypt(NULL, &cipher_len, plain, plain_len, key_, nonce_, NULL, 0u);
-    int rtc_null_dst_len = com_util_encrypt(cipher, NULL, plain, plain_len, key_, nonce_, NULL, 0u);
-    int rtc_null_src = com_util_encrypt(cipher, &cipher_len, NULL, plain_len, key_, nonce_, NULL, 0u);
-    int rtc_null_key = com_util_encrypt(cipher, &cipher_len, plain, plain_len, NULL, nonce_, NULL, 0u);
-    int rtc_null_nonce = com_util_encrypt(cipher, &cipher_len, plain, plain_len, key_, NULL, NULL,
+    int actual_ret_null_dst = com_util_encrypt(NULL, &cipher_len, plain, plain_len, key_, nonce_, NULL, 0u);
+    int actual_ret_null_dst_len = com_util_encrypt(cipher, NULL, plain, plain_len, key_, nonce_, NULL, 0u);
+    int actual_ret_null_src = com_util_encrypt(cipher, &cipher_len, NULL, plain_len, key_, nonce_, NULL, 0u);
+    int actual_ret_null_key = com_util_encrypt(cipher, &cipher_len, plain, plain_len, NULL, nonce_, NULL, 0u);
+    int actual_ret_null_nonce = com_util_encrypt(cipher, &cipher_len, plain, plain_len, key_, NULL, NULL,
                                           0u); // [手順] - dst、dst_len、src、key、nonce に順に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_dst); // [確認_異常系] - dst が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_dst); // [確認_異常系] - dst が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_dst_len); // [確認_異常系] - dst_len が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_dst_len); // [確認_異常系] - dst_len が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_src); // [確認_異常系] - src が NULL かつ src_len が 0 より大きいとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+        actual_ret_null_src); // [確認_異常系] - src が NULL かつ src_len が 0 より大きいとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_nonce); // [確認_異常系] - nonce が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_nonce); // [確認_異常系] - nonce が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
 }
 
 // 暗号文とタグが収まらない出力バッファーが拒否されることの確認
@@ -248,30 +248,30 @@ TEST_F(cryptoTest, decrypt_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_dst = com_util_decrypt(NULL, &restored_len, cipher, sizeof(cipher), key_, nonce_, NULL, 0u);
-    int rtc_null_dst_len = com_util_decrypt(restored, NULL, cipher, sizeof(cipher), key_, nonce_, NULL, 0u);
-    int rtc_null_src = com_util_decrypt(restored, &restored_len, NULL, sizeof(cipher), key_, nonce_, NULL, 0u);
-    int rtc_short_src = com_util_decrypt(restored, &restored_len, cipher, COM_UTIL_CRYPTO_TAG_SIZE - 1u, key_, nonce_,
+    int actual_ret_null_dst = com_util_decrypt(NULL, &restored_len, cipher, sizeof(cipher), key_, nonce_, NULL, 0u);
+    int actual_ret_null_dst_len = com_util_decrypt(restored, NULL, cipher, sizeof(cipher), key_, nonce_, NULL, 0u);
+    int actual_ret_null_src = com_util_decrypt(restored, &restored_len, NULL, sizeof(cipher), key_, nonce_, NULL, 0u);
+    int actual_ret_short_src = com_util_decrypt(restored, &restored_len, cipher, COM_UTIL_CRYPTO_TAG_SIZE - 1u, key_, nonce_,
                                          NULL, 0u);
-    int rtc_null_key = com_util_decrypt(restored, &restored_len, cipher, sizeof(cipher), NULL, nonce_, NULL, 0u);
-    int rtc_null_nonce =
+    int actual_ret_null_key = com_util_decrypt(restored, &restored_len, cipher, sizeof(cipher), NULL, nonce_, NULL, 0u);
+    int actual_ret_null_nonce =
         com_util_decrypt(restored, &restored_len, cipher, sizeof(cipher), key_, NULL, NULL,
                          0u); // [手順] - dst、dst_len、src、src_len、key、nonce に順に不正値を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_dst); // [確認_異常系] - dst が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_dst); // [確認_異常系] - dst が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_dst_len); // [確認_異常系] - dst_len が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_dst_len); // [確認_異常系] - dst_len が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_src); // [確認_異常系] - src が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_src); // [確認_異常系] - src が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_short_src); // [確認_異常系] - src_len がタグ長未満のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+        actual_ret_short_src); // [確認_異常系] - src_len がタグ長未満のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_nonce); // [確認_異常系] - nonce が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_nonce); // [確認_異常系] - nonce が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
 }
 
 // 平文が収まらない出力バッファーが拒否されることの確認
@@ -307,13 +307,13 @@ TEST_F(cryptoTest, passphrase_to_key_derives_deterministic_key)
     // Pre-Assert
 
     // Act
-    int rtc_first = com_util_passphrase_to_key(first, passphrase, sizeof(passphrase) - 1u);
-    int rtc_second = com_util_passphrase_to_key(second, passphrase,
+    int actual_ret_first = com_util_passphrase_to_key(first, passphrase, sizeof(passphrase) - 1u);
+    int actual_ret_second = com_util_passphrase_to_key(second, passphrase,
                                                 sizeof(passphrase) - 1u); // [手順] - 同じパスフレーズで 2 回導出する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_first);  // [確認_正常系] - 1 回目の戻り値が COM_UTIL_OK であること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_second); // [確認_正常系] - 2 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_first);  // [確認_正常系] - 1 回目の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_second); // [確認_正常系] - 2 回目の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0, memcmp(first, second, sizeof(first))); // [確認_正常系] - 同じパスフレーズから同じ鍵が導出されること。
 }
 
@@ -344,14 +344,14 @@ TEST_F(cryptoTest, passphrase_to_key_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_key = com_util_passphrase_to_key(NULL, (const uint8_t *)"secret", 6u);
-    int rtc_null_passphrase =
+    int actual_ret_null_key = com_util_passphrase_to_key(NULL, (const uint8_t *)"secret", 6u);
+    int actual_ret_null_passphrase =
         com_util_passphrase_to_key(key, NULL, 6u); // [手順] - key に NULL、passphrase に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_key); // [確認_異常系] - key が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_passphrase); // [確認_異常系] - passphrase が NULL かつ長さが 0 より大きいとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+        actual_ret_null_passphrase); // [確認_異常系] - passphrase が NULL かつ長さが 0 より大きいとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
 }

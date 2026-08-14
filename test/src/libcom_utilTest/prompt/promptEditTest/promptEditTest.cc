@@ -293,12 +293,12 @@ TEST_F(promptEditTest, ensure_capacity_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_buf = com_util_prompt_edit_ensure_capacity(NULL, &cap, 16u, 8u); // [手順] - buf に NULL を指定する。
-    int rtc_null_cap = com_util_prompt_edit_ensure_capacity(&buf, NULL, 16u, 8u); // [手順] - cap に NULL を指定する。
+    int actual_ret_null_buf = com_util_prompt_edit_ensure_capacity(NULL, &cap, 16u, 8u); // [手順] - buf に NULL を指定する。
+    int actual_ret_null_cap = com_util_prompt_edit_ensure_capacity(&buf, NULL, 16u, 8u); // [手順] - cap に NULL を指定する。
 
     // Assert
-    EXPECT_EQ(-1, rtc_null_buf); // [確認_異常系] - buf が NULL のとき戻り値が -1 であること。
-    EXPECT_EQ(-1, rtc_null_cap); // [確認_異常系] - cap が NULL のとき戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret_null_buf); // [確認_異常系] - buf が NULL のとき戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret_null_cap); // [確認_異常系] - cap が NULL のとき戻り値が -1 であること。
 }
 
 /*

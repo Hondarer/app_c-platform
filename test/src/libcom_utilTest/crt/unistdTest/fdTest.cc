@@ -152,13 +152,13 @@ TEST_F(fdTest, dup_shares_file_offset)
     int dup_fd = com_util_dup(kFakeFd, NULL);                  // [手順] - ファイル記述子を複製する。
     int64_t written = com_util_write(dup_fd, "wxyz", 4, NULL); // [手順] - 複製側へ 4 バイト書き込む。
     int64_t pos = com_util_lseek(kFakeFd, 0, SEEK_CUR, NULL);  // [手順] - 複製元の現在位置を取得する。
-    int close_rtc = com_util_close(dup_fd, NULL);              // [手順] - 複製側を閉じる。
+    int actual_ret_close = com_util_close(dup_fd, NULL);              // [手順] - 複製側を閉じる。
 
     // Assert
     EXPECT_EQ(kDupFd, dup_fd); // [確認_正常系] - com_util_dup の戻り値が複製記述子 8 であること。
     EXPECT_EQ(4, written);     // [確認_正常系] - 複製側へ書き込んだバイト数が 4 であること。
     EXPECT_EQ(4, pos);         // [確認_正常系] - SEEK_CUR を指定した com_util_lseek の戻り値が 4 であること。
-    EXPECT_EQ(0, close_rtc);   // [確認_正常系] - 複製側の com_util_close の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret_close);   // [確認_正常系] - 複製側の com_util_close の戻り値が 0 であること。
 }
 
 // dup2 の成功時に 0 が返ることの確認
@@ -217,22 +217,22 @@ TEST_F(fdTest, negative_fd_returns_minus1)
 
     // Act
     // [手順] - 負のファイル記述子で lseek、close、dup、dup2、read、write を呼び出す。
-    int64_t rtc_lseek = com_util_lseek(-1, 0, SEEK_SET, NULL);
-    int rtc_close = com_util_close(-1, NULL);
-    int rtc_dup = com_util_dup(-1, NULL);
-    int rtc_dup2_oldfd = com_util_dup2(-1, kFakeFd, NULL);
-    int rtc_dup2_newfd = com_util_dup2(kFakeFd, -1, NULL);
-    int64_t rtc_read = com_util_read(-1, buf, sizeof(buf), NULL);
-    int64_t rtc_write = com_util_write(-1, buf, sizeof(buf), NULL);
+    int64_t actual_ret_lseek = com_util_lseek(-1, 0, SEEK_SET, NULL);
+    int actual_ret_close = com_util_close(-1, NULL);
+    int actual_ret_dup = com_util_dup(-1, NULL);
+    int actual_ret_dup2_oldfd = com_util_dup2(-1, kFakeFd, NULL);
+    int actual_ret_dup2_newfd = com_util_dup2(kFakeFd, -1, NULL);
+    int64_t actual_ret_read = com_util_read(-1, buf, sizeof(buf), NULL);
+    int64_t actual_ret_write = com_util_write(-1, buf, sizeof(buf), NULL);
 
     // Assert
-    EXPECT_EQ(-1, rtc_lseek);      // [確認_異常系] - lseek が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_close);      // [確認_異常系] - close が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_dup);        // [確認_異常系] - dup が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_dup2_oldfd); // [確認_異常系] - dup2 (oldfd 負) が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_dup2_newfd); // [確認_異常系] - dup2 (newfd 負) が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_read);       // [確認_異常系] - read が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_write);      // [確認_異常系] - write が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_lseek);      // [確認_異常系] - lseek が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_close);      // [確認_異常系] - close が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_dup);        // [確認_異常系] - dup が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_dup2_oldfd); // [確認_異常系] - dup2 (oldfd 負) が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_dup2_newfd); // [確認_異常系] - dup2 (newfd 負) が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_read);       // [確認_異常系] - read が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_write);      // [確認_異常系] - write が -1 を返すこと。
 }
 
 // バッファーが NULL の場合に read / write が -1 を返すことの確認
@@ -244,12 +244,12 @@ TEST_F(fdTest, null_buf_returns_minus1)
 
     // Act
     // [手順] - NULL バッファーで read と write を呼び出す。
-    int64_t rtc_read = com_util_read(kFakeFd, NULL, 4, NULL);
-    int64_t rtc_write = com_util_write(kFakeFd, NULL, 4, NULL);
+    int64_t actual_ret_read = com_util_read(kFakeFd, NULL, 4, NULL);
+    int64_t actual_ret_write = com_util_write(kFakeFd, NULL, 4, NULL);
 
     // Assert
-    EXPECT_EQ(-1, rtc_read);  // [確認_異常系] - read (buf NULL) が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_write); // [確認_異常系] - write (buf NULL) が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_read);  // [確認_異常系] - read (buf NULL) が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_write); // [確認_異常系] - write (buf NULL) が -1 を返すこと。
 }
 
 // 定義外の whence を与えた lseek が -1 を返すことの確認
@@ -480,19 +480,19 @@ TEST_F(fdTest, closed_fd_operations_return_minus1)
 
     // Act
     // [手順] - クローズ済みのファイル記述子で lseek、read、write、dup、dup2、close を呼び出す。
-    int64_t rtc_lseek = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL);
-    int64_t rtc_read = com_util_read(kFakeFd, buf, sizeof(buf), NULL);
-    int64_t rtc_write = com_util_write(kFakeFd, buf, sizeof(buf), NULL);
-    int rtc_dup = com_util_dup(kFakeFd, NULL);
-    int rtc_dup2 = com_util_dup2(kFakeFd, kFakeFd, NULL);
-    int rtc_close = com_util_close(kFakeFd, NULL);
+    int64_t actual_ret_lseek = com_util_lseek(kFakeFd, 0, SEEK_SET, NULL);
+    int64_t actual_ret_read = com_util_read(kFakeFd, buf, sizeof(buf), NULL);
+    int64_t actual_ret_write = com_util_write(kFakeFd, buf, sizeof(buf), NULL);
+    int actual_ret_dup = com_util_dup(kFakeFd, NULL);
+    int actual_ret_dup2 = com_util_dup2(kFakeFd, kFakeFd, NULL);
+    int actual_ret_close = com_util_close(kFakeFd, NULL);
 
     // Assert
-    EXPECT_EQ(-1, rtc_lseek); // [確認_異常系] - lseek が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_read);  // [確認_異常系] - read が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_write); // [確認_異常系] - write が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_dup);   // [確認_異常系] - dup が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_dup2);  // [確認_異常系] - dup2 が -1 を返すこと。
-    EXPECT_EQ(-1, rtc_close); // [確認_異常系] - close が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_lseek); // [確認_異常系] - lseek が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_read);  // [確認_異常系] - read が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_write); // [確認_異常系] - write が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_dup);   // [確認_異常系] - dup が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_dup2);  // [確認_異常系] - dup2 が -1 を返すこと。
+    EXPECT_EQ(-1, actual_ret_close); // [確認_異常系] - close が -1 を返すこと。
 }
 #endif /* PLATFORM_LINUX */

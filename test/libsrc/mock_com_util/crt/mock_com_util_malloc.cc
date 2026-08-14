@@ -11,21 +11,21 @@ void *delegate_real_com_util_malloc(size_t size)
 
 MOCK_WEAK_IMPL(void *, com_util_malloc, size_t size)
 {
-    void *ptr = nullptr;
+    void *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        ptr = _mock_com_util->com_util_malloc(size);
+        mock_ret = _mock_com_util->com_util_malloc(size);
     }
     else
     {
-        ptr = delegate_real_com_util_malloc(size);
+        mock_ret = delegate_real_com_util_malloc(size);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %zu -> 0x%p\n", __func__, size, ptr);
+        printf("  > %s %zu -> 0x%p\n", __func__, size, mock_ret);
     }
 
-    return ptr;
+    return mock_ret;
 }

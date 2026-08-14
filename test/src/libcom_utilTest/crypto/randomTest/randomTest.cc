@@ -45,14 +45,14 @@ TEST_F(randomTest, successive_calls_differ)
     // Pre-Assert
 
     // Act
-    int rtc_first = com_util_random_bytes(first, sizeof(first));    // [手順] - 1 回目の取得を行う。
-    int rtc_second = com_util_random_bytes(second, sizeof(second)); // [手順] - 2 回目の取得を行う。
+    int actual_ret_first = com_util_random_bytes(first, sizeof(first));    // [手順] - 1 回目の取得を行う。
+    int actual_ret_second = com_util_random_bytes(second, sizeof(second)); // [手順] - 2 回目の取得を行う。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_first); // [確認_正常系] - 1 回目の com_util_random_bytes の戻り値が COM_UTIL_OK であること。
+              actual_ret_first); // [確認_正常系] - 1 回目の com_util_random_bytes の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_second); // [確認_正常系] - 2 回目の com_util_random_bytes の戻り値が COM_UTIL_OK であること。
+              actual_ret_second); // [確認_正常系] - 2 回目の com_util_random_bytes の戻り値が COM_UTIL_OK であること。
     EXPECT_NE(0, memcmp(first, second, sizeof(first))); // [確認_正常系] - 2 回の取得結果が一致しないこと。
 }
 

@@ -11,15 +11,15 @@ char *delegate_real_com_util_strdup(const char *src)
 
 MOCK_WEAK_IMPL(char *, com_util_strdup, const char *src)
 {
-    char *dup = nullptr;
+    char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        dup = _mock_com_util->com_util_strdup(src);
+        mock_ret = _mock_com_util->com_util_strdup(src);
     }
     else
     {
-        dup = delegate_real_com_util_strdup(src);
+        mock_ret = delegate_real_com_util_strdup(src);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(char *, com_util_strdup, const char *src)
         printf("  > %s %s", __func__, src);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)dup);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(char *, com_util_strdup, const char *src)
         }
     }
 
-    return dup;
+    return mock_ret;
 }

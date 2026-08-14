@@ -132,16 +132,16 @@ TEST_F(promptCoverageTest, readline_fallback_paths_return_input)
 
     // Act
     prompt_->is_tty = 0;
-    int non_tty_rtc = com_util_prompt_readline_at(prompt_, first_output, sizeof(first_output), "> ", "fallback.c", 1);
+    int actual_ret_non_tty = com_util_prompt_readline_at(prompt_, first_output, sizeof(first_output), "> ", "fallback.c", 1);
     prompt_->is_tty = 1;
-    int allocation_rtc = com_util_prompt_readline_at(prompt_, second_output, sizeof(second_output), NULL,
+    int actual_ret_allocation = com_util_prompt_readline_at(prompt_, second_output, sizeof(second_output), NULL,
                                                      "fallback.c", 2); // [手順] - 非 TTY と確保失敗の fallback で入力を読む。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, non_tty_rtc); // [確認_正常系] - 非 TTY の com_util_prompt_readline_at が COM_UTIL_OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_non_tty); // [確認_正常系] - 非 TTY の com_util_prompt_readline_at が COM_UTIL_OK を返すこと。
     EXPECT_STREQ("first", first_output); // [確認_正常系] - 非 TTY の入力結果が "first" であること。
     EXPECT_EQ(COM_UTIL_OK,
-              allocation_rtc); // [確認_正常系] - コンテキスト確保失敗時の com_util_prompt_readline_at が COM_UTIL_OK を返すこと。
+              actual_ret_allocation); // [確認_正常系] - コンテキスト確保失敗時の com_util_prompt_readline_at が COM_UTIL_OK を返すこと。
     EXPECT_STREQ("second", second_output); // [確認_正常系] - コンテキスト確保失敗時の入力結果が "second" であること。
 }
 
@@ -257,17 +257,17 @@ TEST_F(promptCoverageTest, readline_fmt_handles_null_error_and_growth)
 
     // Act
     promptFakeSetInput("a\n");
-    int error_rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 1, "%s", "x");
+    int actual_ret_error = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 1, "%s", "x");
     promptFakeSetInput("b\n");
-    int null_rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 2, NULL);
+    int actual_ret_null = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 2, NULL);
     promptFakeSetInput("c\n");
-    int growth_rtc = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 3, "%s",
+    int actual_ret_growth = com_util_prompt_readline_fmt_at(prompt_, buf, sizeof(buf), "format.c", 3, "%s",
                                                      long_prompt.c_str()); // [手順] - 3 種類の書式で 1 行ずつ読み取る。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, error_rtc); // [確認_正常系] - 書式エラー時の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
-    EXPECT_EQ(COM_UTIL_OK, null_rtc); // [確認_正常系] - NULL 書式の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
-    EXPECT_EQ(COM_UTIL_OK, growth_rtc); // [確認_正常系] - 長い書式の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_error); // [確認_正常系] - 書式エラー時の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_null); // [確認_正常系] - NULL 書式の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_growth); // [確認_正常系] - 長い書式の com_util_prompt_readline_fmt_at が COM_UTIL_OK を返すこと。
     EXPECT_STREQ("c", buf);              // [確認_正常系] - 最後に入力した "c" が返ること。
     EXPECT_EQ(301u, prompt_->prompt_fmt_cap); // [確認_正常系] - 書式バッファーの容量が終端を含む 301 であること。
 }

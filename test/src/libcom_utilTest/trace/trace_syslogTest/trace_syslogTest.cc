@@ -115,18 +115,18 @@ TEST_F(trace_syslogTest, test_write_all_levels)
 
     // Act
     // [手順] - CRIT、ERR、WARNING、INFO、DEBUG の各レベルで書き込む。
-    int rtc_critical = com_util_syslog_sink_write(handle, LOG_CRIT, NULL, "critical");
-    int rtc_error = com_util_syslog_sink_write(handle, LOG_ERR, NULL, "error");
-    int rtc_warning = com_util_syslog_sink_write(handle, LOG_WARNING, NULL, "warning");
-    int rtc_info = com_util_syslog_sink_write(handle, LOG_INFO, NULL, "info");
-    int rtc_debug = com_util_syslog_sink_write(handle, LOG_DEBUG, NULL, "debug");
+    int actual_ret_critical = com_util_syslog_sink_write(handle, LOG_CRIT, NULL, "critical");
+    int actual_ret_error = com_util_syslog_sink_write(handle, LOG_ERR, NULL, "error");
+    int actual_ret_warning = com_util_syslog_sink_write(handle, LOG_WARNING, NULL, "warning");
+    int actual_ret_info = com_util_syslog_sink_write(handle, LOG_INFO, NULL, "info");
+    int actual_ret_debug = com_util_syslog_sink_write(handle, LOG_DEBUG, NULL, "debug");
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_critical); // [確認_正常系] - CRIT レベルで書き込めること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_error);    // [確認_正常系] - ERR レベルで書き込めること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_info);     // [確認_正常系] - INFO レベルで書き込めること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_debug);    // [確認_正常系] - DEBUG レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_critical); // [確認_正常系] - CRIT レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_error);    // [確認_正常系] - ERR レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_warning);  // [確認_正常系] - WARNING レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_info);     // [確認_正常系] - INFO レベルで書き込めること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_debug);    // [確認_正常系] - DEBUG レベルで書き込めること。
 
     // Cleanup
     com_util_syslog_sink_dispose(handle);
@@ -173,12 +173,12 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_prefixes_timestamp)
     // Pre-Assert
 
     // Act
-    int rtc_syslog_sink_write = com_util_syslog_sink_write(
+    int actual_ret_syslog_sink_write = com_util_syslog_sink_write(
         handle, LOG_INFO, &timestamp, "test message"); // [手順] - 明示タイムスタンプ付きで "test message" を書き込む。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_syslog_sink_write); // [確認_正常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
+              actual_ret_syslog_sink_write); // [確認_正常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_OK であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;
@@ -253,14 +253,14 @@ TEST_F(trace_syslogTest, test_write_to_test_fd_falls_back_from_invalid_explicit_
     // Pre-Assert
 
     // Act
-    int rtc_syslog_sink_write =
+    int actual_ret_syslog_sink_write =
         com_util_syslog_sink_write(handle, LOG_INFO, &invalid_timestamp,
                                    "invalid ts"); // [手順] - 不正な明示タイムスタンプ付きで "invalid ts" を書き込む。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc_syslog_sink_write); // [確認_異常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret_syslog_sink_write); // [確認_異常系] - com_util_syslog_sink_write の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     close(pipe_fds[1]);
     pipe_fds[1] = -1;

@@ -122,17 +122,17 @@ TEST_F(socketTest, open_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_output = com_util_socket_open(COM_UTIL_SOCKET_TCP, NULL, NULL); // [手順] - 出力先に NULL を指定する。
-    int rtc_invalid_kind = com_util_socket_open(static_cast<com_util_socket_kind>(invalid_kind_value), &socket,
+    int actual_ret_null_output = com_util_socket_open(COM_UTIL_SOCKET_TCP, NULL, NULL); // [手順] - 出力先に NULL を指定する。
+    int actual_ret_invalid_kind = com_util_socket_open(static_cast<com_util_socket_kind>(invalid_kind_value), &socket,
                                                 NULL); // [手順] - 未定義の種別を指定する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_output); // [確認_異常系] - 出力先が NULL の com_util_socket_open の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_output); // [確認_異常系] - 出力先が NULL の com_util_socket_open の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_kind); // [確認_異常系] - 未定義の種別を指定した com_util_socket_open の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_kind); // [確認_異常系] - 未定義の種別を指定した com_util_socket_open の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_異常系] - 不正な種別の指定時に出力先が無効値になること。
 }
@@ -156,14 +156,14 @@ TEST_F(socketTest, open_returns_socket_for_each_kind)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_tcp = com_util_socket_open(COM_UTIL_SOCKET_TCP, &tcp_socket, NULL); // [手順] - TCP ソケットを生成する。
-    int rtc_udp = com_util_socket_open(COM_UTIL_SOCKET_UDP, &udp_socket, NULL); // [手順] - UDP ソケットを生成する。
+    int actual_ret_tcp = com_util_socket_open(COM_UTIL_SOCKET_TCP, &tcp_socket, NULL); // [手順] - TCP ソケットを生成する。
+    int actual_ret_udp = com_util_socket_open(COM_UTIL_SOCKET_UDP, &udp_socket, NULL); // [手順] - UDP ソケットを生成する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_tcp); // [確認_正常系] - TCP を指定した com_util_socket_open の戻り値が COM_UTIL_OK であること。
+              actual_ret_tcp); // [確認_正常系] - TCP を指定した com_util_socket_open の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_udp); // [確認_正常系] - UDP を指定した com_util_socket_open の戻り値が COM_UTIL_OK であること。
+              actual_ret_udp); // [確認_正常系] - UDP を指定した com_util_socket_open の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((com_util_socket)7,
               tcp_socket); // [確認_正常系] - TCP ソケットのハンドルが返されること。
     EXPECT_EQ((com_util_socket)8,
@@ -375,37 +375,37 @@ TEST_F(socketTest, connection_operations_reject_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_bind_socket = com_util_socket_bind(COM_UTIL_INVALID_SOCKET, &kEndpoint,
+    int actual_ret_bind_socket = com_util_socket_bind(COM_UTIL_INVALID_SOCKET, &kEndpoint,
                                                &detail); // [手順] - bind のソケットに無効値を指定する。
-    int rtc_bind_endpoint = com_util_socket_bind(kSocket, NULL, &detail); // [手順] - bind の端点に NULL を指定する。
-    int rtc_listen_socket =
+    int actual_ret_bind_endpoint = com_util_socket_bind(kSocket, NULL, &detail); // [手順] - bind の端点に NULL を指定する。
+    int actual_ret_listen_socket =
         com_util_socket_listen(COM_UTIL_INVALID_SOCKET, 1, &detail); // [手順] - listen のソケットに無効値を指定する。
-    int rtc_listen_backlog =
+    int actual_ret_listen_backlog =
         com_util_socket_listen(kSocket, -1, &detail); // [手順] - listen に負の待ち受け数を指定する。
-    int rtc_connect_socket = com_util_socket_connect(COM_UTIL_INVALID_SOCKET, &kEndpoint,
+    int actual_ret_connect_socket = com_util_socket_connect(COM_UTIL_INVALID_SOCKET, &kEndpoint,
                                                      &detail); // [手順] - connect のソケットに無効値を指定する。
-    int rtc_connect_endpoint =
+    int actual_ret_connect_endpoint =
         com_util_socket_connect(kSocket, NULL, &detail); // [手順] - connect の端点に NULL を指定する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_bind_socket); // [確認_異常系] - 無効なソケットを指定した bind の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_bind_socket); // [確認_異常系] - 無効なソケットを指定した bind の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_bind_endpoint); // [確認_異常系] - NULL の端点を指定した bind の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_bind_endpoint); // [確認_異常系] - NULL の端点を指定した bind の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_listen_socket); // [確認_異常系] - 無効なソケットを指定した listen の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_listen_socket); // [確認_異常系] - 無効なソケットを指定した listen の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_listen_backlog); // [確認_異常系] - 負の待ち受け数を指定した listen の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_listen_backlog); // [確認_異常系] - 負の待ち受け数を指定した listen の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_connect_socket); // [確認_異常系] - 無効なソケットを指定した connect の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_connect_socket); // [確認_異常系] - 無効なソケットを指定した connect の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_connect_endpoint); // [確認_異常系] - NULL の端点を指定した connect の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_connect_endpoint); // [確認_異常系] - NULL の端点を指定した connect の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // bind、listen、connect が成功することの確認
@@ -429,22 +429,22 @@ TEST_F(socketTest, connection_operations_succeed)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_bind = com_util_socket_bind(kSocket, &kEndpoint, NULL); // [手順] - bind を成功させる。
-    int rtc_listen_default =
+    int actual_ret_bind = com_util_socket_bind(kSocket, &kEndpoint, NULL); // [手順] - bind を成功させる。
+    int actual_ret_listen_default =
         com_util_socket_listen(kSocket, COM_UTIL_SOCKET_BACKLOG_DEFAULT, NULL); // [手順] - 既定値で listen を呼び出す。
-    int rtc_listen_explicit =
+    int actual_ret_listen_explicit =
         com_util_socket_listen(kSocket, 3, NULL); // [手順] - 明示した待ち受け数で listen を呼び出す。
-    int rtc_connect = com_util_socket_connect(kSocket, &kEndpoint, NULL); // [手順] - connect を成功させる。
+    int actual_ret_connect = com_util_socket_connect(kSocket, &kEndpoint, NULL); // [手順] - connect を成功させる。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_bind); // [確認_正常系] - bind の戻り値が COM_UTIL_OK であること。
+              actual_ret_bind); // [確認_正常系] - bind の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_listen_default); // [確認_正常系] - 既定値の listen の戻り値が COM_UTIL_OK であること。
+              actual_ret_listen_default); // [確認_正常系] - 既定値の listen の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_listen_explicit); // [確認_正常系] - 明示値の listen の戻り値が COM_UTIL_OK であること。
+              actual_ret_listen_explicit); // [確認_正常系] - 明示値の listen の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_connect); // [確認_正常系] - connect の戻り値が COM_UTIL_OK であること。
+              actual_ret_connect); // [確認_正常系] - connect の戻り値が COM_UTIL_OK であること。
 }
 
 // bind、listen、connect の OS 失敗が通知されることの確認
@@ -473,17 +473,17 @@ TEST_F(socketTest, connection_operations_report_os_failures)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_bind = com_util_socket_bind(kSocket, &kEndpoint, &detail);       // [手順] - bind の失敗を注入する。
-    int rtc_listen = com_util_socket_listen(kSocket, 1, &detail);            // [手順] - listen の失敗を注入する。
-    int rtc_connect = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - connect の失敗を注入する。
+    int actual_ret_bind = com_util_socket_bind(kSocket, &kEndpoint, &detail);       // [手順] - bind の失敗を注入する。
+    int actual_ret_listen = com_util_socket_listen(kSocket, 1, &detail);            // [手順] - listen の失敗を注入する。
+    int actual_ret_connect = com_util_socket_connect(kSocket, &kEndpoint, &detail); // [手順] - connect の失敗を注入する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_bind); // [確認_異常系] - bind の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_bind); // [確認_異常系] - bind の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_listen); // [確認_異常系] - listen の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_listen); // [確認_異常系] - listen の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_connect); // [確認_異常系] - connect の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_connect); // [確認_異常系] - connect の OS 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 非ブロッキング connect の継続状態がプラットフォーム共通の結果コードになることの確認
@@ -528,17 +528,17 @@ TEST_F(socketTest, accept_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_socket = com_util_socket_accept(COM_UTIL_INVALID_SOCKET, NULL, &accepted,
+    int actual_ret_socket = com_util_socket_accept(COM_UTIL_INVALID_SOCKET, NULL, &accepted,
                                             NULL); // [手順] - accept の待ち受けソケットに無効値を指定する。
-    int rtc_output = com_util_socket_accept(kSocket, NULL, NULL, NULL); // [手順] - accept の出力先に NULL を指定する。
+    int actual_ret_output = com_util_socket_accept(kSocket, NULL, NULL, NULL); // [手順] - accept の出力先に NULL を指定する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_socket); // [確認_異常系] - 無効なソケットを指定した accept の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_socket); // [確認_異常系] - 無効なソケットを指定した accept の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_output); // [確認_異常系] - 出力先が NULL の accept の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_output); // [確認_異常系] - 出力先が NULL の accept の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // accept が接続元端点と新しいソケットを返すことの確認
@@ -577,14 +577,14 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
 
     // Act
     int actual_ret = com_util_socket_accept(kSocket, &peer, &accepted, NULL); // [手順] - 接続を受け付ける。
-    int rtc_without_peer = com_util_socket_accept(kSocket, NULL, &accepted,
+    int actual_ret_without_peer = com_util_socket_accept(kSocket, NULL, &accepted,
                                                   NULL); // [手順] - 接続元端点の出力先を NULL にして接続を受け付ける。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
               actual_ret); // [確認_正常系] - accept の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_without_peer); // [確認_正常系] - 接続元端点を要求しない accept の戻り値が COM_UTIL_OK であること。
+              actual_ret_without_peer); // [確認_正常系] - 接続元端点を要求しない accept の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((com_util_socket)8,
               accepted); // [確認_正常系] - 受け付けたソケットが返されること。
     EXPECT_EQ(COM_UTIL_IPV4_ADDR_LOOPBACK,
@@ -663,22 +663,22 @@ TEST_F(socketTest, pending_error_reports_empty_pending_and_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_invalid = com_util_socket_get_pending_error(COM_UTIL_INVALID_SOCKET,
+    int actual_ret_invalid = com_util_socket_get_pending_error(COM_UTIL_INVALID_SOCKET,
                                                         &detail); // [手順] - 無効なソケットの保留エラーを取得する。
-    int rtc_empty = com_util_socket_get_pending_error(kSocket, &detail);   // [手順] - 保留エラーがない状態を取得する。
-    int rtc_pending = com_util_socket_get_pending_error(kSocket, &detail); // [手順] - 保留エラーがある状態を取得する。
-    int rtc_failure = com_util_socket_get_pending_error(kSocket, &detail); // [手順] - getsockopt の失敗を注入する。
+    int actual_ret_empty = com_util_socket_get_pending_error(kSocket, &detail);   // [手順] - 保留エラーがない状態を取得する。
+    int actual_ret_pending = com_util_socket_get_pending_error(kSocket, &detail); // [手順] - 保留エラーがある状態を取得する。
+    int actual_ret_failure = com_util_socket_get_pending_error(kSocket, &detail); // [手順] - getsockopt の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid); // [確認_異常系] - 無効なソケットの保留エラー取得戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid); // [確認_異常系] - 無効なソケットの保留エラー取得戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_empty); // [確認_正常系] - 保留エラーがない場合の戻り値が COM_UTIL_OK であること。
+              actual_ret_empty); // [確認_正常系] - 保留エラーがない場合の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_pending); // [確認_異常系] - 保留エラーがある場合の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_pending); // [確認_異常系] - 保留エラーがある場合の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - getsockopt 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - getsockopt 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 非ブロッキング設定の引数不正と OS 失敗が処理されることの確認
@@ -716,23 +716,23 @@ TEST_F(socketTest, nonblocking_reports_invalid_and_os_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_invalid =
+    int actual_ret_invalid =
         com_util_socket_set_nonblocking(COM_UTIL_INVALID_SOCKET, 1, &detail); // [手順] - 無効なソケットを指定する。
-    int rtc_enable = com_util_socket_set_nonblocking(kSocket, 1, &detail);    // [手順] - 非ブロッキングを有効にする。
-    int rtc_disable = com_util_socket_set_nonblocking(kSocket, 0, &detail);   // [手順] - 非ブロッキングを無効にする。
-    int rtc_failure =
+    int actual_ret_enable = com_util_socket_set_nonblocking(kSocket, 1, &detail);    // [手順] - 非ブロッキングを有効にする。
+    int actual_ret_disable = com_util_socket_set_nonblocking(kSocket, 0, &detail);   // [手順] - 非ブロッキングを無効にする。
+    int actual_ret_failure =
         com_util_socket_set_nonblocking(kSocket, 1, &detail); // [手順] - 非ブロッキング設定の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid); // [確認_異常系] - 無効なソケットを指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid); // [確認_異常系] - 無効なソケットを指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_enable); // [確認_正常系] - 非ブロッキング有効化の戻り値が COM_UTIL_OK であること。
+              actual_ret_enable); // [確認_正常系] - 非ブロッキング有効化の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_disable); // [確認_正常系] - 非ブロッキング無効化の戻り値が COM_UTIL_OK であること。
+              actual_ret_disable); // [確認_正常系] - 非ブロッキング無効化の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 非ブロッキング設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 非ブロッキング設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -800,34 +800,34 @@ TEST_F(socketTest, socket_options_succeed)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_reuse = com_util_socket_set_reuse_address(kSocket, 1, &detail); // [手順] - アドレス再利用を有効にする。
-    int rtc_reuse_disabled =
+    int actual_ret_reuse = com_util_socket_set_reuse_address(kSocket, 1, &detail); // [手順] - アドレス再利用を有効にする。
+    int actual_ret_reuse_disabled =
         com_util_socket_set_reuse_address(kSocket, 0, &detail);             // [手順] - アドレス再利用を無効にする。
-    int rtc_broadcast = com_util_socket_set_broadcast(kSocket, 0, &detail); // [手順] - ブロードキャストを無効にする。
-    int rtc_broadcast_enabled =
+    int actual_ret_broadcast = com_util_socket_set_broadcast(kSocket, 0, &detail); // [手順] - ブロードキャストを無効にする。
+    int actual_ret_broadcast_enabled =
         com_util_socket_set_broadcast(kSocket, 1, &detail); // [手順] - ブロードキャストを有効にする。
-    int rtc_interface = com_util_socket_set_multicast_interface(
+    int actual_ret_interface = com_util_socket_set_multicast_interface(
         kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, &detail); // [手順] - マルチキャスト インターフェースを設定する。
-    int rtc_join = com_util_socket_join_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
+    int actual_ret_join = com_util_socket_join_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
                                                         &detail); // [手順] - マルチキャスト グループへ参加する。
-    int rtc_leave = com_util_socket_leave_multicast_group(
+    int actual_ret_leave = com_util_socket_leave_multicast_group(
         kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY, &detail); // [手順] - マルチキャスト グループから離脱する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_reuse); // [確認_正常系] - アドレス再利用設定の戻り値が COM_UTIL_OK であること。
+              actual_ret_reuse); // [確認_正常系] - アドレス再利用設定の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_reuse_disabled); // [確認_正常系] - アドレス再利用無効化の戻り値が COM_UTIL_OK であること。
+              actual_ret_reuse_disabled); // [確認_正常系] - アドレス再利用無効化の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_broadcast); // [確認_正常系] - ブロードキャスト設定の戻り値が COM_UTIL_OK であること。
+              actual_ret_broadcast); // [確認_正常系] - ブロードキャスト設定の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_broadcast_enabled); // [確認_正常系] - ブロードキャスト有効化の戻り値が COM_UTIL_OK であること。
+              actual_ret_broadcast_enabled); // [確認_正常系] - ブロードキャスト有効化の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_interface); // [確認_正常系] - マルチキャスト インターフェース設定の戻り値が COM_UTIL_OK であること。
+              actual_ret_interface); // [確認_正常系] - マルチキャスト インターフェース設定の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_join); // [確認_正常系] - マルチキャスト参加の戻り値が COM_UTIL_OK であること。
+              actual_ret_join); // [確認_正常系] - マルチキャスト参加の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_leave); // [確認_正常系] - マルチキャスト離脱の戻り値が COM_UTIL_OK であること。
+              actual_ret_leave); // [確認_正常系] - マルチキャスト離脱の戻り値が COM_UTIL_OK であること。
 }
 
 // ソケット オプションの引数不正と OS 失敗が処理されることの確認
@@ -865,56 +865,56 @@ TEST_F(socketTest, socket_options_report_invalid_and_os_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_reuse_invalid = com_util_socket_set_reuse_address(COM_UTIL_INVALID_SOCKET, 1,
+    int actual_ret_reuse_invalid = com_util_socket_set_reuse_address(COM_UTIL_INVALID_SOCKET, 1,
                                                               &detail); // [手順] - 無効なソケットで再利用を設定する。
-    int rtc_broadcast_invalid = com_util_socket_set_broadcast(
+    int actual_ret_broadcast_invalid = com_util_socket_set_broadcast(
         COM_UTIL_INVALID_SOCKET, 1, &detail); // [手順] - 無効なソケットでブロードキャストを設定する。
-    int rtc_interface_invalid =
+    int actual_ret_interface_invalid =
         com_util_socket_set_multicast_interface(COM_UTIL_INVALID_SOCKET, COM_UTIL_IPV4_ADDR_ANY,
                                                 &detail); // [手順] - 無効なソケットでインターフェースを設定する。
-    int rtc_join_invalid = com_util_socket_join_multicast_group(
+    int actual_ret_join_invalid = com_util_socket_join_multicast_group(
         COM_UTIL_INVALID_SOCKET, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
         &detail); // [手順] - 無効なソケットでグループ参加を設定する。
-    int rtc_leave_invalid = com_util_socket_leave_multicast_group(
+    int actual_ret_leave_invalid = com_util_socket_leave_multicast_group(
         COM_UTIL_INVALID_SOCKET, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
         &detail); // [手順] - 無効なソケットでグループ離脱を設定する。
-    int rtc_failure =
+    int actual_ret_failure =
         com_util_socket_set_reuse_address(kSocket, 1, &detail); // [手順] - オプション設定の失敗を注入する。
-    int rtc_interface_failure = com_util_socket_set_multicast_interface(
+    int actual_ret_interface_failure = com_util_socket_set_multicast_interface(
         kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, &detail); // [手順] - インターフェース設定の失敗を注入する。
-    int rtc_join_failure =
+    int actual_ret_join_failure =
         com_util_socket_join_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
                                              &detail); // [手順] - グループ参加の失敗を注入する。
-    int rtc_leave_failure =
+    int actual_ret_leave_failure =
         com_util_socket_leave_multicast_group(kSocket, COM_UTIL_IPV4_ADDR_LOOPBACK, COM_UTIL_IPV4_ADDR_ANY,
                                               &detail); // [手順] - グループ離脱の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_reuse_invalid); // [確認_異常系] - 無効なソケットを指定した再利用設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_reuse_invalid); // [確認_異常系] - 無効なソケットを指定した再利用設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_broadcast_invalid); // [確認_異常系] - 無効なソケットを指定したブロードキャスト設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_broadcast_invalid); // [確認_異常系] - 無効なソケットを指定したブロードキャスト設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_interface_invalid); // [確認_異常系] - 無効なソケットを指定したインターフェース設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_interface_invalid); // [確認_異常系] - 無効なソケットを指定したインターフェース設定の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_join_invalid); // [確認_異常系] - 無効なソケットを指定したグループ参加の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_join_invalid); // [確認_異常系] - 無効なソケットを指定したグループ参加の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - オプション設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - オプション設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc_interface_failure); // [確認_異常系] - インターフェース設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret_interface_failure); // [確認_異常系] - インターフェース設定失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_join_failure); // [確認_異常系] - グループ参加失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_join_failure); // [確認_異常系] - グループ参加失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_leave_invalid); // [確認_異常系] - 無効なソケットを指定したグループ離脱の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_leave_invalid); // [確認_異常系] - 無効なソケットを指定したグループ離脱の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_UNKNOWN,
-        rtc_leave_failure); // [確認_異常系] - グループ離脱失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+        actual_ret_leave_failure); // [確認_異常系] - グループ離脱失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // 送受信の引数不正、成功、失敗が処理されることの確認
@@ -949,69 +949,69 @@ TEST_F(socketTest, send_and_recv_report_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_invalid_send = com_util_socket_send(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), &sent,
+    int actual_ret_invalid_send = com_util_socket_send(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), &sent,
                                                 &detail); // [手順] - 無効なソケットで送信する。
-    int rtc_invalid_send_buffer = com_util_socket_send(kSocket, NULL, sizeof(buffer), &sent,
+    int actual_ret_invalid_send_buffer = com_util_socket_send(kSocket, NULL, sizeof(buffer), &sent,
                                                        &detail); // [手順] - NULL の送信バッファーを指定する。
-    int rtc_invalid_send_output = com_util_socket_send(kSocket, buffer, sizeof(buffer), NULL,
+    int actual_ret_invalid_send_output = com_util_socket_send(kSocket, buffer, sizeof(buffer), NULL,
                                                        &detail); // [手順] - NULL の送信バイト数出力先を指定する。
-    int rtc_invalid_send_length = com_util_socket_send(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
+    int actual_ret_invalid_send_length = com_util_socket_send(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
                                                        &sent, &detail); // [手順] - 最大転送量を超える送信長を指定する。
-    int rtc_invalid_recv_socket = com_util_socket_recv(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), &received,
+    int actual_ret_invalid_recv_socket = com_util_socket_recv(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), &received,
                                                        &detail); // [手順] - 無効なソケットで受信する。
-    int rtc_invalid_recv = com_util_socket_recv(kSocket, NULL, sizeof(buffer), &received,
+    int actual_ret_invalid_recv = com_util_socket_recv(kSocket, NULL, sizeof(buffer), &received,
                                                 &detail); // [手順] - NULL の受信バッファーを指定する。
-    int rtc_invalid_recv_output = com_util_socket_recv(kSocket, buffer, sizeof(buffer), NULL,
+    int actual_ret_invalid_recv_output = com_util_socket_recv(kSocket, buffer, sizeof(buffer), NULL,
                                                        &detail); // [手順] - NULL の受信バイト数出力先を指定する。
-    int rtc_invalid_recv_length =
+    int actual_ret_invalid_recv_length =
         com_util_socket_recv(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U, &received,
                              &detail); // [手順] - 最大転送量を超える受信長を指定する。
-    int rtc_send =
+    int actual_ret_send =
         com_util_socket_send(kSocket, buffer, sizeof(buffer), &sent, &detail); // [手順] - 送信成功を注入する。
-    int rtc_recv =
+    int actual_ret_recv =
         com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received, &detail); // [手順] - 受信成功を注入する。
-    int rtc_send_failure =
+    int actual_ret_send_failure =
         com_util_socket_send(kSocket, buffer, sizeof(buffer), &sent_failure, &detail); // [手順] - 送信失敗を注入する。
-    int rtc_recv_failure = com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received_failure,
+    int actual_ret_recv_failure = com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received_failure,
                                                 &detail); // [手順] - 受信失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_send); // [確認_異常系] - 無効なソケットの送信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_send); // [確認_異常系] - 無効なソケットの送信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_send_buffer); // [確認_異常系] - NULL 送信バッファーの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_send_buffer); // [確認_異常系] - NULL 送信バッファーの戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_send_output); // [確認_異常系] - NULL 送信バイト数出力先の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_send_output); // [確認_異常系] - NULL 送信バイト数出力先の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_send_length); // [確認_異常系] - 最大転送量超過の送信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_send_length); // [確認_異常系] - 最大転送量超過の送信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_recv_socket); // [確認_異常系] - 無効なソケットの受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_recv_socket); // [確認_異常系] - 無効なソケットの受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_recv); // [確認_異常系] - NULL バッファーの受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_recv); // [確認_異常系] - NULL バッファーの受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_recv_output); // [確認_異常系] - NULL 受信バイト数出力先の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_recv_output); // [確認_異常系] - NULL 受信バイト数出力先の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_recv_length); // [確認_異常系] - 最大転送量超過の受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_recv_length); // [確認_異常系] - 最大転送量超過の受信戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_send); // [確認_正常系] - 送信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_send); // [確認_正常系] - 送信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_recv); // [確認_正常系] - 受信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_recv); // [確認_正常系] - 受信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)3,
               sent); // [確認_正常系] - com_util_socket_send が送信バイト数を返すこと。
     EXPECT_EQ((size_t)2,
               received); // [確認_正常系] - com_util_socket_recv が受信バイト数を返すこと。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_send_failure); // [確認_異常系] - 送信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_send_failure); // [確認_異常系] - 送信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_recv_failure); // [確認_異常系] - 受信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_recv_failure); // [確認_異常系] - 受信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // sendto と recvfrom が端点を変換して送受信することの確認
@@ -1050,22 +1050,22 @@ TEST_F(socketTest, datagram_operations_succeed)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_send = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &transferred,
+    int actual_ret_send = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &transferred,
                                           NULL); // [手順] - データグラムを送信する。
-    int rtc_recv = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &transferred,
+    int actual_ret_recv = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &transferred,
                                             NULL); // [手順] - データグラムを受信する。
-    int rtc_recv_without_peer =
+    int actual_ret_recv_without_peer =
         com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, &transferred,
                                  NULL); // [手順] - 接続元端点の出力先を NULL にしてデータグラムを受信する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_send); // [確認_正常系] - sendto の戻り値が COM_UTIL_OK であること。
+              actual_ret_send); // [確認_正常系] - sendto の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_recv); // [確認_正常系] - recvfrom の戻り値が COM_UTIL_OK であること。
+              actual_ret_recv); // [確認_正常系] - recvfrom の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc_recv_without_peer); // [確認_正常系] - 接続元端点を要求しない recvfrom の戻り値が COM_UTIL_OK であること。
+        actual_ret_recv_without_peer); // [確認_正常系] - 接続元端点を要求しない recvfrom の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)2,
               transferred); // [確認_正常系] - recvfrom が受信バイト数を返すこと。
     EXPECT_EQ(kEndpoint.address,
@@ -1097,68 +1097,68 @@ TEST_F(socketTest, datagram_operations_report_invalid_and_os_failure)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_send_invalid_socket =
+    int actual_ret_send_invalid_socket =
         com_util_socket_sendto(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), &kEndpoint, &transferred,
                                &detail); // [手順] - 無効なソケットで sendto を呼び出す。
-    int rtc_send_invalid_buffer =
+    int actual_ret_send_invalid_buffer =
         com_util_socket_sendto(kSocket, NULL, sizeof(buffer), &kEndpoint, &transferred,
                                &detail); // [手順] - NULL の送信バッファーで sendto を呼び出す。
-    int rtc_send_invalid_output =
+    int actual_ret_send_invalid_output =
         com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, NULL,
                                &detail); // [手順] - NULL の送信バイト数出力先で sendto を呼び出す。
-    int rtc_send_invalid_length =
+    int actual_ret_send_invalid_length =
         com_util_socket_sendto(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U, &kEndpoint, &transferred,
                                &detail); // [手順] - 最大転送量を超える長さで sendto を呼び出す。
-    int rtc_send_invalid = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), NULL, &transferred,
+    int actual_ret_send_invalid = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), NULL, &transferred,
                                                   &detail); // [手順] - sendto の端点に NULL を指定する。
-    int rtc_recv_invalid_socket =
+    int actual_ret_recv_invalid_socket =
         com_util_socket_recvfrom(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer), NULL, &transferred,
                                  &detail); // [手順] - 無効なソケットで recvfrom を呼び出す。
-    int rtc_recv_invalid_buffer =
+    int actual_ret_recv_invalid_buffer =
         com_util_socket_recvfrom(kSocket, NULL, sizeof(buffer), NULL, &transferred,
                                  &detail); // [手順] - NULL の受信バッファーで recvfrom を呼び出す。
-    int rtc_recv_invalid_length =
+    int actual_ret_recv_invalid_length =
         com_util_socket_recvfrom(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U, NULL, &transferred,
                                  &detail); // [手順] - 最大転送量を超える長さで recvfrom を呼び出す。
-    int rtc_recv_invalid = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, NULL,
+    int actual_ret_recv_invalid = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, NULL,
                                                     &detail); // [手順] - recvfrom の出力先に NULL を指定する。
-    int rtc_send_failure = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &transferred,
+    int actual_ret_send_failure = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &transferred,
                                                   &detail); // [手順] - sendto の失敗を注入する。
-    int rtc_recv_failure = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, &transferred,
+    int actual_ret_recv_failure = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, &transferred,
                                                     &detail); // [手順] - recvfrom の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_send_invalid_socket); // [確認_異常系] - 無効なソケットの sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid_socket); // [確認_異常系] - 無効なソケットの sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_send_invalid_buffer); // [確認_異常系] - NULL 送信バッファーの sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid_buffer); // [確認_異常系] - NULL 送信バッファーの sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_send_invalid_output); // [確認_異常系] - NULL 送信バイト数出力先の sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid_output); // [確認_異常系] - NULL 送信バイト数出力先の sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_send_invalid_length); // [確認_異常系] - 最大転送量超過の sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid_length); // [確認_異常系] - 最大転送量超過の sendto 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_send_invalid); // [確認_異常系] - NULL の端点を指定した sendto の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid); // [確認_異常系] - NULL の端点を指定した sendto の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_recv_invalid_socket); // [確認_異常系] - 無効なソケットの recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_recv_invalid_socket); // [確認_異常系] - 無効なソケットの recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_recv_invalid_buffer); // [確認_異常系] - NULL 受信バッファーの recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_recv_invalid_buffer); // [確認_異常系] - NULL 受信バッファーの recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_recv_invalid_length); // [確認_異常系] - 最大転送量超過の recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_recv_invalid_length); // [確認_異常系] - 最大転送量超過の recvfrom 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_recv_invalid); // [確認_異常系] - NULL の出力先を指定した recvfrom の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_recv_invalid); // [確認_異常系] - NULL の出力先を指定した recvfrom の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_send_failure); // [確認_異常系] - sendto 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_send_failure); // [確認_異常系] - sendto 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_recv_failure); // [確認_異常系] - recvfrom 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_recv_failure); // [確認_異常系] - recvfrom 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 // send_all の全送信、部分送信、ゼロ送信、失敗が処理されることの確認
@@ -1189,42 +1189,42 @@ TEST_F(socketTest, send_all_reports_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_empty = com_util_socket_send_all(kSocket, buffer, 0U, &detail); // [手順] - 長さ 0 のデータを送信する。
-    int rtc_full =
+    int actual_ret_empty = com_util_socket_send_all(kSocket, buffer, 0U, &detail); // [手順] - 長さ 0 のデータを送信する。
+    int actual_ret_full =
         com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 全送信成功を注入する。
-    int rtc_partial =
+    int actual_ret_partial =
         com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 部分送信を注入する。
-    int rtc_zero =
+    int actual_ret_zero =
         com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 0 バイト送信を注入する。
-    int rtc_failure =
+    int actual_ret_failure =
         com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 送信失敗を注入する。
-    int rtc_invalid = com_util_socket_send_all(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer),
+    int actual_ret_invalid = com_util_socket_send_all(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer),
                                                &detail); // [手順] - 無効なソケットを指定する。
-    int rtc_invalid_buffer =
+    int actual_ret_invalid_buffer =
         com_util_socket_send_all(kSocket, NULL, sizeof(buffer), &detail); // [手順] - NULL の送信バッファーを指定する。
-    int rtc_invalid_length = com_util_socket_send_all(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
+    int actual_ret_invalid_length = com_util_socket_send_all(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
                                                       &detail); // [手順] - 最大転送量を超える送信長を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_empty); // [確認_正常系] - 長さ 0 の send_all の戻り値が COM_UTIL_OK であること。
+              actual_ret_empty); // [確認_正常系] - 長さ 0 の send_all の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_full); // [確認_正常系] - 全送信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_full); // [確認_正常系] - 全送信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_partial); // [確認_正常系] - 部分送信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_partial); // [確認_正常系] - 部分送信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_zero); // [確認_異常系] - 0 バイト送信時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_zero); // [確認_異常系] - 0 バイト送信時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 送信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 送信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid); // [確認_異常系] - 無効なソケットの send_all の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid); // [確認_異常系] - 無効なソケットの send_all の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_buffer); // [確認_異常系] - NULL 送信バッファーの send_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_buffer); // [確認_異常系] - NULL 送信バッファーの send_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_length); // [確認_異常系] - 最大転送量超過の send_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_length); // [確認_異常系] - 最大転送量超過の send_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // recv_all の全受信、部分受信、EOF、失敗が処理されることの確認
@@ -1255,41 +1255,41 @@ TEST_F(socketTest, recv_all_reports_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_empty = com_util_socket_recv_all(kSocket, buffer, 0U, &detail); // [手順] - 長さ 0 のデータを受信する。
-    int rtc_full =
+    int actual_ret_empty = com_util_socket_recv_all(kSocket, buffer, 0U, &detail); // [手順] - 長さ 0 のデータを受信する。
+    int actual_ret_full =
         com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 全受信成功を注入する。
-    int rtc_partial =
+    int actual_ret_partial =
         com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail);           // [手順] - 部分受信を注入する。
-    int rtc_eof = com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - EOF を注入する。
-    int rtc_failure =
+    int actual_ret_eof = com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - EOF を注入する。
+    int actual_ret_failure =
         com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 受信失敗を注入する。
-    int rtc_invalid = com_util_socket_recv_all(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer),
+    int actual_ret_invalid = com_util_socket_recv_all(COM_UTIL_INVALID_SOCKET, buffer, sizeof(buffer),
                                                &detail); // [手順] - 無効なソケットを指定する。
-    int rtc_invalid_buffer =
+    int actual_ret_invalid_buffer =
         com_util_socket_recv_all(kSocket, NULL, sizeof(buffer), &detail); // [手順] - NULL の受信バッファーを指定する。
-    int rtc_invalid_length = com_util_socket_recv_all(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
+    int actual_ret_invalid_length = com_util_socket_recv_all(kSocket, buffer, COM_UTIL_SOCKET_MAX_TRANSFER + (size_t)1U,
                                                       &detail); // [手順] - 最大転送量を超える受信長を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_empty); // [確認_正常系] - 長さ 0 の recv_all の戻り値が COM_UTIL_OK であること。
+              actual_ret_empty); // [確認_正常系] - 長さ 0 の recv_all の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_full); // [確認_正常系] - 全受信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_full); // [確認_正常系] - 全受信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_partial); // [確認_正常系] - 部分受信成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_partial); // [確認_正常系] - 部分受信成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_EOF,
-              rtc_eof); // [確認_異常系] - EOF 時の recv_all の戻り値が COM_UTIL_ERR_EOF であること。
+              actual_ret_eof); // [確認_異常系] - EOF 時の recv_all の戻り値が COM_UTIL_ERR_EOF であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 受信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 受信失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid); // [確認_異常系] - 無効なソケットの recv_all の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid); // [確認_異常系] - 無効なソケットの recv_all の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_buffer); // [確認_異常系] - NULL 受信バッファーの recv_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_buffer); // [確認_異常系] - NULL 受信バッファーの recv_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_length); // [確認_異常系] - 最大転送量超過の recv_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_length); // [確認_異常系] - 最大転送量超過の recv_all 戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 単一ソケット待機の引数不正、タイムアウト、準備完了、失敗が処理されることの確認
@@ -1339,35 +1339,35 @@ TEST_F(socketTest, wait_single_reports_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_invalid_socket = com_util_socket_wait_readable(COM_UTIL_INVALID_SOCKET, 0, &ready,
+    int actual_ret_invalid_socket = com_util_socket_wait_readable(COM_UTIL_INVALID_SOCKET, 0, &ready,
                                                            &detail); // [手順] - 無効なソケットで待機する。
-    int rtc_invalid_output =
+    int actual_ret_invalid_output =
         com_util_socket_wait_readable(kSocket, 0, NULL, &detail); // [手順] - 待機結果の出力先に NULL を指定する。
-    int rtc_timeout = com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - タイムアウトを注入する。
-    int rtc_not_ready =
+    int actual_ret_timeout = com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - タイムアウトを注入する。
+    int actual_ret_not_ready =
         com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - イベント不一致を注入する。
     ready_after_not_ready = ready;
-    int rtc_ready = com_util_socket_wait_writable(kSocket, 0, &ready, &detail); // [手順] - 書き込み可能を注入する。
-    int rtc_failure =
+    int actual_ret_ready = com_util_socket_wait_writable(kSocket, 0, &ready, &detail); // [手順] - 書き込み可能を注入する。
+    int actual_ret_failure =
         com_util_socket_wait_readable(kSocket, 0, &ready, &detail); // [手順] - 待機 API の失敗を注入する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_socket); // [確認_異常系] - 無効なソケットの待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_socket); // [確認_異常系] - 無効なソケットの待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid_output); // [確認_異常系] - NULL 出力先の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid_output); // [確認_異常系] - NULL 出力先の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_timeout); // [確認_正常系] - 読み取り待機のタイムアウト戻り値が COM_UTIL_OK であること。
+              actual_ret_timeout); // [確認_正常系] - 読み取り待機のタイムアウト戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_not_ready); // [確認_正常系] - イベント不一致時の待機戻り値が COM_UTIL_OK であること。
+              actual_ret_not_ready); // [確認_正常系] - イベント不一致時の待機戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0,
               ready_after_not_ready); // [確認_正常系] - イベント不一致時の準備完了フラグが 0 であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_ready); // [確認_正常系] - 書き込み待機の準備完了戻り値が COM_UTIL_OK であること。
+              actual_ret_ready); // [確認_正常系] - 書き込み待機の準備完了戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 待機 API 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 待機 API 失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_EQ(0,
               ready); // [確認_正常系] - 最後の待機失敗で準備完了フラグが 0 であること。
 }
@@ -1385,33 +1385,33 @@ TEST_F(socketTest, wait_multi_rejects_invalid_and_waits_without_valid_socket)
     EXPECT_CALL(mock_com_util_, com_util_sleep_ms(5)).Times(1);
 
     // Act
-    int rtc_null_socks =
+    int actual_ret_null_socks =
         com_util_socket_wait_readable_multi(NULL, 1U, 0, ready, &detail); // [手順] - ソケット配列に NULL を指定する。
-    int rtc_zero_count =
+    int actual_ret_zero_count =
         com_util_socket_wait_readable_multi(socks, 0U, 0, ready, &detail); // [手順] - 要素数 0 を指定する。
-    int rtc_large_count = com_util_socket_wait_readable_multi(socks, COM_UTIL_SOCKET_WAIT_MAX + 1U, 0, ready,
+    int actual_ret_large_count = com_util_socket_wait_readable_multi(socks, COM_UTIL_SOCKET_WAIT_MAX + 1U, 0, ready,
                                                               &detail); // [手順] - 最大数を超える要素数を指定する。
-    int rtc_null_ready =
+    int actual_ret_null_ready =
         com_util_socket_wait_readable_multi(socks, 1U, 0, NULL, &detail); // [手順] - 結果配列に NULL を指定する。
-    int rtc_wait =
+    int actual_ret_wait =
         com_util_socket_wait_readable_multi(socks, 1U, 5, ready, &detail); // [手順] - 全無効ソケットで待機する。
-    int rtc_wait_without_timeout = com_util_socket_wait_readable_multi(
+    int actual_ret_wait_without_timeout = com_util_socket_wait_readable_multi(
         socks, 1U, 0, ready, &detail); // [手順] - 全無効ソケットで待機時間 0 を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_socks); // [確認_異常系] - NULL 配列の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_null_socks); // [確認_異常系] - NULL 配列の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_zero_count); // [確認_異常系] - 要素数 0 の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_zero_count); // [確認_異常系] - 要素数 0 の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_large_count); // [確認_異常系] - 最大数超過の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_large_count); // [確認_異常系] - 最大数超過の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_ready); // [確認_異常系] - NULL 結果配列の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_null_ready); // [確認_異常系] - NULL 結果配列の待機戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_wait); // [確認_正常系] - 全無効ソケットの待機戻り値が COM_UTIL_OK であること。
+              actual_ret_wait); // [確認_正常系] - 全無効ソケットの待機戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(
         COM_UTIL_OK,
-        rtc_wait_without_timeout); // [確認_正常系] - 全無効ソケットで待機時間 0 を指定した戻り値が COM_UTIL_OK であること。
+        actual_ret_wait_without_timeout); // [確認_正常系] - 全無効ソケットで待機時間 0 を指定した戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(0U,
               ready[0]); // [確認_正常系] - 全無効ソケットの準備完了フラグが 0 であること。
 }
@@ -1466,19 +1466,19 @@ TEST_F(socketTest, wait_multi_reports_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_timeout =
+    int actual_ret_timeout =
         com_util_socket_wait_readable_multi(socks, 3U, 0, ready, &detail); // [手順] - タイムアウトを注入する。
-    int rtc_ready = com_util_socket_wait_readable_multi(socks, 3U, 0, ready,
+    int actual_ret_ready = com_util_socket_wait_readable_multi(socks, 3U, 0, ready,
                                                         &detail); // [手順] - 複数ソケットの準備完了を注入する。
     std::memcpy(ready_after_ready, ready, sizeof(ready_after_ready));
-    int rtc_failure =
+    int actual_ret_failure =
         com_util_socket_wait_readable_multi(socks, 3U, 0, ready, &detail); // [手順] - 待機失敗を注入する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_timeout); // [確認_正常系] - タイムアウト時の複数待機戻り値が COM_UTIL_OK であること。
+              actual_ret_timeout); // [確認_正常系] - タイムアウト時の複数待機戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_ready); // [確認_正常系] - 準備完了時の複数待機戻り値が COM_UTIL_OK であること。
+              actual_ret_ready); // [確認_正常系] - 準備完了時の複数待機戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(1U,
               ready_after_ready[0]); // [確認_正常系] - 1 番目のソケットが準備完了になること。
     EXPECT_EQ(0U,
@@ -1486,7 +1486,7 @@ TEST_F(socketTest, wait_multi_reports_results)
     EXPECT_EQ(1U,
               ready_after_ready[2]); // [確認_正常系] - 3 番目のソケットが準備完了になること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 待機失敗時の複数待機戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 待機失敗時の複数待機戻り値が COM_UTIL_ERR_UNKNOWN であること。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -1697,16 +1697,16 @@ TEST_F(socketTest, send_and_recv_retry_after_interrupt)
         .WillOnce(Return((ssize_t)4));
 
     // Act
-    int rtc_send = com_util_socket_send(kSocket, buffer, sizeof(buffer), &sent, &detail); // [手順] - 4 バイト送信する。
-    int rtc_recv = com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received, &detail); // [手順] - 4 バイト受信する。
+    int actual_ret_send = com_util_socket_send(kSocket, buffer, sizeof(buffer), &sent, &detail); // [手順] - 4 バイト送信する。
+    int actual_ret_recv = com_util_socket_recv(kSocket, buffer, sizeof(buffer), &received, &detail); // [手順] - 4 バイト受信する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_send); // [確認_正常系] - com_util_socket_send の戻り値が COM_UTIL_OK であること。
+              actual_ret_send); // [確認_正常系] - com_util_socket_send の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)4,
               sent); // [確認_正常系] - 再試行後の送信バイト数が 4 であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_recv); // [確認_正常系] - com_util_socket_recv の戻り値が COM_UTIL_OK であること。
+              actual_ret_recv); // [確認_正常系] - com_util_socket_recv の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)4,
               received); // [確認_正常系] - 再試行後の受信バイト数が 4 であること。
 }
@@ -1734,18 +1734,18 @@ TEST_F(socketTest, sendto_and_recvfrom_retry_after_interrupt)
         .WillOnce(Return((ssize_t)4));
 
     // Act
-    int rtc_sendto = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &sent,
+    int actual_ret_sendto = com_util_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &sent,
                                             &detail); // [手順] - 4 バイトを指定した端点へ送信する。
-    int rtc_recvfrom = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &received,
+    int actual_ret_recvfrom = com_util_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &received,
                                                 &detail); // [手順] - 4 バイトを受信する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_sendto); // [確認_正常系] - com_util_socket_sendto の戻り値が COM_UTIL_OK であること。
+              actual_ret_sendto); // [確認_正常系] - com_util_socket_sendto の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)4,
               sent); // [確認_正常系] - 再試行後の送信バイト数が 4 であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_recvfrom); // [確認_正常系] - com_util_socket_recvfrom の戻り値が COM_UTIL_OK であること。
+              actual_ret_recvfrom); // [確認_正常系] - com_util_socket_recvfrom の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ((size_t)4,
               received); // [確認_正常系] - 再試行後の受信バイト数が 4 であること。
 }
@@ -1770,16 +1770,16 @@ TEST_F(socketTest, send_all_and_recv_all_retry_after_interrupt)
         .WillOnce(Return((ssize_t)4));
 
     // Act
-    int rtc_send_all =
+    int actual_ret_send_all =
         com_util_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量送信する。
-    int rtc_recv_all =
+    int actual_ret_recv_all =
         com_util_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量受信する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_send_all); // [確認_正常系] - com_util_socket_send_all の戻り値が COM_UTIL_OK であること。
+              actual_ret_send_all); // [確認_正常系] - com_util_socket_send_all の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_recv_all); // [確認_正常系] - com_util_socket_recv_all の戻り値が COM_UTIL_OK であること。
+              actual_ret_recv_all); // [確認_正常系] - com_util_socket_recv_all の戻り値が COM_UTIL_OK であること。
 }
 
 // ブロッキング接続がシグナル中断後に完了を待って成功を確定することの確認
@@ -1941,21 +1941,21 @@ TEST_F(socketTest, shutdown_receive_reports_results)
 #endif /* PLATFORM_ */
 
     // Act
-    int rtc_null = com_util_socket_shutdown_receive(NULL, &detail); // [手順] - ソケット出力先に NULL を指定する。
-    int rtc_invalid = com_util_socket_shutdown_receive(&invalid_socket, &detail); // [手順] - 無効なソケットを指定する。
-    int rtc_success = com_util_socket_shutdown_receive(&socket, &detail);         // [手順] - 受信停止を成功させる。
-    int rtc_failure = com_util_socket_shutdown_receive(&failure_socket, &detail); // [手順] - 受信停止の失敗を注入する。
+    int actual_ret_null = com_util_socket_shutdown_receive(NULL, &detail); // [手順] - ソケット出力先に NULL を指定する。
+    int actual_ret_invalid = com_util_socket_shutdown_receive(&invalid_socket, &detail); // [手順] - 無効なソケットを指定する。
+    int actual_ret_success = com_util_socket_shutdown_receive(&socket, &detail);         // [手順] - 受信停止を成功させる。
+    int actual_ret_failure = com_util_socket_shutdown_receive(&failure_socket, &detail); // [手順] - 受信停止の失敗を注入する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null); // [確認_異常系] - NULL の出力先を指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_null); // [確認_異常系] - NULL の出力先を指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_invalid); // [確認_異常系] - 無効なソケットを指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_invalid); // [確認_異常系] - 無効なソケットを指定した戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_OK,
-              rtc_success); // [確認_正常系] - 受信停止成功時の戻り値が COM_UTIL_OK であること。
+              actual_ret_success); // [確認_正常系] - 受信停止成功時の戻り値が COM_UTIL_OK であること。
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              rtc_failure); // [確認_異常系] - 受信停止失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret_failure); // [確認_異常系] - 受信停止失敗時の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 #if defined(PLATFORM_WINDOWS)
     EXPECT_EQ(COM_UTIL_INVALID_SOCKET,
               socket); // [確認_正常系] - Windows の受信停止成功でソケットが無効値になること。

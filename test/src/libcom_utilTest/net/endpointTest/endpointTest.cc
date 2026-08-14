@@ -96,16 +96,16 @@ TEST_F(endpointTest, parse_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_text = com_util_ipv4_parse(NULL, &address);      // [手順] - text に NULL を指定して解析する。
-    int rtc_null_output = com_util_ipv4_parse("192.0.2.1", NULL); // [手順] - address_out に NULL を指定して解析する。
+    int actual_ret_null_text = com_util_ipv4_parse(NULL, &address);      // [手順] - text に NULL を指定して解析する。
+    int actual_ret_null_output = com_util_ipv4_parse("192.0.2.1", NULL); // [手順] - address_out に NULL を指定して解析する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_text); // [確認_異常系] - text が NULL の com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_text); // [確認_異常系] - text が NULL の com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_output); // [確認_異常系] - address_out が NULL の com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_output); // [確認_異常系] - address_out が NULL の com_util_ipv4_parse の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // 不正な IPv4 文字列が拒否されることの確認
@@ -209,18 +209,18 @@ TEST_F(endpointTest, resolve_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_text =
+    int actual_ret_null_text =
         com_util_ipv4_resolve(NULL, &address, &detail); // [手順] - text に NULL を指定して名前解決する。
-    int rtc_null_output =
+    int actual_ret_null_output =
         com_util_ipv4_resolve("localhost", NULL, &detail); // [手順] - address_out に NULL を指定して名前解決する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_text); // [確認_異常系] - text が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_text); // [確認_異常系] - text が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_output); // [確認_異常系] - address_out が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_output); // [確認_異常系] - address_out が NULL の com_util_ipv4_resolve の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     // [確認_異常系] - 詳細エラーに errno ドメインと EINVAL が記録されること。
     expect_detail(detail, COM_UTIL_ERROR_DOMAIN_ERRNO, COM_UTIL_ERR_INVALID_ARGUMENT,
                   static_cast<unsigned long>(EINVAL));
@@ -549,18 +549,18 @@ TEST_F(endpointTest, to_string_rejects_null_or_zero_sized_buffer)
     // Pre-Assert
 
     // Act
-    int rtc_null_buffer = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, NULL, sizeof(buffer),
+    int actual_ret_null_buffer = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, NULL, sizeof(buffer),
                                                   &detail); // [手順] - buffer に NULL を指定して文字列化する。
-    int rtc_zero_size = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, 0U,
+    int actual_ret_zero_size = com_util_ipv4_to_string(COM_UTIL_IPV4_ADDR_LOOPBACK, buffer, 0U,
                                                 &detail); // [手順] - buffer_size に 0 を指定して文字列化する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_buffer); // [確認_異常系] - buffer が NULL の com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_buffer); // [確認_異常系] - buffer が NULL の com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_zero_size); // [確認_異常系] - buffer_size が 0 の com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_zero_size); // [確認_異常系] - buffer_size が 0 の com_util_ipv4_to_string の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // IPv4 文字列出力が小さいバッファーを拒否することの確認

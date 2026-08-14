@@ -13,17 +13,17 @@ FILE *delegate_real_com_util_fopen_temp(const char *prefix, const char *modes, c
 MOCK_WEAK_IMPL(FILE *, com_util_fopen_temp, const char *prefix, const char *modes, char *path_out, size_t path_size,
                com_util_error *detail_out)
 {
-    FILE *fp = nullptr;
+    FILE *mock_ret = nullptr;
     const char *prefix_text = "(null)";
     const char *modes_text = "(null)";
 
     if (_mock_com_util != nullptr)
     {
-        fp = _mock_com_util->com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
+        mock_ret = _mock_com_util->com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
     }
     else
     {
-        fp = delegate_real_com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
+        mock_ret = delegate_real_com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -40,7 +40,7 @@ MOCK_WEAK_IMPL(FILE *, com_util_fopen_temp, const char *prefix, const char *mode
                (void *)detail_out);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)fp);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -48,5 +48,5 @@ MOCK_WEAK_IMPL(FILE *, com_util_fopen_temp, const char *prefix, const char *mode
         }
     }
 
-    return fp;
+    return mock_ret;
 }

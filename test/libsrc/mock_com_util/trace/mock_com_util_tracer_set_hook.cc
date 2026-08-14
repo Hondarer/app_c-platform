@@ -13,15 +13,15 @@ com_util_tracer_hook_entry *delegate_real_com_util_tracer_set_hook(com_util_trac
 MOCK_WEAK_IMPL(com_util_tracer_hook_entry *, com_util_tracer_set_hook, com_util_tracer *handle,
                com_util_tracer_hook_fn fn, void *context)
 {
-    com_util_tracer_hook_entry *entry = nullptr;
+    com_util_tracer_hook_entry *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        entry = _mock_com_util->com_util_tracer_set_hook(handle, fn, context);
+        mock_ret = _mock_com_util->com_util_tracer_set_hook(handle, fn, context);
     }
     else
     {
-        entry = delegate_real_com_util_tracer_set_hook(handle, fn, context);
+        mock_ret = delegate_real_com_util_tracer_set_hook(handle, fn, context);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(com_util_tracer_hook_entry *, com_util_tracer_set_hook, com_util_
         printf("  > %s 0x%p, 0x%p, 0x%p", __func__, (void *)handle, (void *)(uintptr_t)fn, context);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)entry);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -37,5 +37,5 @@ MOCK_WEAK_IMPL(com_util_tracer_hook_entry *, com_util_tracer_set_hook, com_util_
         }
     }
 
-    return entry;
+    return mock_ret;
 }

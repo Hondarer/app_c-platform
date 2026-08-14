@@ -23,6 +23,10 @@ mock 注入後の `ON_CALL` も、既定では real delegate を呼び出しま�
 関数ラッパーは `MOCK_WEAK_IMPL` を使用します。  
 `WEAK_ATR` を関数へ直接付けません。
 
+委譲先の戻り値を受けて返す一時受けは、型を問わず `mock_ret` とします。  
+`ptr`、`fp`、`handle` などの意味名や、テスト本体用の `actual_ret` は使いません。  
+詳細は [How to mock](../../../framework/testfw/docs/how-to-mock.md) の「試験側の戻り値中継」を正とします。
+
 ## Windows のリンク保持
 
 MSVC では、弱リンク実装を含むオブジェクトが静的ライブラリから取り込まれない場合があります。  

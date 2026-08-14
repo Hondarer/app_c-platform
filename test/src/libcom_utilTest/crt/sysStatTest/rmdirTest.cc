@@ -43,10 +43,10 @@ TEST_F(rmdirTest, removes_empty_directory)
                               // [Pre-Assert手順] - 0 を返却する。
 
     // Act
-    int rtc_rmdir = com_util_rmdir("empty_dir", NULL); // [手順] - 空のディレクトリを削除する。
+    int actual_ret_rmdir = com_util_rmdir("empty_dir", NULL); // [手順] - 空のディレクトリを削除する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_rmdir); // [確認_正常系] - com_util_rmdir の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_rmdir); // [確認_正常系] - com_util_rmdir の戻り値が COM_UTIL_OK であること。
 }
 
 // com_util_rmdir が空でないディレクトリの削除に失敗することの確認
@@ -61,12 +61,12 @@ TEST_F(rmdirTest, fails_for_non_empty_directory)
                                       // [Pre-Assert手順] - errno に ENOTEMPTY を設定し、-1 を返却する。
 
     // Act
-    int rtc_rmdir = com_util_rmdir("non_empty_dir", NULL); // [手順] - 空でないディレクトリを削除する。
+    int actual_ret_rmdir = com_util_rmdir("non_empty_dir", NULL); // [手順] - 空でないディレクトリを削除する。
 
     // Assert
     EXPECT_NE(
         COM_UTIL_OK,
-        rtc_rmdir); // [確認_異常系] - 空でないディレクトリに対する com_util_rmdir の戻り値が COM_UTIL_OK でないこと。
+        actual_ret_rmdir); // [確認_異常系] - 空でないディレクトリに対する com_util_rmdir の戻り値が COM_UTIL_OK でないこと。
 }
 #endif /* PLATFORM_LINUX */
 
@@ -78,9 +78,9 @@ TEST_F(rmdirTest, null_path_is_rejected)
     // Pre-Assert
 
     // Act
-    int rtc_rmdir = com_util_rmdir(NULL, NULL); // [手順] - パスに NULL を指定して呼び出す。
+    int actual_ret_rmdir = com_util_rmdir(NULL, NULL); // [手順] - パスに NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_rmdir); // [確認_異常系] - com_util_rmdir の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+              actual_ret_rmdir); // [確認_異常系] - com_util_rmdir の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }

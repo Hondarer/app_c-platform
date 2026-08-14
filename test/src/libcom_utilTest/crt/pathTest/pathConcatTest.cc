@@ -19,12 +19,12 @@ TEST_F(pathConcatTest, concatenates_path_fragments)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat =
+    int actual_ret_path_concat =
         com_util_path_concat(path, sizeof(path), &err, "tmp", PLATFORM_PATH_SEP,
                              "libbase_extdef.json"); // [手順] - "tmp"、セパレータ、"libbase_extdef.json" を連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("tmp/libbase_extdef.json", path); // [確認_正常系] - 断片が指定順に連結されること。
 }
 
@@ -38,11 +38,11 @@ TEST_F(pathConcatTest, keeps_empty_fragment)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat =
+    int actual_ret_path_concat =
         com_util_path_concat(path, sizeof(path), &err, "", "abc"); // [手順] - 空文字列と "abc" を連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abc", path);               // [確認_正常系] - 空文字断片もそのまま扱え "abc" になること。
 }
 
@@ -56,12 +56,12 @@ TEST_F(pathConcatTest, accepts_sixteen_fragments)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat =
+    int actual_ret_path_concat =
         com_util_path_concat(path, sizeof(path), &err, "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
                              "n", "o", "p"); // [手順] - "a" から "p" までの 16 断片を連結する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_path_concat); // [確認_正常系] - com_util_path_concat の戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("abcdefghijklmnop", path);  // [確認_正常系] - サポート上限の 16 断片が連結されること。
 }
 
@@ -76,14 +76,14 @@ TEST_F(pathConcatTest, returns_einval_for_zero_part_count)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat_n = com_util_path_concat_n(
+    int actual_ret_path_concat_n = com_util_path_concat_n(
         path, sizeof(path), &err, 0u);    // [手順] - part_count に 0 を渡して com_util_path_concat_n を呼び出す。
     com_util_error_get_last(&last_error); // [手順] - TLS に記録された詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_path_concat_n); // [確認_異常系] - com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_path_concat_n); // [確認_異常系] - com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が返ること。
     EXPECT_EQ(1, com_util_error_is_set(&last_error)); // [確認_異常系] - TLS に詳細エラーが記録されること。
 }
@@ -125,14 +125,14 @@ TEST_F(pathConcatTest, returns_einval_for_null_fragment)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat_n = com_util_path_concat_n(
+    int actual_ret_path_concat_n = com_util_path_concat_n(
         path, sizeof(path), &err, 2u, "ab",
         (const char *)NULL); // [手順] - 2 断片のうち 1 つに NULL を渡して com_util_path_concat_n を呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_path_concat_n); // [確認_異常系] - com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_path_concat_n); // [確認_異常系] - com_util_path_concat_n の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(1, com_util_error_is(&err, COM_UTIL_CAUSE_INVALID_ARGUMENT)); // [確認_異常系] - EINVAL の要因が返ること。
 }
 
@@ -149,13 +149,13 @@ TEST_F(pathConcatTest, returns_enametoolong_when_result_does_not_fit)
     // Pre-Assert
 
     // Act
-    int rtc_path_concat = com_util_path_concat(path, sizeof(path), &err, "ab", "cd",
+    int actual_ret_path_concat = com_util_path_concat(path, sizeof(path), &err, "ab", "cd",
                                                "e"); // [手順] - 連結結果が 5 文字 (+NUL) となる断片を渡して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_BUFFER_TOO_SMALL,
-        rtc_path_concat); // [確認_異常系] - com_util_path_concat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
+        actual_ret_path_concat); // [確認_異常系] - com_util_path_concat の戻り値が COM_UTIL_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(1,
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因が返ること。
     EXPECT_EQ('\0', path[0]); // [確認_異常系] - 失敗時は空文字列に初期化されること。

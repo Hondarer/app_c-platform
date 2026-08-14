@@ -116,18 +116,18 @@ TEST_F(promptTest, readline_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_prompt = com_util_prompt_readline_at(NULL, buf, sizeof(buf), ">> ", "f", 1);
-    int rtc_null_buf = com_util_prompt_readline_at(prompt_, NULL, sizeof(buf), ">> ", "f", 1);
-    int rtc_zero_size =
+    int actual_ret_null_prompt = com_util_prompt_readline_at(NULL, buf, sizeof(buf), ">> ", "f", 1);
+    int actual_ret_null_buf = com_util_prompt_readline_at(prompt_, NULL, sizeof(buf), ">> ", "f", 1);
+    int actual_ret_zero_size =
         com_util_prompt_readline_at(prompt_, buf, 0u, ">> ", "f", 1); // [手順] - prompt、buf、buf_size に不正値を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_prompt); // [確認_異常系] - prompt が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_prompt); // [確認_異常系] - prompt が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_buf); // [確認_異常系] - buf が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_buf); // [確認_異常系] - buf が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_zero_size); // [確認_異常系] - buf_size が 0 のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_zero_size); // [確認_異常系] - buf_size が 0 のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
 }
 
 /*
@@ -276,15 +276,15 @@ TEST_F(promptTest, readline_home_and_end_move_cursor_to_line_edges)
     // Pre-Assert
 
     // Act
-    int rtc_home = readline("bc\x1B[H" "a\r", buf, sizeof(buf)); // [手順] - "bc" の後に Home、"a"、Enter を入力する。
+    int actual_ret_home = readline("bc\x1B[H" "a\r", buf, sizeof(buf)); // [手順] - "bc" の後に Home、"a"、Enter を入力する。
     std::string after_home(buf);
-    int rtc_end = readline("bc\x1B[H\x1B[F" "d\r", buf,
+    int actual_ret_end = readline("bc\x1B[H\x1B[F" "d\r", buf,
                            sizeof(buf)); // [手順] - "bc" の後に Home、End、"d"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_home);     // [確認_正常系] - Home を含む呼び出しの戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_home);     // [確認_正常系] - Home を含む呼び出しの戻り値が COM_UTIL_OK であること。
     EXPECT_EQ("abc", after_home);         // [確認_正常系] - 行頭へ挿入された "abc" が返ること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_end);      // [確認_正常系] - End を含む呼び出しの戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_end);      // [確認_正常系] - End を含む呼び出しの戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("bcd", buf);             // [確認_正常系] - 行末へ挿入された "bcd" が返ること。
 }
 
@@ -330,16 +330,16 @@ TEST_F(promptTest, readline_numeric_escape_sequences_move_cursor)
     // Pre-Assert
 
     // Act
-    int rtc_home = readline("bc\x1B[1~" "a\r", buf,
+    int actual_ret_home = readline("bc\x1B[1~" "a\r", buf,
                             sizeof(buf)); // [手順] - "bc" の後に ESC [ 1 ~ (Home)、"a"、Enter を入力する。
     std::string after_home(buf);
-    int rtc_end = readline("bc\x1B[1~\x1B[4~" "d\r", buf,
+    int actual_ret_end = readline("bc\x1B[1~\x1B[4~" "d\r", buf,
                            sizeof(buf)); // [手順] - "bc" の後に Home、ESC [ 4 ~ (End)、"d"、Enter を入力する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, rtc_home); // [確認_正常系] - Home を含む呼び出しの戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_home); // [確認_正常系] - Home を含む呼び出しの戻り値が COM_UTIL_OK であること。
     EXPECT_EQ("abc", after_home);     // [確認_正常系] - 行頭へ挿入された "abc" が返ること。
-    EXPECT_EQ(COM_UTIL_OK, rtc_end);  // [確認_正常系] - End を含む呼び出しの戻り値が COM_UTIL_OK であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_end);  // [確認_正常系] - End を含む呼び出しの戻り値が COM_UTIL_OK であること。
     EXPECT_STREQ("bcd", buf);         // [確認_正常系] - 行末へ挿入された "bcd" が返ること。
 }
 
@@ -610,18 +610,18 @@ TEST_F(promptTest, readline_fmt_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int rtc_null_prompt = com_util_prompt_readline_fmt_at(NULL, buf, sizeof(buf), "f", 1, ">> ");
-    int rtc_null_buf = com_util_prompt_readline_fmt_at(prompt_, NULL, sizeof(buf), "f", 1, ">> ");
-    int rtc_zero_size = com_util_prompt_readline_fmt_at(prompt_, buf, 0u, "f", 1,
+    int actual_ret_null_prompt = com_util_prompt_readline_fmt_at(NULL, buf, sizeof(buf), "f", 1, ">> ");
+    int actual_ret_null_buf = com_util_prompt_readline_fmt_at(prompt_, NULL, sizeof(buf), "f", 1, ">> ");
+    int actual_ret_zero_size = com_util_prompt_readline_fmt_at(prompt_, buf, 0u, "f", 1,
                                                         ">> "); // [手順] - prompt、buf、buf_size に不正値を指定する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_prompt); // [確認_異常系] - prompt が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_prompt); // [確認_異常系] - prompt が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_null_buf); // [確認_異常系] - buf が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_null_buf); // [確認_異常系] - buf が NULL のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              rtc_zero_size); // [確認_異常系] - buf_size が 0 のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
+              actual_ret_zero_size); // [確認_異常系] - buf_size が 0 のとき COM_UTIL_ERR_INVALID_ARGUMENT が返ること。
 }
 
 /*

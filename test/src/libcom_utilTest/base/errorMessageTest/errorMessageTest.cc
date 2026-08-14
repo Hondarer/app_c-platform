@@ -116,16 +116,16 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
     // Pre-Assert
 
     // Act
-    int rtc_null_buf = com_util_errno_message(NULL, sizeof(buf), ENOENT); // [手順] - 格納先に NULL を指定して呼び出す。
-    int rtc_zero_size = com_util_errno_message(buf, 0U, ENOENT);          // [手順] - サイズに 0 を指定して呼び出す。
+    int actual_ret_null_buf = com_util_errno_message(NULL, sizeof(buf), ENOENT); // [手順] - 格納先に NULL を指定して呼び出す。
+    int actual_ret_zero_size = com_util_errno_message(buf, 0U, ENOENT);          // [手順] - サイズに 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_null_buf); // [確認_異常系] - 格納先が NULL の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_buf); // [確認_異常系] - 格納先が NULL の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         COM_UTIL_ERR_INVALID_ARGUMENT,
-        rtc_zero_size); // [確認_異常系] - サイズが 0 の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
+        actual_ret_zero_size); // [確認_異常系] - サイズが 0 の場合に com_util_errno_message の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
 // error_message がドメインごとに文字列化することの確認
