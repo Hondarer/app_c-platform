@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <com_util/base/result.h>
 #include <com_util/compress/compress.h>
+#include <mock_com_util.h>
 
 #if defined(PLATFORM_LINUX)
     #include <mock_zlib.h>
@@ -269,3 +270,30 @@ TEST_F(compressTest, decompress_returns_unknown_when_inflate_init_fails)
 }
 
 #endif /* PLATFORM_LINUX */
+
+#if defined(PLATFORM_WINDOWS)
+
+// 一時バッファーの確保に失敗した場合に通知されることの確認
+// Linux の com_util_decompress は zlib の inflate を使うため、この失敗経路は Windows のみに存在する
+TEST_F(compressTest, decompress_returns_out_of_memory_when_malloc_fails)
+{
+    // Arrange
+    NiceMock<Mock_com_util> mock_com_util;
+    uint8_t src[COM_UTIL_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64];
+    size_t dst_len = sizeof(dst); // [状態] - ヘッダー長を超える入力と出力バッファーを用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_malloc が一時バッファー確保のために 1 回呼び出されること。
+                                    // [Pre-Assert手順] - com_util_malloc から NULL を返却する。
+
+    // Act
+    int rtc = com_util_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - com_util_decompress を呼び出す。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
+              rtc); // [確認_異常系] - com_util_decompress の戻り値が COM_UTIL_ERR_OUT_OF_MEMORY であること。
+}
+
+#endif /* PLATFORM_WINDOWS */
