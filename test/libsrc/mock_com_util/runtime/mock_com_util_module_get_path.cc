@@ -11,15 +11,15 @@ int delegate_real_com_util_module_get_path(char *out_path, size_t out_path_sz, c
 
 MOCK_WEAK_IMPL(int, com_util_module_get_path, char *out_path, size_t out_path_sz, const void *func_addr)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_module_get_path(out_path, out_path_sz, func_addr);
+        mock_ret = _mock_com_util->com_util_module_get_path(out_path, out_path_sz, func_addr);
     }
     else
     {
-        rtc = delegate_real_com_util_module_get_path(out_path, out_path_sz, func_addr);
+        mock_ret = delegate_real_com_util_module_get_path(out_path, out_path_sz, func_addr);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_module_get_path, char *out_path, size_t out_path_sz
         printf("  > %s 0x%p", __func__, func_addr);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_module_get_path, char *out_path, size_t out_path_sz
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

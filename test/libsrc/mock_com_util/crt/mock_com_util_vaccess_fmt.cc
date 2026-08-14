@@ -14,17 +14,17 @@ int delegate_real_com_util_vaccess_fmt(int mode, com_util_error *detail_out, con
 
 MOCK_WEAK_IMPL(int, com_util_vaccess_fmt, int mode, com_util_error *detail_out, const char *format, va_list args)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     std::vector<char> buf = mock_com_util_expand_format(format, args);
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vaccess_fmt(mode, detail_out, buf.data());
+        mock_ret = _mock_com_util->com_util_vaccess_fmt(mode, detail_out, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_vaccess_fmt(mode, detail_out, format, args);
+        mock_ret = delegate_real_com_util_vaccess_fmt(mode, detail_out, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(int, com_util_vaccess_fmt, int mode, com_util_error *detail_out, 
         printf("  > %s %d, %s", __func__, mode, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -40,5 +40,5 @@ MOCK_WEAK_IMPL(int, com_util_vaccess_fmt, int mode, com_util_error *detail_out, 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

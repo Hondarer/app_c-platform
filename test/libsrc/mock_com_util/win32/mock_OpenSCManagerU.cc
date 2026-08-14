@@ -15,15 +15,15 @@ SC_HANDLE delegate_real_OpenSCManagerU(const char *utf8_machine_name, const char
 MOCK_WEAK_IMPL(SC_HANDLE, OpenSCManagerU, const char *utf8_machine_name, const char *utf8_database_name,
                DWORD desired_access)
 {
-    SC_HANDLE rtc;
+    SC_HANDLE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->OpenSCManagerU(utf8_machine_name, utf8_database_name, desired_access);
+        mock_ret = _mock_com_util->OpenSCManagerU(utf8_machine_name, utf8_database_name, desired_access);
     }
     else
     {
-        rtc = delegate_real_OpenSCManagerU(utf8_machine_name, utf8_database_name, desired_access);
+        mock_ret = delegate_real_OpenSCManagerU(utf8_machine_name, utf8_database_name, desired_access);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(SC_HANDLE, OpenSCManagerU, const char *utf8_machine_name, const c
                (utf8_database_name != nullptr) ? utf8_database_name : "(null)", desired_access);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -40,7 +40,7 @@ MOCK_WEAK_IMPL(SC_HANDLE, OpenSCManagerU, const char *utf8_machine_name, const c
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

@@ -16,20 +16,20 @@ int delegate_real_com_util_vsnprintf(char *dest, size_t dest_size, const char *f
 
 MOCK_WEAK_IMPL(int, com_util_vsnprintf, char *dest, size_t dest_size, const char *format, va_list args)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
         std::vector<char> buf = mock_com_util_expand_format(format, args);
 
-        rtc = _mock_com_util->com_util_vsnprintf(dest, dest_size, buf.data());
+        mock_ret = _mock_com_util->com_util_vsnprintf(dest, dest_size, buf.data());
 
         if (getTraceLevel() > TRACE_NONE)
         {
             printf("  > %s 0x%p, %zu, %s", __func__, (void *)dest, dest_size, buf.data());
             if (getTraceLevel() >= TRACE_DETAIL)
             {
-                printf(" -> %d\n", rtc);
+                printf(" -> %d\n", mock_ret);
             }
             else
             {
@@ -37,17 +37,17 @@ MOCK_WEAK_IMPL(int, com_util_vsnprintf, char *dest, size_t dest_size, const char
             }
         }
 
-        return rtc;
+        return mock_ret;
     }
 
-    rtc = delegate_real_com_util_vsnprintf(dest, dest_size, format, args);
+    mock_ret = delegate_real_com_util_vsnprintf(dest, dest_size, format, args);
 
     if (getTraceLevel() > TRACE_NONE)
     {
         printf("  > %s 0x%p, %zu, %s", __func__, (void *)dest, dest_size, format);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -55,5 +55,5 @@ MOCK_WEAK_IMPL(int, com_util_vsnprintf, char *dest, size_t dest_size, const char
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

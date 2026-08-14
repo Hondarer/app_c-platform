@@ -16,7 +16,7 @@ int delegate_real_com_util_tracer_write_hexf_at(com_util_tracer *handle, com_uti
 MOCK_WEAK_IMPL(int, com_util_tracer_write_hexf_at, com_util_tracer *handle, com_util_trace_level level,
                const com_util_timespec *timestamp, const void *data, size_t size, const char *format, ...)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     char label[1024];
     va_list args;
@@ -26,11 +26,11 @@ MOCK_WEAK_IMPL(int, com_util_tracer_write_hexf_at, com_util_tracer *handle, com_
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_write_hexf_at(handle, level, timestamp, data, size, label);
+        mock_ret = _mock_com_util->com_util_tracer_write_hexf_at(handle, level, timestamp, data, size, label);
     }
     else
     {
-        rtc = delegate_real_com_util_tracer_write_hexf_at(handle, level, timestamp, data, size, label);
+        mock_ret = delegate_real_com_util_tracer_write_hexf_at(handle, level, timestamp, data, size, label);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -39,7 +39,7 @@ MOCK_WEAK_IMPL(int, com_util_tracer_write_hexf_at, com_util_tracer *handle, com_
                data, size, label);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -47,5 +47,5 @@ MOCK_WEAK_IMPL(int, com_util_tracer_write_hexf_at, com_util_tracer *handle, com_
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

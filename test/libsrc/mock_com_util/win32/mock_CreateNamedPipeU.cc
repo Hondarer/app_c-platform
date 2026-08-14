@@ -18,16 +18,16 @@ MOCK_WEAK_IMPL(HANDLE, CreateNamedPipeU, const char *utf8_name, DWORD open_mode,
                DWORD out_buffer_size, DWORD in_buffer_size, DWORD default_timeout,
                LPSECURITY_ATTRIBUTES security_attributes)
 {
-    HANDLE rtc;
+    HANDLE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->CreateNamedPipeU(utf8_name, open_mode, pipe_mode, max_instances, out_buffer_size,
+        mock_ret = _mock_com_util->CreateNamedPipeU(utf8_name, open_mode, pipe_mode, max_instances, out_buffer_size,
                                                in_buffer_size, default_timeout, security_attributes);
     }
     else
     {
-        rtc = delegate_real_CreateNamedPipeU(utf8_name, open_mode, pipe_mode, max_instances, out_buffer_size,
+        mock_ret = delegate_real_CreateNamedPipeU(utf8_name, open_mode, pipe_mode, max_instances, out_buffer_size,
                                              in_buffer_size, default_timeout, security_attributes);
     }
 
@@ -38,7 +38,7 @@ MOCK_WEAK_IMPL(HANDLE, CreateNamedPipeU, const char *utf8_name, DWORD open_mode,
                in_buffer_size, default_timeout, (void *)security_attributes);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -46,7 +46,7 @@ MOCK_WEAK_IMPL(HANDLE, CreateNamedPipeU, const char *utf8_name, DWORD open_mode,
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

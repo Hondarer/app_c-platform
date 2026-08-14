@@ -13,15 +13,15 @@ com_util_etw_provider *delegate_real_com_util_etw_provider_create(com_util_etw_p
 
 MOCK_WEAK_IMPL(com_util_etw_provider *, com_util_etw_provider_create, com_util_etw_provider_ref_t provider_ref)
 {
-    com_util_etw_provider *rtc = nullptr;
+    com_util_etw_provider *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_etw_provider_create(provider_ref);
+        mock_ret = _mock_com_util->com_util_etw_provider_create(provider_ref);
     }
     else
     {
-        rtc = delegate_real_com_util_etw_provider_create(provider_ref);
+        mock_ret = delegate_real_com_util_etw_provider_create(provider_ref);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(com_util_etw_provider *, com_util_etw_provider_create, com_util_e
         printf("  > %s 0x%p", __func__, (void *)provider_ref);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(com_util_etw_provider *, com_util_etw_provider_create, com_util_e
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

@@ -17,7 +17,7 @@ int delegate_real_com_util_snprintf(char *dest, size_t dest_size, const char *fo
 
 MOCK_WEAK_IMPL(int, com_util_snprintf, char *dest, size_t dest_size, const char *format, ...)
 {
-    int rtc = -1;
+    int mock_ret = -1;
     std::vector<char> buf;
 
     {
@@ -29,11 +29,11 @@ MOCK_WEAK_IMPL(int, com_util_snprintf, char *dest, size_t dest_size, const char 
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_snprintf(dest, dest_size, buf.data());
+        mock_ret = _mock_com_util->com_util_snprintf(dest, dest_size, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_snprintf(dest, dest_size, buf.data());
+        mock_ret = delegate_real_com_util_snprintf(dest, dest_size, buf.data());
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -41,7 +41,7 @@ MOCK_WEAK_IMPL(int, com_util_snprintf, char *dest, size_t dest_size, const char 
         printf("  > %s 0x%p, %zu, %s", __func__, (void *)dest, dest_size, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -49,5 +49,5 @@ MOCK_WEAK_IMPL(int, com_util_snprintf, char *dest, size_t dest_size, const char 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

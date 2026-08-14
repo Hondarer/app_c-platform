@@ -12,15 +12,15 @@ int delegate_real_com_util_fseek(FILE *stream, int64_t offset, int whence)
 
 MOCK_WEAK_IMPL(int, com_util_fseek, FILE *stream, int64_t offset, int whence)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_fseek(stream, offset, whence);
+        mock_ret = _mock_com_util->com_util_fseek(stream, offset, whence);
     }
     else
     {
-        rtc = delegate_real_com_util_fseek(stream, offset, whence);
+        mock_ret = delegate_real_com_util_fseek(stream, offset, whence);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -28,7 +28,7 @@ MOCK_WEAK_IMPL(int, com_util_fseek, FILE *stream, int64_t offset, int whence)
         printf("  > %s 0x%p, %" PRId64 ", %d", __func__, (void *)stream, offset, whence);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -36,5 +36,5 @@ MOCK_WEAK_IMPL(int, com_util_fseek, FILE *stream, int64_t offset, int whence)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

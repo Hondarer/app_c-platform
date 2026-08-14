@@ -18,16 +18,16 @@ MOCK_WEAK_IMPL(HANDLE, CreateFileU, const char *utf8_path, DWORD desired_access,
                LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition, DWORD flags_and_attributes,
                HANDLE template_file)
 {
-    HANDLE rtc;
+    HANDLE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->CreateFileU(utf8_path, desired_access, share_mode, security_attributes,
+        mock_ret = _mock_com_util->CreateFileU(utf8_path, desired_access, share_mode, security_attributes,
                                           creation_disposition, flags_and_attributes, template_file);
     }
     else
     {
-        rtc = delegate_real_CreateFileU(utf8_path, desired_access, share_mode, security_attributes,
+        mock_ret = delegate_real_CreateFileU(utf8_path, desired_access, share_mode, security_attributes,
                                         creation_disposition, flags_and_attributes, template_file);
     }
 
@@ -38,7 +38,7 @@ MOCK_WEAK_IMPL(HANDLE, CreateFileU, const char *utf8_path, DWORD desired_access,
                (void *)template_file);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -46,7 +46,7 @@ MOCK_WEAK_IMPL(HANDLE, CreateFileU, const char *utf8_path, DWORD desired_access,
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

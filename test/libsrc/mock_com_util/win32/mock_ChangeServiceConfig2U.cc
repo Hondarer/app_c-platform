@@ -13,15 +13,15 @@ BOOL delegate_real_ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, co
 
 MOCK_WEAK_IMPL(BOOL, ChangeServiceConfig2U, SC_HANDLE service, DWORD info_level, const char *utf8_text)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->ChangeServiceConfig2U(service, info_level, utf8_text);
+        mock_ret = _mock_com_util->ChangeServiceConfig2U(service, info_level, utf8_text);
     }
     else
     {
-        rtc = delegate_real_ChangeServiceConfig2U(service, info_level, utf8_text);
+        mock_ret = delegate_real_ChangeServiceConfig2U(service, info_level, utf8_text);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -30,7 +30,7 @@ MOCK_WEAK_IMPL(BOOL, ChangeServiceConfig2U, SC_HANDLE service, DWORD info_level,
                (utf8_text != nullptr) ? utf8_text : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -38,7 +38,7 @@ MOCK_WEAK_IMPL(BOOL, ChangeServiceConfig2U, SC_HANDLE service, DWORD info_level,
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

@@ -9,20 +9,20 @@
     } \
     MOCK_WEAK_IMPL(int, name, __VA_ARGS__) \
     { \
-        int rtc; \
+        int mock_ret; \
         if (_mock_com_util != nullptr) \
         { \
-            rtc = _mock_com_util->name call_args; \
+            mock_ret = _mock_com_util->name call_args; \
         } \
         else \
         { \
-            rtc = delegate_real_##name call_args; \
+            mock_ret = delegate_real_##name call_args; \
         } \
         if (getTraceLevel() > TRACE_NONE) \
         { \
-            printf("  > %s -> %d\n", __func__, (int)rtc); \
+            printf("  > %s -> %d\n", __func__, (int)mock_ret); \
         } \
-        return rtc; \
+        return mock_ret; \
     }
 
 #define DEFINE_ARGPARSER_VOID(name, call_args, ...) \
@@ -111,15 +111,15 @@ com_util_argparser *delegate_real_com_util_argparser_create(const com_util_argpa
 
 MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_create, const com_util_argparser_options *options)
 {
-    com_util_argparser *rtc = nullptr;
+    com_util_argparser *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_create(options);
+        mock_ret = _mock_com_util->com_util_argparser_create(options);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_create(options);
+        mock_ret = delegate_real_com_util_argparser_create(options);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -127,7 +127,7 @@ MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_create, const com_util_a
         printf("  > %s 0x%p", __func__, (const void *)options);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -135,7 +135,7 @@ MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_create, const com_util_a
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 com_util_argparser *delegate_real_com_util_argparser_default(const com_util_argparser_options *options)
@@ -148,15 +148,15 @@ com_util_argparser *delegate_real_com_util_argparser_default(const com_util_argp
 
 MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_default, const com_util_argparser_options *options)
 {
-    com_util_argparser *rtc = nullptr;
+    com_util_argparser *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default(options);
+        mock_ret = _mock_com_util->com_util_argparser_default(options);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default(options);
+        mock_ret = delegate_real_com_util_argparser_default(options);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -164,7 +164,7 @@ MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_default, const com_util_
         printf("  > %s 0x%p", __func__, (const void *)options);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -172,7 +172,7 @@ MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_default, const com_util_
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 int delegate_real_com_util_argparser_get_error(const com_util_argparser *parser)
@@ -185,23 +185,23 @@ int delegate_real_com_util_argparser_get_error(const com_util_argparser *parser)
 
 MOCK_WEAK_IMPL(int, com_util_argparser_get_error, const com_util_argparser *parser)
 {
-    int rtc;
+    int mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_get_error(parser);
+        mock_ret = _mock_com_util->com_util_argparser_get_error(parser);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_get_error(parser);
+        mock_ret = delegate_real_com_util_argparser_get_error(parser);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %d\n", __func__, (int)rtc);
+        printf("  > %s -> %d\n", __func__, (int)mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 const char *delegate_real_com_util_argparser_get_error_target(const com_util_argparser *parser)
@@ -214,20 +214,20 @@ const char *delegate_real_com_util_argparser_get_error_target(const com_util_arg
 
 MOCK_WEAK_IMPL(const char *, com_util_argparser_get_error_target, const com_util_argparser *parser)
 {
-    const char *rtc = nullptr;
+    const char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_get_error_target(parser);
+        mock_ret = _mock_com_util->com_util_argparser_get_error_target(parser);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_get_error_target(parser);
+        mock_ret = delegate_real_com_util_argparser_get_error_target(parser);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        const char *trace_result = rtc;
+        const char *trace_result = mock_ret;
         if (trace_result == nullptr)
         {
             trace_result = "(null)";
@@ -235,7 +235,7 @@ MOCK_WEAK_IMPL(const char *, com_util_argparser_get_error_target, const com_util
         printf("  > %s -> %s\n", __func__, trace_result);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 int delegate_real_com_util_argparser_get_error_index(const com_util_argparser *parser)
@@ -248,23 +248,23 @@ int delegate_real_com_util_argparser_get_error_index(const com_util_argparser *p
 
 MOCK_WEAK_IMPL(int, com_util_argparser_get_error_index, const com_util_argparser *parser)
 {
-    int rtc;
+    int mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_get_error_index(parser);
+        mock_ret = _mock_com_util->com_util_argparser_get_error_index(parser);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_get_error_index(parser);
+        mock_ret = delegate_real_com_util_argparser_get_error_index(parser);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %d\n", __func__, rtc);
+        printf("  > %s -> %d\n", __func__, mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 size_t delegate_real_com_util_argparser_get_register_error_count(const com_util_argparser *parser)
@@ -277,23 +277,23 @@ size_t delegate_real_com_util_argparser_get_register_error_count(const com_util_
 
 MOCK_WEAK_IMPL(size_t, com_util_argparser_get_register_error_count, const com_util_argparser *parser)
 {
-    size_t rtc;
+    size_t mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_get_register_error_count(parser);
+        mock_ret = _mock_com_util->com_util_argparser_get_register_error_count(parser);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_get_register_error_count(parser);
+        mock_ret = delegate_real_com_util_argparser_get_register_error_count(parser);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %zu\n", __func__, rtc);
+        printf("  > %s -> %zu\n", __func__, mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 const char *delegate_real_com_util_argparser_get_register_error_target(const com_util_argparser *parser, size_t index)
@@ -307,20 +307,20 @@ const char *delegate_real_com_util_argparser_get_register_error_target(const com
 MOCK_WEAK_IMPL(const char *, com_util_argparser_get_register_error_target, const com_util_argparser *parser,
                size_t index)
 {
-    const char *rtc = nullptr;
+    const char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_get_register_error_target(parser, index);
+        mock_ret = _mock_com_util->com_util_argparser_get_register_error_target(parser, index);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_get_register_error_target(parser, index);
+        mock_ret = delegate_real_com_util_argparser_get_register_error_target(parser, index);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        const char *trace_result = rtc;
+        const char *trace_result = mock_ret;
         if (trace_result == nullptr)
         {
             trace_result = "(null)";
@@ -328,7 +328,7 @@ MOCK_WEAK_IMPL(const char *, com_util_argparser_get_register_error_target, const
         printf("  > %s -> %s\n", __func__, trace_result);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 /* ================================================================
@@ -386,23 +386,23 @@ int delegate_real_com_util_argparser_default_get_error(void)
 
 MOCK_WEAK_IMPL(int, com_util_argparser_default_get_error, void)
 {
-    int rtc;
+    int mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default_get_error();
+        mock_ret = _mock_com_util->com_util_argparser_default_get_error();
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default_get_error();
+        mock_ret = delegate_real_com_util_argparser_default_get_error();
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %d\n", __func__, (int)rtc);
+        printf("  > %s -> %d\n", __func__, (int)mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 const char *delegate_real_com_util_argparser_default_get_error_target(void)
@@ -415,20 +415,20 @@ const char *delegate_real_com_util_argparser_default_get_error_target(void)
 
 MOCK_WEAK_IMPL(const char *, com_util_argparser_default_get_error_target, void)
 {
-    const char *rtc = nullptr;
+    const char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default_get_error_target();
+        mock_ret = _mock_com_util->com_util_argparser_default_get_error_target();
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default_get_error_target();
+        mock_ret = delegate_real_com_util_argparser_default_get_error_target();
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        const char *trace_result = rtc;
+        const char *trace_result = mock_ret;
         if (trace_result == nullptr)
         {
             trace_result = "(null)";
@@ -436,7 +436,7 @@ MOCK_WEAK_IMPL(const char *, com_util_argparser_default_get_error_target, void)
         printf("  > %s -> %s\n", __func__, trace_result);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 int delegate_real_com_util_argparser_default_get_error_index(void)
@@ -449,23 +449,23 @@ int delegate_real_com_util_argparser_default_get_error_index(void)
 
 MOCK_WEAK_IMPL(int, com_util_argparser_default_get_error_index, void)
 {
-    int rtc;
+    int mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default_get_error_index();
+        mock_ret = _mock_com_util->com_util_argparser_default_get_error_index();
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default_get_error_index();
+        mock_ret = delegate_real_com_util_argparser_default_get_error_index();
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %d\n", __func__, rtc);
+        printf("  > %s -> %d\n", __func__, mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 size_t delegate_real_com_util_argparser_default_get_register_error_count(void)
@@ -478,23 +478,23 @@ size_t delegate_real_com_util_argparser_default_get_register_error_count(void)
 
 MOCK_WEAK_IMPL(size_t, com_util_argparser_default_get_register_error_count, void)
 {
-    size_t rtc;
+    size_t mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default_get_register_error_count();
+        mock_ret = _mock_com_util->com_util_argparser_default_get_register_error_count();
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default_get_register_error_count();
+        mock_ret = delegate_real_com_util_argparser_default_get_register_error_count();
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s -> %zu\n", __func__, rtc);
+        printf("  > %s -> %zu\n", __func__, mock_ret);
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 const char *delegate_real_com_util_argparser_default_get_register_error_target(size_t index)
@@ -507,20 +507,20 @@ const char *delegate_real_com_util_argparser_default_get_register_error_target(s
 
 MOCK_WEAK_IMPL(const char *, com_util_argparser_default_get_register_error_target, size_t index)
 {
-    const char *rtc = nullptr;
+    const char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_argparser_default_get_register_error_target(index);
+        mock_ret = _mock_com_util->com_util_argparser_default_get_register_error_target(index);
     }
     else
     {
-        rtc = delegate_real_com_util_argparser_default_get_register_error_target(index);
+        mock_ret = delegate_real_com_util_argparser_default_get_register_error_target(index);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        const char *trace_result = rtc;
+        const char *trace_result = mock_ret;
         if (trace_result == nullptr)
         {
             trace_result = "(null)";
@@ -528,5 +528,5 @@ MOCK_WEAK_IMPL(const char *, com_util_argparser_default_get_register_error_targe
         printf("  > %s -> %s\n", __func__, trace_result);
     }
 
-    return rtc;
+    return mock_ret;
 }

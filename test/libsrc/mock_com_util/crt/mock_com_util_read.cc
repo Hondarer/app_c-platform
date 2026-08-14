@@ -13,15 +13,15 @@ int64_t delegate_real_com_util_read(int fd, void *buf, size_t count, com_util_er
 
 MOCK_WEAK_IMPL(int64_t, com_util_read, int fd, void *buf, size_t count, com_util_error *detail_out)
 {
-    int64_t rtc = -1;
+    int64_t mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_read(fd, buf, count, detail_out);
+        mock_ret = _mock_com_util->com_util_read(fd, buf, count, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_read(fd, buf, count, detail_out);
+        mock_ret = delegate_real_com_util_read(fd, buf, count, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int64_t, com_util_read, int fd, void *buf, size_t count, com_util
         printf("  > %s %d, 0x%p, %zu", __func__, fd, buf, count);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %" PRId64 "\n", rtc);
+            printf(" -> %" PRId64 "\n", mock_ret);
         }
         else
         {
@@ -37,5 +37,5 @@ MOCK_WEAK_IMPL(int64_t, com_util_read, int fd, void *buf, size_t count, com_util
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

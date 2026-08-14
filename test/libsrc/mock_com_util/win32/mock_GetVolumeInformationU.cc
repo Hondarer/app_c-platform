@@ -18,17 +18,17 @@ MOCK_WEAK_IMPL(BOOL, GetVolumeInformationU, const char *utf8_root_path, char *ut
                DWORD *serial_number, DWORD *max_component_length, DWORD *file_system_flags, char *utf8_file_system_name,
                DWORD file_system_name_size)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->GetVolumeInformationU(utf8_root_path, utf8_volume_name, volume_name_size, serial_number,
+        mock_ret = _mock_com_util->GetVolumeInformationU(utf8_root_path, utf8_volume_name, volume_name_size, serial_number,
                                                     max_component_length, file_system_flags, utf8_file_system_name,
                                                     file_system_name_size);
     }
     else
     {
-        rtc = delegate_real_GetVolumeInformationU(utf8_root_path, utf8_volume_name, volume_name_size, serial_number,
+        mock_ret = delegate_real_GetVolumeInformationU(utf8_root_path, utf8_volume_name, volume_name_size, serial_number,
                                                   max_component_length, file_system_flags, utf8_file_system_name,
                                                   file_system_name_size);
     }
@@ -41,7 +41,7 @@ MOCK_WEAK_IMPL(BOOL, GetVolumeInformationU, const char *utf8_root_path, char *ut
                (void *)utf8_file_system_name, file_system_name_size);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -49,7 +49,7 @@ MOCK_WEAK_IMPL(BOOL, GetVolumeInformationU, const char *utf8_root_path, char *ut
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

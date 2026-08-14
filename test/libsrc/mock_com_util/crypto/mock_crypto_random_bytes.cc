@@ -11,15 +11,15 @@ int delegate_real_com_util_random_bytes(void *buf, size_t size)
 
 MOCK_WEAK_IMPL(int, com_util_random_bytes, void *buf, size_t size)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_random_bytes(buf, size);
+        mock_ret = _mock_com_util->com_util_random_bytes(buf, size);
     }
     else
     {
-        rtc = delegate_real_com_util_random_bytes(buf, size);
+        mock_ret = delegate_real_com_util_random_bytes(buf, size);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_random_bytes, void *buf, size_t size)
         printf("  > %s size=%zu", __func__, size);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_random_bytes, void *buf, size_t size)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

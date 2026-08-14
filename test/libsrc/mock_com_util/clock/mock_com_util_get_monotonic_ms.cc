@@ -11,15 +11,15 @@ uint64_t delegate_real_com_util_get_monotonic_ms(void)
 
 MOCK_WEAK_IMPL(uint64_t, com_util_get_monotonic_ms, void)
 {
-    uint64_t rtc = 0;
+    uint64_t mock_ret = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_get_monotonic_ms();
+        mock_ret = _mock_com_util->com_util_get_monotonic_ms();
     }
     else
     {
-        rtc = delegate_real_com_util_get_monotonic_ms();
+        mock_ret = delegate_real_com_util_get_monotonic_ms();
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(uint64_t, com_util_get_monotonic_ms, void)
         printf("  > %s", __func__);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %llu\n", (unsigned long long)rtc);
+            printf(" -> %llu\n", (unsigned long long)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(uint64_t, com_util_get_monotonic_ms, void)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

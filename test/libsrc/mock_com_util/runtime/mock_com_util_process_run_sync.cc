@@ -11,16 +11,16 @@ int delegate_real_com_util_process_run_sync(const com_util_process_options *opti
 
 MOCK_WEAK_IMPL(int, com_util_process_run_sync, const com_util_process_options *options, int timeout_ms, int *exit_code)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_process_run_sync(options, timeout_ms, exit_code);
+        mock_ret = _mock_com_util->com_util_process_run_sync(options, timeout_ms, exit_code);
     }
     else
     {
-        rtc = delegate_real_com_util_process_run_sync(options, timeout_ms, exit_code);
+        mock_ret = delegate_real_com_util_process_run_sync(options, timeout_ms, exit_code);
     }
 
-    return rtc;
+    return mock_ret;
 }

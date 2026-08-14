@@ -15,15 +15,15 @@ int delegate_real_com_util_syslog_sink_write(com_util_syslog_sink *handle, int l
 MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, int level,
                const com_util_timespec *timestamp, const char *message)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_syslog_sink_write(handle, level, timestamp, message);
+        mock_ret = _mock_com_util->com_util_syslog_sink_write(handle, level, timestamp, message);
     }
     else
     {
-        rtc = delegate_real_com_util_syslog_sink_write(handle, level, timestamp, message);
+        mock_ret = delegate_real_com_util_syslog_sink_write(handle, level, timestamp, message);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -41,7 +41,7 @@ MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, in
         printf("  > %s %d ts=%s \"%s\"", __func__, level, timestamp_text, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -49,7 +49,7 @@ MOCK_WEAK_IMPL(int, com_util_syslog_sink_write, com_util_syslog_sink *handle, in
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_LINUX */

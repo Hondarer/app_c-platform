@@ -15,15 +15,15 @@ BOOL delegate_real_WriteConsoleU(HANDLE console, const char *utf8_text, DWORD ut
 MOCK_WEAK_IMPL(BOOL, WriteConsoleU, HANDLE console, const char *utf8_text, DWORD utf8_length, DWORD *written_length,
                void *reserved)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->WriteConsoleU(console, utf8_text, utf8_length, written_length, reserved);
+        mock_ret = _mock_com_util->WriteConsoleU(console, utf8_text, utf8_length, written_length, reserved);
     }
     else
     {
-        rtc = delegate_real_WriteConsoleU(console, utf8_text, utf8_length, written_length, reserved);
+        mock_ret = delegate_real_WriteConsoleU(console, utf8_text, utf8_length, written_length, reserved);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(BOOL, WriteConsoleU, HANDLE console, const char *utf8_text, DWORD
                (utf8_text != nullptr) ? utf8_text : "(null)", utf8_length, (void *)written_length, reserved);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -40,7 +40,7 @@ MOCK_WEAK_IMPL(BOOL, WriteConsoleU, HANDLE console, const char *utf8_text, DWORD
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

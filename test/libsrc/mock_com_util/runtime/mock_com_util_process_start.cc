@@ -11,16 +11,16 @@ int delegate_real_com_util_process_start(const com_util_process_options *options
 
 MOCK_WEAK_IMPL(int, com_util_process_start, const com_util_process_options *options, com_util_process **process)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_process_start(options, process);
+        mock_ret = _mock_com_util->com_util_process_start(options, process);
     }
     else
     {
-        rtc = delegate_real_com_util_process_start(options, process);
+        mock_ret = delegate_real_com_util_process_start(options, process);
     }
 
-    return rtc;
+    return mock_ret;
 }

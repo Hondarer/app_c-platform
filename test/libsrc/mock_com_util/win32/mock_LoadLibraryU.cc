@@ -13,15 +13,15 @@ HMODULE delegate_real_LoadLibraryU(const char *utf8_file_name)
 
 MOCK_WEAK_IMPL(HMODULE, LoadLibraryU, const char *utf8_file_name)
 {
-    HMODULE rtc;
+    HMODULE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->LoadLibraryU(utf8_file_name);
+        mock_ret = _mock_com_util->LoadLibraryU(utf8_file_name);
     }
     else
     {
-        rtc = delegate_real_LoadLibraryU(utf8_file_name);
+        mock_ret = delegate_real_LoadLibraryU(utf8_file_name);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(HMODULE, LoadLibraryU, const char *utf8_file_name)
         printf("  > %s %s", __func__, (utf8_file_name != nullptr) ? utf8_file_name : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(HMODULE, LoadLibraryU, const char *utf8_file_name)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

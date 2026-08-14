@@ -13,15 +13,15 @@ int delegate_real_com_util_pinned_prompt_status_enable(com_util_pinned_prompt *s
 MOCK_WEAK_IMPL(int, com_util_pinned_prompt_status_enable, com_util_pinned_prompt *screen,
                com_util_pinned_prompt_status_position position, int enable)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_pinned_prompt_status_enable(screen, position, enable);
+        mock_ret = _mock_com_util->com_util_pinned_prompt_status_enable(screen, position, enable);
     }
     else
     {
-        rtc = delegate_real_com_util_pinned_prompt_status_enable(screen, position, enable);
+        mock_ret = delegate_real_com_util_pinned_prompt_status_enable(screen, position, enable);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_pinned_prompt_status_enable, com_util_pinned_prompt
         printf("  > %s 0x%p, %d, %d", __func__, (void *)screen, (int)position, enable);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,5 +37,5 @@ MOCK_WEAK_IMPL(int, com_util_pinned_prompt_status_enable, com_util_pinned_prompt
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

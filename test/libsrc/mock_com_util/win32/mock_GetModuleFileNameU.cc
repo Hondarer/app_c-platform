@@ -13,15 +13,15 @@ DWORD delegate_real_GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD siz
 
 MOCK_WEAK_IMPL(DWORD, GetModuleFileNameU, HMODULE module, char *utf8_buf, DWORD size)
 {
-    DWORD rtc;
+    DWORD mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->GetModuleFileNameU(module, utf8_buf, size);
+        mock_ret = _mock_com_util->GetModuleFileNameU(module, utf8_buf, size);
     }
     else
     {
-        rtc = delegate_real_GetModuleFileNameU(module, utf8_buf, size);
+        mock_ret = delegate_real_GetModuleFileNameU(module, utf8_buf, size);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(DWORD, GetModuleFileNameU, HMODULE module, char *utf8_buf, DWORD 
         printf("  > %s 0x%p, 0x%p, %lu", __func__, (void *)module, (void *)utf8_buf, size);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %lu\n", rtc);
+            printf(" -> %lu\n", mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(DWORD, GetModuleFileNameU, HMODULE module, char *utf8_buf, DWORD 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

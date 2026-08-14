@@ -11,11 +11,11 @@ void *delegate_real_com_util_sym_loader_resolve(com_util_sym_loader_entry *fobj)
 
 MOCK_WEAK_IMPL(void *, com_util_sym_loader_resolve, com_util_sym_loader_entry *fobj)
 {
-    void *rtc = nullptr;
+    void *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_sym_loader_resolve(fobj);
+        mock_ret = _mock_com_util->com_util_sym_loader_resolve(fobj);
     }
     else
     {
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(void *, com_util_sym_loader_resolve, com_util_sym_loader_entry *f
         printf("  > %s 0x%p", __func__, (void *)fobj);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", rtc);
+            printf(" -> 0x%p\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(void *, com_util_sym_loader_resolve, com_util_sym_loader_entry *f
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

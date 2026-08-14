@@ -19,18 +19,18 @@ int delegate_real_com_util_prompt_readline_fmt_at(com_util_prompt *p, char *buf,
 MOCK_WEAK_IMPL(int, com_util_prompt_readline_fmt_at, com_util_prompt *p, char *buf, size_t buf_size, const char *file,
                int line, const char *fmt, ...)
 {
-    int rtc = 0;
+    int mock_ret = 0;
     va_list args;
 
     va_start(args, fmt);
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_prompt_readline_fmt_at(p, buf, buf_size, file, line, fmt, args);
+        mock_ret = _mock_com_util->com_util_prompt_readline_fmt_at(p, buf, buf_size, file, line, fmt, args);
     }
     else
     {
-        rtc = delegate_real_com_util_prompt_readline_fmt_at(p, buf, buf_size, file, line, fmt, args);
+        mock_ret = delegate_real_com_util_prompt_readline_fmt_at(p, buf, buf_size, file, line, fmt, args);
     }
 
     va_end(args);
@@ -46,7 +46,7 @@ MOCK_WEAK_IMPL(int, com_util_prompt_readline_fmt_at, com_util_prompt *p, char *b
         printf("  > %s \"%s\"", __func__, fmt_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -54,5 +54,5 @@ MOCK_WEAK_IMPL(int, com_util_prompt_readline_fmt_at, com_util_prompt *p, char *b
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

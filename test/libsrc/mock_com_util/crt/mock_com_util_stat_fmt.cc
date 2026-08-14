@@ -14,7 +14,7 @@ int delegate_real_com_util_stat_fmt(com_util_file_stat_t *buf, com_util_error *d
 
 MOCK_WEAK_IMPL(int, com_util_stat_fmt, com_util_file_stat_t *buf, com_util_error *detail_out, const char *format, ...)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     std::vector<char> path;
     {
@@ -26,11 +26,11 @@ MOCK_WEAK_IMPL(int, com_util_stat_fmt, com_util_file_stat_t *buf, com_util_error
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_stat_fmt(buf, detail_out, path.data());
+        mock_ret = _mock_com_util->com_util_stat_fmt(buf, detail_out, path.data());
     }
     else
     {
-        rtc = delegate_real_com_util_stat_fmt(buf, detail_out, path.data());
+        mock_ret = delegate_real_com_util_stat_fmt(buf, detail_out, path.data());
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -38,7 +38,7 @@ MOCK_WEAK_IMPL(int, com_util_stat_fmt, com_util_file_stat_t *buf, com_util_error
         printf("  > %s 0x%p, %s", __func__, (void *)buf, path.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -46,5 +46,5 @@ MOCK_WEAK_IMPL(int, com_util_stat_fmt, com_util_file_stat_t *buf, com_util_error
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

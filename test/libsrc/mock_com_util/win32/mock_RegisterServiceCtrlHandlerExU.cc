@@ -15,15 +15,15 @@ SERVICE_STATUS_HANDLE delegate_real_RegisterServiceCtrlHandlerExU(const char *ut
 MOCK_WEAK_IMPL(SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerExU, const char *utf8_service_name,
                LPHANDLER_FUNCTION_EX handler_proc, LPVOID context)
 {
-    SERVICE_STATUS_HANDLE rtc;
+    SERVICE_STATUS_HANDLE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->RegisterServiceCtrlHandlerExU(utf8_service_name, handler_proc, context);
+        mock_ret = _mock_com_util->RegisterServiceCtrlHandlerExU(utf8_service_name, handler_proc, context);
     }
     else
     {
-        rtc = delegate_real_RegisterServiceCtrlHandlerExU(utf8_service_name, handler_proc, context);
+        mock_ret = delegate_real_RegisterServiceCtrlHandlerExU(utf8_service_name, handler_proc, context);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerExU, const char 
                (void *)handler_proc, (void *)context);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -40,7 +40,7 @@ MOCK_WEAK_IMPL(SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerExU, const char 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

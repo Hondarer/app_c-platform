@@ -11,15 +11,15 @@ int delegate_real_com_util_fgets(char *dest, size_t dest_size, FILE *stream, com
 
 MOCK_WEAK_IMPL(int, com_util_fgets, char *dest, size_t dest_size, FILE *stream, com_util_error *detail_out)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_fgets(dest, dest_size, stream, detail_out);
+        mock_ret = _mock_com_util->com_util_fgets(dest, dest_size, stream, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_fgets(dest, dest_size, stream, detail_out);
+        mock_ret = delegate_real_com_util_fgets(dest, dest_size, stream, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_fgets, char *dest, size_t dest_size, FILE *stream, 
         printf("  > %s 0x%p, %zu, 0x%p", __func__, (void *)dest, dest_size, (void *)stream);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_fgets, char *dest, size_t dest_size, FILE *stream, 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

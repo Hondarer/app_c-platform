@@ -13,15 +13,15 @@ int delegate_real_com_util_syslog_sink_rename(com_util_syslog_sink *handle, cons
 
 MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink *handle, const char *new_ident)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_syslog_sink_rename(handle, new_ident);
+        mock_ret = _mock_com_util->com_util_syslog_sink_rename(handle, new_ident);
     }
     else
     {
-        rtc = delegate_real_com_util_syslog_sink_rename(handle, new_ident);
+        mock_ret = delegate_real_com_util_syslog_sink_rename(handle, new_ident);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink *handle, c
         printf("  > %s \"%s\"", __func__, new_ident != nullptr ? new_ident : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(int, com_util_syslog_sink_rename, com_util_syslog_sink *handle, c
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_LINUX */

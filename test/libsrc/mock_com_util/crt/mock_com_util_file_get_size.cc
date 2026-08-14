@@ -11,15 +11,15 @@ int delegate_real_com_util_file_get_size(const com_util_file *file, size_t *size
 
 MOCK_WEAK_IMPL(int, com_util_file_get_size, const com_util_file *file, size_t *size_out, com_util_error *detail_out)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_file_get_size(file, size_out, detail_out);
+        mock_ret = _mock_com_util->com_util_file_get_size(file, size_out, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_file_get_size(file, size_out, detail_out);
+        mock_ret = delegate_real_com_util_file_get_size(file, size_out, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_file_get_size, const com_util_file *file, size_t *s
         printf("  > %s 0x%p, 0x%p", __func__, (const void *)file, (void *)size_out);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_file_get_size, const com_util_file *file, size_t *s
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

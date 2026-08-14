@@ -11,15 +11,15 @@ int delegate_real_com_util_dup2(int oldfd, int newfd, com_util_error *detail_out
 
 MOCK_WEAK_IMPL(int, com_util_dup2, int oldfd, int newfd, com_util_error *detail_out)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_dup2(oldfd, newfd, detail_out);
+        mock_ret = _mock_com_util->com_util_dup2(oldfd, newfd, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_dup2(oldfd, newfd, detail_out);
+        mock_ret = delegate_real_com_util_dup2(oldfd, newfd, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_dup2, int oldfd, int newfd, com_util_error *detail_
         printf("  > %s %d, %d", __func__, oldfd, newfd);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_dup2, int oldfd, int newfd, com_util_error *detail_
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

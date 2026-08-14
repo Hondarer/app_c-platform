@@ -11,15 +11,15 @@ com_util_pinned_prompt *delegate_real_com_util_pinned_prompt_create(const com_ut
 
 MOCK_WEAK_IMPL(com_util_pinned_prompt *, com_util_pinned_prompt_create, const com_util_pinned_prompt_options *options)
 {
-    com_util_pinned_prompt *rtc = nullptr;
+    com_util_pinned_prompt *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_pinned_prompt_create(options);
+        mock_ret = _mock_com_util->com_util_pinned_prompt_create(options);
     }
     else
     {
-        rtc = delegate_real_com_util_pinned_prompt_create(options);
+        mock_ret = delegate_real_com_util_pinned_prompt_create(options);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(com_util_pinned_prompt *, com_util_pinned_prompt_create, const co
         printf("  > %s 0x%p", __func__, (const void *)options);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(com_util_pinned_prompt *, com_util_pinned_prompt_create, const co
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

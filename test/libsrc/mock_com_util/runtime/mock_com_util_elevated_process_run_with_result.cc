@@ -13,16 +13,16 @@ int delegate_real_com_util_elevated_process_run_with_result(const char *argument
 MOCK_WEAK_IMPL(int, com_util_elevated_process_run_with_result, const char *arguments, int *exit_code, int *handled,
                char *result_message, size_t result_message_size)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
+        mock_ret = _mock_com_util->com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
                                                                         result_message_size);
     }
     else
     {
-        rtc = delegate_real_com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
+        mock_ret = delegate_real_com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message,
                                                                       result_message_size);
     }
 
@@ -39,7 +39,7 @@ MOCK_WEAK_IMPL(int, com_util_elevated_process_run_with_result, const char *argum
         }
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -47,5 +47,5 @@ MOCK_WEAK_IMPL(int, com_util_elevated_process_run_with_result, const char *argum
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

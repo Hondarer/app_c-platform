@@ -11,15 +11,15 @@ int delegate_real_com_util_console_attach_parent(int *argc, char **argv, int *at
 
 MOCK_WEAK_IMPL(int, com_util_console_attach_parent, int *argc, char **argv, int *attached_out)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_console_attach_parent(argc, argv, attached_out);
+        mock_ret = _mock_com_util->com_util_console_attach_parent(argc, argv, attached_out);
     }
     else
     {
-        rtc = delegate_real_com_util_console_attach_parent(argc, argv, attached_out);
+        mock_ret = delegate_real_com_util_console_attach_parent(argc, argv, attached_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_console_attach_parent, int *argc, char **argv, int 
         printf("  > %s", __func__);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_console_attach_parent, int *argc, char **argv, int 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

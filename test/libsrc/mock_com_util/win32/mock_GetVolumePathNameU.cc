@@ -13,15 +13,15 @@ BOOL delegate_real_GetVolumePathNameU(const char *utf8_path, char *utf8_volume_r
 
 MOCK_WEAK_IMPL(BOOL, GetVolumePathNameU, const char *utf8_path, char *utf8_volume_root, DWORD size)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->GetVolumePathNameU(utf8_path, utf8_volume_root, size);
+        mock_ret = _mock_com_util->GetVolumePathNameU(utf8_path, utf8_volume_root, size);
     }
     else
     {
-        rtc = delegate_real_GetVolumePathNameU(utf8_path, utf8_volume_root, size);
+        mock_ret = delegate_real_GetVolumePathNameU(utf8_path, utf8_volume_root, size);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -30,7 +30,7 @@ MOCK_WEAK_IMPL(BOOL, GetVolumePathNameU, const char *utf8_path, char *utf8_volum
                (void *)utf8_volume_root, size);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -38,7 +38,7 @@ MOCK_WEAK_IMPL(BOOL, GetVolumePathNameU, const char *utf8_path, char *utf8_volum
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

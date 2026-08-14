@@ -13,15 +13,15 @@ int delegate_real_com_util_tracer_set_file_level(com_util_tracer *handle, const 
 MOCK_WEAK_IMPL(int, com_util_tracer_set_file_level, com_util_tracer *handle, const char *path,
                com_util_trace_level level, size_t max_bytes, int generations, int flags)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_set_file_level(handle, path, level, max_bytes, generations, flags);
+        mock_ret = _mock_com_util->com_util_tracer_set_file_level(handle, path, level, max_bytes, generations, flags);
     }
     else
     {
-        rtc = delegate_real_com_util_tracer_set_file_level(handle, path, level, max_bytes, generations, flags);
+        mock_ret = delegate_real_com_util_tracer_set_file_level(handle, path, level, max_bytes, generations, flags);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -30,7 +30,7 @@ MOCK_WEAK_IMPL(int, com_util_tracer_set_file_level, com_util_tracer *handle, con
                flags);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -38,5 +38,5 @@ MOCK_WEAK_IMPL(int, com_util_tracer_set_file_level, com_util_tracer *handle, con
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

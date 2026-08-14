@@ -16,16 +16,16 @@ int delegate_real_com_util_etw_session_start(const char *session_name, const cha
 MOCK_WEAK_IMPL(int, com_util_etw_session_start, const char *session_name, const char *provider_guid_str,
                com_util_etw_event_fn callback, void *context, com_util_etw_session **session_out)
 {
-    int rtc;
+    int mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc =
+        mock_ret =
             _mock_com_util->com_util_etw_session_start(session_name, provider_guid_str, callback, context, session_out);
     }
     else
     {
-        rtc = delegate_real_com_util_etw_session_start(session_name, provider_guid_str, callback, context, session_out);
+        mock_ret = delegate_real_com_util_etw_session_start(session_name, provider_guid_str, callback, context, session_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -33,7 +33,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_session_start, const char *session_name, const 
         printf("  > %s \"%s\"", __func__, session_name != nullptr ? session_name : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -41,7 +41,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_session_start, const char *session_name, const 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

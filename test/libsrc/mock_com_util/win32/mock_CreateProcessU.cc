@@ -21,17 +21,17 @@ MOCK_WEAK_IMPL(BOOL, CreateProcessU, const char *utf8_application_name, const ch
                DWORD creation_flags, LPVOID environment, const char *utf8_current_directory,
                LPSTARTUPINFOW startup_info, LPPROCESS_INFORMATION process_information)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->CreateProcessU(utf8_application_name, utf8_command_line, process_attributes,
+        mock_ret = _mock_com_util->CreateProcessU(utf8_application_name, utf8_command_line, process_attributes,
                                              thread_attributes, inherit_handles, creation_flags, environment,
                                              utf8_current_directory, startup_info, process_information);
     }
     else
     {
-        rtc = delegate_real_CreateProcessU(utf8_application_name, utf8_command_line, process_attributes,
+        mock_ret = delegate_real_CreateProcessU(utf8_application_name, utf8_command_line, process_attributes,
                                            thread_attributes, inherit_handles, creation_flags, environment,
                                            utf8_current_directory, startup_info, process_information);
     }
@@ -46,7 +46,7 @@ MOCK_WEAK_IMPL(BOOL, CreateProcessU, const char *utf8_application_name, const ch
                (void *)process_information);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -54,7 +54,7 @@ MOCK_WEAK_IMPL(BOOL, CreateProcessU, const char *utf8_application_name, const ch
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

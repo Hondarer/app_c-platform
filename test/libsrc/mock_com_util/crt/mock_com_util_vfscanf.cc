@@ -11,15 +11,15 @@ int delegate_real_com_util_vfscanf(FILE *stream, const char *format, va_list arg
 
 MOCK_WEAK_IMPL(int, com_util_vfscanf, FILE *stream, const char *format, va_list args)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vfscanf(stream, format, args);
+        mock_ret = _mock_com_util->com_util_vfscanf(stream, format, args);
     }
     else
     {
-        rtc = delegate_real_com_util_vfscanf(stream, format, args);
+        mock_ret = delegate_real_com_util_vfscanf(stream, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_vfscanf, FILE *stream, const char *format, va_list 
         printf("  > %s 0x%p, \"%s\"", __func__, (void *)stream, format);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_vfscanf, FILE *stream, const char *format, va_list 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

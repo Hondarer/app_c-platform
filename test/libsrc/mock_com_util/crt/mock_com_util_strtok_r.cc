@@ -11,15 +11,15 @@ char *delegate_real_com_util_strtok_r(char *str, const char *delim, char **savep
 
 MOCK_WEAK_IMPL(char *, com_util_strtok_r, char *str, const char *delim, char **saveptr)
 {
-    char *rtc = nullptr;
+    char *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_strtok_r(str, delim, saveptr);
+        mock_ret = _mock_com_util->com_util_strtok_r(str, delim, saveptr);
     }
     else
     {
-        rtc = delegate_real_com_util_strtok_r(str, delim, saveptr);
+        mock_ret = delegate_real_com_util_strtok_r(str, delim, saveptr);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(char *, com_util_strtok_r, char *str, const char *delim, char **s
         printf("  > %s 0x%p, %s", __func__, (void *)str, delim);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(char *, com_util_strtok_r, char *str, const char *delim, char **s
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

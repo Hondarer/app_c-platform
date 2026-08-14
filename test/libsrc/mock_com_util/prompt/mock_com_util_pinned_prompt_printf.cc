@@ -21,7 +21,7 @@ int delegate_real_com_util_pinned_prompt_printf(com_util_pinned_prompt *screen, 
 MOCK_WEAK_IMPL(int, com_util_pinned_prompt_printf, com_util_pinned_prompt *screen,
                com_util_pinned_prompt_channel channel, const char *fmt, ...)
 {
-    int rtc = -1;
+    int mock_ret = -1;
     std::vector<char> buf;
 
     {
@@ -34,11 +34,11 @@ MOCK_WEAK_IMPL(int, com_util_pinned_prompt_printf, com_util_pinned_prompt *scree
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_pinned_prompt_printf(screen, channel, buf.data());
+        mock_ret = _mock_com_util->com_util_pinned_prompt_printf(screen, channel, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_pinned_prompt_printf(screen, channel, buf.data());
+        mock_ret = delegate_real_com_util_pinned_prompt_printf(screen, channel, buf.data());
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -46,7 +46,7 @@ MOCK_WEAK_IMPL(int, com_util_pinned_prompt_printf, com_util_pinned_prompt *scree
         printf("  > %s 0x%p, %d, %s", __func__, (void *)screen, (int)channel, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -54,5 +54,5 @@ MOCK_WEAK_IMPL(int, com_util_pinned_prompt_printf, com_util_pinned_prompt *scree
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

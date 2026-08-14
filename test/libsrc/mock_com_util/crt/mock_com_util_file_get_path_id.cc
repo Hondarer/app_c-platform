@@ -11,15 +11,15 @@ int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *
 
 MOCK_WEAK_IMPL(int, com_util_file_get_path_id, const char *path, com_util_file_id *id_out, com_util_error *detail_out)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_file_get_path_id(path, id_out, detail_out);
+        mock_ret = _mock_com_util->com_util_file_get_path_id(path, id_out, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_file_get_path_id(path, id_out, detail_out);
+        mock_ret = delegate_real_com_util_file_get_path_id(path, id_out, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(int, com_util_file_get_path_id, const char *path, com_util_file_i
         printf("  > %s \"%s\", 0x%p", __func__, path_text, (void *)id_out);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -40,5 +40,5 @@ MOCK_WEAK_IMPL(int, com_util_file_get_path_id, const char *path, com_util_file_i
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

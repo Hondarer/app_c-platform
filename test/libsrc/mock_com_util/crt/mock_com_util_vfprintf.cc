@@ -14,17 +14,17 @@ int delegate_real_com_util_vfprintf(FILE *stream, const char *format, va_list ar
 
 MOCK_WEAK_IMPL(int, com_util_vfprintf, FILE *stream, const char *format, va_list args)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     std::vector<char> buf = mock_com_util_expand_format(format, args);
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vfprintf(stream, buf.data());
+        mock_ret = _mock_com_util->com_util_vfprintf(stream, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_vfprintf(stream, format, args);
+        mock_ret = delegate_real_com_util_vfprintf(stream, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -32,7 +32,7 @@ MOCK_WEAK_IMPL(int, com_util_vfprintf, FILE *stream, const char *format, va_list
         printf("  > %s 0x%p, %s", __func__, (void *)stream, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -40,5 +40,5 @@ MOCK_WEAK_IMPL(int, com_util_vfprintf, FILE *stream, const char *format, va_list
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

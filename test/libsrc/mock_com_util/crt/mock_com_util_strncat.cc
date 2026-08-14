@@ -11,15 +11,15 @@ int delegate_real_com_util_strncat(char *dest, size_t dest_size, const char *src
 
 MOCK_WEAK_IMPL(int, com_util_strncat, char *dest, size_t dest_size, const char *src, size_t count)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_strncat(dest, dest_size, src, count);
+        mock_ret = _mock_com_util->com_util_strncat(dest, dest_size, src, count);
     }
     else
     {
-        rtc = delegate_real_com_util_strncat(dest, dest_size, src, count);
+        mock_ret = delegate_real_com_util_strncat(dest, dest_size, src, count);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_strncat, char *dest, size_t dest_size, const char *
         printf("  > %s 0x%p, %zu, %s, %zu", __func__, (void *)dest, dest_size, src, count);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_strncat, char *dest, size_t dest_size, const char *
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

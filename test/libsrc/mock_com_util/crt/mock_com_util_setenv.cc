@@ -11,15 +11,15 @@ int delegate_real_com_util_setenv(const char *name, const char *value, int overw
 
 MOCK_WEAK_IMPL(int, com_util_setenv, const char *name, const char *value, int overwrite, com_util_error *detail_out)
 {
-    int rtc = EINVAL;
+    int mock_ret = EINVAL;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_setenv(name, value, overwrite, detail_out);
+        mock_ret = _mock_com_util->com_util_setenv(name, value, overwrite, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_setenv(name, value, overwrite, detail_out);
+        mock_ret = delegate_real_com_util_setenv(name, value, overwrite, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_setenv, const char *name, const char *value, int ov
         printf("  > %s %s, %s", __func__, name, value);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_setenv, const char *name, const char *value, int ov
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

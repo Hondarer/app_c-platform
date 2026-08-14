@@ -13,15 +13,15 @@ int delegate_real_com_util_eventlog_unregister_source(const char *source_name)
 
 MOCK_WEAK_IMPL(int, com_util_eventlog_unregister_source, const char *source_name)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_eventlog_unregister_source(source_name);
+        mock_ret = _mock_com_util->com_util_eventlog_unregister_source(source_name);
     }
     else
     {
-        rtc = delegate_real_com_util_eventlog_unregister_source(source_name);
+        mock_ret = delegate_real_com_util_eventlog_unregister_source(source_name);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_eventlog_unregister_source, const char *source_name
         printf("  > %s \"%s\"", __func__, source_name != nullptr ? source_name : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(int, com_util_eventlog_unregister_source, const char *source_name
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

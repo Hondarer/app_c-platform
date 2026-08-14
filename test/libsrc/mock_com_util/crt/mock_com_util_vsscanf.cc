@@ -11,15 +11,15 @@ int delegate_real_com_util_vsscanf(const char *buffer, const char *format, va_li
 
 MOCK_WEAK_IMPL(int, com_util_vsscanf, const char *buffer, const char *format, va_list args)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_vsscanf(buffer, format, args);
+        mock_ret = _mock_com_util->com_util_vsscanf(buffer, format, args);
     }
     else
     {
-        rtc = delegate_real_com_util_vsscanf(buffer, format, args);
+        mock_ret = delegate_real_com_util_vsscanf(buffer, format, args);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_vsscanf, const char *buffer, const char *format, va
         printf("  > %s \"%s\", \"%s\"", __func__, buffer, format);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_vsscanf, const char *buffer, const char *format, va
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

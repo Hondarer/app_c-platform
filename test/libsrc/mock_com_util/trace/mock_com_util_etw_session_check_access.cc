@@ -13,15 +13,15 @@ int delegate_real_com_util_etw_session_check_access(void)
 
 MOCK_WEAK_IMPL(int, com_util_etw_session_check_access, void)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_etw_session_check_access();
+        mock_ret = _mock_com_util->com_util_etw_session_check_access();
     }
     else
     {
-        rtc = delegate_real_com_util_etw_session_check_access();
+        mock_ret = delegate_real_com_util_etw_session_check_access();
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_session_check_access, void)
         printf("  > %s", __func__);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_session_check_access, void)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

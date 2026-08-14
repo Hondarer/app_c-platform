@@ -12,15 +12,15 @@ int64_t delegate_real_com_util_ftell(FILE *stream)
 
 MOCK_WEAK_IMPL(int64_t, com_util_ftell, FILE *stream)
 {
-    int64_t rtc = -1;
+    int64_t mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_ftell(stream);
+        mock_ret = _mock_com_util->com_util_ftell(stream);
     }
     else
     {
-        rtc = delegate_real_com_util_ftell(stream);
+        mock_ret = delegate_real_com_util_ftell(stream);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -28,7 +28,7 @@ MOCK_WEAK_IMPL(int64_t, com_util_ftell, FILE *stream)
         printf("  > %s 0x%p", __func__, (void *)stream);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %" PRId64 "\n", rtc);
+            printf(" -> %" PRId64 "\n", mock_ret);
         }
         else
         {
@@ -36,5 +36,5 @@ MOCK_WEAK_IMPL(int64_t, com_util_ftell, FILE *stream)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

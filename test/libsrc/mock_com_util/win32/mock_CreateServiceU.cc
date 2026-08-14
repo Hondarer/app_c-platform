@@ -22,17 +22,17 @@ MOCK_WEAK_IMPL(SC_HANDLE, CreateServiceU, SC_HANDLE scm, const char *utf8_servic
                const char *utf8_binary_path_name, const char *utf8_load_order_group, LPDWORD tag_id,
                const char *utf8_dependencies, const char *utf8_service_start_name, const char *utf8_password)
 {
-    SC_HANDLE rtc;
+    SC_HANDLE mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->CreateServiceU(scm, utf8_service_name, utf8_display_name, desired_access, service_type,
+        mock_ret = _mock_com_util->CreateServiceU(scm, utf8_service_name, utf8_display_name, desired_access, service_type,
                                              start_type, error_control, utf8_binary_path_name, utf8_load_order_group,
                                              tag_id, utf8_dependencies, utf8_service_start_name, utf8_password);
     }
     else
     {
-        rtc = delegate_real_CreateServiceU(scm, utf8_service_name, utf8_display_name, desired_access, service_type,
+        mock_ret = delegate_real_CreateServiceU(scm, utf8_service_name, utf8_display_name, desired_access, service_type,
                                            start_type, error_control, utf8_binary_path_name, utf8_load_order_group,
                                            tag_id, utf8_dependencies, utf8_service_start_name, utf8_password);
     }
@@ -49,7 +49,7 @@ MOCK_WEAK_IMPL(SC_HANDLE, CreateServiceU, SC_HANDLE scm, const char *utf8_servic
                (utf8_password != nullptr) ? "(masked)" : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -57,7 +57,7 @@ MOCK_WEAK_IMPL(SC_HANDLE, CreateServiceU, SC_HANDLE scm, const char *utf8_servic
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

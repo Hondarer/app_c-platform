@@ -16,7 +16,7 @@ int delegate_real_com_util_tracer_writef_at(com_util_tracer *handle, com_util_tr
 MOCK_WEAK_IMPL(int, com_util_tracer_writef_at, com_util_tracer *handle, com_util_trace_level level,
                const com_util_timespec *timestamp, const char *format, ...)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     std::vector<char> buf;
     {
@@ -28,11 +28,11 @@ MOCK_WEAK_IMPL(int, com_util_tracer_writef_at, com_util_tracer *handle, com_util
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_writef_at(handle, level, timestamp, buf.data());
+        mock_ret = _mock_com_util->com_util_tracer_writef_at(handle, level, timestamp, buf.data());
     }
     else
     {
-        rtc = delegate_real_com_util_tracer_writef_at(handle, level, timestamp, buf.data());
+        mock_ret = delegate_real_com_util_tracer_writef_at(handle, level, timestamp, buf.data());
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -40,7 +40,7 @@ MOCK_WEAK_IMPL(int, com_util_tracer_writef_at, com_util_tracer *handle, com_util
         printf("  > %s 0x%p, %d, 0x%p, %s", __func__, (void *)handle, (int)level, (const void *)timestamp, buf.data());
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -48,5 +48,5 @@ MOCK_WEAK_IMPL(int, com_util_tracer_writef_at, com_util_tracer *handle, com_util
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

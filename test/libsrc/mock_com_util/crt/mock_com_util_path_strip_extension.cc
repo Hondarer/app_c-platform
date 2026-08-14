@@ -13,15 +13,15 @@ int delegate_real_com_util_path_strip_extension(char *path_out, size_t path_size
 MOCK_WEAK_IMPL(int, com_util_path_strip_extension, char *path_out, size_t path_size, com_util_error *detail_out,
                const char *path)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_path_strip_extension(path_out, path_size, detail_out, path);
+        mock_ret = _mock_com_util->com_util_path_strip_extension(path_out, path_size, detail_out, path);
     }
     else
     {
-        rtc = delegate_real_com_util_path_strip_extension(path_out, path_size, detail_out, path);
+        mock_ret = delegate_real_com_util_path_strip_extension(path_out, path_size, detail_out, path);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -34,7 +34,7 @@ MOCK_WEAK_IMPL(int, com_util_path_strip_extension, char *path_out, size_t path_s
         printf("  > %s %s", __func__, path_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -42,5 +42,5 @@ MOCK_WEAK_IMPL(int, com_util_path_strip_extension, char *path_out, size_t path_s
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

@@ -11,16 +11,16 @@ int delegate_real_com_util_process_get_exit_code(com_util_process *process, int 
 
 MOCK_WEAK_IMPL(int, com_util_process_get_exit_code, com_util_process *process, int *exit_code)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_process_get_exit_code(process, exit_code);
+        mock_ret = _mock_com_util->com_util_process_get_exit_code(process, exit_code);
     }
     else
     {
-        rtc = delegate_real_com_util_process_get_exit_code(process, exit_code);
+        mock_ret = delegate_real_com_util_process_get_exit_code(process, exit_code);
     }
 
-    return rtc;
+    return mock_ret;
 }

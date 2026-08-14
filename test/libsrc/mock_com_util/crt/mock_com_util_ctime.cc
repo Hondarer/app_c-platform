@@ -11,15 +11,15 @@ int delegate_real_com_util_ctime(char *buf, size_t buf_size, const time_t *timep
 
 MOCK_WEAK_IMPL(int, com_util_ctime, char *buf, size_t buf_size, const time_t *timep)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_ctime(buf, buf_size, timep);
+        mock_ret = _mock_com_util->com_util_ctime(buf, buf_size, timep);
     }
     else
     {
-        rtc = delegate_real_com_util_ctime(buf, buf_size, timep);
+        mock_ret = delegate_real_com_util_ctime(buf, buf_size, timep);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_ctime, char *buf, size_t buf_size, const time_t *ti
         printf("  > %s 0x%p, %zu, 0x%p", __func__, (void *)buf, buf_size, (const void *)timep);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_ctime, char *buf, size_t buf_size, const time_t *ti
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

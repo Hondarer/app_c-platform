@@ -13,15 +13,15 @@ int delegate_real_com_util_getenv(const char *name, char *buf, size_t buf_size, 
 MOCK_WEAK_IMPL(int, com_util_getenv, const char *name, char *buf, size_t buf_size, int *exists_out,
                com_util_error *detail_out)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_getenv(name, buf, buf_size, exists_out, detail_out);
+        mock_ret = _mock_com_util->com_util_getenv(name, buf, buf_size, exists_out, detail_out);
     }
     else
     {
-        rtc = delegate_real_com_util_getenv(name, buf, buf_size, exists_out, detail_out);
+        mock_ret = delegate_real_com_util_getenv(name, buf, buf_size, exists_out, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_getenv, const char *name, char *buf, size_t buf_siz
         printf("  > %s %s, 0x%p, %zu", __func__, name, (void *)buf, buf_size);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,5 +37,5 @@ MOCK_WEAK_IMPL(int, com_util_getenv, const char *name, char *buf, size_t buf_siz
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

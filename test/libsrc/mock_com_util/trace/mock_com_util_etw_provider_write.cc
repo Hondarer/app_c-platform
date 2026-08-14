@@ -15,15 +15,15 @@ int delegate_real_com_util_etw_provider_write(com_util_etw_provider *handle, int
 MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, int level, const char *service,
                const char *message)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_etw_provider_write(handle, level, service, message);
+        mock_ret = _mock_com_util->com_util_etw_provider_write(handle, level, service, message);
     }
     else
     {
-        rtc = delegate_real_com_util_etw_provider_write(handle, level, service, message);
+        mock_ret = delegate_real_com_util_etw_provider_write(handle, level, service, message);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -36,7 +36,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, 
         printf("  > %s %d \"%s\"", __func__, level, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -44,7 +44,7 @@ MOCK_WEAK_IMPL(int, com_util_etw_provider_write, com_util_etw_provider *handle, 
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

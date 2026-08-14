@@ -11,15 +11,15 @@ int delegate_real_com_util_isatty(com_util_stream stream)
 
 MOCK_WEAK_IMPL(int, com_util_isatty, com_util_stream stream)
 {
-    int rtc = 0;
+    int mock_ret = 0;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_isatty(stream);
+        mock_ret = _mock_com_util->com_util_isatty(stream);
     }
     else
     {
-        rtc = delegate_real_com_util_isatty(stream);
+        mock_ret = delegate_real_com_util_isatty(stream);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_isatty, com_util_stream stream)
         printf("  > %s %d", __func__, (int)stream);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_isatty, com_util_stream stream)
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

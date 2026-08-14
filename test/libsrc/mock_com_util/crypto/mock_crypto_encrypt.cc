@@ -13,15 +13,15 @@ int delegate_real_com_util_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t 
 MOCK_WEAK_IMPL(int, com_util_encrypt, uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len,
                const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_encrypt(dst, dst_len, src, src_len, key, nonce, aad, aad_len);
+        mock_ret = _mock_com_util->com_util_encrypt(dst, dst_len, src, src_len, key, nonce, aad, aad_len);
     }
     else
     {
-        rtc = delegate_real_com_util_encrypt(dst, dst_len, src, src_len, key, nonce, aad, aad_len);
+        mock_ret = delegate_real_com_util_encrypt(dst, dst_len, src, src_len, key, nonce, aad, aad_len);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(int, com_util_encrypt, uint8_t *dst, size_t *dst_len, const uint8
         printf("  > %s", __func__);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,5 +37,5 @@ MOCK_WEAK_IMPL(int, com_util_encrypt, uint8_t *dst, size_t *dst_len, const uint8
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

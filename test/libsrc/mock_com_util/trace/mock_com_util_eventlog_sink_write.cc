@@ -16,16 +16,16 @@ int delegate_real_com_util_eventlog_sink_write(com_util_eventlog_sink *handle, i
 MOCK_WEAK_IMPL(int, com_util_eventlog_sink_write, com_util_eventlog_sink *handle, int level, int64_t file_identifier,
                const char *instance_name, int64_t instance_identifier, const char *message)
 {
-    int rtc = COM_UTIL_ERR_UNKNOWN;
+    int mock_ret = COM_UTIL_ERR_UNKNOWN;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_eventlog_sink_write(handle, level, file_identifier, instance_name,
+        mock_ret = _mock_com_util->com_util_eventlog_sink_write(handle, level, file_identifier, instance_name,
                                                            instance_identifier, message);
     }
     else
     {
-        rtc = delegate_real_com_util_eventlog_sink_write(handle, level, file_identifier, instance_name,
+        mock_ret = delegate_real_com_util_eventlog_sink_write(handle, level, file_identifier, instance_name,
                                                          instance_identifier, message);
     }
 
@@ -45,7 +45,7 @@ MOCK_WEAK_IMPL(int, com_util_eventlog_sink_write, com_util_eventlog_sink *handle
                (long long)instance_identifier, message_text);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -53,7 +53,7 @@ MOCK_WEAK_IMPL(int, com_util_eventlog_sink_write, com_util_eventlog_sink *handle
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

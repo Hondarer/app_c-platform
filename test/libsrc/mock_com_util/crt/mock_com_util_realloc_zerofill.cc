@@ -11,21 +11,21 @@ void *delegate_real_com_util_realloc_zerofill(void *ptr, size_t old_count, size_
 
 MOCK_WEAK_IMPL(void *, com_util_realloc_zerofill, void *ptr, size_t old_count, size_t count, size_t size)
 {
-    void *result = nullptr;
+    void *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        result = _mock_com_util->com_util_realloc_zerofill(ptr, old_count, count, size);
+        mock_ret = _mock_com_util->com_util_realloc_zerofill(ptr, old_count, count, size);
     }
     else
     {
-        result = delegate_real_com_util_realloc_zerofill(ptr, old_count, count, size);
+        mock_ret = delegate_real_com_util_realloc_zerofill(ptr, old_count, count, size);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s 0x%p %zu %zu %zu -> 0x%p\n", __func__, ptr, old_count, count, size, result);
+        printf("  > %s 0x%p %zu %zu %zu -> 0x%p\n", __func__, ptr, old_count, count, size, mock_ret);
     }
 
-    return result;
+    return mock_ret;
 }

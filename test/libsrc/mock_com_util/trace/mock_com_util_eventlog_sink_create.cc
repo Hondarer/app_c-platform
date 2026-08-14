@@ -13,15 +13,15 @@ com_util_eventlog_sink *delegate_real_com_util_eventlog_sink_create(const char *
 
 MOCK_WEAK_IMPL(com_util_eventlog_sink *, com_util_eventlog_sink_create, const char *source_name)
 {
-    com_util_eventlog_sink *rtc = nullptr;
+    com_util_eventlog_sink *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_eventlog_sink_create(source_name);
+        mock_ret = _mock_com_util->com_util_eventlog_sink_create(source_name);
     }
     else
     {
-        rtc = delegate_real_com_util_eventlog_sink_create(source_name);
+        mock_ret = delegate_real_com_util_eventlog_sink_create(source_name);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(com_util_eventlog_sink *, com_util_eventlog_sink_create, const ch
         printf("  > %s \"%s\"", __func__, source_name != nullptr ? source_name : "(null)");
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> 0x%p\n", (void *)rtc);
+            printf(" -> 0x%p\n", (void *)mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(com_util_eventlog_sink *, com_util_eventlog_sink_create, const ch
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */

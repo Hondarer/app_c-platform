@@ -11,21 +11,21 @@ const char *delegate_real_com_util_tracer_hex_msg(const char *message)
 
 MOCK_WEAK_IMPL(const char *, com_util_tracer_hex_msg, const char *message)
 {
-    const char *result;
+    const char *mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        result = _mock_com_util->com_util_tracer_hex_msg(message);
+        mock_ret = _mock_com_util->com_util_tracer_hex_msg(message);
     }
     else
     {
-        result = delegate_real_com_util_tracer_hex_msg(message);
+        mock_ret = delegate_real_com_util_tracer_hex_msg(message);
     }
 
     if (getTraceLevel() > TRACE_NONE)
     {
-        printf("  > %s %s -> %s\n", __func__, message == NULL ? "(null)" : message, result == NULL ? "(null)" : result);
+        printf("  > %s %s -> %s\n", __func__, message == NULL ? "(null)" : message, mock_ret == NULL ? "(null)" : mock_ret);
     }
 
-    return result;
+    return mock_ret;
 }

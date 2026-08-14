@@ -11,15 +11,15 @@ com_util_tracer_state delegate_real_com_util_tracer_get_state(com_util_tracer *h
 
 MOCK_WEAK_IMPL(com_util_tracer_state, com_util_tracer_get_state, com_util_tracer *handle)
 {
-    com_util_tracer_state rtc = COM_UTIL_TRACER_STATE_DISPOSED;
+    com_util_tracer_state mock_ret = COM_UTIL_TRACER_STATE_DISPOSED;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_tracer_get_state(handle);
+        mock_ret = _mock_com_util->com_util_tracer_get_state(handle);
     }
     else
     {
-        rtc = delegate_real_com_util_tracer_get_state(handle);
+        mock_ret = delegate_real_com_util_tracer_get_state(handle);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(com_util_tracer_state, com_util_tracer_get_state, com_util_tracer
         printf("  > %s 0x%p", __func__, (void *)handle);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", (int)rtc);
+            printf(" -> %d\n", (int)mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(com_util_tracer_state, com_util_tracer_get_state, com_util_tracer
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

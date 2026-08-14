@@ -11,15 +11,15 @@ int delegate_real_com_util_parse_int(int *value_out, const char *text, int base)
 
 MOCK_WEAK_IMPL(int, com_util_parse_int, int *value_out, const char *text, int base)
 {
-    int rtc = -1;
+    int mock_ret = -1;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->com_util_parse_int(value_out, text, base);
+        mock_ret = _mock_com_util->com_util_parse_int(value_out, text, base);
     }
     else
     {
-        rtc = delegate_real_com_util_parse_int(value_out, text, base);
+        mock_ret = delegate_real_com_util_parse_int(value_out, text, base);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -27,7 +27,7 @@ MOCK_WEAK_IMPL(int, com_util_parse_int, int *value_out, const char *text, int ba
         printf("  > %s 0x%p, %s, %d", __func__, (void *)value_out, text, base);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -35,5 +35,5 @@ MOCK_WEAK_IMPL(int, com_util_parse_int, int *value_out, const char *text, int ba
         }
     }
 
-    return rtc;
+    return mock_ret;
 }

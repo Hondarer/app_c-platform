@@ -9,20 +9,20 @@
     } \
     MOCK_WEAK_IMPL(rettype, name, __VA_ARGS__) \
     { \
-        rettype rtc; \
+        rettype mock_ret; \
         if (_mock_com_util != nullptr) \
         { \
-            rtc = _mock_com_util->name call_args; \
+            mock_ret = _mock_com_util->name call_args; \
         } \
         else \
         { \
-            rtc = delegate_real_##name call_args; \
+            mock_ret = delegate_real_##name call_args; \
         } \
         if (getTraceLevel() > TRACE_NONE) \
         { \
-            printf("  > %s -> %d\n", __func__, (int)rtc); \
+            printf("  > %s -> %d\n", __func__, (int)mock_ret); \
         } \
-        return rtc; \
+        return mock_ret; \
     }
 
 #define DEFINE_SYNC_VOID(name, call_args, ...) \

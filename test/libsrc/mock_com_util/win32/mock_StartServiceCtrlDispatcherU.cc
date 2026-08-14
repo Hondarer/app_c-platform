@@ -13,15 +13,15 @@ BOOL delegate_real_StartServiceCtrlDispatcherU(const com_util_service_entry_u *s
 
 MOCK_WEAK_IMPL(BOOL, StartServiceCtrlDispatcherU, const com_util_service_entry_u *service_table)
 {
-    BOOL rtc;
+    BOOL mock_ret;
 
     if (_mock_com_util != nullptr)
     {
-        rtc = _mock_com_util->StartServiceCtrlDispatcherU(service_table);
+        mock_ret = _mock_com_util->StartServiceCtrlDispatcherU(service_table);
     }
     else
     {
-        rtc = delegate_real_StartServiceCtrlDispatcherU(service_table);
+        mock_ret = delegate_real_StartServiceCtrlDispatcherU(service_table);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -29,7 +29,7 @@ MOCK_WEAK_IMPL(BOOL, StartServiceCtrlDispatcherU, const com_util_service_entry_u
         printf("  > %s 0x%p", __func__, (const void *)service_table);
         if (getTraceLevel() >= TRACE_DETAIL)
         {
-            printf(" -> %d\n", rtc);
+            printf(" -> %d\n", mock_ret);
         }
         else
         {
@@ -37,7 +37,7 @@ MOCK_WEAK_IMPL(BOOL, StartServiceCtrlDispatcherU, const com_util_service_entry_u
         }
     }
 
-    return rtc;
+    return mock_ret;
 }
 
 #endif /* PLATFORM_WINDOWS */
