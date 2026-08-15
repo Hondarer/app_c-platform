@@ -120,7 +120,7 @@ TEST_F(timeTest, gmtime_zeroes_tm_when_platform_conversion_fails)
 TEST_F(timeTest, localtime_matches_platform_result)
 {
     // Arrange
-    struct tm expected_tm = {0};
+    struct tm expected_tm = {};
     struct tm actual_tm;
     time_t epoch = 0; // [状態] - 変換対象のエポック秒を 0 とする。
     memset(&actual_tm, 0xff, sizeof(actual_tm)); // [状態] - 出力構造体を 0xff で埋め、書き換えを検出できるようにする。
