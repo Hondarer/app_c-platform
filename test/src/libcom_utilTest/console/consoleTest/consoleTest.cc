@@ -15,12 +15,6 @@ class consoleTest : public Test
     {
         // console.c の単体テストでは shutdown.c を対象外とし、登録 API の呼び出しをフェイクする。
         ON_CALL(mock_com_util, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
-        _mock_com_util = &mock_com_util;
-    }
-
-    void TearDown() override
-    {
-        _mock_com_util = nullptr;
     }
 };
 

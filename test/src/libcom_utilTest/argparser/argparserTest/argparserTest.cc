@@ -65,10 +65,9 @@ TEST_F(argparserTest, create_and_dispose)
 TEST_F(argparserTest, create_returns_null_on_alloc_failure)
 {
     // Arrange
-    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+    EXPECT_CALL(mock_com_util_, com_util_calloc(_, _))
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - com_util_calloc が 1 回呼び出されること。
                                     // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
 
@@ -2238,10 +2237,9 @@ TEST_F(argparserTest, default_returns_null_when_lock_creation_fails)
 TEST_F(argparserTest, default_returns_null_when_parser_allocation_fails)
 {
     // Arrange
-    NiceMock<Mock_com_util> mock_com_util;
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util, com_util_calloc(_, _))
+    EXPECT_CALL(mock_com_util_, com_util_calloc(_, _))
         .WillOnce(Return(
             nullptr)); // [Pre-Assert確認_異常系] - default parser 本体を確保する com_util_calloc が 1 回呼び出されること。
                        // [Pre-Assert手順] - com_util_calloc から NULL を返却する。
@@ -2985,14 +2983,13 @@ TEST_F(argparserTest, print_usage_returns_buffer_too_small_when_usage_changes)
     com_util_argparser *parser = com_util_argparser_create(&options); // [状態] - 生成オプション付きの parser を用意する。
     ASSERT_NE(nullptr, parser); // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_stdio> mock_stdio;
-    NiceMock<Mock_com_util> mock_com_util;
     char *previous_description = NULL;
     static char long_description[] = "This description is intentionally much longer than the initial usage buffer.";
 
     // Pre-Assert
     EXPECT_CALL(mock_stdio, fprintf(_, _, _, _, _))
         .Times(0); // [Pre-Assert確認_正常系] - usage のバッファー不足時に fprintf が呼び出されないこと。
-    EXPECT_CALL(mock_com_util, com_util_malloc(_))
+    EXPECT_CALL(mock_com_util_, com_util_malloc(_))
         .WillOnce(
             [&](size_t size)
             {

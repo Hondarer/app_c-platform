@@ -517,10 +517,10 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_argparser_default_print_register_error_messages(_))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_default_print_register_error_messages));
 
-    _mock_com_util = this;
+    TESTFW_REGISTER_MOCK_INSTANCE(_mock_com_util);
 }
 
 Mock_com_util::~Mock_com_util()
 {
-    _mock_com_util = nullptr;
+    TESTFW_UNREGISTER_MOCK_INSTANCE(_mock_com_util);
 }
