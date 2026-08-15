@@ -38,7 +38,8 @@ void *operator new(std::size_t size)
  * 置換は再入を避けるため malloc / free で裏打ちする。対応は一致している。
  * GCC 11 は -O2 で sized delete を gtest の CreateTest (new T) へインライン展開し、
  * new 式と free の対だけを見て -Wmismatched-new-delete を出す。
- * 定義位置の pragma だけでは、展開先の診断文脈を抑えられない。
+ * operator delete は標準ヘッダーで先に宣言されるため、NO_INLINE を直接付けず、
+ * free の呼び出しを補助関数へ分離してインライン展開を止める。
  * see: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wmismatched-new-delete
  * see: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100485
  */
@@ -46,14 +47,19 @@ void *operator new(std::size_t size)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wmismatched-new-delete"
 #endif /* COMPILER_GCC && COMPILER_VERSION >= 110000 */
-NO_INLINE void operator delete(void *memory) noexcept
+static NO_INLINE void regex_free(void *memory) noexcept
 {
     std::free(memory);
 }
 
-NO_INLINE void operator delete(void *memory, std::size_t) noexcept
+void operator delete(void *memory) noexcept
 {
-    std::free(memory);
+    regex_free(memory);
+}
+
+void operator delete(void *memory, std::size_t) noexcept
+{
+    regex_free(memory);
 }
 
 void *operator new[](std::size_t size)
@@ -61,12 +67,12 @@ void *operator new[](std::size_t size)
     return operator new(size);
 }
 
-NO_INLINE void operator delete[](void *memory) noexcept
+void operator delete[](void *memory) noexcept
 {
     operator delete(memory);
 }
 
-NO_INLINE void operator delete[](void *memory, std::size_t) noexcept
+void operator delete[](void *memory, std::size_t) noexcept
 {
     operator delete(memory);
 }
