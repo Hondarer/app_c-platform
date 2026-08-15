@@ -4,4 +4,5 @@ TEST_SRCS := \
 
 # ライブラリの指定
 # trace_etw.c が malloc を呼ぶため、置換先の mock_libc が必要
-LIBS += mock_libc
+# trace_etw.c が com_util_malloc/com_util_free を呼ぶため、mock_com_util も必要
+LIBS += mock_libc mock_com_util

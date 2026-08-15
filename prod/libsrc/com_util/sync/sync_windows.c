@@ -178,14 +178,13 @@ static int interprocess_lock_open_identity(const char *identity, com_util_interp
 static int app_lock_take(com_util_interprocess_rwlock *lock, DWORD flags, int timeout_ms)
 {
     ULONGLONG deadline;
-    OVERLAPPED ov;
+    OVERLAPPED ov = {0};
 
     if (lock == NULL || lock->locked)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     deadline = GetTickCount64() + (ULONGLONG)timeout_ms;
-    memset(&ov, 0, sizeof(ov));
     do
     {
         if (LockFileEx(lock->handle, flags | LOCKFILE_FAIL_IMMEDIATELY, 0, INTERPROCESS_SYNC_RANGE_LOW,
@@ -211,14 +210,13 @@ static int app_lock_take(com_util_interprocess_rwlock *lock, DWORD flags, int ti
 static int interprocess_lock_take(com_util_interprocess_lock *lock, int timeout_ms)
 {
     ULONGLONG deadline;
-    OVERLAPPED ov;
+    OVERLAPPED ov = {0};
 
     if (lock == NULL || lock->locked)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     deadline = GetTickCount64() + (ULONGLONG)timeout_ms;
-    memset(&ov, 0, sizeof(ov));
     do
     {
         if (LockFileEx(lock->handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0,
@@ -730,13 +728,12 @@ int com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock)
 
 int com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
 {
-    OVERLAPPED ov;
+    OVERLAPPED ov = {0};
 
     if (lock == NULL || !lock->locked)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    memset(&ov, 0, sizeof(ov));
     if (!UnlockFileEx(lock->handle, 0, INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
     {
         return COM_UTIL_ERR_UNKNOWN;
@@ -845,13 +842,12 @@ int com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock
 
 int com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
 {
-    OVERLAPPED ov;
+    OVERLAPPED ov = {0};
 
     if (lock == NULL || !lock->locked)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    memset(&ov, 0, sizeof(ov));
     if (!UnlockFileEx(lock->handle, 0, INTERPROCESS_SYNC_RANGE_LOW, INTERPROCESS_SYNC_RANGE_HIGH, &ov))
     {
         return COM_UTIL_ERR_UNKNOWN;

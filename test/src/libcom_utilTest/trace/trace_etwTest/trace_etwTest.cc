@@ -5,6 +5,7 @@
     #include <com_util/base/windows_sdk.h>
     #include <TraceLoggingProvider.h>
     #include <testfw.h>
+    #include <mock_com_util.h>
     #include <com_util/trace/etw.h>
 
 COM_UTIL_ETW_DEFINE_PROVIDER(s_test_provider, "TraceEtwTest",

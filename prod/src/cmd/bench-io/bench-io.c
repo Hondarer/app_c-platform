@@ -532,7 +532,7 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
                     const bench_environment *env, FILE *csv, uint64_t min_ms, size_t trials, int cold, int keep)
 {
     char path[BENCH_PATH_SIZE];
-    bench_context ctx;
+    bench_context ctx = {0};
     size_t *order;
     size_t record_count = size / (size_t)BENCH_RECORD_SIZE;
     int api_index;
@@ -553,7 +553,6 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
         return -1;
     }
 
-    memset(&ctx, 0, sizeof(ctx));
     ctx.path = path;
     ctx.order = order;
     ctx.file_size = size;

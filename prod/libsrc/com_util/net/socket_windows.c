@@ -1,9 +1,8 @@
 /**
  *******************************************************************************
  *  @file           socket_windows.c
- *  @brief          IPv4 ソケット API の Windows 実装を提供します。
- *
- *  Doxygen コメントは、ヘッダーに記載
+ *  @brief          com_util/net/socket.h が宣言する IPv4 ソケットの生成、接続、
+ *                  送受信、待機を行う API の Windows 実装を提供します。
  *
  *******************************************************************************
  */
@@ -36,10 +35,8 @@ static int s_startup_done = 0;
  */
 static void startup_once(void)
 {
-    WSADATA wsa_data;
+    WSADATA wsa_data = {0};
     int startup_result;
-
-    memset(&wsa_data, 0, sizeof(wsa_data));
 
     startup_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (startup_result != 0)
@@ -329,7 +326,7 @@ int com_util_socket_listen(const com_util_socket sock, const int backlog, com_ut
 int com_util_socket_accept(const com_util_socket sock, com_util_ipv4_endpoint *peer_out, com_util_socket *sock_out,
                            com_util_error *detail_out)
 {
-    struct sockaddr_in native;
+    struct sockaddr_in native = {0};
     int native_len = (int)sizeof(native);
     SOCKET accepted;
 
@@ -339,7 +336,6 @@ int com_util_socket_accept(const com_util_socket sock, com_util_ipv4_endpoint *p
     }
 
     *sock_out = COM_UTIL_INVALID_SOCKET;
-    memset(&native, 0, sizeof(native));
 
     accepted = accept((SOCKET)sock, (struct sockaddr *)&native, &native_len);
     if (accepted == INVALID_SOCKET)
@@ -463,14 +459,13 @@ int com_util_socket_set_broadcast(const com_util_socket sock, const int enable, 
 int com_util_socket_set_multicast_interface(const com_util_socket sock, const uint32_t interface_address,
                                             com_util_error *detail_out)
 {
-    struct in_addr value;
+    struct in_addr value = {0};
 
     if (sock == COM_UTIL_INVALID_SOCKET)
     {
         return com_util_error_report_errno_as(detail_out, EINVAL, COM_UTIL_ERR_INVALID_ARGUMENT);
     }
 
-    memset(&value, 0, sizeof(value));
     memcpy(&value.S_un.S_addr, &interface_address, sizeof(value.S_un.S_addr));
 
     if (setsockopt((SOCKET)sock, IPPROTO_IP, IP_MULTICAST_IF, (const char *)&value, (int)sizeof(value)) ==
@@ -487,14 +482,13 @@ int com_util_socket_set_multicast_interface(const com_util_socket sock, const ui
 int com_util_socket_join_multicast_group(const com_util_socket sock, const uint32_t group_address,
                                          const uint32_t interface_address, com_util_error *detail_out)
 {
-    struct ip_mreq request;
+    struct ip_mreq request = {0};
 
     if (sock == COM_UTIL_INVALID_SOCKET)
     {
         return com_util_error_report_errno_as(detail_out, EINVAL, COM_UTIL_ERR_INVALID_ARGUMENT);
     }
 
-    memset(&request, 0, sizeof(request));
     memcpy(&request.imr_multiaddr.S_un.S_addr, &group_address, sizeof(request.imr_multiaddr.S_un.S_addr));
     memcpy(&request.imr_interface.S_un.S_addr, &interface_address, sizeof(request.imr_interface.S_un.S_addr));
 
@@ -512,14 +506,13 @@ int com_util_socket_join_multicast_group(const com_util_socket sock, const uint3
 int com_util_socket_leave_multicast_group(const com_util_socket sock, const uint32_t group_address,
                                           const uint32_t interface_address, com_util_error *detail_out)
 {
-    struct ip_mreq request;
+    struct ip_mreq request = {0};
 
     if (sock == COM_UTIL_INVALID_SOCKET)
     {
         return com_util_error_report_errno_as(detail_out, EINVAL, COM_UTIL_ERR_INVALID_ARGUMENT);
     }
 
-    memset(&request, 0, sizeof(request));
     memcpy(&request.imr_multiaddr.S_un.S_addr, &group_address, sizeof(request.imr_multiaddr.S_un.S_addr));
     memcpy(&request.imr_interface.S_un.S_addr, &interface_address, sizeof(request.imr_interface.S_un.S_addr));
 
@@ -618,7 +611,7 @@ int com_util_socket_sendto(const com_util_socket sock, const void *buf, const si
 int com_util_socket_recvfrom(const com_util_socket sock, void *buf, const size_t len,
                              com_util_ipv4_endpoint *peer_out, size_t *received_out, com_util_error *detail_out)
 {
-    struct sockaddr_in native;
+    struct sockaddr_in native = {0};
     int native_len = (int)sizeof(native);
     int transferred;
 
@@ -629,7 +622,6 @@ int com_util_socket_recvfrom(const com_util_socket sock, void *buf, const size_t
     }
 
     *received_out = 0U;
-    memset(&native, 0, sizeof(native));
 
     transferred = recvfrom((SOCKET)sock, (char *)buf, (int)len, 0, (struct sockaddr *)&native, &native_len);
     if (transferred == SOCKET_ERROR)

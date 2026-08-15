@@ -1,9 +1,8 @@
 /**
  *******************************************************************************
  *  @file           endpoint_windows.c
- *  @brief          IPv4 アドレスの解決と整形の Windows 実装を提供します。
- *
- *  Doxygen コメントは、ヘッダーに記載
+ *  @brief          com_util/net/endpoint.h が宣言する IPv4 の通信端点 API のうち、
+ *                  アドレス解析、名前解決、文字列整形の Windows 実装を提供します。
  *
  *******************************************************************************
  */
@@ -53,7 +52,7 @@ int com_util_ipv4_parse(const char *text, uint32_t *address_out)
 
 int com_util_ipv4_resolve(const char *text, uint32_t *address_out, com_util_error *detail_out)
 {
-    ADDRINFOA hints;
+    ADDRINFOA hints = {0};
     PADDRINFOA resolved = NULL;
     const struct sockaddr_in *sin = NULL;
     int startup_result;
@@ -70,7 +69,6 @@ int com_util_ipv4_resolve(const char *text, uint32_t *address_out, com_util_erro
         return startup_result;
     }
 
-    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
 

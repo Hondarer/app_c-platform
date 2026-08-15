@@ -13,10 +13,8 @@ class envTest : public Test
 TEST_F(envTest, setenv_value_is_readable)
 {
     // Arrange
-    char buf[64];
+    char buf[64] = {0}; // [状態] - 64 バイトの値格納先を 0 で初期化する。
     int exists = 0;
-
-    memset(buf, 0, sizeof(buf)); // [状態] - 64 バイトの値格納先を 0 で初期化する。
 
     // Pre-Assert
 
@@ -40,9 +38,8 @@ TEST_F(envTest, setenv_value_is_readable)
 TEST_F(envTest, setenv_without_overwrite_keeps_existing_value)
 {
     // Arrange
-    char buf[64];
+    char buf[64] = {0};
 
-    memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "first", 1, NULL)); // [状態] - 事前に値 "first" を設定しておく。
                                                                       // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。
@@ -71,9 +68,8 @@ TEST_F(envTest, setenv_without_overwrite_keeps_existing_value)
 TEST_F(envTest, setenv_without_overwrite_sets_value_when_absent)
 {
     // Arrange
-    char buf[64];
+    char buf[64] = {0};
 
-    memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK, com_util_unsetenv("COM_UTIL_ENV_TEST",
                                              NULL)); // [状態] - 対象の環境変数を未設定の状態にしておく。
                                                      // [状態確認] - com_util_unsetenv の戻り値が COM_UTIL_OK であること。
@@ -184,11 +180,9 @@ TEST_F(envTest, unsetenv_rejects_invalid_name)
 TEST_F(envTest, getenv_returns_einval_for_null_name)
 {
     // Arrange
-    char buf[64];
+    char buf[64] = {0};
     int exists = 1;        // [状態] - 未設定への書き換えを確認するため 1 で初期化する。
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
-
-    memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
 
@@ -302,11 +296,10 @@ TEST_F(envTest, getenv_accepts_null_buffer_when_variable_exists)
 TEST_F(envTest, getenv_returns_erange_when_buffer_too_small)
 {
     // Arrange
-    char buf[4];           // [状態] - "value1" (終端込みで 7 バイト必要) に対し 4 バイトのバッファーを用意する。
+    char buf[4] = {0};     // [状態] - "value1" (終端込みで 7 バイト必要) に対し 4 バイトのバッファーを用意する。
     int exists = 0;        // [状態] - 設定済みへの書き換えを確認するため 0 で初期化する。
     com_util_error detail; // [状態] - 詳細エラーの格納先を用意する。
 
-    memset(buf, 0, sizeof(buf));
     ASSERT_EQ(COM_UTIL_OK,
               com_util_setenv("COM_UTIL_ENV_TEST", "value1", 1, NULL)); // [状態] - 事前に値 "value1" を設定しておく。
                                                                       // [状態確認] - com_util_setenv の戻り値が COM_UTIL_OK であること。

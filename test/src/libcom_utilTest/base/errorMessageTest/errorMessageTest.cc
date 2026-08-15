@@ -91,9 +91,7 @@ TEST_F(errorMessageTest, unknown_code_maps_to_default_text)
 TEST_F(errorMessageTest, errno_is_converted_to_message)
 {
     // Arrange
-    char buf[256];
-
-    memset(buf, 0, sizeof(buf)); // [状態] - 256 byte の格納先を 0 で初期化する。
+    char buf[256] = {0}; // [状態] - 256 byte の格納先を 0 で初期化する。
 
     // Pre-Assert
 
@@ -109,9 +107,7 @@ TEST_F(errorMessageTest, errno_is_converted_to_message)
 TEST_F(errorMessageTest, invalid_arguments_are_rejected)
 {
     // Arrange
-    char buf[16];
-
-    memset(buf, 0, sizeof(buf)); // [状態] - 16 byte の格納先を 0 で初期化する。
+    char buf[16] = {0}; // [状態] - 16 byte の格納先を 0 で初期化する。
 
     // Pre-Assert
 
@@ -132,10 +128,8 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
 TEST_F(errorMessageTest, error_message_dispatches_by_domain)
 {
     // Arrange
-    char buf[256];
+    char buf[256] = {0}; // [状態] - 文字列の格納先を 0 で初期化する。
     com_util_error error;
-
-    memset(buf, 0, sizeof(buf)); // [状態] - 文字列の格納先を 0 で初期化する。
 
     // Pre-Assert
 
@@ -305,9 +299,7 @@ TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
 {
     // Arrange
     NiceMock<Mock_string> mock_string;
-    char buf[8];
-
-    std::memset(buf, 0, sizeof(buf)); // [状態] - 8 バイトの出力バッファーを用意する。
+    char buf[8] = {0}; // [状態] - 8 バイトの出力バッファーを用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_string, strerror_r(_, _, _, EACCES, buf, sizeof(buf)))

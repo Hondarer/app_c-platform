@@ -40,10 +40,8 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
     // Arrange
     NiceMock<Mock_dlfcn> mock_dlfcn;
     NiceMock<Mock_com_util> mock_com_util;
-    char path[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
+    char path[PLATFORM_PATH_MAX] = {0}; // [状態] - 出力バッファーを用意する。
     const char kModulePath[] = "/opt/com_util/moduleTest";
-
-    std::memset(path, 0, sizeof(path));
 
     // Pre-Assert
     EXPECT_CALL(mock_dlfcn, dladdr(_, _, _, _, _))
@@ -159,9 +157,7 @@ TEST_F(moduleTest, get_path_returns_unknown_when_dladdr_has_empty_filename)
 TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_windows)
 {
     // Arrange
-    char path[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-
-    std::memset(path, 0, sizeof(path));
+    char path[PLATFORM_PATH_MAX] = {0}; // [状態] - 出力バッファーを用意する。
 
     // Pre-Assert
 
@@ -324,9 +320,7 @@ TEST_F(moduleTest, get_path_clears_output_for_null_function_address)
 TEST_F(moduleTest, get_basename_returns_module_name_without_extension)
 {
     // Arrange
-    char basename[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-
-    std::memset(basename, 0, sizeof(basename));
+    char basename[PLATFORM_PATH_MAX] = {0}; // [状態] - 出力バッファーを用意する。
 
     // Pre-Assert
 

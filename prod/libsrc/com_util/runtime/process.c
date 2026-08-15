@@ -568,10 +568,9 @@ static int append_windows_quoted_arg(wide_buffer *buf, const wchar_t *arg)
 
 static wchar_t *build_command_line(char *const *argv)
 {
-    wide_buffer buf;
+    wide_buffer buf = {0};
     size_t i;
 
-    memset(&buf, 0, sizeof(buf));
     i = 0;
     while (argv[i] != NULL)
     {
@@ -1061,18 +1060,13 @@ int com_util_process_start(const com_util_process_options *options, com_util_pro
     }
 #elif defined(PLATFORM_WINDOWS)
     {
-        STARTUPINFOEXW startup;
-        PROCESS_INFORMATION process_info;
+        STARTUPINFOEXW startup = {0};
+        PROCESS_INFORMATION process_info = {0};
         SIZE_T attr_size;
-        HANDLE inherit_handles[3];
-        struct process_start_resources res;
+        HANDLE inherit_handles[3] = {0};
+        struct process_start_resources res = {0};
         DWORD create_flags;
         BOOL created;
-
-        memset(&startup, 0, sizeof(startup));
-        memset(&process_info, 0, sizeof(process_info));
-        memset(inherit_handles, 0, sizeof(inherit_handles));
-        memset(&res, 0, sizeof(res));
 
         res.command_line = build_command_line(options->argv);
         if (res.command_line == NULL)

@@ -36,11 +36,8 @@ TEST_F(randomTest, fills_requested_size)
 TEST_F(randomTest, successive_calls_differ)
 {
     // Arrange
-    unsigned char first[32];
-    unsigned char second[32];
-
-    memset(first, 0, sizeof(first));   // [状態] - 1 回目の格納先を 0 で初期化する。
-    memset(second, 0, sizeof(second)); // [状態] - 2 回目の格納先を 0 で初期化する。
+    unsigned char first[32] = {0};  // [状態] - 1 回目の格納先を 0 で初期化する。
+    unsigned char second[32] = {0}; // [状態] - 2 回目の格納先を 0 で初期化する。
 
     // Pre-Assert
 

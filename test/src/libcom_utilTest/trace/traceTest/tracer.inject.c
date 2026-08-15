@@ -139,17 +139,15 @@ void test_tracer_call_next_null(com_util_tracer *handle)
 
 void test_tracer_call_next_null_fn(com_util_tracer *handle)
 {
-    com_util_tracer_hook_entry entry;
+    com_util_tracer_hook_entry entry = {0};
 
-    memset(&entry, 0, sizeof(entry));
     com_util_tracer_call_next_hook(&entry, handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "x");
 }
 
 void test_tracer_call_next_with_fn(com_util_tracer *handle, com_util_tracer_hook_fn fn)
 {
-    com_util_tracer_hook_entry entry;
+    com_util_tracer_hook_entry entry = {0};
 
-    memset(&entry, 0, sizeof(entry));
     entry.fn = fn;
     com_util_tracer_call_next_hook(&entry, handle, COM_UTIL_TRACE_LEVEL_INFO, NULL, "x");
 }

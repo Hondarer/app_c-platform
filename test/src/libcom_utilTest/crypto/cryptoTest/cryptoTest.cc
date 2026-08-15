@@ -298,11 +298,8 @@ TEST_F(cryptoTest, passphrase_to_key_derives_deterministic_key)
 {
     // Arrange
     const uint8_t passphrase[] = "secret";
-    uint8_t first[COM_UTIL_CRYPTO_KEY_SIZE];
-    uint8_t second[COM_UTIL_CRYPTO_KEY_SIZE];
-
-    std::memset(first, 0, sizeof(first));
-    std::memset(second, 0, sizeof(second)); // [状態] - 導出結果の格納先を 2 つ用意する。
+    uint8_t first[COM_UTIL_CRYPTO_KEY_SIZE] = {0};
+    uint8_t second[COM_UTIL_CRYPTO_KEY_SIZE] = {0}; // [状態] - 導出結果の格納先を 2 つ用意する。
 
     // Pre-Assert
 
@@ -321,9 +318,7 @@ TEST_F(cryptoTest, passphrase_to_key_derives_deterministic_key)
 TEST_F(cryptoTest, passphrase_to_key_accepts_empty_passphrase)
 {
     // Arrange
-    uint8_t key[COM_UTIL_CRYPTO_KEY_SIZE];
-
-    std::memset(key, 0, sizeof(key)); // [状態] - 導出結果の格納先を用意する。
+    uint8_t key[COM_UTIL_CRYPTO_KEY_SIZE] = {0}; // [状態] - 導出結果の格納先を用意する。
 
     // Pre-Assert
 

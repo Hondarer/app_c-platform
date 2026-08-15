@@ -32,7 +32,7 @@
 int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
     uint32_t orig_len_nbo;
-    z_stream z;
+    z_stream z = {0};
     int ret;
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
@@ -50,7 +50,6 @@ int com_util_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const s
     memcpy(dst, &orig_len_nbo, COM_UTIL_COMPRESS_HEADER_SIZE);
 
     /* raw DEFLATE (windowBits = -15) で圧縮 */
-    memset(&z, 0, sizeof(z));
     z.next_in = (Bytef *)(uintptr_t)src;
     z.avail_in = (uInt)src_len;
     z.next_out = dst + COM_UTIL_COMPRESS_HEADER_SIZE;
@@ -79,7 +78,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
 {
     uint32_t orig_len_nbo;
     uint32_t orig_len;
-    z_stream z;
+    z_stream z = {0};
     int ret;
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len <= COM_UTIL_COMPRESS_HEADER_SIZE)
@@ -97,7 +96,6 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
     }
 
     /* raw DEFLATE を展開 */
-    memset(&z, 0, sizeof(z));
     z.next_in = (Bytef *)(uintptr_t)(src + COM_UTIL_COMPRESS_HEADER_SIZE);
     z.avail_in = (uInt)(src_len - COM_UTIL_COMPRESS_HEADER_SIZE);
     z.next_out = (Bytef *)dst;

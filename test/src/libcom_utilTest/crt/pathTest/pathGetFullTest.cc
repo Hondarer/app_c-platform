@@ -439,9 +439,7 @@ TEST_F(pathGetFullTest, falls_back_to_normalized_path_when_realpath_fails)
 {
     // Arrange
     NiceMock<Mock_stdlib> mock_stdlib;
-    char actual[PLATFORM_PATH_MAX]; // [状態] - 出力バッファーを用意する。
-
-    std::memset(actual, 0, sizeof(actual));
+    char actual[PLATFORM_PATH_MAX] = {0}; // [状態] - 出力バッファーを用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_stdlib, realpath(_, _, _, _, _))

@@ -1,5 +1,7 @@
 #include <testfw.h>
 
+#include <mock_com_util.h>
+
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/net/endpoint.h>

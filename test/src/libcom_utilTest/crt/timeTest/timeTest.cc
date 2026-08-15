@@ -120,10 +120,9 @@ TEST_F(timeTest, gmtime_zeroes_tm_when_platform_conversion_fails)
 TEST_F(timeTest, localtime_matches_platform_result)
 {
     // Arrange
-    struct tm expected_tm;
+    struct tm expected_tm = {0};
     struct tm actual_tm;
     time_t epoch = 0; // [状態] - 変換対象のエポック秒を 0 とする。
-    memset(&expected_tm, 0, sizeof(expected_tm));
     memset(&actual_tm, 0xff, sizeof(actual_tm)); // [状態] - 出力構造体を 0xff で埋め、書き換えを検出できるようにする。
 
     // Pre-Assert
@@ -245,10 +244,9 @@ TEST_F(timeTest, ctime_success_epoch)
 TEST_F(timeTest, ctime_matches_platform_result)
 {
     // Arrange
-    char expected[26];
+    char expected[26] = {0};
     char actual[26];
     time_t epoch = 0; // [状態] - 変換対象のエポック秒を 0 とする。
-    memset(expected, 0, sizeof(expected));
     memset(actual, 0xff, sizeof(actual)); // [状態] - 出力バッファーを 0xff で埋め、書き換えを検出できるようにする。
 
     // Pre-Assert

@@ -90,11 +90,10 @@ static const char *find_shared_lib_extension_cut(const char *s)
  */
 static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *func_addr)
 {
-    Dl_info info;
+    Dl_info info = {0};
     const char *p;
     com_util_error err;
 
-    memset(&info, 0, sizeof(info));
     if (dladdr(func_addr, &info) == 0)
     {
         return COM_UTIL_ERR_UNKNOWN;

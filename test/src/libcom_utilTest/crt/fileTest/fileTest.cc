@@ -175,11 +175,10 @@ TEST_F(fileTest, read_invalid_arguments_fail)
 {
     // Arrange
     com_util_file file;
-    char buf[16];
+    char buf[16] = {0};
     size_t read_len = 0;
 
     com_util_file_init(&file); // [状態] - 未オープンのハンドルを初期化して用意する。
-    memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
 
@@ -729,11 +728,10 @@ TEST_F(fileTest, read_returns_written_content)
 {
     // Arrange
     com_util_file file;
-    char buf[16];
+    char buf[16] = {0};
     size_t read_len = 0;
 
     com_util_file_init(&file);
-    memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
     ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_READ, NULL));
@@ -764,11 +762,10 @@ TEST_F(fileTest, read_at_end_of_file_returns_zero_length)
 {
     // Arrange
     com_util_file file;
-    char buf[16];
+    char buf[16] = {0};
     size_t read_len = 0;
 
     com_util_file_init(&file);
-    memset(buf, 0, sizeof(buf));
 
     // Pre-Assert
     ASSERT_EQ(COM_UTIL_OK, com_util_file_open(&file, kPath, COM_UTIL_FILE_OPEN_READ, NULL));

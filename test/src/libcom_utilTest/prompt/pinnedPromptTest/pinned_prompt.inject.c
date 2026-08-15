@@ -186,9 +186,8 @@ void test_pinned_prompt_layout(com_util_pinned_prompt *screen, int *prompt_row, 
 
 void test_pinned_prompt_clear_control_area(com_util_pinned_prompt *screen, int main_bottom_row)
 {
-    pinned_prompt_layout layout;
+    pinned_prompt_layout layout = {0};
 
-    memset(&layout, 0, sizeof(layout));
     layout.main_bottom_row = main_bottom_row;
     pinned_prompt_clear_control_area(screen, &layout);
 }
@@ -226,9 +225,8 @@ int test_pinned_prompt_set_status_content(com_util_pinned_prompt *screen, const 
 
 void test_pinned_prompt_history_null_inputs(com_util_pinned_prompt *screen)
 {
-    pinned_prompt_history_ctx context;
+    pinned_prompt_history_ctx context = {0};
 
-    memset(&context, 0, sizeof(context));
     pinned_prompt_history_add(screen, NULL, "value");
     pinned_prompt_history_add(screen, &context, NULL);
     pinned_prompt_history_add(screen, &context, "");
