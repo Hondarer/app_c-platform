@@ -31,7 +31,7 @@ extern "C"
     extern int test_tracer_to_syslog_level(com_util_trace_level level);
 #endif /* PLATFORM_LINUX */
     extern size_t test_tracer_utf8_safe_truncate(const char *text, size_t position);
-    extern int test_tracer_build_default_file_path(const com_util_tracer *handle, char *out, size_t out_size);
+    extern int test_tracer_build_default_file_path(const com_util_tracer *handle, char *path_out, size_t path_size);
     extern int test_tracer_hex_write_impl(com_util_tracer *handle, com_util_trace_level level,
                                           const com_util_timespec *timestamp, const void *data, size_t size,
                                           const char *label);

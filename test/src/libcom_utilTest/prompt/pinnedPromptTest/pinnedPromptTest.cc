@@ -531,7 +531,7 @@ TEST(pinnedPromptTest, read_key_classifies_control_and_escape_sequences)
                                    '[', 'F',  0x1BU, '[',   '1',   '~',   0x1BU, '[', '3',   '~', 0x1BU, '[',
                                    '4', '~',  0x1BU, '[',   '1',   'x',   0x1BU, '[', 'Z'};
     size_t input_pos = 0U;
-    int out_ch = -1;
+    int ch = -1;
 
     // Pre-Assert
     EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
@@ -554,30 +554,30 @@ TEST(pinnedPromptTest, read_key_classifies_control_and_escape_sequences)
     // [Pre-Assert手順] - 1 回目はタイムアウト (0)、以降は入力可 (1) を返却する。
 
     // Act
-    int char_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ASCII 文字をキー分類する。
-    int char_value = out_ch;
-    int enter_key = test_pinned_prompt_read_key(screen, &out_ch);          // [手順] - 改行をキー分類する。
-    int backspace_key = test_pinned_prompt_read_key(screen, &out_ch);      // [手順] - DEL をキー分類する。
-    int control_key = test_pinned_prompt_read_key(screen, &out_ch);        // [手順] - 制御文字をキー分類する。
-    int high_bit_key = test_pinned_prompt_read_key(screen, &out_ch);       // [手順] - 8 ビット文字をキー分類する。
-    int clear_key = test_pinned_prompt_read_key(screen, &out_ch);          // [手順] - 単独の ESC をキー分類する。
-    int unknown_escape_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - 未知の ESC 文字列を分類する。
-    int up_key = test_pinned_prompt_read_key(screen, &out_ch);             // [手順] - 上矢印を分類する。
-    int down_key = test_pinned_prompt_read_key(screen, &out_ch);           // [手順] - 下矢印を分類する。
-    int right_key = test_pinned_prompt_read_key(screen, &out_ch);          // [手順] - 右矢印を分類する。
-    int left_key = test_pinned_prompt_read_key(screen, &out_ch);           // [手順] - 左矢印を分類する。
-    int home_key = test_pinned_prompt_read_key(screen, &out_ch);           // [手順] - Home を分類する。
-    int end_key = test_pinned_prompt_read_key(screen, &out_ch);            // [手順] - End を分類する。
-    int home_tilde_key = test_pinned_prompt_read_key(screen, &out_ch);     // [手順] - ESC [ 1 ~ を分類する。
-    int delete_key = test_pinned_prompt_read_key(screen, &out_ch);         // [手順] - ESC [ 3 ~ を分類する。
-    int end_tilde_key = test_pinned_prompt_read_key(screen, &out_ch);      // [手順] - ESC [ 4 ~ を分類する。
-    int invalid_tilde_key = test_pinned_prompt_read_key(screen, &out_ch);  // [手順] - 不正な終端を分類する。
-    int invalid_csi_key = test_pinned_prompt_read_key(screen, &out_ch);    // [手順] - 未知の CSI を分類する。
+    int char_key = test_pinned_prompt_read_key(screen, &ch); // [手順] - ASCII 文字をキー分類する。
+    int char_value = ch;
+    int enter_key = test_pinned_prompt_read_key(screen, &ch);          // [手順] - 改行をキー分類する。
+    int backspace_key = test_pinned_prompt_read_key(screen, &ch);      // [手順] - DEL をキー分類する。
+    int control_key = test_pinned_prompt_read_key(screen, &ch);        // [手順] - 制御文字をキー分類する。
+    int high_bit_key = test_pinned_prompt_read_key(screen, &ch);       // [手順] - 8 ビット文字をキー分類する。
+    int clear_key = test_pinned_prompt_read_key(screen, &ch);          // [手順] - 単独の ESC をキー分類する。
+    int unknown_escape_key = test_pinned_prompt_read_key(screen, &ch); // [手順] - 未知の ESC 文字列を分類する。
+    int up_key = test_pinned_prompt_read_key(screen, &ch);             // [手順] - 上矢印を分類する。
+    int down_key = test_pinned_prompt_read_key(screen, &ch);           // [手順] - 下矢印を分類する。
+    int right_key = test_pinned_prompt_read_key(screen, &ch);          // [手順] - 右矢印を分類する。
+    int left_key = test_pinned_prompt_read_key(screen, &ch);           // [手順] - 左矢印を分類する。
+    int home_key = test_pinned_prompt_read_key(screen, &ch);           // [手順] - Home を分類する。
+    int end_key = test_pinned_prompt_read_key(screen, &ch);            // [手順] - End を分類する。
+    int home_tilde_key = test_pinned_prompt_read_key(screen, &ch);     // [手順] - ESC [ 1 ~ を分類する。
+    int delete_key = test_pinned_prompt_read_key(screen, &ch);         // [手順] - ESC [ 3 ~ を分類する。
+    int end_tilde_key = test_pinned_prompt_read_key(screen, &ch);      // [手順] - ESC [ 4 ~ を分類する。
+    int invalid_tilde_key = test_pinned_prompt_read_key(screen, &ch);  // [手順] - 不正な終端を分類する。
+    int invalid_csi_key = test_pinned_prompt_read_key(screen, &ch);    // [手順] - 未知の CSI を分類する。
 
     test_pinned_prompt_set_resize_pending(1);
     errno = EINTR;
-    int resize_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - リサイズ通知をキー分類する。
-    int eof_key = test_pinned_prompt_read_key(screen, &out_ch);    // [手順] - EOF をキー分類する。
+    int resize_key = test_pinned_prompt_read_key(screen, &ch); // [手順] - リサイズ通知をキー分類する。
+    int eof_key = test_pinned_prompt_read_key(screen, &ch);    // [手順] - EOF をキー分類する。
 
     // Assert
     EXPECT_EQ(TEST_PINNED_PROMPT_KEY_CHAR, char_key);              // [確認_正常系] - ASCII 文字が CHAR になること。

@@ -41,7 +41,7 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
     BCRYPT_KEY_HANDLE h_key = NULL;
     NTSTATUS status;
     BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO auth_info;
-    ULONG out_len = 0;
+    ULONG len = 0;
 
     status = BCryptOpenAlgorithmProvider(&h_alg, BCRYPT_AES_ALGORITHM, NULL, 0);
     if (!BCRYPT_SUCCESS(status))
@@ -82,12 +82,12 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
     if (is_encrypt)
     {
         status = BCryptEncrypt(h_key, (PUCHAR)src, (ULONG)src_len, &auth_info, NULL, 0, (PUCHAR)dst, (ULONG)*dst_len,
-                               &out_len, 0);
+                               &len, 0);
     }
     else
     {
         status = BCryptDecrypt(h_key, (PUCHAR)src, (ULONG)src_len, &auth_info, NULL, 0, (PUCHAR)dst, (ULONG)*dst_len,
-                               &out_len, 0);
+                               &len, 0);
     }
 
     BCryptDestroyKey(h_key);
@@ -98,7 +98,7 @@ static int bcrypt_aes_gcm(const BOOL is_encrypt, uint8_t *dst, size_t *dst_len, 
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    *dst_len = (size_t)out_len;
+    *dst_len = (size_t)len;
     return COM_UTIL_OK;
 }
 

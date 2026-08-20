@@ -3160,3 +3160,44 @@ TEST_F(argparserTest, parse_skips_short_name_when_length_differs)
     // Cleanup
     com_util_argparser_dispose(parser);
 }
+
+TEST_F(argparserTest, default_init_resets_previous_registrations)
+{
+    // Arrange
+    int first_flag = 0;
+    int second_flag = 0;
+    char first_usage[512] = {};
+    char second_usage[512] = {};
+
+    com_util_argparser_default_init("first description"); // [状態] - デフォルト パーサーを初期化する。
+    ASSERT_EQ(COM_UTIL_OK, com_util_argparser_default_register_flag("-f", "--first", NULL,
+                                                                     &first_flag)); // [状態] - フラグ "--first" を登録する。
+                                                                                    // [状態確認] - 登録が COM_UTIL_OK であること。
+    (void)com_util_argparser_default_get_usage(first_usage, sizeof(first_usage), NULL);
+
+    // Pre-Assert
+
+    // Act
+    com_util_argparser_default_init("second description"); // [手順] - 同じプロセスで再初期化する。
+    size_t register_error_count_after_reset =
+        com_util_argparser_default_get_register_error_count(); // [手順] - 再初期化直後の登録エラー件数を取得する。
+    int second_register =
+        com_util_argparser_default_register_flag("-f", "--first", NULL,
+                                                  &second_flag); // [手順] - 同じ名前を登録し直す。
+    int usage_result = com_util_argparser_default_get_usage(second_usage, sizeof(second_usage), NULL);
+    char *argv[] = {cstr("prog"), cstr("--first")};
+    int parse_result = com_util_argparser_default_parse(2, argv); // [手順] - 再登録したフラグを解析する。
+
+    // Assert
+    EXPECT_EQ(0u, register_error_count_after_reset); // [確認_正常系] - 再初期化で登録エラーが捨てられること。
+    EXPECT_EQ(COM_UTIL_OK,
+              second_register); // [確認_正常系] - 再初期化後は同じ名前を重複扱いされずに登録できること。
+    EXPECT_EQ(COM_UTIL_OK, usage_result); // [確認_正常系] - 再初期化後に usage を取得できること。
+    EXPECT_NE(nullptr, strstr(second_usage,
+                                   "second description")); // [確認_正常系] - 再初期化で渡した説明文が反映されること。
+    EXPECT_EQ(nullptr, strstr(second_usage,
+                                   "first description")); // [確認_正常系] - 初回の説明文が残らないこと。
+    EXPECT_EQ(COM_UTIL_OK, parse_result); // [確認_正常系] - 再登録したフラグを解析できること。
+    EXPECT_EQ(1, second_flag);            // [確認_正常系] - 再登録した格納先へ結果が入ること。
+    EXPECT_EQ(0, first_flag);             // [確認_正常系] - 破棄した登録の格納先は更新されないこと。
+}

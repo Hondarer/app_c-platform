@@ -158,7 +158,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
     size_t raw_deflate_len;
     size_t tmp_len;
     uint8_t *tmp;
-    SIZE_T out_len;
+    SIZE_T len;
     uint32_t chunk_size;
     BOOL ok;
 
@@ -225,7 +225,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    ok = Decompress(h, tmp, (SIZE_T)tmp_len, dst, (SIZE_T)*dst_len, &out_len);
+    ok = Decompress(h, tmp, (SIZE_T)tmp_len, dst, (SIZE_T)*dst_len, &len);
     CloseDecompressor(h);
     com_util_free(tmp);
 
@@ -234,7 +234,7 @@ int com_util_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const
         return COM_UTIL_ERR_UNKNOWN;
     }
 
-    *dst_len = (size_t)out_len;
+    *dst_len = (size_t)len;
     return COM_UTIL_OK;
 }
 

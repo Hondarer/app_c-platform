@@ -608,9 +608,9 @@ extern "C"
      *  実際に使用される識別名を返します。\n
      *  com_util_tracer_set_name 未呼び出しの場合は自プロセス名です。
      *
-     *  @param[in]      handle    com_util_tracer_create の戻り値。
-     *  @param[out]     out       識別名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
-     *  @param[in]      out_size  バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *  @param[in]      handle      com_util_tracer_create の戻り値。
+     *  @param[out]     name_out    識別名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @param[in]      name_size   バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                            格納に不足する場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -620,7 +620,7 @@ extern "C"
      *
      *  @see            com_util_tracer_set_name
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *out, size_t out_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_name(com_util_tracer *handle, char *name_out, size_t name_size);
 
     /**
      *  @brief          インスタンス識別番号を取得します。
@@ -672,10 +672,10 @@ extern "C"
      *  com_util_tracer_set_file_name 未呼び出しの場合はプロセス名
      *  (実行ファイルのベース名。Windows は末尾の `.exe` を除く) です。
      *
-     *  @param[in]      handle    com_util_tracer_create の戻り値。
-     *  @param[out]     out       ファイル名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
-     *  @param[in]      out_size  バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                            格納に不足する場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
+     *  @param[in]      handle          com_util_tracer_create の戻り値。
+     *  @param[out]     file_name_out   ファイル名を格納するバッファー。NULL の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *  @param[in]      file_name_size  バッファーのバイト数。0 の場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                                 格納に不足する場合は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL を返します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
@@ -684,7 +684,8 @@ extern "C"
      *
      *  @see            com_util_tracer_set_file_name
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *out, size_t out_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_tracer_get_file_name(com_util_tracer *handle, char *file_name_out,
+                                                                   size_t file_name_size);
 
     /**
      *  @brief          ファイル識別番号を取得します。

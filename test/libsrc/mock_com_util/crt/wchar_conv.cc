@@ -23,23 +23,23 @@ MOCK_WEAK_IMPL(int, com_util_utf8_to_wpath, wchar_t *wbuf, size_t wbuf_count, co
     }
 }
 
-int delegate_real_com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath)
+int delegate_real_com_util_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_wpath_to_utf8)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_wpath_to_utf8"));
 
-    return real_fn(out, out_size, wpath);
+    return real_fn(dest, dest_size, wpath);
 }
 
-MOCK_WEAK_IMPL(int, com_util_wpath_to_utf8, char *out, size_t out_size, const wchar_t *wpath)
+MOCK_WEAK_IMPL(int, com_util_wpath_to_utf8, char *dest, size_t dest_size, const wchar_t *wpath)
 {
     if (_mock_com_util != nullptr)
     {
-        return _mock_com_util->com_util_wpath_to_utf8(out, out_size, wpath);
+        return _mock_com_util->com_util_wpath_to_utf8(dest, dest_size, wpath);
     }
     else
     {
-        return delegate_real_com_util_wpath_to_utf8(out, out_size, wpath);
+        return delegate_real_com_util_wpath_to_utf8(dest, dest_size, wpath);
     }
 }
 

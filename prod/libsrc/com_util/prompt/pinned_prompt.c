@@ -900,7 +900,7 @@ static void pinned_prompt_prepare_output_locked(com_util_pinned_prompt *screen)
     (void)fflush(stdout);
 }
 
-static pinned_prompt_key pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
+static pinned_prompt_key pinned_prompt_read_key(com_util_pinned_prompt *screen, int *ch_out)
 {
     int c;
     int c2;
@@ -981,7 +981,7 @@ static pinned_prompt_key pinned_prompt_read_key(com_util_pinned_prompt *screen, 
     }
     if (c >= 0x20)
     {
-        *out_ch = c;
+        *ch_out = c;
         return PINNED_PROMPT_KEY_CHAR;
     }
     return PINNED_PROMPT_KEY_UNKNOWN;

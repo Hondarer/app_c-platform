@@ -42,8 +42,8 @@ extern "C"
 
     /**
      *  @brief          関数アドレスが属するモジュールの完全なパスを取得します。
-     *  @param[out]     out_path      完全なパス (UTF-8) の格納先。NULL を渡してはなりません。
-     *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     path_out      完全なパス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size     @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @param[in]      func_addr     モジュールを特定するための関数アドレス。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
@@ -51,21 +51,21 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *out_path, size_t out_path_sz,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_path(char *path_out, size_t path_size,
                                                               const void *func_addr);
 
     /**
      *  @brief          関数アドレスが属するモジュールのベース名を取得します。
-     *  @param[out]     out_basename      ベース名 (UTF-8) の格納先。NULL を渡してはなりません。
-     *  @param[in]      out_basename_sz   @p out_basename のサイズ (バイト)。0 を渡してはなりません。
-     *  @param[in]      func_addr         モジュールを特定するための関数アドレス。NULL を渡してはなりません。
+     *  @param[out]     basename_out   ベース名 (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      basename_size  @p basename_out のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[in]      func_addr      モジュールを特定するための関数アドレス。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_basename(char *out_basename, size_t out_basename_sz,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_module_get_basename(char *basename_out, size_t basename_size,
                                                                   const void *func_addr);
 
 #ifdef __cplusplus

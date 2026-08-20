@@ -174,12 +174,12 @@ static const wchar_t *get_event_name(const TRACE_EVENT_INFO *info)
  *  @brief  UserData 上の null 終端 ANSI 文字列を 1 つ読み取ります。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining, const char **out_text,
-                                  USHORT *out_consumed)
+static int read_ansi_string_field(const unsigned char *cursor, const USHORT remaining, const char **text_out,
+                                  USHORT *consumed_out)
 {
     USHORT i;
 
-    if (cursor == NULL || out_text == NULL || out_consumed == NULL)
+    if (cursor == NULL || text_out == NULL || consumed_out == NULL)
     {
         return -1;
     }
@@ -188,8 +188,8 @@ static int read_ansi_string_field(const unsigned char *cursor, const USHORT rema
     {
         if (cursor[i] == '\0')
         {
-            *out_text = (const char *)cursor;
-            *out_consumed = (USHORT)(i + 1U);
+            *text_out = (const char *)cursor;
+            *consumed_out = (USHORT)(i + 1U);
             return 0;
         }
     }
@@ -201,17 +201,17 @@ static int read_ansi_string_field(const unsigned char *cursor, const USHORT rema
  *  @brief  UserData 上の uint32 値を 1 つ読み取ります。
  *  @return 成功 0 / 失敗 -1。
  */
-static int read_uint32_field(const unsigned char *cursor, const USHORT remaining, uint32_t *out_value,
-                             USHORT *out_consumed)
+static int read_uint32_field(const unsigned char *cursor, const USHORT remaining, uint32_t *value_out,
+                             USHORT *consumed_out)
 {
-    if (cursor == NULL || out_value == NULL || out_consumed == NULL || remaining < 4U)
+    if (cursor == NULL || value_out == NULL || consumed_out == NULL || remaining < 4U)
     {
         return -1;
     }
 
-    *out_value =
+    *value_out =
         (uint32_t)cursor[0] | ((uint32_t)cursor[1] << 8) | ((uint32_t)cursor[2] << 16) | ((uint32_t)cursor[3] << 24);
-    *out_consumed = 4U;
+    *consumed_out = 4U;
     return 0;
 }
 
@@ -221,27 +221,27 @@ static int read_uint32_field(const unsigned char *cursor, const USHORT remaining
  *  TdhGetEventInformation で得たプロパティ順に ANSI 文字列を読み進める。
  *  Service / Message が存在しないイベントは out_* を NULL のまま返します。
  */
-static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info, const char **out_service,
-                                 const char **out_message, uint32_t *out_process_id)
+static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *info, const char **service_out,
+                                 const char **message_out, uint32_t *process_id_out)
 {
     const unsigned char *cursor;
     USHORT remaining;
     ULONG count;
     ULONG i;
 
-    if (out_service != NULL)
+    if (service_out != NULL)
     {
-        *out_service = NULL;
+        *service_out = NULL;
     }
-    if (out_message != NULL)
+    if (message_out != NULL)
     {
-        *out_message = NULL;
+        *message_out = NULL;
     }
-    if (out_process_id != NULL)
+    if (process_id_out != NULL)
     {
-        *out_process_id = 0U;
+        *process_id_out = 0U;
     }
-    if (pEvent == NULL || out_message == NULL)
+    if (pEvent == NULL || message_out == NULL)
     {
         return;
     }
@@ -292,14 +292,14 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
 
             if (wcscmp(name, L"Service") == 0)
             {
-                if (out_service != NULL)
+                if (service_out != NULL)
                 {
-                    *out_service = text;
+                    *service_out = text;
                 }
             }
             else if (wcscmp(name, L"Message") == 0)
             {
-                *out_message = text;
+                *message_out = text;
             }
         }
         else if (prop->nonStructType.InType == TDH_INTYPE_UINT32)
@@ -309,9 +309,9 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
                 break;
             }
 
-            if (wcscmp(name, L"ProcessId") == 0 && out_process_id != NULL)
+            if (wcscmp(name, L"ProcessId") == 0 && process_id_out != NULL)
             {
-                *out_process_id = process_id_value;
+                *process_id_out = process_id_value;
             }
         }
         else

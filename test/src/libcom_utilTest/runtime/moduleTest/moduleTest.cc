@@ -55,15 +55,15 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_linux)
                 // [Pre-Assert手順] - 所属モジュール パスを持つ情報を返却する。
     EXPECT_CALL(mock_com_util, com_util_path_get_full(_, _, _, StrEq(kModulePath)))
         .WillOnce(
-            [](char *out_path, size_t out_path_sz, com_util_error *detail_out, const char *)
+            [](char *path_out, size_t path_size, com_util_error *detail_out, const char *)
             {
                 const char resolved[] = "/opt/com_util/moduleTest";
-                (void)out_path_sz;
+                (void)path_size;
                 if (detail_out != nullptr)
                 {
                     *detail_out = {};
                 }
-                std::memcpy(out_path, resolved, sizeof(resolved));
+                std::memcpy(path_out, resolved, sizeof(resolved));
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_正常系] - com_util_path_get_full がモジュール パスを指定して 1 回呼び出されること。
                 // [Pre-Assert手順] - 正規化済みパスを書き込み、COM_UTIL_OK を返却する。
@@ -175,7 +175,7 @@ TEST_F(moduleTest, get_path_returns_absolute_path_of_owning_module_windows)
 }
 #endif /* PLATFORM_ */
 
-// out_path に NULL を渡した場合に拒否されることの確認
+// path_out に NULL を渡した場合に拒否されることの確認
 TEST_F(moduleTest, get_path_rejects_null_out_path)
 {
     // Arrange
@@ -184,14 +184,14 @@ TEST_F(moduleTest, get_path_rejects_null_out_path)
 
     // Act
     int actual_ret = com_util_module_get_path(NULL, 16u,
-                                       self_func_addr()); // [手順] - out_path に NULL を指定して呼び出す。
+                                       self_func_addr()); // [手順] - path_out に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               actual_ret); // [確認_異常系] - com_util_module_get_path の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
-// out_path_sz に 0 を渡した場合に拒否されることの確認
+// path_size に 0 を渡した場合に拒否されることの確認
 TEST_F(moduleTest, get_path_rejects_zero_size)
 {
     // Arrange
@@ -201,7 +201,7 @@ TEST_F(moduleTest, get_path_rejects_zero_size)
 
     // Act
     int actual_ret = com_util_module_get_path(path, 0u,
-                                       self_func_addr()); // [手順] - out_path_sz に 0 を指定して呼び出す。
+                                       self_func_addr()); // [手順] - path_size に 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -333,7 +333,7 @@ TEST_F(moduleTest, get_basename_returns_module_name_without_extension)
     EXPECT_STREQ("moduleTest", basename); // [確認_正常系] - 拡張子を持たないモジュール名 "moduleTest" が返ること。
 }
 
-// out_basename に NULL を渡した場合に拒否されることの確認
+// basename_out に NULL を渡した場合に拒否されることの確認
 TEST_F(moduleTest, get_basename_rejects_null_out_basename)
 {
     // Arrange
@@ -342,7 +342,7 @@ TEST_F(moduleTest, get_basename_rejects_null_out_basename)
 
     // Act
     int actual_ret = com_util_module_get_basename(NULL, 16u,
-                                           self_func_addr()); // [手順] - out_basename に NULL を指定して呼び出す。
+                                           self_func_addr()); // [手順] - basename_out に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
@@ -350,7 +350,7 @@ TEST_F(moduleTest, get_basename_rejects_null_out_basename)
         actual_ret); // [確認_異常系] - com_util_module_get_basename の戻り値が COM_UTIL_ERR_INVALID_ARGUMENT であること。
 }
 
-// out_basename_sz に 0 を渡した場合に拒否されることの確認
+// basename_size に 0 を渡した場合に拒否されることの確認
 TEST_F(moduleTest, get_basename_rejects_zero_size)
 {
     // Arrange
@@ -360,7 +360,7 @@ TEST_F(moduleTest, get_basename_rejects_zero_size)
 
     // Act
     int actual_ret = com_util_module_get_basename(basename, 0u,
-                                           self_func_addr()); // [手順] - out_basename_sz に 0 を指定して呼び出す。
+                                           self_func_addr()); // [手順] - basename_size に 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(

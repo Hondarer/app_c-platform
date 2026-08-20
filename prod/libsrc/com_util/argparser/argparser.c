@@ -1003,10 +1003,14 @@ static void argparser_usage_build(const com_util_argparser *parser, argparser_us
  * ================================================================ */
 
 /**
- *  @brief          パーサー ハンドルが保持するリソースを解放します。
- *  @param[in]      parser  解放するパーサー ハンドル。
+ *  @brief          パーサー ハンドルが所有する領域を解放します。
+ *  @param[in]      parser  対象のパーサー ハンドル。NULL を渡してはなりません。
+ *
+ *  ハンドル自身は解放しません。メンバーの値も初期化しません。\n
+ *  呼び出し側が、破棄なら @ref argparser_dispose_core 、
+ *  再初期化なら @ref argparser_reset_core として後続を行います。
  */
-static void argparser_dispose_core(com_util_argparser *parser)
+static void argparser_release_members(com_util_argparser *parser)
 {
     for (size_t i = 0; i < parser->spec_count; i++)
     {
@@ -1022,7 +1026,64 @@ static void argparser_dispose_core(com_util_argparser *parser)
         com_util_free(parser->register_errors[i].target);
     }
     com_util_free(parser->register_errors);
+}
+
+/**
+ *  @brief          パーサー ハンドルが保持するリソースを解放します。
+ *  @param[in]      parser  解放するパーサー ハンドル。
+ */
+static void argparser_dispose_core(com_util_argparser *parser)
+{
+    argparser_release_members(parser);
     com_util_free(parser);
+}
+
+/**
+ *  @brief          パーサー ハンドルを生成直後と同じ状態へ戻します。
+ *  @param[in,out]  parser  対象のパーサー ハンドル。NULL を渡してはなりません。
+ *
+ *  登録済みのオプション、解析結果、エラー情報をすべて捨てます。\n
+ *  ハンドルは作り直さないため、既に取得済みのポインターは有効なままです。\n
+ *  所有区分 (library_owned) は引き継ぎます。
+ */
+static void argparser_reset_core(com_util_argparser *parser)
+{
+    int library_owned = parser->library_owned;
+
+    argparser_release_members(parser);
+    /* 宣言済みハンドルの再初期化のため、集成体初期化子ではなく memset を使う。 */
+    memset(parser, 0, sizeof(*parser));
+    parser->last_error_index = -1;
+    parser->library_owned = library_owned;
+}
+
+/**
+ *  @brief          生成オプションをパーサー ハンドルへ適用します。
+ *  @param[in,out]  parser   対象のパーサー ハンドル。NULL を渡してはなりません。
+ *  @param[in]      options  生成オプション。NULL のときは何もしません。
+ *  @return         成功なら 0、複製に失敗したら -1 です。
+ *
+ *  呼び出し前に、対象メンバーが NULL であること (生成直後または
+ *  @ref argparser_reset_core 直後) を前提とします。
+ */
+static int argparser_apply_options(com_util_argparser *parser, const com_util_argparser_options *options)
+{
+    if (options == NULL)
+    {
+        return 0;
+    }
+
+    parser->program_name = argparser_strdup(options->program_name);
+    if ((options->program_name != NULL) && (parser->program_name == NULL))
+    {
+        return -1;
+    }
+    parser->program_description = argparser_strdup(options->program_description);
+    if ((options->program_description != NULL) && (parser->program_description == NULL))
+    {
+        return -1;
+    }
+    return 0;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1036,26 +1097,10 @@ com_util_argparser *com_util_argparser_create(const com_util_argparser_options *
     }
     parser->last_error_index = -1;
 
-    if (options != NULL)
+    if (argparser_apply_options(parser, options) != 0)
     {
-        int failed = 0;
-
-        parser->program_name = argparser_strdup(options->program_name);
-        if (options->program_name != NULL && parser->program_name == NULL)
-        {
-            failed = 1;
-        }
-        parser->program_description = argparser_strdup(options->program_description);
-        if (options->program_description != NULL && parser->program_description == NULL)
-        {
-            failed = 1;
-        }
-
-        if (failed != 0)
-        {
-            com_util_argparser_dispose(parser);
-            return NULL;
-        }
+        com_util_argparser_dispose(parser);
+        return NULL;
     }
 
     return parser;
@@ -1118,9 +1163,16 @@ static void argparser_default_initialize(void)
     }
 }
 
-/* Doxygen コメントは、ヘッダーに記載 */
-
-com_util_argparser *com_util_argparser_default(const com_util_argparser_options *options)
+/**
+ *  @brief          プロセス共有のデフォルト パーサーを取得します。
+ *  @param[in]      options         生成オプション。NULL も指定できます。
+ *  @param[in]      reset_existing  0 以外なら、既存インスタンスを生成直後の状態へ戻して
+ *                                  @p options を適用し直します。
+ *  @return         デフォルト パーサー。生成に失敗した場合は NULL です。
+ *
+ *  生成と再初期化を同じロック区間で行い、取得と初期化の競合を避けます。
+ */
+static com_util_argparser *argparser_default_acquire(const com_util_argparser_options *options, int reset_existing)
 {
     com_util_call_once(&s_default_initialize_once, argparser_default_initialize);
     com_util_local_lock *lock = s_default_lock;
@@ -1141,6 +1193,11 @@ com_util_argparser *com_util_argparser_default(const com_util_argparser_options 
             s_default_parser->library_owned = 1;
         }
     }
+    else if (reset_existing != 0)
+    {
+        argparser_reset_core(s_default_parser);
+        (void)argparser_apply_options(s_default_parser, options);
+    }
     com_util_argparser *parser = s_default_parser;
     (void)com_util_local_lock_unlock(lock);
 
@@ -1149,11 +1206,18 @@ com_util_argparser *com_util_argparser_default(const com_util_argparser_options 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+com_util_argparser *com_util_argparser_default(const com_util_argparser_options *options)
+{
+    return argparser_default_acquire(options, 0);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 void com_util_argparser_default_init(const char *description)
 {
     com_util_argparser_options options = {0};
     options.program_description = description;
-    (void)com_util_argparser_default(&options);
+    (void)argparser_default_acquire(&options, 1);
 }
 
 int com_util_argparser_register_flag(com_util_argparser *parser, const char *short_name, const char *long_name,

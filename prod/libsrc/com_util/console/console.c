@@ -337,18 +337,18 @@ void com_util_console_dispose(void)
 
 /**
  *  @brief          argv から親コンソール引き継ぎフラグを取り出して除去します。
- *  @param[in,out]  argc     引数の数へのポインター。
- *  @param[in,out]  argv     引数配列。
- *  @param[out]     out_pid     取り出した親プロセス ID の格納先。
- *  @param[out]     out_window  取り出した親コンソール window ハンドルの格納先 (省略時は NULL)。
+ *  @param[in,out]  argc        引数の数へのポインター。
+ *  @param[in,out]  argv        引数配列。
+ *  @param[out]     pid_out     取り出した親プロセス ID の格納先。
+ *  @param[out]     window_out  取り出した親コンソール window ハンドルの格納先 (省略時は NULL)。
  *  @return         有効なフラグを検出した場合は 1、そうでない場合は 0 を返します。
  *
- *  フラグの値は `{PID}` または `{PID}:{HWND}` 形式です。@p out_window には HWND を
+ *  フラグの値は `{PID}` または `{PID}:{HWND}` 形式です。@p window_out には HWND を
  *  復元して格納し、HWND が無い・不正な場合は NULL を格納します。\n
  *  フラグを検出した場合は、値の解析可否にかかわらず @p argv から取り除き、
  *  @p argc を 1 減らします。PID が不正な場合は 0 を返します。
  */
-static int extract_handover_args(int *argc, char **argv, DWORD *out_pid, HWND *out_window)
+static int extract_handover_args(int *argc, char **argv, DWORD *pid_out, HWND *window_out)
 {
     const char *prefix = COM_UTIL_CONSOLE_HANDOVER_FLAG "=";
     size_t prefix_len;
@@ -358,7 +358,7 @@ static int extract_handover_args(int *argc, char **argv, DWORD *out_pid, HWND *o
     DWORD pid;
     HWND window;
 
-    if (argc == NULL || argv == NULL || out_pid == NULL || out_window == NULL)
+    if (argc == NULL || argv == NULL || pid_out == NULL || window_out == NULL)
     {
         return 0;
     }
@@ -414,8 +414,8 @@ static int extract_handover_args(int *argc, char **argv, DWORD *out_pid, HWND *o
 
     if (found)
     {
-        *out_pid = pid;
-        *out_window = window;
+        *pid_out = pid;
+        *window_out = window;
     }
     return found;
 }

@@ -210,7 +210,7 @@ int com_util_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
 int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const size_t passphrase_len)
 {
     EVP_MD_CTX *ctx;
-    unsigned int out_len = COM_UTIL_CRYPTO_KEY_SIZE;
+    unsigned int len = COM_UTIL_CRYPTO_KEY_SIZE;
 
     if (key == NULL || (passphrase == NULL && passphrase_len > 0))
     {
@@ -234,7 +234,7 @@ int com_util_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, const si
             pass_data = (const uint8_t *)"";
         }
         if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1 || EVP_DigestUpdate(ctx, pass_data, passphrase_len) != 1 ||
-            EVP_DigestFinal_ex(ctx, key, &out_len) != 1)
+            EVP_DigestFinal_ex(ctx, key, &len) != 1)
         {
             EVP_MD_CTX_free(ctx);
             return COM_UTIL_ERR_UNKNOWN;

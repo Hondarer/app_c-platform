@@ -15,7 +15,7 @@
 // 存在しない場合に MSVC がオブジェクトをリンクへ取り込まず、com_util_* が未解決に
 // なることがある。MOCK_COM_UTIL_LINK_IMPL(func) は /INCLUDE:_mock_impl_<func> を
 // リンカーへ渡し、実体を明示的に含める。以下は mock_com_util/ 配下のディレクトリ
-// 構成 (argparser/clock/compress/console/crt/crypto/net/prompt/runtime/sync/trace/win32)
+// 構成 (argparser/clock/compress/console/crt/crypto/hashtable/net/prompt/runtime/sync/trace/win32)
 // に沿って、各 .cc ファイルが実装する関数を定義順に列挙する。
 // com_util_syslog_sink_* は Linux 専用のため、この Windows 専用ブロックには含めない。
 
@@ -78,8 +78,47 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_get_realtime)
 MOCK_COM_UTIL_LINK_IMPL(com_util_get_realtime_deadline_ms)
 MOCK_COM_UTIL_LINK_IMPL(com_util_get_realtime_utc)
 MOCK_COM_UTIL_LINK_IMPL(com_util_timespec_add_ms)
+MOCK_COM_UTIL_LINK_IMPL(com_util_timespec_cmp)
 MOCK_COM_UTIL_LINK_IMPL(com_util_timespec_from_native)
 MOCK_COM_UTIL_LINK_IMPL(com_util_timespec_to_native)
+
+// hashtable
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_required_size)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_create)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_attach)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_validate)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_config_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_config_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_buffer_size)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_buffer_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_add)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_insert_direct)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_update)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_update_rec)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_value_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_value_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_recno)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_key_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_key_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_value_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_value_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_status)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_timestamp_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_table_timestamp_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_table_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_timestamp_ref)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_count_status)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_count)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_deleted_count)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_empty_count)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_delete)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_delete_rec)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_push_deleted)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_purge_deleted)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_clear)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_destroy)
 
 // compress
 MOCK_COM_UTIL_LINK_IMPL(com_util_compress)
@@ -251,6 +290,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_module_get_basename)
 MOCK_COM_UTIL_LINK_IMPL(com_util_module_get_path)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_destroy)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_executable_path)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_pid)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_exit_code)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_run_sync)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_start)
@@ -398,6 +438,7 @@ MOCK_COM_UTIL_LINK_IMPL(WriteConsoleU)
 #include <com_util/prompt/prompt.h>
 #include <com_util/prompt/pinned_prompt.h>
 #include <com_util/argparser/argparser.h>
+#include <com_util/hashtable/hashtable.h>
 #if defined(PLATFORM_WINDOWS)
     #include <com_util/win32/win32.h>
 #endif /* PLATFORM_WINDOWS */
@@ -586,20 +627,20 @@ extern void delegate_real_com_util_tracer_dispose(com_util_tracer **handle);
 extern int delegate_real_com_util_tracer_start(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_stop(com_util_tracer *handle);
 extern int delegate_real_com_util_tracer_write_at(com_util_tracer *handle, com_util_trace_level level,
-                                                const com_util_timespec *timestamp, const char *message);
+                                                  const com_util_timespec *timestamp, const char *message);
 extern int delegate_real_com_util_tracer_write_hex_at(com_util_tracer *handle, com_util_trace_level level,
-                                                    const com_util_timespec *timestamp, const void *data, size_t size,
-                                                    const char *message);
+                                                      const com_util_timespec *timestamp, const void *data, size_t size,
+                                                      const char *message);
 extern int delegate_real_com_util_tracer_writef_at(com_util_tracer *handle, com_util_trace_level level,
-                                                 const com_util_timespec *timestamp, const char *format, ...);
+                                                   const com_util_timespec *timestamp, const char *format, ...);
 extern int delegate_real_com_util_tracer_write_hexf_at(com_util_tracer *handle, com_util_trace_level level,
-                                                     const com_util_timespec *timestamp, const void *data, size_t size,
-                                                     const char *format, ...);
+                                                       const com_util_timespec *timestamp, const void *data,
+                                                       size_t size, const char *format, ...);
 extern const char *delegate_real_com_util_tracer_hex_sep(const char *message);
 extern const char *delegate_real_com_util_tracer_hex_msg(const char *message);
 extern int delegate_real_com_util_tracer_write_with_source(com_util_tracer *handle, com_util_trace_level level,
-                                                            const com_util_timespec *timestamp, const char *file,
-                                                            int line, const char *message);
+                                                           const com_util_timespec *timestamp, const char *file,
+                                                           int line, const char *message);
 extern int delegate_real_com_util_tracer_set_name(com_util_tracer *handle, const char *name, int64_t identifier);
 extern int delegate_real_com_util_tracer_set_os_level(com_util_tracer *handle, com_util_trace_level level);
 extern int delegate_real_com_util_tracer_set_etw_level(com_util_tracer *handle, com_util_trace_level level);
@@ -633,6 +674,7 @@ extern void delegate_real_com_util_timespec_from_native(const struct timespec *n
 extern void delegate_real_com_util_timespec_to_native(const com_util_timespec *ts, struct timespec *native);
 extern void delegate_real_com_util_timespec_add_ms(const com_util_timespec *ts, uint64_t timeout_ms,
                                                    com_util_timespec *result);
+extern int delegate_real_com_util_timespec_cmp(const com_util_timespec *a, const com_util_timespec *b);
 
 // console
 extern void delegate_real_com_util_console_init(void);
@@ -687,8 +729,8 @@ extern void delegate_real_com_util_call_once(com_util_once_flag *flag, com_util_
 extern void delegate_real_com_util_sleep_ms(int ms);
 
 // runtime - module_info
-extern int delegate_real_com_util_module_get_path(char *out_path, size_t out_path_sz, const void *func_addr);
-extern int delegate_real_com_util_module_get_basename(char *out_basename, size_t out_basename_sz,
+extern int delegate_real_com_util_module_get_path(char *path_out, size_t path_size, const void *func_addr);
+extern int delegate_real_com_util_module_get_basename(char *basename_out, size_t basename_size,
                                                       const void *func_addr);
 
 // runtime - memory_lock
@@ -697,10 +739,71 @@ extern int delegate_real_com_util_memory_unlock_range(const void *address, size_
 extern int delegate_real_com_util_memory_lock_self(const com_util_memory_lock_self_options *options,
                                                    com_util_memory_lock_scope **scope);
 extern int delegate_real_com_util_memory_lock_scope_release(com_util_memory_lock_scope *scope);
+// hashtable
+extern int delegate_real_com_util_hashtable_required_size(const com_util_hashtable_config *config,
+                                                          size_t *mgmt_size_out, size_t *data_size_out);
+extern int delegate_real_com_util_hashtable_create(const com_util_hashtable_config *config, void *buf_mgmt,
+                                                   size_t buf_mgmt_size, void *buf_data, size_t buf_data_size,
+                                                   com_util_hashtable **ht_out);
+extern int delegate_real_com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_data,
+                                                   size_t buf_data_size, com_util_hashtable **ht_out);
+extern int delegate_real_com_util_hashtable_validate(const com_util_hashtable *ht);
+extern int delegate_real_com_util_hashtable_get_config_ref(const com_util_hashtable *ht,
+                                                           const com_util_hashtable_config **config_out);
+extern int delegate_real_com_util_hashtable_get_config_val(const com_util_hashtable *ht,
+                                                           com_util_hashtable_config *config_out);
+extern int delegate_real_com_util_hashtable_buffer_size(const com_util_hashtable *ht, size_t *mgmt_size_out,
+                                                        size_t *data_size_out);
+extern int delegate_real_com_util_hashtable_buffer_ref(const com_util_hashtable *ht, const void **mgmt_out,
+                                                       const void **data_out);
+extern int delegate_real_com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value);
+extern int delegate_real_com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, const void *key,
+                                                          int status, const void *value,
+                                                          const com_util_timespec *timestamp);
+extern int delegate_real_com_util_hashtable_update(com_util_hashtable *ht, const void *key, const void *value);
+extern int delegate_real_com_util_hashtable_update_rec(com_util_hashtable *ht, uint64_t record, const void *value);
+extern int delegate_real_com_util_hashtable_find_value_ref(const com_util_hashtable *ht, const void *key,
+                                                           const void **value_out);
+extern int delegate_real_com_util_hashtable_find_value_val(const com_util_hashtable *ht, const void *key,
+                                                           void *value_out);
+extern int delegate_real_com_util_hashtable_find_recno(const com_util_hashtable *ht, const void *key,
+                                                       uint64_t *record_out);
+extern int delegate_real_com_util_hashtable_get_key_ref(const com_util_hashtable *ht, uint64_t record,
+                                                        const void **key_out);
+extern int delegate_real_com_util_hashtable_get_key_val(const com_util_hashtable *ht, uint64_t record, void *key_out);
+extern int delegate_real_com_util_hashtable_get_value_ref(const com_util_hashtable *ht, uint64_t record,
+                                                          const void **value_out);
+extern int delegate_real_com_util_hashtable_get_value_val(const com_util_hashtable *ht, uint64_t record, void *value_out);
+extern int delegate_real_com_util_hashtable_get_status(const com_util_hashtable *ht, uint64_t record, int *status_out);
+extern int delegate_real_com_util_hashtable_get_timestamp_ref(const com_util_hashtable *ht, uint64_t record,
+                                                              const com_util_timespec **timestamp_out);
+extern int delegate_real_com_util_hashtable_get_timestamp_val(const com_util_hashtable *ht, uint64_t record,
+                                                              com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_get_table_timestamp_ref(const com_util_hashtable *ht,
+                                                                    const com_util_timespec **timestamp_out);
+extern int delegate_real_com_util_hashtable_get_table_timestamp_val(const com_util_hashtable *ht,
+                                                                    com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_find_timestamp_ref(const com_util_hashtable *ht, const void *key,
+                                                               const com_util_timespec **timestamp_out);
+extern int delegate_real_com_util_hashtable_find_timestamp_val(const com_util_hashtable *ht, const void *key,
+                                                               com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_count_status(const com_util_hashtable *ht, size_t *in_use_out,
+                                                         size_t *deleted_out, size_t *empty_out);
+extern int delegate_real_com_util_hashtable_count(const com_util_hashtable *ht, size_t *count_out);
+extern int delegate_real_com_util_hashtable_deleted_count(const com_util_hashtable *ht, size_t *count_out);
+extern int delegate_real_com_util_hashtable_empty_count(const com_util_hashtable *ht, size_t *count_out);
+extern int delegate_real_com_util_hashtable_delete(com_util_hashtable *ht, const void *key);
+extern int delegate_real_com_util_hashtable_delete_rec(com_util_hashtable *ht, uint64_t record);
+extern int delegate_real_com_util_hashtable_push_deleted(com_util_hashtable *ht);
+extern int delegate_real_com_util_hashtable_purge_deleted(com_util_hashtable *ht);
+extern int delegate_real_com_util_hashtable_clear(com_util_hashtable *ht);
+extern void delegate_real_com_util_hashtable_destroy(com_util_hashtable *ht);
+
 extern void delegate_real_com_util_secure_zero(void *buf, size_t size);
 
 // runtime - process_info
-extern int delegate_real_com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
+extern int delegate_real_com_util_process_get_executable_path(char *path_out, size_t path_size);
+extern uint32_t delegate_real_com_util_process_get_pid(void);
 extern int delegate_real_com_util_elevated_process_is_elevated(int *elevated);
 extern int delegate_real_com_util_elevated_process_run_if_needed(const char *arguments, int *exit_code, int *handled);
 extern int delegate_real_com_util_elevated_process_run_with_result(const char *arguments, int *exit_code, int *handled,
@@ -782,7 +885,7 @@ extern BOOL delegate_real_StartServiceCtrlDispatcherU(const com_util_service_ent
 
 // crt - wchar_conv (Windows only)
 extern int delegate_real_com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
-extern int delegate_real_com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath);
+extern int delegate_real_com_util_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath);
 extern wchar_t *delegate_real_com_util_utf8_to_wstr_alloc(const char *utf8_text);
 extern char *delegate_real_com_util_wstr_to_utf8_alloc(const wchar_t *wtext);
 #endif /* PLATFORM_WINDOWS */
@@ -820,10 +923,10 @@ extern com_util_pinned_prompt *
 delegate_real_com_util_pinned_prompt_create(const com_util_pinned_prompt_options *options);
 extern void delegate_real_com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen);
 extern int delegate_real_com_util_pinned_prompt_readline_at(com_util_pinned_prompt *screen, char *buf, size_t buf_size,
-                                                          const char *prompt_str, const char *file, int line);
+                                                            const char *prompt_str, const char *file, int line);
 extern int delegate_real_com_util_pinned_prompt_readline_fmt_at(com_util_pinned_prompt *screen, char *buf,
-                                                              size_t buf_size, const char *file, int line,
-                                                              const char *fmt, va_list args);
+                                                                size_t buf_size, const char *file, int line,
+                                                                const char *fmt, va_list args);
 extern int delegate_real_com_util_pinned_prompt_write(com_util_pinned_prompt *screen,
                                                       com_util_pinned_prompt_channel channel, const void *data,
                                                       size_t size, size_t *written_out);
@@ -842,56 +945,54 @@ extern com_util_argparser *delegate_real_com_util_argparser_create(const com_uti
 extern com_util_argparser *delegate_real_com_util_argparser_default(const com_util_argparser_options *options);
 extern void delegate_real_com_util_argparser_dispose(com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_register_flag(com_util_argparser *parser, const char *short_name,
-                                                           const char *long_name, const char *description,
-                                                           int *storage);
+                                                          const char *long_name, const char *description, int *storage);
 extern int delegate_real_com_util_argparser_register_option_int(com_util_argparser *parser, const char *short_name,
-                                                                 const char *long_name, const char *value_name,
-                                                                 const char *description, unsigned int flags,
-                                                                 int *storage);
+                                                                const char *long_name, const char *value_name,
+                                                                const char *description, unsigned int flags,
+                                                                int *storage);
 extern int delegate_real_com_util_argparser_register_option_string(com_util_argparser *parser, const char *short_name,
-                                                                    const char *long_name, const char *value_name,
-                                                                    const char *description, unsigned int flags,
-                                                                    const char **storage);
+                                                                   const char *long_name, const char *value_name,
+                                                                   const char *description, unsigned int flags,
+                                                                   const char **storage);
 extern int delegate_real_com_util_argparser_register_option_int_array(com_util_argparser *parser,
-                                                                       const char *short_name, const char *long_name,
-                                                                       const char *value_name, const char *description,
-                                                                       unsigned int flags, int *storage,
-                                                                       size_t capacity, size_t *count);
+                                                                      const char *short_name, const char *long_name,
+                                                                      const char *value_name, const char *description,
+                                                                      unsigned int flags, int *storage, size_t capacity,
+                                                                      size_t *count);
 extern int delegate_real_com_util_argparser_register_option_string_array(
     com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
     const char *description, unsigned int flags, const char **storage, size_t capacity, size_t *count);
 extern int delegate_real_com_util_argparser_register_positional_int(com_util_argparser *parser, const char *name,
-                                                                     const char *description, unsigned int flags,
-                                                                     int *storage);
+                                                                    const char *description, unsigned int flags,
+                                                                    int *storage);
 extern int delegate_real_com_util_argparser_register_positional_string(com_util_argparser *parser, const char *name,
-                                                                        const char *description, unsigned int flags,
-                                                                        const char **storage);
+                                                                       const char *description, unsigned int flags,
+                                                                       const char **storage);
 extern int delegate_real_com_util_argparser_register_positional_int_array(com_util_argparser *parser, const char *name,
-                                                                           const char *description, unsigned int flags,
-                                                                           int *storage, size_t capacity,
-                                                                           size_t *count);
+                                                                          const char *description, unsigned int flags,
+                                                                          int *storage, size_t capacity, size_t *count);
 extern int delegate_real_com_util_argparser_register_positional_string_array(com_util_argparser *parser,
-                                                                              const char *name, const char *description,
-                                                                              unsigned int flags, const char **storage,
-                                                                              size_t capacity, size_t *count);
+                                                                             const char *name, const char *description,
+                                                                             unsigned int flags, const char **storage,
+                                                                             size_t capacity, size_t *count);
 extern int delegate_real_com_util_argparser_parse(com_util_argparser *parser, int argc, char *const *argv);
 extern int delegate_real_com_util_argparser_get_error(const com_util_argparser *parser);
 extern const char *delegate_real_com_util_argparser_get_error_target(const com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_get_error_index(const com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_get_error_message(const com_util_argparser *parser, char *buffer,
-                                                               size_t buffer_size);
+                                                              size_t buffer_size);
 extern int delegate_real_com_util_argparser_get_usage(const com_util_argparser *parser, char *buffer,
-                                                       size_t buffer_size, size_t *required_size);
+                                                      size_t buffer_size, size_t *required_size);
 extern int delegate_real_com_util_argparser_print_usage(const com_util_argparser *parser, FILE *stream);
 extern int delegate_real_com_util_argparser_print_error_messages(const com_util_argparser *parser, FILE *stream);
 extern int delegate_real_com_util_argparser_get_register_error(const com_util_argparser *parser, size_t index);
 extern size_t delegate_real_com_util_argparser_get_register_error_count(const com_util_argparser *parser);
 extern const char *delegate_real_com_util_argparser_get_register_error_target(const com_util_argparser *parser,
-                                                                               size_t index);
+                                                                              size_t index);
 extern int delegate_real_com_util_argparser_get_register_error_message(const com_util_argparser *parser, size_t index,
-                                                                        char *buffer, size_t buffer_size);
+                                                                       char *buffer, size_t buffer_size);
 extern int delegate_real_com_util_argparser_print_register_error_messages(const com_util_argparser *parser,
-                                                                           FILE *stream);
+                                                                          FILE *stream);
 
 // argparser (省略可能な単一インスタンス API)
 extern void delegate_real_com_util_argparser_default_init(const char *description);
@@ -900,7 +1001,8 @@ extern int delegate_real_com_util_argparser_default_register_flag(const char *sh
 extern int delegate_real_com_util_argparser_default_register_option_int(const char *short_name, const char *long_name,
                                                                         const char *value_name, const char *description,
                                                                         unsigned int flags, int *storage);
-extern int delegate_real_com_util_argparser_default_register_option_string(const char *short_name, const char *long_name,
+extern int delegate_real_com_util_argparser_default_register_option_string(const char *short_name,
+                                                                           const char *long_name,
                                                                            const char *value_name,
                                                                            const char *description, unsigned int flags,
                                                                            const char **storage);
@@ -920,9 +1022,11 @@ extern int delegate_real_com_util_argparser_default_register_positional_int_arra
                                                                                   const char *description,
                                                                                   unsigned int flags, int *storage,
                                                                                   size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_default_register_positional_string_array(
-    const char *name, const char *description, unsigned int flags, const char **storage, size_t capacity,
-    size_t *count);
+extern int delegate_real_com_util_argparser_default_register_positional_string_array(const char *name,
+                                                                                     const char *description,
+                                                                                     unsigned int flags,
+                                                                                     const char **storage,
+                                                                                     size_t capacity, size_t *count);
 extern int delegate_real_com_util_argparser_default_parse(int argc, char *const *argv);
 extern int delegate_real_com_util_argparser_default_get_error(void);
 extern const char *delegate_real_com_util_argparser_default_get_error_target(void);
@@ -935,13 +1039,58 @@ extern int delegate_real_com_util_argparser_default_get_register_error(size_t in
 extern size_t delegate_real_com_util_argparser_default_get_register_error_count(void);
 extern const char *delegate_real_com_util_argparser_default_get_register_error_target(size_t index);
 extern int delegate_real_com_util_argparser_default_get_register_error_message(size_t index, char *buffer,
-                                                                                size_t buffer_size);
+                                                                               size_t buffer_size);
 extern int delegate_real_com_util_argparser_default_print_register_error_messages(FILE *stream);
 
 class Mock_com_util
 {
   public:
     // compress
+    // hashtable
+    MOCK_METHOD(int, com_util_hashtable_required_size, (const com_util_hashtable_config *, size_t *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_create,
+                (const com_util_hashtable_config *, void *, size_t, void *, size_t, com_util_hashtable **));
+    MOCK_METHOD(int, com_util_hashtable_attach, (void *, size_t, void *, size_t, com_util_hashtable **));
+    MOCK_METHOD(int, com_util_hashtable_validate, (const com_util_hashtable *));
+    MOCK_METHOD(int, com_util_hashtable_get_config_ref,
+                (const com_util_hashtable *, const com_util_hashtable_config **));
+    MOCK_METHOD(int, com_util_hashtable_get_config_val, (const com_util_hashtable *, com_util_hashtable_config *));
+    MOCK_METHOD(int, com_util_hashtable_buffer_size, (const com_util_hashtable *, size_t *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_buffer_ref, (const com_util_hashtable *, const void **, const void **));
+    MOCK_METHOD(int, com_util_hashtable_add, (com_util_hashtable *, const void *, const void *));
+    MOCK_METHOD(int, com_util_hashtable_insert_direct,
+                (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_update, (com_util_hashtable *, const void *, const void *));
+    MOCK_METHOD(int, com_util_hashtable_update_rec, (com_util_hashtable *, uint64_t, const void *));
+    MOCK_METHOD(int, com_util_hashtable_find_value_ref, (const com_util_hashtable *, const void *, const void **));
+    MOCK_METHOD(int, com_util_hashtable_find_value_val, (const com_util_hashtable *, const void *, void *));
+    MOCK_METHOD(int, com_util_hashtable_find_recno, (const com_util_hashtable *, const void *, uint64_t *));
+    MOCK_METHOD(int, com_util_hashtable_get_key_ref, (const com_util_hashtable *, uint64_t, const void **));
+    MOCK_METHOD(int, com_util_hashtable_get_key_val, (const com_util_hashtable *, uint64_t, void *));
+    MOCK_METHOD(int, com_util_hashtable_get_value_ref, (const com_util_hashtable *, uint64_t, const void **));
+    MOCK_METHOD(int, com_util_hashtable_get_value_val, (const com_util_hashtable *, uint64_t, void *));
+    MOCK_METHOD(int, com_util_hashtable_get_status, (const com_util_hashtable *, uint64_t, int *));
+    MOCK_METHOD(int, com_util_hashtable_get_timestamp_ref,
+                (const com_util_hashtable *, uint64_t, const com_util_timespec **));
+    MOCK_METHOD(int, com_util_hashtable_get_timestamp_val, (const com_util_hashtable *, uint64_t, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_get_table_timestamp_ref,
+                (const com_util_hashtable *, const com_util_timespec **));
+    MOCK_METHOD(int, com_util_hashtable_get_table_timestamp_val, (const com_util_hashtable *, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_find_timestamp_ref,
+                (const com_util_hashtable *, const void *, const com_util_timespec **));
+    MOCK_METHOD(int, com_util_hashtable_find_timestamp_val,
+                (const com_util_hashtable *, const void *, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_count_status, (const com_util_hashtable *, size_t *, size_t *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_count, (const com_util_hashtable *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_deleted_count, (const com_util_hashtable *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_empty_count, (const com_util_hashtable *, size_t *));
+    MOCK_METHOD(int, com_util_hashtable_delete, (com_util_hashtable *, const void *));
+    MOCK_METHOD(int, com_util_hashtable_delete_rec, (com_util_hashtable *, uint64_t));
+    MOCK_METHOD(int, com_util_hashtable_push_deleted, (com_util_hashtable *));
+    MOCK_METHOD(int, com_util_hashtable_purge_deleted, (com_util_hashtable *));
+    MOCK_METHOD(int, com_util_hashtable_clear, (com_util_hashtable *));
+    MOCK_METHOD(void, com_util_hashtable_destroy, (com_util_hashtable *));
+
     MOCK_METHOD(int, com_util_compress, (uint8_t *, size_t *, const uint8_t *, size_t));
     MOCK_METHOD(int, com_util_decompress, (uint8_t *, size_t *, const uint8_t *, size_t));
 
@@ -1139,6 +1288,7 @@ class Mock_com_util
     MOCK_METHOD(void, com_util_timespec_from_native, (const struct timespec *, com_util_timespec *));
     MOCK_METHOD(void, com_util_timespec_to_native, (const com_util_timespec *, struct timespec *));
     MOCK_METHOD(void, com_util_timespec_add_ms, (const com_util_timespec *, uint64_t, com_util_timespec *));
+    MOCK_METHOD(int, com_util_timespec_cmp, (const com_util_timespec *, const com_util_timespec *));
 
     // console
     MOCK_METHOD(void, com_util_console_init, ());
@@ -1205,6 +1355,7 @@ class Mock_com_util
 
     // runtime - process_info
     MOCK_METHOD(int, com_util_process_get_executable_path, (char *, size_t));
+    MOCK_METHOD(uint32_t, com_util_process_get_pid, ());
     MOCK_METHOD(int, com_util_elevated_process_is_elevated, (int *));
     MOCK_METHOD(int, com_util_elevated_process_run_if_needed, (const char *, int *, int *));
     MOCK_METHOD(int, com_util_elevated_process_run_with_result, (const char *, int *, int *, char *, size_t));
@@ -1365,7 +1516,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_argparser_default_register_option_string_array,
                 (const char *, const char *, const char *, const char *, unsigned int, const char **, size_t,
                  size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_register_positional_int, (const char *, const char *, unsigned int, int *));
+    MOCK_METHOD(int, com_util_argparser_default_register_positional_int,
+                (const char *, const char *, unsigned int, int *));
     MOCK_METHOD(int, com_util_argparser_default_register_positional_string,
                 (const char *, const char *, unsigned int, const char **));
     MOCK_METHOD(int, com_util_argparser_default_register_positional_int_array,

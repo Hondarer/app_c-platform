@@ -282,6 +282,7 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 |---|---|---|
 | `dladdr()` (POSIX) / `GetModuleHandleEx` +`GetModuleFileName` (Win32) | `com_util_module_get_path(...)` | 関数アドレスから所属モジュールの完全なパスを取得 |
 | `readlink("/proc/self/exe")` (Linux) / `GetModuleFileName(NULL, ...)` (Win32) | `com_util_process_get_executable_path(...)` | - |
+| `getpid()` (POSIX) / `GetCurrentProcessId()` (Win32) | `com_util_process_get_pid()` | - |
 | `fork()` +`execve()` (POSIX) / `CreateProcess()` (Win32) | `com_util_process_start(...)` | stdio リダイレクト、環境変数上書き、作業ディレクトリ指定を共通オプション構造体 `com_util_process_options` に集約 |
 | `waitpid()` (POSIX) / `WaitForSingleObject()` (Win32) | `com_util_process_wait(...)` | - |
 | `WEXITSTATUS(status)` (POSIX) / `GetExitCodeProcess()` (Win32) | `com_util_process_get_exit_code(...)` | - |
@@ -396,6 +397,30 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 以下は com_util 独自の機能で、単一の生 API とは 1 対 1 で対応しません。  
 「生の構文」列には、対応する生の関数がある場合はその名前を、ない場合は用途を記載します。  
 「生の構文」列を主キーとした逆引きはできませんが、com_util が公開する API を用途から引けるようにするため掲載します。
+
+### ハッシュ テーブル
+
+対象ヘッダー: `com_util/hashtable/hashtable.h`
+
+固定長スロットと遅延削除を持つハッシュ テーブルです。  
+単一の標準 API とは対応しません。
+
+| 用途 | com_util API |
+|---|---|
+| 必要バッファー サイズを求める | `com_util_hashtable_required_size` / `com_util_hashtable_buffer_size` |
+| 管理中バッファーの先頭を得る | `com_util_hashtable_buffer_ref` |
+| 構築 / 再接続 / 破棄 | `com_util_hashtable_create` / `com_util_hashtable_attach` / `com_util_hashtable_destroy` |
+| 設定を読む | `com_util_hashtable_get_config_ref` / `com_util_hashtable_get_config_val` |
+| 追加 / 更新 / 削除 | `com_util_hashtable_add` / `com_util_hashtable_update` / `com_util_hashtable_update_rec` / `com_util_hashtable_delete` / `com_util_hashtable_delete_rec` |
+| レコード番号を指定して直接書き込む | `com_util_hashtable_insert_direct` |
+| 検索 | `com_util_hashtable_find_value_ref` / `com_util_hashtable_find_value_val` / `com_util_hashtable_find_recno` / `com_util_hashtable_find_timestamp_ref` / `com_util_hashtable_find_timestamp_val` |
+| レコード番号から読む | `com_util_hashtable_get_key_ref` / `com_util_hashtable_get_key_val` / `com_util_hashtable_get_value_ref` / `com_util_hashtable_get_value_val` / `com_util_hashtable_get_status` / `com_util_hashtable_get_timestamp_ref` / `com_util_hashtable_get_timestamp_val` |
+| テーブル横断の変更時刻 | `com_util_hashtable_get_table_timestamp_ref` / `com_util_hashtable_get_table_timestamp_val` |
+| タイムスタンプの粒度 | `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE` / `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD` |
+| 占有状況 | `com_util_hashtable_count_status` / `com_util_hashtable_count` / `com_util_hashtable_deleted_count` / `com_util_hashtable_empty_count` |
+| 削除の加齢と回収 | `com_util_hashtable_push_deleted` / `com_util_hashtable_purge_deleted` / `com_util_hashtable_clear` |
+| 寿命無限 | `COM_UTIL_HASHTABLE_LIFETIME_INFINITE` |
+| 整合性検査 | `com_util_hashtable_validate` |
 
 ### スレッドと同期プリミティブ
 

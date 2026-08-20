@@ -47,23 +47,23 @@ int com_util_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_pa
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath)
+int com_util_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath)
 {
     int n;
 
-    if (out == NULL || out_size == 0 || wpath == NULL)
+    if (dest == NULL || dest_size == 0 || wpath == NULL)
     {
         return -1;
     }
 
-    n = WideCharToMultiByte(CP_UTF8, 0, wpath, -1, out, (int)out_size, NULL, NULL);
+    n = WideCharToMultiByte(CP_UTF8, 0, wpath, -1, dest, (int)dest_size, NULL, NULL);
     if (n <= 0)
     {
         return -1;
     }
 
     /* Windows API が返す '\\' を '/' に正規化する */
-    for (char *p = out; *p != '\0'; ++p)
+    for (char *p = dest; *p != '\0'; ++p)
     {
         if (*p == '\\')
         {

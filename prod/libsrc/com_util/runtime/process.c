@@ -940,9 +940,9 @@ static void release_process_start_resources(struct process_start_resources *res)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_process_get_executable_path(char *out_path, const size_t out_path_sz)
+int com_util_process_get_executable_path(char *path_out, const size_t path_size)
 {
-    if (out_path == NULL || out_path_sz == 0)
+    if (path_out == NULL || path_size == 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -951,23 +951,23 @@ int com_util_process_get_executable_path(char *out_path, const size_t out_path_s
     {
         ssize_t len;
 
-        if (out_path_sz == 1)
+        if (path_size == 1)
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
-        len = readlink("/proc/self/exe", out_path, out_path_sz - 1);
+        len = readlink("/proc/self/exe", path_out, path_size - 1);
         if (len < 0)
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return com_util_result_from_errno(errno);
         }
-        if ((size_t)len >= out_path_sz)
+        if ((size_t)len >= path_size)
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
-        out_path[len] = '\0';
+        path_out[len] = '\0';
         return COM_UTIL_OK;
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -981,26 +981,39 @@ int com_util_process_get_executable_path(char *out_path, const size_t out_path_s
         n = GetModuleFileNameW(NULL, wbuf, (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])));
         if (n == 0)
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return com_util_result_from_windows_error(GetLastError());
         }
         if (n >= (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])))
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         wbuf[n] = L'\0';
-        if (com_util_wpath_to_utf8(out_path, out_path_sz, wbuf) < 0)
+        if (com_util_wpath_to_utf8(path_out, path_size, wbuf) < 0)
         {
             result = com_util_result_from_windows_error(GetLastError());
-            out_path[0] = '\0';
+            path_out[0] = '\0';
             return result;
         }
         return COM_UTIL_OK;
     }
 #else
-    out_path[0] = '\0';
+    path_out[0] = '\0';
     return COM_UTIL_ERR_UNSUPPORTED;
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+uint32_t com_util_process_get_pid(void)
+{
+#if defined(PLATFORM_LINUX)
+    return (uint32_t)getpid();
+#elif defined(PLATFORM_WINDOWS)
+    return (uint32_t)GetCurrentProcessId();
+#else
+    return 0;
 #endif /* PLATFORM_ */
 }
 

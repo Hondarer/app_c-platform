@@ -83,12 +83,12 @@ static const char *find_shared_lib_extension_cut(const char *s)
  *  dladdr() に指定された関数アドレスを渡して所属共有オブジェクトを取得し、\n
  *  realpath() で可能な限り絶対化・正規化します。
  *
- *  @param[out]     out_path    出力 (UTF-8、NULL 終端)。
- *  @param[in]      out_path_sz 出力バッファサイズ[byte]。
+ *  @param[out]     path_out    出力 (UTF-8、NULL 終端)。
+ *  @param[in]      path_size   出力バッファーのサイズ (バイト)。
  *  @param[in]      func_addr   所属モジュールを特定するための関数アドレス。
  *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれか。
  */
-static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *func_addr)
+static int get_self_path_posix(char *path_out, size_t path_size, const void *func_addr)
 {
     Dl_info info = {0};
     const char *p;
@@ -110,7 +110,7 @@ static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *f
     if (p[0] == '\0')
         return COM_UTIL_ERR_UNKNOWN;
 
-    if (com_util_path_get_full(out_path, out_path_sz, &err, p) == COM_UTIL_OK)
+    if (com_util_path_get_full(path_out, path_size, &err, p) == COM_UTIL_OK)
     {
         return COM_UTIL_OK;
     }
@@ -130,18 +130,18 @@ static int get_self_path_posix(char *out_path, size_t out_path_sz, const void *f
 /**
  *  @brief          DLL 自身の絶対パス (ワイド文字列) を取得します。
  *
- *  @param[out]     out_w     出力 (UTF-16、NULL 終端)。
- *  @param[in]      out_w_cap 出力バッファサイズ[wchar_t 個数]。
- *  @param[in]      func_addr 所属モジュールを特定するための関数アドレス。
+ *  @param[out]     wpath_out   出力 (UTF-16、NULL 終端)。
+ *  @param[in]      wpath_size  出力バッファーのサイズ (wchar_t 個数)。
+ *  @param[in]      func_addr   所属モジュールを特定するための関数アドレス。
  *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_UNKNOWN のいずれか。
  */
-static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_addr)
+static int get_self_path_w(wchar_t *wpath_out, size_t wpath_size, const void *func_addr)
 {
     HMODULE hm = NULL;
     wchar_t buf[PLATFORM_PATH_MAX];
     DWORD n;
 
-    if (!out_w || out_w_cap == 0 || !func_addr)
+    if (!wpath_out || wpath_size == 0 || !func_addr)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
 
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -157,9 +157,9 @@ static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_ad
         return COM_UTIL_ERR_UNKNOWN;
     }
     buf[n] = L'\0';
-    if (wcslen(buf) + 1 > out_w_cap)
+    if (wcslen(buf) + 1 > wpath_size)
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
-    (void)com_util_wcscpy(out_w, out_w_cap, buf);
+    (void)com_util_wcscpy(wpath_out, wpath_size, buf);
     return COM_UTIL_OK;
 }
 
@@ -167,19 +167,19 @@ static int get_self_path_w(wchar_t *out_w, size_t out_w_cap, const void *func_ad
 
 /**
  *  @brief          パスの basename から共有ライブラリ拡張子または通常拡張子を除去します。
- *  @param[out]     out_basename    basename の出力先。
- *  @param[in]      out_basename_sz 出力先のサイズ。
- *  @param[in]      path            basename を取得するパス。
+ *  @param[out]     basename_out   basename の出力先。
+ *  @param[in]      basename_size  出力先のサイズ。
+ *  @param[in]      path           basename を取得するパス。
  *  @return         成功時は COM_UTIL_OK、それ以外はエラー結果を返します。
  */
-static int get_basename_from_path(char *out_basename, size_t out_basename_sz, const char *path)
+static int get_basename_from_path(char *basename_out, size_t basename_size, const char *path)
 {
     const char *fname = com_util_path_basename(path);
     const char *shared_lib_cut;
 
     if (fname[0] == '\0')
     {
-        out_basename[0] = '\0';
+        basename_out[0] = '\0';
         return COM_UTIL_ERR_UNKNOWN;
     }
 
@@ -188,22 +188,22 @@ static int get_basename_from_path(char *out_basename, size_t out_basename_sz, co
     {
         size_t len = (size_t)(shared_lib_cut - fname);
 
-        if (len + 1u > out_basename_sz)
+        if (len + 1u > basename_size)
         {
-            out_basename[0] = '\0';
+            basename_out[0] = '\0';
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
-        memcpy(out_basename, fname, len);
-        out_basename[len] = '\0';
+        memcpy(basename_out, fname, len);
+        basename_out[len] = '\0';
         return COM_UTIL_OK;
     }
 
     {
         com_util_error path_error;
 
-        if (com_util_path_strip_extension(out_basename, out_basename_sz, &path_error, fname) != COM_UTIL_OK)
+        if (com_util_path_strip_extension(basename_out, basename_size, &path_error, fname) != COM_UTIL_OK)
         {
-            out_basename[0] = '\0';
+            basename_out[0] = '\0';
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
     }
@@ -213,19 +213,19 @@ static int get_basename_from_path(char *out_basename, size_t out_basename_sz, co
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_module_get_path(char *out_path, const size_t out_path_sz, const void *func_addr)
+int com_util_module_get_path(char *path_out, const size_t path_size, const void *func_addr)
 {
-    if (out_path == NULL || out_path_sz == 0u || func_addr == NULL)
+    if (path_out == NULL || path_size == 0u || func_addr == NULL)
     {
-        if (out_path != NULL && out_path_sz > 0u)
+        if (path_out != NULL && path_size > 0u)
         {
-            out_path[0] = '\0';
+            path_out[0] = '\0';
         }
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
 #if defined(PLATFORM_LINUX)
-    return get_self_path_posix(out_path, out_path_sz, func_addr);
+    return get_self_path_posix(path_out, path_size, func_addr);
 #elif defined(PLATFORM_WINDOWS)
     wchar_t wpath[PLATFORM_PATH_MAX];
     char utf8_path[PLATFORM_PATH_MAX];
@@ -233,20 +233,20 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
     int st = get_self_path_w(wpath, (size_t)(sizeof(wpath) / sizeof(wpath[0])), func_addr);
     if (st != COM_UTIL_OK)
     {
-        if (out_path && out_path_sz)
-            out_path[0] = '\0';
+        if (path_out && path_size)
+            path_out[0] = '\0';
         return st;
     }
     if (com_util_wpath_to_utf8(utf8_path, sizeof(utf8_path), wpath) < 0)
     {
-        if (out_path && out_path_sz)
-            out_path[0] = '\0';
+        if (path_out && path_size)
+            path_out[0] = '\0';
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    if (com_util_path_get_full(out_path, out_path_sz, &err, utf8_path) != COM_UTIL_OK)
+    if (com_util_path_get_full(path_out, path_size, &err, utf8_path) != COM_UTIL_OK)
     {
-        if (out_path && out_path_sz)
-            out_path[0] = '\0';
+        if (path_out && path_size)
+            path_out[0] = '\0';
         if (com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG))
         {
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
@@ -262,20 +262,20 @@ int com_util_module_get_path(char *out_path, const size_t out_path_sz, const voi
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_module_get_basename(char *out_basename, const size_t out_basename_sz, const void *func_addr)
+int com_util_module_get_basename(char *basename_out, const size_t basename_size, const void *func_addr)
 {
     int st;
     char path_buf[4096];
 
-    if (!out_basename || out_basename_sz == 0)
+    if (!basename_out || basename_size == 0)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
 
     st = com_util_module_get_path(path_buf, sizeof(path_buf), func_addr);
     if (st != COM_UTIL_OK)
     {
-        out_basename[0] = '\0';
+        basename_out[0] = '\0';
         return st;
     }
 
-    return get_basename_from_path(out_basename, out_basename_sz, path_buf);
+    return get_basename_from_path(basename_out, basename_size, path_buf);
 }

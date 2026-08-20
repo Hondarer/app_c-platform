@@ -37,11 +37,11 @@ extern "C"
 
     /**
      *  @brief          現在のプロセスの実行ファイル本体の絶対パスを取得します。
-     *  @param[out]     out_path      絶対パス (UTF-8) の格納先。NULL を渡してはなりません。
-     *  @param[in]      out_path_sz   @p out_path のサイズ (バイト)。0 を渡してはなりません。
+     *  @param[out]     path_out      絶対パス (UTF-8) の格納先。NULL を渡してはなりません。
+     *  @param[in]      path_size     @p path_out のサイズ (バイト)。0 を渡してはなりません。
      *  @retval         COM_UTIL_OK                    実行ファイルのパスを取得しました。
-     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p out_path が NULL、または @p out_path_sz が 0 です。
-     *  @retval         COM_UTIL_ERR_BUFFER_TOO_SMALL  @p out_path の容量が不足しています。
+     *  @retval         COM_UTIL_ERR_INVALID_ARGUMENT  @p path_out が NULL、または @p path_size が 0 です。
+     *  @retval         COM_UTIL_ERR_BUFFER_TOO_SMALL  @p path_out の容量が不足しています。
      *  @retval         COM_UTIL_ERR_UNSUPPORTED       現在のプラットフォームをサポートしていません。
      *  @return         上記以外の失敗時は、OS エラーを変換した共通結果コードを返します。
      *
@@ -53,7 +53,21 @@ extern "C"
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *out_path, size_t out_path_sz);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_process_get_executable_path(char *path_out, size_t path_size);
+
+    /**
+     *  @brief          現在のプロセスの PID (プロセス ID) を取得します。
+     *  @return         現在のプロセスの PID。
+     *
+     *  ログ出力やロック ファイル名の一意化など、診断目的で PID の数値を必要とする場合に使用します。\n
+     *  プロセスの生成・待機・終了操作には、本関数の戻り値ではなく com_util_process_start() が
+     *  返すハンドル (@ref com_util_process) を使用してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT uint32_t COM_UTIL_API com_util_process_get_pid(void);
 
 #define COM_UTIL_PROCESS_WAIT_FOREVER INT_MAX /**< タイムアウトなしで待機する (INT_MAX)。 */
 #define COM_UTIL_PROCESS_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */

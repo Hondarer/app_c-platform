@@ -84,9 +84,9 @@ class traceTest : public Test
         // デフォルト パス解決を決定的にするため、実行ファイル パスを固定する
         ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
             .WillByDefault(
-                [](char *out_path, size_t out_path_sz)
+                [](char *path_out, size_t path_size)
                 {
-                    snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                    snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                     return 0;
                 });
 
@@ -1746,9 +1746,9 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
     // Arrange
     ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillByDefault(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "C:/bin/myapp.exe");
+                snprintf(path_out, path_size, "%s", "C:/bin/myapp.exe");
                 return 0;
             }); // [状態] - com_util_process_get_executable_path が呼び出された際に "C:/bin/myapp.exe" を返すようにモックを設定する。
     com_util_tracer *handle = create_logger();

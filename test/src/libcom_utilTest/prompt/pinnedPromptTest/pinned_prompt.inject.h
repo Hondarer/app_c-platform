@@ -53,7 +53,7 @@ extern "C"
     };
 
     /* 端末入力のキー分類へ直接アクセスする。 */
-    extern int test_pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch);
+    extern int test_pinned_prompt_read_key(com_util_pinned_prompt *screen, int *ch_out);
 
     /* 行編集 static 関数を個別に検証する。 */
     extern void test_pinned_prompt_set_edit_line(com_util_pinned_prompt *screen, const char *line);

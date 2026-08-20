@@ -52,12 +52,12 @@ static void etw_viewer_shutdown_request_callback(const com_util_shutdown_event *
     g_stop_requested = 1;
 }
 
-static int parse_process_id_arg(const char *text, uint32_t *out_process_id)
+static int parse_process_id_arg(const char *text, uint32_t *process_id_out)
 {
     char *endptr;
     unsigned long value;
 
-    if (text == NULL || out_process_id == NULL || text[0] == '\0')
+    if (text == NULL || process_id_out == NULL || text[0] == '\0')
     {
         return -1;
     }
@@ -70,7 +70,7 @@ static int parse_process_id_arg(const char *text, uint32_t *out_process_id)
         return -1;
     }
 
-    *out_process_id = (uint32_t)value;
+    *process_id_out = (uint32_t)value;
     return 0;
 }
 

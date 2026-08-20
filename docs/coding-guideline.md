@@ -33,7 +33,8 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | 帯 | コード | 値 | 意味 |
 |---|---|---|---|
 | 分類不能 | `COM_UTIL_OK` | 0 | 成功 |
-| | `COM_UTIL_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
+| 省略 | `COM_UTIL_SKIPPED` | 1 | 適用せずに省略した (エラーではない) |
+| 分類不能 | `COM_UTIL_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
 | 引数・状態・権限<br> (-2 〜 -9) | `COM_UTIL_ERR_INVALID_ARGUMENT` | -2 | API 引数が不正 (NULL、負値など) |
 | | `COM_UTIL_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
 | | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
@@ -100,7 +101,7 @@ if (ret != COM_UTIL_OK)
 
 | 伝達手段 | 内容 |
 |---|---|
-| 戻り値 (`int`) | `COM_UTIL_OK` または負値の分類済みエラー コード |
+| 戻り値 (`int`) | `COM_UTIL_OK`、正値の省略 (`COM_UTIL_SKIPPED`)、または負値の分類済みエラー コード |
 | `com_util_error *detail_out` 出力引数 | OS エラーのドメイン、共通結果コード、生の詳細値 |
 | スレッド ローカルの直前値 | `com_util_error_get_last()` で取得する、直前の対応 API と同じ詳細 |
 
@@ -817,7 +818,7 @@ com_util の公開 API の引数順序は、API の性格に応じて以下の 3
 入力を出力バッファーへ変換・整形する API は、CRT の `strcpy_s` 系に合わせて出力バッファーを先頭に置きます。
 
 ```c
-戻り値 関数名(out[, out_size][, detail_out], 入力...);
+戻り値 関数名(dest[, dest_size][, detail_out], 入力...);
 ```
 
 ```c

@@ -43,12 +43,12 @@ COM_UTIL_EXPORT int COM_UTIL_API com_util_utf8_to_wpath(wchar_t *wbuf, size_t wb
  *  @brief          ワイド文字列パスを UTF-8 に変換します。
  *
  *  変換後の文字列中の `\\` を `/` に正規化します。
- *  @param[out]     out         変換結果の書き込み先バッファー。
- *  @param[in]      out_size    out のバイト数。
+ *  @param[out]     dest        変換結果の書き込み先バッファー。
+ *  @param[in]      dest_size   dest のバイト数。
  *  @param[in]      wpath       変換元のワイド文字列パス。
  *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1。
  */
-COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *out, size_t out_size, const wchar_t *wpath);
+COM_UTIL_EXPORT int COM_UTIL_API com_util_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath);
 
 /**
  *  @brief          UTF-8 文字列をワイド文字列に変換し、確保した領域へ格納して返します。

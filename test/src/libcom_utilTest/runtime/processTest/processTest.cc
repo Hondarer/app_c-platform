@@ -851,6 +851,45 @@ TEST(processTest, ExecutablePathReportsSmallBuffer)
 }
 
 #if defined(PLATFORM_LINUX)
+// mock 化した getpid() の戻り値が com_util_process_get_pid へそのまま伝播することの確認
+TEST(processTest, GetsPidPropagatesMockedGetpid)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, getpid(_, _, _))
+        .WillOnce(Return(static_cast<pid_t>(4321))); // [Pre-Assert確認_正常系] - getpid が 1 回呼び出されること。
+                                                      // [Pre-Assert手順] - pid 4321 を返却する。
+
+    // Act
+    uint32_t result = com_util_process_get_pid(); // [手順] - com_util_process_get_pid を呼び出す。
+
+    // Assert
+    EXPECT_EQ(4321U, result); // [確認_正常系] - mock 化した getpid の戻り値がそのまま返ること。
+}
+#elif defined(PLATFORM_WINDOWS)
+// mock 化した GetCurrentProcessId() の戻り値が com_util_process_get_pid へそのまま伝播することの確認
+TEST(processTest, GetsPidPropagatesMockedGetCurrentProcessId)
+{
+    // Arrange
+    NiceMock<Mock_windows> mock_windows;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetCurrentProcessId(_, _, _))
+        .WillOnce(Return(
+            static_cast<DWORD>(4321))); // [Pre-Assert確認_正常系] - GetCurrentProcessId が 1 回呼び出されること。
+                                        // [Pre-Assert手順] - pid 4321 を返却する。
+
+    // Act
+    uint32_t result = com_util_process_get_pid(); // [手順] - com_util_process_get_pid を呼び出す。
+
+    // Assert
+    EXPECT_EQ(4321U, result); // [確認_正常系] - mock 化した GetCurrentProcessId の戻り値がそのまま返ること。
+}
+#endif /* PLATFORM_ */
+
+#if defined(PLATFORM_LINUX)
 // 実行ファイルのパス取得が readlink の OS エラーを共通結果へ変換することの確認
 TEST(processTest, ExecutablePathReportsReadlinkFailure)
 {

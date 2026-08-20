@@ -92,6 +92,12 @@
  */
 
 /**
+ *  @defgroup       COM_UTIL_HASHTABLE ハッシュ テーブル (hashtable)
+ *  @ingroup        COM_UTIL_PUBLIC_API
+ *  @brief          固定長スロットと遅延削除を持つハッシュ テーブル API です。
+ */
+
+/**
  *  @defgroup       COM_UTIL_MMAP メモリ マップド ファイル (mmap)
  *  @ingroup        COM_UTIL_PUBLIC_API
  *  @brief          メモリ マップド ファイルの割り当てと共有 API です。
@@ -174,6 +180,8 @@
 
 #include <com_util/crypto/crypto.h>
 #include <com_util/crypto/random.h>
+
+#include <com_util/hashtable/hashtable.h>
 
 #include <com_util/mmap/mmap.h>
 

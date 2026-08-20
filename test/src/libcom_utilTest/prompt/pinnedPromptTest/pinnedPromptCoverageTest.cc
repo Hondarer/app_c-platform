@@ -732,7 +732,7 @@ TEST(pinnedPromptCoverageTest, read_key_classifies_unknown_csi_default)
     NiceMock<Mock_sys_select> mock_select;
     const unsigned char input[] = {0x1BU, '[', '2', 0x1BU, '[', '4', 'x'};
     size_t input_pos = 0U;
-    int out_ch = -1;
+    int ch = -1;
     int key = TEST_PINNED_PROMPT_KEY_CHAR;
     int four_key = TEST_PINNED_PROMPT_KEY_CHAR;
 
@@ -755,8 +755,8 @@ TEST(pinnedPromptCoverageTest, read_key_classifies_unknown_csi_default)
     // [Pre-Assert手順] - ESC [ 2 と ESC [ 4 x を順に返却する。
 
     // Act
-    key = test_pinned_prompt_read_key(screen, &out_ch);      // [手順] - ESC [ 2 の未知 CSI を分類する。
-    four_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 4 x の不正終端を分類する。
+    key = test_pinned_prompt_read_key(screen, &ch);      // [手順] - ESC [ 2 の未知 CSI を分類する。
+    four_key = test_pinned_prompt_read_key(screen, &ch); // [手順] - ESC [ 4 x の不正終端を分類する。
 
     // Assert
     EXPECT_EQ(TEST_PINNED_PROMPT_KEY_UNKNOWN, key);      // [確認_異常系] - ESC [ 2 が UNKNOWN になること。
@@ -777,7 +777,7 @@ TEST(pinnedPromptCoverageTest, read_key_and_status_cover_remaining_conditions)
     NiceMock<Mock_ioctl> mock_ioctl;
     const unsigned char input[] = {'\r', 0x08U, 0x1BU, '[', '3', 'x'};
     size_t input_pos = 0U;
-    int out_ch = -1;
+    int ch = -1;
     int cr_key = TEST_PINNED_PROMPT_KEY_CHAR;
     int bs_key = TEST_PINNED_PROMPT_KEY_CHAR;
     int three_key = TEST_PINNED_PROMPT_KEY_CHAR;
@@ -811,9 +811,9 @@ TEST(pinnedPromptCoverageTest, read_key_and_status_cover_remaining_conditions)
     // [Pre-Assert手順] - CR、BS、ESC [ 3 x を順に返却する。
 
     // Act
-    cr_key = test_pinned_prompt_read_key(screen, &out_ch);    // [手順] - CR をキー分類する。
-    bs_key = test_pinned_prompt_read_key(screen, &out_ch);    // [手順] - BS をキー分類する。
-    three_key = test_pinned_prompt_read_key(screen, &out_ch); // [手順] - ESC [ 3 x を分類する。
+    cr_key = test_pinned_prompt_read_key(screen, &ch);    // [手順] - CR をキー分類する。
+    bs_key = test_pinned_prompt_read_key(screen, &ch);    // [手順] - BS をキー分類する。
+    three_key = test_pinned_prompt_read_key(screen, &ch); // [手順] - ESC [ 3 x を分類する。
     test_pinned_prompt_render_state(screen, 1, 1, 1, 1, "p", "e", "", "RIGHT", "LEFT", "");
     test_pinned_prompt_render(screen); // [手順] - 空の左ステータスと右ステータスを 80 列へ描画する。
     test_pinned_prompt_set_internal_state(screen, 80, 24, 24, 1, 1, 1, 0U, 0U);

@@ -115,7 +115,7 @@ static void redisplay(const char *prompt_str, const char *buf, size_t len, size_
  * エスケープ シーケンス解析
  * ================================================================ */
 
-static prompt_key read_key(com_util_prompt *p, int *out_ch)
+static prompt_key read_key(com_util_prompt *p, int *ch_out)
 {
     int c = prompt_platform_read_char(p);
     if (c == -1)
@@ -209,7 +209,7 @@ static prompt_key read_key(com_util_prompt *p, int *out_ch)
     /* 通常文字 (ASCII 印字可能 + UTF-8 マルチバイト先頭バイト) */
     if (c >= 0x20)
     {
-        *out_ch = c;
+        *ch_out = c;
         return KEY_CHAR;
     }
     return KEY_UNKNOWN;

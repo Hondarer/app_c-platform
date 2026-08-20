@@ -9,6 +9,7 @@
 
 /* result.h の値は ABI として凍結する。値を変更した場合、以下の静的検査が失敗する。 */
 static_assert(COM_UTIL_OK == 0, "COM_UTIL_OK の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_SKIPPED == 1, "COM_UTIL_SKIPPED の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_UNKNOWN == -1, "COM_UTIL_ERR_UNKNOWN の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_INVALID_ARGUMENT == -2, "COM_UTIL_ERR_INVALID_ARGUMENT の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_UNSUPPORTED == -3, "COM_UTIL_ERR_UNSUPPORTED の ABI 値を変更してはなりません。");
@@ -81,7 +82,8 @@ TEST_F(resultTest, all_codes_are_distinct)
     std::vector<int> codes = all_error_codes(); // [状態] - result.h が定義する全エラー コードを列挙する。
     std::set<int> unique_codes;
 
-    codes.push_back(COM_UTIL_OK); // [状態] - 比較対象に COM_UTIL_OK を加える。
+    codes.push_back(COM_UTIL_OK);      // [状態] - 比較対象に COM_UTIL_OK を加える。
+    codes.push_back(COM_UTIL_SKIPPED); // [状態] - 比較対象に COM_UTIL_SKIPPED を加える。
 
     // Pre-Assert
 
@@ -113,6 +115,7 @@ TEST_F(resultTest, only_ok_is_zero_and_all_errors_are_negative)
 
     // Assert
     EXPECT_EQ(0, COM_UTIL_OK);         // [確認_正常系] - COM_UTIL_OK の値が 0 であること。
+    EXPECT_EQ(1, COM_UTIL_SKIPPED);    // [確認_正常系] - COM_UTIL_SKIPPED の値が 1 であること。
     EXPECT_EQ(0U, non_negative_count); // [確認_正常系] - 0 以上の値を持つエラー コードが存在しないこと。
     EXPECT_FALSE(error_codes.empty()); // [確認_正常系] - 検証対象のエラー コードが 1 つ以上列挙されていること。
 }

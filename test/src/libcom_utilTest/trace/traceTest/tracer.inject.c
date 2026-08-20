@@ -83,9 +83,9 @@ size_t test_tracer_utf8_safe_truncate(const char *text, const size_t position)
     return utf8_safe_truncate(text, position);
 }
 
-int test_tracer_build_default_file_path(const com_util_tracer *handle, char *out, const size_t out_size)
+int test_tracer_build_default_file_path(const com_util_tracer *handle, char *path_out, const size_t path_size)
 {
-    return build_default_file_path(handle, out, out_size);
+    return build_default_file_path(handle, path_out, path_size);
 }
 
 int test_tracer_hex_write_impl(com_util_tracer *handle, const com_util_trace_level level,

@@ -63,9 +63,9 @@ class traceCoverageTest : public Test
         ON_CALL(mock_com_util, com_util_trace_file_sink_dispose(_)).WillByDefault(Return());
         ON_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
             .WillByDefault(
-                [](char *out_path, size_t out_path_sz)
+                [](char *path_out, size_t path_size)
                 {
-                    snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                    snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                     return COM_UTIL_OK;
                 });
 #if defined(PLATFORM_LINUX)
@@ -527,15 +527,15 @@ TEST_F(traceCoverageTest, remaining_compound_conditions)
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "myapp");
+                snprintf(path_out, path_size, "%s", "myapp");
                 return COM_UTIL_OK;
             })
         .WillRepeatedly(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_正常系] - 実行ファイル パス取得が呼び出されること。
                 // [Pre-Assert手順] - 1 回目は "myapp"、以降は "/opt/bin/myapp" を返却する。
@@ -833,36 +833,36 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     // Pre-Assert
     EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                 return COM_UTIL_OK;
             })
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                if (out_path_sz > 0U)
+                if (path_size > 0U)
                 {
-                    out_path[0] = '\0';
+                    path_out[0] = '\0';
                 }
                 return COM_UTIL_OK;
             })
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                 return COM_UTIL_OK;
             })
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "myapp");
+                snprintf(path_out, path_size, "%s", "myapp");
                 return COM_UTIL_OK;
             })
         .WillRepeatedly(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
-                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                 return COM_UTIL_OK;
             }); // [Pre-Assert確認_異常系] - 既定パス構築で空パスとファイル名だけのパスを返すこと。
                 // [Pre-Assert手順] - resolve 用、空文字、resolve 用、"myapp"、以降は通常パスを返却する。
@@ -1109,10 +1109,10 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
                                       // [Pre-Assert手順] - 1 回目は UNKNOWN、以降は既定動作を返却する。
     EXPECT_CALL(mock_com_util, com_util_process_get_executable_path(_, _))
         .WillOnce(
-            [](char *out_path, size_t out_path_sz)
+            [](char *path_out, size_t path_size)
             {
                 test_trace_registry_set_shutdown_started(1U);
-                snprintf(out_path, out_path_sz, "%s", "/opt/bin/myapp");
+                snprintf(path_out, path_size, "%s", "/opt/bin/myapp");
                 return COM_UTIL_OK;
             })
         .WillRepeatedly(DoDefault());

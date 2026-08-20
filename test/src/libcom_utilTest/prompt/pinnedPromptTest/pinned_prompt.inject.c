@@ -39,9 +39,9 @@ void test_pinned_prompt_set_tty(com_util_pinned_prompt *screen, int is_tty)
     screen->is_tty = is_tty;
 }
 
-int test_pinned_prompt_read_key(com_util_pinned_prompt *screen, int *out_ch)
+int test_pinned_prompt_read_key(com_util_pinned_prompt *screen, int *ch_out)
 {
-    return (int)pinned_prompt_read_key(screen, out_ch);
+    return (int)pinned_prompt_read_key(screen, ch_out);
 }
 
 void test_pinned_prompt_set_edit_line(com_util_pinned_prompt *screen, const char *line)

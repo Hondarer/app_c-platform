@@ -735,16 +735,16 @@ static void strip_exe_suffix(char *name)
 
 /**
  *  @brief          トレース ファイル名 (ファイル識別込み) を解決します。
- *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
- *  @param[out]     out       解決した名前を格納するバッファー。
- *  @param[in]      out_size  バッファーのバイト数。
+ *  @param[in]      handle          対象のトレース プロバイダー ハンドル。
+ *  @param[out]     file_name_out   解決した名前を格納するバッファー。
+ *  @param[in]      file_name_size  バッファーのバイト数。
  *  @return         成功時 0、失敗時 (バッファー不足) -1。
  *
  *  ファイル名が未設定 (NULL) の場合はプロセス名 (実行ファイルのベース名) を使用します。
  *  Windows ではプロセス名末尾の ".exe" を除去する (明示設定された名前には適用しない)。\n
  *  ファイル識別が 0 以外の場合は "_{ファイル識別}" を付加します。
  */
-static int resolve_file_name(const com_util_tracer *handle, char *out, const size_t out_size)
+static int resolve_file_name(const com_util_tracer *handle, char *file_name_out, const size_t file_name_size)
 {
     char name_buf[256];
     int ret;
@@ -772,11 +772,11 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 
     if (handle->file_identifier != 0)
     {
-        ret = com_util_snprintf(out, out_size, "%s_%" PRId64, name_buf, handle->file_identifier);
+        ret = com_util_snprintf(file_name_out, file_name_size, "%s_%" PRId64, name_buf, handle->file_identifier);
     }
     else
     {
-        ret = com_util_snprintf(out, out_size, "%s", name_buf);
+        ret = com_util_snprintf(file_name_out, file_name_size, "%s", name_buf);
     }
     if (ret != COM_UTIL_OK)
     {
@@ -787,9 +787,9 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
 
 /**
  *  @brief          ファイル トレースのデフォルト パスを構築します。
- *  @param[in]      handle    対象のトレース プロバイダー ハンドル。
- *  @param[out]     out       構築したパスを格納するバッファー。
- *  @param[in]      out_size  バッファーのバイト数。
+ *  @param[in]      handle     対象のトレース プロバイダー ハンドル。
+ *  @param[out]     path_out   構築したパスを格納するバッファー。
+ *  @param[in]      path_size  バッファーのバイト数。
  *  @return         成功時 0、失敗時 -1。
  *
  *  実行ファイルのディレクトリ配下の log/{ファイル名}.log を構築する
@@ -797,7 +797,7 @@ static int resolve_file_name(const com_util_tracer *handle, char *out, const siz
  *  実行ファイル パスの取得に失敗した場合はカレント ディレクトリ相対の
  *  log/{ファイル名}.log にフォールバックします。
  */
-static int build_default_file_path(const com_util_tracer *handle, char *out, const size_t out_size)
+static int build_default_file_path(const com_util_tracer *handle, char *path_out, const size_t path_size)
 {
     char exe_path[PLATFORM_PATH_MAX];
     char exe_dir[PLATFORM_PATH_MAX];
@@ -820,12 +820,12 @@ static int build_default_file_path(const com_util_tracer *handle, char *out, con
         {
             if (strcmp(exe_dir, ".") != 0)
             {
-                return com_util_path_join(out, out_size, NULL, exe_dir, "log", log_file_name);
+                return com_util_path_join(path_out, path_size, NULL, exe_dir, "log", log_file_name);
             }
         }
     }
 
-    return com_util_path_join(out, out_size, NULL, "log", log_file_name);
+    return com_util_path_join(path_out, path_size, NULL, "log", log_file_name);
 }
 
 /**
@@ -1710,11 +1710,11 @@ int com_util_tracer_set_name(com_util_tracer *handle, const char *name, const in
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t out_size)
+int com_util_tracer_get_name(com_util_tracer *handle, char *name_out, const size_t name_size)
 {
     int ret;
 
-    if (out == NULL || out_size == 0)
+    if (name_out == NULL || name_size == 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1722,7 +1722,7 @@ int com_util_tracer_get_name(com_util_tracer *handle, char *out, const size_t ou
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
-    ret = com_util_snprintf(out, out_size, "%s", tracer_effective_name(handle));
+    ret = com_util_snprintf(name_out, name_size, "%s", tracer_effective_name(handle));
     config_unlock_shared(handle);
 
     if (ret != COM_UTIL_OK)
@@ -1787,11 +1787,11 @@ int com_util_tracer_set_file_name(com_util_tracer *handle, const char *name, con
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_tracer_get_file_name(com_util_tracer *handle, char *out, const size_t out_size)
+int com_util_tracer_get_file_name(com_util_tracer *handle, char *file_name_out, const size_t file_name_size)
 {
     int ret;
 
-    if (out == NULL || out_size == 0)
+    if (file_name_out == NULL || file_name_size == 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1799,7 +1799,7 @@ int com_util_tracer_get_file_name(com_util_tracer *handle, char *out, const size
     {
         return COM_UTIL_ERR_UNKNOWN;
     }
-    ret = resolve_file_name(handle, out, out_size);
+    ret = resolve_file_name(handle, file_name_out, file_name_size);
     config_unlock_shared(handle);
     return ret;
 }

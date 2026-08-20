@@ -259,7 +259,7 @@ TEST_F(pathJoinTest, returns_enametoolong_when_separator_insertion_overflows)
               com_util_error_is(&err, COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
 }
 
-// セパレータ補完の余地がちょうどない境界でバッファーを溢れさせずに ENAMETOOLONG が返ることの確認
+// セパレータ補完の余地がちょうどない境界でバッファーをあふれさせずに ENAMETOOLONG が返ることの確認
 TEST_F(pathJoinTest, returns_enametoolong_without_overflow_when_no_room_for_separator)
 {
     // Arrange
