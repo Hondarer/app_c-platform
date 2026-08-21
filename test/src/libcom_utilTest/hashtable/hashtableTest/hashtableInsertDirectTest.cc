@@ -35,24 +35,24 @@ void fill_value(std::vector<unsigned char> *buf, const char *text)
 }
 
 /* hashtable.c の hash_key と同じ djb2。同一バケットの別キーを用意するために使う。 */
-unsigned long hash_string_mod(const char *key, size_t capacity)
+size_t hash_string_mod(const char *key, size_t capacity)
 {
-    unsigned long hash = 5381;
+    uint64_t hash = 5381;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(key);
     int c = 0;
 
     while ((c = *p++) != 0)
     {
-        hash = ((hash << 5) + hash) + static_cast<unsigned long>(c);
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
     }
-    return hash % capacity;
+    return static_cast<size_t>(hash) % capacity;
 }
 
 const char *find_colliding_key(const char *base, size_t capacity)
 {
     static const char *const candidates[] = {"b", "c",  "d",  "e",  "f",  "g",  "h",  "i",  "j",
                                              "k", "aa", "ab", "ac", "ad", "ba", "bb", "bc", nullptr};
-    const unsigned long target = hash_string_mod(base, capacity);
+    const size_t target = hash_string_mod(base, capacity);
     size_t i = 0;
 
     for (i = 0; candidates[i] != nullptr; ++i)
@@ -106,7 +106,7 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     int actual_ret_peer = com_util_hashtable_insert_direct(
         ht, 4, peer, 1, value.data(), &k_insert_timestamp); // [手順] - 同一バケットの別キーをレコード 4 へ置く。
     fill_value(&value, "first");
-    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data()); // [手順] - 先頭空きへ通常追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 先頭空きへ通常追加する。
     int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
     int actual_ret_validate = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
@@ -298,7 +298,7 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "keep", value.data()); // [手順] - レコード 1 を占有する。
+    (void)com_util_hashtable_add(ht, "keep", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を占有する。
     fill_value(&value, "skip");
     int actual_ret_skip = com_util_hashtable_insert_direct(
         ht, 1, "other", 5, value.data(), &k_insert_timestamp); // [手順] - 占有スロットへ成立しない寿命値を置く。

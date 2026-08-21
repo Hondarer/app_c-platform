@@ -78,7 +78,7 @@ TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "keep", value.data());
+    (void)com_util_hashtable_add(ht, "keep", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_delete = com_util_hashtable_delete(ht, "keep"); // [手順] - キーを削除して status 2 にする。
     for (i = 0; i < (COM_UTIL_HASHTABLE_LIFETIME_INFINITE - 3); ++i)
     {
@@ -198,7 +198,7 @@ TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_stat
     (void)com_util_hashtable_insert_direct(ht, 1, "reuse", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
                                            &k_insert_timestamp);
     std::memcpy(value.data(), "new", 4);
-    int actual_ret_add = com_util_hashtable_add(ht, "reuse", value.data()); // [手順] - 終端の削除済みキーを再追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "reuse", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 終端の削除済みキーを再追加する。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "reuse", &found);
     std::string found_text = (found == nullptr) ? "" : static_cast<const char *>(found);
     (void)com_util_hashtable_get_status(ht, 1, &status_after_add);

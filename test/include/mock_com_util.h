@@ -756,7 +756,8 @@ extern int delegate_real_com_util_hashtable_buffer_size(const com_util_hashtable
                                                         size_t *data_size_out);
 extern int delegate_real_com_util_hashtable_buffer_ref(const com_util_hashtable *ht, const void **mgmt_out,
                                                        const void **data_out);
-extern int delegate_real_com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value);
+extern int delegate_real_com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value,
+                                                com_util_hashtable_add_deleted_policy deleted_policy);
 extern int delegate_real_com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, const void *key,
                                                           int status, const void *value,
                                                           const com_util_timespec *timestamp);
@@ -1057,7 +1058,8 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_hashtable_get_config_val, (const com_util_hashtable *, com_util_hashtable_config *));
     MOCK_METHOD(int, com_util_hashtable_buffer_size, (const com_util_hashtable *, size_t *, size_t *));
     MOCK_METHOD(int, com_util_hashtable_buffer_ref, (const com_util_hashtable *, const void **, const void **));
-    MOCK_METHOD(int, com_util_hashtable_add, (com_util_hashtable *, const void *, const void *));
+    MOCK_METHOD(int, com_util_hashtable_add,
+                (com_util_hashtable *, const void *, const void *, com_util_hashtable_add_deleted_policy));
     MOCK_METHOD(int, com_util_hashtable_insert_direct,
                 (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *));
     MOCK_METHOD(int, com_util_hashtable_update, (com_util_hashtable *, const void *, const void *));

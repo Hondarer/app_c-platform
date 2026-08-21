@@ -25,6 +25,36 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
     config->lifetime = lifetime;
 }
 
+/* hashtable.c の hash_key と同じ djb2。同じバケットへ落ちるキーを探すために使う。 */
+size_t hash_string_mod(const char *key, size_t capacity)
+{
+    uint64_t hash = 5381;
+    const unsigned char *p = reinterpret_cast<const unsigned char *>(key);
+    int c = 0;
+
+    while ((c = *p++) != 0)
+    {
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
+    }
+    return static_cast<size_t>(hash) % capacity;
+}
+
+const char *find_colliding_key(const char *base, size_t capacity)
+{
+    static const char *const candidates[] = {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", nullptr};
+    const size_t target = hash_string_mod(base, capacity);
+    size_t i = 0;
+
+    for (i = 0; candidates[i] != nullptr; ++i)
+    {
+        if ((std::strcmp(candidates[i], base) != 0) && (hash_string_mod(candidates[i], capacity) == target))
+        {
+            return candidates[i];
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 class hashtableMoreTest : public Test
@@ -52,7 +82,7 @@ TEST_F(hashtableMoreTest, attach_rejects_invalid_buffers)
     std::vector<unsigned char> buf_mgmt(mgmt_needed, 0);
     std::vector<unsigned char> buf_data(data_needed, 0);
     (void)com_util_hashtable_create(&config, buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_null = com_util_hashtable_attach(NULL, mgmt_needed, buf_data.data(), buf_data.size(),
                                                     &attached); // [手順] - buf_mgmt に NULL を渡す。
     int actual_ret_small = com_util_hashtable_attach(buf_mgmt.data(), 4, buf_data.data(), buf_data.size(),
@@ -106,8 +136,8 @@ TEST_F(hashtableMoreTest, delete_rec_and_purge)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "keep", value.data());          // [手順] - 残すキーを追加する。
-    (void)com_util_hashtable_add(ht, "drop", value.data());          // [手順] - 削除するキーを追加する。
+    (void)com_util_hashtable_add(ht, "keep", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);          // [手順] - 残すキーを追加する。
+    (void)com_util_hashtable_add(ht, "drop", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);          // [手順] - 削除するキーを追加する。
     (void)com_util_hashtable_find_recno(ht, "drop", &rec);
     int actual_ret_delete = com_util_hashtable_delete_rec(ht, rec); // [手順] - レコード番号で削除する。
     (void)com_util_hashtable_get_status(ht, rec, &status);
@@ -148,11 +178,11 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_expires_immediately)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - lifetime 2 で削除する。
     (void)com_util_hashtable_get_status(ht, 1, &status);
     (void)com_util_hashtable_empty_count(ht, &empty);
-    int actual_ret_add = com_util_hashtable_add(ht, "b", value.data()); // [手順] - 別キーを直ちに追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "b", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 別キーを直ちに追加する。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -177,11 +207,11 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_sets_next_empty_when_table_fu
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "a", value.data());
-    (void)com_util_hashtable_add(ht, "b", value.data()); // [手順] - 満杯にする(next_empty が 0 になる)。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "b", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 満杯にする(next_empty が 0 になる)。
     (void)com_util_hashtable_empty_count(ht, &empty_before);
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - 満杯の状態で lifetime 2 の削除をする。
-    int actual_ret_add = com_util_hashtable_add(ht, "c", value.data()); // [手順] - 空いた直後にすぐ追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "c", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空いた直後にすぐ追加する。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -212,7 +242,7 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_keeps_earlier_next_empty_hint
                                            &k_insert_timestamp); // [手順] - レコード 2 を空けたままレコード 3 を占有する。
     int actual_ret_delete =
         com_util_hashtable_delete(ht, "c"); // [手順] - レコード 3(next_empty より大きい)を lifetime 2 で削除する。
-    int actual_ret_add = com_util_hashtable_add(ht, "d", value.data()); // [手順] - 別キーを追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "d", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 別キーを追加する。
     (void)com_util_hashtable_find_recno(ht, "d", &next_empty_rec);
     com_util_hashtable_dispose(ht);
 
@@ -260,17 +290,208 @@ TEST_F(hashtableMoreTest, validate_returns_out_of_memory_when_calloc_fails)
 
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_calloc(_, _))
-        .WillOnce(DoDefault())
+        .WillOnce(DoDefault())      // [Pre-Assert手順] - 1 回目(create の管理領域+データ領域)は成功させる。
+        .WillOnce(DoDefault())      // [Pre-Assert手順] - 2 回目(create の内部管理データ)も成功させる。
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - validate 用の calloc が失敗すること。
-                                    // [Pre-Assert手順] - 2 回目の com_util_calloc から NULL を返却する。
+                                    // [Pre-Assert手順] - 3 回目の com_util_calloc から NULL を返却する。
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - validate を呼び出す。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,
               actual_ret); // [確認_異常系] - validate の確保失敗が OUT_OF_MEMORY であること。
+}
+
+TEST_F(hashtableMoreTest, add_reuses_deleted_record_with_highest_status_when_no_empty_slot)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 7);
+    com_util_timespec ts_old = {100, 0};
+    com_util_timespec ts_new = {200, 0};
+    uint64_t rec_fresh = 0;
+    size_t in_use = 99;
+    size_t deleted = 99;
+    size_t empty = 99;
+
+    fill_config(&config, 2, 8, 8, COM_UTIL_HASHTABLE_LIFETIME_INFINITE,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
+    config.reuse_deleted = 1;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_insert_direct(ht, 1, "old", 2, value.data(),
+                                           &ts_old); // [手順] - status 2(削除中)のレコードを先に配置する。
+    (void)com_util_hashtable_insert_direct(ht, 2, "new", 3, value.data(),
+                                           &ts_new); // [手順] - status 3(削除中、より高位)のレコードを後で配置する。
+    int actual_ret_add =
+        com_util_hashtable_add(ht, "fresh", value.data(),
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが無い状態で新規キーを追加する。
+    int actual_ret_find_fresh = com_util_hashtable_find_recno(ht, "fresh", &rec_fresh);
+    int actual_ret_find_new = com_util_hashtable_find_recno(ht, "new", &rec_fresh); // [手順] - 追い出したキーを探す。
+    (void)com_util_hashtable_count_status(ht, &in_use, &deleted, &empty);
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add); // [確認_正常系] - status が高いレコードを再利用して成功すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_find_fresh); // [確認_正常系] - 新しいキーが見つかること。
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
+              actual_ret_find_new); // [確認_正常系] - status の高い旧キーが追い出されていること。
+    EXPECT_EQ(1u, in_use);          // [確認_正常系] - in_use_count が正しいこと。
+    EXPECT_EQ(1u, deleted);         // [確認_正常系] - deleted_count が正しいこと(status 2 は残る)。
+    EXPECT_EQ(0u, empty);           // [確認_正常系] - empty_count が正しいこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - validate が成功すること。
+}
+
+TEST_F(hashtableMoreTest, add_reuses_oldest_timestamp_when_status_ties_with_record_scope)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 8);
+    com_util_timespec ts_a = {200, 0};
+    com_util_timespec ts_b = {100, 0}; // [状態] - b の方が古い変更時刻とする。
+    uint64_t rec_c = 0;
+    int status_a = -1;
+
+    fill_config(&config, 2, 8, 8, COM_UTIL_HASHTABLE_LIFETIME_INFINITE,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
+    config.reuse_deleted = 1;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_insert_direct(ht, 1, "a", 3, value.data(), &ts_a); // [手順] - status 3、新しい時刻を配置する。
+    (void)com_util_hashtable_insert_direct(ht, 2, "b", 3, value.data(), &ts_b); // [手順] - status 3、古い時刻を配置する。
+    int actual_ret_add =
+        com_util_hashtable_add(ht, "c", value.data(),
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - status 同点で新規キーを追加する。
+    int actual_ret_find_c = com_util_hashtable_find_recno(ht, "c", &rec_c);
+    int actual_ret_get_status_a = com_util_hashtable_get_status(ht, 1, &status_a); // [手順] - a(レコード1)の状態を読む。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add);       // [確認_正常系] - 追加が成功すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_find_c);    // [確認_正常系] - c が見つかること。
+    EXPECT_EQ(2u, rec_c); // [確認_正常系] - 時刻が古い b(レコード2)が再利用されたこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_get_status_a);
+    EXPECT_EQ(3, status_a); // [確認_正常系] - a(レコード1)は変更されず削除中のままであること。
+}
+
+TEST_F(hashtableMoreTest, add_reuses_lowest_record_number_when_status_ties_with_table_scope)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 9);
+    uint64_t rec_c = 0;
+    int status_b = -1;
+
+    fill_config(&config, 2, 8, 8, COM_UTIL_HASHTABLE_LIFETIME_INFINITE,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
+    config.timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE; // [状態] - レコード時刻を持たない設定にする。
+    config.reuse_deleted = 1;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_insert_direct(ht, 1, "a", 3, value.data(), NULL); // [手順] - status 3 のレコード1を配置する。
+    (void)com_util_hashtable_insert_direct(ht, 2, "b", 3, value.data(), NULL); // [手順] - status 3 のレコード2を配置する。
+    int actual_ret_add =
+        com_util_hashtable_add(ht, "c", value.data(),
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - status 同点で新規キーを追加する。
+    int actual_ret_find_c = com_util_hashtable_find_recno(ht, "c", &rec_c);
+    int actual_ret_get_status_b = com_util_hashtable_get_status(ht, 2, &status_b); // [手順] - b(レコード2)の状態を読む。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add);    // [確認_正常系] - 追加が成功すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_find_c); // [確認_正常系] - c が見つかること。
+    EXPECT_EQ(1u, rec_c); // [確認_正常系] - レコード番号が最小の a(レコード1)が再利用されたこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_get_status_b);
+    EXPECT_EQ(3, status_b); // [確認_正常系] - b(レコード2)は変更されず削除中のままであること。
+}
+
+TEST_F(hashtableMoreTest, add_with_reuse_deleted_still_fails_when_no_deleted_record_exists)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 10);
+
+    fill_config(&config, 1, 8, 8, COM_UTIL_HASHTABLE_LIFETIME_INFINITE,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
+    config.reuse_deleted = 1;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 唯一のスロットを実装中で埋める。
+    int actual_ret_add = com_util_hashtable_add(
+        ht, "b", value.data(),
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 削除中レコードが無い状態で新規キーを追加する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_LIMIT_EXCEEDED,
+              actual_ret_add); // [確認_異常系] - 再利用可能な削除中レコードが無ければ LIMIT_EXCEEDED であること。
+}
+
+TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 11);
+    com_util_timespec ts_deleted = {100, 0};
+    const char *base_key = "a";
+    const char *peer_key = nullptr;
+    uint64_t rec_c = 0;
+    int status_head = -1;
+
+    fill_config(&config, 2, 8, 8, COM_UTIL_HASHTABLE_LIFETIME_INFINITE,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
+    config.reuse_deleted = 1;
+    peer_key = find_colliding_key(base_key, config.capacity); // [状態] - base_key と同じバケットへ落ちるキーを探す。
+
+    // Pre-Assert
+    ASSERT_NE(nullptr, peer_key); // [Pre-Assert確認] - 衝突するキーが見つかること。
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_insert_direct(ht, 1, base_key, 2, value.data(),
+                                           &ts_deleted); // [手順] - 削除中のレコード1を先に配置し、チェーン先頭にする。
+    int actual_ret_add_head =
+        com_util_hashtable_add(ht, peer_key, value.data(),
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 同じバケットへ実装中キーを追加し、
+                                                                          // レコード1をチェーンの非先頭へ追いやる。
+    int actual_ret_add_c = com_util_hashtable_add(
+        ht, "z", value.data(),
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが無い状態でチェーン非先頭の削除中レコードを再利用させる。
+    int actual_ret_find_base = com_util_hashtable_find_recno(ht, base_key, &rec_c); // [手順] - 追い出したキーを探す。
+    int actual_ret_get_status_head =
+        com_util_hashtable_get_status(ht, 2, &status_head); // [手順] - チェーン先頭(レコード2)の状態を読む。
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add_head); // [確認_正常系] - 衝突キーの追加が成功すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add_c);    // [確認_正常系] - チェーン非先頭の再利用でも追加が成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
+              actual_ret_find_base); // [確認_正常系] - チェーン非先頭にあった削除中キーが追い出されていること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_get_status_head);
+    EXPECT_EQ(1, status_head); // [確認_正常系] - チェーン先頭のキー(実装中)は影響を受けないこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - validate が成功すること。
 }

@@ -22,23 +22,23 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
 }
 
 /* hashtable.c の hash_key と同じ djb2。同一バケットの別キーを用意するために使う。 */
-unsigned long hash_string_mod(const char *key, size_t capacity)
+size_t hash_string_mod(const char *key, size_t capacity)
 {
-    unsigned long hash = 5381;
+    uint64_t hash = 5381;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(key);
     int c = 0;
 
     while ((c = *p++) != 0)
     {
-        hash = ((hash << 5) + hash) + static_cast<unsigned long>(c);
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
     }
-    return hash % capacity;
+    return static_cast<size_t>(hash) % capacity;
 }
 
 const char *find_colliding_key(const char *base, size_t capacity)
 {
     static const char *const candidates[] = {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", nullptr};
-    const unsigned long target = hash_string_mod(base, capacity);
+    const size_t target = hash_string_mod(base, capacity);
     size_t i = 0;
 
     for (i = 0; candidates[i] != nullptr; ++i)
@@ -72,9 +72,9 @@ TEST_F(hashtableGuardTest, add_rejects_null_arguments)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_null_ht = com_util_hashtable_add(NULL, "a", value.data()); // [手順] - ht に NULL を渡す。
-    int actual_ret_null_key = com_util_hashtable_add(ht, NULL, value.data()); // [手順] - key に NULL を渡す。
-    int actual_ret_null_value = com_util_hashtable_add(ht, "a", NULL);        // [手順] - value に NULL を渡す。
+    int actual_ret_null_ht = com_util_hashtable_add(NULL, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - ht に NULL を渡す。
+    int actual_ret_null_key = com_util_hashtable_add(ht, NULL, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - key に NULL を渡す。
+    int actual_ret_null_value = com_util_hashtable_add(ht, "a", NULL, COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);        // [手順] - value に NULL を渡す。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -109,8 +109,8 @@ TEST_F(hashtableGuardTest, update_rejects_invalid_arguments_and_walks_chain)
     int actual_ret_null_value = com_util_hashtable_update(ht, "a", NULL);        // [手順] - value に NULL を渡す。
     int actual_ret_too_long =
         com_util_hashtable_update(ht, too_long, value.data()); // [手順] - 長すぎるキーで更新する。
-    (void)com_util_hashtable_add(ht, "a", value.data());       // [手順] - "a" を先に追加する。
-    (void)com_util_hashtable_add(ht, peer, value.data());      // [手順] - 同一バケットの別キーを後から追加する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);       // [手順] - "a" を先に追加する。
+    (void)com_util_hashtable_add(ht, peer, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);      // [手順] - 同一バケットの別キーを後から追加する。
     int actual_ret_walk =
         com_util_hashtable_update(ht, "a", value.data());       // [手順] - チェイン先頭ではないキーを更新する。
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - "a" を削除済みにする。
@@ -213,7 +213,7 @@ TEST_F(hashtableGuardTest, find_value_val_rejects_invalid_arguments_and_succeeds
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());                        // [手順] - キーを追加する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);                        // [手順] - キーを追加する。
     int actual_ret_null_out = com_util_hashtable_find_value_val(ht, "a", NULL); // [手順] - value_out に NULL を渡す。
     int actual_ret_not_found = com_util_hashtable_find_value_val(
         ht, "missing", copied.data()); // [手順] - 存在しないキーで検索する(内部エラーの伝播)。
@@ -253,8 +253,8 @@ TEST_F(hashtableGuardTest, find_recno_rejects_invalid_arguments_and_walks_chain)
     int actual_ret_null_out = com_util_hashtable_find_recno(ht, "a", NULL);      // [手順] - record_out に NULL を渡す。
     int actual_ret_too_long = com_util_hashtable_find_recno(ht, too_long, &rec); // [手順] - 長すぎるキーで検索する。
     int actual_ret_absent = com_util_hashtable_find_recno(ht, "a", &rec); // [手順] - 何も無いテーブルで検索する。
-    (void)com_util_hashtable_add(ht, "a", value.data());
-    (void)com_util_hashtable_add(ht, peer, value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, peer, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_walk = com_util_hashtable_find_recno(ht, "a", &rec); // [手順] - チェイン先頭ではないキーを検索する。
     (void)com_util_hashtable_delete(ht, "a");
     int actual_ret_deleted = com_util_hashtable_find_recno(ht, "a", &rec); // [手順] - 削除済みキーを検索する。
@@ -486,7 +486,7 @@ TEST_F(hashtableGuardTest, delete_rejects_invalid_arguments_and_already_deleted)
     int actual_ret_null_ht = com_util_hashtable_delete(NULL, "a");     // [手順] - ht に NULL を渡す。
     int actual_ret_null_key = com_util_hashtable_delete(ht, NULL);     // [手順] - key に NULL を渡す。
     int actual_ret_too_long = com_util_hashtable_delete(ht, too_long); // [手順] - 長すぎるキーで削除する。
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_first = com_util_hashtable_delete(ht, "a");  // [手順] - 1 回目の削除。
     int actual_ret_second = com_util_hashtable_delete(ht, "a"); // [手順] - 削除済みキーへの 2 回目の削除。
     com_util_hashtable_dispose(ht);

@@ -26,10 +26,16 @@ char *test_hashtable_entry_key(const com_util_hashtable *ht, size_t rec)
 
 void test_hashtable_set_next_empty(com_util_hashtable *ht, uint64_t value)
 {
-    ht->next_empty = value;
+    ht->hdr->next_empty = value;
 }
 
 void test_hashtable_set_config(com_util_hashtable *ht, const com_util_hashtable_config *config)
 {
-    ht->config = *config;
+    ht->hdr->config = *config;
+}
+
+void test_hashtable_set_counts(com_util_hashtable *ht, uint64_t in_use_count, uint64_t deleted_count)
+{
+    ht->hdr->in_use_count = in_use_count;
+    ht->hdr->deleted_count = deleted_count;
 }

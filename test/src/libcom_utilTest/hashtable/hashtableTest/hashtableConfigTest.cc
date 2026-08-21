@@ -169,9 +169,8 @@ TEST_F(hashtableConfigTest, buffer_ref_returns_internal_regions_contiguously)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - buffer_ref が成功すること。
-    EXPECT_EQ(static_cast<const void *>(ht),
-              mgmt);          // [確認_正常系] - 管理領域の先頭がハンドルと一致すること。
-    EXPECT_NE(nullptr, data); // [確認_正常系] - データ領域の先頭が非 NULL であること。
+    EXPECT_NE(nullptr, mgmt);           // [確認_正常系] - 管理領域の先頭が非 NULL であること。
+    EXPECT_NE(nullptr, data);           // [確認_正常系] - データ領域の先頭が非 NULL であること。
     EXPECT_EQ(static_cast<const void *>(mgmt_bytes + mgmt_size),
               data); // [確認_正常系] - 内部確保では管理領域の直後にデータ領域が続くこと。
 }

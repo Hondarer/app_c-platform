@@ -28,23 +28,23 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
 }
 
 /* hashtable.c の hash_key と同じ djb2。バケットが変わる/一致するキーを探すために使う。 */
-unsigned long hash_string_mod(const char *key, size_t capacity)
+size_t hash_string_mod(const char *key, size_t capacity)
 {
-    unsigned long hash = 5381;
+    uint64_t hash = 5381;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(key);
     int c = 0;
 
     while ((c = *p++) != 0)
     {
-        hash = ((hash << 5) + hash) + static_cast<unsigned long>(c);
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
     }
-    return hash % capacity;
+    return static_cast<size_t>(hash) % capacity;
 }
 
 const char *find_colliding_key(const char *base, size_t capacity)
 {
     static const char *const candidates[] = {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", nullptr};
-    const unsigned long target = hash_string_mod(base, capacity);
+    const size_t target = hash_string_mod(base, capacity);
     size_t i = 0;
 
     for (i = 0; candidates[i] != nullptr; ++i)
@@ -141,7 +141,7 @@ TEST_F(hashtableValidateTest, detects_duplicate_visit)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data()); // [手順] - レコード 1 を使用中にする。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
     test_hashtable_bucket_head(ht)[0] = 1;               // [手順] - バケット 0 からもレコード 1 を指させる。
     test_hashtable_bucket_head(ht)[1] = 1;               // [手順] - バケット 1 からもレコード 1 を指させる。
     int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
@@ -186,7 +186,7 @@ TEST_F(hashtableValidateTest, detects_key_without_terminator)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());  // [手順] - レコード 1 に文字列キーを格納する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);  // [手順] - レコード 1 に文字列キーを格納する。
     std::memset(test_hashtable_entry_key(ht, 0), 'x', 8); // [手順] - 格納キーを NUL 無しで埋め尽くす。
     int actual_ret = com_util_hashtable_validate(ht);     // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
@@ -203,7 +203,7 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
     com_util_hashtable *ht = nullptr;
     std::vector<unsigned char> value(8, 0);
     char mismatched_key[2] = {0, 0};
-    unsigned long idx_a = 0;
+    size_t idx_a = 0;
     int i = 0;
 
     fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
@@ -224,7 +224,7 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data()); // [手順] - レコード 1 に "a" を格納する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 に "a" を格納する。
     std::memset(test_hashtable_entry_key(ht, 0), 0, 8);
     std::memcpy(test_hashtable_entry_key(ht, 0), mismatched_key,
                 std::strlen(mismatched_key) + 1);     // [手順] - バケットは変えず格納キーだけを差し替える。
@@ -249,7 +249,7 @@ TEST_F(hashtableValidateTest, detects_next_link_out_of_range)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data()); // [手順] - レコード 1 を使用中にする。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
     *test_hashtable_entry_next(ht, 0) = 99;              // [手順] - 次リンクへ capacity を超える値を書き込む。
     int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
@@ -300,4 +300,51 @@ TEST_F(hashtableValidateTest, detects_next_empty_mismatch)
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
               actual_ret); // [確認_異常系] - next_empty の不一致が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, detects_in_use_count_mismatch)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 1);
+
+    fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する(in_use_count は 1 になる)。
+    test_hashtable_set_counts(ht, 2, 0); // [手順] - in_use_count を実際のスロット状態と異なる値へ書き換える。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 実装中件数の不一致が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, detects_deleted_count_mismatch)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 1);
+
+    fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する。
+    (void)com_util_hashtable_delete(ht, "a"); // [手順] - 削除する(in_use_count は 0、deleted_count は 1 になる)。
+    test_hashtable_set_counts(ht, 0, 2); // [手順] - in_use_count は正しいまま、deleted_count だけ異なる値へ書き換える。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 削除済み件数の不一致が CORRUPT_DESCRIPTOR であること。
 }

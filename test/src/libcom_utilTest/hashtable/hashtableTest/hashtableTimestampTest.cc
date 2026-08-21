@@ -5,6 +5,7 @@
 #include <mock_com_util.h>
 
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace
@@ -38,23 +39,23 @@ void set_timestamp(com_util_timespec *ts, time_t sec, int64_t nsec)
 }
 
 /* hashtable.c の hash_key と同じ djb2。同一バケットの別キーを用意するために使う。 */
-unsigned long hash_string_mod(const char *key, size_t capacity)
+size_t hash_string_mod(const char *key, size_t capacity)
 {
-    unsigned long hash = 5381;
+    uint64_t hash = 5381;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(key);
     int c = 0;
 
     while ((c = *p++) != 0)
     {
-        hash = ((hash << 5) + hash) + static_cast<unsigned long>(c);
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
     }
-    return hash % capacity;
+    return static_cast<size_t>(hash) % capacity;
 }
 
 const char *find_colliding_key(const char *base, size_t capacity)
 {
     static const char *const candidates[] = {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", nullptr};
-    const unsigned long target = hash_string_mod(base, capacity);
+    const size_t target = hash_string_mod(base, capacity);
     size_t i = 0;
 
     for (i = 0; candidates[i] != nullptr; ++i)
@@ -110,7 +111,7 @@ TEST_F(hashtableTimestampTest, add_update_delete_stamp_realtime)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data());       // [手順] - キーを追加する。
+    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);       // [手順] - キーを追加する。
     int actual_ret_add_time = com_util_hashtable_get_timestamp_val(ht, 1, &added); // [手順] - 追加後の時刻を読む。
     com_util_timespec table_added = {};
     int actual_ret_table_add =
@@ -119,7 +120,7 @@ TEST_F(hashtableTimestampTest, add_update_delete_stamp_realtime)
     int actual_ret_find_val = com_util_hashtable_find_timestamp_val(ht, "a", &added_copy); // [手順] - キーで時刻を複製する。
     time_t added_ref_sec = (added_ref == nullptr) ? 0 : added_ref->tv_sec;
     (void)com_util_hashtable_add(ht, peer,
-                                 value.data()); // [手順] - 同一バケットへ別キーを追加してチェイン先頭をずらす。
+                                 value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 同一バケットへ別キーを追加してチェイン先頭をずらす。
     int actual_ret_walk = com_util_hashtable_find_timestamp_val(ht, "a", &walked); // [手順] - チェインを辿って時刻を読む。
     fill_value(&value, "v2");
     int actual_ret_update = com_util_hashtable_update(ht, "a", value.data());      // [手順] - 値を更新する。
@@ -160,6 +161,55 @@ TEST_F(hashtableTimestampTest, add_update_delete_stamp_realtime)
               actual_ret_find_deleted); // [確認_異常系] - 削除済みキーの find_timestamp が NOT_FOUND であること。
 }
 
+TEST_F(hashtableTimestampTest, add_revive_keeps_previous_value_and_stamps)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 0);
+    const void *found = nullptr;
+    std::string found_text;
+    com_util_timespec before_revive = {};
+    com_util_timespec after_revive = {};
+    com_util_timespec table_before = {};
+    com_util_timespec table_after = {};
+    size_t in_use = 0;
+    size_t deleted = 0;
+
+    fill_config(&config, 2, 8, 8, 5,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - lifetime 5 の設定を用意する(削除済みが残る)。
+    fill_value(&value, "old");
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 元の値で追加する。
+    (void)com_util_hashtable_delete(ht, "a"); // [手順] - 削除する(lifetime 5 のため削除済みのまま残る)。
+    (void)com_util_hashtable_get_timestamp_val(ht, 1, &before_revive); // [手順] - 削除直後のレコード時刻を保存する。
+    (void)com_util_hashtable_get_table_timestamp_val(ht, &table_before); // [手順] - 削除直後のテーブル時刻を保存する。
+    fill_value(&value, "new"); // [状態] - REVIVE では無視されるはずの新しい値を用意する。
+    int actual_ret_revive = com_util_hashtable_add(
+        ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE); // [手順] - REVIVE で復活させる。
+    int actual_ret_find = com_util_hashtable_find_value_ref(ht, "a", &found); // [手順] - 復活後の値を取得する。
+    found_text = (found == nullptr) ? "" : static_cast<const char *>(found);
+    (void)com_util_hashtable_get_timestamp_val(ht, 1, &after_revive); // [手順] - 復活後のレコード時刻を取得する。
+    (void)com_util_hashtable_get_table_timestamp_val(ht, &table_after); // [手順] - 復活後のテーブル時刻を取得する。
+    int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, NULL); // [手順] - 件数を取得する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_revive); // [確認_正常系] - REVIVE での add が成功すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_find);   // [確認_正常系] - 復活後に検索できること。
+    EXPECT_EQ("old", found_text); // [確認_正常系] - 復活した値が削除前のままであること(new は無視されること)。
+    EXPECT_LT(before_revive.tv_sec, after_revive.tv_sec); // [確認_正常系] - REVIVE でもレコード時刻が進むこと。
+    EXPECT_LT(table_before.tv_sec, table_after.tv_sec);   // [確認_正常系] - REVIVE でもテーブル時刻が進むこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_counts);            // [確認_正常系] - count_status が成功すること。
+    EXPECT_EQ(1u, in_use);  // [確認_正常系] - 復活により実装中が 1 件に戻ること。
+    EXPECT_EQ(0u, deleted); // [確認_正常系] - 復活により削除済みが 0 件に戻ること。
+}
+
 TEST_F(hashtableTimestampTest, push_deleted_does_not_stamp)
 {
     // Arrange
@@ -176,7 +226,7 @@ TEST_F(hashtableTimestampTest, push_deleted_does_not_stamp)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_delete(ht, "a");
     (void)com_util_hashtable_get_timestamp_val(ht, 1, &before);                 // [手順] - 加齢前の時刻を保存する。
     int actual_ret_push = com_util_hashtable_push_deleted(ht);             // [手順] - 削除済みを 1 段階加齢する。
@@ -213,7 +263,7 @@ TEST_F(hashtableTimestampTest, empty_slot_time_is_not_found_and_zeroed)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_empty = com_util_hashtable_get_timestamp_val(ht, 1, &ts); // [手順] - 空スロットの時刻を読む。
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_delete = com_util_hashtable_delete(ht, "a");         // [手順] - lifetime 2 で直ちに空へ戻す。
     int actual_ret_after = com_util_hashtable_get_timestamp_val(ht, 1, &ts); // [手順] - 空へ戻したスロットの時刻を読む。
     int actual_ret_insert = com_util_hashtable_insert_direct(ht, 1, "b", 1, value.data(), &insert_timestamp);
@@ -253,7 +303,7 @@ TEST_F(hashtableTimestampTest, accessors_reject_invalid_arguments)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_get_null_ht = com_util_hashtable_get_timestamp_ref(NULL, 1, &ref);
     int actual_ret_get_null_out = com_util_hashtable_get_timestamp_ref(ht, 1, NULL);
     int actual_ret_get_rec0 = com_util_hashtable_get_timestamp_val(ht, 0, &ts);
@@ -314,7 +364,7 @@ TEST_F(hashtableTimestampTest, table_timestamp_tracks_content_changes)
     int actual_ret_create =
         com_util_hashtable_get_table_timestamp_val(ht, &table); // [手順] - 構築直後のテーブル時刻を読む。
     time_t created_sec = table.tv_sec;
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_delete(ht, "a");
     (void)com_util_hashtable_get_table_timestamp_val(ht, &table); // [手順] - 削除後のテーブル時刻を保存する。
     time_t after_delete = table.tv_sec;
@@ -390,7 +440,7 @@ TEST_F(hashtableTimestampTest, scope_table_record_timestamp_apis_are_unsupported
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data());
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_get_ref = com_util_hashtable_get_timestamp_ref(ht, 1, &ref);
     int actual_ret_get_val = com_util_hashtable_get_timestamp_val(ht, 1, &ts);
     int actual_ret_find_ref = com_util_hashtable_find_timestamp_ref(ht, "a", &ref);
@@ -456,7 +506,7 @@ TEST_F(hashtableTimestampTest, scope_table_insert_direct_and_table_timestamp)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data());
+    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_get_table_timestamp_val(ht, &table);
     time_t after_add = table.tv_sec;
     int actual_ret_update = com_util_hashtable_update(ht, "a", value.data());

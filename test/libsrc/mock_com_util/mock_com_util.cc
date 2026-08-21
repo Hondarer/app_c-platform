@@ -22,7 +22,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_buffer_size));
     ON_CALL(*this, com_util_hashtable_buffer_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_buffer_ref));
-    ON_CALL(*this, com_util_hashtable_add(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_add));
+    ON_CALL(*this, com_util_hashtable_add(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_add));
     ON_CALL(*this, com_util_hashtable_insert_direct(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_insert_direct));
     ON_CALL(*this, com_util_hashtable_update(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_update));

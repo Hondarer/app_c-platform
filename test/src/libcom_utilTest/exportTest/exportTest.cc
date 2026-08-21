@@ -183,7 +183,8 @@
     EXPORT_ENTRY(com_util_hashtable_buffer_ref, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, const void **mgmt_out, const void **data_out)) \
     EXPORT_ENTRY(com_util_hashtable_add, \
-                 int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value)) \
+                 int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, \
+                                     com_util_hashtable_add_deleted_policy deleted_policy)) \
     EXPORT_ENTRY(com_util_hashtable_insert_direct, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, uint64_t record, const void *key, int status, \
                                      const void *value, const com_util_timespec *timestamp)) \

@@ -60,13 +60,13 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     // Act
     int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     fill_value(&value, "りんご");
-    (void)com_util_hashtable_add(ht, "apple", value.data());
+    (void)com_util_hashtable_add(ht, "apple", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "バナナ");
-    (void)com_util_hashtable_add(ht, "banana", value.data());
+    (void)com_util_hashtable_add(ht, "banana", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "さくらんぼ");
-    (void)com_util_hashtable_add(ht, "cherry", value.data());
+    (void)com_util_hashtable_add(ht, "cherry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "ドリアン");
-    (void)com_util_hashtable_add(ht, "durian", value.data());
+    (void)com_util_hashtable_add(ht, "durian", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_timestamp = com_util_hashtable_get_timestamp_val(ht, 1, &rec_timestamp);
     (void)com_util_hashtable_find_recno(ht, "apple", &apple_rec);
     (void)com_util_hashtable_find_recno(ht, "banana", &banana_rec);
@@ -74,19 +74,19 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     int actual_ret_find_deleted = com_util_hashtable_find_value_ref(ht, "banana", &found);
     (void)com_util_hashtable_get_status(ht, banana_rec, &status);
     fill_value(&value, "エルダーベリー");
-    int actual_ret_full = com_util_hashtable_add(ht, "elderberry", value.data());
+    int actual_ret_full = com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     for (int i = 0; i < k_lifetime - 2; ++i)
     {
         (void)com_util_hashtable_push_deleted(ht);
     }
     fill_value(&value, "エルダーベリー");
-    int actual_ret_reuse = com_util_hashtable_add(ht, "elderberry", value.data());
+    int actual_ret_reuse = com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_count_status(ht, &in_use, &deleted, &empty);
     fill_value(&value, "long");
-    int actual_ret_long = com_util_hashtable_add(ht, too_long, value.data());
+    int actual_ret_long = com_util_hashtable_add(ht, too_long, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_clear(ht);
     fill_value(&value, "空");
-    int actual_ret_empty_key = com_util_hashtable_add(ht, "", value.data());
+    int actual_ret_empty_key = com_util_hashtable_add(ht, "", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -137,9 +137,9 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     int actual_ret_create =
         com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - バイナリ テーブルを構築する。
     fill_value(&value, "binary-value-1");
-    (void)com_util_hashtable_add(ht, key1, value.data());
+    (void)com_util_hashtable_add(ht, key1, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "全ゼロ");
-    int actual_ret_zero = com_util_hashtable_add(ht, zero_key, value.data());
+    int actual_ret_zero = com_util_hashtable_add(ht, zero_key, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_tail = com_util_hashtable_find_value_ref(ht, key3, &found);
     com_util_hashtable_dispose(ht);
 
@@ -152,7 +152,7 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     int actual_ret_ext =
         com_util_hashtable_create(&config, buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &ht);
     fill_value(&value, "いちじく");
-    (void)com_util_hashtable_add(ht, "fig", value.data());
+    (void)com_util_hashtable_add(ht, "fig", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     std::memcpy(buf_mgmt2.data(), buf_mgmt.data(), mgmt_needed);
     std::memcpy(buf_data2.data(), buf_data.data(), data_needed);
     int actual_ret_attach =
@@ -210,11 +210,11 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     // Act
     int actual_ret_src = com_util_hashtable_create(&src_config, NULL, 0, NULL, 0, &src); // [手順] - 移行元を構築する。
     fill_value(&value, "りんご");
-    (void)com_util_hashtable_add(src, "apple", value.data());
+    (void)com_util_hashtable_add(src, "apple", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "バナナ");
-    (void)com_util_hashtable_add(src, "banana", value.data());
+    (void)com_util_hashtable_add(src, "banana", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "さくらんぼ");
-    (void)com_util_hashtable_add(src, "cherry", value.data());
+    (void)com_util_hashtable_add(src, "cherry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_find_recno(src, "apple", &apple_rec);
     (void)com_util_hashtable_find_recno(src, "banana", &banana_rec);
     (void)com_util_hashtable_find_recno(src, "cherry", &cherry_rec);
@@ -335,7 +335,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
         &config, buf_mgmt.data(), buf_mgmt.size(), com_util_mmap_get_address(map), com_util_mmap_get_size(map),
         &ht); // [手順] - 管理領域は通常確保、データ領域は mmap したファイルで構築する。
     fill_value(&value, "mapped-value");
-    (void)com_util_hashtable_add(ht, "grape", value.data());
+    (void)com_util_hashtable_add(ht, "grape", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_flush =
         com_util_mmap_flush(map, nullptr, 0, nullptr); // [手順] - mmap した内容をディスクへ反映する。
     com_util_hashtable_dispose(ht);
@@ -396,9 +396,9 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     int actual_ret_create =
         com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 内部確保でテーブルを構築する。
     fill_value(&value, "persisted-apple");
-    (void)com_util_hashtable_add(ht, "apple", value.data());
+    (void)com_util_hashtable_add(ht, "apple", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     fill_value(&value, "persisted-banana");
-    (void)com_util_hashtable_add(ht, "banana", value.data());
+    (void)com_util_hashtable_add(ht, "banana", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
 
     int actual_ret_ref = com_util_hashtable_buffer_ref(ht, &mgmt, &data); // [手順] - 管理中の 2 領域の先頭を得る。
     int actual_ret_size = com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);

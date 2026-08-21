@@ -16,6 +16,12 @@
  *  両者は連続している必要がありません。データ領域は、
  *  メモリマップド ファイル (@c com_util_mmap) など管理領域と独立した領域を
  *  想定しています。\n
+ *  管理領域とデータ領域は、いずれも永続化して意味のある状態だけで構成し、
+ *  アドレス情報や一時的なフラグの類は含みません。@ref com_util_hashtable_create /
+ *  @ref com_util_hashtable_attach は、呼び出しのたびに管理領域・データ領域とは別の
+ *  「内部管理データ」を確保して不透明ハンドルとして返します。内部管理データは
+ *  実行時のみ有効な参照であり、永続化してはならず、また呼び出し方によらず
+ *  @ref com_util_hashtable_dispose で必ず解放してください。\n
  *  呼び出し側が両方 NULL を渡した場合 (@ref com_util_hashtable_create) は、
  *  内部で 1 回の確保にまとめ、データ領域は管理領域の直後に連続配置します。
  *  この場合に限り、解放も @ref com_util_hashtable_dispose の 1 回で両方が
@@ -31,13 +37,13 @@
  *  バイト数は @ref com_util_hashtable_buffer_size で取得できます。
  *
     @code
-    管理領域:
+    管理領域 (永続化してよい。アドレス・一時フラグを含まない):
     +----------------------+
     | magic (4B)           |  // COM_UTIL_HASHTABLE_MAGIC (0x48544142)
     +----------------------+
     | version (4B)         |  // COM_UTIL_HASHTABLE_VERSION (1)
     +----------------------+
-    | header               |  // data(ポインター), config, owns_buffer, pad, next_empty, table_timestamp
+    | header               |  // config, next_empty, in_use_count, deleted_count, table_timestamp
     +----------------------+
     | pad to uint64        |  // sizeof(struct) が未整列のときだけ
     +----------------------+
@@ -52,6 +58,15 @@
     +----------------------+
     | data[N]              |  // N x record_size
     +----------------------+
+
+    内部管理データ (create/attach のたびに別途確保し、dispose で解放する。永続化しない):
+    +----------------------+
+    | hdr(ポインター)       |  // 管理領域先頭への参照
+    +----------------------+
+    | data(ポインター)      |  // データ領域先頭への参照
+    +----------------------+
+    | owns_buffer           |  // 1 なら dispose が管理領域とデータ領域を解放する
+    +----------------------+
     @endcode
  *
  *  N は @p capacity です。レコード番号は 1 相対で、内部添字は record - 1 です。
@@ -64,21 +79,19 @@
  *
  *  @subsection     hashtable_header ヘッダー
  *
- *  版番号の直後から、データ領域先頭ポインター、設定の複製、所有フラグ、詰め物、
- *  @p next_empty 、テーブル横断の変更時刻が続きます。\n
- *  データ領域先頭ポインターは実行時のみ有効な値であり、管理領域バイト列を
- *  ファイルなどへ永続化しても意味を持ちません。\n
- *  @ref com_util_hashtable_attach は、呼び出し側が渡したデータ領域アドレスで
- *  必ずこの値を上書きします。\n
+ *  版番号の直後から、設定の複製、@p next_empty 、実装中件数、削除済み件数、
+ *  テーブル横断の変更時刻が続きます。\n
+ *  いずれも永続化して意味のある状態です。アドレスや一時フラグの類は管理領域に
+ *  含みません(それらは内部管理データ側が持ちます)。\n
  *  @p next_empty は 1 相対の最小空きスロットです。満杯のときは 0 です。\n
+ *  実装中件数・削除済み件数は @ref com_util_hashtable_count_status 等が
+ *  そのまま返す走査済みの値で、各更新 API が差分更新します。\n
  *  テーブル時刻は最後にキーまたは値が変わった実時刻です。構築直後は 0 です。\n
  *  テーブル時刻は @p timestamp_scope に関わらず常に持ちます。\n
  *  ヘッダー全体の大きさ、および暗黙パディングは処理系依存です。\n
- *  管理領域バッファーは struct com_util_hashtable のアラインメント境界が必要です。\n
+ *  管理領域バッファーは永続化ヘッダーのアラインメント境界が必要です。\n
  *  データ領域バッファーは値配列への @c memcpy 経由アクセスのみのため、
- *  アラインメント要件はありません。\n
- *  @ref com_util_hashtable_attach が書き換えるのは、データ領域先頭ポインターと
- *  所有フラグだけです。
+ *  アラインメント要件はありません。
  *
  *  @subsection     hashtable_buckets バケット先頭
  *
@@ -156,31 +169,44 @@ _Static_assert(((sizeof(uint64_t) + sizeof(unsigned char) + 7u) % _Alignof(com_u
 #define COM_UTIL_HASHTABLE_VERSION 1u          /**< 配置の版番号です。 */
 
 /**
- *  @brief          管理領域先頭の内部ヘッダーです。
+ *  @brief          永続化領域先頭のヘッダーです。
  *
- *  識別子、データ領域先頭ポインター、設定の複製、所有フラグ、空きヒント、
- *  テーブル時刻をまとめています。\n
+ *  識別子、設定の複製、空きヒント、実装中・削除済み件数、テーブル時刻を
+ *  まとめています。\n
+ *  永続化して意味を持つ情報だけで構成し、実行時のみ有効なアドレスや
+ *  一時的なフラグは含みません。\n
  *  配置の図は本ファイル先頭の説明を参照してください。
  */
-struct com_util_hashtable
+struct hashtable_persist_header
 {
     uint32_t magic;                    /**< 識別子。@c COM_UTIL_HASHTABLE_MAGIC 。 */
     uint32_t version;                  /**< 配置の版。@c COM_UTIL_HASHTABLE_VERSION 。 */
-    unsigned char *data;               /**< データ領域(値配列)の先頭です。実行時のみ有効で、
-                                             永続化バイト列としての意味は持ちません。
-                                             @ref com_util_hashtable_create と
-                                             @ref com_util_hashtable_attach が、
-                                             呼び出し側の渡した領域で必ず上書きします。 */
     com_util_hashtable_config config;  /**< 構築時の設定の複製です。 */
-    unsigned char owns_buffer;         /**< 1 なら @ref com_util_hashtable_dispose が解放します。 */
-    unsigned char pad[7];              /**< owns_buffer のあとの明示パディングです。 */
     uint64_t next_empty;               /**< 1 相対の最小空きです。満杯のときは 0 です。 */
+    uint64_t in_use_count;             /**< 実装中の件数です。 */
+    uint64_t deleted_count;            /**< 削除済み(加齢中および終端 255 を含む)の件数です。 */
     com_util_timespec table_timestamp; /**< 最後にキーまたは値が変わった実時刻です。 */
 };
 
 /* ヘッダー サイズは hashtable_mgmt_layout の整列前提(uint64_t 境界)を満たす。 */
-_Static_assert(sizeof(struct com_util_hashtable) % _Alignof(uint64_t) == 0,
-               "com_util_hashtable header size must be a multiple of _Alignof(uint64_t)");
+_Static_assert(sizeof(struct hashtable_persist_header) % _Alignof(uint64_t) == 0,
+               "hashtable_persist_header size must be a multiple of _Alignof(uint64_t)");
+
+/**
+ *  @brief          ハッシュ テーブルの内部管理データです。
+ *
+ *  @ref com_util_hashtable_create と @ref com_util_hashtable_attach が
+ *  呼び出しのたびに新規確保し、@ref com_util_hashtable_dispose が解放します。\n
+ *  永続化領域・データ領域とは別の割り当てで、実行時のみ有効な参照だけを持ちます。
+ */
+struct com_util_hashtable
+{
+    struct hashtable_persist_header *hdr; /**< 永続化領域の先頭です。実行時のみ有効な内部参照です。 */
+    unsigned char *data;                  /**< データ領域(値配列)の先頭です。実行時のみ有効です。 */
+    unsigned char owns_buffer; /**< 1 なら @ref com_util_hashtable_dispose が永続化領域と
+                                     データ領域をあわせて解放します。 */
+    unsigned char pad[7];      /**< owns_buffer のあとの明示パディングです。 */
+};
 
 /**
  *  @brief          加算のあふれを検出します。
@@ -278,7 +304,7 @@ static int entry_stride_checked(const com_util_hashtable_config *config, size_t 
  */
 static int hashtable_has_record_timestamp(const com_util_hashtable *ht)
 {
-    return ht->config.timestamp_scope == COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
+    return ht->hdr->config.timestamp_scope == COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
 }
 
 /**
@@ -297,7 +323,7 @@ static int hashtable_has_record_timestamp(const com_util_hashtable *ht)
 static int hashtable_mgmt_layout(const com_util_hashtable_config *config, size_t *off_bucket_head, size_t *off_entries,
                                  size_t *mgmt_size_out)
 {
-    size_t offset = sizeof(struct com_util_hashtable);
+    size_t offset = sizeof(struct hashtable_persist_header);
     size_t region_size;
     size_t entry_stride;
 
@@ -357,15 +383,15 @@ static int hashtable_data_region_size(const com_util_hashtable_config *config, s
 }
 
 /**
- *  @brief          管理領域をバイト列として見ます。
+ *  @brief          永続化領域をバイト列として見ます。
  *  @param[in]      ht  対象。NULL を渡してはなりません。
- *  @return         管理領域先頭です。
+ *  @return         永続化領域先頭です。
  *
  *  const の @p ht から領域ポインターを共用するため、const を外します。
  */
 static unsigned char *hashtable_bytes(const com_util_hashtable *ht)
 {
-    return (unsigned char *)(uintptr_t)ht;
+    return (unsigned char *)(uintptr_t)ht->hdr;
 }
 
 /**
@@ -379,7 +405,7 @@ static uint64_t *hashtable_bucket_head(const com_util_hashtable *ht)
 {
     size_t off_bucket_head;
 
-    (void)hashtable_mgmt_layout(&ht->config, &off_bucket_head, NULL, NULL);
+    (void)hashtable_mgmt_layout(&ht->hdr->config, &off_bucket_head, NULL, NULL);
     return (uint64_t *)(hashtable_bytes(ht) + off_bucket_head);
 }
 
@@ -394,7 +420,7 @@ static unsigned char *hashtable_entries(const com_util_hashtable *ht)
 {
     size_t off_entries;
 
-    (void)hashtable_mgmt_layout(&ht->config, NULL, &off_entries, NULL);
+    (void)hashtable_mgmt_layout(&ht->hdr->config, NULL, &off_entries, NULL);
     return hashtable_bytes(ht) + off_entries;
 }
 
@@ -408,7 +434,7 @@ static uint64_t *hashtable_entry_next(const com_util_hashtable *ht, size_t rec)
 {
     size_t stride = 0;
 
-    (void)entry_stride_checked(&ht->config, &stride);
+    (void)entry_stride_checked(&ht->hdr->config, &stride);
     return (uint64_t *)(hashtable_entries(ht) + rec * stride);
 }
 
@@ -422,7 +448,7 @@ static unsigned char *hashtable_entry_status(const com_util_hashtable *ht, size_
 {
     size_t stride = 0;
 
-    (void)entry_stride_checked(&ht->config, &stride);
+    (void)entry_stride_checked(&ht->hdr->config, &stride);
     return hashtable_entries(ht) + rec * stride + sizeof(uint64_t);
 }
 
@@ -438,7 +464,7 @@ static com_util_timespec *hashtable_entry_timestamp(const com_util_hashtable *ht
 {
     size_t stride = 0;
 
-    (void)entry_stride_checked(&ht->config, &stride);
+    (void)entry_stride_checked(&ht->hdr->config, &stride);
     return (com_util_timespec *)(hashtable_entries(ht) + rec * stride + sizeof(uint64_t) + sizeof(unsigned char) +
                                  (size_t)ENTRY_TIMESTAMP_PAD);
 }
@@ -453,8 +479,8 @@ static char *hashtable_entry_key(const com_util_hashtable *ht, size_t rec)
 {
     size_t stride = 0;
 
-    (void)entry_stride_checked(&ht->config, &stride);
-    return (char *)(hashtable_entries(ht) + rec * stride + entry_key_offset(&ht->config));
+    (void)entry_stride_checked(&ht->hdr->config, &stride);
+    return (char *)(hashtable_entries(ht) + rec * stride + entry_key_offset(&ht->hdr->config));
 }
 
 /**
@@ -477,7 +503,7 @@ static unsigned char *hashtable_data(const com_util_hashtable *ht)
  */
 static unsigned char *hashtable_data_at(const com_util_hashtable *ht, size_t rec)
 {
-    return hashtable_data(ht) + rec * ht->config.record_size;
+    return hashtable_data(ht) + rec * ht->hdr->config.record_size;
 }
 
 /**
@@ -497,7 +523,7 @@ static size_t hash_key(const com_util_hashtable *ht, const void *key)
     uint64_t hash = 5381;
     const unsigned char *p = (const unsigned char *)key;
 
-    if (ht->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
+    if (ht->hdr->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
     {
         int c;
 
@@ -511,12 +537,12 @@ static size_t hash_key(const com_util_hashtable *ht, const void *key)
     {
         size_t i;
 
-        for (i = 0; i < ht->config.key_size; i++)
+        for (i = 0; i < ht->hdr->config.key_size; i++)
         {
             hash = ((hash << 5) + hash) + p[i];
         }
     }
-    return (size_t)hash % ht->config.capacity;
+    return (size_t)hash % ht->hdr->config.capacity;
 }
 
 /**
@@ -528,11 +554,11 @@ static size_t hash_key(const com_util_hashtable *ht, const void *key)
  */
 static int key_equal(const com_util_hashtable *ht, const char *stored_key, const void *key)
 {
-    if (ht->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
+    if (ht->hdr->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
     {
         return strcmp(stored_key, (const char *)key) == 0;
     }
-    return memcmp(stored_key, key, ht->config.key_size) == 0;
+    return memcmp(stored_key, key, ht->hdr->config.key_size) == 0;
 }
 
 /**
@@ -544,11 +570,11 @@ static int key_equal(const com_util_hashtable *ht, const char *stored_key, const
 static int key_fits(const com_util_hashtable *ht, const void *key)
 {
     /* バイナリは常に key_size バイトなので検査しません。 */
-    if (ht->config.key_type != COM_UTIL_HASHTABLE_KEY_STRING)
+    if (ht->hdr->config.key_type != COM_UTIL_HASHTABLE_KEY_STRING)
     {
         return 1;
     }
-    return memchr(key, '\0', ht->config.key_size) != NULL;
+    return memchr(key, '\0', ht->hdr->config.key_size) != NULL;
 }
 
 /**
@@ -561,16 +587,16 @@ static int key_fits(const com_util_hashtable *ht, const void *key)
  */
 static void key_store(const com_util_hashtable *ht, char *dst, const void *key)
 {
-    if (ht->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
+    if (ht->hdr->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
     {
         size_t copy_len = strlen((const char *)key) + 1u;
 
-        memset(dst, 0, ht->config.key_size);
+        memset(dst, 0, ht->hdr->config.key_size);
         memcpy(dst, key, copy_len);
     }
     else
     {
-        memcpy(dst, key, ht->config.key_size);
+        memcpy(dst, key, ht->hdr->config.key_size);
     }
 }
 
@@ -584,7 +610,7 @@ static uint64_t scan_next_empty(com_util_hashtable *ht, size_t start_idx)
 {
     size_t i;
 
-    for (i = start_idx; i < ht->config.capacity; i++)
+    for (i = start_idx; i < ht->hdr->config.capacity; i++)
     {
         if (*hashtable_entry_status(ht, i) == REC_EMPTY)
         {
@@ -608,7 +634,7 @@ static void stamp_record(com_util_hashtable *ht, size_t rec)
     {
         *hashtable_entry_timestamp(ht, rec) = now;
     }
-    ht->table_timestamp = now;
+    ht->hdr->table_timestamp = now;
 }
 
 /**
@@ -617,7 +643,7 @@ static void stamp_record(com_util_hashtable *ht, size_t rec)
  */
 static void stamp_table(com_util_hashtable *ht)
 {
-    com_util_get_realtime(&ht->table_timestamp);
+    com_util_get_realtime(&ht->hdr->table_timestamp);
 }
 
 /**
@@ -698,9 +724,10 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
 {
     size_t mgmt_size;
     size_t data_size;
-    com_util_hashtable *ht;
+    struct hashtable_persist_header *hdr;
     unsigned char owns_buffer;
     unsigned char *data;
+    com_util_hashtable *ht;
 
     if (ht_out != NULL)
     {
@@ -737,12 +764,12 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
         {
             return COM_UTIL_ERR_INVALID_ARGUMENT;
         }
-        ht = (com_util_hashtable *)com_util_calloc(1, total_size);
-        if (ht == NULL)
+        hdr = (struct hashtable_persist_header *)com_util_calloc(1, total_size);
+        if (hdr == NULL)
         {
             return COM_UTIL_ERR_OUT_OF_MEMORY;
         }
-        data = hashtable_bytes(ht) + mgmt_size;
+        data = (unsigned char *)hdr + mgmt_size;
         owns_buffer = 1;
     }
     else
@@ -752,7 +779,7 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
         /* 不足と同じコードにする。領域へ触れる前に戻る。 */
-        if (((uintptr_t)buf_mgmt % _Alignof(struct com_util_hashtable)) != 0)
+        if (((uintptr_t)buf_mgmt % _Alignof(struct hashtable_persist_header)) != 0)
         {
             return COM_UTIL_ERR_BUFFER_TOO_SMALL;
         }
@@ -763,22 +790,38 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
         }
         memset(buf_mgmt, 0, mgmt_size);
         memset(buf_data, 0, data_size);
-        ht = (com_util_hashtable *)buf_mgmt;
+        hdr = (struct hashtable_persist_header *)buf_mgmt;
         data = (unsigned char *)buf_data;
         owns_buffer = 0;
     }
 
-    ht->magic = COM_UTIL_HASHTABLE_MAGIC;
-    ht->version = COM_UTIL_HASHTABLE_VERSION;
+    /* 内部管理データは、永続化領域・データ領域とは別に確保する。 */
+    ht = (com_util_hashtable *)com_util_calloc(1, sizeof(struct com_util_hashtable));
+    if (ht == NULL)
+    {
+        if (owns_buffer != 0)
+        {
+            com_util_free(hdr);
+        }
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
+    }
+
+    hdr->magic = COM_UTIL_HASHTABLE_MAGIC;
+    hdr->version = COM_UTIL_HASHTABLE_VERSION;
+    hdr->config.capacity = config->capacity;
+    hdr->config.key_type = config->key_type;
+    hdr->config.timestamp_scope = config->timestamp_scope;
+    hdr->config.key_size = config->key_size;
+    hdr->config.record_size = config->record_size;
+    hdr->config.lifetime = config->lifetime;
+    hdr->config.reuse_deleted = config->reuse_deleted;
+    hdr->next_empty = 1; /* 全スロット空きなので、最小空きはレコード 1。 */
+    hdr->in_use_count = 0;
+    hdr->deleted_count = 0;
+
+    ht->hdr = hdr;
     ht->data = data;
-    ht->config.capacity = config->capacity;
-    ht->config.key_type = config->key_type;
-    ht->config.timestamp_scope = config->timestamp_scope;
-    ht->config.key_size = config->key_size;
-    ht->config.record_size = config->record_size;
-    ht->config.lifetime = config->lifetime;
     ht->owns_buffer = owns_buffer;
-    ht->next_empty = 1; /* 全スロット空きなので、最小空きはレコード 1。 */
 
     *ht_out = ht;
     return COM_UTIL_OK;
@@ -792,7 +835,7 @@ int com_util_hashtable_get_config_ref(const com_util_hashtable *ht, const com_ut
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    *config_out = &ht->config;
+    *config_out = &ht->hdr->config;
     return COM_UTIL_OK;
 }
 
@@ -826,11 +869,11 @@ int com_util_hashtable_buffer_size(const com_util_hashtable *ht, size_t *mgmt_si
     }
     if (mgmt_size_out != NULL)
     {
-        (void)hashtable_mgmt_layout(&ht->config, NULL, NULL, mgmt_size_out);
+        (void)hashtable_mgmt_layout(&ht->hdr->config, NULL, NULL, mgmt_size_out);
     }
     if (data_size_out != NULL)
     {
-        (void)hashtable_data_region_size(&ht->config, data_size_out);
+        (void)hashtable_data_region_size(&ht->hdr->config, data_size_out);
     }
     return COM_UTIL_OK;
 }
@@ -859,6 +902,7 @@ int com_util_hashtable_buffer_ref(const com_util_hashtable *ht, const void **mgm
 int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_data, size_t buf_data_size,
                               com_util_hashtable **ht_out)
 {
+    struct hashtable_persist_header *hdr;
     com_util_hashtable *ht;
     size_t mgmt_size;
     size_t data_size;
@@ -871,55 +915,64 @@ int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_da
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    /* マジックを読むために、まず内部ヘッダー分だけを要求する。 */
-    if (buf_mgmt_size < sizeof(struct com_util_hashtable))
+    /* マジックを読むために、まず永続化ヘッダー分だけを要求する。 */
+    if (buf_mgmt_size < sizeof(struct hashtable_persist_header))
     {
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    if (((uintptr_t)buf_mgmt % _Alignof(struct com_util_hashtable)) != 0)
+    if (((uintptr_t)buf_mgmt % _Alignof(struct hashtable_persist_header)) != 0)
     {
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
-    ht = (com_util_hashtable *)buf_mgmt;
+    hdr = (struct hashtable_persist_header *)buf_mgmt;
 
-    if (ht->magic != COM_UTIL_HASHTABLE_MAGIC)
+    if (hdr->magic != COM_UTIL_HASHTABLE_MAGIC)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if (ht->version != COM_UTIL_HASHTABLE_VERSION)
+    if (hdr->version != COM_UTIL_HASHTABLE_VERSION)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((ht->config.key_type != COM_UTIL_HASHTABLE_KEY_STRING) &&
-        (ht->config.key_type != COM_UTIL_HASHTABLE_KEY_BINARY))
+    if ((hdr->config.key_type != COM_UTIL_HASHTABLE_KEY_STRING) &&
+        (hdr->config.key_type != COM_UTIL_HASHTABLE_KEY_BINARY))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((ht->config.timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE) &&
-        (ht->config.timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD))
+    if ((hdr->config.timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE) &&
+        (hdr->config.timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((ht->config.key_size == 0) || (ht->config.record_size == 0))
+    if ((hdr->config.key_size == 0) || (hdr->config.record_size == 0))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if (ht->config.lifetime < 2)
+    if (hdr->config.lifetime < 2)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if (ht->config.capacity == 0)
+    if (hdr->config.capacity == 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     /* 0 は満杯の正当値。capacity 超えだけを拒否する。 */
-    if (ht->next_empty > ht->config.capacity)
+    if (hdr->next_empty > hdr->config.capacity)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    /* 減算方向で判定し、あふれを避ける。 */
+    if (hdr->in_use_count > hdr->config.capacity)
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if (hdr->deleted_count > hdr->config.capacity - hdr->in_use_count)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    if (hashtable_mgmt_layout(&ht->config, NULL, NULL, &mgmt_size) != 0)
+    if (hashtable_mgmt_layout(&hdr->config, NULL, NULL, &mgmt_size) != 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -927,7 +980,7 @@ int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_da
     {
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
-    if (hashtable_data_region_size(&ht->config, &data_size) != 0)
+    if (hashtable_data_region_size(&hdr->config, &data_size) != 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -936,9 +989,17 @@ int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_da
         return COM_UTIL_ERR_BUFFER_TOO_SMALL;
     }
 
-    /* data は実行時のみ有効なアドレスのため、管理領域バイト列に残る値は信用せず必ず上書きする。 */
+    /* 内部管理データは、永続化領域・データ領域とは別に確保する。 */
+    ht = (com_util_hashtable *)com_util_calloc(1, sizeof(struct com_util_hashtable));
+    if (ht == NULL)
+    {
+        return COM_UTIL_ERR_OUT_OF_MEMORY;
+    }
+
+    ht->hdr = hdr;
+    /* data は実行時のみ有効なアドレスのため、呼び出し側が渡した値を必ず使う。 */
     ht->data = (unsigned char *)buf_data;
-    /* 再接続後の所有は常に呼び出し側。内部確保の印は残さない。 */
+    /* 再接続後の所有は常に呼び出し側。永続化領域とデータ領域は dispose で解放しない。 */
     ht->owns_buffer = 0;
     *ht_out = ht;
     return COM_UTIL_OK;
@@ -952,10 +1013,12 @@ int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_da
  */
 static int hashtable_validate_impl(const com_util_hashtable *ht, unsigned char *visited)
 {
-    size_t capacity = ht->config.capacity;
+    size_t capacity = ht->hdr->config.capacity;
     uint64_t *bucket_head = hashtable_bucket_head(ht);
     size_t idx;
     size_t min_empty = 0;
+    uint64_t counted_in_use = 0;
+    uint64_t counted_deleted = 0;
     size_t i;
 
     for (idx = 0; idx < capacity; idx++)
@@ -1021,14 +1084,34 @@ static int hashtable_validate_impl(const com_util_hashtable *ht, unsigned char *
                 min_empty = i + 1;
             }
         }
-        else if (visited[i] == 0)
+        else
         {
-            /* 実装中または削除済みなのに、どのバケットからも辿れない。 */
-            return -1;
+            if (visited[i] == 0)
+            {
+                /* 実装中または削除済みなのに、どのバケットからも辿れない。 */
+                return -1;
+            }
+            if (status == REC_IN_USE)
+            {
+                counted_in_use++;
+            }
+            else
+            {
+                /* 2 以上は加齢中の削除済み。255 も含める。 */
+                counted_deleted++;
+            }
         }
     }
 
-    if (ht->next_empty != min_empty)
+    if (ht->hdr->next_empty != min_empty)
+    {
+        return -1;
+    }
+    if (counted_in_use != ht->hdr->in_use_count)
+    {
+        return -1;
+    }
+    if (counted_deleted != ht->hdr->deleted_count)
     {
         return -1;
     }
@@ -1046,7 +1129,7 @@ int com_util_hashtable_validate(const com_util_hashtable *ht)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    visited = (unsigned char *)com_util_calloc(ht->config.capacity, 1);
+    visited = (unsigned char *)com_util_calloc(ht->hdr->config.capacity, 1);
     if (visited == NULL)
     {
         return COM_UTIL_ERR_OUT_OF_MEMORY;
@@ -1056,9 +1139,97 @@ int com_util_hashtable_validate(const com_util_hashtable *ht)
     return (result == 0) ? COM_UTIL_OK : COM_UTIL_ERR_CORRUPT_DESCRIPTOR;
 }
 
+/**
+ *  @brief          reuse_deleted 用に、再利用する削除中レコードを選びます。
+ *
+ *  status が最大、同点なら変更時刻が最も古いレコードを選びます。\n
+ *  SCOPE_TABLE でレコード時刻が無い場合は、走査順(添字が小さい方を優先)により
+ *  自然にレコード番号が最も小さいものが残ります。\n
+ *  チェーンからの切り離しはしません。呼び出し側が外します。
+ *
+ *  @param[in]      ht          対象のハンドルです。
+ *  @return         見つかった場合は 1 起点のレコード番号、無ければ 0 です。
+ */
+static uint64_t hashtable_find_best_deleted_record(const com_util_hashtable *ht)
+{
+    size_t capacity = ht->hdr->config.capacity;
+    int has_record_timestamp = hashtable_has_record_timestamp(ht);
+    size_t best_rec = 0;
+    int found = 0;
+    unsigned char best_status = 0;
+    com_util_timespec best_timestamp = {0};
+    size_t i;
+
+    for (i = 0; i < capacity; i++)
+    {
+        unsigned char status = *hashtable_entry_status(ht, i);
+        int better;
+
+        if (status < REC_DELETED)
+        {
+            continue;
+        }
+        if (!found)
+        {
+            better = 1;
+        }
+        else if (status > best_status)
+        {
+            better = 1;
+        }
+        else if ((status == best_status) && (has_record_timestamp != 0) &&
+                 (com_util_timespec_cmp(hashtable_entry_timestamp(ht, i), &best_timestamp) < 0))
+        {
+            better = 1;
+        }
+        else
+        {
+            better = 0;
+        }
+        if (better != 0)
+        {
+            found = 1;
+            best_rec = i;
+            best_status = status;
+            if (has_record_timestamp != 0)
+            {
+                best_timestamp = *hashtable_entry_timestamp(ht, i);
+            }
+        }
+    }
+    return (found != 0) ? (uint64_t)(best_rec + 1) : 0;
+}
+
+/**
+ *  @brief          レコードをバケット チェーンから切り離します。
+ *
+ *  レコードの状態・キー・値は変更しません。
+ *
+ *  @param[in,out]  ht          対象のハンドルです。
+ *  @param[in]      rec         切り離すレコードの 0 起点の番号です。
+ */
+static void hashtable_unlink_record(com_util_hashtable *ht, size_t rec)
+{
+    size_t idx = hash_key(ht, hashtable_entry_key(ht, rec));
+    uint64_t *link = &hashtable_bucket_head(ht)[idx];
+    uint64_t target = (uint64_t)(rec + 1);
+
+    while (*link != 0)
+    {
+        if (*link == target)
+        {
+            *link = *hashtable_entry_next(ht, rec);
+            *hashtable_entry_next(ht, rec) = 0;
+            return;
+        }
+        link = hashtable_entry_next(ht, (size_t)(*link - 1));
+    }
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value)
+int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value,
+                           com_util_hashtable_add_deleted_policy deleted_policy)
 {
     size_t idx;
     uint64_t *bucket_head;
@@ -1067,6 +1238,11 @@ int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *
     size_t rec;
 
     if ((ht == NULL) || (key == NULL) || (value == NULL))
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if ((deleted_policy != COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE) &&
+        (deleted_policy != COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1088,29 +1264,48 @@ int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *
                 return COM_UTIL_ERR_DUPLICATE_DEFINITION;
             }
             /* 削除済みの同一キーは、同じレコードを再利用する。 */
-            memcpy(hashtable_data_at(ht, rec), value, ht->config.record_size);
+            if (deleted_policy == COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE)
+            {
+                memcpy(hashtable_data_at(ht, rec), value, ht->hdr->config.record_size);
+            }
+            /* REVIVE はスロットに残っている削除前の値をそのまま使う。 */
             *hashtable_entry_status(ht, rec) = REC_IN_USE;
             stamp_record(ht, rec);
+            ht->hdr->deleted_count--;
+            ht->hdr->in_use_count++;
             return COM_UTIL_OK;
         }
         cur = *hashtable_entry_next(ht, rec);
     }
 
-    rec_no = ht->next_empty;
+    rec_no = ht->hdr->next_empty;
+    if ((rec_no == 0) && (ht->hdr->config.reuse_deleted != 0))
+    {
+        rec_no = hashtable_find_best_deleted_record(ht);
+        if (rec_no != 0)
+        {
+            hashtable_unlink_record(ht, (size_t)(rec_no - 1)); /* 削除中の既存キーをチェーンから外す。 */
+            ht->hdr->deleted_count--;
+        }
+    }
     if (rec_no == 0)
     {
         return COM_UTIL_ERR_LIMIT_EXCEEDED;
     }
 
     rec = (size_t)(rec_no - 1);
-    memcpy(hashtable_data_at(ht, rec), value, ht->config.record_size);
+    memcpy(hashtable_data_at(ht, rec), value, ht->hdr->config.record_size);
     *hashtable_entry_status(ht, rec) = REC_IN_USE;
     key_store(ht, hashtable_entry_key(ht, rec), key);
     stamp_record(ht, rec);
     /* 新しいレコードをチェーン先頭へ挿す。 */
     *hashtable_entry_next(ht, rec) = bucket_head[idx];
     bucket_head[idx] = rec_no;
-    ht->next_empty = scan_next_empty(ht, rec + 1);
+    if (rec_no == ht->hdr->next_empty) /* 空きスロットを使ったときだけ、次の空きを探し直す。 */
+    {
+        ht->hdr->next_empty = scan_next_empty(ht, rec + 1);
+    }
+    ht->hdr->in_use_count++;
     return COM_UTIL_OK;
 }
 
@@ -1147,13 +1342,13 @@ int com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, co
     {
         return COM_UTIL_ERR_OUT_OF_RANGE;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
     /* 有限寿命では、加齢後に存在し得ない status は書かずに省略する。 */
-    if ((status >= REC_DELETED) && (ht->config.lifetime != COM_UTIL_HASHTABLE_LIFETIME_INFINITE) &&
-        (status >= (int)ht->config.lifetime))
+    if ((status >= REC_DELETED) && (ht->hdr->config.lifetime != COM_UTIL_HASHTABLE_LIFETIME_INFINITE) &&
+        (status >= (int)ht->hdr->config.lifetime))
     {
         return COM_UTIL_SKIPPED;
     }
@@ -1178,23 +1373,31 @@ int com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, co
         cur = *hashtable_entry_next(ht, existing);
     }
 
-    memcpy(hashtable_data_at(ht, rec), value, ht->config.record_size);
+    memcpy(hashtable_data_at(ht, rec), value, ht->hdr->config.record_size);
     key_store(ht, hashtable_entry_key(ht, rec), key);
     *hashtable_entry_status(ht, rec) = (unsigned char)status;
     if (hashtable_has_record_timestamp(ht) != 0)
     {
         *hashtable_entry_timestamp(ht, rec) = *timestamp;
-        if (com_util_timespec_cmp(timestamp, &ht->table_timestamp) > 0)
+        if (com_util_timespec_cmp(timestamp, &ht->hdr->table_timestamp) > 0)
         {
-            ht->table_timestamp = *timestamp;
+            ht->hdr->table_timestamp = *timestamp;
         }
     }
     *hashtable_entry_next(ht, rec) = bucket_head[idx];
     bucket_head[idx] = record;
     /* 最小空きを使ったときだけ、次の空きを探し直す。 */
-    if (ht->next_empty == record)
+    if (ht->hdr->next_empty == record)
     {
-        ht->next_empty = scan_next_empty(ht, rec + 1);
+        ht->hdr->next_empty = scan_next_empty(ht, rec + 1);
+    }
+    if (status == REC_IN_USE)
+    {
+        ht->hdr->in_use_count++;
+    }
+    else
+    {
+        ht->hdr->deleted_count++;
     }
     return COM_UTIL_OK;
 }
@@ -1230,7 +1433,7 @@ int com_util_hashtable_update(com_util_hashtable *ht, const void *key, const voi
             {
                 return COM_UTIL_ERR_NOT_FOUND;
             }
-            memcpy(hashtable_data_at(ht, rec), value, ht->config.record_size);
+            memcpy(hashtable_data_at(ht, rec), value, ht->hdr->config.record_size);
             stamp_record(ht, rec);
             return COM_UTIL_OK;
         }
@@ -1249,7 +1452,7 @@ int com_util_hashtable_update_rec(com_util_hashtable *ht, uint64_t record, const
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1258,7 +1461,7 @@ int com_util_hashtable_update_rec(com_util_hashtable *ht, uint64_t record, const
     {
         return COM_UTIL_ERR_NOT_FOUND;
     }
-    memcpy(hashtable_data_at(ht, rec), value, ht->config.record_size);
+    memcpy(hashtable_data_at(ht, rec), value, ht->hdr->config.record_size);
     stamp_record(ht, rec);
     return COM_UTIL_OK;
 }
@@ -1318,7 +1521,7 @@ int com_util_hashtable_find_value_val(const com_util_hashtable *ht, const void *
     {
         return ret;
     }
-    memcpy(value_out, src, ht->config.record_size);
+    memcpy(value_out, src, ht->hdr->config.record_size);
     return COM_UTIL_OK;
 }
 
@@ -1435,7 +1638,7 @@ int com_util_hashtable_get_key_ref(const com_util_hashtable *ht, uint64_t record
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1465,7 +1668,7 @@ int com_util_hashtable_get_key_val(const com_util_hashtable *ht, uint64_t record
     {
         return ret;
     }
-    memcpy(key_out, src, ht->config.key_size);
+    memcpy(key_out, src, ht->hdr->config.key_size);
     return COM_UTIL_OK;
 }
 
@@ -1479,7 +1682,7 @@ int com_util_hashtable_get_value_ref(const com_util_hashtable *ht, uint64_t reco
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1509,7 +1712,7 @@ int com_util_hashtable_get_value_val(const com_util_hashtable *ht, uint64_t reco
     {
         return ret;
     }
-    memcpy(value_out, src, ht->config.record_size);
+    memcpy(value_out, src, ht->hdr->config.record_size);
     return COM_UTIL_OK;
 }
 
@@ -1521,7 +1724,7 @@ int com_util_hashtable_get_status(const com_util_hashtable *ht, uint64_t record,
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1544,7 +1747,7 @@ int com_util_hashtable_get_timestamp_ref(const com_util_hashtable *ht, uint64_t 
     {
         return COM_UTIL_ERR_UNSUPPORTED;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1586,7 +1789,7 @@ int com_util_hashtable_get_table_timestamp_ref(const com_util_hashtable *ht, con
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    *timestamp_out = &ht->table_timestamp;
+    *timestamp_out = &ht->hdr->table_timestamp;
     return COM_UTIL_OK;
 }
 
@@ -1615,45 +1818,23 @@ int com_util_hashtable_get_table_timestamp_val(const com_util_hashtable *ht, com
 int com_util_hashtable_count_status(const com_util_hashtable *ht, size_t *in_use_out, size_t *deleted_out,
                                     size_t *empty_out)
 {
-    size_t in_use = 0;
-    size_t deleted = 0;
-    size_t empty = 0;
-    size_t i;
-
     if (ht == NULL)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    for (i = 0; i < ht->config.capacity; i++)
-    {
-        unsigned char status = *hashtable_entry_status(ht, i);
-
-        if (status == REC_IN_USE)
-        {
-            in_use++;
-        }
-        else if (status == REC_EMPTY)
-        {
-            empty++;
-        }
-        else
-        {
-            /* 2 以上は加齢中の削除済み。255 も含める。 */
-            deleted++;
-        }
-    }
+    /* 永続化領域のカウンタをそのまま返す。capacity に依存しない一定時間。 */
     if (in_use_out != NULL)
     {
-        *in_use_out = in_use;
+        *in_use_out = (size_t)ht->hdr->in_use_count;
     }
     if (deleted_out != NULL)
     {
-        *deleted_out = deleted;
+        *deleted_out = (size_t)ht->hdr->deleted_count;
     }
     if (empty_out != NULL)
     {
-        *empty_out = empty;
+        *empty_out = (size_t)(ht->hdr->config.capacity - ht->hdr->in_use_count - ht->hdr->deleted_count);
     }
     return COM_UTIL_OK;
 }
@@ -1702,8 +1883,8 @@ int com_util_hashtable_empty_count(const com_util_hashtable *ht, size_t *count_o
 static void hashtable_expire_record(com_util_hashtable *ht, size_t rec)
 {
     *hashtable_entry_status(ht, rec) = REC_EMPTY;
-    memset(hashtable_data_at(ht, rec), 0, ht->config.record_size);
-    memset(hashtable_entry_key(ht, rec), 0, ht->config.key_size);
+    memset(hashtable_data_at(ht, rec), 0, ht->hdr->config.record_size);
+    memset(hashtable_entry_key(ht, rec), 0, ht->hdr->config.key_size);
     if (hashtable_has_record_timestamp(ht) != 0)
     {
         memset(hashtable_entry_timestamp(ht, rec), 0, sizeof(com_util_timespec));
@@ -1740,18 +1921,23 @@ int com_util_hashtable_delete(com_util_hashtable *ht, const void *key)
             }
             *hashtable_entry_status(ht, rec) = REC_DELETED;
             stamp_record(ht, rec);
+            ht->hdr->in_use_count--;
             /* lifetime が 2 のときは、削除済みのまま置けないので直ちに空へ戻す。 */
-            if (REC_DELETED >= ht->config.lifetime)
+            if (REC_DELETED >= ht->hdr->config.lifetime)
             {
                 uint64_t rec_no = (uint64_t)(rec + 1);
 
                 hashtable_expire_record(ht, rec);
                 *link = *hashtable_entry_next(ht, rec);
                 *hashtable_entry_next(ht, rec) = 0;
-                if ((ht->next_empty == 0) || (rec_no < ht->next_empty))
+                if ((ht->hdr->next_empty == 0) || (rec_no < ht->hdr->next_empty))
                 {
-                    ht->next_empty = rec_no;
+                    ht->hdr->next_empty = rec_no;
                 }
+            }
+            else
+            {
+                ht->hdr->deleted_count++;
             }
             return COM_UTIL_OK;
         }
@@ -1770,7 +1956,7 @@ int com_util_hashtable_delete_rec(com_util_hashtable *ht, uint64_t record)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if ((record == 0) || (record > ht->config.capacity))
+    if ((record == 0) || (record > ht->hdr->config.capacity))
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1793,7 +1979,7 @@ static void hashtable_unlink_empty_chains(com_util_hashtable *ht)
     uint64_t *bucket_head = hashtable_bucket_head(ht);
     size_t i;
 
-    for (i = 0; i < ht->config.capacity; i++)
+    for (i = 0; i < ht->hdr->config.capacity; i++)
     {
         uint64_t *link = &bucket_head[i];
 
@@ -1819,6 +2005,7 @@ static void hashtable_unlink_empty_chains(com_util_hashtable *ht)
 int com_util_hashtable_push_deleted(com_util_hashtable *ht)
 {
     uint64_t new_next_empty = 0;
+    uint64_t expired_count = 0;
     size_t i;
 
     if (ht == NULL)
@@ -1826,7 +2013,7 @@ int com_util_hashtable_push_deleted(com_util_hashtable *ht)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    for (i = 0; i < ht->config.capacity; i++)
+    for (i = 0; i < ht->hdr->config.capacity; i++)
     {
         unsigned char *status = hashtable_entry_status(ht, i);
 
@@ -1834,9 +2021,10 @@ int com_util_hashtable_push_deleted(com_util_hashtable *ht)
         if ((*status >= REC_DELETED) && (*status < COM_UTIL_HASHTABLE_LIFETIME_INFINITE))
         {
             (*status)++;
-            if ((*status >= ht->config.lifetime) && (ht->config.lifetime != COM_UTIL_HASHTABLE_LIFETIME_INFINITE))
+            if ((*status >= ht->hdr->config.lifetime) && (ht->hdr->config.lifetime != COM_UTIL_HASHTABLE_LIFETIME_INFINITE))
             {
                 hashtable_expire_record(ht, i);
+                expired_count++;
             }
         }
         if ((new_next_empty == 0) && (*status == REC_EMPTY))
@@ -1846,7 +2034,8 @@ int com_util_hashtable_push_deleted(com_util_hashtable *ht)
     }
 
     hashtable_unlink_empty_chains(ht);
-    ht->next_empty = new_next_empty;
+    ht->hdr->next_empty = new_next_empty;
+    ht->hdr->deleted_count -= expired_count;
     return COM_UTIL_OK;
 }
 
@@ -1862,7 +2051,7 @@ int com_util_hashtable_purge_deleted(com_util_hashtable *ht)
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
-    for (i = 0; i < ht->config.capacity; i++)
+    for (i = 0; i < ht->hdr->config.capacity; i++)
     {
         /* 加齢せず、削除済みをすべて空へ戻す。255 も含める。 */
         if (*hashtable_entry_status(ht, i) >= REC_DELETED)
@@ -1876,7 +2065,8 @@ int com_util_hashtable_purge_deleted(com_util_hashtable *ht)
     }
 
     hashtable_unlink_empty_chains(ht);
-    ht->next_empty = new_next_empty;
+    ht->hdr->next_empty = new_next_empty;
+    ht->hdr->deleted_count = 0; /* 削除済みは無条件で全て空へ戻すため。 */
     return COM_UTIL_OK;
 }
 
@@ -1892,13 +2082,15 @@ int com_util_hashtable_clear(com_util_hashtable *ht)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    (void)hashtable_mgmt_layout(&ht->config, &off_bucket_head, NULL, &mgmt_size);
-    (void)hashtable_data_region_size(&ht->config, &data_size);
-    /* 識別子、設定、所有フラグ、テーブル時刻、data ポインターは残し、バケットとエントリだけを消す。 */
-    memset((unsigned char *)ht + off_bucket_head, 0, mgmt_size - off_bucket_head);
+    (void)hashtable_mgmt_layout(&ht->hdr->config, &off_bucket_head, NULL, &mgmt_size);
+    (void)hashtable_data_region_size(&ht->hdr->config, &data_size);
+    /* 識別子、設定、テーブル時刻は残し、バケットとエントリだけを消す。 */
+    memset(hashtable_bytes(ht) + off_bucket_head, 0, mgmt_size - off_bucket_head);
     /* 値配列(データ領域)も 0 埋めする。ポインター自体(ht->data)は変更しない。 */
     memset(ht->data, 0, data_size);
-    ht->next_empty = 1;
+    ht->hdr->next_empty = 1;
+    ht->hdr->in_use_count = 0;
+    ht->hdr->deleted_count = 0;
     stamp_table(ht);
     return COM_UTIL_OK;
 }
@@ -1911,10 +2103,11 @@ void com_util_hashtable_dispose(com_util_hashtable *ht)
     {
         return;
     }
-    /* 外部バッファーや attach 済みは呼び出し側の所有のまま。 */
-    if (ht->owns_buffer == 0)
+    /* 内部確保時は永続化領域とデータ領域が1ブロックのため、hdr の解放で両方片付く。 */
+    if (ht->owns_buffer != 0)
     {
-        return;
+        com_util_free(ht->hdr);
     }
+    /* 内部管理データは、生成経路によらず常に解放する。 */
     com_util_free(ht);
 }

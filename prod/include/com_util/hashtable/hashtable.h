@@ -20,18 +20,23 @@
  *  実時刻 (`com_util_timespec`) の変更時刻を持ち、status が 0 以外のときだけ有効です。
  *
  *  テーブルは、識別子・ヘッダー・バケット配列・エントリ配列からなる「管理領域」と、
- *  値配列からなる「データ領域」の 2 領域で構成されます。\n
+ *  値配列からなる「データ領域」の 2 領域で構成されます。いずれも永続化して
+ *  意味のある状態だけで構成し、アドレス情報や一時的なフラグの類は含みません。\n
  *  呼び出し側が両方省略すれば内部で 1 回の確保にまとめて構築し、解放も
  *  @ref com_util_hashtable_dispose の 1 回で両方が片付きます。\n
  *  両方を明示的に指定すれば、独立した 2 領域(データ領域はメモリマップド
  *  ファイルなど管理領域と連続しない領域を想定)へ構築・再接続できます。\n
  *  片方だけを指定することはできません。
  *
+ *  @ref com_util_hashtable_create と @ref com_util_hashtable_attach は、
+ *  呼び出しのたびに管理領域・データ領域とは別の「内部管理データ」を確保して
+ *  不透明ハンドル (@ref com_util_hashtable) として返します。内部管理データは
+ *  実行時のみ有効な参照であり、管理領域・データ領域を外部指定した場合でも、
+ *  ハンドル自体の解放のため呼び出し方によらず必ず @ref com_util_hashtable_dispose
+ *  を呼んでください。
+ *
  *  永続化の入出力とエンディアン変換は本 API の対象外です。\n
- *  読み戻しは同一環境 (同一ビット幅・同一アラインメント規則) を前提とします。\n
- *  データ領域先頭アドレスは実行時のみ有効な値であり、管理領域を永続化しても
- *  意味を持ちません。@ref com_util_hashtable_attach は、呼び出し側が渡した
- *  データ領域アドレスで必ず上書きします。
+ *  読み戻しは同一環境 (同一ビット幅・同一アラインメント規則) を前提とします。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -85,7 +90,7 @@ extern "C"
     /**
      *  @brief          ハッシュ テーブルの生成設定です。
      *
-     *  暗黙パディングは pad2 として明示し、意味を持ちません。\n
+     *  pad2 は reuse_deleted を int 境界へ揃える明示パディングを兼ねる予約です。\n
      *  呼び出し側はゼロ初期化してから必要なフィールドだけを設定してください。\n
      *  @p timestamp_scope はエントリ配置と管理領域サイズを決めます。\n
      *  ゼロ値は @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE です。
@@ -98,13 +103,18 @@ extern "C"
         size_t key_size;                                    /**< 1 キーのバイト数。0 は不正。 */
         size_t record_size;                                 /**< 1 値のバイト数。0 は不正。 */
         unsigned char lifetime;                             /**< 削除済みの寿命。2 から 254 は有限、255 は無限。 */
-        unsigned char pad2[7];                              /**< lifetime から末尾までの予約。常に 0。 */
+        unsigned char pad2[3];                              /**< reuse_deleted の直前の予約。常に 0。 */
+        int reuse_deleted; /**< 0 以外なら、status=0 が無いとき削除中レコードを再利用する。既定は 0。 */
     } com_util_hashtable_config;
 
     /**
      *  @brief          ハッシュ テーブルの不透明ハンドルです。
      *
-     *  メンバーへ直接アクセスしてはなりません。
+     *  メンバーへ直接アクセスしてはなりません。\n
+     *  @ref com_util_hashtable_create / @ref com_util_hashtable_attach が
+     *  呼び出しのたびに内部管理データとして新規確保し、
+     *  @ref com_util_hashtable_dispose が解放します。管理領域・データ領域とは
+     *  別の割り当てであり、永続化してはなりません。
      */
     typedef struct com_util_hashtable com_util_hashtable;
 
@@ -146,10 +156,12 @@ extern "C"
      *  ともに非 NULL のとき、不足やアラインメント不正なら領域へ触れずに失敗します。\n
      *  @p timestamp_scope は @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE または
      *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD である必要があります。\n
-     *  @p buf_mgmt は struct のアラインメント境界が必要ですが、
+     *  @p buf_mgmt は内部ヘッダーのアラインメント境界が必要ですが、
      *  @p buf_data にアラインメント要件はありません
      *  (メモリマップド ファイルなど管理領域と連続しない領域を渡せます)。\n
-     *  外部領域の所有権は呼び出し側に残ります。
+     *  外部領域の所有権は呼び出し側に残りますが、内部管理データ(返るハンドル自体)は
+     *  本関数が新規確保するため、外部指定の場合でも @ref com_util_hashtable_dispose の
+     *  呼び出しは必要です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -167,14 +179,16 @@ extern "C"
      *  @param[in]      buf_data_size  @p buf_data のバイト数。
      *  @param[out]     ht_out         ハンドルの格納先。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 。
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 。
      *
      *  マジックと版番号、ヘッダー範囲、保存されている timestamp_scope を検証します。\n
      *  チェインの整合性は検証しないため、必要なら直後に
      *  @ref com_util_hashtable_validate を呼んでください。\n
-     *  @p buf_mgmt に残っているデータ領域アドレスは信用せず、常に @p buf_data で
-     *  上書きします (プロセスをまたいだ再接続や再マップに対応するためです)。\n
-     *  成功時は所有権を呼び出し側のままにします。
+     *  管理領域にはデータ領域アドレスを持たないため、@p buf_data は常に呼び出し側が
+     *  渡した値をそのまま使います (プロセスをまたいだ再接続や再マップに対応するためです)。\n
+     *  成功時は管理領域とデータ領域の所有権を呼び出し側のままにしますが、本関数は内部管理データ
+     *  (返るハンドル自体)を新規確保するため、使用後は必ず @ref com_util_hashtable_dispose を
+     *  呼んでください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -259,8 +273,8 @@ extern "C"
      *  書き出してください。\n
      *  読み戻すときは、呼び出し側が用意した 2 領域へ読み込み、
      *  @ref com_util_hashtable_attach で再接続します。\n
-     *  管理領域が持つデータ領域の先頭アドレスと所有フラグは
-     *  @ref com_util_hashtable_attach が上書きするため、永続化しても差し支えありません。
+     *  管理領域とデータ領域は、いずれも永続化して意味のある状態だけで構成しており、
+     *  アドレス情報や一時的なフラグの類を含まないため、そのまま永続化して差し支えありません。
      *
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
@@ -271,26 +285,49 @@ extern "C"
                                                                    const void **data_out);
 
     /**
+     *  @brief          add で削除済みの同一キーが見つかった場合の振る舞いです。
+     */
+    typedef enum com_util_hashtable_add_deleted_policy
+    {
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE = 0, /**< 既定。value で上書きして復活させます。 */
+        COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE = 1     /**< value を無視し、削除前の値のまま復活させます。 */
+    } com_util_hashtable_add_deleted_policy;
+
+    /**
      *  @brief          キーを新規追加します。
-     *  @param[in,out]  ht     対象。NULL を渡してはなりません。
-     *  @param[in]      key    キー。NULL を渡してはなりません。
-     *  @param[in]      value  record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in,out]  ht              対象。NULL を渡してはなりません。
+     *  @param[in]      key             キー。NULL を渡してはなりません。
+     *  @param[in]      value           record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in]      deleted_policy  削除済みの同一キーが見つかった場合の振る舞い。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_LIMIT_EXCEEDED 。
      *
      *  文字列キーは key_size バイト以内に NUL が無いと
      *  @ref COM_UTIL_ERR_OUT_OF_RANGE です。\n
-     *  実装中の同一キーは @ref COM_UTIL_ERR_DUPLICATE_DEFINITION です。\n
-     *  削除済みの同一キーは同じレコードを再利用します。\n
-     *  成功時はテーブルの変更時刻を @ref com_util_get_realtime で刻みます。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときはレコードにも刻みます。
+     *  実装中の同一キーは、@p deleted_policy に関わらず常に
+     *  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION です。\n
+     *  該当キーが存在しない場合の新規追加も、@p deleted_policy の影響を受けません。\n
+     *  削除済みの同一キーが見つかった場合は、同じレコードを再利用したうえで
+     *  @p deleted_policy に従います。\n
+     *  - @ref COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE : @p value で上書きして復活させます。\n
+     *  - @ref COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE : @p value を無視し、削除前の値のまま
+     *    復活させます。\n
+     *  いずれの場合も成功時はテーブルの変更時刻を @ref com_util_get_realtime で刻みます。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときはレコードにも刻みます。\n
+     *  該当キーが存在せず、空き(status=0)のレコードも無い場合、
+     *  @p reuse_deleted が有効(非 0)なら削除中(status>=2)のレコードを再利用します。\n
+     *  status が最大、同点なら変更時刻が最も古い(@ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE
+     *  のときはレコード番号が最も小さい)レコードを選び、そこにあった削除中のキーを
+     *  追い出して新しいキーを追加します。\n
+     *  該当する削除中のレコードも無ければ @ref COM_UTIL_ERR_LIMIT_EXCEEDED です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  同一テーブルへの同時呼び出しは、呼び出し側で直列化してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value,
+                                                            com_util_hashtable_add_deleted_policy deleted_policy);
 
     /**
      *  @brief          レコード番号を指定してキーと値と変更時刻を直接書き込みます。
@@ -608,14 +645,16 @@ extern "C"
                                                                                 com_util_timespec *timestamp_out);
 
     /**
-     *  @brief          実装中・削除済み・空の件数を 1 回の走査で求めます。
+     *  @brief          実装中・削除済み・空の件数を返します。
      *  @param[in]      ht           対象。NULL を渡してはなりません。
      *  @param[out]     in_use_out   実装中件数。不要なら NULL を渡せます。
      *  @param[out]     deleted_out  削除済み件数。不要なら NULL を渡せます。
      *  @param[out]     empty_out    空件数。不要なら NULL を渡せます。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
      *
-     *  3 値の合計は capacity と一致します。
+     *  3 値の合計は capacity と一致します。\n
+     *  永続化領域が保持する走査済みのカウンタをそのまま返すため、capacity に
+     *  依存しない一定時間で完了します。
      *
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
@@ -744,13 +783,17 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_clear(com_util_hashtable *ht);
 
     /**
-     *  @brief          内部確保した領域を解放します。
+     *  @brief          ハンドルを解放します。
      *  @param[in]      ht  対象。NULL のときは何もしません。
      *
-     *  外部バッファーで構築または再接続した場合は何もしません。\n
-     *  外部指定時は、@p buf_mgmt と @p buf_data それぞれの解放
-     *  (メモリマップド ファイルであれば @c com_util_mmap_detach 等) が
-     *  呼び出し側の責務です。
+     *  内部管理データ(ハンドル自体)は、@ref com_util_hashtable_create /
+     *  @ref com_util_hashtable_attach のどちらで得たかに関わらず常に解放します。\n
+     *  管理領域とデータ領域を外部指定した場合や @ref com_util_hashtable_attach で
+     *  再接続した場合でも、ハンドル自体の解放のため本関数を必ず呼び出してください。\n
+     *  @ref com_util_hashtable_create に両方 NULL を渡して内部確保した場合のみ、
+     *  管理領域とデータ領域もあわせて解放します。外部指定時は、@p buf_mgmt と
+     *  @p buf_data それぞれの解放(メモリマップド ファイルであれば
+     *  @c com_util_mmap_detach 等)が呼び出し側の責務です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

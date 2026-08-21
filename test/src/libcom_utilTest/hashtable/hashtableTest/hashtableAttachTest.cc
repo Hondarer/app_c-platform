@@ -111,7 +111,7 @@ TEST_F(hashtableAttachTest, accepts_binary_key_type)
     // Act
     (void)com_util_hashtable_create(&config, buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                     &ht); // [手順] - バイナリ キーのテーブルを構築する。
-    (void)com_util_hashtable_add(ht, key, value.data());
+    (void)com_util_hashtable_add(ht, key, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_attach =
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                   &attached); // [手順] - バイナリ キーのテーブルへ再接続する。
@@ -193,6 +193,15 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &attached);
 
     test_hashtable_set_next_empty(ht, 1);
+    test_hashtable_set_counts(ht, 3, 0); // [手順] - in_use_count を capacity 超へ書き換える。
+    int actual_ret_in_use_count =
+        com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &attached);
+
+    test_hashtable_set_counts(ht, 0, 3); // [手順] - deleted_count を capacity 超へ書き換える。
+    int actual_ret_deleted_count =
+        com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &attached);
+
+    test_hashtable_set_counts(ht, 0, 0);
     bad_config = config;
     bad_config.capacity = (SIZE_MAX / sizeof(uint64_t)) + 1u; // [手順] - レイアウト計算が破綻する capacity を書き込む。
     test_hashtable_set_config(ht, &bad_config);
@@ -221,6 +230,10 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_capacity); // [確認_異常系] - capacity 0 が拒否されること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               actual_ret_next_empty); // [確認_異常系] - capacity を超える next_empty が拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_in_use_count); // [確認_異常系] - capacity を超える in_use_count が拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_deleted_count); // [確認_異常系] - capacity を超える deleted_count が拒否されること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               actual_ret_layout); // [確認_異常系] - レイアウト計算の破綻が拒否されること。
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
