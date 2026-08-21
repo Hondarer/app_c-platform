@@ -33,7 +33,7 @@ short-title: "runtime"
 `process_info` は、現在のプロセスの実行ファイル本体の情報取得と、Linux/Windows での子プロセス起動を担う機能です。管理者権限確認や昇格起動の責務は持たず、コンソール コンポーネントにも依存しません。
 
 - `com_util_process_get_executable_path`: プロセスの実行ファイル絶対パスを取得します。
-- `com_util_process_start` / `com_util_process_wait` / `com_util_process_get_exit_code` / `com_util_process_terminate` / `com_util_process_destroy`: 子プロセスの起動・待機・終了コード取得・強制終了・破棄
+- `com_util_process_start` / `com_util_process_wait` / `com_util_process_get_exit_code` / `com_util_process_terminate` / `com_util_process_dispose`: 子プロセスの起動・待機・終了コード取得・強制終了・破棄
 - `com_util_process_run_sync`: 子プロセスを起動し、終了まで同期的に待機します。
 
 `com_util_module_get_path()` は関数アドレスが属するモジュールを返すため、Windows では DLL を指す場合があります。`com_util_process_get_executable_path()` は常にプロセス本体 (`.exe`) のパスを返します。  

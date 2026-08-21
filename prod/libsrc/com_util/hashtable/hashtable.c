@@ -18,7 +18,7 @@
  *  想定しています。\n
  *  呼び出し側が両方 NULL を渡した場合 (@ref com_util_hashtable_create) は、
  *  内部で 1 回の確保にまとめ、データ領域は管理領域の直後に連続配置します。
- *  この場合に限り、解放も @ref com_util_hashtable_destroy の 1 回で両方が
+ *  この場合に限り、解放も @ref com_util_hashtable_dispose の 1 回で両方が
  *  片付きます。\n
  *  呼び出し側が両方を明示的に渡した場合は、それぞれ独立した領域として扱い、
  *  解放は呼び出し側の責務です。片方だけ NULL の指定は
@@ -172,7 +172,7 @@ struct com_util_hashtable
                                              @ref com_util_hashtable_attach が、
                                              呼び出し側の渡した領域で必ず上書きします。 */
     com_util_hashtable_config config;  /**< 構築時の設定の複製です。 */
-    unsigned char owns_buffer;         /**< 1 なら @ref com_util_hashtable_destroy が解放します。 */
+    unsigned char owns_buffer;         /**< 1 なら @ref com_util_hashtable_dispose が解放します。 */
     unsigned char pad[7];              /**< owns_buffer のあとの明示パディングです。 */
     uint64_t next_empty;               /**< 1 相対の最小空きです。満杯のときは 0 です。 */
     com_util_timespec table_timestamp; /**< 最後にキーまたは値が変わった実時刻です。 */
@@ -486,11 +486,15 @@ static unsigned char *hashtable_data_at(const com_util_hashtable *ht, size_t rec
  *  @param[in]      key  キー。NULL を渡してはなりません。
  *  @return         0 以上 capacity 未満のバケット番号です。
  *
- *  djb2 を使い、最後に capacity で割った余りを返します。
+ *  djb2 を使い、最後に capacity で割った余りを返します。\n
+ *  アキュムレータは幅を uint64_t に固定しています。`unsigned long` は
+ *  Linux/GCC (LP64, 64bit) と Windows/MSVC (LLP64, 32bit) で幅が異なり、
+ *  同じキーでも環境によってバケット番号がずれるためです。\n
+ *  capacity は両対象環境で size_t (64bit) のため、幅を size_t に合わせています。
  */
-static unsigned long hash_key(const com_util_hashtable *ht, const void *key)
+static size_t hash_key(const com_util_hashtable *ht, const void *key)
 {
-    unsigned long hash = 5381;
+    uint64_t hash = 5381;
     const unsigned char *p = (const unsigned char *)key;
 
     if (ht->config.key_type == COM_UTIL_HASHTABLE_KEY_STRING)
@@ -500,7 +504,7 @@ static unsigned long hash_key(const com_util_hashtable *ht, const void *key)
         /* 文字列は先頭の NUL までだけを混ぜ、残り 0 埋めはハッシュに入れません。 */
         while ((c = *p++) != 0)
         {
-            hash = ((hash << 5) + hash) + (unsigned long)c;
+            hash = ((hash << 5) + hash) + (uint64_t)c;
         }
     }
     else
@@ -512,7 +516,7 @@ static unsigned long hash_key(const com_util_hashtable *ht, const void *key)
             hash = ((hash << 5) + hash) + p[i];
         }
     }
-    return hash % ht->config.capacity;
+    return (size_t)hash % ht->config.capacity;
 }
 
 /**
@@ -616,6 +620,42 @@ static void stamp_table(com_util_hashtable *ht)
     com_util_get_realtime(&ht->table_timestamp);
 }
 
+/**
+ *  @brief          設定の意味的な妥当性を検査します。
+ *  @param[in]      config  検査対象。NULL を渡してはなりません。
+ *  @return         妥当なら 0、不正なら -1 です。
+ *
+ *  @ref com_util_hashtable_required_size と @ref com_util_hashtable_create が
+ *  同じ基準で検査するための共通実装です。レイアウト計算に使わないフィールド
+ *  (@p key_type 、 @p lifetime) も含めて検査します。
+ */
+static int hashtable_validate_config(const com_util_hashtable_config *config)
+{
+    if (config->capacity == 0)
+    {
+        return -1;
+    }
+    if ((config->key_type != COM_UTIL_HASHTABLE_KEY_STRING) && (config->key_type != COM_UTIL_HASHTABLE_KEY_BINARY))
+    {
+        return -1;
+    }
+    if ((config->timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE) &&
+        (config->timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD))
+    {
+        return -1;
+    }
+    if ((config->key_size == 0) || (config->record_size == 0))
+    {
+        return -1;
+    }
+    /* REC_DELETED が 2 なので、寿命は削除直後に空へ戻す 2 以上が必要。 */
+    if (config->lifetime < 2)
+    {
+        return -1;
+    }
+    return 0;
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int com_util_hashtable_required_size(const com_util_hashtable_config *config, size_t *mgmt_size_out,
@@ -625,6 +665,10 @@ int com_util_hashtable_required_size(const com_util_hashtable_config *config, si
     size_t data_size;
 
     if ((config == NULL) || ((mgmt_size_out == NULL) && (data_size_out == NULL)))
+    {
+        return COM_UTIL_ERR_INVALID_ARGUMENT;
+    }
+    if (hashtable_validate_config(config) != 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -666,25 +710,7 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
-    if (config->capacity == 0)
-    {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-    }
-    if ((config->key_type != COM_UTIL_HASHTABLE_KEY_STRING) && (config->key_type != COM_UTIL_HASHTABLE_KEY_BINARY))
-    {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-    }
-    if ((config->timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE) &&
-        (config->timestamp_scope != COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD))
-    {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-    }
-    if ((config->key_size == 0) || (config->record_size == 0))
-    {
-        return COM_UTIL_ERR_INVALID_ARGUMENT;
-    }
-    /* REC_DELETED が 2 なので、寿命は削除直後に空へ戻す 2 以上が必要。 */
-    if (config->lifetime < 2)
+    if (hashtable_validate_config(config) != 0)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
@@ -1034,7 +1060,7 @@ int com_util_hashtable_validate(const com_util_hashtable *ht)
 
 int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
     uint64_t rec_no;
@@ -1093,7 +1119,7 @@ int com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *
 int com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, const void *key, int status,
                                      const void *value, const com_util_timespec *timestamp)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
     size_t rec;
@@ -1177,7 +1203,7 @@ int com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, co
 
 int com_util_hashtable_update(com_util_hashtable *ht, const void *key, const void *value)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
 
@@ -1241,7 +1267,7 @@ int com_util_hashtable_update_rec(com_util_hashtable *ht, uint64_t record, const
 
 int com_util_hashtable_find_value_ref(const com_util_hashtable *ht, const void *key, const void **value_out)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
 
@@ -1300,7 +1326,7 @@ int com_util_hashtable_find_value_val(const com_util_hashtable *ht, const void *
 
 int com_util_hashtable_find_recno(const com_util_hashtable *ht, const void *key, uint64_t *record_out)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
 
@@ -1340,7 +1366,7 @@ int com_util_hashtable_find_recno(const com_util_hashtable *ht, const void *key,
 int com_util_hashtable_find_timestamp_ref(const com_util_hashtable *ht, const void *key,
                                           const com_util_timespec **timestamp_out)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
 
@@ -1688,7 +1714,7 @@ static void hashtable_expire_record(com_util_hashtable *ht, size_t rec)
 
 int com_util_hashtable_delete(com_util_hashtable *ht, const void *key)
 {
-    unsigned long idx;
+    size_t idx;
     uint64_t *link;
 
     if ((ht == NULL) || (key == NULL))
@@ -1879,7 +1905,7 @@ int com_util_hashtable_clear(com_util_hashtable *ht)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_hashtable_destroy(com_util_hashtable *ht)
+void com_util_hashtable_dispose(com_util_hashtable *ht)
 {
     if (ht == NULL)
     {

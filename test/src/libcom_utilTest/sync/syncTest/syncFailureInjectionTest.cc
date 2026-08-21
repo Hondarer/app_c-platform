@@ -189,7 +189,7 @@ TEST_F(syncFailureInjectionTest, interprocess_lock_unlock_reports_flock_failure)
               actual_ret); // [確認_異常系] - com_util_interprocess_lock_unlock の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
-    com_util_interprocess_lock_destroy(lock);
+    com_util_interprocess_lock_dispose(lock);
 }
 
 /*
@@ -251,7 +251,7 @@ TEST_F(syncFailureInjectionTest, local_lock_maps_pthread_failure_results)
               unlock_result); // [確認_異常系] - mutex unlock の EINVAL が UNKNOWN へ変換されること。
 
     // Cleanup
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }
 
 // 条件変数の初期化失敗が生成失敗として報告されることの確認

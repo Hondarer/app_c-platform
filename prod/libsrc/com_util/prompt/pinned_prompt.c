@@ -1388,7 +1388,7 @@ void com_util_pinned_prompt_dispose(com_util_pinned_prompt *screen)
     com_util_free(screen->status_bottom_right);
     if (screen->mutex_active)
     {
-        (void)com_util_local_lock_destroy(screen->mutex);
+        (void)com_util_local_lock_dispose(screen->mutex);
     }
     com_util_free(screen);
 }

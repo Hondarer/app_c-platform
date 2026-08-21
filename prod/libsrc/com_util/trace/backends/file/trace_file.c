@@ -549,13 +549,13 @@ static void free_sink(com_util_trace_file_sink *p)
 
     if (p->rotate_lock != NULL)
     {
-        com_util_interprocess_lock_destroy(p->rotate_lock);
+        com_util_interprocess_lock_dispose(p->rotate_lock);
         p->rotate_lock = NULL;
     }
 
     if (p->mutex_initialized != 0)
     {
-        com_util_local_lock_destroy(p->mutex);
+        com_util_local_lock_dispose(p->mutex);
         p->mutex_initialized = 0;
     }
 

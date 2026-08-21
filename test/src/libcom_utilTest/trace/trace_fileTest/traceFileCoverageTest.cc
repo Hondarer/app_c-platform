@@ -90,7 +90,7 @@ class traceFileCoverageTest : public Test
                 });
         ON_CALL(mock_com_util, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_com_util, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_com_util, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_interprocess_lock_dispose(_)).WillByDefault(Return());
     }
 };
 

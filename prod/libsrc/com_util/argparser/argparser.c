@@ -1158,7 +1158,7 @@ static void argparser_default_initialize(void)
     }
     if (com_util_shutdown_register(argparser_default_dispose_on_shutdown, NULL) != COM_UTIL_OK)
     {
-        com_util_local_lock_destroy(s_default_lock);
+        com_util_local_lock_dispose(s_default_lock);
         s_default_lock = NULL;
     }
 }

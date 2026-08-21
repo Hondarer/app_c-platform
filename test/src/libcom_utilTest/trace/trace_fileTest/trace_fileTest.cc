@@ -118,7 +118,7 @@ class trace_fileTest : public Test
                 });
         ON_CALL(mock_com_util, com_util_interprocess_lock_try_lock(_)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_com_util, com_util_interprocess_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_com_util, com_util_interprocess_lock_destroy(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util, com_util_interprocess_lock_dispose(_)).WillByDefault(Return());
     }
 };
 
@@ -610,7 +610,7 @@ TEST_F(trace_fileTest, test_create_shared_opens_lock_file)
 
     // Cleanup
     EXPECT_CALL(mock_com_util, com_util_file_close(_, _)).Times(AtLeast(1));    // dispose 時の close を許容する。
-    EXPECT_CALL(mock_com_util, com_util_interprocess_lock_destroy(_)).Times(1); // dispose 時のプロセス間ロック破棄
+    EXPECT_CALL(mock_com_util, com_util_interprocess_lock_dispose(_)).Times(1); // dispose 時のプロセス間ロック破棄
     com_util_trace_file_sink_dispose(handle);
 }
 

@@ -345,11 +345,11 @@ int com_util_elevated_process_run_if_needed(const char *arguments, int *exit_cod
         if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_OK ||
             com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_OK)
         {
-            com_util_process_destroy(child_process);
+            com_util_process_dispose(child_process);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;
         }
-        com_util_process_destroy(child_process);
+        com_util_process_dispose(child_process);
 
         *exit_code = child_exit_code;
         return COM_UTIL_OK;
@@ -534,12 +534,12 @@ int com_util_elevated_process_run_with_result(const char *arguments, int *exit_c
         if (com_util_process_wait(child_process, COM_UTIL_PROCESS_WAIT_FOREVER) != COM_UTIL_OK ||
             com_util_process_get_exit_code(child_process, &child_exit_code) != COM_UTIL_OK)
         {
-            com_util_process_destroy(child_process);
+            com_util_process_dispose(child_process);
             DeleteFileW(wide_result_path);
             *exit_code = EXIT_FAILURE;
             return COM_UTIL_ERR_UNKNOWN;
         }
-        com_util_process_destroy(child_process);
+        com_util_process_dispose(child_process);
 
         if (result_message != NULL && result_message_size > 0)
         {

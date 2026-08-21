@@ -87,7 +87,7 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     (void)com_util_hashtable_clear(ht);
     fill_value(&value, "空");
     int actual_ret_empty_key = com_util_hashtable_add(ht, "", value.data());
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - create が成功すること。
@@ -141,7 +141,7 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     fill_value(&value, "全ゼロ");
     int actual_ret_zero = com_util_hashtable_add(ht, zero_key, value.data());
     int actual_ret_tail = com_util_hashtable_find_value_ref(ht, key3, &found);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     config.key_type = COM_UTIL_HASHTABLE_KEY_STRING;
     int actual_ret_size = com_util_hashtable_required_size(&config, &mgmt_needed, &data_needed);
@@ -159,8 +159,8 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
         com_util_hashtable_attach(buf_mgmt2.data(), buf_mgmt2.size(), buf_data2.data(), buf_data2.size(), &reattached);
     int actual_ret_validate = com_util_hashtable_validate(reattached);
     int actual_ret_find = com_util_hashtable_find_value_ref(reattached, "fig", &found);
-    com_util_hashtable_destroy(ht);
-    com_util_hashtable_destroy(reattached);
+    com_util_hashtable_dispose(ht);
+    com_util_hashtable_dispose(reattached);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create);          // [確認_正常系] - バイナリ create が成功すること。
@@ -267,9 +267,9 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     int actual_ret_skip_validate = com_util_hashtable_validate(dest_skip);
     int actual_ret_skip_find = com_util_hashtable_find_value_ref(dest_skip, "banana", &found);
 
-    com_util_hashtable_destroy(src);
-    com_util_hashtable_destroy(dest_keep);
-    com_util_hashtable_destroy(dest_skip);
+    com_util_hashtable_dispose(src);
+    com_util_hashtable_dispose(dest_keep);
+    com_util_hashtable_dispose(dest_skip);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_src);       // [確認_正常系] - 移行元の構築が成功すること。
@@ -338,7 +338,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     (void)com_util_hashtable_add(ht, "grape", value.data());
     int actual_ret_flush =
         com_util_mmap_flush(map, nullptr, 0, nullptr); // [手順] - mmap した内容をディスクへ反映する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
     (void)com_util_mmap_detach(map, nullptr);
 
     std::vector<unsigned char> buf_mgmt2 = buf_mgmt;
@@ -352,7 +352,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     std::string found_text =
         (found == nullptr) ? "" : static_cast<const char *>(found); // [手順] - unmap 前に値を複製する。
 
-    com_util_hashtable_destroy(reattached);
+    com_util_hashtable_dispose(reattached);
     (void)com_util_mmap_detach(map2, nullptr);
     remove(path.c_str());
 
@@ -408,7 +408,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     size_t wrote_mgmt = fwrite(mgmt, 1, mgmt_size, out); // [手順] - 管理領域を書き出す。
     size_t wrote_data = fwrite(data, 1, data_size, out); // [手順] - データ領域を書き出す。
     (void)fclose(out);
-    com_util_hashtable_destroy(ht); // [手順] - 元のテーブルを破棄する。
+    com_util_hashtable_dispose(ht); // [手順] - 元のテーブルを破棄する。
 
     /* uint64_t の配列で確保し、管理領域に必要なアラインメントを満たす。 */
     std::vector<uint64_t> load_mgmt((mgmt_size + sizeof(uint64_t) - 1u) / sizeof(uint64_t), 0);
@@ -425,7 +425,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     int actual_ret_find = com_util_hashtable_find_value_ref(reattached, "banana", &found);
     std::string found_text = (found == nullptr) ? "" : static_cast<const char *>(found);
 
-    com_util_hashtable_destroy(reattached);
+    com_util_hashtable_dispose(reattached);
     remove(path.c_str());
 
     // Assert

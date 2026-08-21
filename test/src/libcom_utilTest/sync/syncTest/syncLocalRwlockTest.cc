@@ -29,7 +29,7 @@ TEST(syncLocalRwlockTest, shared_locks_can_coexist)
     // Cleanup
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     (void)com_util_local_rwlock_unlock_shared(rwlock);
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // 排他ロック中の共有 try_lock が BUSY になることの確認
@@ -57,7 +57,7 @@ TEST(syncLocalRwlockTest, exclusive_lock_blocks_shared_try_lock)
 
     // Cleanup
     (void)com_util_local_rwlock_unlock_exclusive(rwlock);
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // 待機中の writer がいる間は新規 reader が取得できないことの確認
@@ -90,5 +90,5 @@ TEST(syncLocalRwlockTest, waiting_writer_prevents_new_reader)
     // Cleanup
     (void)com_util_local_rwlock_unlock_shared(rwlock);
     (void)com_util_local_rwlock_unlock_shared(rwlock);
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }

@@ -305,9 +305,9 @@ int com_util_mmap_detach(com_util_mmap *map, com_util_error *detail_out)
     }
     if (map->rwlock != NULL)
     {
-        com_util_interprocess_rwlock_destroy(map->rwlock);
+        com_util_interprocess_rwlock_dispose(map->rwlock);
     }
-    com_util_local_lock_destroy(map->rwlock_guard);
+    com_util_local_lock_dispose(map->rwlock_guard);
     com_util_free(map->identity);
     unmap_result = munmap(map->address, map->size);
     if (unmap_result != 0)

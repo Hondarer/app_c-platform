@@ -369,7 +369,7 @@ void com_util_syslog_sink_dispose(com_util_syslog_sink *handle)
     {
         close(handle->fd);
     }
-    com_util_local_lock_destroy(handle->reconnect_lock);
+    com_util_local_lock_dispose(handle->reconnect_lock);
     com_util_free(handle->ident);
     com_util_free(handle);
 }
@@ -421,7 +421,7 @@ void com_util_syslog_sink_dispose_on_shutdown(com_util_syslog_sink *handle)
     {
         close(handle->fd);
     }
-    com_util_local_lock_destroy(handle->reconnect_lock);
+    com_util_local_lock_dispose(handle->reconnect_lock);
     com_util_free(handle->ident);
     com_util_free(handle);
 }

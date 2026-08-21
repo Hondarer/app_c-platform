@@ -109,7 +109,7 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     int actual_ret_add = com_util_hashtable_add(ht, "a", value.data()); // [手順] - 先頭空きへ通常追加する。
     int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
     int actual_ret_validate = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create);              // [確認_正常系] - create が成功すること。
@@ -156,7 +156,7 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
     int actual_ret_again = com_util_hashtable_insert_direct(ht, 3, "gone", 1, value.data(),
                                                             &k_insert_timestamp); // [手順] - 同じキーを別レコードへ置く。
     int actual_ret_validate = com_util_hashtable_validate(ht);               // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct); // [確認_正常系] - 寿命内の削除済みを置けること。
@@ -195,13 +195,13 @@ TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
         com_util_hashtable_insert_direct(ht, 1, "a", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
                                          &k_insert_timestamp); // [手順] - lifetime を超える加齢値を置く。
     fill_config(&config, 2, 16, 8, 2, COM_UTIL_HASHTABLE_KEY_STRING);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - lifetime 2 のテーブルを構築する。
     int actual_ret_life2 = com_util_hashtable_insert_direct(
         ht, 1, "a", 2, value.data(), &k_insert_timestamp); // [手順] - lifetime 2 では成立しない status 2 を置く。
     (void)com_util_hashtable_get_status(ht, 1, &status);
     (void)com_util_hashtable_empty_count(ht, &empty);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_eq);    // [確認_正常系] - status == lifetime が SKIPPED であること。
@@ -254,7 +254,7 @@ TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
     (void)com_util_hashtable_delete(ht, "a");
     int actual_ret_deleted_slot = com_util_hashtable_insert_direct(
         ht, 1, "b", 1, value.data(), &k_insert_timestamp); // [手順] - 削除済みスロットへ別キーを置く。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -303,7 +303,7 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
     int actual_ret_skip = com_util_hashtable_insert_direct(
         ht, 1, "other", 5, value.data(), &k_insert_timestamp); // [手順] - 占有スロットへ成立しない寿命値を置く。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "keep", &found); // [手順] - 既存キーを検索する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_skip);           // [確認_正常系] - 占有より先に SKIPPED になること。

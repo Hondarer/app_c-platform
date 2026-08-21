@@ -22,7 +22,7 @@
  *  テーブルは、識別子・ヘッダー・バケット配列・エントリ配列からなる「管理領域」と、
  *  値配列からなる「データ領域」の 2 領域で構成されます。\n
  *  呼び出し側が両方省略すれば内部で 1 回の確保にまとめて構築し、解放も
- *  @ref com_util_hashtable_destroy の 1 回で両方が片付きます。\n
+ *  @ref com_util_hashtable_dispose の 1 回で両方が片付きます。\n
  *  両方を明示的に指定すれば、独立した 2 領域(データ領域はメモリマップド
  *  ファイルなど管理領域と連続しない領域を想定)へ構築・再接続できます。\n
  *  片方だけを指定することはできません。
@@ -116,8 +116,9 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
      *
      *  @p mgmt_size_out と @p data_size_out の両方に NULL を渡してはなりません。\n
+     *  @ref com_util_hashtable_create と同じ基準で @p config を検証します。\n
      *  @p timestamp_scope は管理領域サイズに使います。\n
-     *  @p key_type と @p lifetime はレイアウトに使いません。
+     *  @p key_type と @p lifetime はレイアウトには使いませんが、検証は行います。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -141,7 +142,7 @@ extern "C"
      *  @p buf_mgmt と @p buf_data は、ともに NULL かともに非 NULL である必要があります。\n
      *  片方だけ NULL は @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
      *  ともに NULL のときは、内部で 1 回の確保にまとめて構築し、
-     *  解放も @ref com_util_hashtable_destroy の 1 回で両方が片付きます。\n
+     *  解放も @ref com_util_hashtable_dispose の 1 回で両方が片付きます。\n
      *  ともに非 NULL のとき、不足やアラインメント不正なら領域へ触れずに失敗します。\n
      *  @p timestamp_scope は @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE または
      *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD である必要があります。\n
@@ -755,7 +756,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象を他スレッドが使っていないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_hashtable_destroy(com_util_hashtable *ht);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_hashtable_dispose(com_util_hashtable *ht);
 
 #ifdef __cplusplus
 }

@@ -357,7 +357,7 @@ TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
     // Pre-Assert
     EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
         .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成が呼び出されないこと。
-    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_destroy(_))
+    EXPECT_CALL(mock_com_util_, com_util_interprocess_rwlock_dispose(_))
         .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成と破棄が呼び出されないこと。
 
     // Act

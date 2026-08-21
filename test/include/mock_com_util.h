@@ -118,7 +118,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_delete_rec)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_push_deleted)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_purge_deleted)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_clear)
-MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_dispose)
 
 // compress
 MOCK_COM_UTIL_LINK_IMPL(com_util_compress)
@@ -288,7 +288,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_memory_lock_self)
 MOCK_COM_UTIL_LINK_IMPL(com_util_memory_unlock_range)
 MOCK_COM_UTIL_LINK_IMPL(com_util_module_get_basename)
 MOCK_COM_UTIL_LINK_IMPL(com_util_module_get_path)
-MOCK_COM_UTIL_LINK_IMPL(com_util_process_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_process_dispose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_executable_path)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_pid)
 MOCK_COM_UTIL_LINK_IMPL(com_util_process_get_exit_code)
@@ -312,12 +312,12 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_create)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_lock)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_try_lock)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_unlock)
-MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_lock_dispose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_create)
 MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_wait)
 MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_signal)
 MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_broadcast)
-MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_condvar_dispose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_create)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_lock_shared)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_try_lock_shared)
@@ -325,7 +325,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_lock_exclusive)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_try_lock_exclusive)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_unlock_shared)
 MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_unlock_exclusive)
-MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_local_rwlock_dispose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_thread_create)
 MOCK_COM_UTIL_LINK_IMPL(com_util_thread_join)
 MOCK_COM_UTIL_LINK_IMPL(com_util_thread_detach)
@@ -335,7 +335,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_export_descriptor)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_lock)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_try_lock)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_unlock)
-MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_lock_dispose)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_open)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_import_descriptor)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_export_descriptor)
@@ -344,7 +344,7 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_try_lock_shared)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_lock_exclusive)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_try_lock_exclusive)
 MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_unlock)
-MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_destroy)
+MOCK_COM_UTIL_LINK_IMPL(com_util_interprocess_rwlock_dispose)
 
 // trace
 MOCK_COM_UTIL_LINK_IMPL(com_util_etw_provider_create)
@@ -687,12 +687,12 @@ extern int delegate_real_com_util_local_lock_create(com_util_local_lock **mtx);
 extern int delegate_real_com_util_local_lock_lock(com_util_local_lock *mtx, int timeout_ms);
 extern int delegate_real_com_util_local_lock_try_lock(com_util_local_lock *mtx);
 extern int delegate_real_com_util_local_lock_unlock(com_util_local_lock *mtx);
-extern void delegate_real_com_util_local_lock_destroy(com_util_local_lock *mtx);
+extern void delegate_real_com_util_local_lock_dispose(com_util_local_lock *mtx);
 extern int delegate_real_com_util_condvar_create(com_util_condvar **cv);
 extern int delegate_real_com_util_condvar_wait(com_util_condvar *cv, com_util_local_lock *mtx, int timeout_ms);
 extern int delegate_real_com_util_condvar_signal(com_util_condvar *cv);
 extern int delegate_real_com_util_condvar_broadcast(com_util_condvar *cv);
-extern void delegate_real_com_util_condvar_destroy(com_util_condvar *cv);
+extern void delegate_real_com_util_condvar_dispose(com_util_condvar *cv);
 extern int delegate_real_com_util_local_rwlock_create(com_util_local_rwlock **rwlock);
 extern int delegate_real_com_util_local_rwlock_lock_shared(com_util_local_rwlock *rwlock, int timeout_ms);
 extern int delegate_real_com_util_local_rwlock_try_lock_shared(com_util_local_rwlock *rwlock);
@@ -700,7 +700,7 @@ extern int delegate_real_com_util_local_rwlock_lock_exclusive(com_util_local_rwl
 extern int delegate_real_com_util_local_rwlock_try_lock_exclusive(com_util_local_rwlock *rwlock);
 extern int delegate_real_com_util_local_rwlock_unlock_shared(com_util_local_rwlock *rwlock);
 extern int delegate_real_com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock);
-extern void delegate_real_com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock);
+extern void delegate_real_com_util_local_rwlock_dispose(com_util_local_rwlock *rwlock);
 extern int delegate_real_com_util_thread_create(com_util_thread **thread, com_util_thread_fn func, void *arg);
 extern int delegate_real_com_util_thread_join(com_util_thread *thread, int timeout_ms);
 extern void delegate_real_com_util_thread_detach(com_util_thread *thread);
@@ -712,7 +712,7 @@ extern int delegate_real_com_util_interprocess_lock_export_descriptor(const com_
 extern int delegate_real_com_util_interprocess_lock_lock(com_util_interprocess_lock *lock, int timeout_ms);
 extern int delegate_real_com_util_interprocess_lock_try_lock(com_util_interprocess_lock *lock);
 extern int delegate_real_com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock);
-extern void delegate_real_com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock);
+extern void delegate_real_com_util_interprocess_lock_dispose(com_util_interprocess_lock *lock);
 extern int delegate_real_com_util_interprocess_rwlock_open(const char *identity, com_util_interprocess_rwlock **lock);
 extern int delegate_real_com_util_interprocess_rwlock_import_descriptor(const void *descriptor, size_t descriptor_size,
                                                                         com_util_interprocess_rwlock **lock);
@@ -724,7 +724,7 @@ extern int delegate_real_com_util_interprocess_rwlock_lock_exclusive(com_util_in
                                                                      int timeout_ms);
 extern int delegate_real_com_util_interprocess_rwlock_try_lock_exclusive(com_util_interprocess_rwlock *lock);
 extern int delegate_real_com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock);
-extern void delegate_real_com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock);
+extern void delegate_real_com_util_interprocess_rwlock_dispose(com_util_interprocess_rwlock *lock);
 extern void delegate_real_com_util_call_once(com_util_once_flag *flag, com_util_once_fn func);
 extern void delegate_real_com_util_sleep_ms(int ms);
 
@@ -797,7 +797,7 @@ extern int delegate_real_com_util_hashtable_delete_rec(com_util_hashtable *ht, u
 extern int delegate_real_com_util_hashtable_push_deleted(com_util_hashtable *ht);
 extern int delegate_real_com_util_hashtable_purge_deleted(com_util_hashtable *ht);
 extern int delegate_real_com_util_hashtable_clear(com_util_hashtable *ht);
-extern void delegate_real_com_util_hashtable_destroy(com_util_hashtable *ht);
+extern void delegate_real_com_util_hashtable_dispose(com_util_hashtable *ht);
 
 extern void delegate_real_com_util_secure_zero(void *buf, size_t size);
 
@@ -814,7 +814,7 @@ extern int delegate_real_com_util_process_start(const com_util_process_options *
 extern int delegate_real_com_util_process_wait(com_util_process *process, int timeout_ms);
 extern int delegate_real_com_util_process_get_exit_code(com_util_process *process, int *exit_code);
 extern int delegate_real_com_util_process_terminate(com_util_process *process);
-extern void delegate_real_com_util_process_destroy(com_util_process *process);
+extern void delegate_real_com_util_process_dispose(com_util_process *process);
 extern int delegate_real_com_util_process_run_sync(const com_util_process_options *options, int timeout_ms,
                                                    int *exit_code);
 
@@ -1089,7 +1089,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_hashtable_push_deleted, (com_util_hashtable *));
     MOCK_METHOD(int, com_util_hashtable_purge_deleted, (com_util_hashtable *));
     MOCK_METHOD(int, com_util_hashtable_clear, (com_util_hashtable *));
-    MOCK_METHOD(void, com_util_hashtable_destroy, (com_util_hashtable *));
+    MOCK_METHOD(void, com_util_hashtable_dispose, (com_util_hashtable *));
 
     MOCK_METHOD(int, com_util_compress, (uint8_t *, size_t *, const uint8_t *, size_t));
     MOCK_METHOD(int, com_util_decompress, (uint8_t *, size_t *, const uint8_t *, size_t));
@@ -1301,12 +1301,12 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_local_lock_lock, (com_util_local_lock *, int));
     MOCK_METHOD(int, com_util_local_lock_try_lock, (com_util_local_lock *));
     MOCK_METHOD(int, com_util_local_lock_unlock, (com_util_local_lock *));
-    MOCK_METHOD(void, com_util_local_lock_destroy, (com_util_local_lock *));
+    MOCK_METHOD(void, com_util_local_lock_dispose, (com_util_local_lock *));
     MOCK_METHOD(int, com_util_condvar_create, (com_util_condvar **));
     MOCK_METHOD(int, com_util_condvar_wait, (com_util_condvar *, com_util_local_lock *, int));
     MOCK_METHOD(int, com_util_condvar_signal, (com_util_condvar *));
     MOCK_METHOD(int, com_util_condvar_broadcast, (com_util_condvar *));
-    MOCK_METHOD(void, com_util_condvar_destroy, (com_util_condvar *));
+    MOCK_METHOD(void, com_util_condvar_dispose, (com_util_condvar *));
     MOCK_METHOD(int, com_util_local_rwlock_create, (com_util_local_rwlock **));
     MOCK_METHOD(int, com_util_local_rwlock_lock_shared, (com_util_local_rwlock *, int));
     MOCK_METHOD(int, com_util_local_rwlock_try_lock_shared, (com_util_local_rwlock *));
@@ -1314,7 +1314,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_local_rwlock_try_lock_exclusive, (com_util_local_rwlock *));
     MOCK_METHOD(int, com_util_local_rwlock_unlock_shared, (com_util_local_rwlock *));
     MOCK_METHOD(int, com_util_local_rwlock_unlock_exclusive, (com_util_local_rwlock *));
-    MOCK_METHOD(void, com_util_local_rwlock_destroy, (com_util_local_rwlock *));
+    MOCK_METHOD(void, com_util_local_rwlock_dispose, (com_util_local_rwlock *));
     MOCK_METHOD(int, com_util_thread_create, (com_util_thread **, com_util_thread_fn, void *));
     MOCK_METHOD(int, com_util_thread_join, (com_util_thread *, int));
     MOCK_METHOD(void, com_util_thread_detach, (com_util_thread *));
@@ -1326,7 +1326,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_interprocess_lock_lock, (com_util_interprocess_lock *, int));
     MOCK_METHOD(int, com_util_interprocess_lock_try_lock, (com_util_interprocess_lock *));
     MOCK_METHOD(int, com_util_interprocess_lock_unlock, (com_util_interprocess_lock *));
-    MOCK_METHOD(void, com_util_interprocess_lock_destroy, (com_util_interprocess_lock *));
+    MOCK_METHOD(void, com_util_interprocess_lock_dispose, (com_util_interprocess_lock *));
     MOCK_METHOD(int, com_util_interprocess_rwlock_open, (const char *, com_util_interprocess_rwlock **));
     MOCK_METHOD(int, com_util_interprocess_rwlock_import_descriptor,
                 (const void *, size_t, com_util_interprocess_rwlock **));
@@ -1337,7 +1337,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_interprocess_rwlock_lock_exclusive, (com_util_interprocess_rwlock *, int));
     MOCK_METHOD(int, com_util_interprocess_rwlock_try_lock_exclusive, (com_util_interprocess_rwlock *));
     MOCK_METHOD(int, com_util_interprocess_rwlock_unlock, (com_util_interprocess_rwlock *));
-    MOCK_METHOD(void, com_util_interprocess_rwlock_destroy, (com_util_interprocess_rwlock *));
+    MOCK_METHOD(void, com_util_interprocess_rwlock_dispose, (com_util_interprocess_rwlock *));
     MOCK_METHOD(void, com_util_call_once, (com_util_once_flag *, com_util_once_fn));
     MOCK_METHOD(void, com_util_sleep_ms, (int));
 
@@ -1365,7 +1365,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_process_wait, (com_util_process *, int));
     MOCK_METHOD(int, com_util_process_get_exit_code, (com_util_process *, int *));
     MOCK_METHOD(int, com_util_process_terminate, (com_util_process *));
-    MOCK_METHOD(void, com_util_process_destroy, (com_util_process *));
+    MOCK_METHOD(void, com_util_process_dispose, (com_util_process *));
     MOCK_METHOD(int, com_util_process_run_sync, (const com_util_process_options *, int, int *));
 
     // runtime - sym_loader

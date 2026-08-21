@@ -92,7 +92,7 @@ TEST_F(hashtableValidateTest, detects_bucket_link_out_of_range)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 何も追加せずテーブルを構築する。
     test_hashtable_bucket_head(ht)[0] = 5;            // [手順] - バケット先頭リンクへ capacity 超の値を書く。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -121,7 +121,7 @@ TEST_F(hashtableValidateTest, detects_link_cycle)
                                            &k_insert_timestamp); // [手順] - 同一バケットのレコード 2 を使用中にする。
     *test_hashtable_entry_next(ht, 0) = 2; // [手順] - レコード 1 の次リンクをレコード 2 へ向け、2 件の循環にする。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -145,7 +145,7 @@ TEST_F(hashtableValidateTest, detects_duplicate_visit)
     test_hashtable_bucket_head(ht)[0] = 1;               // [手順] - バケット 0 からもレコード 1 を指させる。
     test_hashtable_bucket_head(ht)[1] = 1;               // [手順] - バケット 1 からもレコード 1 を指させる。
     int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -166,7 +166,7 @@ TEST_F(hashtableValidateTest, detects_linked_empty_slot)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 何も追加せずテーブルを構築する。
     test_hashtable_bucket_head(ht)[0] = 1;            // [手順] - 空のレコード 1 をバケット 0 から直接リンクする。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -189,7 +189,7 @@ TEST_F(hashtableValidateTest, detects_key_without_terminator)
     (void)com_util_hashtable_add(ht, "a", value.data());  // [手順] - レコード 1 に文字列キーを格納する。
     std::memset(test_hashtable_entry_key(ht, 0), 'x', 8); // [手順] - 格納キーを NUL 無しで埋め尽くす。
     int actual_ret = com_util_hashtable_validate(ht);     // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -229,7 +229,7 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
     std::memcpy(test_hashtable_entry_key(ht, 0), mismatched_key,
                 std::strlen(mismatched_key) + 1);     // [手順] - バケットは変えず格納キーだけを差し替える。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -252,7 +252,7 @@ TEST_F(hashtableValidateTest, detects_next_link_out_of_range)
     (void)com_util_hashtable_add(ht, "a", value.data()); // [手順] - レコード 1 を使用中にする。
     *test_hashtable_entry_next(ht, 0) = 99;              // [手順] - 次リンクへ capacity を超える値を書き込む。
     int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -273,7 +273,7 @@ TEST_F(hashtableValidateTest, detects_unlinked_in_use_record)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 何も追加せずテーブルを構築する。
     *test_hashtable_entry_status(ht, 0) = 1; // [手順] - どのバケットからもリンクせずレコード 1 を使用中にする。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
@@ -295,7 +295,7 @@ TEST_F(hashtableValidateTest, detects_next_empty_mismatch)
                                     &ht); // [手順] - 何も追加せずテーブルを構築する(next_empty は 1)。
     test_hashtable_set_next_empty(ht, 2); // [手順] - next_empty を実際の最小空きスロットと異なる値へ書き換える。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,

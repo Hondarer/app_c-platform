@@ -148,16 +148,15 @@ TEST_F(hashtableLayoutTest, rejects_data_region_multiplication_overflow)
               actual_ret); // [確認_異常系] - データ領域サイズ計算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
-TEST_F(hashtableLayoutTest, required_size_accepts_zero_capacity)
+TEST_F(hashtableLayoutTest, required_size_rejects_zero_capacity)
 {
     // Arrange
     com_util_hashtable_config config = {};
     size_t mgmt_size = 0;
     size_t data_size = 0;
 
-    fill_config(
-        &config, 0, 8, 8, 5,
-        COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 0 の設定を用意する(required_size は capacity を検査しない)。
+    fill_config(&config, 0, 8, 8, 5,
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 0 の設定を用意する(create と同じ基準で拒否される)。
 
     // Pre-Assert
 
@@ -166,8 +165,8 @@ TEST_F(hashtableLayoutTest, required_size_accepts_zero_capacity)
         com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK,
-              actual_ret); // [確認_正常系] - capacity 0 では乗算があふれず、レイアウト計算自体は成功すること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret); // [確認_異常系] - capacity 0 が create と同じ基準で INVALID_ARGUMENT であること。
 }
 
 TEST_F(hashtableLayoutTest, create_rejects_misaligned_external_buffer)

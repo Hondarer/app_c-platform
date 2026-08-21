@@ -40,7 +40,7 @@ TEST(syncLocalLockTest, try_lock_reports_busy_when_already_locked)
 
     // Cleanup
     (void)com_util_local_lock_unlock(lock);
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }
 
 // 負のタイムアウト指定が INVALID_ARGUMENT になることの確認
@@ -62,5 +62,5 @@ TEST(syncLocalLockTest, negative_timeout_returns_invalid_argument)
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, lock_result); // [確認_異常系] - 負値で INVALID_ARGUMENT を返すこと。
 
     // Cleanup
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }

@@ -48,7 +48,7 @@ TEST_F(hashtableLifetimeInfiniteTest, create_accepts_infinite_lifetime)
     // Act
     int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 寿命無限で構築する。
     int actual_ret_config = com_util_hashtable_get_config_ref(ht, &got);               // [手順] - 設定を読む。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - lifetime 255 で構築できること。
@@ -94,7 +94,7 @@ TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
     (void)com_util_hashtable_deleted_count(ht, &deleted);
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "keep", &found);
     int actual_ret_validate = com_util_hashtable_validate(ht);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_delete);      // [確認_正常系] - delete が成功すること。
@@ -135,7 +135,7 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
     int actual_ret_status = com_util_hashtable_get_status(ht, 1, &status);
     int actual_ret_key = com_util_hashtable_get_key_ref(ht, 1, &key_out);
     int actual_ret_validate = com_util_hashtable_validate(ht);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct);               // [確認_正常系] - 寿命無限先へ status 255 を置けること。
@@ -167,7 +167,7 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_skips_beyond_finite_max)
         com_util_hashtable_insert_direct(ht, 1, "a", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
                                          &k_insert_timestamp); // [手順] - status 255 を lifetime 254 へ置く。
     (void)com_util_hashtable_get_status(ht, 1, &status);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_eq); // [確認_正常系] - lifetime 254 では status 254 が SKIPPED であること。
@@ -208,7 +208,7 @@ TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_stat
     int actual_ret_purge = com_util_hashtable_purge_deleted(ht); // [手順] - 終端を含む削除済みを回収する。
     (void)com_util_hashtable_get_status(ht, 2, &status_after_purge);
     (void)com_util_hashtable_empty_count(ht, &empty);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_add);   // [確認_正常系] - 終端の削除済みキーを add で再利用できること。

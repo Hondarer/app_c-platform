@@ -149,6 +149,22 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 6. **mock の追随**: `mock_com_util` を利用するテストで、シグネチャが変わった API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
 7. **ローカル テストで確認**: `make -C app/<repo> test` で回帰がないことを確認します。
 
+## API 名変更 (2026-08 実施分: 生成・破棄動詞の統一)
+
+[`coding-guideline.md`](coding-guideline.md) の「生成と破棄の動詞対」節に従い、「ハンドルを完全に破棄し二度と使えなくする」という意味を持つ破棄動詞 `*_destroy` を `*_dispose` へ統一しました。  
+シグネチャは変わらないため、コンパイル エラーではなくリンク エラー (未定義シンボル) として検出されます。  
+`*_detach`・`*_close`・`*_stop`・`*_release` は意味が異なるため対象外です (詳細は `coding-guideline.md` を参照)。
+
+| 旧名 | 新名 |
+|---|---|
+| `com_util_hashtable_destroy` | `com_util_hashtable_dispose` |
+| `com_util_process_destroy` | `com_util_process_dispose` |
+| `com_util_local_lock_destroy` | `com_util_local_lock_dispose` |
+| `com_util_condvar_destroy` | `com_util_condvar_dispose` |
+| `com_util_local_rwlock_destroy` | `com_util_local_rwlock_dispose` |
+| `com_util_interprocess_lock_destroy` | `com_util_interprocess_lock_dispose` |
+| `com_util_interprocess_rwlock_destroy` | `com_util_interprocess_rwlock_dispose` |
+
 ## 関連ガイド
 
 OS 由来の詳細値を `int *errno_out` からドメイン付きの `com_util_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。

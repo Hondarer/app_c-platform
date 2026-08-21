@@ -65,7 +65,7 @@ TEST(syncAdditionalFailureTest, local_lock_maps_unknown_trylock_error)
               result); // [確認_異常系] - com_util_local_lock_try_lock の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }
 
 // condvar の待機・通知エラーを共通結果へ変換することの確認
@@ -110,8 +110,8 @@ TEST(syncAdditionalFailureTest, condvar_maps_wait_signal_and_broadcast_errors)
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN, broadcast_result); // [確認_異常系] - condvar broadcast が UNKNOWN になること。
 
     // Cleanup
-    com_util_condvar_destroy(cv);
-    com_util_local_lock_destroy(lock);
+    com_util_condvar_dispose(cv);
+    com_util_local_lock_dispose(lock);
 }
 
 // condvar 属性の時計設定失敗を生成失敗として処理することの確認
@@ -250,7 +250,7 @@ TEST(syncAdditionalFailureTest, rwlock_rejects_unlock_without_ownership)
               exclusive_result); // [確認_異常系] - 未取得の排他ロック解放が INVALID_ARGUMENT になること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の try_lock_exclusive が競合を BUSY へ変換することの確認
@@ -276,7 +276,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_try_lock_exclusive_reports_busy)
 
     // Cleanup
     (void)com_util_local_rwlock_unlock_shared(rwlock);
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の共有待機中エラーが UNKNOWN へ変換されることの確認
@@ -315,7 +315,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_pthread_failure
               result); // [確認_異常系] - 共有待機の pthread エラーが UNKNOWN へ変換されること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の共有待機タイムアウトが TIMEOUT へ変換されることの確認
@@ -353,7 +353,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_shared_wait_reports_timeout)
               result); // [確認_正常系] - 共有待機のタイムアウトが TIMEOUT へ変換されること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の排他待機中エラーが UNKNOWN へ変換されることの確認
@@ -392,7 +392,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_wait_reports_pthread_fail
               result); // [確認_異常系] - 排他待機の pthread エラーが UNKNOWN へ変換されること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の排他待機タイムアウトが TIMEOUT へ変換されることの確認
@@ -430,7 +430,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_exclusive_wait_reports_timeout)
               result); // [確認_正常系] - 排他待機のタイムアウトが TIMEOUT へ変換されること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // local rwlock の共有解放が待機中 writer を通知することの確認
@@ -671,7 +671,7 @@ TEST(syncAdditionalFailureTest, interprocess_lock_maps_busy_and_retries_eintr)
     // Cleanup
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_lock_unlock(lock);
-    com_util_interprocess_lock_destroy(lock);
+    com_util_interprocess_lock_dispose(lock);
 }
 
 // thread ハンドル確保の malloc 失敗を未知エラーへ変換することの確認
@@ -756,7 +756,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_finite_wait_classifies_resul
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - 有限待機の期限到達が TIMEOUT になること。
 
     // Cleanup
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 // interprocess lock の有限待機とブロッキング待機のエラーを分類することの確認
@@ -827,7 +827,7 @@ TEST(syncAdditionalFailureTest, interprocess_lock_finite_and_forever_wait_classi
               forever_error); // [確認_異常系] - ブロッキング flock の未知エラーが UNKNOWN になること。
 
     // Cleanup
-    com_util_interprocess_lock_destroy(lock);
+    com_util_interprocess_lock_dispose(lock);
 }
 
 // local lock の有限待機が成功、未知エラー、タイムアウトを分類することの確認
@@ -871,7 +871,7 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_classifies_results)
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, timeout_result); // [確認_正常系] - trylock の期限到達が TIMEOUT になること。
 
     // Cleanup
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }
 
 // local lock、local rwlock、interprocess rwlock の NULL 引数が拒否されることの確認
@@ -1106,7 +1106,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_retries_eintr)
     // Cleanup
     EXPECT_CALL(mock_sys_file, flock(_, _, _, _, LOCK_UN)).WillOnce(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_rwlock_unlock(lock);
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 // interprocess rwlock の WAIT_FOREVER が未知の flock エラーを返すことの確認
@@ -1141,7 +1141,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_wait_forever_reports_flock_f
               result); // [確認_異常系] - blocking flock の未知エラーが UNKNOWN へ変換されること。
 
     // Cleanup
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 // interprocess rwlock の unlock 失敗が通知され、destroy が再試行することの確認
@@ -1173,7 +1173,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_unlock_reports_flock_failure
               result); // [確認_異常系] - unlock の flock 失敗が UNKNOWN へ変換されること。
 
     // Cleanup
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 // interprocess rwlock の try_lock_exclusive がロックを取得できることの確認
@@ -1198,7 +1198,7 @@ TEST(syncAdditionalFailureTest, interprocess_rwlock_try_lock_exclusive_succeeds)
 
     // Cleanup
     (void)com_util_interprocess_rwlock_unlock(lock);
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 // call_once の待機側が初期化完了まで待つことの確認
@@ -1308,8 +1308,8 @@ TEST(syncAdditionalFailureTest, interprocess_locks_cover_locked_and_finite_retry
         .WillRepeatedly(Return(0)); // unlock 用の flock を成功させる。
     (void)com_util_interprocess_lock_unlock(lock);
     (void)com_util_interprocess_rwlock_unlock(rwlock);
-    com_util_interprocess_lock_destroy(lock);
-    com_util_interprocess_rwlock_destroy(rwlock);
+    com_util_interprocess_lock_dispose(lock);
+    com_util_interprocess_rwlock_dispose(rwlock);
 }
 
 // local synchronization API が非 NULL ハンドルの負値と不足引数を拒否することの確認
@@ -1354,9 +1354,9 @@ TEST(syncAdditionalFailureTest, local_sync_rejects_negative_and_partial_argument
               negative_wait); // [確認_異常系] - com_util_condvar_wait が負の待機時間を拒否すること。
 
     // Cleanup
-    com_util_condvar_destroy(cv);
-    com_util_local_rwlock_destroy(rwlock);
-    com_util_local_lock_destroy(lock);
+    com_util_condvar_dispose(cv);
+    com_util_local_rwlock_dispose(rwlock);
+    com_util_local_lock_dispose(lock);
 }
 
 // local rwlock 初期化が readers と writers の condvar 失敗を分類することの確認
@@ -1421,7 +1421,7 @@ TEST(syncAdditionalFailureTest, local_rwlock_reader_resumes_after_writer_state_c
     EXPECT_EQ(COM_UTIL_OK, unlock_result); // [確認_正常系] - com_util_local_rwlock_unlock_shared が成功すること。
 
     // Cleanup
-    com_util_local_rwlock_destroy(rwlock);
+    com_util_local_rwlock_dispose(rwlock);
 }
 
 // thread API が context 確保失敗と NULL detach を処理することの確認
@@ -1559,9 +1559,9 @@ TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_nu
     int lock_result = com_util_interprocess_lock_unlock(lock); // [手順] - 未取得の interprocess lock を解放する。
     int rwlock_result =
         com_util_interprocess_rwlock_unlock(rwlock); // [手順] - 未取得の interprocess rwlock を解放する。
-    com_util_local_rwlock_destroy(NULL);             // [手順] - NULL local rwlock を破棄する。
-    com_util_interprocess_lock_destroy(NULL);        // [手順] - NULL interprocess lock を破棄する。
-    com_util_interprocess_rwlock_destroy(NULL);      // [手順] - NULL interprocess rwlock を破棄する。
+    com_util_local_rwlock_dispose(NULL);             // [手順] - NULL local rwlock を破棄する。
+    com_util_interprocess_lock_dispose(NULL);        // [手順] - NULL interprocess lock を破棄する。
+    com_util_interprocess_rwlock_dispose(NULL);      // [手順] - NULL interprocess rwlock を破棄する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -1570,8 +1570,8 @@ TEST(syncAdditionalFailureTest, interprocess_locks_reject_unlocked_and_accept_nu
               rwlock_result); // [確認_異常系] - com_util_interprocess_rwlock_unlock が未取得を拒否すること。
 
     // Cleanup
-    com_util_interprocess_lock_destroy(lock);
-    com_util_interprocess_rwlock_destroy(rwlock);
+    com_util_interprocess_lock_dispose(lock);
+    com_util_interprocess_rwlock_dispose(rwlock);
 }
 
 // sleep が EINTR の残時間を使って再試行することの確認
@@ -1634,7 +1634,7 @@ TEST(syncAdditionalFailureTest, local_lock_finite_wait_retries_before_deadline)
 
     // Cleanup
     com_util_local_lock_unlock(lock);
-    com_util_local_lock_destroy(lock);
+    com_util_local_lock_dispose(lock);
 }
 
 // sleep が EINTR 以外の失敗では再試行しないことの確認

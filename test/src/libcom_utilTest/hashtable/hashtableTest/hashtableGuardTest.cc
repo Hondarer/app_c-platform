@@ -75,7 +75,7 @@ TEST_F(hashtableGuardTest, add_rejects_null_arguments)
     int actual_ret_null_ht = com_util_hashtable_add(NULL, "a", value.data()); // [手順] - ht に NULL を渡す。
     int actual_ret_null_key = com_util_hashtable_add(ht, NULL, value.data()); // [手順] - key に NULL を渡す。
     int actual_ret_null_value = com_util_hashtable_add(ht, "a", NULL);        // [手順] - value に NULL を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -115,7 +115,7 @@ TEST_F(hashtableGuardTest, update_rejects_invalid_arguments_and_walks_chain)
         com_util_hashtable_update(ht, "a", value.data());       // [手順] - チェイン先頭ではないキーを更新する。
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - "a" を削除済みにする。
     int actual_ret_deleted = com_util_hashtable_update(ht, "a", value.data()); // [手順] - 削除済みキーを更新する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -151,7 +151,7 @@ TEST_F(hashtableGuardTest, update_rec_rejects_invalid_arguments)
     int actual_ret_rec_hi =
         com_util_hashtable_update_rec(ht, 3, value.data()); // [手順] - capacity 超のレコード番号を渡す。
     int actual_ret_empty = com_util_hashtable_update_rec(ht, 1, value.data()); // [手順] - 空きレコードを更新する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -185,7 +185,7 @@ TEST_F(hashtableGuardTest, find_value_ref_rejects_invalid_arguments)
     int actual_ret_null_out = com_util_hashtable_find_value_ref(ht, "a", NULL); // [手順] - value_out に NULL を渡す。
     int actual_ret_too_long =
         com_util_hashtable_find_value_ref(ht, too_long, &found); // [手順] - 長すぎるキーで検索する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -218,7 +218,7 @@ TEST_F(hashtableGuardTest, find_value_val_rejects_invalid_arguments_and_succeeds
     int actual_ret_not_found = com_util_hashtable_find_value_val(
         ht, "missing", copied.data()); // [手順] - 存在しないキーで検索する(内部エラーの伝播)。
     int actual_ret_ok = com_util_hashtable_find_value_val(ht, "a", copied.data()); // [手順] - 妥当な引数で検索する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -258,7 +258,7 @@ TEST_F(hashtableGuardTest, find_recno_rejects_invalid_arguments_and_walks_chain)
     int actual_ret_walk = com_util_hashtable_find_recno(ht, "a", &rec); // [手順] - チェイン先頭ではないキーを検索する。
     (void)com_util_hashtable_delete(ht, "a");
     int actual_ret_deleted = com_util_hashtable_find_recno(ht, "a", &rec); // [手順] - 削除済みキーを検索する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -293,7 +293,7 @@ TEST_F(hashtableGuardTest, get_key_ref_rejects_invalid_arguments)
     int actual_ret_rec_hi =
         com_util_hashtable_get_key_ref(ht, 3, &key_out); // [手順] - capacity 超のレコード番号を渡す。
     int actual_ret_empty = com_util_hashtable_get_key_ref(ht, 1, &key_out); // [手順] - 空きレコードを読む。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -322,7 +322,7 @@ TEST_F(hashtableGuardTest, get_key_val_rejects_invalid_arguments)
     int actual_ret_null_out = com_util_hashtable_get_key_val(ht, 1, NULL); // [手順] - key_out に NULL を渡す。
     int actual_ret_propagated =
         com_util_hashtable_get_key_val(ht, 0, key.data()); // [手順] - 不正な record で内部エラーを伝播させる。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -350,7 +350,7 @@ TEST_F(hashtableGuardTest, get_value_ref_rejects_invalid_arguments)
     int actual_ret_rec_hi =
         com_util_hashtable_get_value_ref(ht, 3, &value_out); // [手順] - capacity 超のレコード番号を渡す。
     int actual_ret_empty = com_util_hashtable_get_value_ref(ht, 1, &value_out); // [手順] - 空きレコードを読む。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -381,7 +381,7 @@ TEST_F(hashtableGuardTest, get_value_val_rejects_invalid_arguments)
     int actual_ret_null_out = com_util_hashtable_get_value_val(ht, 1, NULL); // [手順] - value_out に NULL を渡す。
     int actual_ret_propagated =
         com_util_hashtable_get_value_val(ht, 0, value.data()); // [手順] - 不正な record で内部エラーを伝播させる。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -407,7 +407,7 @@ TEST_F(hashtableGuardTest, get_status_rejects_invalid_arguments)
     int actual_ret_null_out = com_util_hashtable_get_status(ht, 1, NULL);     // [手順] - status_out に NULL を渡す。
     int actual_ret_rec0 = com_util_hashtable_get_status(ht, 0, &status);      // [手順] - レコード番号 0 を渡す。
     int actual_ret_rec_hi = com_util_hashtable_get_status(ht, 3, &status); // [手順] - capacity 超のレコード番号を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -457,7 +457,7 @@ TEST_F(hashtableGuardTest, count_wrappers_reject_invalid_arguments)
         com_util_hashtable_empty_count(NULL, &count); // [手順] - empty_count: ht に NULL を渡す。
     int actual_ret_empty_null_out =
         com_util_hashtable_empty_count(ht, NULL); // [手順] - empty_count: count に NULL を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_count_null_ht);
@@ -489,7 +489,7 @@ TEST_F(hashtableGuardTest, delete_rejects_invalid_arguments_and_already_deleted)
     (void)com_util_hashtable_add(ht, "a", value.data());
     int actual_ret_first = com_util_hashtable_delete(ht, "a");  // [手順] - 1 回目の削除。
     int actual_ret_second = com_util_hashtable_delete(ht, "a"); // [手順] - 削除済みキーへの 2 回目の削除。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -519,7 +519,7 @@ TEST_F(hashtableGuardTest, delete_rec_rejects_invalid_arguments)
     int actual_ret_rec0 = com_util_hashtable_delete_rec(ht, 0);      // [手順] - レコード番号 0 を渡す。
     int actual_ret_rec_hi = com_util_hashtable_delete_rec(ht, 3);    // [手順] - capacity 超のレコード番号を渡す。
     int actual_ret_empty = com_util_hashtable_delete_rec(ht, 1);     // [手順] - 空きレコードを削除する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,

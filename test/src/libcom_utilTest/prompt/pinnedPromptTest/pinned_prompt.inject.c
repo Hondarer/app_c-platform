@@ -354,7 +354,7 @@ void test_pinned_prompt_destroy_mutex(com_util_pinned_prompt *screen)
 {
     if (screen->mutex_active)
     {
-        (void)com_util_local_lock_destroy(screen->mutex);
+        (void)com_util_local_lock_dispose(screen->mutex);
         screen->mutex_active = 0;
     }
 }

@@ -37,7 +37,7 @@ extern "C"
      *
      *  自前で子プロセスを起動せず外部で得たプロセス ハンドル (例: ShellExecuteExW の
      *  hProcess) を、com_util_process_wait() などの共通 API で扱えるようにします。\n
-     *  返したハンドルの所有権は呼び出し側へ移り、com_util_process_destroy() で解放します。
+     *  返したハンドルの所有権は呼び出し側へ移り、com_util_process_dispose() で解放します。
      *  Windows では destroy 時に CloseHandle() が呼ばれます。\n
      *  本関数はプロセス起動ユーティリティ内部の拡張であり、昇格などの上位コンポーネント
      *  から共通の待機・終了コード取得・破棄を再利用するために用います。

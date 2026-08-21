@@ -43,7 +43,7 @@ TEST_F(hashtableConfigTest, get_config_ref_rejects_null_arguments)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_null_ht = com_util_hashtable_get_config_ref(NULL, &out); // [手順] - ht に NULL を渡す。
     int actual_ret_null_out = com_util_hashtable_get_config_ref(ht, NULL);  // [手順] - config_out に NULL を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -68,7 +68,7 @@ TEST_F(hashtableConfigTest, get_config_val_rejects_null_out_and_propagates_ref_f
     int actual_ret_null_out = com_util_hashtable_get_config_val(ht, NULL);  // [手順] - config_out に NULL を渡す。
     int actual_ret_null_ht = com_util_hashtable_get_config_val(NULL, &out); // [手順] - ht に NULL を渡す。
     int actual_ret_ok = com_util_hashtable_get_config_val(ht, &out);        // [手順] - 妥当な引数で呼び出す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -102,7 +102,7 @@ TEST_F(hashtableConfigTest, buffer_size_rejects_null_arguments)
         com_util_hashtable_buffer_size(ht, NULL, &data_size); // [手順] - 管理側だけ NULL を渡す。
     int actual_ret_ok =
         com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size); // [手順] - 妥当な引数で呼び出す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -135,7 +135,7 @@ TEST_F(hashtableConfigTest, buffer_ref_rejects_null_arguments)
     int actual_ret_only_mgmt =
         com_util_hashtable_buffer_ref(ht, &mgmt, NULL); // [手順] - データ側だけ NULL を渡す。
     int actual_ret_only_data = com_util_hashtable_buffer_ref(ht, NULL, &data); // [手順] - 管理側だけ NULL を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -165,7 +165,7 @@ TEST_F(hashtableConfigTest, buffer_ref_returns_internal_regions_contiguously)
     int actual_ret = com_util_hashtable_buffer_ref(ht, &mgmt, &data); // [手順] - 両領域の先頭を取得する。
     (void)com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
     const unsigned char *mgmt_bytes = static_cast<const unsigned char *>(mgmt);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - buffer_ref が成功すること。
@@ -203,8 +203,8 @@ TEST_F(hashtableConfigTest, buffer_ref_returns_external_regions_as_supplied)
     (void)com_util_hashtable_attach(buf_mgmt.data(), mgmt_size, buf_data.data(), buf_data.size(),
                                     &attached); // [手順] - 同じ領域へ再接続する。
     int actual_ret_attach = com_util_hashtable_buffer_ref(attached, &attached_mgmt, &attached_data);
-    com_util_hashtable_destroy(ht);
-    com_util_hashtable_destroy(attached);
+    com_util_hashtable_dispose(ht);
+    com_util_hashtable_dispose(attached);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - 外部指定でも buffer_ref が成功すること。

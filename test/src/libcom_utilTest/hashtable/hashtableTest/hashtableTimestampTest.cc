@@ -132,7 +132,7 @@ TEST_F(hashtableTimestampTest, add_update_delete_stamp_realtime)
     int actual_ret_table_delete = com_util_hashtable_get_table_timestamp_val(ht, &table_deleted);
     int actual_ret_find_deleted =
         com_util_hashtable_find_timestamp_val(ht, "a", &added); // [手順] - 削除済みキーで検索する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_add);          // [確認_正常系] - add が成功すること。
@@ -184,7 +184,7 @@ TEST_F(hashtableTimestampTest, push_deleted_does_not_stamp)
     int actual_ret_status = 0;
     int status = -1;
     actual_ret_status = com_util_hashtable_get_status(ht, 1, &status);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_push);  // [確認_正常系] - push_deleted が成功すること。
@@ -222,7 +222,7 @@ TEST_F(hashtableTimestampTest, empty_slot_time_is_not_found_and_zeroed)
     (void)com_util_hashtable_insert_direct(ht, 2, "c", 3, value.data(), &insert_timestamp);
     int actual_ret_purge = com_util_hashtable_purge_deleted(ht); // [手順] - 削除済みを空へ戻す。
     int actual_ret_purged = com_util_hashtable_get_timestamp_val(ht, 2, &ts);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND, actual_ret_empty);  // [確認_異常系] - 空の get_time が NOT_FOUND であること。
@@ -265,7 +265,7 @@ TEST_F(hashtableTimestampTest, accessors_reject_invalid_arguments)
     int actual_ret_find_long = com_util_hashtable_find_timestamp_val(ht, too_long, &ts);
     int actual_ret_find_val_null = com_util_hashtable_find_timestamp_val(ht, "a", NULL);
     int actual_ret_find_missing = com_util_hashtable_find_timestamp_val(ht, "b", &ts);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -338,7 +338,7 @@ TEST_F(hashtableTimestampTest, table_timestamp_tracks_content_changes)
     int actual_ret_null_out = com_util_hashtable_get_table_timestamp_ref(ht, NULL);
     int actual_ret_val_null = com_util_hashtable_get_table_timestamp_val(ht, NULL);
     int actual_ret_val_null_ht = com_util_hashtable_get_table_timestamp_val(NULL, &table);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create);      // [確認_正常系] - 構築直後でもテーブル時刻を読めること。
@@ -405,7 +405,7 @@ TEST_F(hashtableTimestampTest, scope_table_record_timestamp_apis_are_unsupported
     int actual_ret_table_ref = com_util_hashtable_get_table_timestamp_ref(ht, &table_ref);
     int actual_ret_table_val = com_util_hashtable_get_table_timestamp_val(ht, &table);
     int actual_ret_config = com_util_hashtable_get_config_val(ht, &read_config);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNSUPPORTED,
@@ -473,7 +473,7 @@ TEST_F(hashtableTimestampTest, scope_table_insert_direct_and_table_timestamp)
     time_t after_direct = table.tv_sec;
     int actual_ret_clear = com_util_hashtable_clear(ht);
     int actual_ret_after_clear = com_util_hashtable_get_table_timestamp_val(ht, &table);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_add);    // [確認_正常系] - add が成功すること。

@@ -53,7 +53,7 @@ TEST_F(hashtableAttachTest, rejects_misaligned_buffer)
     // Act
     int actual_ret = com_util_hashtable_attach(buf_mgmt.data() + 1, mgmt_needed, buf_data.data(), buf_data.size(),
                                                &attached); // [手順] - 1 バイトずれた管理領域へ再接続する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
@@ -81,7 +81,7 @@ TEST_F(hashtableAttachTest, rejects_null_ht_out)
     // Act
     int actual_ret = com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                                NULL); // [手順] - ht_out に NULL を渡す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -116,8 +116,8 @@ TEST_F(hashtableAttachTest, accepts_binary_key_type)
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                   &attached); // [手順] - バイナリ キーのテーブルへ再接続する。
     int actual_ret_find = com_util_hashtable_find_value_ref(attached, key, &found);
-    com_util_hashtable_destroy(ht);
-    com_util_hashtable_destroy(attached);
+    com_util_hashtable_dispose(ht);
+    com_util_hashtable_dispose(attached);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_attach); // [確認_正常系] - バイナリ キー種別の再接続が成功すること。
@@ -208,7 +208,7 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), small_data.data(), small_data.size(),
                                   &attached); // [手順] - データ領域の buf_data_size 不足で再接続する。
 
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_key_type); // [確認_異常系] - 不正な key_type が拒否されること。

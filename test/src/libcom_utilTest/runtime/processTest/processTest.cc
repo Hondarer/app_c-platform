@@ -214,7 +214,7 @@ TEST(processTest, WaitNoWaitReportsTimeoutForRunningProcess)
         exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 #elif defined(PLATFORM_WINDOWS)
 // Windows の待機が子プロセスの終了コードを返すことの確認
@@ -251,7 +251,7 @@ TEST(processTest, WaitReturnsChildExitCode)
     EXPECT_EQ(7, exit_code); // [確認_正常系] - 子プロセスの終了コード 7 が取得できること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // 実行中プロセスへの NO_WAIT 待機が TIMEOUT を報告することの確認
@@ -298,7 +298,7 @@ TEST(processTest, WaitNoWaitReportsTimeoutForAdoptedProcess)
         exit_result); // [確認_正常系] - com_util_process_get_exit_code の戻り値として、終了コードの取得が OK を返すこと。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Windows の process_start が CreateProcessW 成功でハンドルを返すことの確認
@@ -366,7 +366,7 @@ TEST(processTest, StartCreatesProcessWithCreateProcessW)
     EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Windows の process_start が CreateProcessW 失敗を返すことの確認
@@ -535,7 +535,7 @@ TEST(processTest, StartCreatesProcessWithInheritedStdio)
     EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Windows の process_start が DuplicateHandle 失敗を返すことの確認
@@ -648,7 +648,7 @@ TEST(processTest, StartFallsBackToNullDeviceWhenStdHandleInvalid)
     EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Windows の process_start が指定ハンドルを複製して起動することの確認
@@ -732,7 +732,7 @@ TEST(processTest, StartCreatesProcessWithNativeStdioHandle)
     EXPECT_NE(nullptr, process);    // [確認_正常系] - 生成された process が非 NULL であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 #endif /* PLATFORM_ */
 
@@ -1100,8 +1100,8 @@ TEST(processTest, WaitMapsExitStatesAndRetriesEintr)
     EXPECT_EQ(-1, signaled_exit_code); // [確認_正常系] - シグナル終了 process の終了コードが -1 であること。
 
     // Cleanup
-    com_util_process_destroy(normal_process);
-    com_util_process_destroy(signaled_process);
+    com_util_process_dispose(normal_process);
+    com_util_process_dispose(signaled_process);
 }
 
 // waitpid の OS エラーを未知エラーへ変換することの確認
@@ -1128,7 +1128,7 @@ TEST(processTest, WaitReportsWaitpidFailure)
               result); // [確認_異常系] - com_util_process_wait の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // terminate の kill 失敗を未知エラーへ変換することの確認
@@ -1153,7 +1153,7 @@ TEST(processTest, TerminateReportsKillFailure)
               result); // [確認_異常系] - com_util_process_terminate の戻り値が COM_UTIL_ERR_UNKNOWN であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // process API が NULL、負値、終了前の状態を拒否することの確認
@@ -1192,8 +1192,8 @@ TEST(processTest, RejectsInvalidWaitAndExitArguments)
               null_terminate); // [確認_異常系] - NULL process の terminate が INVALID_ARGUMENT であること。
 
     // Cleanup
-    com_util_process_destroy(process);
-    com_util_process_destroy(NULL);
+    com_util_process_dispose(process);
+    com_util_process_dispose(NULL);
 }
 
     #if defined(PLATFORM_LINUX)
@@ -1419,7 +1419,7 @@ TEST(processTest, wait_reports_timeout_at_finite_deadline)
     EXPECT_EQ(COM_UTIL_ERR_TIMEOUT, result); // [確認_正常系] - deadline 到達時の wait が TIMEOUT になること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Linux の有限待機が期限前にスリープしてから終了を検出することの確認
@@ -1464,7 +1464,7 @@ TEST(processTest, wait_sleeps_before_finite_deadline_and_detects_exit)
     EXPECT_EQ(4, exit_code);             // [確認_正常系] - 子プロセスの終了コードが 4 であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Linux の環境変数補助関数が不正エントリとメモリ確保失敗を処理することの確認
@@ -1535,7 +1535,7 @@ TEST(processTest, completed_process_wait_and_terminate_are_idempotent)
               terminate_result); // [確認_正常系] - 終了済みプロセスの terminate が COM_UTIL_OK であること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Linux の adopt_native がプロセス構造体の確保失敗を返すことの確認
@@ -1741,7 +1741,7 @@ TEST(processTest, wait_forever_retries_unexpected_nonblocking_result)
     EXPECT_EQ(COM_UTIL_OK, result); // [確認_正常系] - com_util_process_wait が再試行後に成功すること。
 
     // Cleanup
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
 }
 
 // Linux の同期実行が wait timeout を呼び出し元へ返すことの確認

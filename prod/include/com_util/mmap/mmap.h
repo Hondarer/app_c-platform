@@ -139,7 +139,7 @@ extern "C"
      *  `sync.h` の `com_util_interprocess_rwlock_lock_shared()` /
      *  `com_util_interprocess_rwlock_lock_exclusive()` / `com_util_interprocess_rwlock_unlock()`
      *  をそのまま使用してください。\n
-     *  呼び出し側が `com_util_interprocess_rwlock_destroy()` を呼び出してはなりません
+     *  呼び出し側が `com_util_interprocess_rwlock_dispose()` を呼び出してはなりません
      *  (@ref com_util_mmap_detach() が内部で破棄します)。
      *
      *  @par            スレッド セーフ

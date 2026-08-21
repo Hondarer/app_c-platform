@@ -87,8 +87,8 @@ TEST(syncBoundaryTest, condvar_rejects_invalid_arguments)
     int wait_result = com_util_condvar_wait(NULL, NULL, COM_UTIL_SYNC_NO_WAIT); // [手順] - NULL 引数で待機する。
     int signal_result = com_util_condvar_signal(NULL);                          // [手順] - NULL の condvar を通知する。
     int broadcast_result = com_util_condvar_broadcast(NULL); // [手順] - NULL の condvar を一斉通知する。
-    com_util_condvar_destroy(NULL);                          // [手順] - NULL の condvar を破棄する。
-    com_util_local_lock_destroy(NULL);                       // [手順] - NULL の local lock を破棄する。
+    com_util_condvar_dispose(NULL);                          // [手順] - NULL の condvar を破棄する。
+    com_util_local_lock_dispose(NULL);                       // [手順] - NULL の local lock を破棄する。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -131,8 +131,8 @@ TEST(syncBoundaryTest, condvar_timeout_signal_and_broadcast_are_supported)
     EXPECT_EQ(COM_UTIL_OK, broadcast_result);     // [確認_正常系] - condvar 一斉通知が成功すること。
 
     // Cleanup
-    com_util_condvar_destroy(cv);
-    com_util_local_lock_destroy(lock);
+    com_util_condvar_dispose(cv);
+    com_util_local_lock_dispose(lock);
 }
 
 // WAIT_FOREVER の condvar 待機が通知で戻ることの確認
@@ -178,8 +178,8 @@ TEST(syncBoundaryTest, condvar_wait_forever_returns_after_signal)
     EXPECT_EQ(COM_UTIL_OK, wait_result);   // [確認_正常系] - WAIT_FOREVER の待機が通知で終了すること。
 
     // Cleanup
-    com_util_condvar_destroy(cv);
-    com_util_local_lock_destroy(lock);
+    com_util_condvar_dispose(cv);
+    com_util_local_lock_dispose(lock);
 }
 
 static void set_thread_flag(void *arg)

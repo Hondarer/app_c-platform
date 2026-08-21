@@ -922,14 +922,14 @@ static void trace_handle_release_normal(com_util_tracer *handle)
     com_util_free(handle->effective_name);
     if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
     {
-        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+        (void)com_util_local_rwlock_dispose(handle->config_rwlock);
     }
 #elif defined(PLATFORM_WINDOWS)
     com_util_free(handle->eventlog_instance_name);
     com_util_free(handle->service_name);
     if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
     {
-        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+        (void)com_util_local_rwlock_dispose(handle->config_rwlock);
     }
 #endif /* PLATFORM_ */
 
@@ -974,7 +974,7 @@ static void trace_handle_release_on_shutdown(com_util_tracer *handle)
 
     if (handle->concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
     {
-        (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+        (void)com_util_local_rwlock_dispose(handle->config_rwlock);
     }
 
     handle->lifecycle_state = TRACE_HANDLE_DISPOSED;
@@ -1127,7 +1127,7 @@ com_util_tracer *com_util_tracer_create(const com_util_tracer_concurrency_mode c
 #endif /* PLATFORM_ */
         if (concurrency_mode == COM_UTIL_TRACER_CONCURRENCY_TRACER_MANAGED)
         {
-            (void)com_util_local_rwlock_destroy(handle->config_rwlock);
+            (void)com_util_local_rwlock_dispose(handle->config_rwlock);
         }
         com_util_free(handle);
         return NULL;
@@ -2127,7 +2127,7 @@ void trace_registry_dispose_all_on_shutdown(const com_util_shutdown_event *event
     com_util_free(items);
     if (s_registry_lock != NULL)
     {
-        com_util_local_lock_destroy(s_registry_lock);
+        com_util_local_lock_dispose(s_registry_lock);
         s_registry_lock = NULL;
         s_registry_lock_init_result = COM_UTIL_ERR_UNKNOWN;
     }

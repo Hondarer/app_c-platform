@@ -140,7 +140,7 @@ TEST_F(traceTest, caller_managed_mode_does_not_use_handle_rwlock)
     EXPECT_CALL(mock_com_util, com_util_local_rwlock_lock_exclusive(_, _)).Times(0);
     EXPECT_CALL(mock_com_util, com_util_local_rwlock_unlock_shared(_)).Times(0);
     EXPECT_CALL(mock_com_util, com_util_local_rwlock_unlock_exclusive(_)).Times(0);
-    EXPECT_CALL(mock_com_util, com_util_local_rwlock_destroy(_)).Times(0);
+    EXPECT_CALL(mock_com_util, com_util_local_rwlock_dispose(_)).Times(0);
 
     // Pre-Assert
 

@@ -288,7 +288,7 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 | `WEXITSTATUS(status)` (POSIX) / `GetExitCodeProcess()` (Win32) | `com_util_process_get_exit_code(...)` | - |
 | `kill(SIGKILL)` (POSIX) / `TerminateProcess()` (Win32) | `com_util_process_terminate(...)` | - |
 
-`com_util_process_destroy`/`com_util_process_run_sync` はハンドル破棄、`start` +`wait` +`get_exit_code` の合成 API です。
+`com_util_process_dispose`/`com_util_process_run_sync` はハンドル破棄、`start` +`wait` +`get_exit_code` の合成 API です。
 
 ### 暗号論的乱数
 
@@ -409,7 +409,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 |---|---|
 | 必要バッファー サイズを求める | `com_util_hashtable_required_size` / `com_util_hashtable_buffer_size` |
 | 管理中バッファーの先頭を得る | `com_util_hashtable_buffer_ref` |
-| 構築 / 再接続 / 破棄 | `com_util_hashtable_create` / `com_util_hashtable_attach` / `com_util_hashtable_destroy` |
+| 構築 / 再接続 / 破棄 | `com_util_hashtable_create` / `com_util_hashtable_attach` / `com_util_hashtable_dispose` |
 | 設定を読む | `com_util_hashtable_get_config_ref` / `com_util_hashtable_get_config_val` |
 | 追加 / 更新 / 削除 | `com_util_hashtable_add` / `com_util_hashtable_update` / `com_util_hashtable_update_rec` / `com_util_hashtable_delete` / `com_util_hashtable_delete_rec` |
 | レコード番号を指定して直接書き込む | `com_util_hashtable_insert_direct` |
@@ -428,11 +428,11 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 | 生の構文 | com_util API | 補足 |
 |---|---|---|
-| `pthread_mutex_t` (POSIX) / `CRITICAL_SECTION` (Win32) | `com_util_local_lock_create` / `com_util_local_lock_lock` / `com_util_local_lock_try_lock` / `com_util_local_lock_unlock` / `com_util_local_lock_destroy` | プロセス内ミューテックス。`lock` はタイムアウト付き |
-| `pthread_cond_t` (POSIX) / `CONDITION_VARIABLE` (Win32) | `com_util_condvar_create` / `com_util_condvar_wait` / `com_util_condvar_signal` / `com_util_condvar_broadcast` / `com_util_condvar_destroy` | プロセス内条件変数 |
-| `pthread_rwlock_t` (POSIX) / `SRWLOCK` (Win32) | `com_util_local_rwlock_create` / `com_util_local_rwlock_lock_shared` / `com_util_local_rwlock_lock_exclusive` / `com_util_local_rwlock_try_lock_shared` / `com_util_local_rwlock_try_lock_exclusive` / `com_util_local_rwlock_unlock_shared` / `com_util_local_rwlock_unlock_exclusive` / `com_util_local_rwlock_destroy` | プロセス内読み書きロック |
+| `pthread_mutex_t` (POSIX) / `CRITICAL_SECTION` (Win32) | `com_util_local_lock_create` / `com_util_local_lock_lock` / `com_util_local_lock_try_lock` / `com_util_local_lock_unlock` / `com_util_local_lock_dispose` | プロセス内ミューテックス。`lock` はタイムアウト付き |
+| `pthread_cond_t` (POSIX) / `CONDITION_VARIABLE` (Win32) | `com_util_condvar_create` / `com_util_condvar_wait` / `com_util_condvar_signal` / `com_util_condvar_broadcast` / `com_util_condvar_dispose` | プロセス内条件変数 |
+| `pthread_rwlock_t` (POSIX) / `SRWLOCK` (Win32) | `com_util_local_rwlock_create` / `com_util_local_rwlock_lock_shared` / `com_util_local_rwlock_lock_exclusive` / `com_util_local_rwlock_try_lock_shared` / `com_util_local_rwlock_try_lock_exclusive` / `com_util_local_rwlock_unlock_shared` / `com_util_local_rwlock_unlock_exclusive` / `com_util_local_rwlock_dispose` | プロセス内読み書きロック |
 | `pthread_create` +`pthread_join` +`pthread_detach` (POSIX) / `CreateThread` +`WaitForSingleObject` +`CloseHandle` (Win32) | `com_util_thread_create` / `com_util_thread_join` / `com_util_thread_detach` | スレッド生成・待機・切り離し |
-| 名前付き `flock`/セマフォ (POSIX) / 名前付き `Mutex` (Win32) | `com_util_interprocess_lock_open` / `com_util_interprocess_lock_lock` / `com_util_interprocess_lock_try_lock` / `com_util_interprocess_lock_unlock` / `com_util_interprocess_lock_destroy` | プロセス横断ミューテックス。プロセス間受け渡しには `_export_descriptor` / `_import_descriptor` を使用 |
+| 名前付き `flock`/セマフォ (POSIX) / 名前付き `Mutex` (Win32) | `com_util_interprocess_lock_open` / `com_util_interprocess_lock_lock` / `com_util_interprocess_lock_try_lock` / `com_util_interprocess_lock_unlock` / `com_util_interprocess_lock_dispose` | プロセス横断ミューテックス。プロセス間受け渡しには `_export_descriptor` / `_import_descriptor` を使用 |
 | プロセス横断読み書きロックを取得したい (POSIX/Win32 に単一の生 API なし) | `com_util_interprocess_rwlock_open` / `_lock_shared` / `_lock_exclusive` / `_try_lock_shared` / `_try_lock_exclusive` / `_unlock` / `_destroy` | ロック ファイル バックエンドで実装 |
 | `pthread_once` (POSIX) / `InitOnceExecuteOnce` (Win32) | `com_util_call_once(flag, func)` | - |
 | `sleep`/`usleep`/`nanosleep` (POSIX) / `Sleep` (Win32) | `com_util_sleep_ms(ms)` | Linux はシグナル割り込み時に残り時間を再計算し継続待機します。 |
@@ -547,7 +547,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - メモリ マップド ファイル: `com_util_mmap_get_address`、`com_util_mmap_get_size`、`com_util_mmap_get_rwlock`
 - 正規表現: `com_util_regex_get_group_count`、`com_util_regex_iter_create`、`com_util_regex_iter_next`、`com_util_regex_iter_dispose`
 - モジュール: `com_util_module_get_basename`
-- プロセス間ロック: `com_util_interprocess_lock_export_descriptor`、`com_util_interprocess_lock_import_descriptor`、`com_util_interprocess_rwlock_export_descriptor`、`com_util_interprocess_rwlock_import_descriptor`、`com_util_interprocess_rwlock_lock_shared`、`com_util_interprocess_rwlock_try_lock_shared`、`com_util_interprocess_rwlock_lock_exclusive`、`com_util_interprocess_rwlock_try_lock_exclusive`、`com_util_interprocess_rwlock_unlock`、`com_util_interprocess_rwlock_destroy`
+- プロセス間ロック: `com_util_interprocess_lock_export_descriptor`、`com_util_interprocess_lock_import_descriptor`、`com_util_interprocess_rwlock_export_descriptor`、`com_util_interprocess_rwlock_import_descriptor`、`com_util_interprocess_rwlock_lock_shared`、`com_util_interprocess_rwlock_try_lock_shared`、`com_util_interprocess_rwlock_lock_exclusive`、`com_util_interprocess_rwlock_try_lock_exclusive`、`com_util_interprocess_rwlock_unlock`、`com_util_interprocess_rwlock_dispose`
 - トレース: `com_util_tracer_get_name`、`com_util_tracer_get_identifier`、`com_util_tracer_set_file_name`、`com_util_tracer_get_file_name`、`com_util_tracer_get_file_identifier`、`com_util_tracer_get_os_level`、`com_util_tracer_set_os_level`、`com_util_tracer_get_etw_level`、`com_util_tracer_set_etw_level`、`com_util_tracer_get_file_level`、`com_util_tracer_set_file_level`、`com_util_tracer_get_stderr_level`
 - Windows 文字列変換: `com_util_utf8_to_wpath`、`com_util_wpath_to_utf8`、`com_util_utf8_to_wstr_alloc`、`com_util_wstr_to_utf8_alloc`
 - Windows エラー: `com_util_error_capture_windows_error`、`com_util_error_capture_current_windows_error`、`com_util_error_get_windows_error`

@@ -125,11 +125,11 @@ TEST_F(argparserTest, default_shutdown_callback_keeps_process_lifetime_lock)
     com_util_shutdown_event event = {};
     event.reason = COM_UTIL_SHUTDOWN_REASON_NORMAL_EXIT;
     event.code_kind = COM_UTIL_SHUTDOWN_CODE_KIND_NONE;
-    // [状態] - com_util_local_lock_destroy が呼び出された際に何もしないようにモックを設定する。
-    ON_CALL(mock_com_util_, com_util_local_lock_destroy(_)).WillByDefault([](com_util_local_lock *) {});
+    // [状態] - com_util_local_lock_dispose が呼び出された際に何もしないようにモックを設定する。
+    ON_CALL(mock_com_util_, com_util_local_lock_dispose(_)).WillByDefault([](com_util_local_lock *) {});
 
     // Pre-Assert
-    EXPECT_CALL(mock_com_util_, com_util_local_lock_destroy(_))
+    EXPECT_CALL(mock_com_util_, com_util_local_lock_dispose(_))
         .Times(0); // [Pre-Assert確認_正常系] - default 用の共有ロックが破棄されないこと。
 
     // Act

@@ -73,8 +73,8 @@ TEST_F(hashtableMoreTest, attach_rejects_invalid_buffers)
                                   &attached); // [手順] - 短すぎる buf_data_size を渡す。
     int actual_ret_ok = com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                                   &attached); // [手順] - 正常な複製で再接続する。
-    com_util_hashtable_destroy(ht);
-    com_util_hashtable_destroy(attached);
+    com_util_hashtable_dispose(ht);
+    com_util_hashtable_dispose(attached);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -118,7 +118,7 @@ TEST_F(hashtableMoreTest, delete_rec_and_purge)
     const void *key_out = nullptr;
     int actual_ret_bad_rec = com_util_hashtable_get_key_ref(ht, 0, &key_out); // [手順] - レコード番号 0 を読む。
     int actual_ret_delete_missing = com_util_hashtable_delete(ht, "drop");    // [手順] - 回収後のキーを削除する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_delete); // [確認_正常系] - delete_rec が成功すること。
@@ -153,7 +153,7 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_expires_immediately)
     (void)com_util_hashtable_get_status(ht, 1, &status);
     (void)com_util_hashtable_empty_count(ht, &empty);
     int actual_ret_add = com_util_hashtable_add(ht, "b", value.data()); // [手順] - 別キーを直ちに追加する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_delete); // [確認_正常系] - delete が成功すること。
@@ -182,7 +182,7 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_sets_next_empty_when_table_fu
     (void)com_util_hashtable_empty_count(ht, &empty_before);
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - 満杯の状態で lifetime 2 の削除をする。
     int actual_ret_add = com_util_hashtable_add(ht, "c", value.data()); // [手順] - 空いた直後にすぐ追加する。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(0u, empty_before);               // [確認_正常系] - 削除前は満杯であること。
@@ -214,7 +214,7 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_keeps_earlier_next_empty_hint
         com_util_hashtable_delete(ht, "c"); // [手順] - レコード 3(next_empty より大きい)を lifetime 2 で削除する。
     int actual_ret_add = com_util_hashtable_add(ht, "d", value.data()); // [手順] - 別キーを追加する。
     (void)com_util_hashtable_find_recno(ht, "d", &next_empty_rec);
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_delete); // [確認_正常系] - delete が成功すること。
@@ -268,7 +268,7 @@ TEST_F(hashtableMoreTest, validate_returns_out_of_memory_when_calloc_fails)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     (void)com_util_hashtable_add(ht, "a", value.data());
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - validate を呼び出す。
-    com_util_hashtable_destroy(ht);
+    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_OUT_OF_MEMORY,

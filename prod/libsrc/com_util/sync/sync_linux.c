@@ -403,7 +403,7 @@ int com_util_local_lock_unlock(com_util_local_lock *mtx)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_local_lock_destroy(com_util_local_lock *mtx)
+void com_util_local_lock_dispose(com_util_local_lock *mtx)
 {
     if (mtx != NULL)
     {
@@ -478,7 +478,7 @@ int com_util_condvar_broadcast(com_util_condvar *cv)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_condvar_destroy(com_util_condvar *cv)
+void com_util_condvar_dispose(com_util_condvar *cv)
 {
     if (cv != NULL)
     {
@@ -680,7 +680,7 @@ int com_util_local_rwlock_unlock_exclusive(com_util_local_rwlock *rwlock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock)
+void com_util_local_rwlock_dispose(com_util_local_rwlock *rwlock)
 {
     if (rwlock != NULL)
     {
@@ -870,7 +870,7 @@ int com_util_interprocess_lock_unlock(com_util_interprocess_lock *lock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock)
+void com_util_interprocess_lock_dispose(com_util_interprocess_lock *lock)
 {
     if (lock != NULL)
     {
@@ -982,7 +982,7 @@ int com_util_interprocess_rwlock_unlock(com_util_interprocess_rwlock *lock)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock)
+void com_util_interprocess_rwlock_dispose(com_util_interprocess_rwlock *lock)
 {
     if (lock != NULL)
     {

@@ -233,7 +233,7 @@
     EXPORT_ENTRY(com_util_hashtable_push_deleted, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
     EXPORT_ENTRY(com_util_hashtable_purge_deleted, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
     EXPORT_ENTRY(com_util_hashtable_clear, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
-    EXPORT_ENTRY(com_util_hashtable_destroy, void(COM_UTIL_API *)(com_util_hashtable * ht)) \
+    EXPORT_ENTRY(com_util_hashtable_dispose, void(COM_UTIL_API *)(com_util_hashtable * ht)) \
     /* com_util/clock/clock.h */ \
     EXPORT_ENTRY(com_util_get_monotonic_ms, uint64_t(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_get_monotonic, void(COM_UTIL_API *)(com_util_timespec * ts)) \
@@ -610,7 +610,7 @@
     EXPORT_ENTRY(com_util_process_wait, int(COM_UTIL_API *)(com_util_process * process, int timeout_ms)) \
     EXPORT_ENTRY(com_util_process_get_exit_code, int(COM_UTIL_API *)(com_util_process * process, int *exit_code)) \
     EXPORT_ENTRY(com_util_process_terminate, int(COM_UTIL_API *)(com_util_process * process)) \
-    EXPORT_ENTRY(com_util_process_destroy, void(COM_UTIL_API *)(com_util_process * process)) \
+    EXPORT_ENTRY(com_util_process_dispose, void(COM_UTIL_API *)(com_util_process * process)) \
     EXPORT_ENTRY(com_util_process_run_sync, \
                  int(COM_UTIL_API *)(const com_util_process_options *options, int timeout_ms, int *exit_code)) \
     /* com_util/runtime/shutdown.h */ \
@@ -637,13 +637,13 @@
     EXPORT_ENTRY(com_util_local_lock_lock, int(COM_UTIL_API *)(com_util_local_lock * mtx, int timeout_ms)) \
     EXPORT_ENTRY(com_util_local_lock_try_lock, int(COM_UTIL_API *)(com_util_local_lock * mtx)) \
     EXPORT_ENTRY(com_util_local_lock_unlock, int(COM_UTIL_API *)(com_util_local_lock * mtx)) \
-    EXPORT_ENTRY(com_util_local_lock_destroy, void(COM_UTIL_API *)(com_util_local_lock * mtx)) \
+    EXPORT_ENTRY(com_util_local_lock_dispose, void(COM_UTIL_API *)(com_util_local_lock * mtx)) \
     EXPORT_ENTRY(com_util_condvar_create, int(COM_UTIL_API *)(com_util_condvar * *cv)) \
     EXPORT_ENTRY(com_util_condvar_wait, \
                  int(COM_UTIL_API *)(com_util_condvar * cv, com_util_local_lock * mtx, int timeout_ms)) \
     EXPORT_ENTRY(com_util_condvar_signal, int(COM_UTIL_API *)(com_util_condvar * cv)) \
     EXPORT_ENTRY(com_util_condvar_broadcast, int(COM_UTIL_API *)(com_util_condvar * cv)) \
-    EXPORT_ENTRY(com_util_condvar_destroy, void(COM_UTIL_API *)(com_util_condvar * cv)) \
+    EXPORT_ENTRY(com_util_condvar_dispose, void(COM_UTIL_API *)(com_util_condvar * cv)) \
     EXPORT_ENTRY(com_util_local_rwlock_create, int(COM_UTIL_API *)(com_util_local_rwlock * *rwlock)) \
     EXPORT_ENTRY(com_util_local_rwlock_lock_shared, \
                  int(COM_UTIL_API *)(com_util_local_rwlock * rwlock, int timeout_ms)) \
@@ -653,7 +653,7 @@
     EXPORT_ENTRY(com_util_local_rwlock_try_lock_exclusive, int(COM_UTIL_API *)(com_util_local_rwlock * rwlock)) \
     EXPORT_ENTRY(com_util_local_rwlock_unlock_shared, int(COM_UTIL_API *)(com_util_local_rwlock * rwlock)) \
     EXPORT_ENTRY(com_util_local_rwlock_unlock_exclusive, int(COM_UTIL_API *)(com_util_local_rwlock * rwlock)) \
-    EXPORT_ENTRY(com_util_local_rwlock_destroy, void(COM_UTIL_API *)(com_util_local_rwlock * rwlock)) \
+    EXPORT_ENTRY(com_util_local_rwlock_dispose, void(COM_UTIL_API *)(com_util_local_rwlock * rwlock)) \
     EXPORT_ENTRY(com_util_thread_create, \
                  int(COM_UTIL_API *)(com_util_thread * *thread, com_util_thread_fn func, void *arg)) \
     EXPORT_ENTRY(com_util_thread_join, int(COM_UTIL_API *)(com_util_thread * thread, int timeout_ms)) \
@@ -670,7 +670,7 @@
                  int(COM_UTIL_API *)(com_util_interprocess_lock * lock, int timeout_ms)) \
     EXPORT_ENTRY(com_util_interprocess_lock_try_lock, int(COM_UTIL_API *)(com_util_interprocess_lock * lock)) \
     EXPORT_ENTRY(com_util_interprocess_lock_unlock, int(COM_UTIL_API *)(com_util_interprocess_lock * lock)) \
-    EXPORT_ENTRY(com_util_interprocess_lock_destroy, void(COM_UTIL_API *)(com_util_interprocess_lock * lock)) \
+    EXPORT_ENTRY(com_util_interprocess_lock_dispose, void(COM_UTIL_API *)(com_util_interprocess_lock * lock)) \
     EXPORT_ENTRY(com_util_interprocess_rwlock_open, \
                  int(COM_UTIL_API *)(const char *identity, com_util_interprocess_rwlock **lock)) \
     EXPORT_ENTRY( \
@@ -688,7 +688,7 @@
     EXPORT_ENTRY(com_util_interprocess_rwlock_try_lock_exclusive, \
                  int(COM_UTIL_API *)(com_util_interprocess_rwlock * lock)) \
     EXPORT_ENTRY(com_util_interprocess_rwlock_unlock, int(COM_UTIL_API *)(com_util_interprocess_rwlock * lock)) \
-    EXPORT_ENTRY(com_util_interprocess_rwlock_destroy, void(COM_UTIL_API *)(com_util_interprocess_rwlock * lock)) \
+    EXPORT_ENTRY(com_util_interprocess_rwlock_dispose, void(COM_UTIL_API *)(com_util_interprocess_rwlock * lock)) \
     EXPORT_ENTRY(com_util_call_once, void(COM_UTIL_API *)(com_util_once_flag * flag, com_util_once_fn func)) \
     EXPORT_ENTRY(com_util_sleep_ms, void(COM_UTIL_API *)(int ms)) \
     /* com_util/trace/trace_file.h */ \

@@ -125,7 +125,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p mtx を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_lock_destroy(com_util_local_lock *mtx);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_lock_dispose(com_util_local_lock *mtx);
 
     /**
      *  @brief          条件変数を生成します。
@@ -186,7 +186,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p cv を他スレッドが待機または通知に使用していないことを保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_condvar_destroy(com_util_condvar *cv);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_condvar_dispose(com_util_condvar *cv);
 
     /**
      *  @brief          プロセス内読み書きロックを生成します。
@@ -284,7 +284,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p rwlock を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_rwlock_destroy(com_util_local_rwlock *rwlock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_local_rwlock_dispose(com_util_local_rwlock *rwlock);
 
     /**
      *  @brief          スレッドを生成して起動します。
@@ -416,7 +416,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_lock_destroy(com_util_interprocess_lock *lock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_lock_dispose(com_util_interprocess_lock *lock);
 
     /**
      *  @brief          識別子でプロセス横断読み書きロックを開きます (存在しない場合は生成)。
@@ -537,7 +537,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_destroy(com_util_interprocess_rwlock *lock);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_interprocess_rwlock_dispose(com_util_interprocess_rwlock *lock);
 
     /**
      *  @brief          @p func をプロセス内で 1 回だけ呼び出します。

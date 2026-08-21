@@ -152,7 +152,7 @@ extern "C"
      *  実行中のプロセスは終了しません。\n
      *  実行中プロセスを終了する場合は、先に com_util_process_terminate() を呼び出してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_process_destroy(com_util_process *process);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_process_dispose(com_util_process *process);
 
     /**
      *  @brief          子プロセスを起動し、終了まで同期的に待機します。

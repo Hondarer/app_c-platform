@@ -72,8 +72,8 @@ TEST(syncInterprocessRwlockTest, descriptor_round_trip_reopens_same_lock)
     EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0)); // 復元ハンドルの close を成功させる。
 #endif
     (void)com_util_interprocess_rwlock_unlock(lock);
-    com_util_interprocess_rwlock_destroy(restored);
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(restored);
+    com_util_interprocess_rwlock_dispose(lock);
 #if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
 #endif
@@ -118,7 +118,7 @@ TEST(syncInterprocessRwlockTest, export_reports_required_descriptor_size)
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0)); // rwlock 破棄時の close を成功させる。
 #endif
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(lock);
 #if defined(PLATFORM_WINDOWS)
     TEST_INTERPROCESS_UNLINK(path);
 #endif
@@ -191,8 +191,8 @@ TEST(syncInterprocessRwlockTest, second_handle_observes_exclusive_lock)
     EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd)).WillOnce(Return(0));  // 1 つ目のハンドルの close を成功させる。
     EXPECT_CALL(os.unistd, close(_, _, _, kFakeFd2)).WillOnce(Return(0)); // 2 つ目のハンドルの close を成功させる。
     (void)com_util_interprocess_rwlock_unlock(lock);
-    com_util_interprocess_rwlock_destroy(other);
-    com_util_interprocess_rwlock_destroy(lock);
+    com_util_interprocess_rwlock_dispose(other);
+    com_util_interprocess_rwlock_dispose(lock);
 }
 
 #endif /* PLATFORM_LINUX */

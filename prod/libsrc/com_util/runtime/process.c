@@ -1332,7 +1332,7 @@ int com_util_process_terminate(com_util_process *process)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_process_destroy(com_util_process *process)
+void com_util_process_dispose(com_util_process *process)
 {
     if (process == NULL)
     {
@@ -1396,6 +1396,6 @@ int com_util_process_run_sync(const com_util_process_options *options, const int
     {
         result = com_util_process_get_exit_code(process, exit_code);
     }
-    com_util_process_destroy(process);
+    com_util_process_dispose(process);
     return result;
 }

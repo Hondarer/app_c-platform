@@ -181,7 +181,7 @@ static int worker_ensure_sync(pinned_prompt_cli_worker *worker)
     }
     if (com_util_condvar_create(&worker->condvar) != COM_UTIL_OK)
     {
-        (void)com_util_local_lock_destroy(worker->mutex);
+        (void)com_util_local_lock_dispose(worker->mutex);
         return -1;
     }
     worker->sync_initialized = 1;
@@ -318,8 +318,8 @@ static void worker_dispose(pinned_prompt_cli_worker *worker)
     if (worker->sync_initialized)
     {
         worker_stop(worker, 0);
-        (void)com_util_condvar_destroy(worker->condvar);
-        (void)com_util_local_lock_destroy(worker->mutex);
+        (void)com_util_condvar_dispose(worker->condvar);
+        (void)com_util_local_lock_dispose(worker->mutex);
         worker->sync_initialized = 0;
     }
 }

@@ -119,7 +119,7 @@ class mmapTestFixture : public Test
                 });
         ON_CALL(mock_com_util_, com_util_local_lock_lock(_, _)).WillByDefault(Return(COM_UTIL_OK));
         ON_CALL(mock_com_util_, com_util_local_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
-        ON_CALL(mock_com_util_, com_util_local_lock_destroy(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util_, com_util_local_lock_dispose(_)).WillByDefault(Return());
         ON_CALL(mock_com_util_, com_util_interprocess_rwlock_open(_, _))
             .WillByDefault(
                 [](const char *, com_util_interprocess_rwlock **lock)
@@ -127,7 +127,7 @@ class mmapTestFixture : public Test
                     *lock = kFakeRwlock;
                     return COM_UTIL_OK;
                 });
-        ON_CALL(mock_com_util_, com_util_interprocess_rwlock_destroy(_)).WillByDefault(Return());
+        ON_CALL(mock_com_util_, com_util_interprocess_rwlock_dispose(_)).WillByDefault(Return());
 
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_sys_mman_, mmap(_, _, _, _, _, _, _, _, _)).WillByDefault(Return(mapped_buf_));

@@ -29,7 +29,7 @@ inline void set_trace_sync_mock_defaults(Mock_com_util &mock_com_util)
             });
     ON_CALL(mock_com_util, com_util_local_lock_lock(_, _)).WillByDefault(Return(COM_UTIL_OK));
     ON_CALL(mock_com_util, com_util_local_lock_unlock(_)).WillByDefault(Return(COM_UTIL_OK));
-    ON_CALL(mock_com_util, com_util_local_lock_destroy(_)).WillByDefault(Return());
+    ON_CALL(mock_com_util, com_util_local_lock_dispose(_)).WillByDefault(Return());
     ON_CALL(mock_com_util, com_util_local_rwlock_create(_))
         .WillByDefault(
             [](com_util_local_rwlock **lock)
@@ -41,7 +41,7 @@ inline void set_trace_sync_mock_defaults(Mock_com_util &mock_com_util)
     ON_CALL(mock_com_util, com_util_local_rwlock_lock_exclusive(_, _)).WillByDefault(Return(COM_UTIL_OK));
     ON_CALL(mock_com_util, com_util_local_rwlock_unlock_shared(_)).WillByDefault(Return(COM_UTIL_OK));
     ON_CALL(mock_com_util, com_util_local_rwlock_unlock_exclusive(_)).WillByDefault(Return(COM_UTIL_OK));
-    ON_CALL(mock_com_util, com_util_local_rwlock_destroy(_)).WillByDefault(Return());
+    ON_CALL(mock_com_util, com_util_local_rwlock_dispose(_)).WillByDefault(Return());
 }
 
 #endif /* TRACE_SYNC_MOCK_H */
