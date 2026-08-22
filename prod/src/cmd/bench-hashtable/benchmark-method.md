@@ -1,7 +1,7 @@
 # ベンチマークの測定方法
 
 `bench-hashtable` コマンドが何をどう測っているかと、実行手順をまとめます。  
-測定結果の解釈と設計の背景は [hashtable 可変長ストレージ アロケーターの計算量改善](../../../../docs/proposals/hashtable-storage-allocator.md) を参照してください。
+測定結果の解釈と管理方式は [hashtable 可変長ストレージの管理方式](../../../../docs/hashtable-storage-allocator.md) を参照してください。
 
 ## 測定対象
 
@@ -27,7 +27,7 @@
 |----|------|------|
 | `fill` | 空のテーブルへ `capacity` 件を追加します。 | `capacity` |
 | `update` | 満杯のテーブルの全件を、同じ長さの値へ更新します。 | `capacity` |
-| `churn` | 1 件おきに回収して穴を空けた状態で、同数を追加し直します。 | `capacity` / 2 |
+| `churn` | 1 件おきに回収して空きブロックを作った状態で、同数を追加し直します。 | `capacity` / 2 |
 | `compact` | 1 件おきに回収した状態のストレージを圧縮します。 | `capacity` |
 | `resize` | `capacity` を 2 倍へ広げます。 | `capacity` |
 

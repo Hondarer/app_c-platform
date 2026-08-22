@@ -525,18 +525,18 @@ TEST_F(hashtableVariableStringTest, first_fit_placement_is_stable_across_add_pur
     (void)com_util_hashtable_add(ht, "k4", "dddd",
                                  COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイト値を 4 件詰める。
     (void)com_util_hashtable_delete(ht, "k2");
-    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 2 件目を回収し、途中に穴を作る。
-    int actual_ret_reuse_hole = com_util_hashtable_add(ht, "k5", "ee",
+    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 2 件目を回収し、途中に空きブロックを作る。
+    int actual_ret_reuse_free_block = com_util_hashtable_add(ht, "k5", "ee",
                                                        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
-    long actual_offset_reuse_hole = origin.value_offset(ht, "k5"); // [手順] - 穴に収まる 3 バイト値を追加する。
-    int actual_ret_skip_hole = com_util_hashtable_add(ht, "k6", "ffffff",
+    long actual_offset_reuse_free_block = origin.value_offset(ht, "k5"); // [手順] - 空きブロックに収まる 3 バイト値を追加する。
+    int actual_ret_skip_free_block = com_util_hashtable_add(ht, "k6", "ffffff",
                                                       COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
-    long actual_offset_skip_hole = origin.value_offset(ht, "k6"); // [手順] - 穴に収まらない 7 バイト値を追加する。
+    long actual_offset_skip_free_block = origin.value_offset(ht, "k6"); // [手順] - 空きブロックに収まらない 7 バイト値を追加する。
     (void)com_util_hashtable_add(ht, "k7", "gg", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_shrink = com_util_hashtable_update(ht, "k1", "hh");
     long actual_offset_shrink = origin.value_offset(ht, "k1"); // [手順] - 先頭の値を短い値へ更新する。
     int actual_ret_merge_own = com_util_hashtable_update(ht, "k3", "iiiiii");
-    long actual_offset_merge_own = origin.value_offset(ht, "k3"); // [手順] - 自ブロックと隣接する穴の結合が要る更新を行う。
+    long actual_offset_merge_own = origin.value_offset(ht, "k3"); // [手順] - 自ブロックと隣接する空きブロックの結合が要る更新を行う。
     for (const char *key : {"k1", "k3", "k4", "k5", "k6", "k7"})
     {
         actual_value_offsets.push_back(origin.value_offset(ht, key));
@@ -546,14 +546,14 @@ TEST_F(hashtableVariableStringTest, first_fit_placement_is_stable_across_add_pur
     com_util_hashtable_dispose(ht);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_OK, actual_ret_reuse_hole); // [確認_正常系] - 穴に収まる add が成功すること。
-    EXPECT_EQ(5, actual_offset_reuse_hole); // [確認_正常系] - 穴に収まる add が、回収済みの穴の先頭へ配置されること。
-    EXPECT_EQ(COM_UTIL_OK, actual_ret_skip_hole); // [確認_正常系] - 穴に収まらない add が成功すること。
-    EXPECT_EQ(20, actual_offset_skip_hole); // [確認_正常系] - 穴に収まらない add が、小さすぎる穴を読み飛ばして末尾側へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_reuse_free_block); // [確認_正常系] - 空きブロックに収まる add が成功すること。
+    EXPECT_EQ(5, actual_offset_reuse_free_block); // [確認_正常系] - 空きブロックに収まる add が、回収済みの空きブロックの先頭へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_skip_free_block); // [確認_正常系] - 空きブロックに収まらない add が成功すること。
+    EXPECT_EQ(20, actual_offset_skip_free_block); // [確認_正常系] - 空きブロックに収まらない add が、小さすぎる空きブロックを読み飛ばして末尾側へ配置されること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_shrink); // [確認_正常系] - 短い値への update が成功すること。
     EXPECT_EQ(0, actual_offset_shrink); // [確認_正常系] - 短い値への update が、自ブロックの先頭を維持すること。
-    EXPECT_EQ(COM_UTIL_OK, actual_ret_merge_own); // [確認_正常系] - 自ブロックと隣接穴の結合が要る update が成功すること。
-    EXPECT_EQ(8, actual_offset_merge_own); // [確認_正常系] - 当該 update が、直前の穴と自ブロックを結合した位置へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_merge_own); // [確認_正常系] - 自ブロックと隣接する空きブロックの結合が要る update が成功すること。
+    EXPECT_EQ(8, actual_offset_merge_own); // [確認_正常系] - 当該 update が、直前の空きブロックと自ブロックを結合した位置へ配置されること。
     EXPECT_EQ(std::vector<long>({0, 8, 15, 5, 20, 27}),
               actual_value_offsets); // [確認_正常系] - 一連の操作後の値オフセットが記録どおりであること。
     EXPECT_EQ(std::vector<long>({0, 6, 9, 3, 12, 15}),
@@ -584,7 +584,7 @@ TEST_F(hashtableVariableStringTest, compaction_packs_blocks_in_offset_order_and_
     (void)com_util_hashtable_add(ht, "k6", "ffffff", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_add(ht, "k7", "gg", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_update(ht, "k1", "hh");
-    (void)com_util_hashtable_update(ht, "k3", "iiiiii"); // [手順] - 穴が残る状態を作る。
+    (void)com_util_hashtable_update(ht, "k3", "iiiiii"); // [手順] - 空きブロックが残る状態を作る。
     int actual_ret_compact = com_util_hashtable_compact(ht); // [手順] - 明示的に圧縮する。
     for (const char *key : {"k1", "k5", "k3", "k4", "k6", "k7"})
     {
@@ -606,7 +606,7 @@ TEST_F(hashtableVariableStringTest, compaction_packs_blocks_in_offset_order_and_
     EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - 圧縮と追加の後の validate が成功すること。
 }
 
-TEST_F(hashtableVariableStringTest, exact_fit_consumes_the_last_hole_and_the_next_add_reports_storage_full)
+TEST_F(hashtableVariableStringTest, exact_fit_consumes_the_last_free_block_and_the_next_add_reports_storage_full)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -629,7 +629,7 @@ TEST_F(hashtableVariableStringTest, exact_fit_consumes_the_last_hole_and_the_nex
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_exact_fit); // [確認_正常系] - 残り容量ちょうどの add が成功すること。
-    EXPECT_EQ(8, actual_offset_exact_fit); // [確認_正常系] - 残り容量ちょうどの add が、末尾の穴の先頭へ配置されること。
+    EXPECT_EQ(8, actual_offset_exact_fit); // [確認_正常系] - 残り容量ちょうどの add が、末尾の空きブロックの先頭へ配置されること。
     EXPECT_EQ(COM_UTIL_ERR_STORAGE_FULL, actual_ret_full); // [確認_異常系] - 空きが無くなった後の add が STORAGE_FULL であること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - 満杯状態の validate が成功すること。
 }
@@ -655,7 +655,7 @@ TEST_F(hashtableVariableStringTest, resize_repacks_variable_storage_and_moves_re
     (void)com_util_hashtable_add(ht, "k2", "bbbb", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_add(ht, "k3", "cccc", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_delete(ht, "k2");
-    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 中間の 1 件を回収し、ストレージの途中に穴を作る。
+    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 中間の 1 件を回収し、ストレージの途中に空きブロックを作る。
     {
         storage_origin origin(ht, config);
 
@@ -681,7 +681,7 @@ TEST_F(hashtableVariableStringTest, resize_repacks_variable_storage_and_moves_re
 
     // Assert
     EXPECT_EQ(std::vector<long>({0, 10}),
-              actual_offsets_before); // [確認_正常系] - resize 前は回収済みの穴がそのまま残ること。
+              actual_offsets_before); // [確認_正常系] - resize 前は回収済みの空きブロックがそのまま残ること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_resize); // [確認_正常系] - resize が成功すること。
     EXPECT_EQ(std::vector<long>({0, 5}),
               actual_offsets_after); // [確認_正常系] - resize が残すレコードをレコード番号順に隙間なく詰め直すこと。

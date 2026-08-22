@@ -46,7 +46,7 @@ typedef enum
 {
     BENCH_SCENARIO_FILL = 0,     /**< 空のテーブルへ capacity 件を追加します。 */
     BENCH_SCENARIO_UPDATE,       /**< 満杯のテーブルの全件を同じ長さの値へ更新します。 */
-    BENCH_SCENARIO_CHURN,        /**< 半数を回収して穴を空け、同数を追加し直します。 */
+    BENCH_SCENARIO_CHURN,        /**< 半数を回収して空きブロックを作り、同数を追加し直します。 */
     BENCH_SCENARIO_COMPACT,      /**< 半数を回収した状態のストレージを圧縮します。 */
     BENCH_SCENARIO_RESIZE,       /**< capacity を 2 倍へ広げます。 */
     BENCH_SCENARIO_COUNT         /**< 列挙子の個数です。 */
@@ -182,12 +182,12 @@ static int bench_add_range(com_util_hashtable *ht, size_t from, size_t count, si
 }
 
 /**
- *  @brief          1 件おきに削除し、回収して穴を作ります。
+ *  @brief          1 件おきに削除し、回収して空きブロックを作ります。
  *  @param[in,out]  ht        対象。NULL を渡してはなりません。
  *  @param[in]      capacity  スロット数。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
-static int bench_punch_holes(com_util_hashtable *ht, size_t capacity)
+static int bench_fragment_storage(com_util_hashtable *ht, size_t capacity)
 {
     size_t i;
 
@@ -241,7 +241,7 @@ static int bench_prepare(void *arg)
                 state->failed = 1;
                 return -1;
             }
-            if (bench_punch_holes(state->ht, state->capacity) != 0)
+            if (bench_fragment_storage(state->ht, state->capacity) != 0)
             {
                 state->failed = 1;
                 return -1;

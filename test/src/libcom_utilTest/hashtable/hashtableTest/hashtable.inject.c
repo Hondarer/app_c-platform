@@ -55,17 +55,17 @@ void test_hashtable_set_counts(com_util_hashtable *ht, uint64_t in_use_count, ui
     ht->hdr->deleted_count = deleted_count;
 }
 
-void *test_hashtable_value_holes(const com_util_hashtable *ht)
+void *test_hashtable_value_free_list(const com_util_hashtable *ht)
 {
-    return hashtable_value_holes(ht);
+    return hashtable_value_free_list(ht);
 }
 
-uint64_t test_hashtable_value_hole_count(const com_util_hashtable *ht)
+uint64_t test_hashtable_value_free_count(const com_util_hashtable *ht)
 {
-    return ht->hdr->value_hole_count;
+    return ht->hdr->value_free_count;
 }
 
-void test_hashtable_set_value_hole_count(com_util_hashtable *ht, uint64_t count)
+void test_hashtable_set_value_free_count(com_util_hashtable *ht, uint64_t count)
 {
-    ht->hdr->value_hole_count = count;
+    ht->hdr->value_free_count = count;
 }

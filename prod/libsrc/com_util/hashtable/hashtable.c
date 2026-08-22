@@ -44,7 +44,7 @@
     | version (4B)         |  // COM_UTIL_HASHTABLE_VERSION (4)
     +----------------------+
     | header               |  // config, next_empty, in_use_count, deleted_count, table_timestamp,
-    |                      |  // key_storage_used, value_storage_used, key_hole_count, value_hole_count
+    |                      |  // key_storage_used, value_storage_used, key_free_count, value_free_count
     +----------------------+
     | pad to uint64        |  // sizeof(struct) が未整列のときだけ
     +----------------------+
@@ -54,7 +54,7 @@
     +----------------------+
     | entries[N]           |  // N x entry_stride
     +----------------------+
-    | key hole dir[N+1]    |  // 可変長キー時だけ (N+1) x (offset + length)
+    | key free list[N+1]   |  // 可変長キー時だけ (N+1) x (offset + length)
     +----------------------+
     | key storage          |  // 可変長キー時だけ key_storage_size バイト
     +----------------------+
@@ -63,7 +63,7 @@
     +----------------------+
     | value refs[N]        |  // 可変長値時だけ offset + length
     +----------------------+
-    | value hole dir[N+1]  |  // 可変長値時だけ (N+1) x (offset + length)
+    | value free list[N+1] |  // 可変長値時だけ (N+1) x (offset + length)
     +----------------------+
     | value storage        |  // 可変長値時だけ value_storage_size バイト
     +----------------------+
@@ -91,7 +91,7 @@
  *  @subsection     hashtable_header ヘッダー
  *
  *  版番号の直後から、設定の複製、@p next_empty 、実装中件数、削除済み件数、
- *  可変長ストレージの使用バイト数、穴ディレクトリの要素数、
+ *  可変長ストレージの使用バイト数、空きリストの要素数、
  *  テーブル横断の変更時刻が続きます。\n
  *  いずれも永続化して意味のある状態です。アドレスや一時フラグの類は管理領域に
  *  含みません(それらは内部管理データ側が持ちます)。\n
@@ -143,18 +143,18 @@
  *  @p generation は変更のたびに 1 ずつ増える単調な値です。status が 0 のときは 0 です。\n
  *  文字列キーは NUL までを格納し、残りを 0 埋めします。
  *
- *  @subsection     hashtable_holes 穴ディレクトリ
+ *  @subsection     hashtable_free_list 空きリスト
  *
  *  可変長ストレージ 1 個につき、空き領域を表す descriptor の配列を 1 本持ちます。\n
  *  キー側はキー ストレージの直前、値側は値ストレージの直前に置きます。\n
  *  要素は @c offset と @c length の対で、オフセットの昇順に並べます。\n
- *  隣接する穴は必ず結合し、穴が常に極大であるように保ちます。\n
- *  穴と使用中ブロックは、ストレージ全体を過不足なく分割します。\n
- *  穴は使用中ブロックで区切られるため、要素数の上限は capacity + 1 です。\n
- *  構築直後は要素数 1 で、ストレージ全体が 1 個の穴です。\n
+ *  隣接する空きブロックは必ず結合し、空きブロックが常に極大であるように保ちます。\n
+ *  空きブロックと使用中ブロックは、ストレージ全体を過不足なく分割します。\n
+ *  空きブロックは使用中ブロックで区切られるため、要素数の上限は capacity + 1 です。\n
+ *  構築直後は要素数 1 で、ストレージ全体が 1 個の空きブロックです。\n
  *  確保は先頭からの先着適合で、要素数を H として O(H) です。断片化がなければ
  *  H は 1 のため、実質 O(1) で完了します。\n
- *  要素数は永続化ヘッダーの @c key_hole_count と @c value_hole_count が持ちます。
+ *  要素数は永続化ヘッダーの @c key_free_count と @c value_free_count が持ちます。
  *
  *  @subsection     hashtable_data 値配列 (データ領域)
  *
@@ -215,10 +215,10 @@ struct hashtable_string_ref
 /**
  *  @brief          可変長ストレージの空き領域 1 個を表します。
  *
- *  穴ディレクトリの要素です。オフセットの昇順に隙間なく並べ、隣接する穴は
- *  必ず結合します。使用中ブロックと穴は、ストレージ全体を過不足なく分割します。
+ *  空きリストの要素です。オフセットの昇順に隙間なく並べ、隣接する空きブロックは
+ *  必ず結合します。使用中ブロックと空きブロックは、ストレージ全体を過不足なく分割します。
  */
-struct hashtable_hole
+struct hashtable_free_block
 {
     uint64_t offset; /**< 空き領域の先頭オフセットです。 */
     uint64_t length; /**< 空き領域のバイト数です。0 にはなりません。 */
@@ -243,8 +243,8 @@ struct hashtable_persist_header
     uint64_t deleted_count;            /**< 削除済み(加齢中および終端 255 を含む)の件数です。 */
     uint64_t key_storage_used;         /**< 可変長キー ストレージの使用バイト数です。 */
     uint64_t value_storage_used;       /**< 可変長値ストレージの使用バイト数です。 */
-    uint64_t key_hole_count;           /**< 可変長キー ストレージの穴ディレクトリの要素数です。 */
-    uint64_t value_hole_count;         /**< 可変長値ストレージの穴ディレクトリの要素数です。 */
+    uint64_t key_free_count;           /**< 可変長キー ストレージの空きリストの要素数です。 */
+    uint64_t value_free_count;         /**< 可変長値ストレージの空きリストの要素数です。 */
     com_util_timespec table_timestamp; /**< 最後にキーまたは値が変わった実時刻です。 */
     uint64_t table_generation;         /**< 変更のたびに 1 ずつ増える単調な値です。 */
 };
@@ -442,15 +442,15 @@ static int hashtable_has_record_timestamp(const com_util_hashtable *ht)
 }
 
 /**
- *  @brief          穴ディレクトリのバイト数を求めます。
+ *  @brief          空きリストのバイト数を求めます。
  *  @param[in]      config    設定。NULL を渡してはなりません。
  *  @param[out]     size_out  バイト数の格納先。NULL を渡してはなりません。
  *  @return         成功なら 0、あふれなら -1 です。
  *
- *  穴は使用中ブロックで区切られるため、個数の上限は capacity + 1 です。\n
+ *  空きブロックは使用中ブロックで区切られるため、個数の上限は capacity + 1 です。\n
  *  可変長フィールドのときだけ領域を確保します。
  */
-static int hashtable_hole_region_size(const com_util_hashtable_config *config, size_t *size_out)
+static int hashtable_free_list_region_size(const com_util_hashtable_config *config, size_t *size_out)
 {
     size_t count;
 
@@ -458,7 +458,7 @@ static int hashtable_hole_region_size(const com_util_hashtable_config *config, s
     {
         return -1;
     }
-    if (mul_checked(count, sizeof(struct hashtable_hole), size_out) != 0)
+    if (mul_checked(count, sizeof(struct hashtable_free_block), size_out) != 0)
     {
         return -1;
     }
@@ -476,7 +476,7 @@ static int hashtable_hole_region_size(const com_util_hashtable_config *config, s
  *  管理領域は識別子・ヘッダー・バケット配列・エントリ配列からなり、
  *  値配列(データ領域)は含みません。\n
  *  @p timestamp_scope はエントリ配置に使います。@p lifetime は使いません。\n
- *  @p key_type は、可変長のとき穴ディレクトリを置くために使います。\n
+ *  @p key_type は、可変長のとき空きリストを置くために使います。\n
  *  構築済みテーブルではあふれません。呼び出し側は戻り値を捨てて構いません。
  */
 static int hashtable_mgmt_layout(const com_util_hashtable_config *config, size_t *off_bucket_head, size_t *off_entries,
@@ -520,10 +520,10 @@ static int hashtable_mgmt_layout(const com_util_hashtable_config *config, size_t
     {
         return -1;
     }
-    /* 穴ディレクトリはキー ストレージの直前に置く。キー ストレージは管理領域の末尾のままとする。 */
+    /* 空きリストはキー ストレージの直前に置く。キー ストレージは管理領域の末尾のままとする。 */
     if (field_is_variable(config->key_type) != 0)
     {
-        if (hashtable_hole_region_size(config, &region_size) != 0)
+        if (hashtable_free_list_region_size(config, &region_size) != 0)
         {
             return -1;
         }
@@ -556,7 +556,7 @@ static int hashtable_mgmt_layout(const com_util_hashtable_config *config, size_t
 static int hashtable_data_region_size(const com_util_hashtable_config *config, size_t *data_size_out)
 {
     size_t size;
-    size_t hole_size;
+    size_t free_list_size;
 
     if (field_is_variable(config->value_type) == 0)
     {
@@ -576,12 +576,12 @@ static int hashtable_data_region_size(const com_util_hashtable_config *config, s
     {
         return -1;
     }
-    /* 穴ディレクトリは値ストレージの直前に置く。値ストレージはデータ領域の末尾のままとする。 */
-    if (hashtable_hole_region_size(config, &hole_size) != 0)
+    /* 空きリストは値ストレージの直前に置く。値ストレージはデータ領域の末尾のままとする。 */
+    if (hashtable_free_list_region_size(config, &free_list_size) != 0)
     {
         return -1;
     }
-    if (add_checked(size, hole_size, &size) != 0)
+    if (add_checked(size, free_list_size, &size) != 0)
     {
         return -1;
     }
@@ -752,14 +752,14 @@ static unsigned char *hashtable_data(const com_util_hashtable *ht)
  *  @param[in]      ht  対象。NULL を渡してはなりません。
  *  @return         値ストレージ先頭です。
  *
- *  データ領域は、値 descriptor 配列、穴ディレクトリ、値ストレージの順に並びます。
+ *  データ領域は、値 descriptor 配列、空きリスト、値ストレージの順に並びます。
  */
 static unsigned char *hashtable_value_storage(const com_util_hashtable *ht)
 {
-    size_t hole_size = 0;
+    size_t free_list_size = 0;
 
-    (void)hashtable_hole_region_size(&ht->hdr->config, &hole_size);
-    return hashtable_data(ht) + ht->hdr->config.capacity * sizeof(struct hashtable_string_ref) + hole_size;
+    (void)hashtable_free_list_region_size(&ht->hdr->config, &free_list_size);
+    return hashtable_data(ht) + ht->hdr->config.capacity * sizeof(struct hashtable_string_ref) + free_list_size;
 }
 
 /**
@@ -788,33 +788,33 @@ static struct hashtable_string_ref *hashtable_value_ref_at(const com_util_hashta
 }
 
 /**
- *  @brief          可変長キーの穴ディレクトリ先頭を返します。
+ *  @brief          可変長キーの空きリスト先頭を返します。
  *  @param[in]      ht  対象。NULL を渡してはなりません。
- *  @return         穴ディレクトリ先頭です。
+ *  @return         空きリスト先頭です。
  *
- *  穴ディレクトリはキー ストレージの直前に置きます。
+ *  空きリストはキー ストレージの直前に置きます。
  */
-static struct hashtable_hole *hashtable_key_holes(const com_util_hashtable *ht)
+static struct hashtable_free_block *hashtable_key_free_list(const com_util_hashtable *ht)
 {
-    size_t hole_size = 0;
+    size_t free_list_size = 0;
 
-    (void)hashtable_hole_region_size(&ht->hdr->config, &hole_size);
-    return (struct hashtable_hole *)(void *)(hashtable_key_storage(ht) - hole_size);
+    (void)hashtable_free_list_region_size(&ht->hdr->config, &free_list_size);
+    return (struct hashtable_free_block *)(void *)(hashtable_key_storage(ht) - free_list_size);
 }
 
 /**
- *  @brief          可変長値の穴ディレクトリ先頭を返します。
+ *  @brief          可変長値の空きリスト先頭を返します。
  *  @param[in]      ht  対象。NULL を渡してはなりません。
- *  @return         穴ディレクトリ先頭です。
+ *  @return         空きリスト先頭です。
  *
- *  穴ディレクトリは値ストレージの直前に置きます。
+ *  空きリストは値ストレージの直前に置きます。
  */
-static struct hashtable_hole *hashtable_value_holes(const com_util_hashtable *ht)
+static struct hashtable_free_block *hashtable_value_free_list(const com_util_hashtable *ht)
 {
-    size_t hole_size = 0;
+    size_t free_list_size = 0;
 
-    (void)hashtable_hole_region_size(&ht->hdr->config, &hole_size);
-    return (struct hashtable_hole *)(void *)(hashtable_value_storage(ht) - hole_size);
+    (void)hashtable_free_list_region_size(&ht->hdr->config, &free_list_size);
+    return (struct hashtable_free_block *)(void *)(hashtable_value_storage(ht) - free_list_size);
 }
 
 /**
@@ -922,14 +922,14 @@ typedef struct hashtable_string_ref *(*hashtable_ref_fn)(const com_util_hashtabl
 /**
  *  @brief          可変長ストレージ 1 個分の操作対象をまとめた一時的な束ねです。
  *
- *  キーと値では、ストレージ先頭、穴ディレクトリ先頭、容量だけが異なります。\n
+ *  キーと値では、ストレージ先頭、空きリスト先頭、容量だけが異なります。\n
  *  実行時のみ有効な参照であり、永続化しません。
  */
 struct hashtable_arena
 {
     unsigned char *storage;       /**< ストレージ先頭です。 */
-    struct hashtable_hole *holes; /**< 穴ディレクトリ先頭です。 */
-    uint64_t *count;              /**< 穴の個数への参照です。永続化ヘッダー内を指します。 */
+    struct hashtable_free_block *free_list; /**< 空きリスト先頭です。 */
+    uint64_t *free_count;              /**< 空きブロックの個数への参照です。永続化ヘッダー内を指します。 */
     size_t storage_size;          /**< ストレージのバイト数です。 */
 };
 
@@ -943,8 +943,8 @@ struct hashtable_arena
 static void hashtable_key_arena(const com_util_hashtable *ht, struct hashtable_arena *arena)
 {
     arena->storage = hashtable_key_storage(ht);
-    arena->holes = hashtable_key_holes(ht);
-    arena->count = &ht->hdr->key_hole_count;
+    arena->free_list = hashtable_key_free_list(ht);
+    arena->free_count = &ht->hdr->key_free_count;
     arena->storage_size = ht->hdr->config.key_storage_size;
 }
 
@@ -958,41 +958,41 @@ static void hashtable_key_arena(const com_util_hashtable *ht, struct hashtable_a
 static void hashtable_value_arena(const com_util_hashtable *ht, struct hashtable_arena *arena)
 {
     arena->storage = hashtable_value_storage(ht);
-    arena->holes = hashtable_value_holes(ht);
-    arena->count = &ht->hdr->value_hole_count;
+    arena->free_list = hashtable_value_free_list(ht);
+    arena->free_count = &ht->hdr->value_free_count;
     arena->storage_size = ht->hdr->config.value_storage_size;
 }
 
 /**
- *  @brief          穴ディレクトリを未使用の初期状態へ戻します。
+ *  @brief          空きリストを未使用の初期状態へ戻します。
  *  @param[in,out]  arena  操作対象。NULL を渡してはなりません。
  *
- *  ストレージ全体が 1 個の穴になります。
+ *  ストレージ全体が 1 個の空きブロックになります。
  */
 static void arena_reset(struct hashtable_arena *arena)
 {
-    arena->holes[0].offset = 0;
-    arena->holes[0].length = (uint64_t)arena->storage_size;
-    *arena->count = 1;
+    arena->free_list[0].offset = 0;
+    arena->free_list[0].length = (uint64_t)arena->storage_size;
+    *arena->free_count = 1;
 }
 
 /**
- *  @brief          指定の穴が、置き換え対象ブロックと隣接するかを判定します。
+ *  @brief          指定の空きブロックが、置き換え対象ブロックと隣接するかを判定します。
  *  @param[in]      arena       操作対象。NULL を渡してはなりません。
- *  @param[in]      index       穴の添字。
+ *  @param[in]      index       空きブロックの添字。
  *  @param[in]      own_offset  置き換え対象ブロックの先頭オフセット。
  *  @param[in]      own_length  置き換え対象ブロックのバイト数。0 なら対象なしです。
  *  @return         隣接するなら 1、しないなら 0 です。
  */
-static int arena_hole_adjoins(const struct hashtable_arena *arena, uint64_t index, uint64_t own_offset,
+static int arena_free_block_adjoins(const struct hashtable_arena *arena, uint64_t index, uint64_t own_offset,
                               uint64_t own_length)
 {
     if (own_length == 0)
     {
         return 0;
     }
-    return (((arena->holes[index].offset + arena->holes[index].length) == own_offset) ||
-            (arena->holes[index].offset == (own_offset + own_length)))
+    return (((arena->free_list[index].offset + arena->free_list[index].length) == own_offset) ||
+            (arena->free_list[index].offset == (own_offset + own_length)))
                ? 1
                : 0;
 }
@@ -1006,14 +1006,14 @@ static int arena_hole_adjoins(const struct hashtable_arena *arena, uint64_t inde
  *  @param[out]     offset_out  見つかった先頭オフセットの格納先。
  *  @return         見つかれば 1、見つからなければ 0 です。
  *
- *  穴ディレクトリを変更しません。@p own_length が非 0 のときは、その区間を
- *  前後の隣接する穴と結合したうえで空きとみなします。\n
+ *  空きリストを変更しません。@p own_length が非 0 のときは、その区間を
+ *  前後の隣接する空きブロックと結合したうえで空きとみなします。\n
  *  結合した空きも、オフセットの昇順の位置で評価します。
  */
 static int arena_find_fit(const struct hashtable_arena *arena, uint64_t own_offset, uint64_t own_length, size_t needed,
                           size_t *offset_out)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t merged_offset = own_offset;
     uint64_t merged_length = own_length;
     uint64_t i;
@@ -1023,19 +1023,19 @@ static int arena_find_fit(const struct hashtable_arena *arena, uint64_t own_offs
     {
         for (i = 0; i < count; i++)
         {
-            if (arena_hole_adjoins(arena, i, own_offset, own_length) != 0)
+            if (arena_free_block_adjoins(arena, i, own_offset, own_length) != 0)
             {
-                merged_length += arena->holes[i].length;
-                if (arena->holes[i].offset < merged_offset)
+                merged_length += arena->free_list[i].length;
+                if (arena->free_list[i].offset < merged_offset)
                 {
-                    merged_offset = arena->holes[i].offset;
+                    merged_offset = arena->free_list[i].offset;
                 }
             }
         }
     }
     for (i = 0; i < count; i++)
     {
-        if ((merged_pending != 0) && (merged_offset < arena->holes[i].offset))
+        if ((merged_pending != 0) && (merged_offset < arena->free_list[i].offset))
         {
             if ((uint64_t)needed <= merged_length)
             {
@@ -1044,13 +1044,13 @@ static int arena_find_fit(const struct hashtable_arena *arena, uint64_t own_offs
             }
             merged_pending = 0;
         }
-        if (arena_hole_adjoins(arena, i, own_offset, own_length) != 0)
+        if (arena_free_block_adjoins(arena, i, own_offset, own_length) != 0)
         {
             continue; /* 結合済みのため、単独では評価しない。 */
         }
-        if ((uint64_t)needed <= arena->holes[i].length)
+        if ((uint64_t)needed <= arena->free_list[i].length)
         {
-            *offset_out = (size_t)arena->holes[i].offset;
+            *offset_out = (size_t)arena->free_list[i].offset;
             return 1;
         }
     }
@@ -1063,69 +1063,69 @@ static int arena_find_fit(const struct hashtable_arena *arena, uint64_t own_offs
 }
 
 /**
- *  @brief          指定区間を穴ディレクトリから取り除きます。
+ *  @brief          指定区間を空きリストから取り除きます。
  *  @param[in,out]  arena   操作対象。NULL を渡してはなりません。
  *  @param[in]      offset  取り除く区間の先頭オフセット。
  *  @param[in]      length  取り除く区間のバイト数。0 を渡してはなりません。
  *
- *  区間全体が 1 個の穴に収まっていることが前提です。\n
- *  途中を取り除く場合は穴が 2 個へ分かれますが、同時に使用中ブロックが 1 個増えるため、
+ *  区間全体が 1 個の空きブロックに収まっていることが前提です。\n
+ *  途中を取り除く場合は空きブロックが 2 個へ分かれますが、同時に使用中ブロックが 1 個増えるため、
  *  要素数の上限 capacity + 1 は超えません。
  */
 static void arena_take(struct hashtable_arena *arena, size_t offset, size_t length)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t start = (uint64_t)offset;
     uint64_t end = start + (uint64_t)length;
     uint64_t i;
 
     for (i = 0; i < count; i++)
     {
-        uint64_t hole_end = arena->holes[i].offset + arena->holes[i].length;
+        uint64_t free_end = arena->free_list[i].offset + arena->free_list[i].length;
 
-        if ((arena->holes[i].offset > start) || (end > hole_end))
+        if ((arena->free_list[i].offset > start) || (end > free_end))
         {
             continue;
         }
-        if ((arena->holes[i].offset == start) && (end == hole_end))
+        if ((arena->free_list[i].offset == start) && (end == free_end))
         {
-            memmove(&arena->holes[i], &arena->holes[i + 1u],
-                    (size_t)(count - i - 1u) * sizeof(struct hashtable_hole));
-            *arena->count = count - 1u;
+            memmove(&arena->free_list[i], &arena->free_list[i + 1u],
+                    (size_t)(count - i - 1u) * sizeof(struct hashtable_free_block));
+            *arena->free_count = count - 1u;
         }
-        else if (arena->holes[i].offset == start)
+        else if (arena->free_list[i].offset == start)
         {
-            arena->holes[i].offset = end;
-            arena->holes[i].length = hole_end - end;
+            arena->free_list[i].offset = end;
+            arena->free_list[i].length = free_end - end;
         }
-        else if (end == hole_end)
+        else if (end == free_end)
         {
-            arena->holes[i].length = start - arena->holes[i].offset;
+            arena->free_list[i].length = start - arena->free_list[i].offset;
         }
         else
         {
-            memmove(&arena->holes[i + 2u], &arena->holes[i + 1u],
-                    (size_t)(count - i - 1u) * sizeof(struct hashtable_hole));
-            arena->holes[i].length = start - arena->holes[i].offset;
-            arena->holes[i + 1u].offset = end;
-            arena->holes[i + 1u].length = hole_end - end;
-            *arena->count = count + 1u;
+            memmove(&arena->free_list[i + 2u], &arena->free_list[i + 1u],
+                    (size_t)(count - i - 1u) * sizeof(struct hashtable_free_block));
+            arena->free_list[i].length = start - arena->free_list[i].offset;
+            arena->free_list[i + 1u].offset = end;
+            arena->free_list[i + 1u].length = free_end - end;
+            *arena->free_count = count + 1u;
         }
         return;
     }
 }
 
 /**
- *  @brief          指定区間を穴ディレクトリへ返します。
+ *  @brief          指定区間を空きリストへ返します。
  *  @param[in,out]  arena   操作対象。NULL を渡してはなりません。
  *  @param[in]      offset  返す区間の先頭オフセット。
  *  @param[in]      length  返す区間のバイト数。0 なら何もしません。
  *
- *  前後に隣接する穴があれば結合し、穴が常に極大であるように保ちます。
+ *  前後に隣接する空きブロックがあれば結合し、空きブロックが常に極大であるように保ちます。
  */
 static void arena_give(struct hashtable_arena *arena, size_t offset, size_t length)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t start = (uint64_t)offset;
     uint64_t end = start + (uint64_t)length;
     uint64_t i = 0;
@@ -1136,33 +1136,33 @@ static void arena_give(struct hashtable_arena *arena, size_t offset, size_t leng
     {
         return;
     }
-    while ((i < count) && (arena->holes[i].offset < start))
+    while ((i < count) && (arena->free_list[i].offset < start))
     {
         i++;
     }
-    merge_prev = ((i > 0u) && ((arena->holes[i - 1u].offset + arena->holes[i - 1u].length) == start)) ? 1 : 0;
-    merge_next = ((i < count) && (arena->holes[i].offset == end)) ? 1 : 0;
+    merge_prev = ((i > 0u) && ((arena->free_list[i - 1u].offset + arena->free_list[i - 1u].length) == start)) ? 1 : 0;
+    merge_next = ((i < count) && (arena->free_list[i].offset == end)) ? 1 : 0;
     if ((merge_prev != 0) && (merge_next != 0))
     {
-        arena->holes[i - 1u].length += (uint64_t)length + arena->holes[i].length;
-        memmove(&arena->holes[i], &arena->holes[i + 1u], (size_t)(count - i - 1u) * sizeof(struct hashtable_hole));
-        *arena->count = count - 1u;
+        arena->free_list[i - 1u].length += (uint64_t)length + arena->free_list[i].length;
+        memmove(&arena->free_list[i], &arena->free_list[i + 1u], (size_t)(count - i - 1u) * sizeof(struct hashtable_free_block));
+        *arena->free_count = count - 1u;
     }
     else if (merge_prev != 0)
     {
-        arena->holes[i - 1u].length += (uint64_t)length;
+        arena->free_list[i - 1u].length += (uint64_t)length;
     }
     else if (merge_next != 0)
     {
-        arena->holes[i].offset = start;
-        arena->holes[i].length += (uint64_t)length;
+        arena->free_list[i].offset = start;
+        arena->free_list[i].length += (uint64_t)length;
     }
     else
     {
-        memmove(&arena->holes[i + 1u], &arena->holes[i], (size_t)(count - i) * sizeof(struct hashtable_hole));
-        arena->holes[i].offset = start;
-        arena->holes[i].length = (uint64_t)length;
-        *arena->count = count + 1u;
+        memmove(&arena->free_list[i + 1u], &arena->free_list[i], (size_t)(count - i) * sizeof(struct hashtable_free_block));
+        arena->free_list[i].offset = start;
+        arena->free_list[i].length = (uint64_t)length;
+        *arena->free_count = count + 1u;
     }
 }
 
@@ -1173,14 +1173,14 @@ static void arena_give(struct hashtable_arena *arena, size_t offset, size_t leng
  *  @param[in]      get_ref  descriptor の取得手段。NULL を渡してはなりません。
  *  @param[in]      used     使用中バイト数の合計。
  *
- *  穴を飛ばしながら左詰めするため、移動はオフセットの昇順に起き、上書きは生じません。\n
- *  descriptor の新しいオフセットは、自分より前にある穴のバイト数の累積で決まります。
- *  累積和を穴ディレクトリ上へ一時的に作り、二分探索で引きます。
+ *  空きブロックを飛ばしながら左詰めするため、移動はオフセットの昇順に起き、上書きは生じません。\n
+ *  descriptor の新しいオフセットは、自分より前にある空きブロックのバイト数の累積で決まります。
+ *  累積和を空きリスト上へ一時的に作り、二分探索で引きます。
  */
 static void arena_compact(com_util_hashtable *ht, struct hashtable_arena *arena, hashtable_ref_fn get_ref,
                           uint64_t used)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t shift = 0;
     uint64_t prev_end = 0;
     uint64_t running = 0;
@@ -1189,15 +1189,15 @@ static void arena_compact(com_util_hashtable *ht, struct hashtable_arena *arena,
 
     for (i = 0; i < count; i++)
     {
-        uint64_t run_length = arena->holes[i].offset - prev_end;
+        uint64_t run_length = arena->free_list[i].offset - prev_end;
 
         if ((run_length != 0) && (shift != 0))
         {
             memmove(arena->storage + (size_t)(prev_end - shift), arena->storage + (size_t)prev_end,
                     (size_t)run_length);
         }
-        shift += arena->holes[i].length;
-        prev_end = arena->holes[i].offset + arena->holes[i].length;
+        shift += arena->free_list[i].length;
+        prev_end = arena->free_list[i].offset + arena->free_list[i].length;
     }
     if ((prev_end < (uint64_t)arena->storage_size) && (shift != 0))
     {
@@ -1205,11 +1205,11 @@ static void arena_compact(com_util_hashtable *ht, struct hashtable_arena *arena,
                 (size_t)((uint64_t)arena->storage_size - prev_end));
     }
 
-    /* 穴の長さを累積和へ置き換える。以降、この配列は移動量の索引としてだけ使う。 */
+    /* 空きブロックの長さを累積和へ置き換える。以降、この配列は移動量の索引としてだけ使う。 */
     for (i = 0; i < count; i++)
     {
-        running += arena->holes[i].length;
-        arena->holes[i].length = running;
+        running += arena->free_list[i].length;
+        arena->free_list[i].length = running;
     }
     for (rec = 0; rec < ht->hdr->config.capacity; rec++)
     {
@@ -1225,7 +1225,7 @@ static void arena_compact(com_util_hashtable *ht, struct hashtable_arena *arena,
         {
             uint64_t mid = low + ((high - low) / 2u);
 
-            if (arena->holes[mid].offset < ref->offset)
+            if (arena->free_list[mid].offset < ref->offset)
             {
                 low = mid + 1u;
             }
@@ -1236,20 +1236,20 @@ static void arena_compact(com_util_hashtable *ht, struct hashtable_arena *arena,
         }
         if (low != 0u)
         {
-            ref->offset -= arena->holes[low - 1u].length;
+            ref->offset -= arena->free_list[low - 1u].length;
         }
     }
 
     memset(arena->storage + (size_t)used, 0, arena->storage_size - (size_t)used);
     if ((uint64_t)arena->storage_size > used)
     {
-        arena->holes[0].offset = used;
-        arena->holes[0].length = (uint64_t)arena->storage_size - used;
-        *arena->count = 1;
+        arena->free_list[0].offset = used;
+        arena->free_list[0].length = (uint64_t)arena->storage_size - used;
+        *arena->free_count = 1;
     }
     else
     {
-        *arena->count = 0;
+        *arena->free_count = 0;
     }
 }
 
@@ -1353,18 +1353,18 @@ static void value_store(com_util_hashtable *ht, size_t rec, const void *value, s
 }
 
 /**
- *  @brief          穴ディレクトリの構造を検査します。
+ *  @brief          空きリストの構造を検査します。
  *  @param[in]      arena     操作対象。NULL を渡してはなりません。
  *  @param[in]      used      使用中バイト数の合計。
  *  @param[in]      capacity  スロット数。
  *  @return         妥当なら 0、壊れているなら -1 です。
  *
- *  個数の上限、長さの非 0、範囲、オフセットの昇順、隣接する穴が結合済みであること、
- *  および穴の合計が未使用バイト数と一致することを確かめます。
+ *  個数の上限、長さの非 0、範囲、オフセットの昇順、隣接する空きブロックが結合済みであること、
+ *  および空きブロックの合計が未使用バイト数と一致することを確かめます。
  */
 static int arena_validate(const struct hashtable_arena *arena, uint64_t used, size_t capacity)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t total = 0;
     uint64_t prev_end = 0;
     uint64_t i;
@@ -1375,25 +1375,25 @@ static int arena_validate(const struct hashtable_arena *arena, uint64_t used, si
     }
     for (i = 0; i < count; i++)
     {
-        if (arena->holes[i].length == 0)
+        if (arena->free_list[i].length == 0)
         {
             return -1;
         }
-        if (arena->holes[i].offset > (uint64_t)arena->storage_size)
+        if (arena->free_list[i].offset > (uint64_t)arena->storage_size)
         {
             return -1;
         }
-        if (arena->holes[i].length > ((uint64_t)arena->storage_size - arena->holes[i].offset))
+        if (arena->free_list[i].length > ((uint64_t)arena->storage_size - arena->free_list[i].offset))
         {
             return -1;
         }
-        /* 2 個目以降は、直前の穴の終端より後ろから始まること。等しい場合は未結合で不正。 */
-        if ((i != 0u) && (arena->holes[i].offset <= prev_end))
+        /* 2 個目以降は、直前の空きブロックの終端より後ろから始まること。等しい場合は未結合で不正。 */
+        if ((i != 0u) && (arena->free_list[i].offset <= prev_end))
         {
             return -1;
         }
-        prev_end = arena->holes[i].offset + arena->holes[i].length;
-        total += arena->holes[i].length;
+        prev_end = arena->free_list[i].offset + arena->free_list[i].length;
+        total += arena->free_list[i].length;
     }
     if (total != ((uint64_t)arena->storage_size - used))
     {
@@ -1403,18 +1403,18 @@ static int arena_validate(const struct hashtable_arena *arena, uint64_t used, si
 }
 
 /**
- *  @brief          使用中ブロックが穴と重ならないことを確かめます。
+ *  @brief          使用中ブロックが空きブロックと重ならないことを確かめます。
  *  @param[in]      arena   操作対象。NULL を渡してはなりません。
  *  @param[in]      offset  使用中ブロックの先頭オフセット。
  *  @param[in]      length  使用中ブロックのバイト数。
  *  @return         重ならないなら 0、重なるなら -1 です。
  *
- *  穴は昇順かつ互いに素のため、直前と直後の穴だけを見れば足ります。\n
+ *  空きブロックは昇順かつ互いに素のため、直前と直後の空きブロックだけを見れば足ります。\n
  *  @ref arena_validate が昇順を確かめた後に呼んでください。
  */
-static int arena_validate_block(const struct hashtable_arena *arena, uint64_t offset, uint64_t length)
+static int arena_validate_used_block(const struct hashtable_arena *arena, uint64_t offset, uint64_t length)
 {
-    uint64_t count = *arena->count;
+    uint64_t count = *arena->free_count;
     uint64_t low = 0;
     uint64_t high = count;
 
@@ -1422,7 +1422,7 @@ static int arena_validate_block(const struct hashtable_arena *arena, uint64_t of
     {
         uint64_t mid = low + ((high - low) / 2u);
 
-        if (arena->holes[mid].offset <= offset)
+        if (arena->free_list[mid].offset <= offset)
         {
             low = mid + 1u;
         }
@@ -1431,11 +1431,11 @@ static int arena_validate_block(const struct hashtable_arena *arena, uint64_t of
             high = mid;
         }
     }
-    if ((low != 0u) && ((arena->holes[low - 1u].offset + arena->holes[low - 1u].length) > offset))
+    if ((low != 0u) && ((arena->free_list[low - 1u].offset + arena->free_list[low - 1u].length) > offset))
     {
         return -1;
     }
-    if ((low < count) && ((offset + length) > arena->holes[low].offset))
+    if ((low < count) && ((offset + length) > arena->free_list[low].offset))
     {
         return -1;
     }
@@ -1443,7 +1443,7 @@ static int arena_validate_block(const struct hashtable_arena *arena, uint64_t of
 }
 
 /**
- *  @brief          可変長ストレージの穴ディレクトリを未使用の初期状態へ戻します。
+ *  @brief          可変長ストレージの空きリストを未使用の初期状態へ戻します。
  *  @param[in,out]  ht  対象。NULL を渡してはなりません。
  *
  *  可変長フィールドを持つ側だけを対象にします。
@@ -1474,7 +1474,7 @@ static void hashtable_reset_arenas(com_util_hashtable *ht)
  *  @return         見つかれば 1、見つからなければ 0 です。
  *
  *  固定長キーでは 0 を返して常に成功します。\n
- *  穴ディレクトリを変更しません。実際の確保は @ref key_store が行います。\n
+ *  空きリストを変更しません。実際の確保は @ref key_store が行います。\n
  *  @p replace が非 0 のときは、呼び出し側が @ref key_store の前に
  *  @ref release_key を呼ぶ前提です。
  */
@@ -1513,7 +1513,7 @@ static int key_storage_find_free(const com_util_hashtable *ht, size_t rec, int r
  *  @return         見つかれば 1、見つからなければ 0 です。
  *
  *  固定長値では 0 を返して常に成功します。\n
- *  穴ディレクトリを変更しません。実際の確保は @ref value_store が行います。\n
+ *  空きリストを変更しません。実際の確保は @ref value_store が行います。\n
  *  @p replace が非 0 のときは、呼び出し側が @ref value_store の前に
  *  @ref release_value を呼ぶ前提です。
  */
@@ -1820,7 +1820,7 @@ int com_util_hashtable_create(const com_util_hashtable_config *config, void *buf
     ht->hdr = hdr;
     ht->data = data;
     ht->owns_buffer = owns_buffer;
-    /* 可変長ストレージ全体を 1 個の穴として登録する。 */
+    /* 可変長ストレージ全体を 1 個の空きブロックとして登録する。 */
     hashtable_reset_arenas(ht);
 
     *ht_out = ht;
@@ -1962,9 +1962,9 @@ int com_util_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_da
     {
         return COM_UTIL_ERR_CORRUPT_DESCRIPTOR;
     }
-    /* 穴ディレクトリの走査が領域外へ出ないよう、個数の上限だけは先に検査する。 */
-    if ((hdr->key_hole_count > (uint64_t)hdr->config.capacity + 1u) ||
-        (hdr->value_hole_count > (uint64_t)hdr->config.capacity + 1u))
+    /* 空きリストの走査が領域外へ出ないよう、個数の上限だけは先に検査する。 */
+    if ((hdr->key_free_count > (uint64_t)hdr->config.capacity + 1u) ||
+        (hdr->value_free_count > (uint64_t)hdr->config.capacity + 1u))
     {
         return COM_UTIL_ERR_CORRUPT_DESCRIPTOR;
     }
@@ -2022,7 +2022,7 @@ static int hashtable_validate_impl(const com_util_hashtable *ht, unsigned char *
     struct hashtable_arena value_arena;
     size_t i;
 
-    /* 穴ディレクトリは、descriptor の検査より先に構造を確かめる。以降は昇順を前提にできる。 */
+    /* 空きリストは、descriptor の検査より先に構造を確かめる。以降は昇順を前提にできる。 */
     if (field_is_variable(ht->hdr->config.key_type) != 0)
     {
         hashtable_key_arena(ht, &key_arena);
@@ -2125,7 +2125,7 @@ static int hashtable_validate_impl(const com_util_hashtable *ht, unsigned char *
                 {
                     return -1;
                 }
-                if (arena_validate_block(&key_arena, ref->offset, ref->length) != 0)
+                if (arena_validate_used_block(&key_arena, ref->offset, ref->length) != 0)
                 {
                     return -1;
                 }
@@ -2141,7 +2141,7 @@ static int hashtable_validate_impl(const com_util_hashtable *ht, unsigned char *
                 {
                     return -1;
                 }
-                if (arena_validate_block(&value_arena, ref->offset, ref->length) != 0)
+                if (arena_validate_used_block(&value_arena, ref->offset, ref->length) != 0)
                 {
                     return -1;
                 }

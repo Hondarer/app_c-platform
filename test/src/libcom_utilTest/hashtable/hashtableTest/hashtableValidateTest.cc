@@ -358,9 +358,9 @@ TEST_F(hashtableValidateTest, detects_deleted_count_mismatch)
 }
 
 /*
- *  以下は可変長値の穴ディレクトリに関する検査です。
- *  穴ディレクトリは、使用中ブロックと合わせてストレージ全体を過不足なく分割し、
- *  オフセット昇順かつ隣接する穴が結合済みである必要があります。
+ *  以下は可変長値の空きリストに関する検査です。
+ *  空きリストは、使用中ブロックと合わせてストレージ全体を過不足なく分割し、
+ *  オフセット昇順かつ隣接する空きブロックが結合済みである必要があります。
  */
 
 namespace
@@ -380,8 +380,8 @@ com_util_hashtable_config variable_value_config(size_t capacity, size_t value_st
     return config;
 }
 
-/** 穴ディレクトリの要素です。hashtable.c の struct hashtable_hole と同じ配置です。 */
-struct hole_entry
+/** 空きリストの要素です。hashtable.c の struct hashtable_free_block と同じ配置です。 */
+struct free_block_entry
 {
     uint64_t offset;
     uint64_t length;
@@ -389,7 +389,7 @@ struct hole_entry
 
 } // namespace
 
-TEST_F(hashtableValidateTest, detects_hole_overlapping_a_live_block)
+TEST_F(hashtableValidateTest, detects_free_block_overlapping_a_live_block)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -402,17 +402,17 @@ TEST_F(hashtableValidateTest, detects_hole_overlapping_a_live_block)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     (void)com_util_hashtable_add(ht, "a", "1111",
                                  COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
-    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
-    holes[0].offset = 0; // [手順] - 末尾の穴の先頭を 0 へ書き換え、使用中ブロックと重ねる。
+    free_block_entry *free_blocks = static_cast<free_block_entry *>(test_hashtable_value_free_list(ht));
+    free_blocks[0].offset = 0; // [手順] - 末尾の空きブロックの先頭を 0 へ書き換え、使用中ブロックと重ねる。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
-              actual_ret); // [確認_異常系] - 使用中ブロックと重なる穴が CORRUPT_DESCRIPTOR であること。
+              actual_ret); // [確認_異常系] - 使用中ブロックと重なる空きブロックが CORRUPT_DESCRIPTOR であること。
 }
 
-TEST_F(hashtableValidateTest, detects_hole_total_mismatch)
+TEST_F(hashtableValidateTest, detects_free_list_total_mismatch)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -425,8 +425,8 @@ TEST_F(hashtableValidateTest, detects_hole_total_mismatch)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     (void)com_util_hashtable_add(ht, "a", "1111",
                                  COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
-    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
-    holes[0].length -= 1u; // [手順] - 末尾の穴を 1 バイト縮め、空きの合計を実態と食い違わせる。
+    free_block_entry *free_blocks = static_cast<free_block_entry *>(test_hashtable_value_free_list(ht));
+    free_blocks[0].length -= 1u; // [手順] - 末尾の空きブロックを 1 バイト縮め、空きの合計を実態と食い違わせる。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
@@ -435,7 +435,7 @@ TEST_F(hashtableValidateTest, detects_hole_total_mismatch)
               actual_ret); // [確認_異常系] - 空きの合計の不一致が CORRUPT_DESCRIPTOR であること。
 }
 
-TEST_F(hashtableValidateTest, detects_adjacent_holes_left_unmerged)
+TEST_F(hashtableValidateTest, detects_adjacent_free_blocks_left_unmerged)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -448,21 +448,21 @@ TEST_F(hashtableValidateTest, detects_adjacent_holes_left_unmerged)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     (void)com_util_hashtable_add(ht, "a", "1111",
                                  COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
-    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
-    holes[0].offset = 5;
-    holes[0].length = 10;
-    holes[1].offset = 15;
-    holes[1].length = 17; // [手順] - 末尾の穴を、隣接したまま 2 個へ分割する。
-    test_hashtable_set_value_hole_count(ht, 2);
+    free_block_entry *free_blocks = static_cast<free_block_entry *>(test_hashtable_value_free_list(ht));
+    free_blocks[0].offset = 5;
+    free_blocks[0].length = 10;
+    free_blocks[1].offset = 15;
+    free_blocks[1].length = 17; // [手順] - 末尾の空きブロックを、隣接したまま 2 個へ分割する。
+    test_hashtable_set_value_free_count(ht, 2);
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
-              actual_ret); // [確認_異常系] - 結合されていない隣接した穴が CORRUPT_DESCRIPTOR であること。
+              actual_ret); // [確認_異常系] - 結合されていない隣接した空きブロックが CORRUPT_DESCRIPTOR であること。
 }
 
-TEST_F(hashtableValidateTest, detects_hole_count_beyond_upper_bound)
+TEST_F(hashtableValidateTest, detects_free_count_beyond_upper_bound)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -473,16 +473,16 @@ TEST_F(hashtableValidateTest, detects_hole_count_beyond_upper_bound)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    test_hashtable_set_value_hole_count(ht, 6); // [手順] - 穴の個数を上限 capacity + 1 より大きい値へ書き換える。
+    test_hashtable_set_value_free_count(ht, 6); // [手順] - 空きブロックの個数を上限 capacity + 1 より大きい値へ書き換える。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
-              actual_ret); // [確認_異常系] - 上限を超える穴の個数が CORRUPT_DESCRIPTOR であること。
+              actual_ret); // [確認_異常系] - 上限を超える空きブロックの個数が CORRUPT_DESCRIPTOR であること。
 }
 
-TEST_F(hashtableValidateTest, attach_rejects_hole_count_beyond_upper_bound)
+TEST_F(hashtableValidateTest, attach_rejects_free_count_beyond_upper_bound)
 {
     // Arrange
     com_util_hashtable_config config =
@@ -498,7 +498,7 @@ TEST_F(hashtableValidateTest, attach_rejects_hole_count_beyond_upper_bound)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    test_hashtable_set_value_hole_count(ht, 6); // [手順] - 穴の個数を上限 capacity + 1 より大きい値へ書き換える。
+    test_hashtable_set_value_free_count(ht, 6); // [手順] - 空きブロックの個数を上限 capacity + 1 より大きい値へ書き換える。
     (void)com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
     (void)com_util_hashtable_buffer_ref(ht, &mgmt, &data);
     std::vector<unsigned char> mgmt_copy(static_cast<const unsigned char *>(mgmt),
@@ -512,6 +512,6 @@ TEST_F(hashtableValidateTest, attach_rejects_hole_count_beyond_upper_bound)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
-              actual_ret); // [確認_異常系] - 上限を超える穴の個数での attach が CORRUPT_DESCRIPTOR であること。
+              actual_ret); // [確認_異常系] - 上限を超える空きブロックの個数での attach が CORRUPT_DESCRIPTOR であること。
     EXPECT_EQ(nullptr, attached); // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
