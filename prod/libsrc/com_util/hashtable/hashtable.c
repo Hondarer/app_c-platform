@@ -488,9 +488,20 @@ static int hashtable_mgmt_layout(const com_util_hashtable_config *config, size_t
 
     /* ヘッダー サイズは uint64_t 境界の倍数(構造体定義直後の _Static_assert で保証)。整列不要。 */
 
+    /* あふれ検査より前に仮値で初期化し、早期 return でも呼び出し側へ未初期化値を渡さない。
+       呼び出し側の大半は戻り値を捨てるため、この関数の契約として out パラメーターは
+       常に定義済みの値を持つ必要がある。 */
     if (off_bucket_head != NULL)
     {
         *off_bucket_head = offset;
+    }
+    if (off_entries != NULL)
+    {
+        *off_entries = offset;
+    }
+    if (mgmt_size_out != NULL)
+    {
+        *mgmt_size_out = offset;
     }
     if (mul_checked(config->capacity, sizeof(uint64_t), &region_size) != 0)
     {
