@@ -24,12 +24,14 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_UNSUPPORTED,
                             COM_UTIL_ERR_PERMISSION_DENIED,
                             COM_UTIL_ERR_DUPLICATE_DEFINITION,
+                            COM_UTIL_ERR_DUPLICATE_KEY,
                             COM_UTIL_ERR_OUT_OF_MEMORY,
                             COM_UTIL_ERR_BUSY,
                             COM_UTIL_ERR_TIMEOUT,
                             COM_UTIL_ERR_LIMIT_EXCEEDED,
                             COM_UTIL_ERR_BUFFER_TOO_SMALL,
                             COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+                            COM_UTIL_ERR_STORAGE_FULL,
                             COM_UTIL_ERR_UNKNOWN_OPTION,
                             COM_UTIL_ERR_MISSING_VALUE,
                             COM_UTIL_ERR_UNEXPECTED_VALUE,
@@ -100,7 +102,7 @@ TEST_F(errorMessageTest, errno_is_converted_to_message)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - com_util_errno_message の戻り値が COM_UTIL_OK であること。
-    EXPECT_LT(0U, strlen(buf));  // [確認_正常系] - 空でないメッセージが格納されること。
+    EXPECT_LT(0U, strlen(buf));         // [確認_正常系] - 空でないメッセージが格納されること。
 }
 
 // 引数不正の場合に COM_UTIL_ERR_INVALID_ARGUMENT を返すことの確認
@@ -112,8 +114,9 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
     // Pre-Assert
 
     // Act
-    int actual_ret_null_buf = com_util_errno_message(NULL, sizeof(buf), ENOENT); // [手順] - 格納先に NULL を指定して呼び出す。
-    int actual_ret_zero_size = com_util_errno_message(buf, 0U, ENOENT);          // [手順] - サイズに 0 を指定して呼び出す。
+    int actual_ret_null_buf =
+        com_util_errno_message(NULL, sizeof(buf), ENOENT);              // [手順] - 格納先に NULL を指定して呼び出す。
+    int actual_ret_zero_size = com_util_errno_message(buf, 0U, ENOENT); // [手順] - サイズに 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
@@ -237,7 +240,7 @@ TEST_F(errorMessageTest, gai_domain_is_converted_to_message_on_linux)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK,
-              result); // [確認_正常系] - GAI ドメインの文字列化が成功すること。
+              result);       // [確認_正常系] - GAI ドメインの文字列化が成功すること。
     EXPECT_NE('\0', buf[0]); // [確認_正常系] - GAI エラー メッセージが格納されること。
 }
 
@@ -289,7 +292,7 @@ TEST_F(errorMessageTest, errno_message_returns_unknown_when_strerror_r_fails)
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_UNKNOWN,
-              actual_ret);        // [確認_異常系] - com_util_errno_message の戻り値が COM_UTIL_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - com_util_errno_message の戻り値が COM_UTIL_ERR_UNKNOWN であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
 }
 
@@ -314,7 +317,7 @@ TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret); // [確認_正常系] - 切り詰めは成功として扱われ COM_UTIL_OK が返ること。
-    EXPECT_STREQ("trunc", buf);  // [確認_正常系] - 書き込まれた文字列が保持されること。
+    EXPECT_STREQ("trunc", buf);         // [確認_正常系] - 書き込まれた文字列が保持されること。
 }
 
 #endif /* PLATFORM_LINUX */

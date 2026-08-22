@@ -13,7 +13,7 @@ namespace
 
 com_util_timespec k_insert_timestamp = {1, 0};
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
@@ -21,7 +21,7 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
     config->key_type = key_type;
     config->timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -98,15 +98,16 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     // Act
     int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     int actual_ret_direct = com_util_hashtable_insert_direct(
-        ht, 3, "c", 1, value.data(), &k_insert_timestamp); // [手順] - レコード 3 へ実装中で直接書き込む。
+        ht, 3, "c", 1, value.data(), &k_insert_timestamp, 3); // [手順] - レコード 3 へ実装中で直接書き込む。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "c", &found); // [手順] - キーで検索する。
     int actual_ret_rec = com_util_hashtable_find_recno(ht, "c", &rec);        // [手順] - レコード番号を取得する。
     int actual_ret_status = com_util_hashtable_get_status(ht, 3, &status);    // [手順] - レコード 3 の状態を取得する。
     fill_value(&value, "peer");
     int actual_ret_peer = com_util_hashtable_insert_direct(
-        ht, 4, peer, 1, value.data(), &k_insert_timestamp); // [手順] - 同一バケットの別キーをレコード 4 へ置く。
+        ht, 4, peer, 1, value.data(), &k_insert_timestamp, 4); // [手順] - 同一バケットの別キーをレコード 4 へ置く。
     fill_value(&value, "first");
-    int actual_ret_add = com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 先頭空きへ通常追加する。
+    int actual_ret_add = com_util_hashtable_add(
+        ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 先頭空きへ通常追加する。
     int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
     int actual_ret_validate = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     // Assert
@@ -149,14 +150,16 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     int actual_ret_direct = com_util_hashtable_insert_direct(
-        ht, 2, "gone", 3, value.data(), &k_insert_timestamp); // [手順] - 寿命内の削除済みをレコード 2 へ置く。
+        ht, 2, "gone", 3, value.data(), &k_insert_timestamp, 2); // [手順] - 寿命内の削除済みをレコード 2 へ置く。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "gone", &found); // [手順] - 削除済みキーを検索する。
     int actual_ret_status = com_util_hashtable_get_status(ht, 2, &status);   // [手順] - レコード 2 の状態を取得する。
     int actual_ret_key = com_util_hashtable_get_key_ref(ht, 2, &key_out);    // [手順] - レコード 2 のキーを読む。
     int actual_ret_deleted = com_util_hashtable_deleted_count(ht, &deleted); // [手順] - 削除済み件数を取得する。
-    int actual_ret_again = com_util_hashtable_insert_direct(ht, 3, "gone", 1, value.data(),
-                                                            &k_insert_timestamp); // [手順] - 同じキーを別レコードへ置く。
-    int actual_ret_validate = com_util_hashtable_validate(ht);               // [手順] - 整合性を検証する。
+    int actual_ret_again =
+        com_util_hashtable_insert_direct(ht, 3, "gone", 1, value.data(), &k_insert_timestamp,
+                                         3); // [手順] - 同じキーを別レコードへ置く。
+    int actual_ret_validate = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct); // [確認_正常系] - 寿命内の削除済みを置けること。
     EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
@@ -167,8 +170,8 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
     EXPECT_STREQ("gone", static_cast<const char *>(key_out)); // [確認_正常系] - キーが一致すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_deleted);               // [確認_正常系] - deleted_count が成功すること。
     EXPECT_EQ(1u, deleted);                                   // [確認_正常系] - 削除済みが 1 件であること。
-    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
-              actual_ret_again); // [確認_異常系] - 削除済みキーの再配置が DUPLICATE_DEFINITION であること。
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_KEY,
+              actual_ret_again); // [確認_異常系] - 削除済みキーの再配置が DUPLICATE_KEY であること。
     EXPECT_EQ(COM_UTIL_OK,
               actual_ret_validate); // [確認_正常系] - 削除済みをチェインへ載せたあと validate が成功すること。
 
@@ -192,15 +195,15 @@ TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     int actual_ret_eq = com_util_hashtable_insert_direct(
-        ht, 1, "a", 5, value.data(), &k_insert_timestamp); // [手順] - status が lifetime と等しい値を置く。
+        ht, 1, "a", 5, value.data(), &k_insert_timestamp, 1); // [手順] - status が lifetime と等しい値を置く。
     int actual_ret_over =
         com_util_hashtable_insert_direct(ht, 1, "a", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
-                                         &k_insert_timestamp); // [手順] - lifetime を超える加齢値を置く。
+                                         &k_insert_timestamp, 1); // [手順] - lifetime を超える加齢値を置く。
     fill_config(&config, 2, 16, 8, 2, COM_UTIL_HASHTABLE_KEY_STRING);
     com_util_hashtable_dispose(ht);
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - lifetime 2 のテーブルを構築する。
     int actual_ret_life2 = com_util_hashtable_insert_direct(
-        ht, 1, "a", 2, value.data(), &k_insert_timestamp); // [手順] - lifetime 2 では成立しない status 2 を置く。
+        ht, 1, "a", 2, value.data(), &k_insert_timestamp, 1); // [手順] - lifetime 2 では成立しない status 2 を置く。
     (void)com_util_hashtable_get_status(ht, 1, &status);
     (void)com_util_hashtable_empty_count(ht, &empty);
     // Assert
@@ -226,34 +229,35 @@ TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
     // Pre-Assert
 
     // Act
-    int actual_ret_null_ht =
-        com_util_hashtable_insert_direct(NULL, 1, "a", 1, value.data(), &k_insert_timestamp); // [手順] - ht に NULL を渡す。
+    int actual_ret_null_ht = com_util_hashtable_insert_direct(NULL, 1, "a", 1, value.data(), &k_insert_timestamp,
+                                                              1); // [手順] - ht に NULL を渡す。
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_null_key =
-        com_util_hashtable_insert_direct(ht, 1, NULL, 1, value.data(), &k_insert_timestamp); // [手順] - key に NULL を渡す。
-    int actual_ret_null_value =
-        com_util_hashtable_insert_direct(ht, 1, "a", 1, NULL, &k_insert_timestamp); // [手順] - value に NULL を渡す。
-    int actual_ret_null_timestamp =
-        com_util_hashtable_insert_direct(ht, 1, "a", 1, value.data(), NULL); // [手順] - timestamp に NULL を渡す。
-    int actual_ret_status0 =
-        com_util_hashtable_insert_direct(ht, 1, "a", 0, value.data(), &k_insert_timestamp); // [手順] - status 0 を渡す。
-    int actual_ret_status256 =
-        com_util_hashtable_insert_direct(ht, 1, "a", 256, value.data(), &k_insert_timestamp); // [手順] - status 256 を渡す。
-    int actual_ret_rec0 = com_util_hashtable_insert_direct(ht, 0, "a", 5, value.data(),
-                                                           &k_insert_timestamp); // [手順] - レコード番号 0 を渡す。
+    int actual_ret_null_key = com_util_hashtable_insert_direct(ht, 1, NULL, 1, value.data(), &k_insert_timestamp,
+                                                               1); // [手順] - key に NULL を渡す。
+    int actual_ret_null_value = com_util_hashtable_insert_direct(
+        ht, 1, "a", 1, NULL, &k_insert_timestamp, 1); // [手順] - value に NULL を渡す。
+    int actual_ret_null_timestamp = com_util_hashtable_insert_direct(
+        ht, 1, "a", 1, value.data(), NULL, 1); // [手順] - timestamp に NULL を渡す。
+    int actual_ret_status0 = com_util_hashtable_insert_direct(ht, 1, "a", 0, value.data(), &k_insert_timestamp,
+                                                              1); // [手順] - status 0 を渡す。
+    int actual_ret_status256 = com_util_hashtable_insert_direct(ht, 1, "a", 256, value.data(), &k_insert_timestamp,
+                                                                1); // [手順] - status 256 を渡す。
+    int actual_ret_rec0 = com_util_hashtable_insert_direct(ht, 0, "a", 5, value.data(), &k_insert_timestamp,
+                                                           1); // [手順] - レコード番号 0 を渡す。
     int actual_ret_rec_hi = com_util_hashtable_insert_direct(
-        ht, 5, "a", 5, value.data(), &k_insert_timestamp); // [手順] - capacity 超のレコード番号を渡す。
-    int actual_ret_long = com_util_hashtable_insert_direct(ht, 1, too_long, 1, value.data(),
-                                                           &k_insert_timestamp); // [手順] - 長すぎるキーを渡す。
-    int actual_ret_ok = com_util_hashtable_insert_direct(ht, 1, "a", 1, value.data(),
-                                                         &k_insert_timestamp); // [手順] - レコード 1 へ実装中で置く。
+        ht, 5, "a", 5, value.data(), &k_insert_timestamp, 5); // [手順] - capacity 超のレコード番号を渡す。
+    int actual_ret_long = com_util_hashtable_insert_direct(ht, 1, too_long, 1, value.data(), &k_insert_timestamp,
+                                                           1); // [手順] - 長すぎるキーを渡す。
+    int actual_ret_ok = com_util_hashtable_insert_direct(ht, 1, "a", 1, value.data(), &k_insert_timestamp,
+                                                         1); // [手順] - レコード 1 へ実装中で置く。
     int actual_ret_occupied = com_util_hashtable_insert_direct(
-        ht, 1, "b", 1, value.data(), &k_insert_timestamp); // [手順] - 使用中のレコードへ別キーを置く。
-    int actual_ret_dup_key = com_util_hashtable_insert_direct(ht, 2, "a", 1, value.data(),
-                                                              &k_insert_timestamp); // [手順] - 既存キーを別レコードへ置く。
+        ht, 1, "b", 1, value.data(), &k_insert_timestamp, 1); // [手順] - 使用中のレコードへ別キーを置く。
+    int actual_ret_dup_key =
+        com_util_hashtable_insert_direct(ht, 2, "a", 1, value.data(), &k_insert_timestamp,
+                                         2); // [手順] - 既存キーを別レコードへ置く。
     (void)com_util_hashtable_delete(ht, "a");
     int actual_ret_deleted_slot = com_util_hashtable_insert_direct(
-        ht, 1, "b", 1, value.data(), &k_insert_timestamp); // [手順] - 削除済みスロットへ別キーを置く。
+        ht, 1, "b", 1, value.data(), &k_insert_timestamp, 1); // [手順] - 削除済みスロットへ別キーを置く。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -277,8 +281,8 @@ TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
     EXPECT_EQ(COM_UTIL_OK, actual_ret_ok);                 // [確認_正常系] - 最初の直接書き込みが成功すること。
     EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
               actual_ret_occupied); // [確認_異常系] - 使用中レコードが DUPLICATE_DEFINITION であること。
-    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
-              actual_ret_dup_key); // [確認_異常系] - 既存キーが DUPLICATE_DEFINITION であること。
+    EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_KEY,
+              actual_ret_dup_key); // [確認_異常系] - 既存キーが DUPLICATE_KEY であること。
     EXPECT_EQ(COM_UTIL_ERR_DUPLICATE_DEFINITION,
               actual_ret_deleted_slot); // [確認_異常系] - 削除済みスロットが DUPLICATE_DEFINITION であること。
 }
@@ -298,10 +302,11 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "keep", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を占有する。
+    (void)com_util_hashtable_add(ht, "keep", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を占有する。
     fill_value(&value, "skip");
     int actual_ret_skip = com_util_hashtable_insert_direct(
-        ht, 1, "other", 5, value.data(), &k_insert_timestamp); // [手順] - 占有スロットへ成立しない寿命値を置く。
+        ht, 1, "other", 5, value.data(), &k_insert_timestamp, 1); // [手順] - 占有スロットへ成立しない寿命値を置く。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "keep", &found); // [手順] - 既存キーを検索する。
 
     // Assert

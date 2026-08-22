@@ -17,6 +17,7 @@ static_assert(COM_UTIL_ERR_PERMISSION_DENIED == -4, "COM_UTIL_ERR_PERMISSION_DEN
 static_assert(COM_UTIL_ERR_NOT_FOUND == -6, "COM_UTIL_ERR_NOT_FOUND の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_DUPLICATE_DEFINITION == -5,
               "COM_UTIL_ERR_DUPLICATE_DEFINITION の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_DUPLICATE_KEY == -7, "COM_UTIL_ERR_DUPLICATE_KEY の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_OUT_OF_MEMORY == -10, "COM_UTIL_ERR_OUT_OF_MEMORY の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_BUSY == -11, "COM_UTIL_ERR_BUSY の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_TIMEOUT == -12, "COM_UTIL_ERR_TIMEOUT の ABI 値を変更してはなりません。");
@@ -24,6 +25,7 @@ static_assert(COM_UTIL_ERR_LIMIT_EXCEEDED == -13, "COM_UTIL_ERR_LIMIT_EXCEEDED �
 static_assert(COM_UTIL_ERR_BUFFER_TOO_SMALL == -14, "COM_UTIL_ERR_BUFFER_TOO_SMALL の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_CORRUPT_DESCRIPTOR == -15,
               "COM_UTIL_ERR_CORRUPT_DESCRIPTOR の ABI 値を変更してはなりません。");
+static_assert(COM_UTIL_ERR_STORAGE_FULL == -16, "COM_UTIL_ERR_STORAGE_FULL の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_UNKNOWN_OPTION == -20, "COM_UTIL_ERR_UNKNOWN_OPTION の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_MISSING_VALUE == -21, "COM_UTIL_ERR_MISSING_VALUE の ABI 値を変更してはなりません。");
 static_assert(COM_UTIL_ERR_UNEXPECTED_VALUE == -22, "COM_UTIL_ERR_UNEXPECTED_VALUE の ABI 値を変更してはなりません。");
@@ -49,12 +51,14 @@ static std::vector<int> all_error_codes()
                             COM_UTIL_ERR_UNSUPPORTED,
                             COM_UTIL_ERR_PERMISSION_DENIED,
                             COM_UTIL_ERR_DUPLICATE_DEFINITION,
+                            COM_UTIL_ERR_DUPLICATE_KEY,
                             COM_UTIL_ERR_OUT_OF_MEMORY,
                             COM_UTIL_ERR_BUSY,
                             COM_UTIL_ERR_TIMEOUT,
                             COM_UTIL_ERR_LIMIT_EXCEEDED,
                             COM_UTIL_ERR_BUFFER_TOO_SMALL,
                             COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+                            COM_UTIL_ERR_STORAGE_FULL,
                             COM_UTIL_ERR_UNKNOWN_OPTION,
                             COM_UTIL_ERR_MISSING_VALUE,
                             COM_UTIL_ERR_UNEXPECTED_VALUE,

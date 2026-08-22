@@ -23,39 +23,49 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_hashtable_buffer_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_buffer_ref));
     ON_CALL(*this, com_util_hashtable_add(_, _, _, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_add));
-    ON_CALL(*this, com_util_hashtable_insert_direct(_, _, _, _, _, _))
+    ON_CALL(*this, com_util_hashtable_upsert(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_upsert));
+    ON_CALL(*this, com_util_hashtable_insert_direct(_, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_insert_direct));
     ON_CALL(*this, com_util_hashtable_update(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_update));
     ON_CALL(*this, com_util_hashtable_update_rec(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_update_rec));
     ON_CALL(*this, com_util_hashtable_find_value_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_value_ref));
-    ON_CALL(*this, com_util_hashtable_find_value_val(_, _, _))
-        .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_value_val));
+    ON_CALL(*this, com_util_hashtable_find_value_copy(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_value_copy));
     ON_CALL(*this, com_util_hashtable_find_recno(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_recno));
     ON_CALL(*this, com_util_hashtable_get_key_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_key_ref));
-    ON_CALL(*this, com_util_hashtable_get_key_val(_, _, _))
-        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_key_val));
+    ON_CALL(*this, com_util_hashtable_get_key_copy(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_key_copy));
     ON_CALL(*this, com_util_hashtable_get_value_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_value_ref));
-    ON_CALL(*this, com_util_hashtable_get_value_val(_, _, _))
-        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_value_val));
+    ON_CALL(*this, com_util_hashtable_get_value_copy(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_value_copy));
     ON_CALL(*this, com_util_hashtable_get_timestamp_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_timestamp_ref));
     ON_CALL(*this, com_util_hashtable_get_timestamp_val(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_timestamp_val));
+    ON_CALL(*this, com_util_hashtable_get_generation(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_generation));
     ON_CALL(*this, com_util_hashtable_get_table_timestamp_ref(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_table_timestamp_ref));
     ON_CALL(*this, com_util_hashtable_get_table_timestamp_val(_, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_table_timestamp_val));
+    ON_CALL(*this, com_util_hashtable_get_table_generation(_, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_table_generation));
     ON_CALL(*this, com_util_hashtable_find_timestamp_ref(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_timestamp_ref));
     ON_CALL(*this, com_util_hashtable_find_timestamp_val(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_timestamp_val));
+    ON_CALL(*this, com_util_hashtable_find_generation(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_find_generation));
     ON_CALL(*this, com_util_hashtable_get_status(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_get_status));
+    ON_CALL(*this, com_util_hashtable_next_record(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_next_record));
     ON_CALL(*this, com_util_hashtable_count_status(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_count_status));
     ON_CALL(*this, com_util_hashtable_count(_, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_count));
@@ -70,6 +80,10 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_push_deleted));
     ON_CALL(*this, com_util_hashtable_purge_deleted(_))
         .WillByDefault(Invoke(delegate_real_com_util_hashtable_purge_deleted));
+    ON_CALL(*this, com_util_hashtable_compact(_)).WillByDefault(Invoke(delegate_real_com_util_hashtable_compact));
+    ON_CALL(*this, com_util_hashtable_resize(_, _)).WillByDefault(Invoke(delegate_real_com_util_hashtable_resize));
+    ON_CALL(*this, com_util_hashtable_rebuild_into(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_hashtable_rebuild_into));
     ON_CALL(*this, com_util_hashtable_clear(_)).WillByDefault(Invoke(delegate_real_com_util_hashtable_clear));
     ON_CALL(*this, com_util_hashtable_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_hashtable_dispose));
 

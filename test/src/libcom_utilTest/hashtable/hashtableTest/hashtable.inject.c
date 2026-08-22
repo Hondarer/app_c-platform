@@ -24,6 +24,21 @@ char *test_hashtable_entry_key(const com_util_hashtable *ht, size_t rec)
     return hashtable_entry_key(ht, rec);
 }
 
+void *test_hashtable_key_ref_at(const com_util_hashtable *ht, size_t rec)
+{
+    return hashtable_key_ref_at(ht, rec);
+}
+
+void *test_hashtable_value_ref_at(const com_util_hashtable *ht, size_t rec)
+{
+    return hashtable_value_ref_at(ht, rec);
+}
+
+uint64_t *test_hashtable_entry_generation(const com_util_hashtable *ht, size_t rec)
+{
+    return hashtable_entry_generation(ht, rec);
+}
+
 void test_hashtable_set_next_empty(com_util_hashtable *ht, uint64_t value)
 {
     ht->hdr->next_empty = value;

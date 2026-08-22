@@ -40,12 +40,14 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 | | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
 | | `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
 | | `COM_UTIL_ERR_NOT_FOUND` | -6 | 対象が存在しない (ファイル、ディレクトリ、ホスト名など) |
+| | `COM_UTIL_ERR_DUPLICATE_KEY` | -7 | 同一キーがすでに存在する |
 | リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できません。 |
 | | `COM_UTIL_ERR_BUSY` | -11 | リソースがビジー状態 |
 | | `COM_UTIL_ERR_TIMEOUT` | -12 | タイムアウト |
 | | `COM_UTIL_ERR_LIMIT_EXCEEDED` | -13 | リソースの上限を超過した |
 | | `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -14 | 出力バッファーが不足している |
 | | `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -15 | ディスクリプタが破損している |
+| | `COM_UTIL_ERR_STORAGE_FULL` | -16 | 固定容量ストレージに必要な連続空き領域がない |
 | 入力解析<br> (-20 〜 -39) | `COM_UTIL_ERR_UNKNOWN_OPTION` | -20 | 未登録のオプションが指定された |
 | | `COM_UTIL_ERR_MISSING_VALUE` | -21 | 値を要する項目に値が指定されていない |
 | | `COM_UTIL_ERR_UNEXPECTED_VALUE` | -22 | 値を取らない項目に値が指定された |

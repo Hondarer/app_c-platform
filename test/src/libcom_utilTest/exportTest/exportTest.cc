@@ -185,43 +185,59 @@
     EXPORT_ENTRY(com_util_hashtable_add, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, \
                                      com_util_hashtable_add_deleted_policy deleted_policy)) \
+    EXPORT_ENTRY(com_util_hashtable_upsert, \
+                 int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, \
+                                     int *inserted_out)) \
     EXPORT_ENTRY(com_util_hashtable_insert_direct, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, uint64_t record, const void *key, int status, \
-                                     const void *value, const com_util_timespec *timestamp)) \
+                                     const void *value, const com_util_timespec *timestamp, \
+                                     uint64_t generation)) \
     EXPORT_ENTRY(com_util_hashtable_update, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value)) \
     EXPORT_ENTRY(com_util_hashtable_update_rec, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, uint64_t record, const void *value)) \
     EXPORT_ENTRY(com_util_hashtable_find_value_ref, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, const void **value_out)) \
-    EXPORT_ENTRY(com_util_hashtable_find_value_val, \
-                 int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, void *value_out)) \
+    EXPORT_ENTRY(com_util_hashtable_find_value_copy, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, void *dest, size_t dest_size, \
+                                     size_t *required_size_out)) \
     EXPORT_ENTRY(com_util_hashtable_find_recno, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, uint64_t *record_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_key_ref, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, const void **key_out)) \
-    EXPORT_ENTRY(com_util_hashtable_get_key_val, \
-                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, void *key_out)) \
+    EXPORT_ENTRY(com_util_hashtable_get_key_copy, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, void *dest, size_t dest_size, \
+                                     size_t *required_size_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_value_ref, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, const void **value_out)) \
-    EXPORT_ENTRY(com_util_hashtable_get_value_val, \
-                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, void *value_out)) \
+    EXPORT_ENTRY(com_util_hashtable_get_value_copy, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, void *dest, size_t dest_size, \
+                                     size_t *required_size_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_status, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, int *status_out)) \
+    EXPORT_ENTRY(com_util_hashtable_next_record, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t from, unsigned int status_mask, \
+                                     uint64_t *record_out, int *has_record_out)) \
     EXPORT_ENTRY( \
         com_util_hashtable_get_timestamp_ref, \
         int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, const com_util_timespec **timestamp_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_timestamp_val, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, com_util_timespec *timestamp_out)) \
+    EXPORT_ENTRY(com_util_hashtable_get_generation, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t record, uint64_t *generation_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_table_timestamp_ref, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, const com_util_timespec **timestamp_out)) \
     EXPORT_ENTRY(com_util_hashtable_get_table_timestamp_val, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, com_util_timespec *timestamp_out)) \
+    EXPORT_ENTRY(com_util_hashtable_get_table_generation, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, uint64_t *generation_out)) \
     EXPORT_ENTRY( \
         com_util_hashtable_find_timestamp_ref, \
         int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, const com_util_timespec **timestamp_out)) \
     EXPORT_ENTRY(com_util_hashtable_find_timestamp_val, \
                  int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, com_util_timespec *timestamp_out)) \
+    EXPORT_ENTRY(com_util_hashtable_find_generation, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *ht, const void *key, uint64_t *generation_out)) \
     EXPORT_ENTRY( \
         com_util_hashtable_count_status, \
         int(COM_UTIL_API *)(const com_util_hashtable *ht, size_t *in_use_out, size_t *deleted_out, size_t *empty_out)) \
@@ -233,6 +249,13 @@
     EXPORT_ENTRY(com_util_hashtable_delete_rec, int(COM_UTIL_API *)(com_util_hashtable * ht, uint64_t record)) \
     EXPORT_ENTRY(com_util_hashtable_push_deleted, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
     EXPORT_ENTRY(com_util_hashtable_purge_deleted, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
+    EXPORT_ENTRY(com_util_hashtable_compact, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
+    EXPORT_ENTRY(com_util_hashtable_resize, \
+                 int(COM_UTIL_API *)(com_util_hashtable * ht, const com_util_hashtable_config *new_config)) \
+    EXPORT_ENTRY(com_util_hashtable_rebuild_into, \
+                 int(COM_UTIL_API *)(const com_util_hashtable *src, const com_util_hashtable_config *new_config, \
+                                     void *buf_mgmt, size_t buf_mgmt_size, void *buf_data, size_t buf_data_size, \
+                                     com_util_hashtable **ht_out)) \
     EXPORT_ENTRY(com_util_hashtable_clear, int(COM_UTIL_API *)(com_util_hashtable * ht)) \
     EXPORT_ENTRY(com_util_hashtable_dispose, void(COM_UTIL_API *)(com_util_hashtable * ht)) \
     /* com_util/clock/clock.h */ \
@@ -734,7 +757,8 @@
                                      const char *message)) \
     EXPORT_ENTRY(com_util_tracer_set_name, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, const char *name, int64_t identifier)) \
-    EXPORT_ENTRY(com_util_tracer_get_name, int(COM_UTIL_API *)(com_util_tracer * handle, char *name_out, size_t name_size)) \
+    EXPORT_ENTRY(com_util_tracer_get_name, \
+                 int(COM_UTIL_API *)(com_util_tracer * handle, char *name_out, size_t name_size)) \
     EXPORT_ENTRY(com_util_tracer_get_identifier, int64_t(COM_UTIL_API *)(com_util_tracer * handle)) \
     EXPORT_ENTRY(com_util_tracer_set_file_name, \
                  int(COM_UTIL_API *)(com_util_tracer * handle, const char *name, int64_t identifier)) \

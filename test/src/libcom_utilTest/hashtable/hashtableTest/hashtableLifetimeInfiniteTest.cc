@@ -13,7 +13,7 @@ namespace
 
 com_util_timespec k_insert_timestamp = {1, 0};
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
@@ -21,7 +21,7 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
     config->key_type = key_type;
     config->timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -129,7 +129,7 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_direct =
         com_util_hashtable_insert_direct(ht, 1, "gone", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
-                                         &k_insert_timestamp); // [手順] - status 255 を直接書く。
+                                         &k_insert_timestamp, 1); // [手順] - status 255 を直接書く。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "gone", &found);
     int actual_ret_status = com_util_hashtable_get_status(ht, 1, &status);
     int actual_ret_key = com_util_hashtable_get_key_ref(ht, 1, &key_out);
@@ -163,10 +163,10 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_skips_beyond_finite_max)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_eq = com_util_hashtable_insert_direct(
-        ht, 1, "a", 254, value.data(), &k_insert_timestamp); // [手順] - status 254 を lifetime 254 へ置く。
+        ht, 1, "a", 254, value.data(), &k_insert_timestamp, 1); // [手順] - status 254 を lifetime 254 へ置く。
     int actual_ret_over =
         com_util_hashtable_insert_direct(ht, 1, "a", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
-                                         &k_insert_timestamp); // [手順] - status 255 を lifetime 254 へ置く。
+                                         &k_insert_timestamp, 1); // [手順] - status 255 を lifetime 254 へ置く。
     (void)com_util_hashtable_get_status(ht, 1, &status);
     com_util_hashtable_dispose(ht);
 
@@ -197,15 +197,17 @@ TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_stat
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     (void)com_util_hashtable_insert_direct(ht, 1, "reuse", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
-                                           &k_insert_timestamp);
+                                           &k_insert_timestamp, 1);
     std::memcpy(value.data(), "new", 4);
-    int actual_ret_add = com_util_hashtable_add(ht, "reuse", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 終端の削除済みキーを再追加する。
+    int actual_ret_add =
+        com_util_hashtable_add(ht, "reuse", value.data(),
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 終端の削除済みキーを再追加する。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "reuse", &found);
     std::string found_text = (found == nullptr) ? "" : static_cast<const char *>(found);
     (void)com_util_hashtable_get_status(ht, 1, &status_after_add);
     (void)com_util_hashtable_delete(ht, "reuse");
     (void)com_util_hashtable_insert_direct(ht, 2, "drop", COM_UTIL_HASHTABLE_LIFETIME_INFINITE, value.data(),
-                                           &k_insert_timestamp);
+                                           &k_insert_timestamp, 2);
     int actual_ret_purge = com_util_hashtable_purge_deleted(ht); // [手順] - 終端を含む削除済みを回収する。
     (void)com_util_hashtable_get_status(ht, 2, &status_after_purge);
     (void)com_util_hashtable_empty_count(ht, &empty);

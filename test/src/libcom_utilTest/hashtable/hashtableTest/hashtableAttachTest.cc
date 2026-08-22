@@ -13,14 +13,14 @@
 namespace
 {
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
     config->capacity = capacity;
     config->key_type = key_type;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -56,8 +56,8 @@ TEST_F(hashtableAttachTest, rejects_misaligned_buffer)
     com_util_hashtable_dispose(ht);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              actual_ret);        // [確認_異常系] - 未整列の領域が BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret);        // [確認_異常系] - 未整列の領域が INVALID_ARGUMENT であること。
     EXPECT_EQ(nullptr, attached); // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
 
@@ -170,9 +170,9 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &attached);
 
     bad_config = config;
-    bad_config.record_size = 0; // [手順] - record_size を 0 へ書き換える。
+    bad_config.value_size = 0; // [手順] - value_size を 0 へ書き換える。
     test_hashtable_set_config(ht, &bad_config);
-    int actual_ret_record_size =
+    int actual_ret_value_size =
         com_util_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(), &attached);
 
     bad_config = config;
@@ -220,22 +220,28 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
     com_util_hashtable_dispose(ht);
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_key_type); // [確認_異常系] - 不正な key_type が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_scope); // [確認_異常系] - 不正な timestamp_scope が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_key_size); // [確認_異常系] - key_size 0 が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_record_size);                             // [確認_異常系] - record_size 0 が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_lifetime); // [確認_異常系] - lifetime 1 が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT, actual_ret_capacity); // [確認_異常系] - capacity 0 が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_next_empty); // [確認_異常系] - capacity を超える next_empty が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_in_use_count); // [確認_異常系] - capacity を超える in_use_count が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_deleted_count); // [確認_異常系] - capacity を超える deleted_count が拒否されること。
-    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_layout); // [確認_異常系] - レイアウト計算の破綻が拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_key_type); // [確認_異常系] - 不正な保存 key_type が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_scope); // [確認_異常系] - 不正な保存 timestamp_scope が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_key_size); // [確認_異常系] - 保存 key_size 0 が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_value_size); // [確認_異常系] - 保存 value_size 0 が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_lifetime); // [確認_異常系] - 保存 lifetime 1 が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_capacity); // [確認_異常系] - 保存 capacity 0 が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_next_empty); // [確認_異常系] - capacity を超える保存 next_empty が破損として拒否されること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+        actual_ret_in_use_count); // [確認_異常系] - capacity を超える保存 in_use_count が破損として拒否されること。
+    EXPECT_EQ(
+        COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+        actual_ret_deleted_count); // [確認_異常系] - capacity を超える保存 deleted_count が破損として拒否されること。
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret_layout); // [確認_異常系] - 保存設定によるレイアウト計算の破綻が破損として拒否されること。
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
               actual_ret_mgmt_too_small); // [確認_異常系] - 管理領域不足が BUFFER_TOO_SMALL であること。
     EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,

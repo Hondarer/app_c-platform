@@ -14,12 +14,12 @@ namespace
 {
 
 constexpr size_t k_key_size = 512;
-constexpr size_t k_record_size = 512;
+constexpr size_t k_value_size = 512;
 constexpr unsigned char k_lifetime = 5;
 
 void fill_value(std::vector<unsigned char> *buf, const char *text)
 {
-    buf->assign(k_record_size, 0);
+    buf->assign(k_value_size, 0);
     if (text != nullptr)
     {
         std::memcpy(buf->data(), text, std::strlen(text));
@@ -37,7 +37,7 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     // Arrange
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
-    std::vector<unsigned char> value(k_record_size, 0);
+    std::vector<unsigned char> value(k_value_size, 0);
     uint64_t apple_rec = 0;
     uint64_t banana_rec = 0;
     int status = -1;
@@ -51,7 +51,7 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     config.capacity = 4;
     config.key_type = COM_UTIL_HASHTABLE_KEY_STRING;
     config.key_size = k_key_size;
-    config.record_size = k_record_size;
+    config.value_size = k_value_size;
     config.lifetime = k_lifetime; // [状態] - デモと同じ文字列モード設定を用意する。
     std::memset(too_long, 'x', sizeof(too_long) - 1);
     too_long[sizeof(too_long) - 1] = '\0';
@@ -75,13 +75,15 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     int actual_ret_find_deleted = com_util_hashtable_find_value_ref(ht, "banana", &found);
     (void)com_util_hashtable_get_status(ht, banana_rec, &status);
     fill_value(&value, "エルダーベリー");
-    int actual_ret_full = com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    int actual_ret_full =
+        com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     for (int i = 0; i < k_lifetime - 2; ++i)
     {
         (void)com_util_hashtable_push_deleted(ht);
     }
     fill_value(&value, "エルダーベリー");
-    int actual_ret_reuse = com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    int actual_ret_reuse =
+        com_util_hashtable_add(ht, "elderberry", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
     (void)com_util_hashtable_count_status(ht, &in_use, &deleted, &empty);
     fill_value(&value, "long");
     int actual_ret_long = com_util_hashtable_add(ht, too_long, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
@@ -111,7 +113,7 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
     com_util_hashtable *reattached = nullptr;
-    std::vector<unsigned char> value(k_record_size, 0);
+    std::vector<unsigned char> value(k_value_size, 0);
     unsigned char key1[k_key_size] = {0};
     unsigned char key3[k_key_size] = {0};
     unsigned char zero_key[k_key_size] = {0};
@@ -122,7 +124,7 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     config.capacity = 4;
     config.key_type = COM_UTIL_HASHTABLE_KEY_BINARY;
     config.key_size = k_key_size;
-    config.record_size = k_record_size;
+    config.value_size = k_value_size;
     config.lifetime = k_lifetime; // [状態] - デモと同じバイナリ モード設定を用意する。
     key1[0] = 1;
     key1[1] = 2;
@@ -183,9 +185,9 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     com_util_hashtable *src = nullptr;
     com_util_hashtable *dest_keep = nullptr;
     com_util_hashtable *dest_skip = nullptr;
-    std::vector<unsigned char> value(k_record_size, 0);
+    std::vector<unsigned char> value(k_value_size, 0);
     std::vector<unsigned char> key_buf(k_key_size, 0);
-    std::vector<unsigned char> value_buf(k_record_size, 0);
+    std::vector<unsigned char> value_buf(k_value_size, 0);
     uint64_t apple_rec = 0;
     uint64_t banana_rec = 0;
     uint64_t cherry_rec = 0;
@@ -201,7 +203,7 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     src_config.key_type = COM_UTIL_HASHTABLE_KEY_STRING;
     src_config.timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD; // [状態] - 移行はレコード時刻を保つ。
     src_config.key_size = k_key_size;
-    src_config.record_size = k_record_size;
+    src_config.value_size = k_value_size;
     src_config.lifetime = k_lifetime; // [状態] - 移行元は lifetime 5 とする。
     dest_config = src_config;
     dest_config.lifetime = 4; // [状態] - 削除済みを受け取れる lifetime 4 の移行先を用意する。
@@ -228,17 +230,19 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     for (uint64_t rec = 1; rec <= 4; ++rec)
     {
         int status = 0;
+        size_t key_required_size = 0;
+        size_t value_required_size = 0;
         (void)com_util_hashtable_get_status(src, rec, &status);
         if (status == 0)
         {
             continue;
         }
-        (void)com_util_hashtable_get_key_val(src, rec, key_buf.data());
-        (void)com_util_hashtable_get_value_val(src, rec, value_buf.data());
+        (void)com_util_hashtable_get_key_copy(src, rec, key_buf.data(), key_buf.size(), &key_required_size);
+        (void)com_util_hashtable_get_value_copy(src, rec, value_buf.data(), value_buf.size(), &value_required_size);
         com_util_timespec rec_timestamp = {};
         (void)com_util_hashtable_get_timestamp_val(src, rec, &rec_timestamp);
-        keep_copies.push_back(
-            com_util_hashtable_insert_direct(dest_keep, rec, key_buf.data(), status, value_buf.data(), &rec_timestamp));
+        keep_copies.push_back(com_util_hashtable_insert_direct(dest_keep, rec, key_buf.data(), status,
+                                                                value_buf.data(), &rec_timestamp, rec));
     }
     int actual_ret_keep_find = com_util_hashtable_find_recno(dest_keep, "apple", &dest_apple_rec);
     int actual_ret_keep_deleted = com_util_hashtable_find_value_ref(dest_keep, "banana", &found);
@@ -252,17 +256,19 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     for (uint64_t rec = 1; rec <= 4; ++rec)
     {
         int status = 0;
+        size_t key_required_size = 0;
+        size_t value_required_size = 0;
         (void)com_util_hashtable_get_status(src, rec, &status);
         if (status == 0)
         {
             continue;
         }
-        (void)com_util_hashtable_get_key_val(src, rec, key_buf.data());
-        (void)com_util_hashtable_get_value_val(src, rec, value_buf.data());
+        (void)com_util_hashtable_get_key_copy(src, rec, key_buf.data(), key_buf.size(), &key_required_size);
+        (void)com_util_hashtable_get_value_copy(src, rec, value_buf.data(), value_buf.size(), &value_required_size);
         com_util_timespec rec_timestamp = {};
         (void)com_util_hashtable_get_timestamp_val(src, rec, &rec_timestamp);
-        skip_copies.push_back(
-            com_util_hashtable_insert_direct(dest_skip, rec, key_buf.data(), status, value_buf.data(), &rec_timestamp));
+        skip_copies.push_back(com_util_hashtable_insert_direct(dest_skip, rec, key_buf.data(), status,
+                                                                value_buf.data(), &rec_timestamp, rec));
     }
     (void)com_util_hashtable_count_status(dest_skip, &in_use, &deleted, &empty);
     int actual_ret_skip_validate = com_util_hashtable_validate(dest_skip);
@@ -311,7 +317,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     com_util_mmap *map2 = nullptr;
     size_t mgmt_size = 0;
     size_t data_size = 0;
-    std::vector<unsigned char> value(k_record_size, 0);
+    std::vector<unsigned char> value(k_value_size, 0);
     const void *found = nullptr;
     std::string ws = findWorkspaceRoot();
     std::string path =
@@ -322,7 +328,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     config.capacity = 4;
     config.key_type = COM_UTIL_HASHTABLE_KEY_STRING;
     config.key_size = k_key_size;
-    config.record_size = k_record_size;
+    config.value_size = k_value_size;
     config.lifetime = k_lifetime; // [状態] - mmap 検証用のテーブル設定を用意する。
 
     // Pre-Assert
@@ -373,7 +379,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
     com_util_hashtable *reattached = nullptr;
-    std::vector<unsigned char> value(k_record_size, 0);
+    std::vector<unsigned char> value(k_value_size, 0);
     const void *mgmt = nullptr;
     const void *data = nullptr;
     size_t mgmt_size = 0;
@@ -388,7 +394,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     config.capacity = 4;
     config.key_type = COM_UTIL_HASHTABLE_KEY_STRING;
     config.key_size = k_key_size;
-    config.record_size = k_record_size;
+    config.value_size = k_value_size;
     config.lifetime = k_lifetime; // [状態] - 内部確保で永続化するテーブル設定を用意する。
 
     // Pre-Assert

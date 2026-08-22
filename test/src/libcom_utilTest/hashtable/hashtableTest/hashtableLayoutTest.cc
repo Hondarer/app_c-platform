@@ -4,13 +4,15 @@
 #include <com_util/hashtable/hashtable.h>
 #include <mock_com_util.h>
 
+#include "hashtable.inject.h"
+
 #include <cstdint>
 #include <vector>
 
 namespace
 {
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
@@ -18,7 +20,7 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
     config->key_type = key_type;
     config->timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -53,8 +55,7 @@ TEST_F(hashtableLayoutTest, rejects_entry_stride_overflow)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -75,8 +76,7 @@ TEST_F(hashtableLayoutTest, rejects_bucket_region_offset_overflow)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -97,8 +97,7 @@ TEST_F(hashtableLayoutTest, rejects_entries_region_multiplication_overflow)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -119,8 +118,7 @@ TEST_F(hashtableLayoutTest, rejects_entries_region_offset_overflow)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -135,13 +133,12 @@ TEST_F(hashtableLayoutTest, rejects_data_region_multiplication_overflow)
     size_t data_size = 1;
 
     fill_config(&config, 2, 8, SIZE_MAX, 5,
-                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - データ領域サイズの乗算が破綻する record_size を用意する。
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - データ領域サイズの乗算が破綻する value_size を用意する。
 
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -161,8 +158,7 @@ TEST_F(hashtableLayoutTest, required_size_rejects_zero_capacity)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
+    int actual_ret = com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [手順] - 必要サイズを求める。
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
@@ -190,8 +186,8 @@ TEST_F(hashtableLayoutTest, create_rejects_misaligned_external_buffer)
                                   &ht); // [手順] - 1 バイトずれた管理領域で構築する。
 
     // Assert
-    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL,
-              actual_ret);  // [確認_異常系] - 未整列の外部バッファーが BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret);  // [確認_異常系] - 未整列の外部バッファーが INVALID_ARGUMENT であること。
     EXPECT_EQ(nullptr, ht); // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
 
@@ -206,7 +202,7 @@ TEST_F(hashtableLayoutTest, create_internal_alloc_rejects_combined_size_overflow
     fill_config(&config, 1, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING);
     (void)com_util_hashtable_required_size(&config, &mgmt_size, &data_size); // [状態] - 管理領域サイズを求めておく。
     fill_config(&config, 1, 8, SIZE_MAX - mgmt_size + 1, 5,
-                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - 内部確保の mgmt_size + data_size 加算が破綻する record_size
+                COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - 内部確保の mgmt_size + data_size 加算が破綻する value_size
                                                 // を用意する(capacity 1 なので data_size 単体はあふれない)。
 
     // Pre-Assert
@@ -247,4 +243,177 @@ TEST_F(hashtableLayoutTest, required_size_table_scope_is_smaller_than_record_sco
     EXPECT_EQ(COM_UTIL_OK, actual_ret_record); // [確認_正常系] - SCOPE_RECORD の必要サイズが求まること。
     EXPECT_LT(table_mgmt, record_mgmt);        // [確認_正常系] - SCOPE_TABLE の管理領域が厳密に小さいこと。
     EXPECT_EQ(table_data, record_data);        // [確認_正常系] - データ領域サイズは粒度で変わらないこと。
+}
+
+TEST_F(hashtableLayoutTest, rejects_invalid_value_align)
+{
+    // Arrange
+    com_util_hashtable_config not_power_of_two = {};
+    com_util_hashtable_config too_large = {};
+    com_util_hashtable_config variable_value = {};
+    size_t mgmt_size = 0;
+    size_t data_size = 0;
+
+    fill_config(&not_power_of_two, 4, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    not_power_of_two.value_align = 6; // [状態] - 2 の冪でない境界を指定する。
+    fill_config(&too_large, 4, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    too_large.value_align = COM_UTIL_HASHTABLE_VALUE_ALIGN_MAX * 2; // [状態] - 上限を超える境界を指定する。
+    fill_config(&variable_value, 4, 8, 0, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    variable_value.value_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    variable_value.value_storage_size = 64;
+    variable_value.value_align = 8; // [状態] - 可変長値に 0 以外の境界を指定する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_not_power_of_two = com_util_hashtable_required_size(&not_power_of_two, &mgmt_size, &data_size);
+    int actual_ret_too_large = com_util_hashtable_required_size(&too_large, &mgmt_size, &data_size);
+    int actual_ret_variable_value = com_util_hashtable_required_size(&variable_value, &mgmt_size, &data_size);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_not_power_of_two); // [確認_異常系] - 2 の冪でない境界が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_too_large); // [確認_異常系] - 上限を超える境界が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_variable_value); // [確認_異常系] - 可変長値に境界を指定すると INVALID_ARGUMENT であること。
+}
+
+TEST_F(hashtableLayoutTest, value_align_rounds_up_data_region_and_aligns_references)
+{
+    // Arrange
+    com_util_hashtable_config packed = {};
+    com_util_hashtable_config aligned = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(5, 0);
+    size_t packed_data_size = 0;
+    size_t aligned_data_size = 0;
+    const void *first_ref = nullptr;
+    const void *second_ref = nullptr;
+
+    fill_config(&packed, 4, 8, 5, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - 5 バイトの値を詰めて並べる設定。
+    fill_config(&aligned, 4, 8, 5, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    aligned.value_align = 8; // [状態] - 5 バイトの値を 8 境界へ整列させる設定。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_packed_size = com_util_hashtable_required_size(&packed, NULL, &packed_data_size);
+    int actual_ret_aligned_size = com_util_hashtable_required_size(&aligned, NULL, &aligned_data_size);
+    int actual_ret_create = com_util_hashtable_create(&aligned, NULL, 0, NULL, 0, &ht);
+    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "b", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    int actual_ret_first = com_util_hashtable_get_value_ref(ht, 1, &first_ref);
+    int actual_ret_second = com_util_hashtable_get_value_ref(ht, 2, &second_ref);
+    uintptr_t first_addr = reinterpret_cast<uintptr_t>(first_ref);
+    uintptr_t second_addr = reinterpret_cast<uintptr_t>(second_ref);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_packed_size);  // [確認_正常系] - 詰めて並べる設定で必要サイズを求められること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_aligned_size); // [確認_正常系] - 整列させる設定で必要サイズを求められること。
+    EXPECT_EQ(static_cast<size_t>(4 * 5),
+              packed_data_size); // [確認_正常系] - 詰めた場合は value_size の総和であること。
+    EXPECT_EQ(static_cast<size_t>(4 * 8),
+              aligned_data_size);              // [確認_正常系] - 整列させた場合は境界へ切り上げた幅の総和であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - 整列させる設定で構築できること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_first);  // [確認_正常系] - 1 件目の値参照を取れること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_second); // [確認_正常系] - 2 件目の値参照を取れること。
+    EXPECT_EQ(0u, first_addr % 8u);            // [確認_正常系] - 1 件目の値参照が指定した境界に整列していること。
+    EXPECT_EQ(0u, second_addr % 8u);           // [確認_正常系] - 2 件目の値参照が指定した境界に整列していること。
+}
+
+TEST_F(hashtableLayoutTest, create_rejects_external_data_buffer_misaligned_for_value_align)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    size_t mgmt_size = 0;
+    size_t data_size = 0;
+    std::vector<uint64_t> mgmt_buf;
+    std::vector<unsigned char> data_buf;
+
+    fill_config(&config, 4, 8, 5, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    config.value_align = 8; // [状態] - 8 境界を要求する設定を用意する。
+    (void)com_util_hashtable_required_size(&config, &mgmt_size, &data_size);
+    mgmt_buf.assign((mgmt_size / sizeof(uint64_t)) + 1u, 0);
+    data_buf.assign(data_size + 8u, 0);
+
+    // Pre-Assert
+    ASSERT_NE(0u, data_size); // [Pre-Assert確認_正常系] - データ領域の必要サイズが求まること。
+
+    // Act
+    /* 8 境界から 1 バイトずらした位置をデータ領域として渡す。 */
+    int actual_ret =
+        com_util_hashtable_create(&config, mgmt_buf.data(), mgmt_size, data_buf.data() + 1, data_size, &ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret);  // [確認_異常系] - 境界を満たさないデータ領域が INVALID_ARGUMENT であること。
+    EXPECT_EQ(nullptr, ht); // [確認_異常系] - 失敗時にハンドルが NULL のままであること。
+}
+
+TEST_F(hashtableLayoutTest, variable_key_descriptor_is_aligned_in_table_scope)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 0);
+    uintptr_t first_addr = 0;
+    uintptr_t second_addr = 0;
+
+    fill_config(&config, 4, 0, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    config.key_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.key_storage_size = 64;
+    config.timestamp_scope =
+        COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE; // [状態] - 可変長キーとテーブル粒度を組み合わせる。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
+    (void)com_util_hashtable_add(ht, "alpha", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    first_addr = reinterpret_cast<uintptr_t>(test_hashtable_key_ref_at(ht, 0));
+    second_addr = reinterpret_cast<uintptr_t>(test_hashtable_key_ref_at(ht, 1));
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - 可変長キーとテーブル粒度で構築できること。
+    EXPECT_EQ(0u,
+              first_addr % alignof(uint64_t)); // [確認_正常系] - 1 件目のキー descriptor が uint64_t 境界にあること。
+    EXPECT_EQ(0u,
+              second_addr % alignof(uint64_t)); // [確認_正常系] - 2 件目のキー descriptor が uint64_t 境界にあること。
+}
+
+TEST_F(hashtableLayoutTest, internal_data_region_is_aligned_after_odd_key_storage)
+{
+    // Arrange
+    com_util_hashtable_config config = {};
+    com_util_hashtable *ht = nullptr;
+    std::vector<unsigned char> value(8, 0);
+    uintptr_t data_addr = 0;
+    uintptr_t ref_addr = 0;
+
+    fill_config(&config, 4, 0, 0, 5, COM_UTIL_HASHTABLE_KEY_STRING);
+    config.key_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.value_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.key_storage_size = 61; // [状態] - 8 の倍数でないキー ストレージ容量にする。
+    config.value_storage_size = 64;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
+    const void *data_ref = nullptr;
+    int actual_ret_buffer = com_util_hashtable_buffer_ref(ht, NULL, &data_ref);
+    (void)com_util_hashtable_add(ht, "alpha", "v1", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    data_addr = reinterpret_cast<uintptr_t>(data_ref);
+    ref_addr = reinterpret_cast<uintptr_t>(test_hashtable_value_ref_at(ht, 0));
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_create);    // [確認_正常系] - 8 の倍数でないキー ストレージ容量で構築できること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_buffer);    // [確認_正常系] - データ領域の先頭を取れること。
+    EXPECT_EQ(0u, data_addr % alignof(uint64_t)); // [確認_正常系] - データ領域の先頭が uint64_t 境界にあること。
+    EXPECT_EQ(0u, ref_addr % alignof(uint64_t));  // [確認_正常系] - 値 descriptor が uint64_t 境界にあること。
 }

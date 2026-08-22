@@ -20,7 +20,7 @@ class hashtable_required_sizeTest : public Test
 TEST_F(hashtable_required_sizeTest, main_prints_required_size)
 {
     // Arrange
-    const char *argv[] = {"hashtable-required-size", "--capacity=4", "--key-size=8", "--record-size=8"};
+    const char *argv[] = {"hashtable-required-size", "--capacity=4", "--key-size=8", "--value-size=8"};
     const int argc = (int)(sizeof(argv) / sizeof(argv[0]));
 
     // Pre-Assert
@@ -35,7 +35,7 @@ TEST_F(hashtable_required_sizeTest, main_prints_required_size)
 TEST_F(hashtable_required_sizeTest, main_accepts_record_timestamp_flag)
 {
     // Arrange
-    const char *argv[] = {"hashtable-required-size", "--capacity=4", "--key-size=8", "--record-size=8",
+    const char *argv[] = {"hashtable-required-size", "--capacity=4", "--key-size=8", "--value-size=8",
                           "--record-timestamp"};
     const int argc = (int)(sizeof(argv) / sizeof(argv[0]));
 

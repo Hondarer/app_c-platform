@@ -141,6 +141,8 @@
  */
 #define COM_UTIL_ERR_NOT_FOUND (-6)
 
+#define COM_UTIL_ERR_DUPLICATE_KEY (-7) /**< 同一キーが既に存在します。 */
+
 /* リソース・バッファー: -10 〜 -19 */
 
 /**
@@ -186,6 +188,7 @@
 #define COM_UTIL_ERR_BUFFER_TOO_SMALL (-14)
 
 #define COM_UTIL_ERR_CORRUPT_DESCRIPTOR (-15) /**< ディスクリプタが破損しています。 */
+#define COM_UTIL_ERR_STORAGE_FULL       (-16) /**< 固定容量ストレージに空きがありません。 */
 
 /* 入力解析: -20 〜 -39 */
 #define COM_UTIL_ERR_UNKNOWN_OPTION       (-20) /**< 未登録のオプションが指定されました。 */

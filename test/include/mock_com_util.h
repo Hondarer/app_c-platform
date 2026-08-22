@@ -92,23 +92,28 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_config_val)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_buffer_size)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_buffer_ref)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_add)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_upsert)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_insert_direct)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_update)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_update_rec)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_value_ref)
-MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_value_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_value_copy)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_recno)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_key_ref)
-MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_key_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_key_copy)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_value_ref)
-MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_value_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_value_copy)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_status)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_next_record)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_timestamp_ref)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_generation)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_table_timestamp_ref)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_table_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_get_table_generation)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_timestamp_ref)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_timestamp_val)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_find_generation)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_count_status)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_count)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_deleted_count)
@@ -117,6 +122,9 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_delete)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_delete_rec)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_push_deleted)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_purge_deleted)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_compact)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_resize)
+MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_rebuild_into)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_clear)
 MOCK_COM_UTIL_LINK_IMPL(com_util_hashtable_dispose)
 
@@ -730,8 +738,7 @@ extern void delegate_real_com_util_sleep_ms(int ms);
 
 // runtime - module_info
 extern int delegate_real_com_util_module_get_path(char *path_out, size_t path_size, const void *func_addr);
-extern int delegate_real_com_util_module_get_basename(char *basename_out, size_t basename_size,
-                                                      const void *func_addr);
+extern int delegate_real_com_util_module_get_basename(char *basename_out, size_t basename_size, const void *func_addr);
 
 // runtime - memory_lock
 extern int delegate_real_com_util_memory_lock_range(const void *address, size_t size);
@@ -758,36 +765,49 @@ extern int delegate_real_com_util_hashtable_buffer_ref(const com_util_hashtable 
                                                        const void **data_out);
 extern int delegate_real_com_util_hashtable_add(com_util_hashtable *ht, const void *key, const void *value,
                                                 com_util_hashtable_add_deleted_policy deleted_policy);
+extern int delegate_real_com_util_hashtable_upsert(com_util_hashtable *ht, const void *key, const void *value,
+                                                   int *inserted_out);
 extern int delegate_real_com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record, const void *key,
                                                           int status, const void *value,
-                                                          const com_util_timespec *timestamp);
+                                                          const com_util_timespec *timestamp, uint64_t generation);
 extern int delegate_real_com_util_hashtable_update(com_util_hashtable *ht, const void *key, const void *value);
 extern int delegate_real_com_util_hashtable_update_rec(com_util_hashtable *ht, uint64_t record, const void *value);
 extern int delegate_real_com_util_hashtable_find_value_ref(const com_util_hashtable *ht, const void *key,
                                                            const void **value_out);
-extern int delegate_real_com_util_hashtable_find_value_val(const com_util_hashtable *ht, const void *key,
-                                                           void *value_out);
+extern int delegate_real_com_util_hashtable_find_value_copy(const com_util_hashtable *ht, const void *key, void *dest,
+                                                            size_t dest_size, size_t *required_size_out);
 extern int delegate_real_com_util_hashtable_find_recno(const com_util_hashtable *ht, const void *key,
                                                        uint64_t *record_out);
 extern int delegate_real_com_util_hashtable_get_key_ref(const com_util_hashtable *ht, uint64_t record,
                                                         const void **key_out);
-extern int delegate_real_com_util_hashtable_get_key_val(const com_util_hashtable *ht, uint64_t record, void *key_out);
+extern int delegate_real_com_util_hashtable_get_key_copy(const com_util_hashtable *ht, uint64_t record, void *dest,
+                                                         size_t dest_size, size_t *required_size_out);
 extern int delegate_real_com_util_hashtable_get_value_ref(const com_util_hashtable *ht, uint64_t record,
                                                           const void **value_out);
-extern int delegate_real_com_util_hashtable_get_value_val(const com_util_hashtable *ht, uint64_t record, void *value_out);
+extern int delegate_real_com_util_hashtable_get_value_copy(const com_util_hashtable *ht, uint64_t record, void *dest,
+                                                           size_t dest_size, size_t *required_size_out);
 extern int delegate_real_com_util_hashtable_get_status(const com_util_hashtable *ht, uint64_t record, int *status_out);
+extern int delegate_real_com_util_hashtable_next_record(const com_util_hashtable *ht, uint64_t from,
+                                                        unsigned int status_mask, uint64_t *record_out,
+                                                        int *has_record_out);
 extern int delegate_real_com_util_hashtable_get_timestamp_ref(const com_util_hashtable *ht, uint64_t record,
                                                               const com_util_timespec **timestamp_out);
 extern int delegate_real_com_util_hashtable_get_timestamp_val(const com_util_hashtable *ht, uint64_t record,
                                                               com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_get_generation(const com_util_hashtable *ht, uint64_t record,
+                                                           uint64_t *generation_out);
 extern int delegate_real_com_util_hashtable_get_table_timestamp_ref(const com_util_hashtable *ht,
                                                                     const com_util_timespec **timestamp_out);
 extern int delegate_real_com_util_hashtable_get_table_timestamp_val(const com_util_hashtable *ht,
                                                                     com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_get_table_generation(const com_util_hashtable *ht,
+                                                                 uint64_t *generation_out);
 extern int delegate_real_com_util_hashtable_find_timestamp_ref(const com_util_hashtable *ht, const void *key,
                                                                const com_util_timespec **timestamp_out);
 extern int delegate_real_com_util_hashtable_find_timestamp_val(const com_util_hashtable *ht, const void *key,
                                                                com_util_timespec *timestamp_out);
+extern int delegate_real_com_util_hashtable_find_generation(const com_util_hashtable *ht, const void *key,
+                                                            uint64_t *generation_out);
 extern int delegate_real_com_util_hashtable_count_status(const com_util_hashtable *ht, size_t *in_use_out,
                                                          size_t *deleted_out, size_t *empty_out);
 extern int delegate_real_com_util_hashtable_count(const com_util_hashtable *ht, size_t *count_out);
@@ -797,6 +817,13 @@ extern int delegate_real_com_util_hashtable_delete(com_util_hashtable *ht, const
 extern int delegate_real_com_util_hashtable_delete_rec(com_util_hashtable *ht, uint64_t record);
 extern int delegate_real_com_util_hashtable_push_deleted(com_util_hashtable *ht);
 extern int delegate_real_com_util_hashtable_purge_deleted(com_util_hashtable *ht);
+extern int delegate_real_com_util_hashtable_compact(com_util_hashtable *ht);
+extern int delegate_real_com_util_hashtable_resize(com_util_hashtable *ht,
+                                                   const com_util_hashtable_config *new_config);
+extern int delegate_real_com_util_hashtable_rebuild_into(const com_util_hashtable *src,
+                                                         const com_util_hashtable_config *new_config, void *buf_mgmt,
+                                                         size_t buf_mgmt_size, void *buf_data, size_t buf_data_size,
+                                                         com_util_hashtable **ht_out);
 extern int delegate_real_com_util_hashtable_clear(com_util_hashtable *ht);
 extern void delegate_real_com_util_hashtable_dispose(com_util_hashtable *ht);
 
@@ -1060,28 +1087,37 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_hashtable_buffer_ref, (const com_util_hashtable *, const void **, const void **));
     MOCK_METHOD(int, com_util_hashtable_add,
                 (com_util_hashtable *, const void *, const void *, com_util_hashtable_add_deleted_policy));
+    MOCK_METHOD(int, com_util_hashtable_upsert, (com_util_hashtable *, const void *, const void *, int *));
     MOCK_METHOD(int, com_util_hashtable_insert_direct,
-                (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *));
+                (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *,
+                 uint64_t));
     MOCK_METHOD(int, com_util_hashtable_update, (com_util_hashtable *, const void *, const void *));
     MOCK_METHOD(int, com_util_hashtable_update_rec, (com_util_hashtable *, uint64_t, const void *));
     MOCK_METHOD(int, com_util_hashtable_find_value_ref, (const com_util_hashtable *, const void *, const void **));
-    MOCK_METHOD(int, com_util_hashtable_find_value_val, (const com_util_hashtable *, const void *, void *));
+    MOCK_METHOD(int, com_util_hashtable_find_value_copy,
+                (const com_util_hashtable *, const void *, void *, size_t, size_t *));
     MOCK_METHOD(int, com_util_hashtable_find_recno, (const com_util_hashtable *, const void *, uint64_t *));
     MOCK_METHOD(int, com_util_hashtable_get_key_ref, (const com_util_hashtable *, uint64_t, const void **));
-    MOCK_METHOD(int, com_util_hashtable_get_key_val, (const com_util_hashtable *, uint64_t, void *));
+    MOCK_METHOD(int, com_util_hashtable_get_key_copy, (const com_util_hashtable *, uint64_t, void *, size_t, size_t *));
     MOCK_METHOD(int, com_util_hashtable_get_value_ref, (const com_util_hashtable *, uint64_t, const void **));
-    MOCK_METHOD(int, com_util_hashtable_get_value_val, (const com_util_hashtable *, uint64_t, void *));
+    MOCK_METHOD(int, com_util_hashtable_get_value_copy,
+                (const com_util_hashtable *, uint64_t, void *, size_t, size_t *));
     MOCK_METHOD(int, com_util_hashtable_get_status, (const com_util_hashtable *, uint64_t, int *));
+    MOCK_METHOD(int, com_util_hashtable_next_record,
+                (const com_util_hashtable *, uint64_t, unsigned int, uint64_t *, int *));
     MOCK_METHOD(int, com_util_hashtable_get_timestamp_ref,
                 (const com_util_hashtable *, uint64_t, const com_util_timespec **));
     MOCK_METHOD(int, com_util_hashtable_get_timestamp_val, (const com_util_hashtable *, uint64_t, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_get_generation, (const com_util_hashtable *, uint64_t, uint64_t *));
     MOCK_METHOD(int, com_util_hashtable_get_table_timestamp_ref,
                 (const com_util_hashtable *, const com_util_timespec **));
     MOCK_METHOD(int, com_util_hashtable_get_table_timestamp_val, (const com_util_hashtable *, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_get_table_generation, (const com_util_hashtable *, uint64_t *));
     MOCK_METHOD(int, com_util_hashtable_find_timestamp_ref,
                 (const com_util_hashtable *, const void *, const com_util_timespec **));
     MOCK_METHOD(int, com_util_hashtable_find_timestamp_val,
                 (const com_util_hashtable *, const void *, com_util_timespec *));
+    MOCK_METHOD(int, com_util_hashtable_find_generation, (const com_util_hashtable *, const void *, uint64_t *));
     MOCK_METHOD(int, com_util_hashtable_count_status, (const com_util_hashtable *, size_t *, size_t *, size_t *));
     MOCK_METHOD(int, com_util_hashtable_count, (const com_util_hashtable *, size_t *));
     MOCK_METHOD(int, com_util_hashtable_deleted_count, (const com_util_hashtable *, size_t *));
@@ -1090,6 +1126,11 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_hashtable_delete_rec, (com_util_hashtable *, uint64_t));
     MOCK_METHOD(int, com_util_hashtable_push_deleted, (com_util_hashtable *));
     MOCK_METHOD(int, com_util_hashtable_purge_deleted, (com_util_hashtable *));
+    MOCK_METHOD(int, com_util_hashtable_compact, (com_util_hashtable *));
+    MOCK_METHOD(int, com_util_hashtable_resize, (com_util_hashtable *, const com_util_hashtable_config *));
+    MOCK_METHOD(int, com_util_hashtable_rebuild_into,
+                (const com_util_hashtable *, const com_util_hashtable_config *, void *, size_t, void *, size_t,
+                 com_util_hashtable **));
     MOCK_METHOD(int, com_util_hashtable_clear, (com_util_hashtable *));
     MOCK_METHOD(void, com_util_hashtable_dispose, (com_util_hashtable *));
 

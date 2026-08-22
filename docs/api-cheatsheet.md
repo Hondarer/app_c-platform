@@ -402,8 +402,38 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 対象ヘッダー: `com_util/hashtable/hashtable.h`
 
-固定長スロットと遅延削除を持つハッシュ テーブルです。  
+固定レコード数、固定ストレージ容量、遅延削除を持つハッシュ テーブルです。  
 単一の標準 API とは対応しません。
+
+キーと値は個別に固定長バイナリ、固定長 NUL 終端文字列、可変長 NUL 終端文字列を選択できます。  
+可変長文字列では `key_storage_size` または `value_storage_size` で構築時の容量を指定し、自動拡張しません。  
+断片化で連続領域が不足すると、合計空き容量が足りていても `COM_UTIL_ERR_STORAGE_FULL` です。  
+必要に応じて `com_util_hashtable_compact` を明示的に呼び出してから再試行します。  
+固定長バイナリ値は `value_size` バイトのバイト列として `memcpy` で授受します。  
+値の格納境界は設定の `value_align` で決まります。  
+既定の `0` では値を隙間なく並べ、値への参照を返す API も型のアラインメントを保証しないため、型付きポインターとして直接参照せず `memcpy` で取り出します。  
+`value_align` に非 0 (2 の冪、`COM_UTIL_HASHTABLE_VALUE_ALIGN_MAX` 以下) を指定すると、値をその境界へ整列させ、`buf_data` にも同じ境界を要求します。  
+この場合に限り、値への参照を境界を満たす型のポインターとして直接参照できます。  
+可変長値では `value_align` は `0` でなければなりません。
+
+固定長文字列を追加または更新するときは、NUL 終端文字列をそのまま渡します。  
+未使用部分は内部で 0 埋めするため、呼び出し側で固定長まで fill する必要はありません。
+
+可変長フィールドへの参照は、そのフィールドの更新、回収、再利用、または `compact`、`clear`、`dispose` まで有効です。  
+別のレコードや別のフィールドを更新しただけでは無効になりません。  
+安全に保持する場合は、固定長文字列と可変長文字列のどちらも `*_copy` を使います。  
+`dest == NULL`、`dest_size == 0` で NUL を含む必要量を照会できます。  
+固定長バイナリも `*_copy` で取得でき、必要量は設定した固定サイズです。
+
+テーブルは変更時刻と世代カウンターの両方を持ちます。  
+変更時刻は実時刻のため時計の巻き戻しで逆行しますが、世代カウンターは変更のたびに 1 ずつ増える単調な値です。  
+変更の前後関係を判定する場合は世代カウンターを比較し、変更時刻は表示と外部システムとの相関に使います。
+
+レコード番号は内部スロットの 1 相対番号であり、有効期間を持つ内部キーです。  
+永続化した番号を別の機会に突き合わせる用途は対象外です。  
+`com_util_hashtable_delete` で直ちに空へ戻ったレコード、`com_util_hashtable_push_deleted` で寿命に到達したレコード、`com_util_hashtable_purge_deleted` の削除済みレコード、`com_util_hashtable_clear` のすべて、`reuse_deleted` が非 0 のときに `com_util_hashtable_add` が追い出した削除済みレコード、および `com_util_hashtable_dispose` をまたぐと、番号は無効になりえます。  
+`com_util_hashtable_find_recno` で得た番号は、これらを挟まない範囲で使います。  
+空へ戻ったスロットと追い出されたスロットは、別のキーへ再利用されます。
 
 | 用途 | com_util API |
 |---|---|
@@ -412,15 +442,36 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 | 構築 / 再接続 / 破棄 | `com_util_hashtable_create` / `com_util_hashtable_attach` / `com_util_hashtable_dispose` |
 | 設定を読む | `com_util_hashtable_get_config_ref` / `com_util_hashtable_get_config_val` |
 | 追加 / 更新 / 削除 | `com_util_hashtable_add` / `com_util_hashtable_update` / `com_util_hashtable_update_rec` / `com_util_hashtable_delete` / `com_util_hashtable_delete_rec` |
+| 無ければ追加、あれば更新 | `com_util_hashtable_upsert`。新規追加か既存更新かは `inserted_out` で返る。重複も未登録もエラーにしない |
+| 削除済み同一キーの追加方針 | `COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE` は新しい値で復活 / `COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE` は削除前の値で復活 |
+| 空きがない場合に削除済みを再利用 | 設定 `reuse_deleted` を非 0 にする。既定値は 0 |
 | レコード番号を指定して直接書き込む | `com_util_hashtable_insert_direct` |
-| 検索 | `com_util_hashtable_find_value_ref` / `com_util_hashtable_find_value_val` / `com_util_hashtable_find_recno` / `com_util_hashtable_find_timestamp_ref` / `com_util_hashtable_find_timestamp_val` |
-| レコード番号から読む | `com_util_hashtable_get_key_ref` / `com_util_hashtable_get_key_val` / `com_util_hashtable_get_value_ref` / `com_util_hashtable_get_value_val` / `com_util_hashtable_get_status` / `com_util_hashtable_get_timestamp_ref` / `com_util_hashtable_get_timestamp_val` |
+| 検索 | `com_util_hashtable_find_value_ref` / `com_util_hashtable_find_value_copy` / `com_util_hashtable_find_recno` / `com_util_hashtable_find_timestamp_ref` / `com_util_hashtable_find_timestamp_val` |
+| レコード番号から読む | `com_util_hashtable_get_key_ref` / `com_util_hashtable_get_key_copy` / `com_util_hashtable_get_value_ref` / `com_util_hashtable_get_value_copy` / `com_util_hashtable_get_status` / `com_util_hashtable_get_timestamp_ref` / `com_util_hashtable_get_timestamp_val` |
 | テーブル横断の変更時刻 | `com_util_hashtable_get_table_timestamp_ref` / `com_util_hashtable_get_table_timestamp_val` |
-| タイムスタンプの粒度 | `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE` / `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD` |
-| 占有状況 | `com_util_hashtable_count_status` / `com_util_hashtable_count` / `com_util_hashtable_deleted_count` / `com_util_hashtable_empty_count` |
+| 世代カウンターを読む | `com_util_hashtable_get_table_generation` / `com_util_hashtable_get_generation` / `com_util_hashtable_find_generation` |
+| タイムスタンプと世代カウンターの粒度 | `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE` / `COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD`。テーブル横断の世代カウンターは粒度に関わらず常に有効 |
+| 固定長値の格納境界 | 設定 `value_align`。上限は `COM_UTIL_HASHTABLE_VALUE_ALIGN_MAX` |
+| 占有状況 | `com_util_hashtable_count_status` / `com_util_hashtable_count` / `com_util_hashtable_deleted_count` / `com_util_hashtable_empty_count`。永続化領域の保持カウンターから取得するため、スロットを走査せず O(1) で完了 |
+| 状態で絞って走査する | `com_util_hashtable_next_record`。`COM_UTIL_HASHTABLE_SCAN_IN_USE` / `_DELETED` / `_EMPTY` のビット和で対象を選ぶ。列挙の終了はエラーではなく `has_record_out` が 0 |
+| レコード数とストレージ容量を変える | 内部確保は `com_util_hashtable_resize`、外部領域は `com_util_hashtable_rebuild_into` |
 | 削除の加齢と回収 | `com_util_hashtable_push_deleted` / `com_util_hashtable_purge_deleted` / `com_util_hashtable_clear` |
+| 可変長ストレージの明示的な圧縮 | `com_util_hashtable_compact`。キーと値を一括して圧縮し、取得済みの可変長参照を無効化 |
 | 寿命無限 | `COM_UTIL_HASHTABLE_LIFETIME_INFINITE` |
 | 整合性検査 | `com_util_hashtable_validate` |
+
+`com_util_hashtable_add` と `com_util_hashtable_insert_direct` は、既存キーとの衝突を `COM_UTIL_ERR_DUPLICATE_KEY` で通知します。  
+`com_util_hashtable_insert_direct` の指定スロットが空でない場合は、`COM_UTIL_ERR_DUPLICATE_DEFINITION` です。
+
+`com_util_hashtable_attach` は、呼び出し引数の不正を `COM_UTIL_ERR_INVALID_ARGUMENT`、領域の容量不足を `COM_UTIL_ERR_BUFFER_TOO_SMALL`、保存ヘッダーの不正を `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` で通知します。
+
+`com_util_hashtable_resize` と `com_util_hashtable_rebuild_into` で変えられるのは、`capacity`、`key_storage_size`、`value_storage_size` の 3 つだけです。  
+ほかの項目が現在の設定と異なる場合は `COM_UTIL_ERR_INVALID_ARGUMENT` です。  
+拡大ではレコード番号を保存し、縮小では保存しません。縮小後は `com_util_hashtable_find_recno` で取り直します。  
+レコードは 1 件も捨てません。使用中が収まらない場合、および `reuse_deleted` が `0` で削除済みが収まらない場合は `COM_UTIL_ERR_LIMIT_EXCEEDED` です。  
+`reuse_deleted` が非 0 のときだけ、`com_util_hashtable_add` の追い出しと同じ規則で削除済みを古い順に空へ戻します。  
+可変長ストレージは移行時に詰め直し、詰めた後の使用量が新しい容量を超える場合は `COM_UTIL_ERR_STORAGE_FULL` です。  
+`com_util_hashtable_resize` は内部確保のテーブル専用で、外部領域のテーブルには `COM_UTIL_ERR_UNSUPPORTED` を返します。
 
 ### スレッドと同期プリミティブ
 

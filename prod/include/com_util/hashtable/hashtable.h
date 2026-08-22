@@ -1,12 +1,15 @@
 /**
  *******************************************************************************
  *  @file           hashtable.h
- *  @brief          固定長スロットと遅延削除を持つハッシュ テーブル API を提供します。
+ *  @brief          固定レコード数と可変長文字列ストレージを持つハッシュ テーブル API を提供します。
  *  @author         Tetsuo Honda
  *  @date           2026/08/18
  *  @version        1.0.0
  *
- *  キーと値を固定長バイト列として保持するハッシュ テーブルです。\n
+ *  キーと値は個別に固定長バイナリ、固定長文字列、可変長文字列を選択できます。\n
+ *  可変長文字列のストレージ容量は構築時に固定し、自動拡張しません。\n
+ *  断片化で連続領域が不足した場合は @ref COM_UTIL_ERR_STORAGE_FULL を返します。\n
+ *  必要に応じて @ref com_util_hashtable_compact を明示的に呼び出してください。\n
  *  衝突はチェイン法で扱い、削除は寿命付きの加齢により空きへ戻します。\n
  *  lifetime が @ref COM_UTIL_HASHTABLE_LIFETIME_INFINITE のとき、
  *  削除済みは加齢の末に 255 で止まり、push では空へ戻りません。\n
@@ -14,10 +17,31 @@
  *
  *  レコード番号は 1 相対で、内部スロットと 1 対 1 です。\n
  *  1 から capacity までを `get_status` / `get_key_*` / `get_value_*` /
- *  `get_timestamp_*` で走査できます。\n
- *  テーブルは常に横断の変更時刻を持ち、最後にキーまたは値が変わった実時刻です。\n
+ *  `get_timestamp_*` / `get_generation` で走査できます。\n
+ *  使用中のレコードだけを辿るなど、状態で絞って走査する場合は
+ *  @ref com_util_hashtable_next_record を使うと、空のスロットを読み飛ばせます。\n
+ *  レコード番号は、有効期間を持つ内部キーです。永続化した番号を別の機会に
+ *  突き合わせる用途は対象外です。次の操作をまたぐと無効になりえます。\n
+ *  - @ref com_util_hashtable_delete / @ref com_util_hashtable_delete_rec :
+ *    lifetime が 2 のときは直ちに空へ戻るため、そのレコード。\n
+ *  - @ref com_util_hashtable_push_deleted : 寿命に到達して空へ戻ったレコード。\n
+ *  - @ref com_util_hashtable_purge_deleted : 削除済みレコードのすべて。\n
+ *  - @ref com_util_hashtable_clear : すべて。\n
+ *  - @ref com_util_hashtable_add / @ref com_util_hashtable_upsert :
+ *    reuse_deleted が非 0 のときに追い出された削除済みレコード。\n
+ *  - @ref com_util_hashtable_resize / @ref com_util_hashtable_rebuild_into :
+ *    縮小のときはすべて。拡大では保存されます。\n
+ *  - @ref com_util_hashtable_dispose : すべて。\n
+ *  @ref com_util_hashtable_find_recno で得た番号は、上記に該当する操作を
+ *  挟まない範囲で使ってください。\n
+ *  空へ戻ったスロットと、追い出された削除済みスロットは、別のキーへ再利用されます。\n
+ *  テーブルは常に横断の変更時刻と世代カウンターを持ちます。変更時刻は最後にキーまたは
+ *  値が変わった実時刻、世代カウンターは変更のたびに 1 ずつ増える単調な値です。\n
+ *  実時刻は時計の巻き戻しで逆行しうるため、変更の前後関係を判定する用途には
+ *  世代カウンターを使ってください。実時刻は表示と外部システムとの相関に使います。\n
  *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、各レコードも
- *  実時刻 (`com_util_timespec`) の変更時刻を持ち、status が 0 以外のときだけ有効です。
+ *  実時刻 (`com_util_timespec`) の変更時刻と世代カウンターを持ち、status が
+ *  0 以外のときだけ有効です。
  *
  *  テーブルは、識別子・ヘッダー・バケット配列・エントリ配列からなる「管理領域」と、
  *  値配列からなる「データ領域」の 2 領域で構成されます。いずれも永続化して
@@ -28,6 +52,18 @@
  *  ファイルなど管理領域と連続しない領域を想定)へ構築・再接続できます。\n
  *  片方だけを指定することはできません。
  *
+ *  固定長バイナリ値は value_size バイトのバイト列として memcpy で複製します。\n
+ *  固定長文字列は NUL までを複製し、保存領域の未使用部分を内部で 0 埋めします。\n
+ *  可変長文字列への参照は、そのフィールドの更新・回収・再利用、または
+ *  @ref com_util_hashtable_compact / @ref com_util_hashtable_clear /
+ *  @ref com_util_hashtable_dispose まで有効です。\n
+ *  値の入力ポインターに型のアラインメントは要求しません。\n
+ *  値の格納境界は config の value_align で決まります。0 (既定) では値を隙間なく
+ *  並べ、`find_value_ref` / `get_value_ref` が返すポインターに型のアラインメントを
+ *  保証しないため、型付きポインターとして直接参照せず memcpy で取り出してください。\n
+ *  value_align に非 0 を指定した場合に限り、返るポインターがその境界に整列している
+ *  ことを保証するため、境界を満たす型のポインターとして直接参照できます。
+ *
  *  @ref com_util_hashtable_create と @ref com_util_hashtable_attach は、
  *  呼び出しのたびに管理領域・データ領域とは別の「内部管理データ」を確保して
  *  不透明ハンドル (@ref com_util_hashtable) として返します。内部管理データは
@@ -36,7 +72,9 @@
  *  を呼んでください。
  *
  *  永続化の入出力とエンディアン変換は本 API の対象外です。\n
- *  読み戻しは同一環境 (同一ビット幅・同一アラインメント規則) を前提とします。
+ *  読み戻しは同一環境 (同一ビット幅・同一アラインメント規則) を前提とします。\n
+ *  本ライブラリは、単体型と構造体に同じアラインメント規則が適用される環境を
+ *  前提とします。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -64,15 +102,22 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          キーの解釈方法です。
+     *  @brief          キーまたは値の格納形式です。
      */
-    typedef enum com_util_hashtable_key_type
+    typedef enum com_util_hashtable_field_type
     {
-        COM_UTIL_HASHTABLE_KEY_STRING = 0, /**< NULL 終端文字列。key_size バイト以内に NUL が必要。 */
-        COM_UTIL_HASHTABLE_KEY_BINARY = 1  /**< key_size バイトのバイナリ。全バイト 0 も有効。 */
-    } com_util_hashtable_key_type;
+        COM_UTIL_HASHTABLE_FIELD_FIXED_BINARY = 0,   /**< 固定長バイナリ。全バイト 0 も有効。 */
+        COM_UTIL_HASHTABLE_FIELD_FIXED_STRING = 1,   /**< 固定長領域の NUL 終端文字列。 */
+        COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING = 2 /**< 固定容量ストレージ上の可変長 NUL 終端文字列。 */
+    } com_util_hashtable_field_type;
+
+#define COM_UTIL_HASHTABLE_KEY_STRING COM_UTIL_HASHTABLE_FIELD_FIXED_STRING
+#define COM_UTIL_HASHTABLE_KEY_BINARY COM_UTIL_HASHTABLE_FIELD_FIXED_BINARY
+    typedef com_util_hashtable_field_type com_util_hashtable_key_type;
 
 #define COM_UTIL_HASHTABLE_LIFETIME_INFINITE 255 /**< 削除済みを空へ戻さない寿命です。 */
+
+#define COM_UTIL_HASHTABLE_VALUE_ALIGN_MAX 16 /**< value_align に指定できる最大境界です。 */
 
     /**
      *  @brief          変更時刻をどの粒度で持つかです。
@@ -90,7 +135,8 @@ extern "C"
     /**
      *  @brief          ハッシュ テーブルの生成設定です。
      *
-     *  pad2 は reuse_deleted を int 境界へ揃える明示パディングを兼ねる予約です。\n
+     *  pad1 と pad2 は明示パディングを兼ねる予約です。\n
+     *  @p value_align は固定長値の格納境界です。レイアウト入力を兼ねます。\n
      *  呼び出し側はゼロ初期化してから必要なフィールドだけを設定してください。\n
      *  @p timestamp_scope はエントリ配置と管理領域サイズを決めます。\n
      *  ゼロ値は @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE です。
@@ -98,13 +144,19 @@ extern "C"
     typedef struct com_util_hashtable_config
     {
         size_t capacity;                                    /**< バケット数兼エントリ数。0 は不正。 */
-        com_util_hashtable_key_type key_type;               /**< キーの解釈。 */
+        com_util_hashtable_field_type key_type;             /**< キーの格納形式。 */
+        com_util_hashtable_field_type value_type;           /**< 値の格納形式。 */
         com_util_hashtable_timestamp_scope timestamp_scope; /**< 変更時刻の粒度。レイアウト入力。 */
-        size_t key_size;                                    /**< 1 キーのバイト数。0 は不正。 */
-        size_t record_size;                                 /**< 1 値のバイト数。0 は不正。 */
-        unsigned char lifetime;                             /**< 削除済みの寿命。2 から 254 は有限、255 は無限。 */
-        unsigned char pad2[3];                              /**< reuse_deleted の直前の予約。常に 0。 */
-        int reuse_deleted; /**< 0 以外なら、status=0 が無いとき削除中レコードを再利用する。既定は 0。 */
+        unsigned char pad1[4];                              /**< key_size の直前の予約。常に 0。 */
+        size_t key_size;                                    /**< 固定長キーのバイト数。可変長では 0。 */
+        size_t value_size;                                  /**< 固定長値のバイト数。可変長では 0。 */
+        size_t key_storage_size;                            /**< 可変長キーのストレージ容量バイト数。固定長では 0。 */
+        size_t value_storage_size;                          /**< 可変長値のストレージ容量バイト数。固定長では 0。 */
+        size_t value_align;     /**< 固定長値の格納境界。0 は詰めて配置。非 0 は 2 の冪かつ
+                                 @ref COM_UTIL_HASHTABLE_VALUE_ALIGN_MAX 以下。可変長値では 0。 */
+        unsigned char lifetime; /**< 削除済みの寿命。2 から 254 は有限、255 は無限。 */
+        unsigned char pad2[3];  /**< reuse_deleted の直前の予約。常に 0。 */
+        int reuse_deleted; /**< 0 以外なら、status=0 のレコードが無いとき最古の削除中レコードを再利用する。既定は 0。 */
     } com_util_hashtable_config;
 
     /**
@@ -128,7 +180,7 @@ extern "C"
      *  @p mgmt_size_out と @p data_size_out の両方に NULL を渡してはなりません。\n
      *  @ref com_util_hashtable_create と同じ基準で @p config を検証します。\n
      *  @p timestamp_scope は管理領域サイズに使います。\n
-     *  @p key_type と @p lifetime はレイアウトには使いませんが、検証は行います。
+     *  フィールド型、固定長サイズ、可変長ストレージ容量はレイアウトに使います。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -153,12 +205,15 @@ extern "C"
      *  片方だけ NULL は @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
      *  ともに NULL のときは、内部で 1 回の確保にまとめて構築し、
      *  解放も @ref com_util_hashtable_dispose の 1 回で両方が片付きます。\n
-     *  ともに非 NULL のとき、不足やアラインメント不正なら領域へ触れずに失敗します。\n
+     *  ともに非 NULL のとき、容量不足やアラインメント不正なら領域へ触れずに失敗します。\n
+     *  容量不足は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、アラインメント不正は
+     *  @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
      *  @p timestamp_scope は @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE または
      *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD である必要があります。\n
-     *  @p buf_mgmt は内部ヘッダーのアラインメント境界が必要ですが、
-     *  @p buf_data にアラインメント要件はありません
-     *  (メモリマップド ファイルなど管理領域と連続しない領域を渡せます)。\n
+     *  @p buf_mgmt は内部ヘッダーのアラインメント境界が必要です。\n
+     *  @p buf_data に必要な境界は値の形式で決まります。固定長値で value_align が 0 の
+     *  ときは要件がなく、非 0 のときはその境界が必要です。\n
+     *  可変長値では永続 descriptor を持つため、@p buf_data は uint64_t 境界が必要です。\n
      *  外部領域の所有権は呼び出し側に残りますが、内部管理データ(返るハンドル自体)は
      *  本関数が新規確保するため、外部指定の場合でも @ref com_util_hashtable_dispose の
      *  呼び出しは必要です。
@@ -179,9 +234,13 @@ extern "C"
      *  @param[in]      buf_data_size  @p buf_data のバイト数。
      *  @param[out]     ht_out         ハンドルの格納先。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 。
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、
+     *                  @ref COM_UTIL_ERR_CORRUPT_DESCRIPTOR 。
      *
-     *  マジックと版番号、ヘッダー範囲、保存されている timestamp_scope を検証します。\n
+     *  マジックと版番号、ヘッダー範囲、保存されている設定と件数を検証します。\n
+     *  保存ヘッダーが不正な場合は @ref COM_UTIL_ERR_CORRUPT_DESCRIPTOR です。\n
+     *  管理領域のアラインメント不正は @ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *  管理領域またはデータ領域の容量不足は @ref COM_UTIL_ERR_BUFFER_TOO_SMALL です。\n
      *  チェインの整合性は検証しないため、必要なら直後に
      *  @ref com_util_hashtable_validate を呼んでください。\n
      *  管理領域にはデータ領域アドレスを持たないため、@p buf_data は常に呼び出し側が
@@ -297,24 +356,28 @@ extern "C"
      *  @brief          キーを新規追加します。
      *  @param[in,out]  ht              対象。NULL を渡してはなりません。
      *  @param[in]      key             キー。NULL を渡してはなりません。
-     *  @param[in]      value           record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in]      value           設定した形式の値。NULL を渡してはなりません。
      *  @param[in]      deleted_policy  削除済みの同一キーが見つかった場合の振る舞い。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
-     *                  @ref COM_UTIL_ERR_LIMIT_EXCEEDED 。
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_DUPLICATE_KEY 、
+     *                  @ref COM_UTIL_ERR_LIMIT_EXCEEDED 、@ref COM_UTIL_ERR_STORAGE_FULL 。
      *
      *  文字列キーは key_size バイト以内に NUL が無いと
      *  @ref COM_UTIL_ERR_OUT_OF_RANGE です。\n
-     *  実装中の同一キーは、@p deleted_policy に関わらず常に
-     *  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION です。\n
+     *  固定長文字列の未使用部分は内部で 0 埋めするため、呼び出し側で
+     *  key_size または value_size バイトへ拡張して渡す必要はありません。\n
+     *  使用中の同一キーは、@p deleted_policy に関わらず常に
+     *  @ref COM_UTIL_ERR_DUPLICATE_KEY です。\n
      *  該当キーが存在しない場合の新規追加も、@p deleted_policy の影響を受けません。\n
      *  削除済みの同一キーが見つかった場合は、同じレコードを再利用したうえで
      *  @p deleted_policy に従います。\n
      *  - @ref COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE : @p value で上書きして復活させます。\n
      *  - @ref COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE : @p value を無視し、削除前の値のまま
      *    復活させます。\n
-     *  いずれの場合も成功時はテーブルの変更時刻を @ref com_util_get_realtime で刻みます。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときはレコードにも刻みます。\n
+     *  いずれの場合も成功時は、テーブルの変更時刻を @ref com_util_get_realtime で刻み、
+     *  テーブルの世代カウンターを 1 増やします。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
+     *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。\n
      *  該当キーが存在せず、空き(status=0)のレコードも無い場合、
      *  @p reuse_deleted が有効(非 0)なら削除中(status>=2)のレコードを再利用します。\n
      *  status が最大、同点なら変更時刻が最も古い(@ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE
@@ -330,16 +393,47 @@ extern "C"
                                                             com_util_hashtable_add_deleted_policy deleted_policy);
 
     /**
+     *  @brief          キーが無ければ追加し、あれば値を書き換えます。
+     *  @param[in,out]  ht            対象。NULL を渡してはなりません。
+     *  @param[in]      key           キー。NULL を渡してはなりません。
+     *  @param[in]      value         設定した形式の値。NULL を渡してはなりません。
+     *  @param[out]     inserted_out  新規追加なら 1、既存更新なら 0。不要なら NULL を渡せます。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_LIMIT_EXCEEDED 、
+     *                  @ref COM_UTIL_ERR_STORAGE_FULL 。
+     *
+     *  @p inserted_out は @ref COM_UTIL_OK のときだけ書きます。\n
+     *  使用中の同一キーは値を書き換え、@p inserted_out に 0 を格納します。
+     *  @ref COM_UTIL_ERR_DUPLICATE_KEY は返しません。\n
+     *  削除済みの同一キーは @p value で上書きして復活させ、@p inserted_out に 1 を格納します。
+     *  @ref com_util_hashtable_add の
+     *  @ref COM_UTIL_HASHTABLE_ADD_DELETED_REVIVE に相当する振る舞いは選べません。
+     *  値を無視する意味になり、本関数の意味と両立しないためです。\n
+     *  該当キーが存在しない場合の空きの選び方と @ref COM_UTIL_ERR_LIMIT_EXCEEDED の条件は、
+     *  @ref com_util_hashtable_add と同じです。@p reuse_deleted が有効なら削除中のレコードを
+     *  再利用し、そのレコードにあったキーを追い出します。\n
+     *  成功時の変更時刻と世代カウンターの刻み方も @ref com_util_hashtable_add と同じです。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一テーブルへの同時呼び出しは、呼び出し側で直列化してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_upsert(com_util_hashtable *ht, const void *key,
+                                                               const void *value, int *inserted_out);
+
+    /**
      *  @brief          レコード番号を指定してキーと値と変更時刻を直接書き込みます。
      *  @param[in,out]  ht      対象。NULL を渡してはなりません。
      *  @param[in]      record  1 相対のレコード番号。
      *  @param[in]      key     キー。NULL を渡してはなりません。
-     *  @param[in]      status  書き込む実装状況。1 は実装中、2 以上は削除済みの加齢です。
-     *  @param[in]      value   record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in]      status  書き込む使用状況。1 は使用中、2 以上は削除済みの加齢です。
+     *  @param[in]      value   設定した形式の値。NULL を渡してはなりません。
      *  @param[in]      timestamp  書き込む変更時刻。粒度と対応する要否があります。
+     *  @param[in]      generation 書き込む世代カウンター。粒度と対応する要否があります。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_SKIPPED 、
      *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_OUT_OF_RANGE 、
-     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 。
+     *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、@ref COM_UTIL_ERR_DUPLICATE_KEY 、
+     *                  @ref COM_UTIL_ERR_STORAGE_FULL 。
      *
      *  マイグレーションや再構築で、番号を保ったままレコードを置くための入口です。\n
      *  レコード番号が 0 または capacity を超える場合は
@@ -348,13 +442,17 @@ extern "C"
      *  @ref COM_UTIL_SKIPPED を返し、テーブルは変更しません。\n
      *  先の lifetime が @ref COM_UTIL_HASHTABLE_LIFETIME_INFINITE なら
      *  status 255 も書き込めます。\n
-     *  先のスロットが空でない、または同一キーが既にある場合は
-     *  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION です。\n
+     *  先のスロットが空でない場合は @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
+     *  同一キーが既にある場合は @ref COM_UTIL_ERR_DUPLICATE_KEY です。\n
      *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では @p timestamp は必須で、
      *  渡した時刻がテーブルの変更時刻より新しいときだけテーブル時刻を更新します。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE では @p timestamp に
-     *  NULL 以外を渡すと @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
-     *  この経路ではテーブル時刻は進めません。
+     *  @p generation も同様に、渡した値がテーブルの世代カウンターより大きいときだけ
+     *  テーブルの世代カウンターを更新します。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE では @p timestamp に NULL 以外、
+     *  または @p generation に 0 以外を渡すと @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
+     *  この経路ではテーブル時刻とテーブルの世代カウンターを進めません。
+     *  固定長文字列の未使用部分は内部で 0 埋めするため、呼び出し側で
+     *  key_size または value_size バイトへ拡張して渡す必要はありません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -362,18 +460,24 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_insert_direct(com_util_hashtable *ht, uint64_t record,
                                                                       const void *key, int status, const void *value,
-                                                                      const com_util_timespec *timestamp);
+                                                                      const com_util_timespec *timestamp,
+                                                                      uint64_t generation);
 
     /**
-     *  @brief          実装中の既存キーの値を書き換えます。
+     *  @brief          使用中の既存キーの値を書き換えます。
      *  @param[in,out]  ht     対象。NULL を渡してはなりません。
      *  @param[in]      key    キー。NULL を渡してはなりません。
-     *  @param[in]      value  record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in]      value  設定した形式の値。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_NOT_FOUND 。
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_NOT_FOUND 、
+     *                  @ref COM_UTIL_ERR_STORAGE_FULL 。
      *
-     *  成功時はテーブルの変更時刻を @ref com_util_get_realtime で刻みます。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときはレコードにも刻みます。
+     *  成功時は、テーブルの変更時刻を @ref com_util_get_realtime で刻み、テーブルの
+     *  世代カウンターを 1 増やします。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
+     *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。
+     *  固定長文字列の未使用部分は内部で 0 埋めするため、呼び出し側で
+     *  value_size バイトへ拡張して渡す必要はありません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -386,12 +490,17 @@ extern "C"
      *  @brief          レコード番号で値を書き換えます。
      *  @param[in,out]  ht      対象。NULL を渡してはなりません。
      *  @param[in]      record  1 相対のレコード番号。
-     *  @param[in]      value   record_size バイト以上の値。NULL を渡してはなりません。
+     *  @param[in]      value   設定した形式の値。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_NOT_FOUND 。
+     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_NOT_FOUND 、
+     *                  @ref COM_UTIL_ERR_STORAGE_FULL 。
      *
-     *  成功時はテーブルの変更時刻を @ref com_util_get_realtime で刻みます。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときはレコードにも刻みます。
+     *  成功時は、テーブルの変更時刻を @ref com_util_get_realtime で刻み、テーブルの
+     *  世代カウンターを 1 増やします。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
+     *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。
+     *  固定長文字列の未使用部分は内部で 0 埋めするため、呼び出し側で
+     *  value_size バイトへ拡張して渡す必要はありません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -419,20 +528,29 @@ extern "C"
                                                                        const void **value_out);
 
     /**
-     *  @brief          キーで値を呼び出し側バッファーへ複製します。
-     *  @param[in]      ht         対象。NULL を渡してはなりません。
-     *  @param[in]      key        キー。NULL を渡してはなりません。
-     *  @param[out]     value_out  record_size バイト以上の複製先。NULL を渡してはなりません。
+     *  @brief          キーで値を容量検査付きで複製します。
+     *  @param[in]      ht                 対象。NULL を渡してはなりません。
+     *  @param[in]      key                キー。NULL を渡してはなりません。
+     *  @param[out]     dest               複製先。必要量照会では NULL。
+     *  @param[in]      dest_size          複製先容量。必要量照会では 0。
+     *  @param[out]     required_size_out  必要バイト数。文字列では NUL を含みます。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_NOT_FOUND 。
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_RANGE 、
+     *                  @ref COM_UTIL_ERR_NOT_FOUND 。
+     *
+     *  @p dest が NULL かつ @p dest_size が 0 のときは、複製せず必要量だけを返します。
+     *  文字列の必要量は実際の文字列長と終端 NUL の合計です。\n
+     *  固定長バイナリの必要量は value_size です。\n
+     *  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL では @p dest を変更しません。
      *
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
      *  同一テーブルへの書き込みと同時に呼んではなりません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_find_value_val(const com_util_hashtable *ht, const void *key,
-                                                                       void *value_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_find_value_copy(const com_util_hashtable *ht, const void *key,
+                                                                        void *dest, size_t dest_size,
+                                                                        size_t *required_size_out);
 
     /**
      *  @brief          キーからレコード番号を取得します。
@@ -491,6 +609,27 @@ extern "C"
                                                                            com_util_timespec *timestamp_out);
 
     /**
+     *  @brief          キーで世代カウンターを取得します。
+     *  @param[in]      ht              対象。NULL を渡してはなりません。
+     *  @param[in]      key             キー。NULL を渡してはなりません。
+     *  @param[out]     generation_out  格納先。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNSUPPORTED 、@ref COM_UTIL_ERR_OUT_OF_RANGE 、
+     *                  @ref COM_UTIL_ERR_NOT_FOUND 。
+     *
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE では
+     *  @ref COM_UTIL_ERR_UNSUPPORTED です。\n
+     *  削除済みは見つからない扱いです。
+     *
+     *  @par            スレッド セーフ
+     *  条件付きスレッド セーフです。\n
+     *  異なるテーブルへの同時呼び出しはできます。\n
+     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_find_generation(const com_util_hashtable *ht, const void *key,
+                                                                        uint64_t *generation_out);
+
+    /**
      *  @brief          レコード番号からキーへの参照を取得します。
      *  @param[in]      ht       対象。NULL を渡してはなりません。
      *  @param[in]      record   1 相対のレコード番号。
@@ -509,20 +648,29 @@ extern "C"
                                                                     const void **key_out);
 
     /**
-     *  @brief          レコード番号からキーを呼び出し側バッファーへ複製します。
-     *  @param[in]      ht       対象。NULL を渡してはなりません。
-     *  @param[in]      record   1 相対のレコード番号。
-     *  @param[out]     key_out  key_size バイト以上の複製先。NULL を渡してはなりません。
+     *  @brief          レコード番号からキーを容量検査付きで複製します。
+     *  @param[in]      ht                 対象。NULL を渡してはなりません。
+     *  @param[in]      record             1 相対のレコード番号。
+     *  @param[out]     dest               複製先。必要量照会では NULL。
+     *  @param[in]      dest_size          複製先容量。必要量照会では 0。
+     *  @param[out]     required_size_out  必要バイト数。文字列では NUL を含みます。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_NOT_FOUND 。
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_NOT_FOUND 。
+     *
+     *  @p dest が NULL かつ @p dest_size が 0 のときは、複製せず必要量だけを返します。\n
+     *  文字列の必要量は実際の文字列長と終端 NUL の合計です。\n
+     *  固定長バイナリの必要量は key_size です。\n
+     *  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL では @p dest を変更しません。\n
+     *  空は失敗、削除済みは削除直前のキーを返します。
      *
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
      *  同一テーブルへの書き込みと同時に呼んではなりません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_key_val(const com_util_hashtable *ht, uint64_t record,
-                                                                    void *key_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_key_copy(const com_util_hashtable *ht, uint64_t record,
+                                                                     void *dest, size_t dest_size,
+                                                                     size_t *required_size_out);
 
     /**
      *  @brief          レコード番号から値への参照を取得します。
@@ -543,29 +691,38 @@ extern "C"
                                                                       const void **value_out);
 
     /**
-     *  @brief          レコード番号から値を呼び出し側バッファーへ複製します。
-     *  @param[in]      ht         対象。NULL を渡してはなりません。
-     *  @param[in]      record     1 相対のレコード番号。
-     *  @param[out]     value_out  record_size バイト以上の複製先。NULL を渡してはなりません。
+     *  @brief          レコード番号から値を容量検査付きで複製します。
+     *  @param[in]      ht                 対象。NULL を渡してはなりません。
+     *  @param[in]      record             1 相対のレコード番号。
+     *  @param[out]     dest               複製先。必要量照会では NULL。
+     *  @param[in]      dest_size          複製先容量。必要量照会では 0。
+     *  @param[out]     required_size_out  必要バイト数。文字列では NUL を含みます。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
-     *                  @ref COM_UTIL_ERR_NOT_FOUND 。
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_NOT_FOUND 。
+     *
+     *  @p dest が NULL かつ @p dest_size が 0 のときは、複製せず必要量だけを返します。\n
+     *  文字列の必要量は実際の文字列長と終端 NUL の合計です。\n
+     *  固定長バイナリの必要量は value_size です。\n
+     *  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL では @p dest を変更しません。\n
+     *  空は失敗、削除済みは削除直前の値を返します。
      *
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
      *  同一テーブルへの書き込みと同時に呼んではなりません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_value_val(const com_util_hashtable *ht, uint64_t record,
-                                                                      void *value_out);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_value_copy(const com_util_hashtable *ht, uint64_t record,
+                                                                       void *dest, size_t dest_size,
+                                                                       size_t *required_size_out);
 
     /**
-     *  @brief          レコード番号の実装状況を取得します。
+     *  @brief          レコード番号の使用状況を取得します。
      *  @param[in]      ht          対象。NULL を渡してはなりません。
      *  @param[in]      record      1 相対のレコード番号。
      *  @param[out]     status_out  状態の格納先。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
      *
-     *  0 は空、1 は実装中、2 以上は削除済みの加齢カウンタです。\n
+     *  0 は空、1 は使用中、2 以上は削除済みの加齢カウンタです。\n
      *  255 は lifetime が @ref COM_UTIL_HASHTABLE_LIFETIME_INFINITE のときの終端です。
      *
      *  @par            スレッド セーフ
@@ -575,6 +732,44 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_status(const com_util_hashtable *ht, uint64_t record,
                                                                    int *status_out);
+
+    /**
+     *  @brief          走査で対象とする使用状況のビットです。
+     *
+     *  @ref com_util_hashtable_next_record の status_mask へ、和を取って渡します。
+     */
+#define COM_UTIL_HASHTABLE_SCAN_IN_USE  0x1u /**< status が 1 のレコードを対象にします。 */
+#define COM_UTIL_HASHTABLE_SCAN_DELETED 0x2u /**< status が 2 以上のレコードを対象にします。 */
+#define COM_UTIL_HASHTABLE_SCAN_EMPTY   0x4u /**< status が 0 のレコードを対象にします。 */
+
+    /**
+     *  @brief          指定した使用状況の、次のレコード番号を返します。
+     *  @param[in]      ht              対象。NULL を渡してはなりません。
+     *  @param[in]      from            直前に返ったレコード番号。開始時は 0 を渡します。
+     *  @param[in]      status_mask     対象とする使用状況のビット和。0 を渡してはなりません。
+     *  @param[out]     record_out      1 相対番号の格納先。NULL を渡してはなりません。
+     *  @param[out]     has_record_out  該当があれば 1、無ければ 0。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
+     *
+     *  @p from に 0 を渡して開始し、以降は直前の *@p record_out をそのまま渡します。\n
+     *  列挙が終わったことはエラーではありません。戻り値は @ref COM_UTIL_OK となり、
+     *  *@p has_record_out に 0 を格納します。*@p record_out は書きません。\n
+     *  *@p record_out は、*@p has_record_out が 1 のときだけ有効です。\n
+     *  @p from が capacity を超える場合、および @p status_mask が 0 または未定義のビットを
+     *  含む場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
+     *  内部に状態を持たないため、破棄すべきイテレーター ハンドルはありません。\n
+     *  走査中にテーブルを変更すると、レコード番号の有効期間が終わり、カーソルは意味を
+     *  失います。本ファイル冒頭のレコード番号の説明を参照してください。
+     *
+     *  @par            スレッド セーフ
+     *  条件付きスレッド セーフです。\n
+     *  異なるテーブルへの同時呼び出しはできます。\n
+     *  同一テーブルへの同時呼び出しもできます。内部に共有状態を持ちません。\n
+     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_next_record(const com_util_hashtable *ht, uint64_t from,
+                                                                    unsigned int status_mask, uint64_t *record_out,
+                                                                    int *has_record_out);
 
     /**
      *  @brief          レコード番号から変更時刻への参照を取得します。
@@ -613,6 +808,26 @@ extern "C"
                                                                           com_util_timespec *timestamp_out);
 
     /**
+     *  @brief          レコード番号から世代カウンターを取得します。
+     *  @param[in]      ht              対象。NULL を渡してはなりません。
+     *  @param[in]      record          1 相対のレコード番号。
+     *  @param[out]     generation_out  格納先。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNSUPPORTED 、@ref COM_UTIL_ERR_NOT_FOUND 。
+     *
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_TABLE では
+     *  @ref COM_UTIL_ERR_UNSUPPORTED です。\n
+     *  空は失敗、削除済みは削除時の世代カウンターを返します。
+     *
+     *  @par            スレッド セーフ
+     *  条件付きスレッド セーフです。\n
+     *  異なるテーブルへの同時呼び出しはできます。\n
+     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_generation(const com_util_hashtable *ht, uint64_t record,
+                                                                       uint64_t *generation_out);
+
+    /**
      *  @brief          テーブル横断の変更時刻への参照を取得します。
      *  @param[in]      ht              対象。NULL を渡してはなりません。
      *  @param[out]     timestamp_out   参照の格納先。NULL を渡してはなりません。
@@ -645,9 +860,28 @@ extern "C"
                                                                                 com_util_timespec *timestamp_out);
 
     /**
-     *  @brief          実装中・削除済み・空の件数を返します。
+     *  @brief          テーブル横断の世代カウンターを取得します。
+     *  @param[in]      ht              対象。NULL を渡してはなりません。
+     *  @param[out]     generation_out  格納先。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
+     *
+     *  キーまたは値が変わるたびに 1 ずつ増える単調な値です。粒度に関わらず常に有効です。\n
+     *  構築直後は 0 です。空テーブルでも成功します。\n
+     *  変更の前後関係を判定する場合は、実時刻ではなく本値を比較してください。実時刻は
+     *  時計の巻き戻しで逆行しますが、本値は逆行しません。
+     *
+     *  @par            スレッド セーフ
+     *  条件付きスレッド セーフです。\n
+     *  異なるテーブルへの同時呼び出しはできます。\n
+     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_get_table_generation(const com_util_hashtable *ht,
+                                                                             uint64_t *generation_out);
+
+    /**
+     *  @brief          使用中・削除済み・空の件数を返します。
      *  @param[in]      ht           対象。NULL を渡してはなりません。
-     *  @param[out]     in_use_out   実装中件数。不要なら NULL を渡せます。
+     *  @param[out]     in_use_out   使用中件数。不要なら NULL を渡せます。
      *  @param[out]     deleted_out  削除済み件数。不要なら NULL を渡せます。
      *  @param[out]     empty_out    空件数。不要なら NULL を渡せます。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
@@ -665,7 +899,7 @@ extern "C"
                                                                      size_t *deleted_out, size_t *empty_out);
 
     /**
-     *  @brief          実装中の件数を返します。
+     *  @brief          使用中の件数を返します。
      *  @param[in]      ht         対象。NULL を渡してはなりません。
      *  @param[out]     count_out  件数の格納先。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
@@ -713,9 +947,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_OUT_OF_RANGE 、@ref COM_UTIL_ERR_NOT_FOUND 。
      *
      *  通常は削除済み (状態 2) にします。lifetime が 2 のときは直ちに空へ戻します。\n
-     *  テーブルの変更時刻は刻みます。\n
+     *  テーブルの変更時刻を刻み、テーブルの世代カウンターを 1 増やします。\n
      *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では、削除済みとして残す場合に
-     *  レコードの変更時刻も刻み、直ちに空へ戻す場合はレコードの時刻を 0 埋めします。
+     *  レコードの変更時刻と世代カウンターも刻み、直ちに空へ戻す場合はレコードの
+     *  変更時刻と世代カウンターを 0 埋めします。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -744,8 +979,9 @@ extern "C"
      *
      *  lifetime が @ref COM_UTIL_HASHTABLE_LIFETIME_INFINITE のとき、
      *  status 254 の次は 255 になり、255 はそれ以上増えず空へ戻りません。\n
-     *  レコードとテーブルの変更時刻は更新しません。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では、空へ戻したスロットの時刻を 0 埋めします。
+     *  レコードとテーブルの変更時刻および世代カウンターは更新しません。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では、空へ戻したスロットの
+     *  変更時刻と世代カウンターを 0 埋めします。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -758,8 +994,9 @@ extern "C"
      *  @param[in,out]  ht  対象。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
      *
-     *  残したレコードとテーブルの時刻は変えません。\n
-     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では、空へ戻したスロットの時刻を 0 埋めします。
+     *  残したレコードとテーブルの変更時刻および世代カウンターは変えません。\n
+     *  @ref COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD では、空へ戻したスロットの
+     *  変更時刻と世代カウンターを 0 埋めします。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -768,13 +1005,100 @@ extern "C"
     COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_purge_deleted(com_util_hashtable *ht);
 
     /**
-     *  @brief          実装中と削除済みを含めてテーブルを空にします。
+     *  @brief          可変長キーおよび値のストレージを圧縮します。
+     *  @param[in,out]  ht  対象。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
+     *
+     *  可変長に設定されたキーと値をそれぞれストレージ先頭へ詰め、未使用領域を
+     *  0 埋めします。固定長フィールドだけのテーブルでは何も変更しません。\n
+     *  成功すると、このテーブルから取得済みの可変長キーおよび値への参照は
+     *  すべて無効になります。論理的なキーと値は変わらないため、テーブルおよび
+     *  レコードの変更時刻と世代カウンターは更新しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一テーブルへの同時呼び出しは、呼び出し側で直列化してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_compact(com_util_hashtable *ht);
+
+    /**
+     *  @brief          内部確保のテーブルを、レコード数とストレージ容量だけ変えて作り直します。
+     *  @param[in,out]  ht          対象。NULL を渡してはなりません。
+     *  @param[in]      new_config  移行後の設定。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNSUPPORTED 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、
+     *                  @ref COM_UTIL_ERR_LIMIT_EXCEEDED 、@ref COM_UTIL_ERR_STORAGE_FULL 。
+     *
+     *  @ref com_util_hashtable_create に管理領域とデータ領域の両方を NULL で渡して構築した
+     *  テーブルだけが対象です。外部領域のテーブルは @ref COM_UTIL_ERR_UNSUPPORTED となるため、
+     *  @ref com_util_hashtable_rebuild_into を使ってください。\n
+     *  @p new_config で変えてよいのは capacity、key_storage_size、value_storage_size の
+     *  3 つだけです。ほかの項目が現在の設定と異なる場合は
+     *  @ref COM_UTIL_ERR_INVALID_ARGUMENT です。\n
+     *  拡大 (capacity が現在以上) では、レコード番号をすべて保存します。\n
+     *  縮小ではレコード番号を保存しません。移行後に
+     *  @ref com_util_hashtable_find_recno で取り直してください。\n
+     *  レコードを 1 件も捨てません。使用中のレコードが収まらない場合、および
+     *  reuse_deleted が 0 で削除済みのレコードが収まらない場合は
+     *  @ref COM_UTIL_ERR_LIMIT_EXCEEDED です。reuse_deleted が非 0 のときだけ、
+     *  @ref com_util_hashtable_add の追い出しと同じ規則で削除済みを古い順に空へ戻します。\n
+     *  可変長ストレージは移行時に詰め直します。詰めた後の使用量が新しい容量を超える場合は
+     *  @ref COM_UTIL_ERR_STORAGE_FULL です。\n
+     *  失敗した場合、テーブルは一切変更しません。\n
+     *  変更時刻と世代カウンターは、テーブルもレコードも移行前の値を引き継ぎます。\n
+     *  成功すると、このテーブルから取得済みのすべての参照が無効になります。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一テーブルへの同時呼び出しは、呼び出し側で直列化してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_resize(com_util_hashtable *ht,
+                                                               const com_util_hashtable_config *new_config);
+
+    /**
+     *  @brief          呼び出し側が用意した新しい領域へ、内容を保ったまま作り直します。
+     *  @param[in]      src            移行元。NULL を渡してはなりません。
+     *  @param[in]      new_config     移行後の設定。NULL を渡してはなりません。
+     *  @param[in]      buf_mgmt       新しい管理領域。NULL を渡してはなりません。
+     *  @param[in]      buf_mgmt_size  @p buf_mgmt のバイト数。
+     *  @param[in]      buf_data       新しいデータ領域。NULL を渡してはなりません。
+     *  @param[in]      buf_data_size  @p buf_data のバイト数。
+     *  @param[out]     ht_out         移行先ハンドルの格納先。NULL を渡してはなりません。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL 、@ref COM_UTIL_ERR_OUT_OF_MEMORY 、
+     *                  @ref COM_UTIL_ERR_LIMIT_EXCEEDED 、@ref COM_UTIL_ERR_STORAGE_FULL 。
+     *
+     *  メモリ マップド ファイルなど、外部領域のテーブルを伸長または縮小するための入口です。\n
+     *  @p src は変更しません。成功後も @p src は有効で、不要になったら
+     *  @ref com_util_hashtable_dispose を呼んでください。\n
+     *  必要な領域サイズは @p new_config を @ref com_util_hashtable_required_size へ渡して
+     *  求めてください。@p buf_mgmt と @p buf_data の要件は
+     *  @ref com_util_hashtable_create と同じです。\n
+     *  変えてよい設定、レコード番号の扱い、レコードを捨てない規則、可変長ストレージの
+     *  詰め直し、変更時刻と世代カウンターの引き継ぎは、いずれも
+     *  @ref com_util_hashtable_resize と同じです。\n
+     *  失敗時は *@p ht_out を NULL にします。容量やストレージが足りない場合は、
+     *  渡された領域へ触れずに失敗します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  @p src への書き込みと同時に呼んではなりません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_hashtable_rebuild_into(const com_util_hashtable *src,
+                                                                     const com_util_hashtable_config *new_config,
+                                                                     void *buf_mgmt, size_t buf_mgmt_size,
+                                                                     void *buf_data, size_t buf_data_size,
+                                                                     com_util_hashtable **ht_out);
+
+    /**
+     *  @brief          使用中と削除済みを含めてテーブルを空にします。
      *  @param[in,out]  ht  対象。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、または @ref COM_UTIL_ERR_INVALID_ARGUMENT 。
      *
      *  設定と所有権は変えません。\n
      *  空にしたスロットは 0 埋めします。\n
-     *  テーブルの変更時刻は @ref com_util_get_realtime で刻みます。
+     *  テーブルの変更時刻を @ref com_util_get_realtime で刻み、テーブルの世代カウンターを
+     *  1 増やします。空にしたスロットの変更時刻と世代カウンターは 0 です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

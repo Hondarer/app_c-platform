@@ -56,6 +56,9 @@ const char *com_util_result_to_string(const int result)
     case COM_UTIL_ERR_DUPLICATE_DEFINITION:
         text = "duplicate definition";
         break;
+    case COM_UTIL_ERR_DUPLICATE_KEY:
+        text = "duplicate key";
+        break;
     case COM_UTIL_ERR_OUT_OF_MEMORY:
         text = "out of memory";
         break;
@@ -73,6 +76,9 @@ const char *com_util_result_to_string(const int result)
         break;
     case COM_UTIL_ERR_CORRUPT_DESCRIPTOR:
         text = "corrupt descriptor";
+        break;
+    case COM_UTIL_ERR_STORAGE_FULL:
+        text = "storage full";
         break;
     case COM_UTIL_ERR_UNKNOWN_OPTION:
         text = "unknown option";
@@ -148,8 +154,7 @@ int com_util_error_message(char *buf, const size_t buf_size, const com_util_erro
         buf[copy_size - 1U] = '\0';
         result = COM_UTIL_OK;
     }
-    else if ((error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) ||
-             (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO))
+    else if ((error->domain == COM_UTIL_ERROR_DOMAIN_ERRNO) || (error->domain == COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO))
     {
         result = com_util_errno_message(buf, buf_size, (int)error->code);
     }

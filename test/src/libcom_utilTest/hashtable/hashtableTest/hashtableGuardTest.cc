@@ -10,14 +10,14 @@
 namespace
 {
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
     config->capacity = capacity;
     config->key_type = key_type;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -72,9 +72,12 @@ TEST_F(hashtableGuardTest, add_rejects_null_arguments)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_null_ht = com_util_hashtable_add(NULL, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - ht に NULL を渡す。
-    int actual_ret_null_key = com_util_hashtable_add(ht, NULL, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - key に NULL を渡す。
-    int actual_ret_null_value = com_util_hashtable_add(ht, "a", NULL, COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);        // [手順] - value に NULL を渡す。
+    int actual_ret_null_ht = com_util_hashtable_add(
+        NULL, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - ht に NULL を渡す。
+    int actual_ret_null_key = com_util_hashtable_add(
+        ht, NULL, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - key に NULL を渡す。
+    int actual_ret_null_value = com_util_hashtable_add(
+        ht, "a", NULL, COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - value に NULL を渡す。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -109,8 +112,11 @@ TEST_F(hashtableGuardTest, update_rejects_invalid_arguments_and_walks_chain)
     int actual_ret_null_value = com_util_hashtable_update(ht, "a", NULL);        // [手順] - value に NULL を渡す。
     int actual_ret_too_long =
         com_util_hashtable_update(ht, too_long, value.data()); // [手順] - 長すぎるキーで更新する。
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);       // [手順] - "a" を先に追加する。
-    (void)com_util_hashtable_add(ht, peer, value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);      // [手順] - 同一バケットの別キーを後から追加する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - "a" を先に追加する。
+    (void)com_util_hashtable_add(
+        ht, peer, value.data(),
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 同一バケットの別キーを後から追加する。
     int actual_ret_walk =
         com_util_hashtable_update(ht, "a", value.data());       // [手順] - チェイン先頭ではないキーを更新する。
     int actual_ret_delete = com_util_hashtable_delete(ht, "a"); // [手順] - "a" を削除済みにする。
@@ -198,13 +204,14 @@ TEST_F(hashtableGuardTest, find_value_ref_rejects_invalid_arguments)
               actual_ret_too_long); // [確認_異常系] - 長すぎるキーが OUT_OF_RANGE であること。
 }
 
-TEST_F(hashtableGuardTest, find_value_val_rejects_invalid_arguments_and_succeeds)
+TEST_F(hashtableGuardTest, find_value_copy_rejects_invalid_arguments_and_succeeds)
 {
     // Arrange
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
     std::vector<unsigned char> value(8, 0);
     std::vector<unsigned char> copied(8, 0);
+    size_t required_size = 0;
 
     fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - 妥当な設定を用意する。
     std::memcpy(value.data(), "v", 2);                               // [状態] - 検索する値を用意する。
@@ -213,16 +220,23 @@ TEST_F(hashtableGuardTest, find_value_val_rejects_invalid_arguments_and_succeeds
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);                        // [手順] - キーを追加する。
-    int actual_ret_null_out = com_util_hashtable_find_value_val(ht, "a", NULL); // [手順] - value_out に NULL を渡す。
-    int actual_ret_not_found = com_util_hashtable_find_value_val(
-        ht, "missing", copied.data()); // [手順] - 存在しないキーで検索する(内部エラーの伝播)。
-    int actual_ret_ok = com_util_hashtable_find_value_val(ht, "a", copied.data()); // [手順] - 妥当な引数で検索する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - キーを追加する。
+    int actual_ret_null_size = com_util_hashtable_find_value_copy(ht, "a", copied.data(), copied.size(),
+                                                                  NULL); // [手順] - required_size_out に NULL を渡す。
+    int actual_ret_bad_pair =
+        com_util_hashtable_find_value_copy(ht, "a", NULL, 1, &required_size); // [手順] - 不正な照会指定を渡す。
+    int actual_ret_not_found = com_util_hashtable_find_value_copy(
+        ht, "missing", copied.data(), copied.size(), &required_size); // [手順] - 存在しないキーで検索する。
+    int actual_ret_ok = com_util_hashtable_find_value_copy(ht, "a", copied.data(), copied.size(),
+                                                           &required_size); // [手順] - 妥当な引数で検索する。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_null_out); // [確認_異常系] - NULL value_out が INVALID_ARGUMENT であること。
+              actual_ret_null_size); // [確認_異常系] - NULL required_size_out が INVALID_ARGUMENT であること。
+    EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
+              actual_ret_bad_pair); // [確認_異常系] - 不正な照会指定が INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
               actual_ret_not_found);       // [確認_異常系] - find_value_ref の失敗が NOT_FOUND として伝播すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_ok); // [確認_正常系] - 妥当な引数で複製できること。
@@ -306,12 +320,13 @@ TEST_F(hashtableGuardTest, get_key_ref_rejects_invalid_arguments)
               actual_ret_empty); // [確認_異常系] - 空きレコードの読み出しが NOT_FOUND であること。
 }
 
-TEST_F(hashtableGuardTest, get_key_val_rejects_invalid_arguments)
+TEST_F(hashtableGuardTest, get_key_copy_rejects_invalid_arguments)
 {
     // Arrange
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
     std::vector<unsigned char> key(8, 0);
+    size_t required_size = 0;
 
     fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
 
@@ -319,14 +334,16 @@ TEST_F(hashtableGuardTest, get_key_val_rejects_invalid_arguments)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_null_out = com_util_hashtable_get_key_val(ht, 1, NULL); // [手順] - key_out に NULL を渡す。
+    int actual_ret_null_size =
+        com_util_hashtable_get_key_copy(ht, 1, key.data(), key.size(), NULL); // [手順] - 必要量出力に NULL を渡す。
     int actual_ret_propagated =
-        com_util_hashtable_get_key_val(ht, 0, key.data()); // [手順] - 不正な record で内部エラーを伝播させる。
+        com_util_hashtable_get_key_copy(ht, 0, key.data(), key.size(),
+                                        &required_size); // [手順] - 不正な record で内部エラーを伝播させる。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_null_out); // [確認_異常系] - NULL key_out が INVALID_ARGUMENT であること。
+              actual_ret_null_size); // [確認_異常系] - NULL required_size_out が INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               actual_ret_propagated); // [確認_異常系] - get_key_ref の失敗が伝播すること。
 }
@@ -365,12 +382,13 @@ TEST_F(hashtableGuardTest, get_value_ref_rejects_invalid_arguments)
               actual_ret_empty); // [確認_異常系] - 空きレコードの読み出しが NOT_FOUND であること。
 }
 
-TEST_F(hashtableGuardTest, get_value_val_rejects_invalid_arguments)
+TEST_F(hashtableGuardTest, get_value_copy_rejects_invalid_arguments)
 {
     // Arrange
     com_util_hashtable_config config = {};
     com_util_hashtable *ht = nullptr;
     std::vector<unsigned char> value(8, 0);
+    size_t required_size = 0;
 
     fill_config(&config, 2, 8, 8, 5, COM_UTIL_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
 
@@ -378,14 +396,16 @@ TEST_F(hashtableGuardTest, get_value_val_rejects_invalid_arguments)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    int actual_ret_null_out = com_util_hashtable_get_value_val(ht, 1, NULL); // [手順] - value_out に NULL を渡す。
+    int actual_ret_null_size = com_util_hashtable_get_value_copy(ht, 1, value.data(), value.size(),
+                                                                 NULL); // [手順] - required_size_out に NULL を渡す。
     int actual_ret_propagated =
-        com_util_hashtable_get_value_val(ht, 0, value.data()); // [手順] - 不正な record で内部エラーを伝播させる。
+        com_util_hashtable_get_value_copy(ht, 0, value.data(), value.size(),
+                                          &required_size); // [手順] - 不正な record で内部エラーを伝播させる。
     com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
-              actual_ret_null_out); // [確認_異常系] - NULL value_out が INVALID_ARGUMENT であること。
+              actual_ret_null_size); // [確認_異常系] - NULL required_size_out が INVALID_ARGUMENT であること。
     EXPECT_EQ(COM_UTIL_ERR_INVALID_ARGUMENT,
               actual_ret_propagated); // [確認_異常系] - get_value_ref の失敗が伝播すること。
 }
@@ -448,7 +468,7 @@ TEST_F(hashtableGuardTest, count_wrappers_reject_invalid_arguments)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_count_null_ht = com_util_hashtable_count(NULL, &count); // [手順] - count: ht に NULL を渡す。
-    int actual_ret_count_null_out = com_util_hashtable_count(ht, NULL); // [手順] - count: count に NULL を渡す。
+    int actual_ret_count_null_out = com_util_hashtable_count(ht, NULL);    // [手順] - count: count に NULL を渡す。
     int actual_ret_deleted_null_ht =
         com_util_hashtable_deleted_count(NULL, &count); // [手順] - deleted_count: ht に NULL を渡す。
     int actual_ret_deleted_null_out =

@@ -15,7 +15,7 @@ namespace
 
 com_util_timespec k_insert_timestamp = {1, 0};
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
@@ -23,7 +23,7 @@ void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_
     config->key_type = key_type;
     config->timestamp_scope = COM_UTIL_HASHTABLE_TIMESTAMP_SCOPE_RECORD;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -115,10 +115,10 @@ TEST_F(hashtableValidateTest, detects_link_cycle)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_insert_direct(ht, 1, "a", 1, value.data(),
-                                           &k_insert_timestamp); // [手順] - レコード 1 を使用中にする。
-    (void)com_util_hashtable_insert_direct(ht, 2, peer, 1, value.data(),
-                                           &k_insert_timestamp); // [手順] - 同一バケットのレコード 2 を使用中にする。
+    (void)com_util_hashtable_insert_direct(ht, 1, "a", 1, value.data(), &k_insert_timestamp,
+                                           1); // [手順] - レコード 1 を使用中にする。
+    (void)com_util_hashtable_insert_direct(ht, 2, peer, 1, value.data(), &k_insert_timestamp,
+                                           2); // [手順] - 同一バケットのレコード 2 を使用中にする。
     *test_hashtable_entry_next(ht, 0) = 2; // [手順] - レコード 1 の次リンクをレコード 2 へ向け、2 件の循環にする。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
@@ -141,10 +141,11 @@ TEST_F(hashtableValidateTest, detects_duplicate_visit)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
-    test_hashtable_bucket_head(ht)[0] = 1;               // [手順] - バケット 0 からもレコード 1 を指させる。
-    test_hashtable_bucket_head(ht)[1] = 1;               // [手順] - バケット 1 からもレコード 1 を指させる。
-    int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
+    test_hashtable_bucket_head(ht)[0] = 1;            // [手順] - バケット 0 からもレコード 1 を指させる。
+    test_hashtable_bucket_head(ht)[1] = 1;            // [手順] - バケット 1 からもレコード 1 を指させる。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -186,7 +187,9 @@ TEST_F(hashtableValidateTest, detects_key_without_terminator)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);  // [手順] - レコード 1 に文字列キーを格納する。
+    (void)com_util_hashtable_add(
+        ht, "a", value.data(),
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);        // [手順] - レコード 1 に文字列キーを格納する。
     std::memset(test_hashtable_entry_key(ht, 0), 'x', 8); // [手順] - 格納キーを NUL 無しで埋め尽くす。
     int actual_ret = com_util_hashtable_validate(ht);     // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
@@ -224,7 +227,8 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 に "a" を格納する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 に "a" を格納する。
     std::memset(test_hashtable_entry_key(ht, 0), 0, 8);
     std::memcpy(test_hashtable_entry_key(ht, 0), mismatched_key,
                 std::strlen(mismatched_key) + 1);     // [手順] - バケットは変えず格納キーだけを差し替える。
@@ -249,9 +253,10 @@ TEST_F(hashtableValidateTest, detects_next_link_out_of_range)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
-    *test_hashtable_entry_next(ht, 0) = 99;              // [手順] - 次リンクへ capacity を超える値を書き込む。
-    int actual_ret = com_util_hashtable_validate(ht);    // [手順] - 整合性を検証する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - レコード 1 を使用中にする。
+    *test_hashtable_entry_next(ht, 0) = 99;           // [手順] - 次リンクへ capacity を超える値を書き込む。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -315,8 +320,10 @@ TEST_F(hashtableValidateTest, detects_in_use_count_mismatch)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する(in_use_count は 1 になる)。
-    test_hashtable_set_counts(ht, 2, 0); // [手順] - in_use_count を実際のスロット状態と異なる値へ書き換える。
+    (void)com_util_hashtable_add(
+        ht, "a", value.data(),
+        COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する(in_use_count は 1 になる)。
+    test_hashtable_set_counts(ht, 2, 0);           // [手順] - in_use_count を実際のスロット状態と異なる値へ書き換える。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
     com_util_hashtable_dispose(ht);
 
@@ -338,7 +345,8 @@ TEST_F(hashtableValidateTest, detects_deleted_count_mismatch)
 
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
-    (void)com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する。
+    (void)com_util_hashtable_add(ht, "a", value.data(),
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 1 件追加する。
     (void)com_util_hashtable_delete(ht, "a"); // [手順] - 削除する(in_use_count は 0、deleted_count は 1 になる)。
     test_hashtable_set_counts(ht, 0, 2); // [手順] - in_use_count は正しいまま、deleted_count だけ異なる値へ書き換える。
     int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。

@@ -9,14 +9,14 @@
 namespace
 {
 
-void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t record_size,
+void fill_config(com_util_hashtable_config *config, size_t capacity, size_t key_size, size_t value_size,
                  unsigned char lifetime, com_util_hashtable_key_type key_type)
 {
     *config = {};
     config->capacity = capacity;
     config->key_type = key_type;
     config->key_size = key_size;
-    config->record_size = record_size;
+    config->value_size = value_size;
     config->lifetime = lifetime;
 }
 
@@ -94,14 +94,13 @@ TEST_F(hashtableConfigTest, buffer_size_rejects_null_arguments)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_null_ht =
-        com_util_hashtable_buffer_size(NULL, &mgmt_size, &data_size);  // [手順] - ht に NULL を渡す。
+        com_util_hashtable_buffer_size(NULL, &mgmt_size, &data_size);          // [手順] - ht に NULL を渡す。
     int actual_ret_null_both = com_util_hashtable_buffer_size(ht, NULL, NULL); // [手順] - 両方の出力先に NULL を渡す。
     int actual_ret_only_mgmt =
         com_util_hashtable_buffer_size(ht, &mgmt_size, NULL); // [手順] - データ側だけ NULL を渡す。
     int actual_ret_only_data =
-        com_util_hashtable_buffer_size(ht, NULL, &data_size); // [手順] - 管理側だけ NULL を渡す。
-    int actual_ret_ok =
-        com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size); // [手順] - 妥当な引数で呼び出す。
+        com_util_hashtable_buffer_size(ht, NULL, &data_size);                       // [手順] - 管理側だけ NULL を渡す。
+    int actual_ret_ok = com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size); // [手順] - 妥当な引数で呼び出す。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -112,8 +111,8 @@ TEST_F(hashtableConfigTest, buffer_size_rejects_null_arguments)
     EXPECT_EQ(COM_UTIL_OK, actual_ret_only_mgmt); // [確認_正常系] - 管理側だけの問い合わせが成功すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_only_data); // [確認_正常系] - データ側だけの問い合わせが成功すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_ok);        // [確認_正常系] - 妥当な引数で取得できること。
-    EXPECT_GT(mgmt_size, 0u);                 // [確認_正常系] - 管理領域の必要サイズが 0 より大きいこと。
-    EXPECT_GT(data_size, 0u);                 // [確認_正常系] - データ領域の必要サイズが 0 より大きいこと。
+    EXPECT_GT(mgmt_size, 0u);                     // [確認_正常系] - 管理領域の必要サイズが 0 より大きいこと。
+    EXPECT_GT(data_size, 0u);                     // [確認_正常系] - データ領域の必要サイズが 0 より大きいこと。
 }
 
 TEST_F(hashtableConfigTest, buffer_ref_rejects_null_arguments)
@@ -131,10 +130,9 @@ TEST_F(hashtableConfigTest, buffer_ref_rejects_null_arguments)
     // Act
     (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);
     int actual_ret_null_ht = com_util_hashtable_buffer_ref(NULL, &mgmt, &data); // [手順] - ht に NULL を渡す。
-    int actual_ret_null_both = com_util_hashtable_buffer_ref(ht, NULL, NULL); // [手順] - 両方の出力先に NULL を渡す。
-    int actual_ret_only_mgmt =
-        com_util_hashtable_buffer_ref(ht, &mgmt, NULL); // [手順] - データ側だけ NULL を渡す。
-    int actual_ret_only_data = com_util_hashtable_buffer_ref(ht, NULL, &data); // [手順] - 管理側だけ NULL を渡す。
+    int actual_ret_null_both = com_util_hashtable_buffer_ref(ht, NULL, NULL);   // [手順] - 両方の出力先に NULL を渡す。
+    int actual_ret_only_mgmt = com_util_hashtable_buffer_ref(ht, &mgmt, NULL);  // [手順] - データ側だけ NULL を渡す。
+    int actual_ret_only_data = com_util_hashtable_buffer_ref(ht, NULL, &data);  // [手順] - 管理側だけ NULL を渡す。
     com_util_hashtable_dispose(ht);
 
     // Assert
@@ -161,7 +159,7 @@ TEST_F(hashtableConfigTest, buffer_ref_returns_internal_regions_contiguously)
     // Pre-Assert
 
     // Act
-    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);          // [手順] - 内部確保で構築する。
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht);  // [手順] - 内部確保で構築する。
     int actual_ret = com_util_hashtable_buffer_ref(ht, &mgmt, &data); // [手順] - 両領域の先頭を取得する。
     (void)com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
     const unsigned char *mgmt_bytes = static_cast<const unsigned char *>(mgmt);
@@ -210,7 +208,7 @@ TEST_F(hashtableConfigTest, buffer_ref_returns_external_regions_as_supplied)
     EXPECT_EQ(static_cast<const void *>(buf_mgmt.data()),
               mgmt); // [確認_正常系] - 渡した管理領域がそのまま返ること。
     EXPECT_EQ(static_cast<const void *>(buf_data.data()),
-              data);                       // [確認_正常系] - 渡したデータ領域がそのまま返ること。
+              data);                           // [確認_正常系] - 渡したデータ領域がそのまま返ること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_attach); // [確認_正常系] - 再接続後も buffer_ref が成功すること。
     EXPECT_EQ(static_cast<const void *>(buf_mgmt.data()),
               attached_mgmt); // [確認_正常系] - 再接続後も管理領域が一致すること。
