@@ -48,13 +48,14 @@ TEST_F(hashtableLifetimeInfiniteTest, create_accepts_infinite_lifetime)
     // Act
     int actual_ret_create = com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 寿命無限で構築する。
     int actual_ret_config = com_util_hashtable_get_config_ref(ht, &got);               // [手順] - 設定を読む。
-    com_util_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - lifetime 255 で構築できること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_config); // [確認_正常系] - 設定参照が成功すること。
     ASSERT_NE(nullptr, got);                   // [確認_正常系] - 設定ポインターが非 NULL であること。
     EXPECT_EQ(COM_UTIL_HASHTABLE_LIFETIME_INFINITE, got->lifetime); // [確認_正常系] - lifetime が 255 であること。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht);
 }
 
 TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
@@ -94,8 +95,6 @@ TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
     (void)com_util_hashtable_deleted_count(ht, &deleted);
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "keep", &found);
     int actual_ret_validate = com_util_hashtable_validate(ht);
-    com_util_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_delete);      // [確認_正常系] - delete が成功すること。
     EXPECT_EQ(254, status_after_age);               // [確認_正常系] - 252 回の push 後に status が 254 であること。
@@ -145,6 +144,9 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
     EXPECT_EQ(COM_UTIL_OK, actual_ret_key);                  // [確認_正常系] - キーを読めること。
     EXPECT_STREQ("gone", static_cast<const char *>(key_out)); // [確認_正常系] - キーが一致すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_validate);              // [確認_正常系] - validate が成功すること。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht);
 }
 
 TEST_F(hashtableLifetimeInfiniteTest, insert_direct_skips_beyond_finite_max)

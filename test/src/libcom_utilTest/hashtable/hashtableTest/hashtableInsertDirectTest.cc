@@ -109,8 +109,6 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     int actual_ret_add = com_util_hashtable_add(ht, "a", value.data(), COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 先頭空きへ通常追加する。
     int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
     int actual_ret_validate = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
-    com_util_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create);              // [確認_正常系] - create が成功すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct);              // [確認_正常系] - insert_direct が成功すること。
@@ -127,6 +125,9 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     EXPECT_EQ(0u, deleted);                                 // [確認_正常系] - 削除済みが 0 件であること。
     EXPECT_EQ(1u, empty);                                   // [確認_正常系] - 空が 1 件であること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_validate);            // [確認_正常系] - validate が成功すること。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht);
 }
 
 TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
@@ -156,8 +157,6 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
     int actual_ret_again = com_util_hashtable_insert_direct(ht, 3, "gone", 1, value.data(),
                                                             &k_insert_timestamp); // [手順] - 同じキーを別レコードへ置く。
     int actual_ret_validate = com_util_hashtable_validate(ht);               // [手順] - 整合性を検証する。
-    com_util_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct); // [確認_正常系] - 寿命内の削除済みを置けること。
     EXPECT_EQ(COM_UTIL_ERR_NOT_FOUND,
@@ -172,6 +171,9 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
               actual_ret_again); // [確認_異常系] - 削除済みキーの再配置が DUPLICATE_DEFINITION であること。
     EXPECT_EQ(COM_UTIL_OK,
               actual_ret_validate); // [確認_正常系] - 削除済みをチェインへ載せたあと validate が成功すること。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht);
 }
 
 TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
@@ -201,8 +203,6 @@ TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
         ht, 1, "a", 2, value.data(), &k_insert_timestamp); // [手順] - lifetime 2 では成立しない status 2 を置く。
     (void)com_util_hashtable_get_status(ht, 1, &status);
     (void)com_util_hashtable_empty_count(ht, &empty);
-    com_util_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_eq);    // [確認_正常系] - status == lifetime が SKIPPED であること。
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_over);  // [確認_正常系] - lifetime 超過が SKIPPED であること。
@@ -309,4 +309,7 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_skip);           // [確認_正常系] - 占有より先に SKIPPED になること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_find);                // [確認_正常系] - 既存キーが残ること。
     EXPECT_STREQ("keep", static_cast<const char *>(found)); // [確認_正常系] - 既存値が変わらないこと。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht);
 }
