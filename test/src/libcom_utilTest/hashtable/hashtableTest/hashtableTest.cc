@@ -96,8 +96,6 @@ TEST_F(hashtableTest, create_and_add_find_round_trip)
     int actual_ret_rec = com_util_hashtable_find_recno(ht, "apple", &rec); // [手順] - apple のレコード番号を取得する。
     int actual_ret_status = com_util_hashtable_get_status(ht, rec, &status); // [手順] - レコード状態を取得する。
     int actual_ret_counts = com_util_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
-    com_util_hashtable_dispose(ht); // [手順] - テーブルを破棄する。
-
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_create); // [確認_正常系] - create が成功すること。
     EXPECT_EQ(COM_UTIL_OK, actual_ret_add);    // [確認_正常系] - add が成功すること。
@@ -112,6 +110,9 @@ TEST_F(hashtableTest, create_and_add_find_round_trip)
     EXPECT_EQ(1u, in_use);                          // [確認_正常系] - 実装中が 1 件であること。
     EXPECT_EQ(0u, deleted);                         // [確認_正常系] - 削除済みが 0 件であること。
     EXPECT_EQ(3u, empty);                           // [確認_正常系] - 空が 3 件であること。
+
+    // Cleanup
+    com_util_hashtable_dispose(ht); // [後処理] - 検証後にテーブルを破棄する。
 }
 
 TEST_F(hashtableTest, create_rejects_invalid_config)
