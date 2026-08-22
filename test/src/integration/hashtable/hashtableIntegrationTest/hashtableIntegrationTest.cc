@@ -1,6 +1,7 @@
 #include <testfw.h>
 
 #include <com_util/base/result.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/hashtable/hashtable.h>
 #include <com_util/mmap/mmap.h>
 
@@ -403,7 +404,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     int actual_ret_ref = com_util_hashtable_buffer_ref(ht, &mgmt, &data); // [手順] - 管理中の 2 領域の先頭を得る。
     int actual_ret_size = com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
 
-    FILE *out = fopen(path.c_str(), "wb");
+    FILE *out = com_util_fopen(path.c_str(), "wb", NULL);
     ASSERT_NE(nullptr, out);                             // [状態確認] - 書き出し先を開けること。
     size_t wrote_mgmt = fwrite(mgmt, 1, mgmt_size, out); // [手順] - 管理領域を書き出す。
     size_t wrote_data = fwrite(data, 1, data_size, out); // [手順] - データ領域を書き出す。
@@ -413,7 +414,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     /* uint64_t の配列で確保し、管理領域に必要なアラインメントを満たす。 */
     std::vector<uint64_t> load_mgmt((mgmt_size + sizeof(uint64_t) - 1u) / sizeof(uint64_t), 0);
     std::vector<unsigned char> load_data(data_size, 0);
-    FILE *in = fopen(path.c_str(), "rb");
+    FILE *in = com_util_fopen(path.c_str(), "rb", NULL);
     ASSERT_NE(nullptr, in);                                       // [状態確認] - 読み戻し元を開けること。
     size_t read_mgmt = fread(load_mgmt.data(), 1, mgmt_size, in); // [手順] - 管理領域を読み戻す。
     size_t read_data = fread(load_data.data(), 1, data_size, in); // [手順] - データ領域を読み戻す。
