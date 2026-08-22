@@ -303,7 +303,6 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
     int actual_ret_skip = com_util_hashtable_insert_direct(
         ht, 1, "other", 5, value.data(), &k_insert_timestamp); // [手順] - 占有スロットへ成立しない寿命値を置く。
     int actual_ret_find = com_util_hashtable_find_value_ref(ht, "keep", &found); // [手順] - 既存キーを検索する。
-    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_SKIPPED, actual_ret_skip);           // [確認_正常系] - 占有より先に SKIPPED になること。

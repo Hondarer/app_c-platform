@@ -134,7 +134,6 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
     int actual_ret_status = com_util_hashtable_get_status(ht, 1, &status);
     int actual_ret_key = com_util_hashtable_get_key_ref(ht, 1, &key_out);
     int actual_ret_validate = com_util_hashtable_validate(ht);
-    com_util_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(COM_UTIL_OK, actual_ret_direct);               // [確認_正常系] - 寿命無限先へ status 255 を置けること。
