@@ -31,6 +31,8 @@
 - `bench-io` の測定軸を変更する場合は、`prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同じ変更で確認してください。
 - `bench-io` の測定結果は管理対象外です。共有する数値と測定環境は、`docs/fileio-api-selection-guideline.md` に記載してください。
 - `bench-io` のレコード型を変更する場合は、パディングの有無と `-Wpadded` の警告を確認してください。
+- `bench-hashtable` の測定軸を変更する場合は、`prod/src/cmd/bench-hashtable/benchmark-method.md` と `docs/proposals/hashtable-storage-allocator.md` を同じ変更で確認してください。
+- `bench-hashtable` の測定結果は管理対象外です。共有する数値と測定環境は、`docs/proposals/hashtable-storage-allocator.md` に記載してください。
 
 ## 確認コマンド
 

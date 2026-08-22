@@ -409,6 +409,15 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 可変長文字列では `key_storage_size` または `value_storage_size` で構築時の容量を指定し、自動拡張しません。  
 断片化で連続領域が不足すると、合計空き容量が足りていても `COM_UTIL_ERR_STORAGE_FULL` です。  
 必要に応じて `com_util_hashtable_compact` を明示的に呼び出してから再試行します。  
+格納先の確保は、空き領域を管理する穴ディレクトリの先着適合で行い、空き領域の個数を H として O(H) です。  
+断片化がなければ H は 1 のため、実質 O(1) で完了します。  
+格納済みブロックの配置が変わるのは、`com_util_hashtable_compact`、`com_util_hashtable_resize`、`com_util_hashtable_rebuild_into` の 3 つです。  
+前者は同一のストレージ内で、後の 2 つは移行先の領域へ詰め直します。  
+確保は空き領域だけを使うため、対象レコード以外のブロックを動かしません。  
+取得済みの可変長参照が無効になるのは、そのフィールドの更新・回収・再利用、`com_util_hashtable_compact`、`com_util_hashtable_clear`、`com_util_hashtable_resize`、`com_util_hashtable_rebuild_into`、`com_util_hashtable_dispose` です。  
+穴ディレクトリは可変長ストレージ 1 個につき `capacity + 1` 要素を占め、必要バッファー サイズに含まれます。  
+必要バッファー サイズは `com_util_hashtable_required_size` で求めてください。  
+設計の背景は [hashtable 可変長ストレージ アロケーターの計算量改善](proposals/hashtable-storage-allocator.md) を参照してください。  
 固定長バイナリ値は `value_size` バイトのバイト列として `memcpy` で授受します。  
 値の格納境界は設定の `value_align` で決まります。  
 既定の `0` では値を隙間なく並べ、値への参照を返す API も型のアラインメントを保証しないため、型付きポインターとして直接参照せず `memcpy` で取り出します。  
@@ -456,7 +465,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 | 状態で絞って走査する | `com_util_hashtable_next_record`。`COM_UTIL_HASHTABLE_SCAN_IN_USE` / `_DELETED` / `_EMPTY` のビット和で対象を選ぶ。列挙の終了はエラーではなく `has_record_out` が 0 |
 | レコード数とストレージ容量を変える | 内部確保は `com_util_hashtable_resize`、外部領域は `com_util_hashtable_rebuild_into` |
 | 削除の加齢と回収 | `com_util_hashtable_push_deleted` / `com_util_hashtable_purge_deleted` / `com_util_hashtable_clear` |
-| 可変長ストレージの明示的な圧縮 | `com_util_hashtable_compact`。キーと値を一括して圧縮し、取得済みの可変長参照を無効化 |
+| 可変長ストレージの明示的な圧縮 | `com_util_hashtable_compact`。キーと値を一括して圧縮し、取得済みの可変長参照を無効化。capacity を N、空き領域の個数を H、使用バイト数を U として O(N log H + U) |
 | 寿命無限 | `COM_UTIL_HASHTABLE_LIFETIME_INFINITE` |
 | 整合性検査 | `com_util_hashtable_validate` |
 

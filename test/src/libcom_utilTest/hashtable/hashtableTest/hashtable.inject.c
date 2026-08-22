@@ -54,3 +54,18 @@ void test_hashtable_set_counts(com_util_hashtable *ht, uint64_t in_use_count, ui
     ht->hdr->in_use_count = in_use_count;
     ht->hdr->deleted_count = deleted_count;
 }
+
+void *test_hashtable_value_holes(const com_util_hashtable *ht)
+{
+    return hashtable_value_holes(ht);
+}
+
+uint64_t test_hashtable_value_hole_count(const com_util_hashtable *ht)
+{
+    return ht->hdr->value_hole_count;
+}
+
+void test_hashtable_set_value_hole_count(com_util_hashtable *ht, uint64_t count)
+{
+    ht->hdr->value_hole_count = count;
+}

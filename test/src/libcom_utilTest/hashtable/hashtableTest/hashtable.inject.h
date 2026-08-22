@@ -21,6 +21,9 @@ extern "C"
     extern void test_hashtable_set_next_empty(com_util_hashtable *ht, uint64_t value);
     extern void test_hashtable_set_config(com_util_hashtable *ht, const com_util_hashtable_config *config);
     extern void test_hashtable_set_counts(com_util_hashtable *ht, uint64_t in_use_count, uint64_t deleted_count);
+    extern void *test_hashtable_value_holes(const com_util_hashtable *ht);
+    extern uint64_t test_hashtable_value_hole_count(const com_util_hashtable *ht);
+    extern void test_hashtable_set_value_hole_count(com_util_hashtable *ht, uint64_t count);
 
 #ifdef __cplusplus
 }

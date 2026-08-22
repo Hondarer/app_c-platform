@@ -430,3 +430,262 @@ TEST_F(hashtableVariableStringTest, supports_all_key_and_value_field_type_combin
         }
     }
 }
+
+/*
+ *  以下は可変長ストレージの配置に関する特性化テストです。
+ *  先着適合の探索順と圧縮の詰め直し順を、オフセットの実測値で固定します。
+ *  ストレージ アロケーターの内部実装を差し替えても、配置が変わらないことを保証します。
+ */
+
+static com_util_hashtable_config variable_config_with_capacity(size_t capacity, size_t key_storage_size,
+                                                               size_t value_storage_size)
+{
+    com_util_hashtable_config config = {};
+
+    config.capacity = capacity;
+    config.key_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.value_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.key_storage_size = key_storage_size;
+    config.value_storage_size = value_storage_size;
+    config.lifetime = 5;
+    return config;
+}
+
+/**
+ *  可変長ストレージの先頭は、キーが管理領域の末尾、値がデータ領域の末尾に置かれます。
+ *  この位置関係は公開 API の buffer_ref と buffer_size から算出できます。
+ */
+class storage_origin
+{
+  public:
+    storage_origin(const com_util_hashtable *ht, const com_util_hashtable_config &config)
+    {
+        const void *mgmt = nullptr;
+        const void *data = nullptr;
+        size_t mgmt_size = 0;
+        size_t data_size = 0;
+
+        (void)com_util_hashtable_buffer_ref(ht, &mgmt, &data);
+        (void)com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
+        key_base_ = static_cast<const unsigned char *>(mgmt) + mgmt_size - config.key_storage_size;
+        value_base_ = static_cast<const unsigned char *>(data) + data_size - config.value_storage_size;
+    }
+
+    /** キーが見つからない場合は -1 を返します。 */
+    long key_offset(const com_util_hashtable *ht, const char *key) const
+    {
+        const void *ref = nullptr;
+        uint64_t record = 0;
+
+        if (com_util_hashtable_find_recno(ht, key, &record) != COM_UTIL_OK)
+        {
+            return -1;
+        }
+        if (com_util_hashtable_get_key_ref(ht, record, &ref) != COM_UTIL_OK)
+        {
+            return -1;
+        }
+        return static_cast<long>(static_cast<const unsigned char *>(ref) - key_base_);
+    }
+
+    /** キーが見つからない場合は -1 を返します。 */
+    long value_offset(const com_util_hashtable *ht, const char *key) const
+    {
+        const void *ref = nullptr;
+
+        if (com_util_hashtable_find_value_ref(ht, key, &ref) != COM_UTIL_OK)
+        {
+            return -1;
+        }
+        return static_cast<long>(static_cast<const unsigned char *>(ref) - value_base_);
+    }
+
+  private:
+    const unsigned char *key_base_;
+    const unsigned char *value_base_;
+};
+
+TEST_F(hashtableVariableStringTest, first_fit_placement_is_stable_across_add_purge_and_update)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_config_with_capacity(8, 64, 32); // [状態] - キー 64 バイト、値 32 バイトの可変長ストレージを用意する。
+    com_util_hashtable *ht = nullptr;
+    std::vector<long> actual_value_offsets;
+    std::vector<long> actual_key_offsets;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    storage_origin origin(ht, config);
+    (void)com_util_hashtable_add(ht, "k1", "aaaa", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k2", "bbbb", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k3", "cccc", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k4", "dddd",
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイト値を 4 件詰める。
+    (void)com_util_hashtable_delete(ht, "k2");
+    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 2 件目を回収し、途中に穴を作る。
+    int actual_ret_reuse_hole = com_util_hashtable_add(ht, "k5", "ee",
+                                                       COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    long actual_offset_reuse_hole = origin.value_offset(ht, "k5"); // [手順] - 穴に収まる 3 バイト値を追加する。
+    int actual_ret_skip_hole = com_util_hashtable_add(ht, "k6", "ffffff",
+                                                      COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    long actual_offset_skip_hole = origin.value_offset(ht, "k6"); // [手順] - 穴に収まらない 7 バイト値を追加する。
+    (void)com_util_hashtable_add(ht, "k7", "gg", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    int actual_ret_shrink = com_util_hashtable_update(ht, "k1", "hh");
+    long actual_offset_shrink = origin.value_offset(ht, "k1"); // [手順] - 先頭の値を短い値へ更新する。
+    int actual_ret_merge_own = com_util_hashtable_update(ht, "k3", "iiiiii");
+    long actual_offset_merge_own = origin.value_offset(ht, "k3"); // [手順] - 自ブロックと隣接する穴の結合が要る更新を行う。
+    for (const char *key : {"k1", "k3", "k4", "k5", "k6", "k7"})
+    {
+        actual_value_offsets.push_back(origin.value_offset(ht, key));
+        actual_key_offsets.push_back(origin.key_offset(ht, key));
+    }
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_reuse_hole); // [確認_正常系] - 穴に収まる add が成功すること。
+    EXPECT_EQ(5, actual_offset_reuse_hole); // [確認_正常系] - 穴に収まる add が、回収済みの穴の先頭へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_skip_hole); // [確認_正常系] - 穴に収まらない add が成功すること。
+    EXPECT_EQ(20, actual_offset_skip_hole); // [確認_正常系] - 穴に収まらない add が、小さすぎる穴を読み飛ばして末尾側へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_shrink); // [確認_正常系] - 短い値への update が成功すること。
+    EXPECT_EQ(0, actual_offset_shrink); // [確認_正常系] - 短い値への update が、自ブロックの先頭を維持すること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_merge_own); // [確認_正常系] - 自ブロックと隣接穴の結合が要る update が成功すること。
+    EXPECT_EQ(8, actual_offset_merge_own); // [確認_正常系] - 当該 update が、直前の穴と自ブロックを結合した位置へ配置されること。
+    EXPECT_EQ(std::vector<long>({0, 8, 15, 5, 20, 27}),
+              actual_value_offsets); // [確認_正常系] - 一連の操作後の値オフセットが記録どおりであること。
+    EXPECT_EQ(std::vector<long>({0, 6, 9, 3, 12, 15}),
+              actual_key_offsets); // [確認_正常系] - 一連の操作後のキー オフセットが記録どおりであること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - 一連の操作後の validate が成功すること。
+}
+
+TEST_F(hashtableVariableStringTest, compaction_packs_blocks_in_offset_order_and_frees_the_tail)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_config_with_capacity(8, 64, 32); // [状態] - キー 64 バイト、値 32 バイトの可変長ストレージを用意する。
+    com_util_hashtable *ht = nullptr;
+    std::vector<long> actual_value_offsets;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    storage_origin origin(ht, config);
+    (void)com_util_hashtable_add(ht, "k1", "aaaa", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k2", "bbbb", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k3", "cccc", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k4", "dddd", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_delete(ht, "k2");
+    (void)com_util_hashtable_purge_deleted(ht);
+    (void)com_util_hashtable_add(ht, "k5", "ee", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k6", "ffffff", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k7", "gg", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_update(ht, "k1", "hh");
+    (void)com_util_hashtable_update(ht, "k3", "iiiiii"); // [手順] - 穴が残る状態を作る。
+    int actual_ret_compact = com_util_hashtable_compact(ht); // [手順] - 明示的に圧縮する。
+    for (const char *key : {"k1", "k5", "k3", "k4", "k6", "k7"})
+    {
+        actual_value_offsets.push_back(origin.value_offset(ht, key));
+    }
+    int actual_ret_add_after_compact =
+        com_util_hashtable_add(ht, "k8", "jjj",
+                               COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 圧縮で空いた末尾へ追加する。
+    long actual_offset_after_compact = origin.value_offset(ht, "k8");
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_compact); // [確認_正常系] - compact が成功すること。
+    EXPECT_EQ(std::vector<long>({0, 3, 6, 13, 18, 25}),
+              actual_value_offsets); // [確認_正常系] - compact がオフセット順に隙間なく詰め直すこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_add_after_compact); // [確認_正常系] - 圧縮後の add が成功すること。
+    EXPECT_EQ(28, actual_offset_after_compact); // [確認_正常系] - 圧縮後の add が、詰め直した末尾へ配置されること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - 圧縮と追加の後の validate が成功すること。
+}
+
+TEST_F(hashtableVariableStringTest, exact_fit_consumes_the_last_hole_and_the_next_add_reports_storage_full)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_config_with_capacity(8, 64, 16); // [状態] - 値ストレージを 16 バイトに絞る。
+    com_util_hashtable *ht = nullptr;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    storage_origin origin(ht, config);
+    (void)com_util_hashtable_add(ht, "k1", "aaaaaaa", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    int actual_ret_exact_fit = com_util_hashtable_add(ht, "k2", "bbbbbbb",
+                                                      COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    long actual_offset_exact_fit = origin.value_offset(ht, "k2"); // [手順] - 残り 8 バイトへ 8 バイト値を追加する。
+    int actual_ret_full = com_util_hashtable_add(ht, "k3", "c",
+                                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - さらに追加する。
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_exact_fit); // [確認_正常系] - 残り容量ちょうどの add が成功すること。
+    EXPECT_EQ(8, actual_offset_exact_fit); // [確認_正常系] - 残り容量ちょうどの add が、末尾の穴の先頭へ配置されること。
+    EXPECT_EQ(COM_UTIL_ERR_STORAGE_FULL, actual_ret_full); // [確認_異常系] - 空きが無くなった後の add が STORAGE_FULL であること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - 満杯状態の validate が成功すること。
+}
+
+TEST_F(hashtableVariableStringTest, resize_repacks_variable_storage_and_moves_references)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_config_with_capacity(4, 64, 32); // [状態] - キー 64 バイト、値 32 バイトの可変長ストレージを用意する。
+    com_util_hashtable_config grown =
+        variable_config_with_capacity(8, 64, 32); // [状態] - capacity だけを 8 へ広げた設定を用意する。
+    com_util_hashtable *ht = nullptr;
+    const void *before_resize = nullptr;
+    const void *after_resize = nullptr;
+    std::vector<long> actual_offsets_before;
+    std::vector<long> actual_offsets_after;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "k1", "aaaa", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k2", "bbbb", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_add(ht, "k3", "cccc", COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE);
+    (void)com_util_hashtable_delete(ht, "k2");
+    (void)com_util_hashtable_purge_deleted(ht); // [手順] - 中間の 1 件を回収し、ストレージの途中に穴を作る。
+    {
+        storage_origin origin(ht, config);
+
+        for (const char *key : {"k1", "k3"})
+        {
+            actual_offsets_before.push_back(origin.value_offset(ht, key));
+        }
+        (void)com_util_hashtable_find_value_ref(ht, "k3", &before_resize);
+    }
+    int actual_ret_resize = com_util_hashtable_resize(ht, &grown); // [手順] - capacity を広げる。
+    {
+        storage_origin origin(ht, grown);
+
+        for (const char *key : {"k1", "k3"})
+        {
+            actual_offsets_after.push_back(origin.value_offset(ht, key));
+        }
+        (void)com_util_hashtable_find_value_ref(ht, "k3", &after_resize);
+    }
+    std::string moved_text = static_cast<const char *>(after_resize);
+    int actual_ret_validate = com_util_hashtable_validate(ht);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(std::vector<long>({0, 10}),
+              actual_offsets_before); // [確認_正常系] - resize 前は回収済みの穴がそのまま残ること。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_resize); // [確認_正常系] - resize が成功すること。
+    EXPECT_EQ(std::vector<long>({0, 5}),
+              actual_offsets_after); // [確認_正常系] - resize が残すレコードをレコード番号順に隙間なく詰め直すこと。
+    EXPECT_NE(before_resize, after_resize); // [確認_正常系] - resize が取得済みの可変長参照を移動させること。
+    EXPECT_EQ("cccc", moved_text); // [確認_正常系] - 詰め直した後も値の内容が変わらないこと。
+    EXPECT_EQ(COM_UTIL_OK, actual_ret_validate); // [確認_正常系] - resize 後の validate が成功すること。
+}

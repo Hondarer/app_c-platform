@@ -10,6 +10,11 @@
  *  可変長文字列のストレージ容量は構築時に固定し、自動拡張しません。\n
  *  断片化で連続領域が不足した場合は @ref COM_UTIL_ERR_STORAGE_FULL を返します。\n
  *  必要に応じて @ref com_util_hashtable_compact を明示的に呼び出してください。\n
+ *  格納先の確保は、空き領域の個数を H として O(H) です。断片化がなければ H は 1 のため、
+ *  実質 O(1) で完了します。確保は既存のブロックを移動しないため、取得済みの可変長参照は
+ *  後述の契機以外で無効になりません。\n
+ *  空き領域の管理表はストレージごとに capacity + 1 要素を持ち、必要バイト数に含まれます。
+ *  必要バイト数は @ref com_util_hashtable_required_size で求めてください。\n
  *  衝突はチェイン法で扱い、削除は寿命付きの加齢により空きへ戻します。\n
  *  lifetime が @ref COM_UTIL_HASHTABLE_LIFETIME_INFINITE のとき、
  *  削除済みは加齢の末に 255 で止まり、push では空へ戻りません。\n
@@ -56,7 +61,10 @@
  *  固定長文字列は NUL までを複製し、保存領域の未使用部分を内部で 0 埋めします。\n
  *  可変長文字列への参照は、そのフィールドの更新・回収・再利用、または
  *  @ref com_util_hashtable_compact / @ref com_util_hashtable_clear /
+ *  @ref com_util_hashtable_resize / @ref com_util_hashtable_rebuild_into /
  *  @ref com_util_hashtable_dispose まで有効です。\n
+ *  @ref com_util_hashtable_resize と @ref com_util_hashtable_rebuild_into は、
+ *  残すレコードを移行先の領域へ詰め直すため、配置が変わります。\n
  *  値の入力ポインターに型のアラインメントは要求しません。\n
  *  値の格納境界は config の value_align で決まります。0 (既定) では値を隙間なく
  *  並べ、`find_value_ref` / `get_value_ref` が返すポインターに型のアラインメントを
@@ -1013,7 +1021,14 @@ extern "C"
      *  0 埋めします。固定長フィールドだけのテーブルでは何も変更しません。\n
      *  成功すると、このテーブルから取得済みの可変長キーおよび値への参照は
      *  すべて無効になります。論理的なキーと値は変わらないため、テーブルおよび
-     *  レコードの変更時刻と世代カウンターは更新しません。
+     *  レコードの変更時刻と世代カウンターは更新しません。\n
+     *  計算量は、capacity を N、空き領域の個数を H、使用バイト数を U として
+     *  O(N log H + U) です。\n
+     *  格納済みブロックの配置が変わるのは、本関数、@ref com_util_hashtable_resize 、
+     *  @ref com_util_hashtable_rebuild_into の 3 つです。\n
+     *  本関数は同一のストレージ内で詰め直し、他の 2 つは移行先の領域へ詰め直します。\n
+     *  @ref com_util_hashtable_add などの確保は空き領域だけを使うため、
+     *  対象レコード以外のブロックを動かしません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n

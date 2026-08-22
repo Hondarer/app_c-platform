@@ -108,6 +108,7 @@ com_util が公開する API 全体の一覧は [com_util API チート シー�
 - [com_util コーディング規範](coding-guideline.md)
 - [ネットワーク API ガイドライン](net-api-guideline.md)
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
+- [hashtable 可変長ストレージ アロケーターの計算量改善](proposals/hashtable-storage-allocator.md)
 
 ## 文書一覧
 

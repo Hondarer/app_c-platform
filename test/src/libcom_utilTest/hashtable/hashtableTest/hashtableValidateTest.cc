@@ -356,3 +356,162 @@ TEST_F(hashtableValidateTest, detects_deleted_count_mismatch)
     EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
               actual_ret); // [確認_異常系] - 削除済み件数の不一致が CORRUPT_DESCRIPTOR であること。
 }
+
+/*
+ *  以下は可変長値の穴ディレクトリに関する検査です。
+ *  穴ディレクトリは、使用中ブロックと合わせてストレージ全体を過不足なく分割し、
+ *  オフセット昇順かつ隣接する穴が結合済みである必要があります。
+ */
+
+namespace
+{
+
+/** 固定長キーと可変長値を持つ設定を作ります。 */
+com_util_hashtable_config variable_value_config(size_t capacity, size_t value_storage_size)
+{
+    com_util_hashtable_config config = {};
+
+    config.capacity = capacity;
+    config.key_type = COM_UTIL_HASHTABLE_FIELD_FIXED_STRING;
+    config.value_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config.key_size = 8;
+    config.value_storage_size = value_storage_size;
+    config.lifetime = 5;
+    return config;
+}
+
+/** 穴ディレクトリの要素です。hashtable.c の struct hashtable_hole と同じ配置です。 */
+struct hole_entry
+{
+    uint64_t offset;
+    uint64_t length;
+};
+
+} // namespace
+
+TEST_F(hashtableValidateTest, detects_hole_overlapping_a_live_block)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_value_config(4, 32); // [状態] - capacity 4、値ストレージ 32 バイトの設定を用意する。
+    com_util_hashtable *ht = nullptr;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", "1111",
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
+    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
+    holes[0].offset = 0; // [手順] - 末尾の穴の先頭を 0 へ書き換え、使用中ブロックと重ねる。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 使用中ブロックと重なる穴が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, detects_hole_total_mismatch)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_value_config(4, 32); // [状態] - capacity 4、値ストレージ 32 バイトの設定を用意する。
+    com_util_hashtable *ht = nullptr;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", "1111",
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
+    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
+    holes[0].length -= 1u; // [手順] - 末尾の穴を 1 バイト縮め、空きの合計を実態と食い違わせる。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 空きの合計の不一致が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, detects_adjacent_holes_left_unmerged)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_value_config(4, 32); // [状態] - capacity 4、値ストレージ 32 バイトの設定を用意する。
+    com_util_hashtable *ht = nullptr;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    (void)com_util_hashtable_add(ht, "a", "1111",
+                                 COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 5 バイトの値を 1 件追加する。
+    hole_entry *holes = static_cast<hole_entry *>(test_hashtable_value_holes(ht));
+    holes[0].offset = 5;
+    holes[0].length = 10;
+    holes[1].offset = 15;
+    holes[1].length = 17; // [手順] - 末尾の穴を、隣接したまま 2 個へ分割する。
+    test_hashtable_set_value_hole_count(ht, 2);
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 結合されていない隣接した穴が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, detects_hole_count_beyond_upper_bound)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_value_config(4, 32); // [状態] - capacity 4、値ストレージ 32 バイトの設定を用意する。
+    com_util_hashtable *ht = nullptr;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    test_hashtable_set_value_hole_count(ht, 6); // [手順] - 穴の個数を上限 capacity + 1 より大きい値へ書き換える。
+    int actual_ret = com_util_hashtable_validate(ht); // [手順] - 整合性を検証する。
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 上限を超える穴の個数が CORRUPT_DESCRIPTOR であること。
+}
+
+TEST_F(hashtableValidateTest, attach_rejects_hole_count_beyond_upper_bound)
+{
+    // Arrange
+    com_util_hashtable_config config =
+        variable_value_config(4, 32); // [状態] - capacity 4、値ストレージ 32 バイトの設定を用意する。
+    com_util_hashtable *ht = nullptr;
+    com_util_hashtable *attached = nullptr;
+    const void *mgmt = nullptr;
+    const void *data = nullptr;
+    size_t mgmt_size = 0;
+    size_t data_size = 0;
+
+    // Pre-Assert
+
+    // Act
+    (void)com_util_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
+    test_hashtable_set_value_hole_count(ht, 6); // [手順] - 穴の個数を上限 capacity + 1 より大きい値へ書き換える。
+    (void)com_util_hashtable_buffer_size(ht, &mgmt_size, &data_size);
+    (void)com_util_hashtable_buffer_ref(ht, &mgmt, &data);
+    std::vector<unsigned char> mgmt_copy(static_cast<const unsigned char *>(mgmt),
+                                         static_cast<const unsigned char *>(mgmt) + mgmt_size);
+    std::vector<unsigned char> data_copy(static_cast<const unsigned char *>(data),
+                                         static_cast<const unsigned char *>(data) + data_size);
+    int actual_ret = com_util_hashtable_attach(mgmt_copy.data(), mgmt_copy.size(), data_copy.data(),
+                                               data_copy.size(), &attached); // [手順] - 壊れた領域へ再接続する。
+    com_util_hashtable_dispose(attached);
+    com_util_hashtable_dispose(ht);
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_CORRUPT_DESCRIPTOR,
+              actual_ret); // [確認_異常系] - 上限を超える穴の個数での attach が CORRUPT_DESCRIPTOR であること。
+    EXPECT_EQ(nullptr, attached); // [確認_異常系] - 失敗後の ht_out が NULL であること。
+}
