@@ -1,7 +1,7 @@
 # ベンチマークの測定方法
 
 `bench-hashtable` コマンドが何をどう測っているかと、実行手順をまとめます。  
-測定結果の解釈と管理方式は [hashtable 可変長ストレージの管理方式](../../../../docs/hashtable-storage-allocator.md) を参照してください。
+測定結果の解釈と管理方式は [hashtable 可変長ストレージの管理方式](../../../libsrc/com_util/hashtable/hashtable-storage-allocator.md) を参照してください。
 
 ## 測定対象
 

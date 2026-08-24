@@ -2,7 +2,7 @@
 
 本書は、`com_util` の hashtable が可変長キーと可変長値のストレージをどのように管理しているかを説明します。
 
-公開 API の一覧は [API チート シート](api-cheatsheet.md)、契約の正本は公開ヘッダー `prod/include/com_util/hashtable/hashtable.h` です。  
+公開 API の一覧は [API チート シート](https://github.com/Hondarer/app_com_util/blob/main/docs/api-cheatsheet.md)、契約の正本は公開ヘッダー `prod/include/com_util/hashtable/hashtable.h` です。  
 実装は `prod/libsrc/com_util/hashtable/hashtable.c` です。
 
 ## 全体像
@@ -170,7 +170,7 @@ N は `capacity`、U は使用バイト数です。
 ## 性能特性
 
 `prod/src/cmd/bench-hashtable` で測定します。  
-測定軸と実行手順は [ベンチマークの測定方法](../prod/src/cmd/bench-hashtable/benchmark-method.md) を参照してください。
+測定軸と実行手順は [ベンチマークの測定方法](../../../src/cmd/bench-hashtable/benchmark-method.md) を参照してください。
 
 測定環境は次のとおりです。
 

@@ -94,12 +94,14 @@ make -C app/com_util test
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
 - [com_util (internal)](../../../doxygen/com_util_internal/index.html)
     - [ファイルの一覧](../../../doxygen/com_util_internal/files.html)
+    - [hashtable 可変長ストレージの管理方式](../../../doxygen/com_util_internal/md_libsrc_2com__util_2hashtable_2hashtable-storage-allocator.html)
 
 ### 単一ファイル版
 
 - [com_util (internal)](doxybook2_internal/README.md)
     - [ファイルの一覧](doxybook2_internal/Files/README.md)
     - [カテゴリの一覧](doxybook2_internal/Modules/README.md)
+    - [hashtable 可変長ストレージの管理方式](doxybook2_internal/Files/libsrc/com_util/hashtable/hashtable-storage-allocator.md)
 
 ## 関連ドキュメント
 
@@ -107,7 +109,7 @@ com_util が公開する API 全体の一覧は [com_util API チート シー�
 
 - [com_util コーディング規範](coding-guideline.md)
 - [ネットワーク API ガイドライン](net-api-guideline.md)
-- [hashtable 可変長ストレージの管理方式](hashtable-storage-allocator.md)
+- [hashtable 可変長ストレージの管理方式](../prod/libsrc/com_util/hashtable/hashtable-storage-allocator.md)
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
 
 ## 文書一覧

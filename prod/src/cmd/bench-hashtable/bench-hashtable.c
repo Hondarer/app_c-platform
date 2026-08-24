@@ -19,6 +19,7 @@
 
 #include <com_util/argparser/argparser.h>
 #include <com_util/base/result.h>
+#include <com_util/crt/stdio.h>
 #include <com_util/hashtable/hashtable.h>
 
 #include "bench_timer.h"
@@ -403,7 +404,7 @@ int main(int argc, char **argv)
 
     if (options.csv_path != NULL)
     {
-        csv = fopen(options.csv_path, "w");
+        csv = com_util_fopen(options.csv_path, "w", NULL);
         if (csv == NULL)
         {
             (void)fprintf(stderr, "cannot open %s for writing.\n", options.csv_path);
