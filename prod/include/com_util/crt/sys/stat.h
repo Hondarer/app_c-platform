@@ -183,6 +183,29 @@ extern "C"
 #endif /* COMPILER_GCC */
         ;
 
+    /**
+     *  @brief          ファイル情報が通常ファイルを表すかを返します。
+     *  @param[in]      file_stat  判定するファイル情報。NULL 可。
+     *  @return         通常ファイルの場合は 1、それ以外は 0 を返します。
+     *
+     *  `com_util_stat()` で取得したファイル情報の種別を判定します。\n
+     *  ディレクトリ、デバイス ファイル、その他の特殊ファイルはいずれも 0 になります。\n
+     *  引数の値だけを参照し、ファイル システムへはアクセスしません。
+     *  そのため本関数は共通結果コードの適用対象外であり、判定結果をそのまま返します。
+     *
+     *  Linux では `S_ISREG`、Windows では `_S_IFMT` と `_S_IFREG` の比較で判定します。\n
+     *  `com_util_file_stat_t` は OS が定義する構造体の別名であるため、
+     *  種別の判定に必要なマクロの差異を本関数が吸収します。
+     *
+     *  @attention      @p file_stat が NULL の場合は 0 を返します。
+     *                  引数の妥当性を確認する用途には使用できません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  引数の値だけを参照し、共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_stat_is_regular(const com_util_file_stat_t *file_stat);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

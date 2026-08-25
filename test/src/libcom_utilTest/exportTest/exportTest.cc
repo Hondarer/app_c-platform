@@ -186,12 +186,10 @@
                  int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, \
                                      com_util_hashtable_add_deleted_policy deleted_policy)) \
     EXPORT_ENTRY(com_util_hashtable_upsert, \
-                 int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, \
-                                     int *inserted_out)) \
+                 int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value, int *inserted_out)) \
     EXPORT_ENTRY(com_util_hashtable_insert_direct, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, uint64_t record, const void *key, int status, \
-                                     const void *value, const com_util_timespec *timestamp, \
-                                     uint64_t generation)) \
+                                     const void *value, const com_util_timespec *timestamp, uint64_t generation)) \
     EXPORT_ENTRY(com_util_hashtable_update, \
                  int(COM_UTIL_API *)(com_util_hashtable * ht, const void *key, const void *value)) \
     EXPORT_ENTRY(com_util_hashtable_update_rec, \
@@ -317,6 +315,17 @@
                  int(COM_UTIL_API *)(const com_util_file *file, com_util_file_id *id_out, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_file_get_path_id, \
                  int(COM_UTIL_API *)(const char *path, com_util_file_id *id_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY( \
+        com_util_file_get_modified_timestamp, \
+        int(COM_UTIL_API *)(const com_util_file *file, com_util_timespec *timestamp_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY( \
+        com_util_file_set_modified_timestamp, \
+        int(COM_UTIL_API *)(com_util_file * file, const com_util_timespec *timestamp, com_util_error *detail_out)) \
+    EXPORT_ENTRY(com_util_file_get_path_modified_timestamp, \
+                 int(COM_UTIL_API *)(const char *path, com_util_timespec *timestamp_out, com_util_error *detail_out)) \
+    EXPORT_ENTRY( \
+        com_util_file_set_path_modified_timestamp, \
+        int(COM_UTIL_API *)(const char *path, const com_util_timespec *timestamp, com_util_error *detail_out)) \
     EXPORT_ENTRY(com_util_file_flush, int(COM_UTIL_API *)(com_util_file * file, com_util_error * detail_out)) \
     EXPORT_ENTRY(com_util_file_close, int(COM_UTIL_API *)(com_util_file * file, com_util_error * detail_out)) \
     /* com_util/crt/path.h */ \
@@ -419,6 +428,7 @@
     EXPORT_ENTRY(com_util_mkdir_fmt, int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, ...)) \
     EXPORT_ENTRY(com_util_vmkdir_fmt, \
                  int(COM_UTIL_API *)(com_util_error * detail_out, const char *format, va_list args)) \
+    EXPORT_ENTRY(com_util_file_stat_is_regular, int(COM_UTIL_API *)(const com_util_file_stat_t *file_stat)) \
     /* com_util/crt/time.h */ \
     EXPORT_ENTRY(com_util_gmtime, int(COM_UTIL_API *)(struct tm * utc_tm, const time_t *timep)) \
     EXPORT_ENTRY(com_util_localtime, int(COM_UTIL_API *)(struct tm * local_tm, const time_t *timep)) \

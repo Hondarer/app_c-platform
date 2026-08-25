@@ -24,9 +24,9 @@ Linux と Windows では、ファイル パス、セキュア関数、ワイド�
 
 - `com_util/crt/crt.h`: `crt` 配下の公開ヘッダーをまとめて取り込む標準入口
 - `com_util/crt/stdio.h`: `FILE *` 操作、`remove`、`rename`、`fopen_fmt`、`remove_fmt`、切り詰めを検出する `snprintf` と `fgets`
-- `com_util/crt/sys/stat.h`: `stat`、`mkdir`、`stat_fmt`、`mkdir_fmt`
+- `com_util/crt/sys/stat.h`: `stat`、`mkdir`、`stat_fmt`、`mkdir_fmt`、ファイル種別の判定
 - `com_util/crt/fcntl.h`: `open`、`open_fmt`
-- `com_util/crt/file.h`: 書き込み用低レベル ファイル ハンドル、`open`、`write`、`size`、`close`
+- `com_util/crt/file.h`: 書き込み用低レベル ファイル ハンドル、`open`、`write`、`size`、最終更新日時、`close`
 - `com_util/crt/unistd.h`: `access`、`access_fmt`、`COM_UTIL_ACCESS_FMT_*`
 - `com_util/crt/string.h`: 安全な文字列コピー/連結、再入可能な `strtok_r`、`sscanf` 抽象
 - `com_util/crt/stdlib.h`: 環境変数の取得と設定、完全消費を検査する文字列から数値への変換

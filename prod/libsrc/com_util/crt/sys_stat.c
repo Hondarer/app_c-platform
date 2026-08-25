@@ -271,3 +271,22 @@ int com_util_mkdir(const char *path, com_util_error *detail_out)
     }
     return com_util_error_report_success(detail_out);
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int com_util_file_stat_is_regular(const com_util_file_stat_t *file_stat)
+{
+    if (file_stat == NULL)
+    {
+        return 0;
+    }
+
+#if defined(PLATFORM_LINUX)
+    /* glibc は S_IFMT と S_IFREG を __USE_MISC の内側に置くため、
+     * 厳密 ISO モードでも参照できる S_ISREG を使用する。 */
+    return S_ISREG(file_stat->st_mode) != 0;
+#elif defined(PLATFORM_WINDOWS)
+    /* MSVC の <sys/stat.h> に S_ISREG はないため、種別ビットの比較で判定する。 */
+    return (file_stat->st_mode & _S_IFMT) == _S_IFREG;
+#endif /* PLATFORM_ */
+}

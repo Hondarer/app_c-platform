@@ -152,6 +152,11 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_file_close)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_flush)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_get_id)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_get_path_id)
+MOCK_COM_UTIL_LINK_IMPL(com_util_file_get_modified_timestamp)
+MOCK_COM_UTIL_LINK_IMPL(com_util_file_set_modified_timestamp)
+MOCK_COM_UTIL_LINK_IMPL(com_util_file_get_path_modified_timestamp)
+MOCK_COM_UTIL_LINK_IMPL(com_util_file_set_path_modified_timestamp)
+MOCK_COM_UTIL_LINK_IMPL(com_util_file_stat_is_regular)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_get_size)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_init)
 MOCK_COM_UTIL_LINK_IMPL(com_util_file_open)
@@ -626,6 +631,16 @@ extern int delegate_real_com_util_file_get_id(const com_util_file *file, com_uti
                                               com_util_error *detail_out);
 extern int delegate_real_com_util_file_get_path_id(const char *path, com_util_file_id *id_out,
                                                    com_util_error *detail_out);
+extern int delegate_real_com_util_file_get_modified_timestamp(const com_util_file *file,
+                                                              com_util_timespec *timestamp_out,
+                                                              com_util_error *detail_out);
+extern int delegate_real_com_util_file_set_modified_timestamp(com_util_file *file, const com_util_timespec *timestamp,
+                                                              com_util_error *detail_out);
+extern int delegate_real_com_util_file_get_path_modified_timestamp(const char *path, com_util_timespec *timestamp_out,
+                                                                   com_util_error *detail_out);
+extern int delegate_real_com_util_file_set_path_modified_timestamp(const char *path, const com_util_timespec *timestamp,
+                                                                   com_util_error *detail_out);
+extern int delegate_real_com_util_file_stat_is_regular(const com_util_file_stat_t *file_stat);
 extern int delegate_real_com_util_file_flush(com_util_file *file, com_util_error *detail_out);
 extern int delegate_real_com_util_file_close(com_util_file *file, com_util_error *detail_out);
 
@@ -818,8 +833,7 @@ extern int delegate_real_com_util_hashtable_delete_rec(com_util_hashtable *ht, u
 extern int delegate_real_com_util_hashtable_push_deleted(com_util_hashtable *ht);
 extern int delegate_real_com_util_hashtable_purge_deleted(com_util_hashtable *ht);
 extern int delegate_real_com_util_hashtable_compact(com_util_hashtable *ht);
-extern int delegate_real_com_util_hashtable_resize(com_util_hashtable *ht,
-                                                   const com_util_hashtable_config *new_config);
+extern int delegate_real_com_util_hashtable_resize(com_util_hashtable *ht, const com_util_hashtable_config *new_config);
 extern int delegate_real_com_util_hashtable_rebuild_into(const com_util_hashtable *src,
                                                          const com_util_hashtable_config *new_config, void *buf_mgmt,
                                                          size_t buf_mgmt_size, void *buf_data, size_t buf_data_size,
@@ -1089,8 +1103,7 @@ class Mock_com_util
                 (com_util_hashtable *, const void *, const void *, com_util_hashtable_add_deleted_policy));
     MOCK_METHOD(int, com_util_hashtable_upsert, (com_util_hashtable *, const void *, const void *, int *));
     MOCK_METHOD(int, com_util_hashtable_insert_direct,
-                (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *,
-                 uint64_t));
+                (com_util_hashtable *, uint64_t, const void *, int, const void *, const com_util_timespec *, uint64_t));
     MOCK_METHOD(int, com_util_hashtable_update, (com_util_hashtable *, const void *, const void *));
     MOCK_METHOD(int, com_util_hashtable_update_rec, (com_util_hashtable *, uint64_t, const void *));
     MOCK_METHOD(int, com_util_hashtable_find_value_ref, (const com_util_hashtable *, const void *, const void **));
@@ -1280,6 +1293,14 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_file_set_size, (com_util_file *, size_t, com_util_error *));
     MOCK_METHOD(int, com_util_file_get_id, (const com_util_file *, com_util_file_id *, com_util_error *));
     MOCK_METHOD(int, com_util_file_get_path_id, (const char *, com_util_file_id *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_get_modified_timestamp,
+                (const com_util_file *, com_util_timespec *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_set_modified_timestamp,
+                (com_util_file *, const com_util_timespec *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_get_path_modified_timestamp, (const char *, com_util_timespec *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_set_path_modified_timestamp,
+                (const char *, const com_util_timespec *, com_util_error *));
+    MOCK_METHOD(int, com_util_file_stat_is_regular, (const com_util_file_stat_t *));
     MOCK_METHOD(int, com_util_file_flush, (com_util_file *, com_util_error *));
     MOCK_METHOD(int, com_util_file_close, (com_util_file *, com_util_error *));
 

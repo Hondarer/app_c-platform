@@ -132,6 +132,10 @@
 | `mkdir` / `_wmkdir` | `com_util_mkdir(path, detail_out)` | パスは UTF-8 |
 | (`mkdir -p` 相当) | `com_util_makedirs(path, detail_out)` | 中間ディレクトリを再帰的に作成。既存ディレクトリはべき等に成功扱い |
 | `rmdir` / `_wrmdir` | `com_util_rmdir(path, detail_out)` | パスは UTF-8。中間ディレクトリの再帰削除はしません。 |
+| `S_ISREG(st.st_mode)` / `(st.st_mode & _S_IFMT) == _S_IFREG` | `com_util_file_stat_is_regular(file_stat)` | 通常ファイルなら 1、それ以外と NULL は 0。値だけを参照するため共通結果コードの適用対象外 |
+
+最終更新日時の取得と設定は `com_util/crt/file.h` の `com_util_file_get_modified_timestamp` / `com_util_file_set_modified_timestamp` (ハンドル版) と `com_util_file_get_path_modified_timestamp` / `com_util_file_set_path_modified_timestamp` (パス版) を使用します。  
+`com_util_stat` の `st_mtime` が秒精度であるのに対し、これらは `com_util_timespec` でサブ秒も扱います。
 
 書式指定パスを使う用途には `com_util_stat_fmt` / `com_util_vstat_fmt` / `com_util_mkdir_fmt` / `com_util_vmkdir_fmt` を使用します。
 
@@ -599,7 +603,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 
 - 引数解析: `com_util_argparser_default_register_option_int`、`com_util_argparser_default_register_option_string`、`com_util_argparser_default_register_option_int_array`、`com_util_argparser_default_register_option_string_array`、`com_util_argparser_default_register_positional_int`、`com_util_argparser_default_register_positional_int_array`、`com_util_argparser_default_register_positional_string_array`、`com_util_argparser_default_get_error_target`、`com_util_argparser_default_get_error_index`、`com_util_argparser_default_get_error_message`、`com_util_argparser_default_print_error_messages`、`com_util_argparser_default_get_register_error_count`、`com_util_argparser_default_get_register_error_target`、`com_util_argparser_default_get_register_error_message`、`com_util_argparser_default_print_register_error_messages`
 - 時刻: `com_util_format_realtime_iso8601_local`、`com_util_format_realtime_iso8601_utc`、`com_util_get_realtime_utc`、`com_util_get_realtime_deadline_ms`、`com_util_timespec_normalize`、`com_util_timespec_add`、`com_util_timespec_sub`、`com_util_timespec_cmp`、`com_util_timespec_add_ms`、`com_util_timespec_diff_ms`、`com_util_timespec_to_native`、`com_util_timespec_from_native`
-- ファイル: `com_util_file_init`、`com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_flush`、`com_util_file_close`
+- ファイル: `com_util_file_init`、`com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_get_modified_timestamp`、`com_util_file_set_modified_timestamp`、`com_util_file_get_path_modified_timestamp`、`com_util_file_set_path_modified_timestamp`、`com_util_file_flush`、`com_util_file_close`
 - パス: `com_util_normalize_path_sep`、`com_util_path_get_full`、`com_util_paths_equal`、`com_util_get_temp_dir`、`com_util_path_concat_n`、`com_util_vpath_concat_n`、`com_util_path_basename`、`com_util_path_dirname`、`com_util_path_extension`、`com_util_path_strip_extension`、`com_util_path_join_n`、`com_util_vpath_join_n`
 - 書式入力: `com_util_vscanf`、`com_util_vfscanf`、`com_util_vsscanf`
 - 暗号: `com_util_passphrase_to_key`

@@ -241,6 +241,15 @@ Mock_com_util::Mock_com_util()
     ON_CALL(*this, com_util_file_set_size(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_file_set_size));
     ON_CALL(*this, com_util_file_get_id(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_file_get_id));
     ON_CALL(*this, com_util_file_get_path_id(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_file_get_path_id));
+    ON_CALL(*this, com_util_file_get_modified_timestamp(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_file_get_modified_timestamp));
+    ON_CALL(*this, com_util_file_set_modified_timestamp(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_file_set_modified_timestamp));
+    ON_CALL(*this, com_util_file_get_path_modified_timestamp(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_file_get_path_modified_timestamp));
+    ON_CALL(*this, com_util_file_set_path_modified_timestamp(_, _, _))
+        .WillByDefault(Invoke(delegate_real_com_util_file_set_path_modified_timestamp));
+    ON_CALL(*this, com_util_file_stat_is_regular(_)).WillByDefault(Invoke(delegate_real_com_util_file_stat_is_regular));
     ON_CALL(*this, com_util_file_flush(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_flush));
     ON_CALL(*this, com_util_file_close(_, _)).WillByDefault(Invoke(delegate_real_com_util_file_close));
 

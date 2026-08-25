@@ -26,6 +26,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/base/error.h>
 #include <com_util/base/result.h>
+#include <com_util/clock/timespec.h>
 #include <com_util/com_util_export.h>
 
 #if defined(PLATFORM_WINDOWS)
@@ -245,6 +246,109 @@ extern "C"
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_id(const char *path, com_util_file_id *id_out,
                                                                com_util_error *detail_out);
+
+    /**
+     *  @brief          開いているファイルの最終更新日時を取得します。
+     *  @param[in]      file           対象のファイル。NULL または無効なハンドルを渡してはなりません。
+     *  @param[out]     timestamp_out  最終更新日時の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  Linux では `fstat` の `st_mtim`、Windows では `GetFileTime` の最終書き込み日時を使用します。\n
+     *  `com_util_stat()` の `st_mtime` は秒精度ですが、本関数はサブ秒の値も返します。
+     *
+     *  @note           取得できる分解能はファイル システムに依存します。
+     *                  Windows の NTFS は 100 ナノ秒、FAT は 2 秒です。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_modified_timestamp(const com_util_file *file,
+                                                                          com_util_timespec *timestamp_out,
+                                                                          com_util_error *detail_out);
+
+    /**
+     *  @brief          開いているファイルの最終更新日時を設定します。
+     *  @param[in]      file       対象のファイル。NULL または無効なハンドルを渡してはなりません。\n
+     *                             @ref COM_UTIL_FILE_OPEN_WRITE を指定して開いている必要があります。
+     *  @param[in]      timestamp  設定する最終更新日時。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED 、@ref COM_UTIL_ERR_UNKNOWN の
+     *                  いずれかを返します。\n
+     *                  読み取り専用でオープンしたハンドルに対しては、OS の呼び出しを
+     *                  行わずに @ref COM_UTIL_ERR_PERMISSION_DENIED を返します。
+     *
+     *  最終アクセス日時は変更しません。\n
+     *  Linux では `futimens`、Windows では `SetFileTime` を使用します。
+     *
+     *  @note           書き込みアクセスを要求するのは、両プラットフォームで挙動をそろえるためです。
+     *                  Linux の `futimens` は読み取り専用で開いた記述子でも、
+     *                  呼び出し元がファイルの所有者であれば成功します。
+     *                  厳しい側の Windows に合わせ、本関数は事前に検査して失敗させます。
+     *
+     *  @note           設定できる分解能はファイル システムに依存します。
+     *                  Windows では 100 ナノ秒単位へ切り捨てられます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一 @p file への並行操作は呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_set_modified_timestamp(com_util_file *file,
+                                                                          const com_util_timespec *timestamp,
+                                                                          com_util_error *detail_out);
+
+    /**
+     *  @brief          UTF-8 パスが指すファイルの最終更新日時を取得します。
+     *  @param[in]      path           対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[out]     timestamp_out  最終更新日時の格納先。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_UNKNOWN のいずれかを返します
+     *                  (パスが存在しない場合を含みます)。
+     *
+     *  Windows では属性読み取りアクセス (FILE_READ_ATTRIBUTES) で一時的に開いて取得するため、
+     *  他プロセスの共有モードによらず取得できます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_get_path_modified_timestamp(const char *path,
+                                                                               com_util_timespec *timestamp_out,
+                                                                               com_util_error *detail_out);
+
+    /**
+     *  @brief          UTF-8 パスが指すファイルの最終更新日時を設定します。
+     *  @param[in]      path       対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
+     *  @param[in]      timestamp  設定する最終更新日時。NULL を渡してはなりません。
+     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
+     *                  エラー詳細を設定せず、返却しません。
+     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
+     *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
+     *                  @ref COM_UTIL_ERR_PERMISSION_DENIED 、@ref COM_UTIL_ERR_UNKNOWN の
+     *                  いずれかを返します (パスが存在しない場合を含みます)。
+     *
+     *  最終アクセス日時は変更しません。\n
+     *  Linux では `utimensat`、Windows では属性書き込みアクセス (FILE_WRITE_ATTRIBUTES) で
+     *  一時的に開いて `SetFileTime` を使用します。\n
+     *  ファイルの書き込み権限が必要です。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。同一パスへの並行操作は呼び出し側で同期してください。
+     */
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_file_set_path_modified_timestamp(const char *path,
+                                                                               const com_util_timespec *timestamp,
+                                                                               com_util_error *detail_out);
 
     /**
      *  @brief          ファイルへ書き込んだ内容を永続記憶装置へ反映します。

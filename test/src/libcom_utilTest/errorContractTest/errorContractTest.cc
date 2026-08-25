@@ -124,6 +124,14 @@ TEST_F(errorContractTest, all_detail_out_apis_accept_null)
         {"com_util_file_set_size", []() { (void)com_util_file_set_size(NULL, 0U, NULL); }, 1, 0U},
         {"com_util_file_get_id", []() { (void)com_util_file_get_id(NULL, NULL, NULL); }, 1, 0U},
         {"com_util_file_get_path_id", []() { (void)com_util_file_get_path_id(NULL, NULL, NULL); }, 1, 0U},
+        {"com_util_file_get_modified_timestamp", []() { (void)com_util_file_get_modified_timestamp(NULL, NULL, NULL); },
+         1, 0U},
+        {"com_util_file_set_modified_timestamp", []() { (void)com_util_file_set_modified_timestamp(NULL, NULL, NULL); },
+         1, 0U},
+        {"com_util_file_get_path_modified_timestamp",
+         []() { (void)com_util_file_get_path_modified_timestamp(NULL, NULL, NULL); }, 1, 0U},
+        {"com_util_file_set_path_modified_timestamp",
+         []() { (void)com_util_file_set_path_modified_timestamp(NULL, NULL, NULL); }, 1, 0U},
         {"com_util_file_flush", []() { (void)com_util_file_flush(NULL, NULL); }, 1, 0U},
         {"com_util_file_close", []() { (void)com_util_file_close(NULL, NULL); }, 1, 0U},
         {"com_util_path_get_full", []() { (void)com_util_path_get_full(NULL, 0U, NULL, NULL); }, 1, 0U},
@@ -173,7 +181,7 @@ TEST_F(errorContractTest, all_detail_out_apis_accept_null)
         {"com_util_mmap_get_rwlock", []() { (void)com_util_mmap_get_rwlock(NULL, NULL, NULL); }, 1, 0U},
         {"com_util_mmap_flush", []() { (void)com_util_mmap_flush(NULL, NULL, 0U, NULL); }, 1, 0U},
         {"com_util_mmap_detach", []() { (void)com_util_mmap_detach(NULL, NULL); }, 0, 0U},
-    }; // [状態] - detail_out に NULL を指定する公開関数 56 件と公開マクロ 2 件を用意する。
+    }; // [状態] - detail_out に NULL を指定する公開関数 60 件と公開マクロ 2 件を用意する。
     std::vector<int> tls_set_results;
 
     // Pre-Assert
@@ -190,7 +198,7 @@ TEST_F(errorContractTest, all_detail_out_apis_accept_null)
     } // [手順] - 全公開 API の detail_out に NULL を指定し、呼び出し後の TLS を取得する。
 
     // Assert
-    EXPECT_EQ(cases.size(), tls_set_results.size()); // [確認_正常系] - 全 58 件の公開 API 呼び出しが完了したこと。
+    EXPECT_EQ(cases.size(), tls_set_results.size()); // [確認_正常系] - 全 62 件の公開 API 呼び出しが完了したこと。
     for (std::size_t index = 0U; index < cases.size(); ++index)
     {
         if (cases[index].expected_tls_set >= 0)

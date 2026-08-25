@@ -14,6 +14,7 @@
 #include <com_util/base/platform.h>
 #include <com_util/base/result.h>
 #include <com_util/clock/clock.h>
+#include <com_util/clock/filetime_conv.h>
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/time.h>
 #include <stdio.h>
@@ -26,13 +27,10 @@
 #endif /* PLATFORM_ */
 
 /* 変換定数 */
-#define MSEC_PER_SEC              (1000ULL)       /* ミリ秒 / 秒 */
-#define NSEC_PER_SEC              (1000000000LL)  /* ナノ秒 / 秒 */
-#define NSEC_PER_MSEC             (1000000ULL)    /* ナノ秒 / ミリ秒 */
-#define SEC_PER_DAY               (86400LL)       /* 秒 / 日 */
-#define FILETIME_UNITS_PER_SEC    (10000000ULL)   /* FILETIME 単位 (100ns) / 秒 */
-#define NSEC_PER_FILETIME_UNIT    (100ULL)        /* ナノ秒 / FILETIME 単位 */
-#define FILETIME_EPOCH_OFFSET_SEC (11644473600LL) /* 1601-01-01 → 1970-01-01 の差 (秒) */
+#define MSEC_PER_SEC  (1000ULL)      /* ミリ秒 / 秒 */
+#define NSEC_PER_SEC  (1000000000LL) /* ナノ秒 / 秒 */
+#define NSEC_PER_MSEC (1000000ULL)   /* ナノ秒 / ミリ秒 */
+#define SEC_PER_DAY   (86400LL)      /* 秒 / 日 */
 
 static const char s_iso8601_local_fallback[] = "0000-00-00T00:00:00.000+00:00";
 static const char s_iso8601_utc_fallback[] = "0000-00-00T00:00:00.000Z";
@@ -111,8 +109,8 @@ static int clock_format_iso8601_utc_from_tm(char *buf, const size_t buf_size, co
     }
 
     if (com_util_snprintf(buf, buf_size, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ", utc_tm->tm_year + 1900,
-                         utc_tm->tm_mon + 1, utc_tm->tm_mday, utc_tm->tm_hour, utc_tm->tm_min, utc_tm->tm_sec,
-                         (int)(tv_nsec / 1000000)) != COM_UTIL_OK)
+                          utc_tm->tm_mon + 1, utc_tm->tm_mday, utc_tm->tm_hour, utc_tm->tm_min, utc_tm->tm_sec,
+                          (int)(tv_nsec / 1000000)) != COM_UTIL_OK)
     {
         return -1;
     }
@@ -146,9 +144,9 @@ static int clock_format_iso8601_local_from_tm(char *buf, const size_t buf_size, 
     offset_mins = abs_offset_minutes % 60;
 
     if (com_util_snprintf(buf, buf_size, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%c%02d:%02d", local_tm->tm_year + 1900,
-                         local_tm->tm_mon + 1, local_tm->tm_mday, local_tm->tm_hour, local_tm->tm_min,
-                         local_tm->tm_sec, (int)(tv_nsec / 1000000), offset_sign, offset_hours,
-                         offset_mins) != COM_UTIL_OK)
+                          local_tm->tm_mon + 1, local_tm->tm_mday, local_tm->tm_hour, local_tm->tm_min,
+                          local_tm->tm_sec, (int)(tv_nsec / 1000000), offset_sign, offset_hours,
+                          offset_mins) != COM_UTIL_OK)
     {
         return -1;
     }
@@ -193,12 +191,8 @@ void com_util_get_realtime(com_util_timespec *ts)
     com_util_timespec_from_native(&native, ts);
 #elif defined(PLATFORM_WINDOWS)
     FILETIME ft;
-    ULARGE_INTEGER uli;
     GetSystemTimeAsFileTime(&ft);
-    uli.LowPart = ft.dwLowDateTime;
-    uli.HighPart = ft.dwHighDateTime;
-    ts->tv_sec = (time_t)(uli.QuadPart / FILETIME_UNITS_PER_SEC) - FILETIME_EPOCH_OFFSET_SEC;
-    ts->tv_nsec = (int64_t)((uli.QuadPart % FILETIME_UNITS_PER_SEC) * NSEC_PER_FILETIME_UNIT);
+    com_util_internal_filetime_to_timespec(&ft, ts);
 #endif /* PLATFORM_ */
 }
 
