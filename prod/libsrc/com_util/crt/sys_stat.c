@@ -23,6 +23,7 @@
     #include <sys/stat.h>
     #include <unistd.h> /* rmdir */
 #elif defined(PLATFORM_WINDOWS)
+    #include <com_util/clock/filetime_conv.h>
     #include <direct.h>
 #endif /* PLATFORM_ */
 
@@ -73,6 +74,32 @@ static int is_ascii_alpha(const char ch)
         return 1;
     }
     return 0;
+}
+
+/*
+ *  UCRT の _wstat64 は FILETIME (UTC) を SystemTimeToTzSpecificLocalTime で現地時刻へ
+ *  変換してから loctotime で time_t へ戻す。OS のタイムゾーンと CRT の TZ が食い違うと、
+ *  Linux の stat および com_util_file_*_modified_timestamp が返す Unix epoch UTC と
+ *  秒部がずれる。
+ *  see: https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times
+ *  see: https://learn.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-systemtimetotzspecificlocaltime
+ */
+static void overlay_utc_file_times(const wchar_t *wpath, com_util_file_stat_t *buf)
+{
+    WIN32_FILE_ATTRIBUTE_DATA attributes;
+    com_util_timespec timestamp;
+
+    if (!GetFileAttributesExW(wpath, GetFileExInfoStandard, &attributes))
+    {
+        return;
+    }
+
+    com_util_internal_filetime_to_timespec(&attributes.ftLastAccessTime, &timestamp);
+    buf->st_atime = timestamp.tv_sec;
+    com_util_internal_filetime_to_timespec(&attributes.ftLastWriteTime, &timestamp);
+    buf->st_mtime = timestamp.tv_sec;
+    com_util_internal_filetime_to_timespec(&attributes.ftCreationTime, &timestamp);
+    buf->st_ctime = timestamp.tv_sec;
 }
 #endif /* PLATFORM_WINDOWS */
 
@@ -228,6 +255,10 @@ int com_util_stat(com_util_file_stat_t *buf, com_util_error *detail_out, const c
         }
 
         result = _wstat64(wpath, buf);
+        if (result == 0)
+        {
+            overlay_utc_file_times(wpath, buf);
+        }
     }
 #endif /* PLATFORM_ */
 

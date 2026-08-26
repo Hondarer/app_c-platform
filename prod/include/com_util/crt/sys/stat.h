@@ -62,6 +62,13 @@ extern "C"
      *  @param[in]      path  対象ファイルのパス (UTF-8)。NULL を渡してはなりません。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、@ref COM_UTIL_ERR_UNKNOWN のいずれかを返します。
      *
+     *  Linux では `stat`、Windows では `_wstat64` を使用します。\n
+     *  Windows の `_wstat64` は時刻欄を現地時刻経由で `time_t` へ変換するため、
+     *  タイムゾーン設定によっては Unix epoch UTC と秒部がずれます。
+     *  本関数は `GetFileAttributesExW` が返す UTC の `FILETIME` から秒部を取り直し、
+     *  `st_atime` / `st_mtime` / `st_ctime` を Linux の `stat` と同じ Unix epoch UTC に揃えます。\n
+     *  `GetFileAttributesExW` に失敗した場合は `_wstat64` の時刻欄をそのまま返します。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。

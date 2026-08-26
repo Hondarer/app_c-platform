@@ -128,14 +128,14 @@
 
 | 生 API | com_util 代替 | 差異の要点 |
 |---|---|---|
-| `stat` / `_wstat64` | `com_util_stat(buf, detail_out, path)` | パスは UTF-8。`buf` の型は `com_util_file_stat_t` (Linux: `struct stat`、Windows: `struct _stat64`) |
+| `stat` / `_wstat64` | `com_util_stat(buf, detail_out, path)` | パスは UTF-8。`buf` の型は `com_util_file_stat_t` (Linux: `struct stat`、Windows: `struct _stat64`)。Windows の `st_atime` / `st_mtime` / `st_ctime` は UTC の Unix 秒 |
 | `mkdir` / `_wmkdir` | `com_util_mkdir(path, detail_out)` | パスは UTF-8 |
 | (`mkdir -p` 相当) | `com_util_makedirs(path, detail_out)` | 中間ディレクトリを再帰的に作成。既存ディレクトリはべき等に成功扱い |
 | `rmdir` / `_wrmdir` | `com_util_rmdir(path, detail_out)` | パスは UTF-8。中間ディレクトリの再帰削除はしません。 |
 | `S_ISREG(st.st_mode)` / `(st.st_mode & _S_IFMT) == _S_IFREG` | `com_util_file_stat_is_regular(file_stat)` | 通常ファイルなら 1、それ以外と NULL は 0。値だけを参照するため共通結果コードの適用対象外 |
 
 最終更新日時の取得と設定は `com_util/crt/file.h` の `com_util_file_get_modified_timestamp` / `com_util_file_set_modified_timestamp` (ハンドル版) と `com_util_file_get_path_modified_timestamp` / `com_util_file_set_path_modified_timestamp` (パス版) を使用します。  
-`com_util_stat` の `st_mtime` が秒精度であるのに対し、これらは `com_util_timespec` でサブ秒も扱います。
+`com_util_stat` の `st_mtime` が秒精度であるのに対し、これらは `com_util_timespec` でサブ秒も扱います。秒部は同じ Unix epoch UTC です。
 
 書式指定パスを使う用途には `com_util_stat_fmt` / `com_util_vstat_fmt` / `com_util_mkdir_fmt` / `com_util_vmkdir_fmt` を使用します。
 

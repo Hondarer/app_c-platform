@@ -6,8 +6,11 @@
 #include <com_util/base/result.h>
 #include <com_util/clock/timespec.h>
 #include <com_util/crt/file.h>
+#include <com_util/crt/path.h>
 #include <com_util/crt/stdio.h>
 #include <com_util/crt/sys/stat.h>
+
+#include <string>
 
 namespace
 {
@@ -318,3 +321,53 @@ TEST_F(fileTimestampTest, null_arguments_are_rejected)
 
     EXPECT_EQ(COM_UTIL_OK, com_util_file_close(&open_file, NULL));
 }
+
+#if defined(PLATFORM_WINDOWS)
+
+// Windows でパスがワイド文字へ変換できない場合に取得が名称長超過になることの確認
+TEST_F(fileTimestampTest, get_path_reports_name_too_long_when_path_exceeds_wide_buffer)
+{
+    // Arrange
+    const std::string long_path(PLATFORM_PATH_MAX + 1u,
+                                'a'); // [状態] - PLATFORM_PATH_MAX を 1 文字超えるパスを用意する。
+    com_util_timespec actual = make_timestamp(0, 0);
+    com_util_error detail;
+
+    com_util_error_clear(&detail);
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_get = com_util_file_get_path_modified_timestamp(long_path.c_str(), &actual,
+                                                                   &detail); // [手順] - 長過ぎるパスで日時を取得する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, actual_ret_get); // [確認_異常系] - 戻り値が BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(1, com_util_error_is(&detail,
+                                   COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
+}
+
+// Windows でパスがワイド文字へ変換できない場合に設定が名称長超過になることの確認
+TEST_F(fileTimestampTest, set_path_reports_name_too_long_when_path_exceeds_wide_buffer)
+{
+    // Arrange
+    const std::string long_path(PLATFORM_PATH_MAX + 1u,
+                                'a'); // [状態] - PLATFORM_PATH_MAX を 1 文字超えるパスを用意する。
+    const com_util_timespec timestamp = make_timestamp(1000000000, 0);
+    com_util_error detail;
+
+    com_util_error_clear(&detail);
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_set = com_util_file_set_path_modified_timestamp(long_path.c_str(), &timestamp,
+                                                                   &detail); // [手順] - 長過ぎるパスで日時を設定する。
+
+    // Assert
+    EXPECT_EQ(COM_UTIL_ERR_BUFFER_TOO_SMALL, actual_ret_set); // [確認_異常系] - 戻り値が BUFFER_TOO_SMALL であること。
+    EXPECT_EQ(1, com_util_error_is(&detail,
+                                   COM_UTIL_CAUSE_NAME_TOO_LONG)); // [確認_異常系] - ENAMETOOLONG の要因であること。
+}
+
+#endif /* PLATFORM_WINDOWS */
