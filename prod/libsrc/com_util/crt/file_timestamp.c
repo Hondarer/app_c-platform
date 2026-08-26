@@ -20,6 +20,7 @@
  */
 
 #include <com_util/crt/file.h>
+#include <com_util/crt/path.h>
 
 #include <com_util/base/error_internal.h>
 #include <com_util/base/result.h>
