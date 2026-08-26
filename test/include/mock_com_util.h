@@ -982,7 +982,8 @@ extern int delegate_real_com_util_pinned_prompt_status_set(com_util_pinned_promp
                                                            const char *content);
 
 // argparser
-extern com_util_argparser *delegate_real_com_util_argparser_handle_create(const com_util_argparser_options *options);
+extern com_util_argparser *delegate_real_com_util_argparser_handle_create(int argc, char *const *argv,
+                                                                          const com_util_argparser_options *options);
 extern void delegate_real_com_util_argparser_handle_dispose(com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_handle_register_flag(com_util_argparser *parser, const char *short_name,
                                                           const char *long_name, const char *description, int *storage);
@@ -1015,7 +1016,7 @@ extern int delegate_real_com_util_argparser_handle_register_positional_string_ar
                                                                              const char *name, const char *description,
                                                                              unsigned int flags, const char **storage,
                                                                              size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char *const *argv);
+extern int delegate_real_com_util_argparser_handle_parse(com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_handle_get_error(const com_util_argparser *parser);
 extern const char *delegate_real_com_util_argparser_handle_get_error_target(const com_util_argparser *parser);
 extern int delegate_real_com_util_argparser_handle_get_error_index(const com_util_argparser *parser);
@@ -1035,7 +1036,7 @@ extern int delegate_real_com_util_argparser_handle_print_register_error_messages
                                                                           FILE *stream);
 
 // argparser (省略可能な単一インスタンス API)
-extern void delegate_real_com_util_argparser_init(const char *description);
+extern void delegate_real_com_util_argparser_init(int argc, char *const *argv, const char *description);
 extern int delegate_real_com_util_argparser_register_flag(const char *short_name, const char *long_name,
                                                                   const char *description, int *storage);
 extern int delegate_real_com_util_argparser_register_option_int(const char *short_name, const char *long_name,
@@ -1067,7 +1068,7 @@ extern int delegate_real_com_util_argparser_register_positional_string_array(con
                                                                                      unsigned int flags,
                                                                                      const char **storage,
                                                                                      size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_parse(int argc, char *const *argv);
+extern int delegate_real_com_util_argparser_parse(void);
 extern int delegate_real_com_util_argparser_get_error(void);
 extern const char *delegate_real_com_util_argparser_get_error_target(void);
 extern int delegate_real_com_util_argparser_get_error_index(void);
@@ -1527,7 +1528,8 @@ class Mock_com_util
                  const char *));
 
     // argparser
-    MOCK_METHOD(com_util_argparser *, com_util_argparser_handle_create, (const com_util_argparser_options *));
+    MOCK_METHOD(com_util_argparser *, com_util_argparser_handle_create,
+                (int, char *const *, const com_util_argparser_options *));
     MOCK_METHOD(void, com_util_argparser_handle_dispose, (com_util_argparser *));
     MOCK_METHOD(int, com_util_argparser_handle_register_flag,
                 (com_util_argparser *, const char *, const char *, const char *, int *));
@@ -1550,7 +1552,7 @@ class Mock_com_util
                 (com_util_argparser *, const char *, const char *, unsigned int, int *, size_t, size_t *));
     MOCK_METHOD(int, com_util_argparser_handle_register_positional_string_array,
                 (com_util_argparser *, const char *, const char *, unsigned int, const char **, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_handle_parse, (com_util_argparser *, int, char *const *));
+    MOCK_METHOD(int, com_util_argparser_handle_parse, (com_util_argparser *));
     MOCK_METHOD(int, com_util_argparser_handle_get_error, (const com_util_argparser *));
     MOCK_METHOD(const char *, com_util_argparser_handle_get_error_target, (const com_util_argparser *));
     MOCK_METHOD(int, com_util_argparser_handle_get_error_index, (const com_util_argparser *));
@@ -1566,7 +1568,7 @@ class Mock_com_util
     MOCK_METHOD(int, com_util_argparser_handle_print_register_error_messages, (const com_util_argparser *, FILE *));
 
     // argparser (省略可能な単一インスタンス API)
-    MOCK_METHOD(void, com_util_argparser_init, (const char *));
+    MOCK_METHOD(void, com_util_argparser_init, (int, char *const *, const char *));
     MOCK_METHOD(int, com_util_argparser_register_flag, (const char *, const char *, const char *, int *));
     MOCK_METHOD(int, com_util_argparser_register_option_int,
                 (const char *, const char *, const char *, const char *, unsigned int, int *));
@@ -1585,7 +1587,7 @@ class Mock_com_util
                 (const char *, const char *, unsigned int, int *, size_t, size_t *));
     MOCK_METHOD(int, com_util_argparser_register_positional_string_array,
                 (const char *, const char *, unsigned int, const char **, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_parse, (int, char *const *));
+    MOCK_METHOD(int, com_util_argparser_parse, ());
     MOCK_METHOD(int, com_util_argparser_get_error, ());
     MOCK_METHOD(const char *, com_util_argparser_get_error_target, ());
     MOCK_METHOD(int, com_util_argparser_get_error_index, ());

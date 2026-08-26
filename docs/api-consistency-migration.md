@@ -152,6 +152,41 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 | `com_util_interprocess_lock_destroy` | `com_util_interprocess_lock_dispose` |
 | `com_util_interprocess_rwlock_destroy` | `com_util_interprocess_rwlock_dispose` |
 
+## シグネチャ変更 (2026-08 実施分: argc / argv の受け取り位置)
+
+コマンド ライン引数はパーサーが解析する入力そのものであり、解析の実行時ではなく初期化時に確定します。  
+この考えに合わせ、`argc` と `argv` を受け取る位置を解析 API から初期化 API へ移しました。  
+引数個数が変わるため、旧シグネチャの呼び出しはコンパイル エラーとして検出されます。
+
+| API | 旧シグネチャ | 新シグネチャ |
+|---|---|---|
+| `com_util_argparser_init` | `(const char *description)` | `(int argc, char *const *argv, const char *description)` |
+| `com_util_argparser_parse` | `(int argc, char *const *argv)` | `(void)` |
+| `com_util_argparser_handle_create` | `(const com_util_argparser_options *options)` | `(int argc, char *const *argv, const com_util_argparser_options *options)` |
+| `com_util_argparser_handle_parse` | `(com_util_argparser *parser, int argc, char *const *argv)` | `(com_util_argparser *parser)` |
+
+呼び出し側の書き換えは次のとおりです。
+
+```c
+/* 旧 */
+com_util_argparser_init("sample program");
+/* ... オプションを登録する ... */
+int parse_result = com_util_argparser_parse(argc, argv);
+
+/* 新 */
+com_util_argparser_init(argc, argv, "sample program");
+/* ... オプションを登録する ... */
+int parse_result = com_util_argparser_parse();
+```
+
+移行時の注意点は次のとおりです。
+
+- パーサーは `argv` を複製せずポインターを保持します。解析結果の文字列を参照する間は `argv` を有効なまま維持してください。
+- `argc` が 1 未満、または `argv` が NULL の場合も初期化と生成は成功します。不正は解析時に `COM_UTIL_ERR_INVALID_ARGUMENT` として返るため、呼び出し側のエラー処理は従来のままで構いません。
+- 登録処理を `main` の外の関数へ切り出している場合は、`com_util_argparser_init()` の呼び出しを `argc` と `argv` を持つ `main` 側へ移してください。
+- usage のプログラム名は初期化時に `argv[0]` から確定します。解析前に usage を表示する経路でも、プレースホルダー `{program}` ではなく実行ファイル名が表示されるようになりました。
+- 解析対象の引数を差し替える場合は、`com_util_argparser_init()` (明示ハンドル版は `com_util_argparser_handle_create()`) から呼び出し直します。再初期化は登録済みのオプションを捨てるため、オプションの登録もやり直してください。
+
 ## 関連ガイド
 
 OS 由来の詳細値を `int *errno_out` からドメイン付きの `com_util_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。

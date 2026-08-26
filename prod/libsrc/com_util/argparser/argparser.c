@@ -85,14 +85,13 @@ struct com_util_argparser
     size_t spec_capacity;
     char *program_name;          /* 生成オプション指定のプログラム名。NULL 可 */
     char *program_description;   /* 生成オプション指定の説明文。NULL 可 */
-    char *resolved_program_name; /* parse が argv[0] から求めたベース名。NULL 可 */
+    char *resolved_program_name; /* 初期化時に argv[0] から求めたベース名。NULL 可 */
     char *last_error_target;
+    char *const *argv; /* 初期化時に受け取ったコマンド ライン引数。複製しない。NULL 可 */
+    int argc;          /* argv の要素数。未設定は 0 */
     int last_error;
     int last_error_index;
     int library_owned;
-#if defined(ARCH_X64)
-    unsigned int pad; /* 明示的アラインメント */
-#endif
     argparser_register_error *register_errors; /* register 系エラーを発生順に積み上げる配列。NULL 可 */
     size_t register_error_count;
     size_t register_error_capacity;
@@ -1086,9 +1085,34 @@ static int argparser_apply_options(com_util_argparser *parser, const com_util_ar
     return 0;
 }
 
+/**
+ *  @brief          解析対象のコマンド ライン引数をパーサー ハンドルへ適用します。
+ *  @param[in,out]  parser  対象のパーサー ハンドル。NULL を渡してはなりません。
+ *  @param[in]      argc    argv の要素数。1 未満も指定できます。
+ *  @param[in]      argv    コマンド ライン引数の配列。NULL も指定できます。
+ *
+ *  @p argv は複製せず、ポインターをそのまま保持します。\n
+ *  @p argc と @p argv が解析できる組み合わせの場合に限り、
+ *  usage 用のプログラム名を argv[0] から求めます。\n
+ *  不正な組み合わせはここでは通知せず、
+ *  com_util_argparser_handle_parse() が COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+ */
+static void argparser_apply_args(com_util_argparser *parser, int argc, char *const *argv)
+{
+    parser->argc = argc;
+    parser->argv = argv;
+
+    if ((argc < 1) || (argv == NULL))
+    {
+        return;
+    }
+    argparser_resolve_program_name(parser, argv[0]);
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
-com_util_argparser *com_util_argparser_handle_create(const com_util_argparser_options *options)
+com_util_argparser *com_util_argparser_handle_create(const int argc, char *const *argv,
+                                                     const com_util_argparser_options *options)
 {
     com_util_argparser *parser = com_util_calloc(1, sizeof(com_util_argparser));
     if (parser == NULL)
@@ -1102,6 +1126,7 @@ com_util_argparser *com_util_argparser_handle_create(const com_util_argparser_op
         com_util_argparser_handle_dispose(parser);
         return NULL;
     }
+    argparser_apply_args(parser, argc, argv);
 
     return parser;
 }
@@ -1165,14 +1190,17 @@ static void argparser_default_initialize(void)
 
 /**
  *  @brief          プロセス共有のデフォルト パーサーを取得します。
+ *  @param[in]      argc            解析対象の argv の要素数。適用しない場合は 0 を指定します。
+ *  @param[in]      argv            解析対象のコマンド ライン引数。適用しない場合は NULL を指定します。
  *  @param[in]      options         生成オプション。NULL も指定できます。
  *  @param[in]      reset_existing  0 以外なら、既存インスタンスを生成直後の状態へ戻して
- *                                  @p options を適用し直します。
+ *                                  @p argc 、@p argv 、@p options を適用し直します。
  *  @return         デフォルト パーサー。生成に失敗した場合は NULL です。
  *
  *  生成と再初期化を同じロック区間で行い、取得と初期化の競合を避けます。
  */
-static com_util_argparser *argparser_default_acquire(const com_util_argparser_options *options, int reset_existing)
+static com_util_argparser *argparser_default_acquire(const int argc, char *const *argv,
+                                                     const com_util_argparser_options *options, int reset_existing)
 {
     com_util_call_once(&s_default_initialize_once, argparser_default_initialize);
     com_util_local_lock *lock = s_default_lock;
@@ -1187,7 +1215,7 @@ static com_util_argparser *argparser_default_acquire(const com_util_argparser_op
     }
     if (s_default_parser == NULL)
     {
-        s_default_parser = com_util_argparser_handle_create(options);
+        s_default_parser = com_util_argparser_handle_create(argc, argv, options);
         if (s_default_parser != NULL)
         {
             s_default_parser->library_owned = 1;
@@ -1197,6 +1225,7 @@ static com_util_argparser *argparser_default_acquire(const com_util_argparser_op
     {
         argparser_reset_core(s_default_parser);
         (void)argparser_apply_options(s_default_parser, options);
+        argparser_apply_args(s_default_parser, argc, argv);
     }
     com_util_argparser *parser = s_default_parser;
     (void)com_util_local_lock_unlock(lock);
@@ -1206,11 +1235,11 @@ static com_util_argparser *argparser_default_acquire(const com_util_argparser_op
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void com_util_argparser_init(const char *description)
+void com_util_argparser_init(const int argc, char *const *argv, const char *description)
 {
     com_util_argparser_options options = {0};
     options.program_description = description;
-    (void)argparser_default_acquire(&options, 1);
+    (void)argparser_default_acquire(argc, argv, &options, 1);
 }
 
 int com_util_argparser_handle_register_flag(com_util_argparser *parser, const char *short_name, const char *long_name,
@@ -1239,7 +1268,7 @@ int com_util_argparser_handle_register_flag(com_util_argparser *parser, const ch
 int com_util_argparser_register_flag(const char *short_name, const char *long_name, const char *description,
                                      int *storage)
 {
-    return com_util_argparser_handle_register_flag(argparser_default_acquire(NULL, 0), short_name, long_name, description,
+    return com_util_argparser_handle_register_flag(argparser_default_acquire(0, NULL, NULL, 0), short_name, long_name, description,
                                              storage);
 }
 
@@ -1270,7 +1299,7 @@ int com_util_argparser_handle_register_option_int(com_util_argparser *parser, co
 int com_util_argparser_register_option_int(const char *short_name, const char *long_name, const char *value_name,
                                            const char *description, const unsigned int flags, int *storage)
 {
-    return com_util_argparser_handle_register_option_int(argparser_default_acquire(NULL, 0), short_name, long_name, value_name,
+    return com_util_argparser_handle_register_option_int(argparser_default_acquire(0, NULL, NULL, 0), short_name, long_name, value_name,
                                                    description, flags, storage);
 }
 
@@ -1301,8 +1330,8 @@ int com_util_argparser_handle_register_option_string(com_util_argparser *parser,
 int com_util_argparser_register_option_string(const char *short_name, const char *long_name, const char *value_name,
                                               const char *description, const unsigned int flags, const char **storage)
 {
-    return com_util_argparser_handle_register_option_string(argparser_default_acquire(NULL, 0), short_name, long_name,
-                                                      value_name, description, flags, storage);
+    return com_util_argparser_handle_register_option_string(argparser_default_acquire(0, NULL, NULL, 0), short_name,
+                                                      long_name, value_name, description, flags, storage);
 }
 
 int com_util_argparser_handle_register_option_int_array(com_util_argparser *parser, const char *short_name,
@@ -1336,7 +1365,7 @@ int com_util_argparser_register_option_int_array(const char *short_name, const c
                                                  const char *description, const unsigned int flags, int *storage,
                                                  const size_t capacity, size_t *count)
 {
-    return com_util_argparser_handle_register_option_int_array(argparser_default_acquire(NULL, 0), short_name, long_name,
+    return com_util_argparser_handle_register_option_int_array(argparser_default_acquire(0, NULL, NULL, 0), short_name, long_name,
                                                          value_name, description, flags, storage, capacity, count);
 }
 
@@ -1372,7 +1401,7 @@ int com_util_argparser_register_option_string_array(const char *short_name, cons
                                                     const unsigned int flags, const char **storage,
                                                     const size_t capacity, size_t *count)
 {
-    return com_util_argparser_handle_register_option_string_array(argparser_default_acquire(NULL, 0), short_name, long_name,
+    return com_util_argparser_handle_register_option_string_array(argparser_default_acquire(0, NULL, NULL, 0), short_name, long_name,
                                                             value_name, description, flags, storage, capacity, count);
 }
 
@@ -1402,7 +1431,7 @@ int com_util_argparser_handle_register_positional_int(com_util_argparser *parser
 int com_util_argparser_register_positional_int(const char *name, const char *description, const unsigned int flags,
                                                int *storage)
 {
-    return com_util_argparser_handle_register_positional_int(argparser_default_acquire(NULL, 0), name, description, flags,
+    return com_util_argparser_handle_register_positional_int(argparser_default_acquire(0, NULL, NULL, 0), name, description, flags,
                                                        storage);
 }
 
@@ -1433,7 +1462,7 @@ int com_util_argparser_handle_register_positional_string(com_util_argparser *par
 int com_util_argparser_register_positional_string(const char *name, const char *description, const unsigned int flags,
                                                   const char **storage)
 {
-    return com_util_argparser_handle_register_positional_string(argparser_default_acquire(NULL, 0), name, description, flags,
+    return com_util_argparser_handle_register_positional_string(argparser_default_acquire(0, NULL, NULL, 0), name, description, flags,
                                                           storage);
 }
 
@@ -1467,7 +1496,7 @@ int com_util_argparser_register_positional_int_array(const char *name, const cha
                                                      const unsigned int flags, int *storage, const size_t capacity,
                                                      size_t *count)
 {
-    return com_util_argparser_handle_register_positional_int_array(argparser_default_acquire(NULL, 0), name, description,
+    return com_util_argparser_handle_register_positional_int_array(argparser_default_acquire(0, NULL, NULL, 0), name, description,
                                                              flags, storage, capacity, count);
 }
 
@@ -1501,19 +1530,21 @@ int com_util_argparser_register_positional_string_array(const char *name, const 
                                                         const unsigned int flags, const char **storage,
                                                         const size_t capacity, size_t *count)
 {
-    return com_util_argparser_handle_register_positional_string_array(argparser_default_acquire(NULL, 0), name, description,
+    return com_util_argparser_handle_register_positional_string_array(argparser_default_acquire(0, NULL, NULL, 0), name, description,
                                                                 flags, storage, capacity, count);
 }
 
-int com_util_argparser_handle_parse(com_util_argparser *parser, const int argc, char *const *argv)
+int com_util_argparser_handle_parse(com_util_argparser *parser)
 {
-    if (parser == NULL || argc < 1 || argv == NULL)
+    if (parser == NULL || parser->argc < 1 || parser->argv == NULL)
     {
         return COM_UTIL_ERR_INVALID_ARGUMENT;
     }
 
+    const int argc = parser->argc;
+    char *const *argv = parser->argv;
+
     argparser_clear_error(parser);
-    argparser_resolve_program_name(parser, argv[0]);
 
     /* 再実行に備えて出現状態を初期化する */
     for (size_t i = 0; i < parser->spec_count; i++)
@@ -1716,9 +1747,9 @@ int com_util_argparser_handle_parse(com_util_argparser *parser, const int argc, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int com_util_argparser_parse(const int argc, char *const *argv)
+int com_util_argparser_parse(void)
 {
-    return com_util_argparser_handle_parse(argparser_default_acquire(NULL, 0), argc, argv);
+    return com_util_argparser_handle_parse(argparser_default_acquire(0, NULL, NULL, 0));
 }
 
 int com_util_argparser_handle_get_error(const com_util_argparser *parser)
@@ -1735,7 +1766,7 @@ int com_util_argparser_handle_get_error(const com_util_argparser *parser)
 
 int com_util_argparser_get_error(void)
 {
-    return com_util_argparser_handle_get_error(argparser_default_acquire(NULL, 0));
+    return com_util_argparser_handle_get_error(argparser_default_acquire(0, NULL, NULL, 0));
 }
 
 const char *com_util_argparser_handle_get_error_target(const com_util_argparser *parser)
@@ -1752,7 +1783,7 @@ const char *com_util_argparser_handle_get_error_target(const com_util_argparser 
 
 const char *com_util_argparser_get_error_target(void)
 {
-    return com_util_argparser_handle_get_error_target(argparser_default_acquire(NULL, 0));
+    return com_util_argparser_handle_get_error_target(argparser_default_acquire(0, NULL, NULL, 0));
 }
 
 int com_util_argparser_handle_get_error_index(const com_util_argparser *parser)
@@ -1769,7 +1800,7 @@ int com_util_argparser_handle_get_error_index(const com_util_argparser *parser)
 
 int com_util_argparser_get_error_index(void)
 {
-    return com_util_argparser_handle_get_error_index(argparser_default_acquire(NULL, 0));
+    return com_util_argparser_handle_get_error_index(argparser_default_acquire(0, NULL, NULL, 0));
 }
 
 int com_util_argparser_handle_get_error_message(const com_util_argparser *parser, char *buffer, const size_t buffer_size)
@@ -1840,7 +1871,8 @@ int com_util_argparser_handle_get_error_message(const com_util_argparser *parser
 
 int com_util_argparser_get_error_message(char *buffer, const size_t buffer_size)
 {
-    return com_util_argparser_handle_get_error_message(argparser_default_acquire(NULL, 0), buffer, buffer_size);
+    return com_util_argparser_handle_get_error_message(argparser_default_acquire(0, NULL, NULL, 0), buffer,
+                                                buffer_size);
 }
 
 int com_util_argparser_handle_get_usage(const com_util_argparser *parser, char *buffer, const size_t buffer_size,
@@ -1893,7 +1925,8 @@ int com_util_argparser_handle_get_usage(const com_util_argparser *parser, char *
 
 int com_util_argparser_get_usage(char *buffer, const size_t buffer_size, size_t *required_size)
 {
-    return com_util_argparser_handle_get_usage(argparser_default_acquire(NULL, 0), buffer, buffer_size, required_size);
+    return com_util_argparser_handle_get_usage(argparser_default_acquire(0, NULL, NULL, 0), buffer, buffer_size,
+                                        required_size);
 }
 
 int com_util_argparser_handle_print_usage(const com_util_argparser *parser, FILE *stream)
@@ -1926,7 +1959,7 @@ int com_util_argparser_handle_print_usage(const com_util_argparser *parser, FILE
 
 int com_util_argparser_print_usage(FILE *stream)
 {
-    return com_util_argparser_handle_print_usage(argparser_default_acquire(NULL, 0), stream);
+    return com_util_argparser_handle_print_usage(argparser_default_acquire(0, NULL, NULL, 0), stream);
 }
 
 int com_util_argparser_handle_print_error_messages(const com_util_argparser *parser, FILE *stream)
@@ -1955,7 +1988,7 @@ int com_util_argparser_handle_print_error_messages(const com_util_argparser *par
 
 int com_util_argparser_print_error_messages(FILE *stream)
 {
-    return com_util_argparser_handle_print_error_messages(argparser_default_acquire(NULL, 0), stream);
+    return com_util_argparser_handle_print_error_messages(argparser_default_acquire(0, NULL, NULL, 0), stream);
 }
 
 size_t com_util_argparser_handle_get_register_error_count(const com_util_argparser *parser)
@@ -1972,7 +2005,7 @@ size_t com_util_argparser_handle_get_register_error_count(const com_util_argpars
 
 size_t com_util_argparser_get_register_error_count(void)
 {
-    return com_util_argparser_handle_get_register_error_count(argparser_default_acquire(NULL, 0));
+    return com_util_argparser_handle_get_register_error_count(argparser_default_acquire(0, NULL, NULL, 0));
 }
 
 int com_util_argparser_handle_get_register_error(const com_util_argparser *parser, const size_t index)
@@ -1989,7 +2022,7 @@ int com_util_argparser_handle_get_register_error(const com_util_argparser *parse
 
 int com_util_argparser_get_register_error(size_t index)
 {
-    return com_util_argparser_handle_get_register_error(argparser_default_acquire(NULL, 0), index);
+    return com_util_argparser_handle_get_register_error(argparser_default_acquire(0, NULL, NULL, 0), index);
 }
 
 const char *com_util_argparser_handle_get_register_error_target(const com_util_argparser *parser, const size_t index)
@@ -2006,7 +2039,7 @@ const char *com_util_argparser_handle_get_register_error_target(const com_util_a
 
 const char *com_util_argparser_get_register_error_target(size_t index)
 {
-    return com_util_argparser_handle_get_register_error_target(argparser_default_acquire(NULL, 0), index);
+    return com_util_argparser_handle_get_register_error_target(argparser_default_acquire(0, NULL, NULL, 0), index);
 }
 
 int com_util_argparser_handle_get_register_error_message(const com_util_argparser *parser, const size_t index, char *buffer,
@@ -2061,8 +2094,8 @@ int com_util_argparser_handle_get_register_error_message(const com_util_argparse
 
 int com_util_argparser_get_register_error_message(const size_t index, char *buffer, const size_t buffer_size)
 {
-    return com_util_argparser_handle_get_register_error_message(argparser_default_acquire(NULL, 0), index, buffer,
-                                                          buffer_size);
+    return com_util_argparser_handle_get_register_error_message(argparser_default_acquire(0, NULL, NULL, 0), index,
+                                                          buffer, buffer_size);
 }
 
 int com_util_argparser_handle_print_register_error_messages(const com_util_argparser *parser, FILE *stream)
@@ -2095,5 +2128,5 @@ int com_util_argparser_handle_print_register_error_messages(const com_util_argpa
 
 int com_util_argparser_print_register_error_messages(FILE *stream)
 {
-    return com_util_argparser_handle_print_register_error_messages(argparser_default_acquire(NULL, 0), stream);
+    return com_util_argparser_handle_print_register_error_messages(argparser_default_acquire(0, NULL, NULL, 0), stream);
 }

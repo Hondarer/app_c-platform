@@ -82,8 +82,7 @@ DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_register_positional_string_arr
                         (parser, name, description, flags, storage, capacity, count), com_util_argparser *parser,
                         const char *name, const char *description, unsigned int flags, const char **storage,
                         size_t capacity, size_t *count)
-DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_parse, (parser, argc, argv), com_util_argparser *parser, int argc,
-                        char *const *argv)
+DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_parse, (parser), com_util_argparser *parser)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_get_error_message, (parser, buffer, buffer_size),
                         const com_util_argparser *parser, char *buffer, size_t buffer_size)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_get_usage, (parser, buffer, buffer_size, required_size),
@@ -101,25 +100,27 @@ DEFINE_ARGPARSER_RESULT(com_util_argparser_handle_print_register_error_messages,
 
 DEFINE_ARGPARSER_VOID(com_util_argparser_handle_dispose, (parser), com_util_argparser *parser)
 
-com_util_argparser *delegate_real_com_util_argparser_handle_create(const com_util_argparser_options *options)
+com_util_argparser *delegate_real_com_util_argparser_handle_create(int argc, char *const *argv,
+                                                                   const com_util_argparser_options *options)
 {
     static auto real_fn = reinterpret_cast<decltype(&com_util_argparser_handle_create)>(
         resolveSharedSymbolOrExit(kLibComUtilName, "com_util_argparser_handle_create"));
 
-    return real_fn(options);
+    return real_fn(argc, argv, options);
 }
 
-MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_handle_create, const com_util_argparser_options *options)
+MOCK_WEAK_IMPL(com_util_argparser *, com_util_argparser_handle_create, int argc, char *const *argv,
+               const com_util_argparser_options *options)
 {
     com_util_argparser *mock_ret = nullptr;
 
     if (_mock_com_util != nullptr)
     {
-        mock_ret = _mock_com_util->com_util_argparser_handle_create(options);
+        mock_ret = _mock_com_util->com_util_argparser_handle_create(argc, argv, options);
     }
     else
     {
-        mock_ret = delegate_real_com_util_argparser_handle_create(options);
+        mock_ret = delegate_real_com_util_argparser_handle_create(argc, argv, options);
     }
 
     if (getTraceLevel() > TRACE_NONE)
@@ -298,7 +299,8 @@ MOCK_WEAK_IMPL(const char *, com_util_argparser_handle_get_register_error_target
  * 省略可能な単一インスタンス API (parser 引数なし) のモック
  * ================================================================ */
 
-DEFINE_ARGPARSER_VOID(com_util_argparser_init, (description), const char *description)
+DEFINE_ARGPARSER_VOID(com_util_argparser_init, (argc, argv, description), int argc, char *const *argv,
+                      const char *description)
 
 DEFINE_ARGPARSER_RESULT(com_util_argparser_register_flag, (short_name, long_name, description, storage),
                         const char *short_name, const char *long_name, const char *description, int *storage)
@@ -328,7 +330,6 @@ DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_int_array,
 DEFINE_ARGPARSER_RESULT(com_util_argparser_register_positional_string_array,
                         (name, description, flags, storage, capacity, count), const char *name, const char *description,
                         unsigned int flags, const char **storage, size_t capacity, size_t *count)
-DEFINE_ARGPARSER_RESULT(com_util_argparser_parse, (argc, argv), int argc, char *const *argv)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_get_error_message, (buffer, buffer_size), char *buffer, size_t buffer_size)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_get_usage, (buffer, buffer_size, required_size), char *buffer,
                         size_t buffer_size, size_t *required_size)
@@ -338,6 +339,35 @@ DEFINE_ARGPARSER_RESULT(com_util_argparser_get_register_error, (index), size_t i
 DEFINE_ARGPARSER_RESULT(com_util_argparser_get_register_error_message, (index, buffer, buffer_size), size_t index,
                         char *buffer, size_t buffer_size)
 DEFINE_ARGPARSER_RESULT(com_util_argparser_print_register_error_messages, (stream), FILE *stream)
+
+int delegate_real_com_util_argparser_parse(void)
+{
+    static auto real_fn = reinterpret_cast<decltype(&com_util_argparser_parse)>(
+        resolveSharedSymbolOrExit(kLibComUtilName, "com_util_argparser_parse"));
+
+    return real_fn();
+}
+
+MOCK_WEAK_IMPL(int, com_util_argparser_parse, void)
+{
+    int mock_ret;
+
+    if (_mock_com_util != nullptr)
+    {
+        mock_ret = _mock_com_util->com_util_argparser_parse();
+    }
+    else
+    {
+        mock_ret = delegate_real_com_util_argparser_parse();
+    }
+
+    if (getTraceLevel() > TRACE_NONE)
+    {
+        printf("  > %s -> %d\n", __func__, (int)mock_ret);
+    }
+
+    return mock_ret;
+}
 
 int delegate_real_com_util_argparser_get_error(void)
 {

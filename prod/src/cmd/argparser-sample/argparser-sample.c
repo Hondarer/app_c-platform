@@ -102,14 +102,14 @@ int main(int argc, char *argv[])
     argparser_sample_options options = {0};
     options.count_value = 1; /* 0 以外の既定値は解析前に設定する */
 
-    com_util_argparser_init("com_util_argparser sample");
+    com_util_argparser_init(argc, argv, "com_util_argparser sample");
 
     if (register_argparser(&options) != 0)
     {
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (options.need_help != 0)
     {

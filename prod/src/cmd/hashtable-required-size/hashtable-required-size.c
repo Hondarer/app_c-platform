@@ -40,8 +40,6 @@ typedef struct hashtable_required_size_options
 
 static int register_options(hashtable_required_size_options *options)
 {
-    com_util_argparser_init(
-        "Print the management-region and data-region buffer sizes required to construct a hash table.");
     (void)com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
     (void)com_util_argparser_register_option_int("-c", "--capacity", "N", "number of slots",
                                                          COM_UTIL_ARGPARSER_REQUIRED, &options->capacity);
@@ -78,12 +76,15 @@ int main(int argc, char **argv)
     size_t data_size = 0;
     int ret;
 
+    com_util_argparser_init(argc, argv,
+                            "Print the management-region and data-region buffer sizes required to construct a hash "
+                            "table.");
     if (register_options(&options) != 0)
     {
         return EXIT_FAILURE;
     }
 
-    ret = com_util_argparser_parse(argc, argv);
+    ret = com_util_argparser_parse();
     if (options.need_help != 0)
     {
         (void)com_util_argparser_print_usage(stdout);

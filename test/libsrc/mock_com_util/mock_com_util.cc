@@ -517,7 +517,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_pinned_prompt_status_set));
 
     // argparser
-    ON_CALL(*this, com_util_argparser_handle_create(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_create));
+    ON_CALL(*this, com_util_argparser_handle_create(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_create));
     ON_CALL(*this, com_util_argparser_handle_dispose(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_dispose));
     ON_CALL(*this, com_util_argparser_handle_register_flag(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_handle_register_flag));
@@ -537,7 +537,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_argparser_handle_register_positional_int_array));
     ON_CALL(*this, com_util_argparser_handle_register_positional_string_array(_, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_handle_register_positional_string_array));
-    ON_CALL(*this, com_util_argparser_handle_parse(_, _, _)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_parse));
+    ON_CALL(*this, com_util_argparser_handle_parse(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_parse));
     ON_CALL(*this, com_util_argparser_handle_get_error(_)).WillByDefault(Invoke(delegate_real_com_util_argparser_handle_get_error));
     ON_CALL(*this, com_util_argparser_handle_get_error_target(_))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_handle_get_error_target));
@@ -563,7 +563,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_argparser_handle_print_register_error_messages));
 
     // argparser (省略可能な単一インスタンス API)
-    ON_CALL(*this, com_util_argparser_init(_))
+    ON_CALL(*this, com_util_argparser_init(_, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_init));
     ON_CALL(*this, com_util_argparser_register_flag(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_flag));
@@ -583,7 +583,7 @@ Mock_com_util::Mock_com_util()
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_int_array));
     ON_CALL(*this, com_util_argparser_register_positional_string_array(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_com_util_argparser_register_positional_string_array));
-    ON_CALL(*this, com_util_argparser_parse(_, _))
+    ON_CALL(*this, com_util_argparser_parse())
         .WillByDefault(Invoke(delegate_real_com_util_argparser_parse));
     ON_CALL(*this, com_util_argparser_get_error())
         .WillByDefault(Invoke(delegate_real_com_util_argparser_get_error));

@@ -637,7 +637,7 @@ int main(int argc, char *argv[])
 
     com_util_console_init();
 
-    com_util_argparser_init("固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
+    com_util_argparser_init(argc, argv, "固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
     com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
     com_util_argparser_register_option_string(NULL, "--dir", "PATH", "測定用ファイルを置くディレクトリ。", 0U, &dir);
     com_util_argparser_register_option_string(NULL, "--csv", "PATH", "CSV の出力先。", 0U, &csv_path);
@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    parse_result = com_util_argparser_parse(argc, argv);
+    parse_result = com_util_argparser_parse();
 
     if (need_help != 0)
     {

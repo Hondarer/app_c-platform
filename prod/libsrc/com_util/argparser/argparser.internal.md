@@ -14,8 +14,10 @@
 - `com_util_argparser_handle_create()` / `com_util_argparser_handle_dispose()`: 独立したハンドルを明示的に生成、解放します。  
   プロセス終了時の自動解放を行わないため、生成したハンドルは必ず `com_util_argparser_handle_dispose()` で解放してください。
 
-`com_util_argparser_handle_create()` は、生成オプション `com_util_argparser_options` (usage に表示するプログラム名と説明文) を受け取れます。  
-既定設定でよい場合は NULL を渡します。  
+`com_util_argparser_handle_create()` は、解析対象の `argc` と `argv` に続けて、生成オプション `com_util_argparser_options` (usage に表示するプログラム名と説明文) を受け取ります。  
+生成オプションが既定設定でよい場合は NULL を渡します。  
+ハンドルは `argv` を複製せずポインターを保持するため、ハンドルを使用する間は `argv` を有効なまま維持してください。  
+`argv[0]` は、生成オプションでプログラム名を指定しない場合の usage 上のプログラム名になります。  
 
 ## 基本フロー (生成と解放)
 
@@ -25,7 +27,7 @@
 
 int main(int argc, char *argv[])
 {
-    com_util_argparser *parser = com_util_argparser_handle_create(NULL);
+    com_util_argparser *parser = com_util_argparser_handle_create(argc, argv, NULL);
 
     int count = 1; /* 既定値は解析前に設定する */
     const char *input = NULL;
@@ -34,7 +36,7 @@ int main(int argc, char *argv[])
     com_util_argparser_handle_register_positional_string(parser, "input", "入力ファイル", COM_UTIL_ARGPARSER_REQUIRED,
                                                    &input);
 
-    if (com_util_argparser_handle_parse(parser, argc, argv) != COM_UTIL_OK)
+    if (com_util_argparser_handle_parse(parser) != COM_UTIL_OK)
     {
         char message[256];
         com_util_argparser_handle_get_error_message(parser, message, sizeof(message));
@@ -82,7 +84,7 @@ if (result != COM_UTIL_OK)
 定型的な表示には `com_util_argparser_handle_print_error_messages()` と `com_util_argparser_handle_print_usage()` の組み合わせが使用できます。
 
 ```c
-if (com_util_argparser_handle_parse(parser, argc, argv) != COM_UTIL_OK)
+if (com_util_argparser_handle_parse(parser) != COM_UTIL_OK)
 {
     com_util_argparser_handle_print_error_messages(parser, stderr);
     com_util_argparser_handle_print_usage(parser, stderr);
@@ -105,21 +107,30 @@ com_util_argparser_handle_get_usage(parser, NULL, 0, &required_size);
 /* required_size バイト分のバッファーを確保してから再度呼び出す */
 ```
 
-## 同一ハンドルでの再解析
+## 再解析と引数の差し替え
 
 同じパーサー ハンドルで `com_util_argparser_handle_parse()` を複数回呼び出すことができます。  
-テストで複数のコマンド ラインを検証する場合に使えます。
-
-```c
-com_util_argparser_handle_parse(parser, argc1, argv1);
-/* ... 1 回目の結果を利用 ... */
-
-com_util_argparser_handle_parse(parser, argc2, argv2);
-/* ... 2 回目の結果を利用 (フラグと複数値オプションの出現数は自動的にリセットされる) ... */
-```
+解析対象は生成時に受け取った `argc` と `argv` であるため、いずれの呼び出しも同じコマンド ラインを解析し直します。
 
 呼び出しの開始時に、フラグの格納先を 0 に、複数値オプションの出現数を 0 に初期化し、前回のエラー状態をクリアします。  
 値付きオプションと位置引数の格納先は出現時のみ上書きされるため、2 回目の解析前に必要であれば呼び出し側で既定値を設定し直してください。
+
+異なるコマンド ラインを検証する場合は、ハンドルを生成し直します。  
+テストで複数のコマンド ラインを検証する場合がこれに当たります。
+
+```c
+com_util_argparser *parser1 = com_util_argparser_handle_create(argc1, argv1, NULL);
+register_options(parser1); /* オプションを登録する */
+com_util_argparser_handle_parse(parser1);
+/* ... 1 回目の結果を利用 ... */
+com_util_argparser_handle_dispose(parser1);
+
+com_util_argparser *parser2 = com_util_argparser_handle_create(argc2, argv2, NULL);
+register_options(parser2); /* 新しいハンドルへ登録し直す */
+com_util_argparser_handle_parse(parser2);
+/* ... 2 回目の結果を利用 ... */
+com_util_argparser_handle_dispose(parser2);
+```
 
 ## スレッド セーフ性
 

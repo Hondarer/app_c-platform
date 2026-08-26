@@ -633,7 +633,7 @@ int main(int argc, char *argv[])
 
     int need_help = 0;
 
-    com_util_argparser_init("固定プロンプト API を対話的に確認します。");
+    com_util_argparser_init(argc, argv, "固定プロンプト API を対話的に確認します。");
     com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
 
     if (com_util_argparser_get_register_error_count() > 0)
@@ -642,7 +642,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (need_help != 0)
     {

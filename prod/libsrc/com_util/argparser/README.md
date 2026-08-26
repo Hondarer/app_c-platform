@@ -43,7 +43,7 @@ API の詳細な引数説明は同ヘッダーの Doxygen コメントを参照�
 int main(int argc, char *argv[])
 {
     com_util_console_init();
-    com_util_argparser_init("sample program");
+    com_util_argparser_init(argc, argv, "sample program");
 
     int need_help = 0;
     int count = 1; /* 既定値は解析前に設定する */
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (need_help != 0)
     {
@@ -81,9 +81,14 @@ int main(int argc, char *argv[])
 }
 ```
 
-`com_util_argparser_init()` にはプログラムの説明文を設定することができます (不要な場合は NULL)。  
+`com_util_argparser_init()` には、解析対象の `argc` と `argv` を渡します。  
+パーサーは `argv` を複製せずポインターを保持するため、解析結果を参照する間は `argv` を有効なまま維持してください。  
+`argv[0]` は usage に表示するプログラム名の既定値として使用します。
+
+第 3 引数にはプログラムの説明文を設定することができます (不要な場合は NULL)。  
 説明文は usage の冒頭に表示されます。  
-`com_util_argparser_init()` を呼ばずに register 系 API をいきなり呼び出しても、既定のオプションで暗黙に初期化されます。
+`com_util_argparser_init()` を呼ばずに register 系 API をいきなり呼び出しても、既定のオプションで暗黙に初期化されます。  
+ただしこの場合は解析対象の `argv` を持たないため、`com_util_argparser_parse()` は `COM_UTIL_ERR_INVALID_ARGUMENT` を返します。
 
 値付きオプションと位置引数の格納先は、コマンド ラインに出現した場合のみ書き込まれます。  
 既定値は `com_util_argparser_parse()` を呼ぶ前に呼び出し側で設定してください。
@@ -243,7 +248,7 @@ int need_help = 0;
 
 com_util_argparser_register_flag("-h", "--help", "ヘルプを表示する", &need_help);
 
-int result = com_util_argparser_parse(argc, argv);
+int result = com_util_argparser_parse();
 
 if (need_help != 0)
 {
@@ -266,7 +271,7 @@ if (result != COM_UTIL_OK)
 解析に失敗した場合の定型的なエラー表示は、`com_util_argparser_print_error_messages()` と `com_util_argparser_print_usage()` の組み合わせでまとめられます。
 
 ```c
-if (com_util_argparser_parse(argc, argv) != COM_UTIL_OK)
+if (com_util_argparser_parse() != COM_UTIL_OK)
 {
     com_util_argparser_print_error_messages(stderr);
     com_util_argparser_print_usage(stderr);
@@ -292,19 +297,26 @@ com_util_argparser_get_usage(NULL, 0, &required_size);
 
 ### 再解析
 
-`com_util_argparser_parse()` は繰り返し呼び出すことができます。  
-対話的に複数回コマンド ラインを受け付ける場合に使えます。
-
-```c
-com_util_argparser_parse(argc1, argv1);
-/* ... 1 回目の結果を利用 ... */
-
-com_util_argparser_parse(argc2, argv2);
-/* ... 2 回目の結果を利用 (フラグと複数値オプションの出現数は自動的にリセットされる) ... */
-```
+`com_util_argparser_parse()` は、同じ `argc` と `argv` に対して繰り返し呼び出すことができます。
 
 呼び出しの開始時に、フラグの格納先を 0 に、複数値オプションと可変長位置引数の出現数を 0 に初期化し、前回のエラー状態をクリアします。  
 値付きオプションと位置引数の格納先は出現時のみ上書きされるため、2 回目の解析前に必要であれば呼び出し側で既定値を設定し直してください。
+
+解析対象の引数を差し替える場合は、`com_util_argparser_init()` から呼び出し直します。  
+対話的に複数回コマンド ラインを受け付ける場合など、同一プロセスで `main` 相当の処理を繰り返す場合がこれに当たります。  
+`com_util_argparser_init()` は登録済みのオプションと解析結果をすべて捨てるため、オプションの登録もやり直してください。
+
+```c
+com_util_argparser_init(argc1, argv1, "sample program");
+register_options(&options); /* オプションを登録する */
+com_util_argparser_parse();
+/* ... 1 回目の結果を利用 ... */
+
+com_util_argparser_init(argc2, argv2, "sample program");
+register_options(&options); /* 再初期化で登録が捨てられるため、登録し直す */
+com_util_argparser_parse();
+/* ... 2 回目の結果を利用 ... */
+```
 
 ## 参考実装
 

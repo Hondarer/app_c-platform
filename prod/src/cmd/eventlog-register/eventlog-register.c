@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
     int need_help = 0;
     const char *command = NULL;
 
-    com_util_argparser_init("com_util 共通イベント ソースを登録または削除します。");
+    com_util_argparser_init(argc, argv, "com_util 共通イベント ソースを登録または削除します。");
     com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
     com_util_argparser_register_positional_string("command", "install または uninstall。", COM_UTIL_ARGPARSER_REQUIRED,
                                                   &command);
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (need_help != 0)
     {

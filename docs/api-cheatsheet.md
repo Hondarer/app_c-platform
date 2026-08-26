@@ -509,10 +509,10 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 | 用途 | com_util API |
 |---|---|
-| パーサーを生成/初期化します。 | `com_util_argparser_handle_create` / `com_util_argparser_init` / `com_util_argparser_handle_dispose` |
+| パーサーを argc/argv とともに生成/初期化します。 | `com_util_argparser_handle_create` / `com_util_argparser_init` / `com_util_argparser_handle_dispose` |
 | フラグ/オプション/位置引数を登録します。 | `com_util_argparser_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
 | 登録エラーを確認します。 | `com_util_argparser_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
-| コマンド ラインを解析します。 | `com_util_argparser_parse` |
+| 初期化時に受け取ったコマンド ラインを解析します。 | `com_util_argparser_parse` |
 | 解析エラーを確認します。 | `com_util_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
 | 使用方法を表示します。 | `com_util_argparser_get_usage` / `com_util_argparser_print_usage` |
 

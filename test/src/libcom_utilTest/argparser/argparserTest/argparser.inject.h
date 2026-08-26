@@ -21,8 +21,13 @@ extern "C"
     extern void test_argparser_default_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
 
     /* argparser.c のファイル内 static 関数 argparser_default_acquire へのアクセサー。 */
-    extern com_util_argparser *test_argparser_default_acquire(const com_util_argparser_options *options,
+    extern com_util_argparser *test_argparser_default_acquire(int argc, char *const *argv,
+                                                               const com_util_argparser_options *options,
                                                                int reset_existing);
+
+    /* argparser.c のファイル内 static 関数 argparser_apply_args へのアクセサー。
+       解析対象の引数だけを差し替えて再解析する経路を、登録をやり直さずに確認するために使用する。 */
+    extern void test_argparser_apply_args(com_util_argparser *parser, int argc, char *const *argv);
 
     /* argparser.c のファイル内共有パーサー状態をテスト間で初期化する関数。 */
     extern void test_argparser_reset_default(void);

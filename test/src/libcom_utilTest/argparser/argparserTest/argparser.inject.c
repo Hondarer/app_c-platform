@@ -24,9 +24,15 @@ void test_argparser_default_dispose_on_shutdown(const com_util_shutdown_event *e
     argparser_default_dispose_on_shutdown(event, context);
 }
 
-com_util_argparser *test_argparser_default_acquire(const com_util_argparser_options *options, int reset_existing)
+com_util_argparser *test_argparser_default_acquire(int argc, char *const *argv,
+                                                   const com_util_argparser_options *options, int reset_existing)
 {
-    return argparser_default_acquire(options, reset_existing);
+    return argparser_default_acquire(argc, argv, options, reset_existing);
+}
+
+void test_argparser_apply_args(com_util_argparser *parser, int argc, char *const *argv)
+{
+    argparser_apply_args(parser, argc, argv);
 }
 
 void test_argparser_reset_default(void)

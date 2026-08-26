@@ -63,8 +63,10 @@
 #define COM_UTIL_EXPORT_TABLE_COMMON(EXPORT_ENTRY) \
     /* com_util/argparser/argparser.h */ \
     EXPORT_ENTRY(com_util_argparser_handle_create, \
-                 com_util_argparser *(COM_UTIL_API *)(const com_util_argparser_options *options)) \
-    EXPORT_ENTRY(com_util_argparser_init, void(COM_UTIL_API *)(const char *description)) \
+                 com_util_argparser *(COM_UTIL_API *)(int argc, char *const *argv, \
+                                                      const com_util_argparser_options *options)) \
+    EXPORT_ENTRY(com_util_argparser_init, \
+                 void(COM_UTIL_API *)(int argc, char *const *argv, const char *description)) \
     EXPORT_ENTRY(com_util_argparser_handle_dispose, void(COM_UTIL_API *)(com_util_argparser * parser)) \
     EXPORT_ENTRY(com_util_argparser_handle_register_flag, \
                  int(COM_UTIL_API *)(com_util_argparser * parser, const char *short_name, const char *long_name, \
@@ -125,9 +127,8 @@
     EXPORT_ENTRY(com_util_argparser_register_positional_string_array, \
                  int(COM_UTIL_API *)(const char *name, const char *description, unsigned int flags, \
                                      const char **storage, size_t capacity, size_t *count)) \
-    EXPORT_ENTRY(com_util_argparser_handle_parse, \
-                 int(COM_UTIL_API *)(com_util_argparser * parser, int argc, char *const *argv)) \
-    EXPORT_ENTRY(com_util_argparser_parse, int(COM_UTIL_API *)(int argc, char *const *argv)) \
+    EXPORT_ENTRY(com_util_argparser_handle_parse, int(COM_UTIL_API *)(com_util_argparser * parser)) \
+    EXPORT_ENTRY(com_util_argparser_parse, int(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_argparser_handle_get_error, int(COM_UTIL_API *)(const com_util_argparser *parser)) \
     EXPORT_ENTRY(com_util_argparser_get_error, int(COM_UTIL_API *)(void)) \
     EXPORT_ENTRY(com_util_argparser_handle_get_error_target, const char *(COM_UTIL_API *)(const com_util_argparser *parser)) \

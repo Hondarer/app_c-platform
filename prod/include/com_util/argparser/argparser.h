@@ -40,7 +40,7 @@
     int main(int argc, char *argv[])
     {
         com_util_console_init();
-        com_util_argparser_init("sample program");
+        com_util_argparser_init(argc, argv, "sample program");
 
         int need_help = 0;
         int count = 1; // 既定値は解析前に設定する
@@ -57,7 +57,7 @@
             return EXIT_FAILURE;
         }
 
-        int parse_result = com_util_argparser_parse(argc, argv);
+        int parse_result = com_util_argparser_parse();
 
         if (need_help != 0)
         {
@@ -125,7 +125,7 @@ extern "C"
     {
         /**
          *  @brief  usage に表示するプログラム名です。
-         *          NULL の場合は com_util_argparser_handle_parse() 時に argv[0] のベース名で補完します。
+         *          NULL の場合は com_util_argparser_handle_create() 時に argv[0] のベース名で補完します。
          */
         const char *program_name;
 
@@ -137,18 +137,33 @@ extern "C"
 
     /**
      *  @brief          引数パーサー ハンドルを生成します。
+     *  @param[in]      argc     解析するコマンド ライン引数の個数です。1 以上を指定してください。
+     *  @param[in]      argv     解析するコマンド ライン引数の配列です。NULL を渡してはなりません。\n
+     *                           argv[0] はプログラム名として扱い、usage のプログラム名を求めます。
      *  @param[in]      options  生成オプションです。NULL の場合は既定設定を使用します。
      *  @return         成功時は生成したハンドルを返します。メモリを確保できない場合は NULL を返します。
+     *
+     *  @p argv は配列も要素の文字列も複製しません。ハンドルはポインターを保持するだけです。\n
+     *  ハンドルを使用する間、および解析結果の文字列を参照する間は、
+     *  @p argv とその要素文字列を有効なまま維持してください。
+     *
+     *  @p argc が 1 未満、または @p argv が NULL の場合も本関数は成功します。\n
+     *  この場合は com_util_argparser_handle_parse() が @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *
+     *  解析する引数を差し替える場合は、本関数でハンドルを生成し直してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
      */
     COM_UTIL_EXPORT com_util_argparser *COM_UTIL_API
-    com_util_argparser_handle_create(const com_util_argparser_options *options);
+    com_util_argparser_handle_create(int argc, char *const *argv, const com_util_argparser_options *options);
 
     /**
      *  @brief          プロセス共有のパーサーを初期化します。
+     *  @param[in]      argc         解析するコマンド ライン引数の個数です。1 以上を指定してください。
+     *  @param[in]      argv         解析するコマンド ライン引数の配列です。NULL を渡してはなりません。\n
+     *                               argv[0] はプログラム名として扱い、usage のプログラム名を求めます。
      *  @param[in]      description  プログラムの説明文です。NULL も指定できます。
      *
      *  `com_util_console_init()` にならい、通常のコマンドで使う 1 インスタンスのみの用途では
@@ -157,11 +172,19 @@ extern "C"
      *  関数群) をいきなり呼び出しても、既定のオプションで暗黙に初期化されます。\n
      *  複数ハンドルを扱う必要がある場合は com_util_argparser_handle_create() を使用してください。
      *
+     *  @p argv は配列も要素の文字列も複製しません。パーサーはポインターを保持するだけです。\n
+     *  パーサーを使用する間、および解析結果の文字列を参照する間は、
+     *  @p argv とその要素文字列を有効なまま維持してください。
+     *
+     *  @p argc が 1 未満、または @p argv が NULL の場合も本関数は初期化を行います。\n
+     *  この場合は com_util_argparser_parse() が @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
+     *
      *  パーサーはプロセス共有です。\n
      *  本関数を 2 回目以降に呼び出すと、それまでに登録したオプション、解析結果、
-     *  エラー情報をすべて捨て、@p description を適用し直します。\n
+     *  エラー情報をすべて捨て、@p argc 、@p argv 、@p description を適用し直します。\n
      *  同一プロセスで `main` 相当の処理を繰り返し実行する場合 (テストなど) は、
-     *  この再初期化により登録の重複を避けられます。
+     *  この再初期化により登録の重複を避けられます。\n
+     *  解析する引数を差し替える場合も、本関数を呼び出し直してオプションを登録し直してください。
      *
      *  @warning        パーサーを共有する複数の登録元がある場合、
      *                  あとから本関数を呼び出した側が、先に登録された内容を破棄します。\n
@@ -171,7 +194,8 @@ extern "C"
      *  初回生成と再初期化は内部ロックによりスレッド セーフです。\n
      *  ただし再初期化とオプション登録の順序は、呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_init(const char *description);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_init(int argc, char *const *argv,
+                                                              const char *description);
 
     /**
      *  @brief          引数パーサー ハンドルを解放します。
@@ -525,9 +549,6 @@ extern "C"
     /**
      *  @brief          コマンド ラインを解析し、登録済みの格納先に結果を書き込みます。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL を渡してはなりません。
-     *  @param[in]      argc    argv の要素数です。1 以上を指定してください。
-     *  @param[in]      argv    コマンド ライン引数の配列です。NULL を渡してはなりません。\n
-     *                          argv[0] はプログラム名として扱い、argv[1] 以降を解析します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_UNKNOWN_OPTION 、
      *                  @ref COM_UTIL_ERR_MISSING_VALUE 、
@@ -539,7 +560,14 @@ extern "C"
      *                  @ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS 、
      *                  @ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。\n
-     *                  解析エラーの場合は、検出した種別に対応する結果コードを返します。
+     *                  解析エラーの場合は、検出した種別に対応する結果コードを返します。\n
+     *                  @ref COM_UTIL_ERR_INVALID_ARGUMENT は、@p parser が NULL の場合、
+     *                  または com_util_argparser_handle_create() に渡した argc が 1 未満か
+     *                  argv が NULL の場合に返します。
+     *
+     *  解析対象は com_util_argparser_handle_create() で受け取った argc と argv です。\n
+     *  argv[0] はプログラム名として扱い、argv[1] 以降を解析します。\n
+     *  解析する引数を差し替える場合は、ハンドルを生成し直してください。
      *
      *  解析エラーの対象名と位置は com_util_argparser_handle_get_error_target()、
      *  com_util_argparser_handle_get_error_index() で取得し、表示用のメッセージは
@@ -547,7 +575,7 @@ extern "C"
      *  種別は戻り値を保持していない場合でも com_util_argparser_handle_get_error() で再取得できます。\n
      *  解析エラー時、エラー検出より前に処理した格納先には値が書き込まれています。
      *
-     *  本関数は同一ハンドルで繰り返し呼び出せます。\n
+     *  本関数は同一ハンドルで繰り返し呼び出せます (同じ argc と argv を解析し直します)。\n
      *  呼び出しの開始時に、フラグの格納先を 0 に、複数値オプションの出現数を 0 に初期化し、
      *  前回のエラー状態をクリアします。\n
      *  値付きオプションと位置引数の格納先は出現時のみ書き込むため、
@@ -557,7 +585,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p parser への並行呼び出しは未定義動作です。ハンドルごとに 1 スレッドから使用してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char *const *argv);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_parse(com_util_argparser *parser);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーでコマンド ラインを解析します。
@@ -572,9 +600,13 @@ extern "C"
      *                  @ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS 、
      *                  @ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
+     *
+     *  解析対象は com_util_argparser_init() で受け取った argc と argv です。\n
+     *  解析する引数を差し替える場合は、com_util_argparser_init() から呼び出し直してください。
+     *
      *  @see            com_util_argparser_handle_parse
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_parse(int argc, char *const *argv);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_parse(void);
 
     /**
      *  @brief          直前の com_util_argparser_handle_parse() の解析エラー種別を取得します。
@@ -665,9 +697,8 @@ extern "C"
      *  解析の成否とは独立に、登録完了後であればいつでも呼び出せます。
      *  解析前のヘルプ表示にも、解析後に呼び出し側で行うバリデーションのエラー報告にも使用できます。
      *
-     *  プログラム名は生成オプションの program_name、未指定の場合は直前の
-     *  com_util_argparser_parse() が argv[0] から求めたベース名、
-     *  解析前の場合は "{program}" を使用します。
+     *  プログラム名は生成オプションの program_name、未指定の場合は初期化時に
+     *  argv[0] から求めたベース名、いずれも得られない場合は "{program}" を使用します。
      */
     COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_usage(const com_util_argparser *parser, char *buffer,
                                                                    size_t buffer_size, size_t *required_size);

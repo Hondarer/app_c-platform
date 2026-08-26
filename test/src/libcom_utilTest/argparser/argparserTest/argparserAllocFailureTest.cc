@@ -19,7 +19,7 @@ class argparserAllocFailureTest : public Test
 
     void SetUp() override
     {
-        parser_ = com_util_argparser_handle_create(NULL); // [状態] - 生成済みの parser を用意する。
+        parser_ = com_util_argparser_handle_create(0, NULL, NULL); // [状態] - 生成済みの parser を用意する。
         ASSERT_NE((com_util_argparser *)NULL, parser_); // [状態確認] - ハンドルが非 NULL であること。
     }
 
@@ -273,7 +273,7 @@ TEST_F(argparserAllocFailureTest, create_fails_when_program_name_duplication_fai
 
     // Act
     com_util_argparser *parser =
-        com_util_argparser_handle_create(&options); // [手順] - program_name と description を指定して parser を生成する。
+        com_util_argparser_handle_create(0, NULL, &options); // [手順] - program_name と description を指定して parser を生成する。
 
     // Assert
     EXPECT_EQ(nullptr, parser); // [確認_異常系] - program_name 複製失敗時の parser が NULL であること。
@@ -295,14 +295,14 @@ TEST_F(argparserAllocFailureTest, create_fails_when_program_description_duplicat
 
     // Act
     com_util_argparser *parser =
-        com_util_argparser_handle_create(&options); // [手順] - program_name と description を指定して parser を生成する。
+        com_util_argparser_handle_create(0, NULL, &options); // [手順] - program_name と description を指定して parser を生成する。
 
     // Assert
     EXPECT_EQ(nullptr, parser); // [確認_異常系] - program_description 複製失敗時の parser が NULL であること。
 }
 
-// argv[0] のベース名複製に失敗した場合も解析が継続することの確認
-TEST_F(argparserAllocFailureTest, parse_continues_when_program_name_duplication_fails)
+// argv[0] のベース名複製に失敗した場合も生成と解析が継続することの確認
+TEST_F(argparserAllocFailureTest, create_continues_when_program_name_duplication_fails)
 {
     // Arrange
     char *argv[] = {const_cast<char *>("/usr/local/bin/tool")};
@@ -313,10 +313,15 @@ TEST_F(argparserAllocFailureTest, parse_continues_when_program_name_duplication_
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - argv[0] のベース名複製で malloc が失敗すること。
 
     // Act
-    int actual_ret = com_util_argparser_handle_parse(parser_, 1, argv); // [手順] - argv[0] のベース名複製失敗状態で解析する。
+    com_util_argparser *parser =
+        com_util_argparser_handle_create(1, argv, NULL); // [手順] - ベース名複製が失敗する状態で parser を生成する。
 
     // Assert
+    ASSERT_NE(nullptr, parser); // [確認_正常系] - ベース名複製失敗時も生成が成功すること。
     EXPECT_EQ(
         COM_UTIL_OK,
-        actual_ret); // [確認_正常系] - ベース名複製失敗時も com_util_argparser_handle_parse の戻り値が COM_UTIL_OK であること。
+        com_util_argparser_handle_parse(parser)); // [確認_正常系] - ベース名複製失敗時も com_util_argparser_handle_parse の戻り値が COM_UTIL_OK であること。
+
+    // Cleanup
+    com_util_argparser_handle_dispose(parser);
 }

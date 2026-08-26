@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
     int compress_count = 0;
     int decompress_count = 0;
 
-    com_util_argparser_init("ファイルを圧縮または展開します。");
+    com_util_argparser_init(argc, argv, "ファイルを圧縮または展開します。");
     com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
     com_util_argparser_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
     com_util_argparser_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (options.need_help != 0)
     {

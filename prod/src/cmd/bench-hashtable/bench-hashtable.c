@@ -355,7 +355,6 @@ typedef struct bench_hashtable_options
  */
 static int register_options(bench_hashtable_options *options)
 {
-    com_util_argparser_init("Measure hash table variable-length storage operations.");
     (void)com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
     (void)com_util_argparser_register_option_int(
         NULL, "--max-capacity", "N", "largest number of slots to measure (default 16384)", 0,
@@ -379,11 +378,12 @@ int main(int argc, char **argv)
     int failures = 0;
     int ret;
 
+    com_util_argparser_init(argc, argv, "Measure hash table variable-length storage operations.");
     if (register_options(&options) != 0)
     {
         return EXIT_FAILURE;
     }
-    ret = com_util_argparser_parse(argc, argv);
+    ret = com_util_argparser_parse();
     if (options.need_help != 0)
     {
         (void)com_util_argparser_print_usage(stdout);

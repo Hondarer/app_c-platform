@@ -42,6 +42,7 @@ app/com_util/prod/cbin/argparser-sample -v
 `argparser-sample.c` は、暗黙のシングルトン パーサーを使用する API (`com_util_argparser_*`) の参考実装です。
 
 - 解析結果の格納先を `argparser_sample_options` 構造体に集約します。
+- `com_util_argparser_init()` は `argc` と `argv` を受け取るため、main で呼び出します。
 - 登録処理を `register_argparser()` という別関数に分離し、登録エラーの有無を `com_util_argparser_get_register_error_count()` でまとめて判定します。
 - 結果表示を `print_result()` に分離します。
 

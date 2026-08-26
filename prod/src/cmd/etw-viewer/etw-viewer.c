@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 
     etw_viewer_options_init(&options);
 
-    com_util_argparser_init("ETW の com_util トレースを表示します。");
+    com_util_argparser_init(argc, argv, "ETW の com_util トレースを表示します。");
     com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
     com_util_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
 
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse(argc, argv);
+    int parse_result = com_util_argparser_parse();
 
     if (options.need_help != 0)
     {

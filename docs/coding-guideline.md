@@ -786,10 +786,10 @@ extern int g_com_util_internal_sink_count;
 
 ```c
 /* 暗黙パーサー版 (一般利用者向け) */
-int com_util_argparser_parse(int argc, char **argv);
+int com_util_argparser_parse(void);
 
 /* 明示ハンドル版 (テスト・複数インスタンス向け) */
-int com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char **argv);
+int com_util_argparser_handle_parse(com_util_argparser *parser);
 ```
 
 > [!NOTE]
