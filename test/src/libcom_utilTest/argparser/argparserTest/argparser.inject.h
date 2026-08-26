@@ -20,6 +20,13 @@ extern "C"
     /* argparser.c のファイル内 static 関数 argparser_default_dispose_on_shutdown へのアクセサー。 */
     extern void test_argparser_default_dispose_on_shutdown(const com_util_shutdown_event *event, void *context);
 
+    /* argparser.c のファイル内 static 関数 argparser_default_acquire へのアクセサー。 */
+    extern com_util_argparser *test_argparser_default_acquire(const com_util_argparser_options *options,
+                                                               int reset_existing);
+
+    /* argparser.c のファイル内共有パーサー状態をテスト間で初期化する関数。 */
+    extern void test_argparser_reset_default(void);
+
     /* usage の再計算でバッファー不足を発生させるためのテスト用置換関数。 */
     extern char *test_argparser_replace_program_description(com_util_argparser *parser, char *description);
 

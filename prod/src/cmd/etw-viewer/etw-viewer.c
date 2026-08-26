@@ -249,29 +249,29 @@ int main(int argc, char *argv[])
 
     etw_viewer_options_init(&options);
 
-    com_util_argparser_default_init("ETW の com_util トレースを表示します。");
-    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
-    com_util_argparser_default_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
+    com_util_argparser_init("ETW の com_util トレースを表示します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    com_util_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
 
-    if (com_util_argparser_default_get_register_error_count() > 0)
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        com_util_argparser_default_print_register_error_messages(stderr);
-        com_util_argparser_default_print_usage(stderr);
+        com_util_argparser_print_register_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_default_parse(argc, argv);
+    int parse_result = com_util_argparser_parse(argc, argv);
 
     if (options.need_help != 0)
     {
-        com_util_argparser_default_print_usage(stdout);
+        com_util_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_default_print_error_messages(stderr);
-        com_util_argparser_default_print_usage(stderr);
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -279,8 +279,8 @@ int main(int argc, char *argv[])
     {
         if (parse_process_id_arg(pid_value, &options.process_id_filter) != 0)
         {
-            com_util_argparser_default_print_error_messages(stderr);
-            com_util_argparser_default_print_usage(stderr);
+            com_util_argparser_print_error_messages(stderr);
+            com_util_argparser_print_usage(stderr);
             return EXIT_FAILURE;
         }
         options.has_process_id_filter = 1;

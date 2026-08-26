@@ -637,39 +637,39 @@ int main(int argc, char *argv[])
 
     com_util_console_init();
 
-    com_util_argparser_default_init("固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
-    com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
-    com_util_argparser_default_register_option_string(NULL, "--dir", "PATH", "測定用ファイルを置くディレクトリ。", 0U, &dir);
-    com_util_argparser_default_register_option_string(NULL, "--csv", "PATH", "CSV の出力先。", 0U, &csv_path);
-    com_util_argparser_default_register_option_string(NULL, "--sizes", "LIST", "測定するファイル サイズ (例: 4K,1M,256M)。", 0U,
+    com_util_argparser_init("固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
+    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    com_util_argparser_register_option_string(NULL, "--dir", "PATH", "測定用ファイルを置くディレクトリ。", 0U, &dir);
+    com_util_argparser_register_option_string(NULL, "--csv", "PATH", "CSV の出力先。", 0U, &csv_path);
+    com_util_argparser_register_option_string(NULL, "--sizes", "LIST", "測定するファイル サイズ (例: 4K,1M,256M)。", 0U,
                                               &sizes);
-    com_util_argparser_default_register_option_string(NULL, "--apis", "LIST", "測定する API 形態を絞り込みます。", 0U,
+    com_util_argparser_register_option_string(NULL, "--apis", "LIST", "測定する API 形態を絞り込みます。", 0U,
                                               &api_list);
-    com_util_argparser_default_register_option_string(NULL, "--patterns", "LIST", "測定するアクセス パターンを絞り込みます。",
+    com_util_argparser_register_option_string(NULL, "--patterns", "LIST", "測定するアクセス パターンを絞り込みます。",
                                               0U, &pattern_list);
-    com_util_argparser_default_register_option_int(NULL, "--min-ms", "MS", "1 試行の測定区間の下限 (ミリ秒)。", 0U, &min_ms);
-    com_util_argparser_default_register_option_int(NULL, "--trials", "N", "1 条件あたりの試行回数。", 0U, &trials);
-    com_util_argparser_default_register_flag(NULL, "--huge", "1 GB のケースを追加します。", &huge);
-    com_util_argparser_default_register_flag(NULL, "--cold", "ページ キャッシュを落として測定します (Linux、要 root)。", &cold);
-    com_util_argparser_default_register_flag(NULL, "--keep", "測定用ファイルを削除せずに残します。", &keep);
+    com_util_argparser_register_option_int(NULL, "--min-ms", "MS", "1 試行の測定区間の下限 (ミリ秒)。", 0U, &min_ms);
+    com_util_argparser_register_option_int(NULL, "--trials", "N", "1 条件あたりの試行回数。", 0U, &trials);
+    com_util_argparser_register_flag(NULL, "--huge", "1 GB のケースを追加します。", &huge);
+    com_util_argparser_register_flag(NULL, "--cold", "ページ キャッシュを落として測定します (Linux、要 root)。", &cold);
+    com_util_argparser_register_flag(NULL, "--keep", "測定用ファイルを削除せずに残します。", &keep);
 
-    if (com_util_argparser_default_get_register_error_count() > 0U)
+    if (com_util_argparser_get_register_error_count() > 0U)
     {
-        com_util_argparser_default_print_register_error_messages(stderr);
+        com_util_argparser_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    parse_result = com_util_argparser_default_parse(argc, argv);
+    parse_result = com_util_argparser_parse(argc, argv);
 
     if (need_help != 0)
     {
-        com_util_argparser_default_print_usage(stdout);
+        com_util_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
     if (parse_result != COM_UTIL_OK)
     {
-        com_util_argparser_default_print_error_messages(stderr);
-        com_util_argparser_default_print_usage(stderr);
+        com_util_argparser_print_error_messages(stderr);
+        com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
     if (min_ms <= 0 || trials <= 0 || trials > BENCH_TIMER_MAX_TRIALS)

@@ -20,6 +20,31 @@
 // com_util_syslog_sink_* は Linux 専用のため、この Windows 専用ブロックには含めない。
 
 // argparser
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_flag)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_option_int)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_option_string)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_option_int_array)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_option_string_array)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_positional_int)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_positional_string)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_positional_int_array)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_register_positional_string_array)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_parse)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_error_message)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_usage)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_print_usage)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_print_error_messages)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_register_error)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_register_error_message)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_print_register_error_messages)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_dispose)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_create)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_error)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_error_target)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_error_index)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_register_error_count)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_handle_get_register_error_target)
+MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_init)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_register_flag)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_register_option_int)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_register_option_string)
@@ -37,37 +62,11 @@ MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_print_error_messages)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_register_error)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_register_error_message)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_print_register_error_messages)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_dispose)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_create)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_error)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_error_target)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_error_index)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_register_error_count)
 MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_get_register_error_target)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_init)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_flag)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_option_int)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_option_string)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_option_int_array)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_option_string_array)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_positional_int)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_positional_string)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_positional_int_array)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_register_positional_string_array)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_parse)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_error_message)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_usage)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_print_usage)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_print_error_messages)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_register_error)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_register_error_message)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_print_register_error_messages)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_error)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_error_target)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_error_index)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_register_error_count)
-MOCK_COM_UTIL_LINK_IMPL(com_util_argparser_default_get_register_error_target)
 
 // clock
 MOCK_COM_UTIL_LINK_IMPL(com_util_format_realtime_iso8601_local)
@@ -983,106 +982,105 @@ extern int delegate_real_com_util_pinned_prompt_status_set(com_util_pinned_promp
                                                            const char *content);
 
 // argparser
-extern com_util_argparser *delegate_real_com_util_argparser_create(const com_util_argparser_options *options);
-extern com_util_argparser *delegate_real_com_util_argparser_default(const com_util_argparser_options *options);
-extern void delegate_real_com_util_argparser_dispose(com_util_argparser *parser);
-extern int delegate_real_com_util_argparser_register_flag(com_util_argparser *parser, const char *short_name,
+extern com_util_argparser *delegate_real_com_util_argparser_handle_create(const com_util_argparser_options *options);
+extern void delegate_real_com_util_argparser_handle_dispose(com_util_argparser *parser);
+extern int delegate_real_com_util_argparser_handle_register_flag(com_util_argparser *parser, const char *short_name,
                                                           const char *long_name, const char *description, int *storage);
-extern int delegate_real_com_util_argparser_register_option_int(com_util_argparser *parser, const char *short_name,
+extern int delegate_real_com_util_argparser_handle_register_option_int(com_util_argparser *parser, const char *short_name,
                                                                 const char *long_name, const char *value_name,
                                                                 const char *description, unsigned int flags,
                                                                 int *storage);
-extern int delegate_real_com_util_argparser_register_option_string(com_util_argparser *parser, const char *short_name,
+extern int delegate_real_com_util_argparser_handle_register_option_string(com_util_argparser *parser, const char *short_name,
                                                                    const char *long_name, const char *value_name,
                                                                    const char *description, unsigned int flags,
                                                                    const char **storage);
-extern int delegate_real_com_util_argparser_register_option_int_array(com_util_argparser *parser,
+extern int delegate_real_com_util_argparser_handle_register_option_int_array(com_util_argparser *parser,
                                                                       const char *short_name, const char *long_name,
                                                                       const char *value_name, const char *description,
                                                                       unsigned int flags, int *storage, size_t capacity,
                                                                       size_t *count);
-extern int delegate_real_com_util_argparser_register_option_string_array(
+extern int delegate_real_com_util_argparser_handle_register_option_string_array(
     com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
     const char *description, unsigned int flags, const char **storage, size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_register_positional_int(com_util_argparser *parser, const char *name,
+extern int delegate_real_com_util_argparser_handle_register_positional_int(com_util_argparser *parser, const char *name,
                                                                     const char *description, unsigned int flags,
                                                                     int *storage);
-extern int delegate_real_com_util_argparser_register_positional_string(com_util_argparser *parser, const char *name,
+extern int delegate_real_com_util_argparser_handle_register_positional_string(com_util_argparser *parser, const char *name,
                                                                        const char *description, unsigned int flags,
                                                                        const char **storage);
-extern int delegate_real_com_util_argparser_register_positional_int_array(com_util_argparser *parser, const char *name,
+extern int delegate_real_com_util_argparser_handle_register_positional_int_array(com_util_argparser *parser, const char *name,
                                                                           const char *description, unsigned int flags,
                                                                           int *storage, size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_register_positional_string_array(com_util_argparser *parser,
+extern int delegate_real_com_util_argparser_handle_register_positional_string_array(com_util_argparser *parser,
                                                                              const char *name, const char *description,
                                                                              unsigned int flags, const char **storage,
                                                                              size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_parse(com_util_argparser *parser, int argc, char *const *argv);
-extern int delegate_real_com_util_argparser_get_error(const com_util_argparser *parser);
-extern const char *delegate_real_com_util_argparser_get_error_target(const com_util_argparser *parser);
-extern int delegate_real_com_util_argparser_get_error_index(const com_util_argparser *parser);
-extern int delegate_real_com_util_argparser_get_error_message(const com_util_argparser *parser, char *buffer,
+extern int delegate_real_com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char *const *argv);
+extern int delegate_real_com_util_argparser_handle_get_error(const com_util_argparser *parser);
+extern const char *delegate_real_com_util_argparser_handle_get_error_target(const com_util_argparser *parser);
+extern int delegate_real_com_util_argparser_handle_get_error_index(const com_util_argparser *parser);
+extern int delegate_real_com_util_argparser_handle_get_error_message(const com_util_argparser *parser, char *buffer,
                                                               size_t buffer_size);
-extern int delegate_real_com_util_argparser_get_usage(const com_util_argparser *parser, char *buffer,
+extern int delegate_real_com_util_argparser_handle_get_usage(const com_util_argparser *parser, char *buffer,
                                                       size_t buffer_size, size_t *required_size);
-extern int delegate_real_com_util_argparser_print_usage(const com_util_argparser *parser, FILE *stream);
-extern int delegate_real_com_util_argparser_print_error_messages(const com_util_argparser *parser, FILE *stream);
-extern int delegate_real_com_util_argparser_get_register_error(const com_util_argparser *parser, size_t index);
-extern size_t delegate_real_com_util_argparser_get_register_error_count(const com_util_argparser *parser);
-extern const char *delegate_real_com_util_argparser_get_register_error_target(const com_util_argparser *parser,
+extern int delegate_real_com_util_argparser_handle_print_usage(const com_util_argparser *parser, FILE *stream);
+extern int delegate_real_com_util_argparser_handle_print_error_messages(const com_util_argparser *parser, FILE *stream);
+extern int delegate_real_com_util_argparser_handle_get_register_error(const com_util_argparser *parser, size_t index);
+extern size_t delegate_real_com_util_argparser_handle_get_register_error_count(const com_util_argparser *parser);
+extern const char *delegate_real_com_util_argparser_handle_get_register_error_target(const com_util_argparser *parser,
                                                                               size_t index);
-extern int delegate_real_com_util_argparser_get_register_error_message(const com_util_argparser *parser, size_t index,
+extern int delegate_real_com_util_argparser_handle_get_register_error_message(const com_util_argparser *parser, size_t index,
                                                                        char *buffer, size_t buffer_size);
-extern int delegate_real_com_util_argparser_print_register_error_messages(const com_util_argparser *parser,
+extern int delegate_real_com_util_argparser_handle_print_register_error_messages(const com_util_argparser *parser,
                                                                           FILE *stream);
 
 // argparser (省略可能な単一インスタンス API)
-extern void delegate_real_com_util_argparser_default_init(const char *description);
-extern int delegate_real_com_util_argparser_default_register_flag(const char *short_name, const char *long_name,
+extern void delegate_real_com_util_argparser_init(const char *description);
+extern int delegate_real_com_util_argparser_register_flag(const char *short_name, const char *long_name,
                                                                   const char *description, int *storage);
-extern int delegate_real_com_util_argparser_default_register_option_int(const char *short_name, const char *long_name,
+extern int delegate_real_com_util_argparser_register_option_int(const char *short_name, const char *long_name,
                                                                         const char *value_name, const char *description,
                                                                         unsigned int flags, int *storage);
-extern int delegate_real_com_util_argparser_default_register_option_string(const char *short_name,
+extern int delegate_real_com_util_argparser_register_option_string(const char *short_name,
                                                                            const char *long_name,
                                                                            const char *value_name,
                                                                            const char *description, unsigned int flags,
                                                                            const char **storage);
-extern int delegate_real_com_util_argparser_default_register_option_int_array(
+extern int delegate_real_com_util_argparser_register_option_int_array(
     const char *short_name, const char *long_name, const char *value_name, const char *description, unsigned int flags,
     int *storage, size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_default_register_option_string_array(
+extern int delegate_real_com_util_argparser_register_option_string_array(
     const char *short_name, const char *long_name, const char *value_name, const char *description, unsigned int flags,
     const char **storage, size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_default_register_positional_int(const char *name, const char *description,
+extern int delegate_real_com_util_argparser_register_positional_int(const char *name, const char *description,
                                                                             unsigned int flags, int *storage);
-extern int delegate_real_com_util_argparser_default_register_positional_string(const char *name,
+extern int delegate_real_com_util_argparser_register_positional_string(const char *name,
                                                                                const char *description,
                                                                                unsigned int flags,
                                                                                const char **storage);
-extern int delegate_real_com_util_argparser_default_register_positional_int_array(const char *name,
+extern int delegate_real_com_util_argparser_register_positional_int_array(const char *name,
                                                                                   const char *description,
                                                                                   unsigned int flags, int *storage,
                                                                                   size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_default_register_positional_string_array(const char *name,
+extern int delegate_real_com_util_argparser_register_positional_string_array(const char *name,
                                                                                      const char *description,
                                                                                      unsigned int flags,
                                                                                      const char **storage,
                                                                                      size_t capacity, size_t *count);
-extern int delegate_real_com_util_argparser_default_parse(int argc, char *const *argv);
-extern int delegate_real_com_util_argparser_default_get_error(void);
-extern const char *delegate_real_com_util_argparser_default_get_error_target(void);
-extern int delegate_real_com_util_argparser_default_get_error_index(void);
-extern int delegate_real_com_util_argparser_default_get_error_message(char *buffer, size_t buffer_size);
-extern int delegate_real_com_util_argparser_default_get_usage(char *buffer, size_t buffer_size, size_t *required_size);
-extern int delegate_real_com_util_argparser_default_print_usage(FILE *stream);
-extern int delegate_real_com_util_argparser_default_print_error_messages(FILE *stream);
-extern int delegate_real_com_util_argparser_default_get_register_error(size_t index);
-extern size_t delegate_real_com_util_argparser_default_get_register_error_count(void);
-extern const char *delegate_real_com_util_argparser_default_get_register_error_target(size_t index);
-extern int delegate_real_com_util_argparser_default_get_register_error_message(size_t index, char *buffer,
+extern int delegate_real_com_util_argparser_parse(int argc, char *const *argv);
+extern int delegate_real_com_util_argparser_get_error(void);
+extern const char *delegate_real_com_util_argparser_get_error_target(void);
+extern int delegate_real_com_util_argparser_get_error_index(void);
+extern int delegate_real_com_util_argparser_get_error_message(char *buffer, size_t buffer_size);
+extern int delegate_real_com_util_argparser_get_usage(char *buffer, size_t buffer_size, size_t *required_size);
+extern int delegate_real_com_util_argparser_print_usage(FILE *stream);
+extern int delegate_real_com_util_argparser_print_error_messages(FILE *stream);
+extern int delegate_real_com_util_argparser_get_register_error(size_t index);
+extern size_t delegate_real_com_util_argparser_get_register_error_count(void);
+extern const char *delegate_real_com_util_argparser_get_register_error_target(size_t index);
+extern int delegate_real_com_util_argparser_get_register_error_message(size_t index, char *buffer,
                                                                                size_t buffer_size);
-extern int delegate_real_com_util_argparser_default_print_register_error_messages(FILE *stream);
+extern int delegate_real_com_util_argparser_print_register_error_messages(FILE *stream);
 
 class Mock_com_util
 {
@@ -1529,78 +1527,77 @@ class Mock_com_util
                  const char *));
 
     // argparser
-    MOCK_METHOD(com_util_argparser *, com_util_argparser_create, (const com_util_argparser_options *));
-    MOCK_METHOD(com_util_argparser *, com_util_argparser_default, (const com_util_argparser_options *));
-    MOCK_METHOD(void, com_util_argparser_dispose, (com_util_argparser *));
-    MOCK_METHOD(int, com_util_argparser_register_flag,
+    MOCK_METHOD(com_util_argparser *, com_util_argparser_handle_create, (const com_util_argparser_options *));
+    MOCK_METHOD(void, com_util_argparser_handle_dispose, (com_util_argparser *));
+    MOCK_METHOD(int, com_util_argparser_handle_register_flag,
                 (com_util_argparser *, const char *, const char *, const char *, int *));
-    MOCK_METHOD(int, com_util_argparser_register_option_int,
+    MOCK_METHOD(int, com_util_argparser_handle_register_option_int,
                 (com_util_argparser *, const char *, const char *, const char *, const char *, unsigned int, int *));
-    MOCK_METHOD(int, com_util_argparser_register_option_string,
+    MOCK_METHOD(int, com_util_argparser_handle_register_option_string,
                 (com_util_argparser *, const char *, const char *, const char *, const char *, unsigned int,
                  const char **));
-    MOCK_METHOD(int, com_util_argparser_register_option_int_array,
+    MOCK_METHOD(int, com_util_argparser_handle_register_option_int_array,
                 (com_util_argparser *, const char *, const char *, const char *, const char *, unsigned int, int *,
                  size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_register_option_string_array,
+    MOCK_METHOD(int, com_util_argparser_handle_register_option_string_array,
                 (com_util_argparser *, const char *, const char *, const char *, const char *, unsigned int,
                  const char **, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_register_positional_int,
+    MOCK_METHOD(int, com_util_argparser_handle_register_positional_int,
                 (com_util_argparser *, const char *, const char *, unsigned int, int *));
-    MOCK_METHOD(int, com_util_argparser_register_positional_string,
+    MOCK_METHOD(int, com_util_argparser_handle_register_positional_string,
                 (com_util_argparser *, const char *, const char *, unsigned int, const char **));
-    MOCK_METHOD(int, com_util_argparser_register_positional_int_array,
+    MOCK_METHOD(int, com_util_argparser_handle_register_positional_int_array,
                 (com_util_argparser *, const char *, const char *, unsigned int, int *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_register_positional_string_array,
+    MOCK_METHOD(int, com_util_argparser_handle_register_positional_string_array,
                 (com_util_argparser *, const char *, const char *, unsigned int, const char **, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_parse, (com_util_argparser *, int, char *const *));
-    MOCK_METHOD(int, com_util_argparser_get_error, (const com_util_argparser *));
-    MOCK_METHOD(const char *, com_util_argparser_get_error_target, (const com_util_argparser *));
-    MOCK_METHOD(int, com_util_argparser_get_error_index, (const com_util_argparser *));
-    MOCK_METHOD(int, com_util_argparser_get_error_message, (const com_util_argparser *, char *, size_t));
-    MOCK_METHOD(int, com_util_argparser_get_usage, (const com_util_argparser *, char *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_print_usage, (const com_util_argparser *, FILE *));
-    MOCK_METHOD(int, com_util_argparser_print_error_messages, (const com_util_argparser *, FILE *));
-    MOCK_METHOD(int, com_util_argparser_get_register_error, (const com_util_argparser *, size_t));
-    MOCK_METHOD(size_t, com_util_argparser_get_register_error_count, (const com_util_argparser *));
-    MOCK_METHOD(const char *, com_util_argparser_get_register_error_target, (const com_util_argparser *, size_t));
-    MOCK_METHOD(int, com_util_argparser_get_register_error_message,
+    MOCK_METHOD(int, com_util_argparser_handle_parse, (com_util_argparser *, int, char *const *));
+    MOCK_METHOD(int, com_util_argparser_handle_get_error, (const com_util_argparser *));
+    MOCK_METHOD(const char *, com_util_argparser_handle_get_error_target, (const com_util_argparser *));
+    MOCK_METHOD(int, com_util_argparser_handle_get_error_index, (const com_util_argparser *));
+    MOCK_METHOD(int, com_util_argparser_handle_get_error_message, (const com_util_argparser *, char *, size_t));
+    MOCK_METHOD(int, com_util_argparser_handle_get_usage, (const com_util_argparser *, char *, size_t, size_t *));
+    MOCK_METHOD(int, com_util_argparser_handle_print_usage, (const com_util_argparser *, FILE *));
+    MOCK_METHOD(int, com_util_argparser_handle_print_error_messages, (const com_util_argparser *, FILE *));
+    MOCK_METHOD(int, com_util_argparser_handle_get_register_error, (const com_util_argparser *, size_t));
+    MOCK_METHOD(size_t, com_util_argparser_handle_get_register_error_count, (const com_util_argparser *));
+    MOCK_METHOD(const char *, com_util_argparser_handle_get_register_error_target, (const com_util_argparser *, size_t));
+    MOCK_METHOD(int, com_util_argparser_handle_get_register_error_message,
                 (const com_util_argparser *, size_t, char *, size_t));
-    MOCK_METHOD(int, com_util_argparser_print_register_error_messages, (const com_util_argparser *, FILE *));
+    MOCK_METHOD(int, com_util_argparser_handle_print_register_error_messages, (const com_util_argparser *, FILE *));
 
     // argparser (省略可能な単一インスタンス API)
-    MOCK_METHOD(void, com_util_argparser_default_init, (const char *));
-    MOCK_METHOD(int, com_util_argparser_default_register_flag, (const char *, const char *, const char *, int *));
-    MOCK_METHOD(int, com_util_argparser_default_register_option_int,
+    MOCK_METHOD(void, com_util_argparser_init, (const char *));
+    MOCK_METHOD(int, com_util_argparser_register_flag, (const char *, const char *, const char *, int *));
+    MOCK_METHOD(int, com_util_argparser_register_option_int,
                 (const char *, const char *, const char *, const char *, unsigned int, int *));
-    MOCK_METHOD(int, com_util_argparser_default_register_option_string,
+    MOCK_METHOD(int, com_util_argparser_register_option_string,
                 (const char *, const char *, const char *, const char *, unsigned int, const char **));
-    MOCK_METHOD(int, com_util_argparser_default_register_option_int_array,
+    MOCK_METHOD(int, com_util_argparser_register_option_int_array,
                 (const char *, const char *, const char *, const char *, unsigned int, int *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_register_option_string_array,
+    MOCK_METHOD(int, com_util_argparser_register_option_string_array,
                 (const char *, const char *, const char *, const char *, unsigned int, const char **, size_t,
                  size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_register_positional_int,
+    MOCK_METHOD(int, com_util_argparser_register_positional_int,
                 (const char *, const char *, unsigned int, int *));
-    MOCK_METHOD(int, com_util_argparser_default_register_positional_string,
+    MOCK_METHOD(int, com_util_argparser_register_positional_string,
                 (const char *, const char *, unsigned int, const char **));
-    MOCK_METHOD(int, com_util_argparser_default_register_positional_int_array,
+    MOCK_METHOD(int, com_util_argparser_register_positional_int_array,
                 (const char *, const char *, unsigned int, int *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_register_positional_string_array,
+    MOCK_METHOD(int, com_util_argparser_register_positional_string_array,
                 (const char *, const char *, unsigned int, const char **, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_parse, (int, char *const *));
-    MOCK_METHOD(int, com_util_argparser_default_get_error, ());
-    MOCK_METHOD(const char *, com_util_argparser_default_get_error_target, ());
-    MOCK_METHOD(int, com_util_argparser_default_get_error_index, ());
-    MOCK_METHOD(int, com_util_argparser_default_get_error_message, (char *, size_t));
-    MOCK_METHOD(int, com_util_argparser_default_get_usage, (char *, size_t, size_t *));
-    MOCK_METHOD(int, com_util_argparser_default_print_usage, (FILE *));
-    MOCK_METHOD(int, com_util_argparser_default_print_error_messages, (FILE *));
-    MOCK_METHOD(int, com_util_argparser_default_get_register_error, (size_t));
-    MOCK_METHOD(size_t, com_util_argparser_default_get_register_error_count, ());
-    MOCK_METHOD(const char *, com_util_argparser_default_get_register_error_target, (size_t));
-    MOCK_METHOD(int, com_util_argparser_default_get_register_error_message, (size_t, char *, size_t));
-    MOCK_METHOD(int, com_util_argparser_default_print_register_error_messages, (FILE *));
+    MOCK_METHOD(int, com_util_argparser_parse, (int, char *const *));
+    MOCK_METHOD(int, com_util_argparser_get_error, ());
+    MOCK_METHOD(const char *, com_util_argparser_get_error_target, ());
+    MOCK_METHOD(int, com_util_argparser_get_error_index, ());
+    MOCK_METHOD(int, com_util_argparser_get_error_message, (char *, size_t));
+    MOCK_METHOD(int, com_util_argparser_get_usage, (char *, size_t, size_t *));
+    MOCK_METHOD(int, com_util_argparser_print_usage, (FILE *));
+    MOCK_METHOD(int, com_util_argparser_print_error_messages, (FILE *));
+    MOCK_METHOD(int, com_util_argparser_get_register_error, (size_t));
+    MOCK_METHOD(size_t, com_util_argparser_get_register_error_count, ());
+    MOCK_METHOD(const char *, com_util_argparser_get_register_error_target, (size_t));
+    MOCK_METHOD(int, com_util_argparser_get_register_error_message, (size_t, char *, size_t));
+    MOCK_METHOD(int, com_util_argparser_print_register_error_messages, (FILE *));
 
     Mock_com_util();
     ~Mock_com_util();

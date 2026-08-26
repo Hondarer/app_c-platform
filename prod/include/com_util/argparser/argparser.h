@@ -40,36 +40,36 @@
     int main(int argc, char *argv[])
     {
         com_util_console_init();
-        com_util_argparser_default_init("sample program");
+        com_util_argparser_init("sample program");
 
         int need_help = 0;
         int count = 1; // 既定値は解析前に設定する
         const char *input = NULL;
 
-        com_util_argparser_default_register_flag("-h", "--help", "ヘルプを表示する", &need_help);
-        com_util_argparser_default_register_option_int("-c", "--count", "N", "繰り返し回数", 0, &count);
-        com_util_argparser_default_register_positional_string("input", "入力ファイル",
+        com_util_argparser_register_flag("-h", "--help", "ヘルプを表示する", &need_help);
+        com_util_argparser_register_option_int("-c", "--count", "N", "繰り返し回数", 0, &count);
+        com_util_argparser_register_positional_string("input", "入力ファイル",
                                                       COM_UTIL_ARGPARSER_REQUIRED, &input);
 
-        if (com_util_argparser_default_get_register_error_count() > 0)
+        if (com_util_argparser_get_register_error_count() > 0)
         { // オプションの登録に失敗した場合 (コーディング エラーの場合)
-            com_util_argparser_default_print_register_error_messages(stderr);
+            com_util_argparser_print_register_error_messages(stderr);
             return EXIT_FAILURE;
         }
 
-        int parse_result = com_util_argparser_default_parse(argc, argv);
+        int parse_result = com_util_argparser_parse(argc, argv);
 
         if (need_help != 0)
         {
             // 必須引数が省略されていても -h, --help を優先する
-            com_util_argparser_default_print_usage(stdout);
+            com_util_argparser_print_usage(stdout);
             return EXIT_SUCCESS;
         }
 
         if (parse_result != COM_UTIL_OK)
         {
-            com_util_argparser_default_print_error_messages(stderr);
-            com_util_argparser_default_print_usage(stderr);
+            com_util_argparser_print_error_messages(stderr);
+            com_util_argparser_print_usage(stderr);
             return EXIT_FAILURE;
         }
 
@@ -125,7 +125,7 @@ extern "C"
     {
         /**
          *  @brief  usage に表示するプログラム名です。
-         *          NULL の場合は com_util_argparser_parse() 時に argv[0] のベース名で補完します。
+         *          NULL の場合は com_util_argparser_handle_parse() 時に argv[0] のベース名で補完します。
          */
         const char *program_name;
 
@@ -145,71 +145,46 @@ extern "C"
      *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
      */
     COM_UTIL_EXPORT com_util_argparser *COM_UTIL_API
-    com_util_argparser_create(const com_util_argparser_options *options);
+    com_util_argparser_handle_create(const com_util_argparser_options *options);
 
     /**
-     *  @brief          プロセス共有のデフォルト パーサー ハンドルを取得します。
-     *  @param[in]      options  初回呼び出し時のみ有効な生成オプションです。NULL も指定できます。
-     *  @return         成功時は有効なハンドルを返します。
-     *                  メモリの確保または内部の同期初期化に失敗した場合は NULL を返します。
-     *
-     *  本関数はプロセス内で 1 つだけ遅延生成される共有ハンドルを返します。\n
-     *  初回呼び出し時に @p options を適用して生成し、以降の呼び出しでは @p options を無視して
-     *  同一ハンドルを返します。\n
-     *  返却するハンドルはライブラリが所有し、プロセス正常終了時に自動的に解放します。\n
-     *  呼び出し側は本ハンドルを com_util_argparser_dispose() に渡さないでください。
-     *  複数インスタンスを同時に扱う必要がある場合 (テストでの独立性検証など) は、
-     *  引き続き com_util_argparser_create() / com_util_argparser_dispose() を使用してください。
-     *
-     *  @par            スレッド セーフ
-     *  初回生成と同一ハンドルの取得は内部ロックによりスレッド セーフです。\n
-     *  返却後のハンドルへの登録/解析呼び出し自体はスレッド セーフではありません。
-     */
-    COM_UTIL_EXPORT com_util_argparser *COM_UTIL_API
-    com_util_argparser_default(const com_util_argparser_options *options);
-
-    /**
-     *  @brief          プロセス共有のデフォルト パーサーを初期化します。
+     *  @brief          プロセス共有のパーサーを初期化します。
      *  @param[in]      description  プログラムの説明文です。NULL も指定できます。
      *
      *  `com_util_console_init()` にならい、通常のコマンドで使う 1 インスタンスのみの用途では
      *  ハンドルを一切意識せずに済むようにするための入口です。\n
-     *  本関数を呼ばずに省略 API (`com_util_argparser_default_register_flag()` 等、parser 引数を持たない
+     *  本関数を呼ばずに無修飾 API (`com_util_argparser_register_flag()` 等、parser 引数を持たない
      *  関数群) をいきなり呼び出しても、既定のオプションで暗黙に初期化されます。\n
-     *  複数ハンドルを扱う必要がある場合は com_util_argparser_create() / com_util_argparser_default()
-     *  を使用してください。
+     *  複数ハンドルを扱う必要がある場合は com_util_argparser_handle_create() を使用してください。
      *
-     *  デフォルト パーサーはプロセス共有です。\n
+     *  パーサーはプロセス共有です。\n
      *  本関数を 2 回目以降に呼び出すと、それまでに登録したオプション、解析結果、
      *  エラー情報をすべて捨て、@p description を適用し直します。\n
      *  同一プロセスで `main` 相当の処理を繰り返し実行する場合 (テストなど) は、
-     *  この再初期化により登録の重複を避けられます。\n
-     *  ハンドルは作り直さないため、com_util_argparser_default() で取得済みの
-     *  ポインターは再初期化後も有効です。
+     *  この再初期化により登録の重複を避けられます。
      *
-     *  @warning        デフォルト パーサーを共有する複数の登録元がある場合、
+     *  @warning        パーサーを共有する複数の登録元がある場合、
      *                  あとから本関数を呼び出した側が、先に登録された内容を破棄します。\n
      *                  本関数はオプション登録より前に、単一のスレッドから呼び出してください。
      *
      *  @par            スレッド セーフ
-     *  初回生成、同一ハンドルの取得、再初期化は内部ロックによりスレッド セーフです。\n
+     *  初回生成と再初期化は内部ロックによりスレッド セーフです。\n
      *  ただし再初期化とオプション登録の順序は、呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_default_init(const char *description);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_init(const char *description);
 
     /**
      *  @brief          引数パーサー ハンドルを解放します。
-     *  @param[in]      parser  com_util_argparser_create() が返したハンドルです。NULL も指定できます。
+     *  @param[in]      parser  com_util_argparser_handle_create() が返したハンドルです。NULL も指定できます。
      *
-     *  com_util_argparser_create() で得たハンドルは、プロセス終了時の自動解放を行いません。
-     *  生成したハンドルは必ず本関数で解放してください。\n
-     *  com_util_argparser_default() で得たハンドルを渡した場合は何も行いません。
+     *  com_util_argparser_handle_create() で得たハンドルは、プロセス終了時の自動解放を行いません。
+     *  生成したハンドルは必ず本関数で解放してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
      *  解放対象の @p parser を他スレッドが使用していないことを呼び出し側で保証してください。
      */
-    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_dispose(com_util_argparser *parser);
+    COM_UTIL_EXPORT void COM_UTIL_API com_util_argparser_handle_dispose(com_util_argparser *parser);
 
     /**
      *  @brief          フラグ (値なしオプション) を登録します。
@@ -218,14 +193,14 @@ extern "C"
      *  @param[in]      long_name    長いオプション名 (`--xxx` 形式) です。@p short_name を指定する場合は NULL も指定できます。
      *  @param[in]      description  usage に表示する説明文です。NULL も指定できます。
      *  @param[out]     storage      出現回数の格納先です。NULL を渡してはなりません。\n
-     *                               com_util_argparser_parse() の開始時に 0 へ初期化し、出現ごとに 1 加算します。
+     *                               com_util_argparser_handle_parse() の開始時に 0 へ初期化し、出現ごとに 1 加算します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  フラグは同一コマンド ラインで複数回指定できます (例: `-v -v` で @p storage は 2)。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_flag(com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_flag(com_util_argparser *parser,
                                                                        const char *short_name, const char *long_name,
                                                                        const char *description, int *storage);
 
@@ -236,10 +211,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_flag
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_flag
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_flag(const char *short_name, const char *long_name,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_flag(const char *short_name, const char *long_name,
                                                                       const char *description, int *storage);
 
     /**
@@ -258,9 +233,9 @@ extern "C"
      *
      *  同一コマンド ラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
-     *  複数回の指定を許可する場合は com_util_argparser_register_option_int_array() を使用してください。
+     *  複数回の指定を許可する場合は com_util_argparser_handle_register_option_int_array() を使用してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_option_int(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
         const char *description, unsigned int flags, int *storage);
 
@@ -271,10 +246,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_option_int
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_option_int
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_option_int(const char *short_name,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int(const char *short_name,
                                                                             const char *long_name,
                                                                             const char *value_name,
                                                                             const char *description, unsigned int flags,
@@ -298,9 +273,9 @@ extern "C"
      *
      *  同一コマンド ラインで複数回指定された場合は解析エラー
      *  (@ref COM_UTIL_ERR_DUPLICATE_OPTION) になります。\n
-     *  複数回の指定を許可する場合は com_util_argparser_register_option_string_array() を使用してください。
+     *  複数回の指定を許可する場合は com_util_argparser_handle_register_option_string_array() を使用してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_string(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_option_string(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
         const char *description, unsigned int flags, const char **storage);
 
@@ -311,11 +286,11 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_option_string
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_option_string
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_argparser_default_register_option_string(const char *short_name, const char *long_name, const char *value_name,
+    com_util_argparser_register_option_string(const char *short_name, const char *long_name, const char *value_name,
                                               const char *description, unsigned int flags, const char **storage);
 
     /**
@@ -332,12 +307,12 @@ extern "C"
      *                               出現数が @p capacity を超えた場合は解析エラー
      *                               (@ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
-     *                               com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *                               com_util_argparser_handle_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_option_int_array(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
         const char *description, unsigned int flags, int *storage, size_t capacity, size_t *count);
 
@@ -348,10 +323,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_option_int_array
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_option_int_array
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_option_int_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_int_array(
         const char *short_name, const char *long_name, const char *value_name, const char *description,
         unsigned int flags, int *storage, size_t capacity, size_t *count);
 
@@ -371,12 +346,12 @@ extern "C"
      *                               出現数が @p capacity を超えた場合は解析エラー
      *                               (@ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。\n
-     *                               com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *                               com_util_argparser_handle_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_string_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_option_string_array(
         com_util_argparser *parser, const char *short_name, const char *long_name, const char *value_name,
         const char *description, unsigned int flags, const char **storage, size_t capacity, size_t *count);
 
@@ -387,10 +362,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_option_string_array
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_option_string_array
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_option_string_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_option_string_array(
         const char *short_name, const char *long_name, const char *value_name, const char *description,
         unsigned int flags, const char **storage, size_t capacity, size_t *count);
 
@@ -410,7 +385,7 @@ extern "C"
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
      *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int(com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_positional_int(com_util_argparser *parser,
                                                                                  const char *name,
                                                                                  const char *description,
                                                                                  unsigned int flags, int *storage);
@@ -422,10 +397,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_positional_int
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_positional_int
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_positional_int(const char *name,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int(const char *name,
                                                                                 const char *description,
                                                                                 unsigned int flags, int *storage);
 
@@ -447,7 +422,7 @@ extern "C"
      *  任意 (REQUIRED なし) の位置引数の後に必須の位置引数を登録した場合は
      *  @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_string(com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_positional_string(com_util_argparser *parser,
                                                                                     const char *name,
                                                                                     const char *description,
                                                                                     unsigned int flags,
@@ -460,10 +435,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_positional_string
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_positional_string
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_positional_string(const char *name,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_string(const char *name,
                                                                                    const char *description,
                                                                                    unsigned int flags,
                                                                                    const char **storage);
@@ -480,14 +455,14 @@ extern "C"
      *                               出現数が @p capacity を超えた場合は解析エラー
      *                               (@ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
-     *                               com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *                               com_util_argparser_handle_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
      *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int_array(com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_positional_int_array(com_util_argparser *parser,
                                                                                        const char *name,
                                                                                        const char *description,
                                                                                        unsigned int flags, int *storage,
@@ -500,10 +475,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_positional_int_array
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_positional_int_array
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_register_positional_int_array(const char *name,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_int_array(const char *name,
                                                                                       const char *description,
                                                                                       unsigned int flags, int *storage,
                                                                                       size_t capacity, size_t *count);
@@ -522,14 +497,14 @@ extern "C"
      *                               出現数が @p capacity を超えた場合は解析エラー
      *                               (@ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS) になります。
      *  @param[out]     count        出現数の格納先です。NULL を渡してはなりません。
-     *                               com_util_argparser_parse() の開始時に 0 へ初期化します。
+     *                               com_util_argparser_handle_parse() の開始時に 0 へ初期化します。
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
      *  可変長位置引数は 1 件だけ登録でき、位置引数列の末尾に配置する必要があります。
      *  本関数の後に別の位置引数を登録した場合は @ref COM_UTIL_ERR_INVALID_ARGUMENT を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_register_positional_string_array(
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_register_positional_string_array(
         com_util_argparser *parser, const char *name, const char *description, unsigned int flags, const char **storage,
         size_t capacity, size_t *count);
 
@@ -540,11 +515,11 @@ extern "C"
      *                  @ref COM_UTIL_ERR_DUPLICATE_DEFINITION 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  登録エラーは内部にも記録され、com_util_argparser_default_get_register_error_count() でも確認できます。
-     *  @see            com_util_argparser_register_positional_string_array
+     *  登録エラーは内部にも記録され、com_util_argparser_get_register_error_count() でも確認できます。
+     *  @see            com_util_argparser_handle_register_positional_string_array
      */
     COM_UTIL_EXPORT int COM_UTIL_API
-    com_util_argparser_default_register_positional_string_array(const char *name, const char *description, unsigned int flags,
+    com_util_argparser_register_positional_string_array(const char *name, const char *description, unsigned int flags,
                                                         const char **storage, size_t capacity, size_t *count);
 
     /**
@@ -566,10 +541,10 @@ extern "C"
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。\n
      *                  解析エラーの場合は、検出した種別に対応する結果コードを返します。
      *
-     *  解析エラーの対象名と位置は com_util_argparser_get_error_target()、
-     *  com_util_argparser_get_error_index() で取得し、表示用のメッセージは
-     *  com_util_argparser_get_error_message() で組み立てられます。\n
-     *  種別は戻り値を保持していない場合でも com_util_argparser_get_error() で再取得できます。\n
+     *  解析エラーの対象名と位置は com_util_argparser_handle_get_error_target()、
+     *  com_util_argparser_handle_get_error_index() で取得し、表示用のメッセージは
+     *  com_util_argparser_handle_get_error_message() で組み立てられます。\n
+     *  種別は戻り値を保持していない場合でも com_util_argparser_handle_get_error() で再取得できます。\n
      *  解析エラー時、エラー検出より前に処理した格納先には値が書き込まれています。
      *
      *  本関数は同一ハンドルで繰り返し呼び出せます。\n
@@ -582,7 +557,7 @@ extern "C"
      *  本関数はスレッド セーフではありません。\n
      *  同一 @p parser への並行呼び出しは未定義動作です。ハンドルごとに 1 スレッドから使用してください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_parse(com_util_argparser *parser, int argc, char *const *argv);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char *const *argv);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーでコマンド ラインを解析します。
@@ -597,40 +572,40 @@ extern "C"
      *                  @ref COM_UTIL_ERR_TOO_MANY_ARGUMENTS 、
      *                  @ref COM_UTIL_ERR_TOO_MANY_OCCURRENCES 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
-     *  @see            com_util_argparser_parse
+     *  @see            com_util_argparser_handle_parse
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_parse(int argc, char *const *argv);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_parse(int argc, char *const *argv);
 
     /**
-     *  @brief          直前の com_util_argparser_parse() の解析エラー種別を取得します。
+     *  @brief          直前の com_util_argparser_handle_parse() の解析エラー種別を取得します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は
      *                          @ref COM_UTIL_OK を返します。
      *  @return         解析エラー種別を返します。解析が成功した場合と未解析の場合は
      *                  @ref COM_UTIL_OK を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error(const com_util_argparser *parser);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_error(const com_util_argparser *parser);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、直前の解析エラー種別を取得します。
-     *  @see            com_util_argparser_get_error
+     *  @see            com_util_argparser_handle_get_error
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_error(void);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error(void);
 
     /**
      *  @brief          直前の解析エラーの対象名を取得します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は NULL を返します。
      *  @return         エラーの対象を示す文字列 (オプション名、位置引数名、または該当トークン) を返します。\n
      *                  エラーがない場合と対象がない場合は NULL を返します。\n
-     *                  返却する文字列はハンドルが所有します。次回の com_util_argparser_parse() または
-     *                  com_util_argparser_dispose() まで有効です。
+     *                  返却する文字列はハンドルが所有します。次回の com_util_argparser_handle_parse() または
+     *                  com_util_argparser_handle_dispose() まで有効です。
      */
-    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_get_error_target(const com_util_argparser *parser);
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_handle_get_error_target(const com_util_argparser *parser);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、直前の解析エラーの対象名を取得します。
-     *  @see            com_util_argparser_get_error_target
+     *  @see            com_util_argparser_handle_get_error_target
      */
-    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_default_get_error_target(void);
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_get_error_target(void);
 
     /**
      *  @brief          直前の解析エラーが発生した argv のインデックスを取得します。
@@ -639,13 +614,13 @@ extern "C"
      *                  エラーがない場合と、特定のトークンに対応しないエラー
      *                  (必須引数の欠落など) の場合は -1 を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error_index(const com_util_argparser *parser);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_error_index(const com_util_argparser *parser);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、直前の解析エラーが発生した argv のインデックスを取得します。
-     *  @see            com_util_argparser_get_error_index
+     *  @see            com_util_argparser_handle_get_error_index
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_error_index(void);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error_index(void);
 
     /**
      *  @brief          直前の解析エラーの内容を人間可読の 1 行メッセージとして組み立てます。
@@ -660,7 +635,7 @@ extern "C"
      *
      *  本 API は組み立てた文字列を返すだけで、表示は行いません。表示は呼び出し側で行ってください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error_message(const com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_error_message(const com_util_argparser *parser,
                                                                            char *buffer, size_t buffer_size);
 
     /**
@@ -668,9 +643,9 @@ extern "C"
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
-     *  @see            com_util_argparser_get_error_message
+     *  @see            com_util_argparser_handle_get_error_message
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_error_message(char *buffer, size_t buffer_size);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_error_message(char *buffer, size_t buffer_size);
 
     /**
      *  @brief          登録内容から usage 文字列を組み立てます。
@@ -694,7 +669,7 @@ extern "C"
      *  com_util_argparser_parse() が argv[0] から求めたベース名、
      *  解析前の場合は "{program}" を使用します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_usage(const com_util_argparser *parser, char *buffer,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_usage(const com_util_argparser *parser, char *buffer,
                                                                    size_t buffer_size, size_t *required_size);
 
     /**
@@ -702,9 +677,9 @@ extern "C"
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
-     *  @see            com_util_argparser_get_usage
+     *  @see            com_util_argparser_handle_get_usage
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_usage(char *buffer, size_t buffer_size,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_usage(char *buffer, size_t buffer_size,
                                                                   size_t *required_size);
 
     /**
@@ -714,20 +689,20 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
      *
-     *  内部で com_util_argparser_get_usage() を用いて usage 文字列を組み立ててから
+     *  内部で com_util_argparser_handle_get_usage() を用いて usage 文字列を組み立ててから
      *  @p stream へ書き出します。固定長バッファーによる切り詰めは発生しません。\n
      *  解析の成否とは独立に、登録完了後であればいつでも呼び出せます。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_usage(const com_util_argparser *parser, FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_print_usage(const com_util_argparser *parser, FILE *stream);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの usage を指定ストリームへ出力します。
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_OUT_OF_MEMORY のいずれかを返します。
-     *  @see            com_util_argparser_print_usage
+     *  @see            com_util_argparser_handle_print_usage
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_print_usage(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_usage(FILE *stream);
 
     /**
      *  @brief          直前の解析エラーのメッセージを指定ストリームへ出力します。
@@ -737,11 +712,11 @@ extern "C"
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。\n
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL の場合、切り詰めたメッセージを出力した上で返します。
      *
-     *  内部で com_util_argparser_get_error_message() を用いてエラー メッセージを組み立ててから、
+     *  内部で com_util_argparser_handle_get_error_message() を用いてエラー メッセージを組み立ててから、
      *  "error: {メッセージ}\n" の形式で @p stream へ書き出し、続けて区切りの空行を出力します。\n
      *  エラーがない場合や対象がない場合は何も出力しません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_error_messages(const com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_print_error_messages(const com_util_argparser *parser,
                                                                               FILE *stream);
 
     /**
@@ -749,9 +724,9 @@ extern "C"
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
-     *  @see            com_util_argparser_print_error_messages
+     *  @see            com_util_argparser_handle_print_error_messages
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_print_error_messages(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_error_messages(FILE *stream);
 
     /**
      *  @brief          register 系呼び出しで発生したエラーの件数を取得します。
@@ -759,35 +734,35 @@ extern "C"
      *  @return         これまでに対象の @p parser へ行った register 系呼び出しのうち、
      *                  @ref COM_UTIL_OK 以外を返した回数を返します。
      *
-     *  明示 API の各 com_util_argparser_register_*() は個別に結果コードを返します。
+     *  明示 API の各 com_util_argparser_handle_register_*() は個別に結果コードを返します。
      *  呼び出し側は戻り値を都度確認せずに
      *  すべての登録を終えた後、本関数でまとめて成否を判定できます。\n
-     *  0 より大きい場合は com_util_argparser_get_register_error() 系 API で詳細を取得できます。
+     *  0 より大きい場合は com_util_argparser_handle_get_register_error() 系 API で詳細を取得できます。
      */
-    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_argparser_get_register_error_count(const com_util_argparser *parser);
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_argparser_handle_get_register_error_count(const com_util_argparser *parser);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、register 系呼び出しで発生したエラーの件数を取得します。
-     *  @see            com_util_argparser_get_register_error_count
+     *  @see            com_util_argparser_handle_get_register_error_count
      */
-    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_argparser_default_get_register_error_count(void);
+    COM_UTIL_EXPORT size_t COM_UTIL_API com_util_argparser_get_register_error_count(void);
 
     /**
      *  @brief          register 系呼び出しで発生した @p index 件目のエラーの結果コードを取得します。
      *  @param[in]      parser  引数パーサー ハンドルです。NULL の場合は @ref COM_UTIL_OK を返します。
      *  @param[in]      index   取得するエラーの番号 (0 起点、発生順)。
      *  @return         @p index 件目のエラーの結果コードを返します。\n
-     *                  @p index が com_util_argparser_get_register_error_count() 以上の場合は
+     *                  @p index が com_util_argparser_handle_get_register_error_count() 以上の場合は
      *                  @ref COM_UTIL_OK を返します。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_register_error(const com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_register_error(const com_util_argparser *parser,
                                                                             size_t index);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、register 系エラーの結果コードを取得します。
-     *  @see            com_util_argparser_get_register_error
+     *  @see            com_util_argparser_handle_get_register_error
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_register_error(size_t index);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_register_error(size_t index);
 
     /**
      *  @brief          register 系呼び出しで発生した @p index 件目のエラーの対象名を取得します。
@@ -795,22 +770,22 @@ extern "C"
      *  @param[in]      index   取得するエラーの番号 (0 起点、発生順)。
      *  @return         エラーの対象を示す文字列 (オプション名または位置引数名) を返します。\n
      *                  @p index が範囲外の場合と対象がない場合は NULL を返します。\n
-     *                  返却する文字列はハンドルが所有します。com_util_argparser_dispose() まで有効です。
+     *                  返却する文字列はハンドルが所有します。com_util_argparser_handle_dispose() まで有効です。
      */
     COM_UTIL_EXPORT const char *COM_UTIL_API
-    com_util_argparser_get_register_error_target(const com_util_argparser *parser, size_t index);
+    com_util_argparser_handle_get_register_error_target(const com_util_argparser *parser, size_t index);
 
     /**
      *  @brief          プロセス共有のデフォルト パーサーの、register 系エラーの対象名を取得します。
-     *  @see            com_util_argparser_get_register_error_target
+     *  @see            com_util_argparser_handle_get_register_error_target
      */
-    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_default_get_register_error_target(size_t index);
+    COM_UTIL_EXPORT const char *COM_UTIL_API com_util_argparser_get_register_error_target(size_t index);
 
     /**
      *  @brief          register 系呼び出しで発生した @p index 件目のエラーを人間可読の 1 行メッセージとして組み立てます。
      *  @param[in]      parser       引数パーサー ハンドルです。NULL を渡してはなりません。
      *  @param[in]      index       取得するエラーの番号 (0 起点、発生順)。
-     *                              com_util_argparser_get_register_error_count() 以上を指定してはなりません。
+     *                              com_util_argparser_handle_get_register_error_count() 以上を指定してはなりません。
      *  @param[out]     buffer       メッセージの格納先バッファーです。NULL を渡してはなりません。\n
      *                               常に NUL 終端します。
      *  @param[in]      buffer_size  @p buffer のバイト数です。1 以上を指定してください。
@@ -821,7 +796,7 @@ extern "C"
      *
      *  本 API は組み立てた文字列を返すだけで、表示は行いません。表示は呼び出し側で行ってください。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_register_error_message(const com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_get_register_error_message(const com_util_argparser *parser,
                                                                                     size_t index, char *buffer,
                                                                                     size_t buffer_size);
 
@@ -830,9 +805,9 @@ extern "C"
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
-     *  @see            com_util_argparser_get_register_error_message
+     *  @see            com_util_argparser_handle_get_register_error_message
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_get_register_error_message(size_t index, char *buffer,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_get_register_error_message(size_t index, char *buffer,
                                                                                    size_t buffer_size);
 
     /**
@@ -842,12 +817,12 @@ extern "C"
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
-     *  内部で com_util_argparser_get_register_error_message() を用いてエラー メッセージを組み立ててから、
+     *  内部で com_util_argparser_handle_get_register_error_message() を用いてエラー メッセージを組み立ててから、
      *  発生順にすべて "error: {メッセージ}\n" の形式で @p stream へ書き出し、
      *  最後に区切りの空行を出力します。\n
      *  エラーがない場合は何も出力しません。
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_register_error_messages(const com_util_argparser *parser,
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_handle_print_register_error_messages(const com_util_argparser *parser,
                                                                                        FILE *stream);
 
     /**
@@ -855,9 +830,9 @@ extern "C"
      *
      *  @return         @ref COM_UTIL_OK 、@ref COM_UTIL_ERR_INVALID_ARGUMENT 、
      *                  @ref COM_UTIL_ERR_BUFFER_TOO_SMALL のいずれかを返します。
-     *  @see            com_util_argparser_print_register_error_messages
+     *  @see            com_util_argparser_handle_print_register_error_messages
      */
-    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_default_print_register_error_messages(FILE *stream);
+    COM_UTIL_EXPORT int COM_UTIL_API com_util_argparser_print_register_error_messages(FILE *stream);
 
 #ifdef __cplusplus
 }

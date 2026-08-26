@@ -355,16 +355,16 @@ typedef struct bench_hashtable_options
  */
 static int register_options(bench_hashtable_options *options)
 {
-    com_util_argparser_default_init("Measure hash table variable-length storage operations.");
-    (void)com_util_argparser_default_register_flag("-h", "--help", "show this help", &options->need_help);
-    (void)com_util_argparser_default_register_option_int(
+    com_util_argparser_init("Measure hash table variable-length storage operations.");
+    (void)com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
+    (void)com_util_argparser_register_option_int(
         NULL, "--max-capacity", "N", "largest number of slots to measure (default 16384)", 0,
         &options->max_capacity);
-    (void)com_util_argparser_default_register_option_string(NULL, "--csv", "PATH", "also write results as CSV", 0,
+    (void)com_util_argparser_register_option_string(NULL, "--csv", "PATH", "also write results as CSV", 0,
                                                             &options->csv_path);
-    if (com_util_argparser_default_get_register_error_count() > 0)
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        (void)com_util_argparser_default_print_register_error_messages(stderr);
+        (void)com_util_argparser_print_register_error_messages(stderr);
         return -1;
     }
     return 0;
@@ -383,16 +383,16 @@ int main(int argc, char **argv)
     {
         return EXIT_FAILURE;
     }
-    ret = com_util_argparser_default_parse(argc, argv);
+    ret = com_util_argparser_parse(argc, argv);
     if (options.need_help != 0)
     {
-        (void)com_util_argparser_default_print_usage(stdout);
+        (void)com_util_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
     if (ret != COM_UTIL_OK)
     {
-        (void)com_util_argparser_default_print_error_messages(stderr);
-        (void)com_util_argparser_default_print_usage(stderr);
+        (void)com_util_argparser_print_error_messages(stderr);
+        (void)com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
     if (options.max_capacity < 0)

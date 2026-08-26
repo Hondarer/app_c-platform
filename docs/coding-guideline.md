@@ -752,7 +752,7 @@ extern int g_com_util_internal_sink_count;
 `*_detach`・`*_close`・`*_stop`・`*_release` は `*_destroy`/`*_dispose` と意味が異なる (実体は別途終了する、POSIX/CRT の open/close 慣用を模す、再開可能な状態停止、ロック スコープの解除) ため、統一の対象外とし現状の動詞を維持します。
 
 プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません。  
-`com_util_argparser_default_init` が該当します。
+`com_util_argparser_init` が該当します。
 
 > [!NOTE]
 > 既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であるため、利用側による破棄を必要としない設計です。  
@@ -770,7 +770,7 @@ extern int g_com_util_internal_sink_count;
 | 用途 | com_util での形式 | 例 |
 |---|---|---|
 | 呼び出し元情報 (`__FILE__` / `__LINE__`) を補うマクロの実体 | `_at` サフィックス | `com_util_tracer_write_at` |
-| 既定インスタンス版と明示ハンドル版の対 | 明示ハンドル版が正名、既定版は `_default_` を挟む | `com_util_argparser_parse` と `com_util_argparser_default_parse` |
+| 暗黙パーサー版と明示ハンドル版の対 | 暗黙パーサー版は無修飾、明示ハンドル版は `_handle_` を挟む | `com_util_argparser_parse` と `com_util_argparser_handle_parse` |
 | テスト専用フック | `_for_test` サフィックスのみ | `com_util_shutdown_invoke_for_test` |
 
 テスト専用フックは公開ヘッダーに宣言しますが、Doxygen の公開グループには含めず `@internal` を付けます。
@@ -779,26 +779,25 @@ extern int g_com_util_internal_sink_count;
 > 直接の呼び出しを想定しないことは、名前ではなくドキュメント側で表現します。  
 > 名前で表現しようとすると、予約識別子の形式へ寄っていくためです。
 
-旧名との対応は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+### 暗黙パーサー版 API の命名
 
-### 既定インスタンス版 API の命名
-
-既定インスタンスを暗黙に使う API は、明示ハンドル版の名前に `_default_` を挟んだ名前とします。
+プロセス共有のパーサーを暗黙に使う API は、`com_util_argparser_` の無修飾名とします。
+明示ハンドルを受け取る API は、`com_util_argparser_handle_` の修飾名とします。
 
 ```c
-/* 明示ハンドル版 (正名) */
-int com_util_argparser_parse(com_util_argparser *parser, int argc, char **argv);
+/* 暗黙パーサー版 (一般利用者向け) */
+int com_util_argparser_parse(int argc, char **argv);
 
-/* 既定インスタンス版 */
-int com_util_argparser_default_parse(int argc, char **argv);
+/* 明示ハンドル版 (テスト・複数インスタンス向け) */
+int com_util_argparser_handle_parse(com_util_argparser *parser, int argc, char **argv);
 ```
 
 > [!NOTE]
-> 明示ハンドル版を正名とするのは、ハンドルを先頭引数に取る形が [引数順序規約](#引数順序規約) のハンドル・操作系に準拠した形であり、既定インスタンス版はそこからハンドルを暗黙化した派生形だからです。  
-> 規約に準拠した形が装飾のない名前を持つようにします。
+> 一般利用者はプロセス共有のパーサーを使うため、通常の API 名には実装上の共有方法を含めません。  
+> テストや複数インスタンスの利用者は、名前の `_handle_` 修飾によって明示ハンドル版を選択します。
 
-既定インスタンスの初期化と取得も同じ命名族に含めます。  
-`com_util_argparser_default_init` と `com_util_argparser_default_get` が該当します。
+暗黙パーサーの初期化は `com_util_argparser_init` とします。  
+明示ハンドルの生成と解放は `com_util_argparser_handle_create` / `com_util_argparser_handle_dispose` とします。
 
 ### typedef の規則 (上位規範への追記)
 
@@ -879,7 +878,7 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | API | 逸脱内容 | 解消結果 |
 |---|---|---|
 | `com_util_getenv` | 0 / -1 (未設定) / `ERANGE` の三値。上位規範の三値禁止に抵触 | 設定有無を `int *exists_out` へ分離し、戻り値を 0 / `EINVAL` / `ERANGE` の二値系へ変更 |
-| argparser の既定ハンドル版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なります。 | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
+| argparser の暗黙パーサー版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なります。 | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
 | `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できません。 | 結果コード戻り + `size_t *written_out` へ変更 |
 | `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なります。 | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
 | `com_util_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `com_util_process_options` へ統一。同種の `com_util_process_stdio_t` も `com_util_process_stdio` へ統一 |
@@ -889,7 +888,7 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 | `static` 関数へのライブラリ接頭辞 (11 件) | 外部リンケージを持つかのように読め、公開シンボルの点検で偽陽性を生む | 接頭辞を除去 |
 
 > [!NOTE]
-> `com_util_argparser_default_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
+> `com_util_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
 
 ### 凍結対象として残す逸脱
 

@@ -66,19 +66,6 @@ OS / SDK が定義する型の alias に限り、`_t` を維持します。
 | `com_util_file_stat_t` | POSIX `struct stat` / MSVC `struct _stat64` の alias |
 | `com_util_etw_provider_ref_t` | Windows TraceLogging SDK 内部型への参照の alias |
 
-### 戻り値型のみ変更 (ソース互換、再ビルドのみ必要)
-
-argparser の既定パーサー ラッパー 15 関数は、`void` 戻りから明示ハンドル版と同じ `int` (結果コード) 戻りへ変更しました。
-
-- `com_util_argparser_default_register_flag` / `register_option_int` / `register_option_string` / `register_option_int_array` / `register_option_string_array` / `register_positional_int` / `register_positional_string` / `register_positional_int_array` / `register_positional_string_array`
-- `com_util_argparser_default_get_error_message` / `get_usage` / `print_usage` / `print_error_messages` / `get_register_error_message` / `print_register_error_messages`
-
-戻り値を無視する既存の呼び出しはそのままコンパイル・動作しますが、ABI (戻り値レジスターの意味) が変わるため、利用側の再ビルドが必要です。  
-登録エラーの一括確認 (`com_util_argparser_default_get_register_error_count`) は引き続き使用できます。
-
-`com_util_argparser_default_init` は変更していません。  
-既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効で、利用側による破棄を必要としない設計です (`coding-guideline.md` の「生成と破棄の動詞対」)。
-
 ## 詳細コードの共通結果コードへの統合
 
 argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通結果コード (`result.h`) へ統合しました。  
@@ -120,9 +107,9 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 
 ### parse の戻り値
 
-`com_util_argparser_parse()` と `com_util_argparser_default_parse()` は、従来つねに `COM_UTIL_ERR_PARSE` を返し、種別は `get_error()` で取得する二段構えでした。  
+`com_util_argparser_handle_parse()` と `com_util_argparser_parse()` は、従来つねに `COM_UTIL_ERR_PARSE` を返し、種別は `get_error()` で取得する二段構えでした。  
 統合により、解析エラーの種別に対応するコードを直接返すようになりました。  
-`com_util_argparser_get_error()` は種別を後から再取得する用途で引き続き利用できます。戻り値の符号が 0 以上から負値に変わっています。
+`com_util_argparser_handle_get_error()` は種別を後から再取得する用途で引き続き利用できます。戻り値の符号が 0 以上から負値に変わっています。
 
 ## 移行手順
 

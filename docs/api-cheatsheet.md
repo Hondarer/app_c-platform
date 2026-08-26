@@ -509,12 +509,12 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う com_util の正規表現 
 
 | 用途 | com_util API |
 |---|---|
-| パーサーを生成/初期化します。 | `com_util_argparser_create` / `com_util_argparser_default_init` / `com_util_argparser_default` / `com_util_argparser_dispose` |
-| フラグ/オプション/位置引数を登録します。 | `com_util_argparser_default_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
-| 登録エラーを確認します。 | `com_util_argparser_default_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
-| コマンド ラインを解析します。 | `com_util_argparser_default_parse` |
-| 解析エラーを確認します。 | `com_util_argparser_default_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
-| 使用方法を表示します。 | `com_util_argparser_default_get_usage` / `com_util_argparser_default_print_usage` |
+| パーサーを生成/初期化します。 | `com_util_argparser_handle_create` / `com_util_argparser_init` / `com_util_argparser_handle_dispose` |
+| フラグ/オプション/位置引数を登録します。 | `com_util_argparser_register_flag` / `_register_option_int` / `_register_option_int_array` / `_register_option_string` / `_register_option_string_array` / `_register_positional_int` / `_register_positional_int_array` / `_register_positional_string` / `_register_positional_string_array` |
+| 登録エラーを確認します。 | `com_util_argparser_get_register_error` / `_get_register_error_count` / `_get_register_error_target` / `_get_register_error_message` / `_print_register_error_messages` |
+| コマンド ラインを解析します。 | `com_util_argparser_parse` |
+| 解析エラーを確認します。 | `com_util_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
+| 使用方法を表示します。 | `com_util_argparser_get_usage` / `com_util_argparser_print_usage` |
 
 ### 対話的プロンプト
 
@@ -601,7 +601,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 前節までの表や説明でまとめて扱った公開関数を、完全な関数名から検索できるように補足します。  
 シグネチャを確認する場合は、関数名に対応する [`prod/include/`](../prod/include/) 配下のヘッダーを参照してください。
 
-- 引数解析: `com_util_argparser_default_register_option_int`、`com_util_argparser_default_register_option_string`、`com_util_argparser_default_register_option_int_array`、`com_util_argparser_default_register_option_string_array`、`com_util_argparser_default_register_positional_int`、`com_util_argparser_default_register_positional_int_array`、`com_util_argparser_default_register_positional_string_array`、`com_util_argparser_default_get_error_target`、`com_util_argparser_default_get_error_index`、`com_util_argparser_default_get_error_message`、`com_util_argparser_default_print_error_messages`、`com_util_argparser_default_get_register_error_count`、`com_util_argparser_default_get_register_error_target`、`com_util_argparser_default_get_register_error_message`、`com_util_argparser_default_print_register_error_messages`
+- 引数解析: `com_util_argparser_register_option_int`、`com_util_argparser_register_option_string`、`com_util_argparser_register_option_int_array`、`com_util_argparser_register_option_string_array`、`com_util_argparser_register_positional_int`、`com_util_argparser_register_positional_int_array`、`com_util_argparser_register_positional_string_array`、`com_util_argparser_get_error_target`、`com_util_argparser_get_error_index`、`com_util_argparser_get_error_message`、`com_util_argparser_print_error_messages`、`com_util_argparser_get_register_error_count`、`com_util_argparser_get_register_error_target`、`com_util_argparser_get_register_error_message`、`com_util_argparser_print_register_error_messages`
 - 時刻: `com_util_format_realtime_iso8601_local`、`com_util_format_realtime_iso8601_utc`、`com_util_get_realtime_utc`、`com_util_get_realtime_deadline_ms`、`com_util_timespec_normalize`、`com_util_timespec_add`、`com_util_timespec_sub`、`com_util_timespec_cmp`、`com_util_timespec_add_ms`、`com_util_timespec_diff_ms`、`com_util_timespec_to_native`、`com_util_timespec_from_native`
 - ファイル: `com_util_file_init`、`com_util_file_open`、`com_util_file_write`、`com_util_file_read`、`com_util_file_get_size`、`com_util_file_set_size`、`com_util_file_get_id`、`com_util_file_get_path_id`、`com_util_file_get_modified_timestamp`、`com_util_file_set_modified_timestamp`、`com_util_file_get_path_modified_timestamp`、`com_util_file_set_path_modified_timestamp`、`com_util_file_flush`、`com_util_file_close`
 - パス: `com_util_normalize_path_sep`、`com_util_path_get_full`、`com_util_paths_equal`、`com_util_get_temp_dir`、`com_util_path_concat_n`、`com_util_vpath_concat_n`、`com_util_path_basename`、`com_util_path_dirname`、`com_util_path_extension`、`com_util_path_strip_extension`、`com_util_path_join_n`、`com_util_vpath_join_n`

@@ -24,6 +24,26 @@ void test_argparser_default_dispose_on_shutdown(const com_util_shutdown_event *e
     argparser_default_dispose_on_shutdown(event, context);
 }
 
+com_util_argparser *test_argparser_default_acquire(const com_util_argparser_options *options, int reset_existing)
+{
+    return argparser_default_acquire(options, reset_existing);
+}
+
+void test_argparser_reset_default(void)
+{
+    if (s_default_parser != NULL)
+    {
+        argparser_dispose_core(s_default_parser);
+        s_default_parser = NULL;
+    }
+    if (s_default_lock != NULL)
+    {
+        com_util_local_lock_dispose(s_default_lock);
+        s_default_lock = NULL;
+    }
+    s_default_initialize_once.state = 0;
+}
+
 char *test_argparser_replace_program_description(com_util_argparser *parser, char *description)
 {
     char *previous = parser->program_description;

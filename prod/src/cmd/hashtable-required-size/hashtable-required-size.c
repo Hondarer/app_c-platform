@@ -40,31 +40,31 @@ typedef struct hashtable_required_size_options
 
 static int register_options(hashtable_required_size_options *options)
 {
-    com_util_argparser_default_init(
+    com_util_argparser_init(
         "Print the management-region and data-region buffer sizes required to construct a hash table.");
-    (void)com_util_argparser_default_register_flag("-h", "--help", "show this help", &options->need_help);
-    (void)com_util_argparser_default_register_option_int("-c", "--capacity", "N", "number of slots",
+    (void)com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
+    (void)com_util_argparser_register_option_int("-c", "--capacity", "N", "number of slots",
                                                          COM_UTIL_ARGPARSER_REQUIRED, &options->capacity);
-    (void)com_util_argparser_default_register_option_int("-k", "--key-size", "N", "bytes per fixed key", 0,
+    (void)com_util_argparser_register_option_int("-k", "--key-size", "N", "bytes per fixed key", 0,
                                                          &options->key_size);
-    (void)com_util_argparser_default_register_option_int("-v", "--value-size", "N", "bytes per fixed value", 0,
+    (void)com_util_argparser_register_option_int("-v", "--value-size", "N", "bytes per fixed value", 0,
                                                          &options->value_size);
-    (void)com_util_argparser_default_register_option_int(
+    (void)com_util_argparser_register_option_int(
         NULL, "--key-storage-size", "N", "bytes in variable key storage", 0, &options->key_storage_size);
-    (void)com_util_argparser_default_register_option_int(
+    (void)com_util_argparser_register_option_int(
         NULL, "--value-storage-size", "N", "bytes in variable value storage", 0, &options->value_storage_size);
-    (void)com_util_argparser_default_register_flag(NULL, "--variable-key", "store variable strings as keys",
+    (void)com_util_argparser_register_flag(NULL, "--variable-key", "store variable strings as keys",
                                                    &options->variable_key);
-    (void)com_util_argparser_default_register_flag(NULL, "--variable-value", "store variable strings as values",
+    (void)com_util_argparser_register_flag(NULL, "--variable-value", "store variable strings as values",
                                                    &options->variable_value);
-    (void)com_util_argparser_default_register_option_int(
+    (void)com_util_argparser_register_option_int(
         NULL, "--value-align", "N", "alignment boundary for fixed values (0 packs them)", 0, &options->value_align);
-    (void)com_util_argparser_default_register_flag(
+    (void)com_util_argparser_register_flag(
         NULL, "--record-timestamp", "include per-record timestamps and generations in the management region",
         &options->record_timestamp);
-    if (com_util_argparser_default_get_register_error_count() > 0)
+    if (com_util_argparser_get_register_error_count() > 0)
     {
-        (void)com_util_argparser_default_print_register_error_messages(stderr);
+        (void)com_util_argparser_print_register_error_messages(stderr);
         return -1;
     }
     return 0;
@@ -83,16 +83,16 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    ret = com_util_argparser_default_parse(argc, argv);
+    ret = com_util_argparser_parse(argc, argv);
     if (options.need_help != 0)
     {
-        (void)com_util_argparser_default_print_usage(stdout);
+        (void)com_util_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
     if (ret != COM_UTIL_OK)
     {
-        (void)com_util_argparser_default_print_error_messages(stderr);
-        (void)com_util_argparser_default_print_usage(stderr);
+        (void)com_util_argparser_print_error_messages(stderr);
+        (void)com_util_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
