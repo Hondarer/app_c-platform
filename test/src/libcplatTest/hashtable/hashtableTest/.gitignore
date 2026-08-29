@@ -1,1 +1,8 @@
-/hashtable.c
+/hashtable_arena.c
+/hashtable_create.c
+/hashtable_grow.c
+/hashtable_key.c
+/hashtable_layout.c
+/hashtable_modify.c
+/hashtable_query.c
+/hashtable_validate.c

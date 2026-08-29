@@ -9,7 +9,7 @@
 
 - `prod/include/` は、利用者向けの公開 API ヘッダーです。
 - `prod/include_internal/` は、ライブラリ内部の共有ヘッダーです。
-- `prod/libsrc/` は、C の実装です。
+- `prod/libsrc/` は、C の実装です。同一ディレクトリの実装だけが共有する宣言は、モジュール私有ヘッダー (例: `prod/libsrc/cplat/hashtable/hashtable.h`) に置きます。
 - `test/` は、単体テスト、モック、エクスポート確認です。
 - [docs/README.md](docs/README.md)は、発行文書の入口です。
 - [docs/api-cheatsheet.md](docs/api-cheatsheet.md)は、公開 API の逆引きです。

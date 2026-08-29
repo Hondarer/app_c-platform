@@ -4,7 +4,7 @@
 #include <cplat/hashtable/hashtable.h>
 #include <mock_cplat.h>
 
-#include "hashtable.inject.h"
+#include "hashtable_inject.h"
 
 #include <cstdint>
 #include <cstring>

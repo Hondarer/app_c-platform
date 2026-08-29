@@ -1,8 +1,14 @@
-#ifndef _IN_TEST_SRC
-    #include "hashtable.c"
-#endif /* _IN_TEST_SRC */
+/**
+ *  @file           hashtable_inject.c
+ *  @brief          hashtable の内部状態へテストから到達するための注入コードです。
+ *
+ *  実装のモジュール私有ヘッダーを取り込み、内部アクセサーと永続化ヘッダーを
+ *  テスト用の外部リンケージ関数として公開します。
+ */
 
-#include "hashtable.inject.h"
+#include "hashtable.h" /* prod/libsrc/cplat/hashtable のモジュール私有ヘッダー */
+
+#include "hashtable_inject.h"
 
 uint64_t *test_hashtable_bucket_head(const cplat_hashtable *ht)
 {
@@ -47,6 +53,8 @@ void test_hashtable_set_next_empty(cplat_hashtable *ht, uint64_t value)
 void test_hashtable_set_config(cplat_hashtable *ht, const cplat_hashtable_config *config)
 {
     ht->hdr->config = *config;
+    /* アクセサーが参照するレイアウトの控えを、書き換えた設定へ合わせる。 */
+    hashtable_refresh_layout(ht);
 }
 
 void test_hashtable_set_counts(cplat_hashtable *ht, uint64_t in_use_count, uint64_t deleted_count)
