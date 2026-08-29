@@ -1,2 +1,2 @@
 /etw-viewer.c
-/mock_com_util_shutdown_request_register.cc
+/mock_cplat_shutdown_request_register.cc

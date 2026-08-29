@@ -6,7 +6,7 @@
  *  @date           2026/04/28
  *  @version        1.0.0
  *
- *  `com_util/trace/tracer.h` の公開 API を対話的に呼び出すための確認用 CLI です。\n
+ *  `cplat/trace/tracer.h` の公開 API を対話的に呼び出すための確認用 CLI です。\n
  *  起動後に interactive CLI として動作し、1 セッションにつき 1 個の tracer handle を保持します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -16,13 +16,13 @@
 
 #include "trace-cli.h"
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/result.h>
-#include <com_util/console/console.h>
-#include <com_util/crt/stdlib.h>
-#include <com_util/crt/string.h>
-#include <com_util/crt/unistd.h>
-#include <com_util/prompt/prompt.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/result.h>
+#include <cplat/console/console.h>
+#include <cplat/crt/stdlib.h>
+#include <cplat/crt/string.h>
+#include <cplat/crt/unistd.h>
+#include <cplat/prompt/prompt.h>
 
 #include <ctype.h>
 #include <inttypes.h>
@@ -182,7 +182,7 @@ static char *rest_argument(char **cursor)
     return p;
 }
 
-static const char *level_to_name(com_util_trace_level level)
+static const char *level_to_name(cplat_trace_level level)
 {
     if ((int)level >= 0 && (size_t)level < sizeof(g_trace_level_names) / sizeof(g_trace_level_names[0]))
     {
@@ -192,7 +192,7 @@ static const char *level_to_name(com_util_trace_level level)
     return "UNKNOWN";
 }
 
-static int parse_trace_level(const char *token, com_util_trace_level *level)
+static int parse_trace_level(const char *token, cplat_trace_level *level)
 {
     size_t i;
 
@@ -205,7 +205,7 @@ static int parse_trace_level(const char *token, com_util_trace_level *level)
     {
         if (str_case_equal(token, g_trace_level_names[i]))
         {
-            *level = (com_util_trace_level)i;
+            *level = (cplat_trace_level)i;
             return 1;
         }
     }
@@ -220,7 +220,7 @@ static int parse_int64_value(const char *token, int64_t *value)
         return 0;
     }
 
-    if (com_util_parse_int64(value, token, 10) != COM_UTIL_OK)
+    if (cplat_parse_int64(value, token, 10) != CPLAT_OK)
     {
         return 0;
     }
@@ -234,22 +234,22 @@ static int parse_int_value(const char *token, int *value)
         return 0;
     }
 
-    if (com_util_parse_int(value, token, 10) != COM_UTIL_OK)
+    if (cplat_parse_int(value, token, 10) != CPLAT_OK)
     {
         return 0;
     }
     return 1;
 }
 
-static const char *tracer_state_to_name(com_util_tracer_state state)
+static const char *tracer_state_to_name(cplat_tracer_state state)
 {
     switch (state)
     {
-    case COM_UTIL_TRACER_STATE_STARTED:
+    case CPLAT_TRACER_STATE_STARTED:
         return "started";
-    case COM_UTIL_TRACER_STATE_STOPPED:
+    case CPLAT_TRACER_STATE_STOPPED:
         return "stopped";
-    case COM_UTIL_TRACER_STATE_DISPOSED:
+    case CPLAT_TRACER_STATE_DISPOSED:
     default:
         return "disposed";
     }
@@ -263,7 +263,7 @@ static const char *session_prompt_state_to_name(const trace_cli_session *session
     }
     if (session->handle != NULL)
     {
-        return tracer_state_to_name(com_util_tracer_get_state(session->handle));
+        return tracer_state_to_name(cplat_tracer_get_state(session->handle));
     }
 
     if (session->prompt_state == TRACE_CLI_PROMPT_STATE_DISPOSED)
@@ -283,7 +283,7 @@ static int parse_size_value(const char *token, size_t *value)
         return 0;
     }
 
-    if (com_util_parse_uint64(&parsed, token, 10) != COM_UTIL_OK)
+    if (cplat_parse_uint64(&parsed, token, 10) != CPLAT_OK)
     {
         return 0;
     }
@@ -352,7 +352,7 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
         return 1;
     }
 
-    buf = (unsigned char *)com_util_malloc(digits / 2U);
+    buf = (unsigned char *)cplat_malloc(digits / 2U);
     if (buf == NULL)
     {
         return 0;
@@ -370,7 +370,7 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
         nibble = hex_nibble(*p);
         if (nibble < 0)
         {
-            com_util_free(buf);
+            cplat_free(buf);
             return 0;
         }
 
@@ -390,14 +390,14 @@ static int parse_hex_bytes(const char *text, unsigned char **data, size_t *size)
     return 1;
 }
 
-static void print_level_result(com_util_trace_level level)
+static void print_level_result(cplat_trace_level level)
 {
     printf("level=%s(%d)\n", level_to_name(level), (int)level);
 }
 
 static void print_rc_result(int ret)
 {
-    if (!com_util_isatty(COM_UTIL_STREAM_STDOUT))
+    if (!cplat_isatty(CPLAT_STREAM_STDOUT))
     {
         printf("rc=%d\n", ret);
         return;
@@ -460,7 +460,7 @@ void trace_cli_session_dispose(trace_cli_session *session)
         return;
     }
 
-    com_util_tracer_dispose(&session->handle);
+    cplat_tracer_dispose(&session->handle);
     session->handle = NULL;
     session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
 }
@@ -496,7 +496,7 @@ static int cmd_create(trace_cli_session *session, const struct trace_cli_command
         fprintf(stderr, "エラー: 既存の handle を dispose してから create を実行してください。\n");
         return -1;
     }
-    session->handle = com_util_tracer_create(COM_UTIL_TRACER_CONCURRENCY_CALLER_MANAGED);
+    session->handle = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED);
     if (session->handle == NULL)
     {
         session->prompt_state = TRACE_CLI_PROMPT_STATE_UNCREATED;
@@ -513,7 +513,7 @@ static int cmd_dispose(trace_cli_session *session, const struct trace_cli_comman
 {
     (void)cmd;
     (void)cursor;
-    com_util_tracer_dispose(&session->handle);
+    cplat_tracer_dispose(&session->handle);
     session->handle = NULL;
     session->prompt_state = TRACE_CLI_PROMPT_STATE_DISPOSED;
     printf("handle=disposed\n");
@@ -524,7 +524,7 @@ static int cmd_start(trace_cli_session *session, const struct trace_cli_command 
 {
     (void)cmd;
     (void)cursor;
-    print_rc_result(com_util_tracer_start(session->handle));
+    print_rc_result(cplat_tracer_start(session->handle));
     return 0;
 }
 
@@ -532,7 +532,7 @@ static int cmd_stop(trace_cli_session *session, const struct trace_cli_command *
 {
     (void)cmd;
     (void)cursor;
-    print_rc_result(com_util_tracer_stop(session->handle));
+    print_rc_result(cplat_tracer_stop(session->handle));
     return 0;
 }
 
@@ -566,7 +566,7 @@ static int cmd_set_name(trace_cli_session *session, const struct trace_cli_comma
     {
         name = name_token;
     }
-    ret = com_util_tracer_set_name(session->handle, name, identifier);
+    ret = cplat_tracer_set_name(session->handle, name, identifier);
     print_rc_result(ret);
     return 0;
 }
@@ -575,14 +575,14 @@ static int cmd_get_os_level(trace_cli_session *session, const struct trace_cli_c
 {
     (void)cmd;
     (void)cursor;
-    print_level_result(com_util_tracer_get_os_level(session->handle));
+    print_level_result(cplat_tracer_get_os_level(session->handle));
     return 0;
 }
 
 static int cmd_set_os_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
 {
     char *level_token;
-    com_util_trace_level level;
+    cplat_trace_level level;
 
     level_token = next_token(cursor);
     if (level_token == NULL || next_token(cursor) != NULL)
@@ -595,7 +595,7 @@ static int cmd_set_os_level(trace_cli_session *session, const struct trace_cli_c
         fprintf(stderr, "エラー: level が不正です。\n");
         return -1;
     }
-    print_rc_result(com_util_tracer_set_os_level(session->handle, level));
+    print_rc_result(cplat_tracer_set_os_level(session->handle, level));
     return 0;
 }
 
@@ -603,7 +603,7 @@ static int cmd_get_file_level(trace_cli_session *session, const struct trace_cli
 {
     (void)cmd;
     (void)cursor;
-    print_level_result(com_util_tracer_get_file_level(session->handle));
+    print_level_result(cplat_tracer_get_file_level(session->handle));
     return 0;
 }
 
@@ -614,7 +614,7 @@ static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli
     char *max_bytes_token;
     char *generations_token;
     const char *path = NULL;
-    com_util_trace_level level;
+    cplat_trace_level level;
     size_t max_bytes = 0U;
     int generations = 0;
     int ret;
@@ -656,7 +656,7 @@ static int cmd_set_file_level(trace_cli_session *session, const struct trace_cli
     {
         path = path_token;
     }
-    ret = com_util_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
+    ret = cplat_tracer_set_file_level(session->handle, path, level, max_bytes, generations, 0);
     print_rc_result(ret);
     return 0;
 }
@@ -665,14 +665,14 @@ static int cmd_get_stderr_level(trace_cli_session *session, const struct trace_c
 {
     (void)cmd;
     (void)cursor;
-    print_level_result(com_util_tracer_get_stderr_level(session->handle));
+    print_level_result(cplat_tracer_get_stderr_level(session->handle));
     return 0;
 }
 
 static int cmd_set_stderr_level(trace_cli_session *session, const struct trace_cli_command *cmd, char **cursor)
 {
     char *level_token;
-    com_util_trace_level level;
+    cplat_trace_level level;
 
     level_token = next_token(cursor);
     if (level_token == NULL || next_token(cursor) != NULL)
@@ -685,7 +685,7 @@ static int cmd_set_stderr_level(trace_cli_session *session, const struct trace_c
         fprintf(stderr, "エラー: level が不正です。\n");
         return -1;
     }
-    print_rc_result(com_util_tracer_set_stderr_level(session->handle, level));
+    print_rc_result(cplat_tracer_set_stderr_level(session->handle, level));
     return 0;
 }
 
@@ -693,7 +693,7 @@ static int cmd_write(trace_cli_session *session, const struct trace_cli_command 
 {
     char *level_token;
     char *message;
-    com_util_trace_level level;
+    cplat_trace_level level;
     int ret;
 
     level_token = next_token(cursor);
@@ -716,11 +716,11 @@ static int cmd_write(trace_cli_session *session, const struct trace_cli_command 
 
     if (strcmp(cmd->name, "write") == 0)
     {
-        ret = com_util_tracer_write_at(session->handle, level, NULL, message);
+        ret = cplat_tracer_write_at(session->handle, level, NULL, message);
     }
     else
     {
-        ret = com_util_tracer_writef_at(session->handle, level, NULL, "%s", message);
+        ret = cplat_tracer_writef_at(session->handle, level, NULL, "%s", message);
     }
     print_rc_result(ret);
     return 0;
@@ -732,7 +732,7 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     char *hex_token;
     char *label_cursor;
     char *label;
-    com_util_trace_level level;
+    cplat_trace_level level;
     unsigned char *data = NULL;
     size_t size = 0U;
     int ret;
@@ -759,14 +759,14 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
     label = rest_argument(cursor);
     if (label == NULL && *skip_spaces(label_cursor) != '\0')
     {
-        com_util_free(data);
+        cplat_free(data);
         print_command_usage(cmd);
         return -1;
     }
 
     if (strcmp(cmd->name, "write-hex") == 0)
     {
-        ret = com_util_tracer_write_hex_at(session->handle, level, NULL, data, size, label);
+        ret = cplat_tracer_write_hex_at(session->handle, level, NULL, data, size, label);
     }
     else
     {
@@ -779,10 +779,10 @@ static int cmd_write_hex(trace_cli_session *session, const struct trace_cli_comm
         {
             label_str = "";
         }
-        ret = com_util_tracer_write_hexf_at(session->handle, level, NULL, data, size, "%s", label_str);
+        ret = cplat_tracer_write_hexf_at(session->handle, level, NULL, data, size, "%s", label_str);
     }
     print_rc_result(ret);
-    com_util_free(data);
+    cplat_free(data);
     return 0;
 }
 
@@ -826,7 +826,7 @@ void trace_cli_print_help(void)
 {
     size_t i;
 
-    printf("trace-cli: com_util tracer interactive CLI\n");
+    printf("trace-cli: c-platform tracer interactive CLI\n");
     printf("使用可能な level: CRITICAL ERROR WARNING INFO VERBOSE DEBUG NONE\n");
     printf("コマンド:\n");
     for (i = 0U; i < sizeof(g_commands) / sizeof(g_commands[0]); i++)
@@ -848,7 +848,7 @@ int trace_cli_process_line(trace_cli_session *session, const char *line)
         return -1;
     }
 
-    (void)com_util_strncpy(buffer, sizeof(buffer), line, sizeof(buffer) - 1U);
+    (void)cplat_strncpy(buffer, sizeof(buffer), line, sizeof(buffer) - 1U);
     trim_right(buffer);
 
     cursor = buffer;
@@ -878,44 +878,44 @@ int main(int argc, char *argv[])
 {
     trace_cli_session session;
     char line[TRACE_CLI_LINE_MAX];
-    com_util_prompt *prompt;
+    cplat_prompt *prompt;
 
-    com_util_console_init();
+    cplat_console_init();
 
     int need_help = 0;
 
-    com_util_argparser_init(argc, argv, "tracer API を対話的に確認します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    cplat_argparser_init(argc, argv, "tracer API を対話的に確認します。");
+    cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse();
+    int parse_result = cplat_argparser_parse();
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
     trace_cli_session_init(&session);
-    prompt = com_util_prompt_create(NULL);
+    prompt = cplat_prompt_create(NULL);
     print_interactive_hint();
 
     while (!session.exit_requested)
     {
-        if (com_util_prompt_readline_fmt(prompt, line, sizeof(line), "trace-cli[%s]> ",
-                                         session_prompt_state_to_name(&session)) != COM_UTIL_OK)
+        if (cplat_prompt_readline_fmt(prompt, line, sizeof(line), "trace-cli[%s]> ",
+                                         session_prompt_state_to_name(&session)) != CPLAT_OK)
         {
             break;
         }
@@ -927,6 +927,6 @@ int main(int argc, char *argv[])
     }
 
     trace_cli_session_dispose(&session);
-    com_util_prompt_dispose(prompt);
+    cplat_prompt_dispose(prompt);
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,6 @@
 #include <testfw.h>
 
-#include <mock_com_util.h>
+#include <mock_cplat.h>
 #include <mock_stdio.h>
 
 #include <cstdlib>
@@ -10,11 +10,11 @@ class hashtable_required_sizeTest : public Test
   protected:
     hashtable_required_sizeTest()
     {
-        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_cplat_, cplat_shutdown_register(_, _)).WillByDefault(Return(CPLAT_OK));
     }
 
     NiceMock<Mock_stdio> mock_stdio_;
-    NiceMock<Mock_com_util> mock_com_util_;
+    NiceMock<Mock_cplat> mock_cplat_;
 };
 
 TEST_F(hashtable_required_sizeTest, main_prints_required_size)

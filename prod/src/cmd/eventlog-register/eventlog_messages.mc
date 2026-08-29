@@ -1,6 +1,6 @@
 ﻿;// eventlog_messages.mc
 ;//
-;// com_util EventLog backend 用のメッセージ テーブル。
+;// cplat EventLog backend 用のメッセージ テーブル。
 ;// eventlog-register.exe に埋め込み、インストール時に EventMessageFile と
 ;// CategoryMessageFile へ (この exe 自身を指す) 絶対パスとして登録する。
 ;//
@@ -61,7 +61,7 @@ MessageIdTypedef=WORD
 MessageId=0x1
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_CRITICAL
+SymbolicName=CPLAT_EVENTLOG_CAT_CRITICAL
 Language=Neutral
 CRITICAL
 .
@@ -75,7 +75,7 @@ CRITICAL
 MessageId=0x2
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_ERROR
+SymbolicName=CPLAT_EVENTLOG_CAT_ERROR
 Language=Neutral
 ERROR
 .
@@ -89,7 +89,7 @@ ERROR
 MessageId=0x3
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_WARNING
+SymbolicName=CPLAT_EVENTLOG_CAT_WARNING
 Language=Neutral
 WARNING
 .
@@ -103,7 +103,7 @@ WARNING
 MessageId=0x4
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_INFO
+SymbolicName=CPLAT_EVENTLOG_CAT_INFO
 Language=Neutral
 INFO
 .
@@ -117,7 +117,7 @@ INFO
 MessageId=0x5
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_VERBOSE
+SymbolicName=CPLAT_EVENTLOG_CAT_VERBOSE
 Language=Neutral
 VERBOSE
 .
@@ -131,7 +131,7 @@ VERBOSE
 MessageId=0x6
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_CAT_DEBUG
+SymbolicName=CPLAT_EVENTLOG_CAT_DEBUG
 Language=Neutral
 DEBUG
 .
@@ -149,7 +149,7 @@ MessageIdTypedef=DWORD
 MessageId=0x1001
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL
+SymbolicName=CPLAT_EVENTLOG_MSG_CRITICAL
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -163,7 +163,7 @@ Language=Japanese
 MessageId=0x1002
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR
+SymbolicName=CPLAT_EVENTLOG_MSG_ERROR
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -177,7 +177,7 @@ Language=Japanese
 MessageId=0x1003
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING
+SymbolicName=CPLAT_EVENTLOG_MSG_WARNING
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -191,7 +191,7 @@ Language=Japanese
 MessageId=0x1004
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO
+SymbolicName=CPLAT_EVENTLOG_MSG_INFO
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -205,7 +205,7 @@ Language=Japanese
 MessageId=0x1005
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE
+SymbolicName=CPLAT_EVENTLOG_MSG_VERBOSE
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -219,7 +219,7 @@ Language=Japanese
 MessageId=0x1006
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG
+SymbolicName=CPLAT_EVENTLOG_MSG_DEBUG
 Language=Neutral
 %2%n%4%n%n%1%0
 .
@@ -235,7 +235,7 @@ Language=Japanese
 MessageId=0x1011
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_CRITICAL_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -249,7 +249,7 @@ Language=Japanese
 MessageId=0x1012
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_ERROR_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -263,7 +263,7 @@ Language=Japanese
 MessageId=0x1013
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_WARNING_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -277,7 +277,7 @@ Language=Japanese
 MessageId=0x1014
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_INFO_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -291,7 +291,7 @@ Language=Japanese
 MessageId=0x1015
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_VERBOSE_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -305,7 +305,7 @@ Language=Japanese
 MessageId=0x1016
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_FILE
+SymbolicName=CPLAT_EVENTLOG_MSG_DEBUG_FILE
 Language=Neutral
 %2_%3%n%4%n%n%1%0
 .
@@ -321,7 +321,7 @@ Language=Japanese
 MessageId=0x1021
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_CRITICAL_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -335,7 +335,7 @@ Language=Japanese
 MessageId=0x1022
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_ERROR_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -349,7 +349,7 @@ Language=Japanese
 MessageId=0x1023
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_WARNING_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -363,7 +363,7 @@ Language=Japanese
 MessageId=0x1024
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_INFO_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -377,7 +377,7 @@ Language=Japanese
 MessageId=0x1025
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_VERBOSE_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -391,7 +391,7 @@ Language=Japanese
 MessageId=0x1026
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_INSTANCE
+SymbolicName=CPLAT_EVENTLOG_MSG_DEBUG_INSTANCE
 Language=Neutral
 %2%n%4_%5%n%n%1%0
 .
@@ -407,7 +407,7 @@ Language=Japanese
 MessageId=0x1031
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_CRITICAL_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_CRITICAL_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
@@ -421,7 +421,7 @@ Language=Japanese
 MessageId=0x1032
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_ERROR_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_ERROR_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
@@ -435,7 +435,7 @@ Language=Japanese
 MessageId=0x1033
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_WARNING_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_WARNING_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
@@ -449,7 +449,7 @@ Language=Japanese
 MessageId=0x1034
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_INFO_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_INFO_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
@@ -463,7 +463,7 @@ Language=Japanese
 MessageId=0x1035
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_VERBOSE_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_VERBOSE_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .
@@ -477,7 +477,7 @@ Language=Japanese
 MessageId=0x1036
 Severity=Success
 Facility=App
-SymbolicName=COM_UTIL_EVENTLOG_MSG_DEBUG_BOTH
+SymbolicName=CPLAT_EVENTLOG_MSG_DEBUG_BOTH
 Language=Neutral
 %2_%3%n%4_%5%n%n%1%0
 .

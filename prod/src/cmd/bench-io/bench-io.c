@@ -8,7 +8,7 @@
  *
  *  ファイル サイズ、アクセス パターン、API 形態を組み合わせた測定条件を列挙し、
  *  条件ごとに 1 レコードあたりの所要時間とスループットを求めます。\n
- *  測定方法の詳細は `app/com_util/prod/src/cmd/bench-io/benchmark-method.md` を参照してください。
+ *  測定方法の詳細は `app/c-platform/prod/src/cmd/bench-io/benchmark-method.md` を参照してください。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -19,11 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/platform.h>
-#include <com_util/console/console.h>
-#include <com_util/crt/stdio.h>
-#include <com_util/crt/stdlib.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/platform.h>
+#include <cplat/console/console.h>
+#include <cplat/crt/stdio.h>
+#include <cplat/crt/stdlib.h>
 
 #include "bench_case.h"
 #include "bench_timer.h"
@@ -188,7 +188,7 @@ static int drop_page_cache(void *arg)
     FILE *stream;
 
     sync();
-    stream = com_util_fopen("/proc/sys/vm/drop_caches", "w", NULL);
+    stream = cplat_fopen("/proc/sys/vm/drop_caches", "w", NULL);
     if (stream == NULL)
     {
         return -1;
@@ -309,7 +309,7 @@ static int list_contains(const char *list, const char *name)
  */
 static int create_data_file(const char *path, size_t size)
 {
-    FILE *stream = com_util_fopen(path, "wb", NULL);
+    FILE *stream = cplat_fopen(path, "wb", NULL);
     bench_record *block;
     size_t written = 0U;
     size_t total = size / (size_t)BENCH_RECORD_SIZE;
@@ -318,7 +318,7 @@ static int create_data_file(const char *path, size_t size)
     {
         return -1;
     }
-    block = (bench_record *)com_util_calloc((size_t)BENCH_BLOCK_RECORDS, sizeof(bench_record));
+    block = (bench_record *)cplat_calloc((size_t)BENCH_BLOCK_RECORDS, sizeof(bench_record));
     if (block == NULL)
     {
         (void)fclose(stream);
@@ -340,14 +340,14 @@ static int create_data_file(const char *path, size_t size)
         }
         if (fwrite(block, sizeof(*block), chunk, stream) != chunk)
         {
-            com_util_free(block);
+            cplat_free(block);
             (void)fclose(stream);
             return -1;
         }
         written += chunk;
     }
 
-    com_util_free(block);
+    cplat_free(block);
     if (fclose(stream) != 0)
     {
         return -1;
@@ -365,7 +365,7 @@ static int create_data_file(const char *path, size_t size)
  */
 static size_t *create_random_order(size_t record_count, size_t touch_count)
 {
-    size_t *order = (size_t *)com_util_calloc(touch_count, sizeof(size_t));
+    size_t *order = (size_t *)cplat_calloc(touch_count, sizeof(size_t));
     uint64_t state = BENCH_RANDOM_SEED;
     size_t index;
 
@@ -479,7 +479,7 @@ static int execute_case(const bench_case *job, bench_context *ctx, const bench_e
     }
     if (setup_result != 0)
     {
-        (void)com_util_fprintf(stderr, "error: setup failed for %s/%s\n", bench_api_name(job->api, job->durable),
+        (void)cplat_fprintf(stderr, "error: setup failed for %s/%s\n", bench_api_name(job->api, job->durable),
                                bench_pattern_name(job->pattern));
         return -1;
     }
@@ -505,7 +505,7 @@ static int execute_case(const bench_case *job, bench_context *ctx, const bench_e
 
     if (measure_result != 0)
     {
-        (void)com_util_fprintf(stderr, "error: measurement failed for %s/%s\n", bench_api_name(job->api, job->durable),
+        (void)cplat_fprintf(stderr, "error: measurement failed for %s/%s\n", bench_api_name(job->api, job->durable),
                                bench_pattern_name(job->pattern));
         return -1;
     }
@@ -538,18 +538,18 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
     int api_index;
     int failures = 0;
 
-    (void)com_util_snprintf(path, sizeof(path), "%s/bench_%llu.bin", dir, (unsigned long long)size);
+    (void)cplat_snprintf(path, sizeof(path), "%s/bench_%llu.bin", dir, (unsigned long long)size);
 
     if (create_data_file(path, size) != 0)
     {
-        (void)com_util_fprintf(stderr, "error: failed to create %s\n", path);
+        (void)cplat_fprintf(stderr, "error: failed to create %s\n", path);
         return -1;
     }
 
     order = create_random_order(record_count, (size_t)BENCH_RANDOM_TOUCH_MAX);
     if (order == NULL)
     {
-        (void)com_util_remove(path, NULL);
+        (void)cplat_remove(path, NULL);
         return -1;
     }
 
@@ -597,10 +597,10 @@ static int run_size(const char *dir, size_t size, const char *api_list, const ch
         }
     }
 
-    com_util_free(order);
+    cplat_free(order);
     if (keep == 0)
     {
-        (void)com_util_remove(path, NULL);
+        (void)cplat_remove(path, NULL);
     }
 
     if (failures > 0)
@@ -635,52 +635,52 @@ int main(int argc, char *argv[])
     const char *cursor;
     int failures = 0;
 
-    com_util_console_init();
+    cplat_console_init();
 
-    com_util_argparser_init(argc, argv, "固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
-    com_util_argparser_register_option_string(NULL, "--dir", "PATH", "測定用ファイルを置くディレクトリ。", 0U, &dir);
-    com_util_argparser_register_option_string(NULL, "--csv", "PATH", "CSV の出力先。", 0U, &csv_path);
-    com_util_argparser_register_option_string(NULL, "--sizes", "LIST", "測定するファイル サイズ (例: 4K,1M,256M)。", 0U,
+    cplat_argparser_init(argc, argv, "固定レコード長バイナリ ファイルに対する stdio と mmap の性能を比較します。");
+    cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    cplat_argparser_register_option_string(NULL, "--dir", "PATH", "測定用ファイルを置くディレクトリ。", 0U, &dir);
+    cplat_argparser_register_option_string(NULL, "--csv", "PATH", "CSV の出力先。", 0U, &csv_path);
+    cplat_argparser_register_option_string(NULL, "--sizes", "LIST", "測定するファイル サイズ (例: 4K,1M,256M)。", 0U,
                                               &sizes);
-    com_util_argparser_register_option_string(NULL, "--apis", "LIST", "測定する API 形態を絞り込みます。", 0U,
+    cplat_argparser_register_option_string(NULL, "--apis", "LIST", "測定する API 形態を絞り込みます。", 0U,
                                               &api_list);
-    com_util_argparser_register_option_string(NULL, "--patterns", "LIST", "測定するアクセス パターンを絞り込みます。",
+    cplat_argparser_register_option_string(NULL, "--patterns", "LIST", "測定するアクセス パターンを絞り込みます。",
                                               0U, &pattern_list);
-    com_util_argparser_register_option_int(NULL, "--min-ms", "MS", "1 試行の測定区間の下限 (ミリ秒)。", 0U, &min_ms);
-    com_util_argparser_register_option_int(NULL, "--trials", "N", "1 条件あたりの試行回数。", 0U, &trials);
-    com_util_argparser_register_flag(NULL, "--huge", "1 GB のケースを追加します。", &huge);
-    com_util_argparser_register_flag(NULL, "--cold", "ページ キャッシュを落として測定します (Linux、要 root)。", &cold);
-    com_util_argparser_register_flag(NULL, "--keep", "測定用ファイルを削除せずに残します。", &keep);
+    cplat_argparser_register_option_int(NULL, "--min-ms", "MS", "1 試行の測定区間の下限 (ミリ秒)。", 0U, &min_ms);
+    cplat_argparser_register_option_int(NULL, "--trials", "N", "1 条件あたりの試行回数。", 0U, &trials);
+    cplat_argparser_register_flag(NULL, "--huge", "1 GB のケースを追加します。", &huge);
+    cplat_argparser_register_flag(NULL, "--cold", "ページ キャッシュを落として測定します (Linux、要 root)。", &cold);
+    cplat_argparser_register_flag(NULL, "--keep", "測定用ファイルを削除せずに残します。", &keep);
 
-    if (com_util_argparser_get_register_error_count() > 0U)
+    if (cplat_argparser_get_register_error_count() > 0U)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    parse_result = com_util_argparser_parse();
+    parse_result = cplat_argparser_parse();
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
     if (min_ms <= 0 || trials <= 0 || trials > BENCH_TIMER_MAX_TRIALS)
     {
-        (void)com_util_fprintf(stderr, "error: --min-ms は 1 以上、--trials は 1 以上 %d 以下を指定してください。\n",
+        (void)cplat_fprintf(stderr, "error: --min-ms は 1 以上、--trials は 1 以上 %d 以下を指定してください。\n",
                                BENCH_TIMER_MAX_TRIALS);
         return EXIT_FAILURE;
     }
     if (cold != 0 && drop_page_cache(NULL) != 0)
     {
-        (void)com_util_fprintf(stderr, "error: ページ キャッシュを破棄できません。"
+        (void)cplat_fprintf(stderr, "error: ページ キャッシュを破棄できません。"
                                        "--cold は Linux で root 権限が必要です。\n");
         return EXIT_FAILURE;
     }
@@ -693,10 +693,10 @@ int main(int argc, char *argv[])
 
     if (csv_path != NULL)
     {
-        csv = com_util_fopen(csv_path, "w", NULL);
+        csv = cplat_fopen(csv_path, "w", NULL);
         if (csv == NULL)
         {
-            (void)com_util_fprintf(stderr, "error: failed to open %s\n", csv_path);
+            (void)cplat_fprintf(stderr, "error: failed to open %s\n", csv_path);
             return EXIT_FAILURE;
         }
         bench_report_begin_csv(csv, &env);
@@ -722,7 +722,7 @@ int main(int argc, char *argv[])
         }
         if (length == 0U || length >= sizeof(token))
         {
-            (void)com_util_fprintf(stderr, "error: invalid size token\n");
+            (void)cplat_fprintf(stderr, "error: invalid size token\n");
             failures++;
             break;
         }
@@ -731,7 +731,7 @@ int main(int argc, char *argv[])
 
         if (parse_size(token, &size) != 0)
         {
-            (void)com_util_fprintf(stderr, "error: invalid size '%s'\n", token);
+            (void)cplat_fprintf(stderr, "error: invalid size '%s'\n", token);
             failures++;
             break;
         }

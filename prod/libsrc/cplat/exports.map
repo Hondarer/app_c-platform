@@ -1,0 +1,11 @@
+/* libcplat.so の動的エクスポートを公開 C API に限定する。
+ * regex モジュールが実体化する C++ 標準ライブラリ シンボルを dyn 表へ出さない。
+ * 公開 API は CPLAT_EXPORT (visibility default) と本マップの global の両方を満たす。
+ */
+{
+    global:
+        cplat_*;
+        _cplat_*;
+    local:
+        *;
+};

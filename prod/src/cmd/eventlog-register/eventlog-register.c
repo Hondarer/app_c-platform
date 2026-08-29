@@ -1,16 +1,16 @@
 /**
  *******************************************************************************
  *  @file           eventlog-register.c
- *  @brief          com_util 共通イベント ソースを登録および削除するコマンドを実装します。
+ *  @brief          cplat 共通イベント ソースを登録および削除するコマンドを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/06/14
  *  @version        1.0.0
  *
- *  Windows のアプリケーション イベント ログに com_util 共通イベント ソースを
+ *  Windows のアプリケーション イベント ログに cplat 共通イベント ソースを
  *  登録/削除します。HKLM への書き込みには管理者権限が必要なため、未昇格時は
  *  UAC 昇格を行います。\n
- *  登録先は `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\com_util.tracer`
- *  キーです。ソース名 `com_util.tracer` は `COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME` の値で、
+ *  登録先は `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\c-platform.tracer`
+ *  キーです。ソース名 `c-platform.tracer` は `CPLAT_TRACER_DEFAULT_PROVIDER_NAME` の値で、
  *  登録状態の確認はこのキーの有無で判断できます。\n
  *  Linux ではイベント ログを使用しないため、案内を表示して終了します。
  *
@@ -21,28 +21,28 @@
 
 #include "eventlog-register.h"
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/platform.h>
-#include <com_util/console/console.h>
-#include <com_util/crt/stdio.h>
-#include <com_util/runtime/elevated_process.h>
-#include <com_util/runtime/process.h>
-#include <com_util/trace/tracer.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/platform.h>
+#include <cplat/console/console.h>
+#include <cplat/crt/stdio.h>
+#include <cplat/runtime/elevated_process.h>
+#include <cplat/runtime/process.h>
+#include <cplat/trace/tracer.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #if defined(PLATFORM_WINDOWS)
 
-    #include <com_util/crt/path.h>
-    #include <com_util/trace/eventlog.h>
+    #include <cplat/crt/path.h>
+    #include <cplat/trace/eventlog.h>
 
 /**
  *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうかです。
  *
- *  main() で com_util_elevated_process_extract_result_target() の戻り値を設定する。\n
+ *  main() で cplat_elevated_process_extract_result_target() の戻り値を設定する。\n
  *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
- *  com_util_elevated_process_report_result() で呼び出し元プロセスへ報告します。
+ *  cplat_elevated_process_report_result() で呼び出し元プロセスへ報告します。
  */
 static int s_is_elevated_worker = 0;
 
@@ -68,7 +68,7 @@ static int ensure_elevated(const char *command, int *handled)
 
     exit_code = 1;
     ret =
-        com_util_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
+        cplat_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
     if (ret != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
@@ -99,24 +99,24 @@ static int ensure_elevated(const char *command, int *handled)
 
 /**
  *  @brief          イベント ソース API のステータスを表示します。
- *  @param[in]      ret     com_util_eventlog_register_source / unregister_source の戻り値。
+ *  @param[in]      ret     cplat_eventlog_register_source / unregister_source の戻り値。
  *  @param[in]      action  操作名 ("登録" / "削除")。
  *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  *
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
- *  com_util_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
+ *  cplat_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
  */
 static int report_status(const int ret, const char *action)
 {
     char message[256];
 
-    if (ret == COM_UTIL_OK)
+    if (ret == CPLAT_OK)
     {
-        (void)com_util_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                                COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, action);
+        (void)cplat_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+                                CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (s_is_elevated_worker != 0)
         {
-            (void)com_util_elevated_process_report_result(message);
+            (void)cplat_elevated_process_report_result(message);
         }
         else
         {
@@ -124,22 +124,22 @@ static int report_status(const int ret, const char *action)
         }
         return 0;
     }
-    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
+    if (ret == CPLAT_ERR_PERMISSION_DENIED)
     {
-        (void)com_util_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+        (void)cplat_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
     }
-    else if (ret == COM_UTIL_ERR_INVALID_ARGUMENT)
+    else if (ret == CPLAT_ERR_INVALID_ARGUMENT)
     {
-        (void)com_util_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+        (void)cplat_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
     }
     else
     {
-        (void)com_util_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
+        (void)cplat_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
     }
 
     if (s_is_elevated_worker != 0)
     {
-        (void)com_util_elevated_process_report_result(message);
+        (void)cplat_elevated_process_report_result(message);
     }
     else
     {
@@ -169,7 +169,7 @@ static int do_install(void)
     /* メッセージ リソースは eventlog-register.exe 自身に埋め込んでいる。
        自身の絶対パスを EventMessageFile / CategoryMessageFile に登録する。 */
     message_file = NULL;
-    if (com_util_process_get_executable_path(exe_path, sizeof(exe_path)) == COM_UTIL_OK)
+    if (cplat_process_get_executable_path(exe_path, sizeof(exe_path)) == CPLAT_OK)
     {
         message_file = exe_path;
     }
@@ -178,7 +178,7 @@ static int do_install(void)
         fprintf(stderr, "実行ファイルのパスを取得できませんでした。メッセージ リソースなしで登録します。\n");
     }
 
-    ret = com_util_eventlog_register_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME, message_file);
+    ret = cplat_eventlog_register_source(CPLAT_TRACER_DEFAULT_PROVIDER_NAME, message_file);
     return report_status(ret, "登録");
 }
 
@@ -198,7 +198,7 @@ static int do_uninstall(void)
         return rc;
     }
 
-    ret = com_util_eventlog_unregister_source(COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME);
+    ret = cplat_eventlog_unregister_source(CPLAT_TRACER_DEFAULT_PROVIDER_NAME);
     return report_status(ret, "削除");
 }
 
@@ -248,48 +248,48 @@ int main(int argc, char *argv[])
     /* 昇格ワーカーとして再起動された場合、結果報告先フラグを argv から取り除く。
        引数解析より前に呼び出す。昇格ワーカーのコンソールは一切引き継がない
        (ensure_elevated() / report_status() がファイル経由で結果を受け渡す)。 */
-    (void)com_util_elevated_process_extract_result_target(&argc, argv, &detected);
+    (void)cplat_elevated_process_extract_result_target(&argc, argv, &detected);
 #if defined(PLATFORM_WINDOWS)
     s_is_elevated_worker = detected;
 #else
     (void)detected;
 #endif
 
-    com_util_console_init();
+    cplat_console_init();
 
     int need_help = 0;
     const char *command = NULL;
 
-    com_util_argparser_init(argc, argv, "com_util 共通イベント ソースを登録または削除します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
-    com_util_argparser_register_positional_string("command", "install または uninstall。", COM_UTIL_ARGPARSER_REQUIRED,
+    cplat_argparser_init(argc, argv, "cplat 共通イベント ソースを登録または削除します。");
+    cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
+    cplat_argparser_register_positional_string("command", "install または uninstall。", CPLAT_ARGPARSER_REQUIRED,
                                                   &command);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse();
+    int parse_result = cplat_argparser_parse();
 
     if (need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
     if (strcmp(command, "install") != 0 && strcmp(command, "uninstall") != 0)
     {
         fprintf(stderr, "不明なコマンド '%s'\n\n", command);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

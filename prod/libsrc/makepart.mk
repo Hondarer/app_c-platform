@@ -8,7 +8,7 @@ OUTPUT_DIR := $(MYAPP_DIR)/prod/lib
 # 共有ライブラリのリンクは $(CC) -shared (gcc) で行われ、g++ ドライバーを経由しない
 # ため、libstdc++ は自動ではリンクされない。
 # see: framework/makefw/makefiles/makelibsrc_c_cpp.mk
-# see: app/com_util/docs/link-policy.md
+# see: app/c-platform/docs/link-policy.md
 LIBS += cjson
 ifdef PLATFORM_LINUX
     LIBS += z crypto dl stdc++

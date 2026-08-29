@@ -1,28 +1,28 @@
-# com_util コーディング規範 (特化事項)
+# cplat コーディング規範 (特化事項)
 
 ## 概要
 
-本書は、上位の [共通コーディング規範](../../general/docs/coding-guideline.md) の一般則に対して、com_util を利用するコードおよび com_util 自身に適用する特化事項をまとめます。  
-章立ては上位文書の章に対応させ、com_util 固有の追記・上書き事項のみを記載します。
+本書は、上位の [共通コーディング規範](../../general/docs/coding-guideline.md) の一般則に対して、cplat を利用するコードおよび cplat 自身に適用する特化事項をまとめます。  
+章立ては上位文書の章に対応させ、cplat 固有の追記・上書き事項のみを記載します。
 
-com_util 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
+cplat 固有の規則、制限、遵守事項は、今後もすべて本書に集約します。
 
 規範本文と、その判断の背景の書き分けは、上位文書の「本書の記述形式」に従います。  
 平文が規範本文、`> [!NOTE]` が背景と根拠、`> [!IMPORTANT]` が見落とすと規範違反になる要点、`> [!WARNING]` が誤った書き方の招く具体的な障害です。
 
 ### 関連ドキュメント
 
-- [`api-cheatsheet.md`](api-cheatsheet.md) - com_util API チート シート (公開 API 全体の一覧、入り口)
+- [`api-cheatsheet.md`](api-cheatsheet.md) - cplat API チート シート (公開 API 全体の一覧、入り口)
 - [`platform-abstraction-guideline.md`](platform-abstraction-guideline.md) - `platform.h` / `compiler.h` の共通マクロ利用規則
-- [`error-detail-migration.md`](error-detail-migration.md) - 生の OS エラー値から `com_util_error` への移行手順
+- [`error-detail-migration.md`](error-detail-migration.md) - 生の OS エラー値から `cplat_error` への移行手順
 
 ## エラー処理と戻り値規約
 
-com_util の公開 API が戻り値として使用する共通結果コードの運用を示します。
+cplat の公開 API が戻り値として使用する共通結果コードの運用を示します。
 
 ### 定義ヘッダー
 
-共通結果コードは `prod/include/com_util/base/result.h` に定義します。
+共通結果コードは `prod/include/cplat/base/result.h` に定義します。
 
 > [!IMPORTANT]
 > `result.h` が正であり、本節のコード一覧は参照用の写しです。  
@@ -32,35 +32,35 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 
 | 帯 | コード | 値 | 意味 |
 |---|---|---|---|
-| 分類不能 | `COM_UTIL_OK` | 0 | 成功 |
-| 省略 | `COM_UTIL_SKIPPED` | 1 | 適用せずに省略した (エラーではない) |
-| 分類不能 | `COM_UTIL_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
-| 引数・状態・権限<br> (-2 〜 -9) | `COM_UTIL_ERR_INVALID_ARGUMENT` | -2 | API 引数が不正 (NULL、負値など) |
-| | `COM_UTIL_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
-| | `COM_UTIL_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
-| | `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
-| | `COM_UTIL_ERR_NOT_FOUND` | -6 | 対象が存在しない (ファイル、ディレクトリ、ホスト名など) |
-| | `COM_UTIL_ERR_DUPLICATE_KEY` | -7 | 同一キーがすでに存在する |
-| リソース・バッファー<br> (-10 〜 -19) | `COM_UTIL_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できません。 |
-| | `COM_UTIL_ERR_BUSY` | -11 | リソースがビジー状態 |
-| | `COM_UTIL_ERR_TIMEOUT` | -12 | タイムアウト |
-| | `COM_UTIL_ERR_LIMIT_EXCEEDED` | -13 | リソースの上限を超過した |
-| | `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -14 | 出力バッファーが不足している |
-| | `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -15 | ディスクリプタが破損している |
-| | `COM_UTIL_ERR_STORAGE_FULL` | -16 | 固定容量ストレージに必要な連続空き領域がない |
-| 入力解析<br> (-20 〜 -39) | `COM_UTIL_ERR_UNKNOWN_OPTION` | -20 | 未登録のオプションが指定された |
-| | `COM_UTIL_ERR_MISSING_VALUE` | -21 | 値を要する項目に値が指定されていない |
-| | `COM_UTIL_ERR_UNEXPECTED_VALUE` | -22 | 値を取らない項目に値が指定された |
-| | `COM_UTIL_ERR_INVALID_INTEGER` | -23 | 整数値として解釈できません。 |
-| | `COM_UTIL_ERR_OUT_OF_RANGE` | -24 | 値が表現可能な範囲を超えている |
-| | `COM_UTIL_ERR_MISSING_REQUIRED` | -25 | 必須の項目が指定されていない |
-| | `COM_UTIL_ERR_DUPLICATE_OPTION` | -26 | 単数指定の項目が複数回指定された |
-| | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` | -27 | 引数の個数が受入数を超えている |
-| | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` | -28 | 同一項目の出現回数が容量を超えている |
-| | `COM_UTIL_ERR_INVALID_PATTERN` | -29 | 正規表現パターンの構文が不正です。 |
-| | `COM_UTIL_ERR_INVALID_ENCODING` | -30 | 文字列が UTF-8 として不正です。 |
-| 制御<br> (-40 〜) | `COM_UTIL_ERR_EOF` | -40 | 入力が EOF に達した |
-| | `COM_UTIL_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
+| 分類不能 | `CPLAT_OK` | 0 | 成功 |
+| 省略 | `CPLAT_SKIPPED` | 1 | 適用せずに省略した (エラーではない) |
+| 分類不能 | `CPLAT_ERR_UNKNOWN` | -1 | -2 以下の分類済みコードに該当しないその他のエラー |
+| 引数・状態・権限<br> (-2 〜 -9) | `CPLAT_ERR_INVALID_ARGUMENT` | -2 | API 引数が不正 (NULL、負値など) |
+| | `CPLAT_ERR_UNSUPPORTED` | -3 | 現在のプラットフォームまたは状態では操作がサポートされない |
+| | `CPLAT_ERR_PERMISSION_DENIED` | -4 | 権限不足 |
+| | `CPLAT_ERR_DUPLICATE_DEFINITION` | -5 | 同名の定義が登録済み |
+| | `CPLAT_ERR_NOT_FOUND` | -6 | 対象が存在しない (ファイル、ディレクトリ、ホスト名など) |
+| | `CPLAT_ERR_DUPLICATE_KEY` | -7 | 同一キーがすでに存在する |
+| リソース・バッファー<br> (-10 〜 -19) | `CPLAT_ERR_OUT_OF_MEMORY` | -10 | メモリを確保できません。 |
+| | `CPLAT_ERR_BUSY` | -11 | リソースがビジー状態 |
+| | `CPLAT_ERR_TIMEOUT` | -12 | タイムアウト |
+| | `CPLAT_ERR_LIMIT_EXCEEDED` | -13 | リソースの上限を超過した |
+| | `CPLAT_ERR_BUFFER_TOO_SMALL` | -14 | 出力バッファーが不足している |
+| | `CPLAT_ERR_CORRUPT_DESCRIPTOR` | -15 | ディスクリプタが破損している |
+| | `CPLAT_ERR_STORAGE_FULL` | -16 | 固定容量ストレージに必要な連続空き領域がない |
+| 入力解析<br> (-20 〜 -39) | `CPLAT_ERR_UNKNOWN_OPTION` | -20 | 未登録のオプションが指定された |
+| | `CPLAT_ERR_MISSING_VALUE` | -21 | 値を要する項目に値が指定されていない |
+| | `CPLAT_ERR_UNEXPECTED_VALUE` | -22 | 値を取らない項目に値が指定された |
+| | `CPLAT_ERR_INVALID_INTEGER` | -23 | 整数値として解釈できません。 |
+| | `CPLAT_ERR_OUT_OF_RANGE` | -24 | 値が表現可能な範囲を超えている |
+| | `CPLAT_ERR_MISSING_REQUIRED` | -25 | 必須の項目が指定されていない |
+| | `CPLAT_ERR_DUPLICATE_OPTION` | -26 | 単数指定の項目が複数回指定された |
+| | `CPLAT_ERR_TOO_MANY_ARGUMENTS` | -27 | 引数の個数が受入数を超えている |
+| | `CPLAT_ERR_TOO_MANY_OCCURRENCES` | -28 | 同一項目の出現回数が容量を超えている |
+| | `CPLAT_ERR_INVALID_PATTERN` | -29 | 正規表現パターンの構文が不正です。 |
+| | `CPLAT_ERR_INVALID_ENCODING` | -30 | 文字列が UTF-8 として不正です。 |
+| 制御<br> (-40 〜) | `CPLAT_ERR_EOF` | -40 | 入力が EOF に達した |
+| | `CPLAT_ERR_CANCELED` | -41 | ユーザー操作 (Ctrl+C など) による中断 |
 
 `ret <= -20` のような範囲比較で種別を判定せず、個々のコード名との比較を使用します。
 
@@ -72,7 +72,7 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 > 範囲比較で種別を判定すると、余白へコードを追加した時点で判定結果が変わります。
 
 > [!NOTE]
-> 値は `test/src/libcom_utilTest/base/resultTest/` の `static_assert` で固定しています。  
+> 値は `test/src/libcplatTest/base/resultTest/` の `static_assert` で固定しています。  
 > 既存の値を変更するとコンパイル時に検出されます。
 
 ### 判定慣用句
@@ -82,15 +82,15 @@ com_util の公開 API が戻り値として使用する共通結果コードの
 ```c
 int ret;
 
-ret = com_util_mmap_attach(path, access, create_size, &map);
-if (ret != COM_UTIL_OK)
+ret = cplat_mmap_attach(path, access, create_size, &map);
+if (ret != CPLAT_OK)
 {
     return ret;
 }
 ```
 
 結果コードを受ける変数名と宣言位置は、上位規範に従います。  
-特定のエラーを区別する場合は、`ret == COM_UTIL_ERR_TIMEOUT` のようにコード名で比較します。  
+特定のエラーを区別する場合は、`ret == CPLAT_ERR_TIMEOUT` のようにコード名で比較します。  
 `-1` などの数値リテラルとの比較は行いません。
 
 > [!NOTE]
@@ -99,15 +99,15 @@ if (ret != COM_UTIL_OK)
 
 ### 戻り値とエラー詳細の役割分担
 
-戻り値は「分類済みの結果コード」を伝達し、OS 由来の詳細はドメイン付きの `com_util_error` で伝達します。
+戻り値は「分類済みの結果コード」を伝達し、OS 由来の詳細はドメイン付きの `cplat_error` で伝達します。
 
 | 伝達手段 | 内容 |
 |---|---|
-| 戻り値 (`int`) | `COM_UTIL_OK`、正値の省略 (`COM_UTIL_SKIPPED`)、または負値の分類済みエラー コード |
-| `com_util_error *detail_out` 出力引数 | OS エラーのドメイン、共通結果コード、生の詳細値 |
-| スレッド ローカルの直前値 | `com_util_error_get_last()` で取得する、直前の対応 API と同じ詳細 |
+| 戻り値 (`int`) | `CPLAT_OK`、正値の省略 (`CPLAT_SKIPPED`)、または負値の分類済みエラー コード |
+| `cplat_error *detail_out` 出力引数 | OS エラーのドメイン、共通結果コード、生の詳細値 |
+| スレッド ローカルの直前値 | `cplat_error_get_last()` で取得する、直前の対応 API と同じ詳細 |
 
-分類済みコードでは失われる詳細 (ともに `COM_UTIL_ERR_UNKNOWN` へ写像される `ENOSPC` と `EIO` の区別など) が必要な API は、`detail_out` を提供します (`com_util_fopen`、`crt/path.h` の各関数など)。  
+分類済みコードでは失われる詳細 (ともに `CPLAT_ERR_UNKNOWN` へ写像される `ENOSPC` と `EIO` の区別など) が必要な API は、`detail_out` を提供します (`cplat_fopen`、`crt/path.h` の各関数など)。  
 対応 API は失敗時に出力引数とスレッド ローカルの直前値へ同じ詳細を記録し、成功時は両方をクリアします。  
 `errno`、`GetLastError()`、`HRESULT` などの OS エラー値を、共通結果コードとして直接返しません。
 
@@ -117,77 +117,77 @@ if (ret != COM_UTIL_OK)
 
 ### 命名
 
-エラー コードの名称は `COM_UTIL_ERR_*` に統一します。  
+エラー コードの名称は `CPLAT_ERR_*` に統一します。  
 `ERROR` という略記は使用しません。
 
 ### 詳細分類の扱い
 
-操作結果として呼び出し元の制御フローを分岐させる分類は、`result.h` の `COM_UTIL_ERR_*` へ追加します。  
-`COM_UTIL_ERR_*` は関数の戻り値として使用できます。
+操作結果として呼び出し元の制御フローを分岐させる分類は、`result.h` の `CPLAT_ERR_*` へ追加します。  
+`CPLAT_ERR_*` は関数の戻り値として使用できます。
 
-OS エラーの原因をプラットフォーム共通で調べる場合は、`error.h` の `COM_UTIL_CAUSE_*` を使用します。  
-要因コードは `com_util_error_get_cause()` または `com_util_error_is()` による詳細エラーの解釈専用であり、関数の戻り値には使用しません。  
+OS エラーの原因をプラットフォーム共通で調べる場合は、`error.h` の `CPLAT_CAUSE_*` を使用します。  
+要因コードは `cplat_error_get_cause()` または `cplat_error_is()` による詳細エラーの解釈専用であり、関数の戻り値には使用しません。  
 新しい要因を追加する場合は、errno と Win32 エラー コードの両方の対応表を確認します。
 
-`result.h` は、粗い分類 (`COM_UTIL_ERR_INVALID_ARGUMENT` など) と細かい操作結果 (`COM_UTIL_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
+`result.h` は、粗い分類 (`CPLAT_ERR_INVALID_ARGUMENT` など) と細かい操作結果 (`CPLAT_ERR_UNKNOWN_OPTION` など) の両方を含みます。  
 モジュール固有の戻り値コード体系は別に設けません。  
-argparser の `com_util_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`com_util_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
+argparser の `cplat_argparser_parse()` は解析エラーの種別に対応するコードを直接返し、`cplat_argparser_get_error()` はその種別を後から再取得する用途で提供しています。
 
 ### OS エラー詳細の抽象化
 
-OS 由来の詳細は、`com_util_error` にドメイン、対応する共通結果コード、生のエラー値をまとめて保持します。  
+OS 由来の詳細は、`cplat_error` にドメイン、対応する共通結果コード、生のエラー値をまとめて保持します。  
 公開 API の引数や戻り値で、生の `errno` または `GetLastError()` の値だけを受け渡してはなりません。  
-自前の OS 呼び出しで得た値は `com_util_error_capture_errno()` または `com_util_error_capture_windows_error()` で取り込みます。
+自前の OS 呼び出しで得た値は `cplat_error_capture_errno()` または `cplat_error_capture_windows_error()` で取り込みます。
 
 `detail_out` を持つ API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録し、成功時に両方をクリアします。  
 `detail_out` へ `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、スレッドの直前値は更新されます。  
-OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `com_util_error_set_last()` で保存値を復元します。  
-`com_util_error_set_last()` には有効な保存値だけを指定し、NULL を指定した場合は現在のスレッドの直前値をクリアします。
+OS API の失敗後に後処理を行うアダプターは、先に詳細を保存し、後処理で直前値が変化した場合に `cplat_error_set_last()` で保存値を復元します。  
+`cplat_error_set_last()` には有効な保存値だけを指定し、NULL を指定した場合は現在のスレッドの直前値をクリアします。
 
-失敗の原因が OS 呼び出しに由来しない場合 (引数の検証エラー、パターンの構文エラーなど) は、`com_util_error` に格納すべき詳細が存在しません。  
+失敗の原因が OS 呼び出しに由来しない場合 (引数の検証エラー、パターンの構文エラーなど) は、`cplat_error` に格納すべき詳細が存在しません。  
 この場合は `detail_out` と直前値の双方をクリアし、原因は共通結果コードだけで表します。
 
 > [!WARNING]
-> `com_util_error_get_last()` の値は、次に対応 API を呼び出すと更新されます。  
+> `cplat_error_get_last()` の値は、次に対応 API を呼び出すと更新されます。  
 > 保持が必要な場合は直ちにコピーするか、`detail_out` を使用してください。
 
 > [!WARNING]
-> `com_util_error_is_set()` が偽であることは「OS 由来の詳細がない」ことを意味し、**成功したことを意味しません**。  
+> `cplat_error_is_set()` が偽であることは「OS 由来の詳細がない」ことを意味し、**成功したことを意味しません**。  
 > 引数の検証エラーなど、OS 呼び出しに由来しない失敗でも偽になります。  
 > 呼び出し側は必ず戻り値で成否を判定してください。
 
-`com_util_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`com_util_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
-人間可読の文字列は `com_util_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。
+`cplat_error_get_cause()` は OS ごとの差を吸収した原因判定に使用し、`cplat_error_to_result()` は詳細を共通結果コードへ変換する場合に使用します。  
+人間可読の文字列は `cplat_error_message()` で取得し、公開 API から生の OS エラー値を直接文字列化しません。
 
 ### プロセス終了と shutdown コールバックの関係
 
 上位規範の「異常状態の検出とプロセス終了」に従い、`assert` は使用しません。  
 プロセスの継続が危険な状態でのみ `abort()` を直接呼び出します。
 
-com_util には終了処理の機構が 2 つあり、`abort()` はいずれも実行しません。
+cplat には終了処理の機構が 2 つあり、`abort()` はいずれも実行しません。
 
 | 終了の経路 | shutdown コールバック | 終了コードの伝達 |
 |---|---|---|
-| `com_util_exit(code)` | 実行される | `COM_UTIL_SHUTDOWN_CODE_KIND_EXIT_CODE` として伝わる |
+| `cplat_exit(code)` | 実行される | `CPLAT_SHUTDOWN_CODE_KIND_EXIT_CODE` として伝わる |
 | `exit()` の直接呼び出し、`main()` からの復帰 | 実行される | 終了コードは取得できません。 |
 | `abort()` | **実行されない** | 伝達しません。 |
 
-通常終了で終了コードを確実に渡したい場合は `com_util_exit()` を使用します。
+通常終了で終了コードを確実に渡したい場合は `cplat_exit()` を使用します。
 
 > [!IMPORTANT]
 > `abort()` が shutdown コールバックをバイパスするのは、**意図した挙動** です。  
 > `abort()` を呼ぶのは内部状態が壊れている場面であり、その状態でコールバックを実行すると、壊れたデータの書き出しや二次障害を招きます。  
-> 後始末を実行したい終了は、`abort()` ではなく `com_util_exit()` を使用してください。
+> 後始末を実行したい終了は、`abort()` ではなく `cplat_exit()` を使用してください。
 
 ### スレッド ローカル記憶域
 
-com_util 内部のスレッド ローカル変数には `compiler.h` の `THREAD_LOCAL` を使用します。  
+cplat 内部のスレッド ローカル変数には `compiler.h` の `THREAD_LOCAL` を使用します。  
 TLS 変数はソース ファイル内のファイル スコープ `static` に限定し、ヘッダーで `extern` 宣言しません。  
 `-ftls-model=initial-exec` や `-ftls-model=local-exec` を指定しません。
 
 > [!WARNING]
-> 同一プロセスで com_util の静的ライブラリ版と動的ライブラリ版を混在させると、直前値が複数に分かれます。  
-> `com_util_error_get_last()` が想定と異なる値を返すため、混在させてはなりません。
+> 同一プロセスで cplat の静的ライブラリ版と動的ライブラリ版を混在させると、直前値が複数に分かれます。  
+> `cplat_error_get_last()` が想定と異なる値を返すため、混在させてはなりません。
 
 > [!NOTE]
 > TLS モデルを指定しないのは、Linux の共有ライブラリおよび `dlopen()` による読み込みへ対応するためです。  
@@ -198,59 +198,59 @@ TLS 変数はソース ファイル内のファイル スコープ `static` に�
 以下の API 群は元 API の戻り値規約を保存し、共通結果コードの適用対象外とします。
 
 > [!NOTE]
-> 対象外を設けるのは、com_util が Linux / Windows のインターフェース差異を抽象化する層でもあるためです。  
+> 対象外を設けるのは、cplat が Linux / Windows のインターフェース差異を抽象化する層でもあるためです。  
 > 元 API の戻り値規約を保存することで、標準 C / POSIX / Win32 の感覚のまま差し替えて使えます。
 
 | 対象外の API 群 | 現行規約 | 理由 |
 |---|---|---|
-| CRT ラッパー (`com_util_fopen`、`com_util_fclose`、`com_util_fread`、`com_util_open`、`com_util_read`、`com_util_fseek`、`com_util_ftell` など) | `FILE *`/NULL、0/EOF、要素数、fd/-1 など元 API と同一 | 標準 C / POSIX の感覚で使えることが設計意図 |
-| `com_util_strcpy` 系、`com_util_getenv` | 成功 0 / バッファー不足 `ERANGE` | CRT の `strcpy_s` 系規約に準拠 |
-| `com_util_sscanf`、`com_util_utf8_to_wpath` など | 変換項目数 / 変換文字数 | 元 API の意味を保存 |
+| CRT ラッパー (`cplat_fopen`、`cplat_fclose`、`cplat_fread`、`cplat_open`、`cplat_read`、`cplat_fseek`、`cplat_ftell` など) | `FILE *`/NULL、0/EOF、要素数、fd/-1 など元 API と同一 | 標準 C / POSIX の感覚で使えることが設計意図 |
+| `cplat_strcpy` 系、`cplat_getenv` | 成功 0 / バッファー不足 `ERANGE` | CRT の `strcpy_s` 系規約に準拠 |
+| `cplat_sscanf`、`cplat_utf8_to_wpath` など | 変換項目数 / 変換文字数 | 元 API の意味を保存 |
 | `win32/win32.h` の UTF-8 ラッパー (`CreateFileU` など) | `HANDLE`、`BOOL` など Windows ネイティブ規約 | 元 API の差し替えとして使えることが設計意図 |
-| `com_util_strtok_r` | トークンへのポインター / 終了時 NULL | 元 API (`strtok_r` / `strtok_s`) の差し替えとして使えることが設計意図 |
+| `cplat_strtok_r` | トークンへのポインター / 終了時 NULL | 元 API (`strtok_r` / `strtok_s`) の差し替えとして使えることが設計意図 |
 | ハンドル生成系 (`*_create` など) | 成功時ポインター / 失敗時 NULL | ポインター返却 API の慣用 |
-| 値をそのまま返す関数 (getter、`com_util_timespec_cmp` など) | 値そのもの | 結果コードの概念が適用されない |
+| 値をそのまま返す関数 (getter、`cplat_timespec_cmp` など) | 値そのもの | 結果コードの概念が適用されない |
 | 戻り値を持たない関数 (`*_destroy` など) | `void` | 同上 |
 
 対象外の API 群を新設する場合は、元 API との対応と戻り値規約をヘッダーの Doxygen コメントに明記します。
 
 > [!IMPORTANT]
-> [危険な標準関数の代替](#危険な標準関数の代替) が定める代替 API のうち、`com_util_snprintf`、`com_util_vsnprintf`、`com_util_fgets`、`com_util_parse_*` は共通結果コードを返し、**上表の対象外には含まれません**。  
+> [危険な標準関数の代替](#危険な標準関数の代替) が定める代替 API のうち、`cplat_snprintf`、`cplat_vsnprintf`、`cplat_fgets`、`cplat_parse_*` は共通結果コードを返し、**上表の対象外には含まれません**。  
 > これらは元 API の戻り値規約を保存せず、検査を内包した結果コードへ正規化することが設計意図です。
 
 > [!IMPORTANT]
-> `com_util_getenv` は上表の「成功 0 / バッファー不足 `ERANGE`」に加えて「未設定 -1」を返す三値規約です。  
+> `cplat_getenv` は上表の「成功 0 / バッファー不足 `ERANGE`」に加えて「未設定 -1」を返す三値規約です。  
 > 本規約への適合は [解消済みの逸脱](#解消済みの逸脱) に整理しています。
 
 ### 検証
 
 ```bash
 # 数値リテラル比較や三値規約の残存確認
-grep -nE '(==|!=)[[:space:]]*-1\b' prod/libsrc/com_util/**/*.c
+grep -nE '(==|!=)[[:space:]]*-1\b' prod/libsrc/cplat/**/*.c
 
 # 局所テスト
-make -C app/com_util test
+make -C app/c-platform test
 ```
 
 ## ラッパーの設計方針
 
 ### ラッパーを作る条件
 
-CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいのは、次のいずれかを満たす場合に限ります。
+CRT / POSIX / Win32 関数のラッパーを cplat へ追加してよいのは、次のいずれかを満たす場合に限ります。
 
 | 条件 | 例 |
 |---|---|
-| プラットフォームで異なる API を呼び分ける | `com_util_fseek` (`fseeko` と `_fseeki64`)、`com_util_gmtime` (`gmtime_r` と `gmtime_s`)、`com_util_socket_*` (BSD ソケットと Winsock) |
-| Windows で UTF-8 と UTF-16 を変換します。 | `com_util_fopen`、`com_util_access`、`CreateFileU` |
-| 戻り値やエラー伝達の規約を正規化します。 | `com_util_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`com_util_strcpy` (`ERANGE` を返す) |
-| MSVC のセキュア版と意味のある挙動差がある | `com_util_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
-| 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化します。 | `com_util_snprintf` (切り詰めを検出する)、`com_util_parse_int64` (完全消費と範囲を検査する)、`com_util_fgets` (切り詰めと EOF を区別する) |
-| com_util 定義の型を扱います。 | `com_util_timespec_*`、`com_util_file_*` |
-| com_util の他機能と統合する必要がある | `com_util_exit` (登録済みシャットダウン コールバックを実行する) |
+| プラットフォームで異なる API を呼び分ける | `cplat_fseek` (`fseeko` と `_fseeki64`)、`cplat_gmtime` (`gmtime_r` と `gmtime_s`)、`cplat_socket_*` (BSD ソケットと Winsock) |
+| Windows で UTF-8 と UTF-16 を変換します。 | `cplat_fopen`、`cplat_access`、`CreateFileU` |
+| 戻り値やエラー伝達の規約を正規化します。 | `cplat_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`cplat_strcpy` (`ERANGE` を返す) |
+| MSVC のセキュア版と意味のある挙動差がある | `cplat_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
+| 境界検査または失敗通知を欠く標準関数を、共通結果コード規約へ正規化します。 | `cplat_snprintf` (切り詰めを検出する)、`cplat_parse_int64` (完全消費と範囲を検査する)、`cplat_fgets` (切り詰めと EOF を区別する) |
+| cplat 定義の型を扱います。 | `cplat_timespec_*`、`cplat_file_*` |
+| cplat の他機能と統合する必要がある | `cplat_exit` (登録済みシャットダウン コールバックを実行する) |
 
 通信 API 固有の規範 (ソケット ハンドル、エンドポイント型、エラー ドメイン) は [ネットワーク API ガイドライン](net-api-guideline.md) に定めます。
 
-境界検査または失敗通知を欠く標準関数の正規化は、[危険な標準関数の代替](#危険な標準関数の代替) が定める代替先を com_util 側に用意するための条件です。  
+境界検査または失敗通知を欠く標準関数の正規化は、[危険な標準関数の代替](#危険な標準関数の代替) が定める代替先を cplat 側に用意するための条件です。  
 戻り値やエラー伝達の規約を正規化する条件の延長であり、元 API が呼び出し側に委ねている検査を、ラッパーが必ず実施する形へ移します。
 
 > [!NOTE]
@@ -260,12 +260,12 @@ CRT / POSIX / Win32 関数のラッパーを com_util へ追加してよいの�
 
 ### プラットフォーム差異の共通契約
 
-Linux と Windows でラッパー先の API の制約や既定動作が異なる場合、com_util は両プラットフォームで同じ公開契約になるように差異を吸収します。
+Linux と Windows でラッパー先の API の制約や既定動作が異なる場合、cplat は両プラットフォームで同じ公開契約になるように差異を吸収します。
 
 | 差異 | 共通契約 | 例 |
 |---|---|---|
 | 引数の限界値 | 両プラットフォームのうち、より厳しい限界値を採用します。 | `RAND_bytes` と `BCryptGenRandom` の要求サイズを `INT_MAX` に統一 |
-| オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一します。 | `com_util_fopen` と `com_util_open` の Windows 実装で `_SH_DENYNO` を指定 |
+| オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一します。 | `cplat_fopen` と `cplat_open` の Windows 実装で `_SH_DENYNO` を指定 |
 | シグナルによる待機の中断 | 中断されない Windows の動作に統一します。 | Linux 実装が `EINTR` を吸収します。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
 | 切断済みソケットへの送信 | プロセスを終了させず、送信エラーとして通知します。 | Linux 実装が `MSG_NOSIGNAL` で SIGPIPE を抑制します。 |
 
@@ -273,14 +273,14 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 より緩い限界値を持つプラットフォームの追加差分は、共通 API では公開しません。
 
 共有可能なオープンは排他制御を意味しません。  
-プロセス間のアクセスを直列化する場合は、`com_util_interprocess_lock` または `com_util_interprocess_rwlock` を使用します。
+プロセス間のアクセスを直列化する場合は、`cplat_interprocess_lock` または `cplat_interprocess_rwlock` を使用します。
 
 ### 接続済みソケット送信時の SIGPIPE
 
-Linux の `com_util_socket_send()` と `com_util_socket_send_all()` は、送信ごとに `MSG_NOSIGNAL` を指定します。  
+Linux の `cplat_socket_send()` と `cplat_socket_send_all()` は、送信ごとに `MSG_NOSIGNAL` を指定します。  
 プロセス全体のシグナル ハンドラーやシグナル マスクを変更せず、切断済みの接続への送信による SIGPIPE だけを抑制します。
 
-`MSG_NOSIGNAL` を指定した送信も `EPIPE` を返すため、送信エラーは従来どおり結果コードと `com_util_error` で通知します。  
+`MSG_NOSIGNAL` を指定した送信も `EPIPE` を返すため、送信エラーは従来どおり結果コードと `cplat_error` で通知します。  
 利用者へ SIGPIPE の無視やハンドラー登録を要求しません。
 
 根拠は [send (2) の MSG_NOSIGNAL](https://man7.org/linux/man-pages/man2/send.2.html) を参照してください。
@@ -289,7 +289,7 @@ Linux の `com_util_socket_send()` と `com_util_socket_send_all()` は、送信
 
 #### 基本原則
 
-com_util の公開 API は、シグナルによる中断を利用者へ観測させません。
+cplat の公開 API は、シグナルによる中断を利用者へ観測させません。
 
 Linux では、ユーザー コードの中断を意図しないシグナルが配信されただけでも、ブロッキング中のシステム コールが `EINTR` で復帰します。  
 Windows には対応する機構がなく、非アラータブル待機が同じ理由で中断されることはありません。  
@@ -330,9 +330,9 @@ stdio を再試行しないのは、`FILE *` の内部状態と読み書き位�
 
 Windows でアラータブル待機を使用しないのは、`WaitForSingleObjectEx` や `SleepEx` が APC の実行によって `WAIT_IO_COMPLETION` で復帰し、Linux と同種の中断を持ち込むためです。
 
-#### com_util 内部での EINTR の利用
+#### cplat 内部での EINTR の利用
 
-com_util の内部実装が `EINTR` を検出手段として利用することは認めます。  
+cplat の内部実装が `EINTR` を検出手段として利用することは認めます。  
 ただし公開契約には出さず、抽象化した通知へ変換します。
 
 コンソール入力の実装は、`SIGWINCH` によって `read` が中断されたことを端末サイズの変更として扱います。  
@@ -345,36 +345,36 @@ Windows へ移植できず、プラットフォームで動作が変わるため
 
 停止要求には次の形を使用します。
 
-- ソケットは `com_util_socket_set_nonblocking()` で非ブロッキングに設定し、`com_util_socket_wait_readable()` などへ短いタイムアウトを与えたループの中で停止フラグを判定します。
-- スレッド間の停止通知は `com_util_condvar` で行います。
+- ソケットは `cplat_socket_set_nonblocking()` で非ブロッキングに設定し、`cplat_socket_wait_readable()` などへ短いタイムアウトを与えたループの中で停止フラグを判定します。
+- スレッド間の停止通知は `cplat_condvar` で行います。
 
-#### COM_UTIL_CAUSE_INTERRUPTED の位置付け
+#### CPLAT_CAUSE_INTERRUPTED の位置付け
 
-`COM_UTIL_CAUSE_INTERRUPTED` は、実行中の操作が中断されたことを表します。  
+`CPLAT_CAUSE_INTERRUPTED` は、実行中の操作が中断されたことを表します。  
 次の 2 つの経路でこの要因が設定されます。
 
 | 経路 | 設定元 | 内容 |
 |---|---|---|
 | Windows の I/O キャンセル | `ERROR_OPERATION_ABORTED` | `CancelIo` などによる中断であり、シグナルとは無関係に発生します。 |
-| 利用者が持ち込んだ errno | `com_util_error_capture_errno()` | 利用者が自前で呼び出した OS API の `EINTR` を分類します。 |
+| 利用者が持ち込んだ errno | `cplat_error_capture_errno()` | 利用者が自前で呼び出した OS API の `EINTR` を分類します。 |
 
-com_util がシグナルによる中断を理由にこの要因を返すことはありません。  
-利用者のコードに、シグナル中断への対処として `COM_UTIL_CAUSE_INTERRUPTED` の判定と再試行を求めません。
+cplat がシグナルによる中断を理由にこの要因を返すことはありません。  
+利用者のコードに、シグナル中断への対処として `CPLAT_CAUSE_INTERRUPTED` の判定と再試行を求めません。
 
 #### 受信タイムアウトと送信タイムアウト
 
 受信タイムアウト (`SO_RCVTIMEO`) と送信タイムアウト (`SO_SNDTIMEO`) を設定する API は公開しません。  
 これらを設定したソケットの送受信は `SA_RESTART` の有無にかかわらず中断され、再試行によって指定した時間を超過するためです。  
-待機時間を制限する場合は `com_util_socket_wait_readable()` などの期限付き待機を使用します。
+待機時間を制限する場合は `cplat_socket_wait_readable()` などの期限付き待機を使用します。
 
 #### 検証 (シグナル割り込み)
 
 ```bash
 # EINTR を参照している箇所が、本節の分類に沿っているかを確認する
-grep -rn "EINTR" app/com_util/prod/libsrc/ --include=*.c
+grep -rn "EINTR" app/c-platform/prod/libsrc/ --include=*.c
 
 # アラータブル待機を使用していないことを確認する
-grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/com_util/prod/libsrc/
+grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/c-platform/prod/libsrc/
 ```
 
 #### 参照 (シグナル割り込み)
@@ -392,7 +392,7 @@ grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/com_util/prod/
 `memcpy`、`memmove`、`memset`、`strcmp` 系、`malloc` 系、標準出力への `printf` が該当します。  
 これらはプラットフォーム差異がなく、MSVC のセキュア版にも意味のある挙動差がなく、境界検査と失敗通知の欠落もありません。
 
-テストでモックしたいという理由も、com_util 側にラッパーを作る根拠にはなりません。  
+テストでモックしたいという理由も、cplat 側にラッパーを作る根拠にはなりません。  
 libc 関数のモックは `framework/testfw/libsrc/mock_libc/` が提供する仕組みで受けます。
 
 > [!IMPORTANT]
@@ -402,58 +402,58 @@ libc 関数のモックは `framework/testfw/libsrc/mock_libc/` が提供する�
 ### ラッパーがある関数の使用
 
 ラッパーを提供している関数は、`app/` 配下のすべてのコードでラッパーを使用します。  
-com_util 自身の実装 (`prod/libsrc/`) も対象に含みます。
+cplat 自身の実装 (`prod/libsrc/`) も対象に含みます。
 
 例外は、そのラッパー自身の実装だけです。  
 ラッパーが元関数へ委譲する箇所は元関数を直接呼び出します。
 
 > [!NOTE]
-> com_util 自身の実装も対象に含めるのは、`mock_com_util` が `com_util_*` を weak シンボルで差し替えるためです。  
+> cplat 自身の実装も対象に含めるのは、`mock_cplat` が `cplat_*` を weak シンボルで差し替えるためです。  
 > ラッパーを経由していれば、実装内部の呼び出しもモックの対象になります。  
 > モック未設定時は実関数へ委譲されます。
 
 ### 危険な標準関数の代替
 
 境界検査を持たない、または終端の保証がない標準関数は、`app/` 配下の管理対象コードで直接使用しません。  
-代替は com_util がすべて提供します。標準関数を代替として指定することはありません。  
+代替は cplat がすべて提供します。標準関数を代替として指定することはありません。  
 外部 OSS 由来のコード (`app/lua`、`app/sqlite`、`app/cjson`) は本規則の対象外です。
 
 | 使用しない関数 | 問題 | 代替 |
 |---|---|---|
-| `strcpy` | コピー先の容量を受け取らず、境界を検査しません。 | `com_util_strcpy(dest, dest_size, src)` |
-| `strncpy` | コピー元が `count` 以上のとき null 終端しません。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `com_util_strcpy`、意図的に切り詰めるなら `com_util_strncpy` |
-| `strcat` | 連結先の容量を受け取らず、境界を検査しません。 | `com_util_strcat(dest, dest_size, src)` |
-| `strncat` | 連結先の容量を受け取らない。`count` は連結元から読む最大文字数であり、終端の 1 バイトも別に必要 | `com_util_strncat(dest, dest_size, src, count)` |
-| `wcscpy` | `strcpy` と同じ | `com_util_wcscpy(dest, dest_size, src)` |
-| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `com_util_strdup(src)` |
-| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `com_util_strtok_r(str, delim, saveptr)` |
-| `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `com_util_fgets(dest, dest_size, stream, detail_out)` |
-| `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `com_util_fgets(dest, dest_size, stream, detail_out)` |
-| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しません。 | `com_util_snprintf(dest, dest_size, format, ...)` / `com_util_vsnprintf` |
-| `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `com_util_snprintf` / `com_util_vsnprintf` ([書式化](#書式化) を参照) |
-| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になります。 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_double` ([数値変換](#数値変換) を参照) |
+| `strcpy` | コピー先の容量を受け取らず、境界を検査しません。 | `cplat_strcpy(dest, dest_size, src)` |
+| `strncpy` | コピー元が `count` 以上のとき null 終端しません。`count` は宛先容量ではなく最大コピー文字数 | 文字列全体をコピーするなら `cplat_strcpy`、意図的に切り詰めるなら `cplat_strncpy` |
+| `strcat` | 連結先の容量を受け取らず、境界を検査しません。 | `cplat_strcat(dest, dest_size, src)` |
+| `strncat` | 連結先の容量を受け取らない。`count` は連結元から読む最大文字数であり、終端の 1 バイトも別に必要 | `cplat_strncat(dest, dest_size, src, count)` |
+| `wcscpy` | `strcpy` と同じ | `cplat_wcscpy(dest, dest_size, src)` |
+| `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `cplat_strdup(src)` |
+| `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `cplat_strtok_r(str, delim, saveptr)` |
+| `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `cplat_fgets(dest, dest_size, stream, detail_out)` |
+| `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `cplat_fgets(dest, dest_size, stream, detail_out)` |
+| `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しません。 | `cplat_snprintf(dest, dest_size, format, ...)` / `cplat_vsnprintf` |
+| `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `cplat_snprintf` / `cplat_vsnprintf` ([書式化](#書式化) を参照) |
+| `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になります。 | `cplat_parse_int` / `cplat_parse_int64` / `cplat_parse_double` ([数値変換](#数値変換) を参照) |
 | `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しません。 | 同上 |
-| `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | com_util の対応するラッパー ([scanf 系ラッパー](#scanf-系ラッパー) を参照) |
-| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なります。 | `com_util_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
-| `malloc` / `calloc` | 長さ 0 の戻り値が処理系定義。`malloc(count * size)` は乗算の回り込みを検出しません。 | `com_util_malloc` / `com_util_malloc_zerofill` / `com_util_calloc` ([メモリ確保の代替](#メモリ確保の代替) を参照) |
-| `realloc` | 上記に加え、失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `com_util_realloc` / `com_util_realloc_zerofill` (同上) |
-| `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `com_util_free(ptr)` (同上) |
+| `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | cplat の対応するラッパー ([scanf 系ラッパー](#scanf-系ラッパー) を参照) |
+| `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なります。 | `cplat_error_message(buf, buf_size, error)` ([エラー文字列化](#エラー文字列化) を参照) |
+| `malloc` / `calloc` | 長さ 0 の戻り値が処理系定義。`malloc(count * size)` は乗算の回り込みを検出しません。 | `cplat_malloc` / `cplat_malloc_zerofill` / `cplat_calloc` ([メモリ確保の代替](#メモリ確保の代替) を参照) |
+| `realloc` | 上記に加え、失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `cplat_realloc` / `cplat_realloc_zerofill` (同上) |
+| `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `cplat_free(ptr)` (同上) |
 
-`com_util_strcpy`、`com_util_strcat`、`com_util_strncat` は、バッファー不足を `COM_UTIL_ERR_BUFFER_TOO_SMALL` で通知します。  
-戻り値を破棄せず、`COM_UTIL_OK` との比較で判定してください。
+`cplat_strcpy`、`cplat_strcat`、`cplat_strncat` は、バッファー不足を `CPLAT_ERR_BUFFER_TOO_SMALL` で通知します。  
+戻り値を破棄せず、`CPLAT_OK` との比較で判定してください。
 
 ```c
 /* 望ましい */
 int ret;
 
-ret = com_util_strcpy(path, sizeof(path), input);
-if (ret != COM_UTIL_OK)
+ret = cplat_strcpy(path, sizeof(path), input);
+if (ret != CPLAT_OK)
 {
     return ret;
 }
 ```
 
-意図的に文字列を切り詰める場合は `com_util_strncpy` を使用し、切り詰める条件を呼び出し側の仕様として明記します。
+意図的に文字列を切り詰める場合は `cplat_strncpy` を使用し、切り詰める条件を呼び出し側の仕様として明記します。
 
 > [!WARNING]
 > `strncpy` は、コピー元の長さが `count` 以上のときコピー先を null 終端しません。  
@@ -462,16 +462,16 @@ if (ret != COM_UTIL_OK)
 
 #### 書式化
 
-バッファーへの書式化は `com_util_snprintf` と `com_util_vsnprintf` を使用します。  
-出力が宛先に収まらない場合は `COM_UTIL_ERR_BUFFER_TOO_SMALL` を返し、宛先を空文字列にします。  
+バッファーへの書式化は `cplat_snprintf` と `cplat_vsnprintf` を使用します。  
+出力が宛先に収まらない場合は `CPLAT_ERR_BUFFER_TOO_SMALL` を返し、宛先を空文字列にします。  
 書き込んだ文字数が必要な場合は、成功後に宛先へ `strlen` を適用します。
 
 ```c
 /* 望ましい */
 int ret;
 
-ret = com_util_snprintf(buf, sizeof(buf), "%s/%s", dir, name);
-if (ret != COM_UTIL_OK)
+ret = cplat_snprintf(buf, sizeof(buf), "%s/%s", dir, name);
+if (ret != CPLAT_OK)
 {
     return ret;
 }
@@ -483,16 +483,16 @@ if (ret != COM_UTIL_OK)
 > 戻り値を書き込み済みバイト数として次の書き込み位置へ加算すると、バッファーの外を指します。
 
 > [!NOTE]
-> 切り詰め時に宛先を空文字列にするのは、`com_util_strcpy` と `com_util_strcat` の既存の振る舞いに合わせるためです。  
+> 切り詰め時に宛先を空文字列にするのは、`cplat_strcpy` と `cplat_strcat` の既存の振る舞いに合わせるためです。  
 > 中途半端に切り詰められた文字列がパスやコマンドとして使われる事故を、戻り値の検査漏れがあっても防げます。
 
 #### 行入力
 
-ストリームからの 1 行読み取りは `com_util_fgets` を使用します。  
-戻り値は 1 行を取得した場合に `COM_UTIL_OK`、読み取る行がない場合に `COM_UTIL_ERR_EOF`、行が宛先に収まらない場合に `COM_UTIL_ERR_BUFFER_TOO_SMALL` です。  
+ストリームからの 1 行読み取りは `cplat_fgets` を使用します。  
+戻り値は 1 行を取得した場合に `CPLAT_OK`、読み取る行がない場合に `CPLAT_ERR_EOF`、行が宛先に収まらない場合に `CPLAT_ERR_BUFFER_TOO_SMALL` です。  
 取得した行の末尾にある改行 (LF、CR、CRLF) は除去して格納されるため、呼び出し側での改行除去は不要です。
 
-非信頼なストリーム入力は `com_util_fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。
+非信頼なストリーム入力は `cplat_fgets` で 1 行を読み取ってから `cplat_sscanf` で解析します。
 
 > [!WARNING]
 > `fgets` は、行が宛先に収まらない場合も EOF に達した場合と同じく「途中まで格納して成功を返す」か「NULL を返す」かでしか区別できません。  
@@ -500,9 +500,9 @@ if (ret != COM_UTIL_OK)
 
 #### 数値変換
 
-文字列から数値への変換は `com_util_parse_int`、`com_util_parse_int64`、`com_util_parse_uint64`、`com_util_parse_double` を使用します。  
+文字列から数値への変換は `cplat_parse_int`、`cplat_parse_int64`、`cplat_parse_uint64`、`cplat_parse_double` を使用します。  
 これらは文字列全体が数値として解釈されたことと、値が目的の型の範囲に収まることを関数側で検査します。  
-解釈できない場合は `COM_UTIL_ERR_INVALID_INTEGER`、範囲外の場合は `COM_UTIL_ERR_OUT_OF_RANGE` を返します。  
+解釈できない場合は `CPLAT_ERR_INVALID_INTEGER`、範囲外の場合は `CPLAT_ERR_OUT_OF_RANGE` を返します。  
 一般の整数演算と型変換の規則、および本 API が担う範囲の位置づけは [整数演算の安全性](#整数演算の安全性) を参照してください。
 
 ```c
@@ -510,14 +510,14 @@ if (ret != COM_UTIL_OK)
 int ret;
 int64_t size;
 
-ret = com_util_parse_int64(&size, argv[1], 10);
-if (ret != COM_UTIL_OK)
+ret = cplat_parse_int64(&size, argv[1], 10);
+if (ret != CPLAT_OK)
 {
     return ret;
 }
 ```
 
-外部文字列を `size_t` やファイル位置へ変換する場合は、`com_util_parse_int64` で解析してから用途上の下限と上限を検査します。  
+外部文字列を `size_t` やファイル位置へ変換する場合は、`cplat_parse_int64` で解析してから用途上の下限と上限を検査します。  
 手順は [コーディング規範](../../general/docs/coding-guideline.md) の「文字列入力から意味付き型への変換」に従います。
 
 幅が処理系に依存する `long` を返す変換 API は提供しません。
@@ -528,22 +528,22 @@ if (ret != COM_UTIL_OK)
 > `atoi` 系に至っては失敗を通知する手段がなく、範囲外の入力が未定義動作になります。
 
 > [!IMPORTANT]
-> `com_util_parse_uint64` は、先頭の符号 `'-'` を `COM_UTIL_ERR_OUT_OF_RANGE` として拒否します。  
+> `cplat_parse_uint64` は、先頭の符号 `'-'` を `CPLAT_ERR_OUT_OF_RANGE` として拒否します。  
 > `strtoull` は負値を符号なしの折り返し値として受け付けるため、素の呼び出しでは `"-1"` が `UINT64_MAX` になります。
 
 #### エラー文字列化
 
-OS エラーの文字列化は `com_util_error_message` を使用します。  
-生の `errno` を持っている場合は、`com_util_error_capture_errno` で `com_util_error` へ取り込んでから渡します。  
+OS エラーの文字列化は `cplat_error_message` を使用します。  
+生の `errno` を持っている場合は、`cplat_error_capture_errno` で `cplat_error` へ取り込んでから渡します。  
 `detail_out` を提供する API から受け取った詳細は、そのまま渡せます。
 
 ```c
 /* 望ましい */
-com_util_error err;
+cplat_error err;
 char message[256];
 
-com_util_error_capture_errno(&err, errno_value);
-(void)com_util_error_message(message, sizeof(message), &err);
+cplat_error_capture_errno(&err, errno_value);
+(void)cplat_error_message(message, sizeof(message), &err);
 ```
 
 > [!WARNING]
@@ -553,22 +553,22 @@ com_util_error_capture_errno(&err, errno_value);
 > [!NOTE]
 > 再入可能版の名前と引数はプラットフォームで異なります。  
 > GNU 版 `strerror_r` はバッファーではなくポインターを返すことがあり、XSI 版と戻り値の意味も違います。  
-> `com_util_error_message` は、この差と Win32 の `FormatMessageW` をドメインに基づいて吸収します。
+> `cplat_error_message` は、この差と Win32 の `FormatMessageW` をドメインに基づいて吸収します。
 
 #### メモリ確保の代替
 
 動的メモリの一般的な扱いは上位規範の「動的メモリの確保と解放」が定めます。  
-com_util は、そこで呼び出し側の責務としている検査を関数側へ内包した確保 API を提供します。  
+cplat は、そこで呼び出し側の責務としている検査を関数側へ内包した確保 API を提供します。  
 要素数とサイズの乗算オーバーフローを関数側で担うことと、一般の加減乗算との分担は [整数演算の安全性](#整数演算の安全性) を参照してください。
 
 | 関数 | 用途 | ゼロ初期化 |
 |---|---|---|
-| `com_util_malloc(size)` | 単一オブジェクト、バイト バッファー | しません。 |
-| `com_util_malloc_zerofill(size)` | 同上 | 全体 |
-| `com_util_calloc(count, size)` | 要素数を伴う配列 | 全体 |
-| `com_util_realloc(ptr, count, size)` | 配列の伸長・縮小 | しません。 |
-| `com_util_realloc_zerofill(ptr, old_count, count, size)` | 同上 | 拡張した範囲のみ |
-| `com_util_free(ptr)` | 上記すべての解放 | - |
+| `cplat_malloc(size)` | 単一オブジェクト、バイト バッファー | しません。 |
+| `cplat_malloc_zerofill(size)` | 同上 | 全体 |
+| `cplat_calloc(count, size)` | 要素数を伴う配列 | 全体 |
+| `cplat_realloc(ptr, count, size)` | 配列の伸長・縮小 | しません。 |
+| `cplat_realloc_zerofill(ptr, old_count, count, size)` | 同上 | 拡張した範囲のみ |
+| `cplat_free(ptr)` | 上記すべての解放 | - |
 
 いずれも失敗を NULL で表し、共通結果コードを返しません。  
 関数側で検査する条件は次のとおりで、該当する場合は確保を行わずに NULL を返します。
@@ -576,27 +576,27 @@ com_util は、そこで呼び出し側の責務としている検査を関数�
 - 要求サイズが 0 である (`size == 0`、`count == 0`)
 - `count` と `size` の乗算が `size_t` を回り込む
 
-`com_util_free` は NULL を受け取っても何もしません。
+`cplat_free` は NULL を受け取っても何もしません。
 
 ```c
 /* 望ましい。伸長は別変数で受け、成功時にのみ元のポインターへ代入する */
 sample_entry *new_entries;
 
-new_entries = (sample_entry *)com_util_realloc(entries, new_count, sizeof(*new_entries));
+new_entries = (sample_entry *)cplat_realloc(entries, new_count, sizeof(*new_entries));
 if (new_entries == NULL)
 {
-    return COM_UTIL_ERR_OUT_OF_MEMORY;
+    return CPLAT_ERR_OUT_OF_MEMORY;
 }
 entries = new_entries;
 ```
 
 > [!IMPORTANT]
-> `com_util_realloc` と `com_util_realloc_zerofill` は、標準の `realloc` と引数構成が異なります。  
+> `cplat_realloc` と `cplat_realloc_zerofill` は、標準の `realloc` と引数構成が異なります。  
 > 要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、行を機械的に置換すると引数がずれます。
 
 > [!IMPORTANT]
-> `com_util_realloc(ptr, 0, size)` は、**元の領域を解放せずに NULL を返します**。  
-> 標準の `realloc(ptr, 0)` とは異なる扱いです。呼び出し側が `com_util_free` で明示的に解放してください。  
+> `cplat_realloc(ptr, 0, size)` は、**元の領域を解放せずに NULL を返します**。  
+> 標準の `realloc(ptr, 0)` とは異なる扱いです。呼び出し側が `cplat_free` で明示的に解放してください。  
 > NULL を「解放済み」と解釈すると領域が漏れます。
 
 > [!NOTE]
@@ -604,52 +604,52 @@ entries = new_entries;
 > 上位規範は長さ 0 の確保を呼び出し前の分岐で避けることを求めており、本 API の検査はその二重の防御です。
 
 > [!NOTE]
-> `com_util_malloc_zerofill` と `com_util_calloc` は、どちらもゼロ初期化した領域を返します。  
-> 単一オブジェクトとバイト バッファーには `com_util_malloc_zerofill`、要素数を伴う配列には `com_util_calloc` を使います。  
-> 要素数を伴う確保を `com_util_malloc_zerofill` で書くと、呼び出し側に乗算が戻ってしまうためです。
+> `cplat_malloc_zerofill` と `cplat_calloc` は、どちらもゼロ初期化した領域を返します。  
+> 単一オブジェクトとバイト バッファーには `cplat_malloc_zerofill`、要素数を伴う配列には `cplat_calloc` を使います。  
+> 要素数を伴う確保を `cplat_malloc_zerofill` で書くと、呼び出し側に乗算が戻ってしまうためです。
 
 > [!NOTE]
-> `free` に対して `com_util_free` を設けるのは、素通しのラッパーを増やすためではありません。  
-> com_util を共有ライブラリとして配布した場合、利用者側と com_util 側で C ランタイムが異なると、`free` に渡したポインターが解放側のヒープに属さない状態になりえます。  
+> `free` に対して `cplat_free` を設けるのは、素通しのラッパーを増やすためではありません。  
+> cplat を共有ライブラリとして配布した場合、利用者側と cplat 側で C ランタイムが異なると、`free` に渡したポインターが解放側のヒープに属さない状態になりえます。  
 > 確保と解放を同じライブラリ内で完結させることが目的です。
 
 #### 検証
 
 ```bash
 # 使用しない関数の残存確認
-# com_util ラッパー呼び出しと、Doxygen コメント行 (行頭が * のもの) を除外する
+# cplat ラッパー呼び出しと、Doxygen コメント行 (行頭が * のもの) を除外する
 grep -rnE '\b(strcpy|strncpy|strcat|strncat|wcscpy|strtok|gets|fgets|sprintf|vsprintf|snprintf|vsnprintf|atoi|atol|atoll|atof|strtol|strtoll|strtoul|strtoull|strtod|strerror)[[:space:]]*\(' \
   app --include=*.c --include=*.h \
   | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
-  | grep -vE 'com_util_(strcpy|strncpy|strcat|strncat|wcscpy|strtok_r|fgets|snprintf|vsnprintf|parse_)' \
+  | grep -vE 'cplat_(strcpy|strncpy|strcat|strncat|wcscpy|strtok_r|fgets|snprintf|vsnprintf|parse_)' \
   | grep -vE ':[[:space:]]*\*'
 ```
 
 確保系についても同様に確認します。
 
 ```bash
-# 確保・解放関数の直接使用 (com_util ラッパーの実体を除く)
+# 確保・解放関数の直接使用 (cplat ラッパーの実体を除く)
 grep -rnE '(^|[^A-Za-z0-9_])(malloc|calloc|realloc|free)[[:space:]]*\(' \
   app --include=*.c --include=*.h \
   | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
-  | grep -vE 'com_util_(malloc|calloc|realloc|free)' \
+  | grep -vE 'cplat_(malloc|calloc|realloc|free)' \
   | grep -vE ':[[:space:]]*\*'
 ```
 
-com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc/com_util/base/error_message.c`) は、元関数へ委譲するため検出されます。  
+cplat 自身のラッパー実装 (`prod/libsrc/cplat/crt/`、`prod/libsrc/cplat/base/error_message.c`) は、元関数へ委譲するため検出されます。  
 [ラッパーがある関数の使用](#ラッパーがある関数の使用) の例外に当たるため、対象外として扱います。
 
 ### scanf 系ラッパー
 
-`scanf`、`fscanf`、`sscanf` と各 `v*` 版は、com_util の対応するラッパーを使用します。  
+`scanf`、`fscanf`、`sscanf` と各 `v*` 版は、cplat の対応するラッパーを使用します。  
 これらの API は Linux の scanf 書式と可変長引数の契約を正とし、Windows でも `_s` 版へ切り替えません。
 
 `%s`、`%S`、`%[` で文字列を格納するときは、終端文字を除いた最大文字数を幅として指定します。  
 幅は宛先バッファーの要素数より小さくなければなりません。  
 `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡します。
 
-非信頼なストリーム入力は `com_util_fgets` で 1 行を読み取ってから `com_util_sscanf` で解析します。  
-`com_util_scanf` と `com_util_fscanf` は、既存の scanf 形式との互換が必要な場合に使用します。
+非信頼なストリーム入力は `cplat_fgets` で 1 行を読み取ってから `cplat_sscanf` で解析します。  
+`cplat_scanf` と `cplat_fscanf` は、既存の scanf 形式との互換が必要な場合に使用します。
 
 > [!WARNING]
 > 幅を指定しない `%s` は、宛先の容量に関わらず入力の長さだけ書き込みます。  
@@ -657,7 +657,7 @@ com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc
 
 > [!NOTE]
 > 静的解析と動的解析による検出は次のとおりです。  
-> Coverity では、幅なし `%s`、宛先容量以上の幅、com_util ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。  
+> Coverity では、幅なし `%s`、宛先容量以上の幅、cplat ラッパー経由の呼び出しをそれぞれ検出できることを、利用する製品版で確認します。  
 > ASan では、幅指定を欠くテスト用入力が境界外書き込みとして報告されることを手動で確認します。  
 > どちらも書式が定数で、解析対象に呼び出し元とラッパー実装が含まれる場合に検出を期待できます。
 
@@ -688,15 +688,15 @@ com_util 自身のラッパー実装 (`prod/libsrc/com_util/crt/`、`prod/libsrc
 
 - セキュア消去は volatile 経由で書き込み、コンパイラによる最適化除去を防ぎます。非 volatile のループや素の `memset` は使用しません
 - 乱数は暗号論的乱数源のみを使用し、取得に失敗した場合は結果コードで通知します。呼び出し側が失敗を無視して処理を続行しない設計とします
-- OS エラーの文字列化は `com_util_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
+- OS エラーの文字列化は `cplat_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
 - 文字列から数値への変換は、完全消費と範囲の検査を関数側に内包します。`endptr` に相当する引数を公開 API に露出させません
 - 書式化と行入力は、切り詰めを結果コードで通知します。切り詰めた内容を宛先に残しません
 - メモリ確保は、長さ 0 と乗算オーバーフローを関数側で検査し、いずれも NULL を返します。呼び出し側が要素数とサイズの乗算を書く形の API は作りません
 
 ## API 命名規約
 
-com_util の公開 API 名およびライブラリ内共有 API 名に適用する規則を示します。  
-上位規範の「命名規則」がライブラリ接頭辞と記法までを定めるのに対し、本章はカテゴリ名詞と動詞の並び順など com_util 固有の構成規則を定めます。
+cplat の公開 API 名およびライブラリ内共有 API 名に適用する規則を示します。  
+上位規範の「命名規則」がライブラリ接頭辞と記法までを定めるのに対し、本章はカテゴリ名詞と動詞の並び順など cplat 固有の構成規則を定めます。
 
 既存 API の名前は原則として ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
 ただし、次の 2 点に限り、この凍結を破棄します。  
@@ -711,38 +711,38 @@ com_util の公開 API 名およびライブラリ内共有 API 名に適用す�
 > 単なる規約への不適合は、上記 2 点以外は ABI 互換を優先して凍結したままとします。
 
 上記の例外を除き、本規約は新設 API と、移行を伴う変更の際の改名先に適用します。  
-上位規範が定めるライブラリ内共有の接頭辞 (`com_util_internal_` の関数・型、`g_com_util_internal_` の外部リンケージ変数) への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
+上位規範が定めるライブラリ内共有の接頭辞 (`cplat_internal_` の関数・型、`g_cplat_internal_` の外部リンケージ変数) への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
 
 ### 基本形
 
-公開 API は `com_util_<カテゴリ名詞>_<動詞または属性>` の順序を正とします。
+公開 API は `cplat_<カテゴリ名詞>_<動詞または属性>` の順序を正とします。
 
 ```c
-com_util_file_get_size(...)     /* file カテゴリの getter */
-com_util_tracer_set_name(...)   /* tracer カテゴリの setter */
-com_util_path_dirname(...)      /* path カテゴリの変換 */
+cplat_file_get_size(...)     /* file カテゴリの getter */
+cplat_tracer_set_name(...)   /* tracer カテゴリの setter */
+cplat_path_dirname(...)      /* path カテゴリの変換 */
 ```
 
-ライブラリ内共有 (`include_internal/`) の関数と型は、上位規範に従い `com_util_internal_` を前置きします。  
-外部リンケージ変数は `g_com_util_internal_` を前置きします。  
+ライブラリ内共有 (`include_internal/`) の関数と型は、上位規範に従い `cplat_internal_` を前置きします。  
+外部リンケージ変数は `g_cplat_internal_` を前置きします。  
 カテゴリ名詞と動詞の並びは公開 API と同じ規則を適用し、接頭辞だけを差し替えます。
 
 ```c
 /* 公開 */
-com_util_tracer_set_name(...)
+cplat_tracer_set_name(...)
 
 /* ライブラリ内共有 (関数) */
-com_util_internal_trace_resolve_timestamp(...)
+cplat_internal_trace_resolve_timestamp(...)
 
 /* ライブラリ内共有 (変数) */
-extern int g_com_util_internal_sink_count;
+extern int g_cplat_internal_sink_count;
 ```
 
-カテゴリ名詞を持たない横断的な API (`com_util_sleep_ms`、`com_util_parse_int64` など) に限り、動詞先行を許容します。  
-元 API 名を保存する CRT ラッパー (`com_util_strcpy`、`com_util_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
+カテゴリ名詞を持たない横断的な API (`cplat_sleep_ms`、`cplat_parse_int64` など) に限り、動詞先行を許容します。  
+元 API 名を保存する CRT ラッパー (`cplat_strcpy`、`cplat_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
 
 > [!IMPORTANT]
-> `com_util_get_temp_dir`、`com_util_get_monotonic_ms`、`com_util_normalize_path_sep`、`com_util_paths_equal` は本規約に先行するため凍結対象です。  
+> `cplat_get_temp_dir`、`cplat_get_monotonic_ms`、`cplat_normalize_path_sep`、`cplat_paths_equal` は本規約に先行するため凍結対象です。  
 > これらを新設 API 名の前例として引用しないでください。
 
 ### 生成と破棄の動詞対
@@ -752,26 +752,26 @@ extern int g_com_util_internal_sink_count;
 `*_detach`・`*_close`・`*_stop`・`*_release` は `*_destroy`/`*_dispose` と意味が異なる (実体は別途終了する、POSIX/CRT の open/close 慣用を模す、再開可能な状態停止、ロック スコープの解除) ため、統一の対象外とし現状の動詞を維持します。
 
 プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません。  
-`com_util_argparser_init` が該当します。
+`cplat_argparser_init` が該当します。
 
 > [!NOTE]
 > 既定パーサーはライブラリが所有し、初期化後はプロセス終了まで常に有効であるため、利用側による破棄を必要としない設計です。  
-> `com_util_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません。
+> `cplat_console_init` の `_dispose` は終了時の状態復元であり、インスタンス破棄ではありません。
 
 ### アンダースコア前置きの廃止
 
-`_com_util_` 前置きのシンボルは使用しません。  
+`_cplat_` 前置きのシンボルは使用しません。  
 用途に応じて、上位規範の「予約識別子の回避」が定める 3 規則に従います。
 
 > [!NOTE]
 > 使用しないのは、C 標準がアンダースコアで始まる識別子をファイル スコープで予約しているためです。  
-> 以前は、マクロの実体とテスト専用フックの 2 用途に限り `_com_util_` 前置きを許容していましたが、この扱いは撤回しました。
+> 以前は、マクロの実体とテスト専用フックの 2 用途に限り `_cplat_` 前置きを許容していましたが、この扱いは撤回しました。
 
-| 用途 | com_util での形式 | 例 |
+| 用途 | cplat での形式 | 例 |
 |---|---|---|
-| 呼び出し元情報 (`__FILE__` / `__LINE__`) を補うマクロの実体 | `_at` サフィックス | `com_util_tracer_write_at` |
-| 暗黙パーサー版と明示ハンドル版の対 | 暗黙パーサー版は無修飾、明示ハンドル版は `_handle_` を挟む | `com_util_argparser_parse` と `com_util_argparser_handle_parse` |
-| テスト専用フック | `_for_test` サフィックスのみ | `com_util_shutdown_invoke_for_test` |
+| 呼び出し元情報 (`__FILE__` / `__LINE__`) を補うマクロの実体 | `_at` サフィックス | `cplat_tracer_write_at` |
+| 暗黙パーサー版と明示ハンドル版の対 | 暗黙パーサー版は無修飾、明示ハンドル版は `_handle_` を挟む | `cplat_argparser_parse` と `cplat_argparser_handle_parse` |
+| テスト専用フック | `_for_test` サフィックスのみ | `cplat_shutdown_invoke_for_test` |
 
 テスト専用フックは公開ヘッダーに宣言しますが、Doxygen の公開グループには含めず `@internal` を付けます。
 
@@ -781,23 +781,23 @@ extern int g_com_util_internal_sink_count;
 
 ### 暗黙パーサー版 API の命名
 
-プロセス共有のパーサーを暗黙に使う API は、`com_util_argparser_` の無修飾名とします。
-明示ハンドルを受け取る API は、`com_util_argparser_handle_` の修飾名とします。
+プロセス共有のパーサーを暗黙に使う API は、`cplat_argparser_` の無修飾名とします。  
+明示ハンドルを受け取る API は、`cplat_argparser_handle_` の修飾名とします。
 
 ```c
 /* 暗黙パーサー版 (一般利用者向け) */
-int com_util_argparser_parse(void);
+int cplat_argparser_parse(void);
 
 /* 明示ハンドル版 (テスト・複数インスタンス向け) */
-int com_util_argparser_handle_parse(com_util_argparser *parser);
+int cplat_argparser_handle_parse(cplat_argparser *parser);
 ```
 
 > [!NOTE]
 > 一般利用者はプロセス共有のパーサーを使うため、通常の API 名には実装上の共有方法を含めません。  
 > テストや複数インスタンスの利用者は、名前の `_handle_` 修飾によって明示ハンドル版を選択します。
 
-暗黙パーサーの初期化は `com_util_argparser_init` とします。  
-明示ハンドルの生成と解放は `com_util_argparser_handle_create` / `com_util_argparser_handle_dispose` とします。
+暗黙パーサーの初期化は `cplat_argparser_init` とします。  
+明示ハンドルの生成と解放は `cplat_argparser_handle_create` / `cplat_argparser_handle_dispose` とします。
 
 ### typedef の規則 (上位規範への追記)
 
@@ -812,14 +812,14 @@ struct、enum、union、関数ポインターのいずれにも `_t` サフィ�
 
 | 型 | 定義 | 例外とする理由 |
 |---|---|---|
-| `com_util_file_stat_t` | `include/com_util/crt/sys/stat.h` | POSIX の `struct stat` および MSVC の `struct _stat64` の alias であり、元の型名を保存します。 |
-| `com_util_etw_provider_ref_t` | `include/com_util/trace/etw.h` | Windows TraceLogging SDK の内部型への参照の alias であり、SDK の型定義に従う |
+| `cplat_file_stat_t` | `include/cplat/crt/sys/stat.h` | POSIX の `struct stat` および MSVC の `struct _stat64` の alias であり、元の型名を保存します。 |
+| `cplat_etw_provider_ref_t` | `include/cplat/trace/etw.h` | Windows TraceLogging SDK の内部型への参照の alias であり、SDK の型定義に従う |
 
 ## 引数順序規約
 
-com_util の公開 API の引数順序は、API の性格に応じて以下の 3 規則に従います。
+cplat の公開 API の引数順序は、API の性格に応じて以下の 3 規則に従います。
 
-### 変換・整形系 (COM_UTIL_OK 系)
+### 変換・整形系 (CPLAT_OK 系)
 
 入力を出力バッファーへ変換・整形する API は、CRT の `strcpy_s` 系に合わせて出力バッファーを先頭に置きます。
 
@@ -828,28 +828,28 @@ com_util の公開 API の引数順序は、API の性格に応じて以下の 3
 ```
 
 ```c
-com_util_strcpy(dest, dest_size, src);
-com_util_snprintf(dest, dest_size, format, ...);
-com_util_parse_int64(value_out, text, base);
-com_util_path_dirname(path_out, path_size, detail_out, path);
-com_util_gmtime(utc_tm, timep);
-com_util_stat(buf, detail_out, path);
+cplat_strcpy(dest, dest_size, src);
+cplat_snprintf(dest, dest_size, format, ...);
+cplat_parse_int64(value_out, text, base);
+cplat_path_dirname(path_out, path_size, detail_out, path);
+cplat_gmtime(utc_tm, timep);
+cplat_stat(buf, detail_out, path);
 ```
 
 `detail_out` を提供する場合は、出力引数と、その出力サイズがある場合は出力サイズの直後に置き、後続の入力引数より前に置きます。
 
 > [!IMPORTANT]
-> `com_util_stat` は POSIX の `stat(path, buf)` と引数順が逆です。  
+> `cplat_stat` は POSIX の `stat(path, buf)` と引数順が逆です。  
 > 本規約 (出力先頭) によるものであり、誤りではありません。
 
-### ハンドル・操作系 (COM_UTIL_OK 系)
+### ハンドル・操作系 (CPLAT_OK 系)
 
 ハンドルまたは操作対象を先頭に置き、`*_out` の出力引数は末尾に置きます。
 
 ```c
-com_util_file_get_size(file, size_out, detail_out);
-com_util_paths_equal(lhs, rhs, equal_out, detail_out);
-com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
+cplat_file_get_size(file, size_out, detail_out);
+cplat_paths_equal(lhs, rhs, equal_out, detail_out);
+cplat_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
 ```
 
 ### 適用対象外 API と _fmt 系
@@ -857,17 +857,17 @@ com_util_elevated_process_run_with_result(arguments, exit_code, handled, result_
 「エラー処理と戻り値規約」の適用対象外 API は、元 API の引数順を保存し、追加の出力引数 (`detail_out` など) は末尾に付加します。
 
 ```c
-com_util_fopen(path, modes, detail_out);        /* fopen(path, modes) + detail_out */
-com_util_fopen_temp(prefix, modes, path_out, path_size, detail_out);
+cplat_fopen(path, modes, detail_out);        /* fopen(path, modes) + detail_out */
+cplat_fopen_temp(prefix, modes, path_out, path_size, detail_out);
 ```
 
 `_fmt` 系はパス引数を書式で組み立てる派生 API であり、基底 API からパス引数を除いた残りの引数順を維持し、末尾に `format` と可変長引数を置きます。  
 `v*_fmt` は可変長引数を `va_list args` に置き換えます。
 
 ```c
-com_util_open(path, flags, mode, detail_out);
-com_util_open_fmt(flags, mode, detail_out, format, ...);
-com_util_vopen_fmt(flags, mode, detail_out, format, args);
+cplat_open(path, flags, mode, detail_out);
+cplat_open_fmt(flags, mode, detail_out, format, ...);
+cplat_vopen_fmt(flags, mode, detail_out, format, args);
 ```
 
 ## 解消済みの逸脱
@@ -877,18 +877,18 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 
 | API | 逸脱内容 | 解消結果 |
 |---|---|---|
-| `com_util_getenv` | 0 / -1 (未設定) / `ERANGE` の三値。上位規範の三値禁止に抵触 | 設定有無を `int *exists_out` へ分離し、戻り値を 0 / `EINVAL` / `ERANGE` の二値系へ変更 |
-| argparser の暗黙パーサー版ラッパー (`com_util_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なります。 | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
-| `com_util_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できません。 | 結果コード戻り + `size_t *written_out` へ変更 |
-| `com_util_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なります。 | 結果コード戻り + `com_util_etw_session **session_out` へ変更 |
-| `com_util_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `com_util_process_options` へ統一。同種の `com_util_process_stdio_t` も `com_util_process_stdio` へ統一 |
+| `cplat_getenv` | 0 / -1 (未設定) / `ERANGE` の三値。上位規範の三値禁止に抵触 | 設定有無を `int *exists_out` へ分離し、戻り値を 0 / `EINVAL` / `ERANGE` の二値系へ変更 |
+| argparser の暗黙パーサー版ラッパー (`cplat_argparser_register_*` など) | `void` 戻りで登録エラーを破棄。明示ハンドル版と成否可視性が異なります。 | 15 関数を `int` 戻りへ変更し、明示ハンドル版の結果コードを転送 |
+| `cplat_pinned_prompt_write` | 引数不正時に 0 を返し、正常な 0 バイト書き込みと区別できません。 | 結果コード戻り + `size_t *written_out` へ変更 |
+| `cplat_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なります。 | 結果コード戻り + `cplat_etw_session **session_out` へ変更 |
+| `cplat_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `cplat_process_options` へ統一。同種の `cplat_process_stdio_t` も `cplat_process_stdio` へ統一 |
 | enum と関数ポインターの `_t` サフィックス (公開 18 型) | POSIX が予約する名前空間の侵犯。struct とも規則が食い違う | `_t` を除去。関数ポインターはサフィックスを `_fn` へ統一。OS / SDK 由来の alias 2 型のみ例外として維持 |
-| `_com_util_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を正名へ、テスト フックを前置きなしへ変更 |
-| 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `com_util_` がなく、リンク時に利用側と衝突しうる | `com_util_` を付与 (当時の上位規範)。以降の新設・改名では上位規範の `com_util_internal_` に従う |
+| `_cplat_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を正名へ、テスト フックを前置きなしへ変更 |
+| 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `cplat_` がなく、リンク時に利用側と衝突しうる | `cplat_` を付与 (当時の上位規範)。以降の新設・改名では上位規範の `cplat_internal_` に従う |
 | `static` 関数へのライブラリ接頭辞 (11 件) | 外部リンケージを持つかのように読め、公開シンボルの点検で偽陽性を生む | 接頭辞を除去 |
 
 > [!NOTE]
-> `com_util_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
+> `cplat_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
 
 ### 凍結対象として残す逸脱
 
@@ -896,24 +896,24 @@ com_util_vopen_fmt(flags, mode, detail_out, format, args);
 
 > [!IMPORTANT]
 > これらは凍結対象であり、新設するマクロの前例になりません。  
-> 新しいマクロには [API 命名規約](#api-命名規約) に従って `COM_UTIL_` を前置きします。
+> 新しいマクロには [API 命名規約](#api-命名規約) に従って `CPLAT_` を前置きします。
 
 | ヘッダー | マクロ |
 |---|---|
-| `include/com_util/base/platform.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR` |
-| `include/com_util/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
-| `include/com_util/base/shared_lib_lifecycle.h` | `DLLMAIN_COM_UTIL_INFO_MSG` |
+| `include/cplat/base/platform.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR` |
+| `include/cplat/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
+| `include/cplat/base/shared_lib_lifecycle.h` | `DLLMAIN_CPLAT_INFO_MSG` |
 
 ## 整数演算の安全性
 
 符号混在比較、明示キャストの範囲検査または理由コメント、オーバーフローの事前検査など、整数演算の一般則は上位の [コーディング規範](../../general/docs/coding-guideline.md) の「整数演算の安全性」に従います。
 
-com_util が **関数側で検査を内包する** 範囲は次のとおりです。
+cplat が **関数側で検査を内包する** 範囲は次のとおりです。
 
 | 領域 | API | 関数側の検査 |
 |---|---|---|
-| 外部文字列から整数への変換 | `com_util_parse_int` / `com_util_parse_int64` / `com_util_parse_uint64` / `com_util_parse_double` | 文字列の完全消費、目的型の範囲、符号なし系での先頭負号の拒否 |
-| 要素数とサイズの乗算を伴う確保 | `com_util_calloc` / `com_util_realloc` / `com_util_realloc_zerofill` | 長さ 0、`count * size` の乗算オーバーフロー |
+| 外部文字列から整数への変換 | `cplat_parse_int` / `cplat_parse_int64` / `cplat_parse_uint64` / `cplat_parse_double` | 文字列の完全消費、目的型の範囲、符号なし系での先頭負号の拒否 |
+| 要素数とサイズの乗算を伴う確保 | `cplat_calloc` / `cplat_realloc` / `cplat_realloc_zerofill` | 長さ 0、`count * size` の乗算オーバーフロー |
 
 一般の加減乗算を検査する API は提供しません。  
 呼び出し側は上位規範の事前検査の慣用句に従います。  
@@ -922,23 +922,23 @@ com_util が **関数側で検査を内包する** 範囲は次のとおりで�
 詳細は [数値変換](#数値変換) と [メモリ確保の代替](#メモリ確保の代替) を参照してください。
 
 > [!NOTE]
-> 一般則を上位規範へ置き、関数を伴う部分だけを本書へ置くのは、com_util が optional であることと整合するためです。  
+> 一般則を上位規範へ置き、関数を伴う部分だけを本書へ置くのは、cplat が optional であることと整合するためです。  
 > 危険な標準関数の代替 (C3) とメモリ確保の代替 (C4) と同じ分担です。
 
-## 標準時刻型 (com_util_timespec)
+## 標準時刻型 (cplat_timespec)
 
 ### 基本ルール
 
-`app/` 配下のコードでは、時刻の受け渡しに `struct timespec` を直接使用せず、公開型 `com_util_timespec` を使用します。  
+`app/` 配下のコードでは、時刻の受け渡しに `struct timespec` を直接使用せず、公開型 `cplat_timespec` を使用します。  
 時刻の秒部、ナノ秒部、期間、時間差の型選択は、上位「コーディング規範」の「値の意味に対応する型」に従います。
 
 | 項目 | 内容 |
 |---|---|
 | 型定義 | `time_t tv_sec; int64_t tv_nsec;` (16 バイト)。Linux x86-64 の `struct timespec` とレイアウト互換 |
-| native 変換 | ネイティブ `struct timespec` が必要な OS API 境界では `com_util_timespec_to_native()` / `com_util_timespec_from_native()` に集約します。キャスト・混用はしません。 |
-| 演算 | `com_util_timespec_normalize/add/sub/cmp/add_ms/diff_ms` を使用します。 |
+| native 変換 | ネイティブ `struct timespec` が必要な OS API 境界では `cplat_timespec_to_native()` / `cplat_timespec_from_native()` に集約します。キャスト・混用はしません。 |
+| 演算 | `cplat_timespec_normalize/add/sub/cmp/add_ms/diff_ms` を使用します。 |
 
-詳細は `prod/include/com_util/clock/timespec.h` の Doxygen コメントを参照してください。
+詳細は `prod/include/cplat/clock/timespec.h` の Doxygen コメントを参照してください。
 
 > [!WARNING]
 > Windows UCRT の `struct timespec` は `tv_nsec` が `long` (32bit) であり、Linux とレイアウトが異なります。  
@@ -947,7 +947,7 @@ com_util が **関数側で検査を内包する** 範囲は次のとおりで�
 ### 例外事項
 
 > [!IMPORTANT]
-> 時刻を扱う処理で `com_util_timespec` とは別の時刻型を使用している場合は、互換性を確保するための意図があります。  
+> 時刻を扱う処理で `cplat_timespec` とは別の時刻型を使用している場合は、互換性を確保するための意図があります。  
 > 変更前にユーザーへ確認してください。
 
 ## 関数引数の const 付与と Doxygen 方向タグ
@@ -956,20 +956,20 @@ com_util が **関数側で検査を内包する** 範囲は次のとおりで�
 
 上位「コーディング規範」の「関数引数の const 付与と Doxygen 方向タグ」にすでに沿っているヘッダー (新規実装時の参考) を示します。
 
-- `prod/include/com_util/compress/compress.h` - データ系 `[in]` が const
-- `prod/include/com_util/crypto/crypto.h` - データ系 `[in]` が const
-- `prod/include/com_util/runtime/module.h` - `func_addr` が `const void *`
-- `prod/include/com_util/runtime/shutdown.h` - `event` が `const com_util_shutdown_event *`
-- `prod/include/com_util/sync/sync.h` の `com_util_interprocess_lock_export_descriptor` - `lock` が `const com_util_interprocess_lock *`
+- `prod/include/cplat/compress/compress.h` - データ系 `[in]` が const
+- `prod/include/cplat/crypto/crypto.h` - データ系 `[in]` が const
+- `prod/include/cplat/runtime/module.h` - `func_addr` が `const void *`
+- `prod/include/cplat/runtime/shutdown.h` - `event` が `const cplat_shutdown_event *`
+- `prod/include/cplat/sync/sync.h` の `cplat_interprocess_lock_export_descriptor` - `lock` が `const cplat_interprocess_lock *`
 
 ### 内部 lock 取得検査 (grep パターンの拡張)
 
-上位「コーディング規範」の const 付与判定にある「内部 lock 取得検査」の grep パターンには、com_util の同期プリミティブ API を追加してください。
+上位「コーディング規範」の const 付与判定にある「内部 lock 取得検査」の grep パターンには、cplat の同期プリミティブ API を追加してください。
 
 ```bash
-grep -nE '(pthread_mutex_lock|EnterCriticalSection|com_util_local_(mutex|rwlock|condvar)_)' <dir>/*.c
+grep -nE '(pthread_mutex_lock|EnterCriticalSection|cplat_local_(mutex|rwlock|condvar)_)' <dir>/*.c
 ```
 
 > [!IMPORTANT]
-> com_util の同期プリミティブを取得対象として受け取る引数には、論理的に read-only であっても `const` を付けません。  
+> cplat の同期プリミティブを取得対象として受け取る引数には、論理的に read-only であっても `const` を付けません。  
 > `-Wcast-qual` と整合させるためです。判定の詳細は上位規範の「ポインター引数の const 付与判定」を参照してください。

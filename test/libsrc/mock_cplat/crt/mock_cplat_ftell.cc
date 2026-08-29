@@ -1,0 +1,40 @@
+#include <stdint.h>
+#include <testfw.h>
+#include <mock_cplat.h>
+
+int64_t delegate_real_cplat_ftell(FILE *stream)
+{
+    static auto real_fn =
+        reinterpret_cast<decltype(&cplat_ftell)>(resolveSharedSymbolOrExit(kLibCplatName, "cplat_ftell"));
+
+    return real_fn(stream);
+}
+
+MOCK_WEAK_IMPL(int64_t, cplat_ftell, FILE *stream)
+{
+    int64_t mock_ret = -1;
+
+    if (_mock_cplat != nullptr)
+    {
+        mock_ret = _mock_cplat->cplat_ftell(stream);
+    }
+    else
+    {
+        mock_ret = delegate_real_cplat_ftell(stream);
+    }
+
+    if (getTraceLevel() > TRACE_NONE)
+    {
+        printf("  > %s 0x%p", __func__, (void *)stream);
+        if (getTraceLevel() >= TRACE_DETAIL)
+        {
+            printf(" -> %" PRId64 "\n", mock_ret);
+        }
+        else
+        {
+            printf("\n");
+        }
+    }
+
+    return mock_ret;
+}

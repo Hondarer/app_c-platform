@@ -11,8 +11,8 @@
  *******************************************************************************
  */
 
-#include <com_util/clock/clock.h>
-#include <com_util/clock/timespec.h>
+#include <cplat/clock/clock.h>
+#include <cplat/clock/timespec.h>
 
 #include "bench_timer.h"
 
@@ -28,15 +28,15 @@
  *  @param[in]      end    終了時刻。NULL を渡してはなりません。
  *  @return         経過時間 (ナノ秒)。負値になる場合は 0 を返します。
  *
- *  `com_util_timespec_diff_ms()` はミリ秒単位のため、
- *  ナノ秒の分解能を保つ目的で `com_util_timespec_sub()` の結果から自前で算出します。
+ *  `cplat_timespec_diff_ms()` はミリ秒単位のため、
+ *  ナノ秒の分解能を保つ目的で `cplat_timespec_sub()` の結果から自前で算出します。
  */
-static uint64_t elapsed_ns(const com_util_timespec *start, const com_util_timespec *end)
+static uint64_t elapsed_ns(const cplat_timespec *start, const cplat_timespec *end)
 {
-    com_util_timespec diff;
+    cplat_timespec diff;
     int64_t total;
 
-    com_util_timespec_sub(end, start, &diff);
+    cplat_timespec_sub(end, start, &diff);
     total = ((int64_t)diff.tv_sec * BENCH_NS_PER_SEC) + diff.tv_nsec;
     if (total < 0)
     {
@@ -55,11 +55,11 @@ static uint64_t elapsed_ns(const com_util_timespec *start, const com_util_timesp
  */
 static int run_block(bench_iteration_fn fn, void *arg, uint64_t iterations, uint64_t *total_ns)
 {
-    com_util_timespec start;
-    com_util_timespec end;
+    cplat_timespec start;
+    cplat_timespec end;
     uint64_t index;
 
-    com_util_get_monotonic(&start);
+    cplat_get_monotonic(&start);
     for (index = 0U; index < iterations; index++)
     {
         if (fn(arg) != 0)
@@ -67,7 +67,7 @@ static int run_block(bench_iteration_fn fn, void *arg, uint64_t iterations, uint
             return -1;
         }
     }
-    com_util_get_monotonic(&end);
+    cplat_get_monotonic(&end);
 
     *total_ns = elapsed_ns(&start, &end);
     return 0;

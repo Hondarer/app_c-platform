@@ -12,4 +12,4 @@ INCDIR += \
 	$(MYAPP_DIR)/prod/src/cmd/trace-cli
 
 # ライブラリの指定
-LIBS += mock_com_util mock_libc
+LIBS += mock_cplat mock_libc

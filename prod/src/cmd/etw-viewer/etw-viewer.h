@@ -1,7 +1,7 @@
-#ifndef COM_UTIL_ETW_VIEWER_H
-#define COM_UTIL_ETW_VIEWER_H
+#ifndef CPLAT_ETW_VIEWER_H
+#define CPLAT_ETW_VIEWER_H
 
-#include <com_util/trace/etw.h>
+#include <cplat/trace/etw.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,10 +29,10 @@ extern "C"
     int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer, size_t buffer_size);
     const char *etw_viewer_level_name(int level);
     int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_t buffer_size);
-    void etw_viewer_handle_event(const com_util_etw_event *event, void *context);
+    void etw_viewer_handle_event(const cplat_etw_event *event, void *context);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* COM_UTIL_ETW_VIEWER_H */
+#endif /* CPLAT_ETW_VIEWER_H */

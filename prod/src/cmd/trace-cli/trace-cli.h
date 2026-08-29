@@ -1,7 +1,7 @@
-#ifndef COM_UTIL_TRACE_CLI_H
-#define COM_UTIL_TRACE_CLI_H
+#ifndef CPLAT_TRACE_CLI_H
+#define CPLAT_TRACE_CLI_H
 
-#include <com_util/trace/tracer.h>
+#include <cplat/trace/tracer.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -10,7 +10,7 @@ extern "C"
 
     typedef struct trace_cli_session
     {
-        com_util_tracer *handle;
+        cplat_tracer *handle;
         int prompt_state;
         int exit_requested;
     } trace_cli_session;
@@ -24,4 +24,4 @@ extern "C"
 }
 #endif
 
-#endif /* COM_UTIL_TRACE_CLI_H */
+#endif /* CPLAT_TRACE_CLI_H */

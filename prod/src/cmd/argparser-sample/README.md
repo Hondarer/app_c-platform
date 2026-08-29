@@ -2,13 +2,13 @@
 short-title: "argparser-sample"
 ---
 
-# argparser-sample - com_util_argparser 動作確認コマンド
+# argparser-sample - cplat_argparser 動作確認コマンド
 
-`argparser-sample` は、`com_util_argparser` の動作確認用サンプル コマンドです。  
+`argparser-sample` は、`cplat_argparser` の動作確認用サンプル コマンドです。  
 パーサーが対応する全種別 (フラグ、値付きオプション、複数値オプション、位置引数) を登録し、解析結果を標準出力へ出力します。  
 解析エラー時はエラー メッセージと usage を標準エラー出力へ出力して `EXIT_FAILURE` で終了します。
 
-ライブラリ利用者向けのユース ケース別の解説は、[com_util/argparser/README.md](../../../libsrc/com_util/argparser/README.md) を参照してください。
+ライブラリ利用者向けのユース ケース別の解説は、[cplat/argparser/README.md](../../../libsrc/cplat/argparser/README.md) を参照してください。
 
 ## 受け付ける引数
 
@@ -24,26 +24,26 @@ short-title: "argparser-sample"
 
 ## ビルドと実行
 
-`make -C app/com_util` でビルドすると `app/com_util/prod/cbin/argparser-sample` が生成されます。
+`make -C app/c-platform` でビルドすると `app/c-platform/prod/cbin/argparser-sample` が生成されます。
 
 ```bash
 # usage の表示
-app/com_util/prod/cbin/argparser-sample --help
+app/c-platform/prod/cbin/argparser-sample --help
 
 # 全種別の指定例
-app/com_util/prod/cbin/argparser-sample -v -v -c 3 --name=alice -i dir1 -i dir2 in.txt out.txt
+app/c-platform/prod/cbin/argparser-sample -v -v -c 3 --name=alice -i dir1 -i dir2 in.txt out.txt
 
 # 解析エラーの例 (必須の位置引数 input を省略)
-app/com_util/prod/cbin/argparser-sample -v
+app/c-platform/prod/cbin/argparser-sample -v
 ```
 
 ## コードの構成
 
-`argparser-sample.c` は、暗黙のシングルトン パーサーを使用する API (`com_util_argparser_*`) の参考実装です。
+`argparser-sample.c` は、暗黙のシングルトン パーサーを使用する API (`cplat_argparser_*`) の参考実装です。
 
 - 解析結果の格納先を `argparser_sample_options` 構造体に集約します。
-- `com_util_argparser_init()` は `argc` と `argv` を受け取るため、main で呼び出します。
-- 登録処理を `register_argparser()` という別関数に分離し、登録エラーの有無を `com_util_argparser_get_register_error_count()` でまとめて判定します。
+- `cplat_argparser_init()` は `argc` と `argv` を受け取るため、main で呼び出します。
+- 登録処理を `register_argparser()` という別関数に分離し、登録エラーの有無を `cplat_argparser_get_register_error_count()` でまとめて判定します。
 - 結果表示を `print_result()` に分離します。
 
 構造体への集約と登録の別関数化は、登録内容が多いコマンドで構成を分かりやすくするための一例であり、必須の作法ではありません。  

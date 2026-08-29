@@ -1,6 +1,6 @@
 #include <testfw.h>
 #include <mock_stdio.h>
-#include <mock_com_util.h>
+#include <mock_cplat.h>
 
 #include <cstdlib>
 
@@ -14,11 +14,11 @@ class argparser_sampleTest : public Test
     argparser_sampleTest()
     {
         // argparser-sample.c の単体テストでは shutdown.c を対象外とし、登録 API をフェイクする。
-        ON_CALL(mock_com_util_, com_util_shutdown_register(_, _)).WillByDefault(Return(COM_UTIL_OK));
+        ON_CALL(mock_cplat_, cplat_shutdown_register(_, _)).WillByDefault(Return(CPLAT_OK));
     }
 
     NiceMock<Mock_stdio> mock_stdio_;
-    NiceMock<Mock_com_util> mock_com_util_;
+    NiceMock<Mock_cplat> mock_cplat_;
 };
 
 // 全種別の引数を指定した正常系で解析結果が表示されることの確認
@@ -56,8 +56,8 @@ TEST_F(argparser_sampleTest, main_parses_and_prints_all_kinds)
 
 // 未知のオプションで失敗終了することの確認
 //
-// エラー メッセージと usage は com_util_argparser_print_error_messages() /
-// com_util_argparser_print_usage() (いずれも argparser.c 側、本テストでは ADD_SRCS として
+// エラー メッセージと usage は cplat_argparser_print_error_messages() /
+// cplat_argparser_print_usage() (いずれも argparser.c 側、本テストでは ADD_SRCS として
 // ビルドされ mock_stdio の override 対象外) が出力するため、本テストでは mock で検証できない。
 // メッセージ内容の確認は argparserTest.cc の print_error_messages_writes_to_stream /
 // error_message_formatting、usage の内容確認は同ファイルの print_usage_writes_to_stream /

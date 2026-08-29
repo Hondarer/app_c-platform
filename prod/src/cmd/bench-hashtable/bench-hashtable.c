@@ -17,10 +17,10 @@
  *******************************************************************************
  */
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/result.h>
-#include <com_util/crt/stdio.h>
-#include <com_util/hashtable/hashtable.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/result.h>
+#include <cplat/crt/stdio.h>
+#include <cplat/hashtable/hashtable.h>
 
 #include "bench_timer.h"
 
@@ -68,7 +68,7 @@ typedef struct bench_hashtable_case
  */
 typedef struct bench_state
 {
-    com_util_hashtable *ht;   /**< 測定対象のテーブルです。 */
+    cplat_hashtable *ht;   /**< 測定対象のテーブルです。 */
     size_t capacity;          /**< スロット数です。 */
     bench_scenario scenario;  /**< 測定対象の操作です。 */
     int failed;               /**< 準備または測定に失敗した場合は 1 です。 */
@@ -144,12 +144,12 @@ static void bench_make_value(size_t index, char *text)
  *  @param[in]      capacity  スロット数。
  *  @param[out]     config    組み立て先。NULL を渡してはなりません。
  */
-static void bench_make_config(size_t capacity, com_util_hashtable_config *config)
+static void bench_make_config(size_t capacity, cplat_hashtable_config *config)
 {
     memset(config, 0, sizeof(*config));
     config->capacity = capacity;
-    config->key_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
-    config->value_type = COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING;
+    config->key_type = CPLAT_HASHTABLE_FIELD_VARIABLE_STRING;
+    config->value_type = CPLAT_HASHTABLE_FIELD_VARIABLE_STRING;
     config->key_storage_size = capacity * (size_t)BENCH_KEY_BYTES;
     config->value_storage_size = capacity * (size_t)BENCH_VALUE_BYTES;
     config->lifetime = 5;
@@ -163,7 +163,7 @@ static void bench_make_config(size_t capacity, com_util_hashtable_config *config
  *  @param[in]      step   レコード番号の増分。1 以上を指定します。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
-static int bench_add_range(com_util_hashtable *ht, size_t from, size_t count, size_t step)
+static int bench_add_range(cplat_hashtable *ht, size_t from, size_t count, size_t step)
 {
     size_t i;
 
@@ -174,7 +174,7 @@ static int bench_add_range(com_util_hashtable *ht, size_t from, size_t count, si
 
         bench_make_key(from + (i * step), key);
         bench_make_value(from + (i * step), value);
-        if (com_util_hashtable_add(ht, key, value, COM_UTIL_HASHTABLE_ADD_DELETED_OVERWRITE) != COM_UTIL_OK)
+        if (cplat_hashtable_add(ht, key, value, CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE) != CPLAT_OK)
         {
             return -1;
         }
@@ -188,7 +188,7 @@ static int bench_add_range(com_util_hashtable *ht, size_t from, size_t count, si
  *  @param[in]      capacity  スロット数。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
-static int bench_fragment_storage(com_util_hashtable *ht, size_t capacity)
+static int bench_fragment_storage(cplat_hashtable *ht, size_t capacity)
 {
     size_t i;
 
@@ -197,12 +197,12 @@ static int bench_fragment_storage(com_util_hashtable *ht, size_t capacity)
         char key[BENCH_TEXT_SIZE];
 
         bench_make_key(i, key);
-        if (com_util_hashtable_delete(ht, key) != COM_UTIL_OK)
+        if (cplat_hashtable_delete(ht, key) != CPLAT_OK)
         {
             return -1;
         }
     }
-    return com_util_hashtable_purge_deleted(ht) == COM_UTIL_OK ? 0 : -1;
+    return cplat_hashtable_purge_deleted(ht) == CPLAT_OK ? 0 : -1;
 }
 
 /**
@@ -213,12 +213,12 @@ static int bench_fragment_storage(com_util_hashtable *ht, size_t capacity)
 static int bench_prepare(void *arg)
 {
     bench_state *state = (bench_state *)arg;
-    com_util_hashtable_config config;
+    cplat_hashtable_config config;
 
-    com_util_hashtable_dispose(state->ht);
+    cplat_hashtable_dispose(state->ht);
     state->ht = NULL;
     bench_make_config(state->capacity, &config);
-    if (com_util_hashtable_create(&config, NULL, 0, NULL, 0, &state->ht) != COM_UTIL_OK)
+    if (cplat_hashtable_create(&config, NULL, 0, NULL, 0, &state->ht) != CPLAT_OK)
     {
         state->failed = 1;
         return -1;
@@ -264,7 +264,7 @@ static int bench_prepare(void *arg)
 static int bench_iterate(void *arg)
 {
     bench_state *state = (bench_state *)arg;
-    com_util_hashtable_config config;
+    cplat_hashtable_config config;
     size_t i;
 
     switch (state->scenario)
@@ -279,7 +279,7 @@ static int bench_iterate(void *arg)
 
                 bench_make_key(i, key);
                 bench_make_value(i + state->capacity, value);
-                if (com_util_hashtable_update(state->ht, key, value) != COM_UTIL_OK)
+                if (cplat_hashtable_update(state->ht, key, value) != CPLAT_OK)
                 {
                     return -1;
                 }
@@ -289,10 +289,10 @@ static int bench_iterate(void *arg)
             /* 回収済みのレコード番号を、同じ長さのキーと値で埋め直す。 */
             return bench_add_range(state->ht, 0, state->capacity / 2u, 2);
         case BENCH_SCENARIO_COMPACT:
-            return com_util_hashtable_compact(state->ht) == COM_UTIL_OK ? 0 : -1;
+            return cplat_hashtable_compact(state->ht) == CPLAT_OK ? 0 : -1;
         case BENCH_SCENARIO_RESIZE:
             bench_make_config(state->capacity * 2u, &config);
-            return com_util_hashtable_resize(state->ht, &config) == COM_UTIL_OK ? 0 : -1;
+            return cplat_hashtable_resize(state->ht, &config) == CPLAT_OK ? 0 : -1;
         case BENCH_SCENARIO_COUNT:
         default:
             return -1;
@@ -318,7 +318,7 @@ static int bench_run_case(FILE *csv, const bench_hashtable_case *item)
     state.scenario = item->scenario;
 
     ret = bench_timer_measure_cold(bench_iterate, &state, bench_prepare, &state, BENCH_TRIALS, &timing);
-    com_util_hashtable_dispose(state.ht);
+    cplat_hashtable_dispose(state.ht);
     if ((ret != 0) || (state.failed != 0))
     {
         (void)fprintf(stderr, "measurement failed: capacity=%zu scenario=%s\n", item->capacity,
@@ -355,15 +355,15 @@ typedef struct bench_hashtable_options
  */
 static int register_options(bench_hashtable_options *options)
 {
-    (void)com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
-    (void)com_util_argparser_register_option_int(
+    (void)cplat_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
+    (void)cplat_argparser_register_option_int(
         NULL, "--max-capacity", "N", "largest number of slots to measure (default 16384)", 0,
         &options->max_capacity);
-    (void)com_util_argparser_register_option_string(NULL, "--csv", "PATH", "also write results as CSV", 0,
+    (void)cplat_argparser_register_option_string(NULL, "--csv", "PATH", "also write results as CSV", 0,
                                                             &options->csv_path);
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     {
-        (void)com_util_argparser_print_register_error_messages(stderr);
+        (void)cplat_argparser_print_register_error_messages(stderr);
         return -1;
     }
     return 0;
@@ -378,21 +378,21 @@ int main(int argc, char **argv)
     int failures = 0;
     int ret;
 
-    com_util_argparser_init(argc, argv, "Measure hash table variable-length storage operations.");
+    cplat_argparser_init(argc, argv, "Measure hash table variable-length storage operations.");
     if (register_options(&options) != 0)
     {
         return EXIT_FAILURE;
     }
-    ret = com_util_argparser_parse();
+    ret = cplat_argparser_parse();
     if (options.need_help != 0)
     {
-        (void)com_util_argparser_print_usage(stdout);
+        (void)cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
-    if (ret != COM_UTIL_OK)
+    if (ret != CPLAT_OK)
     {
-        (void)com_util_argparser_print_error_messages(stderr);
-        (void)com_util_argparser_print_usage(stderr);
+        (void)cplat_argparser_print_error_messages(stderr);
+        (void)cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
     if (options.max_capacity < 0)
@@ -404,7 +404,7 @@ int main(int argc, char **argv)
 
     if (options.csv_path != NULL)
     {
-        csv = com_util_fopen(options.csv_path, "w", NULL);
+        csv = cplat_fopen(options.csv_path, "w", NULL);
         if (csv == NULL)
         {
             (void)fprintf(stderr, "cannot open %s for writing.\n", options.csv_path);

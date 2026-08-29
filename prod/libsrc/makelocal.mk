@@ -1,4 +1,4 @@
 # BEGIN makefw-subdirs
 SUBDIRS := \
-	com_util
+	cplat
 # END makefw-subdirs

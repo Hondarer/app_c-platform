@@ -16,15 +16,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <com_util/base/platform.h>
-#include <com_util/crt/stdlib.h>
-#include <com_util/crt/stdio.h>
+#include <cplat/base/platform.h>
+#include <cplat/crt/stdlib.h>
+#include <cplat/crt/stdio.h>
 
 #if defined(PLATFORM_LINUX)
     #include <sys/vfs.h>
 #elif defined(PLATFORM_WINDOWS)
-    #include <com_util/base/windows_sdk.h>
-    #include <com_util/win32/win32.h>
+    #include <cplat/base/windows_sdk.h>
+    #include <cplat/win32/win32.h>
 #endif /* PLATFORM_ */
 
 #include "bench_case.h"
@@ -107,7 +107,7 @@ static void trim_trailing(char *text)
 static void collect_cpu_model(bench_environment *env)
 {
 #if defined(PLATFORM_LINUX)
-    FILE *stream = com_util_fopen("/proc/cpuinfo", "r", NULL);
+    FILE *stream = cplat_fopen("/proc/cpuinfo", "r", NULL);
     char line[256];
 
     copy_text(env->cpu_model, sizeof(env->cpu_model), NULL);
@@ -133,14 +133,14 @@ static void collect_cpu_model(bench_environment *env)
 #elif defined(PLATFORM_WINDOWS)
     int exists = 0;
 
-    if (com_util_getenv("PROCESSOR_IDENTIFIER", env->cpu_model, sizeof(env->cpu_model), &exists, NULL) != 0 ||
+    if (cplat_getenv("PROCESSOR_IDENTIFIER", env->cpu_model, sizeof(env->cpu_model), &exists, NULL) != 0 ||
         exists == 0)
     {
         copy_text(env->cpu_model, sizeof(env->cpu_model), NULL);
     }
     else
     {
-        /* com_util_getenv は copy_text を経由せず直接書き込むため、ここでカンマを取り除く。 */
+        /* cplat_getenv は copy_text を経由せず直接書き込むため、ここでカンマを取り除く。 */
         sanitize_commas(env->cpu_model);
     }
 #else
@@ -167,7 +167,7 @@ static void collect_fs_type(const char *dir, bench_environment *env)
     /* statfs はファイル システム名を返さないため、magic 値をそのまま記録する。 */
     /* 主要な値の対応は Linux の statfs(2) を参照する。                         */
     /* see: https://man7.org/linux/man-pages/man2/statfs.2.html                 */
-    (void)com_util_snprintf(text, sizeof(text), "magic=0x%lx", (unsigned long)info.f_type);
+    (void)cplat_snprintf(text, sizeof(text), "magic=0x%lx", (unsigned long)info.f_type);
     copy_text(env->fs_type, sizeof(env->fs_type), text);
 #elif defined(PLATFORM_WINDOWS)
     char fs_name[MAX_PATH + 1];
@@ -220,11 +220,11 @@ void bench_report_begin_csv(FILE *csv, const bench_environment *env)
     {
         return;
     }
-    (void)com_util_fprintf(csv, "# os=%s\n", env->os_name);
-    (void)com_util_fprintf(csv, "# cpu_model=%s\n", env->cpu_model);
-    (void)com_util_fprintf(csv, "# fs_type=%s\n", env->fs_type);
-    (void)com_util_fprintf(csv, "# record_bytes=%d\n", BENCH_RECORD_SIZE);
-    (void)com_util_fprintf(csv, "os,cpu_model,fs_type,cache_state,api,pattern,file_size_bytes,record_bytes,"
+    (void)cplat_fprintf(csv, "# os=%s\n", env->os_name);
+    (void)cplat_fprintf(csv, "# cpu_model=%s\n", env->cpu_model);
+    (void)cplat_fprintf(csv, "# fs_type=%s\n", env->fs_type);
+    (void)cplat_fprintf(csv, "# record_bytes=%d\n", BENCH_RECORD_SIZE);
+    (void)cplat_fprintf(csv, "os,cpu_model,fs_type,cache_state,api,pattern,file_size_bytes,record_bytes,"
                                 "records_touched,iterations,trial_median_ns,trial_min_ns,trial_max_ns,"
                                 "ns_per_record,mib_per_sec\n");
 }
@@ -279,7 +279,7 @@ void bench_report_row(FILE *csv, const bench_environment *env, const bench_case 
     {
         return;
     }
-    (void)com_util_fprintf(csv, "%s,\"%s\",%s,%s,%s,%s,%llu,%d,%llu,%llu,%llu,%llu,%llu,%.3f,%.3f\n", env->os_name,
+    (void)cplat_fprintf(csv, "%s,\"%s\",%s,%s,%s,%s,%llu,%d,%llu,%llu,%llu,%llu,%llu,%.3f,%.3f\n", env->os_name,
                            env->cpu_model, env->fs_type, env->cache_state, api_name, pattern_name,
                            (unsigned long long)ctx->file_size, BENCH_RECORD_SIZE, (unsigned long long)ctx->touch_count,
                            (unsigned long long)timing->iterations, (unsigned long long)timing->median_ns,

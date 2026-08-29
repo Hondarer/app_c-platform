@@ -1,0 +1,6 @@
+/error.c
+/mock_cplat_etw_provider_dispose_on_unload.cc
+/mock_cplat_syslog_sink_dispose_on_unload.cc
+/mock_cplat_trace_file_sink_dispose_on_unload.cc
+/result.c
+/tracer.c

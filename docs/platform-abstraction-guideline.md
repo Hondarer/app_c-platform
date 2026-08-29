@@ -4,12 +4,12 @@
 
 C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッダーに集約しています。
 
-- `app/com_util/prod/include/com_util/base/platform.h`
-- `app/com_util/prod/include/com_util/base/compiler.h`
+- `app/c-platform/prod/include/cplat/base/platform.h`
+- `app/c-platform/prod/include/cplat/base/compiler.h`
 
 利用側のコードは、処理系依存マクロを直接判定するのではなく、`PLATFORM_*` / `ARCH_*` / `COMPILER_*` / `FORCE_INLINE` / `NO_INLINE` を使って分岐してください。
 
-com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を参照してください。
 
 ## 基本ルール
 
@@ -21,13 +21,13 @@ com_util が公開する API 全体の一覧は [com_util API チート シー�
 
 `__linux__` や `_WIN32` をアプリケーションのコードへ直接書かないでください。
 
-OS 分岐が必要なコードでは、まず `#include <com_util/base/platform.h>` を追加し、`PLATFORM_*` ベースで分岐します。
+OS 分岐が必要なコードでは、まず `#include <cplat/base/platform.h>` を追加し、`PLATFORM_*` ベースで分岐します。
 
 原則、`Linux -> Windows` の順で分岐するようにしてください。  
 ただし、ファイル全体が Windows 向け実装を意図している場合は、`#if defined(PLATFORM_WINDOWS)` を先頭にします。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
     /* Linux 向け処理 */
@@ -41,7 +41,7 @@ OS 分岐が必要なコードでは、まず `#include <com_util/base/platform.
 Windows 専用バックエンドや Windows 専用 API 実装では、次のように `PLATFORM_WINDOWS` を先頭に置きます。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_WINDOWS)
     /* Windows 向け実装 */
@@ -66,7 +66,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 `COMPILER_*` の分岐順は、`GCC -> MSVC` とします。
 
 ```c
-#include <com_util/base/compiler.h>
+#include <cplat/base/compiler.h>
 
 #if defined(COMPILER_GCC)
     #pragma GCC diagnostic push
@@ -85,7 +85,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 
 ### platform.h を基本入口にする
 
-OS 判定とコンパイラ判定の両方が関係する可能性があるコードでは、原則として `#include <com_util/base/platform.h>` を使います。
+OS 判定とコンパイラ判定の両方が関係する可能性があるコードでは、原則として `#include <cplat/base/platform.h>` を使います。
 
 `platform.h` は `compiler.h` を読み込むため、両方の共通マクロを利用できます。
 
@@ -132,13 +132,13 @@ OS 判定とコンパイラ判定の両方が関係する可能性があるコ�
 - テストのモック名だけが違う
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
     #include <unistd.h>
     typedef int native_file_handle_t;
 #elif defined(PLATFORM_WINDOWS)
-    #include <com_util/base/windows_sdk.h>
+    #include <cplat/base/windows_sdk.h>
     typedef HANDLE native_file_handle_t;
 #else
     typedef int native_file_handle_t;
@@ -148,7 +148,7 @@ OS 判定とコンパイラ判定の両方が関係する可能性があるコ�
 呼び出す API 名だけが違う場合は、利用箇所の直前で差異を吸収します。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
     #define NATIVE_STAT_FUNC stat
@@ -173,7 +173,7 @@ Linux 用ファイルと Windows 用ファイルを同じビルド対象の一�
 `*_linux.c` 側は、Linux 実装本体を `#if defined(PLATFORM_LINUX)` で囲い、Windows + MSVC でそのファイルが走査されたときだけ C4206 を抑止します。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
 
@@ -191,7 +191,7 @@ int feature_start(void)
 Windows 側の実装も同じ考え方で、Windows 実装本体を `PLATFORM_WINDOWS` で囲います。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_WINDOWS)
 
@@ -254,9 +254,9 @@ MYLIB_EXPORT int MYLIB_API mylib_open(void);
 #ifndef MYLIB_EXPORTS
     #define MYLIB_EXPORTS 0
 #endif
-#include <com_util/base/dll_exports.h>
-#define MYLIB_EXPORT COM_UTIL_DLL_EXPORT(MYLIB)
-#define MYLIB_API    COM_UTIL_DLL_API(MYLIB)
+#include <cplat/base/dll_exports.h>
+#define MYLIB_EXPORT CPLAT_DLL_EXPORT(MYLIB)
+#define MYLIB_API    CPLAT_DLL_API(MYLIB)
 ```
 
 makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、  
@@ -270,11 +270,11 @@ makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なし
 MYLIB_EXPORT extern int g_mylib_feature_flag;
 ```
 
-`com_util` では、`app/com_util/test/src/libcom_utilTest/exportTest/exportTest.cc` の `COM_UTIL_EXPORT_VARIABLE_TABLE(EXPORT_ENTRY)` に `EXPORT_ENTRY(変数名, 型 *)` の形で登録してください。関数と同じ `COM_UTIL_EXPORT_TABLE` の仕組み (シグネチャの static_assert、実バイナリのエクスポート一覧との突き合わせ) がそのまま変数にも適用され、export マクロの付け忘れとテーブル登録漏れの両方を検出できます。
+`cplat` では、`app/c-platform/test/src/libcplatTest/exportTest/exportTest.cc` の `CPLAT_EXPORT_VARIABLE_TABLE(EXPORT_ENTRY)` に `EXPORT_ENTRY(変数名, 型 *)` の形で登録してください。関数と同じ `CPLAT_EXPORT_TABLE` の仕組み (シグネチャの static_assert、実バイナリのエクスポート一覧との突き合わせ) がそのまま変数にも適用され、export マクロの付け忘れとテーブル登録漏れの両方を検出できます。
 
 さらに、`exportTest.cc` の `public_header_variables_declare_export_macro` テストが `prod/include/` 配下を直接走査し、export マクロを伴わない `extern` 変数宣言がないかを機械的に確認します。テーブルへの登録を忘れた場合でも、この走査によって export マクロの付け忘れが検出されます。
 
-この検証の仕組み自体 (テーブルからの static_assert 生成、実バイナリとの突き合わせ、ヘッダー走査) は `com_util` 固有ではなく `framework/testfw` の共通処理として提供されています。他ライブラリでの使い方や、公開ヘッダーと DLL/SO が 1:1 とは限らない構成への対応は [export-symbol-check.md](../../../framework/testfw/docs/export-symbol-check.md) を参照してください。
+この検証の仕組み自体 (テーブルからの static_assert 生成、実バイナリとの突き合わせ、ヘッダー走査) は `cplat` 固有ではなく `framework/testfw` の共通処理として提供されています。他ライブラリでの使い方や、公開ヘッダーと DLL/SO が 1:1 とは限らない構成への対応は [export-symbol-check.md](../../../framework/testfw/docs/export-symbol-check.md) を参照してください。
 
 ### 単一プラットフォーム専用 API はヘッダー全体で限定する
 
@@ -283,7 +283,7 @@ Linux 専用 API、Windows 専用 API のように、公開面そのものが片
 利用側も同じ条件で include / 呼び出しを行ってください。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
 
@@ -302,7 +302,7 @@ int linux_only_feature_start(void);
 コンパイラ差異を書くときは、ファイルの主題が Windows 寄りでも GCC 優先で並べます。
 
 ```c
-#include <com_util/base/compiler.h>
+#include <cplat/base/compiler.h>
 
 #if defined(COMPILER_GCC)
 int log_printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
@@ -324,7 +324,7 @@ Windows であっても GCC 系を使う可能性、Linux であっても将来�
 プラットフォームごとにモック対象の API 名が異なる場合、テスト本体へ条件分岐を散在させず、先頭で吸収マクロを定義してから使います。
 
 ```c
-#include <com_util/base/platform.h>
+#include <cplat/base/platform.h>
 
 #if defined(PLATFORM_LINUX)
     #define NATIVE_STAT_MOCK_METHOD stat

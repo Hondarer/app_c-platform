@@ -2,7 +2,7 @@
 
 ## 概要
 
-`com_util` の `net` カテゴリは、BSD ソケット (Linux) と Winsock (Windows) の差異を吸収し、共通の通信 API を提供します。
+`cplat` の `net` カテゴリは、BSD ソケット (Linux) と Winsock (Windows) の差異を吸収し、共通の通信 API を提供します。
 
 本書は `net` カテゴリ固有の規範を定めます。  
 プラットフォーム分岐の書き方は [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)、結果コードと命名は [コーディング規範](coding-guideline.md) に従います。
@@ -20,10 +20,10 @@
 
 ## ソケット ハンドル
 
-ソケット ハンドルは `com_util_socket` で表します。  
+ソケット ハンドルは `cplat_socket` で表します。  
 実体は `intptr_t` であり、Linux のファイル記述子 (`int`) と Windows の `SOCKET` (`UINT_PTR`) の双方を可逆に格納できます。
 
-無効値は `COM_UTIL_INVALID_SOCKET` を使用します。  
+無効値は `CPLAT_INVALID_SOCKET` を使用します。  
 数値リテラルの `-1` や `INVALID_SOCKET` との比較は行いません。
 
 > [!NOTE]
@@ -32,15 +32,15 @@
 
 ## エンドポイント
 
-アドレスとポートの受け渡しには `com_util_ipv4_endpoint` を使用し、`struct sockaddr_in` を API 境界へ出しません。  
+アドレスとポートの受け渡しには `cplat_ipv4_endpoint` を使用し、`struct sockaddr_in` を API 境界へ出しません。  
 `struct sockaddr_in` への変換は `net` の実装ファイル内部でのみ行います。
 
-`com_util_ipv4_endpoint` のアドレスとポートは、いずれもネットワーク バイト オーダーで保持します。  
+`cplat_ipv4_endpoint` のアドレスとポートは、いずれもネットワーク バイト オーダーで保持します。  
 ホスト バイト オーダーとの混在を避けるため、フィールドへ直接代入する場合もバイト オーダー変換 API を経由します。
 
 ## バイト オーダー変換
 
-バイト オーダー変換は `com_util/net/byteorder.h` の `static inline` 関数を使用します。  
+バイト オーダー変換は `cplat/net/byteorder.h` の `static inline` 関数を使用します。  
 実装はシフト演算とバイト列の再構成で行い、`htons` などの OS API を呼び出しません。
 
 > [!NOTE]
@@ -52,7 +52,7 @@
 `level` と `optname` を引数に取る汎用の `setsockopt` 相当 API は公開しません。
 
 マルチキャスト グループへの参加と離脱は対で提供します。  
-`com_util_socket_join_multicast_group()` で参加したグループは、`com_util_socket_leave_multicast_group()` で明示的に離脱できます。  
+`cplat_socket_join_multicast_group()` で参加したグループは、`cplat_socket_leave_multicast_group()` で明示的に離脱できます。  
 ソケットを閉じれば参加中のグループからは自動的に離脱するため、離脱 API は閉じる前に明示的に通知する場合に使用します。
 
 システム ヘッダーが定義する `SOL_SOCKET`、`SO_REUSEADDR`、`SO_BROADCAST`、`IPPROTO_IP`、`IP_MULTICAST_IF`、`IP_ADD_MEMBERSHIP`、`IP_DROP_MEMBERSHIP` などの定数は、`net` の実装ファイル内部でのみ使用します。
@@ -70,8 +70,8 @@ Winsock の初期化と終了は公開 API にしません。
 
 ## エラーの伝達
 
-戻り値は共通結果コード (`COM_UTIL_OK` および `COM_UTIL_ERR_*`) とします。  
-OS 由来の詳細は `com_util_error *detail_out` へ格納します。
+戻り値は共通結果コード (`CPLAT_OK` および `CPLAT_ERR_*`) とします。  
+OS 由来の詳細は `cplat_error *detail_out` へ格納します。
 
 `errno` と `WSAGetLastError()` の値を、公開 API の引数または戻り値でそのまま受け渡すことはしません。
 
@@ -81,29 +81,29 @@ OS 由来の詳細は `com_util_error *detail_out` へ格納します。
 
 | ドメイン | 用途 |
 |---|---|
-| `COM_UTIL_ERROR_DOMAIN_SOCKET_ERRNO` | Linux のソケット API が設定した `errno` |
-| `COM_UTIL_ERROR_DOMAIN_WINSOCK` | Windows の `WSAGetLastError()` が返す値 |
-| `COM_UTIL_ERROR_DOMAIN_GAI` | `getaddrinfo` が返す `EAI_*` |
+| `CPLAT_ERROR_DOMAIN_SOCKET_ERRNO` | Linux のソケット API が設定した `errno` |
+| `CPLAT_ERROR_DOMAIN_WINSOCK` | Windows の `WSAGetLastError()` が返す値 |
+| `CPLAT_ERROR_DOMAIN_GAI` | `getaddrinfo` が返す `EAI_*` |
 
-一般の `errno` を扱う `COM_UTIL_ERROR_DOMAIN_ERRNO` とは区別します。  
+一般の `errno` を扱う `CPLAT_ERROR_DOMAIN_ERRNO` とは区別します。  
 ソケット操作の `EAGAIN` は非ブロッキング操作の待機を意味しますが、`fork()` や `pthread_create()` が返す `EAGAIN` は資源の上限超過を意味し、両者は同じ `errno` 値でも要因が異なります。  
-ドメインを分けることで、ソケット操作の `errno` だけを `COM_UTIL_CAUSE_WOULD_BLOCK` として解釈できます。
+ドメインを分けることで、ソケット操作の `errno` だけを `CPLAT_CAUSE_WOULD_BLOCK` として解釈できます。
 
-Winsock のエラー番号空間は Win32 の `GetLastError()` と異なるため、`COM_UTIL_ERROR_DOMAIN_WINDOWS` を使用しません。  
+Winsock のエラー番号空間は Win32 の `GetLastError()` と異なるため、`CPLAT_ERROR_DOMAIN_WINDOWS` を使用しません。  
 `getaddrinfo` の `EAI_*` はさらに別の体系であるため、Winsock ドメインとも区別します。
 
 ### エラー要因
 
-プラットフォーム非依存の判定には `com_util_error_cause` を使用します。  
+プラットフォーム非依存の判定には `cplat_error_cause` を使用します。  
 `errno` および `WSAE*` の値を利用側で直接比較することはしません。
 
-`com_util_error_cause` の値は ABI として固定します。新しい要因は末尾へ追加します。
+`cplat_error_cause` の値は ABI として固定します。新しい要因は末尾へ追加します。
 
 ## ブロッキングと非ブロッキング
 
-ブロッキング モードの切り替えは `com_util_socket_set_nonblocking()` の 1 本で行い、有効と無効を引数で指定します。
+ブロッキング モードの切り替えは `cplat_socket_set_nonblocking()` の 1 本で行い、有効と無効を引数で指定します。
 
-非ブロッキングの `connect` が完了待ちになった場合は、共通の要因 `COM_UTIL_CAUSE_IN_PROGRESS` で表します。  
+非ブロッキングの `connect` が完了待ちになった場合は、共通の要因 `CPLAT_CAUSE_IN_PROGRESS` で表します。  
 Linux の `EINPROGRESS` と Windows の `WSAEWOULDBLOCK` の差はここで吸収します。
 
 ## シグナルによる中断
@@ -113,26 +113,26 @@ Linux のソケット API がシグナルで中断された場合の扱いは、
 
 ## 接続済みソケット送信時の SIGPIPE
 
-`com_util_socket_send()` と `com_util_socket_send_all()` は、Linux で切断済みの接続へ送信しても SIGPIPE を利用者へ配信しません。  
+`cplat_socket_send()` と `cplat_socket_send_all()` は、Linux で切断済みの接続へ送信しても SIGPIPE を利用者へ配信しません。  
 Linux 実装は送信ごとに `MSG_NOSIGNAL` を指定し、利用者が登録したシグナル ハンドラーやシグナル マスクを変更しません。
 
 SIGPIPE を抑制しても送信エラーは破棄しません。  
-`send()` が返した `EPIPE` は `COM_UTIL_ERR_UNKNOWN` と `COM_UTIL_CAUSE_BROKEN_PIPE` で通知します。
+`send()` が返した `EPIPE` は `CPLAT_ERR_UNKNOWN` と `CPLAT_CAUSE_BROKEN_PIPE` で通知します。
 
-`com_util_socket_sendto()` は接続済みストリームの送信ではないため、この規則の対象外です。
+`cplat_socket_sendto()` は接続済みストリームの送信ではないため、この規則の対象外です。
 
 ## 非対称な動作の明示
 
 プラットフォームで意味論を完全に揃えられない API は、共通契約をヘッダーの Doxygen へ明記します。  
 利用側が差を意識せずに済む形へ、引数と戻り値を設計します。
 
-受信方向の半クローズ (`com_util_socket_shutdown_receive()`) が該当します。  
+受信方向の半クローズ (`cplat_socket_shutdown_receive()`) が該当します。  
 Linux は読み取り方向を停止してハンドルを保持し、Windows はソケットを閉じます。  
-呼び出し側がハンドルの生存を判断しなくて済むように、ソケットを入出力引数で受け取り、閉じた場合は `COM_UTIL_INVALID_SOCKET` を書き戻します。
+呼び出し側がハンドルの生存を判断しなくて済むように、ソケットを入出力引数で受け取り、閉じた場合は `CPLAT_INVALID_SOCKET` を書き戻します。
 
 ## 参照
 
-- [com_util API チート シート](api-cheatsheet.md)
+- [cplat API チート シート](api-cheatsheet.md)
 - [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
 - [コーディング規範](coding-guideline.md)
 - [Windows Sockets Error Codes](https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2)

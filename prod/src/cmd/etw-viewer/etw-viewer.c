@@ -1,13 +1,13 @@
 /**
  *******************************************************************************
  *  @file           etw-viewer.c
- *  @brief          com_util ETW provider のイベントをリアルタイムに表示するコマンドを実装します。
+ *  @brief          cplat ETW provider のイベントをリアルタイムに表示するコマンドを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/05/01
  *  @version        1.0.0
  *
- *  Windows 上で com_util の ETW provider を購読し、受信イベントを stdout に表示します。
- *  既定では com_util tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
+ *  Windows 上で cplat の ETW provider を購読し、受信イベントを stdout に表示します。
+ *  既定では c-platform tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -16,15 +16,15 @@
 
 #include "etw-viewer.h"
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/platform.h>
-#include <com_util/base/result.h>
-#include <com_util/clock/clock.h>
-#include <com_util/console/console.h>
-#include <com_util/crt/stdio.h>
-#include <com_util/crt/string.h>
-#include <com_util/runtime/shutdown.h>
-#include <com_util/sync/sync.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/platform.h>
+#include <cplat/base/result.h>
+#include <cplat/clock/clock.h>
+#include <cplat/console/console.h>
+#include <cplat/crt/stdio.h>
+#include <cplat/crt/string.h>
+#include <cplat/runtime/shutdown.h>
+#include <cplat/sync/sync.h>
 #include <signal.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -34,18 +34,18 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-    #include <com_util/base/windows_sdk.h>
-    #include <com_util/trace/etw.h>
-    #include <com_util/trace/tracer.h>
+    #include <cplat/base/windows_sdk.h>
+    #include <cplat/trace/etw.h>
+    #include <cplat/trace/tracer.h>
 
     #define ETW_VIEWER_WAIT_MS     200
-    #define ETW_VIEWER_DEFAULT_TAG COM_UTIL_TRACER_DEFAULT_PROVIDER_NAME
+    #define ETW_VIEWER_DEFAULT_TAG CPLAT_TRACER_DEFAULT_PROVIDER_NAME
 
     #define EXIT_ACCESS_DENIED 2
 
 static volatile sig_atomic_t g_stop_requested = 0;
 
-static void etw_viewer_shutdown_request_callback(const com_util_shutdown_event *event, void *context)
+static void etw_viewer_shutdown_request_callback(const cplat_shutdown_event *event, void *context)
 {
     (void)event;
     (void)context;
@@ -93,7 +93,7 @@ int etw_viewer_build_default_session_name(unsigned long process_id, char *buffer
         return -1;
     }
 
-    if (com_util_snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id) != COM_UTIL_OK)
+    if (cplat_snprintf(buffer, buffer_size, "etw-viewer_%lu", process_id) != CPLAT_OK)
     {
         return -1;
     }
@@ -143,7 +143,7 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
 {
     static const int64_t filetime_unix_epoch_100ns = 116444736000000000LL;
     int64_t unix_100ns;
-    com_util_timespec ts;
+    cplat_timespec ts;
 
     if (buffer == NULL || buffer_size == 0U)
     {
@@ -157,10 +157,10 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
     unix_100ns = timestamp_100ns - filetime_unix_epoch_100ns;
     ts.tv_sec = (time_t)(unix_100ns / 10000000LL);
     ts.tv_nsec = (unix_100ns % 10000000LL) * 100LL;
-    return com_util_format_realtime_iso8601_local(buffer, buffer_size, &ts);
+    return cplat_format_realtime_iso8601_local(buffer, buffer_size, &ts);
 }
 
-void etw_viewer_handle_event(const com_util_etw_event *event, void *context)
+void etw_viewer_handle_event(const cplat_etw_event *event, void *context)
 {
     char timestamp_text[64];
     const char *timestamp_value;
@@ -220,18 +220,18 @@ static void print_access_error(void)
 
 static void print_start_error(int ret, const char *session_name)
 {
-    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
+    if (ret == CPLAT_ERR_PERMISSION_DENIED)
     {
         print_access_error();
     }
-    else if (ret == COM_UTIL_ERR_INVALID_ARGUMENT)
+    else if (ret == CPLAT_ERR_INVALID_ARGUMENT)
     {
         fprintf(stderr, "ETW session の開始に失敗しました。内部パラメータが不正です。\n");
     }
     else
     {
         fprintf(stderr, "ETW session の開始に失敗しました。session=\"%s\" provider=\"%s\"\n", session_name,
-                COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
+                CPLAT_TRACER_DEFAULT_PROVIDER_GUID_STR);
     }
 }
 
@@ -239,39 +239,39 @@ int main(int argc, char *argv[])
 {
     etw_viewer_options options;
     etw_viewer_context viewer_context;
-    com_util_etw_session *session;
+    cplat_etw_session *session;
     int ret;
     char session_name[ETW_VIEWER_SESSION_NAME_MAX];
     const char *pid_value = NULL;
 
-    com_util_console_init();
+    cplat_console_init();
     g_stop_requested = 0;
 
     etw_viewer_options_init(&options);
 
-    com_util_argparser_init(argc, argv, "ETW の com_util トレースを表示します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
-    com_util_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
+    cplat_argparser_init(argc, argv, "ETW の c-platform トレースを表示します。");
+    cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    cplat_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse();
+    int parse_result = cplat_argparser_parse();
 
     if (options.need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -279,8 +279,8 @@ int main(int argc, char *argv[])
     {
         if (parse_process_id_arg(pid_value, &options.process_id_filter) != 0)
         {
-            com_util_argparser_print_error_messages(stderr);
-            com_util_argparser_print_usage(stderr);
+            cplat_argparser_print_error_messages(stderr);
+            cplat_argparser_print_usage(stderr);
             return EXIT_FAILURE;
         }
         options.has_process_id_filter = 1;
@@ -296,30 +296,30 @@ int main(int argc, char *argv[])
     viewer_context.process_id_filter = options.process_id_filter;
     viewer_context.has_process_id_filter = options.has_process_id_filter;
 
-    ret = com_util_etw_session_check_access();
-    if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
+    ret = cplat_etw_session_check_access();
+    if (ret == CPLAT_ERR_PERMISSION_DENIED)
     {
         print_access_error();
         return EXIT_ACCESS_DENIED;
     }
-    if (ret != COM_UTIL_OK)
+    if (ret != CPLAT_OK)
     {
         fprintf(stderr, "ETW session の権限確認に失敗しました。\n");
         return EXIT_FAILURE;
     }
 
-    if (com_util_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != COM_UTIL_OK)
+    if (cplat_shutdown_request_register(etw_viewer_shutdown_request_callback, NULL) != CPLAT_OK)
     {
         fprintf(stderr, "終了要求 callback の登録に失敗しました。\n");
         return EXIT_FAILURE;
     }
 
-    ret = com_util_etw_session_start(session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR,
+    ret = cplat_etw_session_start(session_name, CPLAT_TRACER_DEFAULT_PROVIDER_GUID_STR,
                                      etw_viewer_handle_event, &viewer_context, &session);
-    if (ret != COM_UTIL_OK)
+    if (ret != CPLAT_OK)
     {
         int exit_code = EXIT_FAILURE;
-        if (ret == COM_UTIL_ERR_PERMISSION_DENIED)
+        if (ret == CPLAT_ERR_PERMISSION_DENIED)
         {
             exit_code = EXIT_ACCESS_DENIED;
         }
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
         return exit_code;
     }
 
-    printf("session=%s provider=%s\n", session_name, COM_UTIL_TRACER_DEFAULT_PROVIDER_GUID_STR);
+    printf("session=%s provider=%s\n", session_name, CPLAT_TRACER_DEFAULT_PROVIDER_GUID_STR);
     if (options.has_process_id_filter)
     {
         printf("filter.pid=%" PRIu32 "\n", options.process_id_filter);
@@ -337,10 +337,10 @@ int main(int argc, char *argv[])
 
     while (!g_stop_requested)
     {
-        com_util_sleep_ms(ETW_VIEWER_WAIT_MS);
+        cplat_sleep_ms(ETW_VIEWER_WAIT_MS);
     }
 
-    com_util_etw_session_stop(session);
+    cplat_etw_session_stop(session);
 
     return EXIT_SUCCESS;
 }
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-    com_util_console_init();
+    cplat_console_init();
 
     fprintf(stderr, "ETW viewer is supported only on Windows.\n");
 

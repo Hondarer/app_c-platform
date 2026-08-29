@@ -2,13 +2,13 @@
 
 > [!NOTE]
 > 本書は、2026 年 7 月に完了した移行の履歴と、旧 API を利用するコード向けの対応表です。
-> 現行規則は [com_util コーディング規範](coding-guideline.md)、現行 API は [API チート シート](api-cheatsheet.md) を参照してください。
+> 現行規則は [cplat コーディング規範](coding-guideline.md)、現行 API は [API チート シート](api-cheatsheet.md) を参照してください。
 
 ## 概要
 
-com_util は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規約」「引数順序規約」および上位「コーディング規範」への適合のため、「既知の逸脱と移行課題」に整理していた公開 API を一括変更しました。  
+cplat は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規約」「引数順序規約」および上位「コーディング規範」への適合のため、「既知の逸脱と移行課題」に整理していた公開 API を一括変更しました。  
 あわせて argparser の詳細コードを共通結果コードへ統合し、結果コードの値を再採番しました。  
-本書は、com_util を利用するリポジトリが本変更へ追随する際の対応表と移行手順を示します。  
+本書は、cplat を利用するリポジトリが本変更へ追随する際の対応表と移行手順を示します。  
 戻り値規約そのものの移行は [`result-code-migration.md`](result-code-migration.md) を参照してください。
 
 ## 旧 → 新の対応表
@@ -17,10 +17,10 @@ com_util は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規�
 
 | API | 旧シグネチャ / 意味 | 新シグネチャ / 意味 |
 |---|---|---|
-| `com_util_getenv` | `(name, buf, buf_size)`。戻り値 0=設定あり / -1=未設定 / `ERANGE`=不足 | `(name, buf, buf_size, int *exists_out)`。戻り値 0=成功 / `EINVAL`=引数不正 / `ERANGE`=不足。設定有無は `exists_out` (NULL 可)。未設定時は `buf` に空文字列を格納 |
-| `com_util_pinned_prompt_write` | `(screen, channel, data, size)`。戻り値 `size_t` (書き込みバイト数、引数不正は 0) | `(screen, channel, data, size, size_t *written_out)`。戻り値は結果コード (`COM_UTIL_OK` / `COM_UTIL_ERR_INVALID_ARGUMENT` / 短縮書き込み時 `COM_UTIL_ERR_UNKNOWN`)。バイト数は `written_out` (NULL 可) |
-| `com_util_etw_session_start` | `(session_name, guid, callback, context, int *out_status)`。戻り値はハンドル (失敗時 NULL + `out_status`) | `(session_name, guid, callback, context, com_util_etw_session **session_out)`。戻り値は結果コード、ハンドルは `session_out` (成功時のみ有効) |
-| `com_util_process_options_t` / `com_util_process_stdio_t` | typedef struct への `_t` 別名 | `_t` なしのタグ名 `com_util_process_options` / `com_util_process_stdio` へ統一 (別名は廃止) |
+| `cplat_getenv` | `(name, buf, buf_size)`。戻り値 0=設定あり / -1=未設定 / `ERANGE`=不足 | `(name, buf, buf_size, int *exists_out)`。戻り値 0=成功 / `EINVAL`=引数不正 / `ERANGE`=不足。設定有無は `exists_out` (NULL 可)。未設定時は `buf` に空文字列を格納 |
+| `cplat_pinned_prompt_write` | `(screen, channel, data, size)`。戻り値 `size_t` (書き込みバイト数、引数不正は 0) | `(screen, channel, data, size, size_t *written_out)`。戻り値は結果コード (`CPLAT_OK` / `CPLAT_ERR_INVALID_ARGUMENT` / 短縮書き込み時 `CPLAT_ERR_UNKNOWN`)。バイト数は `written_out` (NULL 可) |
+| `cplat_etw_session_start` | `(session_name, guid, callback, context, int *out_status)`。戻り値はハンドル (失敗時 NULL + `out_status`) | `(session_name, guid, callback, context, cplat_etw_session **session_out)`。戻り値は結果コード、ハンドルは `session_out` (成功時のみ有効) |
+| `cplat_process_options_t` / `cplat_process_stdio_t` | typedef struct への `_t` 別名 | `_t` なしのタグ名 `cplat_process_options` / `cplat_process_stdio` へ統一 (別名は廃止) |
 
 ### 型名変更 (enum / 関数ポインター、コンパイル エラーで検出可能)
 
@@ -32,29 +32,29 @@ POSIX が予約する `_t` サフィックスを、公開 enum と関数ポイ�
 
 | 旧名 | 新名 |
 |---|---|
-| `com_util_shutdown_reason_t` | `com_util_shutdown_reason` |
-| `com_util_shutdown_code_kind_t` | `com_util_shutdown_code_kind` |
-| `com_util_trace_level_t` | `com_util_trace_level` |
-| `com_util_tracer_state_t` | `com_util_tracer_state` |
-| `com_util_error_domain_t` | `com_util_error_domain` |
-| `com_util_error_cause_t` | `com_util_error_cause` |
-| `com_util_stream_t` | `com_util_stream` |
-| `com_util_mmap_access_t` | `com_util_mmap_access` |
-| `com_util_pinned_prompt_channel_t` | `com_util_pinned_prompt_channel` |
-| `com_util_pinned_prompt_status_position_t` | `com_util_pinned_prompt_status_position` |
-| `com_util_pinned_prompt_status_align_t` | `com_util_pinned_prompt_status_align` |
-| `com_util_process_stdio_mode_t` | `com_util_process_stdio_mode` |
-| `com_util_interprocess_sync_backend_t` | `com_util_interprocess_sync_backend` |
+| `cplat_shutdown_reason_t` | `cplat_shutdown_reason` |
+| `cplat_shutdown_code_kind_t` | `cplat_shutdown_code_kind` |
+| `cplat_trace_level_t` | `cplat_trace_level` |
+| `cplat_tracer_state_t` | `cplat_tracer_state` |
+| `cplat_error_domain_t` | `cplat_error_domain` |
+| `cplat_error_cause_t` | `cplat_error_cause` |
+| `cplat_stream_t` | `cplat_stream` |
+| `cplat_mmap_access_t` | `cplat_mmap_access` |
+| `cplat_pinned_prompt_channel_t` | `cplat_pinned_prompt_channel` |
+| `cplat_pinned_prompt_status_position_t` | `cplat_pinned_prompt_status_position` |
+| `cplat_pinned_prompt_status_align_t` | `cplat_pinned_prompt_status_align` |
+| `cplat_process_stdio_mode_t` | `cplat_process_stdio_mode` |
+| `cplat_interprocess_sync_backend_t` | `cplat_interprocess_sync_backend` |
 
 #### 関数ポインター (5 型)
 
 | 旧名 | 新名 |
 |---|---|
-| `com_util_thread_func_t` | `com_util_thread_fn` |
-| `com_util_once_func_t` | `com_util_once_fn` |
-| `com_util_shutdown_callback_t` | `com_util_shutdown_fn` |
-| `com_util_etw_event_callback_t` | `com_util_etw_event_fn` |
-| `com_util_tracer_hook_fn_t` | `com_util_tracer_hook_fn` |
+| `cplat_thread_func_t` | `cplat_thread_fn` |
+| `cplat_once_func_t` | `cplat_once_fn` |
+| `cplat_shutdown_callback_t` | `cplat_shutdown_fn` |
+| `cplat_etw_event_callback_t` | `cplat_etw_event_fn` |
+| `cplat_tracer_hook_fn_t` | `cplat_tracer_hook_fn` |
 
 #### _t を維持する例外 (2 型)
 
@@ -63,77 +63,77 @@ OS / SDK が定義する型の alias に限り、`_t` を維持します。
 
 | 型 | 由来 |
 |---|---|
-| `com_util_file_stat_t` | POSIX `struct stat` / MSVC `struct _stat64` の alias |
-| `com_util_etw_provider_ref_t` | Windows TraceLogging SDK 内部型への参照の alias |
+| `cplat_file_stat_t` | POSIX `struct stat` / MSVC `struct _stat64` の alias |
+| `cplat_etw_provider_ref_t` | Windows TraceLogging SDK 内部型への参照の alias |
 
 ## 詳細コードの共通結果コードへの統合
 
-argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通結果コード (`result.h`) へ統合しました。  
+argparser の詳細コード `CPLAT_ARGPARSER_ERROR_*` を廃止し、共通結果コード (`result.h`) へ統合しました。  
 あわせて定義を課題別の帯へ再編したため、**すべての結果コードの値が変わりました**。値は再凍結しています。
 
 ### 廃止したコードと対応先
 
 | 旧 (0 以上の詳細コード) | 新 (負値の共通結果コード) |
 |---|---|
-| `COM_UTIL_ARGPARSER_ERROR_NONE` (0) | `COM_UTIL_OK` (0) |
-| `COM_UTIL_ARGPARSER_ERROR_UNKNOWN_OPTION` (1) | `COM_UTIL_ERR_UNKNOWN_OPTION` (-20) |
-| `COM_UTIL_ARGPARSER_ERROR_MISSING_VALUE` (2) | `COM_UTIL_ERR_MISSING_VALUE` (-21) |
-| `COM_UTIL_ARGPARSER_ERROR_UNEXPECTED_VALUE` (9) | `COM_UTIL_ERR_UNEXPECTED_VALUE` (-22) |
-| `COM_UTIL_ARGPARSER_ERROR_INVALID_INT` (3) | `COM_UTIL_ERR_INVALID_INTEGER` (-23) |
-| `COM_UTIL_ARGPARSER_ERROR_OUT_OF_RANGE` (4) | `COM_UTIL_ERR_OUT_OF_RANGE` (-24) |
-| `COM_UTIL_ARGPARSER_ERROR_MISSING_REQUIRED` (5) | `COM_UTIL_ERR_MISSING_REQUIRED` (-25) |
-| `COM_UTIL_ARGPARSER_ERROR_DUPLICATE_OPTION` (6) | `COM_UTIL_ERR_DUPLICATE_OPTION` (-26) |
-| `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` (7) | `COM_UTIL_ERR_TOO_MANY_ARGUMENTS` (-27) |
-| `COM_UTIL_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES` (8) | `COM_UTIL_ERR_TOO_MANY_OCCURRENCES` (-28) |
+| `CPLAT_ARGPARSER_ERROR_NONE` (0) | `CPLAT_OK` (0) |
+| `CPLAT_ARGPARSER_ERROR_UNKNOWN_OPTION` (1) | `CPLAT_ERR_UNKNOWN_OPTION` (-20) |
+| `CPLAT_ARGPARSER_ERROR_MISSING_VALUE` (2) | `CPLAT_ERR_MISSING_VALUE` (-21) |
+| `CPLAT_ARGPARSER_ERROR_UNEXPECTED_VALUE` (9) | `CPLAT_ERR_UNEXPECTED_VALUE` (-22) |
+| `CPLAT_ARGPARSER_ERROR_INVALID_INT` (3) | `CPLAT_ERR_INVALID_INTEGER` (-23) |
+| `CPLAT_ARGPARSER_ERROR_OUT_OF_RANGE` (4) | `CPLAT_ERR_OUT_OF_RANGE` (-24) |
+| `CPLAT_ARGPARSER_ERROR_MISSING_REQUIRED` (5) | `CPLAT_ERR_MISSING_REQUIRED` (-25) |
+| `CPLAT_ARGPARSER_ERROR_DUPLICATE_OPTION` (6) | `CPLAT_ERR_DUPLICATE_OPTION` (-26) |
+| `CPLAT_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` (7) | `CPLAT_ERR_TOO_MANY_ARGUMENTS` (-27) |
+| `CPLAT_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES` (8) | `CPLAT_ERR_TOO_MANY_OCCURRENCES` (-28) |
 
-`COM_UTIL_ERR_PARSE` は削除しました。解析エラーは上表の具体コードで表します。
+`CPLAT_ERR_PARSE` は削除しました。解析エラーは上表の具体コードで表します。
 
 ### 値が変わった既存コード
 
 | コード | 旧値 | 新値 |
 |---|---|---|
-| `COM_UTIL_ERR_OUT_OF_MEMORY` | -4 | -10 |
-| `COM_UTIL_ERR_PERMISSION_DENIED` | -5 | -4 |
-| `COM_UTIL_ERR_TIMEOUT` | -6 | -12 |
-| `COM_UTIL_ERR_BUSY` | -7 | -11 |
-| `COM_UTIL_ERR_BUFFER_TOO_SMALL` | -8 | -14 |
-| `COM_UTIL_ERR_LIMIT_EXCEEDED` | -9 | -13 |
-| `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` | -10 | -15 |
-| `COM_UTIL_ERR_DUPLICATE_DEFINITION` | -11 | -5 |
-| `COM_UTIL_ERR_EOF` | -13 | -40 |
-| `COM_UTIL_ERR_CANCELED` | -14 | -41 |
+| `CPLAT_ERR_OUT_OF_MEMORY` | -4 | -10 |
+| `CPLAT_ERR_PERMISSION_DENIED` | -5 | -4 |
+| `CPLAT_ERR_TIMEOUT` | -6 | -12 |
+| `CPLAT_ERR_BUSY` | -7 | -11 |
+| `CPLAT_ERR_BUFFER_TOO_SMALL` | -8 | -14 |
+| `CPLAT_ERR_LIMIT_EXCEEDED` | -9 | -13 |
+| `CPLAT_ERR_CORRUPT_DESCRIPTOR` | -10 | -15 |
+| `CPLAT_ERR_DUPLICATE_DEFINITION` | -11 | -5 |
+| `CPLAT_ERR_EOF` | -13 | -40 |
+| `CPLAT_ERR_CANCELED` | -14 | -41 |
 
-`COM_UTIL_OK` (0)、`COM_UTIL_ERR_UNKNOWN` (-1)、`COM_UTIL_ERR_INVALID_ARGUMENT` (-2)、`COM_UTIL_ERR_UNSUPPORTED` (-3) は変わりません。
+`CPLAT_OK` (0)、`CPLAT_ERR_UNKNOWN` (-1)、`CPLAT_ERR_INVALID_ARGUMENT` (-2)、`CPLAT_ERR_UNSUPPORTED` (-3) は変わりません。
 
 ### parse の戻り値
 
-`com_util_argparser_handle_parse()` と `com_util_argparser_parse()` は、従来つねに `COM_UTIL_ERR_PARSE` を返し、種別は `get_error()` で取得する二段構えでした。  
+`cplat_argparser_handle_parse()` と `cplat_argparser_parse()` は、従来つねに `CPLAT_ERR_PARSE` を返し、種別は `get_error()` で取得する二段構えでした。  
 統合により、解析エラーの種別に対応するコードを直接返すようになりました。  
-`com_util_argparser_handle_get_error()` は種別を後から再取得する用途で引き続き利用できます。戻り値の符号が 0 以上から負値に変わっています。
+`cplat_argparser_handle_get_error()` は種別を後から再取得する用途で引き続き利用できます。戻り値の符号が 0 以上から負値に変わっています。
 
 ## 移行手順
 
-1. **ビルドで機械的に検出**: `com_util_getenv`、`com_util_pinned_prompt_write`、`com_util_etw_session_start` の呼び出しと、`com_util_process_options_t` / `com_util_process_stdio_t` および本節の enum / 関数ポインター旧型名の参照は、引数個数・型名の変更によりコンパイル エラーとして検出されます。
+1. **ビルドで機械的に検出**: `cplat_getenv`、`cplat_pinned_prompt_write`、`cplat_etw_session_start` の呼び出しと、`cplat_process_options_t` / `cplat_process_stdio_t` および本節の enum / 関数ポインター旧型名の参照は、引数個数・型名の変更によりコンパイル エラーとして検出されます。
 2. **getenv の判定式の書き換え**: 旧コードの「`戻り値 != 0` なら未設定またはエラー」の判定は、新コードでは成立しません。設定有無の判定は `exists_out` で行います。
 
    ```c
    /* 旧 */
-   if (com_util_getenv(name, buf, sizeof(buf)) != 0) { /* 未設定または不足 */ }
+   if (cplat_getenv(name, buf, sizeof(buf)) != 0) { /* 未設定または不足 */ }
 
    /* 新 */
    int exists = 0;
-   if (com_util_getenv(name, buf, sizeof(buf), &exists) != 0 || exists == 0) { /* 未設定または不足 */ }
+   if (cplat_getenv(name, buf, sizeof(buf), &exists) != 0 || exists == 0) { /* 未設定または不足 */ }
    ```
 
-3. **旧詳細コードの置換**: `COM_UTIL_ARGPARSER_ERROR_*` と `COM_UTIL_ERR_PARSE` はマクロ自体を削除したため、参照はコンパイル エラーとして検出されます。上表に従って置換します。
+3. **旧詳細コードの置換**: `CPLAT_ARGPARSER_ERROR_*` と `CPLAT_ERR_PARSE` はマクロ自体を削除したため、参照はコンパイル エラーとして検出されます。上表に従って置換します。
 4. **結果コードの数値リテラル比較の洗い出し**: 値が変わったため、コード名ではなく数値で比較している箇所は意味が変わります。以下で洗い出し、コード名との比較へ書き換えます。
 
    ```bash
    grep -nE '(==|!=|<=|>=)[[:space:]]*\(?-[0-9]+\)?' <対象ディレクトリ>/*.c
    ```
 
-5. **利用側の再ビルド**: 値が変わったため、com_util を利用するすべてのモジュールを再ビルドします。ヘッダーだけを更新して再リンクする運用では不整合が生じます。
-6. **mock の追随**: `mock_com_util` を利用するテストで、シグネチャが変わった API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
+5. **利用側の再ビルド**: 値が変わったため、cplat を利用するすべてのモジュールを再ビルドします。ヘッダーだけを更新して再リンクする運用では不整合が生じます。
+6. **mock の追随**: `mock_cplat` を利用するテストで、シグネチャが変わった API の `EXPECT_CALL` / `ON_CALL` の引数個数と戻り値型を新シグネチャへ更新します。
 7. **ローカル テストで確認**: `make -C app/<repo> test` で回帰がないことを確認します。
 
 ## API 名変更 (2026-08 実施分: 生成・破棄動詞の統一)
@@ -144,13 +144,13 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 
 | 旧名 | 新名 |
 |---|---|
-| `com_util_hashtable_destroy` | `com_util_hashtable_dispose` |
-| `com_util_process_destroy` | `com_util_process_dispose` |
-| `com_util_local_lock_destroy` | `com_util_local_lock_dispose` |
-| `com_util_condvar_destroy` | `com_util_condvar_dispose` |
-| `com_util_local_rwlock_destroy` | `com_util_local_rwlock_dispose` |
-| `com_util_interprocess_lock_destroy` | `com_util_interprocess_lock_dispose` |
-| `com_util_interprocess_rwlock_destroy` | `com_util_interprocess_rwlock_dispose` |
+| `cplat_hashtable_destroy` | `cplat_hashtable_dispose` |
+| `cplat_process_destroy` | `cplat_process_dispose` |
+| `cplat_local_lock_destroy` | `cplat_local_lock_dispose` |
+| `cplat_condvar_destroy` | `cplat_condvar_dispose` |
+| `cplat_local_rwlock_destroy` | `cplat_local_rwlock_dispose` |
+| `cplat_interprocess_lock_destroy` | `cplat_interprocess_lock_dispose` |
+| `cplat_interprocess_rwlock_destroy` | `cplat_interprocess_rwlock_dispose` |
 
 ## シグネチャ変更 (2026-08 実施分: argc / argv の受け取り位置)
 
@@ -160,33 +160,33 @@ argparser の詳細コード `COM_UTIL_ARGPARSER_ERROR_*` を廃止し、共通�
 
 | API | 旧シグネチャ | 新シグネチャ |
 |---|---|---|
-| `com_util_argparser_init` | `(const char *description)` | `(int argc, char *const *argv, const char *description)` |
-| `com_util_argparser_parse` | `(int argc, char *const *argv)` | `(void)` |
-| `com_util_argparser_handle_create` | `(const com_util_argparser_options *options)` | `(int argc, char *const *argv, const com_util_argparser_options *options)` |
-| `com_util_argparser_handle_parse` | `(com_util_argparser *parser, int argc, char *const *argv)` | `(com_util_argparser *parser)` |
+| `cplat_argparser_init` | `(const char *description)` | `(int argc, char *const *argv, const char *description)` |
+| `cplat_argparser_parse` | `(int argc, char *const *argv)` | `(void)` |
+| `cplat_argparser_handle_create` | `(const cplat_argparser_options *options)` | `(int argc, char *const *argv, const cplat_argparser_options *options)` |
+| `cplat_argparser_handle_parse` | `(cplat_argparser *parser, int argc, char *const *argv)` | `(cplat_argparser *parser)` |
 
 呼び出し側の書き換えは次のとおりです。
 
 ```c
 /* 旧 */
-com_util_argparser_init("sample program");
+cplat_argparser_init("sample program");
 /* ... オプションを登録する ... */
-int parse_result = com_util_argparser_parse(argc, argv);
+int parse_result = cplat_argparser_parse(argc, argv);
 
 /* 新 */
-com_util_argparser_init(argc, argv, "sample program");
+cplat_argparser_init(argc, argv, "sample program");
 /* ... オプションを登録する ... */
-int parse_result = com_util_argparser_parse();
+int parse_result = cplat_argparser_parse();
 ```
 
 移行時の注意点は次のとおりです。
 
 - パーサーは `argv` を複製せずポインターを保持します。解析結果の文字列を参照する間は `argv` を有効なまま維持してください。
-- `argc` が 1 未満、または `argv` が NULL の場合も初期化と生成は成功します。不正は解析時に `COM_UTIL_ERR_INVALID_ARGUMENT` として返るため、呼び出し側のエラー処理は従来のままで構いません。
-- 登録処理を `main` の外の関数へ切り出している場合は、`com_util_argparser_init()` の呼び出しを `argc` と `argv` を持つ `main` 側へ移してください。
+- `argc` が 1 未満、または `argv` が NULL の場合も初期化と生成は成功します。不正は解析時に `CPLAT_ERR_INVALID_ARGUMENT` として返るため、呼び出し側のエラー処理は従来のままで構いません。
+- 登録処理を `main` の外の関数へ切り出している場合は、`cplat_argparser_init()` の呼び出しを `argc` と `argv` を持つ `main` 側へ移してください。
 - usage のプログラム名は初期化時に `argv[0]` から確定します。解析前に usage を表示する経路でも、プレースホルダー `{program}` ではなく実行ファイル名が表示されるようになりました。
-- 解析対象の引数を差し替える場合は、`com_util_argparser_init()` (明示ハンドル版は `com_util_argparser_handle_create()`) から呼び出し直します。再初期化は登録済みのオプションを捨てるため、オプションの登録もやり直してください。
+- 解析対象の引数を差し替える場合は、`cplat_argparser_init()` (明示ハンドル版は `cplat_argparser_handle_create()`) から呼び出し直します。再初期化は登録済みのオプションを捨てるため、オプションの登録もやり直してください。
 
 ## 関連ガイド
 
-OS 由来の詳細値を `int *errno_out` からドメイン付きの `com_util_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。
+OS 由来の詳細値を `int *errno_out` からドメイン付きの `cplat_error` へ移行する手順は、[`error-detail-migration.md`](error-detail-migration.md) を参照してください。

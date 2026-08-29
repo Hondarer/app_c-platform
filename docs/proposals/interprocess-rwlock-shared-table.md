@@ -2,18 +2,18 @@
 
 > [!NOTE]
 > 本書は、共有メモリ上の論理ロック表へ移行する案を検討した提案文書です。
-> 現行仕様を確認する場合は、[API チート シート](../api-cheatsheet.md) と公開ヘッダー `prod/include/com_util/sync/sync.h` を参照してください。
+> 現行仕様を確認する場合は、[API チート シート](../api-cheatsheet.md) と公開ヘッダー `prod/include/cplat/sync/sync.h` を参照してください。
 
 ## 背景
 
-`app/com_util/prod/libsrc/com_util/sync/` の `com_util_interprocess_rwlock_*` は、Linux と Windows のいずれでもファイル パスを識別子に取ります。  
+`app/c-platform/prod/libsrc/cplat/sync/` の `cplat_interprocess_rwlock_*` は、Linux と Windows のいずれでもファイル パスを識別子に取ります。  
 当該ファイルに対して、カーネルが提供するファイル ロック (`flock` / `LockFileEx`) を共有または排他で取得する実装です。
 
 - Linux: `open(identity, O_RDWR|O_CREAT|O_CLOEXEC, 0666)` + `flock(fd, LOCK_SH|LOCK_EX)`  
   (`sync_linux.c:159, 237, 251, 285`)
 - Windows: `CreateFileA(identity, GENERIC_READ|GENERIC_WRITE, ...)` + `LockFileEx`  
   (`sync_windows.c:119, 156, 196, 230`)
-- 現状この API を呼び出すコードは com_util のテスト/モック以外には存在しません。
+- 現状この API を呼び出すコードは cplat のテスト/モック以外には存在しません。
 
 ユーザー要件 (確認済):
 
@@ -32,8 +32,8 @@ Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨
 
 - すべての参加プロセスを対等に扱い、専用デーモンは追加しません。
 - 「ロック ドメイン」 1 つにつき、共有メモリ セグメント 1 個を持ちます。
-    - Linux: `shm_open("/com_util_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
-    - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\com_util_lkdomain_<DOMAIN>")` +  
+    - Linux: `shm_open("/cplat_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
+    - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\cplat_lkdomain_<DOMAIN>")` +  
       `MapViewOfFile`
 - セグメント内に「マスター ロック (robust)」と「論理ロック表 (数千 entries)」を配置します。
 - 待機は条件変数プール (Linux: PROCESS_SHARED `pthread_cond_t` × K 個 /  
@@ -49,7 +49,7 @@ Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨
 現 API では `identity` がファイル パスを想定したが、新方式では「ドメイン名 + ロック名」の  
 2 階層が必要。後方互換のために以下のルールで識別子を解釈します。
 
-- `identity` に `'\0'` 区切りなし: ライブラリ既定ドメイン (環境変数 `COM_UTIL_LOCK_DOMAIN`  
+- `identity` に `'\0'` 区切りなし: ライブラリ既定ドメイン (環境変数 `CPLAT_LOCK_DOMAIN`  
   または UID + 実行バイナリ パスのハッシュから計算) を使用し、`identity` 全体を論理ロック名とします。
 - `identity` が `"DOMAIN/LOCK"` 形式: 明示分離
 - (検討項目) パス区切りで悩ましいケースは `identity` 先頭 1 バイトを区切り選択子にする等の運用ルールで吸収
@@ -119,7 +119,7 @@ R_MAX, string_pool) は環境変数または初回作成時の hint で決定し
 
 ### Windows
 
-- `manager_mutex` は名前付き Mutex (`CreateMutexA("Local\\com_util_lkdomain_<DOMAIN>_mutex")`)
+- `manager_mutex` は名前付き Mutex (`CreateMutexA("Local\\cplat_lkdomain_<DOMAIN>_mutex")`)
 - 取得時:
     - `WaitForSingleObject(manager_mutex, ms)` の結果が `WAIT_ABANDONED_0` → 前保持者死亡。  
       スイープ実行後、所有を取って進める (Windows は自動的に正常所有状態に戻る)
@@ -195,19 +195,19 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 ヘッダー `sync.h` の関数シグネチャはすべて維持可能。
 
-- `com_util_interprocess_rwlock_open(identity, &lock)` — identity 解釈を上記ルールで変える
+- `cplat_interprocess_rwlock_open(identity, &lock)` — identity 解釈を上記ルールで変える
 - `lock_shared / lock_exclusive / unlock` — 内部実装のみ変更
 - `export_descriptor / import_descriptor` — 識別子文字列をシリアライズする現方式を維持  
   (新方式でも identity 文字列で一意特定できるため)
-- `com_util_interprocess_sync_backend` の `COM_UTIL_INTERPROCESS_SYNC_BACKEND_LOCK_FILE` は  
-  enum 値を残しつつ、新規 `COM_UTIL_INTERPROCESS_SYNC_BACKEND_SHARED_TABLE` を追加して  
+- `cplat_interprocess_sync_backend` の `CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE` は  
+  enum 値を残しつつ、新規 `CPLAT_INTERPROCESS_SYNC_BACKEND_SHARED_TABLE` を追加して  
   既定をこちらに切り替える (バックエンド選択 API が将来必要なら拡張ポイントになる)
 
 エラー コード:
 
-- 新規 `COM_UTIL_SYNC_DEAD_OWNER_RECOVERED` (`EOWNERDEAD` 起因で復旧した直後の通知。  
+- 新規 `CPLAT_SYNC_DEAD_OWNER_RECOVERED` (`EOWNERDEAD` 起因で復旧した直後の通知。  
   オプション。クライアントが「以前保持されていた状態が一貫しているか」を再検査するヒント)
-- 既存 `COM_UTIL_ERR_CORRUPT_DESCRIPTOR` を `ENOTRECOVERABLE` 経路でも使用
+- 既存 `CPLAT_ERR_CORRUPT_DESCRIPTOR` を `ENOTRECOVERABLE` 経路でも使用
 
 ---
 
@@ -215,16 +215,16 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 | パス | 変更概要 |
 |---|---|
-| `app/com_util/prod/include/com_util/sync/sync.h` | enum 拡張、エラー コード追加 (互換維持) |
-| `app/com_util/prod/include_internal/com_util/sync/lock_manager_internal.h` (新規) | 共有メモリ レイアウト構造体、内部 API 宣言 |
-| `app/com_util/prod/libsrc/com_util/sync/lock_manager.c` (新規) | OS 非依存ロジック (ハッシュ、スイープ、API アダプター) |
-| `app/com_util/prod/libsrc/com_util/sync/lock_manager_linux.c` (新規) | shm_open/mmap、robust mutex、pidfd、pthread_cond |
-| `app/com_util/prod/libsrc/com_util/sync/lock_manager_windows.c` (新規) | CreateFileMapping、名前付き Mutex/Event、OpenProcess |
-| `app/com_util/prod/libsrc/com_util/sync/sync_linux.c` | `interprocess_rwlock_*` を lock_manager 呼び出しへ置換。`interprocess_lock_*` (排他のみ) も同じバックエンドの degenerate ケースとして実装 (writer のみ使う) |
-| `app/com_util/prod/libsrc/com_util/sync/sync_windows.c` | 同上 |
-| `app/com_util/prod/libsrc/com_util/sync/makefile` | 新規ソースの追加 |
-| `app/com_util/test/libsrc/mock_com_util/` 各 .c | delegate_real_ 系の差し替え不要 (API シグネチャ維持のため)。動作変更による期待値見直し |
-| `app/com_util/test/src/` (新規テスト) | 数千スケール / クラッシュ復旧 / PID リユース のテスト |
+| `app/c-platform/prod/include/cplat/sync/sync.h` | enum 拡張、エラー コード追加 (互換維持) |
+| `app/c-platform/prod/include_internal/cplat/sync/lock_manager_internal.h` (新規) | 共有メモリ レイアウト構造体、内部 API 宣言 |
+| `app/c-platform/prod/libsrc/cplat/sync/lock_manager.c` (新規) | OS 非依存ロジック (ハッシュ、スイープ、API アダプター) |
+| `app/c-platform/prod/libsrc/cplat/sync/lock_manager_linux.c` (新規) | shm_open/mmap、robust mutex、pidfd、pthread_cond |
+| `app/c-platform/prod/libsrc/cplat/sync/lock_manager_windows.c` (新規) | CreateFileMapping、名前付き Mutex/Event、OpenProcess |
+| `app/c-platform/prod/libsrc/cplat/sync/sync_linux.c` | `interprocess_rwlock_*` を lock_manager 呼び出しへ置換。`interprocess_lock_*` (排他のみ) も同じバックエンドの degenerate ケースとして実装 (writer のみ使う) |
+| `app/c-platform/prod/libsrc/cplat/sync/sync_windows.c` | 同上 |
+| `app/c-platform/prod/libsrc/cplat/sync/makefile` | 新規ソースの追加 |
+| `app/c-platform/test/libsrc/mock_cplat/` 各 .c | delegate_real_ 系の差し替え不要 (API シグネチャ維持のため)。動作変更による期待値見直し |
+| `app/c-platform/test/src/` (新規テスト) | 数千スケール / クラッシュ復旧 / PID リユース のテスト |
 
 参照する既存ユーティリティ:
 
@@ -245,7 +245,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
    どちらを採るか (条件変数 + timed wait で前者にできる)。
 5. **`interprocess_lock` (排他のみ) を共通バックエンドに統合してよいか**: 同じ table に  
    exclusive-only モードのエントリとして同居させる方針 (推奨)。
-6. **環境変数による override (`COM_UTIL_LOCK_DOMAIN`, `COM_UTIL_LOCK_TABLE_SIZE` 等) の命名規約**。
+6. **環境変数による override (`CPLAT_LOCK_DOMAIN`, `CPLAT_LOCK_TABLE_SIZE` 等) の命名規約**。
 
 ---
 
@@ -253,7 +253,7 @@ reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へ
 
 ### ユニット テスト
 
-- `cd app/com_util && make test` で全テスト通過
+- `cd app/c-platform && make test` で全テスト通過
 - 既存の `interprocess_rwlock_*` 単純シナリオ (shared/exclusive 競合、タイムアウト、  
   export/import) が新バックエンドでも同等動作
 

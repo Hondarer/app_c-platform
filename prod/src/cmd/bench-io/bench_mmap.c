@@ -19,9 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <com_util/crt/stdlib.h>
-#include <com_util/mmap/mmap.h>
-#include <com_util/sync/sync.h>
+#include <cplat/crt/stdlib.h>
+#include <cplat/mmap/mmap.h>
+#include <cplat/sync/sync.h>
 
 #include "bench_case.h"
 
@@ -30,7 +30,7 @@
  */
 typedef struct mmap_state
 {
-    com_util_mmap *map; /**< @ref BENCH_API_MMAP_ONCE で保持するハンドル。 */
+    cplat_mmap *map; /**< @ref BENCH_API_MMAP_ONCE で保持するハンドル。 */
 } mmap_state;
 
 /**
@@ -64,9 +64,9 @@ static int is_write_pattern(bench_pattern pattern)
  *  @param[in,out]  map   アタッチ済みハンドル。NULL を渡してはなりません。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
-static int access_mapped(bench_context *ctx, const bench_case *item, com_util_mmap *map)
+static int access_mapped(bench_context *ctx, const bench_case *item, cplat_mmap *map)
 {
-    bench_record *records = (bench_record *)com_util_mmap_get_address(map);
+    bench_record *records = (bench_record *)cplat_mmap_get_address(map);
     size_t index;
     int result = 0;
 
@@ -118,7 +118,7 @@ static int access_mapped(bench_context *ctx, const bench_case *item, com_util_mm
 
     if (result == 0 && item->durable != 0 && is_write_pattern(item->pattern) != 0)
     {
-        if (com_util_mmap_flush(map, NULL, 0U, NULL) != COM_UTIL_OK)
+        if (cplat_mmap_flush(map, NULL, 0U, NULL) != CPLAT_OK)
         {
             result = -1;
         }
@@ -135,11 +135,11 @@ static int access_mapped(bench_context *ctx, const bench_case *item, com_util_mm
  *
  *  読み取り系では共有ロック、書き込み系では排他ロックを取得します。
  */
-static int access_mapped_with_lock(bench_context *ctx, const bench_case *item, com_util_mmap *map)
+static int access_mapped_with_lock(bench_context *ctx, const bench_case *item, cplat_mmap *map)
 {
-    com_util_interprocess_rwlock *lock = NULL;
+    cplat_interprocess_rwlock *lock = NULL;
 
-    (void)com_util_mmap_get_rwlock(map, &lock, NULL);
+    (void)cplat_mmap_get_rwlock(map, &lock, NULL);
     int lock_result;
     int access_result;
 
@@ -150,20 +150,20 @@ static int access_mapped_with_lock(bench_context *ctx, const bench_case *item, c
 
     if (is_write_pattern(item->pattern) != 0)
     {
-        lock_result = com_util_interprocess_rwlock_lock_exclusive(lock, COM_UTIL_SYNC_WAIT_FOREVER);
+        lock_result = cplat_interprocess_rwlock_lock_exclusive(lock, CPLAT_SYNC_WAIT_FOREVER);
     }
     else
     {
-        lock_result = com_util_interprocess_rwlock_lock_shared(lock, COM_UTIL_SYNC_WAIT_FOREVER);
+        lock_result = cplat_interprocess_rwlock_lock_shared(lock, CPLAT_SYNC_WAIT_FOREVER);
     }
-    if (lock_result != COM_UTIL_OK)
+    if (lock_result != CPLAT_OK)
     {
         return -1;
     }
 
     access_result = access_mapped(ctx, item, map);
 
-    if (com_util_interprocess_rwlock_unlock(lock) != COM_UTIL_OK)
+    if (cplat_interprocess_rwlock_unlock(lock) != CPLAT_OK)
     {
         return -1;
     }
@@ -186,15 +186,15 @@ int bench_mmap_setup(bench_context *ctx, const bench_case *item)
         return 0;
     }
 
-    state = (mmap_state *)com_util_malloc_zerofill(sizeof(*state));
+    state = (mmap_state *)cplat_malloc_zerofill(sizeof(*state));
     if (state == NULL)
     {
         return -1;
     }
-    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &state->map, NULL) !=
-        COM_UTIL_OK)
+    if (cplat_mmap_attach(ctx->path, CPLAT_MMAP_ACCESS_READ_WRITE, ctx->file_size, &state->map, NULL) !=
+        CPLAT_OK)
     {
-        com_util_free(state);
+        cplat_free(state);
         return -1;
     }
     ctx->state = state;
@@ -205,7 +205,7 @@ int bench_mmap_setup(bench_context *ctx, const bench_case *item)
 
 int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
 {
-    com_util_mmap *map = NULL;
+    cplat_mmap *map = NULL;
     int result;
 
     if (ctx == NULL || item == NULL)
@@ -220,7 +220,7 @@ int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
         return access_mapped(ctx, item, state->map);
     }
 
-    if (com_util_mmap_attach(ctx->path, COM_UTIL_MMAP_ACCESS_READ_WRITE, ctx->file_size, &map, NULL) != COM_UTIL_OK)
+    if (cplat_mmap_attach(ctx->path, CPLAT_MMAP_ACCESS_READ_WRITE, ctx->file_size, &map, NULL) != CPLAT_OK)
     {
         return -1;
     }
@@ -234,7 +234,7 @@ int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
         result = access_mapped(ctx, item, map);
     }
 
-    (void)com_util_mmap_detach(map, NULL);
+    (void)cplat_mmap_detach(map, NULL);
     return result;
 }
 
@@ -253,7 +253,7 @@ void bench_mmap_teardown(bench_context *ctx, const bench_case *item)
     {
         return;
     }
-    (void)com_util_mmap_detach(state->map, NULL);
-    com_util_free(state);
+    (void)cplat_mmap_detach(state->map, NULL);
+    cplat_free(state);
     ctx->state = NULL;
 }

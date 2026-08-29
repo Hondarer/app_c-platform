@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  *  @file           argparser-sample.c
- *  @brief          com_util_argparser の動作確認用サンプル コマンドを実装します。
+ *  @brief          cplat_argparser の動作確認用サンプル コマンドを実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/07/12
  *  @version        1.0.0
@@ -15,8 +15,8 @@
  *******************************************************************************
  */
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/console/console.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/console/console.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -44,19 +44,19 @@ typedef struct argparser_sample_options
  */
 static int register_argparser(argparser_sample_options *options)
 {
-    com_util_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
-    com_util_argparser_register_flag("-v", "--verbose", "increase verbosity", &options->verbose_count);
-    com_util_argparser_register_option_int("-c", "--count", "N", "repeat count", 0, &options->count_value);
-    com_util_argparser_register_option_string("-n", "--name", "NAME", "display name", 0, &options->name_value);
-    com_util_argparser_register_option_string_array("-i", "--include", "DIR", "include directory", 0, options->includes,
+    cplat_argparser_register_flag("-h", "--help", "show this help", &options->need_help);
+    cplat_argparser_register_flag("-v", "--verbose", "increase verbosity", &options->verbose_count);
+    cplat_argparser_register_option_int("-c", "--count", "N", "repeat count", 0, &options->count_value);
+    cplat_argparser_register_option_string("-n", "--name", "NAME", "display name", 0, &options->name_value);
+    cplat_argparser_register_option_string_array("-i", "--include", "DIR", "include directory", 0, options->includes,
                                                     ARGPARSER_SAMPLE_INCLUDE_MAX, &options->include_count);
-    com_util_argparser_register_positional_string("input", "input file", COM_UTIL_ARGPARSER_REQUIRED,
+    cplat_argparser_register_positional_string("input", "input file", CPLAT_ARGPARSER_REQUIRED,
                                                   &options->input_path);
-    com_util_argparser_register_positional_string("output", "output file", 0, &options->output_path);
+    cplat_argparser_register_positional_string("output", "output file", 0, &options->output_path);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     { /* オプションの登録に失敗した場合 (コーディング エラーの場合) */
-        com_util_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
         return -1;
     }
 
@@ -97,31 +97,31 @@ static void print_result(const argparser_sample_options *options)
 
 int main(int argc, char *argv[])
 {
-    com_util_console_init();
+    cplat_console_init();
 
     argparser_sample_options options = {0};
     options.count_value = 1; /* 0 以外の既定値は解析前に設定する */
 
-    com_util_argparser_init(argc, argv, "com_util_argparser sample");
+    cplat_argparser_init(argc, argv, "cplat_argparser sample");
 
     if (register_argparser(&options) != 0)
     {
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse();
+    int parse_result = cplat_argparser_parse();
 
     if (options.need_help != 0)
     {
         /* 必須引数が省略されていても -h, --help を優先する */
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

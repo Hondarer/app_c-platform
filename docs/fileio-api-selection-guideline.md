@@ -1,10 +1,10 @@
 # ファイル入出力 API の選定基準
 
-固定レコード長バイナリ ファイルや構造体配列の入出力で、`com_util` の `stdio` ラッパー API とメモリ マップド ファイル API のどちらを使うかを、実測に基づいて判断するための基準をまとめます。
+固定レコード長バイナリ ファイルや構造体配列の入出力で、`cplat` の `stdio` ラッパー API とメモリ マップド ファイル API のどちらを使うかを、実測に基づいて判断するための基準をまとめます。
 
-com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を参照してください。
 
-測定方法は [ベンチマークの測定方法](https://github.com/Hondarer/app_com_util/blob/main/prod/src/cmd/bench-io/benchmark-method.md) を参照してください。  
+測定方法は [ベンチマークの測定方法](https://github.com/Hondarer/app_c-platform/blob/main/prod/src/cmd/bench-io/benchmark-method.md) を参照してください。  
 本書の表は `bench-io` の出力から転記したものです。CSV そのものは実行環境ごとに値が変わるため、リポジトリでは管理していません。
 
 ## 測定条件
@@ -37,8 +37,8 @@ Windows の測定値には、ウイルス対策ソフトウェアによるファ
 
 | 操作 | Linux | Windows | 比 |
 |------|-------|---------|-----|
-| `com_util_fopen` → `com_util_fclose` | 1.8 μs | 52 ～ 56 μs | 約 30 倍 |
-| `com_util_mmap_attach` → `com_util_mmap_detach` | 6.2 ～ 8.9 μs | 134 ～ 149 μs | 約 20 倍 |
+| `cplat_fopen` → `cplat_fclose` | 1.8 μs | 52 ～ 56 μs | 約 30 倍 |
+| `cplat_mmap_attach` → `cplat_mmap_detach` | 6.2 ～ 8.9 μs | 134 ～ 149 μs | 約 20 倍 |
 | 上にロックの取得と解放を加えたもの | 8.9 ～ 11.7 μs | 221 ～ 240 μs | 約 23 倍 |
 
 Table: オープンとアタッチの固定コスト
@@ -49,7 +49,7 @@ Table: オープンとアタッチの固定コスト
 いずれにせよ 1 回のアタッチでどれだけの処理をこなすかが選定の分かれ目になります。
 
 ロックの取得と解放は Linux で約 2.9 μs、**Windows では約 88 μs** です。  
-`com_util_mmap_get_rwlock()` を呼ばない限りロックは生成されないため、排他が不要な用途ではこのコストは発生しません。  
+`cplat_mmap_get_rwlock()` を呼ばない限りロックは生成されないため、排他が不要な用途ではこのコストは発生しません。  
 このコストの差から、Windows ではロックを使うかどうかの判断が Linux 以上に重要になります。
 
 ## パターン別の比較
@@ -94,7 +94,7 @@ Windows の `stdio` はレコード単位の呼び出しコストが大きく、
 
 Table: ランダム読み取りの 1 レコードあたり所要時間 (ns、Linux / Windows)
 
-`stdio` はレコードごとに `com_util_fseek` を伴うため、CRT の先読みバッファーが機能しません。  
+`stdio` はレコードごとに `cplat_fseek` を伴うため、CRT の先読みバッファーが機能しません。  
 mmap はページ フォールト以外のオーバーヘッドがなく、`mmap-once` で Linux は 7 ～ 40 倍、**Windows は 250 ～ 6000 倍** 高速です。  
 アタッチを毎回行う `mmap-each` は、64 KB から 256 MB までの範囲ではどちらの OS でも `stdio` を大きく上回ります。
 
@@ -174,17 +174,17 @@ mmap はアタッチの固定コストを 1 レコードで償却できません
 
 Table: 逐次書き込みでディスクへの反映を要求した場合の 1 レコードあたり所要時間 (ns、Linux / Windows)
 
-`com_util_mmap_flush` のコストは、小さいファイルほど不利になります。  
+`cplat_mmap_flush` のコストは、小さいファイルほど不利になります。  
 `msync` や `FlushViewOfFile` の呼び出しコストとディスクへの書き戻し待ちを、少数のレコードで割ることになるためです。
 
-**Windows の `com_util_mmap_flush` は、小さいファイルでは Linux よりむしろ低コストです** (4 KB で 5371 対 18816、64 KB で 388 対 1813)。  
+**Windows の `cplat_mmap_flush` は、小さいファイルでは Linux よりむしろ低コストです** (4 KB で 5371 対 18816、64 KB で 388 対 1813)。  
 Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため Linux より高コストになると想定していましたが、実測は逆でした。
 
 **`stdio-blk+sync` と `stdio-blk` にはどちらの OS でもほとんど差がありません。**
 
-これは `com_util_fflush` が CRT のバッファーを OS へ渡すだけで、ディスクへの書き戻しまでは待たないためです。  
+これは `cplat_fflush` が CRT のバッファーを OS へ渡すだけで、ディスクへの書き戻しまでは待たないためです。  
 両者は耐久性の水準が異なるので、**`+sync` 同士の数値を直接比較してはいけません。**  
-`stdio` で mmap と同等の耐久性を得るには、`fflush` に加えて `fsync` 相当の処理が必要ですが、`com_util` にはそのラッパーがありません。
+`stdio` で mmap と同等の耐久性を得るには、`fflush` に加えて `fsync` 相当の処理が必要ですが、`cplat` にはそのラッパーがありません。
 
 ## 判断手順
 
@@ -192,10 +192,10 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
 判断は両 OS で共通です。
 
 1. **ネットワーク ファイル システム上のファイルか**  
-   → `stdio` を使用します。`com_util_mmap_attach` の `@warning` のとおり、mmap はローカル ファイル システム専用です。
+   → `stdio` を使用します。`cplat_mmap_attach` の `@warning` のとおり、mmap はローカル ファイル システム専用です。
 
 2. **ファイル サイズがアドレス空間に収まらないか、実行時まで確定しないか**  
-   → `stdio` を使用します。現在の `com_util_mmap` は部分範囲マップに対応しておらず、ファイル全体を一度にマップします。
+   → `stdio` を使用します。現在の `cplat_mmap` は部分範囲マップに対応しておらず、ファイル全体を一度にマップします。
 
 3. **追記によってファイルを伸長するか**  
    → `stdio` を使用します。既存ファイルを開いた時点のサイズがマップ サイズに固定されるため、mmap では追記できません。
@@ -215,7 +215,7 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
    1 GB では Linux で `stdio` に逆転されます。**巨大ファイルを mmap で扱うなら、アタッチの保持が前提です。**
 
 7. **1 回開いて全体を 1 度だけ通す逐次処理か**  
-   → `stdio` のブロック単位読み書き (`com_util_fread` / `com_util_fwrite` を 64 KB 程度でまとめる) を使用します。  
+   → `stdio` のブロック単位読み書き (`cplat_fread` / `cplat_fwrite` を 64 KB 程度でまとめる) を使用します。  
    mmap にしても同等以上にはならず、実装は複雑になります。
 
 8. **上のいずれにも当てはまらない**  
@@ -224,15 +224,15 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
 ## プロセス間共有が必要な場合
 
 複数プロセスから同一ファイルを排他制御しながら読み書きする場合は mmap を選びます。  
-`com_util_mmap_get_rwlock()` で得たプロセス横断リーダー ライター ロックを、`com_util_interprocess_rwlock_lock_shared()` および `com_util_interprocess_rwlock_lock_exclusive()` と組み合わせて使用します。
+`cplat_mmap_get_rwlock()` で得たプロセス横断リーダー ライター ロックを、`cplat_interprocess_rwlock_lock_shared()` および `cplat_interprocess_rwlock_lock_exclusive()` と組み合わせて使用します。
 
 共有モードと排他制御の関係は、[コーディング規範のプラットフォーム差異の共通契約](coding-guideline.md#プラットフォーム差異の共通契約) を参照してください。  
 `stdio` ラッパー API にはプロセス間の排他機構がありません。
 
-ロックはアタッチ時ではなく `com_util_mmap_get_rwlock()` の初回呼び出し時に生成されます。  
+ロックはアタッチ時ではなく `cplat_mmap_get_rwlock()` の初回呼び出し時に生成されます。  
 排他が不要な場合はこの関数を呼ばないでください。Linux で約 2.9 μs、Windows で約 88 μs のコストを回避できます。
 
-ロックを使う場合も、アタッチを保持して `com_util_mmap_get_rwlock()` の結果を使い回す設計にしてください。  
+ロックを使う場合も、アタッチを保持して `cplat_mmap_get_rwlock()` の結果を使い回す設計にしてください。  
 アタッチのたびにロックを開き直すと、Windows では 1 回あたり約 88 μs が繰り返し発生します。
 
 ## OS による差
@@ -243,9 +243,9 @@ Windows では `FlushViewOfFile` に加えて `FlushFileBuffers` を呼ぶため
 - **`mmap-once` の性能は OS にほとんど依存しません。** アタッチ後の処理はメモリ アクセスのみであり、両 OS の値は誤差の範囲で一致します。
 - **`stdio` の性能は OS 差が大きく出ます。** Windows は Linux に対して逐次で 4 ～ 5 倍、ランダムで 8 倍程度遅くなります。Windows の測定値にはウイルス対策ソフトウェアの監視が含まれる可能性があるため、この差の一部は環境要因です。
 - **小さいファイルへの書き込みは Windows で特に高コストです。** 4 KB のファイルへの逐次書き込みは Linux の約 600 倍かかります。
-- **`com_util_mmap_flush` は小さいファイルで Windows のほうが低コストです。** 想定と逆の結果でした。大きいファイル (256 MB) ではほぼ同等になります。
+- **`cplat_mmap_flush` は小さいファイルで Windows のほうが低コストです。** 想定と逆の結果でした。大きいファイル (256 MB) ではほぼ同等になります。
 
-## 現在の com_util_mmap API の制限
+## 現在の cplat_mmap API の制限
 
 判断手順で `stdio` を選ぶ根拠になっている制限です。将来 API が拡張されれば基準も変わります。
 

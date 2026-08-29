@@ -10,15 +10,15 @@
 
 #include "compress-cli.h"
 
-#include <com_util/argparser/argparser.h>
-#include <com_util/base/error.h>
-#include <com_util/base/error_message.h>
-#include <com_util/base/platform.h>
-#include <com_util/compress/compress.h>
-#include <com_util/console/console.h>
-#include <com_util/crt/path.h>
-#include <com_util/crt/stdio.h>
-#include <com_util/crt/stdlib.h>
+#include <cplat/argparser/argparser.h>
+#include <cplat/base/error.h>
+#include <cplat/base/error_message.h>
+#include <cplat/base/platform.h>
+#include <cplat/compress/compress.h>
+#include <cplat/console/console.h>
+#include <cplat/crt/path.h>
+#include <cplat/crt/stdio.h>
+#include <cplat/crt/stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,9 +37,9 @@
  *  @param[in]      buf_size @p buf のバイト数。
  *  @return         @p buf を返します。変換できない場合は代替の静的文字列を返します。
  */
-static const char *compress_cli_error_text(const com_util_error *error, char *buf, size_t buf_size)
+static const char *compress_cli_error_text(const cplat_error *error, char *buf, size_t buf_size)
 {
-    if (com_util_error_message(buf, buf_size, error) != COM_UTIL_OK)
+    if (cplat_error_message(buf, buf_size, error) != CPLAT_OK)
     {
         return "unknown error";
     }
@@ -58,7 +58,7 @@ static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
     {
         (void)fclose(file);
     }
-    com_util_free(data);
+    cplat_free(data);
     return -1;
 }
 
@@ -66,7 +66,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 {
     FILE *file = NULL;
     uint8_t *data = NULL;
-    com_util_error open_error;
+    cplat_error open_error;
     char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     int64_t file_size_i64;
     size_t file_size;
@@ -80,7 +80,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
     *data_out = NULL;
     *size_out = 0u;
 
-    file = com_util_fopen(path, "rb", &open_error);
+    file = cplat_fopen(path, "rb", &open_error);
     if (file == NULL)
     {
         fprintf(stderr, "入力ファイルを開けません: %s (%s)\n", path,
@@ -88,13 +88,13 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
         return -1;
     }
 
-    if (com_util_fseek(file, 0, SEEK_END) != 0)
+    if (cplat_fseek(file, 0, SEEK_END) != 0)
     {
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
         return compress_cli_read_file_fail(file, data);
     }
 
-    file_size_i64 = com_util_ftell(file);
+    file_size_i64 = cplat_ftell(file);
     if (file_size_i64 < 0)
     {
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
@@ -114,7 +114,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
         return compress_cli_read_file_fail(file, data);
     }
 
-    if (com_util_fseek(file, 0, SEEK_SET) != 0)
+    if (cplat_fseek(file, 0, SEEK_SET) != 0)
     {
         fprintf(stderr, "入力ファイルの先頭へ戻せません: %s\n", path);
         return compress_cli_read_file_fail(file, data);
@@ -122,7 +122,7 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 
     if (file_size > 0u)
     {
-        data = (uint8_t *)com_util_malloc(file_size);
+        data = (uint8_t *)cplat_malloc(file_size);
         if (data == NULL)
         {
             fprintf(stderr, "入力バッファの確保に失敗しました。\n");
@@ -152,12 +152,12 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
 static int compress_cli_write_file(const char *path, const uint8_t *data, size_t size)
 {
     FILE *file = NULL;
-    com_util_error open_error;
+    cplat_error open_error;
     char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     size_t written = 0u;
     int close_rc = 0;
 
-    file = com_util_fopen(path, "wb", &open_error);
+    file = cplat_fopen(path, "wb", &open_error);
     if (file == NULL)
     {
         fprintf(stderr, "出力ファイルを開けません: %s (%s)\n", path,
@@ -176,7 +176,7 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
             {
                 fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
             }
-            (void)com_util_remove(path, NULL);
+            (void)cplat_remove(path, NULL);
             return -1;
         }
     }
@@ -184,7 +184,7 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
     if (fclose(file) != 0)
     {
         fprintf(stderr, "出力ファイルのクローズに失敗しました: %s\n", path);
-        (void)com_util_remove(path, NULL);
+        (void)cplat_remove(path, NULL);
         return -1;
     }
 
@@ -194,11 +194,11 @@ static int compress_cli_write_file(const char *path, const uint8_t *data, size_t
 static int compress_cli_resolve_paths(const compress_cli_options *options, char *input_full, size_t input_full_size,
                                       char *output_full, size_t output_full_size)
 {
-    com_util_error error;
+    cplat_error error;
     char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     int path_equal = 0;
 
-    if (com_util_paths_equal(options->input_path, options->output_path, &path_equal, &error) != COM_UTIL_OK)
+    if (cplat_paths_equal(options->input_path, options->output_path, &path_equal, &error) != CPLAT_OK)
     {
         fprintf(stderr, "入力パスと出力パスの比較に失敗しました (%s)\n",
                 compress_cli_error_text(&error, message, sizeof(message)));
@@ -211,14 +211,14 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
         return -1;
     }
 
-    if (com_util_path_get_full(input_full, input_full_size, &error, options->input_path) != COM_UTIL_OK)
+    if (cplat_path_get_full(input_full, input_full_size, &error, options->input_path) != CPLAT_OK)
     {
         fprintf(stderr, "入力パスの正規化に失敗しました: %s (%s)\n", options->input_path,
                 compress_cli_error_text(&error, message, sizeof(message)));
         return -1;
     }
 
-    if (com_util_path_get_full(output_full, output_full_size, &error, options->output_path) != COM_UTIL_OK)
+    if (cplat_path_get_full(output_full, output_full_size, &error, options->output_path) != CPLAT_OK)
     {
         fprintf(stderr, "出力パスの正規化に失敗しました: %s (%s)\n", options->output_path,
                 compress_cli_error_text(&error, message, sizeof(message)));
@@ -230,8 +230,8 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
 
 static int compress_cli_run_compress_return(uint8_t *input_data, uint8_t *compressed_data, int rc)
 {
-    com_util_free(compressed_data);
-    com_util_free(input_data);
+    cplat_free(compressed_data);
+    cplat_free(input_data);
     return rc;
 }
 
@@ -255,13 +255,13 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
     }
 
-    compressed_capacity = input_size * 2u + COM_UTIL_COMPRESS_HEADER_SIZE;
+    compressed_capacity = input_size * 2u + CPLAT_COMPRESS_HEADER_SIZE;
     if (compressed_capacity < 256u)
     {
         compressed_capacity = 256u;
     }
 
-    compressed_data = (uint8_t *)com_util_malloc(compressed_capacity);
+    compressed_data = (uint8_t *)cplat_malloc(compressed_capacity);
     if (compressed_data == NULL)
     {
         fprintf(stderr, "圧縮バッファの確保に失敗しました。\n");
@@ -269,7 +269,7 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
     }
 
     compressed_size = compressed_capacity;
-    if (com_util_compress(compressed_data, &compressed_size, input_data, input_size) != COM_UTIL_OK)
+    if (cplat_compress(compressed_data, &compressed_size, input_data, input_size) != CPLAT_OK)
     {
         fprintf(stderr, "圧縮に失敗しました: %s\n", input_path);
         return compress_cli_run_compress_return(input_data, compressed_data, rc);
@@ -285,8 +285,8 @@ static int compress_cli_run_compress(const char *input_path, const char *output_
 
 static int compress_cli_run_decompress_return(uint8_t *input_data, uint8_t *decompressed_data, int rc)
 {
-    com_util_free(decompressed_data);
-    com_util_free(input_data);
+    cplat_free(decompressed_data);
+    cplat_free(input_data);
     return rc;
 }
 
@@ -304,7 +304,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
         return -1;
     }
 
-    if (input_size <= COM_UTIL_COMPRESS_HEADER_SIZE)
+    if (input_size <= CPLAT_COMPRESS_HEADER_SIZE)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダーのみ、または空です: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
@@ -324,7 +324,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
-    decompressed_data = (uint8_t *)com_util_malloc((size_t)expected_size);
+    decompressed_data = (uint8_t *)cplat_malloc((size_t)expected_size);
     if (decompressed_data == NULL)
     {
         fprintf(stderr, "展開バッファの確保に失敗しました。\n");
@@ -332,7 +332,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     }
 
     decompressed_size = (size_t)expected_size;
-    if (com_util_decompress(decompressed_data, &decompressed_size, input_data, input_size) != COM_UTIL_OK)
+    if (cplat_decompress(decompressed_data, &decompressed_size, input_data, input_size) != CPLAT_OK)
     {
         fprintf(stderr, "展開に失敗しました: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
@@ -371,48 +371,48 @@ int main(int argc, char *argv[])
     char input_full[PLATFORM_PATH_MAX];
     char output_full[PLATFORM_PATH_MAX];
 
-    com_util_console_init();
+    cplat_console_init();
 
     compress_cli_options_init(&options);
 
     int compress_count = 0;
     int decompress_count = 0;
 
-    com_util_argparser_init(argc, argv, "ファイルを圧縮または展開します。");
-    com_util_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
-    com_util_argparser_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
-    com_util_argparser_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
-    com_util_argparser_register_positional_string("input", "入力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+    cplat_argparser_init(argc, argv, "ファイルを圧縮または展開します。");
+    cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
+    cplat_argparser_register_flag(NULL, "--compress", "入力ファイルを圧縮します。", &compress_count);
+    cplat_argparser_register_flag(NULL, "--decompress", "入力ファイルを展開します。", &decompress_count);
+    cplat_argparser_register_positional_string("input", "入力ファイル。", CPLAT_ARGPARSER_REQUIRED,
                                                   &options.input_path);
-    com_util_argparser_register_positional_string("output", "出力ファイル。", COM_UTIL_ARGPARSER_REQUIRED,
+    cplat_argparser_register_positional_string("output", "出力ファイル。", CPLAT_ARGPARSER_REQUIRED,
                                                   &options.output_path);
 
-    if (com_util_argparser_get_register_error_count() > 0)
+    if (cplat_argparser_get_register_error_count() > 0)
     {
-        com_util_argparser_print_register_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_register_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
-    int parse_result = com_util_argparser_parse();
+    int parse_result = cplat_argparser_parse();
 
     if (options.need_help != 0)
     {
-        com_util_argparser_print_usage(stdout);
+        cplat_argparser_print_usage(stdout);
         return EXIT_SUCCESS;
     }
 
-    if (parse_result != COM_UTIL_OK)
+    if (parse_result != CPLAT_OK)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
     if ((compress_count + decompress_count) != 1)
     {
-        com_util_argparser_print_error_messages(stderr);
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_error_messages(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        com_util_argparser_print_usage(stderr);
+        cplat_argparser_print_usage(stderr);
         return EXIT_FAILURE;
     }
 

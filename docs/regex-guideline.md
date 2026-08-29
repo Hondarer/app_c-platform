@@ -1,15 +1,15 @@
 # 正規表現 API (regex) の利用指針
 
-`com_util/regex/regex.h` が提供する正規表現 API の設計方針と、POSIX `<regex.h>` との対応を示します。
+`cplat/regex/regex.h` が提供する正規表現 API の設計方針と、POSIX `<regex.h>` との対応を示します。
 
-com_util が公開する API 全体の一覧は [com_util API チート シート](api-cheatsheet.md) を参照してください。
+cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を参照してください。
 
 ## 実装の背景
 
 正規表現は C 標準に存在せず、POSIX `<regex.h>` は Linux の libc には含まれますが Windows (MSVC) には存在しません。  
 本 API は C++ 標準ライブラリの `std::basic_regex` を単一の実装として使用し、両プラットフォームで同一の照合結果を得られるようにしています。外部ライブラリへの依存は追加していません。
 
-文字特性 (`std::regex_traits` 相当) は com_util 側で実装しています。  
+文字特性 (`std::regex_traits` 相当) は cplat 側で実装しています。  
 標準の `std::regex_traits` はロケールの `ctype` / `collate` ファセットに依存し、環境設定によって照合結果が変わるためです。自前の実装により、照合結果はロケールに依存しません。
 
 ## 文字モデル
@@ -36,29 +36,29 @@ Linux の `wchar_t` は 32 ビットですが、内部表現にはあえて UTF-
 
 | POSIX | 本 API | 備考 |
 |---|---|---|
-| `regcomp()` | `com_util_regex_create()` | 生成したハンドルは `com_util_regex_dispose()` で破棄します。 |
-| `regexec()` | `com_util_regex_search()` | 全体一致の判定には `com_util_regex_matches()` を使用します。 |
-| `regfree()` | `com_util_regex_dispose()` | |
+| `regcomp()` | `cplat_regex_create()` | 生成したハンドルは `cplat_regex_dispose()` で破棄します。 |
+| `regexec()` | `cplat_regex_search()` | 全体一致の判定には `cplat_regex_matches()` を使用します。 |
+| `regfree()` | `cplat_regex_dispose()` | |
 | `regerror()` | (なし) | 診断文字列は返さない。結果コードで区別します。 |
-| `regmatch_t` | `com_util_regex_match` | `rm_so` / `rm_eo` は `begin` / `end` に対応します。 |
-| `re_nsub` | `com_util_regex_get_group_count()` | 全体マッチの 1 を含めた要素数を返す |
+| `regmatch_t` | `cplat_regex_match` | `rm_so` / `rm_eo` は `begin` / `end` に対応します。 |
+| `re_nsub` | `cplat_regex_get_group_count()` | 全体マッチの 1 を含めた要素数を返す |
 | `nmatch` | `matches_capacity` | 不足時は先頭から切り捨てる (POSIX と同じ) |
-| `REG_EXTENDED` | `COM_UTIL_REGEX_EXTENDED` | 無指定時の既定は ECMAScript |
-| `REG_ICASE` | `COM_UTIL_REGEX_ICASE` | 畳み込みは ASCII 範囲のみ |
-| `REG_NOSUB` | `COM_UTIL_REGEX_NOSUB` | |
+| `REG_EXTENDED` | `CPLAT_REGEX_EXTENDED` | 無指定時の既定は ECMAScript |
+| `REG_ICASE` | `CPLAT_REGEX_ICASE` | 畳み込みは ASCII 範囲のみ |
+| `REG_NOSUB` | `CPLAT_REGEX_NOSUB` | |
 | `REG_NEWLINE` | (なし) | 後述 |
-| `REG_NOTBOL` | `COM_UTIL_REGEX_MATCH_NOTBOL` | |
-| `REG_NOTEOL` | `COM_UTIL_REGEX_MATCH_NOTEOL` | |
+| `REG_NOTBOL` | `CPLAT_REGEX_MATCH_NOTBOL` | |
+| `REG_NOTEOL` | `CPLAT_REGEX_MATCH_NOTEOL` | |
 | `REG_NOMATCH` | `matched_out` に 0 | 戻り値ではなく出力引数で表す |
-| `-1` などの位置 | `COM_UTIL_REGEX_NPOS` | 不参加の捕捉グループを表す |
+| `-1` などの位置 | `CPLAT_REGEX_NPOS` | 不参加の捕捉グループを表す |
 
-POSIX に対応がなく本 API が追加している機能は、置換 (`com_util_regex_replace()`)、反復列挙 (`com_util_regex_iter_*()`)、分割 (`com_util_regex_split()`) です。
+POSIX に対応がなく本 API が追加している機能は、置換 (`cplat_regex_replace()`)、反復列挙 (`cplat_regex_iter_*()`)、分割 (`cplat_regex_split()`) です。
 
 ### 「一致しなかった」を戻り値で表さない理由
 
-com_util の戻り値規約では、非 0 は「要求した操作が完遂されなかった」ことを表します。  
+cplat の戻り値規約では、非 0 は「要求した操作が完遂されなかった」ことを表します。  
 照合が完了して一致が無かった場合、操作自体は成功しているため、結果は出力引数 `matched_out` で表します。  
-既存の `com_util_paths_equal()` と同じ形です。
+既存の `cplat_paths_equal()` と同じ形です。
 
 ### REG_NEWLINE を提供しない理由
 
@@ -72,14 +72,14 @@ POSIX の `REG_NEWLINE` は、(a) `^` と `$` を行境界にも一致させる�
 - **文字クラスは ASCII 定義** です。`\w` と `\d` は ECMAScript の仕様自体が ASCII 定義のため仕様どおりですが、`\s` は仕様より狭くなります。
 - **Unicode 正規化は行いません**。`"が"` (U+304C) と `"か" + 濁点` (U+304B U+3099) は一致しません。
 - **照合要素 `[[.x.]]` と等価クラス `[[=x=]]` はサポートしません**。
-- 不正な UTF-8 (オーバー ロング表現、単独サロゲート、U+10FFFF 超、途中で切れた列) は `COM_UTIL_ERR_INVALID_ENCODING` で拒否します。
-- パターンと入力のバイト数は `COM_UTIL_REGEX_MAX_LENGTH` (1 MiB) までです。
+- 不正な UTF-8 (オーバー ロング表現、単独サロゲート、U+10FFFF 超、途中で切れた列) は `CPLAT_ERR_INVALID_ENCODING` で拒否します。
+- パターンと入力のバイト数は `CPLAT_REGEX_MAX_LENGTH` (1 MiB) までです。
 
 ## 信頼できない入力を扱わないこと
 
 `std::regex` は再帰的なバックトラッキングで実装されています。  
 `(a+)+b` のような病的なパターンと長い入力を組み合わせると、照合が指数的な時間を要します。  
-さらに libstdc++ はスタックの枯渇を検出しないため、深い再帰でプロセスが異常終了する可能性があります。MSVC の標準ライブラリは複雑度の上限を持ち `COM_UTIL_ERR_LIMIT_EXCEEDED` を返すため、同じ入力でもプラットフォームによって結果が異なります。
+さらに libstdc++ はスタックの枯渇を検出しないため、深い再帰でプロセスが異常終了する可能性があります。MSVC の標準ライブラリは複雑度の上限を持ち `CPLAT_ERR_LIMIT_EXCEEDED` を返すため、同じ入力でもプラットフォームによって結果が異なります。
 
 パターンは自プログラムが用意した定数を使用し、外部から与えられた文字列をパターンとして受け付けないでください。
 
@@ -87,12 +87,12 @@ POSIX の `REG_NEWLINE` は、(a) `^` と `$` を行境界にも一致させる�
 
 | 結果コード | 主な発生条件 |
 |---|---|
-| `COM_UTIL_ERR_INVALID_ARGUMENT` | NULL 引数、未定義のフラグ ビット、`EXTENDED` と `BASIC` の同時指定、コード ポイント境界を指さない `start_offset` |
-| `COM_UTIL_ERR_INVALID_PATTERN` | パターンの構文エラー |
-| `COM_UTIL_ERR_INVALID_ENCODING` | パターンまたは入力が不正な UTF-8 |
-| `COM_UTIL_ERR_BUFFER_TOO_SMALL` | 置換結果または分割結果の格納先が不足 |
-| `COM_UTIL_ERR_LIMIT_EXCEEDED` | 入力長の上限超過、照合の複雑度の上限超過 |
-| `COM_UTIL_ERR_OUT_OF_MEMORY` | 内部バッファーの確保に失敗 |
+| `CPLAT_ERR_INVALID_ARGUMENT` | NULL 引数、未定義のフラグ ビット、`EXTENDED` と `BASIC` の同時指定、コード ポイント境界を指さない `start_offset` |
+| `CPLAT_ERR_INVALID_PATTERN` | パターンの構文エラー |
+| `CPLAT_ERR_INVALID_ENCODING` | パターンまたは入力が不正な UTF-8 |
+| `CPLAT_ERR_BUFFER_TOO_SMALL` | 置換結果または分割結果の格納先が不足 |
+| `CPLAT_ERR_LIMIT_EXCEEDED` | 入力長の上限超過、照合の複雑度の上限超過 |
+| `CPLAT_ERR_OUT_OF_MEMORY` | 内部バッファーの確保に失敗 |
 
 いずれも OS 呼び出しに由来しない失敗のため、`detail_out` には詳細を格納しません。  
 詳細は [コーディング規範](coding-guideline.md) の「OS エラー詳細の抽象化」を参照してください。

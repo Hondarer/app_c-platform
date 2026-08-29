@@ -1,0 +1,123 @@
+/**
+ *******************************************************************************
+ *  @file           compress_linux.c
+ *  @brief          zlib を使用してデータを圧縮および展開する Linux 向け機能を実装します。
+ *  @author         Tetsuo Honda
+ *  @date           2026/03/05
+ *  @version        1.0.0
+ *
+ *  zlib の deflate/inflate を raw DEFLATE (windowBits = -15) モードで使用します。\n
+ *  Windows 実装 (MSZIP | COMPRESS_RAW) と同一フォーマットを出力するため、
+ *  クロスプラットフォーム通信に対応します。
+ *
+ *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
+ *
+ *******************************************************************************
+ */
+
+#include <cplat/base/platform.h>
+
+#if defined(PLATFORM_LINUX)
+
+    #include <string.h>
+
+    #include <arpa/inet.h>
+    #include <zlib.h>
+
+    #include <cplat/base/result.h>
+    #include <cplat/compress/compress.h>
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
+{
+    uint32_t orig_len_nbo;
+    z_stream z = {0};
+    int ret;
+
+    if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    if (*dst_len < CPLAT_COMPRESS_HEADER_SIZE + 1U)
+    {
+        return CPLAT_ERR_BUFFER_TOO_SMALL;
+    }
+
+    /* 先頭 4 バイトに元サイズ (NBO) を書く */
+    orig_len_nbo = htonl((uint32_t)src_len);
+    memcpy(dst, &orig_len_nbo, CPLAT_COMPRESS_HEADER_SIZE);
+
+    /* raw DEFLATE (windowBits = -15) で圧縮 */
+    z.next_in = (Bytef *)(uintptr_t)src;
+    z.avail_in = (uInt)src_len;
+    z.next_out = dst + CPLAT_COMPRESS_HEADER_SIZE;
+    z.avail_out = (uInt)(*dst_len - CPLAT_COMPRESS_HEADER_SIZE);
+
+    if (deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+
+    ret = deflate(&z, Z_FINISH);
+    deflateEnd(&z);
+
+    if (ret != Z_STREAM_END)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+
+    *dst_len = CPLAT_COMPRESS_HEADER_SIZE + (size_t)z.total_out;
+    return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
+{
+    uint32_t orig_len_nbo;
+    uint32_t orig_len;
+    z_stream z = {0};
+    int ret;
+
+    if (dst == NULL || dst_len == NULL || src == NULL || src_len <= CPLAT_COMPRESS_HEADER_SIZE)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    /* 先頭 4 バイトから元サイズを取得 */
+    memcpy(&orig_len_nbo, src, CPLAT_COMPRESS_HEADER_SIZE);
+    orig_len = ntohl(orig_len_nbo);
+
+    if (*dst_len < (size_t)orig_len)
+    {
+        return CPLAT_ERR_BUFFER_TOO_SMALL;
+    }
+
+    /* raw DEFLATE を展開 */
+    z.next_in = (Bytef *)(uintptr_t)(src + CPLAT_COMPRESS_HEADER_SIZE);
+    z.avail_in = (uInt)(src_len - CPLAT_COMPRESS_HEADER_SIZE);
+    z.next_out = (Bytef *)dst;
+    z.avail_out = (uInt)*dst_len;
+
+    if (inflateInit2(&z, -15) != Z_OK)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+
+    ret = inflate(&z, Z_FINISH);
+    inflateEnd(&z);
+
+    if (ret != Z_STREAM_END)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+
+    *dst_len = (size_t)z.total_out;
+    return CPLAT_OK;
+}
+
+#elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)
+    #pragma warning(disable : 4206)
+#endif

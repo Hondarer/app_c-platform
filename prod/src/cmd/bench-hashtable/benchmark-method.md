@@ -1,7 +1,7 @@
 # ベンチマークの測定方法
 
 `bench-hashtable` コマンドが何をどう測っているかと、実行手順をまとめます。  
-測定結果の解釈と管理方式は [hashtable 可変長ストレージの管理方式](../../../libsrc/com_util/hashtable/hashtable-storage-allocator.md) を参照してください。
+測定結果の解釈と管理方式は [hashtable 可変長ストレージの管理方式](../../../libsrc/cplat/hashtable/hashtable-storage-allocator.md) を参照してください。
 
 ## 測定対象
 
@@ -10,7 +10,7 @@
 
 | 設定 | 値 |
 |------|-----|
-| `key_type` / `value_type` | `COM_UTIL_HASHTABLE_FIELD_VARIABLE_STRING` |
+| `key_type` / `value_type` | `CPLAT_HASHTABLE_FIELD_VARIABLE_STRING` |
 | `key_storage_size` | `capacity` × 16 バイト |
 | `value_storage_size` | `capacity` × 24 バイト |
 | `lifetime` | 5 |
@@ -55,15 +55,15 @@
 ## 実行
 
 ```bash
-make -C app/com_util
-app/com_util/prod/cbin/bench-hashtable
+make -C app/c-platform
+app/c-platform/prod/cbin/bench-hashtable
 ```
 
 capacity の上限を変える場合と、CSV を残す場合は次のとおりです。
 
 ```bash
-app/com_util/prod/cbin/bench-hashtable --max-capacity 65536 \
-    --csv app/com_util/prod/src/cmd/bench-hashtable/measurements/linux.csv
+app/c-platform/prod/cbin/bench-hashtable --max-capacity 65536 \
+    --csv app/c-platform/prod/src/cmd/bench-hashtable/measurements/linux.csv
 ```
 
 ## CSV の列

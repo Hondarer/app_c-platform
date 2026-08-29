@@ -1,14 +1,14 @@
 # ベンチマークの測定方法
 
 `bench-io` コマンドが何をどう測っているかと、Linux および Windows での実行手順をまとめます。  
-測定結果から導いた API の選び分けは [API 選定基準](https://github.com/Hondarer/app_com_util/blob/main/docs/fileio-api-selection-guideline.md) を参照してください。
+測定結果から導いた API の選び分けは [API 選定基準](https://github.com/Hondarer/app_c-platform/blob/main/docs/fileio-api-selection-guideline.md) を参照してください。
 
 ## 測定対象
 
 固定レコード長バイナリ ファイル (1 レコード 64 バイトの構造体配列) に対して、次の 2 系統の API を同一条件で比較します。
 
-- `stdio` ラッパー API - `com_util_fopen` / `com_util_fread` / `com_util_fwrite` / `com_util_fseek` / `com_util_fclose`
-- メモリ マップド ファイル API - `com_util_mmap_attach` / `com_util_mmap_get_address` / `com_util_mmap_flush` / `com_util_mmap_detach`
+- `stdio` ラッパー API - `cplat_fopen` / `cplat_fread` / `cplat_fwrite` / `cplat_fseek` / `cplat_fclose`
+- メモリ マップド ファイル API - `cplat_mmap_attach` / `cplat_mmap_get_address` / `cplat_mmap_flush` / `cplat_mmap_detach`
 
 レコード型はパディングが入らないよう 64 バイトちょうどに揃えています。
 
@@ -22,10 +22,10 @@
 | `stdio-blk` | ファイルを開き、1024 レコード (64 KB 相当) 単位でまとめて読み書きして閉じる |
 | `mmap-once` | アタッチを測定ループの外で 1 回だけ行い、各反復ではマップ済み領域へのアクセスだけを行います。 |
 | `mmap-each` | 反復ごとにアタッチ、アクセス、デタッチを行います。 |
-| `mmap-lock` | `mmap-each` に加えて `com_util_mmap_get_rwlock()` によるロックの取得と解放を行います。 |
+| `mmap-lock` | `mmap-each` に加えて `cplat_mmap_get_rwlock()` によるロックの取得と解放を行います。 |
 
 `+sync` が付く形態は、書き込み後にディスクへの反映を要求した条件です。  
-`stdio` 側は `com_util_fflush` による CRT バッファーの掃き出しまで、mmap 側は `com_util_mmap_flush` による `msync(MS_SYNC)` (Windows は `FlushViewOfFile` + `FlushFileBuffers`) までを行います。  
+`stdio` 側は `cplat_fflush` による CRT バッファーの掃き出しまで、mmap 側は `cplat_mmap_flush` による `msync(MS_SYNC)` (Windows は `FlushViewOfFile` + `FlushFileBuffers`) までを行います。  
 両者は耐久性の水準が異なるため、`+sync` 同士の直接比較はできません。この非対称性は結果の解釈で考慮してください。
 
 ### アクセス パターン
@@ -57,7 +57,7 @@
 
 ## 計測の仕組み
 
-Windows の単調増加クロック `com_util_get_monotonic()` は内部で `GetTickCount64()` を使用しており、分解能はハードウェア依存でおおむね 15 ms です。  
+Windows の単調増加クロック `cplat_get_monotonic()` は内部で `GetTickCount64()` を使用しており、分解能はハードウェア依存でおおむね 15 ms です。  
 1 回の操作を直接測ると分解能に埋もれるため、次の手順で反復回数を自動調整します。
 
 1. ウォーム アップとして測定対象を 1 回実行する (この結果は測定に含めない)
@@ -65,8 +65,8 @@ Windows の単調増加クロック `com_util_get_monotonic()` は内部で `Get
 3. 確定した反復回数で `--trials` (既定 5) 回の試行を行います。
 4. 1 反復あたりの所要時間について、中央値、最小値、最大値を記録します。
 
-経過時間は `com_util_timespec_sub()` の結果からナノ秒で算出します。  
-`com_util_timespec_diff_ms()` はミリ秒単位のため使用しません。
+経過時間は `cplat_timespec_sub()` の結果からナノ秒で算出します。  
+`cplat_timespec_diff_ms()` はミリ秒単位のため使用しません。
 
 この方式により、Windows でも中央値の相対誤差はおおむね 15 ms / 500 ms = 3% 以内に収まります。
 
@@ -93,8 +93,8 @@ cold の測定はネイティブ Linux 環境で実施してください。
 
 ```bash
 make sync-app-env
-make -C app/com_util
-app/com_util/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/com_util/prod/src/cmd/bench-io/measurements/linux.csv
+make -C app/c-platform
+app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/c-platform/prod/src/cmd/bench-io/measurements/linux.csv
 ```
 
 `--dir` には測定用ファイルを置くディレクトリを指定します。  
@@ -104,7 +104,7 @@ app/com_util/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/com_util/prod/
 ページ キャッシュを落とした測定を行う場合は次のようにします。
 
 ```bash
-sudo app/com_util/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5 --csv app/com_util/prod/src/cmd/bench-io/measurements/linux-cold.csv
+sudo app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5 --csv app/c-platform/prod/src/cmd/bench-io/measurements/linux-cold.csv
 ```
 
 ### Windows
@@ -112,8 +112,8 @@ sudo app/com_util/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5 -
 `Start-VSCode-With-Env.cmd` で GNU Make と MSVC の環境を整えたうえで実行します。
 
 ```
-make -C app/com_util
-app\com_util\prod\cbin\bench-io.exe --dir C:\Temp\bench-io --csv app\com_util\prod\src\cmd\bench-io\measurements\windows.csv
+make -C app/c-platform
+app\c-platform\prod\cbin\bench-io.exe --dir C:\Temp\bench-io --csv app\c-platform\prod\src\cmd\bench-io\measurements\windows.csv
 ```
 
 ## 出力

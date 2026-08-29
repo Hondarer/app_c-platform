@@ -3,4 +3,4 @@
 # see: framework/testfw/docs/how-to-test.md の「統合テストは TEST_SRCS を宣言しない」
 
 # ライブラリの指定
-LIBS += com_util
+LIBS += cplat

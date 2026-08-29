@@ -8,4 +8,4 @@ TEST_SRCS := \
 USE_WRAP_MAIN := 1
 
 # ライブラリの指定
-LIBS += mock_com_util mock_libc
+LIBS += mock_cplat mock_libc
