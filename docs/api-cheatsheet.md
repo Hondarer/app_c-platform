@@ -425,19 +425,31 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 対象ヘッダー: `cplat/hashtable/hashtable.h`
 
+通常の `cplat_hashtable_create` は、構築時に指定したレコード数とストレージ容量を固定します。  
+内部確保した領域を自動拡張する場合は、`cplat_hashtable_growth_config` で上限を指定し、`cplat_hashtable_create_growable` で構築します。  
+上限の 0 は上限なしです。
+
+自動拡張版では、`cplat_hashtable_add` と `cplat_hashtable_upsert` がレコード数、キー ストレージ、値ストレージを拡張します。  
+`cplat_hashtable_update` と `cplat_hashtable_update_rec` は値ストレージだけを拡張します。  
+断片化だけが原因なら、容量を増やさず同容量で再構築します。  
+`cplat_hashtable_insert_direct`、外部領域、`cplat_hashtable_attach` は自動拡張の対象外です。
+
+自動再構築が発生した書き込みでは、取得済みの設定、キー、値、管理領域、データ領域への参照がすべて無効になります。  
+永続化した領域を `cplat_hashtable_attach` で再接続しても、自動拡張設定は復元されません。
+
 固定レコード数、固定ストレージ容量、遅延削除を持つハッシュ テーブルです。  
 単一の標準 API とは対応しません。
 
 キーと値は個別に固定長バイナリ、固定長 NUL 終端文字列、可変長 NUL 終端文字列を選択できます。  
-可変長文字列では `key_storage_size` または `value_storage_size` で構築時の容量を指定し、自動拡張しません。  
+通常の `cplat_hashtable_create` では、可変長文字列の容量を `key_storage_size` または `value_storage_size` で指定し、自動拡張しません。  
 断片化で連続領域が不足すると、合計空き容量が足りていても `CPLAT_ERR_STORAGE_FULL` です。  
 必要に応じて `cplat_hashtable_compact` を明示的に呼び出してから再試行します。  
 格納先の確保は、空き領域を管理する空きリストの先着適合で行い、空きブロックの個数を H として O(H) です。  
 断片化がなければ H は 1 のため、実質 O(1) で完了します。  
-格納済みブロックの配置が変わるのは、`cplat_hashtable_compact`、`cplat_hashtable_resize`、`cplat_hashtable_rebuild_into` の 3 つです。  
-前者は同一のストレージ内で、後の 2 つは移行先の領域へ詰め直します。  
+格納済みブロックの配置は、`cplat_hashtable_compact`、`cplat_hashtable_resize`、`cplat_hashtable_rebuild_into`、または自動再構築で変わります。  
+`cplat_hashtable_compact` は同一のストレージ内で、ほかの操作は移行先の領域へ詰め直します。  
 確保は空き領域だけを使うため、対象レコード以外のブロックを動かしません。  
-取得済みの可変長参照が無効になるのは、そのフィールドの更新・回収・再利用、`cplat_hashtable_compact`、`cplat_hashtable_clear`、`cplat_hashtable_resize`、`cplat_hashtable_rebuild_into`、`cplat_hashtable_dispose` です。  
+取得済みの可変長参照が無効になるのは、そのフィールドの更新・回収・再利用、`cplat_hashtable_compact`、`cplat_hashtable_clear`、`cplat_hashtable_resize`、`cplat_hashtable_rebuild_into`、自動再構築、`cplat_hashtable_dispose` です。  
 空きリストは可変長ストレージ 1 個につき `capacity + 1` 要素を占め、必要バッファー サイズに含まれます。  
 必要バッファー サイズは `cplat_hashtable_required_size` で求めてください。  
 ストレージの管理方式は [hashtable 可変長ストレージの管理方式](../prod/libsrc/cplat/hashtable/hashtable-storage-allocator.md) を参照してください。  
@@ -471,7 +483,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 |---|---|
 | 必要バッファー サイズを求める | `cplat_hashtable_required_size` / `cplat_hashtable_buffer_size` |
 | 管理中バッファーの先頭を得る | `cplat_hashtable_buffer_ref` |
-| 構築 / 再接続 / 破棄 | `cplat_hashtable_create` / `cplat_hashtable_attach` / `cplat_hashtable_dispose` |
+| 構築 / 自動拡張版の構築 / 再接続 / 破棄 | `cplat_hashtable_create` / `cplat_hashtable_create_growable` / `cplat_hashtable_attach` / `cplat_hashtable_dispose` |
 | 設定を読む | `cplat_hashtable_get_config_ref` / `cplat_hashtable_get_config_val` |
 | 追加 / 更新 / 削除 | `cplat_hashtable_add` / `cplat_hashtable_update` / `cplat_hashtable_update_rec` / `cplat_hashtable_delete` / `cplat_hashtable_delete_rec` |
 | 無ければ追加、あれば更新 | `cplat_hashtable_upsert`。新規追加か既存更新かは `inserted_out` で返る。重複も未登録もエラーにしない |

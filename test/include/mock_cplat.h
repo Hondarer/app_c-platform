@@ -84,6 +84,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_timespec_to_native)
 // hashtable
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_required_size)
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_create)
+MOCK_CPLAT_LINK_IMPL(cplat_hashtable_create_growable)
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_attach)
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_validate)
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_get_config_ref)
@@ -774,6 +775,9 @@ extern int delegate_real_cplat_hashtable_required_size(const cplat_hashtable_con
 extern int delegate_real_cplat_hashtable_create(const cplat_hashtable_config *config, void *buf_mgmt,
                                                    size_t buf_mgmt_size, void *buf_data, size_t buf_data_size,
                                                    cplat_hashtable **ht_out);
+extern int delegate_real_cplat_hashtable_create_growable(
+    const cplat_hashtable_config *initial_config, const cplat_hashtable_growth_config *growth_config,
+    cplat_hashtable **ht_out);
 extern int delegate_real_cplat_hashtable_attach(void *buf_mgmt, size_t buf_mgmt_size, void *buf_data,
                                                    size_t buf_data_size, cplat_hashtable **ht_out);
 extern int delegate_real_cplat_hashtable_validate(const cplat_hashtable *ht);
@@ -1104,6 +1108,8 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_hashtable_required_size, (const cplat_hashtable_config *, size_t *, size_t *));
     MOCK_METHOD(int, cplat_hashtable_create,
                 (const cplat_hashtable_config *, void *, size_t, void *, size_t, cplat_hashtable **));
+    MOCK_METHOD(int, cplat_hashtable_create_growable,
+                (const cplat_hashtable_config *, const cplat_hashtable_growth_config *, cplat_hashtable **));
     MOCK_METHOD(int, cplat_hashtable_attach, (void *, size_t, void *, size_t, cplat_hashtable **));
     MOCK_METHOD(int, cplat_hashtable_validate, (const cplat_hashtable *));
     MOCK_METHOD(int, cplat_hashtable_get_config_ref,

@@ -11,6 +11,8 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_hashtable_required_size));
     ON_CALL(*this, cplat_hashtable_create(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_hashtable_create));
+    ON_CALL(*this, cplat_hashtable_create_growable(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_hashtable_create_growable));
     ON_CALL(*this, cplat_hashtable_attach(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_hashtable_attach));
     ON_CALL(*this, cplat_hashtable_validate(_)).WillByDefault(Invoke(delegate_real_cplat_hashtable_validate));

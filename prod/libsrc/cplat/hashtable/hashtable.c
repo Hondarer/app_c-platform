@@ -266,7 +266,9 @@ struct cplat_hashtable
     unsigned char *data;                  /**< データ領域(値配列)の先頭です。実行時のみ有効です。 */
     unsigned char owns_buffer;            /**< 1 なら @ref cplat_hashtable_dispose が永続化領域と
                                      データ領域をあわせて解放します。 */
-    unsigned char pad[7];                 /**< owns_buffer のあとの明示パディングです。 */
+    unsigned char growable;               /**< 1 なら通常の追加・更新で自動拡張します。 */
+    unsigned char pad[6];                 /**< growable のあとの明示パディングです。 */
+    cplat_hashtable_growth_config growth; /**< 自動拡張の上限です。永続化しません。 */
 };
 
 /**
@@ -1838,6 +1840,74 @@ int cplat_hashtable_create(const cplat_hashtable_config *config, void *buf_mgmt,
     return CPLAT_OK;
 }
 
+static int growth_config_is_valid(const cplat_hashtable_config *initial_config,
+                                  const cplat_hashtable_growth_config *growth_config)
+{
+    if ((growth_config->max_capacity != 0) &&
+        (growth_config->max_capacity < initial_config->capacity))
+    {
+        return 0;
+    }
+    if (field_is_variable(initial_config->key_type) == 0)
+    {
+        if (growth_config->max_key_storage_size != 0)
+        {
+            return 0;
+        }
+    }
+    else if ((growth_config->max_key_storage_size != 0) &&
+             (growth_config->max_key_storage_size < initial_config->key_storage_size))
+    {
+        return 0;
+    }
+    if (field_is_variable(initial_config->value_type) == 0)
+    {
+        if (growth_config->max_value_storage_size != 0)
+        {
+            return 0;
+        }
+    }
+    else if ((growth_config->max_value_storage_size != 0) &&
+             (growth_config->max_value_storage_size < initial_config->value_storage_size))
+    {
+        return 0;
+    }
+    return 1;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_hashtable_create_growable(const cplat_hashtable_config *initial_config,
+                                    const cplat_hashtable_growth_config *growth_config,
+                                    cplat_hashtable **ht_out)
+{
+    cplat_hashtable *ht = NULL;
+    int ret;
+
+    if (ht_out != NULL)
+    {
+        *ht_out = NULL;
+    }
+    if ((initial_config == NULL) || (growth_config == NULL) || (ht_out == NULL))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    if ((hashtable_validate_config(initial_config) != 0) ||
+        (growth_config_is_valid(initial_config, growth_config) == 0))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    ret = cplat_hashtable_create(initial_config, NULL, 0, NULL, 0, &ht);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ht->growth = *growth_config;
+    ht->growable = 1;
+    *ht_out = ht;
+    return CPLAT_OK;
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_hashtable_get_config_ref(const cplat_hashtable *ht, const cplat_hashtable_config **config_out)
@@ -2375,6 +2445,40 @@ static void store_inserted(int *inserted_out, int inserted)
     }
 }
 
+enum hashtable_growth_pressure
+{
+    HASHTABLE_GROWTH_NONE = 0,
+    HASHTABLE_GROWTH_CAPACITY = 1,
+    HASHTABLE_GROWTH_KEY_STORAGE = 2,
+    HASHTABLE_GROWTH_VALUE_STORAGE = 4
+};
+
+struct hashtable_growth_request
+{
+    size_t key_storage_min;
+    size_t value_storage_min;
+    size_t pressure;
+};
+
+static size_t storage_min_for_transaction(uint64_t used, size_t input_size)
+{
+    size_t minimum;
+
+    if (add_checked((size_t)used, input_size, &minimum) != 0)
+    {
+        return SIZE_MAX;
+    }
+    return minimum;
+}
+
+static int hashtable_put_with_growth(cplat_hashtable *ht, const void *key, const void *value,
+                                     cplat_hashtable_add_deleted_policy deleted_policy, int allow_update,
+                                     int *inserted_out);
+
+static int hashtable_update_with_growth(cplat_hashtable *ht, const void *key, const void *value);
+
+static int hashtable_update_rec_with_growth(cplat_hashtable *ht, uint64_t record, const void *value);
+
 /**
  *  @brief          キーを追加、または既存キーの値を書き換えます。
  *  @param[in,out]  ht              対象。NULL を渡してはなりません。
@@ -2384,13 +2488,15 @@ static void store_inserted(int *inserted_out, int inserted)
  *  @param[in]      allow_update    0 なら使用中の同一キーを @ref CPLAT_ERR_DUPLICATE_KEY 、
  *                                  0 以外なら値を書き換えます。
  *  @param[out]     inserted_out    新規追加なら 1、既存更新なら 0。NULL を渡せます。
+ *  @param[out]     growth_out      領域不足時の拡張要求。NULL を渡せます。
  *  @return         @ref cplat_hashtable_add と同じ結果コードです。
  *
  *  @ref cplat_hashtable_add と @ref cplat_hashtable_upsert の共通実装です。\n
  *  @p inserted_out は @ref CPLAT_OK のときだけ書きます。
  */
 static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value,
-                         cplat_hashtable_add_deleted_policy deleted_policy, int allow_update, int *inserted_out)
+                         cplat_hashtable_add_deleted_policy deleted_policy, int allow_update, int *inserted_out,
+                         struct hashtable_growth_request *growth_out)
 {
     size_t key_storage_offset = 0;
     size_t value_storage_offset = 0;
@@ -2399,6 +2505,13 @@ static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value
     uint64_t cur;
     uint64_t rec_no;
     size_t rec;
+    int key_has_space;
+    int value_has_space;
+
+    if (growth_out != NULL)
+    {
+        memset(growth_out, 0, sizeof(*growth_out));
+    }
 
     if ((ht == NULL) || (key == NULL) || (value == NULL))
     {
@@ -2439,6 +2552,13 @@ static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value
                 /* upsert は使用中の同一キーの値を書き換える。 */
                 if (value_storage_find_free(ht, rec, 1, value, &value_storage_offset) == 0)
                 {
+                    if (growth_out != NULL)
+                    {
+                        growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+                        growth_out->value_storage_min = storage_min_for_transaction(
+                            ht->hdr->value_storage_used,
+                            field_input_size(ht->hdr->config.value_type, 0, value));
+                    }
                     return CPLAT_ERR_STORAGE_FULL;
                 }
                 release_value(ht, rec);
@@ -2452,6 +2572,13 @@ static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value
             {
                 if (value_storage_find_free(ht, rec, 1, value, &value_storage_offset) == 0)
                 {
+                    if (growth_out != NULL)
+                    {
+                        growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+                        growth_out->value_storage_min = storage_min_for_transaction(
+                            ht->hdr->value_storage_used,
+                            field_input_size(ht->hdr->config.value_type, 0, value));
+                    }
                     return CPLAT_ERR_STORAGE_FULL;
                 }
                 release_value(ht, rec);
@@ -2475,14 +2602,57 @@ static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value
     }
     if (rec_no == 0)
     {
+        if (growth_out != NULL)
+        {
+            growth_out->pressure |= HASHTABLE_GROWTH_CAPACITY;
+            if (field_is_variable(ht->hdr->config.key_type) != 0)
+            {
+                growth_out->key_storage_min = storage_min_for_transaction(
+                    ht->hdr->key_storage_used, field_input_size(ht->hdr->config.key_type, 0, key));
+                if (growth_out->key_storage_min > ht->hdr->config.key_storage_size)
+                {
+                    growth_out->pressure |= HASHTABLE_GROWTH_KEY_STORAGE;
+                }
+            }
+            if (field_is_variable(ht->hdr->config.value_type) != 0)
+            {
+                growth_out->value_storage_min = storage_min_for_transaction(
+                    ht->hdr->value_storage_used, field_input_size(ht->hdr->config.value_type, 0, value));
+                if (growth_out->value_storage_min > ht->hdr->config.value_storage_size)
+                {
+                    growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+                }
+            }
+        }
         return CPLAT_ERR_LIMIT_EXCEEDED;
     }
 
     rec = (size_t)(rec_no - 1);
-    if ((key_storage_find_free(ht, rec, *hashtable_entry_status(ht, rec) != REC_EMPTY, key, &key_storage_offset) ==
-         0) ||
-        (value_storage_find_free(ht, rec, *hashtable_entry_status(ht, rec) != REC_EMPTY, value,
-                                 &value_storage_offset) == 0))
+    key_has_space = key_storage_find_free(ht, rec, *hashtable_entry_status(ht, rec) != REC_EMPTY, key,
+                                          &key_storage_offset);
+    value_has_space = value_storage_find_free(ht, rec, *hashtable_entry_status(ht, rec) != REC_EMPTY, value,
+                                              &value_storage_offset);
+    if (key_has_space == 0)
+    {
+        if (growth_out != NULL)
+        {
+            growth_out->pressure |= HASHTABLE_GROWTH_KEY_STORAGE;
+            growth_out->key_storage_min = storage_min_for_transaction(
+                ht->hdr->key_storage_used,
+                field_input_size(ht->hdr->config.key_type, 0, key));
+        }
+    }
+    if (value_has_space == 0)
+    {
+        if (growth_out != NULL)
+        {
+            growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+            growth_out->value_storage_min = storage_min_for_transaction(
+                ht->hdr->value_storage_used,
+                field_input_size(ht->hdr->config.value_type, 0, value));
+        }
+    }
+    if ((key_has_space == 0) || (value_has_space == 0))
     {
         return CPLAT_ERR_STORAGE_FULL;
     }
@@ -2514,14 +2684,14 @@ static int hashtable_put(cplat_hashtable *ht, const void *key, const void *value
 int cplat_hashtable_add(cplat_hashtable *ht, const void *key, const void *value,
                            cplat_hashtable_add_deleted_policy deleted_policy)
 {
-    return hashtable_put(ht, key, value, deleted_policy, 0, NULL);
+    return hashtable_put_with_growth(ht, key, value, deleted_policy, 0, NULL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_hashtable_upsert(cplat_hashtable *ht, const void *key, const void *value, int *inserted_out)
 {
-    return hashtable_put(ht, key, value, CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE, 1, inserted_out);
+    return hashtable_put_with_growth(ht, key, value, CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE, 1, inserted_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -2637,14 +2807,26 @@ int cplat_hashtable_insert_direct(cplat_hashtable *ht, uint64_t record, const vo
     return CPLAT_OK;
 }
 
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int cplat_hashtable_update(cplat_hashtable *ht, const void *key, const void *value)
+/**
+ *  @brief          キーで指定したレコードの値を更新します。
+ *  @param[in,out]  ht          対象。
+ *  @param[in]      key         キー。
+ *  @param[in]      value       新しい値。
+ *  @param[out]     growth_out  容量不足の詳細。NULL を渡せます。
+ *  @return         @ref cplat_hashtable_update と同じ結果コードです。
+ */
+static int hashtable_update(cplat_hashtable *ht, const void *key, const void *value,
+                            struct hashtable_growth_request *growth_out)
 {
     size_t value_storage_offset = 0;
     size_t idx;
     uint64_t *bucket_head;
     uint64_t cur;
+
+    if (growth_out != NULL)
+    {
+        memset(growth_out, 0, sizeof(*growth_out));
+    }
 
     if ((ht == NULL) || (key == NULL) || (value == NULL))
     {
@@ -2679,6 +2861,13 @@ int cplat_hashtable_update(cplat_hashtable *ht, const void *key, const void *val
             }
             if (value_storage_find_free(ht, rec, 1, value, &value_storage_offset) == 0)
             {
+                if (growth_out != NULL)
+                {
+                    growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+                    growth_out->value_storage_min = storage_min_for_transaction(
+                        ht->hdr->value_storage_used,
+                        field_input_size(ht->hdr->config.value_type, 0, value));
+                }
                 return CPLAT_ERR_STORAGE_FULL;
             }
             release_value(ht, rec);
@@ -2693,10 +2882,29 @@ int cplat_hashtable_update(cplat_hashtable *ht, const void *key, const void *val
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_hashtable_update_rec(cplat_hashtable *ht, uint64_t record, const void *value)
+int cplat_hashtable_update(cplat_hashtable *ht, const void *key, const void *value)
+{
+    return hashtable_update_with_growth(ht, key, value);
+}
+
+/**
+ *  @brief          レコード番号で指定した値を更新します。
+ *  @param[in,out]  ht          対象。
+ *  @param[in]      record      1 相対のレコード番号。
+ *  @param[in]      value       新しい値。
+ *  @param[out]     growth_out  容量不足の詳細。NULL を渡せます。
+ *  @return         @ref cplat_hashtable_update_rec と同じ結果コードです。
+ */
+static int hashtable_update_rec(cplat_hashtable *ht, uint64_t record, const void *value,
+                                struct hashtable_growth_request *growth_out)
 {
     size_t rec;
     size_t value_storage_offset = 0;
+
+    if (growth_out != NULL)
+    {
+        memset(growth_out, 0, sizeof(*growth_out));
+    }
 
     if ((ht == NULL) || (value == NULL))
     {
@@ -2721,12 +2929,26 @@ int cplat_hashtable_update_rec(cplat_hashtable *ht, uint64_t record, const void 
     }
     if (value_storage_find_free(ht, rec, 1, value, &value_storage_offset) == 0)
     {
+        if (growth_out != NULL)
+        {
+            growth_out->pressure |= HASHTABLE_GROWTH_VALUE_STORAGE;
+            growth_out->value_storage_min = storage_min_for_transaction(
+                ht->hdr->value_storage_used,
+                field_input_size(ht->hdr->config.value_type, 0, value));
+        }
         return CPLAT_ERR_STORAGE_FULL;
     }
     release_value(ht, rec);
     value_store(ht, rec, value, value_storage_offset);
     stamp_record(ht, rec);
     return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_hashtable_update_rec(cplat_hashtable *ht, uint64_t record, const void *value)
+{
+    return hashtable_update_rec_with_growth(ht, record, value);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -3704,6 +3926,182 @@ static int hashtable_apply_migration(const cplat_hashtable *src, cplat_hashtable
     return CPLAT_OK;
 }
 
+static int hashtable_growth_target(size_t current, size_t minimum, size_t maximum, size_t *target_out)
+{
+    size_t doubled;
+    size_t target;
+
+    if ((maximum != 0) && (minimum > maximum))
+    {
+        return 0;
+    }
+    if (minimum <= current)
+    {
+        *target_out = current;
+        return 1;
+    }
+    doubled = (current > (SIZE_MAX / 2u)) ? SIZE_MAX : current * 2u;
+    target = (doubled < minimum) ? minimum : doubled;
+    if ((maximum != 0) && (target > maximum))
+    {
+        target = maximum;
+    }
+    if (target < minimum)
+    {
+        return 0;
+    }
+    *target_out = target;
+    return 1;
+}
+
+static int hashtable_stage_growth(const cplat_hashtable *src, const struct hashtable_growth_request *growth,
+                                  int pressure_error, cplat_hashtable **staged_out)
+{
+    cplat_hashtable_config next = src->hdr->config;
+    cplat_hashtable *staged = NULL;
+    unsigned char *keep = NULL;
+    size_t minimum;
+    int ret;
+
+    if ((growth->pressure & HASHTABLE_GROWTH_CAPACITY) != 0u)
+    {
+        if (src->hdr->config.capacity == SIZE_MAX)
+        {
+            return pressure_error;
+        }
+        minimum = src->hdr->config.capacity + 1u;
+        if (hashtable_growth_target(src->hdr->config.capacity, minimum, src->growth.max_capacity,
+                                    &next.capacity) == 0)
+        {
+            return pressure_error;
+        }
+    }
+    if ((growth->pressure & HASHTABLE_GROWTH_KEY_STORAGE) != 0u)
+    {
+        if (hashtable_growth_target(src->hdr->config.key_storage_size, growth->key_storage_min,
+                                    src->growth.max_key_storage_size, &next.key_storage_size) == 0)
+        {
+            return pressure_error;
+        }
+    }
+    if ((growth->pressure & HASHTABLE_GROWTH_VALUE_STORAGE) != 0u)
+    {
+        if (hashtable_growth_target(src->hdr->config.value_storage_size, growth->value_storage_min,
+                                    src->growth.max_value_storage_size, &next.value_storage_size) == 0)
+        {
+            return pressure_error;
+        }
+    }
+
+    ret = hashtable_plan_migration(src, &next, &keep);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ret = cplat_hashtable_create(&next, NULL, 0, NULL, 0, &staged);
+    if (ret != CPLAT_OK)
+    {
+        cplat_free(keep);
+        return (ret == CPLAT_ERR_INVALID_ARGUMENT) ? pressure_error : ret;
+    }
+    ret = hashtable_apply_migration(src, staged, keep);
+    cplat_free(keep);
+    if (ret != CPLAT_OK)
+    {
+        cplat_hashtable_dispose(staged);
+        return ret;
+    }
+    *staged_out = staged;
+    return CPLAT_OK;
+}
+
+static void hashtable_commit_staged(cplat_hashtable *ht, cplat_hashtable *staged)
+{
+    struct hashtable_persist_header *old_hdr = ht->hdr;
+
+    ht->hdr = staged->hdr;
+    ht->data = staged->data;
+    cplat_free(old_hdr);
+    cplat_free(staged);
+}
+
+static int hashtable_put_with_growth(cplat_hashtable *ht, const void *key, const void *value,
+                                     cplat_hashtable_add_deleted_policy deleted_policy, int allow_update,
+                                     int *inserted_out)
+{
+    struct hashtable_growth_request growth;
+    cplat_hashtable *staged = NULL;
+    int ret = hashtable_put(ht, key, value, deleted_policy, allow_update, inserted_out, &growth);
+
+    if ((ret == CPLAT_OK) || (ht == NULL) || (ht->growable == 0) || (growth.pressure == HASHTABLE_GROWTH_NONE))
+    {
+        return ret;
+    }
+    ret = hashtable_stage_growth(ht, &growth, ret, &staged);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ret = hashtable_put(staged, key, value, deleted_policy, allow_update, inserted_out, NULL);
+    if (ret != CPLAT_OK)
+    {
+        cplat_hashtable_dispose(staged);
+        return ret;
+    }
+    hashtable_commit_staged(ht, staged);
+    return CPLAT_OK;
+}
+
+static int hashtable_update_with_growth(cplat_hashtable *ht, const void *key, const void *value)
+{
+    struct hashtable_growth_request growth;
+    cplat_hashtable *staged = NULL;
+    int ret = hashtable_update(ht, key, value, &growth);
+
+    if ((ret == CPLAT_OK) || (ht == NULL) || (ht->growable == 0) || (growth.pressure == HASHTABLE_GROWTH_NONE))
+    {
+        return ret;
+    }
+    ret = hashtable_stage_growth(ht, &growth, ret, &staged);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ret = hashtable_update(staged, key, value, NULL);
+    if (ret != CPLAT_OK)
+    {
+        cplat_hashtable_dispose(staged);
+        return ret;
+    }
+    hashtable_commit_staged(ht, staged);
+    return CPLAT_OK;
+}
+
+static int hashtable_update_rec_with_growth(cplat_hashtable *ht, uint64_t record, const void *value)
+{
+    struct hashtable_growth_request growth;
+    cplat_hashtable *staged = NULL;
+    int ret = hashtable_update_rec(ht, record, value, &growth);
+
+    if ((ret == CPLAT_OK) || (ht == NULL) || (ht->growable == 0) || (growth.pressure == HASHTABLE_GROWTH_NONE))
+    {
+        return ret;
+    }
+    ret = hashtable_stage_growth(ht, &growth, ret, &staged);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ret = hashtable_update_rec(staged, record, value, NULL);
+    if (ret != CPLAT_OK)
+    {
+        cplat_hashtable_dispose(staged);
+        return ret;
+    }
+    hashtable_commit_staged(ht, staged);
+    return CPLAT_OK;
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_hashtable_resize(cplat_hashtable *ht, const cplat_hashtable_config *new_config)
@@ -3726,6 +4124,15 @@ int cplat_hashtable_resize(cplat_hashtable *ht, const cplat_hashtable_config *ne
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
     if (hashtable_config_is_compatible(&ht->hdr->config, new_config) == 0)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    if ((ht->growable != 0) &&
+        (((ht->growth.max_capacity != 0) && (new_config->capacity > ht->growth.max_capacity)) ||
+         ((ht->growth.max_key_storage_size != 0) &&
+          (new_config->key_storage_size > ht->growth.max_key_storage_size)) ||
+         ((ht->growth.max_value_storage_size != 0) &&
+          (new_config->value_storage_size > ht->growth.max_value_storage_size))))
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }

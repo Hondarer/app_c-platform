@@ -171,6 +171,10 @@
     EXPORT_ENTRY(cplat_hashtable_create, \
                  int(CPLAT_API *)(const cplat_hashtable_config *config, void *buf_mgmt, size_t buf_mgmt_size, \
                                      void *buf_data, size_t buf_data_size, cplat_hashtable **ht_out)) \
+    EXPORT_ENTRY(cplat_hashtable_create_growable, \
+                 int(CPLAT_API *)(const cplat_hashtable_config *initial_config, \
+                                     const cplat_hashtable_growth_config *growth_config, \
+                                     cplat_hashtable **ht_out)) \
     EXPORT_ENTRY(cplat_hashtable_attach, int(CPLAT_API *)(void *buf_mgmt, size_t buf_mgmt_size, void *buf_data, \
                                                                 size_t buf_data_size, cplat_hashtable **ht_out)) \
     EXPORT_ENTRY(cplat_hashtable_validate, int(CPLAT_API *)(const cplat_hashtable *ht)) \

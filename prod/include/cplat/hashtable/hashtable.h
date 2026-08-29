@@ -7,9 +7,12 @@
  *  @version        1.0.0
  *
  *  キーと値は個別に固定長バイナリ、固定長文字列、可変長文字列を選択できます。\n
- *  可変長文字列のストレージ容量は構築時に固定し、自動拡張しません。\n
- *  断片化で連続領域が不足した場合は @ref CPLAT_ERR_STORAGE_FULL を返します。\n
+ *  @ref cplat_hashtable_create で構築したテーブルのレコード数と可変長文字列の
+ *  ストレージ容量は固定です。\n
+ *  断片化で連続領域が不足した場合は @ref CPLAT_ERR_STORAGE_FULL を返すため、
  *  必要に応じて @ref cplat_hashtable_compact を明示的に呼び出してください。\n
+ *  @ref cplat_hashtable_create_growable で構築した内部確保テーブルは、通常の追加と
+ *  更新で不足した領域を自動的に再構築または拡張します。\n
  *  格納先の確保は、空きブロックの個数を H として O(H) です。断片化がなければ H は 1 のため、
  *  実質 O(1) で完了します。確保は既存のブロックを移動しないため、取得済みの可変長参照は
  *  後述の契機以外で無効になりません。\n
@@ -62,8 +65,9 @@
  *  可変長文字列への参照は、そのフィールドの更新・回収・再利用、または
  *  @ref cplat_hashtable_compact / @ref cplat_hashtable_clear /
  *  @ref cplat_hashtable_resize / @ref cplat_hashtable_rebuild_into /
+ *  自動拡張版の書き込みに伴う再構築 /
  *  @ref cplat_hashtable_dispose まで有効です。\n
- *  @ref cplat_hashtable_resize と @ref cplat_hashtable_rebuild_into は、
+ *  @ref cplat_hashtable_resize 、@ref cplat_hashtable_rebuild_into 、自動再構築は、
  *  残すレコードを移行先の領域へ詰め直すため、配置が変わります。\n
  *  値の入力ポインターに型のアラインメントは要求しません。\n
  *  値の格納境界は config の value_align で決まります。0 (既定) では値を隙間なく
@@ -168,6 +172,20 @@ extern "C"
     } cplat_hashtable_config;
 
     /**
+     *  @brief          自動拡張するハッシュ テーブルの上限設定です。
+     *
+     *  各フィールドの 0 は上限なしを表します。非 0 の値は、生成時の
+     *  @ref cplat_hashtable_config にある対応する初期値以上である必要があります。\n
+     *  固定長のキーまたは値に対応するストレージ上限には 0 を指定してください。
+     */
+    typedef struct cplat_hashtable_growth_config
+    {
+        size_t max_capacity;           /**< 自動拡張後の最大レコード数。0 は上限なし。 */
+        size_t max_key_storage_size;   /**< 可変長キー ストレージの最大バイト数。0 は上限なし。 */
+        size_t max_value_storage_size; /**< 可変長値ストレージの最大バイト数。0 は上限なし。 */
+    } cplat_hashtable_growth_config;
+
+    /**
      *  @brief          ハッシュ テーブルの不透明ハンドルです。
      *
      *  メンバーへ直接アクセスしてはなりません。\n
@@ -233,6 +251,35 @@ extern "C"
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_create(const cplat_hashtable_config *config, void *buf_mgmt,
                                                                size_t buf_mgmt_size, void *buf_data,
                                                                size_t buf_data_size, cplat_hashtable **ht_out);
+
+    /**
+     *  @brief          内部領域を必要に応じて自動拡張するハッシュ テーブルを構築します。
+     *  @param[in]      initial_config  初期設定。NULL を渡してはなりません。
+     *  @param[in]      growth_config   自動拡張の上限設定。NULL を渡してはなりません。
+     *  @param[out]     ht_out          ハンドルの格納先。NULL を渡してはなりません。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、
+     *                  @ref CPLAT_ERR_OUT_OF_MEMORY 。
+     *
+     *  @ref cplat_hashtable_add と @ref cplat_hashtable_upsert は、空きレコード、
+     *  可変長キー ストレージ、または可変長値ストレージが不足したときに自動拡張します。\n
+     *  @ref cplat_hashtable_update と @ref cplat_hashtable_update_rec は、可変長値
+     *  ストレージが不足したときに自動拡張します。\n
+     *  総空き容量が足りていて断片化だけが原因の場合は、容量を増やさず再構築します。\n
+     *  自動再構築が発生した書き込みに成功すると、このテーブルから取得済みの
+     *  設定、キー、値、管理領域、およびデータ領域への参照はすべて無効になります。\n
+     *  自動再構築または要求された書き込みに失敗した場合、テーブルは変更しません。\n
+     *  最大レコード数へ到達した場合は @ref CPLAT_ERR_LIMIT_EXCEEDED 、ストレージ上限へ
+     *  到達した場合は @ref CPLAT_ERR_STORAGE_FULL を、対象の書き込み API が返します。\n
+     *  本関数で生成した領域を永続化して @ref cplat_hashtable_attach で再接続した場合、
+     *  自動拡張の上限設定は復元されず、固定長テーブルとして動作します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  呼び出しごとに独立したテーブルを構築します。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_hashtable_create_growable(
+        const cplat_hashtable_config *initial_config, const cplat_hashtable_growth_config *growth_config,
+        cplat_hashtable **ht_out);
 
     /**
      *  @brief          構築済み領域へ、既存内容を保ったまま再接続します。
@@ -1025,8 +1072,8 @@ extern "C"
      *  計算量は、capacity を N、空きブロックの個数を H、使用バイト数を U として
      *  O(N log H + U) です。\n
      *  格納済みブロックの配置が変わるのは、本関数、@ref cplat_hashtable_resize 、
-     *  @ref cplat_hashtable_rebuild_into の 3 つです。\n
-     *  本関数は同一のストレージ内で詰め直し、他の 2 つは移行先の領域へ詰め直します。\n
+     *  @ref cplat_hashtable_rebuild_into 、自動拡張版の書き込みに伴う再構築です。\n
+     *  本関数は同一のストレージ内で詰め直し、ほかの操作は移行先の領域へ詰め直します。\n
      *  @ref cplat_hashtable_add などの確保は空き領域だけを使うため、
      *  対象レコード以外のブロックを動かしません。
      *
@@ -1050,6 +1097,8 @@ extern "C"
      *  @p new_config で変えてよいのは capacity、key_storage_size、value_storage_size の
      *  3 つだけです。ほかの項目が現在の設定と異なる場合は
      *  @ref CPLAT_ERR_INVALID_ARGUMENT です。\n
+     *  @ref cplat_hashtable_create_growable で構築したテーブルでは、自動拡張設定の
+     *  非 0 の最大値を超える指定も @ref CPLAT_ERR_INVALID_ARGUMENT です。\n
      *  拡大 (capacity が現在以上) では、レコード番号をすべて保存します。\n
      *  縮小ではレコード番号を保存しません。移行後に
      *  @ref cplat_hashtable_find_recno で取り直してください。\n
