@@ -439,9 +439,26 @@ void cplat_prompt_dispose(cplat_prompt *prompt)
     cplat_free(prompt);
 }
 
+/**
+ *  @brief          非 TTY または初期化失敗時に 1 行を読み取ります。
+ *  @param[out]     buf         入力の格納先です。
+ *  @param[in]      buf_size    @p buf のサイズです。
+ *  @param[in]      prompt_str  表示するプロンプトです。NULL のときは表示しません。
+ *  @return         @ref cplat_fgets の結果コードです。
+ */
+static int prompt_readline_fallback(char *buf, const size_t buf_size, const char *prompt_str)
+{
+    if (prompt_str != NULL)
+    {
+        (void)fputs(prompt_str, stdout);
+        (void)fflush(stdout);
+    }
+    return cplat_fgets(buf, buf_size, stdin, NULL);
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_prompt_readline_at(cplat_prompt *p, char *buf, size_t buf_size, const char *prompt_str,
+int cplat_prompt_readline_at(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
                                 const char *file, int line)
 {
     cplat_prompt_ctx *ctx;
@@ -452,38 +469,18 @@ int cplat_prompt_readline_at(cplat_prompt *p, char *buf, size_t buf_size, const 
     }
     buf[0] = '\0';
 
-    /* TTY でなければ fgets() フォールバック */
+    /* TTY でなければ cplat_fgets へフォールバックする */
     if (!p->is_tty)
     {
-        if (prompt_str != NULL)
-        {
-            fputs(prompt_str, stdout);
-            fflush(stdout);
-        }
-        if (fgets(buf, (int)buf_size, stdin) == NULL)
-        {
-            return CPLAT_ERR_EOF;
-        }
-        buf[strcspn(buf, "\r\n")] = '\0';
-        return CPLAT_OK;
+        return prompt_readline_fallback(buf, buf_size, prompt_str);
     }
 
     /* 呼び出し元に対応するコンテキストを取得 */
     ctx = find_or_create_ctx(p, file, line);
     if (ctx == NULL)
     {
-        /* コンテキスト取得失敗時は fgets() フォールバック */
-        if (prompt_str != NULL)
-        {
-            fputs(prompt_str, stdout);
-            fflush(stdout);
-        }
-        if (fgets(buf, (int)buf_size, stdin) == NULL)
-        {
-            return CPLAT_ERR_EOF;
-        }
-        buf[strcspn(buf, "\r\n")] = '\0';
-        return CPLAT_OK;
+        /* コンテキスト取得失敗時は cplat_fgets へフォールバックする */
+        return prompt_readline_fallback(buf, buf_size, prompt_str);
     }
 
     /* raw モードに移行 */

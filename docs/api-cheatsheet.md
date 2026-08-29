@@ -539,7 +539,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 対象ヘッダー: `cplat/prompt/prompt.h`、`cplat/prompt/pinned_prompt.h`
 
-`fgets(stdin)`/`readline` (POSIX) や `ReadConsole` (Win32) を直接使う代わりに使用します。
+`fgets(stdin)`/`readline` (POSIX) や `ReadConsole` (Win32) を直接使う代わりに使用します。  
+非 TTY では `cplat_fgets` へフォールバックし、行がバッファーに収まらないときは `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
 
 | 用途 | cplat API |
 |---|---|

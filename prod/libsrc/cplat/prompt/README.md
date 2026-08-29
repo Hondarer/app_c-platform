@@ -40,13 +40,14 @@ short-title: "prompt"
 - `history_max == 0` は `CPLAT_PROMPT_HISTORY_DEFAULT` を使います。
 - `input_max_bytes == 0` は `CPLAT_PROMPT_INPUT_BYTES_DEFAULT` を使います。
 - `cplat_pinned_prompt_readline()` は Enter で `CPLAT_OK`、EOF で `CPLAT_ERR_EOF`、Ctrl+C で `CPLAT_ERR_CANCELED` を返します。
+- フォールバック時に入力行が呼び出し側バッファーに収まらない場合は `CPLAT_ERR_BUFFER_TOO_SMALL` を返し、バッファーは空文字列になります。行の残りは次の呼び出しで取得できます。
 - 履歴リングは `cplat_pinned_prompt_readline()` / `cplat_pinned_prompt_readline_fmt()` の呼び出し元ごとに分かれます。
 - `cplat_pinned_prompt_write()` と `cplat_pinned_prompt_printf()` は、入力中でも呼び出せます。
 - `cplat_pinned_prompt_write()` は渡されたバイト列だけを書き込み、改行を自動追加しません。
 - API から出力する文字列では ANSI CSI SGR (`ESC [ ... m`) による着色を利用できます。
 - ステータス行の配置計算では ANSI CSI SGR を表示幅 0 として扱います。
 - 描画操作は pinned prompt ハンドル内の mutex で直列化します。
-- 非 TTY では固定描画を行わず、通常の `fgets()` / `fwrite()` 相当に戻ります。
+- 非 TTY では固定描画を行わず、入力は `cplat_fgets`、出力は `fwrite` 相当に戻ります。
 - Windows では利用側が `activeCodePage=UTF-8` マニフェストを設定し、`cplat_console_init()` を呼ぶ前提です。ただし、呼び忘れても問題が起きにくいように create 時にも防御的に呼び出します。
 - この API は試験的 API です。機能仕様の見直しに合わせて関数、型、挙動を変更する可能性があります。
 

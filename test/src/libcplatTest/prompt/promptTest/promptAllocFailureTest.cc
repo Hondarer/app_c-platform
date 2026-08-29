@@ -70,7 +70,7 @@ TEST_F(promptAllocFailureTest, create_returns_null_when_edit_buffer_allocation_f
               handle); // [確認_異常系] - cplat_prompt_create の戻り値が NULL であること。
 }
 
-// コンテキスト配列の拡張に失敗した場合に fgets へフォールバックすることの確認
+// コンテキスト配列の拡張に失敗した場合に cplat_fgets へフォールバックすることの確認
 TEST_F(promptAllocFailureTest, readline_falls_back_when_context_expansion_fails)
 {
     // Arrange
@@ -92,11 +92,11 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_context_expansion_fails)
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_EOF,
-        actual_ret); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため CPLAT_ERR_EOF が返ること。
+        actual_ret); // [確認_異常系] - コンテキストを取得できず cplat_fgets へフォールバックし、標準入力が EOF のため CPLAT_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
 }
 
-// 履歴の退避バッファーの確保に失敗した場合に fgets へフォールバックすることの確認
+// 履歴の退避バッファーの確保に失敗した場合に cplat_fgets へフォールバックすることの確認
 TEST_F(promptAllocFailureTest, readline_falls_back_when_saved_line_allocation_fails)
 {
     // Arrange
@@ -118,7 +118,7 @@ TEST_F(promptAllocFailureTest, readline_falls_back_when_saved_line_allocation_fa
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_EOF,
-        actual_ret); // [確認_異常系] - コンテキストを取得できず fgets へフォールバックし、標準入力が EOF のため CPLAT_ERR_EOF が返ること。
+        actual_ret); // [確認_異常系] - コンテキストを取得できず cplat_fgets へフォールバックし、標準入力が EOF のため CPLAT_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
 }
 

@@ -78,7 +78,7 @@ ADD_SRCS := \
 テスト対象は次のとおりです。
 
 - UTF-8 文字幅、ANSI SGR シーケンス、表示バイト数、表示幅
-- 非 TTY の `fgets` fallback と EOF
+- 非 TTY の `cplat_fgets` fallback、EOF、バッファー不足
 - status API の上下位置、左右配置、NULL 引数
 - `ioctl` による端末サイズ取得と既定値 fallback
 - raw モードの移行と復帰、SIGWINCH ハンドラーの登録

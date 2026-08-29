@@ -113,19 +113,18 @@ TEST_F(promptCoverageTest, readline_redisplays_after_resize_with_null_prompt)
 TEST_F(promptCoverageTest, readline_fallback_paths_return_input)
 {
     // Arrange
-    NiceMock<Mock_stdio> mock_stdio;
     NiceMock<Mock_cplat> mock_cplat;
-    char first_input[] = "first\n";
-    char second_input[] = "second\n";
+    char first_input[] = "first";
+    char second_input[] = "second";
     char first_output[16] = {};
     char second_output[16] = {}; // [状態] - fallback から返す 2 行を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
-        .WillOnce(DoAll(SetArrayArgument<3>(first_input, first_input + sizeof(first_input)), ReturnArg<3>()))
-        .WillOnce(DoAll(SetArrayArgument<3>(second_input, second_input + sizeof(second_input)), ReturnArg<3>()));
-    // [Pre-Assert確認_正常系] - fgets が非 TTY とコンテキスト確保失敗の各経路で呼び出されること。
-    // [Pre-Assert手順] - fgets が 1 回目に "first"、2 回目に "second" を返却する。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(first_input, first_input + sizeof(first_input)), Return(CPLAT_OK)))
+        .WillOnce(DoAll(SetArrayArgument<0>(second_input, second_input + sizeof(second_input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_正常系] - cplat_fgets が非 TTY とコンテキスト確保失敗の各経路で呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets が 1 回目に "first"、2 回目に "second" を返却する。
     EXPECT_CALL(mock_cplat, cplat_realloc(_, _, _)).WillOnce(Return(nullptr));
     // [Pre-Assert確認_異常系] - コンテキスト配列用の realloc が 1 回呼び出されること。
     // [Pre-Assert手順] - realloc から NULL を返却する。

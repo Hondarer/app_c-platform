@@ -628,7 +628,7 @@ TEST_F(promptTest, readline_fmt_rejects_invalid_arguments)
  * TTY でない場合のフォールバック
  */
 
-// TTY でない場合に fgets へフォールバックすることの確認
+// TTY でない場合に cplat_fgets へフォールバックすることの確認
 TEST_F(promptTest, readline_falls_back_to_fgets_when_not_tty)
 {
     // Arrange
@@ -645,4 +645,30 @@ TEST_F(promptTest, readline_falls_back_to_fgets_when_not_tty)
     // Assert
     EXPECT_EQ(CPLAT_ERR_EOF, actual_ret); // [確認_異常系] - 標準入力が EOF のため CPLAT_ERR_EOF が返ること。
     EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_異常系] - raw モードへ移行しないこと。
+}
+
+// 非 TTY の readline が行の切り詰めをバッファー不足として返すことの確認
+TEST_F(promptTest, readline_fallback_reports_buffer_too_small)
+{
+    // Arrange
+    NiceMock<Mock_cplat> mock_cplat;
+    char empty[] = "";
+    char buf[8] = "stale";
+
+    prompt_->is_tty = 0; // [状態] - TTY でない状態にする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(empty, empty + sizeof(empty)), Return(CPLAT_ERR_BUFFER_TOO_SMALL)));
+    // [Pre-Assert確認_異常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から CPLAT_ERR_BUFFER_TOO_SMALL と空文字列を返却する。
+
+    // Act
+    int actual_ret = cplat_prompt_readline_at(prompt_, buf, sizeof(buf), NULL, "promptTest.cc",
+                                          1); // [手順] - 行が収まらない非 TTY readline を呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
+              actual_ret); // [確認_異常系] - 切り詰め時の cplat_prompt_readline_at が CPLAT_ERR_BUFFER_TOO_SMALL を返すこと。
+    EXPECT_STREQ("", buf); // [確認_異常系] - 切り詰め時に出力先が空文字列であること。
 }

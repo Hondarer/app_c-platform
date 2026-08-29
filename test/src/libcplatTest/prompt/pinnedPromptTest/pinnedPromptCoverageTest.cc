@@ -487,9 +487,8 @@ TEST(pinnedPromptCoverageTest, readline_reports_setup_failures)
     cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     NiceMock<Mock_termios> mock_termios;
-    NiceMock<Mock_stdio> mock_stdio;
     NiceMock<Mock_cplat> mock_cplat;
-    char input[] = "fallback\n";
+    char input[] = "fallback";
     char output[16] = {};
     int invalid_screen = 0;
     int invalid_buffer = 0;
@@ -505,10 +504,10 @@ TEST(pinnedPromptCoverageTest, readline_reports_setup_failures)
     EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).Times(2).WillRepeatedly(Return(0));
     // [Pre-Assert確認_異常系] - tcsetattr が標準入力を指定して 2 回呼び出されること。
     // [Pre-Assert手順] - tcsetattr から 0 を返却する。
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
-        .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
-    // [Pre-Assert確認_異常系] - fgets が raw 移行失敗後の fallback で 1 回呼び出されること。
-    // [Pre-Assert手順] - fgets から改行付き入力 "fallback" を返却する。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(input, input + sizeof(input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_異常系] - cplat_fgets が raw 移行失敗後の fallback で 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から入力 "fallback" を返却する。
     EXPECT_CALL(mock_cplat, cplat_realloc(_, _, _))
         .WillOnce(Return(nullptr))                        // history-failure.c: 履歴コンテキスト配列確保失敗
         .WillOnce(Invoke(delegate_real_cplat_realloc)) // prompt-failure.c の事前生成: 配列確保は成功させる
@@ -968,8 +967,7 @@ TEST(pinnedPromptCoverageTest, readline_fmt_uses_empty_prompt_when_format_alloca
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 0);
     NiceMock<Mock_cplat> mock_cplat;
-    NiceMock<Mock_stdio> mock_stdio;
-    char input[] = "ok\n";
+    char input[] = "ok";
     char output[16] = {};
     int readline_result = CPLAT_ERR_UNKNOWN;
 
@@ -977,10 +975,10 @@ TEST(pinnedPromptCoverageTest, readline_fmt_uses_empty_prompt_when_format_alloca
     EXPECT_CALL(mock_cplat, cplat_malloc(_)).WillOnce(Return(nullptr));
     // [Pre-Assert確認_異常系] - cplat_malloc が書式バッファーの初回確保のために 1 回呼び出されること。
     // [Pre-Assert手順] - cplat_malloc から NULL を返却する。
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
-        .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
-    // [Pre-Assert確認_異常系] - fgets が空プロンプトの fallback 入力で 1 回呼び出されること。
-    // [Pre-Assert手順] - fgets から改行付き入力 "ok" を返却する。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(input, input + sizeof(input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_異常系] - cplat_fgets が空プロンプトの fallback 入力で 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から入力 "ok" を返却する。
 
     // Act
     readline_result = cplat_pinned_prompt_readline_fmt(

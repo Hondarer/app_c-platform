@@ -126,31 +126,31 @@ TEST(pinnedPromptTest, static_display_helpers_skip_ansi_and_limit_columns)
     EXPECT_EQ(2U, clipped_width);            // [確認_正常系] - ANSI 途中までの範囲が通常文字 2 列として計算されること。
 }
 
-// 非 TTY の readline が fgets の入力を改行なしで返すことの確認
+// 非 TTY の readline が cplat_fgets の入力を返すことの確認
 TEST(pinnedPromptTest, fallback_readline_strips_newline)
 {
     // Arrange
     cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 0);
-    NiceMock<Mock_stdio> mock_stdio;
-    char input[] = "answer\n";
+    NiceMock<Mock_cplat> mock_cplat;
+    char input[] = "answer";
     char output[32] = {};
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
-        .WillOnce(DoAll(SetArrayArgument<3>(input, input + sizeof(input)), ReturnArg<3>()));
-    // [Pre-Assert確認_正常系] - fgets が 1 回呼び出されること。
-    // [Pre-Assert手順] - fgets から改行付き入力を返却する。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(input, input + sizeof(input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_正常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から "answer" を返却する。
 
     // Act
     int result = cplat_pinned_prompt_readline(screen, output, sizeof(output),
-                                                 NULL); // [手順] - 非 TTY の readline へ改行付き入力を渡す。
+                                                 NULL); // [手順] - 非 TTY の readline を呼び出す。
 
     // Assert
     EXPECT_EQ(CPLAT_OK,
               result);              // [確認_正常系] - fallback readline の戻り値が CPLAT_OK であること。
-    EXPECT_STREQ("answer", output); // [確認_正常系] - 出力から改行が除去されること。
+    EXPECT_STREQ("answer", output); // [確認_正常系] - cplat_fgets が返した "answer" が格納されること。
 
     // Cleanup
     cplat_pinned_prompt_dispose(screen);
@@ -163,13 +163,13 @@ TEST(pinnedPromptTest, fallback_readline_reports_eof)
     cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 0);
-    NiceMock<Mock_stdio> mock_stdio;
+    NiceMock<Mock_cplat> mock_cplat;
     char output[8] = "stale";
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _)).WillOnce(Return(nullptr));
-    // [Pre-Assert確認_異常系] - fgets が 1 回呼び出されること。
-    // [Pre-Assert手順] - fgets から NULL を返却する。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _)).WillOnce(Return(CPLAT_ERR_EOF));
+    // [Pre-Assert確認_異常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から CPLAT_ERR_EOF を返却する。
 
     // Act
     int result = cplat_pinned_prompt_readline(screen, output, sizeof(output),
@@ -178,6 +178,36 @@ TEST(pinnedPromptTest, fallback_readline_reports_eof)
     // Assert
     EXPECT_EQ(CPLAT_ERR_EOF,
               result); // [確認_異常系] - EOF の readline が CPLAT_ERR_EOF を返すこと。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// 非 TTY の readline が行の切り詰めをバッファー不足として返すことの確認
+TEST(pinnedPromptTest, fallback_readline_reports_buffer_too_small)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_cplat> mock_cplat;
+    char empty[] = "";
+    char output[8] = "stale";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(empty, empty + sizeof(empty)), Return(CPLAT_ERR_BUFFER_TOO_SMALL)));
+    // [Pre-Assert確認_異常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から CPLAT_ERR_BUFFER_TOO_SMALL と空文字列を返却する。
+
+    // Act
+    int actual_ret = cplat_pinned_prompt_readline(screen, output, sizeof(output),
+                                                     NULL); // [手順] - 行が収まらない非 TTY readline を呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
+              actual_ret);    // [確認_異常系] - 切り詰め時の readline が CPLAT_ERR_BUFFER_TOO_SMALL を返すこと。
+    EXPECT_STREQ("", output); // [確認_異常系] - 切り詰め時に出力先が空文字列であること。
 
     // Cleanup
     cplat_pinned_prompt_dispose(screen);
@@ -1095,17 +1125,17 @@ TEST(pinnedPromptTest, readline_fmt_formats_and_accepts_null_format)
     cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
     ASSERT_NE(nullptr, screen);                                           // [状態確認] - ハンドルが非 NULL であること。
     test_pinned_prompt_set_tty(screen, 0);
-    NiceMock<Mock_stdio> mock_stdio;
-    char first_input[] = "first\n";
-    char second_input[] = "second\n";
+    NiceMock<Mock_cplat> mock_cplat;
+    char first_input[] = "first";
+    char second_input[] = "second";
     char first_output[16] = {};
     char second_output[16] = {};
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fgets(_, _, _, _, _, _))
-        .WillOnce(DoAll(SetArrayArgument<3>(first_input, first_input + sizeof(first_input)), ReturnArg<3>()))
-        .WillOnce(DoAll(SetArrayArgument<3>(second_input, second_input + sizeof(second_input)), ReturnArg<3>()));
-    // [Pre-Assert確認_正常系] - fgets が書式付き readline と NULL 書式の各経路で呼び出されること。
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(first_input, first_input + sizeof(first_input)), Return(CPLAT_OK)))
+        .WillOnce(DoAll(SetArrayArgument<0>(second_input, second_input + sizeof(second_input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_正常系] - cplat_fgets が書式付き readline と NULL 書式の各経路で呼び出されること。
     // [Pre-Assert手順] - 1 回目は "first"、2 回目は "second" を返却する。
 
     // Act

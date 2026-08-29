@@ -16,7 +16,7 @@
  *  - Ctrl+C        : 入力中断 (@ref CPLAT_ERR_CANCELED を返す)
  *  - Enter         : 確定
  *
- *  TTY でない場合 (パイプ・リダイレクト等) は fgets() にフォールバックします。\n
+ *  TTY でない場合 (パイプ・リダイレクト等) は @ref cplat_fgets にフォールバックします。\n
  *
  *  @par 使用例 (固定プロンプト)
     @code{.c}
@@ -153,7 +153,11 @@ extern "C"
  *  @param[in]      buf_size    @p buf のバイト数です。
  *  @param[in]      prompt_str  表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
  *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_EOF 、@ref CPLAT_ERR_CANCELED 、
- *                  @ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
+ *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+ *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+ *
+ *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
+ *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
  */
 #define cplat_prompt_readline(p, buf, buf_size, prompt_str) \
     cplat_prompt_readline_at((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
@@ -166,7 +170,11 @@ extern "C"
  *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
  *  @param[in]      ...       @p fmt に対応する書式引数です。
  *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_EOF 、@ref CPLAT_ERR_CANCELED 、
- *                  @ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
+ *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+ *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+ *
+ *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
+ *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
  *
  *  プロンプト文字列バッファーはハンドル内に保持し、必要に応じて自動拡張します。
  */
@@ -185,7 +193,11 @@ extern "C"
      *  @param[in]      file        履歴を識別する呼び出し元ファイル名です。
      *  @param[in]      line        履歴を識別する呼び出し元行番号です。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_EOF 、@ref CPLAT_ERR_CANCELED 、
-     *                  @ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
+     *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+     *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
+     *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -207,7 +219,11 @@ extern "C"
      *  @param[in]      fmt       printf 形式の書式文字列です。NULL の場合は空文字列として扱います。
      *  @param[in]      ...       @p fmt に対応する書式引数です。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_EOF 、@ref CPLAT_ERR_CANCELED 、
-     *                  @ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
+     *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+     *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
+     *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_prompt_readline_fmt_at(cplat_prompt *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)
