@@ -13,8 +13,10 @@ using testing::_;
 using testing::Invoke;
 using testing::NiceMock;
 using testing::Return;
+using testing::StrEq;
 
 #if defined(PLATFORM_WINDOWS)
+    #include <mock_cplat.h>
     #include <mock_windows.h>
 #endif /* PLATFORM_WINDOWS */
 
@@ -167,6 +169,7 @@ TEST_F(hostTest, ReportsGethostnameOsError)
 TEST_F(hostTest, CopiesMockedComputerName)
 {
     // Arrange
+    NiceMock<Mock_cplat> mock_cplat;
     NiceMock<Mock_windows> mock_windows;
     char name[CPLAT_HOST_NAME_MAX] = {};
 
@@ -191,6 +194,20 @@ TEST_F(hostTest, CopiesMockedComputerName)
                 return TRUE;
             })); // [Pre-Assert確認_正常系] - GetComputerNameExW が DNS ホスト名を指定して 1 回呼び出されること。
                  // [Pre-Assert手順] - L"testhost" を書き込み成功を返却する。
+    EXPECT_CALL(mock_cplat, cplat_wstr_to_utf8(_, sizeof(name), StrEq(L"testhost")))
+        .WillOnce(Invoke(
+            [](char *dest, size_t dest_size, const wchar_t *)
+            {
+                const char kName[] = "testhost";
+
+                if (dest_size < sizeof(kName))
+                {
+                    return 0;
+                }
+                memcpy(dest, kName, sizeof(kName));
+                return (int)sizeof(kName);
+            })); // [Pre-Assert確認_正常系] - UTF-16 のホスト名が UTF-8 変換に 1 回渡されること。
+                 // [Pre-Assert手順] - "testhost" を出力し、変換後のバイト数を返却する。
 
     // Act
     int actual_ret =
@@ -199,6 +216,43 @@ TEST_F(hostTest, CopiesMockedComputerName)
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_host_get_name の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("testhost", name);  // [確認_正常系] - 取得したホスト名が testhost であること。
+}
+
+// UTF-8 変換の OS エラーが共通結果へ変換されることの確認
+TEST_F(hostTest, ReportsWstrToUtf8OsError)
+{
+    // Arrange
+    NiceMock<Mock_cplat> mock_cplat;
+    NiceMock<Mock_windows> mock_windows;
+    char name[CPLAT_HOST_NAME_MAX] = {'x'};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_windows, GetComputerNameExW(_, _, _, ComputerNameDnsHostname, _, _))
+        .WillOnce(Invoke(
+            [](const char *, int, const char *, COMPUTER_NAME_FORMAT, LPWSTR buffer, LPDWORD size)
+            {
+                const wchar_t kName[] = L"testhost";
+
+                memcpy(buffer, kName, sizeof(kName));
+                *size = (DWORD)(sizeof(kName) / sizeof(kName[0])) - 1u;
+                return TRUE;
+            })); // [Pre-Assert確認_異常系] - GetComputerNameExW が DNS ホスト名を指定して 1 回呼び出されること。
+                 // [Pre-Assert手順] - L"testhost" を書き込み成功を返却する。
+    EXPECT_CALL(mock_cplat, cplat_wstr_to_utf8(_, sizeof(name), StrEq(L"testhost")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - UTF-16 のホスト名が UTF-8 変換に 1 回渡されること。
+                              // [Pre-Assert手順] - UTF-8 変換から 0 を返却する。
+    EXPECT_CALL(mock_windows, GetLastError(_, _, _))
+        .WillOnce(Return(ERROR_ACCESS_DENIED)); // [Pre-Assert確認_異常系] - 変換失敗時に GetLastError が 1 回呼び出されること。
+                                                // [Pre-Assert手順] - ERROR_ACCESS_DENIED を返却する。
+
+    // Act
+    int actual_ret =
+        cplat_host_get_name(name, sizeof(name)); // [手順] - UTF-8 変換が失敗する状態でホスト名を取得する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_PERMISSION_DENIED,
+              actual_ret);    // [確認_異常系] - ERROR_ACCESS_DENIED が PERMISSION_DENIED へ変換されること。
+    EXPECT_EQ('\0', name[0]); // [確認_異常系] - UTF-8 変換失敗時に出力先が空文字列であること。
 }
 
 // GetComputerNameExW の ERROR_MORE_DATA がバッファー不足へ変換されることの確認
