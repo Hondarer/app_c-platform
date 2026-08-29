@@ -203,6 +203,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_scanf)
 MOCK_CPLAT_LINK_IMPL(cplat_setenv)
 MOCK_CPLAT_LINK_IMPL(cplat_snprintf)
 MOCK_CPLAT_LINK_IMPL(cplat_sscanf)
+MOCK_CPLAT_LINK_IMPL(cplat_strcasecmp)
 MOCK_CPLAT_LINK_IMPL(cplat_stat)
 MOCK_CPLAT_LINK_IMPL(cplat_stat_fmt)
 MOCK_CPLAT_LINK_IMPL(cplat_strcat)
@@ -213,6 +214,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_calloc)
 MOCK_CPLAT_LINK_IMPL(cplat_realloc)
 MOCK_CPLAT_LINK_IMPL(cplat_realloc_zerofill)
 MOCK_CPLAT_LINK_IMPL(cplat_free)
+MOCK_CPLAT_LINK_IMPL(cplat_strncasecmp)
 MOCK_CPLAT_LINK_IMPL(cplat_strncat)
 MOCK_CPLAT_LINK_IMPL(cplat_strncpy)
 MOCK_CPLAT_LINK_IMPL(cplat_strtok_r)
@@ -298,6 +300,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_range)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_scope_release)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_self)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_unlock_range)
+MOCK_CPLAT_LINK_IMPL(cplat_get_hostname)
 MOCK_CPLAT_LINK_IMPL(cplat_module_get_basename)
 MOCK_CPLAT_LINK_IMPL(cplat_module_get_path)
 MOCK_CPLAT_LINK_IMPL(cplat_process_dispose)
@@ -436,6 +439,7 @@ MOCK_CPLAT_LINK_IMPL(WriteConsoleU)
 #include <cplat/clock/clock.h>
 #include <cplat/console/console.h>
 #include <cplat/sync/sync.h>
+#include <cplat/runtime/host.h>
 #include <cplat/runtime/module.h>
 #include <cplat/runtime/memory_lock.h>
 #include <cplat/runtime/elevated_process.h>
@@ -600,6 +604,8 @@ extern int delegate_real_cplat_strcat(char *dest, size_t dest_size, const char *
 extern int delegate_real_cplat_strncat(char *dest, size_t dest_size, const char *src, size_t count);
 extern char *delegate_real_cplat_strtok_r(char *str, const char *delim, char **saveptr);
 extern char *delegate_real_cplat_strdup(const char *src);
+extern int delegate_real_cplat_strcasecmp(const char *lhs, const char *rhs);
+extern int delegate_real_cplat_strncasecmp(const char *lhs, const char *rhs, size_t count);
 extern void *delegate_real_cplat_malloc(size_t size);
 extern void *delegate_real_cplat_calloc(size_t count, size_t size);
 extern void *delegate_real_cplat_realloc(void *ptr, size_t count, size_t size);
@@ -841,6 +847,9 @@ extern int delegate_real_cplat_hashtable_clear(cplat_hashtable *ht);
 extern void delegate_real_cplat_hashtable_dispose(cplat_hashtable *ht);
 
 extern void delegate_real_cplat_secure_zero(void *buf, size_t size);
+
+// runtime - host
+extern int delegate_real_cplat_get_hostname(char *name_out, size_t name_size);
 
 // runtime - process_info
 extern int delegate_real_cplat_process_get_executable_path(char *path_out, size_t path_size);
@@ -1270,6 +1279,8 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_strncat, (char *, size_t, const char *, size_t));
     MOCK_METHOD(char *, cplat_strtok_r, (char *, const char *, char **));
     MOCK_METHOD(char *, cplat_strdup, (const char *));
+    MOCK_METHOD(int, cplat_strcasecmp, (const char *, const char *));
+    MOCK_METHOD(int, cplat_strncasecmp, (const char *, const char *, size_t));
     MOCK_METHOD(void *, cplat_malloc, (size_t));
     MOCK_METHOD(void *, cplat_calloc, (size_t, size_t));
     MOCK_METHOD(void *, cplat_realloc, (void *, size_t, size_t));
@@ -1415,6 +1426,9 @@ class Mock_cplat
                 (const cplat_memory_lock_self_options *, cplat_memory_lock_scope **));
     MOCK_METHOD(int, cplat_memory_lock_scope_release, (cplat_memory_lock_scope *));
     MOCK_METHOD(void, cplat_secure_zero, (void *, size_t));
+
+    // runtime - host
+    MOCK_METHOD(int, cplat_get_hostname, (char *, size_t));
 
     // runtime - process_info
     MOCK_METHOD(int, cplat_process_get_executable_path, (char *, size_t));

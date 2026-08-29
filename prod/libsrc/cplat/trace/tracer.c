@@ -726,7 +726,7 @@ static void strip_exe_suffix(char *name)
 {
     size_t name_len = strlen(name);
 
-    if (name_len >= 4 && _strnicmp(&name[name_len - 4], ".exe", 4) == 0)
+    if (name_len >= 4 && cplat_strncasecmp(&name[name_len - 4], ".exe", 4) == 0)
     {
         name[name_len - 4] = '\0';
     }

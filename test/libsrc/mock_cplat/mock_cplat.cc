@@ -218,6 +218,8 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_strncat(_, _, _, _)).WillByDefault(Invoke(delegate_real_cplat_strncat));
     ON_CALL(*this, cplat_strtok_r(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_strtok_r));
     ON_CALL(*this, cplat_strdup(_)).WillByDefault(Invoke(delegate_real_cplat_strdup));
+    ON_CALL(*this, cplat_strcasecmp(_, _)).WillByDefault(Invoke(delegate_real_cplat_strcasecmp));
+    ON_CALL(*this, cplat_strncasecmp(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_strncasecmp));
     ON_CALL(*this, cplat_malloc(_)).WillByDefault(Invoke(delegate_real_cplat_malloc));
     ON_CALL(*this, cplat_calloc(_, _)).WillByDefault(Invoke(delegate_real_cplat_calloc));
     ON_CALL(*this, cplat_realloc(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_realloc));
@@ -389,6 +391,9 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_memory_lock_scope_release(_))
         .WillByDefault(Invoke(delegate_real_cplat_memory_lock_scope_release));
     ON_CALL(*this, cplat_secure_zero(_, _)).WillByDefault(Invoke(delegate_real_cplat_secure_zero));
+
+    // runtime - host
+    ON_CALL(*this, cplat_get_hostname(_, _)).WillByDefault(Invoke(delegate_real_cplat_get_hostname));
 
     // runtime - process_info
     ON_CALL(*this, cplat_process_get_executable_path(_, _))

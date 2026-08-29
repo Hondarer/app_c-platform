@@ -37,6 +37,7 @@
 #include <cplat/prompt/pinned_prompt.h>
 #include <cplat/prompt/prompt.h>
 #include <cplat/runtime/elevated_process.h>
+#include <cplat/runtime/host.h>
 #include <cplat/runtime/memory_lock.h>
 #include <cplat/regex/regex.h>
 
@@ -411,6 +412,8 @@
     EXPORT_ENTRY(cplat_strncat, int(CPLAT_API *)(char *dest, size_t dest_size, const char *src, size_t count)) \
     EXPORT_ENTRY(cplat_strtok_r, char *(CPLAT_API *)(char *str, const char *delim, char **saveptr)) \
     EXPORT_ENTRY(cplat_strdup, char *(CPLAT_API *)(const char *src)) \
+    EXPORT_ENTRY(cplat_strcasecmp, int(CPLAT_API *)(const char *lhs, const char *rhs)) \
+    EXPORT_ENTRY(cplat_strncasecmp, int(CPLAT_API *)(const char *lhs, const char *rhs, size_t count)) \
     EXPORT_ENTRY(cplat_wcscpy, int(CPLAT_API *)(wchar_t * dest, size_t dest_size, const wchar_t *src)) \
     EXPORT_ENTRY(cplat_sscanf, int(CPLAT_API *)(const char *buffer, const char *format, ...)) \
     EXPORT_ENTRY(cplat_vsscanf, int(CPLAT_API *)(const char *buffer, const char *format, va_list args)) \
@@ -630,6 +633,8 @@
                                                                 cplat_memory_lock_scope **scope)) \
     EXPORT_ENTRY(cplat_memory_lock_scope_release, int(CPLAT_API *)(cplat_memory_lock_scope * scope)) \
     EXPORT_ENTRY(cplat_secure_zero, void(CPLAT_API *)(void *buf, size_t size)) \
+    /* cplat/runtime/host.h */ \
+    EXPORT_ENTRY(cplat_get_hostname, int(CPLAT_API *)(char *name_out, size_t name_size)) \
     /* cplat/runtime/module.h */ \
     EXPORT_ENTRY(cplat_module_get_path, \
                  int(CPLAT_API *)(char *path_out, size_t path_size, const void *func_addr)) \

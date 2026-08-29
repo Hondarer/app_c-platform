@@ -28,7 +28,7 @@ Linux と Windows では、ファイル パス、セキュア関数、ワイド�
 - `cplat/crt/fcntl.h`: `open`、`open_fmt`
 - `cplat/crt/file.h`: 書き込み用低レベル ファイル ハンドル、`open`、`write`、`size`、最終更新日時、`close`
 - `cplat/crt/unistd.h`: `access`、`access_fmt`、`CPLAT_ACCESS_FMT_*`
-- `cplat/crt/string.h`: 安全な文字列コピー/連結、再入可能な `strtok_r`、`sscanf` 抽象
+- `cplat/crt/string.h`: 安全な文字列コピー/連結、再入可能な `strtok_r`、ASCII の大文字小文字を無視する比較、`sscanf` 抽象
 - `cplat/crt/stdlib.h`: 環境変数の取得と設定、完全消費を検査する文字列から数値への変換
 - `cplat/crt/time.h`: UTC / local 時刻変換
 - `cplat/crt/path.h`: `PLATFORM_PATH_MAX`

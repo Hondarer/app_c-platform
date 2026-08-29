@@ -10,8 +10,73 @@
 
 #include <cplat/crt/string.h>
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+/**
+ *  @brief          ASCII の大文字を小文字へ畳みます。
+ *  @param[in]      c  対象のバイト。
+ *  @return         `A` から `Z` なら対応する小文字、それ以外は元の値です。
+ */
+static int ascii_tolower(const unsigned char c)
+{
+    if ((c >= (unsigned char)'A') && (c <= (unsigned char)'Z'))
+    {
+        return (int)c + ((int)'a' - (int)'A');
+    }
+
+    return (int)c;
+}
+
+/**
+ *  @brief          非 0 の差分を -1 / 1 へ正規化します。
+ *  @param[in]      diff  減算による差分。0 以外であること。
+ *  @return         負なら -1、正なら 1 です。
+ */
+static int cmp_sign(const int diff)
+{
+    if (diff < 0)
+    {
+        return -1;
+    }
+    return 1;
+}
+
+/**
+ *  @brief          非 NULL の 2 文字列を、最大 count バイトまで ASCII 大小無視で比較します。
+ *  @param[in]      lhs    比較する 1 つ目の文字列。
+ *  @param[in]      rhs    比較する 2 つ目の文字列。
+ *  @param[in]      count  比較する最大バイト数。
+ *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 です。
+ */
+static int ascii_casecmp_bounded(const char *lhs, const char *rhs, const size_t count)
+{
+    size_t i;
+
+    i = 0;
+    while (i < count)
+    {
+        unsigned char left;
+        unsigned char right;
+        int diff;
+
+        left = (unsigned char)lhs[i];
+        right = (unsigned char)rhs[i];
+        diff = ascii_tolower(left) - ascii_tolower(right);
+        if (diff != 0)
+        {
+            return cmp_sign(diff);
+        }
+        if (left == '\0')
+        {
+            return 0;
+        }
+        i++;
+    }
+
+    return 0;
+}
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -210,4 +275,48 @@ char *cplat_strdup(const char *src)
      * see: https://learn.microsoft.com/cpp/c-runtime-library/reference/strdup-wcsdup-mbsdup */
     return _strdup(src);
 #endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_strcasecmp(const char *lhs, const char *rhs)
+{
+    if (lhs == NULL && rhs == NULL)
+    {
+        return 0;
+    }
+    if (lhs == NULL)
+    {
+        return -1;
+    }
+    if (rhs == NULL)
+    {
+        return 1;
+    }
+
+    return ascii_casecmp_bounded(lhs, rhs, SIZE_MAX);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_strncasecmp(const char *lhs, const char *rhs, const size_t count)
+{
+    if (count == 0u)
+    {
+        return 0;
+    }
+    if (lhs == NULL && rhs == NULL)
+    {
+        return 0;
+    }
+    if (lhs == NULL)
+    {
+        return -1;
+    }
+    if (rhs == NULL)
+    {
+        return 1;
+    }
+
+    return ascii_casecmp_bounded(lhs, rhs, count);
 }

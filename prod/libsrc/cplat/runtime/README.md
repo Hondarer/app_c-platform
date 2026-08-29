@@ -4,14 +4,15 @@ short-title: "runtime"
 
 # runtime - 実行時補助ユーティリティ
 
-`runtime` は、実行時にモジュール自身の情報を取得したり、外部ライブラリの関数を動的に解決したりするためのユーティリティ群です。  
-公開面は大きく `cplat/runtime/module.h` と `cplat/runtime/sym_loader.h` の 2 つに分かれます。
+`runtime` は、実行時にホストやモジュール、プロセスの情報を取得したり、外部ライブラリの関数を動的に解決したりするためのユーティリティ群です。  
+公開ヘッダーは `cplat/runtime/` 配下に関心ごとに分割しています。
 
 ## 目的
 
 共有ライブラリやプラグイン型の構成では、実行時に「自分がどこからロードされたか」「どの関数実装を外部ライブラリへ委譲するか」を知りたい場面があります。  
 このモジュールは、そのための最低限の共通部品を提供します。
 
+- 現在のホストの DNS ホスト名を UTF-8 で取得できます。
 - 関数アドレスから所属モジュールのパスや basename を取得できます。
 - 設定ファイルに基づいて関数シンボルを動的に解決できます。
 - 解決結果をキャッシュし、同じ関数を繰り返し高速に呼べる
@@ -27,6 +28,16 @@ short-title: "runtime"
 - `cplat_module_get_basename`: モジュールの basename を取得します。
 
 典型的には、ロード中の共有ライブラリ自身の名前から設定ファイル名やログ識別子を組み立てる用途で使います。
+
+### host
+
+`host` は、現在のホストを識別する情報を取得する機能です。
+
+- `cplat_get_hostname`: DNS ホスト名を UTF-8 で取得します。
+- `CPLAT_HOST_NAME_MAX`: ホスト名格納用の推奨配列サイズ (NUL 終端込み)
+
+Linux では `gethostname`、Windows では `GetComputerNameExW(ComputerNameDnsHostname)` を使用します。  
+返る値は OS が保持する DNS ホスト名であり、FQDN であることは保証しません。
 
 ### process_info
 
@@ -214,6 +225,7 @@ int sample_func(int a, int b, int *result)
 
 ## 関連ヘッダー
 
+- `cplat/runtime/host.h`: ホスト識別情報取得
 - `cplat/runtime/module.h`: モジュール情報取得
 - `cplat/runtime/process.h`: プロセス情報取得
 - `cplat/runtime/sym_loader.h`: 動的シンボル解決

@@ -136,6 +136,51 @@ extern "C"
     CPLAT_EXPORT char *CPLAT_API cplat_strdup(const char *src);
 
     /**
+     *  @brief          大文字小文字を無視して 2 つの文字列を比較します。
+     *  @param[in]      lhs  比較する 1 つ目の文字列。
+     *  @param[in]      rhs  比較する 2 つ目の文字列。
+     *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 を返します。
+     *
+     *  POSIX の `strcasecmp` と Windows の `_stricmp` の名前差と locale 差を吸収します。\n
+     *  ASCII の `A` から `Z` だけを対応する小文字へ畳み、`setlocale` には依存しません。\n
+     *  非 ASCII バイトは符号なしバイトとして比較し、Unicode の大文字小文字畳み込みはしません。
+     *
+     *  @attention      本関数は @ref CPLAT_OK 系の戻り値規約の適用対象外です。
+     *                  比較結果そのものを返します。
+     *
+     *  @warning        @p lhs と @p rhs がともに NULL のときは 0 を返します。\n
+     *                  @p lhs のみ NULL のときは -1、@p rhs のみ NULL のときは 1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_strcasecmp(const char *lhs, const char *rhs);
+
+    /**
+     *  @brief          大文字小文字を無視して、先頭の指定バイト数まで文字列を比較します。
+     *  @param[in]      lhs    比較する 1 つ目の文字列。
+     *  @param[in]      rhs    比較する 2 つ目の文字列。
+     *  @param[in]      count  比較する最大バイト数。
+     *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 を返します。
+     *
+     *  POSIX の `strncasecmp` と Windows の `_strnicmp` の名前差と locale 差を吸収します。\n
+     *  比較規則は @ref cplat_strcasecmp と同じです。\n
+     *  @p count が 0 のときは、引数が NULL であっても 0 を返します。
+     *
+     *  @attention      本関数は @ref CPLAT_OK 系の戻り値規約の適用対象外です。
+     *                  比較結果そのものを返します。
+     *
+     *  @warning        @p count が 0 でないとき、@p lhs と @p rhs がともに NULL なら 0 を返します。\n
+     *                  @p lhs のみ NULL のときは -1、@p rhs のみ NULL のときは 1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_strncasecmp(const char *lhs, const char *rhs, size_t count);
+
+    /**
      *  @brief          バッファー サイズ付き安全 wcscpy (`wcscpy_s` 相当) です。
      *  @param[out]     dest       コピー先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size  @p dest のサイズ (wchar_t 単位)。0 を渡してはなりません。

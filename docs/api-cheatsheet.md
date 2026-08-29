@@ -18,7 +18,7 @@
 外部 OSS 由来のコード (`app/lua`、`app/sqlite`、`app/cjson`) はいずれの表も対象外です。
 
 > [!NOTE]
-> `memcpy` / `memmove` / `memset` / `strcmp` 系 / 単純な `malloc` 呼出 / `printf` など、両プラットフォームで挙動が同じで境界検査の欠落もない関数には、cplat はラッパーを作りません。
+> `memcpy` / `memmove` / `memset` / `strcmp` / `strncmp` / `memcmp` / 単純な `malloc` 呼出 / `printf` など、両プラットフォームで挙動が同じで境界検査の欠落もない関数には、cplat はラッパーを作りません。
 > 詳細は [coding-guideline.md の「ラッパーを作らないもの」](coding-guideline.md#ラッパーを作らないもの) を参照してください。
 
 ## 危険な標準関数の代替
@@ -149,6 +149,17 @@
 | `setenv` | `cplat_setenv(name, value, overwrite, detail_out)` | Linux は `setenv`、Windows は `_putenv_s` を使用。設定は呼び出し元プロセスにのみ反映 |
 | `unsetenv` | `cplat_unsetenv(name, detail_out)` | Linux は `unsetenv`、Windows は値に空文字列を指定した `_putenv_s` を使用 |
 
+### 大文字小文字を無視する比較
+
+対象ヘッダー: `cplat/crt/string.h`
+
+| 生 API | cplat 代替 | 差異の要点 |
+|---|---|---|
+| `strcasecmp` / `_stricmp` | `cplat_strcasecmp(lhs, rhs)` | 名前とヘッダーが異なります。cplat は ASCII の `A`〜`Z` だけを畳み、`setlocale` に依存しません。戻り値は -1 / 0 / 1 |
+| `strncasecmp` / `_strnicmp` | `cplat_strncasecmp(lhs, rhs, count)` | 同上。先頭 `count` バイトまで比較します。 |
+
+`strcmp` / `strncmp` / `memcmp` にはラッパーを作りません。
+
 ### 時刻変換
 
 対象ヘッダー: `cplat/crt/time.h`
@@ -277,6 +288,14 @@ Linux の `cplat_socket_send`/`cplat_socket_send_all` は、切断済みの接�
 | `munlockall()` (Linux) | `cplat_memory_lock_scope_release(...)` | Windows では各範囲へ `VirtualUnlock` を参照カウント管理で適用 |
 
 scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.md) を参照してください。
+
+### ホスト情報
+
+対象ヘッダー: `cplat/runtime/host.h`
+
+| 生 API | cplat 代替 | 差異の要点 |
+|---|---|---|
+| `gethostname()` (POSIX) / `GetComputerNameExW(ComputerNameDnsHostname)` (Win32) | `cplat_get_hostname(name_out, name_size)` | 返る値は UTF-8 です。Windows は Winsock を使わず DNS ホスト名を取得します。FQDN であることは保証しません。推奨配列サイズは `CPLAT_HOST_NAME_MAX` |
 
 ### モジュール / プロセス情報
 
@@ -605,11 +624,13 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - 時刻: `cplat_format_realtime_iso8601_local`、`cplat_format_realtime_iso8601_utc`、`cplat_get_realtime_utc`、`cplat_get_realtime_deadline_ms`、`cplat_timespec_normalize`、`cplat_timespec_add`、`cplat_timespec_sub`、`cplat_timespec_cmp`、`cplat_timespec_add_ms`、`cplat_timespec_diff_ms`、`cplat_timespec_to_native`、`cplat_timespec_from_native`
 - ファイル: `cplat_file_init`、`cplat_file_open`、`cplat_file_write`、`cplat_file_read`、`cplat_file_get_size`、`cplat_file_set_size`、`cplat_file_get_id`、`cplat_file_get_path_id`、`cplat_file_get_modified_timestamp`、`cplat_file_set_modified_timestamp`、`cplat_file_get_path_modified_timestamp`、`cplat_file_set_path_modified_timestamp`、`cplat_file_flush`、`cplat_file_close`
 - パス: `cplat_normalize_path_sep`、`cplat_path_get_full`、`cplat_paths_equal`、`cplat_get_temp_dir`、`cplat_path_concat_n`、`cplat_vpath_concat_n`、`cplat_path_basename`、`cplat_path_dirname`、`cplat_path_extension`、`cplat_path_strip_extension`、`cplat_path_join_n`、`cplat_vpath_join_n`
+- 文字列: `cplat_strcasecmp`、`cplat_strncasecmp`
 - 書式入力: `cplat_vscanf`、`cplat_vfscanf`、`cplat_vsscanf`
 - 暗号: `cplat_passphrase_to_key`
 - エラー: `cplat_error_clear`、`cplat_error_capture_errno`、`cplat_error_capture_current_errno`、`cplat_error_get_last`、`cplat_error_set_last`、`cplat_error_clear_last`、`cplat_error_is_set`、`cplat_error_get_domain`、`cplat_error_get_errno`、`cplat_error_to_result`、`cplat_error_get_cause`、`cplat_error_is`、`cplat_result_to_string`
 - メモリ マップド ファイル: `cplat_mmap_get_address`、`cplat_mmap_get_size`、`cplat_mmap_get_rwlock`
 - 正規表現: `cplat_regex_get_group_count`、`cplat_regex_iter_create`、`cplat_regex_iter_next`、`cplat_regex_iter_dispose`
+- ホスト: `cplat_get_hostname`
 - モジュール: `cplat_module_get_basename`
 - プロセス間ロック: `cplat_interprocess_lock_export_descriptor`、`cplat_interprocess_lock_import_descriptor`、`cplat_interprocess_rwlock_export_descriptor`、`cplat_interprocess_rwlock_import_descriptor`、`cplat_interprocess_rwlock_lock_shared`、`cplat_interprocess_rwlock_try_lock_shared`、`cplat_interprocess_rwlock_lock_exclusive`、`cplat_interprocess_rwlock_try_lock_exclusive`、`cplat_interprocess_rwlock_unlock`、`cplat_interprocess_rwlock_dispose`
 - トレース: `cplat_tracer_get_name`、`cplat_tracer_get_identifier`、`cplat_tracer_set_file_name`、`cplat_tracer_get_file_name`、`cplat_tracer_get_file_identifier`、`cplat_tracer_get_os_level`、`cplat_tracer_set_os_level`、`cplat_tracer_get_etw_level`、`cplat_tracer_set_etw_level`、`cplat_tracer_get_file_level`、`cplat_tracer_set_file_level`、`cplat_tracer_get_stderr_level`

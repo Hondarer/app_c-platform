@@ -31,7 +31,7 @@ TEST_F(stringTest, strcpy_success)
     int actual_ret = cplat_strcpy(buf, sizeof(buf), "abc"); // [手順] - "abc" を指定して cplat_strcpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);        // [確認_正常系] - cplat_strcpy の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - cplat_strcpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - バッファーに "abc" がコピーされること。
 }
 
@@ -44,7 +44,8 @@ TEST_F(stringTest, strcpy_null_argument)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して cplat_strcpy を呼び出す。
+    int actual_ret =
+        cplat_strcpy(buf, sizeof(buf), NULL); // [手順] - コピー元に NULL を渡して cplat_strcpy を呼び出す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -87,7 +88,7 @@ TEST_F(stringTest, strcpy_buffer_shortage)
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              actual_ret);        // [確認_異常系] - cplat_strcpy の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - cplat_strcpy の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
@@ -101,10 +102,10 @@ TEST_F(stringTest, strncpy_truncates_to_count)
 
     // Act
     int actual_ret = cplat_strncpy(buf, sizeof(buf), "abcdef",
-                               3); // [手順] - "abcdef" と count=3 を指定して cplat_strncpy を呼び出す。
+                                   3); // [手順] - "abcdef" と count=3 を指定して cplat_strncpy を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);        // [確認_正常系] - cplat_strncpy の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - cplat_strncpy の戻り値が 0 であること。
     EXPECT_STREQ("abc", buf); // [確認_正常系] - 先頭 3 文字 "abc" だけがコピーされること。
 }
 
@@ -118,8 +119,8 @@ TEST_F(stringTest, strncpy_rejects_null_and_limits_destination)
 
     // Act
     int null_destination_result = cplat_strncpy(NULL, sizeof(buf), "abc", 3u); // [手順] - コピー先に NULL を渡す。
-    int zero_size_result = cplat_strncpy(buf, 0u, "abc", 3u);           // [手順] - コピー先サイズに 0 を渡す。
-    int null_source_result = cplat_strncpy(buf, sizeof(buf), NULL, 3u); // [手順] - コピー元に NULL を渡す。
+    int zero_size_result = cplat_strncpy(buf, 0u, "abc", 3u);                  // [手順] - コピー先サイズに 0 を渡す。
+    int null_source_result = cplat_strncpy(buf, sizeof(buf), NULL, 3u);        // [手順] - コピー元に NULL を渡す。
     int limited_destination_result =
         cplat_strncpy(buf, sizeof(buf), "abcdef", 6u); // [手順] - コピー先容量を超える文字列を指定する。
 
@@ -151,7 +152,7 @@ TEST_F(stringTest, strcat_success)
     int actual_ret = cplat_strcat(buf, sizeof(buf), "def"); // [手順] - "def" を指定して cplat_strcat を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);           // [確認_正常系] - cplat_strcat の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);    // [確認_正常系] - cplat_strcat の戻り値が 0 であること。
     EXPECT_STREQ("abcdef", buf); // [確認_正常系] - バッファーが "abcdef" になること。
 }
 
@@ -168,7 +169,7 @@ TEST_F(stringTest, strncat_truncates_to_count)
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_strncat の戻り値が CPLAT_OK であること。
-    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+    EXPECT_STREQ("abcde", buf);      // [確認_正常系] - バッファーが "abcde" になること。
 }
 
 // count が連結元の長さを超える場合に全体が連結されることの確認
@@ -180,11 +181,12 @@ TEST_F(stringTest, strncat_copies_whole_source_when_count_exceeds_length)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_strncat(buf, sizeof(buf), "de", 10u); // [手順] - 長さ 2 の "de" に count 10 を指定して連結する。
+    int actual_ret =
+        cplat_strncat(buf, sizeof(buf), "de", 10u); // [手順] - 長さ 2 の "de" に count 10 を指定して連結する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_strncat の戻り値が CPLAT_OK であること。
-    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+    EXPECT_STREQ("abcde", buf);      // [確認_正常系] - バッファーが "abcde" になること。
 }
 
 // 連結結果がちょうど収まる場合に成功することの確認
@@ -200,7 +202,7 @@ TEST_F(stringTest, strncat_exact_fit_succeeds)
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_strncat の戻り値が CPLAT_OK であること。
-    EXPECT_STREQ("abcde", buf);  // [確認_正常系] - バッファーが "abcde" になること。
+    EXPECT_STREQ("abcde", buf);      // [確認_正常系] - バッファーが "abcde" になること。
 }
 
 // 連結結果が収まらない場合に連結先が変更されないことの確認
@@ -216,7 +218,7 @@ TEST_F(stringTest, strncat_buffer_shortage_keeps_dest)
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              actual_ret);           // [確認_異常系] - cplat_strncat の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);    // [確認_異常系] - cplat_strncat の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("abc", buf); // [確認_異常系] - 連結先が "abc" のまま変更されないこと。
 }
 
@@ -233,7 +235,7 @@ TEST_F(stringTest, strncat_unterminated_dest_returns_buffer_too_small)
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              actual_ret);        // [確認_異常系] - cplat_strncat の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret); // [確認_異常系] - cplat_strncat の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - バッファーが空文字列にクリアされること。
 }
 
@@ -273,7 +275,7 @@ TEST_F(stringTest, strcat_rejects_invalid_arguments)
 
     // Act
     int null_destination_result = cplat_strcat(NULL, sizeof(terminated), "new"); // [手順] - コピー先に NULL を渡す。
-    int zero_size_result = cplat_strcat(terminated, 0u, "new"); // [手順] - コピー先サイズに 0 を渡す。
+    int zero_size_result = cplat_strcat(terminated, 0u, "new");                  // [手順] - コピー先サイズに 0 を渡す。
     int null_source_result = cplat_strcat(terminated, sizeof(terminated), NULL); // [手順] - コピー元に NULL を渡す。
     int unterminated_result =
         cplat_strcat(unterminated, sizeof(unterminated), "e"); // [手順] - 終端のないコピー先へ連結する。
@@ -363,8 +365,7 @@ TEST_F(stringTest, strtok_r_null_saveptr_returns_null)
     // Pre-Assert
 
     // Act
-    char *token =
-        cplat_strtok_r(text, ",", NULL); // [手順] - saveptr に NULL を指定して呼び出す。
+    char *token = cplat_strtok_r(text, ",", NULL); // [手順] - saveptr に NULL を指定して呼び出す。
 
     // Assert
     EXPECT_EQ((char *)NULL, token); // [確認_異常系] - cplat_strtok_r の戻り値が NULL であること。
@@ -382,7 +383,7 @@ TEST_F(stringTest, sscanf_reads_three_tokens)
 
     // Act
     int count = cplat_sscanf("one two three", "%7s %7s %7s", token1, token2,
-                                token3); // [手順] - 入力 "one two three" を %7s x 3 で解析する。
+                             token3); // [手順] - 入力 "one two three" を %7s x 3 で解析する。
 
     // Assert
     EXPECT_EQ(3, count);           // [確認_正常系] - 読み取り数が 3 であること。
@@ -403,7 +404,7 @@ TEST_F(stringTest, sscanf_returns_partial_count_for_short_input)
 
     // Act
     int count = cplat_sscanf("one two", "%7s %7s %7s", token1, token2,
-                                token3); // [手順] - トークンが 2 つの入力 "one two" を %7s x 3 で解析する。
+                             token3); // [手順] - トークンが 2 つの入力 "one two" を %7s x 3 で解析する。
 
     // Assert
     EXPECT_EQ(2, count); // [確認_正常系] - 読み取り数が 2 であること。
@@ -421,7 +422,7 @@ TEST_F(stringTest, sscanf_skips_repeated_spaces)
 
     // Act
     int count = cplat_sscanf("  one   two\tthree", "%7s %7s %7s", token1, token2,
-                                token3); // [手順] - 連続空白とタブを含む入力を %7s x 3 で解析する。
+                             token3); // [手順] - 連続空白とタブを含む入力を %7s x 3 で解析する。
 
     // Assert
     EXPECT_EQ(3, count);           // [確認_正常系] - 読み取り数が 3 であること。
@@ -510,7 +511,7 @@ TEST_F(stringTest, wcscpy_success)
 
     // Assert
     EXPECT_EQ(CPLAT_OK, result); // [確認_正常系] - cplat_wcscpy の戻り値が CPLAT_OK であること。
-    EXPECT_STREQ(L"abc", buf);      // [確認_正常系] - ワイド文字列の内容が L"abc" であること。
+    EXPECT_STREQ(L"abc", buf);   // [確認_正常系] - ワイド文字列の内容が L"abc" であること。
 }
 
 // ワイド文字列の NULL 引数と容量不足が拒否されることの確認
@@ -523,9 +524,9 @@ TEST_F(stringTest, wcscpy_rejects_invalid_arguments)
 
     // Act
     int null_destination_result = cplat_wcscpy(NULL, 4u, L"abc"); // [手順] - ワイド文字列のコピー先に NULL を渡す。
-    int zero_size_result = cplat_wcscpy(buf, 0u, L"abc");    // [手順] - ワイド文字列のコピー先サイズに 0 を渡す。
-    int null_source_result = cplat_wcscpy(buf, 4, NULL);     // [手順] - ワイド文字列のコピー元に NULL を渡す。
-    int short_buffer_result = cplat_wcscpy(buf, 4, L"abcd"); // [手順] - 終端を含めて容量を超える文字列を渡す。
+    int zero_size_result = cplat_wcscpy(buf, 0u, L"abc");         // [手順] - ワイド文字列のコピー先サイズに 0 を渡す。
+    int null_source_result = cplat_wcscpy(buf, 4, NULL);          // [手順] - ワイド文字列のコピー元に NULL を渡す。
+    int short_buffer_result = cplat_wcscpy(buf, 4, L"abcd");      // [手順] - 終端を含めて容量を超える文字列を渡す。
 
     // Assert
     EXPECT_EQ(
@@ -541,4 +542,128 @@ TEST_F(stringTest, wcscpy_rejects_invalid_arguments)
         CPLAT_ERR_BUFFER_TOO_SMALL,
         short_buffer_result); // [確認_異常系] - 容量不足の cplat_wcscpy の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ(L'\0', buf[0]); // [確認_異常系] - 容量不足時にコピー先が空文字列へクリアされること。
+}
+
+// ASCII の大文字小文字だけが異なる文字列を一致と判定することの確認
+TEST_F(stringTest, strcasecmp_ignores_ascii_case)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_strcasecmp("AbC", "aBc"); // [手順] - ASCII の大小だけが異なる文字列を比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - cplat_strcasecmp の戻り値が 0 であること。
+}
+
+// 大文字小文字を無視しても異なる文字列を順序付きで判定することの確認
+TEST_F(stringTest, strcasecmp_orders_unequal_strings)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_less = cplat_strcasecmp("abc", "abd");    // [手順] - 小さい文字列と比較する。
+    int actual_ret_greater = cplat_strcasecmp("abd", "abc"); // [手順] - 大きい文字列と比較する。
+
+    // Assert
+    EXPECT_EQ(-1, actual_ret_less);   // [確認_正常系] - 小さい側の比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_greater); // [確認_正常系] - 大きい側の比較結果が 1 であること。
+}
+
+// 空文字列どうしを一致と判定することの確認
+TEST_F(stringTest, strcasecmp_empty_strings_are_equal)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_strcasecmp("", ""); // [手順] - 空文字列どうしを比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - 空文字列どうしの比較結果が 0 であること。
+}
+
+// 非 ASCII バイトは畳まず符号なしバイトとして比較することの確認
+TEST_F(stringTest, strcasecmp_does_not_fold_non_ascii_bytes)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_strcasecmp("\xC1", "\xE1"); // [手順] - ASCII 外の 2 バイトを比較する。
+
+    // Assert
+    EXPECT_EQ(-1, actual_ret); // [確認_正常系] - 非 ASCII バイトが畳まれず 0xC1 < 0xE1 となること。
+}
+
+// NULL 引数を全順序で扱うことの確認
+TEST_F(stringTest, strcasecmp_orders_null_arguments)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_both_null = cplat_strcasecmp(NULL, NULL); // [手順] - 両方 NULL で比較する。
+    int actual_ret_lhs_null = cplat_strcasecmp(NULL, "a");   // [手順] - 左辺だけ NULL で比較する。
+    int actual_ret_rhs_null = cplat_strcasecmp("a", NULL);   // [手順] - 右辺だけ NULL で比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret_both_null); // [確認_異常系] - 両方 NULL の比較結果が 0 であること。
+    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_異常系] - 左辺だけ NULL の比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_異常系] - 右辺だけ NULL の比較結果が 1 であること。
+}
+
+// 指定バイト数までの大小無視比較が一致することの確認
+TEST_F(stringTest, strncasecmp_compares_limited_prefix)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_prefix = cplat_strncasecmp("File", "file.txt", 4u); // [手順] - 先頭 4 バイトだけ比較する。
+    int actual_ret_full = cplat_strncasecmp("File", "file.txt", 5u);   // [手順] - 5 バイト目まで比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret_prefix); // [確認_正常系] - 先頭 4 バイトの比較結果が 0 であること。
+    EXPECT_EQ(-1, actual_ret_full);  // [確認_正常系] - 終端と '.' の比較結果が -1 であること。
+}
+
+// 比較バイト数が 0 のとき一致と判定することの確認
+TEST_F(stringTest, strncasecmp_zero_count_is_equal)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_strncasecmp(NULL, "abc", 0u); // [手順] - count 0 で NULL と文字列を比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret); // [確認_正常系] - count が 0 の比較結果が 0 であること。
+}
+
+// strncasecmp が NULL 引数を全順序で扱うことの確認
+TEST_F(stringTest, strncasecmp_orders_null_arguments)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_both_null = cplat_strncasecmp(NULL, NULL, 1u); // [手順] - count 1 で両方 NULL を比較する。
+    int actual_ret_lhs_null = cplat_strncasecmp(NULL, "a", 1u);   // [手順] - count 1 で左辺だけ NULL を比較する。
+    int actual_ret_rhs_null = cplat_strncasecmp("a", NULL, 1u);   // [手順] - count 1 で右辺だけ NULL を比較する。
+
+    // Assert
+    EXPECT_EQ(0, actual_ret_both_null); // [確認_異常系] - 両方 NULL の比較結果が 0 であること。
+    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_異常系] - 左辺だけ NULL の比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_異常系] - 右辺だけ NULL の比較結果が 1 であること。
 }

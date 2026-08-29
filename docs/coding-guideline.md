@@ -209,7 +209,7 @@ TLS 変数はソース ファイル内のファイル スコープ `static` に�
 | `win32/win32.h` の UTF-8 ラッパー (`CreateFileU` など) | `HANDLE`、`BOOL` など Windows ネイティブ規約 | 元 API の差し替えとして使えることが設計意図 |
 | `cplat_strtok_r` | トークンへのポインター / 終了時 NULL | 元 API (`strtok_r` / `strtok_s`) の差し替えとして使えることが設計意図 |
 | ハンドル生成系 (`*_create` など) | 成功時ポインター / 失敗時 NULL | ポインター返却 API の慣用 |
-| 値をそのまま返す関数 (getter、`cplat_timespec_cmp` など) | 値そのもの | 結果コードの概念が適用されない |
+| 値をそのまま返す関数 (getter、`cplat_timespec_cmp`、`cplat_strcasecmp`、`cplat_strncasecmp` など) | 値そのもの | 結果コードの概念が適用されない |
 | 戻り値を持たない関数 (`*_destroy` など) | `void` | 同上 |
 
 対象外の API 群を新設する場合は、元 API との対応と戻り値規約をヘッダーの Doxygen コメントに明記します。
@@ -240,7 +240,7 @@ CRT / POSIX / Win32 関数のラッパーを cplat へ追加してよいのは�
 
 | 条件 | 例 |
 |---|---|
-| プラットフォームで異なる API を呼び分ける | `cplat_fseek` (`fseeko` と `_fseeki64`)、`cplat_gmtime` (`gmtime_r` と `gmtime_s`)、`cplat_socket_*` (BSD ソケットと Winsock) |
+| プラットフォームで異なる API を呼び分ける | `cplat_fseek` (`fseeko` と `_fseeki64`)、`cplat_gmtime` (`gmtime_r` と `gmtime_s`)、`cplat_socket_*` (BSD ソケットと Winsock)、`cplat_get_hostname` (`gethostname` と `GetComputerNameExW`)、`cplat_strcasecmp` (`strcasecmp` と `_stricmp` の名前差と locale 差) |
 | Windows で UTF-8 と UTF-16 を変換します。 | `cplat_fopen`、`cplat_access`、`CreateFileU` |
 | 戻り値やエラー伝達の規約を正規化します。 | `cplat_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`cplat_strcpy` (`ERANGE` を返す) |
 | MSVC のセキュア版と意味のある挙動差がある | `cplat_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
@@ -268,6 +268,7 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 | オープン時の共有モード | 他プロセスの読み書きを拒否しない既定動作に統一します。 | `cplat_fopen` と `cplat_open` の Windows 実装で `_SH_DENYNO` を指定 |
 | シグナルによる待機の中断 | 中断されない Windows の動作に統一します。 | Linux 実装が `EINTR` を吸収します。詳細は [シグナル割り込み (EINTR) の扱い](#シグナル割り込み-eintr-の扱い) |
 | 切断済みソケットへの送信 | プロセスを終了させず、送信エラーとして通知します。 | Linux 実装が `MSG_NOSIGNAL` で SIGPIPE を抑制します。 |
+| locale 依存の大文字小文字比較 | ASCII の `A`〜`Z` だけを畳み、`setlocale` に依存しません。 | `cplat_strcasecmp` / `cplat_strncasecmp` |
 
 製品実装は、プラットフォーム固有の API を呼び出す前に共通契約を検査または設定します。  
 より緩い限界値を持つプラットフォームの追加差分は、共通 API では公開しません。
@@ -389,8 +390,11 @@ grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/c-platform/pro
 上記のいずれにも当たらず、両プラットフォームで同じ関数を素通しするだけのラッパーは作りません。  
 すでに存在する場合は撤去します。
 
-`memcpy`、`memmove`、`memset`、`strcmp` 系、`malloc` 系、標準出力への `printf` が該当します。  
+`memcpy`、`memmove`、`memset`、`strcmp` / `strncmp` / `memcmp`、`malloc` 系、標準出力への `printf` が該当します。  
 これらはプラットフォーム差異がなく、MSVC のセキュア版にも意味のある挙動差がなく、境界検査と失敗通知の欠落もありません。
+
+`strcasecmp` / `strncasecmp` は対象外です。  
+Linux と Windows で名前とヘッダーが異なり、locale 依存の畳み込み結果も処理系で分かれるため、`cplat_strcasecmp` / `cplat_strncasecmp` を提供します。
 
 テストでモックしたいという理由も、cplat 側にラッパーを作る根拠にはなりません。  
 libc 関数のモックは `framework/testfw/libsrc/mock_libc/` が提供する仕組みで受けます。

@@ -14,6 +14,7 @@
  */
 
 #include <cplat/base/result.h>
+#include <cplat/crt/string.h>
 #include <cplat/crt/stdlib.h>
 #include <cplat/clock/clock.h>
 #include <cplat/crt/file.h>
@@ -180,7 +181,7 @@ static char *build_registry_key(const char *path)
 static int registry_key_equals(const char *lhs, const char *rhs)
 {
 #if defined(PLATFORM_WINDOWS)
-    return _stricmp(lhs, rhs) == 0;
+    return cplat_strcasecmp(lhs, rhs) == 0;
 #else  /* PLATFORM_WINDOWS */
     return strcmp(lhs, rhs) == 0;
 #endif /* PLATFORM_WINDOWS */
