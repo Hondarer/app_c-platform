@@ -43,6 +43,7 @@
     #include <cplat/crt/stdio.h>
     #include <cplat/crt/stdlib.h>
     #include <cplat/crt/string.h>
+    #include <cplat/runtime/process.h>
     #include <cplat/sync/sync.h>
     #include <cplat/trace/syslog.h>
     #include <cplat/trace/trace_common.h>
@@ -90,10 +91,22 @@ struct cplat_syslog_sink
     /** 現在のバックオフ間隔 (秒)。reconnect_lock で保護。 */
     int backoff_sec;
 
+    /** 生成時に確定したプロセス ID。 */
+    uint32_t pid;
+
+    /** SYSLOG_TEST_FD が生成時に設定されていた場合 1。 */
+    int test_fd_exists;
+
 #if defined(ARCH_X64)
-    /** 64 bit アーキテクチャーで構造体末尾の暗黙パディングを防ぐ。 */
+    /** 送信先アドレスの開始位置を調整する明示パディング。 */
     int pad;
 #endif /* ARCH_X64 */
+
+    /** /dev/log の送信先アドレス。 */
+    struct sockaddr_un address;
+
+    /** 構造体末尾の暗黙パディングを防ぐ。 */
+    uint16_t pad_end;
 };
 
 /**
@@ -185,6 +198,13 @@ cplat_syslog_sink *cplat_syslog_sink_create(const char *ident, const int facilit
     handle->fd = -1;
     handle->next_connect = 0;
     handle->backoff_sec = BACKOFF_INIT_SEC;
+    handle->pid = cplat_process_get_pid();
+    handle->test_fd_exists = 0;
+    (void)cplat_getenv("SYSLOG_TEST_FD", NULL, 0u, &handle->test_fd_exists, NULL);
+    memset(&handle->address, 0, sizeof(handle->address));
+    handle->address.sun_family = AF_UNIX;
+    (void)cplat_strncpy(handle->address.sun_path, sizeof(handle->address.sun_path), DEVLOG_PATH,
+                        sizeof(handle->address.sun_path) - 1u);
 #if defined(ARCH_X64)
     handle->pad = 0;
 #endif /* ARCH_X64 */
@@ -212,8 +232,6 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
     char timestamp_text[CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1];
     cplat_timespec resolved;
     const cplat_timespec *effective_timestamp = NULL;
-    struct sockaddr_un sa;
-    int test_fd_exists = 0;
     int fallback_used = 0;
     int prio;
     int n;
@@ -238,7 +256,8 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
     prio = (handle->facility & ~7) | (level & 7);
 
     /* RFC 3164 形式: <PRI>TAG[PID]: MSG */
-    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", prio, handle->ident, (int)getpid(), message); /* 置換対象外: 意図的な切り詰め */
+    n = snprintf(buf, sizeof(buf), "<%d>%s[%u]: %s", prio, handle->ident, handle->pid,
+                 message); /* 置換対象外: 意図的な切り詰め */
     if (n < 0)
     {
         return CPLAT_OK;
@@ -250,8 +269,7 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
 
     /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない。
        値は参照せず、設定の有無だけを判定する */
-    (void)cplat_getenv("SYSLOG_TEST_FD", NULL, 0u, &test_fd_exists, NULL);
-    if (test_fd_exists != 0)
+    if (handle->test_fd_exists != 0)
     {
         if (effective_timestamp != NULL &&
             cplat_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
@@ -285,10 +303,6 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
         }
     }
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_UNIX;
-    (void)cplat_strncpy(sa.sun_path, sizeof(sa.sun_path), DEVLOG_PATH, sizeof(sa.sun_path) - 1u);
-
     cplat_local_lock_lock(handle->reconnect_lock, CPLAT_SYNC_WAIT_FOREVER);
 
     /* ソケットが無ければ低頻度で再接続を試みる */
@@ -310,7 +324,8 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
     }
 
     /* sendto は MSG_DONTWAIT で即時返るため、ロック保持中に実行する */
-    sent = sendto(handle->fd, buf, (size_t)n, MSG_DONTWAIT, (struct sockaddr *)&sa, (socklen_t)sizeof(sa));
+    sent = sendto(handle->fd, buf, (size_t)n, MSG_DONTWAIT, (struct sockaddr *)&handle->address,
+                  (socklen_t)sizeof(handle->address));
 
     if (sent < 0)
     {

@@ -65,6 +65,17 @@
  */
 #define CPLAT_TRACE_FILE_SINK_SHARED (1 << 0)
 
+/**
+ *  @brief          OS の書き込みキャッシュを使用するフラグです。
+ *
+ *  cplat_trace_file_sink_create の flags に指定します。\n
+ *  指定しない場合は、各書き込みの完了時にデータを永続媒体へ反映するよう OS へ要求します。\n
+ *  指定すると、書き込み完了時点では OS キャッシュにだけ保持される場合があります。
+ *  プロセスまたは OS の異常終了時に直近のトレースが失われる可能性と引き換えに、
+ *  書き込みの待ち時間を短縮します。
+ */
+#define CPLAT_TRACE_FILE_SINK_OS_BUFFERED (1 << 1)
+
 /* ===== 不透明ハンドル型 ===== */
 
 /** ファイル トレース プロバイダー ハンドル (不透明型)。 */
@@ -107,7 +118,8 @@ extern "C"
      *  @param[in]      path         出力ファイル パス。NULL の場合は NULL を返します。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 でデフォルト値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下でデフォルト値を使用。
-     *  @param[in]      flags        動作フラグ (@ref CPLAT_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
+     *  @param[in]      flags        @ref CPLAT_TRACE_FILE_SINK_SHARED と
+     *                               @ref CPLAT_TRACE_FILE_SINK_OS_BUFFERED の OR 結合、または 0。
      *                               負値を渡した場合は NULL を返します。
      *  @return         成功時はハンドル、失敗時は NULL を返します。
      *

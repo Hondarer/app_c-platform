@@ -578,7 +578,7 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | syslog (RFC5424 系、Linux 専用) の書き込みシンクを扱います。 | `cplat_syslog_sink_create` / `cplat_syslog_sink_write` / `cplat_syslog_sink_rename` / `cplat_syslog_sink_dispose` |
 | Windows イベント ログの書き込みシンクを扱います。 | `cplat_eventlog_register_source` / `cplat_eventlog_sink_create` / `cplat_eventlog_sink_write` / `cplat_eventlog_sink_dispose` / `cplat_eventlog_unregister_source` |
 | ETW (TraceLogging) の書き込みシンクを扱います。 | `cplat_etw_provider_create` / `cplat_etw_provider_write` / `cplat_etw_provider_dispose` / `cplat_etw_session_start` / `cplat_etw_session_stop` / `cplat_etw_session_check_access` |
-| ローテーション付きファイルへ同期書き込みするシンクを扱います。 | `cplat_trace_file_sink_create` / `cplat_trace_file_sink_write` / `cplat_trace_file_sink_dispose` |
+| ローテーション付きファイルへ同期書き込みするシンクを扱います。OS バッファーへ委ねる場合は `CPLAT_TRACE_FILE_SINK_OS_BUFFERED` を指定します。 | `cplat_trace_file_sink_create` / `cplat_trace_file_sink_write` / `cplat_trace_file_sink_dispose` |
 
 ### 管理者権限の確認と昇格
 

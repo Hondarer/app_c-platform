@@ -799,6 +799,8 @@ extern "C"
      *  同一パスへ書き込まないことを保証してください。\n
      *  @ref CPLAT_TRACE_FILE_SINK_SHARED を指定すると、
      *  複数プロセスから同一パスへ書き込むための調停を有効にします。
+     *  @ref CPLAT_TRACE_FILE_SINK_OS_BUFFERED を指定すると、OS の書き込みキャッシュを使用し、
+     *  各書き込みの永続媒体への即時反映を要求しません。
      *  詳細は cplat_trace_file_sink_create を参照してください。
      *
      *  @param[in]      handle       cplat_tracer_create の戻り値。
@@ -807,7 +809,7 @@ extern "C"
      *                               CPLAT_TRACE_LEVEL_NONE でファイル トレースを無効化。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
-     *  @param[in]      flags        動作フラグ (@ref CPLAT_TRACE_FILE_SINK_SHARED の OR 結合、または 0)。
+     *  @param[in]      flags        ファイル sink の動作フラグの OR 結合、または 0。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            started 中の即時反映

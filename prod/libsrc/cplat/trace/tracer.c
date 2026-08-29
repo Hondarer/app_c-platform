@@ -1225,6 +1225,23 @@ static size_t utf8_safe_truncate(const char *s, const size_t pos)
 
 static int should_output(const cplat_trace_level msg_level, const cplat_trace_level threshold);
 
+static int has_output_target(const cplat_tracer *handle, const cplat_trace_level level)
+{
+    if (handle->hook_head != NULL || should_output(level, handle->stderr_level))
+    {
+        return 1;
+    }
+    if (handle->file_handle != NULL && should_output(level, handle->file_level))
+    {
+        return 1;
+    }
+#if defined(PLATFORM_LINUX)
+    return should_output(level, handle->os_level);
+#elif defined(PLATFORM_WINDOWS)
+    return should_output(level, handle->etw_level) || should_output(level, handle->os_level);
+#endif /* PLATFORM_ */
+}
+
 /**
  *  @brief          OS ネイティブのバックエンドにメッセージを書き込みます。
  *  @param[in]      handle      書き込み先のトレース プロバイダー ハンドル。
@@ -1343,7 +1360,9 @@ static int write_dual(cplat_tracer *handle, const cplat_trace_level level, const
 
     if (handle->file_handle != NULL && should_output(level, handle->file_level))
     {
-        file_result = cplat_trace_file_sink_write(handle->file_handle, (int)level, effective_timestamp, msg);
+        file_result =
+            cplat_internal_trace_file_sink_write_text(handle->file_handle, (int)level, effective_timestamp, ts,
+                                                      msg);
     }
 
     if (should_output(level, handle->stderr_level))
@@ -1388,6 +1407,11 @@ int cplat_tracer_write_at(cplat_tracer *handle, const cplat_trace_level level,
     {
         return CPLAT_ERR_UNKNOWN;
     }
+    if (has_output_target(handle, level) == 0 && timestamp == NULL)
+    {
+        config_unlock_shared(handle);
+        return CPLAT_OK;
+    }
 
     msg = message;
     len = strlen(message);
@@ -1419,6 +1443,11 @@ int cplat_tracer_vwritef_at(cplat_tracer *handle, const cplat_trace_level level,
     if (tracer_enter_shared_running(handle) != 0)
     {
         return CPLAT_ERR_UNKNOWN;
+    }
+    if (has_output_target(handle, level) == 0 && timestamp == NULL)
+    {
+        config_unlock_shared(handle);
+        return CPLAT_OK;
     }
 
     vsnprintf(buf, sizeof(buf), format, args); /* 置換対象外: 意図的な切り詰め */
@@ -1595,6 +1624,11 @@ int cplat_tracer_write_hex_at(cplat_tracer *handle, const cplat_trace_level leve
     {
         return CPLAT_ERR_UNKNOWN;
     }
+    if (has_output_target(handle, level) == 0 && timestamp == NULL)
+    {
+        config_unlock_shared(handle);
+        return CPLAT_OK;
+    }
 
     ret = hex_write_impl(handle, level, timestamp, data, size, message);
     config_unlock_shared(handle);
@@ -1617,6 +1651,11 @@ int cplat_tracer_vwrite_hexf_at(cplat_tracer *handle, const cplat_trace_level le
     if (tracer_enter_shared_running(handle) != 0)
     {
         return CPLAT_ERR_UNKNOWN;
+    }
+    if (has_output_target(handle, level) == 0 && timestamp == NULL)
+    {
+        config_unlock_shared(handle);
+        return CPLAT_OK;
     }
 
     if (format != NULL)

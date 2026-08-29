@@ -6,6 +6,7 @@ TEST_SRCS := \
 ADD_SRCS := \
     $(MYAPP_DIR)/prod/libsrc/cplat/base/error.c \
     $(MYAPP_DIR)/prod/libsrc/cplat/base/result.c \
+    trace_file_internal_stub.c \
     $(MYAPP_DIR)/test/libsrc/mock_cplat/trace/mock_cplat_trace_file_sink_dispose_on_unload.cc \
     $(MYAPP_DIR)/test/libsrc/mock_cplat/trace/mock_cplat_syslog_sink_dispose_on_unload.cc \
     $(MYAPP_DIR)/test/libsrc/mock_cplat/trace/mock_cplat_etw_provider_dispose_on_unload.cc

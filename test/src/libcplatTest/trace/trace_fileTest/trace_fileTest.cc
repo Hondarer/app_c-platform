@@ -50,6 +50,11 @@ static int open_flags_truncate(void)
     return open_flags_default() | CPLAT_FILE_OPEN_TRUNCATE;
 }
 
+static int open_flags_buffered(void)
+{
+    return CPLAT_FILE_OPEN_CREATE | CPLAT_FILE_OPEN_APPEND;
+}
+
 // 共有モード テストで使う既定のファイル同一性インデックス
 constexpr uint64_t kDefaultFileIndex = 100;
 
@@ -165,6 +170,28 @@ TEST_F(trace_fileTest, test_create_opens_file_with_default_flags)
 
     // Cleanup
     EXPECT_CALL(mock_cplat, cplat_file_close(_, _)).Times(AtLeast(1)); // dispose 時の close を許容する。
+    cplat_trace_file_sink_dispose(handle);
+}
+
+// OS バッファー指定時に write-through を付けずにファイルを開くことの確認
+TEST_F(trace_fileTest, test_create_opens_buffered_file_without_write_through)
+{
+    // Arrange
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_file_open(_, StrEq("buffered.log"), open_flags_buffered(), _))
+        .WillOnce(Return(CPLAT_OK)); // [Pre-Assert確認_正常系] - write-through を含まない flags で開くこと。
+
+    // Act
+    cplat_trace_file_sink *handle = cplat_trace_file_sink_create(
+        "buffered.log", 0, 0,
+        CPLAT_TRACE_FILE_SINK_OS_BUFFERED); // [手順] - OS バッファー指定で sink を生成する。
+
+    // Assert
+    ASSERT_NE((cplat_trace_file_sink *)NULL,
+              handle); // [確認_正常系] - cplat_trace_file_sink_create の戻り値が NULL でないこと。
+
+    // Cleanup
     cplat_trace_file_sink_dispose(handle);
 }
 

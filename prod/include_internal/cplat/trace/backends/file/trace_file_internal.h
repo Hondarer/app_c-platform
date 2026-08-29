@@ -41,6 +41,20 @@ extern "C"
      */
     void cplat_trace_file_sink_dispose_on_shutdown(cplat_trace_file_sink *handle);
 
+    /**
+     *  @brief          整形済みタイムスタンプを使用してファイルへトレースを書き込みます。
+     *  @param[in]      handle          ファイル sink ハンドルです。NULL は無視します。
+     *  @param[in]      level           トレース レベルです。
+     *  @param[in]      timestamp_text  ISO 8601 ローカル時刻文字列です。NULL を渡してはなりません。
+     *  @param[in]      message         null 終端 UTF-8 文字列です。NULL は無視します。
+     *  @return         成功時は @ref CPLAT_OK、失敗時は @ref CPLAT_ERR_UNKNOWN を返します。
+     *
+     *  tracer がすでに整形したタイムスタンプを再利用する内部経路です。
+     */
+    int cplat_internal_trace_file_sink_write_text(cplat_trace_file_sink *handle, int level,
+                                                   const cplat_timespec *timestamp,
+                                                   const char *timestamp_text, const char *message);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

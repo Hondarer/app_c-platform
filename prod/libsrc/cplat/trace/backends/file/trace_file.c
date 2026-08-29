@@ -81,12 +81,18 @@ struct cplat_trace_file_sink
     cplat_file file;
     /** 保持する旧世代数。 */
     int generations;
+    /** sink の動作フラグ。 */
+    int flags;
     /** 共有モードの場合 1 (CPLAT_TRACE_FILE_SINK_SHARED 指定時)。 */
     int shared;
     /** mutex が初期化済みかどうかのフラグ。 */
     int mutex_initialized;
     /** self_id が有効かどうかのフラグ。 */
     int self_id_valid;
+#if defined(ARCH_X64)
+    /** 64 bit アーキテクチャーで構造体末尾の暗黙パディングを防ぐ。 */
+    int pad;
+#endif /* ARCH_X64 */
 };
 
 /* ===== プロセス内 sink レジストリ ===== */
@@ -294,7 +300,7 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
  */
 static int base_open_flags(void)
 {
-    return CPLAT_FILE_OPEN_CREATE | CPLAT_FILE_OPEN_APPEND | CPLAT_FILE_OPEN_WRITE_THROUGH;
+    return CPLAT_FILE_OPEN_CREATE | CPLAT_FILE_OPEN_APPEND;
 }
 
 /**
@@ -309,17 +315,16 @@ static int base_open_flags(void)
  */
 static int open_file(cplat_trace_file_sink *p)
 {
-    char dir[PLATFORM_PATH_MAX];
+    int flags = base_open_flags();
 
-    /* 親ディレクトリを抽出し、存在しない場合は再帰生成する (best-effort) */
-    if (cplat_path_dirname(dir, sizeof(dir), NULL, p->path) == CPLAT_OK && strcmp(dir, ".") != 0)
+    if ((p->flags & CPLAT_TRACE_FILE_SINK_OS_BUFFERED) == 0)
     {
-        (void)cplat_makedirs(dir, NULL);
+        flags |= CPLAT_FILE_OPEN_WRITE_THROUGH;
     }
 
     p->self_id_valid = 0;
 
-    if (cplat_file_open(&p->file, p->path, base_open_flags(), NULL) != CPLAT_OK)
+    if (cplat_file_open(&p->file, p->path, flags, NULL) != CPLAT_OK)
     {
         p->current_bytes = 0;
         return -1;
@@ -380,6 +385,11 @@ static int open_file_truncate(cplat_trace_file_sink *p)
 {
     int flags = base_open_flags() | CPLAT_FILE_OPEN_TRUNCATE;
 
+    if ((p->flags & CPLAT_TRACE_FILE_SINK_OS_BUFFERED) == 0)
+    {
+        flags |= CPLAT_FILE_OPEN_WRITE_THROUGH;
+    }
+
     p->current_bytes = 0;
 
     return cplat_file_open(&p->file, p->path, flags, NULL);
@@ -435,6 +445,7 @@ static void rotate_file(cplat_trace_file_sink *p)
     char old_path[PLATFORM_PATH_MAX];
     char new_path[PLATFORM_PATH_MAX];
     int gen;
+    cplat_error detail;
 
     close_file(p);
 
@@ -470,8 +481,14 @@ static void rotate_file(cplat_trace_file_sink *p)
             }
         }
 
-        if (cplat_rename(old_path, new_path, NULL) != 0)
+        cplat_error_clear(&detail);
+        if (cplat_rename(old_path, new_path, &detail) != 0)
         {
+            if (detail.result == CPLAT_ERR_NOT_FOUND)
+            {
+                continue;
+            }
+
             /* リネーム失敗: カスケードをここで打ち切る */
             break;
         }
@@ -578,6 +595,7 @@ static cplat_trace_file_sink *create_new_sink(const char *path, const size_t pat
                                                  const int generations, const int flags)
 {
     cplat_trace_file_sink *handle;
+    char dir[PLATFORM_PATH_MAX];
 
     handle = (cplat_trace_file_sink *)cplat_malloc(sizeof(cplat_trace_file_sink));
     if (handle == NULL)
@@ -593,6 +611,7 @@ static cplat_trace_file_sink *create_new_sink(const char *path, const size_t pat
     handle->mutex_initialized = 0;
     handle->self_id_valid = 0;
     handle->current_bytes = 0;
+    handle->flags = flags;
     cplat_file_init(&handle->file);
 
     handle->shared = 0;
@@ -635,8 +654,13 @@ static cplat_trace_file_sink *create_new_sink(const char *path, const size_t pat
     }
     handle->mutex_initialized = 1;
 
+    /* 親ディレクトリの確認と生成は初回だけ行う。ローテーション後の再オープンでは繰り返さない。 */
+    if (cplat_path_dirname(dir, sizeof(dir), NULL, handle->path) == CPLAT_OK && strcmp(dir, ".") != 0)
+    {
+        (void)cplat_makedirs(dir, NULL);
+    }
+
     /* ファイルを開く; 失敗したらリソースを解放して NULL を返す */
-    /* (親ディレクトリの自動生成を含むため、ロック ファイルより先に開く) */
     if (open_file_with_retry(handle) != 0)
     {
         free_sink(handle);
@@ -746,33 +770,27 @@ cplat_trace_file_sink *cplat_trace_file_sink_create(const char *path, const size
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_trace_file_sink_write(cplat_trace_file_sink *handle, const int level,
-                                   const cplat_timespec *timestamp, const char *message)
+int cplat_internal_trace_file_sink_write_text(cplat_trace_file_sink *handle, const int level,
+                                              const cplat_timespec *timestamp, const char *timestamp_text,
+                                              const char *message)
 {
-    char ts[TRACE_FILE_TS_LEN + 1];
     char buf[TRACE_FILE_LINE_BUF];
-    cplat_timespec resolved;
-    int fallback_used = 0;
     int len;
     int ret;
 
+    (void)timestamp;
     if (handle == NULL || message == NULL)
     {
         return CPLAT_OK;
     }
-
-    /* タイムスタンプはロック外で取得する (共有状態へのアクセスなし) */
-    if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
-    {
-        return CPLAT_ERR_UNKNOWN;
-    }
-    if (trace_format_local_timestamp(ts, sizeof(ts), &resolved) != 0)
+    if (timestamp_text == NULL)
     {
         return CPLAT_ERR_UNKNOWN;
     }
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
-    len = snprintf(buf, sizeof(buf), "%s %c %s\n", ts, trace_level_char((cplat_trace_level)level), message); /* 置換対象外: 意図的な切り詰め */
+    len = snprintf(buf, sizeof(buf), "%s %c %s\n", timestamp_text,
+                   trace_level_char((cplat_trace_level)level), message); /* 置換対象外: 意図的な切り詰め */
     if (len <= 0)
     {
         return CPLAT_ERR_UNKNOWN;
@@ -832,7 +850,7 @@ int cplat_trace_file_sink_write(cplat_trace_file_sink *handle, const int level,
     /* ロック解放 */
     cplat_local_lock_unlock(handle->mutex);
 
-    if (ret != 0 || fallback_used)
+    if (ret != 0)
     {
         return CPLAT_ERR_UNKNOWN;
     }
@@ -840,6 +858,38 @@ int cplat_trace_file_sink_write(cplat_trace_file_sink *handle, const int level,
     {
         return CPLAT_OK;
     }
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_trace_file_sink_write(cplat_trace_file_sink *handle, const int level,
+                                const cplat_timespec *timestamp, const char *message)
+{
+    char timestamp_text[TRACE_FILE_TS_LEN + 1];
+    cplat_timespec resolved;
+    int fallback_used = 0;
+    int ret;
+
+    if (handle == NULL || message == NULL)
+    {
+        return CPLAT_OK;
+    }
+
+    if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+    if (trace_format_local_timestamp(timestamp_text, sizeof(timestamp_text), &resolved) != 0)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+
+    ret = cplat_internal_trace_file_sink_write_text(handle, level, timestamp, timestamp_text, message);
+    if (ret != CPLAT_OK || fallback_used != 0)
+    {
+        return CPLAT_ERR_UNKNOWN;
+    }
+    return CPLAT_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
