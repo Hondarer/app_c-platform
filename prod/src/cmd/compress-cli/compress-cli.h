@@ -1,5 +1,5 @@
-#ifndef CPLAT_COMPRESS_CLI_H
-#define CPLAT_COMPRESS_CLI_H
+#ifndef COMPRESS_CLI_PRIVATE_H
+#define COMPRESS_CLI_PRIVATE_H
 
 typedef enum compress_cli_mode
 {
@@ -27,4 +27,4 @@ extern "C"
 }
 #endif
 
-#endif /* CPLAT_COMPRESS_CLI_H */
+#endif /* COMPRESS_CLI_PRIVATE_H */

@@ -1,5 +1,5 @@
-#ifndef CPLAT_EVENTLOG_REGISTER_H
-#define CPLAT_EVENTLOG_REGISTER_H
+#ifndef EVENTLOG_REGISTER_PRIVATE_H
+#define EVENTLOG_REGISTER_PRIVATE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -24,4 +24,4 @@ extern "C"
 }
 #endif
 
-#endif /* CPLAT_EVENTLOG_REGISTER_H */
+#endif /* EVENTLOG_REGISTER_PRIVATE_H */

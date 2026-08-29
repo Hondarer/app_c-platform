@@ -14,8 +14,8 @@
  *******************************************************************************
  */
 
-#ifndef BENCH_CASE_H
-#define BENCH_CASE_H
+#ifndef BENCH_CASE_PRIVATE_H
+#define BENCH_CASE_PRIVATE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -205,4 +205,4 @@ void bench_report_begin_table(const bench_environment *env);
 void bench_report_row(FILE *csv, const bench_environment *env, const bench_case *item, const bench_context *ctx,
                       const bench_timing *timing);
 
-#endif /* BENCH_CASE_H */
+#endif /* BENCH_CASE_PRIVATE_H */

@@ -1,5 +1,5 @@
-#ifndef CPLAT_TRACE_CLI_H
-#define CPLAT_TRACE_CLI_H
+#ifndef TRACE_CLI_PRIVATE_H
+#define TRACE_CLI_PRIVATE_H
 
 #include <cplat/trace/tracer.h>
 
@@ -24,4 +24,4 @@ extern "C"
 }
 #endif
 
-#endif /* CPLAT_TRACE_CLI_H */
+#endif /* TRACE_CLI_PRIVATE_H */

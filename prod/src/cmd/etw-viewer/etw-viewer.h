@@ -1,5 +1,5 @@
-#ifndef CPLAT_ETW_VIEWER_H
-#define CPLAT_ETW_VIEWER_H
+#ifndef ETW_VIEWER_PRIVATE_H
+#define ETW_VIEWER_PRIVATE_H
 
 #include <cplat/trace/etw.h>
 #include <stddef.h>
@@ -35,4 +35,4 @@ extern "C"
 }
 #endif
 
-#endif /* CPLAT_ETW_VIEWER_H */
+#endif /* ETW_VIEWER_PRIVATE_H */

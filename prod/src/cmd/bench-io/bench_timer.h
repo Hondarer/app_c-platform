@@ -15,8 +15,8 @@
  *******************************************************************************
  */
 
-#ifndef BENCH_TIMER_H
-#define BENCH_TIMER_H
+#ifndef BENCH_TIMER_PRIVATE_H
+#define BENCH_TIMER_PRIVATE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -80,4 +80,4 @@ int bench_timer_measure(bench_iteration_fn fn, void *arg, uint64_t min_duration_
 int bench_timer_measure_cold(bench_iteration_fn fn, void *arg, bench_iteration_fn prepare, void *prepare_arg,
                              size_t trial_count, bench_timing *timing);
 
-#endif /* BENCH_TIMER_H */
+#endif /* BENCH_TIMER_PRIVATE_H */
