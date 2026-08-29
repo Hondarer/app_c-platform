@@ -6,6 +6,7 @@
 #include <cplat/runtime/host.h>
 
 #include <errno.h>
+#include <limits.h>
 #include <string.h>
 
 using testing::_;
@@ -33,10 +34,10 @@ TEST_F(hostTest, GetsHostnameSuccess)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_get_hostname(name, sizeof(name)); // [手順] - 十分な容量のバッファーへホスト名を取得する。
+    int actual_ret = cplat_host_get_name(name, sizeof(name)); // [手順] - 十分な容量のバッファーへホスト名を取得する。
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_get_hostname の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_host_get_name の戻り値が CPLAT_OK であること。
     EXPECT_NE('\0', name[0]);        // [確認_正常系] - 取得したホスト名が空文字列でないこと。
 }
 
@@ -49,15 +50,19 @@ TEST_F(hostTest, RejectsInvalidOutputArguments)
     // Pre-Assert
 
     // Act
-    int actual_ret_null = cplat_get_hostname(NULL, sizeof(name)); // [手順] - 出力先に NULL を渡してホスト名を取得する。
-    int actual_ret_zero = cplat_get_hostname(name, 0); // [手順] - 出力先サイズに 0 を渡してホスト名を取得する。
+    int actual_ret_null = cplat_host_get_name(NULL, sizeof(name)); // [手順] - 出力先に NULL を渡してホスト名を取得する。
+    int actual_ret_zero = cplat_host_get_name(name, 0); // [手順] - 出力先サイズに 0 を渡してホスト名を取得する。
+    int actual_ret_too_big =
+        cplat_host_get_name(name, (size_t)INT_MAX + 1u); // [手順] - 出力先サイズに INT_MAX を超える値を渡してホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret_null); // [確認_異常系] - 出力先が NULL の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret_zero); // [確認_異常系] - 出力先サイズが 0 の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ('x', name[0]);    // [確認_異常系] - サイズ 0 の呼び出しで出力先が変更されないこと。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              actual_ret_too_big); // [確認_異常系] - 出力先サイズが INT_MAX 超えの戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+    EXPECT_EQ('x', name[0]); // [確認_異常系] - 不正引数の呼び出しで出力先が変更されないこと。
 }
 
 // ホスト名取得がバッファー不足を報告することの確認
@@ -69,11 +74,11 @@ TEST_F(hostTest, ReportsSmallBuffer)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_get_hostname(name, sizeof(name)); // [手順] - 1 バイトの出力先へホスト名を取得する。
+    int actual_ret = cplat_host_get_name(name, sizeof(name)); // [手順] - 1 バイトの出力先へホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              actual_ret);    // [確認_異常系] - cplat_get_hostname の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
+              actual_ret);    // [確認_異常系] - cplat_host_get_name の戻り値が CPLAT_ERR_BUFFER_TOO_SMALL であること。
     EXPECT_EQ('\0', name[0]); // [確認_異常系] - バッファー不足時に出力先が空文字列であること。
 }
 
@@ -104,10 +109,10 @@ TEST_F(hostTest, CopiesMockedGethostname)
 
     // Act
     int actual_ret =
-        cplat_get_hostname(name, sizeof(name)); // [手順] - mock 化した gethostname からホスト名を取得する。
+        cplat_host_get_name(name, sizeof(name)); // [手順] - mock 化した gethostname からホスト名を取得する。
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_get_hostname の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_host_get_name の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("testhost", name);  // [確認_正常系] - 取得したホスト名が testhost であること。
 }
 
@@ -127,7 +132,7 @@ TEST_F(hostTest, ReportsGethostnameNameTooLong)
 
     // Act
     int actual_ret =
-        cplat_get_hostname(name, sizeof(name)); // [手順] - ENAMETOOLONG で失敗する状態でホスト名を取得する。
+        cplat_host_get_name(name, sizeof(name)); // [手順] - ENAMETOOLONG で失敗する状態でホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
@@ -150,7 +155,7 @@ TEST_F(hostTest, ReportsGethostnameOsError)
                                // [Pre-Assert手順] - gethostname から -1 を返却する。
 
     // Act
-    int actual_ret = cplat_get_hostname(name, sizeof(name)); // [手順] - EACCES で失敗する状態でホスト名を取得する。
+    int actual_ret = cplat_host_get_name(name, sizeof(name)); // [手順] - EACCES で失敗する状態でホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_PERMISSION_DENIED,
@@ -189,10 +194,10 @@ TEST_F(hostTest, CopiesMockedComputerName)
 
     // Act
     int actual_ret =
-        cplat_get_hostname(name, sizeof(name)); // [手順] - mock 化した GetComputerNameExW からホスト名を取得する。
+        cplat_host_get_name(name, sizeof(name)); // [手順] - mock 化した GetComputerNameExW からホスト名を取得する。
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_get_hostname の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_host_get_name の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("testhost", name);  // [確認_正常系] - 取得したホスト名が testhost であること。
 }
 
@@ -213,7 +218,7 @@ TEST_F(hostTest, ReportsComputerNameMoreData)
 
     // Act
     int actual_ret =
-        cplat_get_hostname(name, sizeof(name)); // [手順] - ERROR_MORE_DATA で失敗する状態でホスト名を取得する。
+        cplat_host_get_name(name, sizeof(name)); // [手順] - ERROR_MORE_DATA で失敗する状態でホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
@@ -238,7 +243,7 @@ TEST_F(hostTest, ReportsComputerNameOsError)
 
     // Act
     int actual_ret =
-        cplat_get_hostname(name, sizeof(name)); // [手順] - ERROR_ACCESS_DENIED で失敗する状態でホスト名を取得する。
+        cplat_host_get_name(name, sizeof(name)); // [手順] - ERROR_ACCESS_DENIED で失敗する状態でホスト名を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_PERMISSION_DENIED,

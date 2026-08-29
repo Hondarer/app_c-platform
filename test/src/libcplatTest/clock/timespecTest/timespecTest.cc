@@ -254,15 +254,14 @@ TEST_F(timespecTest, operations_ignore_null_arguments)
     cplat_timespec_from_native(&native, NULL);
 
     // Assert
-    EXPECT_EQ(3, result.tv_sec);  // [確認_異常系] - 結果格納先の秒部が書き換えられないこと。
-    EXPECT_EQ(4, result.tv_nsec); // [確認_異常系] - 結果格納先のナノ秒部が書き換えられないこと。
-    EXPECT_EQ(5, native.tv_sec);  // [確認_異常系] - ネイティブ格納先の秒部が書き換えられないこと。
-    EXPECT_EQ(6, native.tv_nsec); // [確認_異常系] - ネイティブ格納先のナノ秒部が書き換えられないこと。
-    // [確認_異常系] - 比較・差分の NULL 入力が 0 を返すこと。
-    EXPECT_EQ(0, cplat_timespec_cmp(NULL, &value));
-    EXPECT_EQ(0, cplat_timespec_cmp(&value, NULL));
-    EXPECT_EQ(0, cplat_timespec_diff_ms(NULL, &value));
-    EXPECT_EQ(0, cplat_timespec_diff_ms(&value, NULL));
+    EXPECT_EQ(3, result.tv_sec);  // [確認_正常系] - 結果格納先の秒部が書き換えられないこと。
+    EXPECT_EQ(4, result.tv_nsec); // [確認_正常系] - 結果格納先のナノ秒部が書き換えられないこと。
+    EXPECT_EQ(5, native.tv_sec);  // [確認_正常系] - ネイティブ格納先の秒部が書き換えられないこと。
+    EXPECT_EQ(6, native.tv_nsec); // [確認_正常系] - ネイティブ格納先のナノ秒部が書き換えられないこと。
+    EXPECT_EQ(0, cplat_timespec_cmp(NULL, &value));  // [確認_正常系] - 左辺 NULL の比較が 0 を返すこと。
+    EXPECT_EQ(0, cplat_timespec_cmp(&value, NULL));  // [確認_正常系] - 右辺 NULL の比較が 0 を返すこと。
+    EXPECT_EQ(0, cplat_timespec_diff_ms(NULL, &value)); // [確認_正常系] - 終点 NULL の差が 0 を返すこと。
+    EXPECT_EQ(0, cplat_timespec_diff_ms(&value, NULL)); // [確認_正常系] - 起点 NULL の差が 0 を返すこと。
 }
 
 // ネイティブ struct timespec との相互変換で値が保たれることの確認

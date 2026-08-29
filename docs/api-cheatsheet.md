@@ -295,7 +295,7 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `gethostname()` (POSIX) / `GetComputerNameExW(ComputerNameDnsHostname)` (Win32) | `cplat_get_hostname(name_out, name_size)` | 返る値は UTF-8 です。Windows は Winsock を使わず DNS ホスト名を取得します。FQDN であることは保証しません。推奨配列サイズは `CPLAT_HOST_NAME_MAX` |
+| `gethostname()` (POSIX) / `GetComputerNameExW(ComputerNameDnsHostname)` (Win32) | `cplat_host_get_name(name_out, name_size)` | 返る値は UTF-8 です。Windows は Winsock を使わず DNS ホスト名を取得します。FQDN であることは保証しません。推奨配列サイズは `CPLAT_HOST_NAME_MAX` |
 
 ### モジュール / プロセス情報
 
@@ -630,11 +630,11 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - エラー: `cplat_error_clear`、`cplat_error_capture_errno`、`cplat_error_capture_current_errno`、`cplat_error_get_last`、`cplat_error_set_last`、`cplat_error_clear_last`、`cplat_error_is_set`、`cplat_error_get_domain`、`cplat_error_get_errno`、`cplat_error_to_result`、`cplat_error_get_cause`、`cplat_error_is`、`cplat_result_to_string`
 - メモリ マップド ファイル: `cplat_mmap_get_address`、`cplat_mmap_get_size`、`cplat_mmap_get_rwlock`
 - 正規表現: `cplat_regex_get_group_count`、`cplat_regex_iter_create`、`cplat_regex_iter_next`、`cplat_regex_iter_dispose`
-- ホスト: `cplat_get_hostname`
+- ホスト: `cplat_host_get_name`
 - モジュール: `cplat_module_get_basename`
 - プロセス間ロック: `cplat_interprocess_lock_export_descriptor`、`cplat_interprocess_lock_import_descriptor`、`cplat_interprocess_rwlock_export_descriptor`、`cplat_interprocess_rwlock_import_descriptor`、`cplat_interprocess_rwlock_lock_shared`、`cplat_interprocess_rwlock_try_lock_shared`、`cplat_interprocess_rwlock_lock_exclusive`、`cplat_interprocess_rwlock_try_lock_exclusive`、`cplat_interprocess_rwlock_unlock`、`cplat_interprocess_rwlock_dispose`
 - トレース: `cplat_tracer_get_name`、`cplat_tracer_get_identifier`、`cplat_tracer_set_file_name`、`cplat_tracer_get_file_name`、`cplat_tracer_get_file_identifier`、`cplat_tracer_get_os_level`、`cplat_tracer_set_os_level`、`cplat_tracer_get_etw_level`、`cplat_tracer_set_etw_level`、`cplat_tracer_get_file_level`、`cplat_tracer_set_file_level`、`cplat_tracer_get_stderr_level`
-- Windows 文字列変換: `cplat_utf8_to_wpath`、`cplat_wpath_to_utf8`、`cplat_utf8_to_wstr_alloc`、`cplat_wstr_to_utf8_alloc`
+- Windows 文字列変換: `cplat_utf8_to_wpath`、`cplat_utf8_to_wstr`、`cplat_wpath_to_utf8`、`cplat_wstr_to_utf8`、`cplat_utf8_to_wstr_alloc`、`cplat_wstr_to_utf8_alloc`
 - Windows エラー: `cplat_error_capture_windows_error`、`cplat_error_capture_current_windows_error`、`cplat_error_get_windows_error`
 
 ## 検証

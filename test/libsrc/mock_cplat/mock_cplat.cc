@@ -393,7 +393,7 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_secure_zero(_, _)).WillByDefault(Invoke(delegate_real_cplat_secure_zero));
 
     // runtime - host
-    ON_CALL(*this, cplat_get_hostname(_, _)).WillByDefault(Invoke(delegate_real_cplat_get_hostname));
+    ON_CALL(*this, cplat_host_get_name(_, _)).WillByDefault(Invoke(delegate_real_cplat_host_get_name));
 
     // runtime - process_info
     ON_CALL(*this, cplat_process_get_executable_path(_, _))
@@ -469,7 +469,9 @@ Mock_cplat::Mock_cplat()
 
     // crt - wchar_conv (Windows only)
     ON_CALL(*this, cplat_utf8_to_wpath(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_utf8_to_wpath));
+    ON_CALL(*this, cplat_utf8_to_wstr(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_utf8_to_wstr));
     ON_CALL(*this, cplat_wpath_to_utf8(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_wpath_to_utf8));
+    ON_CALL(*this, cplat_wstr_to_utf8(_, _, _)).WillByDefault(Invoke(delegate_real_cplat_wstr_to_utf8));
     ON_CALL(*this, cplat_utf8_to_wstr_alloc(_)).WillByDefault(Invoke(delegate_real_cplat_utf8_to_wstr_alloc));
     ON_CALL(*this, cplat_wstr_to_utf8_alloc(_)).WillByDefault(Invoke(delegate_real_cplat_wstr_to_utf8_alloc));
 #endif /* PLATFORM_WINDOWS */

@@ -33,7 +33,7 @@ short-title: "runtime"
 
 `host` は、現在のホストを識別する情報を取得する機能です。
 
-- `cplat_get_hostname`: DNS ホスト名を UTF-8 で取得します。
+- `cplat_host_get_name`: DNS ホスト名を UTF-8 で取得します。
 - `CPLAT_HOST_NAME_MAX`: ホスト名格納用の推奨配列サイズ (NUL 終端込み)
 
 Linux では `gethostname`、Windows では `GetComputerNameExW(ComputerNameDnsHostname)` を使用します。  

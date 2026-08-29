@@ -31,10 +31,32 @@
     #include <wchar.h>
 
 /**
+ *  @brief          UTF-8 文字列をワイド文字列に変換します。
+ *  @param[out]     wbuf        変換結果の書き込み先バッファー。NULL を渡してはなりません。
+ *  @param[in]      wbuf_count  @p wbuf の要素数。0 および `INT_MAX` を超える値を渡してはなりません。
+ *  @param[in]      utf8_text   変換元の UTF-8 文字列。NULL を渡してはなりません。
+ *  @return         変換後の文字数 (null 終端含む)。失敗時は -1。
+ *
+ *  パスの区切り文字は正規化しません。
+ */
+CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wstr(wchar_t *wbuf, size_t wbuf_count, const char *utf8_text);
+
+/**
+ *  @brief          ワイド文字列を UTF-8 に変換します。
+ *  @param[out]     dest       変換結果の書き込み先バッファー。NULL を渡してはなりません。
+ *  @param[in]      dest_size  @p dest のバイト数。0 および `INT_MAX` を超える値を渡してはなりません。
+ *  @param[in]      wtext      変換元のワイド文字列。NULL を渡してはなりません。
+ *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1。
+ *
+ *  パスの区切り文字は正規化しません。
+ */
+CPLAT_EXPORT int CPLAT_API cplat_wstr_to_utf8(char *dest, size_t dest_size, const wchar_t *wtext);
+
+/**
  *  @brief          UTF-8 パス文字列をワイド文字列に変換します。
- *  @param[out]     wbuf        変換結果の書き込み先バッファー。
- *  @param[in]      wbuf_count  wbuf の要素数。
- *  @param[in]      utf8_path   変換元の UTF-8 パス文字列。
+ *  @param[out]     wbuf        変換結果の書き込み先バッファー。NULL を渡してはなりません。
+ *  @param[in]      wbuf_count  @p wbuf の要素数。0 および `INT_MAX` を超える値を渡してはなりません。
+ *  @param[in]      utf8_path   変換元の UTF-8 パス文字列。NULL を渡してはなりません。
  *  @return         変換後の文字数 (null 終端含む)。失敗時は -1。
  */
 CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
@@ -43,9 +65,9 @@ CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count,
  *  @brief          ワイド文字列パスを UTF-8 に変換します。
  *
  *  変換後の文字列中の `\\` を `/` に正規化します。
- *  @param[out]     dest        変換結果の書き込み先バッファー。
- *  @param[in]      dest_size   dest のバイト数。
- *  @param[in]      wpath       変換元のワイド文字列パス。
+ *  @param[out]     dest        変換結果の書き込み先バッファー。NULL を渡してはなりません。
+ *  @param[in]      dest_size   @p dest のバイト数。0 および `INT_MAX` を超える値を渡してはなりません。
+ *  @param[in]      wpath       変換元のワイド文字列パス。NULL を渡してはなりません。
  *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1。
  */
 CPLAT_EXPORT int CPLAT_API cplat_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath);

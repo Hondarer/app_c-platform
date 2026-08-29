@@ -21,42 +21,71 @@
 #if defined(PLATFORM_WINDOWS)
 
     #include <cplat/base/windows_sdk.h>
+    #include <limits.h>
     #include <stdlib.h>
 
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path)
+/**
+ *  @brief          UTF-8 をワイド文字列へ変換します (スラッシュ正規化なし)。
+ *  @param[out]     wbuf        変換先。
+ *  @param[in]      wbuf_count  @p wbuf の要素数。
+ *  @param[in]      utf8_text   変換元。
+ *  @return         変換後の文字数 (NUL 込み)。失敗時は -1 です。
+ */
+static int utf8_to_wide(wchar_t *wbuf, const size_t wbuf_count, const char *utf8_text)
 {
-    int n;
-
-    if (utf8_path == NULL || wbuf == NULL || wbuf_count == 0)
+    if (utf8_text == NULL || wbuf == NULL || wbuf_count == 0 || wbuf_count > (size_t)INT_MAX)
     {
         return -1;
     }
 
-    n = MultiByteToWideChar(CP_UTF8, 0, utf8_path, -1, wbuf, (int)wbuf_count);
-    if (n <= 0)
+    return MultiByteToWideChar(CP_UTF8, 0, utf8_text, -1, wbuf, (int)wbuf_count);
+}
+
+/**
+ *  @brief          ワイド文字列を UTF-8 へ変換します (スラッシュ正規化なし)。
+ *  @param[out]     dest       変換先。
+ *  @param[in]      dest_size  @p dest のバイト数。
+ *  @param[in]      wtext      変換元。
+ *  @return         変換後のバイト数 (NUL 込み)。失敗時は -1 です。
+ */
+static int wide_to_utf8(char *dest, const size_t dest_size, const wchar_t *wtext)
+{
+    if (dest == NULL || dest_size == 0 || wtext == NULL || dest_size > (size_t)INT_MAX)
     {
         return -1;
     }
-    else
-    {
-        return n;
-    }
+
+    return WideCharToMultiByte(CP_UTF8, 0, wtext, -1, dest, (int)dest_size, NULL, NULL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath)
+int cplat_utf8_to_wstr(wchar_t *wbuf, const size_t wbuf_count, const char *utf8_text)
+{
+    return utf8_to_wide(wbuf, wbuf_count, utf8_text);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_wstr_to_utf8(char *dest, const size_t dest_size, const wchar_t *wtext)
+{
+    return wide_to_utf8(dest, dest_size, wtext);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_utf8_to_wpath(wchar_t *wbuf, const size_t wbuf_count, const char *utf8_path)
+{
+    return utf8_to_wide(wbuf, wbuf_count, utf8_path);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_wpath_to_utf8(char *dest, const size_t dest_size, const wchar_t *wpath)
 {
     int n;
 
-    if (dest == NULL || dest_size == 0 || wpath == NULL)
-    {
-        return -1;
-    }
-
-    n = WideCharToMultiByte(CP_UTF8, 0, wpath, -1, dest, (int)dest_size, NULL, NULL);
+    n = wide_to_utf8(dest, dest_size, wpath);
     if (n <= 0)
     {
         return -1;

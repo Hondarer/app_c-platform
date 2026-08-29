@@ -214,6 +214,10 @@ TLS 変数はソース ファイル内のファイル スコープ `static` に�
 
 対象外の API 群を新設する場合は、元 API との対応と戻り値規約をヘッダーの Doxygen コメントに明記します。
 
+比較や演算で NULL を正当入力とし、定義済みの値を返す API は、`@param` に「NULL を指定できます」と戻りを記載します。  
+`@warning` には置きません。単体テストの確認タグは `[確認_正常系]` です。  
+詳細は上位規範の [NULL を正当入力とする API](../../general/docs/coding-guideline.md#null-を正当入力とする-api) に従います。
+
 > [!IMPORTANT]
 > [危険な標準関数の代替](#危険な標準関数の代替) が定める代替 API のうち、`cplat_snprintf`、`cplat_vsnprintf`、`cplat_fgets`、`cplat_parse_*` は共通結果コードを返し、**上表の対象外には含まれません**。  
 > これらは元 API の戻り値規約を保存せず、検査を内包した結果コードへ正規化することが設計意図です。
@@ -240,7 +244,7 @@ CRT / POSIX / Win32 関数のラッパーを cplat へ追加してよいのは�
 
 | 条件 | 例 |
 |---|---|
-| プラットフォームで異なる API を呼び分ける | `cplat_fseek` (`fseeko` と `_fseeki64`)、`cplat_gmtime` (`gmtime_r` と `gmtime_s`)、`cplat_socket_*` (BSD ソケットと Winsock)、`cplat_get_hostname` (`gethostname` と `GetComputerNameExW`)、`cplat_strcasecmp` (`strcasecmp` と `_stricmp` の名前差と locale 差) |
+| プラットフォームで異なる API を呼び分ける | `cplat_fseek` (`fseeko` と `_fseeki64`)、`cplat_gmtime` (`gmtime_r` と `gmtime_s`)、`cplat_socket_*` (BSD ソケットと Winsock)、`cplat_host_get_name` (`gethostname` と `GetComputerNameExW`)、`cplat_strcasecmp` (`strcasecmp` と `_stricmp` の名前差と locale 差) |
 | Windows で UTF-8 と UTF-16 を変換します。 | `cplat_fopen`、`cplat_access`、`CreateFileU` |
 | 戻り値やエラー伝達の規約を正規化します。 | `cplat_dup2` (POSIX は newfd、Windows は 0 を返すため 0 へ統一)、`cplat_strcpy` (`ERANGE` を返す) |
 | MSVC のセキュア版と意味のある挙動差がある | `cplat_vfprintf` (`vfprintf_s` は不正な書式を拒否する) |
@@ -746,8 +750,14 @@ extern int g_cplat_internal_sink_count;
 元 API 名を保存する CRT ラッパー (`cplat_strcpy`、`cplat_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
 
 > [!IMPORTANT]
-> `cplat_get_temp_dir`、`cplat_get_monotonic_ms`、`cplat_normalize_path_sep`、`cplat_paths_equal` は本規約に先行するため凍結対象です。  
-> これらを新設 API 名の前例として引用しないでください。
+> 次の公開 API は本規約に先行するため凍結対象です。新設 API 名の前例として引用しないでください。
+>
+> - `cplat_get_temp_dir`
+> - `cplat_get_monotonic` / `cplat_get_monotonic_ms`
+> - `cplat_get_realtime` / `cplat_get_realtime_utc` / `cplat_get_realtime_deadline_ms`
+> - `cplat_format_realtime_iso8601_local` / `cplat_format_realtime_iso8601_utc`
+> - `cplat_normalize_path_sep` / `cplat_paths_equal`
+> - `cplat_encrypt` / `cplat_decrypt`
 
 ### 生成と破棄の動詞対
 

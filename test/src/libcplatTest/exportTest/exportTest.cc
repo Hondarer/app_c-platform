@@ -634,7 +634,7 @@
     EXPORT_ENTRY(cplat_memory_lock_scope_release, int(CPLAT_API *)(cplat_memory_lock_scope * scope)) \
     EXPORT_ENTRY(cplat_secure_zero, void(CPLAT_API *)(void *buf, size_t size)) \
     /* cplat/runtime/host.h */ \
-    EXPORT_ENTRY(cplat_get_hostname, int(CPLAT_API *)(char *name_out, size_t name_size)) \
+    EXPORT_ENTRY(cplat_host_get_name, int(CPLAT_API *)(char *name_out, size_t name_size)) \
     /* cplat/runtime/module.h */ \
     EXPORT_ENTRY(cplat_module_get_path, \
                  int(CPLAT_API *)(char *path_out, size_t path_size, const void *func_addr)) \
@@ -808,7 +808,10 @@
         /* cplat/crt/wchar_conv.h */ \
         EXPORT_ENTRY(cplat_utf8_to_wpath, \
                      int(CPLAT_API *)(wchar_t * wbuf, size_t wbuf_count, const char *utf8_path)) \
+        EXPORT_ENTRY(cplat_utf8_to_wstr, \
+                     int(CPLAT_API *)(wchar_t * wbuf, size_t wbuf_count, const char *utf8_text)) \
         EXPORT_ENTRY(cplat_wpath_to_utf8, int(CPLAT_API *)(char *dest, size_t dest_size, const wchar_t *wpath)) \
+        EXPORT_ENTRY(cplat_wstr_to_utf8, int(CPLAT_API *)(char *dest, size_t dest_size, const wchar_t *wtext)) \
         EXPORT_ENTRY(cplat_utf8_to_wstr_alloc, wchar_t *(CPLAT_API *)(const char *utf8_text)) \
         EXPORT_ENTRY(cplat_wstr_to_utf8_alloc, char *(CPLAT_API *)(const wchar_t *wtext)) \
         /* cplat/base/error.h */ \

@@ -615,9 +615,9 @@ TEST_F(stringTest, strcasecmp_orders_null_arguments)
     int actual_ret_rhs_null = cplat_strcasecmp("a", NULL);   // [手順] - 右辺だけ NULL で比較する。
 
     // Assert
-    EXPECT_EQ(0, actual_ret_both_null); // [確認_異常系] - 両方 NULL の比較結果が 0 であること。
-    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_異常系] - 左辺だけ NULL の比較結果が -1 であること。
-    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_異常系] - 右辺だけ NULL の比較結果が 1 であること。
+    EXPECT_EQ(0, actual_ret_both_null); // [確認_正常系] - 両方 NULL の比較結果が 0 であること。
+    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_正常系] - 左辺だけ NULL の比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_正常系] - 右辺だけ NULL の比較結果が 1 であること。
 }
 
 // 指定バイト数までの大小無視比較が一致することの確認
@@ -663,7 +663,7 @@ TEST_F(stringTest, strncasecmp_orders_null_arguments)
     int actual_ret_rhs_null = cplat_strncasecmp("a", NULL, 1u);   // [手順] - count 1 で右辺だけ NULL を比較する。
 
     // Assert
-    EXPECT_EQ(0, actual_ret_both_null); // [確認_異常系] - 両方 NULL の比較結果が 0 であること。
-    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_異常系] - 左辺だけ NULL の比較結果が -1 であること。
-    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_異常系] - 右辺だけ NULL の比較結果が 1 であること。
+    EXPECT_EQ(0, actual_ret_both_null); // [確認_正常系] - 両方 NULL の比較結果が 0 であること。
+    EXPECT_EQ(-1, actual_ret_lhs_null); // [確認_正常系] - 左辺だけ NULL の比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_rhs_null);  // [確認_正常系] - 右辺だけ NULL の比較結果が 1 であること。
 }

@@ -233,7 +233,9 @@ MOCK_CPLAT_LINK_IMPL(cplat_vstat_fmt)
 MOCK_CPLAT_LINK_IMPL(cplat_wcscpy)
 MOCK_CPLAT_LINK_IMPL(cplat_write)
 MOCK_CPLAT_LINK_IMPL(cplat_utf8_to_wpath)
+MOCK_CPLAT_LINK_IMPL(cplat_utf8_to_wstr)
 MOCK_CPLAT_LINK_IMPL(cplat_wpath_to_utf8)
+MOCK_CPLAT_LINK_IMPL(cplat_wstr_to_utf8)
 MOCK_CPLAT_LINK_IMPL(cplat_utf8_to_wstr_alloc)
 MOCK_CPLAT_LINK_IMPL(cplat_wstr_to_utf8_alloc)
 
@@ -300,7 +302,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_range)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_scope_release)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_lock_self)
 MOCK_CPLAT_LINK_IMPL(cplat_memory_unlock_range)
-MOCK_CPLAT_LINK_IMPL(cplat_get_hostname)
+MOCK_CPLAT_LINK_IMPL(cplat_host_get_name)
 MOCK_CPLAT_LINK_IMPL(cplat_module_get_basename)
 MOCK_CPLAT_LINK_IMPL(cplat_module_get_path)
 MOCK_CPLAT_LINK_IMPL(cplat_process_dispose)
@@ -849,7 +851,7 @@ extern void delegate_real_cplat_hashtable_dispose(cplat_hashtable *ht);
 extern void delegate_real_cplat_secure_zero(void *buf, size_t size);
 
 // runtime - host
-extern int delegate_real_cplat_get_hostname(char *name_out, size_t name_size);
+extern int delegate_real_cplat_host_get_name(char *name_out, size_t name_size);
 
 // runtime - process_info
 extern int delegate_real_cplat_process_get_executable_path(char *path_out, size_t path_size);
@@ -935,7 +937,9 @@ extern BOOL delegate_real_StartServiceCtrlDispatcherU(const cplat_service_entry_
 
 // crt - wchar_conv (Windows only)
 extern int delegate_real_cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
+extern int delegate_real_cplat_utf8_to_wstr(wchar_t *wbuf, size_t wbuf_count, const char *utf8_text);
 extern int delegate_real_cplat_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath);
+extern int delegate_real_cplat_wstr_to_utf8(char *dest, size_t dest_size, const wchar_t *wtext);
 extern wchar_t *delegate_real_cplat_utf8_to_wstr_alloc(const char *utf8_text);
 extern char *delegate_real_cplat_wstr_to_utf8_alloc(const wchar_t *wtext);
 #endif /* PLATFORM_WINDOWS */
@@ -1428,7 +1432,7 @@ class Mock_cplat
     MOCK_METHOD(void, cplat_secure_zero, (void *, size_t));
 
     // runtime - host
-    MOCK_METHOD(int, cplat_get_hostname, (char *, size_t));
+    MOCK_METHOD(int, cplat_host_get_name, (char *, size_t));
 
     // runtime - process_info
     MOCK_METHOD(int, cplat_process_get_executable_path, (char *, size_t));
@@ -1495,7 +1499,9 @@ class Mock_cplat
 
     // crt - wchar_conv (Windows only)
     MOCK_METHOD(int, cplat_utf8_to_wpath, (wchar_t *, size_t, const char *));
+    MOCK_METHOD(int, cplat_utf8_to_wstr, (wchar_t *, size_t, const char *));
     MOCK_METHOD(int, cplat_wpath_to_utf8, (char *, size_t, const wchar_t *));
+    MOCK_METHOD(int, cplat_wstr_to_utf8, (char *, size_t, const wchar_t *));
     MOCK_METHOD(wchar_t *, cplat_utf8_to_wstr_alloc, (const char *));
     MOCK_METHOD(char *, cplat_wstr_to_utf8_alloc, (const wchar_t *));
 #endif /* PLATFORM_WINDOWS */

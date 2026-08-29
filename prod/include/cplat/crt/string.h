@@ -137,19 +137,17 @@ extern "C"
 
     /**
      *  @brief          大文字小文字を無視して 2 つの文字列を比較します。
-     *  @param[in]      lhs  比較する 1 つ目の文字列。
-     *  @param[in]      rhs  比較する 2 つ目の文字列。
+     *  @param[in]      lhs  比較する 1 つ目の文字列。NULL を指定できます。
+     *  @param[in]      rhs  比較する 2 つ目の文字列。NULL を指定できます。
      *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 を返します。
      *
      *  POSIX の `strcasecmp` と Windows の `_stricmp` の名前差と locale 差を吸収します。\n
      *  ASCII の `A` から `Z` だけを対応する小文字へ畳み、`setlocale` には依存しません。\n
-     *  非 ASCII バイトは符号なしバイトとして比較し、Unicode の大文字小文字畳み込みはしません。
+     *  非 ASCII バイトは符号なしバイトとして比較し、Unicode の大文字小文字畳み込みはしません。\n
+     *  両方 NULL のときは 0、@p lhs のみ NULL のときは -1、@p rhs のみ NULL のときは 1 を返します。
      *
      *  @attention      本関数は @ref CPLAT_OK 系の戻り値規約の適用対象外です。
      *                  比較結果そのものを返します。
-     *
-     *  @warning        @p lhs と @p rhs がともに NULL のときは 0 を返します。\n
-     *                  @p lhs のみ NULL のときは -1、@p rhs のみ NULL のときは 1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -159,20 +157,17 @@ extern "C"
 
     /**
      *  @brief          大文字小文字を無視して、先頭の指定バイト数まで文字列を比較します。
-     *  @param[in]      lhs    比較する 1 つ目の文字列。
-     *  @param[in]      rhs    比較する 2 つ目の文字列。
-     *  @param[in]      count  比較する最大バイト数。
+     *  @param[in]      lhs    比較する 1 つ目の文字列。NULL を指定できます。
+     *  @param[in]      rhs    比較する 2 つ目の文字列。NULL を指定できます。
+     *  @param[in]      count  比較する最大バイト数。0 のときは引数が NULL であっても 0 を返します。
      *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 を返します。
      *
      *  POSIX の `strncasecmp` と Windows の `_strnicmp` の名前差と locale 差を吸収します。\n
      *  比較規則は @ref cplat_strcasecmp と同じです。\n
-     *  @p count が 0 のときは、引数が NULL であっても 0 を返します。
+     *  @p count が 0 でないとき、両方 NULL なら 0、@p lhs のみ NULL なら -1、@p rhs のみ NULL なら 1 を返します。
      *
      *  @attention      本関数は @ref CPLAT_OK 系の戻り値規約の適用対象外です。
      *                  比較結果そのものを返します。
-     *
-     *  @warning        @p count が 0 でないとき、@p lhs と @p rhs がともに NULL なら 0 を返します。\n
-     *                  @p lhs のみ NULL のときは -1、@p rhs のみ NULL のときは 1 を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

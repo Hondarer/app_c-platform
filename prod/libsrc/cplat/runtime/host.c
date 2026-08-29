@@ -15,18 +15,20 @@
 #include <cplat/crt/string.h>
 
 #include <errno.h>
+#include <limits.h>
 
 #if defined(PLATFORM_LINUX)
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <cplat/base/windows_sdk.h>
+    #include <cplat/crt/wchar_conv.h>
 #endif /* PLATFORM_ */
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_get_hostname(char *name_out, const size_t name_size)
+int cplat_host_get_name(char *name_out, const size_t name_size)
 {
-    if (name_out == NULL || name_size == 0)
+    if (name_out == NULL || name_size == 0 || name_size > (size_t)INT_MAX)
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
@@ -49,31 +51,34 @@ int cplat_get_hostname(char *name_out, const size_t name_size)
 #elif defined(PLATFORM_WINDOWS)
     {
         wchar_t wname[CPLAT_HOST_NAME_MAX];
+        /* CPLAT_HOST_NAME_MAX は 256 であり、DWORD の上限より小さい */
         DWORD wname_count = (DWORD)(sizeof(wname) / sizeof(wname[0]));
-        int converted;
 
         /* Winsock の gethostname は WSAStartup が必要で、NetBIOS 名の 15 文字制限にも
            当たり得る。DNS ホスト名を UTF-16 で取り、UTF-8 へ変換する。
            see: https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getcomputernameexw */
         if (GetComputerNameExW(ComputerNameDnsHostname, wname, &wname_count) == 0)
         {
-            DWORD err = GetLastError();
+            const DWORD error_code = GetLastError();
 
             name_out[0] = '\0';
-            if (err == ERROR_MORE_DATA)
+            if (error_code == ERROR_MORE_DATA)
             {
                 return CPLAT_ERR_BUFFER_TOO_SMALL;
             }
-            return cplat_result_from_windows_error(err);
+            return cplat_result_from_windows_error(error_code);
         }
 
-        converted = WideCharToMultiByte(CP_UTF8, 0, wname, -1, name_out, (int)name_size, NULL, NULL);
-        if (converted <= 0)
         {
-            int result = cplat_result_from_windows_error(GetLastError());
+            const int converted = cplat_wstr_to_utf8(name_out, name_size, wname);
 
-            name_out[0] = '\0';
-            return result;
+            if (converted <= 0)
+            {
+                const int ret = cplat_result_from_windows_error(GetLastError());
+
+                name_out[0] = '\0';
+                return ret;
+            }
         }
         return CPLAT_OK;
     }
