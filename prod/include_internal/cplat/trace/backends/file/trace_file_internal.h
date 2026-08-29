@@ -45,9 +45,10 @@ extern "C"
      *  @brief          整形済みタイムスタンプを使用してファイルへトレースを書き込みます。
      *  @param[in]      handle          ファイル sink ハンドルです。NULL は無視します。
      *  @param[in]      level           トレース レベルです。
+     *  @param[in]      timestamp       トレース時刻です。現在の実装では使用しません。
      *  @param[in]      timestamp_text  ISO 8601 ローカル時刻文字列です。NULL を渡してはなりません。
      *  @param[in]      message         null 終端 UTF-8 文字列です。NULL は無視します。
-     *  @return         成功時は @ref CPLAT_OK、失敗時は @ref CPLAT_ERR_UNKNOWN を返します。
+     *  @return         成功時は @ref CPLAT_OK を、失敗時は @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  tracer がすでに整形したタイムスタンプを再利用する内部経路です。
      */

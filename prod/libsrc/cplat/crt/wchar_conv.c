@@ -33,12 +33,22 @@
  */
 static int utf8_to_wide(wchar_t *wbuf, const size_t wbuf_count, const char *utf8_text)
 {
+    int converted;
+
     if (utf8_text == NULL || wbuf == NULL || wbuf_count == 0 || wbuf_count > (size_t)INT_MAX)
     {
         return -1;
     }
 
-    return MultiByteToWideChar(CP_UTF8, 0, utf8_text, -1, wbuf, (int)wbuf_count);
+    /* MultiByteToWideChar は失敗時に 0 を返す。公開契約の失敗値は -1 である。 */
+    /* see: https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-multibytetowidechar */
+    converted = MultiByteToWideChar(CP_UTF8, 0, utf8_text, -1, wbuf, (int)wbuf_count);
+    if (converted <= 0)
+    {
+        return -1;
+    }
+
+    return converted;
 }
 
 /**
@@ -50,12 +60,22 @@ static int utf8_to_wide(wchar_t *wbuf, const size_t wbuf_count, const char *utf8
  */
 static int wide_to_utf8(char *dest, const size_t dest_size, const wchar_t *wtext)
 {
+    int converted;
+
     if (dest == NULL || dest_size == 0 || wtext == NULL || dest_size > (size_t)INT_MAX)
     {
         return -1;
     }
 
-    return WideCharToMultiByte(CP_UTF8, 0, wtext, -1, dest, (int)dest_size, NULL, NULL);
+    /* WideCharToMultiByte は失敗時に 0 を返す。公開契約の失敗値は -1 である。 */
+    /* see: https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte */
+    converted = WideCharToMultiByte(CP_UTF8, 0, wtext, -1, dest, (int)dest_size, NULL, NULL);
+    if (converted <= 0)
+    {
+        return -1;
+    }
+
+    return converted;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
