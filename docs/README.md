@@ -5,7 +5,8 @@
 複数プロジェクトで再利用できる共通処理をまとめています。Linux / Windows  
 両プラットフォームでの利用を想定しています。
 
-> 注意: このリポジトリは単独で動作するライブラリですが、通常は他のサブモジュールと  
+> [!NOTE]
+> このリポジトリは単独で動作するライブラリですが、通常は他のサブモジュールと  
 > 組み合わせて利用することを想定しています。  
 > [c-modernization-kit](https://github.com/Hondarer/c-modernization-kit) に統合された利用例があります。  
 > `c-modernization-kit` リポジトリ内の `app/c-platform` サブモジュールの統合例を参照してください。
@@ -105,10 +106,24 @@ make -C app/c-platform test
 
 ## 関連ドキュメント
 
+cplat が何を要件とし、それをどの機能で解決しているかは [機能仕様](functional-spec/README.md) を入口として参照してください。  
 cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を入口として参照してください。
 
+### 機能仕様
+
+- [機能仕様の入口](functional-spec/README.md) - `prod/libsrc/cplat/` のサブディレクトリごとに、要件と機能を説明します。
+
+### 規範
+
 - [cplat コーディング規範](coding-guideline.md)
-- [ネットワーク API ガイドライン](net-api-guideline.md)
+- [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
+- [mock_cplat の実装規則](mock-cplat-guideline.md)
+- [リンク方式の規約](link-policy.md)
+
+### 詳細仕様と測定結果
+
+- [メモリ ロック API](memory-lock.md)
+- [ファイル入出力 API の選定基準](fileio-api-selection-guideline.md)
 - [hashtable 可変長ストレージの管理方式](../prod/libsrc/cplat/hashtable/hashtable-storage-allocator.md)
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
 
