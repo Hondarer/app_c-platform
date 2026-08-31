@@ -79,8 +79,8 @@ make -C app/c-platform test
 
 生成前またはリンク先を参照できない場合は、[Doxygen の生成入口](../prod/README.md) と [doxyfw の生成手順](../../../framework/doxyfw/docs/makefile-usage.md) を参照してください。
 
-- [cplat (public)](../../../doxygen/cplat_public/index.html)
-    - [公開 API (cplat)](../../../doxygen/cplat_public/group__CPLAT__PUBLIC__API.html)
+- [cplat (public)](../../../doxygen/c-platform_public/index.html)
+    - [公開 API (cplat)](../../../doxygen/c-platform_public/group__CPLAT__PUBLIC__API.html)
 
 ### 単一ファイル版
 
@@ -92,9 +92,9 @@ make -C app/c-platform test
 ### Doxygen
 
 <!-- docsfw の仕上がりパスに対する相対リンク。この Markdown からの相対パスではないことに注意 -->
-- [cplat (internal)](../../../doxygen/cplat_internal/index.html)
-    - [ファイルの一覧](../../../doxygen/cplat_internal/files.html)
-    - [hashtable 可変長ストレージの管理方式](../../../doxygen/cplat_internal/md_libsrc_2cplat_2hashtable_2hashtable-storage-allocator.html)
+- [cplat (internal)](../../../doxygen/c-platform_internal/index.html)
+    - [ファイルの一覧](../../../doxygen/c-platform_internal/files.html)
+    - [hashtable 可変長ストレージの管理方式](../../../doxygen/c-platform_internal/md_libsrc_2cplat_2hashtable_2hashtable-storage-allocator.html)
 
 ### 単一ファイル版
 
