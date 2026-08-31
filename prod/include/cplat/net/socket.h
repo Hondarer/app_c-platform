@@ -127,9 +127,9 @@ extern "C"
     CPLAT_EXPORT void CPLAT_API cplat_socket_shutdown(cplat_socket sock);
 
     /**
-     *  @brief          ソケットへローカルの端点を割り当てます。
+     *  @brief          ソケットへローカルのエンドポイントを割り当てます。
      *  @param[in]      sock       対象のソケット。
-     *  @param[in]      endpoint   割り当てる端点。
+     *  @param[in]      endpoint   割り当てるエンドポイント。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
@@ -161,7 +161,7 @@ extern "C"
     /**
      *  @brief          待ち受け中のソケットで接続を受け付けます。
      *  @param[in]      sock       待ち受け中のソケット。
-     *  @param[out]     peer_out   接続元の端点の格納先。NULL 可。
+     *  @param[out]     peer_out   接続元のエンドポイントの格納先。NULL 可。
      *  @param[out]     sock_out   受け付けたソケットの格納先。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、
@@ -179,9 +179,9 @@ extern "C"
                                                             cplat_socket *sock_out, cplat_error *detail_out);
 
     /**
-     *  @brief          相手の端点へ接続します。
+     *  @brief          相手のエンドポイントへ接続します。
      *  @param[in]      sock       対象のソケット。
-     *  @param[in]      endpoint   接続先の端点。
+     *  @param[in]      endpoint   接続先のエンドポイント。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_IN_PROGRESS 、
      *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
@@ -366,11 +366,11 @@ extern "C"
                                                           size_t *received_out, cplat_error *detail_out);
 
     /**
-     *  @brief          指定した端点へ送信します。
+     *  @brief          指定したエンドポイントへ送信します。
      *  @param[in]      sock       対象のソケット。
      *  @param[in]      buf        送信するデータ。
      *  @param[in]      len        @p buf のバイト数。@ref CPLAT_SOCKET_MAX_TRANSFER 以下を指定します。
-     *  @param[in]      endpoint   送信先の端点。
+     *  @param[in]      endpoint   送信先のエンドポイント。
      *  @param[out]     sent_out   送信できたバイト数の格納先。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、
@@ -385,11 +385,11 @@ extern "C"
                                                             cplat_error *detail_out);
 
     /**
-     *  @brief          任意の端点から受信します。
+     *  @brief          任意のエンドポイントから受信します。
      *  @param[in]      sock       対象のソケット。
      *  @param[out]     buf        受信データの格納先。
      *  @param[in]      len        @p buf のバイト数。@ref CPLAT_SOCKET_MAX_TRANSFER 以下を指定します。
-     *  @param[out]     peer_out   送信元の端点の格納先。NULL 可。
+     *  @param[out]     peer_out   送信元のエンドポイントの格納先。NULL 可。
      *  @param[out]     received_out 受信したバイト数の格納先。
      *  @param[out]     detail_out エラー詳細の格納先。NULL 可。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、

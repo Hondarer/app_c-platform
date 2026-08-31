@@ -252,7 +252,7 @@ CRT / POSIX / Win32 関数のラッパーを cplat へ追加してよいのは�
 | cplat 定義の型を扱います。 | `cplat_timespec_*`、`cplat_file_*` |
 | cplat の他機能と統合する必要がある | `cplat_exit` (登録済みシャットダウン コールバックを実行する) |
 
-通信 API 固有の規範 (ソケット ハンドル、エンドポイント型、エラー ドメイン) は [ネットワーク API ガイドライン](net-api-guideline.md) に定めます。
+通信 API の公開面の方針は [net カテゴリの公開面の方針](#net-カテゴリの公開面の方針) に定めます。
 
 境界検査または失敗通知を欠く標準関数の正規化は、[危険な標準関数の代替](#危険な標準関数の代替) が定める代替先を cplat 側に用意するための条件です。  
 戻り値やエラー伝達の規約を正規化する条件の延長であり、元 API が呼び出し側に委ねている検査を、ラッパーが必ず実施する形へ移します。
@@ -279,6 +279,28 @@ Linux と Windows でラッパー先の API の制約や既定動作が異なる
 
 共有可能なオープンは排他制御を意味しません。  
 プロセス間のアクセスを直列化する場合は、`cplat_interprocess_lock` または `cplat_interprocess_rwlock` を使用します。
+
+### net カテゴリの公開面の方針
+
+`net` カテゴリは、BSD ソケットと Winsock の差異を公開面へ出さないことを設計の前提とします。  
+要件と、その解決策としての機能は [ネットワーク (net) 機能仕様](functional-spec/net.md) を参照してください。
+
+`net` の公開ヘッダーは、`winsock2.h`、`ws2tcpip.h`、`netinet/in.h`、`sys/socket.h`、`arpa/inet.h`、`netdb.h` のいずれも include しません。  
+`PLATFORM_*` による分岐も置きません。  
+利用側のライブラリがシステムのソケット ヘッダーに依存しなくなるため、モックだけで通信経路を差し替えた単体テストが成立します。
+
+`struct sockaddr_in` を API 境界へ出しません。  
+アドレスとポートの受け渡しには `cplat_ipv4_endpoint` を使用し、`struct sockaddr_in` への変換は `net` の実装ファイル内部でのみ行います。
+
+ソケット オプションは、用途ごとの名前付き API で提供します。  
+`level` と `optname` を引数に取る汎用の `setsockopt` 相当 API は公開しません。  
+`SOL_SOCKET`、`SO_REUSEADDR`、`SO_BROADCAST`、`IPPROTO_IP`、`IP_MULTICAST_IF`、`IP_ADD_MEMBERSHIP`、`IP_DROP_MEMBERSHIP` などのシステム ヘッダーが定義する定数は、`net` の実装ファイル内部でのみ使用します。
+
+Winsock の初期化と終了は公開 API にしません。  
+`net` の内部で初回利用時に初期化し、共有ライブラリのアンロード時に終了します。
+
+バイト オーダー変換は `cplat/net/byteorder.h` の `static inline` 関数として実装し、`htons` などの OS API を呼び出しません。  
+OS API への依存が消えるため、変換の検証にモックが不要になります。
 
 ### 接続済みソケット送信時の SIGPIPE
 

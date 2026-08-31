@@ -377,7 +377,7 @@ TEST_F(socketTest, connection_operations_reject_invalid_arguments)
     // Act
     int actual_ret_bind_socket = cplat_socket_bind(CPLAT_INVALID_SOCKET, &kEndpoint,
                                                &detail); // [手順] - bind のソケットに無効値を指定する。
-    int actual_ret_bind_endpoint = cplat_socket_bind(kSocket, NULL, &detail); // [手順] - bind の端点に NULL を指定する。
+    int actual_ret_bind_endpoint = cplat_socket_bind(kSocket, NULL, &detail); // [手順] - bind のエンドポイントに NULL を指定する。
     int actual_ret_listen_socket =
         cplat_socket_listen(CPLAT_INVALID_SOCKET, 1, &detail); // [手順] - listen のソケットに無効値を指定する。
     int actual_ret_listen_backlog =
@@ -385,7 +385,7 @@ TEST_F(socketTest, connection_operations_reject_invalid_arguments)
     int actual_ret_connect_socket = cplat_socket_connect(CPLAT_INVALID_SOCKET, &kEndpoint,
                                                      &detail); // [手順] - connect のソケットに無効値を指定する。
     int actual_ret_connect_endpoint =
-        cplat_socket_connect(kSocket, NULL, &detail); // [手順] - connect の端点に NULL を指定する。
+        cplat_socket_connect(kSocket, NULL, &detail); // [手順] - connect のエンドポイントに NULL を指定する。
 
     // Assert
     EXPECT_EQ(
@@ -393,7 +393,7 @@ TEST_F(socketTest, connection_operations_reject_invalid_arguments)
         actual_ret_bind_socket); // [確認_異常系] - 無効なソケットを指定した bind の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_bind_endpoint); // [確認_異常系] - NULL の端点を指定した bind の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_bind_endpoint); // [確認_異常系] - NULL のエンドポイントを指定した bind の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
         actual_ret_listen_socket); // [確認_異常系] - 無効なソケットを指定した listen の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
@@ -405,7 +405,7 @@ TEST_F(socketTest, connection_operations_reject_invalid_arguments)
         actual_ret_connect_socket); // [確認_異常系] - 無効なソケットを指定した connect の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_connect_endpoint); // [確認_異常系] - NULL の端点を指定した connect の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_connect_endpoint); // [確認_異常系] - NULL のエンドポイントを指定した connect の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
 // bind、listen、connect が成功することの確認
@@ -541,7 +541,7 @@ TEST_F(socketTest, accept_rejects_invalid_arguments)
         actual_ret_output); // [確認_異常系] - 出力先が NULL の accept の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
-// accept が接続元端点と新しいソケットを返すことの確認
+// accept が接続元エンドポイントと新しいソケットを返すことの確認
 TEST_F(socketTest, accept_returns_peer_and_socket)
 {
     // Arrange
@@ -550,7 +550,7 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 下位の accept API が待ち受けソケットを引数として呼び出されること。
-    // [Pre-Assert手順] - 下位の accept API から接続元の端点と新しいソケットのハンドルを返却する。
+    // [Pre-Assert手順] - 下位の accept API から接続元のエンドポイントと新しいソケットのハンドルを返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_socket_, accept(_, _, _, (int)kSocket, _, _))
         .WillRepeatedly(
@@ -578,13 +578,13 @@ TEST_F(socketTest, accept_returns_peer_and_socket)
     // Act
     int actual_ret = cplat_socket_accept(kSocket, &peer, &accepted, NULL); // [手順] - 接続を受け付ける。
     int actual_ret_without_peer = cplat_socket_accept(kSocket, NULL, &accepted,
-                                                  NULL); // [手順] - 接続元端点の出力先を NULL にして接続を受け付ける。
+                                                  NULL); // [手順] - 接続元エンドポイントの出力先を NULL にして接続を受け付ける。
 
     // Assert
     EXPECT_EQ(CPLAT_OK,
               actual_ret); // [確認_正常系] - accept の戻り値が CPLAT_OK であること。
     EXPECT_EQ(CPLAT_OK,
-              actual_ret_without_peer); // [確認_正常系] - 接続元端点を要求しない accept の戻り値が CPLAT_OK であること。
+              actual_ret_without_peer); // [確認_正常系] - 接続元エンドポイントを要求しない accept の戻り値が CPLAT_OK であること。
     EXPECT_EQ((cplat_socket)8,
               accepted); // [確認_正常系] - 受け付けたソケットが返されること。
     EXPECT_EQ(CPLAT_IPV4_ADDR_LOOPBACK,
@@ -1014,7 +1014,7 @@ TEST_F(socketTest, send_and_recv_report_results)
               actual_ret_recv_failure); // [確認_異常系] - 受信失敗時の戻り値が CPLAT_ERR_UNKNOWN であること。
 }
 
-// sendto と recvfrom が端点を変換して送受信することの確認
+// sendto と recvfrom がエンドポイントを変換して送受信することの確認
 TEST_F(socketTest, datagram_operations_succeed)
 {
     // Arrange
@@ -1024,7 +1024,7 @@ TEST_F(socketTest, datagram_operations_succeed)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 下位の sendto と recvfrom の各 API が 4 バイトの要求で呼び出されること。
-    // [Pre-Assert手順] - 下位の sendto から 4 バイトの送信を、recvfrom から送信元の端点と受信バイト数を返却する。
+    // [Pre-Assert手順] - 下位の sendto から 4 バイトの送信を、recvfrom から送信元のエンドポイントと受信バイト数を返却する。
 #if defined(PLATFORM_LINUX)
     EXPECT_CALL(mock_sys_socket_, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _)).WillOnce(Return((ssize_t)4));
     EXPECT_CALL(mock_sys_socket_, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _))
@@ -1056,7 +1056,7 @@ TEST_F(socketTest, datagram_operations_succeed)
                                             NULL); // [手順] - データグラムを受信する。
     int actual_ret_recv_without_peer =
         cplat_socket_recvfrom(kSocket, buffer, sizeof(buffer), NULL, &transferred,
-                                 NULL); // [手順] - 接続元端点の出力先を NULL にしてデータグラムを受信する。
+                                 NULL); // [手順] - 接続元エンドポイントの出力先を NULL にしてデータグラムを受信する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK,
@@ -1065,7 +1065,7 @@ TEST_F(socketTest, datagram_operations_succeed)
               actual_ret_recv); // [確認_正常系] - recvfrom の戻り値が CPLAT_OK であること。
     EXPECT_EQ(
         CPLAT_OK,
-        actual_ret_recv_without_peer); // [確認_正常系] - 接続元端点を要求しない recvfrom の戻り値が CPLAT_OK であること。
+        actual_ret_recv_without_peer); // [確認_正常系] - 接続元エンドポイントを要求しない recvfrom の戻り値が CPLAT_OK であること。
     EXPECT_EQ((size_t)2,
               transferred); // [確認_正常系] - recvfrom が受信バイト数を返すこと。
     EXPECT_EQ(kEndpoint.address,
@@ -1110,7 +1110,7 @@ TEST_F(socketTest, datagram_operations_report_invalid_and_os_failure)
         cplat_socket_sendto(kSocket, buffer, CPLAT_SOCKET_MAX_TRANSFER + (size_t)1U, &kEndpoint, &transferred,
                                &detail); // [手順] - 最大転送量を超える長さで sendto を呼び出す。
     int actual_ret_send_invalid = cplat_socket_sendto(kSocket, buffer, sizeof(buffer), NULL, &transferred,
-                                                  &detail); // [手順] - sendto の端点に NULL を指定する。
+                                                  &detail); // [手順] - sendto のエンドポイントに NULL を指定する。
     int actual_ret_recv_invalid_socket =
         cplat_socket_recvfrom(CPLAT_INVALID_SOCKET, buffer, sizeof(buffer), NULL, &transferred,
                                  &detail); // [手順] - 無効なソケットで recvfrom を呼び出す。
@@ -1142,7 +1142,7 @@ TEST_F(socketTest, datagram_operations_report_invalid_and_os_failure)
         actual_ret_send_invalid_length); // [確認_異常系] - 最大転送量超過の sendto 戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_send_invalid); // [確認_異常系] - NULL の端点を指定した sendto の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_send_invalid); // [確認_異常系] - NULL のエンドポイントを指定した sendto の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
         actual_ret_recv_invalid_socket); // [確認_異常系] - 無効なソケットの recvfrom 戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
@@ -1735,7 +1735,7 @@ TEST_F(socketTest, sendto_and_recvfrom_retry_after_interrupt)
 
     // Act
     int actual_ret_sendto = cplat_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &sent,
-                                            &detail); // [手順] - 4 バイトを指定した端点へ送信する。
+                                            &detail); // [手順] - 4 バイトを指定したエンドポイントへ送信する。
     int actual_ret_recvfrom = cplat_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &received,
                                                 &detail); // [手順] - 4 バイトを受信する。
 

@@ -27,8 +27,8 @@
     #include <cplat/sync/sync.h>
 
 /**
- *  @brief          共通の端点表現を sockaddr_in へ変換します。
- *  @param[in]      endpoint 変換元の端点。
+ *  @brief          共通のエンドポイント表現を sockaddr_in へ変換します。
+ *  @param[in]      endpoint 変換元のエンドポイント。
  *  @param[out]     native   変換後の sockaddr_in の格納先。
  */
 static void endpoint_to_native(const cplat_ipv4_endpoint *endpoint, struct sockaddr_in *native)
@@ -40,9 +40,9 @@ static void endpoint_to_native(const cplat_ipv4_endpoint *endpoint, struct socka
 }
 
 /**
- *  @brief          sockaddr_in を共通の端点表現へ変換します。
+ *  @brief          sockaddr_in を共通のエンドポイント表現へ変換します。
  *  @param[in]      native   変換元の sockaddr_in。
- *  @param[out]     endpoint 変換後の端点の格納先。
+ *  @param[out]     endpoint 変換後のエンドポイントの格納先。
  */
 static void endpoint_from_native(const struct sockaddr_in *native, cplat_ipv4_endpoint *endpoint)
 {

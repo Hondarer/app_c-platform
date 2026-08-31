@@ -6,6 +6,7 @@
 同時に、cplat が公開する API 全体を用途から引ける逆引き辞書でもあります。  
 規範本文と根拠は [coding-guideline.md](coding-guideline.md) の「[ラッパーの設計方針](coding-guideline.md#ラッパーの設計方針)」「[危険な標準関数の代替](coding-guideline.md#危険な標準関数の代替)」に集約されています。  
 本チート シートは対応表の抽出であり、規範としての正本は `coding-guideline.md` です。  
+各機能が満たす要件と、その解決策としての機能の説明は [機能仕様](functional-spec/README.md) を参照してください。  
 公開 API の宣言とシグネチャは、[`prod/include/`](../prod/include/) 配下のヘッダーを正本とします。  
 コード、コーディング規範、または本チート シートに不一致がある場合は、正本を確認したうえで同じ変更の中で一致させてください。
 
@@ -219,7 +220,7 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 
 ### ネットワーク バイト オーダー
 
-本節、「IPv4 アドレス」節、「ソケット」節が扱う `net` カテゴリの規範は [net-api-guideline.md](net-api-guideline.md) を参照してください。
+本節、「IPv4 アドレス」節、「ソケット」節が扱う `net` カテゴリの要件と機能は [ネットワーク (net) 機能仕様](functional-spec/net.md)、公開面の方針は [コーディング規範](coding-guideline.md#net-カテゴリの公開面の方針) を参照してください。
 
 対象ヘッダー: `cplat/net/byteorder.h`
 
@@ -343,7 +344,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `regfree()` | `cplat_regex_dispose(...)` |
 
 置換 (`cplat_regex_replace`)、イテレーター (`cplat_regex_iter_*`)、分割 (`cplat_regex_split`) は POSIX regex にない機能で、対応する単一の生 API はありません。  
-フラグの対応関係、文字モデル、制限事項の詳細は [regex-guideline.md](regex-guideline.md) を参照してください。
+フラグの対応関係、文字モデル、制限事項の詳細は [正規表現 (regex) 機能仕様](functional-spec/regex.md) を参照してください。
 
 ### コンソール制御 (Windows 専用)
 
