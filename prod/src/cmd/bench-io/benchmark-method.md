@@ -22,7 +22,6 @@
 | `stdio-blk` | ファイルを開き、1024 レコード (64 KB 相当) 単位でまとめて読み書きして閉じる |
 | `mmap-once` | アタッチを測定ループの外で 1 回だけ行い、各反復ではマップ済み領域へのアクセスだけを行います。 |
 | `mmap-each` | 反復ごとにアタッチ、アクセス、デタッチを行います。 |
-| `mmap-lock` | `mmap-each` に加えて `cplat_mmap_get_rwlock()` によるロックの取得と解放を行います。 |
 
 `+sync` が付く形態は、書き込み後にディスクへの反映を要求した条件です。  
 `stdio` 側は `cplat_fflush` による CRT バッファーの掃き出しまで、mmap 側は `cplat_mmap_flush` による `msync(MS_SYNC)` (Windows は `FlushViewOfFile` + `FlushFileBuffers`) までを行います。  
@@ -40,7 +39,7 @@
 | `open-close` | ファイルを開いて閉じるだけ | 1 |
 
 `open-close` は、オープンに伴う固定コストを他のパターンから分離するためのマイクロ測定です。  
-`stdio-rec` との組み合わせが `fopen` から `fclose` まで、`mmap-each` との組み合わせがアタッチからデタッチまで、`mmap-lock` との組み合わせがこれにロックの取得解放を加えたコストに対応します。
+`stdio-rec` との組み合わせが `fopen` から `fclose` まで、`mmap-each` との組み合わせがアタッチからデタッチまでのコストに対応します。
 
 ### ファイル サイズ
 

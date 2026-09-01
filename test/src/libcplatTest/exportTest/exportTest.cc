@@ -448,8 +448,6 @@
                                                      cplat_mmap **map, cplat_error *detail_out)) \
     EXPORT_ENTRY(cplat_mmap_get_address, void *(CPLAT_API *)(const cplat_mmap *map)) \
     EXPORT_ENTRY(cplat_mmap_get_size, size_t(CPLAT_API *)(const cplat_mmap *map)) \
-    EXPORT_ENTRY(cplat_mmap_get_rwlock, int(CPLAT_API *)(const cplat_mmap *map, cplat_interprocess_rwlock **lock_out, \
-                                                         cplat_error *detail_out)) \
     EXPORT_ENTRY(cplat_mmap_flush, \
                  int(CPLAT_API *)(cplat_mmap * map, void *address, size_t length, cplat_error *detail_out)) \
     EXPORT_ENTRY(cplat_mmap_detach, int(CPLAT_API *)(cplat_mmap * map, cplat_error * detail_out)) \

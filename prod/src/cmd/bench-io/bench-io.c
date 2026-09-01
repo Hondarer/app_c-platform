@@ -94,13 +94,6 @@ const char *bench_api_name(bench_api api, int durable)
             name = "mmap-each+sync";
         }
         break;
-    case BENCH_API_MMAP_LOCK:
-        name = "mmap-lock";
-        if (durable != 0)
-        {
-            name = "mmap-lock+sync";
-        }
-        break;
     case BENCH_API_COUNT:
     default:
         name = "unknown";
@@ -150,7 +143,7 @@ const char *bench_pattern_name(bench_pattern pattern)
  */
 static int is_mmap_api(bench_api api)
 {
-    if (api == BENCH_API_MMAP_ONCE || api == BENCH_API_MMAP_EACH || api == BENCH_API_MMAP_LOCK)
+    if (api == BENCH_API_MMAP_ONCE || api == BENCH_API_MMAP_EACH)
     {
         return 1;
     }

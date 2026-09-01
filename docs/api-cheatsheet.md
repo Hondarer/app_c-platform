@@ -213,7 +213,7 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
 | `mmap()` (POSIX) / `CreateFileMapping` +`MapViewOfFile` (Win32) | `cplat_mmap_attach(...)` | ファイル オープンとマッピングを一括し、新規作成時のサイズ指定と所有ハンドル化を行います。 |
-| `munmap()` (POSIX) / `UnmapViewOfFile` +`CloseHandle` (Win32) | `cplat_mmap_detach(...)` | 内包するロックの破棄も合わせて行う |
+| `munmap()` (POSIX) / `UnmapViewOfFile` +`CloseHandle` (Win32) | `cplat_mmap_detach(...)` | マップと所有ハンドルをまとめて解放します。 |
 | `msync(MS_SYNC)` (POSIX) / `FlushViewOfFile` +`FlushFileBuffers` (Win32) | `cplat_mmap_flush(...)` | - |
 
 `stdio` ラッパーとの使い分けは [fileio-api-selection-guideline.md](fileio-api-selection-guideline.md) を参照してください。
@@ -642,7 +642,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - 書式入力: `cplat_vscanf`、`cplat_vfscanf`、`cplat_vsscanf`
 - 暗号: `cplat_passphrase_to_key`
 - エラー: `cplat_error_clear`、`cplat_error_capture_errno`、`cplat_error_capture_current_errno`、`cplat_error_get_last`、`cplat_error_set_last`、`cplat_error_clear_last`、`cplat_error_is_set`、`cplat_error_get_domain`、`cplat_error_get_errno`、`cplat_error_to_result`、`cplat_error_get_cause`、`cplat_error_is`、`cplat_result_to_string`
-- メモリ マップド ファイル: `cplat_mmap_get_address`、`cplat_mmap_get_size`、`cplat_mmap_get_rwlock`
+- メモリ マップド ファイル: `cplat_mmap_get_address`、`cplat_mmap_get_size`
 - 正規表現: `cplat_regex_get_group_count`、`cplat_regex_iter_create`、`cplat_regex_iter_next`、`cplat_regex_iter_dispose`
 - ホスト: `cplat_host_get_name`
 - モジュール: `cplat_module_get_basename`

@@ -440,8 +440,6 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_mmap_get_address(_))
         .WillByDefault(Invoke(delegate_real_cplat_mmap_get_address));
     ON_CALL(*this, cplat_mmap_get_size(_)).WillByDefault(Invoke(delegate_real_cplat_mmap_get_size));
-    ON_CALL(*this, cplat_mmap_get_rwlock(_, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_mmap_get_rwlock));
     ON_CALL(*this, cplat_mmap_flush(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_mmap_flush));
     ON_CALL(*this, cplat_mmap_detach(_, _)).WillByDefault(Invoke(delegate_real_cplat_mmap_detach));

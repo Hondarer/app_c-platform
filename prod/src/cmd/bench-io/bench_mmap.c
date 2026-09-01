@@ -8,8 +8,7 @@
  *
  *  アタッチの扱いで 3 形態を実装します。\n
  *  @ref BENCH_API_MMAP_ONCE は測定ループの外で 1 回だけアタッチし、
- *  @ref BENCH_API_MMAP_EACH は反復ごとにアタッチとデタッチを行い、
- *  @ref BENCH_API_MMAP_LOCK はこれに加えてプロセス横断ロックの取得と解放を行います。
+ *  @ref BENCH_API_MMAP_EACH は反復ごとにアタッチとデタッチを行います。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -21,7 +20,6 @@
 
 #include <cplat/crt/stdlib.h>
 #include <cplat/mmap/mmap.h>
-#include <cplat/sync/sync.h>
 
 #include "bench_case.h"
 
@@ -126,50 +124,6 @@ static int access_mapped(bench_context *ctx, const bench_case *item, cplat_mmap 
     return result;
 }
 
-/**
- *  @brief          プロセス横断ロックを取得したうえでアクセス パターンを 1 回実行します。
- *  @param[in,out]  ctx   共有状態。NULL を渡してはなりません。
- *  @param[in]      item  測定条件。NULL を渡してはなりません。
- *  @param[in,out]  map   アタッチ済みハンドル。NULL を渡してはなりません。
- *  @return         成功時は 0、失敗時は -1 を返します。
- *
- *  読み取り系では共有ロック、書き込み系では排他ロックを取得します。
- */
-static int access_mapped_with_lock(bench_context *ctx, const bench_case *item, cplat_mmap *map)
-{
-    cplat_interprocess_rwlock *lock = NULL;
-
-    (void)cplat_mmap_get_rwlock(map, &lock, NULL);
-    int lock_result;
-    int access_result;
-
-    if (lock == NULL)
-    {
-        return -1;
-    }
-
-    if (is_write_pattern(item->pattern) != 0)
-    {
-        lock_result = cplat_interprocess_rwlock_lock_exclusive(lock, CPLAT_SYNC_WAIT_FOREVER);
-    }
-    else
-    {
-        lock_result = cplat_interprocess_rwlock_lock_shared(lock, CPLAT_SYNC_WAIT_FOREVER);
-    }
-    if (lock_result != CPLAT_OK)
-    {
-        return -1;
-    }
-
-    access_result = access_mapped(ctx, item, map);
-
-    if (cplat_interprocess_rwlock_unlock(lock) != CPLAT_OK)
-    {
-        return -1;
-    }
-    return access_result;
-}
-
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int bench_mmap_setup(bench_context *ctx, const bench_case *item)
@@ -225,14 +179,7 @@ int bench_mmap_iterate(bench_context *ctx, const bench_case *item)
         return -1;
     }
 
-    if (item->api == BENCH_API_MMAP_LOCK)
-    {
-        result = access_mapped_with_lock(ctx, item, map);
-    }
-    else
-    {
-        result = access_mapped(ctx, item, map);
-    }
+    result = access_mapped(ctx, item, map);
 
     (void)cplat_mmap_detach(map, NULL);
     return result;

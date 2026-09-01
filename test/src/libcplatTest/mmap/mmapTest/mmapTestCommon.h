@@ -8,7 +8,6 @@
 #include <cplat/base/result.h>
 #include <cplat/crt/file.h>
 #include <cplat/mmap/mmap.h>
-#include <cplat/sync/sync.h>
 
 #if defined(PLATFORM_LINUX)
     #include <sys/mman.h>
@@ -37,10 +36,6 @@ const int kFakeFileHandle = 7;
 const HANDLE kFakeFileHandle = reinterpret_cast<HANDLE>(static_cast<uintptr_t>(0x71));
 const HANDLE kFakeMappingHandle = reinterpret_cast<HANDLE>(static_cast<uintptr_t>(0x72));
 #endif /* PLATFORM_ */
-
-cplat_local_lock *const kFakeGuard = reinterpret_cast<cplat_local_lock *>(static_cast<uintptr_t>(0x100));
-cplat_interprocess_rwlock *const kFakeRwlock =
-    reinterpret_cast<cplat_interprocess_rwlock *>(static_cast<uintptr_t>(0x200));
 
 int flags_create_new(void)
 {
@@ -110,25 +105,6 @@ class mmapTestFixture : public Test
         ON_CALL(mock_cplat_, cplat_file_set_size(_, _, _)).WillByDefault(Return(CPLAT_OK));
         ON_CALL(mock_cplat_, cplat_file_close(_, _)).WillByDefault(Return(CPLAT_OK));
         ON_CALL(mock_cplat_, cplat_remove(_, _)).WillByDefault(Return(CPLAT_OK));
-        ON_CALL(mock_cplat_, cplat_local_lock_create(_))
-            .WillByDefault(
-                [](cplat_local_lock **lock)
-                {
-                    *lock = kFakeGuard;
-                    return CPLAT_OK;
-                });
-        ON_CALL(mock_cplat_, cplat_local_lock_lock(_, _)).WillByDefault(Return(CPLAT_OK));
-        ON_CALL(mock_cplat_, cplat_local_lock_unlock(_)).WillByDefault(Return(CPLAT_OK));
-        ON_CALL(mock_cplat_, cplat_local_lock_dispose(_)).WillByDefault(Return());
-        ON_CALL(mock_cplat_, cplat_interprocess_rwlock_open(_, _))
-            .WillByDefault(
-                [](const char *, cplat_interprocess_rwlock **lock)
-                {
-                    *lock = kFakeRwlock;
-                    return CPLAT_OK;
-                });
-        ON_CALL(mock_cplat_, cplat_interprocess_rwlock_dispose(_)).WillByDefault(Return());
-
 #if defined(PLATFORM_LINUX)
         ON_CALL(mock_sys_mman_, mmap(_, _, _, _, _, _, _, _, _)).WillByDefault(Return(mapped_buf_));
         ON_CALL(mock_sys_mman_, munmap(_, _, _, _, _)).WillByDefault(Return(0));

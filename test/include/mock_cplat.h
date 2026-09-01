@@ -294,7 +294,6 @@ MOCK_CPLAT_LINK_IMPL(cplat_random_bytes)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_attach)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_get_address)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_get_size)
-MOCK_CPLAT_LINK_IMPL(cplat_mmap_get_rwlock)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_flush)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_detach)
 
@@ -865,7 +864,6 @@ extern int delegate_real_cplat_random_bytes(void *buf, size_t size);
 extern int delegate_real_cplat_mmap_attach(const char *path, cplat_mmap_access access, size_t create_size, cplat_mmap **map, cplat_error *detail_out);
 extern void * delegate_real_cplat_mmap_get_address(const cplat_mmap *map);
 extern size_t delegate_real_cplat_mmap_get_size(const cplat_mmap *map);
-extern int delegate_real_cplat_mmap_get_rwlock(const cplat_mmap *map, cplat_interprocess_rwlock **lock_out, cplat_error *detail_out);
 extern int delegate_real_cplat_mmap_flush(cplat_mmap * map, void *address, size_t length, cplat_error *detail_out);
 extern int delegate_real_cplat_mmap_detach(cplat_mmap * map, cplat_error * detail_out);
 
@@ -1456,8 +1454,6 @@ class Mock_cplat
                 (const char *, cplat_mmap_access, size_t, cplat_mmap **, cplat_error *));
     MOCK_METHOD(void *, cplat_mmap_get_address, (const cplat_mmap *));
     MOCK_METHOD(size_t, cplat_mmap_get_size, (const cplat_mmap *));
-    MOCK_METHOD(int, cplat_mmap_get_rwlock,
-                (const cplat_mmap *, cplat_interprocess_rwlock **, cplat_error *));
     MOCK_METHOD(int, cplat_mmap_flush, (cplat_mmap *, void *, size_t, cplat_error *));
     MOCK_METHOD(int, cplat_mmap_detach, (cplat_mmap *, cplat_error *));
 

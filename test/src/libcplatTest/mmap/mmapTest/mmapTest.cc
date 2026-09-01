@@ -1,8 +1,6 @@
 #include <testfw.h>
 #include "mmapTestCommon.h"
 
-#include <errno.h>
-
 class mmapTest : public mmapTestFixture
 {
 };
@@ -245,137 +243,29 @@ TEST_F(mmapTest, attach_invalid_arguments_fail)
         invalid_access_result); // [確認_異常系] - access 不正値の cplat_mmap_attach の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
-// NULL ハンドルに対する get_address/get_size/get_rwlock/flush/detach が安全であることの確認
+// NULL ハンドルに対する get_address/get_size/flush/detach が安全であることの確認
 TEST_F(mmapTest, accessors_are_safe_for_null_handle)
 {
     // Arrange
-    cplat_interprocess_rwlock *lock = NULL;
     void *address;
     size_t size;
-    int rwlock_result;
     int flush_result;
     int detach_result;
 
     // Pre-Assert
 
     // Act
-    address = cplat_mmap_get_address(NULL);                   // [手順] - get_address に NULL を渡す。
-    size = cplat_mmap_get_size(NULL);                         // [手順] - get_size に NULL を渡す。
-    rwlock_result = cplat_mmap_get_rwlock(NULL, &lock, NULL); // [手順] - get_rwlock に NULL ハンドルを渡す。
-    flush_result = cplat_mmap_flush(NULL, NULL, 0u, NULL);    // [手順] - flush に NULL ハンドルを渡す。
-    detach_result = cplat_mmap_detach(NULL, NULL);            // [手順] - detach に NULL ハンドルを渡す。
+    address = cplat_mmap_get_address(NULL);                // [手順] - get_address に NULL を渡す。
+    size = cplat_mmap_get_size(NULL);                      // [手順] - get_size に NULL を渡す。
+    flush_result = cplat_mmap_flush(NULL, NULL, 0u, NULL); // [手順] - flush に NULL ハンドルを渡す。
+    detach_result = cplat_mmap_detach(NULL, NULL);         // [手順] - detach に NULL ハンドルを渡す。
 
     // Assert
     EXPECT_EQ((void *)NULL, address); // [確認_異常系] - get_address(NULL) が NULL を返すこと。
     EXPECT_EQ((size_t)0, size);       // [確認_異常系] - get_size(NULL) が 0 を返すこと。
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
-              rwlock_result); // [確認_異常系] - get_rwlock(NULL) が CPLAT_ERR_INVALID_ARGUMENT を返すこと。
-    EXPECT_EQ((cplat_interprocess_rwlock *)NULL,
-              lock); // [確認_異常系] - get_rwlock(NULL) が出力先を変更しないこと。
-    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               flush_result);               // [確認_異常系] - flush(NULL) が CPLAT_ERR_INVALID_ARGUMENT を返すこと。
     EXPECT_EQ(CPLAT_OK, detach_result); // [確認_異常系] - detach(NULL) が CPLAT_OK を返すこと。
-}
-
-// get_rwlock を同一ハンドルへ繰り返し呼び出しても、遅延生成したロックが 1 つだけ返ることの確認
-TEST_F(mmapTest, get_rwlock_returns_same_instance_on_repeated_calls)
-{
-    // Arrange
-    cplat_mmap *map = NULL;
-    cplat_interprocess_rwlock *lock_first = NULL;
-    cplat_interprocess_rwlock *lock_second = NULL;
-    attachNewFile(&map); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
-
-    // Pre-Assert
-    EXPECT_CALL(mock_cplat_, cplat_local_lock_lock(kFakeGuard, CPLAT_SYNC_WAIT_FOREVER))
-        .Times(2)
-        .WillRepeatedly(
-            Return(CPLAT_OK)); // [Pre-Assert確認_正常系] - cplat_local_lock_lock が 2 回呼び出されること。
-                                  // [Pre-Assert手順] - CPLAT_OK を返却する。
-    EXPECT_CALL(mock_cplat_, cplat_interprocess_rwlock_open(_, _))
-        .WillOnce(
-            [](const char *, cplat_interprocess_rwlock **lock)
-            {
-                *lock = kFakeRwlock;
-                return CPLAT_OK;
-            }); // [Pre-Assert確認_正常系] - プロセス間ロックの open が 1 回だけ呼び出されること。
-                // [Pre-Assert手順] - 番兵ロックを設定し、CPLAT_OK を返却する。
-    EXPECT_CALL(mock_cplat_, cplat_local_lock_unlock(kFakeGuard))
-        .Times(2)
-        .WillRepeatedly(
-            Return(CPLAT_OK)); // [Pre-Assert確認_正常系] - ローカル ロックの取得と解放が 2 回ずつ行われること。
-
-    // Act
-    int result_first = cplat_mmap_get_rwlock(map, &lock_first, NULL); // [手順] - get_rwlock を 1 回目に呼び出す。
-    int result_second = cplat_mmap_get_rwlock(map, &lock_second,
-                                                 NULL); // [手順] - 同一ハンドルに対し get_rwlock を 2 回目に呼び出す。
-
-    // Assert
-    EXPECT_EQ(CPLAT_OK,
-              result_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が CPLAT_OK であること。
-    EXPECT_EQ(CPLAT_OK,
-              result_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が CPLAT_OK であること。
-    ASSERT_NE((cplat_interprocess_rwlock *)NULL,
-              lock_first); // [確認_正常系] - 1 回目の get_rwlock の戻り値が NULL でないこと。
-    EXPECT_EQ(lock_first,
-              lock_second); // [確認_正常系] - 2 回目の get_rwlock の戻り値が 1 回目と同一のポインターであること。
-
-    // Cleanup
-    (void)cplat_mmap_detach(map, NULL);
-}
-
-// ロック出力先が NULL の場合に get_rwlock が拒否することの確認
-TEST_F(mmapTest, get_rwlock_rejects_null_output)
-{
-    // Arrange
-    cplat_mmap *map = NULL;
-    cplat_error detail;
-    attachNewFile(&map); // [状態] - create_size 64 でマップ ハンドルを用意する。
-
-    // Pre-Assert
-
-    // Act
-    int actual_ret = cplat_mmap_get_rwlock(map, NULL,
-                                       &detail); // [手順] - ロック出力先に NULL を指定する。
-
-    // Assert
-    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
-              actual_ret); // [確認_異常系] - get_rwlock の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
-    EXPECT_EQ(EINVAL,
-              cplat_error_get_errno(&detail)); // [確認_異常系] - 詳細 errno が EINVAL であること。
-
-    // Cleanup
-    (void)cplat_mmap_detach(map, NULL);
-}
-
-// get_rwlock を一度も呼び出さずに attach と detach を行っても、正常に完了することの確認
-TEST_F(mmapTest, attach_and_detach_succeed_without_rwlock_access)
-{
-    // Arrange
-    cplat_mmap *map = NULL; // [状態] - ロック未参照の新規アタッチ用パスを用意する。
-
-    // Pre-Assert
-    EXPECT_CALL(mock_cplat_, cplat_interprocess_rwlock_open(_, _))
-        .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成が呼び出されないこと。
-    EXPECT_CALL(mock_cplat_, cplat_interprocess_rwlock_dispose(_))
-        .Times(0); // [Pre-Assert確認_正常系] - get_rwlock 未使用時にプロセス間ロックの生成と破棄が呼び出されないこと。
-
-    // Act
-    int result = cplat_mmap_attach(kPath, CPLAT_MMAP_ACCESS_READ_WRITE, kMapSize, &map,
-                                      NULL); // [手順] - create_size 64 で新規アタッチする。
-
-    // Assert
-    ASSERT_EQ(CPLAT_OK,
-              result); // [確認_正常系] - get_rwlock を呼ばない場合も attach の戻り値が CPLAT_OK であること。
-    EXPECT_EQ(static_cast<void *>(mapped_buf_),
-              cplat_mmap_get_address(
-                  map)); // [確認_正常系] - get_rwlock を呼ばない場合も get_address がマップ バッファーを返すこと。
-    int flush_result = cplat_mmap_flush(map, NULL, 0u, NULL);
-    EXPECT_EQ(CPLAT_OK,
-              flush_result); // [確認_正常系] - get_rwlock を呼ばない場合も flush の戻り値が CPLAT_OK であること。
-
-    // Cleanup
-    (void)cplat_mmap_detach(map, NULL);
 }
 
 // 指定したアドレス範囲の書き戻しが成功することの確認
@@ -403,42 +293,6 @@ TEST_F(mmapTest, flush_succeeds_for_explicit_address_range)
     EXPECT_EQ(
         CPLAT_OK,
         actual_ret); // [確認_正常系] - 明示したアドレス範囲に対する cplat_mmap_flush の戻り値が CPLAT_OK であること。
-
-    // Cleanup
-    (void)cplat_mmap_detach(map, NULL);
-}
-
-// get_rwlock の初回生成がローカル ロックで直列化され、open が 1 回だけ呼ばれることの確認
-TEST_F(mmapTest, get_rwlock_serializes_open_with_local_lock)
-{
-    // Arrange
-    cplat_mmap *map = NULL;
-    cplat_interprocess_rwlock *lock = NULL;
-    attachNewFile(&map); // [状態] - create_size 64 で新規アタッチしたハンドルを用意する。
-
-    // Pre-Assert
-    // [Pre-Assert確認_正常系] - lock、open、unlock の順で 1 回ずつ呼び出されること。
-    // [Pre-Assert手順] - 番兵ロックを設定し、各呼び出しは成功を返却する。
-    {
-        testing::InSequence sequence;
-        EXPECT_CALL(mock_cplat_, cplat_local_lock_lock(kFakeGuard, CPLAT_SYNC_WAIT_FOREVER))
-            .WillOnce(Return(CPLAT_OK));
-        EXPECT_CALL(mock_cplat_, cplat_interprocess_rwlock_open(_, _))
-            .WillOnce(
-                [](const char *, cplat_interprocess_rwlock **out)
-                {
-                    *out = kFakeRwlock;
-                    return CPLAT_OK;
-                });
-        EXPECT_CALL(mock_cplat_, cplat_local_lock_unlock(kFakeGuard)).WillOnce(Return(CPLAT_OK));
-    }
-
-    // Act
-    int actual_ret = cplat_mmap_get_rwlock(map, &lock, NULL); // [手順] - get_rwlock を呼び出す。
-
-    // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret);  // [確認_正常系] - get_rwlock の戻り値が CPLAT_OK であること。
-    EXPECT_EQ(kFakeRwlock, lock); // [確認_正常系] - get_rwlock の出力が番兵ロックであること。
 
     // Cleanup
     (void)cplat_mmap_detach(map, NULL);

@@ -57,7 +57,7 @@
 | [トレース (trace)](trace.md) | `prod/libsrc/cplat/trace/` | OS ログ、ETW、ファイル、標準エラー出力への出力先別トレース |
 | [ネットワーク (net)](net.md) | `prod/libsrc/cplat/net/` | IPv4 ソケット、エンドポイント、バイト オーダー変換 |
 | [ハッシュ テーブル (hashtable)](hashtable.md) | `prod/libsrc/cplat/hashtable/` | 外部領域へ構築できるハッシュ テーブルと遅延削除 |
-| [メモリ マップド ファイル (mmap)](mmap.md) | `prod/libsrc/cplat/mmap/` | ファイルのマップと、対になるプロセス横断ロック |
+| [メモリ マップド ファイル (mmap)](mmap.md) | `prod/libsrc/cplat/mmap/` | ファイルのオープン、マップ、反映、解放 |
 | [正規表現 (regex)](regex.md) | `prod/libsrc/cplat/regex/` | 環境に依存しない照合、置換、列挙、分割 |
 | [実行時支援 (runtime)](runtime.md) | `prod/libsrc/cplat/runtime/` | ホストとモジュールの情報、プロセス、終了処理、動的シンボル解決、メモリ ロック |
 | [コンソール (console)](console.md) | `prod/libsrc/cplat/console/` | 端末の UTF-8 化、仮想端末処理、親コンソールへの再接続 |

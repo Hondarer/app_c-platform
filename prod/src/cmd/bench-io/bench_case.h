@@ -50,7 +50,6 @@ typedef enum
     BENCH_API_STDIO_BLK,     /**< `cplat_fopen` + ブロック単位の読み書き。 */
     BENCH_API_MMAP_ONCE,     /**< アタッチを測定ループの外で 1 回だけ行う。 */
     BENCH_API_MMAP_EACH,     /**< 反復ごとにアタッチとデタッチを行う。 */
-    BENCH_API_MMAP_LOCK,     /**< 反復ごとにアタッチ、ロック取得解放、デタッチを行う。 */
     BENCH_API_COUNT          /**< 列挙子の個数。 */
 } bench_api;
 

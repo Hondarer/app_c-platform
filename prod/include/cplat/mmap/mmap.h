@@ -9,21 +9,16 @@
  *  Linux の `mmap` と Windows の `CreateFileMapping` + `MapViewOfFile` を
  *  共通のインターフェースで扱い、ファイルをプロセスのアドレス空間へマップした
  *  アドレスを公開します。\n
- *  同一ファイルへのプロセス横断リーダー ライター ロックは、
- *  @ref cplat_mmap_get_rwlock() の初回呼び出し時に自動で用意され、
- *  @ref cplat_interprocess_rwlock_lock_shared() 等 (`sync.h`) を
- *  そのまま使用します。\n
- *  ロックを参照しない限り生成しないため、排他が不要な用途では
- *  ロックの生成コストを負担しません。
+ *  マップ領域への並行アクセスに必要な排他制御は提供しません。\n
+ *  排他制御が必要な場合は、呼び出し側で `sync.h` の同期機能を
+ *  独立して生成し、寿命を管理してください。
  *
  *  @warning        本 API はローカル ファイル システム上のファイルを対象とする設計です。\n
  *                  NFS などのネットワーク ファイル システムでは、以下の理由により
  *                  プロセス間 (特にホストをまたぐ場合) の一貫性が保証されません。
- *                  - アドバイザリ ロック (`flock` / `LockFileEx` 相当) がネットワーク ファイル
- *                    システム上では信頼できないことがある。
  *                  - @ref cplat_mmap_flush() が反映するのはサーバーへの書き込みまでであり、
  *                    他クライアントのキャッシュを無効化するものではない。
- *                  - 他クライアントがすでにマップ済みのページは、ロックの取得/解放だけでは
+ *                  - 他クライアントがすでにマップ済みのページは、同期機能による排他制御だけでは
  *                    最新化されない (close-to-open セマンティクスに依存する)。\n
  *                  ネットワーク ファイル システム越しの共有が必要な場合は、本 API ではなく
  *                  別方式を検討してください。
@@ -41,7 +36,6 @@
 #include <cplat/base/result.h>
 #include <cplat/base/error.h>
 #include <cplat/cplat_export.h>
-#include <cplat/sync/sync.h>
 
 /**
  *  @ingroup        CPLAT_MMAP
@@ -84,11 +78,6 @@ extern "C"
      *  新規作成せず @ref CPLAT_ERR_UNKNOWN を返します。\n
      *  マップ結果のサイズが 0 になる場合 (空の既存ファイルを開いた場合など) は、
      *  `mmap`/`MapViewOfFile` がサイズ 0 を扱えないため @ref CPLAT_ERR_UNKNOWN を返します。\n
-     *  成功すると、同一 @p path がプロセス横断リーダー ライター ロックの識別子として
-     *  ハンドル内に保持されます。\n
-     *  ロック自体は本関数では開かず、@ref cplat_mmap_get_rwlock() の
-     *  初回呼び出し時に開きます。
-     *
      *  @warning        @p path はローカル ファイル システム上のファイルを指定してください。
      *                  ネットワーク ファイル システム上のファイルを指定した場合、
      *                  プロセス間の一貫性は保証されません (本ファイル冒頭の @warning を参照)。
@@ -124,41 +113,6 @@ extern "C"
     CPLAT_EXPORT size_t CPLAT_API cplat_mmap_get_size(const cplat_mmap *map);
 
     /**
-     *  @brief          ハンドルに内包されたプロセス横断リーダー ライター ロックを取得します。
-     *  @param[in]      map         対象のハンドル。NULL を渡してはなりません。
-     *  @param[out]     lock_out    ロックへの非所有参照の格納先。NULL を渡してはなりません。
-     *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
-     *                  エラー詳細を設定せず、返却しません。
-     *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は @ref CPLAT_OK 、失敗時は共通結果コードを返します。
-     *
-     *  ロックは本関数の初回呼び出し時に、@ref cplat_mmap_attach() へ渡したパスを
-     *  識別子として開きます。\n
-     *  2 回目以降の呼び出しでは、生成済みのロックをそのまま返します。\n
-     *  戻り値は @p map の寿命に紐づく非所有参照です。\n
-     *  `sync.h` の `cplat_interprocess_rwlock_lock_shared()` /
-     *  `cplat_interprocess_rwlock_lock_exclusive()` / `cplat_interprocess_rwlock_unlock()`
-     *  をそのまま使用してください。\n
-     *  呼び出し側が `cplat_interprocess_rwlock_dispose()` を呼び出してはなりません
-     *  (@ref cplat_mmap_detach() が内部で破棄します)。
-     *
-     *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部のプロセス内ミューテックスにより、初回のオープンを直列化します。
-     *
-     *  @note           初回の呼び出しのみロックのオープンに伴うコストが発生します。\n
-     *                  排他が不要な用途では本関数を呼び出さないことで、
-     *                  このコストを回避できます。
-     *
-     *  @note           初回呼び出しでロックを内部にキャッシュしますが、
-     *                  マップ済みアドレスやマップ サイズなど呼び出し側から見える状態は
-     *                  変化しないため、@p map は const です。
-     */
-    CPLAT_EXPORT int CPLAT_API cplat_mmap_get_rwlock(const cplat_mmap *map,
-                                                              cplat_interprocess_rwlock **lock_out,
-                                                              cplat_error *detail_out);
-
-    /**
      *  @brief          マップした内容をディスクへ反映します。
      *  @param[in]      map      対象のハンドル。NULL を渡してはなりません。
      *  @param[in]      address  反映対象の先頭アドレス。NULL の場合はマップ全体を対象にします。
@@ -185,10 +139,6 @@ extern "C"
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は @ref CPLAT_OK 、失敗時は共通結果コードを返します。
-     *
-     *  内包するロックの破棄 → アンマップ → ファイル クローズの順で行います。\n
-     *  @ref cplat_mmap_get_rwlock() を一度も呼び出していない場合、
-     *  ロックは生成されていないため破棄も行いません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
