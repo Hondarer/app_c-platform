@@ -1,303 +1,433 @@
-# プロセス横断 RW ロックを「ファイルに依存しない」中央集中型へ移行する設計
+# 番号または識別子で参照するプロセス横断 RW ロック資源の設計
 
 > [!NOTE]
-> 本書は、共有メモリ上の論理ロック表へ移行する案を検討した提案文書です。
+> 本書は、プロセス横断 RW ロックを、実ファイルに依存しない共有メモリ上のロック資源へ移行する提案文書です。
 > 現行仕様を確認する場合は、[API チート シート](../api-cheatsheet.md) と公開ヘッダー `prod/include/cplat/sync/sync.h` を参照してください。
 
-## 背景
+## 目的
 
-`app/c-platform/prod/libsrc/cplat/sync/` の `cplat_interprocess_rwlock_*` は、Linux と Windows のいずれでもファイル パスを識別子に取ります。  
-当該ファイルに対して、カーネルが提供するファイル ロック (`flock` / `LockFileEx`) を共有または排他で取得する実装です。
+本設計は、同一ホスト上の Linux と Windows で、数千個以上のプロセス横断 RW ロックを同じ公開契約で提供します。  
+利用者は OS の共有メモリ名、ファイル パス、カーネル オブジェクトを扱わず、cplat が定義する資源 ID とロックの通番または識別子だけを扱います。
 
-- Linux: `open(identity, O_RDWR|O_CREAT|O_CLOEXEC, 0666)` + `flock(fd, LOCK_SH|LOCK_EX)`  
-  (`sync_linux.c:159, 237, 251, 285`)
-- Windows: `CreateFileA(identity, GENERIC_READ|GENERIC_WRITE, ...)` + `LockFileEx`  
-  (`sync_windows.c:119, 156, 196, 230`)
-- 現状この API を呼び出すコードは cplat のテスト/モック以外には存在しません。
+本設計では、次の要件を同時に満たします。
 
-ユーザー要件 (確認済):
+- ロックの識別に実ファイルまたはダミー ファイルを使用しません。
+- 論理ロック数と OS の同期オブジェクト数を分離し、数千個以上のロックを扱います。
+- 利用プロセスが異常終了しても、保持していたロックを維持プロセスが回収します。
+- ロック取得と解放の通常経路には、維持プロセスとのプロセス間通信を入れません。
+- 容量不足時は、取得済みロックと既存ハンドルを維持したまま共有メモリ セグメントを追加します。
+- OS 固有の識別子、型、エラー値を公開 API に出しません。
 
-1. **最終的に数千のロックを管理可能にしたい**
-2. **プロセス クラッシュ時のロック自動解放は必須**
-3. アプリ可視ロック ファイル (a) と FS 名前空間エントリ (b) の両方を排除したい
-4. **専用マネージャー プロセスは増やさず、共有メモリ上の集中データ構造で実現する (案 R-1)**
+## 適用範囲
 
-「(a)+(b) を排除しつつ数千ロックを扱う」を 1 対 1 の OS プリミティブ割り当てで実現すると、  
-Linux 側で FD 上限 (`ulimit -n` 既定 1024) や `/dev/shm/` エントリ膨張という別の壁に当たる。  
-したがって **「共有メモリ 1 セグメント + その中の論理ロック表」** という構成が必須となります。
+初期実装で提供する同期プリミティブは、共有モードと排他モードを持つ RW ロックだけです。  
+既存の `cplat_interprocess_lock` を同じ資源へ統合することは、本設計の対象外です。
 
----
+本設計が扱う範囲は、同一 OS インスタンス内のプロセスです。  
+別ホストとの分散ロック、共有データの複製、障害発生後の業務データの修復方法は扱いません。
 
-## アーキテクチャー概要
+## 共通設計
 
-- すべての参加プロセスを対等に扱い、専用デーモンは追加しません。
-- 「ロック ドメイン」 1 つにつき、共有メモリ セグメント 1 個を持ちます。
-    - Linux: `shm_open("/cplat_lkdomain_<DOMAIN>", O_RDWR|O_CREAT, 0660)` + `ftruncate` + `mmap`
-    - Windows: `CreateFileMappingA(INVALID_HANDLE_VALUE, ..., "Local\\cplat_lkdomain_<DOMAIN>")` +  
-      `MapViewOfFile`
-- セグメント内に「マスター ロック (robust)」と「論理ロック表 (数千 entries)」を配置します。
-- 待機は条件変数プール (Linux: PROCESS_SHARED `pthread_cond_t` × K 個 /  
-  Windows: 名前付き auto-reset Event × K 個) を ID ハッシュで割り当てます。
-- 識別子 (`identity` 文字列) はロック ドメイン内の論理名としてハッシュ参照します。
-- 参加プロセスはロック ドメインに attach した時点で `ref_count++`、detach 時 `ref_count--`。  
-  最後の detach 時にセグメント自体を破棄します (`shm_unlink` / 全 HANDLE クローズ)。
+### ロック資源
 
----
+ロック資源は、複数の論理 RW ロックをまとめて管理する単位です。  
+利用者は OS 非依存の `uint32_t` 資源 ID でロック資源を指定し、プロセスごとに資源ハンドルを開きます。
 
-## ロック ドメインの命名と発見
+資源 ID は、同じ OS 名前空間を利用するアプリケーション間で一意に割り当てます。  
+別用途の資源が同じ ID を使用した場合は、共有領域の識別子、レイアウト版、資源 ID を検証して衝突として拒否します。
 
-現 API では `identity` がファイル パスを想定したが、新方式では「ドメイン名 + ロック名」の  
-2 階層が必要。後方互換のために以下のルールで識別子を解釈します。
+各ロック資源は、初期化時に次のどちらか一方の参照方式を選びます。  
+参照方式は資源の寿命中に変更しません。
 
-- `identity` に `'\0'` 区切りなし: ライブラリ既定ドメイン (環境変数 `CPLAT_LOCK_DOMAIN`  
-  または UID + 実行バイナリ パスのハッシュから計算) を使用し、`identity` 全体を論理ロック名とします。
-- `identity` が `"DOMAIN/LOCK"` 形式: 明示分離
-- (検討項目) パス区切りで悩ましいケースは `identity` 先頭 1 バイトを区切り選択子にする等の運用ルールで吸収
+| 参照方式 | 利用者が指定する値 | 用途 |
+|---|---|---|
+| 通番方式 | 0 から始まる `uint32_t` のロック番号 | 対象とロック番号の対応をアプリケーションが固定できる場合 |
+| 識別子方式 | NUL 終端 UTF-8 文字列 | 実行時に決まる論理名からロックを開く場合 |
 
-ドメイン名は最終的に OS の名前空間名 (POSIX shm 名 / NT 名前空間名) になるため、  
-英数記号の制限が出る。ライブラリ内部で sanitize + ハッシュ化する関数を入れる。
+一つの資源内で通番方式と識別子方式を混在させません。  
+これにより、同じロックへ通番と識別子の両方から意図せず到達する別名問題を避けます。
 
----
+### 利用モデル
 
-## 共有メモリ レイアウト
+ロックを繰り返し利用する処理は、資源ハンドルからロック ハンドルを一度開き、そのハンドルで取得と解放を繰り返します。  
+ロック ハンドルは、接続済みセグメントとセグメント内スロットをプロセス内で保持するため、通常の取得と解放で通番の再計算や hashtable の検索を行いません。
 
-```
-+--------------------------------------------------------------+
-| segment_header  (cacheline aligned, 固定 1 個)               |
-|   magic            : "CUSL"                                  |
-|   layout_version   : 1                                       |
-|   total_size       : sizeof(segment) byte                    |
-|   ref_count        : 参加プロセス数 (atomic uint32)          |
-|   manager_mutex    : robust pthread_mutex / Win Mutex name   |
-|   condvar_count    : K (例: 64)                              |
-|   condvar_pool[K]  : 待機用                                  |
-|   table_size       : N (例: 4096)                            |
-|   free_list_head   : 空きエントリの先頭 index                |
-|   hash_buckets[B]  : 識別子ハッシュ → entry index (B≒N/2)    |
-|   string_pool_size : 識別子文字列領域サイズ                  |
-+--------------------------------------------------------------+
-| lock_table[N]                                                |
-|   per-entry (固定サイズ):                                    |
-|     state          : FREE / IN_USE                           |
-|     identity_hash  : uint64                                  |
-|     identity_off   : string_pool 内オフセット                |
-|     identity_len   : uint16                                  |
-|     reader_count   : uint32                                  |
-|     writer_pid     : pid_t / DWORD (0 なら writer 不在)      |
-|     writer_serial  : プロセス起動シリアル (PID リユース判定) |
-|     readers[R_MAX] : (pid, serial) の小配列 (R_MAX 例:8)     |
-|     readers_overflow_off : 拡張領域 off (8 を超える場合)     |
-|     waiter_count   : 統計用                                  |
-|     cond_var_idx   : 0..K-1                                  |
-|     hash_next      : ハッシュ チェーン                       |
-|     refcount       : このエントリを open しているハンドル数  |
-+--------------------------------------------------------------+
-| string_pool / overflow_pool (slab allocator)                 |
-+--------------------------------------------------------------+
+単発処理向けには、資源ハンドルと通番または識別子を取得関数へ直接渡す簡便 API も提供します。  
+簡便 API は内部で同じロック状態と所有台帳を使用し、ロック ハンドル API と異なる同期契約を持ちません。
+
+```text
+利用プロセス
+    |
+    +-- 資源ハンドル
+            |
+            +-- ロック ハンドル --+--> 共有メモリ上のロック スロット
+            |                      |
+            +-- 資源直接 API ------+
 ```
 
-固定サイズで設計し、`mmap` / `MapViewOfFile` 後はそのまま使用します。サイズ パラメーター (N, K, B,  
-R_MAX, string_pool) は環境変数または初回作成時の hint で決定し、ヘッダーに記録します。  
-(後で attach するプロセスはヘッダーを信用)。
+### 提案する公開面
 
----
+公開 API の実装時は、次の型と操作群を `cplat/sync/sync.h` に追加します。  
+次の表は操作の責務を定めるものであり、関数名と引数の最終的な表記は公開ヘッダーの変更時に確定します。
 
-## マスター ロックと復旧
+| 分類 | 操作 | 契約 |
+|---|---|---|
+| 資源設定 | 資源 ID、参照方式、最大セッション数、セグメント当たりのロック数、所有台帳容量、待機者容量、識別子格納容量、Windows 名前空間を指定 | 維持プロセスだけが新規資源を初期化 |
+| 資源接続 | 資源 ID から資源ハンドルを開く | 維持プロセスが稼働中のときだけ新規接続を許可 |
+| ロック接続 | 通番または識別子からロック ハンドルを開く | 資源の参照方式と異なる指定は `CPLAT_ERR_INVALID_ARGUMENT` |
+| 取得 | shared、exclusive、try shared、try exclusive | 成否とは別に取得状態を必須出力へ返す |
+| 復旧 | 排他取得者が保護データを修復済みと通知 | 死亡 writer の回収後だけ呼び出し可能 |
+| 解放 | 取得中の shared または exclusive を解放 | 未取得の解放を拒否 |
+| 破棄 | ロック ハンドルまたは資源ハンドルを閉じる | 共有資源そのものは破棄しない |
+| 維持 | 資源の初期化、要求処理、死亡セッション回収を 1 回または継続実行 | 利用者が用意する維持プロセスから呼び出す |
 
-### Linux
+取得関数の戻り値は、`CPLAT_OK` または既存の共通結果コードとします。  
+ロックを取得できた場合は、必須の取得状態出力へ次のいずれかを設定します。
 
-- `manager_mutex` を `pthread_mutexattr_setpshared(PTHREAD_PROCESS_SHARED)` +  
-  `pthread_mutexattr_setrobust(PTHREAD_MUTEX_ROBUST)` で初期化
-- 取得時:
-    - `pthread_mutex_lock(&manager_mutex)`
-    - 返値 `EOWNERDEAD` → 前保持者が死亡。スイープ (後述) を実行し  
-      `pthread_mutex_consistent(&manager_mutex)` で整合化
-    - 返値 `ENOTRECOVERABLE` → セグメント全体を放棄 (新 generation で再作成)
-- 条件変数も `pthread_condattr_setpshared(PTHREAD_PROCESS_SHARED)` で PROCESS_SHARED に。  
-  `pthread_condattr_setclock(CLOCK_MONOTONIC)` を併用してタイムアウト計算を `CLOCK_MONOTONIC` に統一  
-  (現状の `monotonic_deadline` と整合)
-
-### Windows
-
-- `manager_mutex` は名前付き Mutex (`CreateMutexA("Local\\cplat_lkdomain_<DOMAIN>_mutex")`)
-- 取得時:
-    - `WaitForSingleObject(manager_mutex, ms)` の結果が `WAIT_ABANDONED_0` → 前保持者死亡。  
-      スイープ実行後、所有を取って進める (Windows は自動的に正常所有状態に戻る)
-- 待機は名前付き auto-reset Event のプール (`CreateEventA` で K 個)。  
-  公平性: 起床通知時に「全部 set してから cond を再評価」(thundering herd) または  
-  「FIFO 待機 ID キューを共有メモリに持ち、特定 Event を狙って set」 のどちらかを選択。  
-  当面は前者の単純実装で良い。
-
----
-
-## プロセス生存検査
-
-論理ロックの owner として記録された PID が、マスター ロック取得後の検査時点で  
-本当に生きているかを確認する必要がある。検査は (a) スイープ時、(b) ロック取得待ちが  
-タイムアウトに近づいた時、に行います。
-
-### Linux
-
-- 第一選択: `pidfd_open(pid, 0)` (Linux 5.3+)
-    - 成功 → `poll({.fd=pidfd, .events=POLLIN}, 1, 0)` で 0 返却 = 生存、POLLIN 立つ = 終了済
-    - `pidfd_open` 失敗 (`ESRCH`) = 死亡
-- フォールバック (古いカーネル): `/proc/<pid>/stat` から開始時刻 (`starttime` フィールド) を  
-  読み、エントリに記録した `writer_serial` (= 開始時刻) と一致するか確認
-    - PID リユース耐性のために `writer_serial` には必ず開始時刻を入れる
-- 検査結果のキャッシュ: マスター ロック保持中は同一 PID を複数回検査することがあるので  
-  一時マップに乗せる (関数呼び出しスタック内のローカル領域)
-
-### Windows
-
-- `OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid)`
-- ハンドル取得失敗 = 死亡
-- 取得できたら `GetExitCodeProcess(handle, &code)` で `code != STILL_ACTIVE` を判定。  
-  ただし STILL_ACTIVE (259) の終了コード偽陽性を避けるため、`WaitForSingleObject(handle, 0)` で  
-  `WAIT_OBJECT_0` (シグナル) を確認する方が確実
-- PID リユース対策: `GetProcessTimes` で取得した `CreationTime` を `writer_serial` に格納  
-  (FILETIME を 64bit にして比較)
-
----
-
-## スイープ ロジック
-
-マスター ロック保持中に呼ばれる。
-
-```
-for each entry in lock_table where state == IN_USE:
-    if entry.writer_pid != 0:
-        if !is_alive(entry.writer_pid, entry.writer_serial):
-            entry.writer_pid = 0
-            wakeup_waiters(entry.cond_var_idx)
-    for each reader (pid, serial) in entry.readers:
-        if !is_alive(pid, serial):
-            remove from entry.readers
-            entry.reader_count--
-            if entry.reader_count == 0 and entry.writer_pid == 0 and waiter_count > 0:
-                wakeup_waiters(entry.cond_var_idx)
-    if entry.reader_count == 0 and entry.writer_pid == 0 and entry.refcount == 0:
-        return to free_list
-```
-
-スイープを毎回の `lock` で実行するとコストが高い。最適化:
-
-- **遅延スイープ**: 取得待ちでタイムアウトに近づいたとき / 取得に明確に失敗したとき  
-  のみスイープ
-- **`EOWNERDEAD` 経路では必ず全表スイープ** (マスター ロック自体の保持者が死んでいるため)
-- **エントリ単位のスイープ**: ロック取得対象のエントリだけ生存検査
-
-reader 配列が固定長 R_MAX (例 8) を超える場合は overflow 領域へリンク。  
-通常運用では R_MAX で十分のはず (1 ロックを 8 プロセスが同時 read することは稀)。
-
----
-
-## API 互換性
-
-ヘッダー `sync.h` の関数シグネチャはすべて維持可能。
-
-- `cplat_interprocess_rwlock_open(identity, &lock)` — identity 解釈を上記ルールで変える
-- `lock_shared / lock_exclusive / unlock` — 内部実装のみ変更
-- `export_descriptor / import_descriptor` — 識別子文字列をシリアライズする現方式を維持  
-  (新方式でも identity 文字列で一意特定できるため)
-- `cplat_interprocess_sync_backend` の `CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE` は  
-  enum 値を残しつつ、新規 `CPLAT_INTERPROCESS_SYNC_BACKEND_SHARED_TABLE` を追加して  
-  既定をこちらに切り替える (バックエンド選択 API が将来必要なら拡張ポイントになる)
-
-エラー コード:
-
-- 新規 `CPLAT_SYNC_DEAD_OWNER_RECOVERED` (`EOWNERDEAD` 起因で復旧した直後の通知。  
-  オプション。クライアントが「以前保持されていた状態が一貫しているか」を再検査するヒント)
-- 既存 `CPLAT_ERR_CORRUPT_DESCRIPTOR` を `ENOTRECOVERABLE` 経路でも使用
-
----
-
-## ファイル変更計画
-
-| パス | 変更概要 |
+| 取得状態 | 意味 |
 |---|---|
-| `app/c-platform/prod/include/cplat/sync/sync.h` | enum 拡張、エラー コード追加 (互換維持) |
-| `app/c-platform/prod/include_internal/cplat/sync/lock_manager_internal.h` (新規) | 共有メモリ レイアウト構造体、内部 API 宣言 |
-| `app/c-platform/prod/libsrc/cplat/sync/lock_manager.c` (新規) | OS 非依存ロジック (ハッシュ、スイープ、API アダプター) |
-| `app/c-platform/prod/libsrc/cplat/sync/lock_manager_linux.c` (新規) | shm_open/mmap、robust mutex、pidfd、pthread_cond |
-| `app/c-platform/prod/libsrc/cplat/sync/lock_manager_windows.c` (新規) | CreateFileMapping、名前付き Mutex/Event、OpenProcess |
-| `app/c-platform/prod/libsrc/cplat/sync/sync_linux.c` | `interprocess_rwlock_*` を lock_manager 呼び出しへ置換。`interprocess_lock_*` (排他のみ) も同じバックエンドの degenerate ケースとして実装 (writer のみ使う) |
-| `app/c-platform/prod/libsrc/cplat/sync/sync_windows.c` | 同上 |
-| `app/c-platform/prod/libsrc/cplat/sync/makefile` | 新規ソースの追加 |
-| `app/c-platform/test/libsrc/mock_cplat/` 各 .c | delegate_real_ 系の差し替え不要 (API シグネチャ維持のため)。動作変更による期待値見直し |
-| `app/c-platform/test/src/` (新規テスト) | 数千スケール / クラッシュ復旧 / PID リユース のテスト |
+| 通常取得 | 前の writer は正常に解放済み |
+| 死亡保持者からの取得 | 前の writer が未解放のまま終了し、保護データの整合性確認が必要 |
 
-参照する既存ユーティリティ:
+取得状態を戻り値へ混在させないため、cplat の「成功は `CPLAT_OK` の 1 値」という規約を維持できます。  
+try 取得が `CPLAT_ERR_BUSY` を返した場合と、待機が `CPLAT_ERR_TIMEOUT` を返した場合は、取得状態出力を使用しません。
 
-- 現 `monotonic_ms` / `monotonic_deadline` (`sync_linux.c:80-98`) は流用
-- 現 `map_wait_rc` (`sync_linux.c:119-134`) も流用
-- Windows 側の `dup_string` (`sync_windows.c`) も流用
+既存の `cplat_interprocess_rwlock_open(const char *identity, ...)` は、資源ハンドルと識別子を受けるロック接続 API へ置き換えます。  
+この変更はソース互換ではないため、実装時は API チート シート、機能仕様、エクスポート テスト、mock_cplat を同じ変更で更新します。
 
----
+ロックの受け渡し用ディスクリプタには、資源 ID、参照方式、通番または識別子、ディスクリプタ版を格納します。  
+System V 共有メモリ ID、Windows の `HANDLE`、セグメント番号などの実装上の値は格納しません。
 
-## 未決事項
+## 初期化・維持プロセス
 
-1. **「数千」の正確な目安**: 同時アクティブ ロック上限 (table_size N) と、それを超えた  
-   ときの挙動 (拡張 / エラー) の方針。
-2. **ロック ドメインの分離単位**: 「全アプリで 1 つ」「実行バイナリごと」「ユーザーごと」 のどれか。
-3. **公平性ポリシー**: ライター優先 / リーダー優先 / FIFO のどれを既定にするか。  
-   現 `flock` (Linux) は実装依存、`LockFileEx` も公平性は保証なし。新実装ではどう決めるか。
-4. **タイムアウト時の挙動**: 「待機列に居続けるが時間切れで離脱」と単純な polling、  
-   どちらを採るか (条件変数 + timed wait で前者にできる)。
-5. **`interprocess_lock` (排他のみ) を共通バックエンドに統合してよいか**: 同じ table に  
-   exclusive-only モードのエントリとして同居させる方針 (推奨)。
-6. **環境変数による override (`CPLAT_LOCK_DOMAIN`, `CPLAT_LOCK_TABLE_SIZE` 等) の命名規約**。
+### 役割
 
----
+ロック資源を使用する構成では、利用者が初期化・維持プロセスを一つ用意します。  
+cplat は維持処理を実行する API を提供しますが、汎用デーモンまたはサービスの実行ファイルは提供しません。
+
+維持プロセスは、次の制御処理を担当します。
+
+- 資源の制御セグメントと最初のデータ セグメントを初期化します。
+- 新規利用プロセスへセッション ID を割り当てます。
+- 通番または識別子の追加要求に応じて、データ セグメントを追加します。
+- 利用プロセスの生存状態を監視します。
+- 終了したセッションの reader、writer、待機情報を回収します。
+- 明示的な資源停止時に、参加プロセスがないことを確認して OS 資源を破棄します。
+
+維持プロセスは、通常の shared 取得、exclusive 取得、解放を仲介しません。  
+接続済みの利用プロセスは、共有メモリ上のロック状態を直接更新します。
+
+```text
+                         初期化・維持プロセス
+                         |  初期化、拡張、死亡回収
+                         v
+                  +------+------+
+                  | 制御セグメント |
+                  +------+------+
+                         |
+             +-----------+-----------+
+             v                       v
+      データ セグメント 0      データ セグメント 1
+             ^                       ^
+             |  lock/unlock          |  lock/unlock
+        利用プロセス A          利用プロセス B
+```
+
+### 維持プロセス停止時
+
+維持プロセスが停止しても、接続済みセグメントにある既存ロックの取得と解放は継続します。  
+共有状態の更新中に維持プロセスが終了した場合は、Linux の robust mutex または Windows の abandoned mutex 検出後に共有状態を検査して処理を継続します。
+
+維持プロセスの停止中は、次の処理を保留します。
+
+- 新しい利用プロセスの資源接続
+- 新しいセグメントを必要とする通番または識別子の追加
+- 終了した利用プロセスが保持していたロックの回収
+
+利用者は、維持プロセスを監視対象にして再起動します。  
+再起動した維持プロセスは、制御セグメントの版、資源 ID、セグメント連鎖、参加セッションを検査してから維持処理を再開します。
+
+## 共有メモリ構成
+
+### セグメント方式
+
+共有メモリは、固定サイズの制御セグメントと、追加可能なデータ セグメントに分けます。  
+既存セグメントのサイズは変更せず、容量不足時は新しいデータ セグメントを末尾へ追加します。
+
+```text
+制御セグメント
+    magic / layout_version / resource_id / mode
+    segment_capacity / segment_count / generation
+    maintainer_session / maintainer_heartbeat
+    session table
+    first_segment
+         |
+         v
+データ セグメント 0 --> データ セグメント 1 --> ...
+    segment_header
+    state_guard
+    lock_state[segment_capacity]
+    ownership ledger
+    waiter pool
+    hashtable regions    // 識別子方式だけ
+```
+
+共有領域にはプロセス固有のポインターまたは `HANDLE` を保存しません。  
+別セグメントの参照には、System V 共有メモリ ID、Windows の派生オブジェクト名に変換できるセグメント番号、または領域先頭からのオフセットを使用します。
+
+最大セッション数、セグメント当たりのロック数、所有台帳容量、待機者容量は資源初期化時に指定し、後続セグメントにも同じ値を使用します。  
+総ロック数には cplat 固有の固定上限を設けず、`uint32_t` の範囲、共有領域の表現範囲、OS 資源上限のうち最初に達した限界で `CPLAT_ERR_LIMIT_EXCEEDED` を返します。
+
+### 通番方式
+
+通番方式では、ロック番号から対象セグメントとスロットを計算します。
+
+```text
+segment = lock_number / segment_capacity
+slot    = lock_number % segment_capacity
+```
+
+指定されたセグメントがまだ存在しない場合は、維持プロセスへ必要なセグメント数までの追加を要求します。  
+別の利用プロセスが同時に同じ範囲を要求した場合も、維持プロセスが追加処理を直列化し、同じセグメントを重複して作りません。
+
+### 識別子方式
+
+識別子方式では、各データ セグメントに外部領域型の `cplat_hashtable` を構築します。  
+hashtable はアドレス情報を永続領域に含まず、別プロセスから再接続できるため、共有メモリ上の索引として使用できます。
+
+キーには可変長 UTF-8 文字列、値にはセグメント内ロック スロット番号を格納します。  
+hashtable 自体はスレッド セーフではないため、検索、追加、整合性検査はセグメントの状態保護下で実行します。
+
+識別子に対応するレコードは、資源を停止するまで削除または再利用しません。  
+この制約により、ロック ハンドルが保持するセグメント番号とスロット番号を安定させます。
+
+既存セグメントに識別子または可変長キー領域の空きがない場合は、維持プロセスが次のデータ セグメントを追加します。  
+追加前に全セグメントを検索し、同じ識別子が別セグメントへ重複登録されないことを確認します。
+
+### 所有台帳
+
+所有台帳は、取得中のロックを利用セッションと対応付けます。  
+writer にはセッション ID と取得状態を記録し、reader にはセッションごとの保持数を記録します。
+
+ロック状態と所有台帳の更新は、同じ状態保護区間で完了させます。  
+更新中にプロセスが終了した場合は、状態保護の owner-dead 検出後にロック状態と台帳の対応を検査し、不完全な更新を回収します。
+
+所有台帳はデータ セグメントごとに初期化時の容量を確保し、通常の取得経路では拡張しません。  
+容量を使い切った取得要求は `CPLAT_ERR_LIMIT_EXCEEDED` とし、取得済みロックを失効させたり、既存セグメントを再配置したりしません。  
+この固定容量契約により、維持プロセスの停止中も、空きがある既存セグメントの取得と解放を継続できます。
+
+### 待機者管理
+
+論理ロックごとに OS の待機オブジェクトを割り当てると、ロック数に比例してカーネル資源が増加します。  
+本設計は、待機スロットのプールをデータ セグメントごとに持ち、競合時だけ待機スロットを割り当てます。
+
+待機者領域もデータ セグメントごとの固定容量とし、通常の取得経路では拡張しません。  
+待機スロットを使い切った取得要求は `CPLAT_ERR_LIMIT_EXCEEDED` とします。
+
+待機記録には、対象ロック、shared または exclusive、利用セッション、通知世代を格納します。  
+起床後は必ず共有メモリ上の述語を再評価し、早すぎる起床や別ロック向けの通知を取得成功として扱いません。
+
+待機 writer が 1 件以上ある間は、新しい reader を取得させません。  
+writer 解放時は次の writer を先に起床し、writer がいない場合だけ待機 reader を起床します。
+
+## 利用プロセス終了時の回収
+
+### セッションの識別
+
+利用プロセスは、資源接続時に維持プロセスからセッション ID を取得します。  
+セッションには PID だけでなくプロセス開始時刻を表す値を記録し、PID の再利用によって別プロセスを生存中と誤認しないようにします。
+
+Linux は `pidfd` を利用できる場合に優先し、維持プロセスが `poll` または `epoll` で終了を監視します。  
+`pidfd` を利用できない対象環境では、`/proc/<pid>/stat` の開始時刻と PID を周期的に照合します。
+
+Windows は `OpenProcess` で取得したプロセス オブジェクトを待機します。  
+プロセス オブジェクトはプロセス終了時にシグナル状態になるため、登録待機または待機スレッドで終了を検出できます。
+
+### reader の回収
+
+reader の利用プロセスが終了した場合は、そのセッションに属する reader 保持数を所有台帳から除去します。  
+対象ロックの reader 数が 0 になり、writer が待機している場合は次の writer を起床します。
+
+reader は保護データを変更しない契約であるため、reader の死亡だけではロックを不整合状態にしません。
+
+### writer の回収
+
+writer の利用プロセスが終了した場合は、writer 所有を解除し、対象ロックを回復待ち状態にします。  
+回復待ち状態では、新しい reader を取得させません。
+
+次の exclusive 取得者はロックを取得し、取得状態出力で死亡保持者からの取得を受け取ります。  
+取得者は保護データを検査または修復し、整合済み通知 API を呼び出してからロックを解放します。
+
+復旧中の取得者が整合済み通知前に終了した場合と、整合済み通知を行わずに解放した場合は、回復待ち状態を維持します。  
+次の exclusive 取得者へ再び死亡保持者からの取得を通知し、保護データの検査を省略させません。
+
+この回収はロックの進行を回復しますが、保護対象データの正しさを cplat が保証するものではありません。  
+利用者は、writer が任意の更新途中で終了しても検査または修復できるデータ形式を用意します。
+
+## プラットフォーム別実装
+
+### Linux
+
+Linux は、制御セグメントとデータ セグメントを System V 共有メモリで確保します。  
+制御セグメントは資源 ID から決定する System V key で発見し、追加セグメントは制御セグメントから辿ります。  
+`ftok` を使用しないため、キー生成用のファイルは不要です。
+
+制御セグメントを新規作成するときは `IPC_CREAT | IPC_EXCL` を使用します。  
+同じ key のセグメントが存在する場合は、magic、レイアウト版、資源 ID、作成状態を検証し、別用途のセグメントであれば衝突として拒否します。
+
+共有状態の保護には、`PTHREAD_PROCESS_SHARED` と `PTHREAD_MUTEX_ROBUST` を指定した `pthread_mutex_t` を使用します。  
+取得結果が `EOWNERDEAD` の場合は共有状態を検査してから `pthread_mutex_consistent` を呼び出し、`ENOTRECOVERABLE` の場合は対象セグメントを破損状態として維持プロセスへ通知します。
+
+待機には、プロセス共有属性を持つ条件変数またはセマフォを待機スロットごとに使用します。  
+有限待機は cplat の既存契約に合わせて単調時刻で期限を管理し、シグナル割り込みを利用者へ返しません。
+
+System V 共有メモリは `IPC_RMID` 後も最後のプロセスが detach するまで存続します。  
+資源停止時は新規接続を止め、参加セッションがなくなってから全セグメントへ `IPC_RMID` を適用します。
+
+### Windows
+
+Windows は、`CreateFileMapping` のファイル ハンドルへ `INVALID_HANDLE_VALUE` を指定し、ページング ファイルを backing store とする共有メモリを確保します。  
+実ファイルは作成しません。
+
+制御セグメントと追加セグメントの名前は、資源 ID、セグメント番号、オブジェクト種別から生成します。  
+ファイル マッピング、Mutex、Event は同じ名前空間を共有するため、オブジェクト種別を名前へ含めて衝突を防ぎます。
+
+```text
+Local\cplat.rwlock.<resource_id>.control.mapping
+Local\cplat.rwlock.<resource_id>.segment.<segment_no>.mapping
+Local\cplat.rwlock.<resource_id>.segment.<segment_no>.guard.mutex
+Local\cplat.rwlock.<resource_id>.segment.<segment_no>.wait.<wait_no>.event
+```
+
+既定では `Local\` 名前空間を使用します。  
+Windows サービスと別セッションのプロセスで共有する場合は、資源設定で `Global\` を明示します。  
+セッション 0 以外から global file mapping を作成するには `SeCreateGlobalPrivilege` が必要なため、権限不足は `CPLAT_ERR_PERMISSION_DENIED` として通知します。
+
+共有状態の保護には名前付き Mutex を使用します。  
+待機結果が `WAIT_ABANDONED` の場合は共有状態を検査してから処理を継続します。
+
+待機スロットには名前付き Event または Semaphore を使用します。  
+`WaitOnAddress` と `WakeByAddress*` は同一プロセス内のスレッド間通知であるため、プロセス横断待機には使用しません。
+
+共有マッピングと同期オブジェクトは、最後のハンドルが閉じられるまで存続します。  
+維持プロセスが停止しても利用プロセスが保持するハンドルによって既存資源を維持し、維持プロセスの再起動後に同じ名前で開き直します。
+
+### 共通契約と実装差
+
+公開 API は、次の差異を利用者へ見せません。
+
+| 項目 | Linux | Windows | 共通契約 |
+|---|---|---|---|
+| 共有領域 | System V 共有メモリ | pagefile-backed file mapping | 実ファイルを作成しない |
+| 状態保護 | process-shared robust mutex | named Mutex | 保持者死亡後に状態を検査して継続 |
+| 待機 | process-shared condvar または semaphore | named Event または Semaphore | 述語再評価、タイムアウト、ライター優先 |
+| プロセス監視 | pidfd、PID と開始時刻 | process HANDLE と creation time | PID 再利用を区別して死亡保持を回収 |
+| 資源名 | System V key と shmid | Local または Global の名前 | 公開面では `uint32_t` 資源 ID |
+| OS エラー | errno、pthread の結果 | `GetLastError`、wait status | cplat 共通結果コード |
+
+## エラーと状態遷移
+
+| 状況 | 結果 |
+|---|---|
+| 引数が NULL、空識別子、参照方式と操作が不一致 | `CPLAT_ERR_INVALID_ARGUMENT` |
+| try 取得時に競合 | `CPLAT_ERR_BUSY` |
+| 有限待機の期限到達 | `CPLAT_ERR_TIMEOUT` |
+| 通番、セグメント数、所有台帳、待機者領域が設定値または表現上限へ到達 | `CPLAT_ERR_LIMIT_EXCEEDED` |
+| 識別子またはキー格納領域が一つの空セグメントにも収まらない | `CPLAT_ERR_STORAGE_FULL` |
+| 識別子用の既存セグメントが満杯 | 維持プロセスがセグメントを追加して再試行 |
+| 維持プロセス停止中に新規接続または拡張が必要 | `CPLAT_ERR_BUSY` |
+| 資源 ID が別用途の OS 資源と衝突 | `CPLAT_ERR_DUPLICATE_KEY` |
+| 共有領域の magic、版、範囲、連鎖が不正 | `CPLAT_ERR_CORRUPT_DESCRIPTOR` |
+| Windows の Global 名前空間作成権限がない | `CPLAT_ERR_PERMISSION_DENIED` |
+| writer 死亡後に exclusive 取得 | 戻り値は `CPLAT_OK`、取得状態は死亡保持者からの取得 |
+
+タイムアウトは、共有状態の保護待ち、ロック競合待ち、起床後の再試行を含む操作全体へ適用します。  
+内部で複数回待機しても、呼び出し時に計算した単調時刻の期限を延長しません。
+
+## 実装の分割
+
+実装時は、資源管理と RW ロックの共通状態遷移を OS 非依存コードへ置き、共有領域、待機、プロセス監視を OS 別コードへ分けます。  
+Linux と Windows のシステム モデルが異なるため、OS API の差を大量の条件コンパイルで一つの関数へ混在させません。
+
+| 責務 | 実装単位 |
+|---|---|
+| 資源、セグメント、通番計算、hashtable、所有台帳、ライター優先 | OS 非依存ロジック |
+| System V 共有メモリ、robust mutex、process-shared wait、pidfd | Linux バックエンド |
+| named mapping、Mutex/Event、process HANDLE、名前空間 | Windows バックエンド |
+| 既存 API から資源 API への移行 | 公開 API アダプターとディスクリプタ |
+| 維持処理 | 利用者プロセスから呼び出せる cplat API |
+
+共有メモリのレイアウトには magic、レイアウト版、全領域サイズ、各配列の要素数とオフセットを持たせます。  
+接続時と owner-dead 回復時は、値をポインターとして使用する前に範囲、積のオーバーフロー、セグメント連鎖を検証します。
 
 ## 検証方針
 
-### ユニット テスト
+### 共通動作
 
-- `cd app/c-platform && make test` で全テスト通過
-- 既存の `interprocess_rwlock_*` 単純シナリオ (shared/exclusive 競合、タイムアウト、  
-  export/import) が新バックエンドでも同等動作
+- 通番方式と識別子方式で、shared 同士は並行取得でき、exclusive とは相互排他になること
+- try 取得、有限待機、無期限待機が両 OS で同じ結果になること
+- 待機 writer がいる間は新しい reader が先行しないこと
+- ロック ハンドル API と資源直接 API が同じロック状態を参照すること
+- 資源の参照方式と異なる API を拒否すること
+- ディスクリプタを別プロセスへ渡して同じロックを開けること
 
-### スケール テスト (新規)
+### 規模と拡張
 
-- N=1, 10, 100, 1000, 5000 の論理ロックを同時にオープン → 取得/解放
-- Linux: `lsof -p $$` で FD 数が O(1) であること (shm 1 個 + 必要最小限)
-- Linux: `ls /dev/shm` でロック ドメイン用エントリが 1 個のみ
-- Windows: `Handle.exe` でハンドル数が O(1) (shm + master mutex + cond event プール)
+- 1、100、1000、5000 個のロックを開き、取得と解放を完了できること
+- 既存セグメントのロックを保持したまま新しいセグメントを追加できること
+- セグメント追加後も、追加前に開いたロック ハンドルが有効であること
+- 同じ通番または識別子を複数プロセスから同時に開いても、同じスロットへ解決されること
+- 識別子領域不足とロック スロット不足の双方でセグメントを追加できること
+- OS の同期オブジェクト数が論理ロック数ではなく、セグメント数と同時待機数に応じて増えること
+- 所有台帳または待機者領域の設定容量を使い切ったとき、既存の取得状態を維持して `CPLAT_ERR_LIMIT_EXCEEDED` を返すこと
 
-### クラッシュ復旧テスト (新規)
+### 利用プロセスの異常終了
 
-- writer 保持中の SIGKILL → 別プロセスが取得可能になる (タイムアウト ≤ 1s)
-- reader 多数のうち 1 プロセス SIGKILL → 残り reader 影響なし、writer 待機者が  
-  reader 0 になった時点で取得
-- マスター ロック保持中の SIGKILL → 次取得者が `EOWNERDEAD` 経由で復旧
-- マネージャー自身の `ENOTRECOVERABLE` を擬似発火 → セグメント破棄と再構築の経路確認
+- reader を保持中のプロセスを強制終了し、残りの reader と待機 writer が進行できること
+- writer を保持中のプロセスを強制終了し、次の exclusive 取得者へ死亡保持者からの取得を通知すること
+- 整合済み通知まで reader を取得させないこと
+- 復旧中のプロセスを再度強制終了し、次の exclusive 取得者へ再通知すること
+- 共有状態と所有台帳の更新中にプロセスを終了し、owner-dead 経路で対応関係を修復できること
+- PID を再利用した別プロセスを、開始時刻の照合によって元の保持者と誤認しないこと
 
-### PID リユース耐性テスト (新規)
+### 維持プロセスの異常終了
 
-- writer プロセス死亡 → 同じ PID を高速に再使用 (PID 空間が小さい場合) →  
-  `writer_serial` (開始時刻) によって別プロセスと判定されることを確認
+- 維持プロセス停止中も、接続済み範囲の取得と解放を継続できること
+- 維持プロセス停止中の新規接続と拡張要求が `CPLAT_ERR_BUSY` になること
+- 維持プロセス停止中に利用プロセスが終了した場合、再起動後に保持情報を回収できること
+- 共有状態更新中に維持プロセスを終了し、再起動後にセグメント連鎖とセッション表を回復できること
 
-### 性能ベースライン
+### OS 資源
 
-- 単一ロックでの shared/exclusive スループット (現方式 vs 新方式)
-- ロック取得待ち→取得のレイテンシ分布
-- スイープ コスト (table_size を変えての acquire レイテンシ最悪値)
+- Linux でロック識別用の実ファイルと POSIX 共有メモリ名を作成しないこと
+- Windows で pagefile-backed mapping を使用し、実ファイルを作成しないこと
+- Windows の Local 名前空間では別セッションと混同せず、Global 名前空間では必要な権限と ACL を検証すること
+- 正常停止後に System V 共有メモリと Windows named object が残存しないこと
 
----
+## 導入順序
 
-## 実装規模見積もり
+1. ロック資源、参照方式、取得状態、維持処理の公開契約を確定します。
+2. 通番方式の固定 1 セグメント構成と、利用プロセス死亡時の回収を両 OS へ実装します。
+3. セグメント追加と、追加済みセグメントの再発見を実装します。
+4. 外部領域型 `cplat_hashtable` を利用する識別子方式を追加します。
+5. 資源直接 API、ディスクリプタ、既存文字列 API からの移行を実装します。
+6. 規模、異常終了、維持プロセス再起動、OS 資源数を検証します。
 
-| 部位 | 行数目安 |
-|---|---|
-| 共有メモリ初期化、attach、ref count (両 OS) | 400 |
-| robust mutex 取得/復旧 (Linux) | 150 |
-| WAIT_ABANDONED 復旧 (Windows) | 100 |
-| 論理ロック表 + ハッシュ + free list | 400 |
-| 取得/解放/待機ロジック | 350 |
-| owner 生存検査 (Linux pidfd + フォールバック) | 200 |
-| owner 生存検査 (Windows OpenProcess + 時刻照合) | 150 |
-| スイープ | 200 |
-| 既存 API へのアダプター + 既存 sync_*.c の差し替え | 300 |
-| テスト (スケール、クラッシュ、リユース) | 600 |
+各段階で Linux/GCC と Windows/MSVC の局所テストを通し、対象範囲の `.warn` を確認します。  
+公開 API を変更する段階では、API チート シート、同期の機能仕様、エクスポート テスト、mock_cplat を同じ変更で同期します。
 
-合計: 約 2,800 行の新規 + 200 行程度の削除/変更。
+## 参照
+
+- [pthread_mutexattr_setpshared(3)](https://man7.org/linux/man-pages/man3/pthread_mutexattr_getpshared.3.html)
+- [pthread_mutexattr_setrobust(3)](https://man7.org/linux/man-pages/man3/pthread_mutexattr_setrobust.3.html)
+- [shmget(2)](https://man7.org/linux/man-pages/man2/shmget.2.html)
+- [shmctl(2)](https://man7.org/linux/man-pages/man2/shmctl.2.html)
+- [pidfd_open(2)](https://man7.org/linux/man-pages/man2/pidfd_open.2.html)
+- [Sharing Files and Memory](https://learn.microsoft.com/en-us/windows/win32/memory/sharing-files-and-memory)
+- [CreateFileMapping function](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfilemappinga)
+- [Kernel Object Namespaces](https://learn.microsoft.com/en-us/windows/win32/termserv/kernel-object-namespaces)
+- [WaitOnAddress function](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress)
+- [Terminating a Process](https://learn.microsoft.com/en-us/windows/win32/procthread/terminating-a-process)
+- [RegisterWaitForSingleObject function](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-registerwaitforsingleobject)
+- [ハッシュ テーブル機能仕様](../functional-spec/hashtable.md)
+- [プラットフォーム抽象化ガイドライン](../platform-abstraction-guideline.md)
