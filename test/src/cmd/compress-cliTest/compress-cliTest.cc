@@ -22,7 +22,7 @@ namespace
 const uint8_t kPlainInput[] = {'a', 'b', 'c', 'd', 'e', 'f'};
 const uint8_t kCompressedPayload[] = {0x00, 0x00, 0x00, 0x06, 0x78, 0x9c, 0x4b};
 const uint8_t kDecompressedOutput[] = {'A', 'B', 'C', 'D', 'E', 'F'};
-const int64_t kMaxUncompressedSize = 1073741824;
+const int64_t kMaxUncompressedSize = 2147483648;
 
 static int return_full_path(char *path_out, size_t path_size, cplat_error *detail_out, const char *text)
 {
@@ -355,8 +355,8 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
                           "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
     FILE *input_file = (FILE *)(uintptr_t)0x3031;
     const uint8_t invalid_input[] = {
-        0x40, 0x00, 0x00, 0x01,
-        0x10}; // [状態] - ヘッダーの元サイズが 1 GiB より 1 byte 大きい不正入力 5 byte を用意する。
+        0x80, 0x00, 0x00, 0x01,
+        0x10}; // [状態] - ヘッダーの元サイズが 2 GiB より 1 byte 大きい不正入力 5 byte を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat_, cplat_console_init())
@@ -410,6 +410,66 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
         .Times(0); // [Pre-Assert確認_異常系] - 元サイズの上限超過時は出力ファイルが開かれないこと。
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("上限を超えています")))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "上限を超えています" を含むエラーが表示されること。
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
+
+    // Assert
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
+}
+
+// 展開入力の生ファイルが上限サイズを超える場合に内容を読み込まず失敗終了することの確認
+TEST_F(compress_cliTest, main_rejects_decompress_input_when_raw_file_exceeds_size_limit_before_reading)
+{
+    // Arrange
+    int argc = 4;
+    const char *argv[] = {"compress-cli", "--decompress", "input.bin",
+                          "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
+    FILE *input_file = (FILE *)(uintptr_t)0x1000;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat_, cplat_console_init())
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
+    EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(DoAll(
+            SetArgPointee<2>(0),
+            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
+        .WillOnce(
+            [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
+            {
+                return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin");
+            }); // [Pre-Assert確認_正常系] - 入力パスの cplat_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 入力パスの正規化結果として "/tmp/input.bin" を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("output.bin")))
+        .WillOnce(
+            [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
+            {
+                return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin");
+            }); // [Pre-Assert確認_正常系] - 出力パスの cplat_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 出力パスの正規化結果として "/tmp/output.bin" を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _))
+        .WillOnce(Return(input_file)); // [Pre-Assert確認_正常系] - 入力ファイルがモード "rb" で開かれること。
+                                       // [Pre-Assert手順] - 入力ファイルのハンドルを返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの末尾へ移動すること。
+                              // [Pre-Assert手順] - 入力ファイル末尾への移動として 0 を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
+        .WillOnce(Return(kMaxUncompressedSize +
+                         1)); // [Pre-Assert手順] - 入力ファイルのサイズとして上限より 1 byte 大きい値を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は入力ファイルの先頭へ戻す処理が呼び出されないこと。
+    EXPECT_CALL(mock_stdio_, fread(_, _, _, _, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は入力ファイルの内容が読み込まれないこと。
+    EXPECT_CALL(mock_stdio_, fclose(_, _, _, input_file))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 上限超過時に入力ファイルが fclose されること。
+                              // [Pre-Assert手順] - 入力ファイルの fclose から 0 を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_decompress(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 上限超過時は cplat_decompress が呼び出されないこと。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("上限サイズ")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "上限サイズ" を含むエラーが表示されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。

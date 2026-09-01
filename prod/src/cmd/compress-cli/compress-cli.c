@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 圧縮・展開で扱う非圧縮データの上限を 1 GiB とする。 */
-#define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE (1024U * 1024U * 1024U)
+/* 圧縮・展開で扱うデータ（入力ファイルおよび非圧縮データ）の上限を 2 GiB とする。 */
+#define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE (2048U * 1024U * 1024U)
 
 /* エラー メッセージの格納に使用するバッファーのバイト数。 */
 #define COMPRESS_CLI_ERROR_MESSAGE_SIZE 256
@@ -100,19 +100,14 @@ static int compress_cli_read_file(const char *path, size_t max_size, uint8_t **d
         fprintf(stderr, "入力ファイルのサイズ取得に失敗しました: %s\n", path);
         return compress_cli_read_file_fail(file, data);
     }
-#if SIZE_MAX < INT64_MAX
-    if (file_size_i64 > (int64_t)SIZE_MAX)
-    {
-        fprintf(stderr, "入力ファイルが大きすぎます: %s\n", path);
-        return compress_cli_read_file_fail(file, data);
-    }
-#endif
-    file_size = (size_t)file_size_i64;
-    if (file_size > max_size)
+
+    if (file_size_i64 > (int64_t)max_size)
     {
         fprintf(stderr, "入力ファイルが上限サイズを超えています: %s\n", path);
         return compress_cli_read_file_fail(file, data);
     }
+
+    file_size = (size_t)file_size_i64;
 
     if (cplat_fseek(file, 0, SEEK_SET) != 0)
     {
@@ -299,7 +294,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     uint32_t expected_size;
     int rc = -1;
 
-    if (compress_cli_read_file(input_path, SIZE_MAX, &input_data, &input_size) != 0)
+    if (compress_cli_read_file(input_path, COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE, &input_data, &input_size) != 0)
     {
         return -1;
     }
