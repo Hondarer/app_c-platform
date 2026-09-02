@@ -6,6 +6,8 @@ cplat は、トレース、同期、コンソール入出力、文字列処理�
 
 - [作業規則](AGENTS.md)
 - [発行文書](docs/README.md)
+- [機能仕様](docs/functional-spec/README.md)
+- [機能仕様の記載規範](docs/functional-spec-guideline.md)
 - [公開 API の逆引き](docs/api-cheatsheet.md)
 - [cplat 固有のコーディング規範](docs/coding-guideline.md)
 - [Doxygen の入口](prod/README.md)

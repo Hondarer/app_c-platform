@@ -111,10 +111,11 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 
 ### 機能仕様
 
-- [機能仕様の入口](functional-spec/README.md) - `prod/libsrc/cplat/` のサブディレクトリごとに、要件と機能を説明します。
+- [機能仕様の入口](functional-spec/README.md) - 利用側または上位設計から見た cplat の要件と振る舞いを、機能カテゴリごとに説明します。
 
 ### 規範
 
+- [cplat 機能仕様の記載規範](functional-spec-guideline.md)
 - [cplat コーディング規範](coding-guideline.md)
 - [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
 - [mock_cplat の実装規則](mock-cplat-guideline.md)
