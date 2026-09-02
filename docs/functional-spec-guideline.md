@@ -269,7 +269,7 @@ Markdown の表記と文章は、[日本語技術文書の文章規範](../../..
 要件 ID と UUID の形式および参照関係は、c-platform のルートで次のコマンドを実行して確認します。
 
 ```shell
-python3 docs/check_functional_spec.py
+python3 bin/check_functional_spec.py
 ```
 
 ## 参考

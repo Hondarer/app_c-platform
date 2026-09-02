@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "check_functional_spec.py"
+SCRIPT_PATH = Path(__file__).resolve().parent / "check_functional_spec.py"
 SPEC = importlib.util.spec_from_file_location("check_functional_spec", SCRIPT_PATH)
 assert SPEC is not None
 assert SPEC.loader is not None
