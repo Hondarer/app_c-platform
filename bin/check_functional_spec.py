@@ -33,27 +33,21 @@ MARKDOWN_REF_RE = re.compile(
     rf"`(?P<id>{ID_TEXT})` "
     rf"<!-- cplat-req: uuid=(?P<uuid>{UUID_TEXT}) -->"
 )
-SOURCE_REF_RE = re.compile(
+SOURCE_BLOCK_REF_RE = re.compile(
     rf"^\s*/\* cplat-req: id=(?P<id>{ID_TEXT}); "
     rf"uuid=(?P<uuid>{UUID_TEXT}) \*/\s*$"
 )
-TEST_REF_RE = re.compile(
+SOURCE_LINE_REF_RE = re.compile(
     rf"^\s*// cplat-req: id=(?P<id>{ID_TEXT}); "
     rf"uuid=(?P<uuid>{UUID_TEXT})\s*$"
 )
+TEST_REF_RE = SOURCE_LINE_REF_RE
 TEST_DESCRIPTION_RE = re.compile(r"^\s*// (?!cplat-req:).+\S\s*$")
 TEST_MACRO_RE = re.compile(r"^\s*(?:TEST|TEST_F|TEST_P|TYPED_TEST)\s*\(")
 
-SOURCE_SUFFIXES = {
-    ".c",
-    ".cc",
-    ".cpp",
-    ".cxx",
-    ".h",
-    ".hh",
-    ".hpp",
-    ".hxx",
-}
+C_SOURCE_SUFFIXES = {".c", ".h"}
+CXX_SOURCE_SUFFIXES = {".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"}
+SOURCE_SUFFIXES = C_SOURCE_SUFFIXES | CXX_SOURCE_SUFFIXES
 SCAN_SUFFIXES = SOURCE_SUFFIXES | {".md"}
 EXCLUDED_DIRECTORY_NAMES = {
     ".git",
@@ -130,6 +124,19 @@ def _is_excluded(path: Path, root: Path) -> bool:
 
 def _is_test_path(path: Path, root: Path) -> bool:
     return path.relative_to(root).parts[0] == "test"
+
+
+def _is_cxx_source(path: Path) -> bool:
+    return path.suffix.lower() in CXX_SOURCE_SUFFIXES
+
+
+def _match_source_ref(path: Path, line: str) -> re.Match[str] | None:
+    block_match = SOURCE_BLOCK_REF_RE.fullmatch(line)
+    if block_match is not None:
+        return block_match
+    if _is_cxx_source(path):
+        return SOURCE_LINE_REF_RE.fullmatch(line)
+    return None
 
 
 def _covered_id_spans(matches: list[re.Match[str]]) -> set[tuple[int, int]]:
@@ -359,7 +366,7 @@ def _scan_source(
     references: list[Reference] = []
     for line_number, line in enumerate(lines, start=1):
         _check_legacy_ids(line, path, line_number, root, errors)
-        match = SOURCE_REF_RE.fullmatch(line)
+        match = _match_source_ref(path, line)
         matches = [match] if match is not None else []
         if "cplat-req:" in line and match is None:
             errors.append(_error(path, line_number, root, "製品コードの要件コメントが不正です"))

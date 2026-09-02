@@ -77,6 +77,19 @@ class CheckFunctionalSpecTest(unittest.TestCase):
                 "/** 時計を取得する。 */\n"
                 "void get_clock(void);\n",
             )
+            self._write(
+                root,
+                "prod/sample.cpp",
+                f"// cplat-req: id={requirement_id}; uuid={UUID_1}\n"
+                "/** 時計を取得する。 */\n"
+                "void get_clock_cxx(void);\n",
+            )
+            self._write(
+                root,
+                "prod/sample.cc",
+                f"/* cplat-req: id={requirement_id}; uuid={UUID_1} */\n"
+                "void get_clock_cc(void);\n",
+            )
             test_blocks = ""
             for macro in ("TEST", "TEST_F", "TEST_P", "TYPED_TEST"):
                 test_blocks += (
@@ -97,7 +110,7 @@ class CheckFunctionalSpecTest(unittest.TestCase):
 
             self.assertEqual([], result.errors)
             self.assertEqual(1, result.requirement_count)
-            self.assertEqual(6, result.reference_count)
+            self.assertEqual(8, result.reference_count)
 
     def test_rejects_duplicate_id_and_uuid(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -193,6 +206,11 @@ class CheckFunctionalSpecTest(unittest.TestCase):
             )
             self._write(
                 root,
+                "prod/sample.h",
+                f"// cplat-req: id={requirement_id}; uuid={UUID_1}\n",
+            )
+            self._write(
+                root,
                 "test/sample.cpp",
                 "// 単調増加クロックを確認する。\n"
                 f"/* cplat-req: id={requirement_id}; uuid={UUID_1} */\n"
@@ -204,7 +222,10 @@ class CheckFunctionalSpecTest(unittest.TestCase):
 
             result = CHECKER.check_repository(root)
 
-            self.assertTrue(any("製品コードの要件コメントが不正" in error for error in result.errors))
+            product_errors = [
+                error for error in result.errors if "製品コードの要件コメントが不正" in error
+            ]
+            self.assertEqual(2, len(product_errors))
             self.assertTrue(any("テストの要件コメントが不正" in error for error in result.errors))
 
     def test_rejects_wrong_or_omitted_requirement_subject(self) -> None:
