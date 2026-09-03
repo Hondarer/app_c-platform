@@ -86,7 +86,7 @@ make -C app/c-platform test
 ### 単一ファイル版
 
 - [cplat (public)](doxybook2_public/README.md)
-    - [公開 API (cplat)](doxybook2_public/Modules/group__CPLAT__PUBLIC__API.html)
+    - [公開 API (cplat)](doxybook2_public/Modules/group__CPLAT__PUBLIC__API.md)
 
 ## モジュール仕様書
 
@@ -125,7 +125,7 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 
 - [メモリ ロック API](memory-lock.md)
 - [ファイル入出力 API の選定基準](fileio-api-selection-guideline.md)
-- [hashtable 可変長ストレージの管理方式](../prod/libsrc/cplat/hashtable/hashtable-storage-allocator.md)
+- [hashtable 可変長ストレージの管理方式](doxybook2_internal/Files/libsrc/cplat/hashtable/hashtable-storage-allocator.md)
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
 
 ## 文書一覧

@@ -453,7 +453,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 取得済みの可変長参照が無効になるのは、そのフィールドの更新・回収・再利用、`cplat_hashtable_compact`、`cplat_hashtable_clear`、`cplat_hashtable_resize`、`cplat_hashtable_rebuild_into`、自動再構築、`cplat_hashtable_dispose` です。  
 空きリストは可変長ストレージ 1 個につき `capacity + 1` 要素を占め、必要バッファー サイズに含まれます。  
 必要バッファー サイズは `cplat_hashtable_required_size` で求めてください。  
-ストレージの管理方式は [hashtable 可変長ストレージの管理方式](../prod/libsrc/cplat/hashtable/hashtable-storage-allocator.md) を参照してください。  
+ストレージの管理方式は [hashtable 可変長ストレージの管理方式](doxybook2_internal/Files/libsrc/cplat/hashtable/hashtable-storage-allocator.md) を参照してください。  
 固定長バイナリ値は `value_size` バイトのバイト列として `memcpy` で授受します。  
 値の格納境界は設定の `value_align` で決まります。  
 既定の `0` では値を隙間なく並べ、値への参照を返す API も型のアラインメントを保証しないため、型付きポインターとして直接参照せず `memcpy` で取り出します。  
