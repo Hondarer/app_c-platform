@@ -3,7 +3,7 @@
 ## 対象範囲
 
 この文書は、`app/c-platform/` 配下の作業に適用します。  
-作業前に、[README.md](README.md)と対象ディレクトリから参照できる詳細文書を確認してください。
+目的や利用方法が必要な場合は [README.md](README.md)、変更する契約や設計は対象の詳細文書の該当節を参照してください。
 
 ## 作業時の入口
 
@@ -53,6 +53,7 @@ API、実装、テストなどの下流成果物は、必要な場合に機能�
 
 - 一般的な C/C++ 規範は、[共通コーディング規範](../general/docs/coding-guideline.md) に従ってください。
 - cplat 固有の結果コード、標準時刻型、制約は、[cplat コーディング規範](docs/coding-guideline.md) に集約してください。
+- `mock_cplat` を変更する場合は、この app の `create-mock-cplat-mock` スキルを使用してください。
 - テスト構成は、[testfw のテスト作成手順](../../framework/testfw/docs/how-to-test.md) に従ってください。
 - `bench-io` の測定軸を変更する場合は、`prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同じ変更で確認してください。
 - `bench-io` の測定結果は管理対象外です。共有する数値と測定環境は、`docs/fileio-api-selection-guideline.md` に記載してください。
