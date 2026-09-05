@@ -60,38 +60,48 @@
      *                   `FD_SETSIZE` 個の SOCKET を保持している場合です。
      */
     #define CPLAT_FD_SET(fd, set) \
-        do                                                                    \
-        {                                                                     \
-            (void)(fd);                                                       \
-            (void)(set);                                                      \
+        do \
+        { \
+            (void)(fd); \
+            (void)(set); \
         } while (0)
 #elif defined(PLATFORM_LINUX)
-    #define CPLAT_FD_SET(fd, set)                                             \
-        do                                                                    \
-        {                                                                     \
-            const int cplat_fd_set_fd = (fd);                                 \
-            fd_set * const cplat_fd_set_set = (set);                          \
-            if (cplat_fd_set_fd < 0 || cplat_fd_set_fd >= FD_SETSIZE)         \
-            {                                                                 \
-                abort();                                                      \
-            }                                                                 \
-            FD_SET(cplat_fd_set_fd, cplat_fd_set_set);                        \
+    #define CPLAT_FD_SET(fd, set) \
+        do \
+        { \
+            const int cplat_fd_set_fd = (fd); \
+            fd_set *const cplat_fd_set_set = (set); \
+            if (cplat_fd_set_fd < 0 || cplat_fd_set_fd >= FD_SETSIZE) \
+            { \
+                abort(); \
+            } \
+            FD_SET(cplat_fd_set_fd, cplat_fd_set_set); \
         } while (0)
 #elif defined(PLATFORM_WINDOWS)
-    #define CPLAT_FD_SET(fd, set)                                           \
-        do                                                                  \
-        {                                                                   \
-            const SOCKET cplat_fd_set_fd = (SOCKET)(fd);                    \
-            fd_set * const cplat_fd_set_set = (set);                        \
-            if (cplat_fd_set_fd == INVALID_SOCKET)                          \
-            {                                                               \
-                abort();                                                    \
-            }                                                               \
-            FD_SET(cplat_fd_set_fd, cplat_fd_set_set);                      \
-            if (FD_ISSET(cplat_fd_set_fd, cplat_fd_set_set) == 0)           \
-            {                                                               \
-                abort();                                                    \
-            }                                                               \
+    /* 定数を fd へ渡す使用も意図したものであるため、検査条件が定数になる場合の C4127 を
+     * 抑制します。__pragma は MSVC の拡張のため、COMPILER_MSVC の場合だけ展開します。
+     * suppress はマクロを展開した 1 行に効くため、抑制範囲はマクロ本体全体です。
+     * see: https://learn.microsoft.com/en-us/cpp/preprocessor/warning */
+    #if defined(COMPILER_MSVC)
+        #define CPLAT_FD_SET_SUPPRESS_CONST_COND __pragma(warning(suppress : 4127))
+    #else /* !COMPILER_MSVC */
+        #define CPLAT_FD_SET_SUPPRESS_CONST_COND
+    #endif /* COMPILER_MSVC */
+
+    #define CPLAT_FD_SET(fd, set) \
+        do \
+        { \
+            const SOCKET cplat_fd_set_fd = (SOCKET)(fd); \
+            fd_set *const cplat_fd_set_set = (set); \
+            CPLAT_FD_SET_SUPPRESS_CONST_COND if (cplat_fd_set_fd == INVALID_SOCKET) \
+            { \
+                abort(); \
+            } \
+            FD_SET(cplat_fd_set_fd, cplat_fd_set_set); \
+            if (FD_ISSET(cplat_fd_set_fd, cplat_fd_set_set) == 0) \
+            { \
+                abort(); \
+            } \
         } while (0)
 #endif /* DOXYGEN / PLATFORM_ */
 
