@@ -54,8 +54,7 @@ create -> set_name / set_* -> start -> write -> stop -> dispose
 - `CPLAT_TRACE_LEVEL_DEBUG`: 最も詳細な診断情報
 - `CPLAT_TRACE_LEVEL_NONE`: 出力しません。
 
-Linux syslog と Windows ETW には `VERBOSE` より細かい標準レベルがないため、`CPLAT_TRACE_LEVEL_DEBUG` は  
-これらでは `CPLAT_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
+Linux syslog と Windows ETW には `VERBOSE` より細かい標準レベルがないため、`CPLAT_TRACE_LEVEL_DEBUG` はこれらでは `CPLAT_TRACE_LEVEL_VERBOSE` と同じ詳細度として扱われます。  
 Windows EventLog はイベント タイプが Error / Warning / Information の 3 種のみのため、`INFO` / `VERBOSE` / `DEBUG` はいずれも Information になりますが、分析性を高めるためレベル毎に異なるイベント ID とカテゴリを割り当てます。  
 一方でファイルと `stderr` では `DEBUG` を独立したレベル文字で区別します。
 

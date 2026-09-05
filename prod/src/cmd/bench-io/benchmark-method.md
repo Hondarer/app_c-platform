@@ -82,8 +82,7 @@ Windows には同等の手段がないため、`--cold` を指定するとエラ
 
 **WSL2 では `--cold` を使用しないでください。**
 
-WSL2 の仮想ディスク上では `sync()` と `/proc/sys/vm/drop_caches` への書き込みが長時間ブロックし、  
-プロセスが uninterruptible sleep (`D` 状態) に入って `kill -9` でも停止できなくなる事象を確認しています。  
+WSL2 の仮想ディスク上では `sync()` と `/proc/sys/vm/drop_caches` への書き込みが長時間ブロックし、プロセスが uninterruptible sleep (`D` 状態) に入って `kill -9` でも停止できなくなる事象を確認しています。  
 cold の測定はネイティブ Linux 環境で実施してください。
 
 ## 実行手順

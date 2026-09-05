@@ -259,8 +259,7 @@ MYLIB_EXPORT int MYLIB_API mylib_open(void);
 #define MYLIB_API    CPLAT_DLL_API(MYLIB)
 ```
 
-makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、  
-このワークスペースでは GCC / Clang / MSVC が暗黙に `1` を与える前提で扱います。
+makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なしで定義してもよく、このワークスペースでは GCC / Clang / MSVC が暗黙に `1` を与える前提で扱います。
 
 ### 変数 (グローバル データ) をエクスポートする場合は export マクロと export テーブルの両方に登録する
 
