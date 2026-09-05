@@ -1,5 +1,6 @@
 #include <testfw.h>
 #include <cplat/base/platform.h>
+#include <cplat/crt/select.h>
 #include <cplat/crt/unistd.h>
 #include <mock_unistd.h>
 
@@ -16,6 +17,36 @@ namespace
 {
 const int kFakeFd = 7;
 const int kDupFd = 8;
+
+void invoke_cplat_fd_set_with_negative_fd()
+{
+    fd_set fds;
+    FD_ZERO(&fds);
+    CPLAT_FD_SET(-1, &fds);
+}
+
+#if defined(PLATFORM_LINUX)
+void invoke_cplat_fd_set_with_out_of_range_fd()
+{
+    fd_set fds;
+    FD_ZERO(&fds);
+    CPLAT_FD_SET(FD_SETSIZE, &fds);
+}
+#elif defined(PLATFORM_WINDOWS)
+void invoke_cplat_fd_set_with_full_set()
+{
+    fd_set fds;
+    int index;
+
+    FD_ZERO(&fds);
+    for (index = 0; index < FD_SETSIZE; index++)
+    {
+        /* 相異なる値を FD_SETSIZE 個格納し、集合を満杯にする */
+        CPLAT_FD_SET(index + 1, &fds);
+    }
+    CPLAT_FD_SET(FD_SETSIZE + 1, &fds);
+}
+#endif /* PLATFORM_ */
 } // namespace
 
 class fdTest : public testing::Test
@@ -407,6 +438,71 @@ TEST_F(fdTest, write_returns_minus1_when_platform_write_fails)
     // Assert
     EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_write の戻り値として、OS の失敗がそのまま -1 として返ること。
 }
+
+// 追加できる FD が集合へ格納されることの確認
+TEST_F(fdTest, fd_set_adds_fd_within_range)
+{
+    // Arrange
+    fd_set fds;
+    FD_ZERO(&fds); // [状態] - 空の FD 集合を用意する。
+
+    // Pre-Assert
+
+    // Act
+    CPLAT_FD_SET(FD_SETSIZE - 1, &fds); // [手順] - 追加できる FD を集合へ追加する。
+
+    // Assert
+    EXPECT_TRUE(FD_ISSET(FD_SETSIZE - 1,
+                         &fds)); // [確認_正常系] - 追加した FD が集合へ格納されていること。
+}
+
+// 負の FD を渡すと abort することの確認
+TEST_F(fdTest, fd_set_aborts_for_negative_fd)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    EXPECT_DEATH(invoke_cplat_fd_set_with_negative_fd(), ""); // [手順] - 負の FD を範囲検査付き FD_SET へ渡す。
+
+    // Assert
+    // [確認_異常系] - 負の FD によりプロセスが abort すること。
+}
+
+#if defined(PLATFORM_LINUX)
+/* Linux の fd_set は FD を添字として扱うため、上限の確認は FD の値で行う */
+// FD_SETSIZE 以上の FD を渡すと abort することの確認
+TEST_F(fdTest, fd_set_aborts_for_fd_out_of_range)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    EXPECT_DEATH(invoke_cplat_fd_set_with_out_of_range_fd(),
+                 ""); // [手順] - FD_SETSIZE と同じ FD を範囲検査付き FD_SET へ渡す。
+
+    // Assert
+    // [確認_異常系] - FD_SETSIZE 以上の FD によりプロセスが abort すること。
+}
+#elif defined(PLATFORM_WINDOWS)
+/* Windows の fd_set は SOCKET の配列であり、上限は値ではなく格納数で決まる */
+// 満杯の集合へ追加すると abort することの確認
+TEST_F(fdTest, fd_set_aborts_when_set_is_full)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    EXPECT_DEATH(invoke_cplat_fd_set_with_full_set(),
+                 ""); // [手順] - FD_SETSIZE 個を格納した集合へ、さらに FD を追加する。
+
+    // Assert
+    // [確認_異常系] - 追加できない FD によりプロセスが abort すること。
+}
+#endif /* PLATFORM_ */
 
 #if defined(PLATFORM_LINUX)
 /* シグナルによる中断は Linux 固有のため、再試行の確認は Linux でのみ実施する */

@@ -29,6 +29,7 @@
 #include <cplat/crt/path.h>
 #include <cplat/crt/fcntl.h>
 #include <cplat/crt/file.h>
+#include <cplat/crt/select.h>
 #include <cplat/crt/stdio.h>
 #include <cplat/crt/stdlib.h>
 #include <cplat/crt/string.h>

@@ -4,7 +4,7 @@
 
 本チート シートは、`app/` 配下のコードで生の CRT / POSIX / Win32 API を書こうとしたときに、対応する cplat の代替関数を素早く引くための一覧です。  
 同時に、cplat が公開する API 全体を用途から引ける逆引き辞書でもあります。  
-規範本文と根拠は [coding-guideline.md](coding-guideline.md) の「[ラッパーの設計方針](coding-guideline.md#ラッパーの設計方針)」「[危険な標準関数の代替](coding-guideline.md#危険な標準関数の代替)」に集約されています。  
+規範本文と根拠は [coding-guideline.md](coding-guideline.md) の「[ラッパーの設計方針](coding-guideline.md#ラッパーの設計方針)」「[危険な標準関数とマクロの代替](coding-guideline.md#危険な標準関数とマクロの代替)」に集約されています。  
 本チート シートは対応表の抽出であり、規範としての正本は `coding-guideline.md` です。  
 各機能が満たす要件と、その解決策としての機能の説明は [機能仕様](functional-spec/README.md) を参照してください。  
 公開 API の宣言とシグネチャは、[`prod/include/`](../prod/include/) 配下のヘッダーを正本とします。  
@@ -12,7 +12,7 @@
 
 表は 3 種類に分かれます。
 
-- **危険な標準関数の代替**: 境界検査または失敗通知を欠く標準関数で、`app/` 配下の管理対象コードでの直接使用を禁止しています。
+- **危険な標準関数とマクロの代替**: 境界検査または失敗通知を欠く標準関数とマクロで、`app/` 配下の管理対象コードでの直接使用を禁止しています。
 - **プラットフォーム抽象ラッパー**: 危険ではないものの、Linux / Windows の挙動差 (共有モード、UTF-8 パス、64bit オフセットなど) を吸収するために cplat 側で提供しているラッパーです。
 - **独自機能 API**: 単一の生 API とは 1 対 1 で対応しない cplat 独自の機能です。「生の構文」列には、対応する生の関数がある場合はその名前を、ない場合は用途を記載します。
 
@@ -22,9 +22,9 @@
 > `memcpy` / `memmove` / `memset` / `strcmp` / `strncmp` / `memcmp` / 単純な `malloc` 呼出 / `printf` など、両プラットフォームで挙動が同じで境界検査の欠落もない関数には、cplat はラッパーを作りません。
 > 詳細は [coding-guideline.md の「ラッパーを作らないもの」](coding-guideline.md#ラッパーを作らないもの) を参照してください。
 
-## 危険な標準関数の代替
+## 危険な標準関数とマクロの代替
 
-対象ヘッダー: `cplat/crt/string.h`、`cplat/crt/stdio.h`、`cplat/crt/stdlib.h`、`cplat/base/error_message.h`
+対象ヘッダー: `cplat/crt/string.h`、`cplat/crt/stdio.h`、`cplat/crt/stdlib.h`、`cplat/crt/select.h`、`cplat/base/error_message.h`
 
 ### 文字列操作
 
@@ -77,6 +77,15 @@
 > [!IMPORTANT]
 > `cplat_realloc` / `cplat_realloc_zerofill` は要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、`realloc(ptr, size)` を機械的に置換すると引数がずれます。
 > `cplat_realloc(ptr, 0, size)` は元の領域を解放せずに NULL を返します。標準の `realloc(ptr, 0)` とは異なる扱いです。
+
+### ファイル記述子集合
+
+| 生 API | 問題 | cplat 代替 |
+|---|---|---|
+| `FD_SET` | 追加する FD が集合の容量に収まるかを検査せず、Linux では集合の領域外へ書き込む。Windows では満杯の集合への追加を通知せず破棄する | `CPLAT_FD_SET(fd, &set)` (追加できない場合は `abort()`) |
+
+`CPLAT_FD_SET()` が検査する上限はプラットフォームで異なります。  
+Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows は集合が保持する SOCKET の数が `FD_SETSIZE` 未満であることを検査します。
 
 ## プラットフォーム抽象ラッパー
 

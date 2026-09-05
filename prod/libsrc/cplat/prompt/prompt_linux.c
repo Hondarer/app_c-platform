@@ -118,7 +118,7 @@ int prompt_platform_read_char_nb(cplat_prompt *p)
     (void)p;
 
     FD_ZERO(&fds);
-    FD_SET(STDIN_FILENO, &fds);
+    CPLAT_FD_SET(STDIN_FILENO, &fds);
     tv.tv_sec = 0;
     tv.tv_usec = 50000; /* 50ms */
 

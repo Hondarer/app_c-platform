@@ -25,7 +25,7 @@
 #if defined(PLATFORM_LINUX)
     #include <termios.h>
     #include <unistd.h>
-    #include <sys/select.h>
+    #include <cplat/crt/select.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <cplat/base/windows_sdk.h>
 #endif

@@ -29,7 +29,7 @@
 #if defined(PLATFORM_LINUX)
     #include <errno.h>
     #include <sys/ioctl.h>
-    #include <sys/select.h>
+    #include <cplat/crt/select.h>
     #include <termios.h>
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
@@ -424,7 +424,7 @@ static int pinned_prompt_platform_read_char_nb(cplat_pinned_prompt *screen)
     struct timeval tv;
 
     FD_ZERO(&fds);
-    FD_SET(STDIN_FILENO, &fds);
+    CPLAT_FD_SET(STDIN_FILENO, &fds);
     tv.tv_sec = 0;
     tv.tv_usec = 50000;
 
