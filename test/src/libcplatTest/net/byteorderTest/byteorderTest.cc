@@ -151,3 +151,66 @@ TEST(byteorderTest, hton16_swaps_boundary_values)
     EXPECT_EQ(0xFFU, high_only[0]); // [確認_正常系] - 0xFF00 を変換した結果の先頭バイトが 0xFF であること。
     EXPECT_EQ(0x00U, high_only[1]); // [確認_正常系] - 0xFF00 を変換した結果の 2 バイト目が 0x00 であること。
 }
+
+// 64 bit のネットワーク バイト オーダー変換がビッグ エンディアンのバイト列になることの確認
+TEST(byteorderTest, hton64_places_most_significant_byte_first)
+{
+    // Arrange
+    uint8_t bytes[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+
+    // Pre-Assert
+
+    // Act
+    uint64_t converted = cplat_hton64(
+        UINT64_C(0x123456789ABCDEF0)); // [手順] - 0x123456789ABCDEF0 をネットワーク バイト オーダーへ変換する。
+
+    // Assert
+    to_bytes(converted, bytes);
+    EXPECT_EQ(0x12U, bytes[0]); // [確認_正常系] - cplat_hton64 の結果の 1 バイト目が 0x12 であること。
+    EXPECT_EQ(0x34U, bytes[1]); // [確認_正常系] - cplat_hton64 の結果の 2 バイト目が 0x34 であること。
+    EXPECT_EQ(0x56U, bytes[2]); // [確認_正常系] - cplat_hton64 の結果の 3 バイト目が 0x56 であること。
+    EXPECT_EQ(0x78U, bytes[3]); // [確認_正常系] - cplat_hton64 の結果の 4 バイト目が 0x78 であること。
+    EXPECT_EQ(0x9AU, bytes[4]); // [確認_正常系] - cplat_hton64 の結果の 5 バイト目が 0x9A であること。
+    EXPECT_EQ(0xBCU, bytes[5]); // [確認_正常系] - cplat_hton64 の結果の 6 バイト目が 0xBC であること。
+    EXPECT_EQ(0xDEU, bytes[6]); // [確認_正常系] - cplat_hton64 の結果の 7 バイト目が 0xDE であること。
+    EXPECT_EQ(0xF0U, bytes[7]); // [確認_正常系] - cplat_hton64 の結果の 8 バイト目が 0xF0 であること。
+}
+
+// 64 bit のホスト バイト オーダー変換がビッグ エンディアンのバイト列を解釈することの確認
+TEST(byteorderTest, ntoh64_reads_most_significant_byte_first)
+{
+    // Arrange
+    const uint8_t bytes[8] = {0x12U, 0x34U, 0x56U, 0x78U, 0x9AU, 0xBCU, 0xDEU, 0xF0U};
+    uint64_t network = 0U;
+
+    std::memcpy(&network, bytes, sizeof(network)); // [状態] - ビッグ エンディアンのバイト列を用意する。
+
+    // Pre-Assert
+
+    // Act
+    uint64_t converted = cplat_ntoh64(network); // [手順] - バイト列をホスト バイト オーダーへ変換する。
+
+    // Assert
+    EXPECT_EQ(UINT64_C(0x123456789ABCDEF0),
+              converted); // [確認_正常系] - cplat_ntoh64 の戻り値が 0x123456789ABCDEF0 であること。
+}
+
+// 64 bit の変換が往復で元の値へ戻ることの確認
+TEST(byteorderTest, hton64_and_ntoh64_round_trip)
+{
+    // Arrange
+    const uint64_t values[] = {UINT64_C(0x0000000000000000), UINT64_C(0x0000000000000001), UINT64_C(0x00000000000000FF),
+                               UINT64_C(0x00000000FF000000), UINT64_C(0x0000000100000000), UINT64_C(0xFF00000000000000),
+                               UINT64_C(0x123456789ABCDEF0), UINT64_C(0xFFFFFFFFFFFFFFFF)};
+
+    // Pre-Assert
+
+    // Act
+
+    // Assert
+    for (const uint64_t value : values)
+    {
+        EXPECT_EQ(value, cplat_ntoh64(cplat_hton64(value)));
+        // [確認_正常系] - 境界値を含む各値について cplat_hton64 と cplat_ntoh64 の往復結果が元の値と一致すること。
+    }
+}

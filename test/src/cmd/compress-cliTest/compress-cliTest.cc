@@ -10,6 +10,7 @@
 
 using testing::_;
 using testing::DoAll;
+using testing::DoDefault;
 using testing::HasSubstr;
 using testing::NiceMock;
 using testing::Return;
@@ -20,9 +21,9 @@ namespace
 {
 
 const uint8_t kPlainInput[] = {'a', 'b', 'c', 'd', 'e', 'f'};
-const uint8_t kCompressedPayload[] = {0x00, 0x00, 0x00, 0x06, 0x78, 0x9c, 0x4b};
+const uint8_t kCompressedPayload[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x78, 0x9c, 0x4b};
 const uint8_t kDecompressedOutput[] = {'A', 'B', 'C', 'D', 'E', 'F'};
-const int64_t kMaxUncompressedSize = 2147483648;
+const int64_t kMaxUncompressedSize = (int64_t)UINT32_MAX;
 
 static int return_full_path(char *path_out, size_t path_size, cplat_error *detail_out, const char *text)
 {
@@ -106,10 +107,10 @@ TEST_F(compress_cliTest, main_rejects_same_normalized_path)
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("./data.bin"), StrEq("subdir/../data.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(1),
-            Return(CPLAT_OK))); // [Pre-Assert確認_異常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 1 (同一) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(1),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_異常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 1 (同一) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - 同一パス検出時は cplat_path_get_full が呼び出されないこと。
     EXPECT_CALL(mock_cplat_, cplat_fopen(_, _, _))
@@ -138,10 +139,10 @@ TEST_F(compress_cliTest, main_rejects_compress_input_over_size_limit_before_read
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -199,9 +200,9 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -220,9 +221,9 @@ TEST_F(compress_cliTest, main_compresses_input_and_writes_output)
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの末尾へ移動すること。
                               // [Pre-Assert手順] - 入力ファイル末尾への移動として 0 を返却する。
     EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
-        .WillOnce(Return((int64_t)sizeof(
-            kPlainInput))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
-                            // [Pre-Assert手順] - 入力ファイルのサイズとして 6 byte を返却する。
+        .WillOnce(Return(
+            (int64_t)sizeof(kPlainInput))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
+                                            // [Pre-Assert手順] - 入力ファイルのサイズとして 6 byte を返却する。
     EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの先頭へ戻すこと。
                               // [Pre-Assert手順] - 入力ファイル先頭への移動として 0 を返却する。
@@ -285,18 +286,19 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zer
     const char *argv[] = {"compress-cli", "--decompress", "input.bin",
                           "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
     FILE *input_file = (FILE *)(uintptr_t)0x3030;
-    const uint8_t invalid_input[] = {0x00, 0x00, 0x00, 0x00,
-                                     0x10}; // [状態] - ヘッダーの元サイズが 0 byte の不正入力 5 byte を用意する。
+    const uint8_t invalid_input[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x10}; // [状態] - ヘッダーの元サイズが 0 byte の不正入力 9 byte を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat_, cplat_console_init())
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -320,7 +322,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zer
     EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
         .WillOnce(Return((int64_t)sizeof(
             invalid_input))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
-                              // [Pre-Assert手順] - 入力ファイルのサイズとして 5 byte を返却する。
+                              // [Pre-Assert手順] - 入力ファイルのサイズとして 9 byte を返却する。
     EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの先頭へ戻すこと。
                               // [Pre-Assert手順] - 入力ファイル先頭への移動として 0 を返却する。
@@ -330,7 +332,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_is_zer
             {
                 std::memcpy(ptr, invalid_input, sizeof(invalid_input));
                 return count;
-            }); // [Pre-Assert手順] - 入力ファイルの読み込みで不正入力 5 byte を返却する。
+            }); // [Pre-Assert手順] - 入力ファイルの読み込みで不正入力 9 byte を返却する。
     EXPECT_CALL(mock_stdio_, fclose(_, _, _, input_file))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - ヘッダー不正時に入力ファイルが fclose されること。
                               // [Pre-Assert手順] - 入力ファイルの fclose から 0 を返却する。
@@ -353,20 +355,20 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
     int argc = 4;
     const char *argv[] = {"compress-cli", "--decompress", "input.bin",
                           "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
-    FILE *input_file = (FILE *)(uintptr_t)0x3031;
+    FILE *input_file = (FILE *)(uintptr_t)0x3034;
     const uint8_t invalid_input[] = {
-        0x80, 0x00, 0x00, 0x01,
-        0x10}; // [状態] - ヘッダーの元サイズが 2 GiB より 1 byte 大きい不正入力 5 byte を用意する。
+        0x00, 0x00, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x10}; // [状態] - ヘッダーの元サイズが 4 GiB の不正入力 9 byte を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat_, cplat_console_init())
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -390,7 +392,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
     EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
         .WillOnce(Return((int64_t)sizeof(
             invalid_input))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
-                              // [Pre-Assert手順] - 入力ファイルのサイズとして 5 byte を返却する。
+                              // [Pre-Assert手順] - 入力ファイルのサイズとして 9 byte を返却する。
     EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの先頭へ戻すこと。
                               // [Pre-Assert手順] - 入力ファイル先頭への移動として 0 を返却する。
@@ -400,7 +402,7 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
             {
                 std::memcpy(ptr, invalid_input, sizeof(invalid_input));
                 return count;
-            }); // [Pre-Assert手順] - 入力ファイルの読み込みで元サイズが上限を超える入力 5 byte を返却する。
+            }); // [Pre-Assert手順] - 入力ファイルの読み込みで元サイズが上限を超える入力 9 byte を返却する。
     EXPECT_CALL(mock_stdio_, fclose(_, _, _, input_file))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - 元サイズの上限超過時に入力ファイルが fclose されること。
                               // [Pre-Assert手順] - 入力ファイルの fclose から 0 を返却する。
@@ -410,6 +412,87 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_original_size_exceed
         .Times(0); // [Pre-Assert確認_異常系] - 元サイズの上限超過時は出力ファイルが開かれないこと。
     EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("上限を超えています")))
         .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "上限を超えています" を含むエラーが表示されること。
+
+    // Act
+    int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
+
+    // Assert
+    EXPECT_NE(EXIT_SUCCESS, rc); // [確認_異常系] - main() の戻り値が EXIT_SUCCESS 以外であること。
+}
+
+// 展開時にヘッダーの元サイズが上限ちょうどの入力がバッファー確保へ進み失敗することの確認
+TEST_F(compress_cliTest, main_rejects_decompress_when_max_original_size_allocation_fails)
+{
+    // Arrange
+    int argc = 4;
+    const char *argv[] = {"compress-cli", "--decompress", "input.bin",
+                          "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
+    FILE *input_file = (FILE *)(uintptr_t)0x3031;
+    const uint8_t max_size_input[] = {
+        0x00, 0x00, 0x00, 0x00, 0xFF,
+        0xFF, 0xFF, 0xFF, 0x10}; // [状態] - ヘッダーの元サイズが UINT32_MAX の入力 9 byte を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat_, cplat_console_init())
+        .WillOnce(
+            Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
+    EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
+        .WillOnce(
+            [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
+            {
+                return return_full_path(path_out, path_size, detail_out, "/tmp/input.bin");
+            }); // [Pre-Assert確認_正常系] - 入力パスの cplat_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 入力パスの正規化結果として "/tmp/input.bin" を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("output.bin")))
+        .WillOnce(
+            [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
+            {
+                return return_full_path(path_out, path_size, detail_out, "/tmp/output.bin");
+            }); // [Pre-Assert確認_正常系] - 出力パスの cplat_path_get_full が 1 回呼び出されること。
+                // [Pre-Assert手順] - 出力パスの正規化結果として "/tmp/output.bin" を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fopen(StrEq("/tmp/input.bin"), StrEq("rb"), _))
+        .WillOnce(Return(input_file)); // [Pre-Assert確認_正常系] - 入力ファイルがモード "rb" で開かれること。
+                                       // [Pre-Assert手順] - 入力ファイルのハンドルを返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_END))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの末尾へ移動すること。
+                              // [Pre-Assert手順] - 入力ファイル末尾への移動として 0 を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
+        .WillOnce(Return((int64_t)sizeof(
+            max_size_input))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
+                               // [Pre-Assert手順] - 入力ファイルのサイズとして 9 byte を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの先頭へ戻すこと。
+                              // [Pre-Assert手順] - 入力ファイル先頭への移動として 0 を返却する。
+    EXPECT_CALL(mock_stdio_, fread(_, _, _, _, 1u, sizeof(max_size_input), input_file))
+        .WillOnce(
+            [&](const char *, const int, const char *, void *ptr, size_t, size_t count, FILE *)
+            {
+                std::memcpy(ptr, max_size_input, sizeof(max_size_input));
+                return count;
+            }); // [Pre-Assert手順] - 入力ファイルの読み込みで元サイズが UINT32_MAX の入力 9 byte を返却する。
+    EXPECT_CALL(mock_stdio_, fclose(_, _, _, input_file))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - バッファー確保失敗時に入力ファイルが fclose されること。
+                              // [Pre-Assert手順] - 入力ファイルの fclose から 0 を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_malloc(_))
+        .WillOnce(DoDefault())
+        .WillOnce(
+            [](size_t size)
+            {
+                EXPECT_EQ((size_t)UINT32_MAX,
+                          size); // [Pre-Assert確認_異常系] - 展開バッファー確保が UINT32_MAX byte で呼び出されること。
+                return nullptr;
+            }); // [Pre-Assert手順] - 1 回目の cplat_malloc は入力バッファー用に実体へ委譲し、2 回目は NULL を返却する。
+    EXPECT_CALL(mock_cplat_, cplat_decompress(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_異常系] - バッファー確保失敗時は cplat_decompress が呼び出されないこと。
+    EXPECT_CALL(mock_cplat_, cplat_fopen(StrEq("/tmp/output.bin"), StrEq("wb"), _))
+        .Times(0); // [Pre-Assert確認_異常系] - バッファー確保失敗時は出力ファイルが開かれないこと。
+    EXPECT_CALL(mock_stdio_, fprintf(_, _, _, _, HasSubstr("展開バッファの確保に失敗")))
+        .WillOnce(Return(0)); // [Pre-Assert確認_異常系] - "展開バッファの確保に失敗" を含むエラーが表示されること。
 
     // Act
     int rc = __real_main(argc, (char **)&argv); // [手順] - main() に引数を与えて呼び出す。
@@ -432,10 +515,10 @@ TEST_F(compress_cliTest, main_rejects_decompress_input_when_raw_file_exceeds_siz
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -487,8 +570,9 @@ TEST_F(compress_cliTest, main_decompresses_one_byte_input)
                           "output.bin"}; // [状態] - 展開モードで入力 "input.bin"、出力 "output.bin" とする。
     FILE *input_file = (FILE *)(uintptr_t)0x3032;
     FILE *output_file = (FILE *)(uintptr_t)0x3033;
-    const uint8_t compressed_input[] = {0x00, 0x00, 0x00, 0x01,
-                                        0x10}; // [状態] - ヘッダーの元サイズが 1 byte の圧縮入力 5 byte を用意する。
+    const uint8_t compressed_input[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x10}; // [状態] - ヘッダーの元サイズが 1 byte の圧縮入力 9 byte を用意する。
     const uint8_t decompressed_output[] = {'A'};
 
     // Pre-Assert
@@ -496,10 +580,10 @@ TEST_F(compress_cliTest, main_decompresses_one_byte_input)
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -523,7 +607,7 @@ TEST_F(compress_cliTest, main_decompresses_one_byte_input)
     EXPECT_CALL(mock_cplat_, cplat_ftell(input_file))
         .WillOnce(Return((int64_t)sizeof(
             compressed_input))); // [Pre-Assert確認_正常系] - cplat_ftell が入力ファイルのサイズを返すこと。
-                                 // [Pre-Assert手順] - 入力ファイルのサイズとして 5 byte を返却する。
+                                 // [Pre-Assert手順] - 入力ファイルのサイズとして 9 byte を返却する。
     EXPECT_CALL(mock_cplat_, cplat_fseek(input_file, 0, SEEK_SET))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - cplat_fseek が入力ファイルの先頭へ戻すこと。
                               // [Pre-Assert手順] - 入力ファイル先頭への移動として 0 を返却する。
@@ -547,7 +631,7 @@ TEST_F(compress_cliTest, main_decompresses_one_byte_input)
                 std::memcpy(dst, decompressed_output, sizeof(decompressed_output));
                 *dst_len = sizeof(decompressed_output);
                 return CPLAT_OK;
-            }); // [Pre-Assert確認_正常系] - cplat_decompress が入力サイズ 5 byte で 1 回呼び出されること。
+            }); // [Pre-Assert確認_正常系] - cplat_decompress が入力サイズ 9 byte で 1 回呼び出されること。
                 // [Pre-Assert手順] - cplat_decompress から展開済みデータ 1 byte を返却する。
     EXPECT_CALL(mock_cplat_, cplat_fopen(StrEq("/tmp/output.bin"), StrEq("wb"), _))
         .WillOnce(
@@ -589,10 +673,10 @@ TEST_F(compress_cliTest, main_rejects_decompress_output_when_size_mismatches_hea
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)
@@ -670,10 +754,10 @@ TEST_F(compress_cliTest, main_removes_partial_output_when_write_fails)
         .WillOnce(
             Return()); // [Pre-Assert確認_正常系] - main() 呼び出し時に cplat_console_init が 1 回呼び出されること。
     EXPECT_CALL(mock_cplat_, cplat_paths_equal(StrEq("input.bin"), StrEq("output.bin"), _, _))
-        .WillOnce(DoAll(
-            SetArgPointee<2>(0),
-            Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
-                                   // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
+        .WillOnce(
+            DoAll(SetArgPointee<2>(0),
+                  Return(CPLAT_OK))); // [Pre-Assert確認_正常系] - cplat_paths_equal で入出力パスの比較が行われること。
+                                      // [Pre-Assert手順] - equal_out に 0 (不一致) を設定して CPLAT_OK を返却する。
     EXPECT_CALL(mock_cplat_, cplat_path_get_full(_, _, _, StrEq("input.bin")))
         .WillOnce(
             [](char *path_out, size_t path_size, cplat_error *detail_out, const char *)

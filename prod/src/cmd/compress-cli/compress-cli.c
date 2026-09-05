@@ -19,13 +19,14 @@
 #include <cplat/crt/path.h>
 #include <cplat/crt/stdio.h>
 #include <cplat/crt/stdlib.h>
+#include <cplat/net/byteorder.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* 圧縮・展開で扱うデータ（入力ファイルおよび非圧縮データ）の上限を 2 GiB とする。 */
-#define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE (2048U * 1024U * 1024U)
+/* 圧縮 API の処理上限に合わせ、展開後長さの上限は 4 GiB - 1 byte とする。 */
+#define COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE ((size_t)CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE)
 
 /* エラー メッセージの格納に使用するバッファーのバイト数。 */
 #define COMPRESS_CLI_ERROR_MESSAGE_SIZE 256
@@ -47,9 +48,12 @@ static const char *compress_cli_error_text(const cplat_error *error, char *buf, 
     return buf;
 }
 
-static uint32_t compress_cli_read_u32_be(const uint8_t *data)
+static uint64_t compress_cli_read_u64_be(const uint8_t *data)
 {
-    return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
+    uint64_t orig_len_nbo;
+
+    memcpy(&orig_len_nbo, data, sizeof(orig_len_nbo));
+    return cplat_ntoh64(orig_len_nbo);
 }
 
 static int compress_cli_read_file_fail(FILE *file, uint8_t *data)
@@ -291,7 +295,7 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
     uint8_t *decompressed_data = NULL;
     size_t input_size = 0u;
     size_t decompressed_size;
-    uint32_t expected_size;
+    uint64_t expected_size;
     int rc = -1;
 
     if (compress_cli_read_file(input_path, COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE, &input_data, &input_size) != 0)
@@ -305,15 +309,14 @@ static int compress_cli_run_decompress(const char *input_path, const char *outpu
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
-    /* 圧縮ヘッダーの NBO 4 バイトを読み取るため、コーディング規範の例外として uint32_t を維持する。 */
-    expected_size = compress_cli_read_u32_be(input_data);
+    expected_size = compress_cli_read_u64_be(input_data);
     if (expected_size == 0U)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダーの元サイズが小さすぎます: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);
     }
 
-    if (expected_size > COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE)
+    if (expected_size > (uint64_t)COMPRESS_CLI_MAX_UNCOMPRESSED_SIZE)
     {
         fprintf(stderr, "展開入力が不正です。ヘッダーの元サイズが上限を超えています: %s\n", input_path);
         return compress_cli_run_decompress_return(input_data, decompressed_data, rc);

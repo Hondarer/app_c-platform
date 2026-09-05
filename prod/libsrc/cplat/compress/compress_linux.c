@@ -21,23 +21,44 @@
 
     #include <string.h>
 
-    #include <arpa/inet.h>
     #include <zlib.h>
 
     #include <cplat/base/result.h>
     #include <cplat/compress/compress.h>
+    #include <cplat/net/byteorder.h>
+
+/*
+ * zlib の avail_in / avail_out は uInt のため、1 回に渡せる長さは 4 GiB 未満です。
+ * see: https://zlib.net/manual.html
+ */
+static uInt cplat_zlib_avail(const size_t remaining)
+{
+    if (remaining > (size_t)((uInt)-1))
+    {
+        return (uInt)-1;
+    }
+
+    return (uInt)remaining;
+}
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
-    uint32_t orig_len_nbo;
+    uint64_t orig_len_nbo;
     z_stream z = {0};
     int ret;
+    size_t dst_capacity;
+    size_t out_remaining;
 
     if (dst == NULL || dst_len == NULL || src == NULL || src_len == 0)
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    if (src_len > (size_t)CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE)
+    {
+        return CPLAT_ERR_LIMIT_EXCEEDED;
     }
 
     if (*dst_len < CPLAT_COMPRESS_HEADER_SIZE + 1U)
@@ -45,22 +66,34 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
         return CPLAT_ERR_BUFFER_TOO_SMALL;
     }
 
-    /* 先頭 4 バイトに元サイズ (NBO) を書く */
-    orig_len_nbo = htonl((uint32_t)src_len);
+    /* 先頭 8 バイトに元サイズ (NBO) を書く */
+    orig_len_nbo = cplat_hton64((uint64_t)src_len);
     memcpy(dst, &orig_len_nbo, CPLAT_COMPRESS_HEADER_SIZE);
+
+    dst_capacity = *dst_len;
+    out_remaining = dst_capacity - CPLAT_COMPRESS_HEADER_SIZE;
 
     /* raw DEFLATE (windowBits = -15) で圧縮 */
     z.next_in = (Bytef *)(uintptr_t)src;
+    /* src_len は CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE 以下のため uInt に収まる */
     z.avail_in = (uInt)src_len;
     z.next_out = dst + CPLAT_COMPRESS_HEADER_SIZE;
-    z.avail_out = (uInt)(*dst_len - CPLAT_COMPRESS_HEADER_SIZE);
 
     if (deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK)
     {
         return CPLAT_ERR_UNKNOWN;
     }
 
-    ret = deflate(&z, Z_FINISH);
+    do
+    {
+        uInt avail_out;
+
+        avail_out = cplat_zlib_avail(out_remaining);
+        z.avail_out = avail_out;
+        ret = deflate(&z, Z_FINISH);
+        out_remaining -= (size_t)(avail_out - z.avail_out);
+    } while (ret == Z_OK);
+
     deflateEnd(&z);
 
     if (ret != Z_STREAM_END)
@@ -68,7 +101,7 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
         return CPLAT_ERR_UNKNOWN;
     }
 
-    *dst_len = CPLAT_COMPRESS_HEADER_SIZE + (size_t)z.total_out;
+    *dst_len = dst_capacity - out_remaining;
     return CPLAT_OK;
 }
 
@@ -76,8 +109,8 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
 
 int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
-    uint32_t orig_len_nbo;
-    uint32_t orig_len;
+    uint64_t orig_len_nbo;
+    uint64_t orig_len;
     z_stream z = {0};
     int ret;
 
@@ -86,9 +119,14 @@ int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
 
-    /* 先頭 4 バイトから元サイズを取得 */
+    /* 先頭 8 バイトから元サイズを取得 */
     memcpy(&orig_len_nbo, src, CPLAT_COMPRESS_HEADER_SIZE);
-    orig_len = ntohl(orig_len_nbo);
+    orig_len = cplat_ntoh64(orig_len_nbo);
+
+    if (orig_len > (uint64_t)CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE)
+    {
+        return CPLAT_ERR_LIMIT_EXCEEDED;
+    }
 
     if (*dst_len < (size_t)orig_len)
     {

@@ -449,6 +449,8 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_ntoh16(_)).WillByDefault(Invoke(delegate_real_cplat_ntoh16));
     ON_CALL(*this, cplat_hton32(_)).WillByDefault(Invoke(delegate_real_cplat_hton32));
     ON_CALL(*this, cplat_ntoh32(_)).WillByDefault(Invoke(delegate_real_cplat_ntoh32));
+    ON_CALL(*this, cplat_hton64(_)).WillByDefault(Invoke(delegate_real_cplat_hton64));
+    ON_CALL(*this, cplat_ntoh64(_)).WillByDefault(Invoke(delegate_real_cplat_ntoh64));
 
     // cplat/net/endpoint.h
     ON_CALL(*this, cplat_ipv4_parse(_, _)).WillByDefault(Invoke(delegate_real_cplat_ipv4_parse));

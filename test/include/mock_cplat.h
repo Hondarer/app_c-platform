@@ -302,6 +302,8 @@ MOCK_CPLAT_LINK_IMPL(cplat_hton16)
 MOCK_CPLAT_LINK_IMPL(cplat_ntoh16)
 MOCK_CPLAT_LINK_IMPL(cplat_hton32)
 MOCK_CPLAT_LINK_IMPL(cplat_ntoh32)
+MOCK_CPLAT_LINK_IMPL(cplat_hton64)
+MOCK_CPLAT_LINK_IMPL(cplat_ntoh64)
 
 // cplat/net/endpoint.h
 MOCK_CPLAT_LINK_IMPL(cplat_ipv4_parse)
@@ -872,6 +874,8 @@ extern uint16_t delegate_real_cplat_hton16(uint16_t value);
 extern uint16_t delegate_real_cplat_ntoh16(uint16_t value);
 extern uint32_t delegate_real_cplat_hton32(uint32_t value);
 extern uint32_t delegate_real_cplat_ntoh32(uint32_t value);
+extern uint64_t delegate_real_cplat_hton64(uint64_t value);
+extern uint64_t delegate_real_cplat_ntoh64(uint64_t value);
 
 // cplat/net/endpoint.h
 extern int delegate_real_cplat_ipv4_parse(const char *text, uint32_t *address_out);
@@ -1462,6 +1466,8 @@ class Mock_cplat
     MOCK_METHOD(uint16_t, cplat_ntoh16, (uint16_t));
     MOCK_METHOD(uint32_t, cplat_hton32, (uint32_t));
     MOCK_METHOD(uint32_t, cplat_ntoh32, (uint32_t));
+    MOCK_METHOD(uint64_t, cplat_hton64, (uint64_t));
+    MOCK_METHOD(uint64_t, cplat_ntoh64, (uint64_t));
 
     // cplat/net/endpoint.h
     MOCK_METHOD(int, cplat_ipv4_parse, (const char *, uint32_t *));

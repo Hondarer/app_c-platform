@@ -79,6 +79,28 @@ extern "C"
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_ntoh32(uint32_t value);
 
+    /**
+     *  @brief          64 bit 値をホスト バイト オーダーからネットワーク バイト オーダーへ変換します。
+     *  @param[in]      value 変換元の値 (ホスト バイト オーダー)。
+     *  @return         ネットワーク バイト オーダーの値を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT uint64_t CPLAT_API cplat_hton64(uint64_t value);
+
+    /**
+     *  @brief          64 bit 値をネットワーク バイト オーダーからホスト バイト オーダーへ変換します。
+     *  @param[in]      value 変換元の値 (ネットワーク バイト オーダー)。
+     *  @return         ホスト バイト オーダーの値を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT uint64_t CPLAT_API cplat_ntoh64(uint64_t value);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

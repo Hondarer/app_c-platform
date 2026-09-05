@@ -39,6 +39,7 @@
 
     #include <cplat/base/result.h>
     #include <cplat/compress/compress.h>
+    #include <cplat/net/byteorder.h>
 
 /*
  * 標準 CRC-32 (IEEE 802.3, polynomial 0xEDB88320) の継続計算。
@@ -90,7 +91,7 @@ static uint8_t mszip_crc_byte(const uint64_t orig_len)
 int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
     COMPRESSOR_HANDLE h;
-    uint32_t orig_len_nbo;
+    uint64_t orig_len_nbo;
     SIZE_T cmp_len;
     ULONG block_size;
     BOOL ok;
@@ -100,14 +101,19 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
 
-    /* NBO ヘッダー (4B) + CK (2B) + raw DEFLATE 最低 1B */
+    if (src_len > (size_t)CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE)
+    {
+        return CPLAT_ERR_LIMIT_EXCEEDED;
+    }
+
+    /* NBO ヘッダー (8B) + CK (2B) + raw DEFLATE 最低 1B */
     if (*dst_len < CPLAT_COMPRESS_HEADER_SIZE + 2U + 1U)
     {
         return CPLAT_ERR_BUFFER_TOO_SMALL;
     }
 
-    /* 先頭 4 バイトに元サイズ (NBO) を書く */
-    orig_len_nbo = htonl((uint32_t)src_len);
+    /* 先頭 8 バイトに元サイズ (NBO) を書く */
+    orig_len_nbo = cplat_hton64((uint64_t)src_len);
     memcpy(dst, &orig_len_nbo, CPLAT_COMPRESS_HEADER_SIZE);
 
     /*
@@ -120,7 +126,7 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
         return CPLAT_ERR_UNKNOWN;
     }
 
-    /* データ全体を単一ブロックとして処理する */
+    /* データ全体を単一ブロックとして処理する。src_len は上限以下のため ULONG へ収まる。 */
     if (src_len > 32768U)
     {
         block_size = (ULONG)src_len;
@@ -131,7 +137,7 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
     }
     (void)SetCompressorInformation(h, COMPRESS_INFORMATION_CLASS_BLOCK_SIZE, &block_size, sizeof(block_size));
 
-    /* dst+4 に [CK(2B)][raw DEFLATE] を書き込む */
+    /* ヘッダー直後へ [CK(2B)][raw DEFLATE] を書き込む */
     ok = Compress(h, src, (SIZE_T)src_len, dst + CPLAT_COMPRESS_HEADER_SIZE,
                   (SIZE_T)(*dst_len - CPLAT_COMPRESS_HEADER_SIZE), &cmp_len);
     CloseCompressor(h);
@@ -153,7 +159,7 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
 int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len)
 {
     DECOMPRESSOR_HANDLE h;
-    uint32_t orig_len_nbo;
+    uint64_t orig_len_nbo;
     uint64_t orig_len;
     size_t raw_deflate_len;
     size_t tmp_len;
@@ -167,9 +173,14 @@ int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
 
-    /* 先頭 4 バイトから元サイズを取得 */
+    /* 先頭 8 バイトから元サイズを取得 */
     memcpy(&orig_len_nbo, src, CPLAT_COMPRESS_HEADER_SIZE);
-    orig_len = (uint64_t)ntohl(orig_len_nbo);
+    orig_len = cplat_ntoh64(orig_len_nbo);
+
+    if (orig_len > (uint64_t)CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE)
+    {
+        return CPLAT_ERR_LIMIT_EXCEEDED;
+    }
 
     if (*dst_len < (size_t)orig_len)
     {

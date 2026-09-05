@@ -456,6 +456,8 @@
     EXPORT_ENTRY(cplat_ntoh16, uint16_t(CPLAT_API *)(uint16_t value)) \
     EXPORT_ENTRY(cplat_hton32, uint32_t(CPLAT_API *)(uint32_t value)) \
     EXPORT_ENTRY(cplat_ntoh32, uint32_t(CPLAT_API *)(uint32_t value)) \
+    EXPORT_ENTRY(cplat_hton64, uint64_t(CPLAT_API *)(uint64_t value)) \
+    EXPORT_ENTRY(cplat_ntoh64, uint64_t(CPLAT_API *)(uint64_t value)) \
     /* cplat/net/endpoint.h */ \
     EXPORT_ENTRY(cplat_ipv4_parse, int(CPLAT_API *)(const char *text, uint32_t *address_out)) \
     EXPORT_ENTRY(cplat_ipv4_resolve, \

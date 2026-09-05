@@ -18,8 +18,10 @@
  *
  *  圧縮ペイロードのフォーマット:
     @code
-    [元サイズ: uint32_t (ネットワークバイトオーダー)] [raw DEFLATE データ]
+    [元サイズ: uint64_t (ネットワークバイトオーダー)] [raw DEFLATE データ]
     @endcode
+ *
+ *  扱える展開後の長さは @ref CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE 以下です。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -44,8 +46,11 @@
  *  @{
  */
 
-/** 圧縮ペイロード先頭に付加する元サイズ フィールドのバイト数。 */
-#define CPLAT_COMPRESS_HEADER_SIZE 4U
+/** 圧縮ペイロード先頭に付加する展開後長さフィールドのバイト数。 */
+#define CPLAT_COMPRESS_HEADER_SIZE 8U
+
+/** 圧縮および展開が扱う展開後長さの上限 (バイト)。4 GiB 未満です。 */
+#define CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE UINT32_MAX
 
 #ifdef __cplusplus
 extern "C"
@@ -55,35 +60,34 @@ extern "C"
     /**
      *  @brief          データを圧縮します。
      *  @param[out]     dst      圧縮後データを格納するバッファー。
-     *                           先頭 4 バイトに元サイズ (NBO) が書き込まれます。
+     *                           先頭 8 バイトに元サイズ (NBO) が書き込まれます。
      *  @param[in,out]  dst_len  入力: dst のバッファー サイズ。
      *                           出力: 書き込んだバイト数。
      *  @param[in]      src      圧縮前データへのポインター。
      *  @param[in]      src_len  圧縮前データのバイト数。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *                           1 以上 @ref CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE 以下で指定します。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_LIMIT_EXCEEDED 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
-                                                       size_t src_len);
+    CPLAT_EXPORT int CPLAT_API cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 
     /**
      *  @brief          圧縮データを展開します。
      *  @param[out]     dst      展開後データを格納するバッファー。
      *  @param[in,out]  dst_len  入力: dst のバッファー サイズ。
      *                           出力: 書き込んだバイト数。
-     *  @param[in]      src      圧縮後データへのポインター (先頭 4 バイトは元サイズ)。
+     *  @param[in]      src      圧縮後データへのポインター (先頭 8 バイトは元サイズ)。
      *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_LIMIT_EXCEEDED 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  内部に共有状態を持ちません。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src,
-                                                         size_t src_len);
+    CPLAT_EXPORT int CPLAT_API cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 
 #ifdef __cplusplus
 }

@@ -230,8 +230,10 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `ntohs` | `cplat_ntoh16` |
 | `htonl` | `cplat_hton32` |
 | `ntohl` | `cplat_ntoh32` |
+| `htobe64` (glibc) | `cplat_hton64` |
+| `be64toh` (glibc) | `cplat_ntoh64` |
 
-`cplat_hton16`/`hton32` 系はシフト演算とバイト列再構成のみで実装され、ソケット ヘッダーへの依存を持ちません。
+`cplat_hton16`/`hton32`/`hton64` 系はシフト演算とバイト列再構成のみで実装され、ソケット ヘッダーへの依存を持ちません。
 
 ### IPv4 アドレス
 
@@ -364,7 +366,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `deflateInit2` +`deflate` +`deflateEnd` (zlib, Linux) / `CreateCompressor` +`Compress` (Windows Compression API) | `cplat_compress(...)` | ワンショット API に集約。先頭 4 バイトへ元サイズ (ネットワーク バイト オーダー) を付加する独自フォーマットで統一 |
+| `deflateInit2` +`deflate` +`deflateEnd` (zlib, Linux) / `CreateCompressor` +`Compress` (Windows Compression API) | `cplat_compress(...)` | ワンショット API に集約。先頭 8 バイトへ元サイズ (ネットワーク バイト オーダー) を付加する独自フォーマットで統一 |
 | `inflateInit2` +`inflate` +`inflateEnd` (zlib, Linux) / `CreateDecompressor` +`Decompress` (Windows Compression API) | `cplat_decompress(...)` | 同上 |
 
 ### DLL エクスポート マクロ (Windows 専用)
