@@ -6,15 +6,8 @@
  *  @date           2026/03/05
  *  @version        1.0.0
  *
- *  プラットフォームごとに異なる圧縮 API を共通インターフェースで抽象化します。\n
- *
- *  | OS      | 使用ライブラリ                                   | フォーマット        |
- *  | ------- | ------------------------------------------------ | ------------------- |
- *  | Linux   | zlib (deflate/inflate, windowBits = -15)         | raw DEFLATE         |
- *  | Windows | Compression API (MSZIP \| COMPRESS_RAW)          | raw DEFLATE         |
- *
- *  両 OS とも raw DEFLATE (RFC 1951) を出力するため、クロスプラットフォーム互換
- *  通信が可能です。
+ *  Linux と Windows で app/zlib の deflate/inflate を使用します。\n
+ *  raw DEFLATE (windowBits = -15) と元サイズを組み合わせ、両 OS で同じ形式を扱います。
  *
  *  圧縮ペイロードのフォーマット:
     @code
@@ -66,7 +59,9 @@ extern "C"
      *  @param[in]      src      圧縮前データへのポインター。
      *  @param[in]      src_len  圧縮前データのバイト数。
      *                           1 以上 @ref CPLAT_COMPRESS_MAX_UNCOMPRESSED_SIZE 以下で指定します。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_LIMIT_EXCEEDED 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_LIMIT_EXCEEDED 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  zlib の初期化または処理中のメモリ不足は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
@@ -82,6 +77,8 @@ extern "C"
      *  @param[in]      src      圧縮後データへのポインター (先頭 8 バイトは元サイズ)。
      *  @param[in]      src_len  圧縮後データのバイト数 (ヘッダーを含む)。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_LIMIT_EXCEEDED 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  zlib の初期化または処理中のメモリ不足は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n

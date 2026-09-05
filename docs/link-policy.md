@@ -25,26 +25,29 @@ Windows の利用側で `CPLAT_STATIC` を定義してはいけません。
 
 `CPLAT_STATIC` は、製品ソースやモックの関数をテスト実行ファイルへ直接定義する場合に `dllimport` を抑止するためだけ使用します。
 
-`libcplat` は `libcjson.so` または `libcjson.dll` を動的に利用します。
+`libcplat` は、両 OS で cJSON と zlib を動的に利用します。  
+ワークスペースの `app/cjson` と `app/zlib` で生成したライブラリを使用します。
 
-実行時は `libcplat` と `libcjson` の両方を解決できるようにします。
+実行時は `libcplat`、`libcjson`、`libzlib` のすべてを解決できるようにします。
 
 ## 実行ファイルへの同梱
 
-単体配布する CLI や OS のサービスとして起動する実行ファイルには、`libcplat` と `libcjson` を同じディレクトリへ同梱します。
+単体配布する CLI や OS のサービスとして起動する実行ファイルには、`libcplat`、`libcjson`、`libzlib` を同じディレクトリへ同梱します。
 
 このリポジトリでは、対象 app の製品ビルドが次の成果物を `prod/cbin` へコピーします。
 
 | プラットフォーム | 同梱するファイル |
 |---|---|
-| Linux | `libcplat.so` / `libcjson.so` |
-| Windows | `libcplat.dll` / `libcjson.dll` |
+| Linux | `libcplat.so` / `libcjson.so` / `libzlib.so` |
+| Windows | `libcplat.dll` / `libcjson.dll` / `libzlib.dll` |
 
-Linux の対象実行ファイルと `libcplat.so` は、`$ORIGIN` の RUNPATH で同じディレクトリを探索します。
+Linux の対象実行ファイルと `libcplat.so` は、`$ORIGIN` の実行時探索パス (RPATH または RUNPATH) で同じディレクトリを探索します。
 
 Windows は実行ファイルと同じディレクトリの DLL を標準の探索順序で解決します。
 
 この配置により、systemd や Windows SCM から起動する `service-sample` も、開発者の `LD_LIBRARY_PATH` や `PATH` に依存しません。
+
+`libzlib` の配布条件は `app/zlib/README.md` を参照してください。
 
 `libcjson` を配布物に含める場合は、`app/cjson/README.md` に記載された MIT License の条件に従います。
 
@@ -78,11 +81,11 @@ nm prod/lib/libcplat.so | grep ' [Tt] cplat_'
 Linux では `readelf` と `ldd` を使い、動的リンクと実行時の解決先を確認できます。
 
 ```bash
-readelf -d <利用側>/prod/cbin/<実行ファイル> | grep -E 'NEEDED|RUNPATH'
-env -u LD_LIBRARY_PATH ldd <利用側>/prod/cbin/<実行ファイル> | grep -E 'cplat|cjson'
+readelf -d <利用側>/prod/cbin/<実行ファイル> | grep -E 'NEEDED|RPATH|RUNPATH'
+env -u LD_LIBRARY_PATH ldd <利用側>/prod/cbin/<実行ファイル> | grep -E 'cplat|cjson|zlib'
 ```
 
-`libcplat.so` と `libcjson.so` の解決先が、実行ファイルと同じ `prod/cbin` になることを確認します。
+`libcplat.so`、`libcjson.so`、`libzlib.so` の解決先が、実行ファイルと同じ `prod/cbin` になることを確認します。
 
 Windows では `dumpbin /dependents` を使い、実行ファイルが `libcplat.dll` を参照することを確認します。
 

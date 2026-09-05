@@ -375,8 +375,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `deflateInit2` +`deflate` +`deflateEnd` (zlib, Linux) / `CreateCompressor` +`Compress` (Windows Compression API) | `cplat_compress(...)` | ワンショット API に集約。先頭 8 バイトへ元サイズ (ネットワーク バイト オーダー) を付加する独自フォーマットで統一 |
-| `inflateInit2` +`inflate` +`inflateEnd` (zlib, Linux) / `CreateDecompressor` +`Decompress` (Windows Compression API) | `cplat_decompress(...)` | 同上 |
+| `deflateInit2` +`deflate` +`deflateEnd` (両 OS 共通の app/zlib) | `cplat_compress(...)` | ワンショット API に集約。先頭 8 バイトへ元サイズ (ネットワーク バイト オーダー) を付加する独自フォーマットで統一 |
+| `inflateInit2` +`inflate` +`inflateEnd` (両 OS 共通の app/zlib) | `cplat_decompress(...)` | 同上 |
 
 ### DLL エクスポート マクロ (Windows 専用)
 

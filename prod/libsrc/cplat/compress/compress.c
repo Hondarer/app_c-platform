@@ -1,14 +1,13 @@
 /**
  *******************************************************************************
- *  @file           compress_linux.c
- *  @brief          zlib を使用してデータを圧縮および展開する Linux 向け機能を実装します。
+ *  @file           compress.c
+ *  @brief          zlib を使用してデータを圧縮および展開する共通機能を実装します。
  *  @author         Tetsuo Honda
  *  @date           2026/03/05
  *  @version        1.0.0
  *
  *  zlib の deflate/inflate を raw DEFLATE (windowBits = -15) モードで使用します。\n
- *  Windows 実装 (MSZIP | COMPRESS_RAW) と同一フォーマットを出力するため、
- *  クロスプラットフォーム通信に対応します。
+ *  Linux と Windows で app/zlib の同じ実装を使用します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -17,15 +16,13 @@
 
 #include <cplat/base/platform.h>
 
-#if defined(PLATFORM_LINUX)
+#include <string.h>
 
-    #include <string.h>
+#include <zlib.h>
 
-    #include <zlib.h>
-
-    #include <cplat/base/result.h>
-    #include <cplat/compress/compress.h>
-    #include <cplat/net/byteorder.h>
+#include <cplat/base/result.h>
+#include <cplat/compress/compress.h>
+#include <cplat/net/byteorder.h>
 
 /*
  * zlib の avail_in / avail_out は uInt のため、1 回に渡せる長さは 4 GiB 未満です。
@@ -79,7 +76,12 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
     z.avail_in = (uInt)src_len;
     z.next_out = dst + CPLAT_COMPRESS_HEADER_SIZE;
 
-    if (deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+    ret = deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+    if (ret == Z_MEM_ERROR)
+    {
+        return CPLAT_ERR_OUT_OF_MEMORY;
+    }
+    if (ret != Z_OK)
     {
         return CPLAT_ERR_UNKNOWN;
     }
@@ -96,6 +98,10 @@ int cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size
 
     deflateEnd(&z);
 
+    if (ret == Z_MEM_ERROR)
+    {
+        return CPLAT_ERR_OUT_OF_MEMORY;
+    }
     if (ret != Z_STREAM_END)
     {
         return CPLAT_ERR_UNKNOWN;
@@ -139,7 +145,12 @@ int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     z.next_out = (Bytef *)dst;
     z.avail_out = (uInt)*dst_len;
 
-    if (inflateInit2(&z, -15) != Z_OK)
+    ret = inflateInit2(&z, -15);
+    if (ret == Z_MEM_ERROR)
+    {
+        return CPLAT_ERR_OUT_OF_MEMORY;
+    }
+    if (ret != Z_OK)
     {
         return CPLAT_ERR_UNKNOWN;
     }
@@ -147,6 +158,10 @@ int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     ret = inflate(&z, Z_FINISH);
     inflateEnd(&z);
 
+    if (ret == Z_MEM_ERROR)
+    {
+        return CPLAT_ERR_OUT_OF_MEMORY;
+    }
     if (ret != Z_STREAM_END)
     {
         return CPLAT_ERR_UNKNOWN;
@@ -155,7 +170,3 @@ int cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, const si
     *dst_len = (size_t)z.total_out;
     return CPLAT_OK;
 }
-
-#elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)
-    #pragma warning(disable : 4206)
-#endif

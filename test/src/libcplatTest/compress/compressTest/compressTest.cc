@@ -1,11 +1,7 @@
 #include <testfw.h>
 #include <cplat/base/result.h>
 #include <cplat/compress/compress.h>
-#include <mock_cplat.h>
-
-#if defined(PLATFORM_LINUX)
-    #include <mock_zlib.h>
-#endif /* PLATFORM_LINUX */
+#include <mock_zlib.h>
 
 #include <cstdint>
 #include <cstring>
@@ -119,7 +115,7 @@ TEST_F(compressTest, compress_returns_limit_exceeded_when_src_len_exceeds_max)
 
 #endif /* SIZE_MAX > UINT32_MAX */
 
-// Linux の cplat_compress は zlib の avail_out が uInt を超えるとき deflate を繰り返す。
+// cplat_compress は zlib の avail_out が uInt を超えるとき deflate を繰り返す。
 // その継続条件は 4 GiB 超の出力バッファーが必要なため、単体テストでは到達できない。
 
 // ヘッダーと最低 1 byte を収められない出力バッファーが拒否されることの確認
@@ -147,10 +143,7 @@ TEST_F(compressTest, compress_returns_unknown_when_output_does_not_fit)
 {
     // Arrange
     std::string plain(4096u, 'x');
-    /* Windows 実装は CK プレフィックス 2 byte 分を含めて圧縮するため、
-     * ヘッダー + 1 byte では CPLAT_ERR_BUFFER_TOO_SMALL 側の分岐に入ってしまう。
-     * ヘッダー + 3 byte にして、両プラットフォームで「バッファーは足りているが
-     * 圧縮結果が収まらない」経路を通す。 */
+    // ヘッダーの最低容量を満たし、圧縮結果が収まらない容量を選ぶ。
     uint8_t dst[CPLAT_COMPRESS_HEADER_SIZE + 3u];
     size_t dst_len = sizeof(dst); // [状態] - 圧縮結果が収まらない出力バッファーを用意する。
 
@@ -281,82 +274,232 @@ TEST_F(compressTest, decompress_returns_limit_exceeded_when_original_size_exceed
               actual_ret); // [確認_異常系] - cplat_decompress の戻り値が CPLAT_ERR_LIMIT_EXCEEDED であること。
 }
 
-#if defined(PLATFORM_LINUX)
+// deflate の init 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, compress_returns_out_of_memory_when_deflate_init_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
 
-// 圧縮ストリームの初期化に失敗した場合に通知されることの確認
-// Windows の cplat_compress は Compression API を使うため、この失敗経路は Linux のみに存在する
+    // Pre-Assert
+    EXPECT_CALL(mock_zlib, deflateInit2_(_, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY,
+                                         StrEq(ZLIB_VERSION), static_cast<int>(sizeof(z_stream))))
+        .WillOnce(Return(Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - 初期化関数が所定の引数で 1 回呼ばれること。
+                                        // [Pre-Assert手順] - Z_MEM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, deflate(_, _)).Times(0); // [Pre-Assert確認_異常系] - 初期化失敗後に処理しないこと。
+    EXPECT_CALL(mock_zlib, deflateEnd(_)).Times(0); // [Pre-Assert確認_異常系] - 未初期化のストリームを終了しないこと。
+
+    // Act
+    int actual_ret = cplat_compress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, actual_ret); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);                // [確認_異常系] - 失敗時は出力長を更新しないこと。
+}
+
+// deflate の init 失敗を結果コードへ変換することの確認
 TEST_F(compressTest, compress_returns_unknown_when_deflate_init_fails)
 {
     // Arrange
     NiceMock<Mock_zlib> mock_zlib;
-    const uint8_t src[] = "payload";
-    uint8_t dst[64];
-    size_t dst_len = sizeof(dst); // [状態] - 十分な大きさの出力バッファーを用意する。
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_zlib, deflateInit2_(_, _, _, _, _, _, _, _, _, _, _))
-        .WillOnce(Return(Z_MEM_ERROR))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - deflateInit2_ が 1 回目に呼び出されること。
-                                      // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
+    EXPECT_CALL(mock_zlib, deflateInit2_(_, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY,
+                                         StrEq(ZLIB_VERSION), static_cast<int>(sizeof(z_stream))))
+        .WillOnce(Return(Z_STREAM_ERROR)); // [Pre-Assert確認_異常系] - 初期化関数が所定の引数で 1 回呼ばれること。
+                                           // [Pre-Assert手順] - Z_STREAM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, deflate(_, _)).Times(0); // [Pre-Assert確認_異常系] - 初期化失敗後に処理しないこと。
+    EXPECT_CALL(mock_zlib, deflateEnd(_)).Times(0); // [Pre-Assert確認_異常系] - 未初期化のストリームを終了しないこと。
 
     // Act
-    int actual_ret = cplat_compress(dst, &dst_len, src, sizeof(src) - 1u); // [手順] - cplat_compress を呼び出す。
+    int actual_ret = cplat_compress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_UNKNOWN,
-              actual_ret); // [確認_異常系] - cplat_compress の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, actual_ret); // [確認_異常系] - CPLAT_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);          // [確認_異常系] - 失敗時は出力長を更新しないこと。
 }
 
-// 展開ストリームの初期化に失敗した場合に通知されることの確認
-// Windows の cplat_decompress は Compression API を使うため、この失敗経路は Linux のみに存在する
+// inflate の init 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, decompress_returns_out_of_memory_when_inflate_init_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_zlib, inflateInit2_(_, -15, StrEq(ZLIB_VERSION), static_cast<int>(sizeof(z_stream))))
+        .WillOnce(Return(Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - 初期化関数が所定の引数で 1 回呼ばれること。
+                                        // [Pre-Assert手順] - Z_MEM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, inflate(_, _)).Times(0); // [Pre-Assert確認_異常系] - 初期化失敗後に処理しないこと。
+    EXPECT_CALL(mock_zlib, inflateEnd(_)).Times(0); // [Pre-Assert確認_異常系] - 未初期化のストリームを終了しないこと。
+
+    // Act
+    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, actual_ret); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);                // [確認_異常系] - 失敗時は出力長を更新しないこと。
+}
+
+// inflate の init 失敗を結果コードへ変換することの確認
 TEST_F(compressTest, decompress_returns_unknown_when_inflate_init_fails)
 {
     // Arrange
     NiceMock<Mock_zlib> mock_zlib;
-    uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
-    uint8_t dst[64];
-    size_t dst_len = sizeof(dst); // [状態] - ヘッダー長を超える入力と出力バッファーを用意する。
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_zlib, inflateInit2_(_, _, _, _, _, _, _))
-        .WillOnce(Return(Z_MEM_ERROR))
-        .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - inflateInit2_ が 1 回目に呼び出されること。
-                                      // [Pre-Assert手順] - 1 回目は Z_MEM_ERROR を返却し、以降は本物へ委譲する。
+    EXPECT_CALL(mock_zlib, inflateInit2_(_, -15, StrEq(ZLIB_VERSION), static_cast<int>(sizeof(z_stream))))
+        .WillOnce(Return(Z_STREAM_ERROR)); // [Pre-Assert確認_異常系] - 初期化関数が所定の引数で 1 回呼ばれること。
+                                           // [Pre-Assert手順] - Z_STREAM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, inflate(_, _)).Times(0); // [Pre-Assert確認_異常系] - 初期化失敗後に処理しないこと。
+    EXPECT_CALL(mock_zlib, inflateEnd(_)).Times(0); // [Pre-Assert確認_異常系] - 未初期化のストリームを終了しないこと。
 
     // Act
-    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - cplat_decompress を呼び出す。
+    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_UNKNOWN,
-              actual_ret); // [確認_異常系] - cplat_decompress の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, actual_ret); // [確認_異常系] - CPLAT_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);          // [確認_異常系] - 失敗時は出力長を更新しないこと。
 }
 
-#endif /* PLATFORM_LINUX */
-
-#if defined(PLATFORM_WINDOWS)
-
-// 一時バッファーの確保に失敗した場合に通知されることの確認
-// Linux の cplat_decompress は zlib の inflate を使うため、この失敗経路は Windows のみに存在する
-TEST_F(compressTest, decompress_returns_out_of_memory_when_malloc_fails)
+// deflate の processing 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, compress_returns_out_of_memory_when_deflate_processing_fails)
 {
     // Arrange
-    NiceMock<Mock_cplat> mock_cplat;
-    uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
-    uint8_t dst[64];
-    size_t dst_len = sizeof(dst); // [状態] - ヘッダー長を超える入力と出力バッファーを用意する。
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_malloc(_))
-        .WillOnce(Return(
-            nullptr)); // [Pre-Assert確認_異常系] - cplat_malloc が一時バッファー確保のために 1 回呼び出されること。
-                       // [Pre-Assert手順] - cplat_malloc から NULL を返却する。
+    InSequence sequence;
+    EXPECT_CALL(mock_zlib, deflate(_, Z_FINISH))
+        .WillOnce(Return(Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - 初期化成功後に処理が 1 回呼ばれること。
+                                        // [Pre-Assert手順] - Z_MEM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, deflateEnd(_))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - 失敗後も終了処理を 1 回呼ぶこと。
+                                // [Pre-Assert手順] - 実関数へ委譲してストリームを解放する。
 
     // Act
-    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - cplat_decompress を呼び出す。
+    int actual_ret = cplat_compress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY,
-              actual_ret); // [確認_異常系] - cplat_decompress の戻り値が CPLAT_ERR_OUT_OF_MEMORY であること。
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, actual_ret); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);                // [確認_異常系] - 失敗時は出力長を更新しないこと。
 }
 
-#endif /* PLATFORM_WINDOWS */
+// deflate の processing 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, compress_returns_unknown_when_deflate_processing_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
+
+    // Pre-Assert
+    InSequence sequence;
+    EXPECT_CALL(mock_zlib, deflate(_, Z_FINISH))
+        .WillOnce(Return(Z_STREAM_ERROR)); // [Pre-Assert確認_異常系] - 初期化成功後に処理が 1 回呼ばれること。
+                                           // [Pre-Assert手順] - Z_STREAM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, deflateEnd(_))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - 失敗後も終了処理を 1 回呼ぶこと。
+                                // [Pre-Assert手順] - 実関数へ委譲してストリームを解放する。
+
+    // Act
+    int actual_ret = cplat_compress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, actual_ret); // [確認_異常系] - CPLAT_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);          // [確認_異常系] - 失敗時は出力長を更新しないこと。
+}
+
+// inflate の processing 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, decompress_returns_out_of_memory_when_inflate_processing_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
+
+    // Pre-Assert
+    InSequence sequence;
+    EXPECT_CALL(mock_zlib, inflate(_, Z_FINISH))
+        .WillOnce(Return(Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - 初期化成功後に処理が 1 回呼ばれること。
+                                        // [Pre-Assert手順] - Z_MEM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, inflateEnd(_))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - 失敗後も終了処理を 1 回呼ぶこと。
+                                // [Pre-Assert手順] - 実関数へ委譲してストリームを解放する。
+
+    // Act
+    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, actual_ret); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);                // [確認_異常系] - 失敗時は出力長を更新しないこと。
+}
+
+// inflate の processing 失敗を結果コードへ変換することの確認
+TEST_F(compressTest, decompress_returns_unknown_when_inflate_processing_fails)
+{
+    // Arrange
+    NiceMock<Mock_zlib> mock_zlib;
+    const uint8_t src[CPLAT_COMPRESS_HEADER_SIZE + 8u] = {0};
+    uint8_t dst[64] = {0};
+    size_t dst_len = sizeof(dst); // [状態] - 初期検査を通過する入出力を用意する。
+
+    // Pre-Assert
+    InSequence sequence;
+    EXPECT_CALL(mock_zlib, inflate(_, Z_FINISH))
+        .WillOnce(Return(Z_STREAM_ERROR)); // [Pre-Assert確認_異常系] - 初期化成功後に処理が 1 回呼ばれること。
+                                           // [Pre-Assert手順] - Z_STREAM_ERROR を返す。
+    EXPECT_CALL(mock_zlib, inflateEnd(_))
+        .WillOnce(DoDefault()); // [Pre-Assert確認_異常系] - 失敗後も終了処理を 1 回呼ぶこと。
+                                // [Pre-Assert手順] - 実関数へ委譲してストリームを解放する。
+
+    // Act
+    int actual_ret = cplat_decompress(dst, &dst_len, src, sizeof(src)); // [手順] - 失敗を注入して呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, actual_ret); // [確認_異常系] - CPLAT_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(sizeof(dst), dst_len);          // [確認_異常系] - 失敗時は出力長を更新しないこと。
+}
+
+// 変更前の Linux 実装が出力した圧縮データを復元することの確認
+// 採取元 cplat commit: fd8e8801219a431e273a23e97c7c63739b44037c (システム libz.so.1 を使用)
+TEST_F(compressTest, decompress_restores_legacy_linux_payload)
+{
+    // Arrange
+    const uint8_t compressed[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x88, 0x4b, 0x2e, 0xc8, 0x49, 0x2c, 0x51, 0xc8, 0x49,
+        0x4d, 0x4f, 0x4c, 0xae, 0x54, 0x28, 0x4a, 0x2c, 0x57, 0x70, 0x71, 0x75, 0xf3, 0x71, 0x0c, 0x71,
+        0x55, 0x48, 0xcb, 0xac, 0x28, 0x29, 0x2d, 0x4a, 0x65, 0xf8, 0x9f, 0x4c, 0x17, 0x15, 0x00}; // [状態] - 依存先変更前に採取したデータを使用する。
+    const char expected[] = "cplat legacy raw DEFLATE fixture\0\xff"
+                            "cplat legacy raw DEFLATE fixture\0\xff"
+                            "cplat legacy raw DEFLATE fixture\0\xff"
+                            "cplat legacy raw DEFLATE fixture\0\xff";
+    uint8_t restored[sizeof(expected) - 1u] = {0};
+    size_t restored_len = sizeof(restored);
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_decompress(restored, &restored_len, compressed,
+                                      sizeof(compressed)); // [手順] - 旧データを共通実装で展開する。
+
+    // Assert
+    ASSERT_EQ(CPLAT_OK, actual_ret);                        // [確認_正常系] - 旧データを展開できること。
+    ASSERT_EQ(sizeof(expected) - 1u, restored_len);         // [確認_正常系] - NUL を含む元の長さを復元すること。
+    EXPECT_EQ(0, memcmp(expected, restored, restored_len)); // [確認_正常系] - バイナリを含む元データと一致すること。
+}
