@@ -522,12 +522,27 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     out.append("")
     out.append(expand(ACCESSOR_DECLARATIONS, module, library))
 
+    wrapper_group_id = f"{group_id}_TYPED_FORMATTERS"
+    out.extend(
+        [
+            "/**",
+            f" *  @defgroup       {wrapper_group_id} 文字列 ID ごとの型付き組み立て関数",
+            " *  @brief          文字列 ID ごとに引数の型を固定した組み立て関数です。",
+            f" *  @ingroup        {group_id}",
+            " *  @{",
+            " */",
+            "",
+        ]
+    )
+
     for entry in strings:
         out.append(emit_wrapper(document, entry))
         out.append("")
 
     out.extend(
         [
+            "/** @} */",
+            "",
             "#ifdef __cplusplus",
             "}",
             "#endif /* __cplusplus */",

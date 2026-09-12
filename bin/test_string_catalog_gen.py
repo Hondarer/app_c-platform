@@ -352,8 +352,20 @@ class DoxygenGroupTest(unittest.TestCase):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         self.assertIn("カタログ定義 `example.jsonc` から自動生成された文字列カタログです。", header)
 
+    def test_typed_formatters_are_in_a_nested_group(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+
+        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数"
+        child_group_start = header.index(child_group)
+        child_group_close = header.index("/** @} */", child_group_start)
+        parent_group_close = header.rindex("/** @} */")
+
+        self.assertIn("@ingroup        SAMPLE_MESSAGES", header[child_group_start:child_group_close])
+        self.assertLess(header.index("int sample_messages_format"), child_group_start)
+        self.assertLess(child_group_start, header.index("static inline int sample_messages_id_a"))
+        self.assertLess(child_group_close, parent_group_close)
+
     def test_source_never_contains_defgroup(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
         self.assertNotIn("@defgroup", source)
         self.assertNotIn("/** @} */", source)
-
