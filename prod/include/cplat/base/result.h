@@ -202,6 +202,7 @@
 #define CPLAT_ERR_TOO_MANY_OCCURRENCES (-28) /**< 同一項目の出現回数が容量を超えています。 */
 #define CPLAT_ERR_INVALID_PATTERN      (-29) /**< 正規表現パターンの構文が不正です。 */
 #define CPLAT_ERR_INVALID_ENCODING     (-30) /**< 文字列が UTF-8 として不正です。 */
+#define CPLAT_ERR_MALFORMED_DEFINITION (-31) /**< 与えられた定義の内容が構文または整合の点で不正です。 */
 
 /* 制御: -40 〜 */
 #define CPLAT_ERR_EOF      (-40) /**< 入力が EOF に達しました。 */

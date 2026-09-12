@@ -43,6 +43,7 @@ static std::vector<int> all_error_codes()
                             CPLAT_ERR_TOO_MANY_OCCURRENCES,
                             CPLAT_ERR_INVALID_PATTERN,
                             CPLAT_ERR_INVALID_ENCODING,
+                            CPLAT_ERR_MALFORMED_DEFINITION,
                             CPLAT_ERR_EOF,
                             CPLAT_ERR_CANCELED,
                             CPLAT_ERR_IN_PROGRESS};

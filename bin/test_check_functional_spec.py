@@ -259,6 +259,50 @@ class CheckFunctionalSpecTest(unittest.TestCase):
             ]
             self.assertEqual(3, len(subject_errors))
 
+    def test_accepts_underscore_category_id(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            requirement_id = "CPLAT-STRING_CATALOG-FUNC-001"
+            self._write(
+                root,
+                "docs/functional-spec/string_catalog.md",
+                "# string_catalog 機能仕様\n\n"
+                "## 機能要件\n\n"
+                "| 要件 ID | cplat の要件 |\n"
+                "|---|---|\n"
+                f"{self._row_with_body(requirement_id, UUID_1, 'cplat の文字列カタログ機能は、文字列を提供します。')}\n",
+            )
+
+            result = CHECKER.check_repository(root)
+
+            self.assertEqual([], result.errors)
+            self.assertEqual(1, result.requirement_count)
+
+    def test_rejects_underscore_category_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            # ファイル名 (string_catalog.md) から導いたカテゴリは
+            # STRING_CATALOG だが、要件 ID のカテゴリは CLOCK のため不一致となる。
+            mismatched_id = "CPLAT-CLOCK-FUNC-001"
+            self._write(
+                root,
+                "docs/functional-spec/string_catalog.md",
+                "# string_catalog 機能仕様\n\n"
+                "## 機能要件\n\n"
+                "| 要件 ID | cplat の要件 |\n"
+                "|---|---|\n"
+                f"{self._row(mismatched_id, UUID_1)}\n",
+            )
+
+            result = CHECKER.check_repository(root)
+
+            self.assertTrue(
+                any(
+                    "要件 ID のカテゴリが文書名と一致しません" in error
+                    for error in result.errors
+                )
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

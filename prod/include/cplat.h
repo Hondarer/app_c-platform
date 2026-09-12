@@ -128,6 +128,12 @@
  */
 
 /**
+ *  @defgroup       CPLAT_STRING_CATALOG 文字列カタログ (string_catalog)
+ *  @ingroup        CPLAT_PUBLIC_API
+ *  @brief          文字列 ID、引数スキーマ、言語別リソースを分離して文字列を組み立てる API です。
+ */
+
+/**
  *  @defgroup       CPLAT_SYNC 同期 (sync)
  *  @ingroup        CPLAT_PUBLIC_API
  *  @brief          スレッド間・プロセス間の同期プリミティブ API です。
@@ -201,6 +207,11 @@
 #include <cplat/runtime/process.h>
 #include <cplat/runtime/shutdown.h>
 #include <cplat/runtime/sym_loader.h>
+
+#include <cplat/string_catalog/argument.h>
+#include <cplat/string_catalog/catalog.h>
+#include <cplat/string_catalog/language.h>
+#include <cplat/string_catalog/string_catalog.h>
 
 #include <cplat/sync/sync.h>
 

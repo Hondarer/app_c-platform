@@ -54,6 +54,9 @@ API、実装、テストなどの下流成果物は、必要な場合に機能�
 - 一般的な C/C++ 規範は、[共通コーディング規範](../general/docs/coding-guideline.md) に従ってください。
 - cplat 固有の結果コード、標準時刻型、制約は、[cplat コーディング規範](docs/coding-guideline.md) に集約してください。
 - `mock_cplat` を変更する場合は、この app の `create-mock-cplat-mock` スキルを使用してください。
+- 文字列カタログの責務境界と変更時の制約は、[string_catalog モジュール](prod/libsrc/cplat/string_catalog/README.md) を参照してください。
+- カタログ生成器 `bin/string_catalog_gen.py` を変更した場合は、`cd bin && python3 -m unittest test_string_catalog_gen` を実行してください。
+- `mock_cplat` に文字列カタログの公開関数は追加していません。差し替えたいテストが現れるまで追加しません。可変長引数の関数は `va_list` 版への委譲規則が必要で、費用に見合わないためです。
 - テスト構成は、[testfw のテスト作成手順](../../framework/testfw/docs/how-to-test.md) に従ってください。
 - `bench-io` の測定軸を変更する場合は、`prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同じ変更で確認してください。
 - `bench-io` の測定結果は管理対象外です。共有する数値と測定環境は、`docs/fileio-api-selection-guideline.md` に記載してください。

@@ -113,6 +113,9 @@ const char *cplat_result_to_string(const int result)
     case CPLAT_ERR_INVALID_ENCODING:
         text = "invalid encoding";
         break;
+    case CPLAT_ERR_MALFORMED_DEFINITION:
+        text = "malformed definition";
+        break;
     case CPLAT_ERR_EOF:
         text = "end of input";
         break;

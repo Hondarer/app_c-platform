@@ -45,6 +45,7 @@
 #include <cplat/runtime/process.h>
 #include <cplat/runtime/shutdown.h>
 #include <cplat/runtime/sym_loader.h>
+#include <cplat/string_catalog/string_catalog.h>
 #include <cplat/sync/sync.h>
 #include <cplat/trace/trace_file.h>
 #include <cplat/trace/tracer.h>
@@ -620,6 +621,22 @@
                  void(CPLAT_API *)(cplat_sym_loader_entry *const *fobj_array, size_t fobj_length)) \
     EXPORT_ENTRY(cplat_sym_loader_info, \
                  int(CPLAT_API *)(cplat_sym_loader_entry *const *fobj_array, size_t fobj_length)) \
+    /* cplat/string_catalog/string_catalog.h */ \
+    EXPORT_ENTRY(cplat_string_catalog_set_language, int(CPLAT_API *)(cplat_string_catalog_language language)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_language, cplat_string_catalog_language(CPLAT_API *)(void)) \
+    EXPORT_ENTRY(cplat_string_catalog_format, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
+                                                               size_t dest_size, int string_id, ...)) \
+    EXPORT_ENTRY(cplat_string_catalog_vformat, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
+                                                                size_t dest_size, int string_id, va_list args)) \
+    EXPORT_ENTRY(cplat_string_catalog_verify, \
+                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int *string_id_out, \
+                                  cplat_string_catalog_language *language_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_category, \
+                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_id_text, \
+                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_note, \
+                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
     /* cplat/sync/sync.h */ \
     EXPORT_ENTRY(cplat_local_lock_create, int(CPLAT_API *)(cplat_local_lock * *mtx)) \
     EXPORT_ENTRY(cplat_local_lock_lock, int(CPLAT_API *)(cplat_local_lock * mtx, int timeout_ms)) \

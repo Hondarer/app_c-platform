@@ -74,6 +74,8 @@ CPLAT-<CATEGORY>-<TYPE>-NNN
 ```
 
 `<CATEGORY>` は、機能仕様のファイル名に対応する大文字のカテゴリ名です。  
+複数語からなるカテゴリは、ファイル名と同じく下線で語を区切ります (例: `STRING_CATALOG`)。  
+区切りに `-` を使うと、要件 ID の区切りと見分けが付かなくなるため使用しません。  
 `<TYPE>` は、要件の種別に対応する種別コードです。  
 `NNN` はカテゴリと種別の組み合わせごとに `001` から始まる 3 桁以上の連番です。
 
@@ -149,6 +151,7 @@ HTML コメントは Markdown の表示には現れませんが、要件 ID と 
 | `PROMPT` | cplat のプロンプト機能 |
 | `REGEX` | cplat の正規表現機能 |
 | `RUNTIME` | cplat の実行時支援機能 |
+| `STRING_CATALOG` | cplat の文字列カタログ機能 |
 | `SYNC` | cplat の同期機能 |
 | `TRACE` | cplat のトレース機能 |
 | `WIN32` | cplat の Win32 UTF-8 ラッパー機能 |

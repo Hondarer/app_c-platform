@@ -10,19 +10,19 @@ import re
 import sys
 
 
-ID_TEXT = r"CPLAT-[A-Z0-9]+-(?:FUNC|QUAL|COMP|CONS)-[0-9]{3,}"
+ID_TEXT = r"CPLAT-[A-Z0-9_]+-(?:FUNC|QUAL|COMP|CONS)-[0-9]{3,}"
 UUID_TEXT = (
     r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-"
     r"[89ab][0-9a-f]{3}-[0-9a-f]{12}"
 )
 
 ID_RE = re.compile(
-    r"^CPLAT-(?P<category>[A-Z0-9]+)-"
+    r"^CPLAT-(?P<category>[A-Z0-9_]+)-"
     r"(?P<kind>FUNC|QUAL|COMP|CONS)-(?P<number>[0-9]{3,})$"
 )
 ID_FIND_RE = re.compile(rf"\b{ID_TEXT}\b")
 LEGACY_ID_RE = re.compile(
-    r"\bCPLAT-[A-Z0-9]+-(?!(?:FUNC|QUAL|COMP|CONS)-)[0-9]{3,}\b"
+    r"\bCPLAT-[A-Z0-9_]+-(?!(?:FUNC|QUAL|COMP|CONS)-)[0-9]{3,}\b"
 )
 CANONICAL_ROW_RE = re.compile(
     rf"^\| `(?P<id>{ID_TEXT})` "
@@ -69,6 +69,7 @@ CATEGORY_SUBJECTS = {
     "PROMPT": "cplat のプロンプト機能",
     "REGEX": "cplat の正規表現機能",
     "RUNTIME": "cplat の実行時支援機能",
+    "STRING_CATALOG": "cplat の文字列カタログ機能",
     "SYNC": "cplat の同期機能",
     "TRACE": "cplat のトレース機能",
     "WIN32": "cplat の Win32 UTF-8 ラッパー機能",
