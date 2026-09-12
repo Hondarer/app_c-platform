@@ -340,10 +340,10 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     for argument in arguments:
         padded = argument["name"].ljust(name_width)
         lines.append(f"     *  @param[in]      {padded}{argument['description']}")
-        lines.append(f"{continuation}引数種別は @ref {kind_constant(document, argument['kind'])} です。")
+        lines.append(f"{continuation}引数種別は @c {kind_constant(document, argument['kind'])} です。")
 
     lines.append(
-        f"     *  @return         戻り値は @ref {LIBRARY_PREFIX}_format と同じです。"
+        f"     *  @return         戻り値は @c {LIBRARY_PREFIX}_format と同じです。"
     )
 
     if not arguments:
@@ -537,8 +537,8 @@ ACCESSOR_DECLARATIONS = """\
      *  @return         カタログ配列の先頭ポインターです。NULL は返しません。
      *
      *  返されるポインターは静的領域を指しているため、呼び出し側で解放してはなりません。\\n
-     *  @ref @MODULE@_entry_count とともに @ref @LIBRARY@ を構築するための構成要素です。\\n
-     *  構築済みのカタログ オブジェクトを取得する場合は @ref @MODULE@_catalog を使用してください。
+     *  @c @MODULE@_entry_count とともに @c @LIBRARY@ を構築するための構成要素です。\\n
+     *  構築済みのカタログ オブジェクトを取得する場合は @c @MODULE@_catalog を使用してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
@@ -599,13 +599,13 @@ ACCESSOR_DECLARATIONS = """\
      *  @param[in]      dest_size @p dest のバイト数。1 以上を指定してください。
      *  @param[in]      string_id 組み立てる文字列の ID。
      *  @param[in]      ...       引数スキーマが定める順序と型の引数リスト。
-     *  @return         戻り値は @ref @LIBRARY@_format と同じです。
+     *  @return         戻り値は @c @LIBRARY@_format と同じです。
      *
      *  カタログの指定を省略して呼び出すための簡易関数です。\\n
-     *  内部で @ref @MODULE@_catalog を補って @ref @LIBRARY@_format を呼び出します。
+     *  内部で @c @MODULE@_catalog を補って @c @LIBRARY@_format を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @ref @LIBRARY@_format と同じです。
+     *  スレッド セーフ性は @c @LIBRARY@_format と同じです。
      */
     int @MODULE@_format(char *dest, size_t dest_size, int string_id, ...);
 
@@ -615,13 +615,13 @@ ACCESSOR_DECLARATIONS = """\
      *  @param[in]      dest_size @p dest のバイト数。1 以上を指定してください。
      *  @param[in]      string_id 組み立てる文字列の ID。
      *  @param[in]      args      引数スキーマが定める順序と型の値を保持する引数リスト。
-     *  @return         戻り値は @ref @LIBRARY@_vformat と同じです。
+     *  @return         戻り値は @c @LIBRARY@_vformat と同じです。
      *
      *  カタログの指定を省略して呼び出すための簡易関数です。\\n
-     *  内部で @ref @MODULE@_catalog を補って @ref @LIBRARY@_vformat を呼び出します。
+     *  内部で @c @MODULE@_catalog を補って @c @LIBRARY@_vformat を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @ref @LIBRARY@_vformat と同じです。
+     *  スレッド セーフ性は @c @LIBRARY@_vformat と同じです。
      */
     int @MODULE@_vformat(char *dest, size_t dest_size, int string_id, va_list args);
 
@@ -629,7 +629,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @brief          本カタログ定義の内容を確認します。
      *  @param[out]     string_id_out 不正を検出した文字列 ID の格納先。不要な場合は NULL を指定できます。
      *  @param[out]     language_out  不正を検出した言語の格納先。不要な場合は NULL を指定できます。
-     *  @return         戻り値は @ref @LIBRARY@_verify と同じです。
+     *  @return         戻り値は @c @LIBRARY@_verify と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -639,7 +639,7 @@ ACCESSOR_DECLARATIONS = """\
     /**
      *  @brief          本カタログ定義から、文字列の分類値を取得します。
      *  @param[in]      string_id 参照する文字列の ID。
-     *  @return         戻り値は @ref @LIBRARY@_get_category と同じです。
+     *  @return         戻り値は @c @LIBRARY@_get_category と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -649,7 +649,7 @@ ACCESSOR_DECLARATIONS = """\
     /**
      *  @brief          本カタログ定義から、文字列 ID に対応する固定文字列を取得します。
      *  @param[in]      string_id 参照する文字列の ID。
-     *  @return         戻り値は @ref @LIBRARY@_get_id_text と同じです。
+     *  @return         戻り値は @c @LIBRARY@_get_id_text と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -659,7 +659,7 @@ ACCESSOR_DECLARATIONS = """\
     /**
      *  @brief          本カタログ定義から、現在の言語設定における文字列の備考を取得します。
      *  @param[in]      string_id 参照する文字列の ID。
-     *  @return         戻り値は @ref @LIBRARY@_get_note と同じです。
+     *  @return         戻り値は @c @LIBRARY@_get_note と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -817,7 +817,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *",
         " *  各要素は、文字列 ID、分類値、引数の個数、明示的なアラインメント、引数スキーマ、",
         " *  文字列 ID の固定文字列、言語別の書式、言語別の備考の順に配置します。\\n",
-        f" *  `texts` と `notes` は、@ref {library}_language をキーとした指示付き初期化子で記述します。\\n",
+        f" *  `texts` と `notes` は、@c {library}_language をキーとした指示付き初期化子で記述します。\\n",
         " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へフォールバック（読み替え）されます。",
         " *",
         " *  引数の型と文字列表現はこのテーブルで定義し、言語別リソースでは語順のみを管理します。\\n",
