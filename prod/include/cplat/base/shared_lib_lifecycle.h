@@ -80,8 +80,8 @@
  *  @brief  /dev/log へ RFC 3164 形式の INFO メッセージを非ブロッキングで送信します。
  *
  *  constructor / destructor コンテキストでも安全に使用できるよう、
- *  syslog() API は使用しない。毎回ソケットを開いて即時送信し、
- *  失敗時は drop する。priority = LOG_USER(8) | LOG_INFO(6) = 14。
+ *  syslog() API は使用しません。毎回ソケットを開いて即時送信し、
+ *  失敗時は破棄します。priority = LOG_USER(8) | LOG_INFO(6) = 14。
  */
 static void dllmain_syslog_send__(const char *msg)
 {

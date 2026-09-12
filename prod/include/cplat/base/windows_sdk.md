@@ -16,12 +16,12 @@
 `windows_sdk.h` は Windows 環境で次を行います。
 
 - `WIN32_LEAN_AND_MEAN` を定義します。
-- `winsock2.h` を取り込む
-- `ws2tcpip.h` を取り込む
-- `windows.h` を取り込む
+- `winsock2.h` を取り込みます。
+- `ws2tcpip.h` を取り込みます。
+- `windows.h` を取り込みます。
 - 必要に応じて `byte` マクロを `#undef` します。
 
-この順序により、`windows.h` が内部で古い `winsock.h` を先に導入してしまう事故を防ぎます。
+この順序により、`windows.h` が内部で古い `winsock.h` を先に導入する事故を防ぎます。
 
 ## 利用ルール
 

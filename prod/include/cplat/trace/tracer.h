@@ -290,7 +290,7 @@ typedef struct cplat_tracer_hook_entry cplat_tracer_hook_entry;
     {
         // 独自処理
         printf("hook: %s\n", message);
-        // 前のフックへ継続 (省略すると以降のチェーンは呼ばれない)
+        // 前のフックへ継続 (省略すると以降のチェーンは呼び出されない)
         cplat_tracer_call_next_hook(prev, handle, level, timestamp, message);
     }
     @endcode
@@ -876,7 +876,7 @@ extern "C"
      *  すべての trace イベントが通知されます。\n
      *  タイムスタンプは解決済みの状態でコールバックに渡されます。\n
      *  複数のフックを登録した場合はチェーンとして順次呼び出されます。
-     *  コールバック内で cplat_tracer_call_next_hook を呼ぶことでチェーンを継続できます。\n
+     *  コールバック内で cplat_tracer_call_next_hook を呼び出すことでチェーンを継続できます。\n
      *  本関数は stopped 状態でのみ有効です。
      *
      *  @param[in]      handle   cplat_tracer_create の戻り値。

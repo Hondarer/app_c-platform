@@ -73,7 +73,7 @@ int bench_timer_measure(bench_iteration_fn fn, void *arg, uint64_t min_duration_
  *  @param[out]     timing       測定結果の格納先。NULL を渡してはなりません。
  *  @return         成功時は 0、引数不正または各コールバックの失敗時は -1 を返します。
  *
- *  ページ キャッシュを落とした状態 (cold) の測定に使用します。\n
+ *  ページ キャッシュを破棄した状態 (cold) の測定に使用します。\n
  *  反復の繰り返しもウォーム アップも行わないため、1 反復の所要時間がクロック分解能に対して
  *  十分に長いことを呼び出し側で確認してください。
  */

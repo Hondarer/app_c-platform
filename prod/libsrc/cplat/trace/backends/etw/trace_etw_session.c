@@ -325,7 +325,7 @@ static void extract_event_fields(PEVENT_RECORD pEvent, const TRACE_EVENT_INFO *i
 }
 
 /**
- *  @brief  ETW イベント レコード コールバック (ProcessTrace から呼ばれる) です。
+ *  @brief  ETW イベント レコード コールバック (ProcessTrace から呼び出される) です。
  *
  *  プロバイダー GUID でフィルタリングし、UserData を null 終端文字列として読み取ります。
  *  TraceLoggingString は UserData に null 終端 ANSI 文字列を直接格納します。

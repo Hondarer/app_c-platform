@@ -59,7 +59,7 @@ TEST_F(stringCatalogVerifyTest, invalid_format)
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
-// ニュートラル言語以外のリソースが欠けていても受理されることの確認
+// ニュートラル言語以外のリソースが未定義であっても受理されることの確認
 TEST_F(stringCatalogVerifyTest, missing_localized_text_is_allowed)
 {
     // Arrange
@@ -70,14 +70,14 @@ TEST_F(stringCatalogVerifyTest, missing_localized_text_is_allowed)
 
     // Act
     actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - 日本語のリソースが欠けたカタログを確認する。
+                                             &language); // [手順] - 日本語のリソースが未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK,
-              actual_ret); // [確認_正常系] - ニュートラル言語へ読み替えられるため、不正としないこと。
+              actual_ret); // [確認_正常系] - ニュートラル言語へフォールバックされるため、不正としないこと。
 }
 
-// ニュートラル言語の書式が欠けたカタログが拒否されることの確認
+// ニュートラル言語の書式が未設定のカタログが拒否されることの確認
 TEST_F(stringCatalogVerifyTest, missing_neutral_text)
 {
     // Arrange
@@ -88,7 +88,7 @@ TEST_F(stringCatalogVerifyTest, missing_neutral_text)
 
     // Act
     actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - ニュートラル言語の書式が欠けたカタログを確認する。
+                                             &language); // [手順] - ニュートラル言語の書式が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
@@ -98,7 +98,7 @@ TEST_F(stringCatalogVerifyTest, missing_neutral_text)
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
-// ニュートラル言語の備考が欠けたカタログが拒否されることの確認
+// ニュートラル言語の備考が未設定のカタログが拒否されることの確認
 TEST_F(stringCatalogVerifyTest, missing_neutral_note)
 {
     // Arrange
@@ -109,7 +109,7 @@ TEST_F(stringCatalogVerifyTest, missing_neutral_note)
 
     // Act
     actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - ニュートラル言語の備考が欠けたカタログを確認する。
+                                             &language); // [手順] - ニュートラル言語の備考が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
@@ -198,7 +198,7 @@ TEST_F(stringCatalogVerifyTest, omitted_output_arguments)
     fake_catalog_reset();
     fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, NULL);
     actual_ret_text = cplat_string_catalog_verify(
-        fake_catalog(), NULL, NULL); // [手順] - 出力引数を省略して、ニュートラル言語の書式が欠けたカタログを確認する。
+        fake_catalog(), NULL, NULL); // [手順] - 出力引数を省略して、ニュートラル言語の書式が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,

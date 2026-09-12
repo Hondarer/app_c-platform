@@ -34,7 +34,7 @@
  *  @param[in,out]  text  対象の文字列。NULL を渡してはなりません。
  *
  *  Windows の `PROCESSOR_IDENTIFIER` は "Intel64 Family 6 Model 85 Stepping 7, GenuineIntel" のように
- *  カンマを含みます。CSV では引用符で囲んでいても、awk などの単純な分割で列位置がずれるため、
+ *  カンマを含みます。CSV では引用符で囲んでいても、awk などの単純な分割で列位置に不整合が生じるため、
  *  環境情報を格納する時点でカンマを取り除きます。\n
  *  環境情報を @ref bench_environment へ格納する経路はすべて本関数を通してください。
  */

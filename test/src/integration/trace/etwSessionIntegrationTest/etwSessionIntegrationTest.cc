@@ -72,7 +72,7 @@ class etwSessionIntegrationTest : public Test
 {
 };
 
-// NULL セッションで stop を呼んでも安全なことの確認
+// NULL セッションで stop を呼び出しても安全なことの確認
 TEST_F(etwSessionIntegrationTest, test_session_stop_with_null)
 {
     // Arrange

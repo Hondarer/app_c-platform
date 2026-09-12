@@ -21,9 +21,9 @@
 LIBS += cplat
 ```
 
-Windows の利用側で `CPLAT_STATIC` を定義してはいけません。
+Windows の利用側で `CPLAT_STATIC` を定義しないでください。
 
-`CPLAT_STATIC` は、製品ソースやモックの関数をテスト実行ファイルへ直接定義する場合に `dllimport` を抑止するためだけ使用します。
+`CPLAT_STATIC` は、製品ソースやモックの関数をテスト実行ファイルへ直接定義する場合に `dllimport` を抑止する目的でのみ使用します。
 
 `libcplat` は、両 OS で cJSON と zlib を動的に利用します。  
 ワークスペースの `app/cjson` と `app/zlib` で生成したライブラリを使用します。
@@ -59,7 +59,7 @@ Linux では `-fvisibility=hidden` でビルドし、`CPLAT_EXPORT` を付けた
 
 したがって `prod/include_internal/` で宣言する内部 API (`cplat_result_from_errno`、`cplat_error_report_errno` など) は、ライブラリの利用者からリンクできません。
 
-テストが内部 API に依存する場合は、定義元の `.c` を `makepart.mk` の `ADD_SRCS` へ追加します。テスト対象のソースが間接的に呼ぶ場合も同様です。
+テストが内部 API に依存する場合は、定義元の `.c` を `makepart.mk` の `ADD_SRCS` へ追加します。テスト対象のソースが間接的に呼び出す場合も同様です。
 
 ```make
 # テスト対象が依存するソース ファイル

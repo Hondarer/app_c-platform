@@ -42,7 +42,7 @@ extern "C"
      *  通常終了では TraceLoggingUnregister() を呼び出します。
      *  呼び出し時点で cplat_etw_provider_write() を実行中のスレッドが存在する場合は
      *  未定義動作になります。
-     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼び出されるため、
      *  呼び出し側がスレッドの静止を保証します。
      */
     void cplat_etw_provider_dispose_on_shutdown(cplat_etw_provider *handle, const cplat_shutdown_event *event);

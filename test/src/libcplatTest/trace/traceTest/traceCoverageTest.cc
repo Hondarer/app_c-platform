@@ -980,7 +980,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     // Assert
     EXPECT_EQ(
         0,
-        dirname_fail); // [確認_正常系] - 空パスからの test_tracer_build_default_file_path が相対パスへ落ちて 0 を返すこと。
+        dirname_fail); // [確認_正常系] - 空パスからの test_tracer_build_default_file_path が相対パスへフォールバックして 0 を返すこと。
     EXPECT_EQ(CPLAT_OK,
               quiet_write); // [確認_正常系] - 全出力先無効の cplat_tracer_write の戻り値が CPLAT_OK であること。
     EXPECT_EQ(

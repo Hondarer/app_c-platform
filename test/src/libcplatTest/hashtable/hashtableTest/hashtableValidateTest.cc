@@ -108,7 +108,7 @@ TEST_F(hashtableValidateTest, detects_link_cycle)
     const char *peer = nullptr;
 
     fill_config(&config, 2, 8, 8, 5, CPLAT_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
-    peer = find_colliding_key("a", 2);                               // [状態] - "a" と同じバケットへ落ちるキーを探す。
+    peer = find_colliding_key("a", 2);                               // [状態] - "a" と同じバケットに割り当てられるキーを探す。
 
     // Pre-Assert
     ASSERT_NE(nullptr, peer); // [Pre-Assert確認_正常系] - 同一バケットの別キーが見つかること。
@@ -211,7 +211,7 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
 
     fill_config(&config, 2, 8, 8, 5, CPLAT_HASHTABLE_KEY_STRING); // [状態] - capacity 2 の設定を用意する。
     idx_a = hash_string_mod("a", 2);
-    for (i = 0; i < 26; i++) // [状態] - "a" と異なるバケットへ落ちる 1 文字キーを探す。
+    for (i = 0; i < 26; i++) // [状態] - "a" と異なるバケットに割り当てられる 1 文字キーを探す。
     {
         char candidate_key[2] = {static_cast<char>('b' + i), 0};
 
@@ -223,7 +223,7 @@ TEST_F(hashtableValidateTest, detects_hash_mismatch)
     }
 
     // Pre-Assert
-    ASSERT_NE(0, mismatched_key[0]); // [Pre-Assert確認_正常系] - 異なるバケットへ落ちるキーが見つかること。
+    ASSERT_NE(0, mismatched_key[0]); // [Pre-Assert確認_正常系] - 異なるバケットに割り当てられるキーが見つかること。
 
     // Act
     (void)cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht);

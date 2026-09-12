@@ -65,7 +65,7 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
     if ((flags & CPLAT_FILE_OPEN_CREATE_NEW) != 0 && (flags & CPLAT_FILE_OPEN_CREATE) == 0)
     {
         /* CREATE_NEW は CREATE との併用が必須。単独指定は Linux では O_EXCL が黙って無視され、
-           Windows では OPEN_EXISTING 相当に落ちるため、意図と乖離しないよう明示的に失敗させる。 */
+           Windows では OPEN_EXISTING 相当の動作となるため、意図と乖離しないよう明示的に失敗させます。 */
         return cplat_error_report_errno(detail_out, EINVAL);
     }
 

@@ -82,7 +82,7 @@
     +----------------------+
     @endcode
  *
- *  N は @p capacity です。レコード番号は 1 相対で、内部添字は record - 1 です。
+ *  N は @p capacity です。レコード番号は 1 相対で、内部インデックスは record - 1 です。
  *
  *  @subsection     hashtable_ident マジックと版番号
  *
@@ -405,7 +405,7 @@ static inline unsigned char *hashtable_entries(const cplat_hashtable *ht)
 /**
  *  @brief          指定スロットの next へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         1 相対の次レコード番号です。0 は終端です。
  */
 static inline uint64_t *hashtable_entry_next(const cplat_hashtable *ht, size_t rec)
@@ -416,7 +416,7 @@ static inline uint64_t *hashtable_entry_next(const cplat_hashtable *ht, size_t r
 /**
  *  @brief          指定スロットの status へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         実装状況へのポインターです。
  */
 static inline unsigned char *hashtable_entry_status(const cplat_hashtable *ht, size_t rec)
@@ -427,7 +427,7 @@ static inline unsigned char *hashtable_entry_status(const cplat_hashtable *ht, s
 /**
  *  @brief          指定スロットの変更時刻へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         変更時刻へのポインターです。
  *
  *  @p timestamp_scope が @c SCOPE_RECORD のときだけ呼べます。
@@ -441,7 +441,7 @@ static inline cplat_timespec *hashtable_entry_timestamp(const cplat_hashtable *h
 /**
  *  @brief          指定スロットの世代カウンターへのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         世代カウンターへのポインターです。
  *
  *  @p timestamp_scope が @c SCOPE_RECORD のときだけ呼べます。
@@ -455,7 +455,7 @@ static inline uint64_t *hashtable_entry_generation(const cplat_hashtable *ht, si
 /**
  *  @brief          指定スロットのキー descriptor へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         キーの永続 descriptor です。
  *
  *  可変長キーのときだけ意味を持ちます。
@@ -480,7 +480,7 @@ static inline unsigned char *hashtable_key_storage(const cplat_hashtable *ht)
 /**
  *  @brief          指定スロットのキーへのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         key_size バイトのキーです。
  */
 static inline char *hashtable_entry_key(const cplat_hashtable *ht, size_t rec)
@@ -523,7 +523,7 @@ static inline unsigned char *hashtable_value_storage(const cplat_hashtable *ht)
 /**
  *  @brief          指定スロットの値 descriptor へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         値の永続 descriptor です。
  *
  *  可変長値のときだけ意味を持ちます。
@@ -536,7 +536,7 @@ static inline struct hashtable_string_ref *hashtable_value_ref_at(const cplat_ha
 /**
  *  @brief          指定スロットの値へのポインターを返します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *  @return         value_size バイトの値です。
  */
 static inline unsigned char *hashtable_data_at(const cplat_hashtable *ht, size_t rec)
@@ -650,7 +650,7 @@ void hashtable_refresh_layout(cplat_hashtable *ht);
  *  djb2 を使い、最後に capacity で割った余りを返します。\n
  *  アキュムレータは幅を uint64_t に固定しています。`unsigned long` は
  *  Linux/GCC (LP64, 64bit) と Windows/MSVC (LLP64, 32bit) で幅が異なり、
- *  同じキーでも環境によってバケット番号がずれるためです。\n
+ *  同じキーでも環境によってバケット番号に差異が生じるためです。\n
  *  capacity は両対象環境で size_t (64bit) のため、幅を size_t に合わせています。
  */
 size_t hashtable_hash_key(const cplat_hashtable *ht, const void *key);
@@ -727,7 +727,7 @@ void hashtable_arena_compact(cplat_hashtable *ht, struct hashtable_arena *arena,
 /**
  *  @brief          指定スロットのキーを解放します。
  *  @param[in,out]  ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *
  *  可変長キーでは、ストレージを 0 埋めして空きリストへ返し、descriptor を未使用へ戻します。\n
  *  固定長キーでは、キー領域を 0 埋めします。
@@ -737,7 +737,7 @@ void hashtable_release_key(cplat_hashtable *ht, size_t rec);
 /**
  *  @brief          指定スロットの値を解放します。
  *  @param[in,out]  ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec  0 相対のスロット インデックス。capacity 未満であること。
  *
  *  可変長値では、ストレージを 0 埋めして空きリストへ返し、descriptor を未使用へ戻します。\n
  *  固定長値では、値領域を 0 埋めします。
@@ -747,7 +747,7 @@ void hashtable_release_value(cplat_hashtable *ht, size_t rec);
 /**
  *  @brief          指定スロットへキーを格納します。
  *  @param[in,out]  ht              対象。NULL を渡してはなりません。
- *  @param[in]      rec             0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec             0 相対のスロット インデックス。capacity 未満であること。
  *  @param[in]      key             キー。NULL を渡してはなりません。
  *  @param[in]      storage_offset  可変長キーの格納先オフセット。固定長キーでは使いません。
  *
@@ -759,7 +759,7 @@ void hashtable_key_store(cplat_hashtable *ht, size_t rec, const void *key, size_
 /**
  *  @brief          指定スロットへ値を格納します。
  *  @param[in,out]  ht              対象。NULL を渡してはなりません。
- *  @param[in]      rec             0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec             0 相対のスロット インデックス。capacity 未満であること。
  *  @param[in]      value           設定した形式の値。NULL を渡してはなりません。
  *  @param[in]      storage_offset  可変長値の格納先オフセット。固定長値では使いません。
  *
@@ -803,7 +803,7 @@ void hashtable_reset_arenas(cplat_hashtable *ht);
 /**
  *  @brief          可変長キーの格納先を探します。
  *  @param[in]      ht          対象。NULL を渡してはなりません。
- *  @param[in]      rec         0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec         0 相対のスロット インデックス。capacity 未満であること。
  *  @param[in]      replace     非 0 なら、@p rec が現在使っているブロックも空きとみなします。
  *  @param[in]      key         格納するキー。NULL を渡してはなりません。
  *  @param[out]     offset_out  格納先オフセットの格納先。成功時だけ書きます。
@@ -820,7 +820,7 @@ int hashtable_key_storage_find_free(const cplat_hashtable *ht, size_t rec, int r
 /**
  *  @brief          可変長値の格納先を探します。
  *  @param[in]      ht          対象。NULL を渡してはなりません。
- *  @param[in]      rec         0 相対のスロット添字。capacity 未満であること。
+ *  @param[in]      rec         0 相対のスロット インデックス。capacity 未満であること。
  *  @param[in]      replace     非 0 なら、@p rec が現在使っているブロックも空きとみなします。
  *  @param[in]      value       格納する値。NULL を渡してはなりません。
  *  @param[out]     offset_out  格納先オフセットの格納先。成功時だけ書きます。
@@ -859,7 +859,7 @@ void hashtable_stamp_table(cplat_hashtable *ht);
  *  @brief          reuse_deleted 用に、再利用する削除中レコードを選びます。
  *
  *  status が最大、同点なら変更時刻が最も古いレコードを選びます。\n
- *  SCOPE_TABLE でレコード世代が無い場合は、走査順(添字が小さい方を優先)により
+ *  SCOPE_TABLE でレコード世代が無い場合は、走査順 (インデックスが小さい方を優先) により
  *  自然にレコード番号が最も小さいものが残ります。\n
  *  実時刻ではなく世代カウンターで比較します。実時刻は時計の巻き戻しで逆行し、
  *  最も古いレコードを選べなくなるためです。\n

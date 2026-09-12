@@ -142,7 +142,7 @@ static void close_and_backoff_locked(cplat_syslog_sink *h)
 
 /**
  *  @brief  バックオフ期間を経過していればソケットを開く試みを行います。
- *          ロック保持中に呼ぶこと。
+ *          ロック保持中に呼び出すこと。
  */
 static void try_open_socket_locked(cplat_syslog_sink *h)
 {

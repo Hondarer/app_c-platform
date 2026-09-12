@@ -328,7 +328,7 @@ TEST_F(hashtableTest, delete_ages_until_reuse)
     (void)cplat_hashtable_push_deleted(ht);
     (void)cplat_hashtable_get_status(ht, 1, &status_after_push); // [手順] - 寿命到達後の状態を取得する。
     add_after_purge = cplat_hashtable_add(
-        ht, "c", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが出たあと別キーを追加する。
+        ht, "c", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが生じたあと別キーを追加する。
     (void)cplat_hashtable_empty_count(ht, &empty);                     // [手順] - 空件数を取得する。
     cplat_hashtable_dispose(ht);                                       // [手順] - テーブルを破棄する。
 

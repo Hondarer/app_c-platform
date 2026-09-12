@@ -71,7 +71,7 @@ cplat の OS エラー詳細は、生の `errno` を格納する `int *errno_out
 当初の調査では 9 API を対象としていましたが、同じヘッダーにある `cplat_freopen`、`cplat_fopen_temp`、`cplat_paths_equal` を含めると 12 API でした。  
 同一ヘッダーに異なる詳細エラー規約を残さないため、12 API を同時に変更しました。
 
-`cplat_path_concat()` と `cplat_path_join()` は、それぞれ `cplat_path_concat_n()` と `cplat_path_join_n()` を呼ぶマクロです。  
+`cplat_path_concat()` と `cplat_path_join()` は、それぞれ `cplat_path_concat_n()` と `cplat_path_join_n()` を呼び出すマクロです。  
 これらのマクロへ渡す詳細引数も `cplat_error *` に変わります。
 
 ## コンパイルでは検出できない挙動変更
@@ -144,7 +144,7 @@ if (os_operation_failed)
 明示的に保存した値を取り込む場合は、`cplat_error_capture_errno()` を使用します。  
 Windows では、失敗した OS API の直後に `cplat_error_capture_current_windows_error()` を呼び出します。  
 明示的に保存した `GetLastError()` の値を取り込む場合は、`cplat_error_capture_windows_error()` を使用します。  
-メッセージ生成などの別 API を先に呼ぶと、OS の直前値が上書きされる可能性があります。
+メッセージ生成などの別 API を先に呼び出すと、OS の直前値が上書きされる可能性があります。
 
 生の値が必要な場合は、ドメインを確認した後で `cplat_error_get_errno()` または `cplat_error_get_windows_error()` を使用します。
 

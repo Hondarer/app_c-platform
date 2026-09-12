@@ -185,7 +185,7 @@ int parse_result = cplat_argparser_parse();
 - `argc` が 1 未満、または `argv` が NULL の場合も初期化と生成は成功します。不正は解析時に `CPLAT_ERR_INVALID_ARGUMENT` として返るため、呼び出し側のエラー処理は従来のままで構いません。
 - 登録処理を `main` の外の関数へ切り出している場合は、`cplat_argparser_init()` の呼び出しを `argc` と `argv` を持つ `main` 側へ移してください。
 - usage のプログラム名は初期化時に `argv[0]` から確定します。解析前に usage を表示する経路でも、プレースホルダー `{program}` ではなく実行ファイル名が表示されるようになりました。
-- 解析対象の引数を差し替える場合は、`cplat_argparser_init()` (明示ハンドル版は `cplat_argparser_handle_create()`) から呼び出し直します。再初期化は登録済みのオプションを捨てるため、オプションの登録もやり直してください。
+- 解析対象の引数を差し替える場合は、`cplat_argparser_init()` (明示ハンドル版は `cplat_argparser_handle_create()`) から呼び出し直します。再初期化は登録済みのオプションを破棄するため、オプションの登録もやり直してください。
 
 ## 関連ガイド
 

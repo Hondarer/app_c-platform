@@ -37,9 +37,9 @@ void *operator new(std::size_t size)
 /*
  * 置換は再入を避けるため malloc / free で裏打ちする。対応は一致している。
  * GCC 11 は -O2 で sized delete を gtest の CreateTest (new T) へインライン展開し、
- * new 式と free の対だけを見て -Wmismatched-new-delete を出す。
+ * new 式と free の対だけを検知して -Wmismatched-new-delete を出力する。
  * operator delete は標準ヘッダーで先に宣言されるため、NO_INLINE を直接付けず、
- * free の呼び出しを補助関数へ分離してインライン展開を止める。
+ * free の呼び出しを補助関数へ分離してインライン展開を抑止する。
  * see: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wmismatched-new-delete
  * see: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100485
  */

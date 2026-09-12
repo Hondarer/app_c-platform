@@ -75,7 +75,7 @@
 | `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `cplat_free(ptr)` |
 
 > [!IMPORTANT]
-> `cplat_realloc` / `cplat_realloc_zerofill` は要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、`realloc(ptr, size)` を機械的に置換すると引数がずれます。
+> `cplat_realloc` / `cplat_realloc_zerofill` は要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、`realloc(ptr, size)` を機械的に置換すると引数の位置に不整合が生じます。
 > `cplat_realloc(ptr, 0, size)` は元の領域を解放せずに NULL を返します。標準の `realloc(ptr, 0)` とは異なる扱いです。
 
 ### ファイル記述子集合
@@ -536,7 +536,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 文字列 ID ごとに引数の型と言語別の文言を定義し、実行時に値を差し込んで文字列を組み立てます。  
 言語別のリソースには語順だけを持たせ、値の表現は引数の種別が決めます。単一の標準 API とは対応しません。
 
-カタログはライブラリが保持しません。利用側が `cplat_string_catalog_entry` の配列と任意の添字表を `cplat_string_catalog` にまとめ、呼び出しごとに渡します。  
+カタログはライブラリが保持しません。利用側が `cplat_string_catalog_entry` の配列と任意のインデックス表を `cplat_string_catalog` にまとめ、呼び出しごとに渡します。  
 配列は複製せず参照だけを保持するため、指す領域はカタログを使用する間ずっと有効である必要があります。
 
 | 用途 | cplat の API |
@@ -551,14 +551,14 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 備考の取得 | `cplat_string_catalog_get_note` |
 
 出力言語はプロセスで 1 つです。組み立ての API に言語引数はありません。  
-選択中の言語の要素が NULL の場合は、ニュートラル言語の要素へ読み替えます。ニュートラル言語の要素は NULL にできません。
+選択中の言語の要素が NULL の場合は、ニュートラル言語の要素へフォールバックします。ニュートラル言語の要素は NULL にできません。
 
 書式は位置指定 (`{0}` から `{31}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
 引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (32) です。
 
 分類値 (`cplat_string_catalog_entry::category`) はライブラリが解釈しません。意味と有効な範囲は利用側が決めます。
 
-`cplat_string_catalog_verify` は、すべての定義が書式、引数の個数、添字表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
+`cplat_string_catalog_verify` は、すべての定義が書式、引数の個数、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
 条件を満たさない定義を検出した場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返し、最初の 1 件の文字列 ID と言語を出力引数へ書き出します。
 
 カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin/string_catalog_gen.py` に置いています。  

@@ -19,11 +19,11 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 - Windows 判定: `PLATFORM_WINDOWS`
 - 未知の環境: `PLATFORM_UNKNOWN`
 
-`__linux__` や `_WIN32` をアプリケーションのコードへ直接書かないでください。
+`__linux__` や `_WIN32` をアプリケーションのコードへ直接記述しないでください。
 
 OS 分岐が必要なコードでは、まず `#include <cplat/base/platform.h>` を追加し、`PLATFORM_*` ベースで分岐します。
 
-原則、`Linux -> Windows` の順で分岐するようにしてください。  
+原則として、`Linux -> Windows` の順で分岐してください。  
 ただし、ファイル全体が Windows 向け実装を意図している場合は、`#if defined(PLATFORM_WINDOWS)` を先頭にします。
 
 ```c
@@ -81,7 +81,7 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 - 強制インライン: `FORCE_INLINE`
 - 非インライン化: `NO_INLINE`
 
-`__forceinline` や `__attribute__((noinline))` を利用側へ直接書きません。
+`__forceinline` や `__attribute__((noinline))` を利用側へ直接記述しません。
 
 ### platform.h を基本入口にする
 
@@ -211,11 +211,11 @@ MSVC では、中身のない翻訳単位に対して C4206 ("translation unit i
 
 - 依存ヘッダーが大きく違う
 - 関数本体の大半が分岐で占められる
-- Linux と Windows で別のシステム モデルを使用します。
+- Linux と Windows で異なるシステム モデルを使用している
 
 ### 分岐の軸を混ぜない
 
-OS 差異は `PLATFORM_*`、コンパイラ差異は `COMPILER_*` で書きます。
+OS 差異は `PLATFORM_*`、コンパイラ差異は `COMPILER_*` で記述します。
 
 `#ifdef _WIN32` の見た目でも、実際には pragma や属性の違いを扱っているなら、`PLATFORM_*` ではなく `COMPILER_*` へ置き換えます。
 
@@ -347,7 +347,7 @@ TEST(featureTest, linux_only_behavior)
 #endif /* PLATFORM_LINUX */
 ```
 
-### OS API を直接書く処理はテスト ヘルパーへ限定する
+### OS API を直接記述する処理はテスト ヘルパーへ限定する
 
 一時ファイル作成やパス操作のように OS API を呼び分ける必要がある場合、テスト ケース本体ではなく helper で扱います。
 

@@ -52,7 +52,7 @@ static int s_is_elevated_worker = 0;
  *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納します。
  *  @return         継続可能な場合は 0、異常時は 0 以外を返します。
  *
- *  昇格プロセスのコンソールは一切引き継がない。昇格プロセス側が報告した結果メッセージは
+ *  昇格プロセスのコンソールは一切引き継ぎません。昇格プロセス側が報告した結果メッセージは
  *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示します。
  */
 static int ensure_elevated(const char *command, int *handled)
@@ -104,7 +104,7 @@ static int ensure_elevated(const char *command, int *handled)
  *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  *
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
- *  cplat_elevated_process_report_result() で報告する (ensure_elevated() がそちらで表示する)。
+ *  cplat_elevated_process_report_result() で報告します (ensure_elevated() がそちらで表示します)。
  */
 static int report_status(const int ret, const char *action)
 {

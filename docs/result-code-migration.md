@@ -42,7 +42,7 @@ cplat は戻り値規約を、共通結果コード (`CPLAT_OK` + 負値エラ�
 `crt/sys/stat.h`、`crt/file.h`、`crt/time.h`、`crt/path.h` (get_full 系)、`clock.h`、`compress.h`、`crypto.h`、`console.h` (write)、`prompt/pinned_prompt.h` (status 系)、`runtime/module.h`、`runtime/process.h` (get_executable_path)、`runtime/shutdown.h` (register 系)、`runtime/elevated_process.h` (is_elevated/run_if_needed/run_with_result/report_result)、`runtime/sym_loader.h` (info)、`trace/tracer.h`、sink_write 系と `cplat_syslog_sink_rename` が該当します。
 
 これらは **成功 0 / 失敗 -1 のまま値互換** です。`CPLAT_OK == 0`、`CPLAT_ERR_UNKNOWN == -1` のため、`rc != 0` や `rc < 0` による判定は変更なしで動作します。  
-分類が精密化された関数 (例: `cplat_path_get_full` と `cplat_process_get_executable_path` の `CPLAT_ERR_BUFFER_TOO_SMALL`、`cplat_pinned_prompt_status_set` の `CPLAT_ERR_OUT_OF_MEMORY`、`cplat_tracer_get_name` の `CPLAT_ERR_INVALID_ARGUMENT` 等) でのみ、`rc == -1` のような数値リテラル比較をしているコードは要見直しです。
+分類が精密化された関数 (例: `cplat_path_get_full` と `cplat_process_get_executable_path` の `CPLAT_ERR_BUFFER_TOO_SMALL`、`cplat_pinned_prompt_status_set` の `CPLAT_ERR_OUT_OF_MEMORY`、`cplat_tracer_get_name` の `CPLAT_ERR_INVALID_ARGUMENT` 等) でのみ、`rc == -1` のような数値リテラル比較をしているコードは見直す必要があります。
 
 ### 三値・逆向き API (シグネチャ変更を伴う、最重要)
 
@@ -54,7 +54,7 @@ cplat は戻り値規約を、共通結果コード (`CPLAT_OK` + 負値エラ�
 | `cplat_shutdown_invoke_for_test` / `cplat_shutdown_request_invoke_for_test` (テスト専用) | `(event)`。戻り値 0=実行/1=実行済み/-1=引数不正 | `(event, int *invoked_out)`。戻り値は結果コード、実行有無は `invoked_out` |
 | `cplat_elevated_process_extract_result_target` | `(argc, argv)`。戻り値 1=検出/0=未検出 | `(argc, argv, int *detected_out)`。戻り値は常に `CPLAT_OK`、検出有無は `detected_out` |
 
-**`cplat_prompt_readline` 系は特に注意してください。** シグネチャが変わらないため、旧来の `if (readline(...))` や `== 0`/`!= 0` の真偽値判定は **コンパイルは通ったまま意味が反転** します。呼び出し元をすべて洗い出し、`== CPLAT_OK` / `!= CPLAT_OK` の明示比較へ書き換えてください。
+**`cplat_prompt_readline` 系は特に注意してください。** シグネチャが変わらないため、旧来の `if (readline(...))` や `== 0`/`!= 0` の真偽値判定は **コンパイルが成功したまま意味が反転** します。呼び出し元をすべて洗い出し、`== CPLAT_OK` / `!= CPLAT_OK` の明示比較へ書き換えてください。
 
 ## CPLAT_ERR_NOT_FOUND の新設 (追加の破壊的変更)
 

@@ -74,7 +74,7 @@
 /**
  *  @brief          要求は受け付けましたが、適用せずに省略しました。
  *
- *  失敗ではありません。先の設定では成立しない入力を捨てるときなど、
+ *  失敗ではありません。先の設定では成立しない入力を破棄するときなど、
  *  呼び出し側が処理を続行してよい場合に返します。
  */
 #define CPLAT_SKIPPED 1
@@ -85,7 +85,7 @@
  *  @brief          -2 以下の分類済みコードに該当しない、その他のエラーです。
  *
  *  `cplat_error_report_errno()`/`_windows_error()`/`_winsock_error()` (`base/error.c`) が
- *  内部で呼ぶ `cplat_result_from_errno()`/`_windows_error()`/`_winsock_error()`
+ *  内部で呼び出す `cplat_result_from_errno()`/`_windows_error()`/`_winsock_error()`
  *  (`base/result.c`) は、以下で個別に文書化する OS エラー値のいずれにも
  *  一致しない場合、フォールバックとしてこの値を返します。
  */
@@ -216,8 +216,8 @@
  *
  *  @note           汎用の OS エラー変換表 (`cplat_result_from_errno()` 等) には
  *                  含まれません。@ref cplat_socket_connect の非ブロッキング
- *                  connect が、上記の値を検出した場合に限り明示的にこの値を返します
- *                  (`net/socket_linux.c`、`net/socket_windows.c`)。
+ *                  connect が、上記の値を検出した場合に限り明示的にこの値を返します。
+ *                  (`net/socket_linux.c`、`net/socket_windows.c`)
  */
 #define CPLAT_ERR_IN_PROGRESS (-42)
 /** @} */

@@ -64,7 +64,7 @@ extern "C"
      *
      *  Linux では `stat`、Windows では `_wstat64` を使用します。\n
      *  Windows の `_wstat64` は時刻欄を現地時刻経由で `time_t` へ変換するため、
-     *  タイムゾーン設定によっては Unix epoch UTC と秒部がずれます。
+     *  タイムゾーン設定によっては Unix epoch UTC と秒部に差異が生じます。
      *  本関数は `GetFileAttributesExW` が返す UTC の `FILETIME` から秒部を取り直し、
      *  `st_atime` / `st_mtime` / `st_ctime` を Linux の `stat` と同じ Unix epoch UTC に揃えます。\n
      *  `GetFileAttributesExW` に失敗した場合は `_wstat64` の時刻欄をそのまま返します。
@@ -91,7 +91,7 @@ extern "C"
     CPLAT_EXPORT int CPLAT_API cplat_mkdir(const char *path, cplat_error *detail_out);
 
     /**
-     *  @brief          UTF-8 パスのディレクトリを、欠けている中間ディレクトリも
+     *  @brief          UTF-8 パスのディレクトリを、存在しない中間ディレクトリも
      *                  含めて再帰的に作成します (`mkdir -p` 相当)。
      *  @param[in]      path  作成するディレクトリのパス (UTF-8)。NULL を渡してはなりません。
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
@@ -100,7 +100,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  すでに存在するディレクトリは成功として扱います (べき等)。\n
-     *  中間ディレクトリが欠けている場合はすべて生成します。\n
+     *  中間ディレクトリが存在しない場合はすべて作成します。\n
      *  他プロセスによる競合生成は成功として扱います。
      *
      *  @par            スレッド セーフ

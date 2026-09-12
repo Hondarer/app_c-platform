@@ -3,14 +3,14 @@
 ## ビルド確認
 
 `pinned_prompt.c` を変更した場合は、まず `prompt` ディレクトリで局所ビルドします。  
-局所ビルドでもライブラリは生成される。
+局所ビルドでもライブラリは生成されます。
 
 ```bash
 cd /home/user/c-modernization-kit/app/c-platform/prod/libsrc/cplat/prompt
 make
 ```
 
-`make clean` は通常不要。ファイル名や生成物の構成を変えた場合だけ検討します。
+`make clean` は通常不要です。ファイル名や生成物の構成を変えた場合だけ検討します。
 
 CLI 単体の再リンクは以下で行います。
 
@@ -19,7 +19,7 @@ cd /home/user/c-modernization-kit/app/c-platform/prod/src/cmd/pinned-prompt
 make
 ```
 
-`pinned_prompt.c` は `-Wpadded` 付きでコンパイルされる。構造体のメンバー配置を変更した場合は、`pinned_prompt.c` のコンパイル行で警告が出ていないか確認します。
+`pinned_prompt.c` は `-Wpadded` 付きでコンパイルされます。構造体のメンバー配置を変更した場合は、`pinned_prompt.c` のコンパイル行で警告が出力されていないか確認します。
 
 差分の空白確認は以下で行います。
 
@@ -29,7 +29,7 @@ git -C /home/user/c-modernization-kit/app/c-platform diff --check --
 
 ## PTY での手動確認
 
-`pinned-prompt` は TTY でないと固定プロンプト描画に入らない。パイプ入力だけでは表示崩れの評価にならないため、実端末または Codex の PTY 実行で確認します。
+`pinned-prompt` は TTY でないと固定プロンプト描画に入りません。パイプ入力だけでは表示崩れの評価にならないため、実端末または Codex の PTY 実行で確認します。
 
 起動コマンド:
 
@@ -38,7 +38,7 @@ cd /home/user/c-modernization-kit
 app/c-platform/prod/cbin/pinned-prompt
 ```
 
-Codex では `exec_command` の `tty: true` で起動し、返された `session_id` に `write_stdin` で入力を送る。
+Codex では `exec_command` の `tty: true` で起動し、返された `session_id` に `write_stdin` で入力を送ります。
 
 基本確認:
 
@@ -151,7 +151,7 @@ read primary
 read secondary
 ```
 
-`secondary>` が表示されたら、上キーを押して `s1` だけが再表示されることを確認します。`read primary` と `read secondary` は別の呼び出し元から `cplat_pinned_prompt_readline()` を呼ぶため、同じ `screen` でも履歴リングが分かれる。
+`secondary>` が表示されたら、上キーを押して `s1` だけが再表示されることを確認します。`read primary` と `read secondary` は別の呼び出し元から `cplat_pinned_prompt_readline()` を呼ぶため、同じ `screen` でも履歴リングが分かれます。
 
 `cplat_pinned_prompt_readline_fmt()` 経由も確認します。
 
@@ -173,7 +173,7 @@ start stdout
 partial
 ```
 
-しばらく待ち、`[stdout tick N]` が出ても `pinned-prompt> partial` が再描画されることを確認します。終了前に worker を止める。
+しばらく待ち、`[stdout tick N]` が出力されても `pinned-prompt> partial` が再描画されることを確認します。終了前に worker を停止します。
 
 ```text
 stop all
@@ -182,7 +182,7 @@ quit
 
 ## 終了時の確認
 
-`quit` または `exit` で終了したときは、status / separator / prompt の予約領域を消去し、pinned prompt があった行の先頭にカーソルを戻す。
+`quit` または `exit` で終了したときは、status / separator / prompt の予約領域を消去し、pinned prompt があった行の先頭にカーソルを戻します。
 
 確認手順:
 
@@ -193,7 +193,10 @@ status set-bottom-left btm
 quit
 ```
 
-終了後、カーソルが画面上端へ移動しないこと。次のシェル プロンプトは、pinned prompt があった位置に表示されること。
+確認観点:
+
+- 終了後、カーソルが画面上端へ移動しないこと。
+- 次のシェル プロンプトが、pinned prompt があった位置に表示されること。
 
 ## 実装時の注意
 

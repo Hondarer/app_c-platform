@@ -258,7 +258,7 @@ TEST_F(makedirsTest, nested_levels_creates_all_directories)
 
     // Act
     int actual_ret = cplat_makedirs("root/sub/leaf",
-                                NULL); // [手順] - 中間ディレクトリが欠けた 2 階層パスを cplat_makedirs で作成する。
+                                NULL); // [手順] - 中間ディレクトリが存在しない 2 階層パスを cplat_makedirs で作成する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_makedirs の戻り値が CPLAT_OK であること。

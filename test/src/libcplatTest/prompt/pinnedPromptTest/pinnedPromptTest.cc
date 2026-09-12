@@ -1254,7 +1254,7 @@ TEST(pinnedPromptTest, platform_get_size_uses_valid_console_buffer_info)
     EXPECT_EQ(24, fallback_rows); // [確認_異常系] - GetConsoleScreenBufferInfo 失敗時の行数が 24 であること。
 }
 
-// 標準出力ハンドルが無効な場合に既定の端末サイズへ落ちることの確認
+// 標準出力ハンドルが無効な場合に既定の端末サイズへフォールバックすることの確認
 TEST(pinnedPromptTest, platform_get_size_falls_back_when_stdout_handle_invalid)
 {
     // Arrange

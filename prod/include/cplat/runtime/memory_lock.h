@@ -111,8 +111,8 @@ extern "C"
      *  @param[out]     scope    解除情報の格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
      *
-     *  @p options の stack_prefault_bytes が 0 より大きい場合、ロック前に呼び出しスレッドのスタックを
-     *  指定サイズ分だけ触ります。\n
+     *  @p options の stack_prefault_bytes が 0 より大きい場合、ロック前に呼び出しスレッドのスタックへ
+     *  指定サイズ分だけアクセスします。\n
      *  この処理は呼び出しスレッドだけを対象にします。\n
      *  Linux では mlockall() を使用します。\n
      *  Windows では @ref CPLAT_MEMORY_LOCK_CURRENT だけをサポートし、VirtualQuery() で現在の
@@ -136,7 +136,7 @@ extern "C"
         Caller -> API : options, &scope
         API -> API : 引数と flag を検証
         opt stack_prefault_bytes > 0
-            API -> API : 呼び出しスレッドのスタックを触る
+            API -> API : 呼び出しスレッドのスタックへアクセス
         end
         API -> Lock : 取得
         alt Linux

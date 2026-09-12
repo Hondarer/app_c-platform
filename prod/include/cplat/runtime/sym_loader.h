@@ -11,9 +11,9 @@
  *
  *  使用方法:
  *  1. cplat_sym_loader_entry を CPLAT_SYM_LOADER_ENTRY_INIT マクロで静的初期化します。
- *  2. cplat_sym_loader_init() で JSON 設定ファイルを読み込む (DllMain/constructor から呼ぶ)。
+ *  2. cplat_sym_loader_init() で JSON 設定ファイルを読み込みます (DllMain / constructor から呼び出します)。
  *  3. cplat_sym_loader_resolve_as() で関数ポインターを取得して呼び出します。
- *  4. cplat_sym_loader_dispose() でリソースを解放する (DllMain/destructor から呼ぶ)。
+ *  4. cplat_sym_loader_dispose() でリソースを解放します (DllMain / destructor から呼び出します)。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

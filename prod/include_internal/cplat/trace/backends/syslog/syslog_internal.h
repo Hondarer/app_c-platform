@@ -39,7 +39,7 @@ extern "C"
      *  reconnect_lock を取得せずにソケットを閉じてハンドルを解放します。
      *  呼び出し時点で cplat_syslog_sink_write() を実行中のスレッドが存在する場合は
      *  未定義動作になります。
-     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼ばれるため、
+     *  通常は trace_registry_dispose_all_on_shutdown() 経由で呼び出されるため、
      *  呼び出し側がスレッドの静止を保証します。
      */
     void cplat_syslog_sink_dispose_on_shutdown(cplat_syslog_sink *handle);

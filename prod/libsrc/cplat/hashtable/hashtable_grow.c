@@ -61,7 +61,7 @@ static int hashtable_config_is_compatible(const cplat_hashtable_config *current,
  *  移行元を変更しません。移行を始める前に、収まるかどうかだけを判定します。\n
  *  使用中のレコードは必ず残します。削除済みのレコードは、reuse_deleted が 0 なら
  *  必ず残し、収まらなければ失敗します。reuse_deleted が非 0 なら、add の追い出しと
- *  同じ規則で古い順に落とします。
+ *  同じ規則で古い順に除外します。
  */
 static int hashtable_plan_migration(const cplat_hashtable *src, const cplat_hashtable_config *new_config,
                                     unsigned char **keep_out)

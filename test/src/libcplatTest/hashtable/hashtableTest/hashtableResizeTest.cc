@@ -265,13 +265,13 @@ TEST_F(hashtableResizeTest, shrink_drops_oldest_deleted_records_when_reuse_is_en
     cplat_hashtable_dispose(ht);
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを落として縮小できること。
+    EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを除外して縮小できること。
     EXPECT_EQ(CPLAT_OK, actual_ret_counts);
     EXPECT_EQ(1u, deleted);                  // [確認_正常系] - 削除済みが 1 件だけ残ること。
     EXPECT_EQ(CPLAT_OK, actual_ret_scan); // [確認_正常系] - 削除済みを走査できること。
     EXPECT_EQ(1, has_deleted);               // [確認_正常系] - 削除済みが 1 件見つかること。
     EXPECT_EQ(CPLAT_OK, actual_ret_key);
-    EXPECT_STREQ("b", kept_key.data());          // [確認_正常系] - 世代が新しい削除済みが残り、古い方が落ちること。
+    EXPECT_STREQ("b", kept_key.data());          // [確認_正常系] - 世代が新しい削除済みが残り、古い方が破棄されること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 縮小後も内部整合性が保たれること。
 }
 
@@ -572,7 +572,7 @@ TEST_F(hashtableResizeTest, shrink_drops_multiple_deleted_records_in_generation_
     cplat_hashtable_dispose(ht);
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを 2 件落として縮小できること。
+    EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを 2 件除外して縮小できること。
     EXPECT_EQ(CPLAT_OK, actual_ret_counts);
     EXPECT_EQ(1u, deleted); // [確認_正常系] - 削除済みが 1 件だけ残ること。
     EXPECT_EQ(CPLAT_OK, actual_ret_scan);

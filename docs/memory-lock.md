@@ -48,7 +48,7 @@ cplat_memory_lock_scope_release(cplat_memory_lock_scope *scope);
 `scope == NULL` を `cplat_memory_lock_scope_release()` に渡した場合は何もせず `CPLAT_OK` を返します。  
 成功した `scope` は 1 回だけ `cplat_memory_lock_scope_release()` に渡してください。  
 同一 `scope` の二重解放、または複数スレッドからの同時解放は未定義です。  
-`options->stack_prefault_bytes` に 0 より大きい値を指定すると、ロック前に呼び出しスレッドのスタックを指定サイズ分だけ触ります。  
+`options->stack_prefault_bytes` に 0 より大きい値を指定すると、ロック前に呼び出しスレッドのスタックへ指定サイズ分だけアクセスします。  
 この指定は、未使用スタックを先に committed page にしてからロック対象へ含めたい場合に使います。
 
 ## flag の意味
@@ -85,17 +85,17 @@ Windows で `CPLAT_MEMORY_LOCK_FUTURE` または `CPLAT_MEMORY_LOCK_ONFAULT` を
 
 Windows の `CPLAT_MEMORY_LOCK_CURRENT` は、`VirtualQuery()` で列挙した時点の committed region をロックします。  
 未使用のスタック予約領域は committed region ではないため、そのままでは `VirtualLock()` の対象に入りません。  
-`stack_prefault_bytes` を指定すると、列挙前に呼び出しスレッドのスタックを触るため、その範囲が committed page になり、`CPLAT_MEMORY_LOCK_CURRENT` の対象に入ります。
+`stack_prefault_bytes` を指定すると、列挙前に呼び出しスレッドのスタックへアクセスするため、その範囲が committed page になり、`CPLAT_MEMORY_LOCK_CURRENT` の対象に含まれます。
 
 Linux でも同じ指定を受け付けます。  
-`mlockall(MCL_CURRENT)` は呼び出し時点でマップ済みのページを対象にするため、ロック前にスタックを触る意味があります。
+`mlockall(MCL_CURRENT)` は呼び出し時点でマップ済みのページを対象にするため、ロック前にスタックへアクセスする効果があります。
 
 指定サイズが現在のスレッド スタックで安全に扱えない場合は、実際にスタックを消費せず `CPLAT_ERR_LIMIT_EXCEEDED` を返します。  
 この判定は stack overflow を避けるための安全側の見積もりです。
 
 ## scope API のタイミング
 
-`cplat_memory_lock_self()` は、必要に応じて呼び出しスレッドのスタックを先に触ってから、内部 lock を取得して OS のロック API を呼び出します。  
+`cplat_memory_lock_self()` は、必要に応じて呼び出しスレッドのスタックへあらかじめアクセスしてから、内部 lock を取得して OS のロック API を呼び出します。  
 成功した場合は `scope` が返り、呼び出し側はページ フォルトを避けたい処理が終わった後に `cplat_memory_lock_scope_release()` を呼び出します。
 
 ```plantuml
@@ -109,7 +109,7 @@ participant "OS" as OS
 Caller -> API : options, &scope
 API -> API : 引数と flag を検証
 opt stack_prefault_bytes > 0
-    API -> API : 呼び出しスレッドのスタックを触る
+    API -> API : 呼び出しスレッドのスタックへアクセス
 end
 API -> Lock : 取得
 alt Linux

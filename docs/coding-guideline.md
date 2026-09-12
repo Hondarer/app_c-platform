@@ -626,7 +626,7 @@ entries = new_entries;
 
 > [!IMPORTANT]
 > `cplat_realloc` と `cplat_realloc_zerofill` は、標準の `realloc` と引数構成が異なります。  
-> 要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、行を機械的に置換すると引数がずれます。
+> 要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、行を機械的に置換すると引数の位置に不整合が生じます。
 
 > [!IMPORTANT]
 > `cplat_realloc(ptr, 0, size)` は、**元の領域を解放せずに NULL を返します**。  
@@ -640,7 +640,7 @@ entries = new_entries;
 > [!NOTE]
 > `cplat_malloc_zerofill` と `cplat_calloc` は、どちらもゼロ初期化した領域を返します。  
 > 単一オブジェクトとバイト バッファーには `cplat_malloc_zerofill`、要素数を伴う配列には `cplat_calloc` を使います。  
-> 要素数を伴う確保を `cplat_malloc_zerofill` で書くと、呼び出し側に乗算が戻ってしまうためです。
+> 要素数を伴う確保を `cplat_malloc_zerofill` で記述すると、呼び出し側に乗算の責務が戻るためです。
 
 > [!NOTE]
 > `free` に対して `cplat_free` を設けるのは、素通しのラッパーを増やすためではありません。  
@@ -655,7 +655,7 @@ entries = new_entries;
 これは、集合が意図どおりに更新されないまま処理を継続させないための cplat 固有の契約です。
 
 検査する上限は、`fd_set` の構造がプラットフォームで異なるため一致しません。  
-Linux は FD を集合の添字として扱うため、FD の値が `0` 以上 `FD_SETSIZE` 未満であることを検査します。  
+Linux は FD を集合のインデックスとして扱うため、FD の値が `0` 以上 `FD_SETSIZE` 未満であることを検査します。  
 Windows の `fd_set` は SOCKET の配列と格納数であり、`FD_SETSIZE` は格納できる SOCKET の数の上限です。  
 このため Windows では、SOCKET の値ではなく集合の格納数が上限に達していないことを検査します。
 
@@ -759,7 +759,7 @@ cplat 自身のラッパー実装 (`prod/libsrc/cplat/crt/`、`prod/libsrc/cplat
 - OS エラーの文字列化は `cplat_error_message()` がドメインに基づいて処理を振り分けます。生の errno と Win32 エラー コードを同一の整数引数で受け取る公開 API は作りません
 - 文字列から数値への変換は、完全消費と範囲の検査を関数側に内包します。`endptr` に相当する引数を公開 API に露出させません
 - 書式化と行入力は、切り詰めを結果コードで通知します。切り詰めた内容を宛先に残しません
-- メモリ確保は、長さ 0 と乗算オーバーフローを関数側で検査し、いずれも NULL を返します。呼び出し側が要素数とサイズの乗算を書く形の API は作りません
+- メモリ確保は、長さ 0 と乗算オーバーフローを関数側で検査し、いずれも NULL を返します。呼び出し側が要素数とサイズの乗算を記述する形式の API は作りません
 
 ## API 命名規約
 

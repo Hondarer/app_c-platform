@@ -7,11 +7,11 @@
  *  @version        1.0.0
  *
  *  capacity / key_size / value_size から @ref cplat_hashtable_required_size
- *  の結果(管理領域サイズとデータ領域サイズ)を、空白区切りで標準出力へ 1 行で出します。\n
+ *  の結果(管理領域サイズとデータ領域サイズ)を、空白区切りで標準出力へ 1 行で出力します。\n
  *  既定はテーブル横断のタイムスタンプのみです。\n
- *  `--record-timestamp` を付けるとレコード単位のタイムスタンプと世代カウンターも持ち、
+ *  `--record-timestamp` を指定するとレコード単位のタイムスタンプと世代カウンターも持ち、
  *  管理領域が増加します。\n
- *  `--value-align` を付けると固定長値をその境界へ整列させ、データ領域が増加します。
+ *  `--value-align` を指定すると固定長値をその境界へ整列させ、データ領域が増加します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

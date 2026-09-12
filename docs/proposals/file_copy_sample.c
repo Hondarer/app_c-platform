@@ -162,7 +162,7 @@ static int copy_content(cplat_file *from_file, cplat_file *to_file, uint8_t *buf
         copied_size += (int64_t)read_size;
     }
 
-    /* 事前に確認したサイズと転送量が食い違う場合は、排他の前提が崩れている。 */
+    /* 事前に確認したサイズと転送量が一致しない場合は、排他の前提が崩れている。 */
     if (copied_size != expected_size)
     {
         return SAMPLE_ERR;

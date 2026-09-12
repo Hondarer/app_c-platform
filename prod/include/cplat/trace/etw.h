@@ -166,9 +166,9 @@ extern "C"
     /**
      *  @brief          リアルタイム ETW セッションを開始し、指定プロバイダーを購読します。
      *
-     *  @param[in]      session_name       セッション名 (システム全体で一意にすること)。
+     *  @param[in]      session_name       セッション名 (システム全体で一意にしてください)。
      *  @param[in]      provider_guid_str  GUID 文字列 "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"。
-     *  @param[in]      callback           イベント受信時に呼ばれるコールバック。
+     *  @param[in]      callback           イベント受信時に呼び出されるコールバック。
      *  @param[in]      context            コールバックに渡すユーザー データ。
      *  @param[out]     session_out        開始したセッションのハンドルの格納先。NULL を渡してはなりません。\n
      *                  失敗時は NULL を格納します。

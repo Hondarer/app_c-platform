@@ -40,14 +40,14 @@ extern "C"
     /**
      *  @brief          環境変数の値を取得します。
      *
-     *  指定された環境変数が設定されている場合、その値を @p buf に格納する。\n
-     *  @p buf に NULL を渡した場合は存在確認のみ行い、値のコピーを省略する。\n
+     *  指定された環境変数が設定されている場合、その値を @p buf に格納します。\n
+     *  @p buf に NULL を渡した場合は存在確認のみ行い、値のコピーを省略します。\n
      *  Windows では `_dupenv_s` を使用して MSVC セキュリティ警告を回避します。
      *
      *  @param[in]      name        環境変数名 (null 終端文字列)。NULL を渡してはなりません。
      *  @param[out]     buf         値の格納先です。NULL を指定すると存在確認のみ行います。\n
      *                              変数が設定されていない場合は空文字列を格納します。
-     *  @param[in]      buf_size    @p buf のバイト数。@p buf が NULL の場合は無視。
+     *  @param[in]      buf_size    @p buf のバイト数。@p buf が NULL の場合は無視します。
      *  @param[out]     exists_out  変数が設定されている場合は 1、設定されていない場合は 0 を格納します。\n
      *                              NULL も指定できます。戻り値が @ref CPLAT_OK または
      *                              @ref CPLAT_ERR_BUFFER_TOO_SMALL の場合に有効です。

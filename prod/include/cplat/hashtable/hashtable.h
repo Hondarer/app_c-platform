@@ -68,7 +68,7 @@
  *  自動拡張版の書き込みに伴う再構築 /
  *  @ref cplat_hashtable_dispose まで有効です。\n
  *  @ref cplat_hashtable_resize 、@ref cplat_hashtable_rebuild_into 、自動再構築は、
- *  残すレコードを移行先の領域へ詰め直すため、配置が変わります。\n
+ *  残すレコードを移行先の領域へ再配置するため、配置が変わります。\n
  *  値の入力ポインターに型のアラインメントは要求しません。\n
  *  値の格納境界は config の value_align で決まります。0 (既定) では値を隙間なく
  *  並べ、`find_value_ref` / `get_value_ref` が返すポインターに型のアラインメントを
@@ -81,7 +81,7 @@
  *  不透明ハンドル (@ref cplat_hashtable) として返します。内部管理データは
  *  実行時のみ有効な参照であり、管理領域・データ領域を外部指定した場合でも、
  *  ハンドル自体の解放のため呼び出し方によらず必ず @ref cplat_hashtable_dispose
- *  を呼んでください。
+ *  を呼び出してください。
  *
  *  永続化の入出力とエンディアン変換は本 API の対象外です。\n
  *  読み戻しは同一環境 (同一ビット幅・同一アラインメント規則) を前提とします。\n
@@ -231,7 +231,7 @@ extern "C"
      *  片方だけ NULL は @ref CPLAT_ERR_INVALID_ARGUMENT です。\n
      *  ともに NULL のときは、内部で 1 回の確保にまとめて構築し、
      *  解放も @ref cplat_hashtable_dispose の 1 回で両方が片付きます。\n
-     *  ともに非 NULL のとき、容量不足やアラインメント不正なら領域へ触れずに失敗します。\n
+     *  ともに非 NULL のとき、容量不足やアラインメント不正なら領域へアクセスせずに失敗します。\n
      *  容量不足は @ref CPLAT_ERR_BUFFER_TOO_SMALL 、アラインメント不正は
      *  @ref CPLAT_ERR_INVALID_ARGUMENT です。\n
      *  @p timestamp_scope は @ref CPLAT_HASHTABLE_TIMESTAMP_SCOPE_TABLE または
@@ -297,12 +297,12 @@ extern "C"
      *  管理領域のアラインメント不正は @ref CPLAT_ERR_INVALID_ARGUMENT 、
      *  管理領域またはデータ領域の容量不足は @ref CPLAT_ERR_BUFFER_TOO_SMALL です。\n
      *  チェインの整合性は検証しないため、必要なら直後に
-     *  @ref cplat_hashtable_validate を呼んでください。\n
+     *  @ref cplat_hashtable_validate を呼び出してください。\n
      *  管理領域にはデータ領域アドレスを持たないため、@p buf_data は常に呼び出し側が
      *  渡した値をそのまま使います (プロセスをまたいだ再接続や再マップに対応するためです)。\n
      *  成功時は管理領域とデータ領域の所有権を呼び出し側のままにしますが、本関数は内部管理データ
      *  (返るハンドル自体)を新規確保するため、使用後は必ず @ref cplat_hashtable_dispose を
-     *  呼んでください。
+     *  呼び出してください。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
@@ -334,7 +334,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_config_ref(const cplat_hashtable *ht,
                                                                        const cplat_hashtable_config **config_out);
@@ -348,7 +348,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_config_val(const cplat_hashtable *ht,
                                                                        cplat_hashtable_config *config_out);
@@ -365,7 +365,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_buffer_size(const cplat_hashtable *ht, size_t *mgmt_size_out,
                                                                     size_t *data_size_out);
@@ -393,7 +393,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_buffer_ref(const cplat_hashtable *ht, const void **mgmt_out,
                                                                    const void **data_out);
@@ -577,7 +577,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_value_ref(const cplat_hashtable *ht, const void *key,
                                                                        const void **value_out);
@@ -601,7 +601,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_value_copy(const cplat_hashtable *ht, const void *key,
                                                                         void *dest, size_t dest_size,
@@ -618,7 +618,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_recno(const cplat_hashtable *ht, const void *key,
                                                                    uint64_t *record_out);
@@ -639,7 +639,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_timestamp_ref(const cplat_hashtable *ht,
                                                                            const void *key,
@@ -657,7 +657,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_timestamp_val(const cplat_hashtable *ht,
                                                                            const void *key,
@@ -679,7 +679,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_find_generation(const cplat_hashtable *ht, const void *key,
                                                                         uint64_t *generation_out);
@@ -697,7 +697,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_key_ref(const cplat_hashtable *ht, uint64_t record,
                                                                     const void **key_out);
@@ -721,7 +721,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_key_copy(const cplat_hashtable *ht, uint64_t record,
                                                                      void *dest, size_t dest_size,
@@ -740,7 +740,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_value_ref(const cplat_hashtable *ht, uint64_t record,
                                                                       const void **value_out);
@@ -764,7 +764,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_value_copy(const cplat_hashtable *ht, uint64_t record,
                                                                        void *dest, size_t dest_size,
@@ -783,7 +783,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_status(const cplat_hashtable *ht, uint64_t record,
                                                                    int *status_out);
@@ -820,7 +820,7 @@ extern "C"
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
      *  同一テーブルへの同時呼び出しもできます。内部に共有状態を持ちません。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_next_record(const cplat_hashtable *ht, uint64_t from,
                                                                     unsigned int status_mask, uint64_t *record_out,
@@ -841,7 +841,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_timestamp_ref(const cplat_hashtable *ht, uint64_t record,
                                                                           const cplat_timespec **timestamp_out);
@@ -857,7 +857,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_timestamp_val(const cplat_hashtable *ht, uint64_t record,
                                                                           cplat_timespec *timestamp_out);
@@ -877,7 +877,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_generation(const cplat_hashtable *ht, uint64_t record,
                                                                        uint64_t *generation_out);
@@ -895,7 +895,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API
     cplat_hashtable_get_table_timestamp_ref(const cplat_hashtable *ht, const cplat_timespec **timestamp_out);
@@ -909,7 +909,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_table_timestamp_val(const cplat_hashtable *ht,
                                                                                 cplat_timespec *timestamp_out);
@@ -928,7 +928,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_get_table_generation(const cplat_hashtable *ht,
                                                                              uint64_t *generation_out);
@@ -948,7 +948,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_count_status(const cplat_hashtable *ht, size_t *in_use_out,
                                                                      size_t *deleted_out, size_t *empty_out);
@@ -964,7 +964,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_count(const cplat_hashtable *ht, size_t *count_out);
 
@@ -977,7 +977,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_deleted_count(const cplat_hashtable *ht, size_t *count_out);
 
@@ -990,7 +990,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  条件付きスレッド セーフです。\n
      *  異なるテーブルへの同時呼び出しはできます。\n
-     *  同一テーブルへの書き込みと同時に呼んではなりません。
+     *  同一テーブルへの書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_empty_count(const cplat_hashtable *ht, size_t *count_out);
 
@@ -1073,7 +1073,7 @@ extern "C"
      *  O(N log H + U) です。\n
      *  格納済みブロックの配置が変わるのは、本関数、@ref cplat_hashtable_resize 、
      *  @ref cplat_hashtable_rebuild_into 、自動拡張版の書き込みに伴う再構築です。\n
-     *  本関数は同一のストレージ内で詰め直し、ほかの操作は移行先の領域へ詰め直します。\n
+     *  本関数は同一のストレージ内で再配置し、ほかの操作は移行先の領域へ再配置します。\n
      *  @ref cplat_hashtable_add などの確保は空き領域だけを使うため、
      *  対象レコード以外のブロックを動かしません。
      *
@@ -1102,11 +1102,11 @@ extern "C"
      *  拡大 (capacity が現在以上) では、レコード番号をすべて保存します。\n
      *  縮小ではレコード番号を保存しません。移行後に
      *  @ref cplat_hashtable_find_recno で取り直してください。\n
-     *  レコードを 1 件も捨てません。使用中のレコードが収まらない場合、および
+     *  レコードを 1 件も破棄しません。使用中のレコードが収まらない場合、および
      *  reuse_deleted が 0 で削除済みのレコードが収まらない場合は
      *  @ref CPLAT_ERR_LIMIT_EXCEEDED です。reuse_deleted が非 0 のときだけ、
      *  @ref cplat_hashtable_add の追い出しと同じ規則で削除済みを古い順に空へ戻します。\n
-     *  可変長ストレージは移行時に詰め直します。詰めた後の使用量が新しい容量を超える場合は
+     *  可変長ストレージは移行時に再配置します。再配置後の使用量が新しい容量を超える場合は
      *  @ref CPLAT_ERR_STORAGE_FULL です。\n
      *  失敗した場合、テーブルは一切変更しません。\n
      *  変更時刻と世代カウンターは、テーブルもレコードも移行前の値を引き継ぎます。\n
@@ -1134,19 +1134,19 @@ extern "C"
      *
      *  メモリ マップド ファイルなど、外部領域のテーブルを伸長または縮小するための入口です。\n
      *  @p src は変更しません。成功後も @p src は有効で、不要になったら
-     *  @ref cplat_hashtable_dispose を呼んでください。\n
+     *  @ref cplat_hashtable_dispose を呼び出してください。\n
      *  必要な領域サイズは @p new_config を @ref cplat_hashtable_required_size へ渡して
      *  求めてください。@p buf_mgmt と @p buf_data の要件は
      *  @ref cplat_hashtable_create と同じです。\n
-     *  変えてよい設定、レコード番号の扱い、レコードを捨てない規則、可変長ストレージの
-     *  詰め直し、変更時刻と世代カウンターの引き継ぎは、いずれも
+     *  変えてよい設定、レコード番号の扱い、レコードを破棄しない規則、可変長ストレージの
+     *  再配置、変更時刻と世代カウンターの引き継ぎは、いずれも
      *  @ref cplat_hashtable_resize と同じです。\n
      *  失敗時は *@p ht_out を NULL にします。容量やストレージが足りない場合は、
-     *  渡された領域へ触れずに失敗します。
+     *  渡された領域へアクセスせずに失敗します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  @p src への書き込みと同時に呼んではなりません。
+     *  @p src への書き込みと同時に呼び出してはなりません。
      */
     CPLAT_EXPORT int CPLAT_API cplat_hashtable_rebuild_into(const cplat_hashtable *src,
                                                                      const cplat_hashtable_config *new_config,

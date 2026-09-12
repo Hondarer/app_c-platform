@@ -217,7 +217,7 @@ TEST_F(stringCatalogFormatTest, argument_count_negative)
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
 }
 
-// 現在の言語のリソースが無い場合にニュートラル言語へ読み替えることの確認
+// 現在の言語のリソースが無い場合にニュートラル言語へフォールバックすることの確認
 TEST_F(stringCatalogFormatTest, falls_back_to_neutral_text)
 {
     // Arrange
@@ -256,7 +256,7 @@ TEST_F(stringCatalogFormatTest, missing_neutral_text)
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
 }
 
-// 備考を現在の言語で参照し、無い場合はニュートラル言語へ読み替えることの確認
+// 備考を現在の言語で参照し、無い場合はニュートラル言語へフォールバックすることの確認
 TEST_F(stringCatalogFormatTest, metadata)
 {
     // Arrange

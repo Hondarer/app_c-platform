@@ -36,7 +36,7 @@ static int input_points_into_table(const cplat_hashtable *ht, const void *input)
 /**
  *  @brief          start_idx 以降の最小空きスロットを 1 相対で返します。
  *  @param[in]      ht         対象。NULL を渡してはなりません。
- *  @param[in]      start_idx  走査開始の 0 相対添字。
+ *  @param[in]      start_idx  走査開始の 0 相対インデックス。
  *  @return         1 相対のレコード番号です。無ければ 0 です。
  */
 static uint64_t scan_next_empty(cplat_hashtable *ht, size_t start_idx)
@@ -56,7 +56,7 @@ static uint64_t scan_next_empty(cplat_hashtable *ht, size_t start_idx)
 /**
  *  @brief          スロットへ現在の実時刻を刻みます。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。
+ *  @param[in]      rec  0 相対のスロット インデックス。
  */
 static void stamp_record(cplat_hashtable *ht, size_t rec)
 {
@@ -641,7 +641,7 @@ int cplat_hashtable_update_rec(cplat_hashtable *ht, uint64_t record, const void 
 /**
  *  @brief          スロットを空へ戻し、キーと値と変更時刻を消します。
  *  @param[in]      ht   対象。NULL を渡してはなりません。
- *  @param[in]      rec  0 相対のスロット添字。
+ *  @param[in]      rec  0 相対のスロット インデックス。
  *
  *  チェーンからの切り離しはしません。呼び出し側が外します。\n
  *  SCOPE_RECORD のときは変更時刻も 0 埋めします。

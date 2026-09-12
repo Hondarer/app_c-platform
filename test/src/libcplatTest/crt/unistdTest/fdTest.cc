@@ -471,7 +471,7 @@ TEST_F(fdTest, fd_set_aborts_for_negative_fd)
 }
 
 #if defined(PLATFORM_LINUX)
-/* Linux の fd_set は FD を添字として扱うため、上限の確認は FD の値で行う */
+/* Linux の fd_set は FD をインデックスとして扱うため、上限の確認は FD の値で行う */
 // FD_SETSIZE 以上の FD を渡すと abort することの確認
 TEST_F(fdTest, fd_set_aborts_for_fd_out_of_range)
 {

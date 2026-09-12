@@ -577,7 +577,7 @@ TEST(processTest, StartReportsDuplicateHandleFailure)
     EXPECT_EQ(nullptr, process); // [確認_異常系] - DuplicateHandle 失敗時に process が NULL のままであること。
 }
 
-// Windows の process_start が無効な標準ハンドルを null device へ落とすことの確認
+// Windows の process_start が無効な標準ハンドルを null device へフォールバックすることの確認
 TEST(processTest, StartFallsBackToNullDeviceWhenStdHandleInvalid)
 {
     // Arrange

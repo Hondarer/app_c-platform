@@ -447,7 +447,7 @@ static size_t resolve_touch_count(bench_pattern pattern, size_t record_count)
  *  @param[in,out]  csv          CSV の出力先。NULL の場合は CSV を出力しません。
  *  @param[in]      min_ms       1 試行の測定区間の下限 (ミリ秒)。
  *  @param[in]      trials       試行回数。
- *  @param[in]      cold         ページ キャッシュを落として測定する場合は 1。
+ *  @param[in]      cold         ページ キャッシュを破棄して測定する場合は 1。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
 static int execute_case(const bench_case *job, bench_context *ctx, const bench_environment *env, FILE *csv,
@@ -517,7 +517,7 @@ static int execute_case(const bench_case *job, bench_context *ctx, const bench_e
  *  @param[in,out]  csv       CSV の出力先。NULL の場合は CSV を出力しません。
  *  @param[in]      min_ms    1 試行の測定区間の下限 (ミリ秒)。
  *  @param[in]      trials    試行回数。
- *  @param[in]      cold      ページ キャッシュを落として測定する場合は 1。
+ *  @param[in]      cold      ページ キャッシュを破棄して測定する場合は 1。
  *  @param[in]      keep      測定後にファイルを残す場合は 1。
  *  @return         成功時は 0、失敗時は -1 を返します。
  */
@@ -643,7 +643,7 @@ int main(int argc, char *argv[])
     cplat_argparser_register_option_int(NULL, "--min-ms", "MS", "1 試行の測定区間の下限 (ミリ秒)。", 0U, &min_ms);
     cplat_argparser_register_option_int(NULL, "--trials", "N", "1 条件あたりの試行回数。", 0U, &trials);
     cplat_argparser_register_flag(NULL, "--huge", "1 GB のケースを追加します。", &huge);
-    cplat_argparser_register_flag(NULL, "--cold", "ページ キャッシュを落として測定します (Linux、要 root)。", &cold);
+    cplat_argparser_register_flag(NULL, "--cold", "ページ キャッシュを破棄して測定します (Linux、要 root)。", &cold);
     cplat_argparser_register_flag(NULL, "--keep", "測定用ファイルを削除せずに残します。", &keep);
 
     if (cplat_argparser_get_register_error_count() > 0U)

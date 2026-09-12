@@ -25,7 +25,7 @@
  *  - **時刻の保持・受け渡し** → cplat_timespec を使用する。\n
  *    絶対時刻 (cplat_get_realtime()) にも単調クロック値 (cplat_get_monotonic()) にも使用します。
  *  - **加減算・比較** → cplat_timespec_add() / cplat_timespec_sub() / cplat_timespec_cmp() を使用する。\n
- *    手書きの秒・ナノ秒演算は正規化漏れの温床となるため行いません。
+ *    手動での秒・ナノ秒演算は正規化漏れの原因となるため行いません。
  *  - **ミリ秒ベースの deadline / 経過時間** → cplat_timespec_add_ms() / cplat_timespec_diff_ms() を使用する。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.

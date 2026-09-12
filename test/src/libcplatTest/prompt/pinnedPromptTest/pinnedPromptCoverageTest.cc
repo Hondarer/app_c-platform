@@ -959,7 +959,7 @@ TEST(pinnedPromptCoverageTest, format_helper_grows_buffer_when_realloc_succeeds)
     cplat_pinned_prompt_dispose(screen);
 }
 
-// 書式バッファー確保失敗時に readline_fmt が空プロンプトへ落とすことの確認
+// 書式バッファー確保失敗時に readline_fmt が空プロンプトへフォールバックすることの確認
 TEST(pinnedPromptCoverageTest, readline_fmt_uses_empty_prompt_when_format_allocation_fails)
 {
     // Arrange

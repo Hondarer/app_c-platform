@@ -100,7 +100,7 @@ extern "C"
      *  自プロセスを再起動した際に付与する引き継ぎフラグを検出し、親プロセスの
      *  コンソールへ `AttachConsole` で再接続します。\n
      *  再接続後、stdin / stdout / stderr を親コンソール (CONIN$ / CONOUT$) へ
-     *  つなぎ直すため、昇格プロセスの出力が元のコンソールにそのまま表示されます。\n
+     *  再割り当てするため、昇格プロセスの出力が元のコンソールにそのまま表示されます。\n
      *  検出した引き継ぎフラグは @p argv から取り除き、@p argc を 1 減らします。\n
      *  Linux 環境では何もせず @p attached_out に 0 を設定して @ref CPLAT_OK を返します。
      *
@@ -125,9 +125,9 @@ extern "C"
      *
      *  Windows 環境では、cplat_console_attach_parent() による昇格後の親コンソール
      *  再接続直後に、stdout / stderr の CRT ストリーム (FILE*) 経由の printf / fprintf が
-     *  fd 自体は正常であるにもかかわらず書き込みを拒否する事象が実機調査で確認されている。\n
+     *  fd 自体は正常であるにもかかわらず書き込みを拒否する事象が実機調査で確認されています。\n
      *  本関数は `GetStdHandle` で取得した Win32 ハンドルへ `WriteConsoleA` で直接書き込み、
-     *  この問題を回避する。\n
+     *  この問題を回避します。\n
      *  Linux 環境では対象の fd へ直接書き込みます。
      *
      *  @par            スレッド セーフ

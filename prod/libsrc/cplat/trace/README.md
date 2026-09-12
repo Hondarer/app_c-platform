@@ -58,7 +58,7 @@ Linux syslog と Windows ETW には `VERBOSE` より細かい標準レベルが�
 Windows EventLog はイベント タイプが Error / Warning / Information の 3 種のみのため、`INFO` / `VERBOSE` / `DEBUG` はいずれも Information になりますが、分析性を高めるためレベル毎に異なるイベント ID とカテゴリを割り当てます。  
 一方でファイルと `stderr` では `DEBUG` を独立したレベル文字で区別します。
 
-各出力先は「設定レベル以上に重大なメッセージだけを出す」動作です。
+各出力先は「設定レベル以上に重大なメッセージだけを出力する」動作です。
 
 ## デフォルト動作
 
@@ -83,7 +83,7 @@ OS 標準のログ基盤 (運用者向け) へ送ります。
 - Linux: syslog
 
 `cplat_tracer_set_os_level()` でしきい値を設定します (既定は無効)。  
-通常は `trace.h` 経由で使い、プラットフォームごとの backend を直接触る必要はありません。  
+通常は `trace.h` 経由で使い、プラットフォームごとの backend を直接操作する必要はありません。  
 Windows の EventLog はイベント ソースが cplat 全体で共通のため、利用前に `eventlog-register` コマンドでソースを登録します (後述)。
 
 ### ETW (Windows のみ)

@@ -416,7 +416,7 @@ static void print_rc_result(int ret)
  *  @brief  CLI コマンド 1 個の定義 (名前・usage・ハンドラー) です。
  *
  *  コマンドの追加は g_commands へのエントリ追加で完結します
- *  (help のコマンド一覧と usage 表示はテーブルから生成される)。
+ *  (help のコマンド一覧と usage 表示はテーブルから生成されます)。
  */
 struct trace_cli_command
 {

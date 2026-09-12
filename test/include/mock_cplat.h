@@ -587,7 +587,7 @@ inline constexpr char kLibCplatName[] = "libcplat" TESTFW_SHARED_LIBRARY_EXTENSI
 
 // 書式を展開した NUL 終端文字列を返す。
 // 期待値の照合と実関数への委譲の双方で使用する。固定長バッファーで展開すると長い出力が
-// 切り詰められ、被テスト側の切り詰め判定が実関数と食い違うため、testfw の allocvprintf で
+// 切り詰められ、被テスト側の切り詰め判定が実関数と一致しなくなるため、testfw の allocvprintf で
 // 必要な長さを確保する。戻り値は解放不要で、.data() は常に有効な NUL 終端文字列を指す。
 extern std::vector<char> mock_cplat_expand_format(const char *format, va_list args);
 

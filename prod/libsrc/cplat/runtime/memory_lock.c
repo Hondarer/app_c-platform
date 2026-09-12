@@ -37,7 +37,7 @@
 /** cplat_memory_lock_self_options::flags で受け付ける bit の集合。 */
 #define CPLAT_MEMORY_LOCK_KNOWN_FLAGS \
     (CPLAT_MEMORY_LOCK_CURRENT | CPLAT_MEMORY_LOCK_FUTURE | CPLAT_MEMORY_LOCK_ONFAULT)
-/** stack prefault で 1 回に触るスタック サイズ。 */
+/** stack prefault で 1 回にアクセスするスタック サイズ。 */
 #define CPLAT_MEMORY_LOCK_STACK_PREFAULT_CHUNK 4096U
 /** stack overflow を避けるために残すスタック サイズ。 */
 #define CPLAT_MEMORY_LOCK_STACK_SAFETY_MARGIN (64U * 1024U)
@@ -121,8 +121,8 @@ static void memory_lock_unlock(void)
 }
 
 /**
- *  @brief          指定サイズ分のスタック ページに触ります。
- *  @param[in]      remaining 追加で触るスタック サイズ。
+ *  @brief          指定サイズ分のスタック ページへアクセスします。
+ *  @param[in]      remaining 追加でアクセスするスタック サイズ。
  */
 static NO_INLINE void prefault_stack_recursive(size_t remaining)
 {
@@ -210,7 +210,7 @@ static int convert_flags_to_mlockall_flags(int flags, int *native_flags)
 
 /**
  *  @brief          Linux で呼び出しスレッドのスタックをロック前に committed page 化します。
- *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
+ *  @param[in]      stack_prefault_bytes 追加でアクセスするスタック サイズ。0 可。
  *  @return         成功時は CPLAT_OK、それ以外はエラー結果を返します。
  */
 static int prefault_stack(size_t stack_prefault_bytes)
@@ -697,7 +697,7 @@ static int acquire_windows_range(cplat_memory_lock_scope *scope, uintptr_t base,
 
 /**
  *  @brief          Windows で呼び出しスレッドのスタックをロック前に committed page 化します。
- *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
+ *  @param[in]      stack_prefault_bytes 追加でアクセスするスタック サイズ。0 可。
  *  @return         成功時は CPLAT_OK、それ以外はエラー結果を返します。
  */
 static int prefault_stack(size_t stack_prefault_bytes)
@@ -735,7 +735,7 @@ static int prefault_stack(size_t stack_prefault_bytes)
 #else
 /**
  *  @brief          未対応プラットフォームで stack prefault の結果を返します。
- *  @param[in]      stack_prefault_bytes 追加で触るスタック サイズ。0 可。
+ *  @param[in]      stack_prefault_bytes 追加でアクセスするスタック サイズ。0 可。
  *  @return         0 の場合は CPLAT_OK、それ以外は CPLAT_ERR_UNSUPPORTED を返します。
  */
 static int prefault_stack(size_t stack_prefault_bytes)

@@ -39,7 +39,7 @@ extern "C"
      *  呼び出し前に、すべてのスレッドが trace API
      *  (cplat_tracer_create / cplat_tracer_dispose / cplat_tracer_write 等) の
      *  呼び出しを完了している必要があります。
-     *  並行してトレース API が呼ばれた場合は未定義動作になります。
+     *  並行してトレース API が呼び出された場合は未定義動作になります。
      */
     void trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event);
 

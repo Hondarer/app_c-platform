@@ -54,7 +54,7 @@ static void arena_reset(struct hashtable_arena *arena)
 /**
  *  @brief          指定の空きブロックが、置き換え対象ブロックと隣接するかを判定します。
  *  @param[in]      arena       操作対象。NULL を渡してはなりません。
- *  @param[in]      index       空きブロックの添字。
+ *  @param[in]      index       空きブロックのインデックス。
  *  @param[in]      own_offset  置き換え対象ブロックの先頭オフセット。
  *  @param[in]      own_length  置き換え対象ブロックのバイト数。0 なら対象なしです。
  *  @return         隣接するなら 1、しないなら 0 です。

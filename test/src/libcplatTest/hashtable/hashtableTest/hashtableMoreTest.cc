@@ -25,7 +25,7 @@ void fill_config(cplat_hashtable_config *config, size_t capacity, size_t key_siz
     config->lifetime = lifetime;
 }
 
-/* hashtable.c の hash_key と同じ djb2。同じバケットへ落ちるキーを探すために使う。 */
+/* hashtable.c の hash_key と同じ djb2。同じバケットに割り当てられるキーを探すために使う。 */
 size_t hash_string_mod(const char *key, size_t capacity)
 {
     uint64_t hash = 5381;
@@ -478,7 +478,7 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
     fill_config(&config, 2, 8, 8, CPLAT_HASHTABLE_LIFETIME_INFINITE,
                 CPLAT_HASHTABLE_KEY_STRING); // [状態] - reuse_deleted を有効にする設定を用意する。
     config.reuse_deleted = 1;
-    peer_key = find_colliding_key(base_key, config.capacity); // [状態] - base_key と同じバケットへ落ちるキーを探す。
+    peer_key = find_colliding_key(base_key, config.capacity); // [状態] - base_key と同じバケットに割り当てられるキーを探す。
 
     // Pre-Assert
     ASSERT_NE(nullptr, peer_key); // [Pre-Assert確認] - 衝突するキーが見つかること。
