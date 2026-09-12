@@ -387,7 +387,11 @@ def expand(template: str, module: str, library: str) -> str:
 
     テンプレートは C のコードを含み波括弧が現れるため、str.format は使わない。
     """
-    return template.replace("@MODULE@", module).replace("@LIBRARY@", library)
+    return (
+        template.replace("@MODULE_UPPER@", module.upper())
+        .replace("@MODULE@", module)
+        .replace("@LIBRARY@", library)
+    )
 
 
 def derive_module_prefix(definition: Path) -> str:
@@ -724,7 +728,7 @@ const @LIBRARY@_entry *@MODULE@_entries(void)
 
 int @MODULE@_entry_count(void)
 {
-    return ENTRY_COUNT;
+    return @MODULE_UPPER@_ENTRY_COUNT;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -738,7 +742,7 @@ const int *@MODULE@_id_index(void)
 
 int @MODULE@_id_index_count(void)
 {
-    return ID_INDEX_COUNT;
+    return @MODULE_UPPER@_ID_INDEX_COUNT;
 }
 
 /**
@@ -747,7 +751,8 @@ int @MODULE@_id_index_count(void)
  *  配列と添字テーブルを 1 つのカタログ構造体にまとめます。\\n
  *  すべてのメンバーを初期化子で設定可能なため `const` とし、初期化関数は提供しません。
  */
-static const @LIBRARY@ s_catalog = {s_entries, s_id_index, ENTRY_COUNT, ID_INDEX_COUNT};
+static const @LIBRARY@ s_catalog = {
+    s_entries, s_id_index, @MODULE_UPPER@_ENTRY_COUNT, @MODULE_UPPER@_ID_INDEX_COUNT};
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -810,6 +815,7 @@ const char *@MODULE@_note(const int string_id)
 def emit_source(document: dict, strings: list[dict], definition_name: str, out_relative: str = ".") -> str:
     """実装側の生成物を組み立てる。"""
     module = document["module_prefix"]
+    module_upper = module.upper()
     library = LIBRARY_PREFIX
     header_name = f"{module}.h"
     source_name = f"{module}.c"
@@ -906,19 +912,19 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         [
             "",
             "/** @ref s_entries の要素数です。 */",
-            "#define ENTRY_COUNT ((int)(sizeof(s_entries) / sizeof(s_entries[0])))",
+            f"#define {module_upper}_ENTRY_COUNT ((int)(sizeof(s_entries) / sizeof(s_entries[0])))",
             "",
             "/** 添字テーブルにおいて、文字列 ID が未登録であることを表す値です。 */",
-            "#define ID_INDEX_ABSENT (-1)",
+            f"#define {module_upper}_ID_INDEX_ABSENT (-1)",
             "",
             "/**",
             " *  @brief          文字列 ID を添字として、@ref s_entries の添字を引くためのテーブルです。",
             " *",
             " *  文字列 ID は 1 から始まるため、添字 0 は使用しません。\\n",
-            " *  文字列 ID が連続せず欠番となる場合は、該当する添字へ @ref ID_INDEX_ABSENT を格納します。",
+            f" *  文字列 ID が連続せず欠番となる場合は、該当する添字へ @ref {module_upper}_ID_INDEX_ABSENT を格納します。",
             " */",
             "static const int s_id_index[] = {",
-            "    ID_INDEX_ABSENT, /* 0: 未使用 */",
+            f"    {module_upper}_ID_INDEX_ABSENT, /* 0: 未使用 */",
         ]
     )
 
@@ -931,14 +937,14 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             "};",
             "",
             "/** @ref s_id_index の要素数です。 */",
-            "#define ID_INDEX_COUNT ((int)(sizeof(s_id_index) / sizeof(s_id_index[0])))",
+            f"#define {module_upper}_ID_INDEX_COUNT ((int)(sizeof(s_id_index) / sizeof(s_id_index[0])))",
             "",
             "/*",
             " *  添字テーブルが最大の文字列 ID までを網羅していることを、ビルド時に検証します。",
             " *  網羅されていない文字列 ID は線形探索にフォールバックするため動作自体は可能ですが、添字テーブルの拡張漏れとなります。",
             " *  対象は文字列 ID の昇順で最後の定数です。",
             " */",
-            f'static_assert(ID_INDEX_COUNT > {last_id}, "id_index must cover every string id");',
+            f'static_assert({module_upper}_ID_INDEX_COUNT > {last_id}, "id_index must cover every string id");',
             "",
             expand(SOURCE_TAIL, module, library).rstrip("\n"),
             "",

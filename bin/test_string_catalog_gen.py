@@ -325,6 +325,16 @@ class GeneratedOutputTest(unittest.TestCase):
         self.assertIn("    {SAMPLE_MESSAGES_ID_A,\n     1,\n", source)
         self.assertNotIn("TRACE_LEVEL", source)
 
+    def test_source_macros_use_the_module_prefix(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+
+        self.assertIn("#define SAMPLE_MESSAGES_ENTRY_COUNT", source)
+        self.assertIn("#define SAMPLE_MESSAGES_ID_INDEX_ABSENT", source)
+        self.assertIn("#define SAMPLE_MESSAGES_ID_INDEX_COUNT", source)
+        self.assertNotIn("#define ENTRY_COUNT", source)
+        self.assertNotIn("#define ID_INDEX_ABSENT", source)
+        self.assertNotIn("#define ID_INDEX_COUNT", source)
+
     def test_module_dir_appears_in_documentation(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         self.assertIn("`prod/src/cmd/example/` のモジュール私有ヘッダー", header)
