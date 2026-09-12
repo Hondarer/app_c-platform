@@ -330,3 +330,30 @@ class GeneratedOutputTest(unittest.TestCase):
         self.assertIn("`prod/src/cmd/example/` のモジュール私有ヘッダー", header)
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
         self.assertIn("@file           src/cmd/example/sample_messages.c", source)
+
+
+class DoxygenGroupTest(unittest.TestCase):
+    """生成物ヘッダーの Doxygen グループ記述を確認する。"""
+
+    def setUp(self):
+        self.document = minimal_document(module_dir="prod/src/cmd/example")
+        self.strings = gen.validate(self.document)
+
+    def test_header_contains_defgroup(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("@defgroup       SAMPLE_MESSAGES 文字列カタログ (sample_messages)", header)
+
+    def test_header_contains_group_open_and_close(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("@{", header)
+        self.assertIn("/** @} */", header)
+
+    def test_header_group_brief_references_definition(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("カタログ定義 `example.jsonc` から自動生成された文字列カタログです。", header)
+
+    def test_source_never_contains_defgroup(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertNotIn("@defgroup", source)
+        self.assertNotIn("/** @} */", source)
+

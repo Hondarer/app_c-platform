@@ -482,12 +482,21 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         "",
     ]
 
+    group_id = module.upper()
+    group_title = f"文字列カタログ ({module})"
+
     out.extend(
         [
             f"#include <{LIBRARY_HEADER}>",
             "#include <stdarg.h>",
             "#include <stddef.h>",
             "#include <stdint.h>",
+            "",
+            "/**",
+            f" *  @defgroup       {group_id} {group_title}",
+            f" *  @brief          カタログ定義 `{definition_name}` から自動生成された文字列カタログです。",
+            " *  @{",
+            " */",
             "",
             "#ifdef __cplusplus",
             'extern "C"',
@@ -522,6 +531,8 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             "#ifdef __cplusplus",
             "}",
             "#endif /* __cplusplus */",
+            "",
+            "/** @} */",
             "",
             f"#endif /* {guard} */",
             "",
