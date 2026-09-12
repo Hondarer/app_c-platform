@@ -952,6 +952,12 @@ def format_source(text: str, filename: str, style: Path | None) -> str:
     return completed.stdout
 
 
+def write_text_lf(path: Path, content: str) -> None:
+    """UTF-8 のテキストを LF 固定で書き込む。"""
+    with path.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(content)
+
+
 def main(argv: list[str] | None = None) -> int:
     """コマンドの入口。"""
     parser = argparse.ArgumentParser(description="カタログ定義から cplat 文字列カタログの生成物を書き出します。")
@@ -1010,7 +1016,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"差分あり: {path}", file=sys.stderr)
                 differs = True
         else:
-            path.write_text(content, encoding="utf-8", newline="\n")
+            write_text_lf(path, content)
             print(f"生成: {path}")
 
     return 1 if differs else 0

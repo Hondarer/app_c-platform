@@ -285,6 +285,17 @@ class FormatSourceTest(unittest.TestCase):
         self.assertEqual(run_mock.call_args.kwargs["encoding"], "utf-8")
 
 
+class WriteTextLfTest(unittest.TestCase):
+    """生成物の文字コードと改行コード指定を確認する。"""
+
+    @mock.patch("pathlib.Path.open", new_callable=mock.mock_open)
+    def test_writes_utf8_with_lf(self, open_mock):
+        gen.write_text_lf(Path("sample.c"), "1 行目\n2 行目\n")
+
+        open_mock.assert_called_once_with("w", encoding="utf-8", newline="\n")
+        open_mock().write.assert_called_once_with("1 行目\n2 行目\n")
+
+
 if __name__ == "__main__":
     unittest.main()
 
