@@ -71,6 +71,13 @@ extern "C"
     void fake_catalog_set_id(int index, int string_id);
 
     /**
+     *  @brief          指定したカタログ要素の処理用キーを書き換えます。
+     *  @param[in]      index 書き換える文字列のインデックス。
+     *  @param[in]      key   設定する処理用キー。NULL を指定すると未設定の状態になります。
+     */
+    void fake_catalog_set_key(int index, const char *key);
+
+    /**
      *  @brief          指定した文字列の分類値を書き換えます。
      *  @param[in]      index    書き換える文字列のインデックス。
      *  @param[in]      category 設定する分類値。
@@ -91,6 +98,43 @@ extern "C"
      *  @param[in]      kind           設定する引数種別。
      */
     void fake_catalog_set_argument_kind(int index, int argument_index, cplat_string_catalog_argument_kind kind);
+
+    /**
+     *  @brief          指定した文字列の短い説明を書き換えます。
+     *  @param[in]      index 書き換える文字列のインデックス。
+     *  @param[in]      brief 設定する短い説明。NULL を指定すると未設定の状態になります。
+     */
+    void fake_catalog_set_brief(int index, const char *brief);
+
+    /**
+     *  @brief          指定した文字列の詳細説明を書き換えます。
+     *  @param[in]      index   書き換える文字列のインデックス。
+     *  @param[in]      details 設定する詳細説明。NULL を指定すると未設定の状態になります。
+     */
+    void fake_catalog_set_details(int index, const char *details);
+
+    /**
+     *  @brief          指定した文字列の引数定義配列を書き換えます。
+     *  @param[in]      index     書き換える文字列のインデックス。
+     *  @param[in]      arguments 設定する引数定義配列。NULL を指定できます。
+     */
+    void fake_catalog_set_arguments(int index, const cplat_string_catalog_argument *arguments);
+
+    /**
+     *  @brief          指定した引数の名前を書き換えます。
+     *  @param[in]      index          書き換える文字列のインデックス。
+     *  @param[in]      argument_index 書き換える引数のインデックス。
+     *  @param[in]      name           設定する引数名。NULL を指定すると未設定の状態になります。
+     */
+    void fake_catalog_set_argument_name(int index, int argument_index, const char *name);
+
+    /**
+     *  @brief          指定した引数の説明を書き換えます。
+     *  @param[in]      index          書き換える文字列のインデックス。
+     *  @param[in]      argument_index 書き換える引数のインデックス。
+     *  @param[in]      description    設定する引数説明。NULL を指定すると未設定の状態になります。
+     */
+    void fake_catalog_set_argument_description(int index, int argument_index, const char *description);
 
     /**
      *  @brief          指定した文字列の言語別の備考を書き換えます。

@@ -23,7 +23,34 @@
 #include <cplat/string_catalog/catalog_internal.h>
 #include <cplat/string_catalog/string_catalog.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
+
+/** 引数種別が公開列挙の範囲内であることを確認します。 */
+static bool is_valid_argument_kind(const cplat_string_catalog_argument_kind kind)
+{
+    return (kind >= CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING) &&
+           (kind <= CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE);
+}
+
+/** 先に定義された項目と key が重複していないことを確認します。 */
+static bool is_unique_key(const cplat_string_catalog *const catalog, const int entry_index)
+{
+    const cplat_string_catalog_entry *entry = &catalog->entries[entry_index];
+    int previous_index;
+
+    for (previous_index = 0; previous_index < entry_index; previous_index++)
+    {
+        if ((catalog->entries[previous_index].key != NULL) &&
+            (strcmp(entry->key, catalog->entries[previous_index].key) == 0))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 /**
  *  @brief          言語別リソースから、指定した言語の要素を選びます。
@@ -75,7 +102,8 @@ int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char
         return CPLAT_ERR_NOT_FOUND;
     }
 
-    if ((entry->argument_count < 0) || (entry->argument_count > CPLAT_STRING_CATALOG_ARGUMENT_MAX))
+    if ((entry->argument_count < 0) || (entry->argument_count > CPLAT_STRING_CATALOG_ARGUMENT_MAX) ||
+        ((entry->argument_count > 0) && (entry->arguments == NULL)))
     {
         return CPLAT_ERR_MALFORMED_DEFINITION;
     }
@@ -129,11 +157,14 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
     {
         const cplat_string_catalog_entry *entry;
         int language_index;
+        int argument_index;
 
         entry = cplat_internal_string_catalog_entry_at(catalog, entry_index);
 
         /* 分類値はライブラリが解釈しないため、範囲は確認しない */
         if ((entry->argument_count < 0) || (entry->argument_count > CPLAT_STRING_CATALOG_ARGUMENT_MAX) ||
+            ((entry->argument_count > 0) && (entry->arguments == NULL)) || (entry->key == NULL) ||
+            (entry->brief == NULL) || !is_unique_key(catalog, entry_index) ||
             (cplat_internal_string_catalog_find_entry(catalog, entry->id) != entry))
         {
             if (string_id_out != NULL)
@@ -146,6 +177,25 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
                 *language_out = CPLAT_STRING_CATALOG_LANGUAGE_COUNT;
             }
             return CPLAT_ERR_MALFORMED_DEFINITION;
+        }
+
+        for (argument_index = 0; argument_index < entry->argument_count; argument_index++)
+        {
+            const cplat_string_catalog_argument *argument = &entry->arguments[argument_index];
+
+            if (!is_valid_argument_kind(argument->kind) || (argument->name == NULL) ||
+                (argument->description == NULL))
+            {
+                if (string_id_out != NULL)
+                {
+                    *string_id_out = entry->id;
+                }
+                if (language_out != NULL)
+                {
+                    *language_out = CPLAT_STRING_CATALOG_LANGUAGE_COUNT;
+                }
+                return CPLAT_ERR_MALFORMED_DEFINITION;
+            }
         }
 
         for (language_index = 0; language_index < (int)CPLAT_STRING_CATALOG_LANGUAGE_COUNT; language_index++)
@@ -198,7 +248,7 @@ int cplat_string_catalog_get_category(const cplat_string_catalog *const catalog,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *cplat_string_catalog_get_id_text(const cplat_string_catalog *const catalog, const int string_id)
+const char *cplat_string_catalog_get_key(const cplat_string_catalog *const catalog, const int string_id)
 {
     const cplat_string_catalog_entry *entry;
 
@@ -208,7 +258,7 @@ const char *cplat_string_catalog_get_id_text(const cplat_string_catalog *const c
         return NULL;
     }
 
-    return entry->id_text;
+    return entry->key;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

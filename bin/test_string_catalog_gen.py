@@ -86,10 +86,10 @@ def minimal_document(**overrides):
         "strings": [
             {
                 "id": "SAMPLE_MESSAGES_ID_A",
-                "id_text": "ID_0001",
+                "key": "ID_0001",
                 "category": 1,
                 "brief": "あ。",
-                "summary": "あを組み立てます。",
+                "details": "あを組み立てます。",
                 "arguments": [{"kind": "STRING", "name": "path", "description": "パス。"}],
                 "texts": {"neutral": "{0}"},
                 "notes": {"neutral": ""},
@@ -106,6 +106,11 @@ class ValidateTest(unittest.TestCase):
     def test_accepts_minimal(self):
         self.assertEqual(len(gen.validate(minimal_document())), 1)
 
+    def test_allows_missing_details(self):
+        document = minimal_document()
+        del document["strings"][0]["details"]
+        self.assertEqual(len(gen.validate(document)), 1)
+
     def test_does_not_require_derived_keys(self):
         # 生成器が持つ名前と仕様は、カタログ定義へ書かない
         document = minimal_document()
@@ -116,11 +121,11 @@ class ValidateTest(unittest.TestCase):
     def test_rejects_duplicate_id(self):
         document = minimal_document()
         document["strings"].append(dict(document["strings"][0]))
-        document["strings"][1]["id_text"] = "ID_0002"
+        document["strings"][1]["key"] = "ID_0002"
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
-    def test_rejects_duplicate_id_text(self):
+    def test_rejects_duplicate_key(self):
         document = minimal_document()
         duplicated = dict(document["strings"][0])
         duplicated["id"] = "SAMPLE_MESSAGES_ID_B"
@@ -156,6 +161,24 @@ class ValidateTest(unittest.TestCase):
         # 分類値を生値に限るのは、生成物を特定の app の列挙から独立させるため
         document = minimal_document()
         document["strings"][0]["category"] = "SAMPLE_TRACE_LEVEL_ERROR"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_non_string_metadata(self):
+        document = minimal_document()
+        document["strings"][0]["details"] = 1
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_non_string_argument_metadata(self):
+        document = minimal_document()
+        document["strings"][0]["arguments"][0]["description"] = 1
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_non_string_remarks_item(self):
+        document = minimal_document()
+        document["strings"][0]["remarks"] = ["補足", 1]
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
@@ -325,6 +348,86 @@ class GeneratedOutputTest(unittest.TestCase):
         self.assertIn("    {SAMPLE_MESSAGES_ID_A,\n     1,\n", source)
         self.assertNotIn("TRACE_LEVEL", source)
 
+    def test_source_emits_entry_metadata(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn('"あ。"', source)
+        self.assertIn('"あを組み立てます。"', source)
+        self.assertIn('{CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING, 0, "path", "パス。"}', source)
+
+    def test_source_emits_null_for_missing_details(self):
+        document = minimal_document()
+        del document["strings"][0]["details"]
+        strings = gen.validate(document)
+        source = gen.emit_source(document, strings, "example.jsonc")
+        self.assertIn('     "ID_0001",\n     "あ。",\n     NULL,', source)
+
+    def test_typed_formatter_emits_brief_and_details_separately(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("     *  @brief          あ。", header)
+        self.assertIn("     *  あを組み立てます。", header)
+
+    def test_typed_formatter_separates_details_from_parameters(self):
+        wrapper = gen.emit_wrapper(self.document, self.strings[0])
+        lines = wrapper.splitlines()
+        details_index = lines.index("     *  あを組み立てます。")
+        param_index = next(index for index, line in enumerate(lines) if "@param[out]" in line)
+
+        self.assertEqual(details_index + 1, param_index - 1)
+        self.assertEqual("     *", lines[details_index + 1])
+
+    def test_typed_formatter_puts_no_argument_note_in_details(self):
+        document = minimal_document()
+        document["strings"][0]["arguments"] = []
+        del document["strings"][0]["details"]
+        document["strings"][0]["texts"] = {"neutral": "started"}
+        strings = gen.validate(document)
+        wrapper = gen.emit_wrapper(document, strings[0])
+        lines = wrapper.splitlines()
+        no_argument_index = lines.index("     *  この文字列は引数を必要としません。")
+        param_index = next(index for index, line in enumerate(lines) if "@param[out]" in line)
+
+        self.assertLess(no_argument_index, param_index)
+        self.assertEqual("     *", lines[no_argument_index + 1])
+
+    def test_typed_formatter_does_not_add_no_argument_note_for_arguments(self):
+        wrapper = gen.emit_wrapper(self.document, self.strings[0])
+        self.assertNotIn("この文字列は引数を必要としません。", wrapper)
+
+    def test_typed_formatter_emits_remarks_as_remark(self):
+        document = minimal_document()
+        document["strings"][0]["remarks"] = "あを組み立てます。"
+        strings = gen.validate(document)
+        wrapper = gen.emit_wrapper(document, strings[0])
+        lines = wrapper.splitlines()
+        details_index = lines.index("     *  あを組み立てます。")
+        return_index = next(index for index, line in enumerate(lines) if "@return" in line)
+        remark_index = lines.index("     *  @remark         あを組み立てます。")
+        format_index = next(index for index, line in enumerate(lines) if "@par            書式" in line)
+
+        self.assertLess(details_index, return_index)
+        self.assertLess(return_index, remark_index)
+        self.assertLess(remark_index, format_index)
+        self.assertEqual(return_index + 1, remark_index)
+        self.assertEqual(remark_index + 1, format_index)
+
+    def test_source_emits_remarks(self):
+        self.document["strings"][0]["remarks"] = ["補足", "説明"]
+        strings = gen.validate(self.document)
+        source = gen.emit_source(self.document, strings, "example.jsonc")
+        self.assertIn('"補足 説明"', source)
+
+    def test_header_and_source_emit_entry_accessor(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(int string_id);", header)
+        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(const int string_id)", source)
+
+    def test_header_and_source_emit_key_accessor(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("const char *sample_messages_key(int string_id);", header)
+        self.assertIn("const char *sample_messages_key(const int string_id)", source)
+
     def test_source_macros_use_the_module_prefix(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
 
@@ -374,6 +477,20 @@ class DoxygenGroupTest(unittest.TestCase):
         self.assertLess(header.index("int sample_messages_format"), child_group_start)
         self.assertLess(child_group_start, header.index("static inline int sample_messages_id_a"))
         self.assertLess(child_group_close, parent_group_close)
+
+    def test_typed_formatter_group_has_consistent_indentation(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+
+        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数"
+        lines = header.splitlines()
+        group_index = next(index for index, line in enumerate(lines) if child_group in line)
+
+        self.assertEqual("/**", lines[group_index - 1])
+        self.assertEqual(
+            " *  @defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数",
+            lines[group_index],
+        )
+        self.assertEqual(" */", lines[group_index + 4])
 
     def test_source_never_contains_defgroup(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")

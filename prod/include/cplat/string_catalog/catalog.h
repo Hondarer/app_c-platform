@@ -9,6 +9,7 @@
  *  カタログはライブラリ側では保持せず、利用側で定義します。\n
  *  配列とインデックス表を @ref cplat_string_catalog へまとめ、組み立て API の呼び出しごとに渡します。\n
  *  利用側で用意するのは文字列 ID の列挙と本構造体の配列の 2 点のみです。\n
+ *  項目の `id` は定義間で一意な値とし、処理から利用する主キーには `key` を指定します。\n
  *  言語、引数種別、レベル、書式の構文はライブラリが定めます。
  *
  *  文字列 ID の型を列挙にせず `int` としているのは、列挙を利用者側で定義できるようにするためです。\n
@@ -41,14 +42,35 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          1 つの文字列 ID が持つカタログの 1 件分です。
+     *  @brief          文字列の 1 つの引数に対する定義です。
      *
-     *  引数スキーマ、分類値、メタデータ、言語別の書式と備考を 1 つの表で保持します。\n
-     *  @ref cplat_string_catalog_entry::arguments の先頭から
-     *  @ref cplat_string_catalog_entry::argument_count 個までが有効です。
+     *  引数の種別と、利用側が参照する名前および説明を保持します。\n
+     *  配列の先頭から、対応する @ref cplat_string_catalog_entry::argument_count 個までが有効です。
+     *
+     *  @ref cplat_string_catalog_argument::pad は明示的アラインメントです。\n
+     *  配列の初期化子では 0 を指定してください。
+     */
+    typedef struct cplat_string_catalog_argument
+    {
+        cplat_string_catalog_argument_kind kind; /**< 引数の種別です。 */
+        unsigned int pad;                        /**< 明示的アラインメントです。0 を指定します。 */
+        const char *name;                        /**< 引数の名前です。NULL にできません。 */
+        const char *description;                 /**< 引数の説明です。NULL にできません。 */
+    } cplat_string_catalog_argument;
+
+    /**
+     *  @brief          1 つの文字列定義が持つカタログの 1 件分です。
+     *
+     *  文字列定義の ID、処理で利用するキー、引数スキーマ、分類値、メタデータ、言語別の書式と備考を 1 つの表で保持します。\n
+     *  @ref cplat_string_catalog_entry::arguments が指す配列の先頭から、
+     *  @ref cplat_string_catalog_entry::argument_count 個までが有効です。引数がない場合は NULL を指定します。
      *
      *  @ref cplat_string_catalog_entry::category はライブラリが解釈しない補足情報です。\n
      *  値の意味と有効な範囲は利用者が決めます。ライブラリは保持して返すだけです。
+     *
+     *  @ref cplat_string_catalog_entry::brief は、文字列の短い説明です。\n
+     *  @ref cplat_string_catalog_entry::details は、文字列の詳細説明です。省略でき、NULL を指定できます。\n
+     *  @ref cplat_string_catalog_entry::remarks は、文字列の補足説明です。省略でき、NULL を指定できます。
      *
      *  @ref cplat_string_catalog_entry::texts と @ref cplat_string_catalog_entry::notes は、
      *  言語をインデックスとして参照します。\n
@@ -63,12 +85,15 @@ extern "C"
      */
     typedef struct cplat_string_catalog_entry
     {
-        int id;             /**< 文字列 ID です。利用者の列挙の値を指定します。 */
+        int id;             /**< 文字列 ID です。定義間で一意な値を指定します。メタデータの識別には使用しません。 */
         int category;       /**< 利用者が意味を決める分類値です。0 は分類なしを表します。 */
         int argument_count; /**< 引数の個数です。0 以上、上限以下です。 */
         unsigned int pad;   /**< 明示的アラインメントです。0 を指定します。 */
-        cplat_string_catalog_argument_kind arguments[CPLAT_STRING_CATALOG_ARGUMENT_MAX]; /**< 引数の種別です。 */
-        const char *id_text;                                    /**< 文字列 ID の固定文字列です。 */
+        const cplat_string_catalog_argument *arguments; /**< 引数の定義配列です。引数がない場合は NULL です。 */
+        const char *key;                                  /**< 処理から利用する安定した主キーです。NULL にできません。 */
+        const char *brief;                                /**< 文字列の短い説明です。NULL にできません。 */
+        const char *details;                              /**< 文字列の詳細説明です。省略時は NULL です。 */
+        const char *remarks;                              /**< 文字列の補足説明です。NULL を指定できます。 */
         const char *texts[CPLAT_STRING_CATALOG_LANGUAGE_COUNT]; /**< 言語別の書式です。NULL は自動選択です。 */
         const char *notes[CPLAT_STRING_CATALOG_LANGUAGE_COUNT]; /**< 言語別の備考です。NULL は自動選択です。 */
     } cplat_string_catalog_entry;

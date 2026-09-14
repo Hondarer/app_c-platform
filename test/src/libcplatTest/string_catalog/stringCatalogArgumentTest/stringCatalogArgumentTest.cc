@@ -34,10 +34,15 @@ class stringCatalogArgumentTest : public Test
     /** カタログの 1 件です。テストごとに組み立てます。 */
     cplat_string_catalog_entry entry;
 
+    /** カタログ項目が参照する引数定義です。 */
+    cplat_string_catalog_argument arguments[CPLAT_STRING_CATALOG_ARGUMENT_MAX];
+
     void SetUp() override
     {
         memset(values, 0, sizeof(values));
         memset(&entry, 0, sizeof(entry));
+        memset(arguments, 0, sizeof(arguments));
+        entry.arguments = arguments;
         entry.id = 1;
     }
 
@@ -46,7 +51,7 @@ class stringCatalogArgumentTest : public Test
      */
     void add_kind(const cplat_string_catalog_argument_kind kind)
     {
-        entry.arguments[entry.argument_count] = kind;
+        arguments[entry.argument_count].kind = kind;
         entry.argument_count++;
     }
 };
@@ -107,6 +112,7 @@ TEST_F(stringCatalogArgumentTest, all_argument_kinds)
     // Arrange
     memset(values, 0, sizeof(values));
     memset(&entry, 0, sizeof(entry));
+    entry.arguments = arguments;
 
     add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_POINTER);
     add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_DOUBLE);
@@ -125,6 +131,7 @@ TEST_F(stringCatalogArgumentTest, all_argument_kinds)
     // Arrange
     memset(values, 0, sizeof(values));
     memset(&entry, 0, sizeof(entry));
+    entry.arguments = arguments;
 
     add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR);
     add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT8);

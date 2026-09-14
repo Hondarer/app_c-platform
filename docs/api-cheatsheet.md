@@ -533,11 +533,11 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 対象ヘッダー: `cplat/string_catalog/string_catalog.h`、`cplat/string_catalog/catalog.h`、`cplat/string_catalog/argument.h`、`cplat/string_catalog/language.h`
 
-文字列 ID ごとに引数の型と言語別の文言を定義し、実行時に値を差し込んで文字列を組み立てます。  
+文字列 ID ごとに引数の型と項目メタデータ、言語別の文言を定義し、実行時に値を差し込んで文字列を組み立てます。  
 言語別のリソースには語順だけを持たせ、値の表現は引数の種別が決めます。単一の標準 API とは対応しません。
 
 カタログはライブラリが保持しません。利用側が `cplat_string_catalog_entry` の配列と任意のインデックス表を `cplat_string_catalog` にまとめ、呼び出しごとに渡します。  
-配列は複製せず参照だけを保持するため、指す領域はカタログを使用する間ずっと有効である必要があります。
+配列と項目が参照する引数定義、説明文は複製せず参照だけを保持するため、指す領域はカタログを使用する間ずっと有効である必要があります。
 
 | 用途 | cplat の API |
 |---|---|
@@ -546,9 +546,12 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 文字列の組み立て | `cplat_string_catalog_format` |
 | 文字列の組み立て (`va_list` 版) | `cplat_string_catalog_vformat` |
 | カタログの点検 | `cplat_string_catalog_verify` |
+| 文字列 ID に対応する項目の取得 | `cplat_string_catalog_get_entry` |
 | 分類値の取得 | `cplat_string_catalog_get_category` |
-| 固定文字列の取得 | `cplat_string_catalog_get_id_text` |
+| 処理用キーの取得 | `cplat_string_catalog_get_key` |
 | 備考の取得 | `cplat_string_catalog_get_note` |
+
+`cplat_string_catalog_get_entry` は、文字列 ID ごとの `key`、引数の種別・名前・説明、分類値、必須の `brief`、省略可能な `details` と `remarks`、書式、備考をまとめて参照するために使用します。未設定の `details` と `remarks` は NULL です。返されるポインターはカタログ配列の要素を指し、呼び出し側で解放してはなりません。
 
 出力言語はプロセスで 1 つです。組み立ての API に言語引数はありません。  
 選択中の言語の要素が NULL の場合は、ニュートラル言語の要素へフォールバックします。ニュートラル言語の要素は NULL にできません。
@@ -558,7 +561,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 分類値 (`cplat_string_catalog_entry::category`) はライブラリが解釈しません。意味と有効な範囲は利用側が決めます。
 
-`cplat_string_catalog_verify` は、すべての定義が書式、引数の個数、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
+`cplat_string_catalog_verify` は、すべての定義が一意な `id` と `key`、書式、引数の個数、引数の種別とメタデータ、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
 条件を満たさない定義を検出した場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返し、最初の 1 件の文字列 ID と言語を出力引数へ書き出します。
 
 カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin/string_catalog_gen.py` に置いています。  
@@ -685,7 +688,7 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - ファイル: `cplat_file_init`、`cplat_file_open`、`cplat_file_write`、`cplat_file_read`、`cplat_file_get_size`、`cplat_file_set_size`、`cplat_file_get_id`、`cplat_file_get_path_id`、`cplat_file_get_modified_timestamp`、`cplat_file_set_modified_timestamp`、`cplat_file_get_path_modified_timestamp`、`cplat_file_set_path_modified_timestamp`、`cplat_file_flush`、`cplat_file_close`
 - パス: `cplat_normalize_path_sep`、`cplat_path_get_full`、`cplat_paths_equal`、`cplat_get_temp_dir`、`cplat_path_concat_n`、`cplat_vpath_concat_n`、`cplat_path_basename`、`cplat_path_dirname`、`cplat_path_extension`、`cplat_path_strip_extension`、`cplat_path_join_n`、`cplat_vpath_join_n`
 - 文字列: `cplat_strcasecmp`、`cplat_strncasecmp`
-- 文字列カタログ: `cplat_string_catalog_set_language`、`cplat_string_catalog_get_language`、`cplat_string_catalog_format`、`cplat_string_catalog_vformat`、`cplat_string_catalog_verify`、`cplat_string_catalog_get_category`、`cplat_string_catalog_get_id_text`、`cplat_string_catalog_get_note`
+- 文字列カタログ: `cplat_string_catalog_set_language`、`cplat_string_catalog_get_language`、`cplat_string_catalog_format`、`cplat_string_catalog_vformat`、`cplat_string_catalog_verify`、`cplat_string_catalog_get_entry`、`cplat_string_catalog_get_category`、`cplat_string_catalog_get_key`、`cplat_string_catalog_get_note`
 - 書式入力: `cplat_vscanf`、`cplat_vfscanf`、`cplat_vsscanf`
 - 暗号: `cplat_passphrase_to_key`
 - エラー: `cplat_error_clear`、`cplat_error_capture_errno`、`cplat_error_capture_current_errno`、`cplat_error_get_last`、`cplat_error_set_last`、`cplat_error_clear_last`、`cplat_error_is_set`、`cplat_error_get_domain`、`cplat_error_get_errno`、`cplat_error_to_result`、`cplat_error_get_cause`、`cplat_error_is`、`cplat_result_to_string`

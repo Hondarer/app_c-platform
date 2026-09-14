@@ -191,11 +191,11 @@ def validate(document: dict) -> list[dict]:
         raise DefinitionError("strings が空です。")
 
     seen_ids: set[str] = set()
-    seen_id_texts: set[str] = set()
+    seen_keys: set[str] = set()
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in MODULE_FUNCTION_SUFFIXES}
 
     for entry in strings:
-        for key in ("id", "id_text", "category", "brief", "summary", "arguments", "texts", "notes"):
+        for key in ("id", "key", "category", "brief", "arguments", "texts", "notes"):
             if key not in entry:
                 raise DefinitionError(f"{entry.get('id', '?')}: 必須の項目がありません: {key}")
 
@@ -203,13 +203,26 @@ def validate(document: dict) -> list[dict]:
         if not isinstance(entry["category"], int) or isinstance(entry["category"], bool):
             raise DefinitionError(f"{entry['id']}: category は整数で指定してください。")
 
+        for key in ("id", "key", "brief"):
+            if not isinstance(entry[key], str):
+                raise DefinitionError(f"{entry['id']}: {key} は文字列で指定してください。")
+
+        if "details" in entry and not isinstance(entry["details"], str):
+            raise DefinitionError(f"{entry['id']}: details は文字列で指定してください。")
+
+        if "remarks" in entry and (
+            not isinstance(entry["remarks"], (str, list))
+            or (isinstance(entry["remarks"], list) and not all(isinstance(item, str) for item in entry["remarks"]))
+        ):
+            raise DefinitionError(f"{entry['id']}: remarks は文字列または文字列の配列で指定してください。")
+
         if entry["id"] in seen_ids:
             raise DefinitionError(f"文字列 ID が重複しています: {entry['id']}")
         seen_ids.add(entry["id"])
 
-        if entry["id_text"] in seen_id_texts:
-            raise DefinitionError(f"固定文字列が重複しています: {entry['id_text']}")
-        seen_id_texts.add(entry["id_text"])
+        if entry["key"] in seen_keys:
+            raise DefinitionError(f"key が重複しています: {entry['key']}")
+        seen_keys.add(entry["key"])
 
         # 型付きラッパーは接頭辞を持たずモジュール接頭辞の名前空間に収まるため、
         # 同じ生成物が出す簡易関数 (@MODULE@_category など) と名前が衝突しうる。
@@ -229,6 +242,8 @@ def validate(document: dict) -> list[dict]:
                     raise DefinitionError(f"{entry['id']}: 引数に {key} がありません。")
             if argument["kind"] not in ARGUMENT_TYPES:
                 raise DefinitionError(f"{entry['id']}: 未知の引数種別です: {argument['kind']}")
+            if not isinstance(argument["name"], str) or not isinstance(argument["description"], str):
+                raise DefinitionError(f"{entry['id']}: 引数の name と description は文字列で指定してください。")
 
         for section in ("texts", "notes"):
             if "neutral" not in entry[section]:
@@ -275,6 +290,7 @@ def kind_constant(document: dict, kind: str) -> str:
 MODULE_FUNCTION_SUFFIXES = (
     "entries",
     "entry_count",
+    "entry",
     "id_index",
     "id_index_count",
     "catalog",
@@ -282,7 +298,7 @@ MODULE_FUNCTION_SUFFIXES = (
     "vformat",
     "verify",
     "category",
-    "id_text",
+    "key",
     "note",
 )
 
@@ -329,7 +345,15 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     continuation = "     *" + " " * (8 + 16 + name_width - 6)
 
     lines = ["    /**"]
-    lines.append(f"     *  @brief          {entry['summary']}")
+    lines.append(f"     *  @brief          {entry['brief']}")
+    lines.append("     *")
+    details_text = entry.get("details", "")
+    if details_text:
+        lines.extend(doc_lines(details_text, "     *  "))
+    if not arguments:
+        lines.extend(doc_lines("この文字列は引数を必要としません。", "     *  "))
+    if details_text or not arguments:
+        lines.append("     *")
     lines.append(
         f"     *  @param[out]     {'dest'.ljust(name_width)}文字列の格納先バッファー。NULL を渡してはなりません。"
     )
@@ -346,15 +370,13 @@ def emit_wrapper(document: dict, entry: dict) -> str:
         f"     *  @return         戻り値は @c {LIBRARY_PREFIX}_format と同じです。"
     )
 
-    if not arguments:
-        lines.append("     *")
-        lines.append("     *  この文字列は引数を必要としません。")
+    remark_text = join_text(entry["remarks"]) if entry.get("remarks") else ""
+    if remark_text:
+        remark_indent = "     *" + " " * 18
+        remark_lines = doc_lines(remark_text, remark_indent)
+        lines.append(f"     *  @remark         {remark_lines[0][len(remark_indent):]}")
+        lines.extend(remark_lines[1:])
 
-    if entry.get("remarks"):
-        lines.append("     *")
-        lines.extend(doc_lines(join_text(entry["remarks"]), "     *  "))
-
-    lines.append("     *")
     lines.append("     *  @par            書式")
     texts = entry["texts"]
     languages = [language for language in LANGUAGES if language in texts]
@@ -510,8 +532,8 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             "    /**",
             "     *  @brief          カタログに登録された文字列を識別する列挙型です。",
             "     *",
-            "     *  各 ID の引数スキーマ、分類値、言語別の書式および備考は、同一の生成単位のテーブルで保持します。\\n",
-            "     *  列挙値は生成順に基づいて割り当てられます。ログ解析等で永続的に利用する識別子には固定文字列を使用します。",
+            "     *  各 ID の引数定義、分類値、説明文、言語別の書式および備考は、同一の生成単位のテーブルで保持します。\\n",
+            "     *  列挙値は生成順に基づいて割り当てられます。処理で永続的に利用する主キーには key を使用します。",
             "     */",
             f"    typedef enum {id_enum_name(document)}",
             "    {",
@@ -525,6 +547,14 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     out.append(f"    }} {id_enum_name(document)};")
     out.append("")
     out.append(expand(ACCESSOR_DECLARATIONS, module, library))
+    out.extend(
+        [
+            "#ifdef __cplusplus",
+            "}",
+            "#endif /* __cplusplus */",
+            "",
+        ]
+    )
 
     wrapper_group_id = f"{group_id}_TYPED_FORMATTERS"
     out.extend(
@@ -536,6 +566,11 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             " *  @{",
             " */",
             "",
+            "#ifdef __cplusplus",
+            'extern "C"',
+            "{",
+            "#endif /* __cplusplus */",
+            "",
         ]
     )
 
@@ -545,11 +580,11 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
 
     out.extend(
         [
-            "/** @} */",
-            "",
             "#ifdef __cplusplus",
             "}",
             "#endif /* __cplusplus */",
+            "",
+            "/** @} */",
             "",
             "/** @} */",
             "",
@@ -624,6 +659,21 @@ ACCESSOR_DECLARATIONS = """\
     const @LIBRARY@ *@MODULE@_catalog(void);
 
     /**
+     *  @brief          文字列 ID に対応するカタログ項目を取得します。
+     *  @param[in]      string_id 参照する文字列の ID。
+     *  @return         カタログ項目へのポインターです。見つからない場合は NULL を返します。
+     *
+     *  本カタログ定義から文字列 ID に対応する項目を取得するための簡易関数です。\n
+     *  内部で @c @MODULE@_catalog と @c @LIBRARY@_get_entry を使用します。
+     *  取得した項目をメタデータ処理へ渡す場合は、項目の @c key を識別に使用します。
+     *  @c details と @c remarks は、定義で省略されている場合に NULL です。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     */
+    const @LIBRARY@_entry *@MODULE@_entry(int string_id);
+
+    /**
      *  @brief          本カタログ定義を使用して、文字列を組み立てます。
      *  @param[out]     dest      文字列の格納先バッファー。NULL を渡してはなりません。
      *  @param[in]      dest_size @p dest のバイト数。1 以上を指定してください。
@@ -677,14 +727,14 @@ ACCESSOR_DECLARATIONS = """\
     int @MODULE@_category(int string_id);
 
     /**
-     *  @brief          本カタログ定義から、文字列 ID に対応する固定文字列を取得します。
+     *  @brief          本カタログ定義から、文字列 ID に対応する処理用キーを取得します。
      *  @param[in]      string_id 参照する文字列の ID。
-     *  @return         戻り値は @c @LIBRARY@_get_id_text と同じです。
+     *  @return         戻り値は @c @LIBRARY@_get_key と同じです。処理で項目を識別する主キーを返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    const char *@MODULE@_id_text(int string_id);
+    const char *@MODULE@_key(int string_id);
 
     /**
      *  @brief          本カタログ定義から、現在の言語設定における文字列の備考を取得します。
@@ -763,6 +813,13 @@ const @LIBRARY@ *@MODULE@_catalog(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+const @LIBRARY@_entry *@MODULE@_entry(const int string_id)
+{
+    return @LIBRARY@_get_entry(&s_catalog, string_id);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int @MODULE@_vformat(char *dest, const size_t dest_size, const int string_id, va_list args)
 {
     return @LIBRARY@_vformat(&s_catalog, dest, dest_size, string_id, args);
@@ -798,9 +855,9 @@ int @MODULE@_category(const int string_id)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *@MODULE@_id_text(const int string_id)
+const char *@MODULE@_key(const int string_id)
 {
-    return @LIBRARY@_get_id_text(&s_catalog, string_id);
+    return @LIBRARY@_get_key(&s_catalog, string_id);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -847,8 +904,8 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *  カタログ配列に加えて、文字列 ID を添字とする添字テーブルを保持します。\\n",
         " *  ライブラリはこのテーブルを参照して文字列 ID からカタログ エントリを直接引き、線形探索を回避します。",
         " *",
-        " *  各要素は、文字列 ID、分類値、引数の個数、明示的なアラインメント、引数スキーマ、",
-        " *  文字列 ID の固定文字列、言語別の書式、言語別の備考の順に配置します。\\n",
+        " *  各要素は、定義間で一意な ID、分類値、引数の個数、明示的なアラインメント、引数定義、",
+        " *  処理用の主キー、説明文、補足説明、言語別の書式、言語別の備考の順に配置します。\\n",
         f" *  `texts` と `notes` は、@c {library}_language をキーとした指示付き初期化子で記述します。\\n",
         " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へフォールバック（読み替え）されます。",
         " *",
@@ -873,26 +930,51 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         "#include <stdarg.h>",
         "#include <stddef.h>",
         "",
-        "/** 文字列 ID ごとのカタログ テーブルです。文字列 ID の昇順に定義します。 */",
-        f"static const {library}_entry s_entries[] = {{",
     ]
 
-    rows = []
-    for entry in strings:
+    for position, entry in enumerate(strings):
         arguments = entry["arguments"]
-        if arguments:
-            kinds = ", ".join(kind_constant(document, argument["kind"]) for argument in arguments)
-            kinds_line = f"     {{{kinds}}},"
-        else:
-            kinds_line = "     {0}, /* 引数なし */"
+        if not arguments:
+            continue
+
+        out.extend(
+            [
+                "",
+                f"/** {entry['id']} の引数定義です。 */",
+                f"static const {library}_argument s_arguments_{position}[] = {{",
+            ]
+        )
+        for argument in arguments:
+            out.append(
+                f"    {{{kind_constant(document, argument['kind'])}, 0, {c_string(argument['name'])}, "
+                f"{c_string(argument['description'])}}},"
+            )
+        out.append("};")
+
+    out.extend(
+        [
+            "",
+            "/** 文字列 ID ごとのカタログ テーブルです。文字列 ID の昇順に定義します。 */",
+            f"static const {library}_entry s_entries[] = {{",
+        ]
+    )
+
+    rows = []
+    for position, entry in enumerate(strings):
+        arguments = entry["arguments"]
+        arguments_line = f"s_arguments_{position}" if arguments else "NULL"
+        remarks_line = c_string(join_text(entry["remarks"])) if "remarks" in entry else "NULL"
 
         row = [
             f"    {{{entry['id']},",
             f"     {entry['category']},",
             f"     {len(arguments)},",
             "     0, /* 明示的アラインメント */",
-            kinds_line,
-            f"     {c_string(entry['id_text'])},",
+            f"     {arguments_line},",
+            f"     {c_string(entry['key'])},",
+            f"     {c_string(entry['brief'])},",
+            f"     {c_string(entry['details']) if entry.get('details') is not None else 'NULL'},",
+            f"     {remarks_line},",
         ]
 
         for section in ("texts", "notes"):

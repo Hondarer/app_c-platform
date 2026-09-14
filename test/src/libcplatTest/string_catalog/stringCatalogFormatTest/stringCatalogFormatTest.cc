@@ -260,20 +260,21 @@ TEST_F(stringCatalogFormatTest, missing_neutral_text)
 TEST_F(stringCatalogFormatTest, metadata)
 {
     // Arrange
-    const char *actual_id_text;
+    const char *actual_key;
     const char *actual_note_japanese;
     const char *actual_note_fallback;
     const char *actual_unknown_note;
-    const char *actual_unknown_id_text;
+    const char *actual_unknown_key;
+    const cplat_string_catalog_entry *actual_entry;
     int actual_category;
     int actual_unknown_category;
 
     // Pre-Assert
 
     // Act
-    actual_id_text =
-        cplat_string_catalog_get_id_text(fake_catalog(),
-                                         FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 文字列 ID の固定文字列を取得する。
+    actual_key =
+        cplat_string_catalog_get_key(fake_catalog(),
+                                         FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 処理用キーを取得する。
     actual_note_japanese =
         cplat_string_catalog_get_note(fake_catalog(), FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 日本語の備考を取得する。
 
@@ -284,14 +285,16 @@ TEST_F(stringCatalogFormatTest, metadata)
         cplat_string_catalog_get_category(fake_catalog(), FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 分類値を取得する。
     actual_unknown_category = cplat_string_catalog_get_category(
         fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で分類値を取得する。
-    actual_unknown_id_text = cplat_string_catalog_get_id_text(
-        fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で固定文字列を取得する。
+    actual_unknown_key = cplat_string_catalog_get_key(
+        fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で処理用キーを取得する。
     actual_unknown_note = cplat_string_catalog_get_note(
         fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で備考を取得する。
+    actual_entry = cplat_string_catalog_get_entry(
+        fake_catalog(), FAKE_CATALOG_ID_TWO_ARGUMENTS); // [手順] - 文字列 ID の項目メタデータを取得する。
 
     // Assert
-    ASSERT_NE(nullptr, actual_id_text);           // [確認_正常系] - 固定文字列を取得できること。
-    EXPECT_STREQ("FAKE_ID_0001", actual_id_text); // [確認_正常系] - 固定文字列が一致すること。
+    ASSERT_NE(nullptr, actual_key);           // [確認_正常系] - 処理用キーを取得できること。
+    EXPECT_STREQ("FAKE_ID_0001", actual_key); // [確認_正常系] - 処理用キーが一致すること。
     EXPECT_EQ(3, actual_category);                // [確認_正常系] - カタログの分類値をそのまま返すこと。
     EXPECT_EQ(0, actual_unknown_category);        // [確認_異常系] - 未登録の文字列 ID では 0 を返すこと。
     EXPECT_STREQ("引数を取らない文字列です。",
@@ -299,8 +302,14 @@ TEST_F(stringCatalogFormatTest, metadata)
     EXPECT_STREQ("no argument",
                  actual_note_fallback); // [確認_正常系] - 備考が無い言語ではニュートラル言語の備考を返すこと。
     EXPECT_EQ(nullptr,
-              actual_unknown_id_text);       // [確認_異常系] - 未登録の文字列 ID では固定文字列が NULL であること。
+              actual_unknown_key);       // [確認_異常系] - 未登録の文字列 ID では処理用キーが NULL であること。
     EXPECT_EQ(nullptr, actual_unknown_note); // [確認_異常系] - 未登録の文字列 ID では NULL を返すこと。
+    ASSERT_NE(nullptr, actual_entry); // [確認_正常系] - 項目メタデータを取得できること。
+    EXPECT_STREQ("2 引数", actual_entry->brief); // [確認_正常系] - 短い説明を保持すること。
+    EXPECT_STREQ("2 つの引数を取る文字列です。", actual_entry->details); // [確認_正常系] - 詳細説明を保持すること。
+    ASSERT_NE(nullptr, actual_entry->arguments); // [確認_正常系] - 引数定義を取得できること。
+    EXPECT_STREQ("path", actual_entry->arguments[0].name); // [確認_正常系] - 引数名を保持すること。
+    EXPECT_STREQ("ファイルのパス。", actual_entry->arguments[0].description); // [確認_正常系] - 引数説明を保持すること。
 }
 
 // 列挙に無い引数種別を持つ定義が定義エラーになることの確認

@@ -6,8 +6,12 @@
 
 /** 参照するカタログです。内容は参照の確認だけに使用します。第 2 要素は分類値です。 */
 static const cplat_string_catalog_entry s_entries[] = {
-    {1, 3, 0, 0, {}, "FAKE_ID_0001", {"first", NULL, NULL}, {"", NULL, NULL}},
-    {3, 1, 0, 0, {}, "FAKE_ID_0003", {"second", NULL, NULL}, {"", NULL, NULL}}};
+    {1, 3, 0, 0, NULL, "FAKE_ID_0001", "first brief", "first details", NULL,
+     {"first", NULL, NULL},
+     {"", NULL, NULL}},
+    {3, 1, 0, 0, NULL, "FAKE_ID_0003", "second brief", "second details", NULL,
+     {"second", NULL, NULL},
+     {"", NULL, NULL}}};
 
 /** @ref s_entries の要素数です。 */
 static const int s_entry_count = (int)(sizeof(s_entries) / sizeof(s_entries[0]));
@@ -32,7 +36,9 @@ static const cplat_string_catalog s_catalog_broken_index = {s_entries, s_broken_
 
 /** 同じ文字列 ID に別の内容を持つ、2 つ目のカタログです。 */
 static const cplat_string_catalog_entry s_other_entries[] = {
-    {1, 7, 0, 0, {}, "OTHER_CATALOG_ID_0001", {"other first", NULL, NULL}, {"", NULL, NULL}}};
+    {1, 7, 0, 0, NULL, "OTHER_CATALOG_ID_0001", "other brief", "other details", NULL,
+     {"other first", NULL, NULL},
+     {"", NULL, NULL}}};
 
 /** @ref s_other_entries を参照するカタログです。 */
 static const cplat_string_catalog s_other_catalog = {s_other_entries, NULL, 1, 0};
@@ -144,6 +150,32 @@ TEST_F(stringCatalogCatalogTest, broken_id_index)
     EXPECT_EQ(nullptr, actual_entry); // [確認_異常系] - カタログを参照せずに NULL を返すこと。
 }
 
+// 公開 API から文字列 ID に対応するカタログ項目を取得できることの確認
+TEST_F(stringCatalogCatalogTest, get_entry)
+{
+    // Arrange
+    const cplat_string_catalog_entry *actual_entry;
+    const cplat_string_catalog_entry *actual_unknown;
+    const cplat_string_catalog_entry *actual_absent;
+
+    // Pre-Assert
+
+    // Act
+    actual_entry = cplat_string_catalog_get_entry(&s_catalog_with_index,
+                                                  1); // [手順] - 登録済みの文字列 ID で項目を取得する。
+    actual_unknown = cplat_string_catalog_get_entry(
+        NULL, 1); // [手順] - NULL のカタログで項目を取得する。
+    actual_absent = cplat_string_catalog_get_entry(
+        &s_catalog_with_index, 2); // [手順] - 未登録の文字列 ID で項目を取得する。
+
+    // Assert
+    ASSERT_NE(nullptr, actual_entry); // [確認_正常系] - 登録済みの項目を取得できること。
+    EXPECT_EQ(1, actual_entry->id); // [確認_正常系] - 指定した文字列 ID の項目であること。
+    EXPECT_STREQ("first brief", actual_entry->brief); // [確認_正常系] - メタデータを保持した項目を返すこと。
+    EXPECT_EQ(nullptr, actual_unknown); // [確認_異常系] - NULL のカタログでは NULL を返すこと。
+    EXPECT_EQ(nullptr, actual_absent); // [確認_異常系] - 未登録の文字列 ID では NULL を返すこと。
+}
+
 // インデックス指定でカタログを取得できることの確認
 TEST_F(stringCatalogCatalogTest, entry_at)
 {
@@ -192,9 +224,9 @@ TEST_F(stringCatalogCatalogTest, multiple_catalogs_are_independent)
     ASSERT_NE(nullptr, actual_entry_first); // [確認_正常系] - 1 つ目のカタログから取得できること。
     ASSERT_NE(nullptr, actual_entry_other); // [確認_正常系] - 2 つ目のカタログから取得できること。
     EXPECT_STREQ("FAKE_ID_0001",
-                 actual_entry_first->id_text); // [確認_正常系] - 1 つ目の内容を返すこと。
+                 actual_entry_first->key); // [確認_正常系] - 1 つ目の処理用キーを返すこと。
     EXPECT_STREQ("OTHER_CATALOG_ID_0001",
-                 actual_entry_other->id_text);  // [確認_正常系] - 2 つ目の内容を返すこと。
+                 actual_entry_other->key);  // [確認_正常系] - 2 つ目の処理用キーを返すこと。
     EXPECT_EQ(3, actual_entry_first->category); // [確認_正常系] - 1 つ目の分類値を返すこと。
     EXPECT_EQ(7, actual_entry_other->category); // [確認_正常系] - 2 つ目の分類値を返すこと。
     EXPECT_EQ(nullptr,

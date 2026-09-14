@@ -7,6 +7,7 @@
  *  @version        1.0.0
  *
  *  文字列 ID を指定して、UTF-8 の文字列を組み立てます。\n
+ *  カタログ項目のメタデータを処理するときは、項目が持つ `key` を主キーとして使用します。\n
  *  引数の型と文字列表現は文字列 ID 側の定義が決め、言語別リソースは語順だけを決めます。
  *
  *  カタログはライブラリ側では保持しません。\n
@@ -150,7 +151,7 @@ extern "C"
                                                             size_t dest_size, int string_id, va_list args);
 
     /**
-     *  @brief          カタログのすべての書式が、引数スキーマと矛盾しないことを確認します。
+     *  @brief          カタログのすべての定義が、必要なメタデータと引数スキーマに適合することを確認します。
      *  @param[in]      catalog       確認するカタログ。NULL を渡してはなりません。
      *  @param[out]     string_id_out 不正を検出した文字列の ID。不要な場合は NULL を指定できます。
      *  @param[out]     language_out   不正を検出した言語。不要な場合は NULL を指定できます。
@@ -159,6 +160,9 @@ extern "C"
      *                  または要素数が負の場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
      *  @return         書式の構文が不正な場合、位置指定が引数個数を超える場合、
      *                  引数個数が @ref CPLAT_STRING_CATALOG_ARGUMENT_MAX を超える場合、
+     *                  引数の種別、名前、説明、項目のキー、短い説明のいずれかが未定義の場合、
+     *                  または項目のキーが重複している場合、
+     *                  または文字列 ID が重複している場合、
      *                  インデックス表から文字列へ到達できない場合、
      *                  またはニュートラル言語の書式や備考が未定義の場合は
      *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
@@ -183,6 +187,27 @@ extern "C"
                                                            cplat_string_catalog_language *language_out);
 
     /**
+     *  @brief          文字列 ID に対応するカタログ項目を返します。
+     *  @param[in]      catalog   参照するカタログ。NULL を渡した場合は NULL を返します。
+     *  @param[in]      string_id 参照する文字列の ID。利用者の列挙の値を指定します。
+     *  @return         カタログ項目への読み取り専用ポインターを返します。
+     *  @return         カタログに存在しない文字列 ID では NULL を返します。
+     *
+     *  返すポインターは、呼び出し側が用意したカタログ配列の要素を指します。\n
+     *  カタログと配列が有効な間だけ参照でき、呼び出し側で解放してはなりません。
+     *  項目には ID、処理で利用するキー、引数の種別・名前・説明、分類値、短い説明、詳細説明、補足説明、書式、備考が含まれます。
+     *  詳細説明と補足説明は、定義で省略されている場合に NULL です。
+     *  取得後のメタデータ処理では、項目の識別に @ref cplat_string_catalog_entry::key を使用し、
+     *  @ref cplat_string_catalog_entry::id は定義の一意性を表す情報として扱います。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  読み取り専用のカタログだけを参照します。
+     */
+    CPLAT_EXPORT const cplat_string_catalog_entry *CPLAT_API cplat_string_catalog_get_entry(
+        const cplat_string_catalog *catalog, int string_id);
+
+    /**
      *  @brief          文字列の分類値を返します。
      *  @param[in]      catalog   参照するカタログ。NULL を渡した場合は 0 を返します。
      *  @param[in]      string_id 参照する文字列の ID。利用者の列挙の値を指定します。
@@ -196,7 +221,7 @@ extern "C"
      *  0 は分類なしを表します。\n
      *  利用者が 0 を意味のある分類値として登録することもできますが、
      *  その場合はカタログに存在しない文字列 ID と区別できません。\n
-     *  区別が必要な場合は、先に @ref cplat_string_catalog_get_id_text で存在を確認してください。
+     *  区別が必要な場合は、先に @ref cplat_string_catalog_get_key で存在を確認してください。
      *
      *  分類値は言語に依存せず、文字列 ID ごとに固定です。
      *
@@ -207,21 +232,21 @@ extern "C"
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_get_category(const cplat_string_catalog *catalog, int string_id);
 
     /**
-     *  @brief          文字列 ID の固定文字列を返します。
+     *  @brief          文字列定義の処理用キーを返します。
      *  @param[in]      catalog   参照するカタログ。NULL を渡した場合は NULL を返します。
      *  @param[in]      string_id 参照する文字列の ID。利用者の列挙の値を指定します。
-     *  @return         文字列 ID の固定文字列 (例: `SAMPLE_MESSAGES_ID_0001`) を返します。
+     *  @return         処理用キー (例: `SAMPLE_MESSAGES_ID_0001`) を返します。
      *  @return         カタログに存在しない文字列 ID では NULL を返します。
      *
      *  返す文字列は言語に依存せず、カタログの生成物が保持する静的領域を指します。\n
      *  呼び出し側で解放してはなりません。\n
-     *  ログの検索キーや、障害報告での参照名として使用します。
+     *  返したキーは、ログの検索や障害報告など、処理側で項目を識別するために使用します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。\n
      *  読み取り専用のカタログだけを参照します。
      */
-    CPLAT_EXPORT const char *CPLAT_API cplat_string_catalog_get_id_text(const cplat_string_catalog *catalog,
+    CPLAT_EXPORT const char *CPLAT_API cplat_string_catalog_get_key(const cplat_string_catalog *catalog,
                                                                         int string_id);
 
     /**

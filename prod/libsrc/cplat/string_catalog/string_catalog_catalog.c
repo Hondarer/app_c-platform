@@ -109,3 +109,11 @@ const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const
 
     return NULL;
 }
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+const cplat_string_catalog_entry *cplat_string_catalog_get_entry(const cplat_string_catalog *const catalog,
+                                                                  const int string_id)
+{
+    return cplat_internal_string_catalog_find_entry(catalog, string_id);
+}

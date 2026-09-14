@@ -40,9 +40,16 @@ int string_catalog_collect_arguments(const cplat_string_catalog_entry *entry, va
 {
     int index;
 
+    if ((entry == NULL) || (values == NULL) || (entry->argument_count < 0) ||
+        (entry->argument_count > CPLAT_STRING_CATALOG_ARGUMENT_MAX) ||
+        ((entry->argument_count > 0) && (entry->arguments == NULL)))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
     for (index = 0; index < entry->argument_count; index++)
     {
-        const cplat_string_catalog_argument_kind kind = entry->arguments[index];
+        const cplat_string_catalog_argument_kind kind = entry->arguments[index].kind;
 
         values[index].kind = kind;
         values[index].pad = 0U;

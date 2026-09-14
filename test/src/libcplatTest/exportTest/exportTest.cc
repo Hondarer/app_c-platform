@@ -631,9 +631,11 @@
     EXPORT_ENTRY(cplat_string_catalog_verify, \
                  int(CPLAT_API *)(const cplat_string_catalog *catalog, int *string_id_out, \
                                   cplat_string_catalog_language *language_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_entry, \
+                 const cplat_string_catalog_entry *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
     EXPORT_ENTRY(cplat_string_catalog_get_category, \
                  int(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
-    EXPORT_ENTRY(cplat_string_catalog_get_id_text, \
+    EXPORT_ENTRY(cplat_string_catalog_get_key, \
                  const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
     EXPORT_ENTRY(cplat_string_catalog_get_note, \
                  const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
