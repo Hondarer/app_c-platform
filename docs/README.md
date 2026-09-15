@@ -38,7 +38,7 @@ make -C app/c-platform test
 
 ### 使用例
 
-以下はトレース API を利用する例です。標準エラー出力へ INFO レベルのトレースを出力します。
+トレース API の利用例を次に示します。標準エラー出力へ INFO レベルのトレースを出力します。
 
 ```c
 #include <cplat.h>
@@ -105,7 +105,7 @@ make -C app/c-platform test
 
 ## 関連ドキュメント
 
-cplat が何を要件とし、それをどの機能で解決しているかは [機能仕様](functional-spec/README.md) を入口として参照してください。  
+cplat が満たす要件と提供機能は、[機能仕様](functional-spec/README.md) を入口として参照してください。  
 cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を入口として参照してください。
 
 ### 機能仕様
@@ -114,6 +114,7 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 
 ### 規範
 
+- [機能仕様の記載規範](../../general/docs/functional-spec-guideline.md)
 - [cplat 機能仕様の記載規範](functional-spec-guideline.md)
 - [cplat コーディング規範](coding-guideline.md)
 - [プラットフォーム抽象化ガイドライン](platform-abstraction-guideline.md)
