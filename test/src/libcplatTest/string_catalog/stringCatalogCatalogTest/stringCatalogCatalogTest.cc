@@ -6,39 +6,71 @@
 
 /** 参照するカタログです。内容は参照の確認だけに使用します。第 2 要素は分類値です。 */
 static const cplat_string_catalog_entry s_entries[] = {
-    {1, 3, 0, 0, NULL, "FAKE_ID_0001", "first brief", "first details", NULL,
-     {"first", NULL, NULL},
-     {"", NULL, NULL}},
-    {3, 1, 0, 0, NULL, "FAKE_ID_0003", "second brief", "second details", NULL,
-     {"second", NULL, NULL},
-     {"", NULL, NULL}}};
+    {
+        1,
+        3,
+        0,
+        0,
+        NULL,
+        "FAKE_ID_0001",
+        "first brief",
+        "first details",
+        NULL,
+        {"first", NULL, NULL},
+        {"", NULL, NULL},
+    },
+    {
+        3,
+        1,
+        0,
+        0,
+        NULL,
+        "FAKE_ID_0003",
+        "second brief",
+        "second details",
+        NULL,
+        {"second", NULL, NULL},
+        {"", NULL, NULL},
+    },
+};
 
 /** @ref s_entries の要素数です。 */
 static const int s_entry_count = (int)(sizeof(s_entries) / sizeof(s_entries[0]));
 
-/** 文字列 ID をインデックスとして @ref s_entries のインデックスを参照する表です。 */
-static const int s_id_index[] = {-1, 0, -1, 1};
+/** 文字列キーをインデックスとして @ref s_entries のインデックスを参照する表です。 */
+static const int s_key_index[] = {-1, 0, -1, 1};
 
-/** @ref s_id_index の要素数です。 */
-static const int s_id_index_count = (int)(sizeof(s_id_index) / sizeof(s_id_index[0]));
+/** @ref s_key_index の要素数です。 */
+static const int s_key_index_count = (int)(sizeof(s_key_index) / sizeof(s_key_index[0]));
 
 /** 範囲外のインデックスを格納した、不正なインデックス表です。 */
-static const int s_broken_id_index[] = {-1, 99};
+static const int s_broken_key_index[] = {-1, 99};
 
 /** インデックス表を持たないカタログです。検索は線形探索の経路を通ります。 */
 static const cplat_string_catalog s_catalog_without_index = {s_entries, NULL, 2, 0};
 
 /** インデックス表を持つカタログです。 */
-static const cplat_string_catalog s_catalog_with_index = {s_entries, s_id_index, 2, 4};
+static const cplat_string_catalog s_catalog_with_index = {s_entries, s_key_index, 2, 4};
 
 /** 不正なインデックス表を持つカタログです。 */
-static const cplat_string_catalog s_catalog_broken_index = {s_entries, s_broken_id_index, 2, 2};
+static const cplat_string_catalog s_catalog_broken_index = {s_entries, s_broken_key_index, 2, 2};
 
-/** 同じ文字列 ID に別の内容を持つ、2 つ目のカタログです。 */
+/** 同じ文字列キーに別の内容を持つ、2 つ目のカタログです。 */
 static const cplat_string_catalog_entry s_other_entries[] = {
-    {1, 7, 0, 0, NULL, "OTHER_CATALOG_ID_0001", "other brief", "other details", NULL,
-     {"other first", NULL, NULL},
-     {"", NULL, NULL}}};
+    {
+        1,
+        7,
+        0,
+        0,
+        NULL,
+        "OTHER_CATALOG_ID_0001",
+        "other brief",
+        "other details",
+        NULL,
+        {"other first", NULL, NULL},
+        {"", NULL, NULL},
+    },
+};
 
 /** @ref s_other_entries を参照するカタログです。 */
 static const cplat_string_catalog s_other_catalog = {s_other_entries, NULL, 1, 0};
@@ -53,7 +85,7 @@ TEST_F(stringCatalogCatalogTest, unusable_catalog_is_empty)
     // Arrange
     static const cplat_string_catalog null_entries = {NULL, NULL, 0, 0};
     static const cplat_string_catalog negative_count = {s_entries, NULL, -1, 0};
-    static const cplat_string_catalog negative_index_count = {s_entries, s_id_index, 2, -1};
+    static const cplat_string_catalog negative_index_count = {s_entries, s_key_index, 2, -1};
 
     // Pre-Assert
 
@@ -79,7 +111,7 @@ TEST_F(stringCatalogCatalogTest, unusable_catalog_is_empty)
 }
 
 // インデックス表を持たないカタログを線形探索で参照できることの確認
-TEST_F(stringCatalogCatalogTest, find_without_id_index)
+TEST_F(stringCatalogCatalogTest, find_without_key_index)
 {
     // Arrange
     int actual_count;
@@ -91,51 +123,51 @@ TEST_F(stringCatalogCatalogTest, find_without_id_index)
     // Act
     actual_count = cplat_internal_string_catalog_entry_count(&s_catalog_without_index); // [手順] - 件数を取得する。
     actual_entry_found = cplat_internal_string_catalog_find_entry(&s_catalog_without_index,
-                                                                  3); // [手順] - 登録済みの文字列 ID で検索する。
+                                                                  3); // [手順] - 登録済みの文字列キーで検索する。
     actual_entry_unknown = cplat_internal_string_catalog_find_entry(&s_catalog_without_index,
-                                                                    2); // [手順] - 未登録の文字列 ID で検索する。
+                                                                    2); // [手順] - 未登録の文字列キーで検索する。
 
     // Assert
     EXPECT_EQ(2, actual_count);               // [確認_正常系] - カタログが持つ件数を返すこと。
     ASSERT_NE(nullptr, actual_entry_found);   // [確認_正常系] - カタログを取得できること。
-    EXPECT_EQ(3, actual_entry_found->id);     // [確認_正常系] - 検索した文字列 ID の定義であること。
-    EXPECT_EQ(nullptr, actual_entry_unknown); // [確認_異常系] - 未登録の文字列 ID では NULL を返すこと。
+    EXPECT_EQ(3, actual_entry_found->key);    // [確認_正常系] - 検索した文字列キーの定義であること。
+    EXPECT_EQ(nullptr, actual_entry_unknown); // [確認_異常系] - 未登録の文字列キーでは NULL を返すこと。
 }
 
 // インデックス表でカタログを参照できることの確認
-TEST_F(stringCatalogCatalogTest, find_with_id_index)
+TEST_F(stringCatalogCatalogTest, find_with_key_index)
 {
     // Arrange
     const cplat_string_catalog_entry *actual_entry_found;
     const cplat_string_catalog_entry *actual_entry_absent;
     const cplat_string_catalog_entry *actual_entry_over_index;
-    const cplat_string_catalog_entry *actual_entry_negative_id;
+    const cplat_string_catalog_entry *actual_entry_negative_key;
 
     // Pre-Assert
 
     // Act
     actual_entry_found = cplat_internal_string_catalog_find_entry(
-        &s_catalog_with_index, 3); // [手順] - インデックス表に登録した文字列 ID で検索する。
+        &s_catalog_with_index, 3); // [手順] - インデックス表に登録した文字列キーで検索する。
     actual_entry_absent =
         cplat_internal_string_catalog_find_entry(&s_catalog_with_index,
-                                                 2); // [手順] - インデックス表が負の値を持つ文字列 ID で検索する。
+                                                 2); // [手順] - インデックス表が負の値を持つ文字列キーで検索する。
     actual_entry_over_index = cplat_internal_string_catalog_find_entry(
-        &s_catalog_with_index, 9); // [手順] - インデックス表の範囲を超える文字列 ID で検索する。
-    actual_entry_negative_id =
-        cplat_internal_string_catalog_find_entry(&s_catalog_with_index, -1); // [手順] - 負の文字列 ID で検索する。
+        &s_catalog_with_index, 9); // [手順] - インデックス表の範囲を超える文字列キーで検索する。
+    actual_entry_negative_key =
+        cplat_internal_string_catalog_find_entry(&s_catalog_with_index, -1); // [手順] - 負の文字列キーで検索する。
 
     // Assert
     ASSERT_NE(nullptr, actual_entry_found);  // [確認_正常系] - インデックス表からカタログを取得できること。
-    EXPECT_EQ(3, actual_entry_found->id);    // [確認_正常系] - 検索した文字列 ID の定義であること。
+    EXPECT_EQ(3, actual_entry_found->key);   // [確認_正常系] - 検索した文字列キーの定義であること。
     EXPECT_EQ(nullptr, actual_entry_absent); // [確認_異常系] - インデックス表が負の値を持つ場合は NULL を返すこと。
     EXPECT_EQ(
         nullptr,
         actual_entry_over_index); // [確認_異常系] - インデックス表の範囲外では線形探索へフォールバックし、NULL を返すこと。
-    EXPECT_EQ(nullptr, actual_entry_negative_id); // [確認_異常系] - 負の文字列 ID では NULL を返すこと。
+    EXPECT_EQ(nullptr, actual_entry_negative_key); // [確認_異常系] - 負の文字列キーでは NULL を返すこと。
 }
 
 // インデックス表が範囲外のインデックスを持つ場合に参照しないことの確認
-TEST_F(stringCatalogCatalogTest, broken_id_index)
+TEST_F(stringCatalogCatalogTest, broken_key_index)
 {
     // Arrange
     const cplat_string_catalog_entry *actual_entry;
@@ -150,7 +182,7 @@ TEST_F(stringCatalogCatalogTest, broken_id_index)
     EXPECT_EQ(nullptr, actual_entry); // [確認_異常系] - カタログを参照せずに NULL を返すこと。
 }
 
-// 公開 API から文字列 ID に対応するカタログ項目を取得できることの確認
+// 公開 API から文字列キーに対応するカタログ項目を取得できることの確認
 TEST_F(stringCatalogCatalogTest, get_entry)
 {
     // Arrange
@@ -162,18 +194,17 @@ TEST_F(stringCatalogCatalogTest, get_entry)
 
     // Act
     actual_entry = cplat_string_catalog_get_entry(&s_catalog_with_index,
-                                                  1); // [手順] - 登録済みの文字列 ID で項目を取得する。
-    actual_unknown = cplat_string_catalog_get_entry(
-        NULL, 1); // [手順] - NULL のカタログで項目を取得する。
-    actual_absent = cplat_string_catalog_get_entry(
-        &s_catalog_with_index, 2); // [手順] - 未登録の文字列 ID で項目を取得する。
+                                                  1);         // [手順] - 登録済みの文字列キーで項目を取得する。
+    actual_unknown = cplat_string_catalog_get_entry(NULL, 1); // [手順] - NULL のカタログで項目を取得する。
+    actual_absent =
+        cplat_string_catalog_get_entry(&s_catalog_with_index, 2); // [手順] - 未登録の文字列キーで項目を取得する。
 
     // Assert
-    ASSERT_NE(nullptr, actual_entry); // [確認_正常系] - 登録済みの項目を取得できること。
-    EXPECT_EQ(1, actual_entry->id); // [確認_正常系] - 指定した文字列 ID の項目であること。
+    ASSERT_NE(nullptr, actual_entry);                 // [確認_正常系] - 登録済みの項目を取得できること。
+    EXPECT_EQ(1, actual_entry->key);                  // [確認_正常系] - 指定した文字列キーの項目であること。
     EXPECT_STREQ("first brief", actual_entry->brief); // [確認_正常系] - メタデータを保持した項目を返すこと。
-    EXPECT_EQ(nullptr, actual_unknown); // [確認_異常系] - NULL のカタログでは NULL を返すこと。
-    EXPECT_EQ(nullptr, actual_absent); // [確認_異常系] - 未登録の文字列 ID では NULL を返すこと。
+    EXPECT_EQ(nullptr, actual_unknown);               // [確認_異常系] - NULL のカタログでは NULL を返すこと。
+    EXPECT_EQ(nullptr, actual_absent);                // [確認_異常系] - 未登録の文字列キーでは NULL を返すこと。
 }
 
 // インデックス指定でカタログを取得できることの確認
@@ -197,7 +228,7 @@ TEST_F(stringCatalogCatalogTest, entry_at)
 
     // Assert
     ASSERT_NE(nullptr, actual_entry);          // [確認_正常系] - カタログを取得できること。
-    EXPECT_EQ(3, actual_entry->id);            // [確認_正常系] - インデックスに対応する文字列であること。
+    EXPECT_EQ(3, actual_entry->key);           // [確認_正常系] - インデックスに対応する文字列であること。
     EXPECT_EQ(nullptr, actual_entry_negative); // [確認_異常系] - 負のインデックスでは NULL を返すこと。
     EXPECT_EQ(nullptr, actual_entry_over);     // [確認_異常系] - 登録件数以上のインデックスでは NULL を返すこと。
 }
@@ -213,22 +244,24 @@ TEST_F(stringCatalogCatalogTest, multiple_catalogs_are_independent)
     // Pre-Assert
 
     // Act
-    actual_entry_first = cplat_internal_string_catalog_find_entry(&s_catalog_with_index,
-                                                                  1); // [手順] - 1 つ目のカタログで文字列 ID 1 を引く。
-    actual_entry_other = cplat_internal_string_catalog_find_entry(&s_other_catalog,
-                                                                  1); // [手順] - 2 つ目のカタログで文字列 ID 1 を引く。
+    actual_entry_first =
+        cplat_internal_string_catalog_find_entry(&s_catalog_with_index,
+                                                 1); // [手順] - 1 つ目のカタログで文字列キー 1 を引く。
+    actual_entry_other =
+        cplat_internal_string_catalog_find_entry(&s_other_catalog,
+                                                 1); // [手順] - 2 つ目のカタログで文字列キー 1 を引く。
     actual_entry_only_in_first = cplat_internal_string_catalog_find_entry(
-        &s_other_catalog, 3); // [手順] - 1 つ目にだけある文字列 ID を 2 つ目で引く。
+        &s_other_catalog, 3); // [手順] - 1 つ目にだけある文字列キーを 2 つ目で引く。
 
     // Assert
     ASSERT_NE(nullptr, actual_entry_first); // [確認_正常系] - 1 つ目のカタログから取得できること。
     ASSERT_NE(nullptr, actual_entry_other); // [確認_正常系] - 2 つ目のカタログから取得できること。
     EXPECT_STREQ("FAKE_ID_0001",
-                 actual_entry_first->key); // [確認_正常系] - 1 つ目の処理用キーを返すこと。
+                 actual_entry_first->id); // [確認_正常系] - 1 つ目の ID を返すこと。
     EXPECT_STREQ("OTHER_CATALOG_ID_0001",
-                 actual_entry_other->key);  // [確認_正常系] - 2 つ目の処理用キーを返すこと。
+                 actual_entry_other->id);       // [確認_正常系] - 2 つ目の ID を返すこと。
     EXPECT_EQ(3, actual_entry_first->category); // [確認_正常系] - 1 つ目の分類値を返すこと。
     EXPECT_EQ(7, actual_entry_other->category); // [確認_正常系] - 2 つ目の分類値を返すこと。
     EXPECT_EQ(nullptr,
-              actual_entry_only_in_first); // [確認_異常系] - 一方にだけある文字列 ID は他方から引けないこと。
+              actual_entry_only_in_first); // [確認_異常系] - 一方にだけある文字列キーは他方から引けないこと。
 }

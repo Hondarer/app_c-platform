@@ -25,31 +25,12 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
 
 /** 引数種別が公開列挙の範囲内であることを確認します。 */
 static bool is_valid_argument_kind(const cplat_string_catalog_argument_kind kind)
 {
     return (kind >= CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING) &&
            (kind <= CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE);
-}
-
-/** 先に定義された項目と key が重複していないことを確認します。 */
-static bool is_unique_key(const cplat_string_catalog *const catalog, const int entry_index)
-{
-    const cplat_string_catalog_entry *entry = &catalog->entries[entry_index];
-    int previous_index;
-
-    for (previous_index = 0; previous_index < entry_index; previous_index++)
-    {
-        if ((catalog->entries[previous_index].key != NULL) &&
-            (strcmp(entry->key, catalog->entries[previous_index].key) == 0))
-        {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 /**
@@ -76,7 +57,7 @@ static const char *select_localized(const char *const *localized, const cplat_st
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char *dest, const size_t dest_size,
-                                 const int string_id, va_list args)
+                                 const int string_key, va_list args)
 {
     const cplat_string_catalog_entry *entry;
     const cplat_string_catalog_language language = cplat_string_catalog_get_language();
@@ -96,7 +77,7 @@ int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
 
-    entry = cplat_internal_string_catalog_find_entry(catalog, string_id);
+    entry = cplat_internal_string_catalog_find_entry(catalog, string_key);
     if (entry == NULL)
     {
         return CPLAT_ERR_NOT_FOUND;
@@ -126,13 +107,13 @@ int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_format(const cplat_string_catalog *const catalog, char *dest, const size_t dest_size,
-                                const int string_id, ...)
+                                const int string_key, ...)
 {
     va_list args;
     int ret;
 
-    va_start(args, string_id);
-    ret = cplat_string_catalog_vformat(catalog, dest, dest_size, string_id, args);
+    va_start(args, string_key);
+    ret = cplat_string_catalog_vformat(catalog, dest, dest_size, string_key, args);
     va_end(args);
 
     return ret;
@@ -140,7 +121,7 @@ int cplat_string_catalog_format(const cplat_string_catalog *const catalog, char 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *string_id_out,
+int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *string_key_out,
                                 cplat_string_catalog_language *language_out)
 {
     int entry_count;
@@ -161,15 +142,15 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
 
         entry = cplat_internal_string_catalog_entry_at(catalog, entry_index);
 
-        /* 分類値はライブラリが解釈しないため、範囲は確認しない */
+        /* ID と分類値はライブラリが解釈しないため、未設定、重複、範囲は確認しない */
+        /* 文字列キーの重複は、検索で先の項目へ到達することにより検出する */
         if ((entry->argument_count < 0) || (entry->argument_count > CPLAT_STRING_CATALOG_ARGUMENT_MAX) ||
-            ((entry->argument_count > 0) && (entry->arguments == NULL)) || (entry->key == NULL) ||
-            (entry->brief == NULL) || !is_unique_key(catalog, entry_index) ||
-            (cplat_internal_string_catalog_find_entry(catalog, entry->id) != entry))
+            ((entry->argument_count > 0) && (entry->arguments == NULL)) || (entry->brief == NULL) ||
+            (cplat_internal_string_catalog_find_entry(catalog, entry->key) != entry))
         {
-            if (string_id_out != NULL)
+            if (string_key_out != NULL)
             {
-                *string_id_out = entry->id;
+                *string_key_out = entry->key;
             }
             if (language_out != NULL)
             {
@@ -183,12 +164,11 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
         {
             const cplat_string_catalog_argument *argument = &entry->arguments[argument_index];
 
-            if (!is_valid_argument_kind(argument->kind) || (argument->name == NULL) ||
-                (argument->description == NULL))
+            if (!is_valid_argument_kind(argument->kind) || (argument->name == NULL) || (argument->description == NULL))
             {
-                if (string_id_out != NULL)
+                if (string_key_out != NULL)
                 {
-                    *string_id_out = entry->id;
+                    *string_key_out = entry->key;
                 }
                 if (language_out != NULL)
                 {
@@ -215,9 +195,9 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
 
             if (ret != CPLAT_OK)
             {
-                if (string_id_out != NULL)
+                if (string_key_out != NULL)
                 {
-                    *string_id_out = entry->id;
+                    *string_key_out = entry->key;
                 }
                 if (language_out != NULL)
                 {
@@ -233,11 +213,11 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_string_catalog_get_category(const cplat_string_catalog *const catalog, const int string_id)
+int cplat_string_catalog_get_category(const cplat_string_catalog *const catalog, const int string_key)
 {
     const cplat_string_catalog_entry *entry;
 
-    entry = cplat_internal_string_catalog_find_entry(catalog, string_id);
+    entry = cplat_internal_string_catalog_find_entry(catalog, string_key);
     if (entry == NULL)
     {
         return 0;
@@ -248,26 +228,26 @@ int cplat_string_catalog_get_category(const cplat_string_catalog *const catalog,
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *cplat_string_catalog_get_key(const cplat_string_catalog *const catalog, const int string_id)
+const char *cplat_string_catalog_get_id(const cplat_string_catalog *const catalog, const int string_key)
 {
     const cplat_string_catalog_entry *entry;
 
-    entry = cplat_internal_string_catalog_find_entry(catalog, string_id);
+    entry = cplat_internal_string_catalog_find_entry(catalog, string_key);
     if (entry == NULL)
     {
         return NULL;
     }
 
-    return entry->key;
+    return entry->id;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *cplat_string_catalog_get_note(const cplat_string_catalog *const catalog, const int string_id)
+const char *cplat_string_catalog_get_note(const cplat_string_catalog *const catalog, const int string_key)
 {
     const cplat_string_catalog_entry *entry;
 
-    entry = cplat_internal_string_catalog_find_entry(catalog, string_id);
+    entry = cplat_internal_string_catalog_find_entry(catalog, string_key);
     if (entry == NULL)
     {
         return NULL;

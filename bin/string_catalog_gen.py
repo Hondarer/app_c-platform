@@ -190,74 +190,74 @@ def validate(document: dict) -> list[dict]:
     if not strings:
         raise DefinitionError("strings が空です。")
 
-    seen_ids: set[str] = set()
     seen_keys: set[str] = set()
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in MODULE_FUNCTION_SUFFIXES}
 
     for entry in strings:
-        for key in ("id", "key", "category", "brief", "arguments", "texts", "notes"):
+        # id は処理では意味を持たない補足の文字列のため、必須にしない。
+        for key in ("key", "category", "brief", "arguments", "texts", "notes"):
             if key not in entry:
-                raise DefinitionError(f"{entry.get('id', '?')}: 必須の項目がありません: {key}")
+                raise DefinitionError(f"{entry.get('key', '?')}: 必須の項目がありません: {key}")
 
         # 分類値は生値とする。生成物を特定の app の列挙から独立させるため。
         if not isinstance(entry["category"], int) or isinstance(entry["category"], bool):
-            raise DefinitionError(f"{entry['id']}: category は整数で指定してください。")
+            raise DefinitionError(f"{entry['key']}: category は整数で指定してください。")
 
-        for key in ("id", "key", "brief"):
+        for key in ("key", "brief"):
             if not isinstance(entry[key], str):
-                raise DefinitionError(f"{entry['id']}: {key} は文字列で指定してください。")
+                raise DefinitionError(f"{entry['key']}: {key} は文字列で指定してください。")
+
+        if "id" in entry and not isinstance(entry["id"], str):
+            raise DefinitionError(f"{entry['key']}: id は文字列で指定してください。")
 
         if "details" in entry and not isinstance(entry["details"], str):
-            raise DefinitionError(f"{entry['id']}: details は文字列で指定してください。")
+            raise DefinitionError(f"{entry['key']}: details は文字列で指定してください。")
 
         if "remarks" in entry and (
             not isinstance(entry["remarks"], (str, list))
             or (isinstance(entry["remarks"], list) and not all(isinstance(item, str) for item in entry["remarks"]))
         ):
-            raise DefinitionError(f"{entry['id']}: remarks は文字列または文字列の配列で指定してください。")
+            raise DefinitionError(f"{entry['key']}: remarks は文字列または文字列の配列で指定してください。")
 
-        if entry["id"] in seen_ids:
-            raise DefinitionError(f"文字列 ID が重複しています: {entry['id']}")
-        seen_ids.add(entry["id"])
-
+        # id の重複は検査しない。id は処理で項目を識別しないため。
         if entry["key"] in seen_keys:
-            raise DefinitionError(f"key が重複しています: {entry['key']}")
+            raise DefinitionError(f"文字列キーが重複しています: {entry['key']}")
         seen_keys.add(entry["key"])
 
         # 型付きラッパーは接頭辞を持たずモジュール接頭辞の名前空間に収まるため、
         # 同じ生成物が出す簡易関数 (@MODULE@_category など) と名前が衝突しうる。
-        wrapper = wrapper_name(entry["id"])
+        wrapper = wrapper_name(entry["key"])
         if wrapper in reserved_names:
             raise DefinitionError(
-                f"{entry['id']}: 型付きラッパー名 {wrapper} が同じ生成物の簡易関数名と衝突しています。"
+                f"{entry['key']}: 型付きラッパー名 {wrapper} が同じ生成物の簡易関数名と衝突しています。"
             )
 
         arguments = entry["arguments"]
         if len(arguments) > ARGUMENT_MAX:
-            raise DefinitionError(f"{entry['id']}: 引数が上限 {ARGUMENT_MAX} 個を超えています。")
+            raise DefinitionError(f"{entry['key']}: 引数が上限 {ARGUMENT_MAX} 個を超えています。")
 
         for argument in arguments:
             for key in ("kind", "name", "description"):
                 if key not in argument:
-                    raise DefinitionError(f"{entry['id']}: 引数に {key} がありません。")
+                    raise DefinitionError(f"{entry['key']}: 引数に {key} がありません。")
             if argument["kind"] not in ARGUMENT_TYPES:
-                raise DefinitionError(f"{entry['id']}: 未知の引数種別です: {argument['kind']}")
+                raise DefinitionError(f"{entry['key']}: 未知の引数種別です: {argument['kind']}")
             if not isinstance(argument["name"], str) or not isinstance(argument["description"], str):
-                raise DefinitionError(f"{entry['id']}: 引数の name と description は文字列で指定してください。")
+                raise DefinitionError(f"{entry['key']}: 引数の name と description は文字列で指定してください。")
 
         for section in ("texts", "notes"):
             if "neutral" not in entry[section]:
-                raise DefinitionError(f"{entry['id']}: {section} に neutral が必要です。")
+                raise DefinitionError(f"{entry['key']}: {section} に neutral が必要です。")
             for language in entry[section]:
                 if language not in LANGUAGES:
-                    raise DefinitionError(f"{entry['id']}: ライブラリが扱わない言語です: {language}")
+                    raise DefinitionError(f"{entry['key']}: ライブラリが扱わない言語です: {language}")
 
         for language, text in entry["texts"].items():
             indices = placeholder_indices(join_text(text))
             for found in indices:
                 if found >= len(arguments):
                     raise DefinitionError(
-                        f"{entry['id']}: {language} の位置指定 {{{found}}} が引数個数 {len(arguments)} を超えています。"
+                        f"{entry['key']}: {language} の位置指定 {{{found}}} が引数個数 {len(arguments)} を超えています。"
                     )
 
     return strings
@@ -291,28 +291,28 @@ MODULE_FUNCTION_SUFFIXES = (
     "entries",
     "entry_count",
     "entry",
-    "id_index",
-    "id_index_count",
+    "key_index",
+    "key_index_count",
     "catalog",
     "format",
     "vformat",
     "verify",
     "category",
-    "key",
+    "id",
     "note",
 )
 
 
-def wrapper_name(string_id: str) -> str:
-    """文字列 ID から型付きラッパーの関数名を導出する。
+def wrapper_name(string_key: str) -> str:
+    """文字列キーから型付きラッパーの関数名を導出する。
 
-    ライブラリ側の接頭辞は前置せず、文字列 ID の定数名をそのまま小文字化した名前にする。
-    文字列 ID にはカタログ定義ごとのモジュール接頭辞が含まれるため、
+    ライブラリ側の接頭辞は前置せず、文字列キーの定数名をそのまま小文字化した名前にする。
+    文字列キーにはカタログ定義ごとのモジュール接頭辞が含まれるため、
     追加の導出規則なしに利用側の名前空間へ収まる。
     ライブラリ側の接頭辞を前置しないのは、利用者が定義した関数がライブラリのリンカー名前空間を
     名乗ってしまうのを避けるため。
     """
-    return string_id.lower()
+    return string_key.lower()
 
 
 def doc_lines(text: str, indent: str, width: int = 112) -> list[str]:
@@ -336,7 +336,7 @@ def doc_lines(text: str, indent: str, width: int = 112) -> list[str]:
 
 def emit_wrapper(document: dict, entry: dict) -> str:
     """1 件分の型付きラッパーを、Doxygen コメントとともに書き出す。"""
-    name = wrapper_name(entry["id"])
+    name = wrapper_name(entry["key"])
     arguments = entry["arguments"]
 
     names = ["dest", "dest_size"] + [argument["name"] for argument in arguments]
@@ -393,7 +393,7 @@ def emit_wrapper(document: dict, entry: dict) -> str:
         else:
             parameters.append(f"const {c_type} {argument['name']}")
 
-    call = [f"{document['module_prefix']}_catalog()", "dest", "dest_size", entry["id"]]
+    call = [f"{document['module_prefix']}_catalog()", "dest", "dest_size", entry["key"]]
     call.extend(argument["name"] for argument in arguments)
 
     lines.append(f"    static inline int {name}({', '.join(parameters)})")
@@ -431,12 +431,12 @@ def derive_module_prefix(definition: Path) -> str:
     return prefix
 
 
-def id_enum_name(document: dict) -> str:
-    """文字列 ID の列挙名を導出する。
+def key_enum_name(document: dict) -> str:
+    """文字列キーの列挙名を導出する。
 
-    モジュール接頭辞に `_id` を続ける。定義ファイルには書かない。
+    モジュール接頭辞に `_key` を続ける。定義ファイルには書かない。
     """
-    return f"{document['module_prefix']}_id"
+    return f"{document['module_prefix']}_key"
 
 
 def derive_module_dir(definition: Path) -> str:
@@ -481,7 +481,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         "/**",
         " " + "*" * 79,
         f" *  @file           {header_name}",
-        f" *  @brief          利用者が定義する文字列 ID の列挙型と、カタログ取得関数を宣言します。",
+        f" *  @brief          利用者が定義する文字列キーの列挙型と、カタログ取得関数を宣言します。",
         f" *  @author         {document.get('author', '')}",
         f" *  @date           {document.get('date', '')}",
         f" *  @version        {document.get('version', '')}",
@@ -496,7 +496,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         " *  分類値の意味付けは利用側の取り決めであり、別ヘッダーで個別に定義します。",
         " *",
         " *  列挙名や関数名はカタログ定義に基づいて決まり、ライブラリの接頭辞とは異なる名前空間に属します。\\n",
-        " *  ライブラリ側ではこれらの名前を定義せず、文字列 ID を `int` 型として受け取ります。",
+        " *  ライブラリ側ではこれらの名前を定義せず、文字列キーを `int` 型として受け取ります。",
         " *",
         f" *  @copyright      Copyright (C) {document.get('author', '')}. 2026. All rights reserved.",
         " *",
@@ -533,18 +533,19 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             "     *  @brief          カタログに登録された文字列を識別する列挙型です。",
             "     *",
             "     *  各 ID の引数定義、分類値、説明文、言語別の書式および備考は、同一の生成単位のテーブルで保持します。\\n",
-            "     *  列挙値は生成順に基づいて割り当てられます。処理で永続的に利用する主キーには key を使用します。",
+            "     *  列挙定数の名前はカタログ定義の key で、処理から文字列を参照する識別子です。\\n",
+            "     *  列挙値は定義の並び順に基づいて割り当てられます。定義の id は処理では意味を持たないため、列挙には現れません。",
             "     */",
-            f"    typedef enum {id_enum_name(document)}",
+            f"    typedef enum {key_enum_name(document)}",
             "    {",
         ]
     )
 
     for position, entry in enumerate(strings):
         comma = "," if position < (len(strings) - 1) else ""
-        out.append(f"        {entry['id']} = {position + 1}{comma} /**< {entry['brief']} */")
+        out.append(f"        {entry['key']} = {position + 1}{comma} /**< {entry['brief']} */")
 
-    out.append(f"    }} {id_enum_name(document)};")
+    out.append(f"    }} {key_enum_name(document)};")
     out.append("")
     out.append(expand(ACCESSOR_DECLARATIONS, module, library))
     out.extend(
@@ -560,8 +561,8 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     out.extend(
         [
             "/**",
-            f" *  @defgroup       {wrapper_group_id} 文字列 ID ごとの型付き組み立て関数",
-            " *  @brief          文字列 ID ごとに引数の型を固定した組み立て関数です。",
+            f" *  @defgroup       {wrapper_group_id} 文字列キーごとの型付き組み立て関数",
+            " *  @brief          文字列キーごとに引数の型を固定した組み立て関数です。",
             f" *  @ingroup        {group_id}",
             " *  @{",
             " */",
@@ -620,28 +621,28 @@ ACCESSOR_DECLARATIONS = """\
     int @MODULE@_entry_count(void);
 
     /**
-     *  @brief          文字列 ID からカタログ配列の添字を引くテーブルを取得します。
+     *  @brief          文字列キーからカタログ配列の添字を引くテーブルを取得します。
      *  @return         添字テーブルへのポインターです。NULL は返しません。
      *
-     *  文字列 ID を添字として、カタログ配列の添字を格納しています。\\n
-     *  未登録の文字列 ID に対応する要素には負の値を格納します。\\n
-     *  このテーブルを使用することで、文字列 ID からカタログを引く探索を線形探索からインデックス参照へ置き換えます。
+     *  文字列キーを添字として、カタログ配列の添字を格納しています。\\n
+     *  未登録の文字列キーに対応する要素には負の値を格納します。\\n
+     *  このテーブルを使用することで、文字列キーからカタログを引く探索を線形探索からインデックス参照へ置き換えます。
      *
      *  返されるポインターは静的領域を指しているため、呼び出し側で解放してはなりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const int *@MODULE@_id_index(void);
+    const int *@MODULE@_key_index(void);
 
     /**
      *  @brief          添字テーブルの要素数を取得します。
-     *  @return         添字テーブルの要素数です。最大の文字列 ID に 1 を加えた値となります。
+     *  @return         添字テーブルの要素数です。最大の文字列キーに 1 を加えた値となります。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    int @MODULE@_id_index_count(void);
+    int @MODULE@_key_index_count(void);
 
     /**
      *  @brief          本カタログ定義のカタログ識別オブジェクトを取得します。
@@ -659,26 +660,26 @@ ACCESSOR_DECLARATIONS = """\
     const @LIBRARY@ *@MODULE@_catalog(void);
 
     /**
-     *  @brief          文字列 ID に対応するカタログ項目を取得します。
-     *  @param[in]      string_id 参照する文字列の ID。
+     *  @brief          文字列キーに対応するカタログ項目を取得します。
+     *  @param[in]      string_key 参照する文字列のキー。
      *  @return         カタログ項目へのポインターです。見つからない場合は NULL を返します。
      *
-     *  本カタログ定義から文字列 ID に対応する項目を取得するための簡易関数です。\n
+     *  本カタログ定義から文字列キーに対応する項目を取得するための簡易関数です。\n
      *  内部で @c @MODULE@_catalog と @c @LIBRARY@_get_entry を使用します。
-     *  取得した項目をメタデータ処理へ渡す場合は、項目の @c key を識別に使用します。
-     *  @c details と @c remarks は、定義で省略されている場合に NULL です。
+     *  項目の識別には @c key を使用します。@c id は処理では意味を持たない補足の文字列です。
+     *  @c id、@c details、@c remarks は、定義で省略されている場合に NULL です。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const @LIBRARY@_entry *@MODULE@_entry(int string_id);
+    const @LIBRARY@_entry *@MODULE@_entry(int string_key);
 
     /**
      *  @brief          本カタログ定義を使用して、文字列を組み立てます。
-     *  @param[out]     dest      文字列の格納先バッファー。NULL を渡してはなりません。
-     *  @param[in]      dest_size @p dest のバイト数。1 以上を指定してください。
-     *  @param[in]      string_id 組み立てる文字列の ID。
-     *  @param[in]      ...       引数スキーマが定める順序と型の引数リスト。
+     *  @param[out]     dest       文字列の格納先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のバイト数。1 以上を指定してください。
+     *  @param[in]      string_key 組み立てる文字列のキー。
+     *  @param[in]      ...        引数スキーマが定める順序と型の引数リスト。
      *  @return         戻り値は @c @LIBRARY@_format と同じです。
      *
      *  カタログの指定を省略して呼び出すための簡易関数です。\\n
@@ -687,14 +688,14 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  スレッド セーフ性は @c @LIBRARY@_format と同じです。
      */
-    int @MODULE@_format(char *dest, size_t dest_size, int string_id, ...);
+    int @MODULE@_format(char *dest, size_t dest_size, int string_key, ...);
 
     /**
      *  @brief          本カタログ定義を使用して、@c va_list から文字列を組み立てます。
-     *  @param[out]     dest      文字列の格納先バッファー。NULL を渡してはなりません。
-     *  @param[in]      dest_size @p dest のバイト数。1 以上を指定してください。
-     *  @param[in]      string_id 組み立てる文字列の ID。
-     *  @param[in]      args      引数スキーマが定める順序と型の値を保持する引数リスト。
+     *  @param[out]     dest       文字列の格納先バッファー。NULL を渡してはなりません。
+     *  @param[in]      dest_size  @p dest のバイト数。1 以上を指定してください。
+     *  @param[in]      string_key 組み立てる文字列のキー。
+     *  @param[in]      args       引数スキーマが定める順序と型の値を保持する引数リスト。
      *  @return         戻り値は @c @LIBRARY@_vformat と同じです。
      *
      *  カタログの指定を省略して呼び出すための簡易関数です。\\n
@@ -703,62 +704,62 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  スレッド セーフ性は @c @LIBRARY@_vformat と同じです。
      */
-    int @MODULE@_vformat(char *dest, size_t dest_size, int string_id, va_list args);
+    int @MODULE@_vformat(char *dest, size_t dest_size, int string_key, va_list args);
 
     /**
      *  @brief          本カタログ定義の内容を確認します。
-     *  @param[out]     string_id_out 不正を検出した文字列 ID の格納先。不要な場合は NULL を指定できます。
-     *  @param[out]     language_out  不正を検出した言語の格納先。不要な場合は NULL を指定できます。
+     *  @param[out]     string_key_out 不正を検出した文字列キーの格納先。不要な場合は NULL を指定できます。
+     *  @param[out]     language_out   不正を検出した言語の格納先。不要な場合は NULL を指定できます。
      *  @return         戻り値は @c @LIBRARY@_verify と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    int @MODULE@_verify(int *string_id_out, @LIBRARY@_language *language_out);
+    int @MODULE@_verify(int *string_key_out, @LIBRARY@_language *language_out);
 
     /**
      *  @brief          本カタログ定義から、文字列の分類値を取得します。
-     *  @param[in]      string_id 参照する文字列の ID。
+     *  @param[in]      string_key 参照する文字列のキー。
      *  @return         戻り値は @c @LIBRARY@_get_category と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    int @MODULE@_category(int string_id);
+    int @MODULE@_category(int string_key);
 
     /**
-     *  @brief          本カタログ定義から、文字列 ID に対応する処理用キーを取得します。
-     *  @param[in]      string_id 参照する文字列の ID。
-     *  @return         戻り値は @c @LIBRARY@_get_key と同じです。処理で項目を識別する主キーを返します。
+     *  @brief          本カタログ定義から、文字列キーに対応する ID を取得します。
+     *  @param[in]      string_key 参照する文字列のキー。
+     *  @return         戻り値は @c @LIBRARY@_get_id と同じです。ID が未設定の項目では NULL を返します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    const char *@MODULE@_key(int string_id);
+    const char *@MODULE@_id(int string_key);
 
     /**
      *  @brief          本カタログ定義から、現在の言語設定における文字列の備考を取得します。
-     *  @param[in]      string_id 参照する文字列の ID。
+     *  @param[in]      string_key 参照する文字列のキー。
      *  @return         戻り値は @c @LIBRARY@_get_note と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    const char *@MODULE@_note(int string_id);
+    const char *@MODULE@_note(int string_key);
 
     /*
-     *  ここから下は、文字列 ID ごとに引数の型を固定したラッパーです。
+     *  ここから下は、文字列キーごとに引数の型を固定したラッパーです。
      *
      *  可変長引数を取る関数では、コンパイラが引数の個数および型を検査できません。
      *  書式および引数スキーマがカタログ内に保持されており、書式文字列が関数呼び出しの実引数ではないためです。
      *  型付きラッパーを経由することで、通常のプロトタイプ検査が働き、引数の個数や型の不整合をビルド時に検出できます。
      *
      *  実体を持つ翻訳単位を増やさないよう、`static inline` 関数として提供します。
-     *  これにより、文字列 ID の増加に伴って公開シンボルが増加するのを防ぎます。
+     *  これにより、文字列キーの増加に伴って公開シンボルが増加するのを防ぎます。
      *
-     *  関数名は文字列 ID から機械的に導出します。
-     *  ライブラリ側の接頭辞は前置せず、文字列 ID の定数名を小文字化した名前をそのまま使用します。
-     *  文字列 ID にはカタログ定義ごとのモジュール接頭辞が含まれるため、
+     *  関数名は文字列キーから機械的に導出します。
+     *  ライブラリ側の接頭辞は前置せず、文字列キーの定数名を小文字化した名前をそのまま使用します。
+     *  文字列キーにはカタログ定義ごとのモジュール接頭辞が含まれるため、
      *  この関数がどのカタログ定義に属するかは呼び出し側の名前から判別できます。
      *  語句の削除や順序の入れ替えは行わないため、導出規則に例外はありません。
      *  導出規則の全体は docs/architecture.md を参照してください。
@@ -783,16 +784,16 @@ int @MODULE@_entry_count(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const int *@MODULE@_id_index(void)
+const int *@MODULE@_key_index(void)
 {
-    return s_id_index;
+    return s_key_index;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_id_index_count(void)
+int @MODULE@_key_index_count(void)
 {
-    return @MODULE_UPPER@_ID_INDEX_COUNT;
+    return @MODULE_UPPER@_KEY_INDEX_COUNT;
 }
 
 /**
@@ -802,7 +803,7 @@ int @MODULE@_id_index_count(void)
  *  すべてのメンバーを初期化子で設定可能なため `const` とし、初期化関数は提供しません。
  */
 static const @LIBRARY@ s_catalog = {
-    s_entries, s_id_index, @MODULE_UPPER@_ENTRY_COUNT, @MODULE_UPPER@_ID_INDEX_COUNT};
+    s_entries, s_key_index, @MODULE_UPPER@_ENTRY_COUNT, @MODULE_UPPER@_KEY_INDEX_COUNT};
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -813,27 +814,27 @@ const @LIBRARY@ *@MODULE@_catalog(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const @LIBRARY@_entry *@MODULE@_entry(const int string_id)
+const @LIBRARY@_entry *@MODULE@_entry(const int string_key)
 {
-    return @LIBRARY@_get_entry(&s_catalog, string_id);
+    return @LIBRARY@_get_entry(&s_catalog, string_key);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_vformat(char *dest, const size_t dest_size, const int string_id, va_list args)
+int @MODULE@_vformat(char *dest, const size_t dest_size, const int string_key, va_list args)
 {
-    return @LIBRARY@_vformat(&s_catalog, dest, dest_size, string_id, args);
+    return @LIBRARY@_vformat(&s_catalog, dest, dest_size, string_key, args);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_format(char *dest, const size_t dest_size, const int string_id, ...)
+int @MODULE@_format(char *dest, const size_t dest_size, const int string_key, ...)
 {
     va_list args;
     int ret;
 
-    va_start(args, string_id);
-    ret = @LIBRARY@_vformat(&s_catalog, dest, dest_size, string_id, args);
+    va_start(args, string_key);
+    ret = @LIBRARY@_vformat(&s_catalog, dest, dest_size, string_key, args);
     va_end(args);
 
     return ret;
@@ -841,30 +842,30 @@ int @MODULE@_format(char *dest, const size_t dest_size, const int string_id, ...
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_verify(int *string_id_out, @LIBRARY@_language *language_out)
+int @MODULE@_verify(int *string_key_out, @LIBRARY@_language *language_out)
 {
-    return @LIBRARY@_verify(&s_catalog, string_id_out, language_out);
+    return @LIBRARY@_verify(&s_catalog, string_key_out, language_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_category(const int string_id)
+int @MODULE@_category(const int string_key)
 {
-    return @LIBRARY@_get_category(&s_catalog, string_id);
+    return @LIBRARY@_get_category(&s_catalog, string_key);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *@MODULE@_key(const int string_id)
+const char *@MODULE@_id(const int string_key)
 {
-    return @LIBRARY@_get_key(&s_catalog, string_id);
+    return @LIBRARY@_get_id(&s_catalog, string_key);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-const char *@MODULE@_note(const int string_id)
+const char *@MODULE@_note(const int string_key)
 {
-    return @LIBRARY@_get_note(&s_catalog, string_id);
+    return @LIBRARY@_get_note(&s_catalog, string_key);
 }
 """
 
@@ -879,13 +880,13 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     # @file はリポジトリの慣習に合わせ、prod/ を除いた相対パスで示す
     output_dir = output_dir_display(document, out_relative)
     source_display = output_dir[len("prod/") :] if output_dir.startswith("prod/") else output_dir
-    last_id = strings[-1]["id"]
+    last_key = strings[-1]["key"]
 
     out = [
         "/**",
         " " + "*" * 79,
         f" *  @file           {source_display}/{source_name}",
-        " *  @brief          文字列 ID ごとの引数スキーマ、分類値、メタデータ、および言語別リソースを保持します。",
+        " *  @brief          文字列キーごとの引数スキーマ、分類値、メタデータ、および言語別リソースを保持します。",
         f" *  @author         {document.get('author', '')}",
         f" *  @date           {document.get('date', '')}",
         f" *  @version        {document.get('version', '')}",
@@ -901,11 +902,11 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *  分類値はライブラリ側では解釈しない補足情報です。\\n",
         " *  意味や有効範囲は利用側で定義します。本生成物では生値のまま保持し、特定の列挙型には依存しません。",
         " *",
-        " *  カタログ配列に加えて、文字列 ID を添字とする添字テーブルを保持します。\\n",
-        " *  ライブラリはこのテーブルを参照して文字列 ID からカタログ エントリを直接引き、線形探索を回避します。",
+        " *  カタログ配列に加えて、文字列キーを添字とする添字テーブルを保持します。\\n",
+        " *  ライブラリはこのテーブルを参照して文字列キーからカタログ エントリを直接引き、線形探索を回避します。",
         " *",
-        " *  各要素は、定義間で一意な ID、分類値、引数の個数、明示的なアラインメント、引数定義、",
-        " *  処理用の主キー、説明文、補足説明、言語別の書式、言語別の備考の順に配置します。\\n",
+        " *  各要素は、定義間で一意な文字列キー、分類値、引数の個数、明示的なアラインメント、引数定義、",
+        " *  補足の ID、説明文、補足説明、言語別の書式、言語別の備考の順に配置します。\\n",
         f" *  `texts` と `notes` は、@c {library}_language をキーとした指示付き初期化子で記述します。\\n",
         " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へフォールバック（読み替え）されます。",
         " *",
@@ -940,7 +941,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         out.extend(
             [
                 "",
-                f"/** {entry['id']} の引数定義です。 */",
+                f"/** {entry['key']} の引数定義です。 */",
                 f"static const {library}_argument s_arguments_{position}[] = {{",
             ]
         )
@@ -954,7 +955,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     out.extend(
         [
             "",
-            "/** 文字列 ID ごとのカタログ テーブルです。文字列 ID の昇順に定義します。 */",
+            "/** 文字列キーごとのカタログ テーブルです。文字列キーの昇順に定義します。 */",
             f"static const {library}_entry s_entries[] = {{",
         ]
     )
@@ -966,12 +967,12 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         remarks_line = c_string(join_text(entry["remarks"])) if "remarks" in entry else "NULL"
 
         row = [
-            f"    {{{entry['id']},",
+            f"    {{{entry['key']},",
             f"     {entry['category']},",
             f"     {len(arguments)},",
             "     0, /* 明示的アラインメント */",
             f"     {arguments_line},",
-            f"     {c_string(entry['key'])},",
+            f"     {c_string(entry['id']) if 'id' in entry else 'NULL'},",
             f"     {c_string(entry['brief'])},",
             f"     {c_string(entry['details']) if entry.get('details') is not None else 'NULL'},",
             f"     {remarks_line},",
@@ -996,37 +997,37 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             "/** @ref s_entries の要素数です。 */",
             f"#define {module_upper}_ENTRY_COUNT ((int)(sizeof(s_entries) / sizeof(s_entries[0])))",
             "",
-            "/** 添字テーブルにおいて、文字列 ID が未登録であることを表す値です。 */",
-            f"#define {module_upper}_ID_INDEX_ABSENT (-1)",
+            "/** 添字テーブルにおいて、文字列キーが未登録であることを表す値です。 */",
+            f"#define {module_upper}_KEY_INDEX_ABSENT (-1)",
             "",
             "/**",
-            " *  @brief          文字列 ID を添字として、@ref s_entries の添字を引くためのテーブルです。",
+            " *  @brief          文字列キーを添字として、@ref s_entries の添字を引くためのテーブルです。",
             " *",
-            " *  文字列 ID は 1 から始まるため、添字 0 は使用しません。\\n",
-            f" *  文字列 ID が連続せず欠番となる場合は、該当する添字へ @ref {module_upper}_ID_INDEX_ABSENT を格納します。",
+            " *  文字列キーは 1 から始まるため、添字 0 は使用しません。\\n",
+            f" *  文字列キーが連続せず欠番となる場合は、該当する添字へ @ref {module_upper}_KEY_INDEX_ABSENT を格納します。",
             " */",
-            "static const int s_id_index[] = {",
-            f"    {module_upper}_ID_INDEX_ABSENT, /* 0: 未使用 */",
+            "static const int s_key_index[] = {",
+            f"    {module_upper}_KEY_INDEX_ABSENT, /* 0: 未使用 */",
         ]
     )
 
     for position, entry in enumerate(strings):
         comma = "," if position < (len(strings) - 1) else ""
-        out.append(f"    {position}{comma} /* {entry['id']} */")
+        out.append(f"    {position}{comma} /* {entry['key']} */")
 
     out.extend(
         [
             "};",
             "",
-            "/** @ref s_id_index の要素数です。 */",
-            f"#define {module_upper}_ID_INDEX_COUNT ((int)(sizeof(s_id_index) / sizeof(s_id_index[0])))",
+            "/** @ref s_key_index の要素数です。 */",
+            f"#define {module_upper}_KEY_INDEX_COUNT ((int)(sizeof(s_key_index) / sizeof(s_key_index[0])))",
             "",
             "/*",
-            " *  添字テーブルが最大の文字列 ID までを網羅していることを、ビルド時に検証します。",
-            " *  網羅されていない文字列 ID は線形探索にフォールバックするため動作自体は可能ですが、添字テーブルの拡張漏れとなります。",
-            " *  対象は文字列 ID の昇順で最後の定数です。",
+            " *  添字テーブルが最大の文字列キーまでを網羅していることを、ビルド時に検証します。",
+            " *  網羅されていない文字列キーは線形探索にフォールバックするため動作自体は可能ですが、添字テーブルの拡張漏れとなります。",
+            " *  対象は文字列キーの昇順で最後の定数です。",
             " */",
-            f'static_assert({module_upper}_ID_INDEX_COUNT > {last_id}, "id_index must cover every string id");',
+            f'static_assert({module_upper}_KEY_INDEX_COUNT > {last_key}, "key_index must cover every string key");',
             "",
             expand(SOURCE_TAIL, module, library).rstrip("\n"),
             "",

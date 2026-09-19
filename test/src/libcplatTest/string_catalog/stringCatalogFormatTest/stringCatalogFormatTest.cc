@@ -15,13 +15,13 @@
  *
  *  `va_start` の直前の名前付き引数を持たせるため、メンバー関数ではなく通常の関数とします。
  */
-static int call_vformat(char *dest, size_t dest_size, int string_id, ...)
+static int call_vformat(char *dest, size_t dest_size, int string_key, ...)
 {
     va_list args;
     int ret;
 
-    va_start(args, string_id);
-    ret = cplat_string_catalog_vformat(fake_catalog(), dest, dest_size, string_id, args);
+    va_start(args, string_key);
+    ret = cplat_string_catalog_vformat(fake_catalog(), dest, dest_size, string_key, args);
     va_end(args);
 
     return ret;
@@ -52,7 +52,7 @@ TEST_F(stringCatalogFormatTest, no_argument)
     // Act
     actual_ret =
         cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest),
-                                    FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 引数を取らない文字列を組み立てる。
+                                    FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 引数を取らない文字列を組み立てる。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret);      // [確認_正常系] - 戻り値が CPLAT_OK であること。
@@ -73,12 +73,12 @@ TEST_F(stringCatalogFormatTest, language_changes_order_only)
 
     // Act
     actual_ret_japanese =
-        cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_ID_TWO_ARGUMENTS, "config.json",
+        cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_KEY_TWO_ARGUMENTS, "config.json",
                                     INT32_C(2)); // [手順] - 日本語のまま 2 引数の文字列を組み立てる。
 
     cplat_string_catalog_set_language(CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH);
     actual_ret_english = cplat_string_catalog_format(fake_catalog(), english_dest, sizeof(english_dest),
-                                                     FAKE_CATALOG_ID_TWO_ARGUMENTS, "config.json",
+                                                     FAKE_CATALOG_KEY_TWO_ARGUMENTS, "config.json",
                                                      INT32_C(2)); // [手順] - 言語を英語へ変更し、同じ引数で組み立てる。
 
     // Assert
@@ -101,7 +101,7 @@ TEST_F(stringCatalogFormatTest, neutral_language)
 
     // Act
     actual_ret =
-        cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_ID_TWO_ARGUMENTS, "config.json",
+        cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_KEY_TWO_ARGUMENTS, "config.json",
                                     INT32_C(2)); // [手順] - ニュートラル言語で文字列を組み立てる。
 
     // Assert
@@ -118,7 +118,7 @@ TEST_F(stringCatalogFormatTest, vformat_accepts_argument_list)
     // Pre-Assert
 
     // Act
-    actual_ret = call_vformat(dest, sizeof(dest), FAKE_CATALOG_ID_ONE_ARGUMENT,
+    actual_ret = call_vformat(dest, sizeof(dest), FAKE_CATALOG_KEY_ONE_ARGUMENT,
                               (size_t)4096U); // [手順] - va_list を渡して文字列を組み立てる。
 
     // Assert
@@ -136,7 +136,7 @@ TEST_F(stringCatalogFormatTest, null_dest)
 
     // Act
     actual_ret = cplat_string_catalog_format(fake_catalog(), NULL, sizeof(dest),
-                                             FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 書き込み先へ NULL を渡す。
+                                             FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 書き込み先へ NULL を渡す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -153,15 +153,15 @@ TEST_F(stringCatalogFormatTest, zero_dest_size)
 
     // Act
     actual_ret = cplat_string_catalog_format(fake_catalog(), dest, 0U,
-                                             FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 書き込み先の容量へ 0 を渡す。
+                                             FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 書き込み先の容量へ 0 を渡す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
-// カタログに無い文字列 ID を指定した場合に未検出となることの確認
-TEST_F(stringCatalogFormatTest, unknown_string_id)
+// カタログに無い文字列キーを指定した場合に未検出となることの確認
+TEST_F(stringCatalogFormatTest, unknown_string_key)
 {
     // Arrange
     int actual_ret;
@@ -171,7 +171,7 @@ TEST_F(stringCatalogFormatTest, unknown_string_id)
     // Act
     actual_ret =
         cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest),
-                                    FAKE_CATALOG_ID_UNKNOWN); // [手順] - カタログに登録していない文字列 ID を渡す。
+                                    FAKE_CATALOG_KEY_UNKNOWN); // [手順] - カタログに登録していない文字列キーを渡す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND,
@@ -191,7 +191,7 @@ TEST_F(stringCatalogFormatTest, argument_count_over_max)
     // Act
     actual_ret = cplat_string_catalog_format(
         fake_catalog(), dest, sizeof(dest),
-        FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 引数個数が上限を超える定義で文字列を組み立てる。
+        FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 引数個数が上限を超える定義で文字列を組み立てる。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
@@ -210,7 +210,7 @@ TEST_F(stringCatalogFormatTest, argument_count_negative)
     // Act
     actual_ret =
         cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest),
-                                    FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 引数個数が負の定義で文字列を組み立てる。
+                                    FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 引数個数が負の定義で文字列を組み立てる。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
@@ -229,7 +229,7 @@ TEST_F(stringCatalogFormatTest, falls_back_to_neutral_text)
     // Act
     actual_ret = cplat_string_catalog_format(
         fake_catalog(), dest, sizeof(dest),
-        FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 日本語のリソースが無い文字列を日本語で組み立てる。
+        FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 日本語のリソースが無い文字列を日本語で組み立てる。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
@@ -249,7 +249,7 @@ TEST_F(stringCatalogFormatTest, missing_neutral_text)
     // Act
     actual_ret = cplat_string_catalog_format(
         fake_catalog(), dest, sizeof(dest),
-        FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - どの言語にもリソースが無い文字列を組み立てる。
+        FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - どの言語にもリソースが無い文字列を組み立てる。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
@@ -260,11 +260,11 @@ TEST_F(stringCatalogFormatTest, missing_neutral_text)
 TEST_F(stringCatalogFormatTest, metadata)
 {
     // Arrange
-    const char *actual_key;
+    const char *actual_id;
     const char *actual_note_japanese;
     const char *actual_note_fallback;
     const char *actual_unknown_note;
-    const char *actual_unknown_key;
+    const char *actual_unknown_id;
     const cplat_string_catalog_entry *actual_entry;
     int actual_category;
     int actual_unknown_category;
@@ -272,44 +272,44 @@ TEST_F(stringCatalogFormatTest, metadata)
     // Pre-Assert
 
     // Act
-    actual_key =
-        cplat_string_catalog_get_key(fake_catalog(),
-                                         FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 処理用キーを取得する。
-    actual_note_japanese =
-        cplat_string_catalog_get_note(fake_catalog(), FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 日本語の備考を取得する。
+    actual_id = cplat_string_catalog_get_id(fake_catalog(),
+                                            FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - ID を取得する。
+    actual_note_japanese = cplat_string_catalog_get_note(
+        fake_catalog(), FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 日本語の備考を取得する。
 
     cplat_string_catalog_set_language(CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH);
     actual_note_fallback = cplat_string_catalog_get_note(
-        fake_catalog(), FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 英語の備考が無い状態で備考を取得する。
+        fake_catalog(), FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 英語の備考が無い状態で備考を取得する。
     actual_category =
-        cplat_string_catalog_get_category(fake_catalog(), FAKE_CATALOG_ID_NO_ARGUMENT); // [手順] - 分類値を取得する。
+        cplat_string_catalog_get_category(fake_catalog(), FAKE_CATALOG_KEY_NO_ARGUMENT); // [手順] - 分類値を取得する。
     actual_unknown_category = cplat_string_catalog_get_category(
-        fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で分類値を取得する。
-    actual_unknown_key = cplat_string_catalog_get_key(
-        fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で処理用キーを取得する。
+        fake_catalog(), FAKE_CATALOG_KEY_UNKNOWN); // [手順] - 未登録の文字列キーで分類値を取得する。
+    actual_unknown_id = cplat_string_catalog_get_id(
+        fake_catalog(), FAKE_CATALOG_KEY_UNKNOWN); // [手順] - 未登録の文字列キーで ID を取得する。
     actual_unknown_note = cplat_string_catalog_get_note(
-        fake_catalog(), FAKE_CATALOG_ID_UNKNOWN); // [手順] - 未登録の文字列 ID で備考を取得する。
+        fake_catalog(), FAKE_CATALOG_KEY_UNKNOWN); // [手順] - 未登録の文字列キーで備考を取得する。
     actual_entry = cplat_string_catalog_get_entry(
-        fake_catalog(), FAKE_CATALOG_ID_TWO_ARGUMENTS); // [手順] - 文字列 ID の項目メタデータを取得する。
+        fake_catalog(), FAKE_CATALOG_KEY_TWO_ARGUMENTS); // [手順] - 文字列キーの項目メタデータを取得する。
 
     // Assert
-    ASSERT_NE(nullptr, actual_key);           // [確認_正常系] - 処理用キーを取得できること。
-    EXPECT_STREQ("FAKE_ID_0001", actual_key); // [確認_正常系] - 処理用キーが一致すること。
-    EXPECT_EQ(3, actual_category);                // [確認_正常系] - カタログの分類値をそのまま返すこと。
-    EXPECT_EQ(0, actual_unknown_category);        // [確認_異常系] - 未登録の文字列 ID では 0 を返すこと。
+    ASSERT_NE(nullptr, actual_id);           // [確認_正常系] - ID を取得できること。
+    EXPECT_STREQ("FAKE_ID_0001", actual_id); // [確認_正常系] - ID が一致すること。
+    EXPECT_EQ(3, actual_category);           // [確認_正常系] - カタログの分類値をそのまま返すこと。
+    EXPECT_EQ(0, actual_unknown_category);   // [確認_異常系] - 未登録の文字列キーでは 0 を返すこと。
     EXPECT_STREQ("引数を取らない文字列です。",
                  actual_note_japanese); // [確認_正常系] - 現在の言語の備考を返すこと。
     EXPECT_STREQ("no argument",
                  actual_note_fallback); // [確認_正常系] - 備考が無い言語ではニュートラル言語の備考を返すこと。
     EXPECT_EQ(nullptr,
-              actual_unknown_key);       // [確認_異常系] - 未登録の文字列 ID では処理用キーが NULL であること。
-    EXPECT_EQ(nullptr, actual_unknown_note); // [確認_異常系] - 未登録の文字列 ID では NULL を返すこと。
-    ASSERT_NE(nullptr, actual_entry); // [確認_正常系] - 項目メタデータを取得できること。
+              actual_unknown_id);                // [確認_異常系] - 未登録の文字列キーでは ID が NULL であること。
+    EXPECT_EQ(nullptr, actual_unknown_note);     // [確認_異常系] - 未登録の文字列キーでは NULL を返すこと。
+    ASSERT_NE(nullptr, actual_entry);            // [確認_正常系] - 項目メタデータを取得できること。
     EXPECT_STREQ("2 引数", actual_entry->brief); // [確認_正常系] - 短い説明を保持すること。
     EXPECT_STREQ("2 つの引数を取る文字列です。", actual_entry->details); // [確認_正常系] - 詳細説明を保持すること。
-    ASSERT_NE(nullptr, actual_entry->arguments); // [確認_正常系] - 引数定義を取得できること。
-    EXPECT_STREQ("path", actual_entry->arguments[0].name); // [確認_正常系] - 引数名を保持すること。
-    EXPECT_STREQ("ファイルのパス。", actual_entry->arguments[0].description); // [確認_正常系] - 引数説明を保持すること。
+    ASSERT_NE(nullptr, actual_entry->arguments);                         // [確認_正常系] - 引数定義を取得できること。
+    EXPECT_STREQ("path", actual_entry->arguments[0].name);               // [確認_正常系] - 引数名を保持すること。
+    EXPECT_STREQ("ファイルのパス。",
+                 actual_entry->arguments[0].description); // [確認_正常系] - 引数説明を保持すること。
 }
 
 // 列挙に無い引数種別を持つ定義が定義エラーになることの確認
@@ -322,7 +322,7 @@ TEST_F(stringCatalogFormatTest, unknown_argument_kind)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_ID_ONE_ARGUMENT,
+    actual_ret = cplat_string_catalog_format(fake_catalog(), dest, sizeof(dest), FAKE_CATALOG_KEY_ONE_ARGUMENT,
                                              (size_t)1U); // [手順] - 列挙に無い引数種別を持つ定義で文字列を組み立てる。
 
     // Assert
@@ -344,7 +344,7 @@ TEST_F(stringCatalogFormatTest, truncated_output)
 
     // Act
     actual_ret =
-        cplat_string_catalog_format(fake_catalog(), small_dest, sizeof(small_dest), FAKE_CATALOG_ID_ONE_ARGUMENT,
+        cplat_string_catalog_format(fake_catalog(), small_dest, sizeof(small_dest), FAKE_CATALOG_KEY_ONE_ARGUMENT,
                                     (size_t)4096U); // [手順] - 結果が収まらない容量で文字列を組み立てる。
 
     // Assert

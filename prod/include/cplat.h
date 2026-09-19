@@ -130,7 +130,7 @@
 /**
  *  @defgroup       CPLAT_STRING_CATALOG 文字列カタログ (string_catalog)
  *  @ingroup        CPLAT_PUBLIC_API
- *  @brief          文字列 ID、引数スキーマ、言語別リソースを分離して文字列を組み立てる API です。
+ *  @brief          文字列キー、引数スキーマ、言語別リソースを分離して文字列を組み立てる API です。
  */
 
 /**

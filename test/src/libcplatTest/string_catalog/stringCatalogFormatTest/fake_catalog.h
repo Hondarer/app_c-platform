@@ -9,7 +9,7 @@
  *  製品のカタログは正しい内容だけを持つため、定義が壊れた場合の経路へ到達できません。\n
  *  本ファイルは、テストから内容を書き換えられるカタログを提供します。
  *
- *  カタログは利用者が定義する部分であり、文字列 ID の列挙も利用者が名付けます。\n
+ *  カタログは利用者が定義する部分であり、文字列キーの列挙も利用者が名付けます。\n
  *  ここではライブラリの接頭辞に依存しない名前を用い、注入方式が名前に依存しないことを示します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -40,15 +40,15 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
-     *  @brief          偽のカタログの文字列 ID です。
+     *  @brief          偽のカタログの文字列キーです。
      */
-    typedef enum fake_catalog_id
+    typedef enum fake_catalog_key
     {
-        FAKE_CATALOG_ID_NO_ARGUMENT = 1,   /**< 引数を取らない文字列です。 */
-        FAKE_CATALOG_ID_TWO_ARGUMENTS = 2, /**< 引数を 2 個取る文字列です。 */
-        FAKE_CATALOG_ID_ONE_ARGUMENT = 4,  /**< 引数を 1 個取る文字列です。 */
-        FAKE_CATALOG_ID_UNKNOWN = 99       /**< カタログに登録しない文字列です。 */
-    } fake_catalog_id;
+        FAKE_CATALOG_KEY_NO_ARGUMENT = 1,   /**< 引数を取らない文字列です。 */
+        FAKE_CATALOG_KEY_TWO_ARGUMENTS = 2, /**< 引数を 2 個取る文字列です。 */
+        FAKE_CATALOG_KEY_ONE_ARGUMENT = 4,  /**< 引数を 1 個取る文字列です。 */
+        FAKE_CATALOG_KEY_UNKNOWN = 99       /**< カタログに登録しない文字列です。 */
+    } fake_catalog_key;
 
     /**
      *  @brief          偽のカタログを既定の内容へ戻します。
@@ -64,18 +64,18 @@ extern "C"
     const cplat_string_catalog *fake_catalog(void);
 
     /**
-     *  @brief          指定したカタログ要素の文字列 ID を書き換えます。
+     *  @brief          指定したカタログ要素の文字列キーを書き換えます。
      *  @param[in]      index      書き換える文字列のインデックス。
-     *  @param[in]      string_id 設定する文字列 ID。
+     *  @param[in]      string_key 設定する文字列キー。
      */
-    void fake_catalog_set_id(int index, int string_id);
+    void fake_catalog_set_key(int index, int string_key);
 
     /**
-     *  @brief          指定したカタログ要素の処理用キーを書き換えます。
+     *  @brief          指定したカタログ要素の ID を書き換えます。
      *  @param[in]      index 書き換える文字列のインデックス。
-     *  @param[in]      key   設定する処理用キー。NULL を指定すると未設定の状態になります。
+     *  @param[in]      id    設定する ID。NULL を指定すると未設定の状態になります。
      */
-    void fake_catalog_set_key(int index, const char *key);
+    void fake_catalog_set_id(int index, const char *id);
 
     /**
      *  @brief          指定した文字列の分類値を書き換えます。

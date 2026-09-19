@@ -79,9 +79,9 @@ extern "C"
                                                                              int index);
 
     /**
-     *  @brief          文字列 ID に対応するカタログの 1 件を取得します。
-     *  @param[in]      catalog   検索するカタログ。NULL を渡せます。
-     *  @param[in]      string_id 検索する文字列 ID。
+     *  @brief          文字列キーに対応するカタログの 1 件を取得します。
+     *  @param[in]      catalog    検索するカタログ。NULL を渡せます。
+     *  @param[in]      string_key 検索する文字列キー。
      *  @return         カタログの 1 件です。見つからない場合は NULL を返します。
      *
      *  返すポインターは利用者が用意した領域を指します。ライブラリでは解放しません。
@@ -90,7 +90,7 @@ extern "C"
      *  本関数はスレッド セーフです。内部に共有状態を持ちません。
      */
     const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const cplat_string_catalog *catalog,
-                                                                               int string_id);
+                                                                               int string_key);
 
 #ifdef __cplusplus
 }

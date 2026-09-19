@@ -8,13 +8,13 @@
  *
  *  カタログはライブラリ側では保持せず、利用側で用意します。\n
  *  ライブラリが規定するのは、言語、引数種別、分類、書式の構文です。\n
- *  利用側で用意するのは、文字列 ID の列挙とカタログ項目の配列です。
+ *  利用側で用意するのは、文字列キーの列挙とカタログ項目の配列です。
  *
  *  本ファイルは内部状態を持ちません。呼び出し元から渡されたカタログのみを参照します。\n
  *  1 つのプロセスで複数のカタログを扱え、カタログ同士は互いに独立しています。
  *
  *  カタログは利用側で静的初期化されるため、関数の入口で構造の妥当性を確認します。\n
- *  文字列 ID からカタログ項目を検索する際は、インデックス表が指定されていればインデックス参照を、指定がなければ線形探索を使用します。\n
+ *  文字列キーからカタログ項目を検索する際は、インデックス表が指定されていればインデックス参照を、指定がなければ線形探索を使用します。\n
  *  インデックス表の内容も利用側で用意されるため、参照前に有効範囲内であることを確認します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -36,7 +36,7 @@ bool cplat_internal_string_catalog_is_usable(const cplat_string_catalog *const c
         return false;
     }
 
-    if ((catalog->entries == NULL) || (catalog->entry_count < 0) || (catalog->id_index_count < 0))
+    if ((catalog->entries == NULL) || (catalog->entry_count < 0) || (catalog->key_index_count < 0))
     {
         return false;
     }
@@ -77,7 +77,7 @@ const cplat_string_catalog_entry *cplat_internal_string_catalog_entry_at(const c
 /* Doxygen コメントは、ヘッダーに記載 */
 
 const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const cplat_string_catalog *const catalog,
-                                                                           const int string_id)
+                                                                           const int string_key)
 {
     int index;
 
@@ -86,10 +86,10 @@ const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const
         return NULL;
     }
 
-    if ((catalog->id_index != NULL) && (string_id >= 0) && (string_id < catalog->id_index_count))
+    if ((catalog->key_index != NULL) && (string_key >= 0) && (string_key < catalog->key_index_count))
     {
         /* インデックス表の内容は利用側で用意されるため、参照前に有効範囲内であることを確認する */
-        const int entry_index = catalog->id_index[string_id];
+        const int entry_index = catalog->key_index[string_key];
 
         if ((entry_index < 0) || (entry_index >= catalog->entry_count))
         {
@@ -101,7 +101,7 @@ const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const
 
     for (index = 0; index < catalog->entry_count; index++)
     {
-        if (catalog->entries[index].id == string_id)
+        if (catalog->entries[index].key == string_key)
         {
             return &catalog->entries[index];
         }
@@ -113,7 +113,7 @@ const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const
 /* Doxygen コメントは、ヘッダーに記載 */
 
 const cplat_string_catalog_entry *cplat_string_catalog_get_entry(const cplat_string_catalog *const catalog,
-                                                                  const int string_id)
+                                                                 const int string_key)
 {
-    return cplat_internal_string_catalog_find_entry(catalog, string_id);
+    return cplat_internal_string_catalog_find_entry(catalog, string_key);
 }

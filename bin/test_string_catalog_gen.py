@@ -85,8 +85,8 @@ def minimal_document(**overrides):
         "module_prefix": "sample_messages",
         "strings": [
             {
-                "id": "SAMPLE_MESSAGES_ID_A",
-                "key": "ID_0001",
+                "key": "SAMPLE_MESSAGES_KEY_A",
+                "id": "ID_0001",
                 "category": 1,
                 "brief": "あ。",
                 "details": "あを組み立てます。",
@@ -114,22 +114,39 @@ class ValidateTest(unittest.TestCase):
     def test_does_not_require_derived_keys(self):
         # 生成器が持つ名前と仕様は、カタログ定義へ書かない
         document = minimal_document()
-        for key in ("library_prefix", "id_enum", "module_dir", "languages"):
+        for key in ("library_prefix", "key_enum", "module_dir", "languages"):
             self.assertNotIn(key, document)
         self.assertEqual(len(gen.validate(document)), 1)
 
-    def test_rejects_duplicate_id(self):
+    def test_rejects_duplicate_key(self):
         document = minimal_document()
         document["strings"].append(dict(document["strings"][0]))
-        document["strings"][1]["key"] = "ID_0002"
+        document["strings"][1]["id"] = "ID_0002"
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
-    def test_rejects_duplicate_key(self):
+    def test_allows_duplicate_id(self):
+        # id は処理で項目を識別しないため、重複を検査しない
         document = minimal_document()
         duplicated = dict(document["strings"][0])
-        duplicated["id"] = "SAMPLE_MESSAGES_ID_B"
+        duplicated["key"] = "SAMPLE_MESSAGES_KEY_B"
         document["strings"].append(duplicated)
+        self.assertEqual(len(gen.validate(document)), 2)
+
+    def test_allows_missing_id(self):
+        document = minimal_document()
+        del document["strings"][0]["id"]
+        self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_rejects_missing_key(self):
+        document = minimal_document()
+        del document["strings"][0]["key"]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_non_string_id(self):
+        document = minimal_document()
+        document["strings"][0]["id"] = 1
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
@@ -197,18 +214,18 @@ class ValidateTest(unittest.TestCase):
 
     def test_rejects_wrapper_name_colliding_with_a_simple_function(self):
         # 型付きラッパーはライブラリ接頭辞を前置しないため、
-        # 文字列 ID の小文字形が同じ生成物の簡易関数名と衝突しうる。
+        # 文字列キーの小文字形が同じ生成物の簡易関数名と衝突しうる。
         # 衝突対象は ACCESSOR_DECLARATIONS (および SOURCE_TAIL) が実際に @MODULE@_ に続けて
         # 出力する名前一覧 (gen.MODULE_FUNCTION_SUFFIXES) のすべてで確認する。
         for suffix in gen.MODULE_FUNCTION_SUFFIXES:
             with self.subTest(suffix=suffix):
                 document = minimal_document()
-                document["strings"][0]["id"] = f"SAMPLE_MESSAGES_{suffix.upper()}"
+                document["strings"][0]["key"] = f"SAMPLE_MESSAGES_{suffix.upper()}"
                 with self.assertRaises(gen.DefinitionError):
                     gen.validate(document)
 
-    def test_accepts_id_that_does_not_collide(self):
-        # 通常の文字列 ID では衝突検査に引っかからないことを確認する (回帰防止)。
+    def test_accepts_key_that_does_not_collide(self):
+        # 通常の文字列キーでは衝突検査に引っかからないことを確認する (回帰防止)。
         document = minimal_document()
         self.assertEqual(len(gen.validate(document)), 1)
 
@@ -216,25 +233,25 @@ class ValidateTest(unittest.TestCase):
 class WrapperNameTest(unittest.TestCase):
     """関数名の導出規則を確認する。"""
 
-    def test_lowercases_whole_id(self):
+    def test_lowercases_whole_key(self):
         self.assertEqual(
-            gen.wrapper_name("SAMPLE_MESSAGES_ID_FILE_OPEN_FAILED"),
-            "sample_messages_id_file_open_failed",
+            gen.wrapper_name("SAMPLE_MESSAGES_KEY_FILE_OPEN_FAILED"),
+            "sample_messages_key_file_open_failed",
         )
 
     def test_has_no_double_underscore(self):
-        self.assertNotIn("__", gen.wrapper_name("SAMPLE_MESSAGES_ID_A"))
+        self.assertNotIn("__", gen.wrapper_name("SAMPLE_MESSAGES_KEY_A"))
 
     def test_fits_into_the_caller_namespace(self):
-        # ライブラリ側の接頭辞は前置しない。文字列 ID に含まれるモジュール接頭辞だけで
+        # ライブラリ側の接頭辞は前置しない。文字列キーに含まれるモジュール接頭辞だけで
         # 利用側の名前空間に収まる。
-        name = gen.wrapper_name("SAMPLE_MESSAGES_ID_A")
+        name = gen.wrapper_name("SAMPLE_MESSAGES_KEY_A")
         self.assertFalse(name.startswith(f"{gen.LIBRARY_PREFIX}_"))
         self.assertTrue(name.startswith("sample_messages_"))
 
-    def test_follows_the_module_prefix_embedded_in_the_id(self):
-        # 名前空間は、文字列 ID に含まれるモジュール接頭辞がそのまま担う
-        self.assertEqual(gen.wrapper_name("APP_ID_A"), "app_id_a")
+    def test_follows_the_module_prefix_embedded_in_the_key(self):
+        # 名前空間は、文字列キーに含まれるモジュール接頭辞がそのまま担う
+        self.assertEqual(gen.wrapper_name("APP_KEY_A"), "app_key_a")
 
 
 class DerivedNameTest(unittest.TestCase):
@@ -249,9 +266,9 @@ class DerivedNameTest(unittest.TestCase):
                 with self.assertRaises(gen.DefinitionError):
                     gen.derive_module_prefix(Path(f"/tmp/app/{name}"))
 
-    def test_id_enum_follows_the_module_prefix(self):
-        self.assertEqual(gen.id_enum_name(minimal_document()), "sample_messages_id")
-        self.assertEqual(gen.id_enum_name({"module_prefix": "app_messages"}), "app_messages_id")
+    def test_key_enum_follows_the_module_prefix(self):
+        self.assertEqual(gen.key_enum_name(minimal_document()), "sample_messages_key")
+        self.assertEqual(gen.key_enum_name({"module_prefix": "app_messages"}), "app_messages_key")
 
     def test_module_dir_starts_at_prod(self):
         path = Path("/tmp/workspace/app/example/prod/src/cmd/example/messages.jsonc")
@@ -345,7 +362,7 @@ class GeneratedOutputTest(unittest.TestCase):
 
     def test_source_emits_raw_category(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("    {SAMPLE_MESSAGES_ID_A,\n     1,\n", source)
+        self.assertIn("    {SAMPLE_MESSAGES_KEY_A,\n     1,\n", source)
         self.assertNotIn("TRACE_LEVEL", source)
 
     def test_source_emits_entry_metadata(self):
@@ -360,6 +377,13 @@ class GeneratedOutputTest(unittest.TestCase):
         strings = gen.validate(document)
         source = gen.emit_source(document, strings, "example.jsonc")
         self.assertIn('     "ID_0001",\n     "あ。",\n     NULL,', source)
+
+    def test_source_emits_null_for_missing_id(self):
+        document = minimal_document()
+        del document["strings"][0]["id"]
+        strings = gen.validate(document)
+        source = gen.emit_source(document, strings, "example.jsonc")
+        self.assertIn('     s_arguments_0,\n     NULL,\n     "あ。",', source)
 
     def test_typed_formatter_emits_brief_and_details_separately(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
@@ -419,24 +443,24 @@ class GeneratedOutputTest(unittest.TestCase):
     def test_header_and_source_emit_entry_accessor(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(int string_id);", header)
-        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(const int string_id)", source)
+        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(int string_key);", header)
+        self.assertIn("const cplat_string_catalog_entry *sample_messages_entry(const int string_key)", source)
 
-    def test_header_and_source_emit_key_accessor(self):
+    def test_header_and_source_emit_id_accessor(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("const char *sample_messages_key(int string_id);", header)
-        self.assertIn("const char *sample_messages_key(const int string_id)", source)
+        self.assertIn("const char *sample_messages_id(int string_key);", header)
+        self.assertIn("const char *sample_messages_id(const int string_key)", source)
 
     def test_source_macros_use_the_module_prefix(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
 
         self.assertIn("#define SAMPLE_MESSAGES_ENTRY_COUNT", source)
-        self.assertIn("#define SAMPLE_MESSAGES_ID_INDEX_ABSENT", source)
-        self.assertIn("#define SAMPLE_MESSAGES_ID_INDEX_COUNT", source)
+        self.assertIn("#define SAMPLE_MESSAGES_KEY_INDEX_ABSENT", source)
+        self.assertIn("#define SAMPLE_MESSAGES_KEY_INDEX_COUNT", source)
         self.assertNotIn("#define ENTRY_COUNT", source)
-        self.assertNotIn("#define ID_INDEX_ABSENT", source)
-        self.assertNotIn("#define ID_INDEX_COUNT", source)
+        self.assertNotIn("#define KEY_INDEX_ABSENT", source)
+        self.assertNotIn("#define KEY_INDEX_COUNT", source)
 
     def test_module_dir_appears_in_documentation(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
@@ -468,26 +492,26 @@ class DoxygenGroupTest(unittest.TestCase):
     def test_typed_formatters_are_in_a_nested_group(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
 
-        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数"
+        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列キーごとの型付き組み立て関数"
         child_group_start = header.index(child_group)
         child_group_close = header.index("/** @} */", child_group_start)
         parent_group_close = header.rindex("/** @} */")
 
         self.assertIn("@ingroup        SAMPLE_MESSAGES", header[child_group_start:child_group_close])
         self.assertLess(header.index("int sample_messages_format"), child_group_start)
-        self.assertLess(child_group_start, header.index("static inline int sample_messages_id_a"))
+        self.assertLess(child_group_start, header.index("static inline int sample_messages_key_a"))
         self.assertLess(child_group_close, parent_group_close)
 
     def test_typed_formatter_group_has_consistent_indentation(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
 
-        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数"
+        child_group = "@defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列キーごとの型付き組み立て関数"
         lines = header.splitlines()
         group_index = next(index for index, line in enumerate(lines) if child_group in line)
 
         self.assertEqual("/**", lines[group_index - 1])
         self.assertEqual(
-            " *  @defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列 ID ごとの型付き組み立て関数",
+            " *  @defgroup       SAMPLE_MESSAGES_TYPED_FORMATTERS 文字列キーごとの型付き組み立て関数",
             lines[group_index],
         )
         self.assertEqual(" */", lines[group_index + 4])

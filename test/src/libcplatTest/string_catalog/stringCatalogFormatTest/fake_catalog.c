@@ -40,7 +40,7 @@ void fake_catalog_reset(void)
     static const cplat_string_catalog_argument initial_one_argument[1] = {
         {CPLAT_STRING_CATALOG_ARGUMENT_KIND_SIZE, 0, "limit", "上限。"}};
     static const cplat_string_catalog_entry initial_entries[FAKE_CATALOG_ENTRY_COUNT] = {
-        {FAKE_CATALOG_ID_NO_ARGUMENT,
+        {FAKE_CATALOG_KEY_NO_ARGUMENT,
          3, /* 分類値。ライブラリは解釈しない */
          0,
          0,
@@ -53,7 +53,7 @@ void fake_catalog_reset(void)
           [CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE] = "開始しました。"},
          {[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "no argument",
           [CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE] = "引数を取らない文字列です。"}},
-        {FAKE_CATALOG_ID_TWO_ARGUMENTS,
+        {FAKE_CATALOG_KEY_TWO_ARGUMENTS,
          1, /* 分類値。ライブラリは解釈しない */
          2,
          0,
@@ -67,7 +67,7 @@ void fake_catalog_reset(void)
           [CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH] = "number {1} of {0}"},
          {[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "reordered",
           [CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE] = "英語の書式が位置指定を入れ替えます。"}},
-        {FAKE_CATALOG_ID_ONE_ARGUMENT,
+        {FAKE_CATALOG_KEY_ONE_ARGUMENT,
          2, /* 分類値。ライブラリは解釈しない */
          1,
          0,
@@ -99,16 +99,16 @@ const cplat_string_catalog *fake_catalog(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void fake_catalog_set_id(const int index, const int string_id)
+void fake_catalog_set_key(const int index, const int string_key)
 {
-    s_entries[index].id = string_id;
+    s_entries[index].key = string_key;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void fake_catalog_set_key(const int index, const char *const key)
+void fake_catalog_set_id(const int index, const char *const id)
 {
-    s_entries[index].key = key;
+    s_entries[index].id = id;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

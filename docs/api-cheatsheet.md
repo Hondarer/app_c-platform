@@ -533,7 +533,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 対象ヘッダー: `cplat/string_catalog/string_catalog.h`、`cplat/string_catalog/catalog.h`、`cplat/string_catalog/argument.h`、`cplat/string_catalog/language.h`
 
-文字列 ID ごとに引数の型と項目メタデータ、言語別の文言を定義し、実行時に値を差し込んで文字列を組み立てます。  
+文字列キーごとに引数の型と項目メタデータ、言語別の文言を定義し、実行時に値を差し込んで文字列を組み立てます。  
 言語別のリソースには語順だけを持たせ、値の表現は引数の種別が決めます。単一の標準 API とは対応しません。
 
 カタログはライブラリが保持しません。利用側が `cplat_string_catalog_entry` の配列と任意のインデックス表を `cplat_string_catalog` にまとめ、呼び出しごとに渡します。  
@@ -546,12 +546,12 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 文字列の組み立て | `cplat_string_catalog_format` |
 | 文字列の組み立て (`va_list` 版) | `cplat_string_catalog_vformat` |
 | カタログの点検 | `cplat_string_catalog_verify` |
-| 文字列 ID に対応する項目の取得 | `cplat_string_catalog_get_entry` |
+| 文字列キーに対応する項目の取得 | `cplat_string_catalog_get_entry` |
 | 分類値の取得 | `cplat_string_catalog_get_category` |
-| 処理用キーの取得 | `cplat_string_catalog_get_key` |
+| ID の取得 | `cplat_string_catalog_get_id` |
 | 備考の取得 | `cplat_string_catalog_get_note` |
 
-`cplat_string_catalog_get_entry` は、文字列 ID ごとの `key`、引数の種別・名前・説明、分類値、必須の `brief`、省略可能な `details` と `remarks`、書式、備考をまとめて参照するために使用します。未設定の `details` と `remarks` は NULL です。返されるポインターはカタログ配列の要素を指し、呼び出し側で解放してはなりません。
+`cplat_string_catalog_get_entry` は、文字列キーごとの省略可能な `id`、引数の種別・名前・説明、分類値、必須の `brief`、省略可能な `details` と `remarks`、書式、備考をまとめて参照するために使用します。未設定の `id`、`details`、`remarks` は NULL です。返されるポインターはカタログ配列の要素を指し、呼び出し側で解放してはなりません。
 
 出力言語はプロセスで 1 つです。組み立ての API に言語引数はありません。  
 選択中の言語の要素が NULL の場合は、ニュートラル言語の要素へフォールバックします。ニュートラル言語の要素は NULL にできません。
@@ -559,10 +559,11 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 書式は位置指定 (`{0}` から `{31}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
 引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (32) です。
 
-分類値 (`cplat_string_catalog_entry::category`) はライブラリが解釈しません。意味と有効な範囲は利用側が決めます。
+文字列キー (`cplat_string_catalog_entry::key`) は、処理から項目を参照する識別子です。  
+ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry::category`) はライブラリが解釈しません。ID は処理では意味を持たない補足の文字列です。分類値の意味と有効な範囲は利用側が決めます。
 
-`cplat_string_catalog_verify` は、すべての定義が一意な `id` と `key`、書式、引数の個数、引数の種別とメタデータ、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
-条件を満たさない定義を検出した場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返し、最初の 1 件の文字列 ID と言語を出力引数へ書き出します。
+`cplat_string_catalog_verify` は、すべての定義が一意な文字列キー、書式、引数の個数、引数の種別とメタデータ、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
+条件を満たさない定義を検出した場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返し、最初の 1 件の文字列キーと言語を出力引数へ書き出します。
 
 カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin/string_catalog_gen.py` に置いています。  
 設計の詳細は [string_catalog モジュール](../prod/libsrc/cplat/string_catalog/README.md) を参照してください。

@@ -625,20 +625,20 @@
     EXPORT_ENTRY(cplat_string_catalog_set_language, int(CPLAT_API *)(cplat_string_catalog_language language)) \
     EXPORT_ENTRY(cplat_string_catalog_get_language, cplat_string_catalog_language(CPLAT_API *)(void)) \
     EXPORT_ENTRY(cplat_string_catalog_format, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
-                                                               size_t dest_size, int string_id, ...)) \
+                                                               size_t dest_size, int string_key, ...)) \
     EXPORT_ENTRY(cplat_string_catalog_vformat, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
-                                                                size_t dest_size, int string_id, va_list args)) \
+                                                                size_t dest_size, int string_key, va_list args)) \
     EXPORT_ENTRY(cplat_string_catalog_verify, \
-                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int *string_id_out, \
+                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int *string_key_out, \
                                   cplat_string_catalog_language *language_out)) \
     EXPORT_ENTRY(cplat_string_catalog_get_entry, \
-                 const cplat_string_catalog_entry *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
+                 const cplat_string_catalog_entry *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
     EXPORT_ENTRY(cplat_string_catalog_get_category, \
-                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
-    EXPORT_ENTRY(cplat_string_catalog_get_key, \
-                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
+                 int(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
+    EXPORT_ENTRY(cplat_string_catalog_get_id, \
+                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
     EXPORT_ENTRY(cplat_string_catalog_get_note, \
-                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_id)) \
+                 const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
     /* cplat/sync/sync.h */ \
     EXPORT_ENTRY(cplat_local_lock_create, int(CPLAT_API *)(cplat_local_lock * *mtx)) \
     EXPORT_ENTRY(cplat_local_lock_lock, int(CPLAT_API *)(cplat_local_lock * mtx, int timeout_ms)) \

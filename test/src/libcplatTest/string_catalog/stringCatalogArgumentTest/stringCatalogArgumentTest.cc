@@ -43,7 +43,7 @@ class stringCatalogArgumentTest : public Test
         memset(&entry, 0, sizeof(entry));
         memset(arguments, 0, sizeof(arguments));
         entry.arguments = arguments;
-        entry.id = 1;
+        entry.key = 1;
     }
 
     /**

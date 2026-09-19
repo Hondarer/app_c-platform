@@ -8,15 +8,15 @@
 class stringCatalogVerifyTest : public Test
 {
   protected:
-    /** 不正を検出した文字列 ID の受け取り先です。 */
-    int string_id;
+    /** 不正を検出した文字列キーの受け取り先です。 */
+    int string_key;
 
     /** 不正を検出した言語の受け取り先です。 */
     cplat_string_catalog_language language;
 
     void SetUp() override
     {
-        string_id = FAKE_CATALOG_ID_UNKNOWN;
+        string_key = FAKE_CATALOG_KEY_UNKNOWN;
         language = CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH;
         fake_catalog_reset();
     }
@@ -32,7 +32,7 @@ TEST_F(stringCatalogVerifyTest, valid_catalog)
 
     // Act
     actual_ret =
-        cplat_string_catalog_verify(fake_catalog(), &string_id, &language); // [手順] - 既定のカタログを確認する。
+        cplat_string_catalog_verify(fake_catalog(), &string_key, &language); // [手順] - 既定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
@@ -48,14 +48,14 @@ TEST_F(stringCatalogVerifyTest, missing_entry_metadata)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 短い説明が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 必須メタデータの欠落を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
 }
 
 // 詳細説明が未設定でもカタログが受理されることの確認
@@ -68,33 +68,32 @@ TEST_F(stringCatalogVerifyTest, missing_details_is_allowed)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 詳細説明が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 詳細説明の欠落を許容すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_UNKNOWN,
-              string_id); // [確認_正常系] - 不正がないため文字列 ID を変更しないこと。
+    EXPECT_EQ(FAKE_CATALOG_KEY_UNKNOWN,
+              string_key); // [確認_正常系] - 不正がないため文字列キーを変更しないこと。
 }
 
-// 処理用キーが未設定のカタログが拒否されることの確認
-TEST_F(stringCatalogVerifyTest, missing_key)
+// ID が未設定のカタログを許容することの確認
+TEST_F(stringCatalogVerifyTest, missing_id_is_allowed)
 {
     // Arrange
     int actual_ret;
-    fake_catalog_set_key(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, NULL);
+    fake_catalog_set_id(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, NULL);
 
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - 処理用キーが未設定のカタログを確認する。
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                             &language); // [手順] - ID が未設定のカタログを確認する。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 処理用キーの欠落を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - ID の欠落を許容すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_UNKNOWN,
+              string_key); // [確認_正常系] - 不正がないため文字列キーを変更しないこと。
 }
 
 // 引数定義のメタデータが未設定のカタログが拒否されることの確認
@@ -107,14 +106,14 @@ TEST_F(stringCatalogVerifyTest, missing_argument_metadata)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数名が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 引数メタデータの欠落を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
 }
 
 // 引数説明が未設定のカタログが拒否されることの確認
@@ -127,14 +126,14 @@ TEST_F(stringCatalogVerifyTest, missing_argument_description)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数説明が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 引数説明の欠落を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
 }
 
 // 引数定義配列が未設定のカタログが拒否されることの確認
@@ -147,14 +146,14 @@ TEST_F(stringCatalogVerifyTest, missing_argument_array)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数定義配列が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 引数定義配列の欠落を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
 }
 
 // 書式の構文が不正なカタログが拒否されることの確認
@@ -167,14 +166,14 @@ TEST_F(stringCatalogVerifyTest, invalid_format)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数個数を超える位置指定を持つカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-    EXPECT_EQ(FAKE_CATALOG_ID_ONE_ARGUMENT,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_ONE_ARGUMENT,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
@@ -188,7 +187,7 @@ TEST_F(stringCatalogVerifyTest, missing_localized_text_is_allowed)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 日本語のリソースが未設定のカタログを確認する。
 
     // Assert
@@ -206,14 +205,15 @@ TEST_F(stringCatalogVerifyTest, missing_neutral_text)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - ニュートラル言語の書式が未設定のカタログを確認する。
+    actual_ret =
+        cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                    &language); // [手順] - ニュートラル言語の書式が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
@@ -227,14 +227,15 @@ TEST_F(stringCatalogVerifyTest, missing_neutral_note)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - ニュートラル言語の備考が未設定のカタログを確認する。
+    actual_ret =
+        cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                    &language); // [手順] - ニュートラル言語の備考が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
@@ -248,59 +249,56 @@ TEST_F(stringCatalogVerifyTest, argument_count_over_max)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数個数が上限を超えるカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_TWO_ARGUMENTS,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_COUNT,
               language); // [確認_異常系] - 言語に依らない不正として、言語ではない値を報告すること。
 }
 
-// 文字列 ID が重複したカタログが拒否されることの確認
-TEST_F(stringCatalogVerifyTest, duplicated_string_id)
+// 文字列キーが重複したカタログが拒否されることの確認
+TEST_F(stringCatalogVerifyTest, duplicated_string_key)
 {
     // Arrange
     int actual_ret;
-    fake_catalog_set_id(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, FAKE_CATALOG_ID_NO_ARGUMENT);
+    fake_catalog_set_key(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, FAKE_CATALOG_KEY_NO_ARGUMENT);
 
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - 文字列 ID が重複したカタログを確認する。
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                             &language); // [手順] - 文字列キーが重複したカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
               actual_ret); // [確認_異常系] - 検索が自分自身へ到達しないため、定義エラーを返すこと。
-    EXPECT_EQ(FAKE_CATALOG_ID_NO_ARGUMENT, string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_NO_ARGUMENT, string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_COUNT,
               language); // [確認_異常系] - 言語に依らない不正として、言語ではない値を報告すること。
 }
 
-// 処理用キーが重複したカタログが拒否されることの確認
-TEST_F(stringCatalogVerifyTest, duplicated_key)
+// ID が重複したカタログを許容することの確認
+TEST_F(stringCatalogVerifyTest, duplicated_id_is_allowed)
 {
     // Arrange
     int actual_ret;
-    fake_catalog_set_key(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, "FAKE_ID_0001");
+    fake_catalog_set_id(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, "FAKE_ID_0001");
 
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
-                                             &language); // [手順] - 処理用キーが重複したカタログを確認する。
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                             &language); // [手順] - ID が重複したカタログを確認する。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 処理用キーの重複を定義エラーとして通知すること。
-    EXPECT_EQ(FAKE_CATALOG_ID_TWO_ARGUMENTS,
-              string_id); // [確認_異常系] - 不正を検出した文字列 ID を報告すること。
-    EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_COUNT,
-              language); // [確認_異常系] - 言語に依らない不正として、言語ではない値を報告すること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - ID の重複を許容すること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_UNKNOWN,
+              string_key); // [確認_正常系] - 不正がないため文字列キーを変更しないこと。
 }
 
 // 引数個数が負のカタログが拒否されることの確認
@@ -313,7 +311,7 @@ TEST_F(stringCatalogVerifyTest, argument_count_negative)
     // Pre-Assert
 
     // Act
-    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_id,
+    actual_ret = cplat_string_catalog_verify(fake_catalog(), &string_key,
                                              &language); // [手順] - 引数個数が負のカタログを確認する。
 
     // Assert
@@ -339,7 +337,8 @@ TEST_F(stringCatalogVerifyTest, omitted_output_arguments)
     fake_catalog_reset();
     fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, NULL);
     actual_ret_text = cplat_string_catalog_verify(
-        fake_catalog(), NULL, NULL); // [手順] - 出力引数を省略して、ニュートラル言語の書式が未設定のカタログを確認する。
+        fake_catalog(), NULL,
+        NULL); // [手順] - 出力引数を省略して、ニュートラル言語の書式が未設定のカタログを確認する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
