@@ -127,6 +127,7 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 - [ファイル入出力 API の選定基準](fileio-api-selection-guideline.md)
 - [hashtable 可変長ストレージの管理方式](doxybook2_internal/Files/libsrc/cplat/hashtable/hashtable-storage-allocator.md)
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
+- [文字列カタログの条件式フィルターの提案](proposals/string-catalog-filter-design.md)
 
 ## 文書一覧
 
