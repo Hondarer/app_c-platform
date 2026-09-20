@@ -129,6 +129,8 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
 - [文字列カタログの条件式フィルターの提案](proposals/string-catalog-filter-design.md)
 - [トレース種別の文字列カタログの提案](proposals/string-catalog-trace-kind-design.md)
+- [app 固有の文脈引数の提案](proposals/string-catalog-context-extension-design.md)
+- [ライブラリのカタログを外部へ公開する提案](proposals/string-catalog-export-design.md)
 
 ## 文書一覧
 

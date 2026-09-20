@@ -4,6 +4,7 @@
 > 本書は、文字列カタログへトレース ログ用の種別を追加するための提案文書です。  
 > 現行仕様については、[文字列カタログの機能仕様](../functional-spec/string_catalog.md) および公開ヘッダー [string_catalog.h](../../prod/include/cplat/string_catalog/string_catalog.h) を参照してください。  
 > 条件式による絞り込みについては、[文字列カタログの条件式フィルターの設計](string-catalog-filter-design.md) を参照してください。
+> 利用 app が文脈引数を追加する方法については、[app 固有の文脈引数の設計](string-catalog-context-extension-design.md) を参照してください。
 
 ## 目的
 
