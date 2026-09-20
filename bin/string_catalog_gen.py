@@ -58,6 +58,9 @@ ARGUMENT_MAX = 50
 # 添字テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
 KEY_VALUE_MAX = 4095
 
+# 公開ヘッダーとして出力した場合に、利用側の include パスを置く場所。
+PUBLIC_INCLUDE_KEY = "public_include"
+
 # カタログ定義が app 単位の設定ファイルを指す項目と、読み込んだ内容を置く場所。
 SETTINGS_REFERENCE = "settings"
 SETTINGS_KEY = "settings_document"
@@ -848,6 +851,20 @@ def derive_module_dir(definition: Path) -> str:
     return "."
 
 
+def header_include_path(header_dir: Path, module: str) -> str | None:
+    """公開ヘッダーとして取り込む場合の include パスを返す。
+
+    出力先が公開ヘッダーの置き場所 (prod/include/ 配下) である場合、そこからの相対パスが
+    利用側の `#include <...>` に現れる。置き場所から導けない場合は None を返す。
+    """
+    parts = header_dir.resolve().parts
+    for marker in ("include", "include_internal"):
+        if marker in parts:
+            index = len(parts) - 1 - parts[::-1].index(marker)
+            return "/".join(parts[index + 1 :] + (f"{module}.h",))
+    return None
+
+
 def output_dir_display(document: dict, out_relative: str) -> str:
     """生成物の置き場所を、リポジトリ相対のディレクトリとして表す。
 
@@ -871,6 +888,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     module_dir = document.get("module_dir", ".")
     output_dir = output_dir_display(document, out_relative)
     include_path = header_name if output_dir == module_dir else f"{out_relative}/{header_name}"
+    public_include = document.get(PUBLIC_INCLUDE_KEY)
 
     out = [
         "/**",
@@ -881,8 +899,17 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         f" *  @date           {document.get('date', '')}",
         f" *  @version        {document.get('version', '')}",
         " *",
-        f" *  本ヘッダーは `{output_dir}/` のモジュール私有ヘッダーです。\\n",
-        f' *  `{module_dir}/` の実装ファイルからのみ `#include "{include_path}"` でインクルードします。',
+        *(
+            [
+                f" *  本ヘッダーは `{output_dir}/` の公開ヘッダーです。\\n",
+                f" *  利用側は `#include <{public_include}>` でインクルードします。",
+            ]
+            if public_include is not None
+            else [
+                f" *  本ヘッダーは `{output_dir}/` のモジュール私有ヘッダーです。\\n",
+                f' *  `{module_dir}/` の実装ファイルからのみ `#include "{include_path}"` でインクルードします。',
+            ]
+        ),
         " *",
         GENERATED_NOTE.format(source=source_name, definition=definition_name),
         " *",
@@ -1453,7 +1480,11 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " " + "*" * 79,
         " */",
         "",
-        f'#include "{header_name}"',
+        (
+            f"#include <{document[PUBLIC_INCLUDE_KEY]}>"
+            if document.get(PUBLIC_INCLUDE_KEY) is not None
+            else f'#include "{header_name}"'
+        ),
         "",
         "#include <assert.h>",
         "#include <stdarg.h>",
@@ -1637,6 +1668,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="カタログ定義から cplat 文字列カタログの生成物を書き出します。")
     parser.add_argument("definition", type=Path, help="カタログ定義 (JSONC) のパス")
     parser.add_argument("--out-dir", type=Path, default=None, help="出力先。既定は定義ファイルと同じ場所")
+    parser.add_argument(
+        "--header-dir",
+        type=Path,
+        default=None,
+        help="ヘッダーの出力先。既定は --out-dir と同じ場所。公開ヘッダーを分けて置く場合に指定する",
+    )
     parser.add_argument("--check", action="store_true", help="書き出さず、既存の生成物と一致するかだけ確かめる")
     parser.add_argument(
         "--if-newer",
@@ -1658,11 +1695,16 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = args.out_dir if args.out_dir is not None else args.definition.parent
     out_dir.mkdir(parents=True, exist_ok=True)
+    header_dir = args.header_dir if args.header_dir is not None else out_dir
+    header_dir.mkdir(parents=True, exist_ok=True)
+    # ヘッダーを別の場所へ出す場合、利用側は公開ヘッダーの置き場所からの相対パスで取り込む。
+    if header_dir.resolve() != out_dir.resolve():
+        document[PUBLIC_INCLUDE_KEY] = header_include_path(header_dir, document["module_prefix"])
     definition_name = args.definition.name
     module = document["module_prefix"]
 
     if args.if_newer and not args.check:
-        targets = [out_dir / f"{module}.h", out_dir / f"{module}.c"]
+        targets = [header_dir / f"{module}.h", out_dir / f"{module}.c"]
         # 設定ファイルを変えた場合も再生成する。app 内の複数のカタログが同じ設定を共有するため。
         settings = settings_path(args.definition, document)
         sources = [args.definition, Path(__file__)] + ([settings] if settings is not None else [])
@@ -1674,11 +1716,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # 出力先が定義ファイルと別のディレクトリなら、Doxygen の @file もその位置を指す
     out_relative = os.path.relpath(out_dir, args.definition.parent).replace("\\", "/")
+    header_relative = os.path.relpath(header_dir, args.definition.parent).replace("\\", "/")
 
     style = find_clang_format_style(out_dir)
     outputs = {
-        out_dir / f"{module}.h": format_source(
-            emit_header(document, strings, definition_name, out_relative), f"{module}.h", style
+        header_dir / f"{module}.h": format_source(
+            emit_header(document, strings, definition_name, header_relative), f"{module}.h", style
         ),
         out_dir / f"{module}.c": format_source(
             emit_source(document, strings, definition_name, out_relative), f"{module}.c", style

@@ -908,5 +908,48 @@ class ExportOutputTest(unittest.TestCase):
         )
         self.assertIn("SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_trace_write(", header)
 
+class HeaderIncludePathTest(unittest.TestCase):
+    """公開ヘッダーの include パスの導出を確認する。"""
+
+    def test_derives_from_include_directory(self):
+        self.assertEqual(
+            gen.header_include_path(Path("/w/app/x/prod/include/samplecatalog"), "samplecatalog_messages"),
+            "samplecatalog/samplecatalog_messages.h",
+        )
+
+    def test_derives_from_internal_include_directory(self):
+        self.assertEqual(
+            gen.header_include_path(Path("/w/app/x/prod/include_internal/x/infra"), "x_messages"),
+            "x/infra/x_messages.h",
+        )
+
+    def test_returns_none_outside_include_directory(self):
+        self.assertIsNone(gen.header_include_path(Path("/w/app/x/prod/src/cmd/y/gen"), "y_messages"))
+
+
+class PublicHeaderOutputTest(unittest.TestCase):
+    """ヘッダーを公開ヘッダーとして出力した場合の生成物を確認する。"""
+
+    def setUp(self):
+        self.document = minimal_document(module_dir="prod/libsrc/samplecatalog")
+        self.document[gen.PUBLIC_INCLUDE_KEY] = "samplecatalog/sample_messages.h"
+        self.strings = gen.validate(self.document)
+
+    def test_header_guides_angle_bracket_include(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("利用側は `#include <samplecatalog/sample_messages.h>` でインクルードします。", header)
+        self.assertNotIn("モジュール私有ヘッダー", header)
+
+    def test_source_includes_public_path(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("#include <samplecatalog/sample_messages.h>", source)
+        self.assertNotIn('#include "sample_messages.h"', source)
+
+    def test_private_header_keeps_quoted_include(self):
+        document = minimal_document(module_dir="prod/src/cmd/example")
+        strings = gen.validate(document)
+        self.assertIn('#include "sample_messages.h"', gen.emit_source(document, strings, "example.jsonc"))
+        self.assertIn("モジュール私有ヘッダー", gen.emit_header(document, strings, "example.jsonc"))
+
 if __name__ == "__main__":
     unittest.main()
