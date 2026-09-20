@@ -82,6 +82,7 @@ extern "C"
      *  @return         引数種別が未知の場合は @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
      *
      *  @p args は先頭から @ref cplat_string_catalog_entry::argument_count 個だけ読み進めます。\n
+     *  @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED のインデックスは値を取り出さず、読み飛ばします。\n
      *  引数種別が未知の場合は、その時点で読み取りを打ち切ります。以降の値は取り出せません。
      *
      *  既定引数拡張と一致しない `va_arg` の指定は未定義動作となるため、
@@ -102,12 +103,13 @@ extern "C"
      *  @param[in]      values      展開に使用する値の配列。NULL を渡してはなりません。
      *  @param[in]      value_count @p values の有効な要素数。
      *  @return         成功時は @ref CPLAT_OK を返します。
-     *  @return         書式の構文が不正な場合、または位置指定が @p value_count 以上のインデックスを指す場合は
+     *  @return         書式の構文が不正な場合、位置指定が @p value_count 以上のインデックスを指す場合、
+     *                  または @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED の値を指す場合は
      *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
      *  @return         結果が @p dest に収まらない場合は、切り詰めたうえで
      *                  @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
      *
-     *  書式の構文は `{0}` から `{31}` までの位置指定と、`{{` と `}}` のエスケープのみです。\n
+     *  書式の構文は `{0}` から `{49}` までの位置指定と、`{{` と `}}` のエスケープのみです。\n
      *  インデックスは 10 進数で 2 桁までとし、先行ゼロは許可しません。\n
      *  書式指定は解釈しません。文字列表現は引数種別側で規定されます。
      *
@@ -122,17 +124,22 @@ extern "C"
     /**
      *  @brief          位置指定書式の構文と、位置指定の範囲を確認します。
      *  @param[in]      text        確認する書式。NULL を渡してはなりません。
+     *  @param[in]      arguments   引数の定義配列。NULL を渡した場合は、引数種別を確認しません。
      *  @param[in]      value_count 位置指定が指してよい引数の個数。
      *  @return         書式が正しい場合は @ref CPLAT_OK を返します。
-     *  @return         構文が不正な場合、または位置指定が @p value_count 以上のインデックスを指す場合は
+     *  @return         構文が不正な場合、位置指定が @p value_count 以上のインデックスを指す場合、
+     *                  または @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED のインデックスを指す場合は
      *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
      *
-     *  値を持たずに書式だけを確認するため、カタログ全体の点検に使用します。
+     *  値を持たずに書式だけを確認するため、カタログ全体の点検に使用します。\n
+     *  値を伴う展開では、引数を割り当てないインデックスの参照を
+     *  @ref string_catalog_render_text が値の種別から検出します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。内部に共有状態を持ちません。
      */
-    int string_catalog_validate_text(const char *text, int value_count);
+    int string_catalog_validate_text(const char *text, const cplat_string_catalog_argument *arguments,
+                                     int value_count);
 
 #ifdef __cplusplus
 }

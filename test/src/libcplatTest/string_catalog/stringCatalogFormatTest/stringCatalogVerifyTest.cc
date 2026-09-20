@@ -177,6 +177,51 @@ TEST_F(stringCatalogVerifyTest, invalid_format)
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
+// 引数を割り当てないインデックスを参照する書式が拒否されることの確認
+TEST_F(stringCatalogVerifyTest, unused_argument_index_in_format)
+{
+    // Arrange
+    int actual_ret;
+    fake_catalog_set_argument_kind(FAKE_CATALOG_INDEX_ONE_ARGUMENT, 0,
+                                   CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED);
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                    &language); // [手順] - 未使用のインデックスを参照するカタログを確認する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(FAKE_CATALOG_KEY_ONE_ARGUMENT,
+              string_key); // [確認_異常系] - 不正を検出した文字列キーを報告すること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, language); // [確認_異常系] - 不正を検出した言語を報告すること。
+}
+
+// 引数を割り当てないインデックスを参照しない書式が受理されることの確認
+TEST_F(stringCatalogVerifyTest, unused_argument_kind_is_allowed)
+{
+    // Arrange
+    int actual_ret;
+    fake_catalog_set_argument_kind(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, 1,
+                                   CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED);
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, "path {0}");
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH, "path {0}");
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE, "パス {0}");
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_verify(fake_catalog(), &string_key,
+                                    &language); // [手順] - 未使用のインデックスを参照しないカタログを確認する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 未使用のインデックスがあっても受理すること。
+}
+
 // ニュートラル言語以外のリソースが未定義であっても受理されることの確認
 TEST_F(stringCatalogVerifyTest, missing_localized_text_is_allowed)
 {

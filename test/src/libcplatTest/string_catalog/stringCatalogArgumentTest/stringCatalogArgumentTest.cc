@@ -69,8 +69,33 @@ TEST_F(stringCatalogArgumentTest, no_argument)
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
-    EXPECT_EQ(CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING,
+    EXPECT_EQ(CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED,
               values[0].kind); // [確認_正常系] - 値の配列が書き換わらないこと。
+}
+
+// 引数を割り当てないインデックスを読み飛ばすことの確認
+TEST_F(stringCatalogArgumentTest, unused_argument_kind_is_skipped)
+{
+    // Arrange
+    int actual_ret;
+
+    add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32);
+    add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED);
+    add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32);
+
+    // Pre-Assert
+
+    // Act
+    actual_ret = collect_arguments(&entry, values, INT32_C(1),
+                                   INT32_C(2)); // [手順] - 未使用を挟んだ定義へ、値を 2 個だけ渡して取り出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret);                    // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_EQ(INT32_C(1), values[0].value.int32_value); // [確認_正常系] - 未使用より前の値を取り出すこと。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED,
+              values[1].kind); // [確認_正常系] - 未使用のインデックスに引数種別を記録すること。
+    EXPECT_EQ(INT32_C(2),
+              values[2].value.int32_value); // [確認_正常系] - 未使用を読み飛ばし、次の値を取り出すこと。
 }
 
 // 引数種別ごとに、対応する型の値を取り出すことの確認
@@ -166,7 +191,7 @@ TEST_F(stringCatalogArgumentTest, unknown_argument_kind)
     int actual_ret;
 
     add_kind(CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32);
-    add_kind((cplat_string_catalog_argument_kind)19);
+    add_kind((cplat_string_catalog_argument_kind)20);
 
     // Pre-Assert
 

@@ -29,7 +29,7 @@
 /** 引数種別が公開列挙の範囲内であることを確認します。 */
 static bool is_valid_argument_kind(const cplat_string_catalog_argument_kind kind)
 {
-    return (kind >= CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING) &&
+    return (kind >= CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED) &&
            (kind <= CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE);
 }
 
@@ -190,7 +190,7 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
             }
             else
             {
-                ret = string_catalog_validate_text(text, entry->argument_count);
+                ret = string_catalog_validate_text(text, entry->arguments, entry->argument_count);
             }
 
             if (ret != CPLAT_OK)

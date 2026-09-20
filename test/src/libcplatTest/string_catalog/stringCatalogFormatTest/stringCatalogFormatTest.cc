@@ -317,7 +317,7 @@ TEST_F(stringCatalogFormatTest, unknown_argument_kind)
 {
     // Arrange
     int actual_ret;
-    fake_catalog_set_argument_kind(FAKE_CATALOG_INDEX_ONE_ARGUMENT, 0, (cplat_string_catalog_argument_kind)19);
+    fake_catalog_set_argument_kind(FAKE_CATALOG_INDEX_ONE_ARGUMENT, 0, (cplat_string_catalog_argument_kind)20);
 
     // Pre-Assert
 

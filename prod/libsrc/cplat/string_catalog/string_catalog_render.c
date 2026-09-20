@@ -6,7 +6,7 @@
  *  @date           2026/09/10
  *  @version        1.0.0
  *
- *  本モジュールが解釈する構文は、`{0}` から `{31}` までの位置指定と、`{{` と `}}` のエスケープのみです。\n
+ *  本モジュールが解釈する構文は、`{0}` から `{49}` までの位置指定と、`{{` と `}}` のエスケープのみです。\n
  *  値の文字列表現は引数種別側で規定されるため、書式内には書式指定子を記述できません。\n
  *  展開と構文確認は同一の走査ロジックで行い、出力先バッファーを指定しない呼び出しを構文確認として扱います。
  *
@@ -183,7 +183,8 @@ static void render_buffer_append_string(render_buffer *buffer, const char *text)
  *  @param[in,out]  buffer 書き込み先と経過。NULL を渡してはなりません。
  *  @param[in]      value  追加する値。NULL を渡してはなりません。
  *  @return         成功時は @ref CPLAT_OK を返します。
- *  @return         引数種別が未知の場合は @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
+ *  @return         引数種別が未知の場合、または引数を割り当てないインデックスを指す場合は
+ *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
  */
 static int render_buffer_append_argument(render_buffer *buffer, const string_catalog_argument_value *value)
 {
@@ -193,6 +194,10 @@ static int render_buffer_append_argument(render_buffer *buffer, const string_cat
 
     switch (value->kind)
     {
+    case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED:
+        /* 値を持たないインデックスを書式が参照しているため、書式の誤りとして扱う */
+        return CPLAT_ERR_MALFORMED_DEFINITION;
+
     case CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING:
         if (value->value.string_value == NULL)
         {
@@ -320,13 +325,16 @@ static int render_buffer_append_argument(render_buffer *buffer, const string_cat
  *  @param[in,out]  buffer      書き込み先と経過。NULL を渡してはなりません。
  *  @param[in]      text        走査する書式。NULL を渡してはなりません。
  *  @param[in]      values      展開に使用する値の配列。NULL のときは構文確認だけを行います。
+ *  @param[in]      arguments   引数の定義配列。NULL 以外のときは、引数を割り当てないインデックスを
+ *                              参照していないことも確認します。
  *  @param[in]      value_count 位置指定が指してよい引数の個数。
  *  @return         成功時は @ref CPLAT_OK を返します。
- *  @return         構文が不正な場合、または位置指定が @p value_count 以上のインデックスを指す場合は
+ *  @return         構文が不正な場合、位置指定が @p value_count 以上のインデックスを指す場合、
+ *                  または引数を割り当てないインデックスを指す場合は
  *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
  */
 static int render_scan_text(render_buffer *buffer, const char *text, const string_catalog_argument_value *values,
-                            const int value_count)
+                            const cplat_string_catalog_argument *arguments, const int value_count)
 {
     size_t position = 0U;
 
@@ -392,6 +400,12 @@ static int render_scan_text(render_buffer *buffer, const char *text, const strin
             return CPLAT_ERR_MALFORMED_DEFINITION;
         }
 
+        /* 値を伴う展開では、引数を割り当てないインデックスを値の種別から検出する */
+        if ((arguments != NULL) && (arguments[index].kind == CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED))
+        {
+            return CPLAT_ERR_MALFORMED_DEFINITION;
+        }
+
         if (values != NULL)
         {
             ret = render_buffer_append_argument(buffer, &values[index]);
@@ -419,7 +433,7 @@ int string_catalog_render_text(char *dest, const size_t dest_size, const char *t
     buffer.dest_size = dest_size;
     dest[0] = '\0';
 
-    ret = render_scan_text(&buffer, text, values, value_count);
+    ret = render_scan_text(&buffer, text, values, NULL, value_count);
     if (ret != CPLAT_OK)
     {
         return ret;
@@ -435,9 +449,10 @@ int string_catalog_render_text(char *dest, const size_t dest_size, const char *t
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int string_catalog_validate_text(const char *text, const int value_count)
+int string_catalog_validate_text(const char *text, const cplat_string_catalog_argument *arguments,
+                                 const int value_count)
 {
     render_buffer buffer = {0};
 
-    return render_scan_text(&buffer, text, NULL, value_count);
+    return render_scan_text(&buffer, text, NULL, arguments, value_count);
 }

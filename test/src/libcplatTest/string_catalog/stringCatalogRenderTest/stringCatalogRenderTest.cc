@@ -281,7 +281,7 @@ TEST_F(stringCatalogRenderTest, unknown_argument_kind)
 {
     // Arrange
     int actual_ret;
-    values[0].kind = (cplat_string_catalog_argument_kind)19;
+    values[0].kind = (cplat_string_catalog_argument_kind)20;
 
     // Pre-Assert
 
@@ -450,7 +450,7 @@ TEST_F(stringCatalogRenderTest, invalid_two_digit_placeholder)
         string_catalog_render_text(dest, sizeof(dest), "{100}", values,
                                    CPLAT_STRING_CATALOG_ARGUMENT_MAX); // [手順] - 3 桁のインデックスを展開する。
     actual_ret_over_count = string_catalog_render_text(
-        dest, sizeof(dest), "{32}", values,
+        dest, sizeof(dest), "{50}", values,
         CPLAT_STRING_CATALOG_ARGUMENT_MAX); // [手順] - 引数個数と同じインデックスを展開する。
     actual_ret_leading_zero = string_catalog_render_text(
         dest, sizeof(dest), "{09}", values,
@@ -514,4 +514,23 @@ TEST_F(stringCatalogRenderTest, integer_conversion_matches_standard_library)
         snprintf(expected, sizeof(expected), "%d (0x%08x)", error_values[index], (unsigned int)error_values[index]);
         EXPECT_STREQ(expected, dest); // [確認_正常系] - 10 進数と 16 進数の併記が一致すること。
     }
+}
+
+// 値を割り当てないインデックスを参照する書式が定義エラーになることの確認
+TEST_F(stringCatalogRenderTest, unused_index_reference)
+{
+    // Arrange
+    int actual_ret;
+
+    set_int32(0, INT32_C(1));
+
+    // Pre-Assert
+
+    // Act
+    actual_ret = string_catalog_render_text(dest, sizeof(dest), "{0} と {1}", values,
+                                            2); // [手順] - 値を割り当てないインデックスを参照する書式を展開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
 }

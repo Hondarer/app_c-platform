@@ -44,6 +44,7 @@ extern "C"
      *
      *  | 種別                                          | 渡す型          | 文字列表現の例         |
      *  | --------------------------------------------- | --------------- | ---------------------- |
+     *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED     | なし            | なし                   |
      *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING     | `const char *`  | `config.json`          |
      *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR       | `char`          | `'A'` / `138 (0x8a)`   |
      *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT8       | `int8_t`        | `-12`                  |
@@ -82,28 +83,35 @@ extern "C"
      *
      *  @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE は、Linux の `errno` と
      *  Windows のエラー コードのどちらも `int` として受け取り、10 進数と 16 進数を併記します。
+     *
+     *  @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED は、引数を割り当てないインデックスを表します。\n
+     *  可変長引数から値を取り出さず、書式からも参照できません。
+     *  引数配列の途中に、値を渡さないインデックスを設ける場合に使用します。\n
+     *  値を 0 としているのは、要素を明示しない初期化子と、ゼロで初期化した領域が、
+     *  そのまま未使用を表すようにするためです。
      */
     typedef enum cplat_string_catalog_argument_kind
     {
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING = 0, /**< NUL 終端の文字列。NULL は `(null)` と表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR = 1,  /**< 1 文字。印字できない場合は 10 進数と 16 進数を併記します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT8 = 2,  /**< 符号付き 8 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT8 = 3, /**< 符号なし 8 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT16 = 4, /**< 符号付き 16 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT16 = 5,   /**< 符号なし 16 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32 = 6,    /**< 符号付き 32 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT32 = 7,   /**< 符号なし 32 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT64 = 8,    /**< 符号付き 64 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT64 = 9,   /**< 符号なし 64 bit 整数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX8 = 10,    /**< 符号なし 8 bit 整数。2 桁の 16 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX16 = 11,   /**< 符号なし 16 bit 整数。4 桁の 16 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX32 = 12,   /**< 符号なし 32 bit 整数。8 桁の 16 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX64 = 13,   /**< 符号なし 64 bit 整数。16 桁の 16 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_SIZE = 14,    /**< オブジェクトのバイト数や要素数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_SSIZE = 15,   /**< 符号付きのバイト数や要素数。10 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_POINTER = 16, /**< オブジェクトのアドレス。16 進数で表現します。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_DOUBLE = 17,  /**< 倍精度浮動小数点数。有効桁を保った簡潔な表現にします。 */
-        CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE = 18 /**< OS のエラー コード。10 進数と 16 進数を併記します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED = 0, /**< 引数を割り当てないインデックス。値を取り出しません。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING = 1, /**< NUL 終端の文字列。NULL は `(null)` と表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR = 2,  /**< 1 文字。印字できない場合は 10 進数と 16 進数を併記します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT8 = 3,  /**< 符号付き 8 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT8 = 4, /**< 符号なし 8 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT16 = 5, /**< 符号付き 16 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT16 = 6,   /**< 符号なし 16 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32 = 7,    /**< 符号付き 32 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT32 = 8,   /**< 符号なし 32 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT64 = 9,    /**< 符号付き 64 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT64 = 10,  /**< 符号なし 64 bit 整数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX8 = 11,    /**< 符号なし 8 bit 整数。2 桁の 16 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX16 = 12,   /**< 符号なし 16 bit 整数。4 桁の 16 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX32 = 13,   /**< 符号なし 32 bit 整数。8 桁の 16 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX64 = 14,   /**< 符号なし 64 bit 整数。16 桁の 16 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_SIZE = 15,    /**< オブジェクトのバイト数や要素数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_SSIZE = 16,   /**< 符号付きのバイト数や要素数。10 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_POINTER = 17, /**< オブジェクトのアドレス。16 進数で表現します。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_DOUBLE = 18,  /**< 倍精度浮動小数点数。有効桁を保った簡潔な表現にします。 */
+        CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE = 19 /**< OS のエラー コード。10 進数と 16 進数を併記します。 */
     } cplat_string_catalog_argument_kind;
 
 #ifdef __cplusplus
@@ -113,7 +121,7 @@ extern "C"
 /**
  *  @brief          1 つの文字列が取り得る引数の最大個数です。
  *
- *  書式中の位置指定は `{0}` から `{31}` までとなります。インデックスは 0 起点です。\n
+ *  書式中の位置指定は `{0}` から `{49}` までとなります。インデックスは 0 起点です。\n
  *  書式解析は 2 桁までのインデックスを受け付けるため、この値の上限は 100 です。\n
  *  100 を超える値を設定する場合は、書式解析の桁数の上限も合わせて拡張してください。
  *
@@ -121,7 +129,7 @@ extern "C"
  *  @ref cplat_string_catalog_entry は実際の引数個数分の定義配列を参照し、文字列組み立て処理では値の配列をスタック上に確保します。\n
  *  値の配列は実際の引数の個数ではなく、この上限値に比例します。
  */
-#define CPLAT_STRING_CATALOG_ARGUMENT_MAX 32
+#define CPLAT_STRING_CATALOG_ARGUMENT_MAX 50
 
 /** @} */
 

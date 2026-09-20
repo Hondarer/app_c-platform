@@ -52,7 +52,7 @@ LANGUAGES = ("neutral", "japanese", "english")
 INDEX_DIGITS_MAX = 2
 
 # 1 つの文字列が取れる引数の最大個数。CPLAT_STRING_CATALOG_ARGUMENT_MAX と揃える。
-ARGUMENT_MAX = 32
+ARGUMENT_MAX = 50
 
 
 class DefinitionError(Exception):
@@ -911,7 +911,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へフォールバック（読み替え）されます。",
         " *",
         " *  引数の型と文字列表現はこのテーブルで定義し、言語別リソースでは語順のみを管理します。\\n",
-        " *  書式中の `{0}` から `{31}` は引数の位置を表します。\\n",
+        " *  書式中の `{0}` から `{49}` は引数の位置を表します。\\n",
         " *  `{` や `}` そのものを出力する場合は `{{` および `}}` と記述します。",
         " *",
         " *  ニュートラル言語の書式は、英語と同一の表現とします。\\n",

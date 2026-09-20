@@ -56,6 +56,10 @@ int string_catalog_collect_arguments(const cplat_string_catalog_entry *entry, va
 
         switch (kind)
         {
+        case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED:
+            /* 引数を割り当てないインデックスのため、可変長引数から値を取り出さない */
+            break;
+
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING:
             values[index].value.string_value = va_arg(args, const char *);
             break;
