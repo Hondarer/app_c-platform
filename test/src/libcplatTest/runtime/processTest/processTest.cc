@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <thread>
+
 using testing::_;
 using testing::DoAll;
 using testing::Invoke;
@@ -38,6 +40,11 @@ static void set_invalid_stdio_mode(cplat_process_stdio *spec)
 #elif defined(PLATFORM_WINDOWS)
     #include <mock_windows.h>
 #endif /* PLATFORM_ */
+
+static void get_tid_in_thread(uint32_t *tid_out)
+{
+    *tid_out = cplat_process_get_tid();
+}
 
 // errno が共通結果コードへ分類されることの確認
 TEST(processTest, MapsErrnoToCommonResults)
@@ -886,6 +893,57 @@ TEST(processTest, GetsPidPropagatesMockedGetCurrentProcessId)
 
     // Assert
     EXPECT_EQ(4321U, result); // [確認_正常系] - mock 化した GetCurrentProcessId の戻り値がそのまま返ること。
+}
+#endif /* PLATFORM_ */
+
+// 同じスレッドから繰り返し取得した TID が一致することの確認
+TEST(processTest, GetsTidReturnsSameValueInSameThread)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    uint32_t first_tid = cplat_process_get_tid();  // [手順] - cplat_process_get_tid を呼び出す。
+    uint32_t second_tid = cplat_process_get_tid(); // [手順] - 同じスレッドから cplat_process_get_tid を再度呼び出す。
+
+    // Assert
+    EXPECT_NE(0U, first_tid);            // [確認_正常系] - 取得した TID が 0 でないこと。
+    EXPECT_EQ(first_tid, second_tid);    // [確認_正常系] - 同じスレッドからの 2 回の取得結果が一致すること。
+}
+
+// 別のスレッドから取得した TID が、呼び出し元のスレッドの TID と異なることの確認
+TEST(processTest, GetsTidDiffersBetweenThreads)
+{
+    // Arrange
+    uint32_t worker_tid = 0U; // [状態] - 別スレッドで取得する TID の格納先を 0 にする。
+
+    // Pre-Assert
+
+    // Act
+    std::thread worker(get_tid_in_thread, &worker_tid); // [手順] - 別のスレッドから cplat_process_get_tid を呼び出す。
+    worker.join();
+    uint32_t current_tid = cplat_process_get_tid(); // [手順] - 呼び出し元のスレッドから cplat_process_get_tid を呼び出す。
+
+    // Assert
+    EXPECT_NE(0U, worker_tid);             // [確認_正常系] - 別スレッドで取得した TID が 0 でないこと。
+    EXPECT_NE(current_tid, worker_tid);    // [確認_正常系] - 別スレッドの TID が呼び出し元のスレッドの TID と異なること。
+}
+
+#if defined(PLATFORM_LINUX)
+// 最初のスレッドの TID が PID と一致することの確認
+TEST(processTest, GetsTidMatchesPidOnInitialThread)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    uint32_t tid = cplat_process_get_tid(); // [手順] - 最初のスレッドから cplat_process_get_tid を呼び出す。
+    uint32_t pid = cplat_process_get_pid(); // [手順] - cplat_process_get_pid を呼び出す。
+
+    // Assert
+    EXPECT_EQ(pid, tid); // [確認_正常系] - Linux の最初のスレッドで、TID が PID と一致すること。
 }
 #endif /* PLATFORM_ */
 

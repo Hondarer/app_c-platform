@@ -318,6 +318,7 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 | `dladdr()` (POSIX) / `GetModuleHandleEx` +`GetModuleFileName` (Win32) | `cplat_module_get_path(...)` | 関数アドレスから所属モジュールの完全なパスを取得 |
 | `readlink("/proc/self/exe")` (Linux) / `GetModuleFileName(NULL, ...)` (Win32) | `cplat_process_get_executable_path(...)` | - |
 | `getpid()` (POSIX) / `GetCurrentProcessId()` (Win32) | `cplat_process_get_pid()` | - |
+| `gettid()` (Linux) / `GetCurrentThreadId()` (Win32) | `cplat_process_get_tid()` | 診断目的の識別子です。glibc 2.28 でも動作するよう、Linux では `syscall(SYS_gettid)` を使用します |
 | `fork()` +`execve()` (POSIX) / `CreateProcess()` (Win32) | `cplat_process_start(...)` | stdio リダイレクト、環境変数上書き、作業ディレクトリ指定を共通オプション構造体 `cplat_process_options` に集約 |
 | `waitpid()` (POSIX) / `WaitForSingleObject()` (Win32) | `cplat_process_wait(...)` | - |
 | `WEXITSTATUS(status)` (POSIX) / `GetExitCodeProcess()` (Win32) | `cplat_process_get_exit_code(...)` | - |

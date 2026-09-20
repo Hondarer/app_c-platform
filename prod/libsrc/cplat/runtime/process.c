@@ -32,6 +32,7 @@
 #if defined(PLATFORM_LINUX)
     #include <fcntl.h>
     #include <signal.h>
+    #include <sys/syscall.h>
     #include <sys/types.h>
     #include <sys/wait.h>
     #include <time.h>
@@ -1012,6 +1013,22 @@ uint32_t cplat_process_get_pid(void)
     return (uint32_t)getpid();
 #elif defined(PLATFORM_WINDOWS)
     return (uint32_t)GetCurrentProcessId();
+#else
+    return 0;
+#endif /* PLATFORM_ */
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+uint32_t cplat_process_get_tid(void)
+{
+#if defined(PLATFORM_LINUX)
+    /* glibc がラッパー関数 gettid() を提供するのは 2.30 以降であり、本リポジトリが対象とする
+       glibc 2.28 では宣言されない。移植先の glibc の版に依存しないよう、システム コールを直接呼ぶ。
+       see: https://man7.org/linux/man-pages/man2/gettid.2.html */
+    return (uint32_t)syscall(SYS_gettid);
+#elif defined(PLATFORM_WINDOWS)
+    return (uint32_t)GetCurrentThreadId();
 #else
     return 0;
 #endif /* PLATFORM_ */

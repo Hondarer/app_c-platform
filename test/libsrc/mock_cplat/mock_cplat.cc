@@ -594,6 +594,8 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_process_get_executable_path));
     ON_CALL(*this, cplat_process_get_pid())
         .WillByDefault(Invoke(delegate_real_cplat_process_get_pid));
+    ON_CALL(*this, cplat_process_get_tid())
+        .WillByDefault(Invoke(delegate_real_cplat_process_get_tid));
     ON_CALL(*this, cplat_process_start(_, _))
         .WillByDefault(Invoke(delegate_real_cplat_process_start));
     ON_CALL(*this, cplat_process_wait(_, _))

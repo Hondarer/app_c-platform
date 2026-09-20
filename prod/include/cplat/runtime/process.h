@@ -69,6 +69,22 @@ extern "C"
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_process_get_pid(void);
 
+    /**
+     *  @brief          現在のスレッドの TID (スレッド ID) を取得します。
+     *  @return         現在のスレッドの TID。
+     *
+     *  ログ出力など、診断目的でスレッドを識別する数値を必要とする場合に使用します。\n
+     *  スレッドの生成・待機・切り離し操作には、本関数の戻り値ではなく cplat_thread_create() が
+     *  返すハンドル (@ref cplat_thread) を使用してください。\n
+     *  返る値は OS がスレッドへ割り当てた識別子であり、同時に存在するスレッドの間で一意です。\n
+     *  終了したスレッドの識別子は、OS が後続のスレッドへ再び割り当てる場合があります。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT uint32_t CPLAT_API cplat_process_get_tid(void);
+
 #define CPLAT_PROCESS_WAIT_FOREVER INT_MAX /**< タイムアウトなしで待機する (INT_MAX)。 */
 #define CPLAT_PROCESS_NO_WAIT      0       /**< 即時リターン (タイムアウト 0 ms)。 */
 

@@ -388,6 +388,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_module_get_basename)
 // cplat/runtime/process.h
 MOCK_CPLAT_LINK_IMPL(cplat_process_get_executable_path)
 MOCK_CPLAT_LINK_IMPL(cplat_process_get_pid)
+MOCK_CPLAT_LINK_IMPL(cplat_process_get_tid)
 MOCK_CPLAT_LINK_IMPL(cplat_process_start)
 MOCK_CPLAT_LINK_IMPL(cplat_process_wait)
 MOCK_CPLAT_LINK_IMPL(cplat_process_get_exit_code)
@@ -960,6 +961,7 @@ extern int delegate_real_cplat_module_get_basename(char *basename_out, size_t ba
 // cplat/runtime/process.h
 extern int delegate_real_cplat_process_get_executable_path(char *path_out, size_t path_size);
 extern uint32_t delegate_real_cplat_process_get_pid(void);
+extern uint32_t delegate_real_cplat_process_get_tid(void);
 extern int delegate_real_cplat_process_start(const cplat_process_options *options, cplat_process **process);
 extern int delegate_real_cplat_process_wait(cplat_process * process, int timeout_ms);
 extern int delegate_real_cplat_process_get_exit_code(cplat_process * process, int *exit_code);
@@ -1578,6 +1580,7 @@ class Mock_cplat
     // cplat/runtime/process.h
     MOCK_METHOD(int, cplat_process_get_executable_path, (char *, size_t));
     MOCK_METHOD(uint32_t, cplat_process_get_pid, ());
+    MOCK_METHOD(uint32_t, cplat_process_get_tid, ());
     MOCK_METHOD(int, cplat_process_start, (const cplat_process_options *, cplat_process **));
     MOCK_METHOD(int, cplat_process_wait, (cplat_process *, int));
     MOCK_METHOD(int, cplat_process_get_exit_code, (cplat_process *, int *));

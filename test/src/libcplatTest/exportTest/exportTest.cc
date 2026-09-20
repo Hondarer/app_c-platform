@@ -596,6 +596,7 @@
     /* cplat/runtime/process.h */ \
     EXPORT_ENTRY(cplat_process_get_executable_path, int(CPLAT_API *)(char *path_out, size_t path_size)) \
     EXPORT_ENTRY(cplat_process_get_pid, uint32_t(CPLAT_API *)(void)) \
+    EXPORT_ENTRY(cplat_process_get_tid, uint32_t(CPLAT_API *)(void)) \
     EXPORT_ENTRY(cplat_process_start, int(CPLAT_API *)(const cplat_process_options *options, cplat_process **process)) \
     EXPORT_ENTRY(cplat_process_wait, int(CPLAT_API *)(cplat_process * process, int timeout_ms)) \
     EXPORT_ENTRY(cplat_process_get_exit_code, int(CPLAT_API *)(cplat_process * process, int *exit_code)) \
