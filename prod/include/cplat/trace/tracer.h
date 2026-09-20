@@ -157,17 +157,96 @@
  *  | CPLAT_TRACE_LEVEL_INFO     | Informational (4) | LOG_INFO (6)    |
  *  | CPLAT_TRACE_LEVEL_VERBOSE  | Verbose (5)       | LOG_DEBUG (7)   |
  *  | CPLAT_TRACE_LEVEL_DEBUG    | Verbose (5)       | LOG_DEBUG (7)   |
+ *
+ *  CPLAT_TRACE_LEVEL_INFO 以上は、常時記録の対象となる想定でレベルを設計しています。\n
+ *  運用中のシステムで何が起きたかを、設定を変更せずに後から追えるようにするためです。
+ *
+ *  CPLAT_TRACE_LEVEL_INFO には、繰り返し発生する処理の記録や、1 件ごとの詳細を含めないでください。\n
+ *  常時記録の対象が増え続けると保存期間が短くなり、必要な記録が先に失われます。
+ *
+ *  量の多い記録や、内部の状態を細かく残す記録は CPLAT_TRACE_LEVEL_VERBOSE または
+ *  CPLAT_TRACE_LEVEL_DEBUG にしてください。\n
+ *  これらは既定では記録せず、調査の必要が生じたときに有効にします。
+ *
+ *  通常のレベルと対になる強制出力のレベルを、負の値の帯として持ちます。\n
+ *  強制出力のレベルで書き込みを要求すると、出力先のスレッショルド レベルによらず出力します。
+ *  重大度では選び切れない記録を、絞り込みの結果として残すための入口です。\n
+ *  スレッショルド レベルが CPLAT_TRACE_LEVEL_NONE の出力先へは出力しません。
+ *  出力しない設定を明示している出力先までは越えません。
+ *
+ *  強制出力のレベルは、出力行の表記では対応する通常のレベルと同じに見えます。\n
+ *  強制であるかどうかは絞り込みの結果であり、記録の重大度ではないためです。
+ *
+ *  ETW と syslog へは、対応する通常のレベルと同じ重大度で渡します。\n
+ *  ただし CPLAT_TRACE_LEVEL_FORCE_VERBOSE と CPLAT_TRACE_LEVEL_FORCE_DEBUG は、
+ *  Informational (4) と LOG_INFO (6) へ引き上げます。
+ *  常時記録の対象となる帯へ入れ、cplat の外側の設定で捨てられないようにするためです。
+ *
+ *  | cplat_trace_level                | ETW Level         | syslog severity |
+ *  | -------------------------------- | ----------------- | --------------- |
+ *  | CPLAT_TRACE_LEVEL_FORCE_CRITICAL | Critical (1)      | LOG_CRIT (2)    |
+ *  | CPLAT_TRACE_LEVEL_FORCE_ERROR    | Error (2)         | LOG_ERR (3)     |
+ *  | CPLAT_TRACE_LEVEL_FORCE_WARNING  | Warning (3)       | LOG_WARNING (4) |
+ *  | CPLAT_TRACE_LEVEL_FORCE_INFO     | Informational (4) | LOG_INFO (6)    |
+ *  | CPLAT_TRACE_LEVEL_FORCE_VERBOSE  | Informational (4) | LOG_INFO (6)    |
+ *  | CPLAT_TRACE_LEVEL_FORCE_DEBUG    | Informational (4) | LOG_INFO (6)    |
+ *
+ *  強制出力のレベルは、スレッショルド レベルとして指定できません。\n
+ *  指定するとスレッショルド レベルを設定する関数が引数の誤りを返します。
  */
 typedef enum cplat_trace_level
 {
-    CPLAT_TRACE_LEVEL_CRITICAL = 0, /**< 致命的エラー。 */
-    CPLAT_TRACE_LEVEL_ERROR = 1,    /**< エラー。 */
-    CPLAT_TRACE_LEVEL_WARNING = 2,  /**< 警告。 */
-    CPLAT_TRACE_LEVEL_INFO = 3,     /**< 情報。 */
-    CPLAT_TRACE_LEVEL_VERBOSE = 4,  /**< 詳細な診断情報。 */
-    CPLAT_TRACE_LEVEL_DEBUG = 5,    /**< 最も詳細な診断情報。 */
-    CPLAT_TRACE_LEVEL_NONE = 6      /**< 出力しない。 */
+    CPLAT_TRACE_LEVEL_FORCE_CRITICAL = -7, /**< 致命的エラー。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_ERROR = -6,    /**< エラー。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_WARNING = -5,  /**< 警告。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_INFO = -4,     /**< 情報。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_VERBOSE = -3,  /**< 詳細な診断情報。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_DEBUG = -2,    /**< 最も詳細な診断情報。強制出力します。 */
+    CPLAT_TRACE_LEVEL_FORCE_NONE = -1,     /**< 出力しない。強制出力の帯における対の値です。 */
+    CPLAT_TRACE_LEVEL_CRITICAL = 0,        /**< 致命的エラー。 */
+    CPLAT_TRACE_LEVEL_ERROR = 1,           /**< エラー。 */
+    CPLAT_TRACE_LEVEL_WARNING = 2,         /**< 警告。 */
+    CPLAT_TRACE_LEVEL_INFO = 3,            /**< 情報。 */
+    CPLAT_TRACE_LEVEL_VERBOSE = 4,         /**< 詳細な診断情報。 */
+    CPLAT_TRACE_LEVEL_DEBUG = 5,           /**< 最も詳細な診断情報。 */
+    CPLAT_TRACE_LEVEL_NONE = 6             /**< 出力しない。 */
 } cplat_trace_level;
+
+/**
+ *  @brief          通常のトレース レベルと強制出力のトレース レベルの差です。
+ *
+ *  強制出力のレベルは、通常のレベルからこの値を引いた負の値です。\n
+ *  しきい値の判定は「出力要求のレベルがスレッショルド レベル以下であること」のため、
+ *  どの通常のスレッショルド レベルよりも小さい値になり、判定を通過します。
+ */
+#define CPLAT_TRACE_LEVEL_FORCE_OFFSET 7
+
+/**
+ *  @brief          通常のトレース レベルを、強制出力のトレース レベルへ変換します。
+ *  @param[in]      level 変換する通常のトレース レベル。
+ *  @return         対応する強制出力のトレース レベルです。
+ *
+ *  すでに強制出力のレベルを渡した場合の結果は規定しません。
+ */
+#define CPLAT_TRACE_LEVEL_TO_FORCE(level) \
+    ((cplat_trace_level)((int)(level) - CPLAT_TRACE_LEVEL_FORCE_OFFSET))
+
+/**
+ *  @brief          強制出力のトレース レベルを、通常のトレース レベルへ変換します。
+ *  @param[in]      level 変換する強制出力のトレース レベル。
+ *  @return         対応する通常のトレース レベルです。
+ *
+ *  通常のレベルを渡した場合の結果は規定しません。
+ */
+#define CPLAT_TRACE_LEVEL_FROM_FORCE(level) \
+    ((cplat_trace_level)((int)(level) + CPLAT_TRACE_LEVEL_FORCE_OFFSET))
+
+/**
+ *  @brief          トレース レベルが強制出力のレベルかどうかを判定します。
+ *  @param[in]      level 判定するトレース レベル。
+ *  @return         強制出力のレベルであれば 0 以外、そうでなければ 0 を返します。
+ */
+#define CPLAT_TRACE_LEVEL_IS_FORCE(level) ((int)(level) < 0)
 
 /**
  *  @enum           cplat_tracer_state
@@ -722,7 +801,10 @@ extern "C"
      *
      *  @param[in]      handle   cplat_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (cplat_trace_level)。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *                           強制出力のレベルは指定できません。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN の
+     *                  いずれかを返します。
+     *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
      *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
@@ -756,7 +838,10 @@ extern "C"
      *
      *  @param[in]      handle   cplat_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (cplat_trace_level)。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *                           強制出力のレベルは指定できません。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN の
+     *                  いずれかを返します。
+     *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
      *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
@@ -807,10 +892,13 @@ extern "C"
      *  @param[in]      path         出力ファイル パス。NULL でデフォルト パスを使用。
      *  @param[in]      level        ファイル トレースのスレッショルド レベル。
      *                               CPLAT_TRACE_LEVEL_NONE でファイル トレースを無効化。
+     *                               強制出力のレベルは指定できません。
      *  @param[in]      max_bytes    1 ファイルあたりの最大バイト数。0 で既定値を使用。
      *  @param[in]      generations  保持する旧世代数。0 以下で既定値を使用。
      *  @param[in]      flags        ファイル sink の動作フラグの OR 結合、または 0。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、
+     *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            started 中の即時反映
      *  started 状態でも呼び出せます。この場合は設定を記録するだけでなく、変更を即座に反映します。\n
@@ -846,7 +934,10 @@ extern "C"
      *
      *  @param[in]      handle   cplat_tracer_create の戻り値。
      *  @param[in]      level    新しいスレッショルド レベル (cplat_trace_level)。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *                           強制出力のレベルは指定できません。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN の
+     *                  いずれかを返します。
+     *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
      *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n

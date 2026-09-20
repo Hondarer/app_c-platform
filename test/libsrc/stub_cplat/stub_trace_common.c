@@ -58,18 +58,26 @@ char trace_level_char(const cplat_trace_level level)
 {
     switch (level)
     {
+    /* 強制出力かどうかは絞り込みの結果であり、記録の重大度ではないため、表記を分けない */
+    case CPLAT_TRACE_LEVEL_FORCE_CRITICAL:
     case CPLAT_TRACE_LEVEL_CRITICAL:
         return 'C';
+    case CPLAT_TRACE_LEVEL_FORCE_ERROR:
     case CPLAT_TRACE_LEVEL_ERROR:
         return 'E';
+    case CPLAT_TRACE_LEVEL_FORCE_WARNING:
     case CPLAT_TRACE_LEVEL_WARNING:
         return 'W';
+    case CPLAT_TRACE_LEVEL_FORCE_INFO:
     case CPLAT_TRACE_LEVEL_INFO:
         return 'I';
+    case CPLAT_TRACE_LEVEL_FORCE_VERBOSE:
     case CPLAT_TRACE_LEVEL_VERBOSE:
         return 'V';
+    case CPLAT_TRACE_LEVEL_FORCE_DEBUG:
     case CPLAT_TRACE_LEVEL_DEBUG:
         return 'D';
+    case CPLAT_TRACE_LEVEL_FORCE_NONE:
     case CPLAT_TRACE_LEVEL_NONE:
     default:
         return 'D';

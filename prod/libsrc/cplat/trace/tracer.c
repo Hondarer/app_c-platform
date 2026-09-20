@@ -398,13 +398,22 @@ static int to_syslog_level(const cplat_trace_level lv)
 {
     switch (lv)
     {
+    case CPLAT_TRACE_LEVEL_FORCE_CRITICAL:
     case CPLAT_TRACE_LEVEL_CRITICAL:
         return LOG_CRIT;
+    case CPLAT_TRACE_LEVEL_FORCE_ERROR:
     case CPLAT_TRACE_LEVEL_ERROR:
         return LOG_ERR;
+    case CPLAT_TRACE_LEVEL_FORCE_WARNING:
     case CPLAT_TRACE_LEVEL_WARNING:
         return LOG_WARNING;
     case CPLAT_TRACE_LEVEL_INFO:
+        return LOG_INFO;
+    /* 強制出力は syslog 側の既定の設定で捨てられないよう、最下位から 1 段引き上げる */
+    case CPLAT_TRACE_LEVEL_FORCE_INFO:
+    case CPLAT_TRACE_LEVEL_FORCE_VERBOSE:
+    case CPLAT_TRACE_LEVEL_FORCE_DEBUG:
+    case CPLAT_TRACE_LEVEL_FORCE_NONE:
         return LOG_INFO;
     case CPLAT_TRACE_LEVEL_VERBOSE:
         return LOG_DEBUG;
@@ -427,13 +436,22 @@ static int to_etw_level(const cplat_trace_level lv)
 {
     switch (lv)
     {
+    case CPLAT_TRACE_LEVEL_FORCE_CRITICAL:
     case CPLAT_TRACE_LEVEL_CRITICAL:
         return 1;
+    case CPLAT_TRACE_LEVEL_FORCE_ERROR:
     case CPLAT_TRACE_LEVEL_ERROR:
         return 2;
+    case CPLAT_TRACE_LEVEL_FORCE_WARNING:
     case CPLAT_TRACE_LEVEL_WARNING:
         return 3;
     case CPLAT_TRACE_LEVEL_INFO:
+        return 4;
+    /* 強制出力は ETW セッション側の既定の設定で捨てられないよう、最下位から 1 段引き上げる */
+    case CPLAT_TRACE_LEVEL_FORCE_INFO:
+    case CPLAT_TRACE_LEVEL_FORCE_VERBOSE:
+    case CPLAT_TRACE_LEVEL_FORCE_DEBUG:
+    case CPLAT_TRACE_LEVEL_FORCE_NONE:
         return 4;
     case CPLAT_TRACE_LEVEL_VERBOSE:
         return 5;
@@ -1303,6 +1321,19 @@ static int should_output(const cplat_trace_level msg_level, const cplat_trace_le
     return (int)msg_level <= (int)threshold;
 }
 
+/**
+ *  @brief          スレッショルド レベルとして指定できる値かどうかを判定します。
+ *  @param[in]      level 判定するトレース レベル。
+ *  @return         指定できる場合は 0 以外、指定できない場合は 0 を返します。
+ *
+ *  強制出力のレベルは、どの通常のスレッショルド レベルよりも小さい値です。\n
+ *  スレッショルド レベルとして指定すると、強制出力の要求だけが通る状態になるため受け付けません。
+ */
+static int is_valid_threshold(const cplat_trace_level level)
+{
+    return ((int)level >= (int)CPLAT_TRACE_LEVEL_CRITICAL) && ((int)level <= (int)CPLAT_TRACE_LEVEL_NONE);
+}
+
 #define STDERR_TS_BUF_SIZE (CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1)
 
 /**
@@ -1877,6 +1908,11 @@ cplat_trace_level cplat_tracer_get_os_level(cplat_tracer *handle)
 
 int cplat_tracer_set_os_level(cplat_tracer *handle, const cplat_trace_level level)
 {
+    if (!is_valid_threshold(level))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
     if (tracer_enter_exclusive(handle) != 0)
     {
         return CPLAT_ERR_UNKNOWN;
@@ -1912,6 +1948,11 @@ cplat_trace_level cplat_tracer_get_etw_level(cplat_tracer *handle)
 
 int cplat_tracer_set_etw_level(cplat_tracer *handle, const cplat_trace_level level)
 {
+    if (!is_valid_threshold(level))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
 #if defined(PLATFORM_WINDOWS)
     if (tracer_enter_exclusive(handle) != 0)
     {
@@ -1950,6 +1991,11 @@ int cplat_tracer_set_file_level(cplat_tracer *handle, const char *path, const cp
                                    const size_t max_bytes, const int generations, const int flags)
 {
     char *path_copy = NULL;
+
+    if (!is_valid_threshold(level))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
 
     /* 失敗時に設定を変更しないよう、パスの複製をロック取得前に確保する */
     if (path != NULL)
@@ -2067,6 +2113,11 @@ cplat_trace_level cplat_tracer_get_stderr_level(cplat_tracer *handle)
 
 int cplat_tracer_set_stderr_level(cplat_tracer *handle, const cplat_trace_level level)
 {
+    if (!is_valid_threshold(level))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
     if (tracer_enter_exclusive(handle) != 0)
     {
         return CPLAT_ERR_UNKNOWN;

@@ -1880,3 +1880,105 @@ TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
     // Cleanup
     cplat_tracer_dispose(&handle);
 }
+
+// 強制出力のレベルが、出力先のしきい値を越えて出力されることの確認
+TEST_F(traceTest, force_level_passes_threshold)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_stderr_level(handle, CPLAT_TRACE_LEVEL_ERROR)); // [状態] - stderr レベルを ERROR とする。
+    // [状態確認] - cplat_tracer_set_stderr_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                     // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
+
+    // Pre-Assert
+
+    // Act
+    testing::internal::CaptureStderr();
+    int normal_ret = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_DEBUG, NULL,
+                                           "normal debug"); // [手順] - 通常の DEBUG を出力する。
+    int force_ret = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_FORCE_DEBUG, NULL,
+                                          "forced debug"); // [手順] - 強制出力の DEBUG を出力する。
+    std::string captured = testing::internal::GetCapturedStderr();
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, normal_ret); // [確認_正常系] - 通常の DEBUG の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(CPLAT_OK, force_ret);  // [確認_正常系] - 強制出力の DEBUG の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(std::string::npos,
+              captured.find("normal debug")); // [確認_正常系] - 通常の DEBUG はしきい値で出力されないこと。
+    EXPECT_NE(std::string::npos,
+              captured.find("2026-04-26T03:04:05.678+09:00 D forced debug")); // [確認_正常系] -
+                                                                             // 強制出力の DEBUG がしきい値を越えて、
+                                                                             // 通常と同じレベル表記で出力されること。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}
+
+// 強制出力のレベルでも、しきい値が NONE の出力先へは出力しないことの確認
+TEST_F(traceTest, force_level_does_not_pass_none_threshold)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_stderr_level(handle, CPLAT_TRACE_LEVEL_NONE)); // [状態] - stderr レベルを NONE とする。
+    // [状態確認] - cplat_tracer_set_stderr_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                     // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
+
+    // Pre-Assert
+
+    // Act
+    testing::internal::CaptureStderr();
+    int force_ret = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_FORCE_CRITICAL, NULL,
+                                          "forced to none"); // [手順] - 強制出力を NONE の出力先へ要求する。
+    std::string captured = testing::internal::GetCapturedStderr();
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, force_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_EQ(std::string::npos,
+              captured.find("forced to none")); // [確認_異常系] - NONE の出力先へは強制出力でも出力しないこと。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}
+
+// しきい値の設定が、強制出力のレベルと範囲外の値を拒否することの確認
+TEST_F(traceTest, set_level_rejects_out_of_range_threshold)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+    cplat_trace_level out_of_range = CPLAT_TRACE_LEVEL_NONE;
+
+    memset(&out_of_range, 0x7F, sizeof(out_of_range));
+
+    // Pre-Assert
+
+    // Act
+    int stderr_force =
+        cplat_tracer_set_stderr_level(handle, CPLAT_TRACE_LEVEL_FORCE_INFO); // [手順] - stderr へ強制出力を指定する。
+    int os_force = cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_FORCE_INFO); // [手順] - OS へ強制出力を指定する。
+    int etw_force =
+        cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_FORCE_INFO); // [手順] - ETW へ強制出力を指定する。
+    int file_force = cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_FORCE_INFO, 0U, 0,
+                                                 0); // [手順] - ファイルへ強制出力を指定する。
+    int stderr_out_of_range =
+        cplat_tracer_set_stderr_level(handle, out_of_range); // [手順] - stderr へ範囲外の値を指定する。
+    cplat_trace_level stderr_level = cplat_tracer_get_stderr_level(handle);
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, stderr_force); // [確認_異常系] - stderr が強制出力を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, os_force);     // [確認_異常系] - OS が強制出力を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, etw_force);    // [確認_異常系] - ETW が強制出力を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, file_force);   // [確認_異常系] - ファイルが強制出力を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              stderr_out_of_range); // [確認_異常系] - 範囲外の値も同じ規則で拒否すること。
+    EXPECT_NE(CPLAT_TRACE_LEVEL_FORCE_INFO,
+              stderr_level); // [確認_異常系] - 拒否した値がしきい値へ反映されていないこと。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}

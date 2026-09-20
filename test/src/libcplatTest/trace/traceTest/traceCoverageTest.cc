@@ -121,6 +121,54 @@ TEST_F(traceCoverageTest, to_syslog_level_covers_all_cases)
     EXPECT_EQ(LOG_DEBUG, default_level);   // [確認_正常系] - 未定義レベルが LOG_DEBUG になること。
 }
 
+// 強制出力のレベルが、対応する重大度へ変換されることの確認
+TEST_F(traceCoverageTest, to_syslog_level_maps_force_levels)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int critical_level =
+        test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_CRITICAL); // [手順] - FORCE_CRITICAL を変換する。
+    int error_level = test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_ERROR); // [手順] - FORCE_ERROR を変換する。
+    int warning_level =
+        test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_WARNING);           // [手順] - FORCE_WARNING を変換する。
+    int info_level = test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_INFO); // [手順] - FORCE_INFO を変換する。
+    int verbose_level =
+        test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_VERBOSE);             // [手順] - FORCE_VERBOSE を変換する。
+    int debug_level = test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_DEBUG); // [手順] - FORCE_DEBUG を変換する。
+    int none_level = test_tracer_to_syslog_level(CPLAT_TRACE_LEVEL_FORCE_NONE);   // [手順] - FORCE_NONE を変換する。
+
+    // Assert
+    EXPECT_EQ(LOG_CRIT, critical_level);   // [確認_正常系] - FORCE_CRITICAL が LOG_CRIT になること。
+    EXPECT_EQ(LOG_ERR, error_level);       // [確認_正常系] - FORCE_ERROR が LOG_ERR になること。
+    EXPECT_EQ(LOG_WARNING, warning_level); // [確認_正常系] - FORCE_WARNING が LOG_WARNING になること。
+    EXPECT_EQ(LOG_INFO, info_level);       // [確認_正常系] - FORCE_INFO が LOG_INFO になること。
+    EXPECT_EQ(LOG_INFO, verbose_level); // [確認_正常系] - FORCE_VERBOSE が常時記録の帯である LOG_INFO になること。
+    EXPECT_EQ(LOG_INFO, debug_level);   // [確認_正常系] - FORCE_DEBUG が常時記録の帯である LOG_INFO になること。
+    EXPECT_EQ(LOG_INFO, none_level);    // [確認_正常系] - FORCE_NONE が LOG_INFO になること。
+}
+
+// 強制出力と通常のレベルの相互変換が対応していることの確認
+TEST_F(traceCoverageTest, force_level_conversion_macros_are_symmetric)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    cplat_trace_level forced =
+        CPLAT_TRACE_LEVEL_TO_FORCE(CPLAT_TRACE_LEVEL_WARNING); // [手順] - WARNING を強制出力へ変換する。
+    cplat_trace_level restored = CPLAT_TRACE_LEVEL_FROM_FORCE(forced); // [手順] - 強制出力を通常へ戻す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_FORCE_WARNING, forced); // [確認_正常系] - WARNING が FORCE_WARNING になること。
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_WARNING, restored);     // [確認_正常系] - 元の WARNING へ戻ること。
+    EXPECT_NE(0, CPLAT_TRACE_LEVEL_IS_FORCE(forced));   // [確認_正常系] - 強制出力と判定できること。
+    EXPECT_EQ(0, CPLAT_TRACE_LEVEL_IS_FORCE(restored)); // [確認_正常系] - 通常のレベルは強制出力と判定しないこと。
+}
+
 // syslog sink 生成失敗と rwlock 生成失敗で create が NULL を返すことの確認
 TEST_F(traceCoverageTest, create_fails_when_syslog_or_rwlock_setup_fails)
 {
