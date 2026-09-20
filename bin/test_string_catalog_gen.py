@@ -809,5 +809,104 @@ class KeyValueTest(unittest.TestCase):
         with self.assertRaises(gen.DefinitionError):
             gen.validate(self.document_with(1, None))
 
+def export_document(scope="api", **overrides):
+    """公開する設定を持つ定義を組み立てる。"""
+    document = minimal_document(module_dir="prod/libsrc/example")
+    document["settings"] = "catalog_settings.jsonc"
+    document["export"] = scope
+    document[gen.SETTINGS_KEY] = {
+        "export": {"prefix": "SAMPLECATALOG", "header": "samplecatalog/samplecatalog_export.h"}
+    }
+    document.update(overrides)
+    return document
+
+
+class ExportValidateTest(unittest.TestCase):
+    """カタログを外部へ公開する設定の検査を確認する。"""
+
+    def test_accepts_api_and_full(self):
+        for scope in gen.EXPORT_SCOPES:
+            self.assertEqual(len(gen.validate(export_document(scope))), 1)
+
+    def test_rejects_unknown_scope(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(export_document("public"))
+
+    def test_requires_settings_export_section(self):
+        document = export_document()
+        del document[gen.SETTINGS_KEY]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_requires_prefix_and_header(self):
+        for key in ("prefix", "header"):
+            document = export_document()
+            del document[gen.SETTINGS_KEY]["export"][key]
+            with self.assertRaises(gen.DefinitionError):
+                gen.validate(document)
+
+    def test_rejects_lowercase_prefix(self):
+        document = export_document()
+        document[gen.SETTINGS_KEY]["export"]["prefix"] = "samplecatalog"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_allows_missing_export(self):
+        document = minimal_document()
+        self.assertEqual(len(gen.validate(document)), 1)
+
+
+class ExportOutputTest(unittest.TestCase):
+    """公開するカタログの生成物を確認する。"""
+
+    @staticmethod
+    def header(scope):
+        document = export_document(scope) if scope else minimal_document(module_dir="prod/libsrc/example")
+        return gen.emit_header(document, gen.validate(document), "example.jsonc")
+
+    def test_includes_export_header(self):
+        self.assertIn("#include <samplecatalog/samplecatalog_export.h>", self.header("api"))
+
+    def test_does_not_include_export_header_when_not_exported(self):
+        self.assertNotIn("samplecatalog_export.h", self.header(None))
+
+    def test_api_scope_decorates_behavior_functions(self):
+        header = self.header("api")
+        self.assertIn(
+            "SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_messages_format(", header
+        )
+        self.assertIn(
+            "SAMPLECATALOG_EXPORT const char *SAMPLECATALOG_API sample_messages_id(", header
+        )
+
+    def test_api_scope_leaves_structure_returning_functions_undecorated(self):
+        # 構造体を返す関数を公開すると、利用側が cplat のレイアウトへ依存する。
+        header = self.header("api")
+        self.assertIn("    const cplat_string_catalog *sample_messages_catalog(void);", header)
+        self.assertIn("    const cplat_string_catalog_entry *sample_messages_entries(void);", header)
+        self.assertIn("    int sample_messages_verify(", header)
+
+    def test_full_scope_decorates_every_function(self):
+        header = self.header("full")
+        self.assertIn(
+            "SAMPLECATALOG_EXPORT const cplat_string_catalog *SAMPLECATALOG_API sample_messages_catalog(",
+            header,
+        )
+        self.assertIn("SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_messages_verify(", header)
+
+    def test_no_marker_remains_when_not_exported(self):
+        header = self.header(None)
+        self.assertNotIn("@EXPORT", header)
+        self.assertNotIn("@API", header)
+        self.assertIn("    int sample_messages_format(", header)
+
+    def test_trace_write_functions_are_decorated(self):
+        document = export_document("api", **trace_document(module_dir="prod/libsrc/example"))
+        header = gen.emit_header(document, gen.validate(document), "example.jsonc")
+        self.assertIn(
+            "SAMPLECATALOG_EXPORT void SAMPLECATALOG_API sample_trace_set_tracer(", header
+        )
+        self.assertIn("SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_trace_write(", header)
+
 if __name__ == "__main__":
     unittest.main()

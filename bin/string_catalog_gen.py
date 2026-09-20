@@ -58,6 +58,16 @@ ARGUMENT_MAX = 50
 # 添字テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
 KEY_VALUE_MAX = 4095
 
+# カタログ定義が app 単位の設定ファイルを指す項目と、読み込んだ内容を置く場所。
+SETTINGS_REFERENCE = "settings"
+SETTINGS_KEY = "settings_document"
+
+# カタログ定義の export に書ける公開範囲。省略した場合は公開しない。
+# api は戻り値が cplat の構造体を指さない関数だけを公開し、full はすべてを公開する。
+EXPORT_SCOPE_API = "api"
+EXPORT_SCOPE_FULL = "full"
+EXPORT_SCOPES = (EXPORT_SCOPE_API, EXPORT_SCOPE_FULL)
+
 # カタログ定義の kind に書ける値。省略した場合は message として扱う。
 CATALOG_KIND_MESSAGE = "message"
 CATALOG_KIND_TRACE = "trace"
@@ -184,6 +194,30 @@ def load_definition(path: Path) -> dict:
         raise DefinitionError(f"{path}: JSON として解釈できません: {error}") from error
 
 
+def settings_path(definition: Path, document: dict) -> Path | None:
+    """カタログ定義が指す設定ファイルのパスを返す。参照がない場合は None を返す。"""
+    reference = document.get(SETTINGS_REFERENCE)
+    if reference is None:
+        return None
+    if not isinstance(reference, str):
+        raise DefinitionError(f"{SETTINGS_REFERENCE} は定義ファイルからの相対パスを文字列で指定してください。")
+    return definition.parent / reference
+
+
+def load_settings(definition: Path, document: dict) -> None:
+    """app 単位の設定ファイルを読み込み、カタログ定義へ取り込む。
+
+    設定は app 内の複数のカタログが共有するため、カタログ定義とは別のファイルに置く。
+    参照はカタログ定義からの相対パスで書く。
+    """
+    path = settings_path(definition, document)
+    if path is None:
+        return
+    if not path.is_file():
+        raise DefinitionError(f"{SETTINGS_REFERENCE} が指す設定ファイルがありません: {path}")
+    document[SETTINGS_KEY] = load_definition(path)
+
+
 def join_text(value) -> str:
     """文字列、または文字列の配列を 1 つの文字列にする。"""
     if isinstance(value, str):
@@ -241,6 +275,35 @@ def placeholder_indices(text: str) -> list[int]:
     return found
 
 
+def validate_export(document: dict) -> None:
+    """カタログを外部へ公開する設定を検査する。"""
+    scope = document.get("export")
+    if scope is None:
+        return
+
+    if scope not in EXPORT_SCOPES:
+        raise DefinitionError(
+            f"未知の公開範囲です: {scope}。{' または '.join(EXPORT_SCOPES)} を指定してください。"
+        )
+
+    settings = document.get(SETTINGS_KEY, {}).get("export")
+    if settings is None:
+        raise DefinitionError(
+            f"export を指定する場合は、{SETTINGS_REFERENCE} が指す設定ファイルへ export を記載してください。"
+        )
+
+    for key in ("prefix", "header"):
+        if key not in settings:
+            raise DefinitionError(f"設定ファイルの export に {key} がありません。")
+        if not isinstance(settings[key], str) or not settings[key]:
+            raise DefinitionError(f"設定ファイルの export の {key} は空でない文字列で指定してください。")
+
+    # 接頭辞からマクロ名を導く。cplat/base/dll_exports.h が定める規約と同じ形にする。
+    prefix = settings["prefix"]
+    if not prefix.isupper() or not prefix.replace("_", "").isalnum():
+        raise DefinitionError(f"設定ファイルの export の prefix は英大文字と数字で指定してください: {prefix}")
+
+
 def validate(document: dict) -> list[dict]:
     """定義の内容を検査し、文字列の一覧を返す。"""
     for key in ("strings",):
@@ -251,6 +314,8 @@ def validate(document: dict) -> list[dict]:
         raise DefinitionError(
             f"未知のカタログ種別です: {document['kind']}。{' または '.join(CATALOG_KINDS)} を指定してください。"
         )
+
+    validate_export(document)
 
     strings = document["strings"]
     if not strings:
@@ -709,16 +774,40 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     return "\n".join(lines)
 
 
-def expand(template: str, module: str, library: str) -> str:
+def export_macros(document: dict) -> dict[str, str]:
+    """エクスポート装飾の目印に対する置換文字列を返す。
+
+    目印は空でない場合に末尾の空白を含む。公開しない場合は空文字列となり、
+    装飾のない宣言がそのまま残る。
+    """
+    empty = {"@EXPORT@": "", "@API@": "", "@EXPORT_FULL@": "", "@API_FULL@": ""}
+    scope = document.get("export")
+    if scope is None:
+        return empty
+
+    prefix = document[SETTINGS_KEY]["export"]["prefix"]
+    macros = dict(empty)
+    macros["@EXPORT@"] = f"{prefix}_EXPORT "
+    macros["@API@"] = f"{prefix}_API "
+    if scope == EXPORT_SCOPE_FULL:
+        macros["@EXPORT_FULL@"] = macros["@EXPORT@"]
+        macros["@API_FULL@"] = macros["@API@"]
+    return macros
+
+
+def expand(template: str, module: str, library: str, macros: dict[str, str] | None = None) -> str:
     """テンプレート中の接頭辞の目印を置き換える。
 
     テンプレートは C のコードを含み波括弧が現れるため、str.format は使わない。
     """
-    return (
+    text = (
         template.replace("@MODULE_UPPER@", module.upper())
         .replace("@MODULE@", module)
         .replace("@LIBRARY@", library)
     )
+    for marker, replacement in (macros or export_macros({})).items():
+        text = text.replace(marker, replacement)
+    return text
 
 
 def derive_module_prefix(definition: Path) -> str:
@@ -775,6 +864,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     """ヘッダー側の生成物を組み立てる。"""
     module = document["module_prefix"]
     library = LIBRARY_PREFIX
+    macros = export_macros(document)
     guard = f"{module.upper()}_H"
     header_name = f"{module}.h"
     source_name = f"{module}.c"
@@ -826,6 +916,9 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     includes = [f"#include <{LIBRARY_HEADER}>"]
     # トレース種別は、出力先のハンドルと、文脈引数の値を取得する API を参照する。
     includes.extend(f"#include <{header}>" for header in (TRACE_HEADERS if is_trace(document) else ()))
+    # 公開するカタログは、app のエクスポート マクロを定義するヘッダーを参照する。
+    if document.get("export") is not None:
+        includes.append(f"#include <{document[SETTINGS_KEY]['export']['header']}>")
 
     out.extend(
         includes
@@ -864,9 +957,9 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
 
     out.append(f"    }} {key_enum_name(document)};")
     out.append("")
-    out.append(expand(ACCESSOR_DECLARATIONS, module, library))
+    out.append(expand(ACCESSOR_DECLARATIONS, module, library, macros))
     if is_trace(document):
-        out.append(expand(TRACE_WRITE_DECLARATION, module, library))
+        out.append(expand(TRACE_WRITE_DECLARATION, module, library, macros))
     out.extend(
         [
             "#ifdef __cplusplus",
@@ -936,7 +1029,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const @LIBRARY@_entry *@MODULE@_entries(void);
+    @EXPORT_FULL@const @LIBRARY@_entry *@API_FULL@@MODULE@_entries(void);
 
     /**
      *  @brief          カタログの登録件数を取得します。
@@ -945,7 +1038,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    int @MODULE@_entry_count(void);
+    @EXPORT@int @API@@MODULE@_entry_count(void);
 
     /**
      *  @brief          文字列キーからカタログ配列の添字を引くテーブルを取得します。
@@ -960,7 +1053,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const int *@MODULE@_key_index(void);
+    @EXPORT_FULL@const int *@API_FULL@@MODULE@_key_index(void);
 
     /**
      *  @brief          添字テーブルの要素数を取得します。
@@ -969,7 +1062,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    int @MODULE@_key_index_count(void);
+    @EXPORT_FULL@int @API_FULL@@MODULE@_key_index_count(void);
 
     /**
      *  @brief          本カタログ定義のカタログ識別オブジェクトを取得します。
@@ -984,7 +1077,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const @LIBRARY@ *@MODULE@_catalog(void);
+    @EXPORT_FULL@const @LIBRARY@ *@API_FULL@@MODULE@_catalog(void);
 
     /**
      *  @brief          文字列キーに対応するカタログ項目を取得します。
@@ -999,7 +1092,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
      */
-    const @LIBRARY@_entry *@MODULE@_entry(int string_key);
+    @EXPORT_FULL@const @LIBRARY@_entry *@API_FULL@@MODULE@_entry(int string_key);
 
     /**
      *  @brief          本カタログ定義を使用して、文字列を組み立てます。
@@ -1015,7 +1108,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  スレッド セーフ性は @c @LIBRARY@_format と同じです。
      */
-    int @MODULE@_format(char *dest, size_t dest_size, int string_key, ...);
+    @EXPORT@int @API@@MODULE@_format(char *dest, size_t dest_size, int string_key, ...);
 
     /**
      *  @brief          本カタログ定義を使用して、@c va_list から文字列を組み立てます。
@@ -1031,7 +1124,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  スレッド セーフ性は @c @LIBRARY@_vformat と同じです。
      */
-    int @MODULE@_vformat(char *dest, size_t dest_size, int string_key, va_list args);
+    @EXPORT@int @API@@MODULE@_vformat(char *dest, size_t dest_size, int string_key, va_list args);
 
     /**
      *  @brief          本カタログ定義の内容を確認します。
@@ -1042,7 +1135,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    int @MODULE@_verify(int *string_key_out, @LIBRARY@_language *language_out);
+    @EXPORT_FULL@int @API_FULL@@MODULE@_verify(int *string_key_out, @LIBRARY@_language *language_out);
 
     /**
      *  @brief          本カタログ定義から、文字列の分類値を取得します。
@@ -1052,7 +1145,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    int @MODULE@_category(int string_key);
+    @EXPORT@int @API@@MODULE@_category(int string_key);
 
     /**
      *  @brief          本カタログ定義から、文字列キーに対応する ID を取得します。
@@ -1062,7 +1155,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    const char *@MODULE@_id(int string_key);
+    @EXPORT@const char *@API@@MODULE@_id(int string_key);
 
     /**
      *  @brief          本カタログ定義から、現在の言語設定における文字列の備考を取得します。
@@ -1072,7 +1165,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    const char *@MODULE@_note(int string_key);
+    @EXPORT@const char *@API@@MODULE@_note(int string_key);
 
     /*
      *  ここから下は、文字列キーごとに引数の型を固定したラッパーです。
@@ -1114,7 +1207,7 @@ TRACE_WRITE_DECLARATION = """\
      *  出力を行うスレッドと並行して呼び出さないでください。\\n
      *  出力を開始する前に設定し、以降は変更しない使い方を想定しています。
      */
-    void @MODULE@_set_tracer(cplat_tracer *tracer);
+    @EXPORT@void @API@@MODULE@_set_tracer(cplat_tracer *tracer);
 
     /**
      *  @brief          本カタログの出力先に設定されているトレーサーを取得します。
@@ -1125,7 +1218,7 @@ TRACE_WRITE_DECLARATION = """\
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。@c @MODULE@_set_tracer と並行して呼び出さないでください。
      */
-    cplat_tracer *@MODULE@_get_tracer(void);
+    @EXPORT@cplat_tracer *@API@@MODULE@_get_tracer(void);
 
     /**
      *  @brief          本カタログ定義を使用して、組み立てた文字列をトレースへ出力します。
@@ -1149,7 +1242,7 @@ TRACE_WRITE_DECLARATION = """\
      *  スレッド セーフ性は @c cplat_tracer_write_at と同じです。\\n
      *  ただし、出力先の設定を変更している間は並行して呼び出せません。
      */
-    int @MODULE@_write(int string_key, ...);
+    @EXPORT@int @API@@MODULE@_write(int string_key, ...);
 """
 
 
@@ -1557,6 +1650,7 @@ def main(argv: list[str] | None = None) -> int:
         # 名前と置き場所は定義ファイル自身から決まる。定義の中には書かない。
         document["module_prefix"] = derive_module_prefix(args.definition)
         document["module_dir"] = derive_module_dir(args.definition)
+        load_settings(args.definition, document)
         strings = validate(document)
     except DefinitionError as error:
         print(f"エラー: {error}", file=sys.stderr)
@@ -1569,7 +1663,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.if_newer and not args.check:
         targets = [out_dir / f"{module}.h", out_dir / f"{module}.c"]
-        sources = [args.definition, Path(__file__)]
+        # 設定ファイルを変えた場合も再生成する。app 内の複数のカタログが同じ設定を共有するため。
+        settings = settings_path(args.definition, document)
+        sources = [args.definition, Path(__file__)] + ([settings] if settings is not None else [])
         if all(target.exists() for target in targets):
             newest_source = max(source.stat().st_mtime for source in sources)
             oldest_target = min(target.stat().st_mtime for target in targets)
