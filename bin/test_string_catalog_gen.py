@@ -234,12 +234,14 @@ class TraceOutputTest(unittest.TestCase):
 
     def test_header_declares_write(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
-        self.assertIn("int sample_trace_write(cplat_tracer *tracer, int string_key, ...);", header)
+        self.assertIn("int sample_trace_write(int string_key, ...);", header)
+        self.assertIn("void sample_trace_set_tracer(cplat_tracer *tracer);", header)
+        self.assertIn("cplat_tracer *sample_trace_get_tracer(void);", header)
 
     def test_wrapper_takes_tracer_and_source_location(self):
         wrapper = gen.emit_wrapper(self.document, self.strings[0])
         self.assertIn(
-            "static inline int sample_trace_key_a_with_source(cplat_tracer *tracer, const char *path, "
+            "static inline int sample_trace_key_a_with_source(const char *path, "
             "const char *source_file_path, const char *source_file_name, const int32_t source_line, "
             "const char *function_name)",
             wrapper,
@@ -252,8 +254,8 @@ class TraceOutputTest(unittest.TestCase):
     def test_macro_passes_call_site(self):
         wrapper = gen.emit_wrapper(self.document, self.strings[0])
         self.assertIn(
-            "#define sample_trace_key_a(tracer, path) "
-            "sample_trace_key_a_with_source((tracer), (path), __FILE__, "
+            "#define sample_trace_key_a(path) "
+            "sample_trace_key_a_with_source((path), __FILE__, "
             "cplat_path_basename(__FILE__), __LINE__, __func__)",
             wrapper,
         )
@@ -275,8 +277,23 @@ class TraceOutputTest(unittest.TestCase):
 
     def test_source_emits_write_function(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("int sample_trace_write(cplat_tracer *tracer, const int string_key, ...)", source)
-        self.assertIn("cplat_tracer_write_at(tracer, (cplat_trace_level)sample_trace_category(string_key)", source)
+        self.assertIn("int sample_trace_write(const int string_key, ...)", source)
+        self.assertIn("cplat_tracer_write_at(s_tracer, (cplat_trace_level)sample_trace_category(string_key)", source)
+
+    def test_source_holds_tracer_and_rejects_unset(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("static cplat_tracer *s_tracer = NULL;", source)
+        self.assertIn("void sample_trace_set_tracer(cplat_tracer *tracer)", source)
+        # 出力先が未設定なら、組み立てを行わずに失敗を返す
+        self.assertIn("    if (s_tracer == NULL)\n    {\n        return CPLAT_ERR_INVALID_ARGUMENT;", source)
+
+    def test_wrapper_for_entry_without_arguments_takes_no_parameter(self):
+        document = trace_document()
+        document["strings"][0]["arguments"] = []
+        document["strings"][0]["texts"]["neutral"] = "開始しました。"
+        strings = gen.validate(document)
+        wrapper = gen.emit_wrapper(document, strings[0])
+        self.assertIn("#define sample_trace_key_a() sample_trace_key_a_with_source(__FILE__, ", wrapper)
 
     def test_message_kind_does_not_emit_write(self):
         document = minimal_document()
@@ -302,6 +319,19 @@ class ValidateTest(unittest.TestCase):
         for key in ("library_prefix", "key_enum", "module_dir", "languages"):
             self.assertNotIn(key, document)
         self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_accepts_details_as_list(self):
+        document = minimal_document()
+        document["strings"][0]["details"] = ["あを", "組み立てます。"]
+        strings = gen.validate(document)
+        source = gen.emit_source(document, strings, "example.jsonc")
+        self.assertIn('"あを 組み立てます。"', source)
+
+    def test_rejects_details_with_non_string_element(self):
+        document = minimal_document()
+        document["strings"][0]["details"] = ["あ", 1]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
 
     def test_rejects_duplicate_key(self):
         document = minimal_document()

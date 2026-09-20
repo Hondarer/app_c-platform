@@ -255,7 +255,7 @@ def validate(document: dict) -> list[dict]:
     trace = is_trace(document)
     context_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
     seen_keys: set[str] = set()
-    suffixes = MODULE_FUNCTION_SUFFIXES + (("write",) if trace else ())
+    suffixes = MODULE_FUNCTION_SUFFIXES + (("write", "set_tracer", "get_tracer") if trace else ())
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in suffixes}
 
     for entry in strings:
@@ -293,14 +293,13 @@ def validate(document: dict) -> list[dict]:
         if "id" in entry and not isinstance(entry["id"], str):
             raise DefinitionError(f"{entry['key']}: id は文字列で指定してください。")
 
-        if "details" in entry and not isinstance(entry["details"], str):
-            raise DefinitionError(f"{entry['key']}: details は文字列で指定してください。")
-
-        if "remarks" in entry and (
-            not isinstance(entry["remarks"], (str, list))
-            or (isinstance(entry["remarks"], list) and not all(isinstance(item, str) for item in entry["remarks"]))
-        ):
-            raise DefinitionError(f"{entry['key']}: remarks は文字列または文字列の配列で指定してください。")
+        # 長文は 1 行が長くなるため、文字列の配列でも書けるようにする。連結は join_text が行う。
+        for key in ("details", "remarks"):
+            if key in entry and (
+                not isinstance(entry[key], (str, list))
+                or (isinstance(entry[key], list) and not all(isinstance(item, str) for item in entry[key]))
+            ):
+                raise DefinitionError(f"{entry['key']}: {key} は文字列または文字列の配列で指定してください。")
 
         # id の重複は検査しない。id は処理で項目を識別しないため。
         if entry["key"] in seen_keys:
@@ -506,6 +505,42 @@ def remark_doc_lines(entry: dict) -> list[str]:
     return [f"     *  @remark         {remark_lines[0][len(remark_indent):]}"] + remark_lines[1:]
 
 
+def trace_context_doc_lines() -> list[str]:
+    """文脈引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てる。
+
+    定義作成者が書式から文脈値を参照するには、どの番号が何かを知る必要がある。
+    対応表は CONTEXT_ARGUMENTS から組み立て、生成器の定義と食い違わないようにする。
+    """
+    lines = [
+        " *  本カタログはトレース種別です。呼び出し位置と実行文脈を、生成器が引数として付け加えます。\\n",
+        f" *  利用者が記載した引数は `{{0}}` から順に並び、"
+        f"`{{{CONTEXT_ARGUMENT_BASE}}}` から次の文脈引数が並びます。",
+        " *",
+        " *  | 位置指定 | 引数名 | 引数種別 | 値 |",
+        " *  | --- | --- | --- | --- |",
+    ]
+
+    for offset, argument in enumerate(CONTEXT_ARGUMENTS):
+        index = CONTEXT_ARGUMENT_BASE + offset
+        kind = kind_constant({}, argument["kind"])
+        lines.append(f" *  | `{{{index}}}` | {argument['name']} | {kind} | {argument['description']} |")
+
+    last_index = CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) - 1
+    lines.extend(
+        [
+            " *",
+            " *  言語別の書式へこれらの位置指定を書くと、組み立てた文字列へ文脈値が現れます。\\n",
+            " *  書かない場合は現れません。実装を変えずに、定義の変更だけで切り替えられます。",
+            " *",
+            f" *  記載した引数の個数から `{{{CONTEXT_ARGUMENT_BASE - 1}}}` までは、値を受け取らないインデックスです。\\n",
+            f" *  書式から参照すると定義の誤りになります。使用できるのは利用者の引数と "
+            f"`{{{CONTEXT_ARGUMENT_BASE}}}` から `{{{last_index}}}` までです。",
+        ]
+    )
+
+    return lines
+
+
 def emit_trace_wrapper(document: dict, entry: dict) -> str:
     """1 件分のトレース出力ラッパーを、マクロとともに書き出す。"""
     name = wrapper_name(entry["key"])
@@ -515,7 +550,7 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     inline_context = [argument for argument in CONTEXT_ARGUMENTS if "inline_value" in argument]
     user_names = [argument["name"] for argument in arguments]
 
-    names = ["tracer"] + user_names + [argument["name"] for argument in macro_context]
+    names = user_names + [argument["name"] for argument in macro_context]
     name_width = max(len(name_item) for name_item in names) + 1
     # `     *  ` の 8 文字と、`@param[in]      ` の 16 文字のあとに名前欄が並ぶ
     continuation = "     *" + " " * (8 + 16 + name_width - 6)
@@ -528,7 +563,6 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     lines.append("     *  呼び出し位置は展開の位置で確定する必要があるため、マクロから受け取ります。\\n")
     lines.append("     *  呼び出し側はマクロを使用してください。")
     lines.append("     *")
-    lines.append(f"     *  @param[in]      {'tracer'.ljust(name_width)}出力先のトレーサー ハンドル。")
 
     for argument in arguments + macro_context:
         padded = argument["name"].ljust(name_width)
@@ -538,10 +572,9 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     lines.append(f"     *  @return         戻り値は @c {module}_write と同じです。")
     lines.append("     */")
 
-    parameters = ["cplat_tracer *tracer"]
-    parameters.extend(parameter_declaration(argument) for argument in arguments + macro_context)
+    parameters = [parameter_declaration(argument) for argument in arguments + macro_context]
 
-    call = ["tracer", entry["key"]]
+    call = [entry["key"]]
     call.extend(user_names)
     call.extend(argument["name"] for argument in macro_context)
     call.extend(argument["inline_value"] for argument in inline_context)
@@ -552,20 +585,20 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     lines.append("    }")
     lines.append("")
 
-    macro_names = ["tracer"] + user_names
-    macro_width = max(len(name_item) for name_item in macro_names) + 1
+    macro_names = list(user_names)
+    macro_width = (max(len(name_item) for name_item in macro_names) + 1) if macro_names else 1
     macro_continuation = "     *" + " " * (8 + 16 + macro_width - 6)
 
     lines.append("    /**")
     lines.append(f"     *  @brief          {entry['brief']}")
     lines.append("     *")
-    details_text = entry.get("details", "")
+    details_text = join_text(entry["details"]) if entry.get("details") else ""
     if details_text:
         lines.extend(doc_lines(details_text, "     *  "))
         lines.append("     *")
     lines.append("     *  ソース ファイル、行番号、関数名、プロセス ID、スレッド ID を呼び出しごとに付けて出力します。")
+    lines.append(f"     *  出力先は @c {module}_set_tracer で設定したトレーサーです。")
     lines.append("     *")
-    lines.append(f"     *  @param[in]      {'tracer'.ljust(macro_width)}出力先のトレーサー ハンドル。")
     for argument in arguments:
         padded = argument["name"].ljust(macro_width)
         lines.append(f"     *  @param[in]      {padded}{argument['description']}")
@@ -575,9 +608,9 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     lines.extend(format_par_lines(entry))
     lines.append("     */")
 
-    macro_arguments = ", ".join(f"({name_item})" for name_item in macro_names)
     macro_tail = ", ".join(argument["macro_value"] for argument in macro_context)
-    lines.append(f"#define {name}({', '.join(macro_names)}) {name}_with_source({macro_arguments}, {macro_tail})")
+    macro_arguments = "".join(f"({name_item}), " for name_item in macro_names) + macro_tail
+    lines.append(f"#define {name}({', '.join(macro_names)}) {name}_with_source({macro_arguments})")
 
     return "\n".join(lines)
 
@@ -598,7 +631,7 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     lines = ["    /**"]
     lines.append(f"     *  @brief          {entry['brief']}")
     lines.append("     *")
-    details_text = entry.get("details", "")
+    details_text = join_text(entry["details"]) if entry.get("details") else ""
     if details_text:
         lines.extend(doc_lines(details_text, "     *  "))
     if not arguments:
@@ -730,6 +763,13 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         " *  言語、引数種別、書式構文はライブラリ側で規定されます。\\n",
         " *  分類値の意味付けは利用側の取り決めであり、別ヘッダーで個別に定義します。",
         " *",
+    ]
+
+    if is_trace(document):
+        out.extend(trace_context_doc_lines())
+        out.append(" *")
+
+    out += [
         " *  列挙名や関数名はカタログ定義に基づいて決まり、ライブラリの接頭辞とは異なる名前空間に属します。\\n",
         " *  ライブラリ側ではこれらの名前を定義せず、文字列キーを `int` 型として受け取ります。",
         " *",
@@ -1018,34 +1058,94 @@ ACCESSOR_DECLARATIONS = """\
 
 TRACE_WRITE_DECLARATION = """\
     /**
+     *  @brief          本カタログの出力先となるトレーサーを設定します。
+     *  @param[in]      tracer 出力先のトレーサー ハンドル。NULL を指定すると出力しない状態へ戻します。
+     *
+     *  設定したトレーサーは、本カタログのすべての出力で使用します。\\n
+     *  呼び出しごとにトレーサーを指定する必要をなくすため、カタログ単位で保持します。
+     *
+     *  トレーサーの所有権は移りません。\\n
+     *  設定を外す呼び出しは、原則として不要です。トレーサーはプロセスの終了時に cplat が破棄し、
+     *  その後に出力を要求する経路がないためです。
+     *
+     *  トレーサーを明示的に破棄し、そのあとに出力を要求しうる場合に限り、破棄の前に NULL を設定してください。\\n
+     *  解放済みのハンドルを参照しないようにするためです。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\\n
+     *  出力を行うスレッドと並行して呼び出さないでください。\\n
+     *  出力を開始する前に設定し、以降は変更しない使い方を想定しています。
+     */
+    void @MODULE@_set_tracer(cplat_tracer *tracer);
+
+    /**
+     *  @brief          本カタログの出力先に設定されているトレーサーを取得します。
+     *  @return         設定されているトレーサー ハンドルです。未設定の場合は NULL を返します。
+     *
+     *  設定を一時的に差し替える場合に、元のハンドルを保存するために使用します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。@c @MODULE@_set_tracer と並行して呼び出さないでください。
+     */
+    cplat_tracer *@MODULE@_get_tracer(void);
+
+    /**
      *  @brief          本カタログ定義を使用して、組み立てた文字列をトレースへ出力します。
-     *  @param[in]      tracer     出力先のトレーサー ハンドル。
      *  @param[in]      string_key 出力する文字列のキー。
      *  @param[in]      ...        引数スキーマが定める順序と型の引数リスト。
+     *  @return         トレーサーが未設定の場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
      *  @return         組み立てに失敗した場合は @c @LIBRARY@_format と同じ値を返します。
      *  @return         組み立てに成功した場合は @c cplat_tracer_write_at と同じ値を返します。
      *
      *  文字列キーごとの型付きラッパーが呼び出す関数です。\\n
      *  引数の個数と型の検査を働かせるため、呼び出し側は型付きラッパーのマクロを使用してください。
      *
+     *  出力先は @c @MODULE@_set_tracer で設定したトレーサーです。\\n
+     *  未設定の場合は、文字列の組み立ても出力も行わずに失敗を返します。
+     *  設定の漏れが成功として隠れないようにするためです。
+     *
      *  トレース レベルは、カタログ定義の level から変換した分類値を使用します。\\n
      *  呼び出し位置は引数として受け取るため、トレース側で重ねて付与しません。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @c cplat_tracer_write_at と同じです。
+     *  スレッド セーフ性は @c cplat_tracer_write_at と同じです。\\n
+     *  ただし、出力先の設定を変更している間は並行して呼び出せません。
      */
-    int @MODULE@_write(cplat_tracer *tracer, int string_key, ...);
+    int @MODULE@_write(int string_key, ...);
 """
 
 
 TRACE_SOURCE_TAIL = """\
+/** 本カタログの出力先です。@ref @MODULE@_set_tracer で設定します。 */
+static cplat_tracer *s_tracer = NULL;
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int @MODULE@_write(cplat_tracer *tracer, const int string_key, ...)
+void @MODULE@_set_tracer(cplat_tracer *tracer)
+{
+    s_tracer = tracer;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+cplat_tracer *@MODULE@_get_tracer(void)
+{
+    return s_tracer;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int @MODULE@_write(const int string_key, ...)
 {
     char text[CPLAT_STRING_CATALOG_TEXT_MAX];
     va_list args;
     int ret;
+
+    /* 出力先が未設定なら、組み立てを行わずに失敗を返す。設定の漏れを成功として隠さないため */
+    if (s_tracer == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
 
     va_start(args, string_key);
     ret = @LIBRARY@_vformat(&s_catalog, text, sizeof(text), string_key, args);
@@ -1057,7 +1157,7 @@ int @MODULE@_write(cplat_tracer *tracer, const int string_key, ...)
     }
 
     /* 呼び出し位置は引数として渡しているため、呼び出し位置を付与しない API を使う */
-    return cplat_tracer_write_at(tracer, (cplat_trace_level)@MODULE@_category(string_key), NULL, text);
+    return cplat_tracer_write_at(s_tracer, (cplat_trace_level)@MODULE@_category(string_key), NULL, text);
 }
 """
 
@@ -1291,7 +1391,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             f"     {arguments_line},",
             f"     {c_string(entry['id']) if 'id' in entry else 'NULL'},",
             f"     {c_string(entry['brief'])},",
-            f"     {c_string(entry['details']) if entry.get('details') is not None else 'NULL'},",
+            f"     {c_string(join_text(entry['details'])) if entry.get('details') is not None else 'NULL'},",
             f"     {remarks_line},",
         ]
 

@@ -110,12 +110,19 @@
 文脈値を出力へ含める必要が生じた場合は、カタログ定義の `texts` へ位置指定を追加します。  
 実装の変更を伴わずに、定義の変更だけで切り替えられます。
 
-### トレーサーをマクロの第 1 引数とする
+### トレーサーをカタログが保持する
 
-生成するマクロは、トレーサーのハンドルを第 1 引数として受け取ります。  
-カタログ単位の既定のトレーサーを保持する方式は採用しません。
+生成物は、出力先のトレーサーをカタログ単位で保持します。  
+`<module>_set_tracer()` で設定し、`<module>_get_tracer()` で取得します。出力の関数形式マクロは、トレーサーを引数に取りません。
 
-明示的に受け取る理由は、テストでのトレーサーの差し替えと、複数のトレーサーの使い分けを、生成物の状態に依存せず行えるようにするためです。
+呼び出しごとにトレーサーを渡すと、出力のたびに同じハンドルを引き回すことになり、記述の手間が利用者側に残るためです。  
+テストでのトレーサーの差し替えは `<module>_set_tracer()` で行えます。
+
+未設定のまま出力を要求した場合は、文字列の組み立ても出力も行わず `CPLAT_ERR_INVALID_ARGUMENT` を返します。  
+`cplat_tracer_write_at()` は NULL のハンドルを受け取ると何もせず成功を返すため、そのまま渡すと設定の漏れが成功として隠れます。
+
+この方式では、1 つのカタログを複数のトレーサーへ同時に出力し分けられません。  
+必要が生じた場合は、トレーサーを明示する派生 API を別に設けます。
 
 ## 文脈引数の仕様
 
@@ -258,16 +265,16 @@ JSONC の解析、引数種別の検査、位置指定の検査、インデッ�
 
 ```c
 static inline int sample_trace_key_file_open_failed_with_source(
-    cplat_tracer *tracer, const char *file_path, const int error_code, const char *source_file_path,
-    const char *source_file_name, const int32_t source_line, const char *function_name)
+    const char *file_path, const int error_code, const char *source_file_path, const char *source_file_name,
+    const int32_t source_line, const char *function_name)
 {
-    return sample_trace_write(tracer, SAMPLE_TRACE_KEY_FILE_OPEN_FAILED, file_path, error_code, source_file_path,
+    return sample_trace_write(SAMPLE_TRACE_KEY_FILE_OPEN_FAILED, file_path, error_code, source_file_path,
                               source_file_name, source_line, function_name, cplat_process_get_pid(),
                               cplat_process_get_tid());
 }
 
-#define sample_trace_key_file_open_failed(tracer, file_path, error_code)                         \
-    sample_trace_key_file_open_failed_with_source((tracer), (file_path), (error_code), __FILE__, \
+#define sample_trace_key_file_open_failed(file_path, error_code)                      \
+    sample_trace_key_file_open_failed_with_source((file_path), (error_code), __FILE__, \
                                                   cplat_path_basename(__FILE__), __LINE__, __func__)
 ```
 
@@ -286,11 +293,16 @@ static inline int sample_trace_key_file_open_failed_with_source(
 文字列を格納するバッファーを型付きラッパーごとに持つと、文字列キーの個数に比例してコードが増加するためです。
 
 ```c
-int sample_trace_write(cplat_tracer *tracer, int string_key, ...)
+int sample_trace_write(int string_key, ...)
 {
     char text[CPLAT_STRING_CATALOG_TEXT_MAX];
     va_list arguments;
     int result;
+
+    if (s_tracer == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
 
     va_start(arguments, string_key);
     result = cplat_string_catalog_vformat(sample_trace_catalog(), text, sizeof(text), string_key, arguments);
@@ -301,7 +313,7 @@ int sample_trace_write(cplat_tracer *tracer, int string_key, ...)
         return result;
     }
 
-    return cplat_tracer_write_at(tracer, (cplat_trace_level)sample_trace_category(string_key), NULL, text);
+    return cplat_tracer_write_at(s_tracer, (cplat_trace_level)sample_trace_category(string_key), NULL, text);
 }
 ```
 
@@ -317,8 +329,8 @@ int sample_trace_write(cplat_tracer *tracer, int string_key, ...)
 /* 文字列リソース種別 */
 sample_messages_key_file_open_failed(text, sizeof(text), "config.json", 2);
 
-/* トレース種別 */
-sample_trace_key_file_open_failed(tracer, "config.json", 2);
+/* トレース種別。出力先は事前に sample_trace_set_tracer() で設定する */
+sample_trace_key_file_open_failed("config.json", 2);
 ```
 
 ## フィルター成立時の強制出力
