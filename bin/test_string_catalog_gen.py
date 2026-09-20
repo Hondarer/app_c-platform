@@ -816,7 +816,7 @@ def export_document(scope="api", **overrides):
     document["settings"] = "catalog_settings.jsonc"
     document["export"] = scope
     document[gen.SETTINGS_KEY] = {
-        "export": {"prefix": "SAMPLECATALOG", "header": "samplecatalog/samplecatalog_export.h"}
+        "export": {"prefix": "EXAMPLE", "header": "example/example_export.h"}
     }
     document.update(overrides)
     return document
@@ -848,7 +848,7 @@ class ExportValidateTest(unittest.TestCase):
 
     def test_rejects_lowercase_prefix(self):
         document = export_document()
-        document[gen.SETTINGS_KEY]["export"]["prefix"] = "samplecatalog"
+        document[gen.SETTINGS_KEY]["export"]["prefix"] = "example"
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
@@ -866,18 +866,18 @@ class ExportOutputTest(unittest.TestCase):
         return gen.emit_header(document, gen.validate(document), "example.jsonc")
 
     def test_includes_export_header(self):
-        self.assertIn("#include <samplecatalog/samplecatalog_export.h>", self.header("api"))
+        self.assertIn("#include <example/example_export.h>", self.header("api"))
 
     def test_does_not_include_export_header_when_not_exported(self):
-        self.assertNotIn("samplecatalog_export.h", self.header(None))
+        self.assertNotIn("example_export.h", self.header(None))
 
     def test_api_scope_decorates_behavior_functions(self):
         header = self.header("api")
         self.assertIn(
-            "SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_messages_format(", header
+            "EXAMPLE_EXPORT int EXAMPLE_API sample_messages_format(", header
         )
         self.assertIn(
-            "SAMPLECATALOG_EXPORT const char *SAMPLECATALOG_API sample_messages_id(", header
+            "EXAMPLE_EXPORT const char *EXAMPLE_API sample_messages_id(", header
         )
 
     def test_api_scope_leaves_structure_returning_functions_undecorated(self):
@@ -890,10 +890,10 @@ class ExportOutputTest(unittest.TestCase):
     def test_full_scope_decorates_every_function(self):
         header = self.header("full")
         self.assertIn(
-            "SAMPLECATALOG_EXPORT const cplat_string_catalog *SAMPLECATALOG_API sample_messages_catalog(",
+            "EXAMPLE_EXPORT const cplat_string_catalog *EXAMPLE_API sample_messages_catalog(",
             header,
         )
-        self.assertIn("SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_messages_verify(", header)
+        self.assertIn("EXAMPLE_EXPORT int EXAMPLE_API sample_messages_verify(", header)
 
     def test_no_marker_remains_when_not_exported(self):
         header = self.header(None)
@@ -905,17 +905,17 @@ class ExportOutputTest(unittest.TestCase):
         document = export_document("api", **trace_document(module_dir="prod/libsrc/example"))
         header = gen.emit_header(document, gen.validate(document), "example.jsonc")
         self.assertIn(
-            "SAMPLECATALOG_EXPORT void SAMPLECATALOG_API sample_trace_set_tracer(", header
+            "EXAMPLE_EXPORT void EXAMPLE_API sample_trace_set_tracer(", header
         )
-        self.assertIn("SAMPLECATALOG_EXPORT int SAMPLECATALOG_API sample_trace_write(", header)
+        self.assertIn("EXAMPLE_EXPORT int EXAMPLE_API sample_trace_write(", header)
 
 class HeaderIncludePathTest(unittest.TestCase):
     """公開ヘッダーの include パスの導出を確認する。"""
 
     def test_derives_from_include_directory(self):
         self.assertEqual(
-            gen.header_include_path(Path("/w/app/x/prod/include/samplecatalog"), "samplecatalog_messages"),
-            "samplecatalog/samplecatalog_messages.h",
+            gen.header_include_path(Path("/w/app/x/prod/include/example"), "example_messages"),
+            "example/example_messages.h",
         )
 
     def test_derives_from_internal_include_directory(self):
@@ -932,18 +932,18 @@ class PublicHeaderOutputTest(unittest.TestCase):
     """ヘッダーを公開ヘッダーとして出力した場合の生成物を確認する。"""
 
     def setUp(self):
-        self.document = minimal_document(module_dir="prod/libsrc/samplecatalog")
-        self.document[gen.PUBLIC_INCLUDE_KEY] = "samplecatalog/sample_messages.h"
+        self.document = minimal_document(module_dir="prod/libsrc/example")
+        self.document[gen.PUBLIC_INCLUDE_KEY] = "example/sample_messages.h"
         self.strings = gen.validate(self.document)
 
     def test_header_guides_angle_bracket_include(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
-        self.assertIn("利用側は `#include <samplecatalog/sample_messages.h>` でインクルードします。", header)
+        self.assertIn("利用側は `#include <example/sample_messages.h>` でインクルードします。", header)
         self.assertNotIn("モジュール私有ヘッダー", header)
 
     def test_source_includes_public_path(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("#include <samplecatalog/sample_messages.h>", source)
+        self.assertIn("#include <example/sample_messages.h>", source)
         self.assertNotIn('#include "sample_messages.h"', source)
 
     def test_private_header_keeps_quoted_include(self):
@@ -958,13 +958,13 @@ def context_document(arguments=None, headers=None, **overrides):
     document["settings"] = "catalog_settings.jsonc"
     document[gen.SETTINGS_KEY] = {
         gen.CONTEXT_SECTION: {
-            "headers": ["samplecatalog/samplecatalog_context.h"] if headers is None else headers,
+            "headers": ["example/example_context.h"] if headers is None else headers,
             "arguments": [
                 {
                     "name": "sequence_number",
                     "kind": "INT32",
                     "description": "出力ごとに増える番号。",
-                    "inline_value": "samplecatalog_next_sequence_number()",
+                    "inline_value": "example_next_value()",
                 }
             ]
             if arguments is None
@@ -1058,7 +1058,7 @@ class ExtensionContextOutputTest(unittest.TestCase):
 
     def test_header_includes_context_headers(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
-        self.assertIn("#include <samplecatalog/samplecatalog_context.h>", header)
+        self.assertIn("#include <example/example_context.h>", header)
 
     def test_header_lists_extension_in_the_table(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
@@ -1067,7 +1067,7 @@ class ExtensionContextOutputTest(unittest.TestCase):
     def test_wrapper_evaluates_inline_value_after_library_context(self):
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         self.assertIn(
-            "cplat_process_get_pid(), cplat_process_get_tid(), samplecatalog_next_sequence_number()",
+            "cplat_process_get_pid(), cplat_process_get_tid(), example_next_value()",
             header.replace("\n", " ").replace("  ", " "),
         )
 
@@ -1108,6 +1108,111 @@ class ExtensionContextOutputTest(unittest.TestCase):
         document["strings"][0]["texts"]["neutral"] = "{47}"
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
+
+class ExtensionContextIndexTest(unittest.TestCase):
+    """app が定める文脈引数の位置指定の固定を確認する。"""
+
+    @staticmethod
+    def document_with(*indices, export=None):
+        """指定した index を持つ文脈引数を組み立てる。index が None の項目は記載しない。"""
+        arguments = []
+        for position, index in enumerate(indices):
+            argument = {
+                "name": f"extra_{position}",
+                "kind": "INT32",
+                "description": "値。",
+                "inline_value": f"example_next_value_{position}()",
+            }
+            if index is not None:
+                argument["index"] = index
+            arguments.append(argument)
+
+        document = context_document(arguments=arguments)
+        if export is not None:
+            document["export"] = export
+            document[gen.SETTINGS_KEY]["export"] = {
+                "prefix": "EXAMPLE",
+                "header": "example/example_export.h",
+            }
+        return document
+
+    def test_packs_from_the_base_when_omitted(self):
+        document = self.document_with(None, None)
+        gen.validate(document)
+        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 47])
+
+    def test_uses_the_declared_index(self):
+        document = self.document_with(48, 46)
+        gen.validate(document)
+        # 可変長引数は位置指定の昇順に渡すため、記載順ではなく番号順に並ぶ。
+        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 48])
+        self.assertEqual([argument["name"] for argument in gen.context_arguments(document)][-2:],
+                         ["extra_1", "extra_0"])
+
+    def test_allows_a_gap_between_declared_indices(self):
+        document = self.document_with(46, 49)
+        gen.validate(document)
+        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 49])
+
+    def test_rejects_index_below_the_extension_base(self):
+        # cplat が定める文脈引数との境界。cplat 側が増えて基底が動いた場合も、ここで検出する。
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(gen.EXTENSION_ARGUMENT_BASE - 1))
+
+    def test_rejects_index_beyond_the_maximum(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(gen.ARGUMENT_MAX))
+
+    def test_rejects_duplicate_index(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(46, 46))
+
+    def test_rejects_partially_declared_index(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(46, None))
+
+    def test_rejects_boolean_index(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(True))
+
+    def test_requires_index_when_exported(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(None, export="api"))
+
+    def test_accepts_declared_index_when_exported(self):
+        document = self.document_with(46, export="api")
+        self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_source_places_the_argument_at_the_declared_index(self):
+        document = self.document_with(49)
+        strings = gen.validate(document)
+        source = gen.emit_source(document, strings, "example.jsonc")
+        self.assertIn('[49] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "extra_0"', source)
+        self.assertIn("46 番から 48 番は、app が定める文脈引数のために予約した空きです。", source)
+
+
+class ExtensionContextExportNoteTest(unittest.TestCase):
+    """取得関数の公開が必要である旨の注記を確認する。"""
+
+    @staticmethod
+    def header(export):
+        document = context_document()
+        if export is not None:
+            document["export"] = export
+            document[gen.SETTINGS_KEY]["export"] = {
+                "prefix": "EXAMPLE",
+                "header": "example/example_export.h",
+            }
+            document[gen.SETTINGS_KEY][gen.CONTEXT_SECTION]["arguments"][0]["index"] = 46
+        return gen.emit_header(document, gen.validate(document), "example.jsonc")
+
+    def test_notes_that_the_getter_must_be_exported(self):
+        header = self.header("api")
+        self.assertIn("取得関数はライブラリの外部へ公開する必要があります。", header)
+        self.assertIn("`sequence_number` の取得式は", header)
+
+    def test_omits_the_note_when_not_exported(self):
+        self.assertNotIn("取得関数はライブラリの外部へ公開する必要があります。", self.header(None))
 
 if __name__ == "__main__":
     unittest.main()

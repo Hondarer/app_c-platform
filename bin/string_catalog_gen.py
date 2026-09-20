@@ -349,10 +349,27 @@ def validate_context(document: dict) -> None:
 
     library_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
     seen: set[str] = set()
+    seen_indices: set[int] = set()
 
     for argument in arguments:
         if not isinstance(argument, dict):
             raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} の arguments はオブジェクトの配列です。")
+
+        # index は位置指定を定義で固定するための項目。記載順の変更で番号が変わらないようにする。
+        # 範囲の下限は、cplat が定める文脈引数との境界でもある。cplat 側が増えて基底が動いた場合、
+        # app が期待した番号は範囲外となり、誤りとして検出される。
+        if "index" in argument:
+            index = argument["index"]
+            if not isinstance(index, int) or isinstance(index, bool):
+                raise DefinitionError(f"app が定める文脈引数の index は整数で指定してください。")
+            if not (EXTENSION_ARGUMENT_BASE <= index < ARGUMENT_MAX):
+                raise DefinitionError(
+                    f"app が定める文脈引数の index が範囲外です: {index}。"
+                    f"{EXTENSION_ARGUMENT_BASE} から {ARGUMENT_MAX - 1} までを指定してください。"
+                )
+            if index in seen_indices:
+                raise DefinitionError(f"app が定める文脈引数の index が重複しています: {index}")
+            seen_indices.add(index)
 
         for key in ("name", "kind", "description", "inline_value"):
             if key not in argument:
@@ -378,6 +395,20 @@ def validate_context(document: dict) -> None:
         if argument["name"] in seen:
             raise DefinitionError(f"app が定める文脈引数の名前が重複しています: {argument['name']}")
         seen.add(argument["name"])
+
+    # 記載した引数と省略した引数が混在すると、詰めて割り当てた番号が固定した番号と衝突しうる。
+    # 衝突の有無が記載順に依存するため、どちらかに揃える。
+    if seen_indices and (len(seen_indices) != len(arguments)):
+        raise DefinitionError(
+            f"app が定める文脈引数の index は、すべてへ記載するか、すべてで省略してください。"
+        )
+
+    # 外部へ公開するカタログでは、位置指定が利用側のバイナリへ焼き込まれる。
+    # 記載順の変更が通知のない非互換の変更にならないよう、index の記載を必須とする。
+    if (document.get("export") is not None) and arguments and not seen_indices:
+        raise DefinitionError(
+            f"外部へ公開するカタログでは、app が定める文脈引数へ index を記載してください。"
+        )
 
 
 def validate(document: dict) -> list[dict]:
@@ -584,29 +615,40 @@ def extension_arguments(document: dict) -> list[dict]:
     return list(document.get(SETTINGS_KEY, {}).get(CONTEXT_SECTION, {}).get("arguments", []))
 
 
-def context_argument_groups(document: dict) -> list[tuple[int, list[dict]]]:
-    """(基底, 引数列) の組を、位置指定の昇順で返す。
+def extension_argument_index(argument: dict, position: int) -> int:
+    """app が定める文脈引数 1 個の位置指定を返す。
 
-    cplat が定める組と、app が定める組を分けて保持する。出力処理はこの並びを順に回す。
+    index の記載があればその値とする。外部へ公開するカタログでは、記載順の変更で
+    位置指定が変わらないようにするために記載する。記載がない場合は基底から詰めて割り当てる。
+    """
+    return argument["index"] if "index" in argument else (EXTENSION_ARGUMENT_BASE + position)
+
+
+def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
+    """(位置指定, 引数) の組を、位置指定の昇順で返す。
+
+    cplat が定める組は基底から連続し、app が定める組は index が決める。
+    可変長引数はこの並びの順に渡すため、出力処理はいずれもこの関数を経由する。
     """
     if not is_trace(document):
         return []
 
-    groups = [(CONTEXT_ARGUMENT_BASE, list(CONTEXT_ARGUMENTS))]
-    extension = extension_arguments(document)
-    if extension:
-        groups.append((EXTENSION_ARGUMENT_BASE, extension))
-    return groups
+    slots = [(CONTEXT_ARGUMENT_BASE + offset, argument) for offset, argument in enumerate(CONTEXT_ARGUMENTS)]
+    slots.extend(
+        (extension_argument_index(argument, position), argument)
+        for position, argument in enumerate(extension_arguments(document))
+    )
+    return sorted(slots, key=lambda slot: slot[0])
 
 
 def context_arguments(document: dict) -> list[dict]:
     """すべての文脈引数を、位置指定の昇順に平坦化して返す。"""
-    return [argument for _, group in context_argument_groups(document) for argument in group]
+    return [argument for _, argument in context_argument_slots(document)]
 
 
 def context_argument_indices(document: dict) -> list[int]:
     """すべての文脈引数の位置指定を、昇順に返す。"""
-    return [base + offset for base, group in context_argument_groups(document) for offset in range(len(group))]
+    return [index for index, _ in context_argument_slots(document)]
 
 
 def context_argument_count(document: dict) -> int:
@@ -746,6 +788,19 @@ def trace_context_doc_lines(document: dict) -> list[str]:
             " *  書式から参照すると定義の誤りになります。使用できるのは利用者の引数と、上の表の位置指定です。",
         ]
     )
+
+    # 公開するカタログでは、app が定める文脈引数の取得式が利用側のコンパイル単位で評価される。
+    # 取得関数の公開漏れはリンク時まで現れないため、生成物の側でも注意を促す。
+    if (document.get("export") is not None) and extension_arguments(document):
+        names = "、".join(f"`{argument['name']}`" for argument in extension_arguments(document))
+        lines.extend(
+            [
+                " *",
+                f" *  {names} の取得式は、本ヘッダーの `static inline` の中で展開されます。\\n",
+                " *  利用側のコンパイル単位から呼び出されるため、取得関数はライブラリの外部へ公開する必要があります。\\n",
+                " *  公開しない場合、利用側のリンクが失敗します。",
+            ]
+        )
 
     return lines
 

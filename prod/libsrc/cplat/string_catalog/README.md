@@ -196,18 +196,25 @@ short-title: "string_catalog"
 // app 単位の設定ファイル
 {
     "context": {
-        "headers": ["samplecatalog/samplecatalog_context.h"],
+        "headers": ["example/example_context.h"],
         "arguments": [
             {
+                "index": 46,
                 "name": "sequence_number",
                 "kind": "INT32",
                 "description": "出力ごとに増える番号。",
-                "inline_value": "samplecatalog_next_sequence_number()"
+                "inline_value": "example_next_value()"
             }
         ]
     }
 }
 ```
+
+`index` は書式が参照する位置指定で、46 から 49 までを指定します。省略した場合は記載順に 46 から詰めて割り当てます。記載順の変更で位置指定が変わると書式が指す値が別のものになるため、外部へ公開するカタログでは記載を必須とします。カタログ項目の `value` と同じ役割です。
+
+`index` の下限は、cplat が定める文脈引数との境界でもあります。cplat 側が増えて基底が動いた場合、app が期待した番号は範囲外となり、誤りとして検出されます。`index` は、すべての引数へ記載するか、すべてで省略してください。番号を空けることはできます。
+
+外部へ公開するカタログでは、取得関数もライブラリの外部へ公開してください。取得式は生成ヘッダーの `static inline` の中で展開され、利用側のコンパイル単位から呼び出されます。公開の漏れはリンク時まで現れないため、生成ヘッダーのファイル コメントへも注意を出力します。
 
 値の取得は `inline_value` だけを許し、`macro_value` を拒否します。マクロ経由にすると `_with_source` の仮引数が app の設定によって変わり、生成物の関数シグネチャが読み取りにくくなるためです。
 
@@ -254,7 +261,7 @@ short-title: "string_catalog"
 
 ```jsonc
 // app 単位の設定ファイル
-{ "export": { "prefix": "SAMPLECATALOG", "header": "samplecatalog/samplecatalog_export.h" } }
+{ "export": { "prefix": "EXAMPLE", "header": "example/example_export.h" } }
 ```
 
 設定ファイルを変更した場合も生成物を作り直すため、`--if-newer` の比較対象に含めます。
