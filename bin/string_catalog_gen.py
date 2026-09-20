@@ -336,9 +336,11 @@ def validate_context(document: dict) -> None:
     if not is_trace(document):
         return
 
-    arguments = section.get("arguments")
-    if not isinstance(arguments, list) or not arguments:
-        raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} には arguments を 1 個以上記載してください。")
+    # 予約した番号空間は常に確保するため、記載が 0 個でも誤りとしない。
+    # app が文脈引数を持たない段階で headers だけを書いておく使い方を許す。
+    arguments = section.get("arguments", [])
+    if not isinstance(arguments, list):
+        raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} の arguments は配列で指定してください。")
 
     if len(arguments) > EXTENSION_ARGUMENT_MAX:
         raise DefinitionError(
@@ -620,12 +622,13 @@ def user_argument_max(document: dict) -> int:
 def argument_array_length(document: dict, entry: dict) -> int:
     """生成物の引数配列の要素数を返す。
 
-    トレース種別では、利用者の引数と文脈引数の間に、値を受け取らないインデックスが並ぶ。
-    要素数は最後に使用するインデックスに 1 を加えた値となる。
+    トレース種別では、文脈引数のために予約した番号空間の全体を確保する。
+    app が定める文脈引数を増減しても要素数が変わらず、未指定の番号は
+    値を受け取らないインデックスとして残る。
     """
     if not is_trace(document):
         return len(entry["arguments"])
-    return max(context_argument_indices(document)) + 1
+    return ARGUMENT_MAX
 
 
 def allowed_placeholder_indices(document: dict, entry: dict) -> set[int]:
@@ -1610,17 +1613,21 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             continue
 
         brief = f"/** {entry['key']} の引数定義です。 */"
+        declared_length = ""
         if trace:
             brief = (
                 f"/** {entry['key']} の引数定義です。"
                 f"{CONTEXT_ARGUMENT_BASE} 番から先は生成器が付け加える文脈引数です。 */"
             )
+            # 予約した番号空間の全体を確保する。app が定める文脈引数を増減しても
+            # 要素数が変わらないようにするため、要素数を明示して宣言する。
+            declared_length = f"{library.upper()}_ARGUMENT_MAX"
 
         out.extend(
             [
                 "",
                 brief,
-                f"static const {library}_argument s_arguments_{position}[] = {{",
+                f"static const {library}_argument s_arguments_{position}[{declared_length}] = {{",
             ]
         )
         for argument in arguments:
@@ -1639,6 +1646,12 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
                     f"    [{index}] = "
                     f"{{{kind_constant(document, argument['kind'])}, 0, {c_string(argument['name'])}, "
                     f"{c_string(argument['description'])}}},"
+                )
+            reserved = sorted(set(range(EXTENSION_ARGUMENT_BASE, ARGUMENT_MAX)) - set(context_argument_indices(document)))
+            if reserved:
+                out.append(
+                    f"    /* {reserved[0]} 番から {reserved[-1]} 番は、app が定める文脈引数のために"
+                    "予約した空きです。値を受け取らないインデックスとして残ります。 */"
                 )
         out.append("};")
 

@@ -273,7 +273,8 @@ class TraceOutputTest(unittest.TestCase):
 
     def test_source_emits_level_as_category_and_full_argument_count(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("    {SAMPLE_TRACE_KEY_A,\n     1,\n     46,\n", source)
+        # 文脈引数のために予約した番号空間の全体を確保するため、引数の個数は上限となる。
+        self.assertIn(f"    {{SAMPLE_TRACE_KEY_A,\n     1,\n     {gen.ARGUMENT_MAX},\n", source)
 
     def test_source_emits_write_function(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
@@ -999,9 +1000,11 @@ class ExtensionContextValidateTest(unittest.TestCase):
         with self.assertRaises(gen.DefinitionError):
             gen.validate(context_document(arguments=arguments))
 
-    def test_rejects_empty_arguments(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(context_document(arguments=[]))
+    def test_allows_empty_arguments(self):
+        # 番号空間は常に確保するため、記載が 0 個でも誤りとしない。
+        document = context_document(arguments=[])
+        self.assertEqual(len(gen.validate(document)), 1)
+        self.assertEqual(gen.context_argument_indices(document), list(range(40, 46)))
 
     def test_rejects_macro_value(self):
         arguments = [
@@ -1077,8 +1080,23 @@ class ExtensionContextOutputTest(unittest.TestCase):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
         self.assertIn('[46] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "sequence_number"', source)
 
-    def test_array_length_covers_the_extension(self):
-        self.assertEqual(gen.argument_array_length(self.document, self.strings[0]), 47)
+    def test_array_length_reserves_the_whole_extension_space(self):
+        # app が定める文脈引数を増減しても要素数は変わらない。
+        self.assertEqual(gen.argument_array_length(self.document, self.strings[0]), gen.ARGUMENT_MAX)
+
+        without = context_document(arguments=[])
+        self.assertEqual(gen.argument_array_length(without, gen.validate(without)[0]), gen.ARGUMENT_MAX)
+
+    def test_source_reserves_the_unused_extension_indices(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("47 番から 49 番は、app が定める文脈引数のために予約した空きです。", source)
+
+    def test_source_declares_the_array_with_an_explicit_length(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            "static const cplat_string_catalog_argument s_arguments_0[CPLAT_STRING_CATALOG_ARGUMENT_MAX] = {",
+            source,
+        )
 
     def test_format_can_reference_the_extension_index(self):
         document = context_document()
