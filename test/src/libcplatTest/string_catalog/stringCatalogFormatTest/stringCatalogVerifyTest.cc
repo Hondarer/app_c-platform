@@ -200,6 +200,30 @@ TEST_F(stringCatalogVerifyTest, unused_argument_index_in_format)
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, language); // [確認_異常系] - 不正を検出した言語を報告すること。
 }
 
+// 値を受け取らない引数に名前と説明が無くても受理されることの確認
+TEST_F(stringCatalogVerifyTest, unused_argument_needs_no_metadata)
+{
+    // Arrange
+    int actual_ret;
+    fake_catalog_set_argument_kind(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, 1,
+                                   CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED);
+    fake_catalog_set_argument_name(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, 1, NULL);
+    fake_catalog_set_argument_description(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, 1, NULL);
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL, "path {0}");
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE, "パス {0}");
+    fake_catalog_set_text(FAKE_CATALOG_INDEX_TWO_ARGUMENTS, CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH, "path {0}");
+
+    // Pre-Assert
+
+    // Act
+    actual_ret = cplat_string_catalog_verify(
+        fake_catalog(), &string_key,
+        &language); // [手順] - 名前と説明が未設定の、値を受け取らない引数を持つカタログを確認する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 値を受け取らない引数には名前と説明を求めないこと。
+}
+
 // 引数を割り当てないインデックスを参照しない書式が受理されることの確認
 TEST_F(stringCatalogVerifyTest, unused_argument_kind_is_allowed)
 {

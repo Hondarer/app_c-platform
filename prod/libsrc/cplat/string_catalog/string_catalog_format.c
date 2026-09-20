@@ -163,8 +163,11 @@ int cplat_string_catalog_verify(const cplat_string_catalog *const catalog, int *
         for (argument_index = 0; argument_index < entry->argument_count; argument_index++)
         {
             const cplat_string_catalog_argument *argument = &entry->arguments[argument_index];
+            /* 値を受け取らないインデックスは要素を明示しない初期化子で埋めるため、名前と説明を求めない */
+            const bool has_value = (argument->kind != CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED);
 
-            if (!is_valid_argument_kind(argument->kind) || (argument->name == NULL) || (argument->description == NULL))
+            if (!is_valid_argument_kind(argument->kind) ||
+                (has_value && ((argument->name == NULL) || (argument->description == NULL))))
             {
                 if (string_key_out != NULL)
                 {

@@ -321,10 +321,45 @@ sample_messages_key_file_open_failed(text, sizeof(text), "config.json", 2);
 sample_trace_key_file_open_failed(tracer, "config.json", 2);
 ```
 
+## フィルター成立時の強制出力
+
+条件式フィルターが成立した出力要求は、出力先のしきい値によらず出力します。  
+絞り込みの条件を満たした記録が、レベルの設定によって失われることを避けるためです。
+
+このために、`cplat_trace_level` へ通常のレベルと対になる強制出力のレベル帯を追加します。  
+値は `CPLAT_TRACE_LEVEL_CRITICAL` より小さい負の値とし、`CPLAT_TRACE_LEVEL_FORCE_CRITICAL` を -7、`CPLAT_TRACE_LEVEL_FORCE_NONE` を -1 とします。  
+通常のレベルとの相互変換は 7 の加減算だけで行えます。
+
+| 定数 | 値 | 対応する通常のレベル |
+|---|---|---|
+| `CPLAT_TRACE_LEVEL_FORCE_CRITICAL` | -7 | `CPLAT_TRACE_LEVEL_CRITICAL` |
+| `CPLAT_TRACE_LEVEL_FORCE_ERROR` | -6 | `CPLAT_TRACE_LEVEL_ERROR` |
+| `CPLAT_TRACE_LEVEL_FORCE_WARNING` | -5 | `CPLAT_TRACE_LEVEL_WARNING` |
+| `CPLAT_TRACE_LEVEL_FORCE_INFO` | -4 | `CPLAT_TRACE_LEVEL_INFO` |
+| `CPLAT_TRACE_LEVEL_FORCE_VERBOSE` | -3 | `CPLAT_TRACE_LEVEL_VERBOSE` |
+| `CPLAT_TRACE_LEVEL_FORCE_DEBUG` | -2 | `CPLAT_TRACE_LEVEL_DEBUG` |
+| `CPLAT_TRACE_LEVEL_FORCE_NONE` | -1 | `CPLAT_TRACE_LEVEL_NONE` |
+
+しきい値の判定は「出力要求のレベルがしきい値と同じかより重いこと」であり、しきい値が `CPLAT_TRACE_LEVEL_NONE` の場合だけ出力しません。  
+強制出力のレベル帯は、どの通常のしきい値よりも小さいため、判定処理を変更せずに通過します。  
+しきい値が `CPLAT_TRACE_LEVEL_NONE` の出力先へは出力しません。出力しない設定を明示している出力先まで越えないためです。
+
+負の値とする理由は、既存の列挙値を変えずに追加できるためです。  
+出力先ごとのしきい値を設定する API は、強制出力のレベル帯を受け付けません。  
+しきい値として指定すると、強制出力の要求だけが通る状態になるためです。
+
+トレースの出力行に記録するレベルの表記は、対応する通常のレベルと同じにします。  
+強制出力であるかどうかは絞り込みの結果であり、記録の重大度ではないためです。
+
+syslog、EventLog、ETW への変換では、強制出力のレベル帯を個別に扱えます。  
+これらの出力先は、cplat の外側でも重大度による絞り込みを行うため、変換先の重大度を選べるようにしておきます。
+
 ## 条件式フィルターとの関係
 
 条件式フィルターを適用する段階では、`cplat_string_catalog_vformat` の呼び出しを `cplat_string_catalog_vformat_filtered` へ置き換えます。  
 置き換えの対象は、生成器が出力する `<module>_write` の内部だけです。
+
+条件式が成立した呼び出しでは、分類値から変換したレベルを強制出力のレベル帯へ移してから `cplat_tracer_write_at` を呼び出します。
 
 文脈引数は通常の引数であるため、[条件式フィルターの設計](string-catalog-filter-design.md) の「判定の事前計算」で定義した 3 つの状態をそのまま使用します。  
 `arg.source_file_name` や `arg.thread_id` を条件に記述でき、フィルター側に変更は生じません。
@@ -357,6 +392,13 @@ sample_trace_key_file_open_failed(tracer, "config.json", 2);
 - トレース種別のラッパー、マクロ、および `<module>_write` の出力
 - 生成器の単体テストの追加
 
+### 第 3.5 段階: 強制出力のレベル帯
+
+- `cplat_trace_level` への強制出力のレベル帯の追加
+- `to_syslog_level()`、`to_etw_level()`、`trace_level_char()` での扱いの決定
+- しきい値を設定する API における、強制出力のレベル帯の拒否
+- 単体テストの追加と、`trace` の機能仕様への要件の追加
+
 ### 第 4 段階: サンプルの追加
 
 - `app/string-catalog-sample` への 3 本目のカタログ定義の追加
@@ -376,7 +418,8 @@ sample_trace_key_file_open_failed(tracer, "config.json", 2);
 |---|---|
 | 第 1 段階: スレッド ID の取得 | 完了 (2026/09/20) |
 | 第 2 段階: 位置指定の番号空間と未使用のインデックス | 完了 (2026/09/20) |
-| 第 3 段階: 生成器の種別対応 | 未着手 |
+| 第 3 段階: 生成器の種別対応 | 完了 (2026/09/20) |
+| 第 3.5 段階: 強制出力のレベル帯 | 未着手 |
 | 第 4 段階: サンプルの追加 | 未着手 |
 | 第 5 段階: 条件式フィルターとの接続 | 未着手 (条件式フィルターの第 1 段階の完了が前提) |
 
@@ -407,6 +450,25 @@ Windows の `GetCurrentThreadId()` の mock も testfw に存在せず、両プ�
 `CPLAT-STRING_CATALOG-FUNC-026` <!-- cplat-req: uuid=a3ffff5b-b6d6-44bb-841d-81b6c4e9c2b6 --> として、値を受け取らないインデックスを引数スキーマで表現できる要件を追加しました。  
 `CPLAT-STRING_CATALOG-FUNC-025` <!-- cplat-req: uuid=2d675edd-afbf-4a33-8d5f-7d3ded23d640 --> には、値を受け取らないインデックスを参照した場合の通知を追記しました。  
 `CPLAT-STRING_CATALOG-CONS-008` <!-- cplat-req: uuid=4a527b64-2e5f-426b-a196-0acea485e566 --> の引数の個数の上限を、32 個から 50 個へ変更しました。
+
+### 第 3 段階で設計から変更した事項
+
+生成物の引数配列は、値を受け取らないインデックスを要素を明示しない形で埋めます。  
+この形では名前と説明がヌル ポインターになるため、`cplat_string_catalog_verify` が値を受け取らない引数へ名前と説明を求めないよう変更しました。
+
+型付きラッパーの説明文は、1 文ずつ改行して出力します。  
+1 行に詰めると、整形時に `@c` と対象の名前の間で折り返されるためです。
+
+### 第 3 段階で決定した事項
+
+トレース種別の `texts` は、既存の種別と同じく全言語を許可します。  
+運用者が読むログを日本語にする要求があるためです。
+
+文脈引数は、ソース ファイルのパスとファイル名を両方持ちます。  
+ビルド方法の変更や、絶対パスを展開するコンパイラに備えるためです。
+
+条件式が成立した出力要求を、出力先のしきい値によらず出力します。  
+方式は「フィルター成立時の強制出力」に記載しました。
 
 ## 検討事項
 

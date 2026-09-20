@@ -100,6 +100,191 @@ def minimal_document(**overrides):
     return document
 
 
+def trace_document(**overrides):
+    """トレース種別の最小の定義を組み立てる。"""
+    document = {
+        "kind": "trace",
+        "module_prefix": "sample_trace",
+        "strings": [
+            {
+                "key": "SAMPLE_TRACE_KEY_A",
+                "id": "ID_0001",
+                "level": "ERROR",
+                "brief": "あ。",
+                "arguments": [{"kind": "STRING", "name": "path", "description": "パス。"}],
+                "texts": {"neutral": "{0}"},
+                "notes": {"neutral": ""},
+            }
+        ],
+    }
+    document.update(overrides)
+    return document
+
+
+class CatalogKindTest(unittest.TestCase):
+    """カタログ種別の既定値と検査を確認する。"""
+
+    def test_defaults_to_message(self):
+        self.assertEqual(gen.catalog_kind(minimal_document()), "message")
+        self.assertFalse(gen.is_trace(minimal_document()))
+
+    def test_accepts_trace(self):
+        self.assertTrue(gen.is_trace(trace_document()))
+        self.assertEqual(len(gen.validate(trace_document())), 1)
+
+    def test_rejects_unknown_kind(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(minimal_document(kind="warning"))
+
+    def test_trace_level_maps_to_category(self):
+        self.assertEqual(gen.trace_level_value("CRITICAL"), 0)
+        self.assertEqual(gen.trace_level_value("ERROR"), 1)
+        self.assertEqual(gen.trace_level_value("NONE"), 6)
+
+
+class TraceValidateTest(unittest.TestCase):
+    """トレース種別に固有の検査を確認する。"""
+
+    def test_requires_id(self):
+        document = trace_document()
+        del document["strings"][0]["id"]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_requires_level(self):
+        document = trace_document()
+        del document["strings"][0]["level"]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_unknown_level(self):
+        document = trace_document()
+        document["strings"][0]["level"] = "FATAL"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_category(self):
+        document = trace_document()
+        document["strings"][0]["category"] = 1
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_level_in_message_kind(self):
+        document = minimal_document()
+        document["strings"][0]["level"] = "ERROR"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_argument_name_colliding_with_context(self):
+        document = trace_document()
+        document["strings"][0]["arguments"][0]["name"] = "source_line"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_limits_user_arguments_to_context_base(self):
+        document = trace_document()
+        argument = document["strings"][0]["arguments"][0]
+        document["strings"][0]["arguments"] = [dict(argument) for _ in range(gen.CONTEXT_ARGUMENT_BASE)]
+        self.assertEqual(len(gen.validate(document)), 1)
+
+        document["strings"][0]["arguments"].append(dict(argument))
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_allows_placeholder_for_context_argument(self):
+        document = trace_document()
+        document["strings"][0]["texts"]["neutral"] = "{0} {45}"
+        self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_rejects_placeholder_for_unused_index(self):
+        document = trace_document()
+        document["strings"][0]["texts"]["neutral"] = "{1}"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_placeholder_beyond_context_arguments(self):
+        document = trace_document()
+        document["strings"][0]["texts"]["neutral"] = "{46}"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+
+class TraceOutputTest(unittest.TestCase):
+    """トレース種別の生成物を確認する。"""
+
+    def setUp(self):
+        self.document = trace_document(module_dir="prod/src/cmd/example")
+        self.strings = gen.validate(self.document)
+
+    def test_header_includes_trace_and_runtime_headers(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        includes = [line for line in header.splitlines() if line.startswith("#include")]
+        self.assertEqual(
+            includes,
+            [
+                "#include <cplat/string_catalog/string_catalog.h>",
+                "#include <cplat/trace/tracer.h>",
+                "#include <cplat/crt/path.h>",
+                "#include <cplat/runtime/process.h>",
+                "#include <stdarg.h>",
+                "#include <stddef.h>",
+                "#include <stdint.h>",
+            ],
+        )
+
+    def test_header_declares_write(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("int sample_trace_write(cplat_tracer *tracer, int string_key, ...);", header)
+
+    def test_wrapper_takes_tracer_and_source_location(self):
+        wrapper = gen.emit_wrapper(self.document, self.strings[0])
+        self.assertIn(
+            "static inline int sample_trace_key_a_with_source(cplat_tracer *tracer, const char *path, "
+            "const char *source_file_path, const char *source_file_name, const int32_t source_line, "
+            "const char *function_name)",
+            wrapper,
+        )
+
+    def test_wrapper_obtains_runtime_identifiers_inside(self):
+        wrapper = gen.emit_wrapper(self.document, self.strings[0])
+        self.assertIn("cplat_process_get_pid(), cplat_process_get_tid()", wrapper)
+
+    def test_macro_passes_call_site(self):
+        wrapper = gen.emit_wrapper(self.document, self.strings[0])
+        self.assertIn(
+            "#define sample_trace_key_a(tracer, path) "
+            "sample_trace_key_a_with_source((tracer), (path), __FILE__, "
+            "cplat_path_basename(__FILE__), __LINE__, __func__)",
+            wrapper,
+        )
+
+    def test_source_emits_context_arguments_at_base(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            '    [40] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING, 0, "source_file_path", ',
+            source,
+        )
+        self.assertIn(
+            '    [45] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT32, 0, "thread_id", ',
+            source,
+        )
+
+    def test_source_emits_level_as_category_and_full_argument_count(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("    {SAMPLE_TRACE_KEY_A,\n     1,\n     46,\n", source)
+
+    def test_source_emits_write_function(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn("int sample_trace_write(cplat_tracer *tracer, const int string_key, ...)", source)
+        self.assertIn("cplat_tracer_write_at(tracer, (cplat_trace_level)sample_trace_category(string_key)", source)
+
+    def test_message_kind_does_not_emit_write(self):
+        document = minimal_document()
+        strings = gen.validate(document)
+        self.assertNotIn("sample_messages_write", gen.emit_source(document, strings, "example.jsonc"))
+        self.assertNotIn("sample_messages_write", gen.emit_header(document, strings, "example.jsonc"))
+
+
 class ValidateTest(unittest.TestCase):
     """定義の検査を確認する。"""
 

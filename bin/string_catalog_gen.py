@@ -54,6 +54,63 @@ INDEX_DIGITS_MAX = 2
 # 1 つの文字列が取れる引数の最大個数。CPLAT_STRING_CATALOG_ARGUMENT_MAX と揃える。
 ARGUMENT_MAX = 50
 
+# カタログ定義の kind に書ける値。省略した場合は message として扱う。
+CATALOG_KIND_MESSAGE = "message"
+CATALOG_KIND_TRACE = "trace"
+CATALOG_KINDS = (CATALOG_KIND_MESSAGE, CATALOG_KIND_TRACE)
+
+# トレース種別の level に書ける値。cplat_trace_level の並びと揃える。
+# 生成器は名前を分類値の整数へ変換し、生成物は cplat_trace_level へ戻して使用する。
+TRACE_LEVELS = ("CRITICAL", "ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG", "NONE")
+
+# 文脈引数を置き始める位置指定。利用者が記載できる引数は、この番号の手前までとなる。
+CONTEXT_ARGUMENT_BASE = 40
+
+# トレース種別で、生成器が引数配列へ付け加える文脈引数。
+# macro_value を持つものは呼び出し位置で確定するため、マクロが型付きラッパーへ渡す。
+# inline_value を持つものは実行時の値のため、型付きラッパーの内部で取得する。
+CONTEXT_ARGUMENTS = (
+    {
+        "name": "source_file_path",
+        "kind": "STRING",
+        "description": "呼び出し位置のソース ファイル。コンパイラへ渡した表記のままです。",
+        "macro_value": "__FILE__",
+    },
+    {
+        "name": "source_file_name",
+        "kind": "STRING",
+        "description": "呼び出し位置のソース ファイル名。ディレクトリを除いた表記です。",
+        "macro_value": "cplat_path_basename(__FILE__)",
+    },
+    {
+        "name": "source_line",
+        "kind": "INT32",
+        "description": "呼び出し位置の行番号。",
+        "macro_value": "__LINE__",
+    },
+    {
+        "name": "function_name",
+        "kind": "STRING",
+        "description": "呼び出し位置の関数名。",
+        "macro_value": "__func__",
+    },
+    {
+        "name": "process_id",
+        "kind": "UINT32",
+        "description": "出力を要求したプロセスの ID。",
+        "inline_value": "cplat_process_get_pid()",
+    },
+    {
+        "name": "thread_id",
+        "kind": "UINT32",
+        "description": "出力を要求したスレッドの ID。",
+        "inline_value": "cplat_process_get_tid()",
+    },
+)
+
+# トレース種別の生成物が追加で参照する公開ヘッダー。
+TRACE_HEADERS = ("cplat/trace/tracer.h", "cplat/crt/path.h", "cplat/runtime/process.h")
+
 
 class DefinitionError(Exception):
     """カタログ定義の内容が不正であることを表す。"""
@@ -186,21 +243,47 @@ def validate(document: dict) -> list[dict]:
         if key not in document:
             raise DefinitionError(f"必須の項目がありません: {key}")
 
+    if catalog_kind(document) not in CATALOG_KINDS:
+        raise DefinitionError(
+            f"未知のカタログ種別です: {document['kind']}。{' または '.join(CATALOG_KINDS)} を指定してください。"
+        )
+
     strings = document["strings"]
     if not strings:
         raise DefinitionError("strings が空です。")
 
+    trace = is_trace(document)
+    context_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
     seen_keys: set[str] = set()
-    reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in MODULE_FUNCTION_SUFFIXES}
+    suffixes = MODULE_FUNCTION_SUFFIXES + (("write",) if trace else ())
+    reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in suffixes}
 
     for entry in strings:
-        # id は処理では意味を持たない補足の文字列のため、必須にしない。
-        for key in ("key", "category", "brief", "arguments", "texts", "notes"):
+        # 分類値の書き方は種別で異なる。トレース種別はトレース レベルの名前で記載する。
+        classifier = "level" if trace else "category"
+
+        # id は処理では意味を持たない補足の文字列のため、message 種別では必須にしない。
+        # トレース種別では、言語の設定によらず項目を識別する文字列として必須とする。
+        required = ("key", classifier, "brief", "arguments", "texts", "notes")
+        for key in (required + ("id",)) if trace else required:
             if key not in entry:
                 raise DefinitionError(f"{entry.get('key', '?')}: 必須の項目がありません: {key}")
 
+        unexpected = "category" if trace else "level"
+        if unexpected in entry:
+            raise DefinitionError(
+                f"{entry['key']}: {catalog_kind(document)} 種別では {unexpected} を指定できません。"
+                f"{classifier} を使用してください。"
+            )
+
+        if trace:
+            if entry["level"] not in TRACE_LEVELS:
+                raise DefinitionError(
+                    f"{entry['key']}: 未知のトレース レベルです: {entry['level']}。"
+                    f"{'、'.join(TRACE_LEVELS)} のいずれかを指定してください。"
+                )
         # 分類値は生値とする。生成物を特定の app の列挙から独立させるため。
-        if not isinstance(entry["category"], int) or isinstance(entry["category"], bool):
+        elif not isinstance(entry["category"], int) or isinstance(entry["category"], bool):
             raise DefinitionError(f"{entry['key']}: category は整数で指定してください。")
 
         for key in ("key", "brief"):
@@ -233,8 +316,9 @@ def validate(document: dict) -> list[dict]:
             )
 
         arguments = entry["arguments"]
-        if len(arguments) > ARGUMENT_MAX:
-            raise DefinitionError(f"{entry['key']}: 引数が上限 {ARGUMENT_MAX} 個を超えています。")
+        argument_max = user_argument_max(document)
+        if len(arguments) > argument_max:
+            raise DefinitionError(f"{entry['key']}: 引数が上限 {argument_max} 個を超えています。")
 
         for argument in arguments:
             for key in ("kind", "name", "description"):
@@ -244,6 +328,11 @@ def validate(document: dict) -> list[dict]:
                 raise DefinitionError(f"{entry['key']}: 未知の引数種別です: {argument['kind']}")
             if not isinstance(argument["name"], str) or not isinstance(argument["description"], str):
                 raise DefinitionError(f"{entry['key']}: 引数の name と description は文字列で指定してください。")
+            # 文脈引数は生成器が付け加えるため、同じ名前の引数を利用者が定義すると仮引数が重複する。
+            if trace and argument["name"] in context_names:
+                raise DefinitionError(
+                    f"{entry['key']}: 引数名 {argument['name']} は生成器が付け加える文脈引数と重複しています。"
+                )
 
         for section in ("texts", "notes"):
             if "neutral" not in entry[section]:
@@ -252,12 +341,21 @@ def validate(document: dict) -> list[dict]:
                 if language not in LANGUAGES:
                     raise DefinitionError(f"{entry['key']}: ライブラリが扱わない言語です: {language}")
 
+        allowed = allowed_placeholder_indices(document, entry)
         for language, text in entry["texts"].items():
             indices = placeholder_indices(join_text(text))
             for found in indices:
-                if found >= len(arguments):
+                if found not in allowed:
+                    if not trace:
+                        raise DefinitionError(
+                            f"{entry['key']}: {language} の位置指定 {{{found}}} が"
+                            f"引数個数 {len(arguments)} を超えています。"
+                        )
                     raise DefinitionError(
-                        f"{entry['key']}: {language} の位置指定 {{{found}}} が引数個数 {len(arguments)} を超えています。"
+                        f"{entry['key']}: {language} の位置指定 {{{found}}} に引数がありません。"
+                        f"利用者の引数は 0 から {len(arguments) - 1 if arguments else -1}、"
+                        f"文脈引数は {CONTEXT_ARGUMENT_BASE} から "
+                        f"{CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) - 1} です。"
                     )
 
     return strings
@@ -282,6 +380,50 @@ def language_constant(document: dict, language: str) -> str:
 def kind_constant(document: dict, kind: str) -> str:
     """引数種別のキーを、ライブラリの列挙定数へ変換する。"""
     return f"{LIBRARY_PREFIX.upper()}_ARGUMENT_KIND_{kind}"
+
+
+def catalog_kind(document: dict) -> str:
+    """カタログ定義の種別を返す。記載がない場合は message として扱う。"""
+    return document.get("kind", CATALOG_KIND_MESSAGE)
+
+
+def is_trace(document: dict) -> bool:
+    """カタログ定義がトレース種別かどうかを返す。"""
+    return catalog_kind(document) == CATALOG_KIND_TRACE
+
+
+def trace_level_value(level: str) -> int:
+    """トレース レベルの名前を、分類値として保持する整数へ変換する。"""
+    return TRACE_LEVELS.index(level)
+
+
+def context_argument_count(document: dict) -> int:
+    """生成器が付け加える文脈引数の個数を返す。"""
+    return len(CONTEXT_ARGUMENTS) if is_trace(document) else 0
+
+
+def user_argument_max(document: dict) -> int:
+    """利用者がカタログ定義へ記載できる引数の上限を返す。"""
+    return CONTEXT_ARGUMENT_BASE if is_trace(document) else ARGUMENT_MAX
+
+
+def argument_array_length(document: dict, entry: dict) -> int:
+    """生成物の引数配列の要素数を返す。
+
+    トレース種別では、利用者の引数と文脈引数の間に、値を受け取らないインデックスが並ぶ。
+    要素数は最後に使用するインデックスに 1 を加えた値となる。
+    """
+    if not is_trace(document):
+        return len(entry["arguments"])
+    return CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS)
+
+
+def allowed_placeholder_indices(document: dict, entry: dict) -> set[int]:
+    """書式の位置指定が指してよいインデックスを返す。"""
+    indices = set(range(len(entry["arguments"])))
+    if is_trace(document):
+        indices |= set(range(CONTEXT_ARGUMENT_BASE, CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS)))
+    return indices
 
 
 # ACCESSOR_DECLARATIONS (および SOURCE_TAIL) が @MODULE@_ に続けて出力する簡易関数の名前一覧。
@@ -334,8 +476,117 @@ def doc_lines(text: str, indent: str, width: int = 112) -> list[str]:
     return lines
 
 
+def parameter_declaration(argument: dict) -> str:
+    """引数定義から、型付きラッパーの仮引数の宣言を組み立てる。"""
+    c_type = ARGUMENT_TYPES[argument["kind"]]
+    if c_type.endswith("*"):
+        return f"{c_type}{argument['name']}"
+    return f"const {c_type} {argument['name']}"
+
+
+def format_par_lines(entry: dict) -> list[str]:
+    """言語別の書式を @par として並べる。"""
+    lines = ["     *  @par            書式"]
+    texts = entry["texts"]
+    languages = [language for language in LANGUAGES if language in texts]
+    for position, language in enumerate(languages):
+        suffix = "\\n" if position < (len(languages) - 1) else ""
+        lines.append(f"     *  `{join_text(texts[language])}`{suffix}")
+    return lines
+
+
+def remark_doc_lines(entry: dict) -> list[str]:
+    """定義の remarks を @remark の行にする。"""
+    remark_text = join_text(entry["remarks"]) if entry.get("remarks") else ""
+    if not remark_text:
+        return []
+
+    remark_indent = "     *" + " " * 18
+    remark_lines = doc_lines(remark_text, remark_indent)
+    return [f"     *  @remark         {remark_lines[0][len(remark_indent):]}"] + remark_lines[1:]
+
+
+def emit_trace_wrapper(document: dict, entry: dict) -> str:
+    """1 件分のトレース出力ラッパーを、マクロとともに書き出す。"""
+    name = wrapper_name(entry["key"])
+    module = document["module_prefix"]
+    arguments = entry["arguments"]
+    macro_context = [argument for argument in CONTEXT_ARGUMENTS if "macro_value" in argument]
+    inline_context = [argument for argument in CONTEXT_ARGUMENTS if "inline_value" in argument]
+    user_names = [argument["name"] for argument in arguments]
+
+    names = ["tracer"] + user_names + [argument["name"] for argument in macro_context]
+    name_width = max(len(name_item) for name_item in names) + 1
+    # `     *  ` の 8 文字と、`@param[in]      ` の 16 文字のあとに名前欄が並ぶ
+    continuation = "     *" + " " * (8 + 16 + name_width - 6)
+
+    lines = ["    /**"]
+    lines.append(f"     *  @brief          {entry['brief']}")
+    lines.append("     *")
+    # 1 文ずつ改行する。長い 1 行にすると、整形時に @c と対象の間で折り返される。
+    lines.append(f"     *  関数形式マクロ @c {name} の実体です。\\n")
+    lines.append("     *  呼び出し位置は展開の位置で確定する必要があるため、マクロから受け取ります。\\n")
+    lines.append("     *  呼び出し側はマクロを使用してください。")
+    lines.append("     *")
+    lines.append(f"     *  @param[in]      {'tracer'.ljust(name_width)}出力先のトレーサー ハンドル。")
+
+    for argument in arguments + macro_context:
+        padded = argument["name"].ljust(name_width)
+        lines.append(f"     *  @param[in]      {padded}{argument['description']}")
+        lines.append(f"{continuation}引数種別は @c {kind_constant(document, argument['kind'])} です。")
+
+    lines.append(f"     *  @return         戻り値は @c {module}_write と同じです。")
+    lines.append("     */")
+
+    parameters = ["cplat_tracer *tracer"]
+    parameters.extend(parameter_declaration(argument) for argument in arguments + macro_context)
+
+    call = ["tracer", entry["key"]]
+    call.extend(user_names)
+    call.extend(argument["name"] for argument in macro_context)
+    call.extend(argument["inline_value"] for argument in inline_context)
+
+    lines.append(f"    static inline int {name}_with_source({', '.join(parameters)})")
+    lines.append("    {")
+    lines.append(f"        return {module}_write({', '.join(call)});")
+    lines.append("    }")
+    lines.append("")
+
+    macro_names = ["tracer"] + user_names
+    macro_width = max(len(name_item) for name_item in macro_names) + 1
+    macro_continuation = "     *" + " " * (8 + 16 + macro_width - 6)
+
+    lines.append("    /**")
+    lines.append(f"     *  @brief          {entry['brief']}")
+    lines.append("     *")
+    details_text = entry.get("details", "")
+    if details_text:
+        lines.extend(doc_lines(details_text, "     *  "))
+        lines.append("     *")
+    lines.append("     *  ソース ファイル、行番号、関数名、プロセス ID、スレッド ID を呼び出しごとに付けて出力します。")
+    lines.append("     *")
+    lines.append(f"     *  @param[in]      {'tracer'.ljust(macro_width)}出力先のトレーサー ハンドル。")
+    for argument in arguments:
+        padded = argument["name"].ljust(macro_width)
+        lines.append(f"     *  @param[in]      {padded}{argument['description']}")
+        lines.append(f"{macro_continuation}引数種別は @c {kind_constant(document, argument['kind'])} です。")
+    lines.append(f"     *  @return         戻り値は @c {module}_write と同じです。")
+    lines.extend(remark_doc_lines(entry))
+    lines.extend(format_par_lines(entry))
+    lines.append("     */")
+
+    macro_arguments = ", ".join(f"({name_item})" for name_item in macro_names)
+    macro_tail = ", ".join(argument["macro_value"] for argument in macro_context)
+    lines.append(f"#define {name}({', '.join(macro_names)}) {name}_with_source({macro_arguments}, {macro_tail})")
+
+    return "\n".join(lines)
+
+
 def emit_wrapper(document: dict, entry: dict) -> str:
     """1 件分の型付きラッパーを、Doxygen コメントとともに書き出す。"""
+    if is_trace(document):
+        return emit_trace_wrapper(document, entry)
+
     name = wrapper_name(entry["key"])
     arguments = entry["arguments"]
 
@@ -370,28 +621,12 @@ def emit_wrapper(document: dict, entry: dict) -> str:
         f"     *  @return         戻り値は @c {LIBRARY_PREFIX}_format と同じです。"
     )
 
-    remark_text = join_text(entry["remarks"]) if entry.get("remarks") else ""
-    if remark_text:
-        remark_indent = "     *" + " " * 18
-        remark_lines = doc_lines(remark_text, remark_indent)
-        lines.append(f"     *  @remark         {remark_lines[0][len(remark_indent):]}")
-        lines.extend(remark_lines[1:])
-
-    lines.append("     *  @par            書式")
-    texts = entry["texts"]
-    languages = [language for language in LANGUAGES if language in texts]
-    for position, language in enumerate(languages):
-        suffix = "\\n" if position < (len(languages) - 1) else ""
-        lines.append(f"     *  `{join_text(texts[language])}`{suffix}")
+    lines.extend(remark_doc_lines(entry))
+    lines.extend(format_par_lines(entry))
     lines.append("     */")
 
     parameters = ["char *dest", "const size_t dest_size"]
-    for argument in arguments:
-        c_type = ARGUMENT_TYPES[argument["kind"]]
-        if c_type.endswith("*"):
-            parameters.append(f"{c_type}{argument['name']}")
-        else:
-            parameters.append(f"const {c_type} {argument['name']}")
+    parameters.extend(parameter_declaration(argument) for argument in arguments)
 
     call = [f"{document['module_prefix']}_catalog()", "dest", "dest_size", entry["key"]]
     call.extend(argument["name"] for argument in arguments)
@@ -511,9 +746,13 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     group_id = module.upper()
     group_title = f"文字列カタログ ({module})"
 
+    includes = [f"#include <{LIBRARY_HEADER}>"]
+    # トレース種別は、出力先のハンドルと、文脈引数の値を取得する API を参照する。
+    includes.extend(f"#include <{header}>" for header in (TRACE_HEADERS if is_trace(document) else ()))
+
     out.extend(
-        [
-            f"#include <{LIBRARY_HEADER}>",
+        includes
+        + [
             "#include <stdarg.h>",
             "#include <stddef.h>",
             "#include <stdint.h>",
@@ -548,6 +787,8 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     out.append(f"    }} {key_enum_name(document)};")
     out.append("")
     out.append(expand(ACCESSOR_DECLARATIONS, module, library))
+    if is_trace(document):
+        out.append(expand(TRACE_WRITE_DECLARATION, module, library))
     out.extend(
         [
             "#ifdef __cplusplus",
@@ -558,11 +799,19 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     )
 
     wrapper_group_id = f"{group_id}_TYPED_FORMATTERS"
+    wrapper_group_title = (
+        "文字列キーごとの型付きトレース出力関数" if is_trace(document) else "文字列キーごとの型付き組み立て関数"
+    )
+    wrapper_group_brief = (
+        "文字列キーごとに引数の型を固定したトレース出力関数です。"
+        if is_trace(document)
+        else "文字列キーごとに引数の型を固定した組み立て関数です。"
+    )
     out.extend(
         [
             "/**",
-            f" *  @defgroup       {wrapper_group_id} 文字列キーごとの型付き組み立て関数",
-            " *  @brief          文字列キーごとに引数の型を固定した組み立て関数です。",
+            f" *  @defgroup       {wrapper_group_id} {wrapper_group_title}",
+            f" *  @brief          {wrapper_group_brief}",
             f" *  @ingroup        {group_id}",
             " *  @{",
             " */",
@@ -767,6 +1016,52 @@ ACCESSOR_DECLARATIONS = """\
 """
 
 
+TRACE_WRITE_DECLARATION = """\
+    /**
+     *  @brief          本カタログ定義を使用して、組み立てた文字列をトレースへ出力します。
+     *  @param[in]      tracer     出力先のトレーサー ハンドル。
+     *  @param[in]      string_key 出力する文字列のキー。
+     *  @param[in]      ...        引数スキーマが定める順序と型の引数リスト。
+     *  @return         組み立てに失敗した場合は @c @LIBRARY@_format と同じ値を返します。
+     *  @return         組み立てに成功した場合は @c cplat_tracer_write_at と同じ値を返します。
+     *
+     *  文字列キーごとの型付きラッパーが呼び出す関数です。\\n
+     *  引数の個数と型の検査を働かせるため、呼び出し側は型付きラッパーのマクロを使用してください。
+     *
+     *  トレース レベルは、カタログ定義の level から変換した分類値を使用します。\\n
+     *  呼び出し位置は引数として受け取るため、トレース側で重ねて付与しません。
+     *
+     *  @par            スレッド セーフ
+     *  スレッド セーフ性は @c cplat_tracer_write_at と同じです。
+     */
+    int @MODULE@_write(cplat_tracer *tracer, int string_key, ...);
+"""
+
+
+TRACE_SOURCE_TAIL = """\
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int @MODULE@_write(cplat_tracer *tracer, const int string_key, ...)
+{
+    char text[CPLAT_STRING_CATALOG_TEXT_MAX];
+    va_list args;
+    int ret;
+
+    va_start(args, string_key);
+    ret = @LIBRARY@_vformat(&s_catalog, text, sizeof(text), string_key, args);
+    va_end(args);
+
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+
+    /* 呼び出し位置は引数として渡しているため、呼び出し位置を付与しない API を使う */
+    return cplat_tracer_write_at(tracer, (cplat_trace_level)@MODULE@_category(string_key), NULL, text);
+}
+"""
+
+
 SOURCE_TAIL = """\
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -933,15 +1228,24 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         "",
     ]
 
+    trace = is_trace(document)
+
     for position, entry in enumerate(strings):
         arguments = entry["arguments"]
-        if not arguments:
+        if not arguments and not trace:
             continue
+
+        brief = f"/** {entry['key']} の引数定義です。 */"
+        if trace:
+            brief = (
+                f"/** {entry['key']} の引数定義です。"
+                f"{CONTEXT_ARGUMENT_BASE} 番から先は生成器が付け加える文脈引数です。 */"
+            )
 
         out.extend(
             [
                 "",
-                f"/** {entry['key']} の引数定義です。 */",
+                brief,
                 f"static const {library}_argument s_arguments_{position}[] = {{",
             ]
         )
@@ -950,6 +1254,18 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
                 f"    {{{kind_constant(document, argument['kind'])}, 0, {c_string(argument['name'])}, "
                 f"{c_string(argument['description'])}}},"
             )
+        if trace:
+            if len(arguments) < CONTEXT_ARGUMENT_BASE:
+                out.append(
+                    f"    /* {len(arguments)} 番から {CONTEXT_ARGUMENT_BASE - 1} 番は、"
+                    "要素を明示しないことで値を受け取らないインデックスになります。 */"
+                )
+            for offset, argument in enumerate(CONTEXT_ARGUMENTS):
+                out.append(
+                    f"    [{CONTEXT_ARGUMENT_BASE + offset}] = "
+                    f"{{{kind_constant(document, argument['kind'])}, 0, {c_string(argument['name'])}, "
+                    f"{c_string(argument['description'])}}},"
+                )
         out.append("};")
 
     out.extend(
@@ -963,13 +1279,14 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     rows = []
     for position, entry in enumerate(strings):
         arguments = entry["arguments"]
-        arguments_line = f"s_arguments_{position}" if arguments else "NULL"
+        arguments_line = f"s_arguments_{position}" if (arguments or trace) else "NULL"
         remarks_line = c_string(join_text(entry["remarks"])) if "remarks" in entry else "NULL"
+        category = trace_level_value(entry["level"]) if trace else entry["category"]
 
         row = [
             f"    {{{entry['key']},",
-            f"     {entry['category']},",
-            f"     {len(arguments)},",
+            f"     {category},",
+            f"     {argument_array_length(document, entry)},",
             "     0, /* 明示的アラインメント */",
             f"     {arguments_line},",
             f"     {c_string(entry['id']) if 'id' in entry else 'NULL'},",
@@ -1033,6 +1350,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             "",
         ]
     )
+
+    if trace:
+        out.extend(["", expand(TRACE_SOURCE_TAIL, module, library).rstrip("\n"), ""])
 
     return "\n".join(out)
 
