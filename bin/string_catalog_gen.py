@@ -1251,7 +1251,7 @@ TRACE_WRITE_DECLARATION = """\
      *  @brief          本カタログ定義を使用して、組み立てた文字列をトレースへ出力します。
      *  @param[in]      string_key 出力する文字列のキー。
      *  @param[in]      ...        引数スキーマが定める順序と型の引数リスト。
-     *  @return         トレーサーが未設定の場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
+     *  @return         トレーサーが未設定の場合は @c CPLAT_ERR_INVALID_ARGUMENT を返します。
      *  @return         組み立てに失敗した場合は @c @LIBRARY@_format と同じ値を返します。
      *  @return         組み立てに成功した場合は @c cplat_tracer_write_at と同じ値を返します。
      *
