@@ -951,5 +951,145 @@ class PublicHeaderOutputTest(unittest.TestCase):
         self.assertIn('#include "sample_messages.h"', gen.emit_source(document, strings, "example.jsonc"))
         self.assertIn("モジュール私有ヘッダー", gen.emit_header(document, strings, "example.jsonc"))
 
+def context_document(arguments=None, headers=None, **overrides):
+    """app が定める文脈引数を持つトレース種別の定義を組み立てる。"""
+    document = trace_document(module_dir="prod/libsrc/example")
+    document["settings"] = "catalog_settings.jsonc"
+    document[gen.SETTINGS_KEY] = {
+        gen.CONTEXT_SECTION: {
+            "headers": ["samplecatalog/samplecatalog_context.h"] if headers is None else headers,
+            "arguments": [
+                {
+                    "name": "sequence_number",
+                    "kind": "INT32",
+                    "description": "出力ごとに増える番号。",
+                    "inline_value": "samplecatalog_next_sequence_number()",
+                }
+            ]
+            if arguments is None
+            else arguments,
+        }
+    }
+    document.update(overrides)
+    return document
+
+
+class ExtensionContextValidateTest(unittest.TestCase):
+    """app が定める文脈引数の検査を確認する。"""
+
+    def test_accepts_single_argument(self):
+        self.assertEqual(len(gen.validate(context_document())), 1)
+
+    def test_assigns_index_from_extension_base(self):
+        document = context_document()
+        gen.validate(document)
+        self.assertEqual(
+            gen.context_argument_indices(document),
+            list(range(gen.CONTEXT_ARGUMENT_BASE, gen.CONTEXT_ARGUMENT_BASE + len(gen.CONTEXT_ARGUMENTS)))
+            + [gen.EXTENSION_ARGUMENT_BASE],
+        )
+
+    def test_rejects_more_than_the_maximum(self):
+        argument = context_document()[gen.SETTINGS_KEY][gen.CONTEXT_SECTION]["arguments"][0]
+        arguments = []
+        for index in range(gen.EXTENSION_ARGUMENT_MAX + 1):
+            item = dict(argument)
+            item["name"] = f"extra_{index}"
+            arguments.append(item)
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(context_document(arguments=arguments))
+
+    def test_rejects_empty_arguments(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(context_document(arguments=[]))
+
+    def test_rejects_macro_value(self):
+        arguments = [
+            {
+                "name": "sequence_number",
+                "kind": "INT32",
+                "description": "出力ごとに増える番号。",
+                "macro_value": "__COUNTER__",
+            }
+        ]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(context_document(arguments=arguments))
+
+    def test_rejects_missing_inline_value(self):
+        arguments = [{"name": "sequence_number", "kind": "INT32", "description": "番号。"}]
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(context_document(arguments=arguments))
+
+    def test_rejects_unknown_kind(self):
+        document = context_document()
+        document[gen.SETTINGS_KEY][gen.CONTEXT_SECTION]["arguments"][0]["kind"] = "UNUSED"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_name_colliding_with_library_context(self):
+        document = context_document()
+        document[gen.SETTINGS_KEY][gen.CONTEXT_SECTION]["arguments"][0]["name"] = "thread_id"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_name_colliding_with_entry_argument(self):
+        document = context_document()
+        document["strings"][0]["arguments"][0]["name"] = "sequence_number"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_ignores_context_section_for_message_kind(self):
+        # 設定ファイルは app 単位で種別をまたいで共有するため、誤りとはしない。
+        document = minimal_document()
+        document[gen.SETTINGS_KEY] = context_document()[gen.SETTINGS_KEY]
+        self.assertEqual(len(gen.validate(document)), 1)
+        self.assertEqual(gen.context_arguments(document), [])
+
+
+class ExtensionContextOutputTest(unittest.TestCase):
+    """app が定める文脈引数の生成物を確認する。"""
+
+    def setUp(self):
+        self.document = context_document()
+        self.strings = gen.validate(self.document)
+
+    def test_header_includes_context_headers(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("#include <samplecatalog/samplecatalog_context.h>", header)
+
+    def test_header_lists_extension_in_the_table(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("`{46}` | sequence_number |", header)
+
+    def test_wrapper_evaluates_inline_value_after_library_context(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            "cplat_process_get_pid(), cplat_process_get_tid(), samplecatalog_next_sequence_number()",
+            header.replace("\n", " ").replace("  ", " "),
+        )
+
+    def test_macro_arguments_are_unchanged(self):
+        # 呼び出し側が記述するマクロの引数は、app の拡張によって変わらない。
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("#define sample_trace_key_a(path)", header)
+
+    def test_source_emits_designated_initializer_at_extension_index(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn('[46] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "sequence_number"', source)
+
+    def test_array_length_covers_the_extension(self):
+        self.assertEqual(gen.argument_array_length(self.document, self.strings[0]), 47)
+
+    def test_format_can_reference_the_extension_index(self):
+        document = context_document()
+        document["strings"][0]["texts"]["neutral"] = "{0} #{46}"
+        self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_format_rejects_index_beyond_the_extension(self):
+        document = context_document()
+        document["strings"][0]["texts"]["neutral"] = "{47}"
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
 if __name__ == "__main__":
     unittest.main()

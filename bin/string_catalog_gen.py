@@ -125,6 +125,17 @@ CONTEXT_ARGUMENTS = (
     },
 )
 
+# app が定める文脈引数を置き始める位置指定。cplat が定める文脈引数の直後に固定する。
+# ここを動かすと、app が書式へ記載した位置指定の意味が変わるため、非互換の変更として扱う。
+# cplat が定める文脈引数は、この番号の手前までの 6 個が上限となる。
+EXTENSION_ARGUMENT_BASE = 46
+
+# app が定める文脈引数の個数の上限。
+EXTENSION_ARGUMENT_MAX = ARGUMENT_MAX - EXTENSION_ARGUMENT_BASE
+
+# app 単位の設定ファイルで、文脈引数の拡張を書く節。
+CONTEXT_SECTION = "context"
+
 # トレース種別の生成物が追加で参照する公開ヘッダー。
 TRACE_HEADERS = ("cplat/trace/tracer.h", "cplat/crt/path.h", "cplat/runtime/process.h")
 
@@ -307,6 +318,66 @@ def validate_export(document: dict) -> None:
         raise DefinitionError(f"設定ファイルの export の prefix は英大文字と数字で指定してください: {prefix}")
 
 
+def validate_context(document: dict) -> None:
+    """app が定める文脈引数の設定を検査する。"""
+    section = document.get(SETTINGS_KEY, {}).get(CONTEXT_SECTION)
+    if section is None:
+        return
+
+    if not isinstance(section, dict):
+        raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} はオブジェクトで指定してください。")
+
+    headers = section.get("headers", [])
+    if not isinstance(headers, list) or not all(isinstance(header, str) for header in headers):
+        raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} の headers は文字列の配列で指定してください。")
+
+    # 文脈引数を持つのはトレース種別だけ。設定ファイルは app 単位で種別をまたいで共有するため、
+    # ほかの種別から参照された場合は誤りとせず、ここで読み飛ばす。
+    if not is_trace(document):
+        return
+
+    arguments = section.get("arguments")
+    if not isinstance(arguments, list) or not arguments:
+        raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} には arguments を 1 個以上記載してください。")
+
+    if len(arguments) > EXTENSION_ARGUMENT_MAX:
+        raise DefinitionError(
+            f"app が定める文脈引数が上限 {EXTENSION_ARGUMENT_MAX} 個を超えています: {len(arguments)} 個。"
+        )
+
+    library_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
+    seen: set[str] = set()
+
+    for argument in arguments:
+        if not isinstance(argument, dict):
+            raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} の arguments はオブジェクトの配列です。")
+
+        for key in ("name", "kind", "description", "inline_value"):
+            if key not in argument:
+                raise DefinitionError(f"app が定める文脈引数に {key} がありません。")
+            if not isinstance(argument[key], str) or not argument[key]:
+                raise DefinitionError(f"app が定める文脈引数の {key} は空でない文字列で指定してください。")
+
+        # 値は実行時に取得する式だけを許す。マクロ経由にすると _with_source の仮引数が
+        # app の設定によって変わり、生成物の関数シグネチャが読み取りにくくなる。
+        if "macro_value" in argument:
+            raise DefinitionError(
+                f"app が定める文脈引数では macro_value を指定できません: {argument['name']}。"
+                "inline_value を使用してください。"
+            )
+
+        if argument["kind"] not in ARGUMENT_TYPES:
+            raise DefinitionError(f"未知の引数種別です: {argument['kind']}")
+
+        if argument["name"] in library_names:
+            raise DefinitionError(
+                f"app が定める文脈引数の名前 {argument['name']} が、cplat が定める文脈引数と重複しています。"
+            )
+        if argument["name"] in seen:
+            raise DefinitionError(f"app が定める文脈引数の名前が重複しています: {argument['name']}")
+        seen.add(argument["name"])
+
+
 def validate(document: dict) -> list[dict]:
     """定義の内容を検査し、文字列の一覧を返す。"""
     for key in ("strings",):
@@ -319,13 +390,14 @@ def validate(document: dict) -> list[dict]:
         )
 
     validate_export(document)
+    validate_context(document)
 
     strings = document["strings"]
     if not strings:
         raise DefinitionError("strings が空です。")
 
     trace = is_trace(document)
-    context_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
+    context_names = {argument["name"] for argument in context_arguments(document)}
     seen_keys: set[str] = set()
     seen_values: set[int] = set()
     suffixes = MODULE_FUNCTION_SUFFIXES + (("write", "set_tracer", "get_tracer") if trace else ())
@@ -437,8 +509,7 @@ def validate(document: dict) -> list[dict]:
                     raise DefinitionError(
                         f"{entry['key']}: {language} の位置指定 {{{found}}} に引数がありません。"
                         f"利用者の引数は 0 から {len(arguments) - 1 if arguments else -1}、"
-                        f"文脈引数は {CONTEXT_ARGUMENT_BASE} から "
-                        f"{CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) - 1} です。"
+                        f"文脈引数は {'、'.join(str(index) for index in context_argument_indices(document))} です。"
                     )
 
     # 値を固定した項目と並び順から決める項目が混在すると、暗黙の値が固定した値と衝突しうる。
@@ -500,9 +571,45 @@ def trace_level_value(level: str) -> int:
     return TRACE_LEVELS.index(level)
 
 
+def extension_arguments(document: dict) -> list[dict]:
+    """app が定める文脈引数の一覧を返す。設定がない場合は空を返す。
+
+    設定ファイルは app 単位で、種別の異なるカタログが共有する。
+    文脈引数を持つのはトレース種別だけのため、それ以外では読み飛ばす。
+    """
+    if not is_trace(document):
+        return []
+    return list(document.get(SETTINGS_KEY, {}).get(CONTEXT_SECTION, {}).get("arguments", []))
+
+
+def context_argument_groups(document: dict) -> list[tuple[int, list[dict]]]:
+    """(基底, 引数列) の組を、位置指定の昇順で返す。
+
+    cplat が定める組と、app が定める組を分けて保持する。出力処理はこの並びを順に回す。
+    """
+    if not is_trace(document):
+        return []
+
+    groups = [(CONTEXT_ARGUMENT_BASE, list(CONTEXT_ARGUMENTS))]
+    extension = extension_arguments(document)
+    if extension:
+        groups.append((EXTENSION_ARGUMENT_BASE, extension))
+    return groups
+
+
+def context_arguments(document: dict) -> list[dict]:
+    """すべての文脈引数を、位置指定の昇順に平坦化して返す。"""
+    return [argument for _, group in context_argument_groups(document) for argument in group]
+
+
+def context_argument_indices(document: dict) -> list[int]:
+    """すべての文脈引数の位置指定を、昇順に返す。"""
+    return [base + offset for base, group in context_argument_groups(document) for offset in range(len(group))]
+
+
 def context_argument_count(document: dict) -> int:
     """生成器が付け加える文脈引数の個数を返す。"""
-    return len(CONTEXT_ARGUMENTS) if is_trace(document) else 0
+    return len(context_arguments(document))
 
 
 def user_argument_max(document: dict) -> int:
@@ -518,15 +625,12 @@ def argument_array_length(document: dict, entry: dict) -> int:
     """
     if not is_trace(document):
         return len(entry["arguments"])
-    return CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS)
+    return max(context_argument_indices(document)) + 1
 
 
 def allowed_placeholder_indices(document: dict, entry: dict) -> set[int]:
     """書式の位置指定が指してよいインデックスを返す。"""
-    indices = set(range(len(entry["arguments"])))
-    if is_trace(document):
-        indices |= set(range(CONTEXT_ARGUMENT_BASE, CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS)))
-    return indices
+    return set(range(len(entry["arguments"]))) | set(context_argument_indices(document))
 
 
 # ACCESSOR_DECLARATIONS (および SOURCE_TAIL) が @MODULE@_ に続けて出力する簡易関数の名前一覧。
@@ -609,12 +713,13 @@ def remark_doc_lines(entry: dict) -> list[str]:
     return [f"     *  @remark         {remark_lines[0][len(remark_indent):]}"] + remark_lines[1:]
 
 
-def trace_context_doc_lines() -> list[str]:
+def trace_context_doc_lines(document: dict) -> list[str]:
     """文脈引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てる。
 
     定義作成者が書式から文脈値を参照するには、どの番号が何かを知る必要がある。
-    対応表は CONTEXT_ARGUMENTS から組み立て、生成器の定義と食い違わないようにする。
+    対応表は解決済みの文脈引数から組み立て、生成器の定義と食い違わないようにする。
     """
+    indices = context_argument_indices(document)
     lines = [
         " *  本カタログはトレース種別です。呼び出し位置と実行文脈を、生成器が引数として付け加えます。\\n",
         f" *  利用者が記載した引数は `{{0}}` から順に並び、"
@@ -624,12 +729,10 @@ def trace_context_doc_lines() -> list[str]:
         " *  | --- | --- | --- | --- |",
     ]
 
-    for offset, argument in enumerate(CONTEXT_ARGUMENTS):
-        index = CONTEXT_ARGUMENT_BASE + offset
+    for index, argument in zip(indices, context_arguments(document)):
         kind = kind_constant({}, argument["kind"])
         lines.append(f" *  | `{{{index}}}` | {argument['name']} | {kind} | {argument['description']} |")
 
-    last_index = CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) - 1
     lines.extend(
         [
             " *",
@@ -637,8 +740,7 @@ def trace_context_doc_lines() -> list[str]:
             " *  書かない場合は現れません。実装を変えずに、定義の変更だけで切り替えられます。",
             " *",
             f" *  記載した引数の個数から `{{{CONTEXT_ARGUMENT_BASE - 1}}}` までは、値を受け取らないインデックスです。\\n",
-            f" *  書式から参照すると定義の誤りになります。使用できるのは利用者の引数と "
-            f"`{{{CONTEXT_ARGUMENT_BASE}}}` から `{{{last_index}}}` までです。",
+            " *  書式から参照すると定義の誤りになります。使用できるのは利用者の引数と、上の表の位置指定です。",
         ]
     )
 
@@ -650,8 +752,9 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
     name = wrapper_name(entry["key"])
     module = document["module_prefix"]
     arguments = entry["arguments"]
-    macro_context = [argument for argument in CONTEXT_ARGUMENTS if "macro_value" in argument]
-    inline_context = [argument for argument in CONTEXT_ARGUMENTS if "inline_value" in argument]
+    context = context_arguments(document)
+    # マクロから受け取る引数だけが _with_source の仮引数になる。実行時に取る引数は内部で評価する。
+    macro_context = [argument for argument in context if "macro_value" in argument]
     user_names = [argument["name"] for argument in arguments]
 
     names = user_names + [argument["name"] for argument in macro_context]
@@ -678,10 +781,13 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
 
     parameters = [parameter_declaration(argument) for argument in arguments + macro_context]
 
+    # 可変長引数は引数配列のインデックス順に並べる必要があるため、文脈引数を 1 本の並びのまま回す。
+    # マクロ経由の引数と実行時に取る引数を別々に連結すると、両者が交互に並んだ場合に順序が狂う。
     call = [entry["key"]]
     call.extend(user_names)
-    call.extend(argument["name"] for argument in macro_context)
-    call.extend(argument["inline_value"] for argument in inline_context)
+    call.extend(
+        argument["name"] if "macro_value" in argument else argument["inline_value"] for argument in context
+    )
 
     lines.append(f"    static inline int {name}_with_source({', '.join(parameters)})")
     lines.append("    {")
@@ -920,7 +1026,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     ]
 
     if is_trace(document):
-        out.extend(trace_context_doc_lines())
+        out.extend(trace_context_doc_lines(document))
         out.append(" *")
 
     out += [
@@ -946,6 +1052,10 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
     # 公開するカタログは、app のエクスポート マクロを定義するヘッダーを参照する。
     if document.get("export") is not None:
         includes.append(f"#include <{document[SETTINGS_KEY]['export']['header']}>")
+    # app が定める文脈引数は、その取得式が必要とするヘッダーを参照する。
+    if extension_arguments(document):
+        section = document[SETTINGS_KEY][CONTEXT_SECTION]
+        includes.extend(f"#include <{header}>" for header in section.get("headers", []))
 
     out.extend(
         includes
@@ -1524,9 +1634,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
                     f"    /* {len(arguments)} 番から {CONTEXT_ARGUMENT_BASE - 1} 番は、"
                     "要素を明示しないことで値を受け取らないインデックスになります。 */"
                 )
-            for offset, argument in enumerate(CONTEXT_ARGUMENTS):
+            for index, argument in zip(context_argument_indices(document), context_arguments(document)):
                 out.append(
-                    f"    [{CONTEXT_ARGUMENT_BASE + offset}] = "
+                    f"    [{index}] = "
                     f"{{{kind_constant(document, argument['kind'])}, 0, {c_string(argument['name'])}, "
                     f"{c_string(argument['description'])}}},"
                 )
