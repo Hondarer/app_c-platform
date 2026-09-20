@@ -249,6 +249,8 @@ TEST_F(traceTest, macro_write_prefixes_source_location)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -286,6 +288,8 @@ TEST_F(traceTest, macro_write_passes_explicit_timestamp)
     cplat_timespec timestamp = make_fixed_timestamp();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -327,6 +331,8 @@ TEST_F(traceTest, macro_write_with_null_message_emits_source_location_only)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -364,6 +370,8 @@ TEST_F(traceTest, public_macros_prefix_source_location_with_basename)
     unsigned char data[] = {0x48, 0x69};
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -434,6 +442,8 @@ TEST_F(traceTest, write_routes_info_to_os_backend)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -590,6 +600,8 @@ TEST_F(traceTest, write_routes_explicit_timestamp_to_os_backend)
     cplat_timespec timestamp = make_fixed_timestamp();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -655,6 +667,8 @@ TEST_F(traceTest, write_truncates_utf8_boundary)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -709,6 +723,8 @@ TEST_F(traceTest, writef_formats_message)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
@@ -741,6 +757,8 @@ TEST_F(traceTest, write_hex_formats_payload)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
     unsigned char data[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F};
@@ -774,6 +792,8 @@ TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
     unsigned char data[] = {0x48, 0x69};
@@ -1233,6 +1253,7 @@ TEST_F(traceTest, set_name_with_identifier_updates_backend_name)
 
 #if defined(PLATFORM_WINDOWS)
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO));
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO));
     ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle));
     EXPECT_CALL(mock_cplat, cplat_etw_provider_write(os_handle_, 4, StrEq("worker_2"), StrEq("running as worker_2")))
         .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - ETW サービス名が worker_2 に更新されること。
@@ -1324,6 +1345,8 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
 
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                              // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_file_level(handle, "trace.log", CPLAT_TRACE_LEVEL_INFO, 0, 0, 0)); // [状態] - ファイル レベルを INFO、パスを "trace.log" とする。
                                                                                                                      // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_stderr_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
