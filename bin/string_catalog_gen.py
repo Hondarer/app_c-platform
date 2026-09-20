@@ -650,9 +650,8 @@ def emit_wrapper(document: dict, entry: dict) -> str:
         lines.append(f"     *  @param[in]      {padded}{argument['description']}")
         lines.append(f"{continuation}引数種別は @c {kind_constant(document, argument['kind'])} です。")
 
-    lines.append(
-        f"     *  @return         戻り値は @c {LIBRARY_PREFIX}_format と同じです。"
-    )
+    module = document["module_prefix"]
+    lines.append(f"     *  @return         戻り値は @c {module}_format と同じです。")
 
     lines.extend(remark_doc_lines(entry))
     lines.extend(format_par_lines(entry))
@@ -661,12 +660,14 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     parameters = ["char *dest", "const size_t dest_size"]
     parameters.extend(parameter_declaration(argument) for argument in arguments)
 
-    call = [f"{document['module_prefix']}_catalog()", "dest", "dest_size", entry["key"]]
+    # カタログ オブジェクトを補う簡易関数を経由する。ラッパーを展開する呼び出し側が、
+    # cplat の関数と cplat_string_catalog のレイアウトへ依存しないようにするため。
+    call = ["dest", "dest_size", entry["key"]]
     call.extend(argument["name"] for argument in arguments)
 
     lines.append(f"    static inline int {name}({', '.join(parameters)})")
     lines.append("    {")
-    lines.append(f"        return {LIBRARY_PREFIX}_format({', '.join(call)});")
+    lines.append(f"        return {module}_format({', '.join(call)});")
     lines.append("    }")
 
     return "\n".join(lines)

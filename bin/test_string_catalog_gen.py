@@ -551,10 +551,6 @@ class WriteTextLfTest(unittest.TestCase):
         open_mock().write.assert_called_once_with("1 行目\n2 行目\n")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class GeneratedOutputTest(unittest.TestCase):
     """生成物が特定の app へ依存しないことを確認する。"""
 
@@ -574,6 +570,21 @@ class GeneratedOutputTest(unittest.TestCase):
                 "#include <stdint.h>",
             ],
         )
+
+    def test_typed_wrapper_calls_module_format(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            "        return sample_messages_format(dest, dest_size, SAMPLE_MESSAGES_KEY_A, path);",
+            header,
+        )
+
+    def test_typed_wrapper_does_not_depend_on_catalog_object(self):
+        # ラッパーは呼び出し側のコンパイル単位で展開されるため、cplat の関数と
+        # cplat_string_catalog のレイアウトへ依存させない。
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        wrappers = header[header.index("static inline int sample_messages_key_a") :]
+        self.assertNotIn("cplat_string_catalog_format", wrappers)
+        self.assertNotIn("sample_messages_catalog()", wrappers)
 
     def test_source_emits_raw_category(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
@@ -735,3 +746,7 @@ class DoxygenGroupTest(unittest.TestCase):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
         self.assertNotIn("@defgroup", source)
         self.assertNotIn("/** @} */", source)
+
+
+if __name__ == "__main__":
+    unittest.main()
