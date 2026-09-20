@@ -470,8 +470,10 @@ TEST_F(traceTest, etw_and_os_levels_are_independent)
 {
     // Arrange
     cplat_tracer *handle = create_logger();
-    EXPECT_EQ(CPLAT_TRACE_LEVEL_VERBOSE,
-              cplat_tracer_get_etw_level(handle)); // [状態] - ETW レベルは既定の VERBOSE のままとする。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_etw_level(
+                  handle, CPLAT_TRACE_LEVEL_VERBOSE)); // [状態] - ETW レベルを VERBOSE で有効にする。
+                                                       // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK,
               cplat_tracer_set_os_level(
                   handle, CPLAT_TRACE_LEVEL_NONE)); // [状態] - OS トレース (EventLog) を NONE で無効にする。
@@ -1482,11 +1484,74 @@ TEST_F(traceTest, start_and_stop_are_idempotent)
     cplat_tracer_dispose(&handle);
 }
 
-// set_file_level 未呼び出しの start でデフォルト パスのファイル トレースが有効になることの確認
+// create 直後にすべての出力先が無効で、set_file_level 未呼び出しの start がトレース ファイルを作らないことの確認
+// cplat-req: id=CPLAT-TRACE-FUNC-011; uuid=94ce1fc3-c198-49fe-816e-70ec4f6212ce
+TEST_F(traceTest, start_without_level_settings_creates_no_output)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - 未設定のままではトレース ファイルを開かないこと。
+    EXPECT_CALL(mock_cplat, cplat_trace_file_sink_write(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - file sink へは 1 回も送られないこと。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_cplat, cplat_syslog_sink_write(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - syslog へは 1 回も送られないこと。
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_cplat, cplat_eventlog_sink_write(_, _, _, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - EventLog へは 1 回も送られないこと。
+    EXPECT_CALL(mock_cplat, cplat_etw_provider_write(_, _, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - ETW へは 1 回も送られないこと。
+#endif /* PLATFORM_ */
+
+    // Act
+    cplat_trace_level os_level = cplat_tracer_get_os_level(handle); // [手順] - create 直後の os レベルを取得する。
+    cplat_trace_level file_level =
+        cplat_tracer_get_file_level(handle); // [手順] - create 直後の file レベルを取得する。
+    cplat_trace_level stderr_level =
+        cplat_tracer_get_stderr_level(handle); // [手順] - create 直後の stderr レベルを取得する。
+#if defined(PLATFORM_WINDOWS)
+    cplat_trace_level etw_level =
+        cplat_tracer_get_etw_level(handle); // [手順] - create 直後の ETW レベルを取得する。
+#endif /* PLATFORM_WINDOWS */
+    int actual_ret_tracer_start = cplat_tracer_start(handle); // [手順] - 未設定のまま start する。
+    ASSERT_EQ(
+        CPLAT_OK,
+        actual_ret_tracer_start); // [確認_正常系] - 未設定のまま start した cplat_tracer_start の戻り値が CPLAT_OK であること。
+    testing::internal::CaptureStderr();
+    int result = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_CRITICAL, NULL,
+                                        "no output"); // [手順] - CRITICAL メッセージを書き込む。
+    std::string captured = testing::internal::GetCapturedStderr();
+
+    // Assert
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_NONE, os_level); // [確認_正常系] - create 直後の os レベルが NONE であること。
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_NONE, file_level); // [確認_正常系] - create 直後の file レベルが NONE であること。
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_NONE,
+              stderr_level); // [確認_正常系] - create 直後の stderr レベルが NONE であること。
+#if defined(PLATFORM_WINDOWS)
+    EXPECT_EQ(CPLAT_TRACE_LEVEL_NONE, etw_level); // [確認_正常系] - create 直後の ETW レベルが NONE であること。
+#endif /* PLATFORM_WINDOWS */
+    EXPECT_EQ(
+        CPLAT_OK,
+        result); // [確認_正常系] - cplat_tracer_write_at の戻り値から、出力先が無い状態でも書き込みが成功したと判断できること。
+    EXPECT_EQ(std::string::npos,
+              captured.find("no output")); // [確認_正常系] - stderr へも出力しないこと。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}
+
+// set_file_level でパスを指定しない start が、デフォルト パスのトレース ファイルを開くことの確認
 TEST_F(traceTest, start_creates_default_file_sink)
 {
     // Arrange
     cplat_tracer *handle = create_logger();
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1494,20 +1559,20 @@ TEST_F(traceTest, start_creates_default_file_sink)
             file_handle_)); // [Pre-Assert確認_正常系] - 実行ファイルのディレクトリ配下の log/<有効名>.log を開くこと。
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_write(file_handle_, CPLAT_TRACE_LEVEL_INFO, NotNull(),
                                                       StrEq("default file")))
-        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - デフォルトの file sink へ INFO が送られること。
+        .WillOnce(Return(0)); // [Pre-Assert確認_正常系] - デフォルト パスの file sink へ INFO が送られること。
 
     // Act
-    int actual_ret_tracer_start = cplat_tracer_start(handle); // [手順] - 未設定のまま start する。
+    int actual_ret_tracer_start = cplat_tracer_start(handle); // [手順] - パス未指定のまま start する。
     ASSERT_EQ(
         CPLAT_OK,
-        actual_ret_tracer_start); // [確認_正常系] - 未設定のまま start した cplat_tracer_start の戻り値が CPLAT_OK であること。
+        actual_ret_tracer_start); // [確認_正常系] - パス未指定のまま start した cplat_tracer_start の戻り値が CPLAT_OK であること。
     int result = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_INFO, NULL,
                                         "default file"); // [手順] - INFO メッセージを書き込む。
 
     // Assert
     EXPECT_EQ(
         CPLAT_OK,
-        result); // [確認_正常系] - cplat_tracer_write_at の戻り値から、デフォルトのファイル トレースで書き込みが成功したと判断できること。
+        result); // [確認_正常系] - cplat_tracer_write_at の戻り値から、デフォルト パスのファイル トレースで書き込みが成功したと判断できること。
 
     // Cleanup
     cplat_tracer_dispose(&handle);
@@ -1523,6 +1588,11 @@ TEST_F(traceTest, set_name_does_not_affect_default_file_path)
     ASSERT_EQ(
         0, cplat_tracer_set_name(handle, "worker", 3)); // [状態] - インスタンス名を worker_3 に変更した状態とする。
                                                            // [状態確認] - cplat_tracer_set_name の戻り値が 0 であること。
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1551,6 +1621,11 @@ TEST_F(traceTest, set_file_name_reflects_to_default_file_path)
     ASSERT_EQ(
         0, cplat_tracer_set_file_name(handle, "custom", 2)); // [状態] - ファイル名を custom_2 に変更した状態とする。
                                                                 // [状態確認] - cplat_tracer_set_file_name の戻り値が 0 であること。
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("/opt/bin/log/custom_2.log"), 0, 0, 0))
@@ -1585,6 +1660,11 @@ TEST_F(traceTest, set_file_name_null_restores_process_name_default)
     ASSERT_EQ(
         CPLAT_OK,
         actual_ret_tracer_set_file_name_2); // [状態確認] - NULL でデフォルトに戻した cplat_tracer_set_file_name の戻り値が CPLAT_OK であること。
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))
@@ -1760,6 +1840,11 @@ TEST_F(traceTest, default_file_path_strips_exe_suffix_on_windows)
         CPLAT_OK,
         actual_ret_tracer_set_file_name); // [状態確認] - ファイル識別 7 を設定した cplat_tracer_set_file_name の戻り値が CPLAT_OK であること。
 
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
+
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("C:/bin/log/myapp_7.log"), 0, 0, 0))
         .WillOnce(
@@ -1789,6 +1874,11 @@ TEST_F(traceTest, default_file_path_falls_back_to_relative_log)
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
 
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
+
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("log/unknown.log"), 0, 0, 0))
         .WillOnce(
@@ -1813,6 +1903,11 @@ TEST_F(traceTest, start_returns_minus_one_but_starts_when_file_sink_create_fails
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_stderr_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - stderr レベルを INFO とする。
                                                                                                  // [状態確認] - cplat_tracer_set_stderr_level の戻り値が CPLAT_OK であること。
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(_, _, _, _))
@@ -1847,6 +1942,11 @@ TEST_F(traceTest, stop_disposes_file_sink_and_restart_uses_new_name)
     cplat_tracer *handle = create_logger();
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_NONE)); // [状態] - OS レベルを NONE とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_trace_file_sink_create(StrEq("/opt/bin/log/myapp.log"), 0, 0, 0))

@@ -277,7 +277,7 @@ static std::string build_expected_default_path(void)
 
 } // namespace
 
-// set_file_level 未呼び出しでデフォルト パス (実行ファイルのディレクトリ + /log/<プロセス名>.log) へ
+// set_file_level でパスを指定しない場合にデフォルト パス (実行ファイルのディレクトリ + /log/<プロセス名>.log) へ
 // 書き込まれることの確認。set_name はトレース ファイル名に影響しないことも実証する。
 TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_to_executable)
 {
@@ -294,14 +294,18 @@ TEST_F(traceFileIntegrationTest, test_default_path_writes_to_log_directory_next_
         handle, "default_path_it", 0); // [状態] - インスタンス名を設定する (ファイル名には影響しない)。
     ASSERT_EQ(CPLAT_OK,
               actual_ret_tracer_set_name); // [状態確認] - cplat_tracer_set_name の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(handle, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - パスを指定せずファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
 
     // Act
-    int actual_ret_tracer_start = cplat_tracer_start(handle); // [手順] - set_file_level なしで start する。
+    int actual_ret_tracer_start = cplat_tracer_start(handle); // [手順] - パスを指定せず start する。
     ASSERT_EQ(
         CPLAT_OK,
-        actual_ret_tracer_start); // [確認_正常系] - set_file_level なしで start した cplat_tracer_start の戻り値が CPLAT_OK であること。
+        actual_ret_tracer_start); // [確認_正常系] - パスを指定せず start した cplat_tracer_start の戻り値が CPLAT_OK であること。
     int actual_ret_tracer_write = cplat_tracer_write_at(handle, CPLAT_TRACE_LEVEL_INFO, NULL,
                                                   "default path message"); // [手順] - INFO 行を書き込む。
     EXPECT_EQ(
@@ -333,6 +337,14 @@ TEST_F(traceFileIntegrationTest, test_two_tracers_share_default_path_in_single_p
                                                                                             // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
     ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(second, CPLAT_TRACE_LEVEL_NONE)); // [状態] - 2 つ目の OS レベルを NONE とする。
                                                                                              // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(first, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - 1 つ目のファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_tracer_set_file_level(second, NULL, CPLAT_TRACE_LEVEL_INFO, 0, 0,
+                                             0)); // [状態] - 2 つ目のファイル レベルを INFO とする。
+                                                  // [状態確認] - cplat_tracer_set_file_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
 

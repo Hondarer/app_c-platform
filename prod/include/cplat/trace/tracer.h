@@ -24,11 +24,14 @@
     @endcode
  *
  *  @par            使用例 (共通)
+ *  すべての出力先のデフォルトは CPLAT_TRACE_LEVEL_NONE (無効) です。\n
+ *  出力する出力先の詳細度を、cplat_tracer_start の前に設定します。
     @code{.c}
    #include <cplat/trace/tracer.h>
 
    cplat_tracer *tracer = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED);
    cplat_tracer_set_name(tracer, "myapp", 0);
+   cplat_tracer_set_stderr_level(tracer, CPLAT_TRACE_LEVEL_INFO);
    cplat_tracer_start(tracer);
    cplat_tracer_write(tracer, CPLAT_TRACE_LEVEL_INFO, NULL, "application started");
    cplat_tracer_stop(tracer);
@@ -292,6 +295,12 @@ typedef enum cplat_tracer_concurrency_mode
 
 /* ===== デフォルト トレース レベル ===== */
 
+/*
+ *  すべての出力先のデフォルト レベルを CPLAT_TRACE_LEVEL_NONE (無効) とします。
+ *  利用者が出力先ごとに詳細度を設定するまで、トレースは副作用を持ちません。
+ *  ログ ファイルの生成のような副作用を、利用者の意図しないうちに起こさないための方針です。
+ */
+
 /**
  *  @brief          cplat_tracer_create() が設定する OS トレース (EventLog / syslog) のデフォルト レベルです。
  *
@@ -307,24 +316,22 @@ typedef enum cplat_tracer_concurrency_mode
  *
  *  ETW (Event Tracing for Windows) は開発者向けの低オーバーヘッド診断チャネルであり、
  *  OS トレース (EventLog) とは独立した軸として制御します。\n
- *  ETW イベントはコンシューマー (etw-viewer など) が購読したときのみ実体化されるため、
- *  デフォルトで有効 (CPLAT_TRACE_LEVEL_VERBOSE) としています。\n
  *  ユーザーが cplat_tracer_set_etw_level() で変更するまで有効な初期値です。\n
+ *  デフォルトは CPLAT_TRACE_LEVEL_NONE (無効) です。\n
  *  本定義は Windows でのみ意味を持ちます。Linux では ETW は存在せず、
  *  cplat_tracer_set_etw_level() / cplat_tracer_get_etw_level() は何もしません。
  */
-#define CPLAT_TRACER_DEFAULT_ETW_LEVEL CPLAT_TRACE_LEVEL_VERBOSE
+#define CPLAT_TRACER_DEFAULT_ETW_LEVEL CPLAT_TRACE_LEVEL_NONE
 
 /**
  *  @brief          cplat_tracer_create() が設定するファイル トレースのデフォルト レベルです。
  *
  *  ユーザーが cplat_tracer_set_file_level() で変更するまで有効な初期値です。\n
- *  ファイル トレースはデフォルトで有効であり、cplat_tracer_set_file_level() を呼び出さない場合、
- *  cplat_tracer_start() 時にデフォルト パス
- *  (実行ファイルのディレクトリ配下の `log/{ファイル名}.log`。
- *  ファイル名のデフォルトはプロセス名) へ出力されます。
+ *  デフォルトは CPLAT_TRACE_LEVEL_NONE (無効) であり、
+ *  cplat_tracer_set_file_level() を呼び出さない場合、cplat_tracer_start() は
+ *  ファイルを作成しません。
  */
-#define CPLAT_TRACER_DEFAULT_FILE_LEVEL CPLAT_TRACE_LEVEL_INFO
+#define CPLAT_TRACER_DEFAULT_FILE_LEVEL CPLAT_TRACE_LEVEL_NONE
 
 /**
  *  @brief          cplat_tracer_create() が設定する stderr トレースのデフォルト レベルです。

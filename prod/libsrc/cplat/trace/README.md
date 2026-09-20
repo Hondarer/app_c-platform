@@ -75,13 +75,16 @@ Windows EventLog はイベント タイプが Error / Warning / Information の 
 `cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED)` 直後の既定値は次のとおりです。
 
 - OS トレース (EventLog / syslog): `CPLAT_TRACE_LEVEL_NONE`
-- ETW (Windows のみ): `CPLAT_TRACE_LEVEL_VERBOSE`
-- ファイル: `CPLAT_TRACE_LEVEL_INFO`
+- ETW (Windows のみ): `CPLAT_TRACE_LEVEL_NONE`
+- ファイル: `CPLAT_TRACE_LEVEL_NONE`
 - `stderr`: `CPLAT_TRACE_LEVEL_NONE`
 
-OS トレースは既定で無効です。運用者が EventLog / syslog へ出力したい場合に `cplat_tracer_set_os_level()` で有効化します。  
-ETW は consumer (etw-viewer など) が購読したときのみ実体化される低オーバーヘッド機構のため、既定で有効です。  
-ファイル出力は既定で有効で、`cplat_tracer_set_file_level()` で出力先パスを設定しない場合は `cplat_tracer_start()` 時に既定パス (実行ファイルのディレクトリ配下の `log/{ファイル名}.log`) へ出力されます。
+すべての出力先を既定で無効とし、利用者が出力先ごとの詳細度を設定してはじめて出力します。  
+明示的に設定しない限り、トレースがログ ファイルの生成などの副作用を起こさないようにするためです。
+
+出力するには、`cplat_tracer_start()` の前に `cplat_tracer_set_os_level()`、`cplat_tracer_set_etw_level()`、`cplat_tracer_set_file_level()`、`cplat_tracer_set_stderr_level()` のうち必要なものを呼び出します。  
+ファイル出力は、`cplat_tracer_set_file_level()` で `CPLAT_TRACE_LEVEL_NONE` 以外の詳細度を設定した場合に有効になります。  
+このとき出力先パスを指定しなければ、`cplat_tracer_start()` 時に既定パス (実行ファイルのディレクトリ配下の `log/{ファイル名}.log`) を使用します。
 
 ## 出力先
 
@@ -99,8 +102,8 @@ Windows の EventLog はイベント ソースが cplat 全体で共通のため
 ### ETW (Windows のみ)
 
 開発者向けの低オーバーヘッド診断チャネルです。  
-`cplat_tracer_set_etw_level()` でしきい値を設定します (既定は `VERBOSE` で有効)。  
-ETW イベントは consumer (`etw-viewer` など) が購読したときのみ実体化されるため、既定で有効でも通常時のコストは小さく抑えられます。  
+`cplat_tracer_set_etw_level()` でしきい値を設定します (既定は無効)。  
+ETW イベントは consumer (`etw-viewer` など) が購読したときのみ実体化されるため、有効にしても通常時のコストは小さく抑えられます。  
 Linux には ETW が存在しないため、`cplat_tracer_set_etw_level()` / `cplat_tracer_get_etw_level()` は何もせず、しきい値は常に `NONE` を返します。
 
 ### ファイル
@@ -178,7 +181,8 @@ source location を付けずに生のメッセージを書き込みたい場合�
 
 ## 使い方
 
-呼び出し側は backend の違いを書き分けず、同じコードで利用できます。
+呼び出し側は backend の違いを書き分けず、同じコードで利用できます。  
+すべての出力先が既定で無効のため、start の前に出力したい出力先の詳細度を設定します。
 
 ```c
 #include <cplat/trace/tracer.h>
@@ -191,6 +195,7 @@ int main(void)
     }
 
     cplat_tracer_set_name(tracer, "myapp", 0);
+    cplat_tracer_set_stderr_level(tracer, CPLAT_TRACE_LEVEL_INFO);
     cplat_tracer_start(tracer);
 
     cplat_tracer_write(tracer, CPLAT_TRACE_LEVEL_INFO, NULL, "application started");
@@ -229,7 +234,7 @@ cplat_tracer_dispose(&tracer);
 ### Windows
 
 - OS トレースは EventLog を使う (運用者向け。既定は無効)
-- ETW は独立した診断チャネルとして使う (既定で有効)
+- ETW は独立した診断チャネルとして使う (既定は無効)
 - EventLog のイベント ソースと ETW プロバイダー登録は、いずれも `trace` 上位でプロセス内共有します。
 - EventLog のイベント ソースは `eventlog-register` コマンドで登録/削除します。
 - `stderr` とファイルは共通の書式で扱います。

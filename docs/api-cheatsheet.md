@@ -617,6 +617,9 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 
 Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わりに、共通のトレーサー API へ集約します。
 
+`cplat_tracer_create` 直後は、すべての出力先のレベルが `CPLAT_TRACE_LEVEL_NONE` (無効) です。  
+出力するには、`cplat_tracer_start` の前に出力先ごとのレベルを設定します。
+
 | 用途 | cplat API |
 |---|---|
 | トレーサーを生成しレベル別に出力を開始/停止します。 | `cplat_tracer_create` / `cplat_tracer_start` / `cplat_tracer_stop` / `cplat_tracer_dispose` |

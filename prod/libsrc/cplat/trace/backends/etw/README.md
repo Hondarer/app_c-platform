@@ -11,7 +11,7 @@ OS トレース (運用者向け) は EventLog backend が担当しており、E
 ## 目的
 
 Windows でトレースを ETW へ流し、外部の ETW consumer から収集・観測できるようにします。  
-ETW イベントは consumer が購読したときのみ実体化されるため、既定で有効 (`VERBOSE`) でも通常時のコストは小さく抑えられます。
+ETW イベントは consumer が購読したときのみ実体化されるため、有効にしても通常時のコストは小さく抑えられます。
 
 - 開発者向けの高頻度な診断トレースを低コストで出せる
 - アプリケーション ログを Event Tracing for Windows へ送れる
@@ -24,7 +24,7 @@ ETW イベントは consumer が購読したときのみ実体化されるため
 
 - `trace` 上位では OS トレース (EventLog) とは別の独立した診断チャネルとして利用される
 - Windows では複数の `cplat_tracer` があっても、ETW プロバイダー登録は共有される
-- 通常のメッセージ出力は `cplat_tracer_write()` 系から透過的に ETW へ流れる (既定で有効)
+- 通常のメッセージ出力は `cplat_tracer_write()` 系から透過的に ETW へ流れる (既定は無効)
 - `CPLAT_TRACE_LEVEL_VERBOSE` と `CPLAT_TRACE_LEVEL_DEBUG` はどちらも ETW Level 5 として扱われる
 
 ## 代表的な使いどころ
@@ -32,7 +32,7 @@ ETW イベントは consumer が購読したときのみ実体化されるため
 ### trace.h から使う場合
 
 通常はこちらです。  
-ETW は既定で有効です。しきい値を変えたい場合は `cplat_tracer_set_etw_level()` を使い、`cplat_tracer_start()` 後に書き込みます。
+ETW は既定で無効です。出力するには `cplat_tracer_set_etw_level()` でしきい値を設定してから、`cplat_tracer_start()` 後に書き込みます。
 
 ### etw.h を直接使う場合
 
