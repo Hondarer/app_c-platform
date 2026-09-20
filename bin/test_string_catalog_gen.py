@@ -748,5 +748,66 @@ class DoxygenGroupTest(unittest.TestCase):
         self.assertNotIn("/** @} */", source)
 
 
+class KeyValueTest(unittest.TestCase):
+    """文字列キーの値を定義で固定する扱いを確認する。"""
+
+    @staticmethod
+    def document_with(*values):
+        """指定した値を持つ 2 件以上の定義を組み立てる。値が None の項目は value を書かない。"""
+        document = minimal_document()
+        template = document["strings"][0]
+        document["strings"] = []
+        for position, value in enumerate(values):
+            entry = dict(template)
+            entry["key"] = f"SAMPLE_MESSAGES_KEY_{chr(ord('A') + position)}"
+            if value is not None:
+                entry["value"] = value
+            document["strings"].append(entry)
+        return document
+
+    def test_defaults_to_definition_order(self):
+        document = self.document_with(None, None)
+        self.assertEqual(gen.key_values(gen.validate(document)), [1, 2])
+
+    def test_uses_declared_value(self):
+        document = self.document_with(10, 3)
+        self.assertEqual(gen.key_values(gen.validate(document)), [10, 3])
+
+    def test_header_emits_declared_value(self):
+        document = self.document_with(10, 3)
+        header = gen.emit_header(document, gen.validate(document), "example.jsonc")
+        self.assertIn("SAMPLE_MESSAGES_KEY_A = 10,", header)
+        self.assertIn("SAMPLE_MESSAGES_KEY_B = 3 ", header)
+
+    def test_key_index_marks_absent_values(self):
+        document = self.document_with(1, 3)
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn("SAMPLE_MESSAGES_KEY_INDEX_ABSENT, /* 2: 欠番 */", source)
+
+    def test_static_assert_uses_largest_value(self):
+        document = self.document_with(10, 3)
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn("KEY_INDEX_COUNT > SAMPLE_MESSAGES_KEY_A,", source)
+
+    def test_rejects_duplicate_value(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(2, 2))
+
+    def test_rejects_value_below_one(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(0, 1))
+
+    def test_rejects_value_above_maximum(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(gen.KEY_VALUE_MAX + 1, 1))
+
+    def test_rejects_boolean_value(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(True, 2))
+
+    def test_rejects_partially_declared_values(self):
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(self.document_with(1, None))
+
 if __name__ == "__main__":
     unittest.main()

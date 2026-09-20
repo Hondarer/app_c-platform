@@ -54,6 +54,10 @@ INDEX_DIGITS_MAX = 2
 # 1 つの文字列が取れる引数の最大個数。CPLAT_STRING_CATALOG_ARGUMENT_MAX と揃える。
 ARGUMENT_MAX = 50
 
+# カタログ定義の value に書ける文字列キーの上限。
+# 添字テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
+KEY_VALUE_MAX = 4095
+
 # カタログ定義の kind に書ける値。省略した場合は message として扱う。
 CATALOG_KIND_MESSAGE = "message"
 CATALOG_KIND_TRACE = "trace"
@@ -255,6 +259,7 @@ def validate(document: dict) -> list[dict]:
     trace = is_trace(document)
     context_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
     seen_keys: set[str] = set()
+    seen_values: set[int] = set()
     suffixes = MODULE_FUNCTION_SUFFIXES + (("write", "set_tracer", "get_tracer") if trace else ())
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in suffixes}
 
@@ -292,6 +297,17 @@ def validate(document: dict) -> list[dict]:
 
         if "id" in entry and not isinstance(entry["id"], str):
             raise DefinitionError(f"{entry['key']}: id は文字列で指定してください。")
+
+        # value は列挙値を定義で固定するための項目。添字テーブルの大きさを決めるため上限も検査する。
+        if "value" in entry:
+            value = entry["value"]
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                raise DefinitionError(f"{entry['key']}: value は 1 以上の整数で指定してください。")
+            if value > KEY_VALUE_MAX:
+                raise DefinitionError(f"{entry['key']}: value が上限 {KEY_VALUE_MAX} を超えています。")
+            if value in seen_values:
+                raise DefinitionError(f"{entry['key']}: value が重複しています: {value}")
+            seen_values.add(value)
 
         # 長文は 1 行が長くなるため、文字列の配列でも書けるようにする。連結は join_text が行う。
         for key in ("details", "remarks"):
@@ -357,10 +373,15 @@ def validate(document: dict) -> list[dict]:
                         f"{CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) - 1} です。"
                     )
 
+    # 値を固定した項目と並び順から決める項目が混在すると、暗黙の値が固定した値と衝突しうる。
+    # 混在を許すと衝突の有無が並び順に依存するため、カタログ単位でどちらかに揃える。
+    if seen_values and (len(seen_values) != len(strings)):
+        raise DefinitionError("value は、カタログのすべての文字列へ記載するか、すべてで省略してください。")
+
     return strings
 
 
-GENERATED_NOTE = """ *  本ヘッダーと `{source}` は、カタログ定義 `{definition}` から自動生成されたファイルです。\\n
+GENERATED_NOTE =""" *  本ヘッダーと `{source}` は、カタログ定義 `{definition}` から自動生成されたファイルです。\\n
  *  列挙型とテーブルは 1 組の生成単位のため、常に同時に生成してください。\\n
  *  手作業で直接編集せず、生成元の定義を変更してから `app/c-platform/bin/string_catalog_gen.py` を実行してください。"""
 
@@ -389,6 +410,21 @@ def catalog_kind(document: dict) -> str:
 def is_trace(document: dict) -> bool:
     """カタログ定義がトレース種別かどうかを返す。"""
     return catalog_kind(document) == CATALOG_KIND_TRACE
+
+
+def key_value(entry: dict, position: int) -> int:
+    """文字列キーの列挙値を返す。
+
+    カタログ定義に value がある場合はその値とする。外部へ公開するカタログでは、
+    定義の並べ替えや途中への挿入で値が変わらないようにするために記載する。
+    記載がない場合は、従来どおり並び順から 1 始まりで決める。
+    """
+    return entry["value"] if "value" in entry else (position + 1)
+
+
+def key_values(strings: list[dict]) -> list[int]:
+    """文字列の一覧から、列挙値を並び順で返す。"""
+    return [key_value(entry, position) for position, entry in enumerate(strings)]
 
 
 def trace_level_value(level: str) -> int:
@@ -814,7 +850,8 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             "     *",
             "     *  各 ID の引数定義、分類値、説明文、言語別の書式および備考は、同一の生成単位のテーブルで保持します。\\n",
             "     *  列挙定数の名前はカタログ定義の key で、処理から文字列を参照する識別子です。\\n",
-            "     *  列挙値は定義の並び順に基づいて割り当てられます。定義の id は処理では意味を持たないため、列挙には現れません。",
+            "     *  列挙値はカタログ定義の value です。value の記載がない場合は定義の並び順に基づいて割り当てられます。\\n",
+            "     *  定義の id は処理では意味を持たないため、列挙には現れません。",
             "     */",
             f"    typedef enum {key_enum_name(document)}",
             "    {",
@@ -823,7 +860,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
 
     for position, entry in enumerate(strings):
         comma = "," if position < (len(strings) - 1) else ""
-        out.append(f"        {entry['key']} = {position + 1}{comma} /**< {entry['brief']} */")
+        out.append(f"        {entry['key']} = {key_value(entry, position)}{comma} /**< {entry['brief']} */")
 
     out.append(f"    }} {key_enum_name(document)};")
     out.append("")
@@ -1276,7 +1313,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     # @file はリポジトリの慣習に合わせ、prod/ を除いた相対パスで示す
     output_dir = output_dir_display(document, out_relative)
     source_display = output_dir[len("prod/") :] if output_dir.startswith("prod/") else output_dir
-    last_key = strings[-1]["key"]
+    # 添字テーブルの網羅を検証する基準は、値が最大の文字列キーとする。
+    # 値を定義で固定した場合、並び順の最後が最大とは限らない。
+    largest_key = max(zip(key_values(strings), (entry["key"] for entry in strings)))[1]
 
     out = [
         "/**",
@@ -1429,9 +1468,15 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         ]
     )
 
-    for position, entry in enumerate(strings):
-        comma = "," if position < (len(strings) - 1) else ""
-        out.append(f"    {position}{comma} /* {entry['key']} */")
+    # 値を定義で固定したカタログでは欠番が生じる。表は最大の値までを網羅する。
+    position_of_value = {value: position for position, value in enumerate(key_values(strings))}
+    key_of_value = {key_value(entry, position): entry["key"] for position, entry in enumerate(strings)}
+    for value in range(1, max(position_of_value) + 1):
+        comma = "," if value < max(position_of_value) else ""
+        if value in position_of_value:
+            out.append(f"    {position_of_value[value]}{comma} /* {key_of_value[value]} */")
+        else:
+            out.append(f"    {module_upper}_KEY_INDEX_ABSENT{comma} /* {value}: 欠番 */")
 
     out.extend(
         [
@@ -1443,9 +1488,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             "/*",
             " *  添字テーブルが最大の文字列キーまでを網羅していることを、ビルド時に検証します。",
             " *  網羅されていない文字列キーは線形探索にフォールバックするため動作自体は可能ですが、添字テーブルの拡張漏れとなります。",
-            " *  対象は文字列キーの昇順で最後の定数です。",
+            " *  対象は、値が最大の文字列キーの定数です。",
             " */",
-            f'static_assert({module_upper}_KEY_INDEX_COUNT > {last_key}, "key_index must cover every string key");',
+            f'static_assert({module_upper}_KEY_INDEX_COUNT > {largest_key}, "key_index must cover every string key");',
             "",
             expand(SOURCE_TAIL, module, library).rstrip("\n"),
             "",
