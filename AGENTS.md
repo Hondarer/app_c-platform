@@ -9,7 +9,7 @@
 
 - `prod/include/` は、利用者向けの公開 API ヘッダーです。
 - `prod/include_internal/` は、ライブラリ内部の共有ヘッダーです。
-- `prod/libsrc/` は、C の実装です。同一ディレクトリの実装だけが共有する宣言は、モジュール私有ヘッダー (例: `prod/libsrc/cplat/hashtable/hashtable.h`) に置きます。
+- `prod/libsrc/` は、C の実装です。同一ディレクトリの実装だけが共有する宣言は、モジュール私有ヘッダー (例: `prod/libsrc/cplat/hashtable/hashtable.h`) に配置します。
 - `test/` は、単体テスト、モック、エクスポート確認です。
 - [docs/README.md](docs/README.md)は、発行文書の入口です。
 - [docs/functional-spec/README.md](docs/functional-spec/README.md)は、要件と機能を説明する機能仕様の入口です。
@@ -54,6 +54,7 @@ API、実装、テストなどの下流成果物は、必要な場合に機能�
 - 一般的な C/C++ 規範は、[共通コーディング規範](../general/docs/coding-guideline.md) に従ってください。
 - cplat 固有の結果コード、標準時刻型、制約は、[cplat コーディング規範](docs/coding-guideline.md) に集約してください。
 - `mock_cplat` を変更する場合は、この app の `create-mock-cplat-mock` スキルを使用してください。
+- `mock_cplat` をリンクするテストは、Windows で実装オブジェクトを取り込むため、テスト翻訳単位で `mock_cplat.h` をインクルードしてください。
 - 文字列カタログの責務境界と変更時の制約は、[string_catalog モジュール](prod/libsrc/cplat/string_catalog/README.md) を参照してください。
 - カタログ生成器 `bin/string_catalog_gen.py` を変更した場合は、`cd bin && python3 -m unittest test_string_catalog_gen` を実行してください。
 - `mock_cplat` に文字列カタログの公開関数は追加していません。テストによる差し替えが必要になるまで追加しません。可変長引数の関数は `va_list` 版への委譲規則が必要で、実装コストに見合わないためです。

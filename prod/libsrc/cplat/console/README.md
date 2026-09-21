@@ -4,13 +4,13 @@ short-title: "console"
 
 # console - Windows コンソール設定ヘルパー
 
-`console` は、Windows と Linux の両方で同じ呼び出しコードを使えるコンソール初期化ユーティリティです。
+`console` は、Windows と Linux の両方で同一の呼び出しコードを使用できるコンソール初期化ユーティリティです。
 
 ## 目的
 
-Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによりプロセスの ANSI コード ページ (ACP) を UTF-8 にできます。これにより、`argv`、CRT narrow API、Win32 `-A` API を UTF-8 前提で扱えます。
+Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによりプロセスの ANSI コード ページ (ACP) を UTF-8 に設定できます。これにより、`argv`、CRT narrow API、Win32 `-A` API を UTF-8 を前提として扱えます。
 
-一方、接続先コンソールにはプロセス ACP とは別に入力コード ページと出力コード ページがあります。このモジュールは、Windows のコンソール設定をアプリケーションの UTF-8 前提に合わせ、ANSI エスケープ シーケンスによる色やカーソル制御を使えるようにします。
+一方、接続先コンソールにはプロセス ACP とは別に入力コード ページと出力コード ページがあります。このモジュールは、Windows のコンソール設定をアプリケーションの UTF-8 前提に合わせ、ANSI エスケープ シーケンスによる色やカーソル制御を利用できるように設定します。
 
 - コンソール入力コード ページを UTF-8 に設定
 - コンソール出力コード ページを UTF-8 に設定
@@ -60,32 +60,34 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 この関数は次の仕組みで昇格プロセスの出力を元のコンソールに表示します。UAC 昇格 (`ShellExecuteExW` の `runas` 動詞) では昇格プロセスを別セキュリティ コンテキストで生成するため、親のハンドルを継承できません。そこで親プロセス ID と親コンソールの window ハンドルをコマンド ラインで渡し、昇格プロセス側が親コンソールへ接続し直します。親側は昇格プロセスの一時コンソールを隠して起動するため、別ウインドウは表示されません。
 
-```mermaid
-sequenceDiagram
-    participant P as 親プロセス (未昇格)
-    participant C as 昇格プロセス
-    P->>C: runas + SW_HIDE + 親PID / 親HWND フラグ
-    C->>C: FreeConsole / AttachConsole(親PID)
-    C->>C: GetConsoleWindow() が親HWND に一致するまで待つ
-    C->>C: CONOUT$ / CONIN$ を std へ再接続
-    C-->>P: 同一コンソールへ出力
+```plantuml
+@startuml cplat_console_attach_parent のコンソール引き継ぎ
+caption cplat_console_attach_parent のコンソール引き継ぎ
+participant "親プロセス (未昇格)" as P
+participant "昇格プロセス" as C
+P -> C : runas + SW_HIDE + 親 PID / 親 HWND フラグ
+C -> C : FreeConsole / AttachConsole(親 PID)
+C -> C : GetConsoleWindow() が親 HWND に一致するまで待機
+C -> C : CONOUT$ / CONIN$ を std へ再接続
+C --> P : 同一コンソールへ出力
+@enduml
 ```
 
 CodeBlock: 昇格時のコンソール引き継ぎ
 
-昇格直後は、子プロセスの一時コンソール (conhost) の割り当てが非同期に進みます。子プロセスが自前コンソールへ繋がったままの瞬間に `AttachConsole` を呼ぶと `ERROR_ACCESS_DENIED` で失敗します (`AttachConsole` は呼び出し元がすでにコンソールへ接続済みだと失敗します)。この失敗時は標準ハンドルの付け替えを行わず、かつ直前に `FreeConsole` 済みのため、子プロセスはどのコンソールにも繋がらず出力先を失います。これを避けるため、`FreeConsole` と `AttachConsole` を有界リトライし、割り当てが落ち着くまで数回試行します。通常は 1 回目か 2 回目で接続できます。
+昇格直後は、子プロセスの一時コンソール (conhost) の割り当てが非同期に進みます。子プロセスが独自の一時コンソールへ接続されたままの瞬間に `AttachConsole` を呼び出すと `ERROR_ACCESS_DENIED` で失敗します (`AttachConsole` は呼び出し元がすでにコンソールへ接続済みである場合に失敗します)。この失敗時は標準ハンドルの付け替えを行わず、かつ直前に `FreeConsole` 済みであるため、子プロセスはどのコンソールにも接続されず出力先を喪失します。これを防ぐため、`FreeConsole` と `AttachConsole` を有界リトライし、割り当てが安定するまで数回試行します。通常は 1 回目または 2 回目で接続できます。
 
-- 親コンソール接続: `FreeConsole()` と `AttachConsole()` を有界リトライし、親コンソールへ一度でも接続できるまで待ちます。
+- 親コンソール接続: `FreeConsole()` と `AttachConsole()` を有界リトライし、親コンソールへ一度でも接続できるまで待機します。
 - 親コンソール確認: 接続成功後、親 HWND が渡されている場合は `GetConsoleWindow()` が親 HWND に一致するまで有界リトライします。この段階では `FreeConsole()` を再度呼ばず、接続済みの親コンソールを保持します。全試行で一致しない場合でも、`AttachConsole()` 自体が成功していれば従来動作を下限として付け替えを続行します。
 - 終了時ドレイン: 親コンソールへ再接続していた場合、終了時のフラッシュ後にコンソールへの同期 API (`GetConsoleScreenBufferInfo`) を 1 度呼び、直前の書き込みが conhost に処理されてからプロセスが終了するようにします。
 
-これらのリトライはいずれも有界であり、確認に失敗してもコンソールへ繋がっていれば従来動作を下限として付け替えを続行します。
+これらのリトライはいずれも有界であり、確認に失敗してもコンソールへ接続されていれば従来動作を下限として付け替えを続行します。
 
 ### 既知の制限: 再接続後に書き込みが間欠的に拒否される
 
-`AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (失敗するときは何度リトライしても同じエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `cplat_console_write()` (Win32 API を直接呼ぶ) でも同様に発生します。
+`AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (一度失敗すると再試行しても同一のエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `cplat_console_write()` (Win32 API を直接呼び出す) でも同様に発生します。
 
-UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_with_result()` (`app/c-platform/prod/libsrc/cplat/runtime/README.md` 参照) を使ってください。こちらは昇格プロセスのコンソールに一切触れず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
+UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_with_result()` (`app/c-platform/prod/libsrc/cplat/runtime/README.md` 参照) を使用してください。こちらは昇格プロセスのコンソールに一切アクセスせず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
 
 再現調査時は、環境変数 `C_PLATFORM_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/c-platform_console_attach.log` へ再接続の診断ログを追記できます。  
 このログには `FreeConsole` / `AttachConsole` / `GetConsoleWindow` / `CONOUT$` オープン / `reopen` / 終了時ドレインの成否と `GetLastError()` を記録します。
@@ -96,11 +98,11 @@ UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_atta
 
 - Windows では `GetStdHandle` で取得した Win32 ハンドルへ `WriteConsoleA` (失敗時は `WriteFile` にフォールバック) で直接書き込む
 - Linux では対象の fd へ `write()` で直接書き込む
-- `printf` / `fprintf` (FILE\* 経由) は再接続後に書き込みを拒否することがあるため、`cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合の出力は、本関数を使うこと
+- `printf` / `fprintf` (FILE\* 経由) は再接続後に書き込みを拒否することがあるため、`cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合の出力は、本関数を使用すること
 
 ## 使い方
 
-呼び出し側は OS ごとの `#ifdef` を書かずに、同じコードで利用できます。
+呼び出し側は OS ごとの `#ifdef` を記述せずに、同一のコードで利用できます。
 
 ```c
 #include <cplat/console/console.h>
@@ -141,11 +143,11 @@ int main(void)
 
 ## 注意点
 
-- Windows では `activeCodePage=UTF-8` マニフェストを併用してください
-- `cplat_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `cplat_console_attach_parent` を使用してください)
-- `cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `cplat_console_write()` を使用してください
-- UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` ではなく `cplat_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)
-- Windows 10 1903 未満はサポート対象外です
+- Windows では `activeCodePage=UTF-8` マニフェストを併用してください。
+- `cplat_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `cplat_console_attach_parent` を使用してください)。
+- `cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `cplat_console_write()` を使用してください。
+- UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` ではなく `cplat_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)。
+- Windows 10 1903 未満はサポート対象外です。
 
 ## 参考リンク
 

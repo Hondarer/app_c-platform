@@ -12,7 +12,7 @@
  *
  *  言語設定はプロセス共有の状態であり、排他制御は行いません。\n
  *  プロセスの初期化時に設定し、文字列組み立ての実行中は変更しない運用を前提とします。\n
- *  実行環境からの決定が複数のスレッドで重複して実行された場合も、書き込む言語は同じです。
+ *  実行環境からの決定が複数のスレッドで重複して実行された場合も、書き込まれる言語は同一です。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -49,14 +49,14 @@ static const struct
     {"en", CPLAT_STRING_CATALOG_LANGUAGE_ENGLISH},
 };
 
-/** @ref s_language_map の要素数です。 */
+/** `s_language_map` の要素数です。 */
 #define LANGUAGE_MAP_COUNT ((size_t)(sizeof(s_language_map) / sizeof(s_language_map[0])))
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_set_language(const cplat_string_catalog_language language)
 {
-    /* 列挙の基底型は処理系定義のため、符号なし整数へキャストして上限値のみを判定する */
+    /* 列挙の基底型は処理系定義のため、符号なし整数へキャストして上限値のみを判定します。 */
     if ((unsigned int)language >= (unsigned int)CPLAT_STRING_CATALOG_LANGUAGE_COUNT)
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
@@ -64,7 +64,7 @@ int cplat_string_catalog_set_language(const cplat_string_catalog_language langua
 
     s_language = language;
 
-    /* 明示的な設定は実行環境よりも優先する。ニュートラル言語の設定も上書きしない */
+    /* 明示的な設定を実行環境よりも優先します。ニュートラル言語の設定も上書きしません。 */
     s_language_decided = 1;
 
     return CPLAT_OK;
@@ -81,7 +81,7 @@ cplat_string_catalog_language cplat_string_catalog_get_language(void)
 
         if (cplat_ui_language_get_tag(tag, sizeof(tag)) == CPLAT_OK)
         {
-            /* 対応する言語が存在しない場合はニュートラル言語のままとする */
+            /* 対応する言語が存在しない場合はニュートラル言語のままとします。 */
             (void)cplat_string_catalog_language_from_tag(tag, &language);
         }
 
@@ -106,13 +106,13 @@ int cplat_string_catalog_language_from_tag(const char *const tag, cplat_string_c
 
     *language_out = CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL;
 
-    /* 空文字列はニュートラル言語の指定である */
+    /* 空文字列はニュートラル言語の指定とみなします。 */
     if (tag[0] == '\0')
     {
         return CPLAT_OK;
     }
 
-    /* 表記体系と地域は言語の後ろに続く。対応付けには言語だけを使用する */
+    /* 表記体系と地域は言語の後ろに続きます。対応付けには言語のみを使用します。 */
     length = strcspn(tag, "-");
 
     for (index = 0U; index < LANGUAGE_MAP_COUNT; index++)

@@ -1,4 +1,5 @@
 #include <testfw.h>
+#include <mock_cplat.h>
 
 #include <cplat/base/platform.h>
 #include <cplat/base/result.h>
@@ -24,7 +25,7 @@ namespace
 /** 表示言語の決定で評価する環境変数です。 */
 const char *const kEnvironmentNames[] = {"LC_ALL", "LC_MESSAGES", "LANG"};
 
-/** @ref kEnvironmentNames の要素数です。 */
+/** `kEnvironmentNames` の要素数です。 */
 const size_t kEnvironmentNameCount = sizeof(kEnvironmentNames) / sizeof(kEnvironmentNames[0]);
 
 /** 退避する環境変数の値の最大長です (NUL 終端込み)。 */

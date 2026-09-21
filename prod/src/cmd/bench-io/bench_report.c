@@ -36,7 +36,7 @@
  *  Windows の `PROCESSOR_IDENTIFIER` は "Intel64 Family 6 Model 85 Stepping 7, GenuineIntel" のように
  *  カンマを含みます。CSV では引用符で囲んでいても、awk などの単純な分割で列位置に不整合が生じるため、
  *  環境情報を格納する時点でカンマを取り除きます。\n
- *  環境情報を @ref bench_environment へ格納する経路はすべて本関数を通してください。
+ *  環境情報を @ref bench_environment へ格納する経路はすべて本関数を経由してください。
  */
 static void sanitize_commas(char *text)
 {
@@ -57,7 +57,7 @@ static void sanitize_commas(char *text)
  *  @param[in]      size  @p dest のサイズ (バイト)。1 以上を指定します。
  *  @param[in]      text  複製する文字列。NULL の場合は "unknown" を格納します。
  *
- *  格納する文字列に含まれるカンマは @ref sanitize_commas() により空白へ置き換えます。
+ *  格納する文字列に含まれるカンマは `sanitize_commas()` により空白へ置き換えます。
  */
 static void copy_text(char *dest, size_t size, const char *text)
 {
@@ -140,7 +140,7 @@ static void collect_cpu_model(bench_environment *env)
     }
     else
     {
-        /* cplat_getenv は copy_text を経由せず直接書き込むため、ここでカンマを取り除く。 */
+        /* cplat_getenv は copy_text を経由せず直接書き込むため、ここでカンマを取り除きます。 */
         sanitize_commas(env->cpu_model);
     }
 #else
@@ -164,8 +164,8 @@ static void collect_fs_type(const char *dir, bench_environment *env)
         copy_text(env->fs_type, sizeof(env->fs_type), NULL);
         return;
     }
-    /* statfs はファイル システム名を返さないため、magic 値をそのまま記録する。 */
-    /* 主要な値の対応は Linux の statfs(2) を参照する。                         */
+    /* statfs はファイル システム名を返さないため、magic 値をそのまま記録します。 */
+    /* 主要な値の対応は Linux の statfs(2) を参照します。                         */
     /* see: https://man7.org/linux/man-pages/man2/statfs.2.html                 */
     (void)cplat_snprintf(text, sizeof(text), "magic=0x%lx", (unsigned long)info.f_type);
     copy_text(env->fs_type, sizeof(env->fs_type), text);

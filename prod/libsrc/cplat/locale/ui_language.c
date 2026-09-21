@@ -30,7 +30,7 @@
  */
 static const char *const s_environment_names[] = {"LC_ALL", "LC_MESSAGES", "LANG"};
 
-/** @ref s_environment_names の要素数です。 */
+/** `s_environment_names` の要素数です。 */
 #define ENVIRONMENT_NAME_COUNT ((size_t)(sizeof(s_environment_names) / sizeof(s_environment_names[0])))
 
 /**
@@ -42,7 +42,7 @@ static const char *const s_environment_names[] = {"LC_ALL", "LC_MESSAGES", "LANG
  *  @retval         CPLAT_OK                    評価を完了しました。
  *  @retval         CPLAT_ERR_BUFFER_TOO_SMALL  @p tag_out の容量が不足しています。
  *
- *  ニュートラルを指定する環境変数を見つけた場合は、空文字列を格納して決定済みとします。\n
+ *  ニュートラルを指定する環境変数を検出した場合は、空文字列を格納して決定済みとします。\n
  *  解釈できない指定は使用せず、次の候補の評価を続けます。
  */
 static int decide_from_environment(char *const tag_out, const size_t tag_size, int *const decided_out)
@@ -57,7 +57,7 @@ static int decide_from_environment(char *const tag_out, const size_t tag_size, i
         int exists = 0;
         int ret;
 
-        /* 言語タグに収まらない長さの指定は、言語タグとして解釈できないため次の候補へ進む */
+        /* 言語タグに収まらない長さの指定は、言語タグとして解釈できないため次の候補へ進みます。 */
         ret = cplat_getenv(s_environment_names[index], value, sizeof(value), &exists, NULL);
         if ((ret != CPLAT_OK) || (exists == 0) || (value[0] == '\0'))
         {
@@ -102,8 +102,8 @@ static int decide_from_windows(char *const tag_out, const size_t tag_size, int *
 
     *decided_out = 0;
 
-    /* 地域設定を返す GetUserDefaultLocaleName は、表示言語と別に設定できるため第一の候補にしない。
-       表示言語の優先順位は NUL 区切りの一覧で返り、先頭要素が最優先の表示言語となる。
+    /* 地域設定を返す GetUserDefaultLocaleName は、表示言語と別に設定できるため第一の候補としません。
+       表示言語の優先順位は NUL 区切りの一覧で返り、先頭要素が最優先の表示言語となります。
        see: https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getuserpreferreduilanguages */
     if ((GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &language_count, NULL, &buffer_length) != 0) &&
         (buffer_length > 0U))
@@ -115,7 +115,7 @@ static int decide_from_windows(char *const tag_out, const size_t tag_size, int *
             if ((GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &language_count, names, &buffer_length) != 0) &&
                 (language_count > 0U))
             {
-                /* 一覧の先頭要素は NUL 終端されているため、そのまま 1 つの文字列として扱える */
+                /* 一覧の先頭要素は NUL 終端されているため、そのまま 1 つの文字列として扱えます。 */
                 converted = (cplat_wstr_to_utf8(value, sizeof(value), names) > 0) ? 1 : 0;
             }
             cplat_free(names);
@@ -192,7 +192,7 @@ int cplat_ui_language_get_tag(char *const tag_out, const size_t tag_size)
     }
 #endif /* PLATFORM_WINDOWS */
 
-    /* Linux では、システムの設定がログイン時に環境変数へ反映されるため、環境変数以外の候補を評価しない */
+    /* Linux では、システムの設定がログイン時に環境変数へ反映されるため、環境変数以外の候補は評価しません。 */
     tag_out[0] = '\0';
 
     return CPLAT_OK;

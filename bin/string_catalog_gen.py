@@ -254,9 +254,9 @@ def join_text(value) -> str:
 
 
 def placeholder_indices(text: str) -> list[int]:
-    """書式に現れる位置指定の添字を返す。構文が不正なら例外にする。
+    """書式に現れる位置指定のインデックスを返します。構文が不正な場合は例外を発生させます。
 
-    受け付ける構文は string_catalog_render.c の render_scan_text と同じ。
+    受け付ける構文は string_catalog_render.c の render_scan_text と同一です。
     """
     found = []
     index = 0
@@ -763,14 +763,14 @@ def remark_doc_lines(entry: dict) -> list[str]:
 
 
 def trace_context_doc_lines(document: dict) -> list[str]:
-    """コンテキスト引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てる。
+    """コンテキスト引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てます。
 
-    定義作成者が書式からコンテキスト値を参照するには、どの番号が何かを知る必要がある。
-    対応表は解決済みのコンテキスト引数から組み立て、生成器の定義と不整合が生じないようにする。
+    定義作成者が書式からコンテキスト値を参照するには、どの番号が何かを把握する必要があります。
+    対応表は解決済みのコンテキスト引数から組み立て、生成器の定義と不整合が生じないようにします。
     """
     indices = context_argument_indices(document)
     lines = [
-        " *  本カタログはトレース種別です。呼び出し位置と実行コンテキストを、生成器が引数として付け加えます。\\n",
+        " *  本カタログはトレース種別です。呼び出し位置と実行コンテキストを、生成器が引数として付与します。\\n",
         f" *  利用者が記載した引数は `{{0}}` から順に並び、"
         f"`{{{CONTEXT_ARGUMENT_BASE}}}` から次のコンテキスト引数が並びます。",
         " *",
@@ -1046,7 +1046,7 @@ def output_dir_display(document: dict, out_relative: str) -> str:
 
 
 def emit_header(document: dict, strings: list[dict], definition_name: str, out_relative: str = ".") -> str:
-    """ヘッダー側の生成物を組み立てる。"""
+    """ヘッダー側の生成物を組み立てます。"""
     module = document["module_prefix"]
     library = LIBRARY_PREFIX
     macros = export_macros(document)
@@ -1480,7 +1480,7 @@ int @MODULE@_write(const int string_key, ...)
     va_list args;
     int ret;
 
-    /* 出力先が未設定なら、組み立てを行わずに失敗を返す。設定の漏れを成功として隠さないため */
+    /* 出力先が未設定の場合は、組み立てを行わずに失敗を返します。設定の漏れを成功として隠蔽しないためです。 */
     if (s_tracer == NULL)
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
@@ -1495,7 +1495,7 @@ int @MODULE@_write(const int string_key, ...)
         return ret;
     }
 
-    /* 呼び出し位置は引数として渡しているため、呼び出し位置を付与しない API を使う */
+    /* 呼び出し位置は引数として渡しているため、呼び出し位置を付与しない API を使用します。 */
     return cplat_tracer_write_at(s_tracer, (cplat_trace_level)@MODULE@_category(string_key), NULL, text);
 }
 """
@@ -1605,7 +1605,7 @@ const char *@MODULE@_note(const int string_key)
 
 
 def emit_source(document: dict, strings: list[dict], definition_name: str, out_relative: str = ".") -> str:
-    """実装側の生成物を組み立てる。"""
+    """実装側の生成物を組み立てます。"""
     module = document["module_prefix"]
     module_upper = module.upper()
     library = LIBRARY_PREFIX
@@ -1779,14 +1779,14 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     out.extend(
         [
             "",
-            "/** @ref s_entries の要素数です。 */",
+            "/** `s_entries` の要素数です。 */",
             f"#define {module_upper}_ENTRY_COUNT ((int)(sizeof(s_entries) / sizeof(s_entries[0])))",
             "",
             "/** インデックス テーブルにおいて、文字列キーが未登録であることを表す値です。 */",
             f"#define {module_upper}_KEY_INDEX_ABSENT (-1)",
             "",
             "/**",
-            " *  @brief          文字列キーをインデックスとして、@ref s_entries のインデックスを引くためのテーブルです。",
+            " *  @brief          文字列キーをインデックスとして、`s_entries` のインデックスを引くためのテーブルです。",
             " *",
             " *  文字列キーは 1 から始まるため、インデックス 0 は使用しません。\\n",
             f" *  文字列キーが連続せず欠番となる場合は、該当するインデックスへ @ref {module_upper}_KEY_INDEX_ABSENT を格納します。",
@@ -1804,7 +1804,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         [
             "};",
             "",
-            "/** @ref s_key_index の要素数です。 */",
+            "/** `s_key_index` の要素数です。 */",
             f"#define {module_upper}_KEY_INDEX_COUNT ((int)(sizeof(s_key_index) / sizeof(s_key_index[0])))",
             "",
             "/*",
@@ -1826,7 +1826,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
 
 
 def find_clang_format_style(start: Path) -> Path | None:
-    """出力先から親をたどって .clang-format を検索する。"""
+    """出力先から親ディレクトリを探索して .clang-format を検索します。"""
     for directory in [start.resolve()] + list(start.resolve().parents):
         candidate = directory / ".clang-format"
         if candidate.is_file():
@@ -1835,10 +1835,10 @@ def find_clang_format_style(start: Path) -> Path | None:
 
 
 def format_source(text: str, filename: str, style: Path | None) -> str:
-    """生成した内容を clang-format へ通す。
+    """生成した内容を clang-format で整形します。
 
-    生成物はリポジトリの整形規則に従う必要があり、整形まで生成器の責務とする。
-    そうしないと --check が常に差分を報告することになる。
+    生成物はリポジトリの整形規則に従う必要があり、整形までを生成器の責務とします。
+    整形しない場合、--check が常に差分を報告することになります。
     """
     if style is None or shutil.which("clang-format") is None:
         print("警告: clang-format が見つからないため、整形せずに出力します。", file=sys.stderr)
@@ -1856,33 +1856,33 @@ def format_source(text: str, filename: str, style: Path | None) -> str:
 
 
 def write_text_lf(path: Path, content: str) -> None:
-    """UTF-8 のテキストを LF 固定で書き込む。"""
+    """UTF-8 のテキストを LF 改行で書き込みます。"""
     with path.open("w", encoding="utf-8", newline="\n") as output:
         output.write(content)
 
 
 def main(argv: list[str] | None = None) -> int:
-    """コマンドの入口。"""
-    parser = argparse.ArgumentParser(description="カタログ定義から cplat 文字列カタログの生成物を書き出します。")
+    """コマンドのエントリ ポイントです。"""
+    parser = argparse.ArgumentParser(description="カタログ定義から cplat 文字列カタログの生成物を出力します。")
     parser.add_argument("definition", type=Path, help="カタログ定義 (JSONC) のパス")
-    parser.add_argument("--out-dir", type=Path, default=None, help="出力先。既定は定義ファイルと同じ場所")
+    parser.add_argument("--out-dir", type=Path, default=None, help="出力先ディレクトリ。既定は定義ファイルと同一の場所です。")
     parser.add_argument(
         "--header-dir",
         type=Path,
         default=None,
-        help="ヘッダーの出力先。既定は --out-dir と同じ場所。公開ヘッダーを分けて置く場合に指定する",
+        help="ヘッダーの出力先ディレクトリ。既定は --out-dir と同一の場所です。公開ヘッダーを分けて配置する場合に指定します。",
     )
-    parser.add_argument("--check", action="store_true", help="書き出さず、既存の生成物と一致するかだけ確かめる")
+    parser.add_argument("--check", action="store_true", help="ファイルを出力せず、既存の生成物と一致するかのみを確認します。")
     parser.add_argument(
         "--if-newer",
         action="store_true",
-        help="生成物が定義ファイルと生成器より新しければ何もしない。make の parse 時に呼ぶ用",
+        help="生成物が定義ファイルおよび生成器より新しい場合は何もしません。make のパース時に呼び出す用途です。",
     )
     args = parser.parse_args(argv)
 
     try:
         document = load_definition(args.definition)
-        # 名前と置き場所は定義ファイル自身から決まる。定義の中には書かない。
+        # 名前と配置場所は定義ファイル自身から決定します。定義の内部には記述しません。
         document["module_prefix"] = derive_module_prefix(args.definition)
         document["module_dir"] = derive_module_dir(args.definition)
         load_settings(args.definition, document)
@@ -1895,7 +1895,7 @@ def main(argv: list[str] | None = None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     header_dir = args.header_dir if args.header_dir is not None else out_dir
     header_dir.mkdir(parents=True, exist_ok=True)
-    # ヘッダーを別の場所へ出す場合、利用側は公開ヘッダーの置き場所からの相対パスで取り込む。
+    # ヘッダーを別の場所へ出力する場合、利用側は公開ヘッダーの配置場所からの相対パスで取り込みます。
     if header_dir.resolve() != out_dir.resolve():
         document[PUBLIC_INCLUDE_KEY] = header_include_path(header_dir, document["module_prefix"])
     definition_name = args.definition.name
@@ -1903,7 +1903,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.if_newer and not args.check:
         targets = [header_dir / f"{module}.h", out_dir / f"{module}.c"]
-        # 設定ファイルを変えた場合も再生成する。app 内の複数のカタログが同じ設定を共有するため。
+        # 設定ファイルを変更した場合も再生成します。app 内の複数のカタログが同一の設定を共有するためです。
         settings = settings_path(args.definition, document)
         sources = [args.definition, Path(__file__)] + ([settings] if settings is not None else [])
         if all(target.exists() for target in targets):
@@ -1912,7 +1912,7 @@ def main(argv: list[str] | None = None) -> int:
             if oldest_target >= newest_source:
                 return 0
 
-    # 出力先が定義ファイルと別のディレクトリなら、Doxygen の @file もその位置を指す
+    # 出力先が定義ファイルと異なるディレクトリの場合は、Doxygen の @file もその位置を指します。
     out_relative = os.path.relpath(out_dir, args.definition.parent).replace("\\", "/")
     header_relative = os.path.relpath(header_dir, args.definition.parent).replace("\\", "/")
 

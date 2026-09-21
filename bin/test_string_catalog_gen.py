@@ -685,6 +685,10 @@ class GeneratedOutputTest(unittest.TestCase):
         self.assertIn("#define SAMPLE_MESSAGES_ENTRY_COUNT", source)
         self.assertIn("#define SAMPLE_MESSAGES_KEY_INDEX_ABSENT", source)
         self.assertIn("#define SAMPLE_MESSAGES_KEY_INDEX_COUNT", source)
+        self.assertIn("`s_entries` の要素数", source)
+        self.assertIn("`s_key_index` の要素数", source)
+        self.assertNotIn("@ref s_entries", source)
+        self.assertNotIn("@ref s_key_index", source)
         self.assertNotIn("#define ENTRY_COUNT", source)
         self.assertNotIn("#define KEY_INDEX_ABSENT", source)
         self.assertNotIn("#define KEY_INDEX_COUNT", source)
@@ -1081,8 +1085,8 @@ class ContextArgumentBoundaryTest(unittest.TestCase):
     """cplat が定めるコンテキスト引数と、app が定める番号の境界を確認する。"""
 
     def test_library_context_stops_before_the_extension_base(self):
-        # 位置指定は定義の並び順から決まるため、衝突しても書式の検査では気付けない。
-        # cplat 側を増やす場合に備えて、生成器の読み込み時点で止める不変条件を確認する。
+        # 位置指定は定義の並び順から決定されるため、衝突しても書式の検査では検出できません。
+        # cplat 側を拡張する場合に備えて、生成器の読み込み時点で処理を停止する不変条件を確認します。
         self.assertLessEqual(
             gen.CONTEXT_ARGUMENT_BASE + len(gen.CONTEXT_ARGUMENTS), gen.EXTENSION_ARGUMENT_BASE
         )
@@ -1163,7 +1167,7 @@ class TextAffixTest(unittest.TestCase):
         self.assertNotIn(note, gen.emit_source(document, strings, "example.jsonc"))
 
     def test_allows_an_index_without_an_argument(self):
-        # 共通の前置と後置は引数定義の異なる複数の文字列へ結合されるため、添字は検査しない。
+        # 共通の前置と後置は引数定義の異なる複数の文字列へ結合されるため、インデックスは検査しません。
         document = self.document(text_prefix={"neutral": "{40}"}, text_suffix={"neutral": "{0}"})
         self.assertEqual(len(gen.validate(document)), 1)
 
