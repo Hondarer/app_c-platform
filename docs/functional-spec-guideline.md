@@ -38,6 +38,7 @@ CPLAT-HASHTABLE-QUAL-001
 | `CRT` | cplat の C ランタイム抽象機能 |
 | `CRYPTO` | cplat の暗号機能 |
 | `HASHTABLE` | cplat のハッシュ テーブル機能 |
+| `LOCALE` | cplat のロケール機能 |
 | `MMAP` | cplat のメモリ マップド ファイル機能 |
 | `NET` | cplat のネットワーク機能 |
 | `PROMPT` | cplat のプロンプト機能 |

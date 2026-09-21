@@ -98,6 +98,12 @@
  */
 
 /**
+ *  @defgroup       CPLAT_LOCALE ロケール (locale)
+ *  @ingroup        CPLAT_PUBLIC_API
+ *  @brief          実行環境が示す表示言語を取得する API です。
+ */
+
+/**
  *  @defgroup       CPLAT_MMAP メモリ マップド ファイル (mmap)
  *  @ingroup        CPLAT_PUBLIC_API
  *  @brief          メモリ マップド ファイルの割り当てと共有 API です。
@@ -189,6 +195,8 @@
 #include <cplat/crypto/random.h>
 
 #include <cplat/hashtable/hashtable.h>
+
+#include <cplat/locale/ui_language.h>
 
 #include <cplat/mmap/mmap.h>
 

@@ -21,6 +21,7 @@ Linux / Windows 両プラットフォームでの利用を想定しています�
 | ネットワーク | IPv4 ソケットの生成、接続、送受信、アドレス解決 |
 | ハッシュ テーブル | 固定レコード数と固定ストレージ容量。外部領域への構築と再接続に対応 |
 | 文字列カタログ | 文字列キー、引数スキーマ、言語別リソースを分離した文字列の組み立て |
+| ロケール | 実行環境が示す表示言語の決定 |
 | テスト支援 | テスト用の補助 API とユーティリティ |
 | プラットフォーム | Linux、Windows |
 
@@ -129,6 +130,7 @@ cplat が公開する API 全体の一覧は [cplat API チート シート](api
 - [プロセス間 RW ロックの提案](proposals/interprocess-rwlock-shared-table.md)
 - [文字列カタログの条件式フィルターの提案](proposals/string-catalog-filter-design.md)
 - [トレース種別の文字列カタログの提案](proposals/string-catalog-trace-kind-design.md)
+- [表示言語の取得の設計](proposals/ui-language-design.md)
 
 ## 文書一覧
 

@@ -309,6 +309,18 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 |---|---|---|
 | `gethostname()` (POSIX) / `GetComputerNameExW(ComputerNameDnsHostname)` (Win32) | `cplat_host_get_name(name_out, name_size)` | 返る値は UTF-8 です。Windows は Winsock を使わず DNS ホスト名を取得します。FQDN であることは保証しません。推奨配列サイズは `CPLAT_HOST_NAME_MAX` |
 
+### 表示言語
+
+対象ヘッダー: `cplat/locale/ui_language.h`
+
+| 生 API | cplat 代替 | 差異の要点 |
+|---|---|---|
+| `getenv("LC_ALL" / "LC_MESSAGES" / "LANG")` (POSIX) / `GetUserPreferredUILanguages(MUI_LANGUAGE_NAME)` (Win32) | `cplat_ui_language_get_tag(tag_out, tag_size)` | 環境変数を両プラットフォームで優先し、Windows では環境変数で決まらない場合に OS の表示言語を使用します。`C` と `POSIX` の指定と、決定できない場合はニュートラル (空文字列) です。推奨配列サイズは `CPLAT_UI_LANGUAGE_TAG_MAX` |
+
+返る言語タグは、言語を小文字、表記体系を先頭だけ大文字、地域を大文字にした `ja`、`ja-JP`、`zh-Hans-CN` の表記です。  
+書式に使用する地域設定 (`GetUserDefaultLocaleName`) ではなく表示言語を対象とし、プロセスのロケール設定 (`setlocale`) は変更しません。  
+結果は保持しないため、プロセス内で使い続ける値は利用側で保持します。
+
 ### モジュール / プロセス情報
 
 対象ヘッダー: `cplat/runtime/module.h`、`cplat/runtime/process.h`
@@ -544,6 +556,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 |---|---|
 | 出力言語の設定 | `cplat_string_catalog_set_language` |
 | 出力言語の取得 | `cplat_string_catalog_get_language` |
+| 言語タグから出力言語への対応付け | `cplat_string_catalog_language_from_tag` |
 | 文字列の組み立て | `cplat_string_catalog_format` |
 | 文字列の組み立て (`va_list` 版) | `cplat_string_catalog_vformat` |
 | カタログの点検 | `cplat_string_catalog_verify` |
@@ -556,6 +569,10 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 出力言語はプロセスで 1 つです。組み立ての API に言語引数はありません。  
 選択中の言語の要素が NULL の場合は、ニュートラル言語の要素へフォールバックします。ニュートラル言語の要素は NULL にできません。
+
+出力言語を設定していないプロセスでは、最初の参照時に `cplat_ui_language_get_tag` の結果から出力言語を決定します。  
+決定は 1 回だけ行い、`cplat_string_catalog_set_language` による設定はこの決定より優先します。  
+言語タグを自分で指定する場合は `cplat_string_catalog_language_from_tag` を使用します。対応する言語が無い場合はニュートラル言語と `CPLAT_ERR_NOT_FOUND` です。
 
 書式は位置指定 (`{0}` から `{31}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
 引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (32) です。
@@ -693,13 +710,14 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 - ファイル: `cplat_file_init`、`cplat_file_open`、`cplat_file_write`、`cplat_file_read`、`cplat_file_get_size`、`cplat_file_set_size`、`cplat_file_get_id`、`cplat_file_get_path_id`、`cplat_file_get_modified_timestamp`、`cplat_file_set_modified_timestamp`、`cplat_file_get_path_modified_timestamp`、`cplat_file_set_path_modified_timestamp`、`cplat_file_flush`、`cplat_file_close`
 - パス: `cplat_normalize_path_sep`、`cplat_path_get_full`、`cplat_paths_equal`、`cplat_get_temp_dir`、`cplat_path_concat_n`、`cplat_vpath_concat_n`、`cplat_path_basename`、`cplat_path_dirname`、`cplat_path_extension`、`cplat_path_strip_extension`、`cplat_path_join_n`、`cplat_vpath_join_n`
 - 文字列: `cplat_strcasecmp`、`cplat_strncasecmp`
-- 文字列カタログ: `cplat_string_catalog_set_language`、`cplat_string_catalog_get_language`、`cplat_string_catalog_format`、`cplat_string_catalog_vformat`、`cplat_string_catalog_verify`、`cplat_string_catalog_get_entry`、`cplat_string_catalog_get_category`、`cplat_string_catalog_get_key`、`cplat_string_catalog_get_note`
+- 文字列カタログ: `cplat_string_catalog_set_language`、`cplat_string_catalog_get_language`、`cplat_string_catalog_language_from_tag`、`cplat_string_catalog_format`、`cplat_string_catalog_vformat`、`cplat_string_catalog_verify`、`cplat_string_catalog_get_entry`、`cplat_string_catalog_get_category`、`cplat_string_catalog_get_key`、`cplat_string_catalog_get_note`
 - 書式入力: `cplat_vscanf`、`cplat_vfscanf`、`cplat_vsscanf`
 - 暗号: `cplat_passphrase_to_key`
 - エラー: `cplat_error_clear`、`cplat_error_capture_errno`、`cplat_error_capture_current_errno`、`cplat_error_get_last`、`cplat_error_set_last`、`cplat_error_clear_last`、`cplat_error_is_set`、`cplat_error_get_domain`、`cplat_error_get_errno`、`cplat_error_to_result`、`cplat_error_get_cause`、`cplat_error_is`、`cplat_result_to_string`
 - メモリ マップド ファイル: `cplat_mmap_get_address`、`cplat_mmap_get_size`
 - 正規表現: `cplat_regex_get_group_count`、`cplat_regex_iter_create`、`cplat_regex_iter_next`、`cplat_regex_iter_dispose`
 - ホスト: `cplat_host_get_name`
+- 表示言語: `cplat_ui_language_get_tag`
 - モジュール: `cplat_module_get_basename`
 - プロセス間ロック: `cplat_interprocess_lock_export_descriptor`、`cplat_interprocess_lock_import_descriptor`、`cplat_interprocess_rwlock_export_descriptor`、`cplat_interprocess_rwlock_import_descriptor`、`cplat_interprocess_rwlock_lock_shared`、`cplat_interprocess_rwlock_try_lock_shared`、`cplat_interprocess_rwlock_lock_exclusive`、`cplat_interprocess_rwlock_try_lock_exclusive`、`cplat_interprocess_rwlock_unlock`、`cplat_interprocess_rwlock_dispose`
 - トレース: `cplat_tracer_get_name`、`cplat_tracer_get_identifier`、`cplat_tracer_set_file_name`、`cplat_tracer_get_file_name`、`cplat_tracer_get_file_identifier`、`cplat_tracer_get_os_level`、`cplat_tracer_set_os_level`、`cplat_tracer_get_etw_level`、`cplat_tracer_set_etw_level`、`cplat_tracer_get_file_level`、`cplat_tracer_set_file_level`、`cplat_tracer_get_stderr_level`

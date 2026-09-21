@@ -434,6 +434,10 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_random_bytes(_, _))
         .WillByDefault(Invoke(delegate_real_cplat_random_bytes));
 
+    // cplat/locale/ui_language.h
+    ON_CALL(*this, cplat_ui_language_get_tag(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_ui_language_get_tag));
+
     // cplat/mmap/mmap.h
     ON_CALL(*this, cplat_mmap_attach(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_mmap_attach));

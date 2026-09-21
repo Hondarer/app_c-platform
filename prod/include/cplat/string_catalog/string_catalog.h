@@ -17,7 +17,7 @@
  *  カタログ指定を省略する簡易関数は、利用側の生成物で提供します。
  *
  *  出力する言語はプロセスで 1 つとし、@ref cplat_string_catalog_set_language で設定します。\n
- *  設定していないプロセスは @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を使用します。
+ *  設定していないプロセスは、実行環境が示す表示言語に対応する言語を使用します。
  *
  *  書式中の位置指定は `{0}` から `{49}` までです。書式指定は書けません。\n
  *  `{` と `}` そのものを出力する場合は `{{` と `}}` を使用します。\n
@@ -62,7 +62,9 @@ extern "C"
      *                  設定を変更しません。
      *
      *  設定はプロセス全体で 1 つです。文字列を組み立てるたびに言語を指定する必要はありません。\n
-     *  本関数を呼び出していないプロセスは @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を使用します。
+     *  本関数を呼び出していないプロセスは、実行環境が示す表示言語に対応する言語を使用します。\n
+     *  本関数による設定は実行環境よりも優先し、@ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL の
+     *  明示的な設定も実行環境の表示言語で上書きしません。
      *
      *  @ref CPLAT_STRING_CATALOG_LANGUAGE_COUNT は言語ではないため、指定できません。
      *
@@ -77,13 +79,36 @@ extern "C"
      *  @brief          プロセスが文字列を出力する言語を返します。
      *  @return         現在の言語を返します。
      *
-     *  @ref cplat_string_catalog_set_language を呼び出していない場合は
+     *  @ref cplat_string_catalog_set_language を呼び出していない場合は、最初の呼び出しの時点で
+     *  @ref cplat_ui_language_get_tag が返す言語タグに対応する言語を決定し、以後は同じ言語を返します。\n
+     *  対応する言語が無い場合と、表示言語がニュートラルの場合は
      *  @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数は、言語設定を変更しない限りスレッド セーフです。
+     *  本関数は、言語設定を変更しない限りスレッド セーフです。\n
+     *  実行環境からの決定が複数のスレッドで重複して実行された場合も、決定する言語は同じです。
      */
     CPLAT_EXPORT cplat_string_catalog_language CPLAT_API cplat_string_catalog_get_language(void);
+
+    /**
+     *  @brief          言語タグに対応する、文字列を出力する言語を返します。
+     *  @param[in]      tag           言語タグ (null 終端文字列)。NULL を渡してはなりません。\n
+     *                                空文字列はニュートラル言語の指定として扱います。
+     *  @param[out]     language_out  対応する言語の格納先。NULL を渡してはなりません。
+     *  @retval         CPLAT_OK                    対応する言語を格納しました。
+     *  @retval         CPLAT_ERR_INVALID_ARGUMENT  @p tag または @p language_out が NULL です。
+     *  @retval         CPLAT_ERR_NOT_FOUND         対応する言語がないため、
+     *                                              @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を格納しました。
+     *
+     *  対応付けには言語タグの言語だけを使用し、表記体系と地域は使用しません。\n
+     *  @ref cplat_ui_language_get_tag が返す言語タグを、出力言語の設定へ渡す用途を想定しています。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  内部に共有状態を持ちません。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_language_from_tag(const char *tag,
+                                                                     cplat_string_catalog_language *language_out);
 
     /**
      *  @brief          文字列キーと可変長引数から、現在の言語の文字列を組み立てます。

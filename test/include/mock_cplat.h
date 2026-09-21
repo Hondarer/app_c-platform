@@ -290,6 +290,9 @@ MOCK_CPLAT_LINK_IMPL(cplat_error_message)
 // cplat/crypto/random.h
 MOCK_CPLAT_LINK_IMPL(cplat_random_bytes)
 
+// cplat/locale/ui_language.h
+MOCK_CPLAT_LINK_IMPL(cplat_ui_language_get_tag)
+
 // cplat/mmap/mmap.h
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_attach)
 MOCK_CPLAT_LINK_IMPL(cplat_mmap_get_address)
@@ -558,6 +561,7 @@ MOCK_CPLAT_LINK_IMPL(StartServiceCtrlDispatcherU)
 #include <cplat/base/error_message.h>
 #include <cplat/crypto/crypto.h>
 #include <cplat/crypto/random.h>
+#include <cplat/locale/ui_language.h>
 #include <cplat/mmap/mmap.h>
 #include <cplat/net/byteorder.h>
 #include <cplat/net/endpoint.h>
@@ -862,6 +866,9 @@ extern int delegate_real_cplat_error_message(char *buf, size_t buf_size, const c
 
 // cplat/crypto/random.h
 extern int delegate_real_cplat_random_bytes(void *buf, size_t size);
+
+// cplat/locale/ui_language.h
+extern int delegate_real_cplat_ui_language_get_tag(char *tag_out, size_t tag_size);
 
 // cplat/mmap/mmap.h
 extern int delegate_real_cplat_mmap_attach(const char *path, cplat_mmap_access access, size_t create_size, cplat_mmap **map, cplat_error *detail_out);
@@ -1454,6 +1461,9 @@ class Mock_cplat
 
     // cplat/crypto/random.h
     MOCK_METHOD(int, cplat_random_bytes, (void *, size_t));
+
+    // cplat/locale/ui_language.h
+    MOCK_METHOD(int, cplat_ui_language_get_tag, (char *, size_t));
 
     // cplat/mmap/mmap.h
     MOCK_METHOD(int, cplat_mmap_attach,

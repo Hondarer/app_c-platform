@@ -37,6 +37,7 @@
 #include <cplat/prompt/pinned_prompt.h>
 #include <cplat/prompt/prompt.h>
 #include <cplat/runtime/elevated_process.h>
+#include <cplat/locale/ui_language.h>
 #include <cplat/runtime/host.h>
 #include <cplat/runtime/memory_lock.h>
 #include <cplat/regex/regex.h>
@@ -444,6 +445,8 @@
     EXPORT_ENTRY(cplat_error_message, int(CPLAT_API *)(char *buf, size_t buf_size, const cplat_error *error)) \
     /* cplat/crypto/random.h */ \
     EXPORT_ENTRY(cplat_random_bytes, int(CPLAT_API *)(void *buf, size_t size)) \
+    /* cplat/locale/ui_language.h */ \
+    EXPORT_ENTRY(cplat_ui_language_get_tag, int(CPLAT_API *)(char *tag_out, size_t tag_size)) \
     /* cplat/mmap/mmap.h */ \
     EXPORT_ENTRY(cplat_mmap_attach, int(CPLAT_API *)(const char *path, cplat_mmap_access access, size_t create_size, \
                                                      cplat_mmap **map, cplat_error *detail_out)) \
@@ -625,6 +628,8 @@
     /* cplat/string_catalog/string_catalog.h */ \
     EXPORT_ENTRY(cplat_string_catalog_set_language, int(CPLAT_API *)(cplat_string_catalog_language language)) \
     EXPORT_ENTRY(cplat_string_catalog_get_language, cplat_string_catalog_language(CPLAT_API *)(void)) \
+    EXPORT_ENTRY(cplat_string_catalog_language_from_tag, \
+                 int(CPLAT_API *)(const char *tag, cplat_string_catalog_language *language_out)) \
     EXPORT_ENTRY(cplat_string_catalog_format, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
                                                                size_t dest_size, int string_key, ...)) \
     EXPORT_ENTRY(cplat_string_catalog_vformat, int(CPLAT_API *)(const cplat_string_catalog *catalog, char *dest, \
