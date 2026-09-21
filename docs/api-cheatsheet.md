@@ -315,7 +315,7 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `getenv("LC_ALL" / "LC_MESSAGES" / "LANG")` (POSIX) / `GetUserPreferredUILanguages(MUI_LANGUAGE_NAME)` (Win32) | `cplat_ui_language_get_tag(tag_out, tag_size)` | 環境変数を両プラットフォームで優先し、Windows では環境変数で決まらない場合に OS の表示言語を使用します。`C` と `POSIX` の指定と、決定できない場合はニュートラル (空文字列) です。推奨配列サイズは `CPLAT_UI_LANGUAGE_TAG_MAX` |
+| `getenv("LC_ALL" / "LC_MESSAGES" / "LANG")` (POSIX) / `GetUserPreferredUILanguages(MUI_LANGUAGE_NAME)` (Win32) | `cplat_ui_language_get_tag(tag_out, tag_size)` | 環境変数を両プラットフォームで優先し、Windows では環境変数で決定できない場合に OS の表示言語を使用します。`C` と `POSIX` の指定と、決定できない場合はニュートラル (空文字列) です。推奨配列サイズは `CPLAT_UI_LANGUAGE_TAG_MAX` |
 
 返る言語タグは、言語を小文字、表記体系を先頭だけ大文字、地域を大文字にした `ja`、`ja-JP`、`zh-Hans-CN` の表記です。  
 書式に使用する地域設定 (`GetUserDefaultLocaleName`) ではなく表示言語を対象とし、プロセスのロケール設定 (`setlocale`) は変更しません。  
@@ -572,7 +572,7 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 
 出力言語を設定していないプロセスでは、最初の参照時に `cplat_ui_language_get_tag` の結果から出力言語を決定します。  
 決定は 1 回だけ行い、`cplat_string_catalog_set_language` による設定はこの決定より優先します。  
-言語タグを自分で指定する場合は `cplat_string_catalog_language_from_tag` を使用します。対応する言語が無い場合はニュートラル言語と `CPLAT_ERR_NOT_FOUND` です。
+言語タグを利用側で明示的に指定する場合は `cplat_string_catalog_language_from_tag` を使用します。対応する言語が存在しない場合はニュートラル言語を格納し、`CPLAT_ERR_NOT_FOUND` を返します。
 
 書式は位置指定 (`{0}` から `{31}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
 引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (32) です。

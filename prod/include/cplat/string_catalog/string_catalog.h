@@ -81,7 +81,7 @@ extern "C"
      *
      *  @ref cplat_string_catalog_set_language を呼び出していない場合は、最初の呼び出しの時点で
      *  @ref cplat_ui_language_get_tag が返す言語タグに対応する言語を決定し、以後は同じ言語を返します。\n
-     *  対応する言語が無い場合と、表示言語がニュートラルの場合は
+     *  対応する言語が存在しない場合と、表示言語がニュートラルの場合は
      *  @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を返します。
      *
      *  @par            スレッド セーフ
@@ -97,7 +97,7 @@ extern "C"
      *  @param[out]     language_out  対応する言語の格納先。NULL を渡してはなりません。
      *  @retval         CPLAT_OK                    対応する言語を格納しました。
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  @p tag または @p language_out が NULL です。
-     *  @retval         CPLAT_ERR_NOT_FOUND         対応する言語がないため、
+     *  @retval         CPLAT_ERR_NOT_FOUND         対応する言語が存在しないため、
      *                                              @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を格納しました。
      *
      *  対応付けには言語タグの言語だけを使用し、表記体系と地域は使用しません。\n

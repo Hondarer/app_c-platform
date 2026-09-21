@@ -81,7 +81,7 @@ cplat_string_catalog_language cplat_string_catalog_get_language(void)
 
         if (cplat_ui_language_get_tag(tag, sizeof(tag)) == CPLAT_OK)
         {
-            /* 対応する言語が無い場合はニュートラル言語のままとする */
+            /* 対応する言語が存在しない場合はニュートラル言語のままとする */
             (void)cplat_string_catalog_language_from_tag(tag, &language);
         }
 

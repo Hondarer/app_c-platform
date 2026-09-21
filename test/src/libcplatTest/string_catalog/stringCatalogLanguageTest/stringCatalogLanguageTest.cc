@@ -75,7 +75,7 @@ TEST_F(stringCatalogLanguageTest, decides_from_environment)
               actual_language); // [確認_正常系] - 実行環境の表示言語に対応する日本語となること。
 }
 
-// 対応する言語が無い表示言語で、ニュートラル言語となることの確認
+// 対応する言語が存在しない表示言語で、ニュートラル言語となることの確認
 TEST_F(stringCatalogLanguageTest, decides_neutral_for_unknown_tag)
 {
     // Arrange
@@ -90,7 +90,7 @@ TEST_F(stringCatalogLanguageTest, decides_neutral_for_unknown_tag)
 
     // Assert
     EXPECT_EQ(CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL,
-              actual_language); // [確認_正常系] - 対応する言語が無い場合にニュートラル言語となること。
+              actual_language); // [確認_正常系] - 対応する言語が存在しない場合にニュートラル言語となること。
 }
 
 // 表示言語がニュートラルの場合に、ニュートラル言語となることの確認
@@ -240,7 +240,7 @@ TEST_F(stringCatalogLanguageTest, language_from_tag)
               actual_language_upper); // [確認_正常系] - 大文字の言語タグが日本語へ対応付けられること。
 }
 
-// 対応する言語が無い言語タグの扱いの確認
+// 対応する言語が存在しない言語タグの扱いの確認
 TEST_F(stringCatalogLanguageTest, language_from_tag_without_match)
 {
     // Arrange
