@@ -314,7 +314,9 @@ app 内で公開するカタログがライブラリに閉じており、参照�
 
 ライブラリの生成ソースは `prod/libsrc/samplecatalog/gen/` へ出力し、`GENDIR_EXTRA_C` でビルド対象へ登録しました。  
 生成物を `gen/` へ置く既存の扱いに合わせ、ワークスペース共通の `.gitignore` がそのまま対象とするためです。  
-公開ヘッダーは `prod/include/samplecatalog/` へ出力するため、app の `.gitignore` で個別に対象としました。
+公開ヘッダーは `prod/include/samplecatalog/` へ出力するため、その置き場所へ `.gitignore` を設けて個別に対象としました。  
+`app/lua` や `app/cjson` が、展開した公開ヘッダーを `prod/include/.gitignore` で扱う形と同じです。  
+app 直下の `.gitignore` を共通の内容のままに保ち、app どうしの対称性を崩さないためです。
 
 `value` の上限を 4095 としました。  
 添字テーブルは最大の値までを網羅するため、上限がテーブルの大きさ (4096 要素、16 キロバイト) を決めます。
