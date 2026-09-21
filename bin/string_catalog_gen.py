@@ -54,10 +54,6 @@ INDEX_DIGITS_MAX = 2
 # 1 つの文字列が取れる引数の最大個数。CPLAT_STRING_CATALOG_ARGUMENT_MAX と揃える。
 ARGUMENT_MAX = 50
 
-# カタログ定義の value に書ける文字列キーの上限。
-# インデックス テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
-KEY_VALUE_MAX = 4095
-
 # 公開ヘッダーとして出力した場合に、利用側の include パスを置く場所。
 PUBLIC_INCLUDE_KEY = "public_include"
 
@@ -132,6 +128,14 @@ EXTENSION_ARGUMENT_BASE = 46
 
 # app が定める文脈引数の個数の上限。
 EXTENSION_ARGUMENT_MAX = ARGUMENT_MAX - EXTENSION_ARGUMENT_BASE
+
+# cplat が定めるコンテキスト引数が拡張の基底へ届くと、app が定める番号と衝突する。
+# 位置指定は定義の並び順から決まるため、衝突しても書式の検査では気付けない。
+# cplat 側を増やす場合は、基底の移動を伴う非互換の変更としてここで止める。
+assert CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) <= EXTENSION_ARGUMENT_BASE, (
+    "cplat が定めるコンテキスト引数が EXTENSION_ARGUMENT_BASE に達しています。"
+    "基底の移動を伴う非互換の変更として扱ってください。"
+)
 
 # app 単位の設定ファイルで、文脈引数の拡張を書く節。
 CONTEXT_SECTION = "context"
@@ -349,27 +353,11 @@ def validate_context(document: dict) -> None:
 
     library_names = {argument["name"] for argument in CONTEXT_ARGUMENTS}
     seen: set[str] = set()
-    seen_indices: set[int] = set()
 
     for argument in arguments:
         if not isinstance(argument, dict):
             raise DefinitionError(f"設定ファイルの {CONTEXT_SECTION} の arguments はオブジェクトの配列です。")
 
-        # index は位置指定を定義で固定するための項目。記載順の変更で番号が変わらないようにする。
-        # 範囲の下限は、cplat が定める文脈引数との境界でもある。cplat 側が増えて基底が動いた場合、
-        # app が期待した番号は範囲外となり、誤りとして検出される。
-        if "index" in argument:
-            index = argument["index"]
-            if not isinstance(index, int) or isinstance(index, bool):
-                raise DefinitionError(f"app が定める文脈引数の index は整数で指定してください。")
-            if not (EXTENSION_ARGUMENT_BASE <= index < ARGUMENT_MAX):
-                raise DefinitionError(
-                    f"app が定める文脈引数の index が範囲外です: {index}。"
-                    f"{EXTENSION_ARGUMENT_BASE} から {ARGUMENT_MAX - 1} までを指定してください。"
-                )
-            if index in seen_indices:
-                raise DefinitionError(f"app が定義するコンテキスト引数の index が重複しています: {index}")
-            seen_indices.add(index)
 
         for key in ("name", "kind", "description", "inline_value"):
             if key not in argument:
@@ -396,19 +384,6 @@ def validate_context(document: dict) -> None:
             raise DefinitionError(f"app が定義するコンテキスト引数の名前が重複しています: {argument['name']}")
         seen.add(argument["name"])
 
-    # 記載した引数と省略した引数が混在すると、詰めて割り当てた番号が固定した番号と衝突しうる。
-    # 衝突の有無が記載順に依存するため、どちらかに揃える。
-    if seen_indices and (len(seen_indices) != len(arguments)):
-        raise DefinitionError(
-            f"app が定義するコンテキスト引数の index は、すべてへ記載するか、すべてで省略してください。"
-        )
-
-    # 外部へ公開するカタログでは、位置指定が利用側のバイナリへ焼き込まれる。
-    # 記載順の変更が通知のない非互換の変更にならないよう、index の記載を必須とする。
-    if (document.get("export") is not None) and arguments and not seen_indices:
-        raise DefinitionError(
-            f"外部へ公開するカタログでは、app が定義するコンテキスト引数へ index を記載してください。"
-        )
 
 
 def validate(document: dict) -> list[dict]:
@@ -432,7 +407,6 @@ def validate(document: dict) -> list[dict]:
     trace = is_trace(document)
     context_names = {argument["name"] for argument in context_arguments(document)}
     seen_keys: set[str] = set()
-    seen_values: set[int] = set()
     suffixes = MODULE_FUNCTION_SUFFIXES + (("write", "set_tracer", "get_tracer") if trace else ())
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in suffixes}
 
@@ -471,16 +445,6 @@ def validate(document: dict) -> list[dict]:
         if "id" in entry and not isinstance(entry["id"], str):
             raise DefinitionError(f"{entry['key']}: id は文字列で指定してください。")
 
-        # value は列挙値を定義で固定するための項目。インデックス テーブルの大きさを決めるため上限も検査する。
-        if "value" in entry:
-            value = entry["value"]
-            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-                raise DefinitionError(f"{entry['key']}: value は 1 以上の整数で指定してください。")
-            if value > KEY_VALUE_MAX:
-                raise DefinitionError(f"{entry['key']}: value が上限 {KEY_VALUE_MAX} を超えています。")
-            if value in seen_values:
-                raise DefinitionError(f"{entry['key']}: value が重複しています: {value}")
-            seen_values.add(value)
 
         # 長文は 1 行が長くなるため、文字列の配列でも書けるようにする。連結は join_text が行う。
         for key in ("details", "remarks"):
@@ -545,10 +509,6 @@ def validate(document: dict) -> list[dict]:
                         f"コンテキスト引数は {'、'.join(str(index) for index in context_argument_indices(document))} です。"
                     )
 
-    # 値を固定した項目と並び順から決める項目が混在すると、暗黙の値が固定した値と衝突しうる。
-    # 混在を許すと衝突の有無が並び順に依存するため、カタログ単位でどちらかに揃える。
-    if seen_values and (len(seen_values) != len(strings)):
-        raise DefinitionError("value は、カタログのすべての文字列へ記載するか、すべてで省略してください。")
 
     return strings
 
@@ -584,21 +544,6 @@ def is_trace(document: dict) -> bool:
     return catalog_kind(document) == CATALOG_KIND_TRACE
 
 
-def key_value(entry: dict, position: int) -> int:
-    """文字列キーの列挙値を返す。
-
-    カタログ定義に value がある場合はその値とする。外部へ公開するカタログでは、
-    定義の並べ替えや途中への挿入で値が変わらないようにするために記載する。
-    記載がない場合は、従来どおり並び順から 1 始まりで決める。
-    """
-    return entry["value"] if "value" in entry else (position + 1)
-
-
-def key_values(strings: list[dict]) -> list[int]:
-    """文字列の一覧から、列挙値を並び順で返す。"""
-    return [key_value(entry, position) for position, entry in enumerate(strings)]
-
-
 def trace_level_value(level: str) -> int:
     """トレース レベルの名前を、分類値として保持する整数へ変換する。"""
     return TRACE_LEVELS.index(level)
@@ -615,15 +560,6 @@ def extension_arguments(document: dict) -> list[dict]:
     return list(document.get(SETTINGS_KEY, {}).get(CONTEXT_SECTION, {}).get("arguments", []))
 
 
-def extension_argument_index(argument: dict, position: int) -> int:
-    """app が定義するコンテキスト引数 1 個の位置指定を返す。
-
-    index の記載があればその値とする。外部へ公開するカタログでは、記載順の変更で
-    位置指定が変わらないようにするために記載する。記載がない場合は基底から詰めて割り当てる。
-    """
-    return argument["index"] if "index" in argument else (EXTENSION_ARGUMENT_BASE + position)
-
-
 def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
     """(位置指定, 引数) の組を、位置指定の昇順で返す。
 
@@ -635,7 +571,7 @@ def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
 
     slots = [(CONTEXT_ARGUMENT_BASE + offset, argument) for offset, argument in enumerate(CONTEXT_ARGUMENTS)]
     slots.extend(
-        (extension_argument_index(argument, position), argument)
+        (EXTENSION_ARGUMENT_BASE + position, argument)
         for position, argument in enumerate(extension_arguments(document))
     )
     return sorted(slots, key=lambda slot: slot[0])
@@ -1148,7 +1084,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
 
     for position, entry in enumerate(strings):
         comma = "," if position < (len(strings) - 1) else ""
-        out.append(f"        {entry['key']} = {key_value(entry, position)}{comma} /**< {entry['brief']} */")
+        out.append(f"        {entry['key']} = {position + 1}{comma} /**< {entry['brief']} */")
 
     out.append(f"    }} {key_enum_name(document)};")
     out.append("")
@@ -1601,9 +1537,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     # @file はリポジトリの慣習に合わせ、prod/ を除いた相対パスで示す
     output_dir = output_dir_display(document, out_relative)
     source_display = output_dir[len("prod/") :] if output_dir.startswith("prod/") else output_dir
-    # インデックス テーブルの網羅を検証する基準は、値が最大の文字列キーとする。
-    # 値を定義で固定した場合、並び順の最後が最大とは限らない。
-    largest_key = max(zip(key_values(strings), (entry["key"] for entry in strings)))[1]
+    last_key = strings[-1]["key"]
 
     out = [
         "/**",
@@ -1770,15 +1704,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         ]
     )
 
-    # 値を定義で固定したカタログでは欠番が生じる。表は最大の値までを網羅する。
-    position_of_value = {value: position for position, value in enumerate(key_values(strings))}
-    key_of_value = {key_value(entry, position): entry["key"] for position, entry in enumerate(strings)}
-    for value in range(1, max(position_of_value) + 1):
-        comma = "," if value < max(position_of_value) else ""
-        if value in position_of_value:
-            out.append(f"    {position_of_value[value]}{comma} /* {key_of_value[value]} */")
-        else:
-            out.append(f"    {module_upper}_KEY_INDEX_ABSENT{comma} /* {value}: 欠番 */")
+    for position, entry in enumerate(strings):
+        comma = "," if position < (len(strings) - 1) else ""
+        out.append(f"    {position}{comma} /* {entry['key']} */")
 
     out.extend(
         [
@@ -1792,7 +1720,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             " *  網羅されていない文字列キーは線形探索にフォールバックするため動作自体は可能ですが、インデックス テーブルの拡張漏れとなります。",
             " *  対象は、値が最大の文字列キーの定数です。",
             " */",
-            f'static_assert({module_upper}_KEY_INDEX_COUNT > {largest_key}, "key_index must cover every string key");',
+            f'static_assert({module_upper}_KEY_INDEX_COUNT > {last_key}, "key_index must cover every string key");',
             "",
             expand(SOURCE_TAIL, module, library).rstrip("\n"),
             "",

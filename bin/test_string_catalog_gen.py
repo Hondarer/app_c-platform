@@ -749,66 +749,6 @@ class DoxygenGroupTest(unittest.TestCase):
         self.assertNotIn("/** @} */", source)
 
 
-class KeyValueTest(unittest.TestCase):
-    """文字列キーの値を定義で固定する扱いを確認する。"""
-
-    @staticmethod
-    def document_with(*values):
-        """指定した値を持つ 2 件以上の定義を組み立てる。値が None の項目は value を書かない。"""
-        document = minimal_document()
-        template = document["strings"][0]
-        document["strings"] = []
-        for position, value in enumerate(values):
-            entry = dict(template)
-            entry["key"] = f"SAMPLE_MESSAGES_KEY_{chr(ord('A') + position)}"
-            if value is not None:
-                entry["value"] = value
-            document["strings"].append(entry)
-        return document
-
-    def test_defaults_to_definition_order(self):
-        document = self.document_with(None, None)
-        self.assertEqual(gen.key_values(gen.validate(document)), [1, 2])
-
-    def test_uses_declared_value(self):
-        document = self.document_with(10, 3)
-        self.assertEqual(gen.key_values(gen.validate(document)), [10, 3])
-
-    def test_header_emits_declared_value(self):
-        document = self.document_with(10, 3)
-        header = gen.emit_header(document, gen.validate(document), "example.jsonc")
-        self.assertIn("SAMPLE_MESSAGES_KEY_A = 10,", header)
-        self.assertIn("SAMPLE_MESSAGES_KEY_B = 3 ", header)
-
-    def test_key_index_marks_absent_values(self):
-        document = self.document_with(1, 3)
-        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
-        self.assertIn("SAMPLE_MESSAGES_KEY_INDEX_ABSENT, /* 2: 欠番 */", source)
-
-    def test_static_assert_uses_largest_value(self):
-        document = self.document_with(10, 3)
-        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
-        self.assertIn("KEY_INDEX_COUNT > SAMPLE_MESSAGES_KEY_A,", source)
-
-    def test_rejects_duplicate_value(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(2, 2))
-
-    def test_rejects_value_below_one(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(0, 1))
-
-    def test_rejects_value_above_maximum(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(gen.KEY_VALUE_MAX + 1, 1))
-
-    def test_rejects_boolean_value(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(True, 2))
-
-    def test_rejects_partially_declared_values(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(1, None))
 
 def export_document(scope="api", **overrides):
     """公開する設定を持つ定義を組み立てる。"""
@@ -1086,7 +1026,7 @@ class ExtensionContextOutputTest(unittest.TestCase):
         self.assertIn('[46] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "sequence_number"', source)
 
     def test_array_length_reserves_the_whole_extension_space(self):
-        # app が定義するコンテキスト引数を増減しても要素数は変わらない。
+        # app が定めるコンテキスト引数を増減しても要素数は変わらない。
         self.assertEqual(gen.argument_array_length(self.document, self.strings[0]), gen.ARGUMENT_MAX)
 
         without = context_document(arguments=[])
@@ -1114,87 +1054,6 @@ class ExtensionContextOutputTest(unittest.TestCase):
         with self.assertRaises(gen.DefinitionError):
             gen.validate(document)
 
-class ExtensionContextIndexTest(unittest.TestCase):
-    """app が定義するコンテキスト引数の位置指定の固定を確認する。"""
-
-    @staticmethod
-    def document_with(*indices, export=None):
-        """指定した index を持つコンテキスト引数を組み立てる。index が None の項目は記載しない。"""
-        arguments = []
-        for position, index in enumerate(indices):
-            argument = {
-                "name": f"extra_{position}",
-                "kind": "INT32",
-                "description": "値。",
-                "inline_value": f"example_next_value_{position}()",
-            }
-            if index is not None:
-                argument["index"] = index
-            arguments.append(argument)
-
-        document = context_document(arguments=arguments)
-        if export is not None:
-            document["export"] = export
-            document[gen.SETTINGS_KEY]["export"] = {
-                "prefix": "EXAMPLE",
-                "header": "example/example_export.h",
-            }
-        return document
-
-    def test_packs_from_the_base_when_omitted(self):
-        document = self.document_with(None, None)
-        gen.validate(document)
-        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 47])
-
-    def test_uses_the_declared_index(self):
-        document = self.document_with(48, 46)
-        gen.validate(document)
-        # 可変長引数は位置指定の昇順に渡すため、記載順ではなく番号順に並ぶ。
-        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 48])
-        self.assertEqual([argument["name"] for argument in gen.context_arguments(document)][-2:],
-                         ["extra_1", "extra_0"])
-
-    def test_allows_a_gap_between_declared_indices(self):
-        document = self.document_with(46, 49)
-        gen.validate(document)
-        self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 49])
-
-    def test_rejects_index_below_the_extension_base(self):
-        # cplat が定義するコンテキスト引数との境界。cplat 側が増えて基底が動いた場合も、ここで検出する。
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(gen.EXTENSION_ARGUMENT_BASE - 1))
-
-    def test_rejects_index_beyond_the_maximum(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(gen.ARGUMENT_MAX))
-
-    def test_rejects_duplicate_index(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(46, 46))
-
-    def test_rejects_partially_declared_index(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(46, None))
-
-    def test_rejects_boolean_index(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(True))
-
-    def test_requires_index_when_exported(self):
-        with self.assertRaises(gen.DefinitionError):
-            gen.validate(self.document_with(None, export="api"))
-
-    def test_accepts_declared_index_when_exported(self):
-        document = self.document_with(46, export="api")
-        self.assertEqual(len(gen.validate(document)), 1)
-
-    def test_source_places_the_argument_at_the_declared_index(self):
-        document = self.document_with(49)
-        strings = gen.validate(document)
-        source = gen.emit_source(document, strings, "example.jsonc")
-        self.assertIn('[49] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "extra_0"', source)
-        self.assertIn("46 番から 48 番は、app が定義するコンテキスト引数のために予約した空きです。", source)
-
 
 class ExtensionContextExportNoteTest(unittest.TestCase):
     """取得関数の公開が必要である旨の注記を確認する。"""
@@ -1218,6 +1077,23 @@ class ExtensionContextExportNoteTest(unittest.TestCase):
 
     def test_omits_the_note_when_not_exported(self):
         self.assertNotIn("取得関数はライブラリの外部へ公開する必要があります。", self.header(None))
+
+class ContextArgumentBoundaryTest(unittest.TestCase):
+    """cplat が定めるコンテキスト引数と、app が定める番号の境界を確認する。"""
+
+    def test_library_context_stops_before_the_extension_base(self):
+        # 位置指定は定義の並び順から決まるため、衝突しても書式の検査では気付けない。
+        # cplat 側を増やす場合に備えて、生成器の読み込み時点で止める不変条件を確認する。
+        self.assertLessEqual(
+            gen.CONTEXT_ARGUMENT_BASE + len(gen.CONTEXT_ARGUMENTS), gen.EXTENSION_ARGUMENT_BASE
+        )
+
+    def test_extension_indices_do_not_overlap_the_library_context(self):
+        document = context_document()
+        gen.validate(document)
+        indices = gen.context_argument_indices(document)
+        self.assertEqual(indices, sorted(set(indices)))
+        self.assertEqual(indices[len(gen.CONTEXT_ARGUMENTS) :], [gen.EXTENSION_ARGUMENT_BASE])
 
 if __name__ == "__main__":
     unittest.main()
