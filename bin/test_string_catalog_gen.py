@@ -1095,5 +1095,104 @@ class ContextArgumentBoundaryTest(unittest.TestCase):
         self.assertEqual(indices, sorted(set(indices)))
         self.assertEqual(indices[len(gen.CONTEXT_ARGUMENTS) :], [gen.EXTENSION_ARGUMENT_BASE])
 
+class TextAffixTest(unittest.TestCase):
+    """全文字列の書式へ共通に前置、後置する文字列を確認する。"""
+
+    @staticmethod
+    def document(**overrides):
+        document = minimal_document(**overrides)
+        document["strings"][0]["texts"] = {"neutral": "{0}", "japanese": "パス {0}"}
+        return document
+
+    def test_concatenates_prefix_and_suffix(self):
+        document = self.document(text_prefix={"neutral": "#{46} "}, text_suffix={"neutral": " [end]"})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "#{46} {0} [end]"', source)
+
+    def test_concatenates_without_separator(self):
+        # 区切りは挿入しない。必要な区切りは定義側が前置と後置の文字列へ含める。
+        document = self.document(text_prefix={"neutral": "A"}, text_suffix={"neutral": "Z"})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "A{0}Z"', source)
+
+    def test_uses_the_affix_of_the_same_language(self):
+        document = self.document(text_prefix={"neutral": "N:", "japanese": "J:"})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "N:{0}"', source)
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE] = "J:パス {0}"', source)
+
+    def test_falls_back_to_neutral_affix(self):
+        document = self.document(text_prefix={"neutral": "N:"})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE] = "N:パス {0}"', source)
+
+    def test_does_not_touch_notes(self):
+        document = self.document(text_prefix={"neutral": "N:"})
+        document["strings"][0]["notes"] = {"neutral": "備考。"}
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "備考。"', source)
+
+    def test_joins_a_list_with_a_single_space(self):
+        document = self.document(text_prefix={"neutral": ["#{46}", ""]})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "#{46} {0}"', source)
+
+    def test_applies_to_the_trace_kind(self):
+        document = trace_document(text_prefix={"neutral": "#{46} "})
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn('[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "#{46} {0}"', source)
+
+    def test_documents_the_combined_format(self):
+        # 生成物が保持する書式と、ヘッダーが示す書式を一致させる
+        document = self.document(text_prefix={"neutral": "N:"}, module_dir="prod/src/cmd/example")
+        wrapper = gen.emit_wrapper(document, gen.validate(document)[0])
+        self.assertIn("`N:{0}`", wrapper)
+        self.assertIn("`N:パス {0}`", wrapper)
+
+    def test_notes_the_concatenation_in_the_file_comment(self):
+        document = self.document(text_prefix={"neutral": "N:"})
+        strings = gen.validate(document)
+        note = "本カタログは、全文字列の書式へ共通の前置および後置を結合しています。"
+        self.assertIn(note, gen.emit_header(document, strings, "example.jsonc"))
+        self.assertIn(note, gen.emit_source(document, strings, "example.jsonc"))
+
+    def test_omits_the_note_without_affixes(self):
+        document = self.document()
+        strings = gen.validate(document)
+        note = "本カタログは、全文字列の書式へ共通の前置および後置を結合しています。"
+        self.assertNotIn(note, gen.emit_header(document, strings, "example.jsonc"))
+        self.assertNotIn(note, gen.emit_source(document, strings, "example.jsonc"))
+
+    def test_allows_an_index_without_an_argument(self):
+        # 共通の前置と後置は引数定義の異なる複数の文字列へ結合されるため、添字は検査しない。
+        document = self.document(text_prefix={"neutral": "{40}"}, text_suffix={"neutral": "{0}"})
+        self.assertEqual(len(gen.validate(document)), 1)
+
+    def test_rejects_broken_placeholder_syntax(self):
+        document = self.document(text_prefix={"neutral": "{46"})
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_requires_neutral(self):
+        document = self.document(text_prefix={"japanese": "J:"})
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_unlisted_language(self):
+        document = self.document(text_suffix={"neutral": "", "klingon": "K:"})
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_a_value_that_is_not_text(self):
+        document = self.document(text_prefix={"neutral": 46})
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+    def test_rejects_a_section_that_is_not_an_object(self):
+        document = self.document(text_prefix="#{46} ")
+        with self.assertRaises(gen.DefinitionError):
+            gen.validate(document)
+
+
 if __name__ == "__main__":
     unittest.main()

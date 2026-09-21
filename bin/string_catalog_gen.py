@@ -140,6 +140,12 @@ assert CONTEXT_ARGUMENT_BASE + len(CONTEXT_ARGUMENTS) <= EXTENSION_ARGUMENT_BASE
 # app 単位の設定ファイルで、文脈引数の拡張を書く節。
 CONTEXT_SECTION = "context"
 
+# カタログ定義で、全文字列の書式へ共通に前置、後置する文字列を書く節。
+# 言語をキーとして書き、生成の時点で各文字列の書式へ結合する。
+TEXT_PREFIX_SECTION = "text_prefix"
+TEXT_SUFFIX_SECTION = "text_suffix"
+TEXT_AFFIX_SECTIONS = (TEXT_PREFIX_SECTION, TEXT_SUFFIX_SECTION)
+
 # トレース種別の生成物が追加で参照する公開ヘッダー。
 TRACE_HEADERS = ("cplat/trace/tracer.h", "cplat/crt/path.h", "cplat/runtime/process.h")
 
@@ -293,6 +299,37 @@ def placeholder_indices(text: str) -> list[int]:
     return found
 
 
+def text_affix(document: dict, section: str, language: str) -> str:
+    """全文字列の書式へ共通に前置、または後置する文字列を、言語別に返す。
+
+    節そのものがなければ空文字列を返す。節はあるが指定の言語がない場合は、
+    書式と同じくニュートラル言語へフォールバックする。
+    """
+    affixes = document.get(section)
+    if affixes is None:
+        return ""
+    if language in affixes:
+        return join_text(affixes[language])
+    return join_text(affixes.get("neutral", ""))
+
+
+def entry_text(document: dict, entry: dict, language: str) -> str:
+    """言語別の書式へ、カタログ共通の前置と後置を結合した文字列を返す。
+
+    区切りは挿入せず単純に連結する。必要な区切りは、前置と後置の文字列へ定義側が含める。
+    """
+    return (
+        text_affix(document, TEXT_PREFIX_SECTION, language)
+        + join_text(entry["texts"][language])
+        + text_affix(document, TEXT_SUFFIX_SECTION, language)
+    )
+
+
+def has_text_affix(document: dict) -> bool:
+    """カタログ共通の前置または後置が定義されているかを返す。"""
+    return any(document.get(section) is not None for section in TEXT_AFFIX_SECTIONS)
+
+
 def validate_export(document: dict) -> None:
     """カタログを外部へ公開する設定を検査する。"""
     scope = document.get("export")
@@ -386,6 +423,33 @@ def validate_context(document: dict) -> None:
 
 
 
+def validate_text_affixes(document: dict) -> None:
+    """全文字列の書式へ共通に前置、後置する文字列の設定を検査する。"""
+    for section in TEXT_AFFIX_SECTIONS:
+        affixes = document.get(section)
+        if affixes is None:
+            continue
+
+        if not isinstance(affixes, dict):
+            raise DefinitionError(f"{section} は言語をキーとしたオブジェクトで指定してください。")
+
+        # 書式と同じ規則とする。指定のない言語は、ニュートラル言語へフォールバックする。
+        if "neutral" not in affixes:
+            raise DefinitionError(f"{section} に neutral が必要です。")
+
+        for language, value in affixes.items():
+            if language not in LANGUAGES:
+                raise DefinitionError(f"{section}: ライブラリが扱わない言語です: {language}")
+            if not isinstance(value, (str, list)) or (
+                isinstance(value, list) and not all(isinstance(item, str) for item in value)
+            ):
+                raise DefinitionError(f"{section} の {language} は文字列または文字列の配列で指定してください。")
+
+            # 位置指定は構文だけを検査し、添字が値を受け取るかどうかは検査しない。
+            # 共通の前置と後置は、引数定義が異なる複数の文字列へ結合されるため。
+            placeholder_indices(join_text(value))
+
+
 def validate(document: dict) -> list[dict]:
     """定義の内容を検査し、文字列の一覧を返す。"""
     for key in ("strings",):
@@ -399,6 +463,7 @@ def validate(document: dict) -> list[dict]:
 
     validate_export(document)
     validate_context(document)
+    validate_text_affixes(document)
 
     strings = document["strings"]
     if not strings:
@@ -672,14 +737,17 @@ def parameter_declaration(argument: dict) -> str:
     return f"const {c_type} {argument['name']}"
 
 
-def format_par_lines(entry: dict) -> list[str]:
-    """言語別の書式を @par として並べる。"""
+def format_par_lines(document: dict, entry: dict) -> list[str]:
+    """言語別の書式を @par として並べる。
+
+    カタログ共通の前置と後置は結合した形で示す。生成物が保持する書式と一致させるため。
+    """
     lines = ["     *  @par            書式"]
     texts = entry["texts"]
     languages = [language for language in LANGUAGES if language in texts]
     for position, language in enumerate(languages):
         suffix = "\\n" if position < (len(languages) - 1) else ""
-        lines.append(f"     *  `{join_text(texts[language])}`{suffix}")
+        lines.append(f"     *  `{entry_text(document, entry, language)}`{suffix}")
     return lines
 
 
@@ -809,7 +877,7 @@ def emit_trace_wrapper(document: dict, entry: dict) -> str:
         lines.append(f"{macro_continuation}引数種別は @c {kind_constant(document, argument['kind'])} です。")
     lines.append(f"     *  @return         戻り値は @c {module}_write と同じです。")
     lines.extend(remark_doc_lines(entry))
-    lines.extend(format_par_lines(entry))
+    lines.extend(format_par_lines(document, entry))
     lines.append("     */")
 
     macro_tail = ", ".join(argument["macro_value"] for argument in macro_context)
@@ -858,7 +926,7 @@ def emit_wrapper(document: dict, entry: dict) -> str:
     lines.append(f"     *  @return         戻り値は @c {module}_format と同じです。")
 
     lines.extend(remark_doc_lines(entry))
-    lines.extend(format_par_lines(entry))
+    lines.extend(format_par_lines(document, entry))
     lines.append("     */")
 
     parameters = ["char *dest", "const size_t dest_size"]
@@ -1017,6 +1085,15 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
         " *  言語、引数種別、書式構文はライブラリ側で規定されます。\\n",
         " *  分類値の意味付けは利用側の取り決めであり、別ヘッダーで個別に定義します。",
         " *",
+        *(
+            [
+                " *  本カタログは、全文字列の書式へ共通の前置および後置を結合しています。\\n",
+                " *  本ファイルが示す書式は、結合後の文字列です。",
+                " *",
+            ]
+            if has_text_affix(document)
+            else []
+        ),
     ]
 
     if is_trace(document):
@@ -1571,6 +1648,15 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *  書式中の `{0}` から `{49}` は引数の位置を表します。\\n",
         " *  `{` や `}` そのものを出力する場合は `{{` および `}}` と記述します。",
         " *",
+        *(
+            [
+                " *  本カタログは、全文字列の書式へ共通の前置および後置を結合しています。\\n",
+                " *  本ファイルが示す書式は、結合後の文字列です。",
+                " *",
+            ]
+            if has_text_affix(document)
+            else []
+        ),
         " *  ニュートラル言語の書式は、英語と同一の表現とします。\\n",
         " *  そのため英語の要素は個別に記載せず、ニュートラル言語の書式へフォールバックされます。\\n",
         " *  英語とニュートラル言語で表現を分ける必要が生じた時点で、英語の要素を追加してください。",
@@ -1676,7 +1762,13 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             for language in LANGUAGES:
                 if language in entry[section]:
                     constant = language_constant(document, language)
-                    items.append(f"[{constant}] = {c_string(join_text(entry[section][language]))}")
+                    # 書式だけがカタログ共通の前置と後置を持つ。備考は定義のままとする。
+                    value = (
+                        entry_text(document, entry, language)
+                        if section == "texts"
+                        else join_text(entry[section][language])
+                    )
+                    items.append(f"[{constant}] = {c_string(value)}")
             separator = ",\n      "
             terminator = "}," if section == "texts" else "}}"
             row.append(f"     {{{separator.join(items)}{terminator}")
