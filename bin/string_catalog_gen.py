@@ -628,7 +628,7 @@ def extension_arguments(document: dict) -> list[dict]:
 def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
     """(位置指定, 引数) の組を、位置指定の昇順で返す。
 
-    cplat が定義する組は基底から連続し、app が定義する組は index が決める。
+    cplat が定義する組は基底から連続し、app が定義する組は拡張の基底から記述順に並ぶ。
     可変長引数はこの並びの順に渡すため、出力処理はいずれもこの関数を経由する。
     """
     if not is_trace(document):
@@ -1151,7 +1151,7 @@ def emit_header(document: dict, strings: list[dict], definition_name: str, out_r
             "     *",
             "     *  各 ID の引数定義、分類値、説明文、言語別の書式および備考は、同一の生成単位のテーブルで保持します。\\n",
             "     *  列挙定数の名前はカタログ定義の key で、処理から文字列を参照する識別子です。\\n",
-            "     *  列挙値はカタログ定義の value です。value の記載がない場合は定義の並び順に基づいて割り当てられます。\\n",
+            "     *  列挙値は、定義の並び順から 1 始まりで生成器が決めます。\\n",
             "     *  定義の id は処理では意味を持たないため、列挙には現れません。",
             "     */",
             f"    typedef enum {key_enum_name(document)}",

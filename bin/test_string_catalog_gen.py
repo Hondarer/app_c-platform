@@ -1067,7 +1067,6 @@ class ExtensionContextExportNoteTest(unittest.TestCase):
                 "prefix": "EXAMPLE",
                 "header": "example/example_export.h",
             }
-            document[gen.SETTINGS_KEY][gen.CONTEXT_SECTION]["arguments"][0]["index"] = 46
         return gen.emit_header(document, gen.validate(document), "example.jsonc")
 
     def test_notes_that_the_getter_must_be_exported(self):

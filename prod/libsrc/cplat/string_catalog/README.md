@@ -199,7 +199,6 @@ short-title: "string_catalog"
         "headers": ["example/example_context.h"],
         "arguments": [
             {
-                "index": 46,
                 "name": "sequence_number",
                 "kind": "INT32",
                 "description": "出力ごとに増える番号。",
