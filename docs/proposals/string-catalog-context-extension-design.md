@@ -284,7 +284,7 @@ static inline int sample_trace_key_state_dump_with_source(uint32_t queue_length,
 スレッド ローカル記憶域の静的なバッファーを返す方式を想定しています。
 
 外部へ公開するカタログの場合、取得関数もライブラリの外部へ公開してください。  
-取得式は生成ヘッダーの `static inline` の中で展開され、利用側のコンパイル単位から呼び出されます。  
+取得式は生成ヘッダーの `static inline` の中で展開され、利用側の翻訳単位から呼び出されます。  
 公開の漏れはリンク時まで現れないため、生成ヘッダーのファイル コメントへも注意を出力します。
 
 `STRING` に `NULL` を返した場合は異常終了せず、`NULL` を示す既定の文字列へ展開します (`prod/libsrc/cplat/string_catalog/string_catalog_render.c` の `CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING` の分岐)。  
@@ -370,7 +370,7 @@ app 単位のカタログ設定ファイルを `settings` で参照し、その�
 
 取得処理は、GCC では `__atomic_add_fetch`、MSVC では `InterlockedIncrement` を使用し、契約が求めるスレッド セーフ性を満たします。
 
-`string-catalog-library-sample` の実行で、ライブラリの内部からの出力と、利用側のコンパイル単位からの出力の双方に
+`string-catalog-library-sample` の実行で、ライブラリの内部からの出力と、利用側の翻訳単位からの出力の双方に
 連番が現れ、通し番号として増えることを確認しました。DLL 境界をまたいで同じカウンターが使われることの確認になります。
 
 ```text

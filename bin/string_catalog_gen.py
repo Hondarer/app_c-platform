@@ -47,7 +47,7 @@ LIBRARY_HEADER = "cplat/string_catalog/string_catalog.h"
 # 言語はライブラリが定める仕様であり、カタログ定義が増減できる項目ではない。
 LANGUAGES = ("neutral", "japanese", "english")
 
-# 位置指定の添字に書ける最大の桁数。
+# 位置指定のインデックスに書ける最大の桁数。
 # prod/libsrc/cplat/string_catalog/string_catalog_render.c の INDEX_DIGITS_MAX と揃える。
 INDEX_DIGITS_MAX = 2
 
@@ -55,7 +55,7 @@ INDEX_DIGITS_MAX = 2
 ARGUMENT_MAX = 50
 
 # カタログ定義の value に書ける文字列キーの上限。
-# 添字テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
+# インデックス テーブルは最大の値までを網羅するため、この上限が表の大きさ (4096 要素、16 キロバイト) を決める。
 KEY_VALUE_MAX = 4095
 
 # 公開ヘッダーとして出力した場合に、利用側の include パスを置く場所。
@@ -80,10 +80,10 @@ CATALOG_KINDS = (CATALOG_KIND_MESSAGE, CATALOG_KIND_TRACE)
 # 生成器は名前を分類値の整数へ変換し、生成物は cplat_trace_level へ戻して使用する。
 TRACE_LEVELS = ("CRITICAL", "ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG", "NONE")
 
-# 文脈引数を置き始める位置指定。利用者が記載できる引数は、この番号の手前までとなる。
+# コンテキスト引数を配置し始める位置指定。利用者が記載できる引数は、この番号の手前までとなる。
 CONTEXT_ARGUMENT_BASE = 40
 
-# トレース種別で、生成器が引数配列へ付け加える文脈引数。
+# トレース種別で、生成器が引数配列へ付け加えるコンテキスト引数。
 # macro_value を持つものは呼び出し位置で確定するため、マクロが型付きラッパーへ渡す。
 # inline_value を持つものは実行時の値のため、型付きラッパーの内部で取得する。
 CONTEXT_ARGUMENTS = (
@@ -368,20 +368,20 @@ def validate_context(document: dict) -> None:
                     f"{EXTENSION_ARGUMENT_BASE} から {ARGUMENT_MAX - 1} までを指定してください。"
                 )
             if index in seen_indices:
-                raise DefinitionError(f"app が定める文脈引数の index が重複しています: {index}")
+                raise DefinitionError(f"app が定義するコンテキスト引数の index が重複しています: {index}")
             seen_indices.add(index)
 
         for key in ("name", "kind", "description", "inline_value"):
             if key not in argument:
-                raise DefinitionError(f"app が定める文脈引数に {key} がありません。")
+                raise DefinitionError(f"app が定義するコンテキスト引数に {key} がありません。")
             if not isinstance(argument[key], str) or not argument[key]:
-                raise DefinitionError(f"app が定める文脈引数の {key} は空でない文字列で指定してください。")
+                raise DefinitionError(f"app が定義するコンテキスト引数の {key} は空でない文字列で指定してください。")
 
         # 値は実行時に取得する式だけを許す。マクロ経由にすると _with_source の仮引数が
         # app の設定によって変わり、生成物の関数シグネチャが読み取りにくくなる。
         if "macro_value" in argument:
             raise DefinitionError(
-                f"app が定める文脈引数では macro_value を指定できません: {argument['name']}。"
+                f"app が定義するコンテキスト引数では macro_value を指定できません: {argument['name']}。"
                 "inline_value を使用してください。"
             )
 
@@ -390,24 +390,24 @@ def validate_context(document: dict) -> None:
 
         if argument["name"] in library_names:
             raise DefinitionError(
-                f"app が定める文脈引数の名前 {argument['name']} が、cplat が定める文脈引数と重複しています。"
+                f"app が定義するコンテキスト引数の名前 {argument['name']} が、cplat が定義するコンテキスト引数と重複しています。"
             )
         if argument["name"] in seen:
-            raise DefinitionError(f"app が定める文脈引数の名前が重複しています: {argument['name']}")
+            raise DefinitionError(f"app が定義するコンテキスト引数の名前が重複しています: {argument['name']}")
         seen.add(argument["name"])
 
     # 記載した引数と省略した引数が混在すると、詰めて割り当てた番号が固定した番号と衝突しうる。
     # 衝突の有無が記載順に依存するため、どちらかに揃える。
     if seen_indices and (len(seen_indices) != len(arguments)):
         raise DefinitionError(
-            f"app が定める文脈引数の index は、すべてへ記載するか、すべてで省略してください。"
+            f"app が定義するコンテキスト引数の index は、すべてへ記載するか、すべてで省略してください。"
         )
 
     # 外部へ公開するカタログでは、位置指定が利用側のバイナリへ焼き込まれる。
     # 記載順の変更が通知のない非互換の変更にならないよう、index の記載を必須とする。
     if (document.get("export") is not None) and arguments and not seen_indices:
         raise DefinitionError(
-            f"外部へ公開するカタログでは、app が定める文脈引数へ index を記載してください。"
+            f"外部へ公開するカタログでは、app が定義するコンテキスト引数へ index を記載してください。"
         )
 
 
@@ -460,7 +460,7 @@ def validate(document: dict) -> list[dict]:
                     f"{entry['key']}: 未知のトレース レベルです: {entry['level']}。"
                     f"{'、'.join(TRACE_LEVELS)} のいずれかを指定してください。"
                 )
-        # 分類値は生値とする。生成物を特定の app の列挙から独立させるため。
+        # 分類値は直接の値とする。生成物を特定の app の列挙から独立させるため。
         elif not isinstance(entry["category"], int) or isinstance(entry["category"], bool):
             raise DefinitionError(f"{entry['key']}: category は整数で指定してください。")
 
@@ -471,7 +471,7 @@ def validate(document: dict) -> list[dict]:
         if "id" in entry and not isinstance(entry["id"], str):
             raise DefinitionError(f"{entry['key']}: id は文字列で指定してください。")
 
-        # value は列挙値を定義で固定するための項目。添字テーブルの大きさを決めるため上限も検査する。
+        # value は列挙値を定義で固定するための項目。インデックス テーブルの大きさを決めるため上限も検査する。
         if "value" in entry:
             value = entry["value"]
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
@@ -516,10 +516,10 @@ def validate(document: dict) -> list[dict]:
                 raise DefinitionError(f"{entry['key']}: 未知の引数種別です: {argument['kind']}")
             if not isinstance(argument["name"], str) or not isinstance(argument["description"], str):
                 raise DefinitionError(f"{entry['key']}: 引数の name と description は文字列で指定してください。")
-            # 文脈引数は生成器が付け加えるため、同じ名前の引数を利用者が定義すると仮引数が重複する。
+            # コンテキスト引数は生成器が付け加えるため、同じ名前の引数を利用者が定義すると仮引数が重複する。
             if trace and argument["name"] in context_names:
                 raise DefinitionError(
-                    f"{entry['key']}: 引数名 {argument['name']} は生成器が付け加える文脈引数と重複しています。"
+                    f"{entry['key']}: 引数名 {argument['name']} は生成器が付け加えるコンテキスト引数と重複しています。"
                 )
 
         for section in ("texts", "notes"):
@@ -542,7 +542,7 @@ def validate(document: dict) -> list[dict]:
                     raise DefinitionError(
                         f"{entry['key']}: {language} の位置指定 {{{found}}} に引数がありません。"
                         f"利用者の引数は 0 から {len(arguments) - 1 if arguments else -1}、"
-                        f"文脈引数は {'、'.join(str(index) for index in context_argument_indices(document))} です。"
+                        f"コンテキスト引数は {'、'.join(str(index) for index in context_argument_indices(document))} です。"
                     )
 
     # 値を固定した項目と並び順から決める項目が混在すると、暗黙の値が固定した値と衝突しうる。
@@ -605,10 +605,10 @@ def trace_level_value(level: str) -> int:
 
 
 def extension_arguments(document: dict) -> list[dict]:
-    """app が定める文脈引数の一覧を返す。設定がない場合は空を返す。
+    """app が定義するコンテキスト引数の一覧を返す。設定がない場合は空を返す。
 
     設定ファイルは app 単位で、種別の異なるカタログが共有する。
-    文脈引数を持つのはトレース種別だけのため、それ以外では読み飛ばす。
+    コンテキスト引数を持つのはトレース種別だけのため、それ以外では読み飛ばす。
     """
     if not is_trace(document):
         return []
@@ -616,7 +616,7 @@ def extension_arguments(document: dict) -> list[dict]:
 
 
 def extension_argument_index(argument: dict, position: int) -> int:
-    """app が定める文脈引数 1 個の位置指定を返す。
+    """app が定義するコンテキスト引数 1 個の位置指定を返す。
 
     index の記載があればその値とする。外部へ公開するカタログでは、記載順の変更で
     位置指定が変わらないようにするために記載する。記載がない場合は基底から詰めて割り当てる。
@@ -627,7 +627,7 @@ def extension_argument_index(argument: dict, position: int) -> int:
 def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
     """(位置指定, 引数) の組を、位置指定の昇順で返す。
 
-    cplat が定める組は基底から連続し、app が定める組は index が決める。
+    cplat が定義する組は基底から連続し、app が定義する組は index が決める。
     可変長引数はこの並びの順に渡すため、出力処理はいずれもこの関数を経由する。
     """
     if not is_trace(document):
@@ -642,17 +642,17 @@ def context_argument_slots(document: dict) -> list[tuple[int, dict]]:
 
 
 def context_arguments(document: dict) -> list[dict]:
-    """すべての文脈引数を、位置指定の昇順に平坦化して返す。"""
+    """すべてのコンテキスト引数を、位置指定の昇順に平坦化して返す。"""
     return [argument for _, argument in context_argument_slots(document)]
 
 
 def context_argument_indices(document: dict) -> list[int]:
-    """すべての文脈引数の位置指定を、昇順に返す。"""
+    """すべてのコンテキスト引数の位置指定を、昇順に返す。"""
     return [index for index, _ in context_argument_slots(document)]
 
 
 def context_argument_count(document: dict) -> int:
-    """生成器が付け加える文脈引数の個数を返す。"""
+    """生成器が付け加えるコンテキスト引数の個数を返す。"""
     return len(context_arguments(document))
 
 
@@ -664,8 +664,8 @@ def user_argument_max(document: dict) -> int:
 def argument_array_length(document: dict, entry: dict) -> int:
     """生成物の引数配列の要素数を返す。
 
-    トレース種別では、文脈引数のために予約した番号空間の全体を確保する。
-    app が定める文脈引数を増減しても要素数が変わらず、未指定の番号は
+    トレース種別では、コンテキスト引数のために予約した番号空間の全体を確保する。
+    app が定義するコンテキスト引数を増減しても要素数が変わらず、未指定の番号は
     値を受け取らないインデックスとして残る。
     """
     if not is_trace(document):
@@ -759,16 +759,16 @@ def remark_doc_lines(entry: dict) -> list[str]:
 
 
 def trace_context_doc_lines(document: dict) -> list[str]:
-    """文脈引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てる。
+    """コンテキスト引数の位置指定と内容の対応表を、ヘッダーのファイル コメント用に組み立てる。
 
-    定義作成者が書式から文脈値を参照するには、どの番号が何かを知る必要がある。
-    対応表は解決済みの文脈引数から組み立て、生成器の定義と食い違わないようにする。
+    定義作成者が書式からコンテキスト値を参照するには、どの番号が何かを知る必要がある。
+    対応表は解決済みのコンテキスト引数から組み立て、生成器の定義と不整合が生じないようにする。
     """
     indices = context_argument_indices(document)
     lines = [
-        " *  本カタログはトレース種別です。呼び出し位置と実行文脈を、生成器が引数として付け加えます。\\n",
+        " *  本カタログはトレース種別です。呼び出し位置と実行コンテキストを、生成器が引数として付け加えます。\\n",
         f" *  利用者が記載した引数は `{{0}}` から順に並び、"
-        f"`{{{CONTEXT_ARGUMENT_BASE}}}` から次の文脈引数が並びます。",
+        f"`{{{CONTEXT_ARGUMENT_BASE}}}` から次のコンテキスト引数が並びます。",
         " *",
         " *  | 位置指定 | 引数名 | 引数種別 | 値 |",
         " *  | --- | --- | --- | --- |",
@@ -781,7 +781,7 @@ def trace_context_doc_lines(document: dict) -> list[str]:
     lines.extend(
         [
             " *",
-            " *  言語別の書式へこれらの位置指定を書くと、組み立てた文字列へ文脈値が現れます。\\n",
+            " *  言語別の書式へこれらの位置指定を書くと、組み立てた文字列へコンテキスト値が現れます。\\n",
             " *  書かない場合は現れません。実装を変えずに、定義の変更だけで切り替えられます。",
             " *",
             f" *  記載した引数の個数から `{{{CONTEXT_ARGUMENT_BASE - 1}}}` までは、値を受け取らないインデックスです。\\n",
@@ -789,7 +789,7 @@ def trace_context_doc_lines(document: dict) -> list[str]:
         ]
     )
 
-    # 公開するカタログでは、app が定める文脈引数の取得式が利用側のコンパイル単位で評価される。
+    # 公開するカタログでは、app が定義するコンテキスト引数の取得式が利用側の翻訳単位で評価される。
     # 取得関数の公開漏れはリンク時まで現れないため、生成物の側でも注意を促す。
     if (document.get("export") is not None) and extension_arguments(document):
         names = "、".join(f"`{argument['name']}`" for argument in extension_arguments(document))
@@ -797,7 +797,7 @@ def trace_context_doc_lines(document: dict) -> list[str]:
             [
                 " *",
                 f" *  {names} の取得式は、本ヘッダーの `static inline` の中で展開されます。\\n",
-                " *  利用側のコンパイル単位から呼び出されるため、取得関数はライブラリの外部へ公開する必要があります。\\n",
+                " *  利用側の翻訳単位から呼び出されるため、取得関数はライブラリの外部へ公開する必要があります。\\n",
                 " *  公開しない場合、利用側のリンクが失敗します。",
             ]
         )
@@ -1236,10 +1236,10 @@ ACCESSOR_DECLARATIONS = """\
     @EXPORT@int @API@@MODULE@_entry_count(void);
 
     /**
-     *  @brief          文字列キーからカタログ配列の添字を引くテーブルを取得します。
-     *  @return         添字テーブルへのポインターです。NULL は返しません。
+     *  @brief          文字列キーからカタログ配列のインデックスを引くテーブルを取得します。
+     *  @return         インデックス テーブルへのポインターです。NULL は返しません。
      *
-     *  文字列キーを添字として、カタログ配列の添字を格納しています。\\n
+     *  文字列キーをインデックスとして、カタログ配列のインデックスを格納しています。\\n
      *  未登録の文字列キーに対応する要素には負の値を格納します。\\n
      *  このテーブルを使用することで、文字列キーからカタログを引く探索を線形探索からインデックス参照へ置き換えます。
      *
@@ -1251,8 +1251,8 @@ ACCESSOR_DECLARATIONS = """\
     @EXPORT_FULL@const int *@API_FULL@@MODULE@_key_index(void);
 
     /**
-     *  @brief          添字テーブルの要素数を取得します。
-     *  @return         添字テーブルの要素数です。最大の文字列キーに 1 を加えた値となります。
+     *  @brief          インデックス テーブルの要素数を取得します。
+     *  @return         インデックス テーブルの要素数です。最大の文字列キーに 1 を加えた値となります。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
@@ -1263,7 +1263,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @brief          本カタログ定義のカタログ識別オブジェクトを取得します。
      *  @return         カタログ識別オブジェクトへのポインターです。NULL は返しません。
      *
-     *  配列と添字テーブルを 1 つのカタログ構造体にまとめたオブジェクトです。\\n
+     *  配列とインデックス テーブルを 1 つのカタログ構造体にまとめたオブジェクトです。\\n
      *  ライブラリ側ではカタログを保持しないため、文字列組み立て API へはこのオブジェクトへのポインターを渡します。
      *
      *  返されるポインターは静的領域を指しているため、呼び出し側で解放してはなりません。\\n
@@ -1520,7 +1520,7 @@ int @MODULE@_key_index_count(void)
 /**
  *  @brief          本カタログ定義のカタログ識別オブジェクトです。
  *
- *  配列と添字テーブルを 1 つのカタログ構造体にまとめます。\\n
+ *  配列とインデックス テーブルを 1 つのカタログ構造体にまとめます。\\n
  *  すべてのメンバーを初期化子で設定可能なため `const` とし、初期化関数は提供しません。
  */
 static const @LIBRARY@ s_catalog = {
@@ -1601,7 +1601,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     # @file はリポジトリの慣習に合わせ、prod/ を除いた相対パスで示す
     output_dir = output_dir_display(document, out_relative)
     source_display = output_dir[len("prod/") :] if output_dir.startswith("prod/") else output_dir
-    # 添字テーブルの網羅を検証する基準は、値が最大の文字列キーとする。
+    # インデックス テーブルの網羅を検証する基準は、値が最大の文字列キーとする。
     # 値を定義で固定した場合、並び順の最後が最大とは限らない。
     largest_key = max(zip(key_values(strings), (entry["key"] for entry in strings)))[1]
 
@@ -1619,19 +1619,19 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *  手作業で直接編集せず、生成元の定義を変更してから `app/c-platform/bin/string_catalog_gen.py` を実行してください。",
         " *",
         " *  このテーブルは利用側で用意する定義情報であり、ライブラリ側では保持しません。\\n",
-        " *  配列と添字テーブルを @ref s_catalog へまとめ、組み立て API の呼び出しごとに渡します。\\n",
+        " *  配列とインデックス テーブルを @ref s_catalog へまとめ、組み立て API の呼び出しごとに渡します。\\n",
         " *  カタログの指定を省略して呼び出すための簡易関数も、本生成物で提供します。",
         " *",
         " *  分類値はライブラリ側では解釈しない補足情報です。\\n",
-        " *  意味や有効範囲は利用側で定義します。本生成物では生値のまま保持し、特定の列挙型には依存しません。",
+        " *  意味や有効範囲は利用側で定義します。本生成物では直接の値のまま保持し、特定の列挙型には依存しません。",
         " *",
-        " *  カタログ配列に加えて、文字列キーを添字とする添字テーブルを保持します。\\n",
+        " *  カタログ配列に加えて、文字列キーをインデックスとするインデックス テーブルを保持します。\\n",
         " *  ライブラリはこのテーブルを参照して文字列キーからカタログ エントリを直接引き、線形探索を回避します。",
         " *",
         " *  各要素は、定義間で一意な文字列キー、分類値、引数の個数、明示的なアラインメント、引数定義、",
         " *  補足の ID、説明文、補足説明、言語別の書式、言語別の備考の順に配置します。\\n",
         f" *  `texts` と `notes` は、@c {library}_language をキーとした指示付き初期化子で記述します。\\n",
-        " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へフォールバック（読み替え）されます。",
+        " *  記述を省略した言語の要素は暗黙的にヌル ポインターとなり、ニュートラル言語の要素へ代替（フォールバック）されます。",
         " *",
         " *  引数の型と文字列表現はこのテーブルで定義し、言語別リソースでは語順のみを管理します。\\n",
         " *  書式中の `{0}` から `{49}` は引数の位置を表します。\\n",
@@ -1672,9 +1672,9 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         if trace:
             brief = (
                 f"/** {entry['key']} の引数定義です。"
-                f"{CONTEXT_ARGUMENT_BASE} 番から先は生成器が付け加える文脈引数です。 */"
+                f"{CONTEXT_ARGUMENT_BASE} 番から先は生成器が付け加えるコンテキスト引数です。 */"
             )
-            # 予約した番号空間の全体を確保する。app が定める文脈引数を増減しても
+            # 予約した番号空間の全体を確保する。app が定義するコンテキスト引数を増減しても
             # 要素数が変わらないようにするため、要素数を明示して宣言する。
             declared_length = f"{library.upper()}_ARGUMENT_MAX"
 
@@ -1705,7 +1705,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             reserved = sorted(set(range(EXTENSION_ARGUMENT_BASE, ARGUMENT_MAX)) - set(context_argument_indices(document)))
             if reserved:
                 out.append(
-                    f"    /* {reserved[0]} 番から {reserved[-1]} 番は、app が定める文脈引数のために"
+                    f"    /* {reserved[0]} 番から {reserved[-1]} 番は、app が定義するコンテキスト引数のために"
                     "予約した空きです。値を受け取らないインデックスとして残ります。 */"
                 )
         out.append("};")
@@ -1756,14 +1756,14 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             "/** @ref s_entries の要素数です。 */",
             f"#define {module_upper}_ENTRY_COUNT ((int)(sizeof(s_entries) / sizeof(s_entries[0])))",
             "",
-            "/** 添字テーブルにおいて、文字列キーが未登録であることを表す値です。 */",
+            "/** インデックス テーブルにおいて、文字列キーが未登録であることを表す値です。 */",
             f"#define {module_upper}_KEY_INDEX_ABSENT (-1)",
             "",
             "/**",
-            " *  @brief          文字列キーを添字として、@ref s_entries の添字を引くためのテーブルです。",
+            " *  @brief          文字列キーをインデックスとして、@ref s_entries のインデックスを引くためのテーブルです。",
             " *",
-            " *  文字列キーは 1 から始まるため、添字 0 は使用しません。\\n",
-            f" *  文字列キーが連続せず欠番となる場合は、該当する添字へ @ref {module_upper}_KEY_INDEX_ABSENT を格納します。",
+            " *  文字列キーは 1 から始まるため、インデックス 0 は使用しません。\\n",
+            f" *  文字列キーが連続せず欠番となる場合は、該当するインデックスへ @ref {module_upper}_KEY_INDEX_ABSENT を格納します。",
             " */",
             "static const int s_key_index[] = {",
             f"    {module_upper}_KEY_INDEX_ABSENT, /* 0: 未使用 */",
@@ -1788,8 +1788,8 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
             f"#define {module_upper}_KEY_INDEX_COUNT ((int)(sizeof(s_key_index) / sizeof(s_key_index[0])))",
             "",
             "/*",
-            " *  添字テーブルが最大の文字列キーまでを網羅していることを、ビルド時に検証します。",
-            " *  網羅されていない文字列キーは線形探索にフォールバックするため動作自体は可能ですが、添字テーブルの拡張漏れとなります。",
+            " *  インデックス テーブルが最大の文字列キーまでを網羅していることを、ビルド時に検証します。",
+            " *  網羅されていない文字列キーは線形探索にフォールバックするため動作自体は可能ですが、インデックス テーブルの拡張漏れとなります。",
             " *  対象は、値が最大の文字列キーの定数です。",
             " */",
             f'static_assert({module_upper}_KEY_INDEX_COUNT > {largest_key}, "key_index must cover every string key");',
@@ -1806,7 +1806,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
 
 
 def find_clang_format_style(start: Path) -> Path | None:
-    """出力先から親をたどって .clang-format を探す。"""
+    """出力先から親をたどって .clang-format を検索する。"""
     for directory in [start.resolve()] + list(start.resolve().parents):
         candidate = directory / ".clang-format"
         if candidate.is_file():

@@ -273,7 +273,7 @@ class TraceOutputTest(unittest.TestCase):
 
     def test_source_emits_level_as_category_and_full_argument_count(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        # 文脈引数のために予約した番号空間の全体を確保するため、引数の個数は上限となる。
+        # コンテキスト引数のために予約した番号空間の全体を確保するため、引数の個数は上限となる。
         self.assertIn(f"    {{SAMPLE_TRACE_KEY_A,\n     1,\n     {gen.ARGUMENT_MAX},\n", source)
 
     def test_source_emits_write_function(self):
@@ -391,7 +391,7 @@ class ValidateTest(unittest.TestCase):
             gen.validate(document)
 
     def test_rejects_symbolic_category(self):
-        # 分類値を生値に限るのは、生成物を特定の app の列挙から独立させるため
+        # 分類値を直接の値に限るのは、生成物を特定の app の列挙から独立させるため
         document = minimal_document()
         document["strings"][0]["category"] = "SAMPLE_TRACE_LEVEL_ERROR"
         with self.assertRaises(gen.DefinitionError):
@@ -580,7 +580,7 @@ class GeneratedOutputTest(unittest.TestCase):
         )
 
     def test_typed_wrapper_does_not_depend_on_catalog_object(self):
-        # ラッパーは呼び出し側のコンパイル単位で展開されるため、cplat の関数と
+        # ラッパーは呼び出し側の翻訳単位で展開されるため、cplat の関数と
         # cplat_string_catalog のレイアウトへ依存させない。
         header = gen.emit_header(self.document, self.strings, "example.jsonc")
         wrappers = header[header.index("static inline int sample_messages_key_a") :]
@@ -953,7 +953,7 @@ class PublicHeaderOutputTest(unittest.TestCase):
         self.assertIn("モジュール私有ヘッダー", gen.emit_header(document, strings, "example.jsonc"))
 
 def context_document(arguments=None, headers=None, **overrides):
-    """app が定める文脈引数を持つトレース種別の定義を組み立てる。"""
+    """app が定義するコンテキスト引数を持つトレース種別の定義を組み立てる。"""
     document = trace_document(module_dir="prod/libsrc/example")
     document["settings"] = "catalog_settings.jsonc"
     document[gen.SETTINGS_KEY] = {
@@ -976,7 +976,7 @@ def context_document(arguments=None, headers=None, **overrides):
 
 
 class ExtensionContextValidateTest(unittest.TestCase):
-    """app が定める文脈引数の検査を確認する。"""
+    """app が定義するコンテキスト引数の検査を確認する。"""
 
     def test_accepts_single_argument(self):
         self.assertEqual(len(gen.validate(context_document())), 1)
@@ -1044,13 +1044,18 @@ class ExtensionContextValidateTest(unittest.TestCase):
     def test_ignores_context_section_for_message_kind(self):
         # 設定ファイルは app 単位で種別をまたいで共有するため、誤りとはしない。
         document = minimal_document()
-        document[gen.SETTINGS_KEY] = context_document()[gen.SETTINGS_KEY]
+        document["settings"] = "catalog_settings.jsonc"
+        document[gen.SETTINGS_KEY] = {
+            gen.CONTEXT_SECTION: {
+                "arguments": [{"name": "extra", "kind": "INT32", "description": "値。", "inline_value": "0"}]
+            }
+        }
         self.assertEqual(len(gen.validate(document)), 1)
         self.assertEqual(gen.context_arguments(document), [])
 
 
 class ExtensionContextOutputTest(unittest.TestCase):
-    """app が定める文脈引数の生成物を確認する。"""
+    """app が定義するコンテキスト引数の生成物を確認する。"""
 
     def setUp(self):
         self.document = context_document()
@@ -1081,7 +1086,7 @@ class ExtensionContextOutputTest(unittest.TestCase):
         self.assertIn('[46] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "sequence_number"', source)
 
     def test_array_length_reserves_the_whole_extension_space(self):
-        # app が定める文脈引数を増減しても要素数は変わらない。
+        # app が定義するコンテキスト引数を増減しても要素数は変わらない。
         self.assertEqual(gen.argument_array_length(self.document, self.strings[0]), gen.ARGUMENT_MAX)
 
         without = context_document(arguments=[])
@@ -1089,7 +1094,7 @@ class ExtensionContextOutputTest(unittest.TestCase):
 
     def test_source_reserves_the_unused_extension_indices(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
-        self.assertIn("47 番から 49 番は、app が定める文脈引数のために予約した空きです。", source)
+        self.assertIn("47 番から 49 番は、app が定義するコンテキスト引数のために予約した空きです。", source)
 
     def test_source_declares_the_array_with_an_explicit_length(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
@@ -1110,11 +1115,11 @@ class ExtensionContextOutputTest(unittest.TestCase):
             gen.validate(document)
 
 class ExtensionContextIndexTest(unittest.TestCase):
-    """app が定める文脈引数の位置指定の固定を確認する。"""
+    """app が定義するコンテキスト引数の位置指定の固定を確認する。"""
 
     @staticmethod
     def document_with(*indices, export=None):
-        """指定した index を持つ文脈引数を組み立てる。index が None の項目は記載しない。"""
+        """指定した index を持つコンテキスト引数を組み立てる。index が None の項目は記載しない。"""
         arguments = []
         for position, index in enumerate(indices):
             argument = {
@@ -1155,7 +1160,7 @@ class ExtensionContextIndexTest(unittest.TestCase):
         self.assertEqual(gen.context_argument_indices(document)[-2:], [46, 49])
 
     def test_rejects_index_below_the_extension_base(self):
-        # cplat が定める文脈引数との境界。cplat 側が増えて基底が動いた場合も、ここで検出する。
+        # cplat が定義するコンテキスト引数との境界。cplat 側が増えて基底が動いた場合も、ここで検出する。
         with self.assertRaises(gen.DefinitionError):
             gen.validate(self.document_with(gen.EXTENSION_ARGUMENT_BASE - 1))
 
@@ -1188,7 +1193,7 @@ class ExtensionContextIndexTest(unittest.TestCase):
         strings = gen.validate(document)
         source = gen.emit_source(document, strings, "example.jsonc")
         self.assertIn('[49] = {CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32, 0, "extra_0"', source)
-        self.assertIn("46 番から 48 番は、app が定める文脈引数のために予約した空きです。", source)
+        self.assertIn("46 番から 48 番は、app が定義するコンテキスト引数のために予約した空きです。", source)
 
 
 class ExtensionContextExportNoteTest(unittest.TestCase):
