@@ -13,7 +13,6 @@
 
 #include <cplat/base/result.h>
 #include <cplat/base/error_internal.h>
-#include <cplat/crt/wchar_conv.h>
 
 #include <errno.h>
 
@@ -21,7 +20,11 @@
     #include <fcntl.h>
     #include <sys/stat.h>
     #include <unistd.h>
-#endif /* PLATFORM_LINUX */
+#elif defined(PLATFORM_WINDOWS)
+    #include <cplat/win32/win32.h>
+
+    #include "crt.h"
+#endif /* PLATFORM_ */
 
 static int file_is_open(const cplat_file *file)
 {
@@ -140,7 +143,7 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
     }
 #elif defined(PLATFORM_WINDOWS)
     {
-        wchar_t wpath[PLATFORM_PATH_MAX];
+        int ret;
         /* このハンドルによって他プロセスの読み取り、書き込み、削除を妨げない。
            Linux の open() には対応する共有拒否モードがない (file.h の cplat_file_open 参照)。 */
         DWORD share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
@@ -157,9 +160,10 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
             has_write = 1; /* 既定は書き込み専用として扱い、CPLAT_FILE_OPEN_WRITE が指定されているものとして扱う。 */
         }
 
-        if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+        ret = crt_check_wpath_length(path, detail_out);
+        if (ret != CPLAT_OK)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return ret;
         }
 
         if ((flags & CPLAT_FILE_OPEN_WRITE_THROUGH) != 0)
@@ -218,8 +222,7 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
             desired_access = GENERIC_READ;
         }
 
-        /* wpath は本関数内ですでに UTF-8 から変換済みのため、CreateFileU を経由しない */
-        file->handle = CreateFileW(wpath, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
+        file->handle = CreateFileU(path, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
             return cplat_error_report_windows_error(detail_out, GetLastError());
@@ -522,19 +525,19 @@ int cplat_file_get_path_id(const char *path, cplat_file_id *id_out, cplat_error 
     }
 #elif defined(PLATFORM_WINDOWS)
     {
-        wchar_t wpath[PLATFORM_PATH_MAX];
+        int ret;
         HANDLE handle;
         BY_HANDLE_FILE_INFORMATION info;
         BOOL got_info;
 
-        if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+        ret = crt_check_wpath_length(path, detail_out);
+        if (ret != CPLAT_OK)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return ret;
         }
 
         /* 属性読み取り専用で開くため、他プロセスの共有モードの影響を受けない。 */
-        /* wpath は本関数内ですでに UTF-8 から変換済みのため、CreateFileU を経由しない */
-        handle = CreateFileW(wpath, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+        handle = CreateFileU(path, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (handle == INVALID_HANDLE_VALUE)
         {

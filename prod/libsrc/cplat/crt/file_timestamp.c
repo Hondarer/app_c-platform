@@ -35,7 +35,9 @@
     #include <time.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <cplat/clock/filetime_conv.h>
-    #include <cplat/crt/wchar_conv.h>
+    #include <cplat/win32/win32.h>
+
+    #include "crt.h"
 #endif /* PLATFORM_ */
 
 static int file_is_open(const cplat_file *file)
@@ -79,19 +81,15 @@ static void stat_to_timestamp(const struct stat *file_stat, cplat_timespec *time
  */
 static HANDLE open_for_attributes(const char *path, DWORD desired_access, cplat_error *detail_out, int *failed_out)
 {
-    wchar_t wpath[PLATFORM_PATH_MAX];
     HANDLE handle;
 
-    *failed_out = 0;
-
-    if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
+    *failed_out = crt_check_wpath_length(path, detail_out);
+    if (*failed_out != CPLAT_OK)
     {
-        *failed_out = cplat_error_report_errno(detail_out, ENAMETOOLONG);
         return INVALID_HANDLE_VALUE;
     }
 
-    /* wpath は本関数内ですでに UTF-8 から変換済みのため、CreateFileU を経由しない */
-    handle = CreateFileW(wpath, desired_access, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+    handle = CreateFileU(path, desired_access, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
     {

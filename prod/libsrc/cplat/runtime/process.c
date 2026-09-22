@@ -977,8 +977,8 @@ int cplat_process_get_executable_path(char *path_out, const size_t path_size)
         DWORD n;
         int result;
 
-        /* GetModuleFileNameU は失敗を 0 でしか表現できず、バッファー不足と
-           その他の失敗を区別できないため、ここでは W 版を直接使う */
+        /* GetModuleFileNameU はパス区切り文字を正規化しない。
+           '\\' を '/' へ正規化する cplat_wpath_to_utf8 を使うため、ここでは W 版を直接使う */
         n = GetModuleFileNameW(NULL, wbuf, (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])));
         if (n == 0)
         {
