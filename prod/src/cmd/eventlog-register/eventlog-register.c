@@ -60,7 +60,7 @@ static int s_is_elevated_worker = 0;
  */
 static int ensure_elevated(const char *command, int *handled)
 {
-    char result_message[256];
+    char result_message[CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE];
     int exit_code;
     int ret;
 
@@ -111,7 +111,7 @@ static int ensure_elevated(const char *command, int *handled)
  */
 static int report_status(const int ret, const char *action, const char *message_file_path)
 {
-    char message[PLATFORM_PATH_MAX + 128];
+    char message[CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE];
 
     if (ret == CPLAT_OK)
     {

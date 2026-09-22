@@ -1,4 +1,4 @@
-;// eventlog_messages.mc
+﻿;// eventlog_messages.mc
 ;//
 ;// cplat EventLog backend 用のメッセージ テーブルを定義する。
 ;// libcplat_eventlog_messages.dll に埋め込み、インストール時に EventMessageFile と

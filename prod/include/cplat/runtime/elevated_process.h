@@ -28,6 +28,8 @@
  *  @{
  */
 
+#define CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE 4096 /**< 昇格プロセスの結果メッセージを受け渡すバッファのバイト数 (終端 NUL を含む)。 */
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -83,6 +85,9 @@ extern "C"
      *  @param[out]     handled              昇格プロセスで処理した場合は 0 以外、現プロセスで継続する場合は 0 の格納先。
      *  @param[out]     result_message       昇格プロセスが報告したメッセージ (UTF-8) の格納先。NULL 可。
      *  @param[in]      result_message_size  @p result_message のバイト数。
+     *                                       通常は @ref CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE を指定します。
+     *                                       報告されたメッセージが @p result_message_size - 1 バイトを
+     *                                       超える場合、超えた部分は切り捨てます。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNSUPPORTED 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  cplat_elevated_process_run_if_needed() はコンソールの再接続を昇格プロセス側に
@@ -128,6 +133,8 @@ extern "C"
     /**
      *  @brief          昇格プロセスから、呼び出し元プロセスへ結果メッセージを報告します。
      *  @param[in]      message  報告するメッセージ (UTF-8)。NULL を渡してはなりません。
+     *                           終端 NUL を含めて @ref CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE
+     *                           バイト以内にしてください。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN (報告先が無い場合を含む) のいずれかを返します。
      *
      *  cplat_elevated_process_extract_result_target() で報告先を検出している場合のみ、
