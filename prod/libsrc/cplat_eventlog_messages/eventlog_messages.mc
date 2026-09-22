@@ -1,29 +1,29 @@
-﻿;// eventlog_messages.mc
+;// eventlog_messages.mc
 ;//
-;// cplat EventLog backend 用のメッセージ テーブル。
-;// eventlog-register.exe に埋め込み、インストール時に EventMessageFile と
-;// CategoryMessageFile へ (この exe 自身を指す) 絶対パスとして登録する。
+;// cplat EventLog backend 用のメッセージ テーブルを定義する。
+;// libcplat_eventlog_messages.dll に埋め込み、インストール時に EventMessageFile と
+;// CategoryMessageFile へ DLL の絶対パスとして登録する。
 ;//
 ;// カテゴリ メッセージ : MessageId 0x1-0x6      (レベル名 CRITICAL..DEBUG)
 ;// イベント メッセージ : MessageId 0x1001-0x1036
-;// ReportEventW には 5 件の置換文字列を渡す:
+;// ReportEventW には 5 件の置換文字列を渡す。
 ;//   %1 メッセージ
 ;//   %2 実行体ファイルパス
 ;//   %3 ファイル識別子
 ;//   %4 インスタンス名
 ;//   %5 インスタンス識別子
-;// 識別子が空のときは末尾のアンダースコアを出さない別パターンを使う。
+;// 識別子が空の場合は、末尾のアンダースコアを出力しない別パターンを使用する。
 ;//
-;// イベント メッセージ本文は物理 1 行で書き、改行は %n のみで表現する。
+;// イベント メッセージ本文は物理 1 行で記述し、改行は %n のみで表現する。
 ;// mc.exe は物理行末のソース改行を段落継続として半角空白に変換するため、
-;// 本文を複数行に分けると 2 行目以降の行頭に空白が混入する。
+;// 本文を複数行に分割すると、2 行目以降の行頭に空白が混入する。
 ;//
 ;// EventMessageFile と CategoryMessageFile は同一ファイルを指すため、
 ;// メッセージ テーブルの ID 空間は共有される。カテゴリは Windows の慣例で
 ;// 1..CategoryCount に固定配置する必要があるため、イベント ID は衝突を避けて
-;// 0x1000 番台に置く。
+;// 0x1000 番台に配置する。
 ;//
-;// ID は trace_eventlog.c の map_level() と一致させること:
+;// ID は trace_eventlog.c の map_level() と一致させる。
 ;//   識別子なし          : event_id = 0x1001 + level
 ;//   ファイル識別子のみ  : event_id = 0x1011 + level
 ;//   インスタンス識別子  : event_id = 0x1021 + level
@@ -35,7 +35,7 @@
 ;// ReportEventW の wType 引数で決まり、ここでの Severity とは独立する。
 ;//
 ;// 非英語環境では Event Viewer のカテゴリ解決がシステム ロケールのリソースを要求し、
-;// 本文解決 (FormatMessage) と違って Neutral へフォールバックしない。このため番号 (1) 等で
+;// 本文解決 (FormatMessage) と違って Neutral へフォールバックしない。このため番号 (1) などで
 ;// 表示される。回避策として en-US (0x409) と ja-JP (0x411) の言語版を Neutral と同一文字列で
 ;// 併記する。また、カテゴリ ID は ReportEventW の wCategory と同じ WORD として定義する。
 ;//

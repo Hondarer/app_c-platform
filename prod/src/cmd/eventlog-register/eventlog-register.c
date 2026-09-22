@@ -34,13 +34,16 @@
 
 #if defined(PLATFORM_WINDOWS)
 
+    #include <cplat/base/windows_sdk.h>
     #include <cplat/crt/path.h>
+    #include <cplat/crt/wchar_conv.h>
+    #include <cplat/runtime/module.h>
     #include <cplat/trace/eventlog.h>
 
 /**
  *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうかです。
  *
- *  main() で cplat_elevated_process_extract_result_target() の戻り値を設定する。\n
+ *  main() で cplat_elevated_process_extract_result_target() の戻り値を設定します。\n
  *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
  *  cplat_elevated_process_report_result() で呼び出し元プロセスへ報告します。
  */
@@ -106,14 +109,24 @@ static int ensure_elevated(const char *command, int *handled)
  *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
  *  cplat_elevated_process_report_result() で報告します (ensure_elevated() がそちらで表示します)。
  */
-static int report_status(const int ret, const char *action)
+static int report_status(const int ret, const char *action, const char *message_file_path)
 {
-    char message[256];
+    char message[PLATFORM_PATH_MAX + 128];
 
     if (ret == CPLAT_OK)
     {
-        (void)cplat_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                                CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action);
+        if (message_file_path != NULL)
+        {
+            (void)cplat_snprintf(message, sizeof(message),
+                                 "イベント ソース '%s' を%sしました。\nメッセージ DLL: %s\n"
+                                 "注: メッセージ DLL は、イベント ソースの登録が有効な期間を通じて必要です。\n",
+                                 CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action, message_file_path);
+        }
+        else
+        {
+            (void)cplat_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
+                                 CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action);
+        }
         if (s_is_elevated_worker != 0)
         {
             (void)cplat_elevated_process_report_result(message);
@@ -127,6 +140,12 @@ static int report_status(const int ret, const char *action)
     if (ret == CPLAT_ERR_PERMISSION_DENIED)
     {
         (void)cplat_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+    }
+    else if (ret == CPLAT_ERR_NOT_FOUND || ret == CPLAT_ERR_CORRUPT_DESCRIPTOR)
+    {
+        (void)cplat_snprintf(message, sizeof(message),
+                             "メッセージ リソース DLL を確認できません。libcplat.dll と同じディレクトリに "
+                             "libcplat_eventlog_messages.dll を配置してください。\n");
     }
     else if (ret == CPLAT_ERR_INVALID_ARGUMENT)
     {
@@ -157,8 +176,12 @@ static int do_install(void)
     int handled = 0;
     int rc;
     int ret;
-    char exe_path[PLATFORM_PATH_MAX];
-    const char *message_file;
+    char module_path[PLATFORM_PATH_MAX];
+    char directory[PLATFORM_PATH_MAX];
+    char message_file[PLATFORM_PATH_MAX];
+    wchar_t wpath[PLATFORM_PATH_MAX];
+    HMODULE resources;
+    HRSRC table;
 
     rc = ensure_elevated("install", &handled);
     if (rc != 0 || handled != 0)
@@ -166,20 +189,52 @@ static int do_install(void)
         return rc;
     }
 
-    /* メッセージ リソースは eventlog-register.exe 自身に埋め込んでいる。
-       自身の絶対パスを EventMessageFile / CategoryMessageFile に登録する。 */
-    message_file = NULL;
-    if (cplat_process_get_executable_path(exe_path, sizeof(exe_path)) == CPLAT_OK)
+    /* 使用中の libcplat と同じディレクトリに配置したリソース DLL を登録する。 */
+    ret = cplat_module_get_path(module_path, sizeof(module_path), (const void *)cplat_eventlog_register_source);
+    if (ret != CPLAT_OK)
     {
-        message_file = exe_path;
+        return report_status(ret, "登録", NULL);
     }
-    else
+    ret = cplat_path_dirname(directory, sizeof(directory), NULL, module_path);
+    if (ret != CPLAT_OK)
     {
-        fprintf(stderr, "実行ファイルのパスを取得できませんでした。メッセージ リソースなしで登録します。\n");
+        return report_status(ret, "登録", NULL);
+    }
+    ret = cplat_path_join(message_file, sizeof(message_file), NULL, directory, "libcplat_eventlog_messages.dll");
+    if (ret != CPLAT_OK)
+    {
+        return report_status(ret, "登録", NULL);
+    }
+    if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), message_file) < 0)
+    {
+        return report_status(CPLAT_ERR_UNKNOWN, "登録", NULL);
+    }
+
+    /* 実行コードを読み込まず、登録前にメッセージ テーブルの存在を確認する。
+       LoadLibraryExW が要求するパス区切りへ変換する。
+       see: https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw */
+    for (wchar_t *separator = wpath; *separator != L'\0'; ++separator)
+    {
+        if (*separator == L'/')
+        {
+            *separator = L'\\';
+        }
+    }
+    resources = LoadLibraryExW(wpath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (resources == NULL)
+    {
+        return report_status(CPLAT_ERR_NOT_FOUND, "登録", NULL);
+    }
+    /* mc.exe が生成するテーブルは ID 1、リソース種別は RT_MESSAGETABLE (11)。 */
+    table = FindResourceW(resources, MAKEINTRESOURCEW(1), MAKEINTRESOURCEW(11));
+    FreeLibrary(resources);
+    if (table == NULL)
+    {
+        return report_status(CPLAT_ERR_CORRUPT_DESCRIPTOR, "登録", NULL);
     }
 
     ret = cplat_eventlog_register_source(CPLAT_TRACER_DEFAULT_PROVIDER_NAME, message_file);
-    return report_status(ret, "登録");
+    return report_status(ret, "登録", ret == CPLAT_OK ? message_file : NULL);
 }
 
 /**
@@ -199,7 +254,7 @@ static int do_uninstall(void)
     }
 
     ret = cplat_eventlog_unregister_source(CPLAT_TRACER_DEFAULT_PROVIDER_NAME);
-    return report_status(ret, "削除");
+    return report_status(ret, "削除", NULL);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -262,8 +317,8 @@ int main(int argc, char *argv[])
 
     cplat_argparser_init(argc, argv, "cplat 共通イベント ソースを登録または削除します。");
     cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &need_help);
-    cplat_argparser_register_positional_string("command", "install または uninstall。", CPLAT_ARGPARSER_REQUIRED,
-                                                  &command);
+    cplat_argparser_register_positional_string("command", "install または uninstall を指定します。",
+                                               CPLAT_ARGPARSER_REQUIRED, &command);
 
     if (cplat_argparser_get_register_error_count() > 0)
     {

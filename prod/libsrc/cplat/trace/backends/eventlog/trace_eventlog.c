@@ -40,9 +40,9 @@
 /**
  *  イベント ID の基底値。
  *
- *  EventMessageFile と CategoryMessageFile が同一ファイル (eventlog-register.exe) を
- *  指すため、メッセージ テーブルの ID 空間は 1 つに統合される。カテゴリは Windows 仕様上
- *  1..CategoryCount に固定配置するため、イベント ID は重複を避けて 0x1000 番台に置く。
+ *  EventMessageFile と CategoryMessageFile が同一ファイル (libcplat_eventlog_messages.dll) を
+ *  指すため、メッセージ テーブルの ID 空間は 1 つに統合されます。カテゴリは Windows 仕様上
+ *  1..CategoryCount に固定配置するため、イベント ID は重複を避けて 0x1000 番台に配置します。
  */
     #define EVENTLOG_EVENT_ID_NO_IDENTIFIER       0x1001
     #define EVENTLOG_EVENT_ID_FILE_IDENTIFIER     0x1011
@@ -225,7 +225,7 @@ static const wchar_t *cached_executable_path(void)
  *  @brief          現在のプロセスのユーザー SID を初回だけ取得し、キャッシュします。
  *
  *  プロセス トークンから TokenUser 情報を取得し、SID をキャッシュ バッファーへ
- *  格納する。取得に失敗した場合は s_user_sid を NULL のままとし、以後は再試行しません。
+ *  格納します。取得に失敗した場合は s_user_sid を NULL のままとし、以後は再試行しません。
  */
 static void init_user_sid_cache(void)
 {
