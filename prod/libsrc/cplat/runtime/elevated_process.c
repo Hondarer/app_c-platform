@@ -35,6 +35,7 @@
     #include <unistd.h>
 #elif defined(PLATFORM_WINDOWS)
     #include <cplat/base/windows_sdk.h>
+    #include <cplat/win32/win32.h>
     #include <shellapi.h>
     #include <wchar.h>
     #pragma comment(lib, "Shell32.lib")
@@ -664,7 +665,6 @@ int cplat_elevated_process_report_result(const char *message)
 
 #if defined(PLATFORM_WINDOWS)
     {
-        wchar_t wide_path[PLATFORM_PATH_MAX];
         HANDLE h;
         DWORD written;
         size_t len;
@@ -673,12 +673,8 @@ int cplat_elevated_process_report_result(const char *message)
         {
             return CPLAT_ERR_UNKNOWN;
         }
-        if (cplat_utf8_to_wpath(wide_path, sizeof(wide_path) / sizeof(wide_path[0]), s_result_target_path) < 0)
-        {
-            return CPLAT_ERR_UNKNOWN;
-        }
-        /* wide_path はワイド文字列であり UTF-8 が関与しないため CreateFileU を使わない */
-        h = CreateFileW(wide_path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        h = CreateFileU(s_result_target_path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS,
+                        FILE_ATTRIBUTE_NORMAL, NULL);
         if (h == INVALID_HANDLE_VALUE)
         {
             return CPLAT_ERR_UNKNOWN;
