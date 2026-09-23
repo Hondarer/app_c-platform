@@ -37,6 +37,7 @@
 | `wcscpy` | `strcpy` と同じ | `cplat_wcscpy(dest, dest_size, src)` |
 | `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `cplat_strdup(src)` |
 | `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `cplat_strtok_r(str, delim, saveptr)` |
+| `strtok_r` / `strtok_s` | Linux と Windows で名前が異なり、直接呼び出すと呼び出し側にプラットフォームごとの分岐が必要になります。 | `cplat_strtok_r(str, delim, saveptr)` |
 | `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `cplat_fgets(dest, dest_size, stream, detail_out)` |
 
 ### 書式化・行入力

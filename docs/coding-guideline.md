@@ -460,6 +460,7 @@ libc 関数のモックは `framework/testfw/libsrc/mock_libc/` が提供する�
 | `wcscpy` | `strcpy` と同じ | `cplat_wcscpy(dest, dest_size, src)` |
 | `strdup` / `_strdup` | MSVC では `strdup` が非推奨 (C4996) であり名前が異なります。 | `cplat_strdup(src)` |
 | `strtok` | 解析状態をライブラリ内の静的変数に持ち、再入できません。 | `cplat_strtok_r(str, delim, saveptr)` |
+| `strtok_r` / `strtok_s` | Linux と Windows で名前が異なり、直接呼び出すと呼び出し側にプラットフォームごとの分岐が必要になります。 | `cplat_strtok_r(str, delim, saveptr)` |
 | `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `cplat_fgets(dest, dest_size, stream, detail_out)` |
 | `fgets` | 切り詰めと EOF を戻り値で区別できず、改行の有無を呼び出し側が判定する必要がある | `cplat_fgets(dest, dest_size, stream, detail_out)` |
 | `sprintf` / `vsprintf` | 出力先の容量を受け取らず、境界を検査しません。 | `cplat_snprintf(dest, dest_size, format, ...)` / `cplat_vsnprintf` |
@@ -676,7 +677,7 @@ Windows の `fd_set` は SOCKET の配列と格納数であり、`FD_SETSIZE` �
 ```bash
 # 使用しない関数の残存確認
 # cplat ラッパー呼び出しと、Doxygen コメント行 (行頭が * のもの) を除外する
-grep -rnE '\b(strcpy|strncpy|strcat|strncat|wcscpy|strtok|gets|fgets|sprintf|vsprintf|snprintf|vsnprintf|atoi|atol|atoll|atof|strtol|strtoll|strtoul|strtoull|strtod|strerror)[[:space:]]*\(' \
+grep -rnE '\b(strcpy|strncpy|strcat|strncat|wcscpy|strtok|strtok_r|strtok_s|gets|fgets|sprintf|vsprintf|snprintf|vsnprintf|atoi|atol|atoll|atof|strtol|strtoll|strtoul|strtoull|strtod|strerror)[[:space:]]*\(' \
   app --include=*.c --include=*.h \
   | grep -vE 'app/(lua|sqlite|cjson)/|/obj/|doxybook2_' \
   | grep -vE 'cplat_(strcpy|strncpy|strcat|strncat|wcscpy|strtok_r|fgets|snprintf|vsnprintf|parse_)' \
