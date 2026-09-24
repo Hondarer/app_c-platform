@@ -638,6 +638,28 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_sym_loader_info(_, _))
         .WillByDefault(Invoke(delegate_real_cplat_sym_loader_info));
 
+    // cplat/string_catalog/string_catalog.h
+    ON_CALL(*this, cplat_string_catalog_set_language(_))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_set_language));
+    ON_CALL(*this, cplat_string_catalog_get_language())
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_language));
+    ON_CALL(*this, cplat_string_catalog_language_from_tag(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_language_from_tag));
+    ON_CALL(*this, cplat_string_catalog_format(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_vformat));
+    ON_CALL(*this, cplat_string_catalog_vformat(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_vformat));
+    ON_CALL(*this, cplat_string_catalog_verify(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_verify));
+    ON_CALL(*this, cplat_string_catalog_get_entry(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_entry));
+    ON_CALL(*this, cplat_string_catalog_get_category(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_category));
+    ON_CALL(*this, cplat_string_catalog_get_id(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_id));
+    ON_CALL(*this, cplat_string_catalog_get_note(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_note));
+
     // cplat/sync/sync.h
     ON_CALL(*this, cplat_local_lock_create(_))
         .WillByDefault(Invoke(delegate_real_cplat_local_lock_create));

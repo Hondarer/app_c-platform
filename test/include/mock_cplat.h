@@ -414,6 +414,18 @@ MOCK_CPLAT_LINK_IMPL(cplat_sym_loader_init)
 MOCK_CPLAT_LINK_IMPL(cplat_sym_loader_dispose)
 MOCK_CPLAT_LINK_IMPL(cplat_sym_loader_info)
 
+// cplat/string_catalog/string_catalog.h
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_set_language)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_get_language)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_language_from_tag)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_format)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_vformat)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_verify)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_get_entry)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_get_category)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_get_id)
+MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_get_note)
+
 // cplat/sync/sync.h
 MOCK_CPLAT_LINK_IMPL(cplat_local_lock_create)
 MOCK_CPLAT_LINK_IMPL(cplat_local_lock_lock)
@@ -574,6 +586,7 @@ MOCK_CPLAT_LINK_IMPL(StartServiceCtrlDispatcherU)
 #include <cplat/runtime/process.h>
 #include <cplat/runtime/shutdown.h>
 #include <cplat/runtime/sym_loader.h>
+#include <cplat/string_catalog/string_catalog.h>
 #include <cplat/sync/sync.h>
 #include <cplat/trace/trace_file.h>
 #include <cplat/trace/tracer.h>
@@ -990,6 +1003,18 @@ extern int delegate_real_cplat_sym_loader_is_default(cplat_sym_loader_entry * fo
 extern void delegate_real_cplat_sym_loader_init(cplat_sym_loader_entry *const *fobj_array, size_t fobj_length, const char *configpath);
 extern void delegate_real_cplat_sym_loader_dispose(cplat_sym_loader_entry *const *fobj_array, size_t fobj_length);
 extern int delegate_real_cplat_sym_loader_info(cplat_sym_loader_entry *const *fobj_array, size_t fobj_length);
+
+// cplat/string_catalog/string_catalog.h
+extern int delegate_real_cplat_string_catalog_set_language(cplat_string_catalog_language language);
+extern cplat_string_catalog_language delegate_real_cplat_string_catalog_get_language(void);
+extern int delegate_real_cplat_string_catalog_language_from_tag(const char *tag, cplat_string_catalog_language *language_out);
+extern int delegate_real_cplat_string_catalog_format(const cplat_string_catalog *catalog, char *dest, size_t dest_size, int string_key, ...);
+extern int delegate_real_cplat_string_catalog_vformat(const cplat_string_catalog *catalog, char *dest, size_t dest_size, int string_key, va_list args);
+extern int delegate_real_cplat_string_catalog_verify(const cplat_string_catalog *catalog, int *string_key_out, cplat_string_catalog_language *language_out);
+extern const cplat_string_catalog_entry *delegate_real_cplat_string_catalog_get_entry(const cplat_string_catalog *catalog, int string_key);
+extern int delegate_real_cplat_string_catalog_get_category(const cplat_string_catalog *catalog, int string_key);
+extern const char *delegate_real_cplat_string_catalog_get_id(const cplat_string_catalog *catalog, int string_key);
+extern const char *delegate_real_cplat_string_catalog_get_note(const cplat_string_catalog *catalog, int string_key);
 
 // cplat/sync/sync.h
 extern int delegate_real_cplat_local_lock_create(cplat_local_lock * *mtx);
@@ -1613,6 +1638,20 @@ class Mock_cplat
                 (cplat_sym_loader_entry *const *, size_t, const char *));
     MOCK_METHOD(void, cplat_sym_loader_dispose, (cplat_sym_loader_entry *const *, size_t));
     MOCK_METHOD(int, cplat_sym_loader_info, (cplat_sym_loader_entry *const *, size_t));
+
+    // cplat/string_catalog/string_catalog.h
+    MOCK_METHOD(int, cplat_string_catalog_set_language, (cplat_string_catalog_language));
+    MOCK_METHOD(cplat_string_catalog_language, cplat_string_catalog_get_language, ());
+    MOCK_METHOD(int, cplat_string_catalog_language_from_tag, (const char *, cplat_string_catalog_language *));
+    MOCK_METHOD(int, cplat_string_catalog_format, (const cplat_string_catalog *, char *, size_t, int, va_list));
+    MOCK_METHOD(int, cplat_string_catalog_vformat, (const cplat_string_catalog *, char *, size_t, int, va_list));
+    MOCK_METHOD(int, cplat_string_catalog_verify,
+                (const cplat_string_catalog *, int *, cplat_string_catalog_language *));
+    MOCK_METHOD(const cplat_string_catalog_entry *, cplat_string_catalog_get_entry,
+                (const cplat_string_catalog *, int));
+    MOCK_METHOD(int, cplat_string_catalog_get_category, (const cplat_string_catalog *, int));
+    MOCK_METHOD(const char *, cplat_string_catalog_get_id, (const cplat_string_catalog *, int));
+    MOCK_METHOD(const char *, cplat_string_catalog_get_note, (const cplat_string_catalog *, int));
 
     // cplat/sync/sync.h
     MOCK_METHOD(int, cplat_local_lock_create, (cplat_local_lock **));
