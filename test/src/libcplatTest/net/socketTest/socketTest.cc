@@ -1292,6 +1292,97 @@ TEST_F(socketTest, recv_all_reports_results)
         actual_ret_invalid_length); // [確認_異常系] - 最大転送量超過の recv_all 戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
+// 下位 API が要求量を超える転送量を返した場合に、単発の送受信が異常を返し出力値を 0 のままにすることの確認
+TEST_F(socketTest, send_and_recv_reject_transfer_exceeding_request)
+{
+    // Arrange
+    unsigned char buffer[4] = {0U, 0U, 0U, 0U};
+    cplat_ipv4_endpoint peer = {};
+    size_t sent = 9U;
+    size_t received = 9U;
+    size_t sent_to = 9U;
+    size_t received_from = 9U;
+    cplat_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の send / recv / sendto / recvfrom API が 4 バイトの要求で呼び出されること。
+    // [Pre-Assert手順] - 下位の各 API から、要求量を超える 5 バイトの転送を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL)).WillOnce(Return((ssize_t)5));
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0)).WillOnce(Return((ssize_t)5));
+    EXPECT_CALL(mock_sys_socket_, sendto(_, _, _, (int)kSocket, _, 4U, 0, _, _)).WillOnce(Return((ssize_t)5));
+    EXPECT_CALL(mock_sys_socket_, recvfrom(_, _, _, (int)kSocket, _, 4U, 0, _, _)).WillOnce(Return((ssize_t)5));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 4, 0)).WillOnce(Return(5));
+    EXPECT_CALL(mock_winsock_, recv(_, _, _, (SOCKET)kSocket, _, 4, 0)).WillOnce(Return(5));
+    EXPECT_CALL(mock_winsock_, sendto(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _)).WillOnce(Return(5));
+    EXPECT_CALL(mock_winsock_, recvfrom(_, _, _, (SOCKET)kSocket, _, 4, 0, _, _)).WillOnce(Return(5));
+#endif /* PLATFORM_ */
+
+    // Act
+    int actual_ret_send =
+        cplat_socket_send(kSocket, buffer, sizeof(buffer), &sent, &detail); // [手順] - 4 バイトを送信する。
+    int actual_ret_recv =
+        cplat_socket_recv(kSocket, buffer, sizeof(buffer), &received, &detail); // [手順] - 4 バイトを受信する。
+    int actual_ret_sendto = cplat_socket_sendto(kSocket, buffer, sizeof(buffer), &kEndpoint, &sent_to,
+                                                &detail); // [手順] - 4 バイトを指定したエンドポイントへ送信する。
+    int actual_ret_recvfrom = cplat_socket_recvfrom(kSocket, buffer, sizeof(buffer), &peer, &received_from,
+                                                    &detail); // [手順] - 4 バイトを受信する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN,
+              actual_ret_send); // [確認_異常系] - 要求量超過時の cplat_socket_send の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ((size_t)0, sent); // [確認_異常系] - 要求量超過時の送信バイト数が 0 のままであること。
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN,
+              actual_ret_recv); // [確認_異常系] - 要求量超過時の cplat_socket_recv の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ((size_t)0, received); // [確認_異常系] - 要求量超過時の受信バイト数が 0 のままであること。
+    EXPECT_EQ(
+        CPLAT_ERR_UNKNOWN,
+        actual_ret_sendto); // [確認_異常系] - 要求量超過時の cplat_socket_sendto の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ((size_t)0, sent_to); // [確認_異常系] - 要求量超過時の sendto の送信バイト数が 0 のままであること。
+    EXPECT_EQ(
+        CPLAT_ERR_UNKNOWN,
+        actual_ret_recvfrom); // [確認_異常系] - 要求量超過時の cplat_socket_recvfrom の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ((size_t)0, received_from); // [確認_異常系] - 要求量超過時の recvfrom の受信バイト数が 0 のままであること。
+}
+
+// 下位 API が残量を超える転送量を返した場合に、全量送受信が異常を返すことの確認
+TEST_F(socketTest, send_all_and_recv_all_reject_transfer_exceeding_remaining)
+{
+    // Arrange
+    unsigned char buffer[4] = {0U, 0U, 0U, 0U};
+    cplat_error detail = {};
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 下位の send / recv API が、4 バイトの要求ののち残量 2 バイトの要求で呼び出されること。
+    // [Pre-Assert手順] - 下位の各 API から、2 バイトの転送ののち残量を超える 3 バイトの転送を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 4U, MSG_NOSIGNAL)).WillOnce(Return((ssize_t)2));
+    EXPECT_CALL(mock_sys_socket_, send(_, _, _, (int)kSocket, _, 2U, MSG_NOSIGNAL)).WillOnce(Return((ssize_t)3));
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 4U, 0)).WillOnce(Return((ssize_t)2));
+    EXPECT_CALL(mock_sys_socket_, recv(_, _, _, (int)kSocket, _, 2U, 0)).WillOnce(Return((ssize_t)3));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 4, 0)).WillOnce(Return(2));
+    EXPECT_CALL(mock_winsock_, send(_, _, _, (SOCKET)kSocket, _, 2, 0)).WillOnce(Return(3));
+    EXPECT_CALL(mock_winsock_, recv(_, _, _, (SOCKET)kSocket, _, 4, 0)).WillOnce(Return(2));
+    EXPECT_CALL(mock_winsock_, recv(_, _, _, (SOCKET)kSocket, _, 2, 0)).WillOnce(Return(3));
+#endif /* PLATFORM_ */
+
+    // Act
+    int actual_ret_send_all =
+        cplat_socket_send_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量送信する。
+    int actual_ret_recv_all =
+        cplat_socket_recv_all(kSocket, buffer, sizeof(buffer), &detail); // [手順] - 4 バイトを全量受信する。
+
+    // Assert
+    EXPECT_EQ(
+        CPLAT_ERR_UNKNOWN,
+        actual_ret_send_all); // [確認_異常系] - 残量超過時の cplat_socket_send_all の戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ(
+        CPLAT_ERR_UNKNOWN,
+        actual_ret_recv_all); // [確認_異常系] - 残量超過時の cplat_socket_recv_all の戻り値が CPLAT_ERR_UNKNOWN であること。
+}
+
 // 単一ソケット待機の引数不正、タイムアウト、準備完了、失敗が処理されることの確認
 TEST_F(socketTest, wait_single_reports_results)
 {

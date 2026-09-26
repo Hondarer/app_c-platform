@@ -546,6 +546,12 @@ int cplat_socket_send(const cplat_socket sock, const void *buf, const size_t len
         return report_last_winsock_error(detail_out);
     }
 
+    /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
+    if ((size_t)transferred > len)
+    {
+        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+    }
+
     *sent_out = (size_t)transferred;
 
     return cplat_error_report_success(detail_out);
@@ -570,6 +576,12 @@ int cplat_socket_recv(const cplat_socket sock, void *buf, const size_t len, size
     if (transferred == SOCKET_ERROR)
     {
         return report_last_winsock_error(detail_out);
+    }
+
+    /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
+    if ((size_t)transferred > len)
+    {
+        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
     }
 
     *received_out = (size_t)transferred;
@@ -601,6 +613,12 @@ int cplat_socket_sendto(const cplat_socket sock, const void *buf, const size_t l
         return report_last_winsock_error(detail_out);
     }
 
+    /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
+    if ((size_t)transferred > len)
+    {
+        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+    }
+
     *sent_out = (size_t)transferred;
 
     return cplat_error_report_success(detail_out);
@@ -629,6 +647,12 @@ int cplat_socket_recvfrom(const cplat_socket sock, void *buf, const size_t len,
         return report_last_winsock_error(detail_out);
     }
 
+    /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
+    if ((size_t)transferred > len)
+    {
+        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+    }
+
     if (peer_out != NULL)
     {
         endpoint_from_native(&native, peer_out);
@@ -654,13 +678,19 @@ int cplat_socket_send_all(const cplat_socket sock, const void *buf, const size_t
 
     while (sent < len)
     {
-        int transferred = send((SOCKET)sock, cursor + sent, (int)(len - sent), 0);
+        const size_t remaining = len - sent;
+        int transferred = send((SOCKET)sock, cursor + sent, (int)remaining, 0);
 
         if (transferred == SOCKET_ERROR)
         {
             return report_last_winsock_error(detail_out);
         }
         if (transferred == 0)
+        {
+            return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+        }
+        /* OS が要求量を超える転送量を返すことはないが、残量の計算を守るため異常として扱う。 */
+        if ((size_t)transferred > remaining)
         {
             return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
         }
@@ -685,7 +715,8 @@ int cplat_socket_recv_all(const cplat_socket sock, void *buf, const size_t len, 
 
     while (received < len)
     {
-        int transferred = recv((SOCKET)sock, cursor + received, (int)(len - received), 0);
+        const size_t remaining = len - received;
+        int transferred = recv((SOCKET)sock, cursor + received, (int)remaining, 0);
 
         if (transferred == SOCKET_ERROR)
         {
@@ -694,6 +725,11 @@ int cplat_socket_recv_all(const cplat_socket sock, void *buf, const size_t len, 
         if (transferred == 0)
         {
             return cplat_error_report_errno_as(detail_out, 0, CPLAT_ERR_EOF);
+        }
+        /* OS が要求量を超える転送量を返すことはないが、残量の計算を守るため異常として扱う。 */
+        if ((size_t)transferred > remaining)
+        {
+            return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
         }
 
         received += (size_t)transferred;
