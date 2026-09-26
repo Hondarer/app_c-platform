@@ -44,14 +44,14 @@ typedef enum prompt_key
  * ================================================================ */
 
 /* インデックス計算: oldest=0, newest=count-1 */
-#define HIST_IDX(ctx, i) (((ctx)->head + (i)) % p->history_max)
+#define HIST_IDX(p, ctx, i) (((ctx)->head + (i)) % (p)->history_max)
 
 static void history_add(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *line)
 {
     size_t line_size;
     size_t slot;
 
-    if (line[0] == '\0')
+    if (p->history_max == 0U || line[0] == '\0')
     {
         return;
     }
@@ -59,7 +59,7 @@ static void history_add(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *line
     /* 直前と同じ行は追加しない */
     if (ctx->count > 0)
     {
-        size_t newest_idx = HIST_IDX(ctx, ctx->count - 1);
+        size_t newest_idx = HIST_IDX(p, ctx, ctx->count - 1);
         if (ctx->entries[newest_idx] != NULL && strcmp(ctx->entries[newest_idx], line) == 0)
         {
             return;
@@ -76,7 +76,7 @@ static void history_add(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *line
     {
         ctx->count++;
     }
-    slot = HIST_IDX(ctx, ctx->count - 1);
+    slot = HIST_IDX(p, ctx, ctx->count - 1);
     line_size = strlen(line) + 1;
     ctx->entries[slot] = (char *)cplat_malloc(line_size);
     if (ctx->entries[slot] != NULL)
@@ -241,7 +241,7 @@ static void history_browse_prev(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
     {
         return; /* 最古まで到達済み */
     }
-    entry = ctx->entries[HIST_IDX(ctx, (size_t)ctx->browse_idx)];
+    entry = ctx->entries[HIST_IDX(p, ctx, (size_t)ctx->browse_idx)];
     if (entry == NULL)
     {
         return;
@@ -269,7 +269,7 @@ static void history_browse_next(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
         const char *entry;
         size_t len;
         ctx->browse_idx++;
-        entry = ctx->entries[HIST_IDX(ctx, (size_t)ctx->browse_idx)];
+        entry = ctx->entries[HIST_IDX(p, ctx, (size_t)ctx->browse_idx)];
         if (entry == NULL)
         {
             return;

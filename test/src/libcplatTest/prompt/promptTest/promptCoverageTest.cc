@@ -218,6 +218,28 @@ TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
     EXPECT_STREQ("sav", prompt_->edit_buf); // [確認_正常系] - 容量制限により退避文字列が "sav" へ切り詰められること。
 }
 
+// 履歴上限が 0 の場合に、剰余を取らずに履歴を追加しないことの確認
+TEST_F(promptCoverageTest, history_add_ignores_zero_history_max)
+{
+    // Arrange
+    cplat_prompt_ctx *context =
+        test_prompt_find_or_create_context(prompt_, "zero-history.c", 1); // [状態] - 空の履歴コンテキストを用意する。
+    ASSERT_NE((cplat_prompt_ctx *)NULL, context);                         // [状態確認] - コンテキストが非 NULL であること。
+    size_t saved_history_max = prompt_->history_max;
+    prompt_->history_max = 0u; // [状態] - 履歴上限を 0 にする。
+
+    // Pre-Assert
+
+    // Act
+    test_prompt_history_add(prompt_, context, "line"); // [手順] - 履歴上限 0 で履歴を追加する。
+
+    // Assert
+    EXPECT_EQ(0u, context->count); // [確認_正常系] - 履歴の件数が 0 のままであること。
+    EXPECT_EQ(0u, context->head);  // [確認_正常系] - 最古の履歴位置が 0 のままであること。
+
+    prompt_->history_max = saved_history_max; // 後始末で履歴エントリ配列を走査できるよう、履歴上限を戻す。
+}
+
 // 履歴エントリ配列の確保失敗をコンテキスト作成失敗として扱うことの確認
 TEST_F(promptCoverageTest, context_creation_fails_when_entries_allocation_fails)
 {
