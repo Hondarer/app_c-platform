@@ -349,6 +349,30 @@ static int create_data_file(const char *path, size_t size)
 }
 
 /**
+ *  @brief          xorshift64 の状態を 1 ステップ進めます。
+ *  @param[in,out]  state  乱数の状態。0 以外であること。
+ *  @return         進めた後の状態を返します。
+ *
+ *  シフト量 13 / 7 / 17 は Marsaglia の原典の 64 ビット版に従います。\n
+ *  see: https://www.jstatsoft.org/article/view/v008i14
+ */
+static uint64_t xorshift64_next(uint64_t *state)
+{
+    uint64_t value = *state;
+
+    /* 符号なしの左シフトで上位ビットを捨てるのは xorshift64 の計算の一部であり、意図どおり */
+    /* coverity[overflow_const : SUPPRESS] */
+    value ^= value << 13;
+    value ^= value >> 7;
+    /* 符号なしの左シフトで上位ビットを捨てるのは xorshift64 の計算の一部であり、意図どおり */
+    /* coverity[overflow_const : SUPPRESS] */
+    value ^= value << 17;
+    *state = value;
+
+    return value;
+}
+
+/**
  *  @brief          ランダム アクセス順のレコード番号列を生成します。
  *  @param[in]      record_count  対象ファイルのレコード数。1 以上を指定します。
  *  @param[in]      touch_count   生成する要素数。1 以上を指定します。
@@ -368,10 +392,7 @@ static size_t *create_random_order(size_t record_count, size_t touch_count)
     }
     for (index = 0U; index < touch_count; index++)
     {
-        state ^= state << 13;
-        state ^= state >> 7;
-        state ^= state << 17;
-        order[index] = (size_t)(state % (uint64_t)record_count);
+        order[index] = (size_t)(xorshift64_next(&state) % (uint64_t)record_count);
     }
     return order;
 }
