@@ -824,6 +824,94 @@ TEST_F(traceTest, write_hex_appends_ellipsis_when_only_ellipsis_fits)
     cplat_tracer_dispose(&handle);
 }
 
+// HEX 書き込みで残り長が 4 と 5 の場合も、データ本体を出力せず省略記号だけが付与されることの確認
+TEST_F(traceTest, write_hex_appends_only_ellipsis_up_to_five_remaining_bytes)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                    // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                     // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                     // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
+    unsigned char data[] = {0x48, 0x69, 0x21};
+    std::string label_remaining_4(CPLAT_TRACER_MESSAGE_MAX_BYTES - 7, 'L');
+    std::string label_remaining_5(CPLAT_TRACER_MESSAGE_MAX_BYTES - 8, 'M');
+    std::string expected_remaining_4 = label_remaining_4 + ": ...";
+    std::string expected_remaining_5 = label_remaining_5 + ": ...";
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 残り長 4 と 5 のどちらでも、HEX データ本体なしで省略記号だけが backend へ渡ること。
+    // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_cplat,
+                cplat_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected_remaining_4.c_str())))
+        .WillOnce(Return(0));
+    EXPECT_CALL(mock_cplat,
+                cplat_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected_remaining_5.c_str())))
+        .WillOnce(Return(0));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_cplat, cplat_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected_remaining_4.c_str())))
+        .WillOnce(Return(0));
+    EXPECT_CALL(mock_cplat, cplat_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected_remaining_5.c_str())))
+        .WillOnce(Return(0));
+#endif
+
+    // Act
+    int result_remaining_4 =
+        cplat_tracer_write_hex_at(handle, CPLAT_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+                                  label_remaining_4.c_str()); // [手順] - 残り長 4 のラベル長で HEX 書き込みを行う。
+    int result_remaining_5 =
+        cplat_tracer_write_hex_at(handle, CPLAT_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+                                  label_remaining_5.c_str()); // [手順] - 残り長 5 のラベル長で HEX 書き込みを行う。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result_remaining_4); // [確認_正常系] - 残り長 4 の HEX 書き込みが成功すること。
+    EXPECT_EQ(CPLAT_OK, result_remaining_5); // [確認_正常系] - 残り長 5 の HEX 書き込みが成功すること。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}
+
+// HEX 書き込みで残り長が 6 の場合に、データ 1 バイトと省略記号が本文の上限ちょうどに収まることの確認
+TEST_F(traceTest, write_hex_fits_one_byte_and_ellipsis_in_six_remaining_bytes)
+{
+    // Arrange
+    cplat_tracer *handle = create_logger();
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_os_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - OS レベルを INFO とする。
+                                                                                    // [状態確認] - cplat_tracer_set_os_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_set_etw_level(handle, CPLAT_TRACE_LEVEL_INFO)); // [状態] - ETW レベルを INFO とする (Linux では no-op)。
+                                                                                     // [状態確認] - cplat_tracer_set_etw_level の戻り値が CPLAT_OK であること。
+    ASSERT_EQ(CPLAT_OK, cplat_tracer_start(handle)); // [状態] - tracer を started 状態とする。
+                                                     // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
+    unsigned char data[] = {0x48, 0x69, 0x21};
+    std::string label(CPLAT_TRACER_MESSAGE_MAX_BYTES - 9, 'L');
+    std::string expected = label + ": 48 ...";
+
+    // Pre-Assert
+    // [Pre-Assert確認_正常系] - 本文の上限 (CPLAT_TRACER_MESSAGE_MAX_BYTES - 1 バイト) ちょうどの文字列が backend へ渡ること。
+    // [Pre-Assert手順] - backend 書き込みから 0 を返却する。
+    ASSERT_EQ((size_t)(CPLAT_TRACER_MESSAGE_MAX_BYTES - 1), expected.size()); // [状態確認] - 期待値の長さが本文の上限と等しいこと。
+#if defined(PLATFORM_LINUX)
+    EXPECT_CALL(mock_cplat, cplat_syslog_sink_write(os_handle_, LOG_INFO, NotNull(), StrEq(expected.c_str())))
+        .WillOnce(Return(0));
+#elif defined(PLATFORM_WINDOWS)
+    EXPECT_CALL(mock_cplat, cplat_etw_provider_write(os_handle_, 4, NotNull(), StrEq(expected.c_str())))
+        .WillOnce(Return(0));
+#endif
+
+    // Act
+    int result = cplat_tracer_write_hex_at(handle, CPLAT_TRACE_LEVEL_INFO, NULL, data, sizeof(data),
+                                           label.c_str()); // [手順] - 残り長 6 のラベル長で HEX 書き込みを行う。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result); // [確認_正常系] - 残り長 6 の HEX 書き込みが成功すること。
+
+    // Cleanup
+    cplat_tracer_dispose(&handle);
+}
+
 // started 中は識別子・ファイル名の設定関数が失敗することの確認
 TEST_F(traceTest, identity_config_fails_when_started)
 {

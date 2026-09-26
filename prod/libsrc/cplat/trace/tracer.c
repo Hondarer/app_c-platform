@@ -1558,7 +1558,6 @@ static int hex_write_impl(cplat_tracer *handle, const cplat_trace_level level, c
     char buf[CPLAT_TRACER_MESSAGE_MAX_BYTES];
     const unsigned char *bytes = (const unsigned char *)data;
     size_t pos = 0;
-    size_t remaining;
     size_t max_data_bytes;
     size_t effective_size;
     int truncated = 0;
@@ -1595,18 +1594,20 @@ static int hex_write_impl(cplat_tracer *handle, const cplat_trace_level level, c
         pos = lbl_len + 2;
     }
 
-    remaining = MAX_BODY - pos;
-    max_data_bytes = (remaining + 1) / 3;
+    /* 以降の書き込みは、終端を含めて buf[MAX_BODY] までに収める。
+     * 1 バイトは区切りの空白を含めて 3 文字で、先頭の 1 バイトだけ空白を付けない。 */
+    max_data_bytes = (MAX_BODY - pos + 1) / 3;
 
     if (effective_size > max_data_bytes)
     {
         truncated = 1;
-        if (remaining < ELLIPSIS_LEN)
+        if (pos + ELLIPSIS_LEN > MAX_BODY)
         {
             buf[pos] = '\0';
             return write_dual(handle, level, timestamp, buf);
         }
-        max_data_bytes = (remaining - ELLIPSIS_LEN) / 3;
+        /* 本体 (3 * max_data_bytes - 1 文字) と末尾の " ..." (4 文字) の合計を MAX_BODY - pos 以下に収める。 */
+        max_data_bytes = (MAX_BODY - pos - ELLIPSIS_LEN) / 3;
         if (max_data_bytes == 0)
         {
             memcpy(buf + pos, "...", ELLIPSIS_LEN);
