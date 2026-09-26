@@ -17,12 +17,12 @@
 
 int cplat_sym_loader_is_default(cplat_sym_loader_entry *fobj)
 {
-    if (fobj->resolved == 0)
+    if (cplat_atomic_load_i32(&fobj->resolved, CPLAT_MEMORY_ORDER_ACQUIRE) == 0)
     {
         (void)cplat_sym_loader_resolve(fobj);
     }
 
-    if (fobj->resolved == 2)
+    if (cplat_atomic_load_i32(&fobj->resolved, CPLAT_MEMORY_ORDER_ACQUIRE) == 2)
     {
         return 1;
     }

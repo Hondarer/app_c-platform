@@ -39,19 +39,21 @@ int cplat_sym_loader_info(cplat_sym_loader_entry *const *fobj_array, const size_
     for (fobj_index = 0; fobj_index < fobj_length; fobj_index++)
     {
         cplat_sym_loader_entry *fobj = fobj_array[fobj_index];
+        int32_t resolved;
 
-        if (fobj->resolved == 0)
+        if (cplat_atomic_load_i32(&fobj->resolved, CPLAT_MEMORY_ORDER_ACQUIRE) == 0)
         {
             (void)cplat_sym_loader_resolve(fobj);
         }
+        resolved = cplat_atomic_load_i32(&fobj->resolved, CPLAT_MEMORY_ORDER_ACQUIRE);
         printf("- [%zu] %s\n", fobj_index, fobj->func_key);
-        printf("    - resolved : %d\n", fobj->resolved);
+        printf("    - resolved : %d\n", (int)resolved);
         printf("    - lib_name : %s\n", fobj->lib_name);
         printf("    - func_name: %s\n", fobj->func_name);
         printf("    - handle   : %p\n", (void *)fobj->handle);
-        printf("    - func_ptr : %p\n", fobj->func_ptr);
+        printf("    - func_ptr : %p\n", cplat_atomic_load_ptr(&fobj->func_ptr, CPLAT_MEMORY_ORDER_RELAXED));
 
-        if (fobj->resolved < 0)
+        if (resolved < 0)
         {
             result = CPLAT_ERR_UNKNOWN;
         }

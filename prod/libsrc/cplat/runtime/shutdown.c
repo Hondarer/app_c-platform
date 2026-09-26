@@ -37,9 +37,10 @@ static cplat_once_flag s_shutdown_lock_once = {0};
 static cplat_once_flag s_shutdown_hook_once = {0};
 static int s_shutdown_started = 0;
 static int s_shutdown_request_started = 0;
-/* cplat_exit はロックなしで書き、atexit 経路が読むため可視性を残す。 */
-static volatile int s_exit_code = 0;
-static volatile int s_exit_code_valid = 0;
+/* cplat_exit はロックなしで書き、atexit 経路が読む。
+   終了コードを書いてから有効フラグを release で書き、有効フラグを acquire で読んでから終了コードを読む。 */
+static cplat_atomic_i32 s_exit_code = CPLAT_ATOMIC_INIT(0);
+static cplat_atomic_i32 s_exit_code_valid = CPLAT_ATOMIC_INIT(0);
 
 static void init_shutdown_lock(void)
 {
@@ -62,20 +63,14 @@ static cplat_shutdown_event make_normal_exit_event(void)
     cplat_shutdown_event event;
 
     event.reason = CPLAT_SHUTDOWN_REASON_NORMAL_EXIT;
-    if (s_exit_code_valid)
+    if (cplat_atomic_load_i32(&s_exit_code_valid, CPLAT_MEMORY_ORDER_ACQUIRE) != 0)
     {
         event.code_kind = CPLAT_SHUTDOWN_CODE_KIND_EXIT_CODE;
+        event.code = (int)cplat_atomic_load_i32(&s_exit_code, CPLAT_MEMORY_ORDER_RELAXED);
     }
     else
     {
         event.code_kind = CPLAT_SHUTDOWN_CODE_KIND_NONE;
-    }
-    if (s_exit_code_valid)
-    {
-        event.code = s_exit_code;
-    }
-    else
-    {
         event.code = 0;
     }
     return event;
@@ -300,8 +295,8 @@ void cplat_exit(const int code)
         effective_code = CPLAT_EXIT_CODE_RESERVED_OUT_OF_RANGE;
     }
 
-    s_exit_code = effective_code;
-    s_exit_code_valid = 1;
+    cplat_atomic_store_i32(&s_exit_code, (int32_t)effective_code, CPLAT_MEMORY_ORDER_RELAXED);
+    cplat_atomic_store_i32(&s_exit_code_valid, 1, CPLAT_MEMORY_ORDER_RELEASE);
     exit(effective_code);
 }
 
@@ -410,8 +405,8 @@ void cplat_shutdown_reset_for_test(void)
     s_shutdown_request_callbacks = NULL;
     s_shutdown_started = 0;
     s_shutdown_request_started = 0;
-    s_exit_code = 0;
-    s_exit_code_valid = 0;
+    cplat_atomic_store_i32(&s_exit_code, 0, CPLAT_MEMORY_ORDER_RELAXED);
+    cplat_atomic_store_i32(&s_exit_code_valid, 0, CPLAT_MEMORY_ORDER_RELAXED);
     shutdown_unlock();
 
     free_callback_list(shutdown_entry);

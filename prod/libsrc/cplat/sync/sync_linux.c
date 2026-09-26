@@ -1006,14 +1006,14 @@ void cplat_call_once(cplat_once_flag *flag, void (*func)(void))
     {
         return;
     }
-    if (__atomic_compare_exchange_n(&flag->state, &expected, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    if (cplat_atomic_compare_exchange_i32(&flag->state, &expected, 1, CPLAT_MEMORY_ORDER_ACQ_REL))
     {
         func();
-        __atomic_store_n(&flag->state, 2, __ATOMIC_RELEASE);
+        cplat_atomic_store_i32(&flag->state, 2, CPLAT_MEMORY_ORDER_RELEASE);
         return;
     }
 
-    while (__atomic_load_n(&flag->state, __ATOMIC_ACQUIRE) != 2)
+    while (cplat_atomic_load_i32(&flag->state, CPLAT_MEMORY_ORDER_ACQUIRE) != 2)
     {
         sched_yield();
     }

@@ -231,5 +231,6 @@ TEST(syncBoundaryTest, call_once_runs_function_only_once)
 
     // Assert
     EXPECT_EQ(1, s_once_call_count); // [確認_正常系] - 関数が 1 回だけ呼び出されること。
-    EXPECT_EQ(2, flag.state);        // [確認_正常系] - 初期化済み状態になること。
+    EXPECT_EQ(2, cplat_atomic_load_i32(&flag.state,
+                                        CPLAT_MEMORY_ORDER_RELAXED)); // [確認_正常系] - 初期化済み状態になること。
 }

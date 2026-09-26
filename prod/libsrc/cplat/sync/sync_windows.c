@@ -880,13 +880,15 @@ void cplat_call_once(cplat_once_flag *flag, void (*func)(void))
     {
         return;
     }
-    if (InterlockedCompareExchange((volatile LONG *)&flag->state, 1, 0) == 0)
+    int32_t expected = 0;
+
+    if (cplat_atomic_compare_exchange_i32(&flag->state, &expected, 1, CPLAT_MEMORY_ORDER_ACQ_REL))
     {
         func();
-        InterlockedExchange((volatile LONG *)&flag->state, 2);
+        cplat_atomic_store_i32(&flag->state, 2, CPLAT_MEMORY_ORDER_RELEASE);
         return;
     }
-    while (InterlockedCompareExchange((volatile LONG *)&flag->state, 2, 2) != 2)
+    while (cplat_atomic_load_i32(&flag->state, CPLAT_MEMORY_ORDER_ACQUIRE) != 2)
     {
         SwitchToThread();
     }

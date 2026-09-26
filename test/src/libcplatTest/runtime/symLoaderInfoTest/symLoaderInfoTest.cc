@@ -49,8 +49,9 @@ TEST(symLoaderInfoTest, sym_loader_info_reports_resolution_state)
     cplat_sym_loader_entry unresolved = CPLAT_SYM_LOADER_ENTRY_INIT("unresolved", void (*)(void));
     cplat_sym_loader_entry *resolved_entries[] = {&resolved};
     cplat_sym_loader_entry *unresolved_entries[] = {&unresolved};
-    resolved.resolved = 1;    // [状態] - 1 個のエントリを解決済みとする。
-    unresolved.resolved = -1; // [状態] - 1 個のエントリを解決失敗済みとする。
+    cplat_atomic_store_i32(&resolved.resolved, 1, CPLAT_MEMORY_ORDER_RELAXED); // [状態] - 1 個のエントリを解決済みとする。
+    cplat_atomic_store_i32(&unresolved.resolved, -1,
+                            CPLAT_MEMORY_ORDER_RELAXED); // [状態] - 1 個のエントリを解決失敗済みとする。
 
     // Pre-Assert
 
@@ -88,5 +89,6 @@ TEST(symLoaderInfoTest, sym_loader_info_resolves_unresolved_entry)
     // Assert
     EXPECT_EQ(CPLAT_OK,
               result);            // [確認_正常系] - cplat_sym_loader_info の戻り値が CPLAT_OK であること。
-    EXPECT_EQ(2, entry.resolved); // [確認_正常系] - 情報表示前の解決により resolved が 2 になること。
+    EXPECT_EQ(2, cplat_atomic_load_i32(&entry.resolved,
+                                        CPLAT_MEMORY_ORDER_RELAXED)); // [確認_正常系] - 情報表示前の解決により resolved が 2 になること。
 }

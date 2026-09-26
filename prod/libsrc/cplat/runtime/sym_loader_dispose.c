@@ -41,6 +41,6 @@ void cplat_sym_loader_dispose(cplat_sym_loader_entry *const *fobj_array, const s
 #endif /* PLATFORM_ */
 
         cache->handle = NULL;
-        cache->func_ptr = NULL;
+        cplat_atomic_store_ptr(&cache->func_ptr, NULL, CPLAT_MEMORY_ORDER_RELAXED);
     }
 }

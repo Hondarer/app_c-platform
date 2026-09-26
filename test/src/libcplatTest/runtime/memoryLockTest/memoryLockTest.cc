@@ -167,7 +167,7 @@ TEST_F(memoryLockTest, test_lock_self_reports_mlockall_failure)
             [](cplat_once_flag *flag, cplat_once_fn func)
             {
                 func();
-                flag->state = 2;
+                cplat_atomic_store_i32(&flag->state, 2, CPLAT_MEMORY_ORDER_RELAXED);
             })); // [Pre-Assert確認_異常系] - cplat_call_once が 1 回呼び出されること。
                  // [Pre-Assert手順] - 初期化関数を実行し、once 状態を完了にする。
     EXPECT_CALL(mock_cplat, cplat_local_lock_create(_))

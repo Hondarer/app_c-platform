@@ -86,11 +86,10 @@ extern "C"
         char lib_name[CPLAT_SYM_LOADER_NAME_MAX];  /**< 拡張子なしライブラリ名。[0]=='\0' = 未設定。 */
         char func_name[CPLAT_SYM_LOADER_NAME_MAX]; /**< 関数シンボル名。[0]=='\0' = 未設定。 */
         CPLAT_MODULE_HANDLE handle;                /**< キャッシュ済みハンドル (NULL = 未ロード)。 */
-        void *func_ptr;                               /**< キャッシュ済み関数ポインター (NULL = 未取得)。 */
-        int resolved;                                 /**< 解決済フラグ (0 = 未解決)。 */
-        /* lock_state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
-           コーディング規範の例外として固定幅型 int32_t を維持する。 */
-        volatile int32_t lock_state; /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
+        /* 以下の 3 つは、ロックを取らない高速経路から読むため、アトミック型で保持する。 */
+        cplat_atomic_ptr func_ptr;   /**< キャッシュ済み関数ポインター (NULL = 未取得)。 */
+        cplat_atomic_i32 resolved;   /**< 解決済フラグ (0 = 未解決)。 */
+        cplat_atomic_i32 lock_state; /**< ロック初期化状態 (0=未初期化,1=初期化中,2=初期化済み)。 */
         cplat_local_lock *lock;   /**< ロード処理を保護するミューテックス。 */
     } cplat_sym_loader_entry;
 
@@ -100,7 +99,8 @@ extern "C"
  *  @param[in]      key     この関数インスタンスの識別キー (文字列リテラル)。
  *  @param[in]      type    格納する関数ポインターの型 (例: sample_func_t)。
  */
-#define CPLAT_SYM_LOADER_ENTRY_INIT(key, type) {(key), {0}, {0}, NULL, NULL, 0, 0, NULL}
+#define CPLAT_SYM_LOADER_ENTRY_INIT(key, type)                                                                      \
+    {(key), {0}, {0}, NULL, CPLAT_ATOMIC_INIT(NULL), CPLAT_ATOMIC_INIT(0), CPLAT_ATOMIC_INIT(0), NULL}
 
     /**
      *  @brief          拡張関数ポインターを返します (内部用)。

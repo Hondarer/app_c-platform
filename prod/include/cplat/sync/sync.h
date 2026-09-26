@@ -28,6 +28,7 @@
 
 #include <cplat/base/result.h>
 #include <cplat/cplat_export.h>
+#include <cplat/sync/atomic.h>
 
 /**
  *  @ingroup        CPLAT_SYNC
@@ -63,9 +64,7 @@ extern "C"
     /** call_once 状態。静的領域では 0 初期化して用いる。 */
     typedef struct cplat_once_flag
     {
-        /* state は __atomic_compare_exchange_n / InterlockedCompareExchange に渡すため、
-       コーディング規範の例外として固定幅型 int32_t を維持する。 */
-        volatile int32_t state;
+        cplat_atomic_i32 state; /**< 0=未実行、1=実行中、2=実行済み。cplat_call_once 以外から操作しないこと。 */
     } cplat_once_flag;
 
     /**

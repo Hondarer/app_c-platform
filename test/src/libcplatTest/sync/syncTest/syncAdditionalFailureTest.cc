@@ -1234,7 +1234,8 @@ TEST(syncAdditionalFailureTest, call_once_waits_for_running_callback)
     waiter.join();                       // [手順] - 待機側 thread の終了を待つ。
 
     // Assert
-    EXPECT_EQ(2, flag.state); // [確認_正常系] - callback 完了後に初期化済み状態になること。
+    EXPECT_EQ(2, cplat_atomic_load_i32(&flag.state,
+                                       CPLAT_MEMORY_ORDER_RELAXED)); // [確認_正常系] - callback 完了後に初期化済み状態になること。
 }
 
 // interprocess lock が重複取得、有限 EINTR、再試行成功を分類することの確認

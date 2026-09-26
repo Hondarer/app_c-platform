@@ -47,7 +47,7 @@ void test_argparser_reset_default(void)
         cplat_local_lock_dispose(s_default_lock);
         s_default_lock = NULL;
     }
-    s_default_initialize_once.state = 0;
+    cplat_atomic_store_i32(&s_default_initialize_once.state, 0, CPLAT_MEMORY_ORDER_RELAXED);
 }
 
 char *test_argparser_replace_program_description(cplat_argparser *parser, char *description)

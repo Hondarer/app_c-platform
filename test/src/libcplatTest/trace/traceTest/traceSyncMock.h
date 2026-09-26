@@ -13,11 +13,11 @@ inline void set_trace_sync_mock_defaults(Mock_cplat &mock_cplat)
         .WillByDefault(
             [](cplat_once_flag *flag, cplat_once_fn fn)
             {
-                if (flag->state == 0)
+                if (cplat_atomic_load_i32(&flag->state, CPLAT_MEMORY_ORDER_RELAXED) == 0)
                 {
-                    flag->state = 1;
+                    cplat_atomic_store_i32(&flag->state, 1, CPLAT_MEMORY_ORDER_RELAXED);
                     fn();
-                    flag->state = 2;
+                    cplat_atomic_store_i32(&flag->state, 2, CPLAT_MEMORY_ORDER_RELAXED);
                 }
             });
     ON_CALL(mock_cplat, cplat_local_lock_create(_))

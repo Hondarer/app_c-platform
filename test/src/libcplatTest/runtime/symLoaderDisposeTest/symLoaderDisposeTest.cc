@@ -27,7 +27,8 @@ TEST_F(symLoaderDisposeTest, releases_handle_and_func_ptr_of_resolved_entry)
     cplat_sym_loader_entry entry = CPLAT_SYM_LOADER_ENTRY_INIT("test_key", void (*)(void));
     cplat_sym_loader_entry *entries[] = {&entry};
     entry.handle = kFakeHandle;
-    entry.func_ptr = kFakeFunc; // [状態] - ハンドルと関数ポインターが入ったエントリを用意する。
+    cplat_atomic_store_ptr(&entry.func_ptr, kFakeFunc,
+                            CPLAT_MEMORY_ORDER_RELAXED); // [状態] - ハンドルと関数ポインターが入ったエントリを用意する。
 #if defined(PLATFORM_LINUX)
     NiceMock<Mock_dlfcn> mock_dlfcn;
 #endif /* PLATFORM_LINUX */
@@ -43,8 +44,9 @@ TEST_F(symLoaderDisposeTest, releases_handle_and_func_ptr_of_resolved_entry)
     cplat_sym_loader_dispose(entries, 1u); // [手順] - 解決済みエントリ 1 件を指定して解放する。
 
     // Assert
-    EXPECT_EQ(nullptr, entry.handle);   // [確認_正常系] - handle が NULL になること。
-    EXPECT_EQ(nullptr, entry.func_ptr); // [確認_正常系] - func_ptr が NULL になること。
+    EXPECT_EQ(nullptr, entry.handle); // [確認_正常系] - handle が NULL になること。
+    EXPECT_EQ(nullptr, cplat_atomic_load_ptr(&entry.func_ptr,
+                                              CPLAT_MEMORY_ORDER_RELAXED)); // [確認_正常系] - func_ptr が NULL になること。
 }
 
 // ハンドルを持たないエントリが読み飛ばされることの確認
@@ -77,7 +79,8 @@ TEST_F(symLoaderDisposeTest, accepts_zero_length)
     cplat_sym_loader_entry entry = CPLAT_SYM_LOADER_ENTRY_INIT("test_key", void (*)(void));
     cplat_sym_loader_entry *entries[] = {&entry};
     entry.handle = kFakeHandle;
-    entry.func_ptr = kFakeFunc; // [状態] - ハンドル入りのエントリを用意する。
+    cplat_atomic_store_ptr(&entry.func_ptr, kFakeFunc,
+                            CPLAT_MEMORY_ORDER_RELAXED); // [状態] - ハンドル入りのエントリを用意する。
 #if defined(PLATFORM_LINUX)
     NiceMock<Mock_dlfcn> mock_dlfcn;
 #endif /* PLATFORM_LINUX */
@@ -103,10 +106,11 @@ TEST_F(symLoaderDisposeTest, releases_multiple_entries)
     cplat_sym_loader_entry second = CPLAT_SYM_LOADER_ENTRY_INIT("second", void (*)(void));
     cplat_sym_loader_entry *entries[] = {&first, &second};
     first.handle = kFakeHandle;
-    first.func_ptr = kFakeFunc;
+    cplat_atomic_store_ptr(&first.func_ptr, kFakeFunc, CPLAT_MEMORY_ORDER_RELAXED);
     second.handle = reinterpret_cast<CPLAT_MODULE_HANDLE>(static_cast<uintptr_t>(0x53));
-    second.func_ptr =
-        reinterpret_cast<void *>(static_cast<uintptr_t>(0x54)); // [状態] - ハンドル入りのエントリを 2 件用意する。
+    cplat_atomic_store_ptr(
+        &second.func_ptr, reinterpret_cast<void *>(static_cast<uintptr_t>(0x54)),
+        CPLAT_MEMORY_ORDER_RELAXED); // [状態] - ハンドル入りのエントリを 2 件用意する。
 #if defined(PLATFORM_LINUX)
     NiceMock<Mock_dlfcn> mock_dlfcn;
 #endif /* PLATFORM_LINUX */

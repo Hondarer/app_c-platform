@@ -142,7 +142,7 @@
 /**
  *  @defgroup       CPLAT_SYNC 同期 (sync)
  *  @ingroup        CPLAT_PUBLIC_API
- *  @brief          スレッド間・プロセス間の同期プリミティブ API です。
+ *  @brief          スレッド間・プロセス間の同期プリミティブおよびアトミック操作 API です。
  */
 
 /**

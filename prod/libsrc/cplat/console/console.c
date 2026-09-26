@@ -9,6 +9,7 @@
 
 #include <cplat/base/result.h>
 #include <cplat/console/console.h>
+#include <cplat/sync/atomic.h>
 #include <cplat/console/console_internal.h>
 #include <cplat/crt/path.h>
 #include <cplat/crt/stdio.h>
@@ -36,8 +37,9 @@ static UINT s_orig_output_cp = 0;
 static UINT s_orig_input_cp = 0;
 static DWORD s_orig_stdout_mode = 0;
 static DWORD s_orig_stderr_mode = 0;
-static LONG s_initialized = 0;
-static LONG s_attached_parent = 0;
+/* 初期化状態と親コンソールへの再接続の有無。ロックを取らずに複数のスレッドから参照するため、アトミック型で保持する */
+static cplat_atomic_i32 s_initialized = CPLAT_ATOMIC_INIT(0);
+static cplat_atomic_i32 s_attached_parent = CPLAT_ATOMIC_INIT(0);
 static cplat_once_flag s_console_shutdown_once = {0};
 
 static void console_diag_logf(const char *fmt, ...);
@@ -230,14 +232,18 @@ void cplat_console_init(void)
     cplat_call_once(&s_console_shutdown_once, register_console_shutdown_callback);
 
     /* 二重初期化を防ぐ */
-    if (InterlockedCompareExchange(&s_initialized, 1, 0))
-        return;
+    {
+        int32_t expected = 0;
+
+        if (!cplat_atomic_compare_exchange_i32(&s_initialized, &expected, 1, CPLAT_MEMORY_ORDER_SEQ_CST))
+            return;
+    }
 
     /* stdout がコンソール (TTY) でなければ何もしない */
     if (!cplat_isatty(CPLAT_STREAM_STDOUT))
     {
         console_diag_logf("console_init isatty=0 skip");
-        InterlockedExchange(&s_initialized, 0);
+        cplat_atomic_store_i32(&s_initialized, 0, CPLAT_MEMORY_ORDER_SEQ_CST);
         return;
     }
 
@@ -302,9 +308,13 @@ void cplat_console_dispose(void)
 {
     HANDLE h;
 
-    /* initialized を 1 → 0 に変更。戻り値が 0 なら元々未初期化なので何もしない。 */
-    if (!InterlockedCompareExchange(&s_initialized, 0, 1))
-        return;
+    /* initialized を 1 → 0 に変更。変更できなければ元々未初期化なので何もしない。 */
+    {
+        int32_t expected = 1;
+
+        if (!cplat_atomic_compare_exchange_i32(&s_initialized, &expected, 0, CPLAT_MEMORY_ORDER_SEQ_CST))
+            return;
+    }
 
     /* コンソール モードを元に戻す */
     if (s_orig_stdout_mode != 0)
@@ -618,7 +628,7 @@ int cplat_console_attach_parent(int *argc, char **argv, int *attached_out)
 
     /* 親コンソールへ再接続したことを記録する。終了時のフラッシュ後に conhost が
        書き込みを処理し終えるのを待ち合わせるために参照する。 */
-    InterlockedExchange(&s_attached_parent, 1);
+    cplat_atomic_store_i32(&s_attached_parent, 1, CPLAT_MEMORY_ORDER_SEQ_CST);
     console_diag_logf("attach_parent end attached=%d attached_once=%d", attached, attached_once);
 
     if (attached_out != NULL)
@@ -640,12 +650,12 @@ void cplat_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *
     fflush(stdout);
     fflush(stderr);
     console_diag_logf("dispose_on_shutdown after fflush attached_parent=%ld",
-                               (long)InterlockedCompareExchange(&s_attached_parent, 1, 1));
+                               (long)cplat_atomic_load_i32(&s_attached_parent, CPLAT_MEMORY_ORDER_SEQ_CST));
 
     /* 昇格時に親コンソールへ再接続していた場合、終了時フラッシュで書き込んだ内容を
        conhost が処理し終える前にプロセスが終了すると、内容が画面に出ないことがある。
        コンソールへの同期 API を 1 度呼び出して直前の書き込みが処理されたことを保証する。 */
-    if (InterlockedCompareExchange(&s_attached_parent, 1, 1) != 0)
+    if (cplat_atomic_load_i32(&s_attached_parent, CPLAT_MEMORY_ORDER_SEQ_CST) != 0)
     {
         HANDLE h_out;
         CONSOLE_SCREEN_BUFFER_INFO info;

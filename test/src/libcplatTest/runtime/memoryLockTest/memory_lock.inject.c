@@ -42,13 +42,13 @@ cplat_local_lock *test_memory_lock_get_internal_lock(void)
 
 int test_memory_lock_get_once_state(void)
 {
-    return s_memory_lock_lock_once.state;
+    return cplat_atomic_load_i32(&s_memory_lock_lock_once.state, CPLAT_MEMORY_ORDER_RELAXED);
 }
 
 void test_memory_lock_set_internal_lock(cplat_local_lock *lock, const int once_state)
 {
     s_memory_lock_lock = lock;
-    s_memory_lock_lock_once.state = once_state;
+    cplat_atomic_store_i32(&s_memory_lock_lock_once.state, once_state, CPLAT_MEMORY_ORDER_RELAXED);
 }
 
 cplat_memory_lock_scope *test_memory_lock_create_scope(const int locked_all)
