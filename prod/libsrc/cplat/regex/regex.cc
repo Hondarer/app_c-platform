@@ -22,6 +22,7 @@
 #include <new>
 #include <regex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <cplat/base/compiler.h>
@@ -975,8 +976,8 @@ int cplat_regex_iter_create(const cplat_regex *regex, const char *text, const si
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
         }
 
-        cplat_regex_iter *created =
-            new cplat_regex_iter{regex, units, offsets, 0, match_flags, 0}; /* TESTFW_EXCL_EH_ARCS */
+        cplat_regex_iter *created = new cplat_regex_iter{
+            regex, std::move(units), std::move(offsets), 0, match_flags, 0}; /* TESTFW_EXCL_EH_ARCS */
 
         *iter_out = created;
         result = report_success(detail_out);
