@@ -519,6 +519,8 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_pinned_prompt_dispose));
     ON_CALL(*this, cplat_pinned_prompt_readline_at(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_pinned_prompt_readline_at));
+    ON_CALL(*this, cplat_pinned_prompt_readline_with_initial_at(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_pinned_prompt_readline_with_initial_at));
     ON_CALL(*this, cplat_pinned_prompt_readline_fmt_at(_, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_pinned_prompt_readline_fmt_at));
     ON_CALL(*this, cplat_pinned_prompt_write(_, _, _, _, _))
@@ -536,6 +538,8 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_prompt_dispose));
     ON_CALL(*this, cplat_prompt_readline_at(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_prompt_readline_at));
+    ON_CALL(*this, cplat_prompt_readline_with_initial_at(_, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_prompt_readline_with_initial_at));
     ON_CALL(*this, cplat_prompt_readline_fmt_at(_, _, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_prompt_readline_fmt_at));
 

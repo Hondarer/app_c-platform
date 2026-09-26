@@ -209,3 +209,35 @@ TEST_F(promptAllocFailureTest, readline_fmt_truncates_prompt_when_reallocation_f
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - プロンプトを切り捨てて継続し CPLAT_OK が返ること。
     EXPECT_STREQ("abc", buf);    // [確認_正常系] - 入力した "abc" が返ること。
 }
+
+// 初期値のための編集バッファーの拡張に失敗した場合に、メモリ不足を返すことの確認
+TEST_F(promptAllocFailureTest, readline_with_initial_reports_out_of_memory_when_edit_buffer_expansion_fails)
+{
+    // Arrange
+    char buf[32] = "stale";
+    std::string long_initial(300u, 'i'); // [状態] - 編集バッファーの初期容量 256 を超える長さの初期値を用意する。
+
+    /* 同じ呼び出し位置で 1 度読み取り、コンテキストを確保済みにする。
+       これにより Act 中の realloc は初期値のための編集バッファーの拡張だけになる */
+    promptFakeSetInput("x\r");
+    ASSERT_EQ(CPLAT_OK, cplat_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptAllocFailureTest.cc",
+                                                 6)); // [状態] - 同じ呼び出し位置でコンテキストを確保する。
+                                                      // [状態確認] - cplat_prompt_readline_at の戻り値が CPLAT_OK であること。
+
+    NiceMock<Mock_cplat> mock_cplat;
+    int leave_raw_count_before = promptFakeLeaveRawCount();
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_realloc(_, _, _))
+        .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - cplat_realloc が編集バッファーの拡張のために 1 回呼び出されること。
+                                    // [Pre-Assert手順] - cplat_realloc から NULL を返却する。
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", long_initial.c_str(),
+                                                           "promptAllocFailureTest.cc", 6); // [手順] - 長い初期値で 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, actual_ret); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY が返ること。
+    EXPECT_STREQ("", buf);                          // [確認_異常系] - 出力先が空文字列であること。
+    EXPECT_EQ(leave_raw_count_before + 1, promptFakeLeaveRawCount()); // [確認_異常系] - raw モードを解除して戻ること。
+}

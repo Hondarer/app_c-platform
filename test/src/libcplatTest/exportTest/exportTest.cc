@@ -523,6 +523,9 @@
     EXPORT_ENTRY(cplat_pinned_prompt_readline_at, \
                  int(CPLAT_API *)(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *prompt_str, \
                                   const char *file, int line)) \
+    EXPORT_ENTRY(cplat_pinned_prompt_readline_with_initial_at, \
+                 int(CPLAT_API *)(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *prompt_str, \
+                                  const char *initial_text, const char *file, int line)) \
     EXPORT_ENTRY(cplat_pinned_prompt_readline_fmt_at, \
                  int(CPLAT_API *)(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *file, \
                                   int line, const char *fmt, ...)) \
@@ -543,6 +546,9 @@
     EXPORT_ENTRY(cplat_prompt_dispose, void(CPLAT_API *)(cplat_prompt * prompt)) \
     EXPORT_ENTRY(cplat_prompt_readline_at, int(CPLAT_API *)(cplat_prompt * prompt, char *buf, size_t buf_size, \
                                                             const char *prompt_str, const char *file, int line)) \
+    EXPORT_ENTRY(cplat_prompt_readline_with_initial_at, \
+                 int(CPLAT_API *)(cplat_prompt * prompt, char *buf, size_t buf_size, const char *prompt_str, \
+                                  const char *initial_text, const char *file, int line)) \
     EXPORT_ENTRY(cplat_prompt_readline_fmt_at, int(CPLAT_API *)(cplat_prompt * p, char *buf, size_t buf_size, \
                                                                 const char *file, int line, const char *fmt, ...)) \
     /* cplat/runtime/elevated_process.h */ \

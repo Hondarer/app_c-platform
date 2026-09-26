@@ -16,6 +16,9 @@
 
 #include "pinned_prompt.inject.h"
 
+#include <memory>
+#include <string>
+
 using testing::_;
 using testing::DoAll;
 using testing::Invoke;
@@ -247,6 +250,70 @@ TEST(pinnedPromptTest, status_apis_accept_valid_positions_and_alignments)
     EXPECT_EQ(CPLAT_OK, top_right);      // [確認_正常系] - 上部右側設定の戻り値が CPLAT_OK であること。
     EXPECT_EQ(CPLAT_OK, bottom_left);    // [確認_正常系] - 下部左側設定の戻り値が CPLAT_OK であること。
     EXPECT_EQ(CPLAT_OK, bottom_right); // [確認_正常系] - NULL による下部右側消去の戻り値が CPLAT_OK であること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// 非 TTY の初期値付き readline が、初期値を使わずに cplat_fgets の入力を返すことの確認
+TEST(pinnedPromptTest, fallback_readline_with_initial_ignores_initial_text)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_cplat> mock_cplat;
+    char input[] = "piped";
+    char output[32] = {};
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(input, input + sizeof(input)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_正常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から "piped" を返却する。
+
+    // Act
+    int result = cplat_pinned_prompt_readline_with_initial(screen, output, sizeof(output), NULL,
+                                                           "initial"); // [手順] - 初期値を指定して非 TTY の readline を呼び出す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result);   // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("piped", output); // [確認_正常系] - 初期値ではなく cplat_fgets の入力が格納されること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// 初期値付き readline が、制御文字を含む初期値と不正な引数を入力の前に拒否することの確認
+TEST(pinnedPromptTest, readline_with_initial_rejects_invalid_initial_text_and_arguments)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 0);
+    NiceMock<Mock_cplat> mock_cplat;
+    char output[32] = "stale";
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _)).Times(0);
+    // [Pre-Assert確認_異常系] - 入力を読み取らないこと。
+
+    // Act
+    int actual_ret_control = cplat_pinned_prompt_readline_with_initial(screen, output, sizeof(output), NULL,
+                                                                       "a\tb"); // [手順] - タブを含む初期値を指定する。
+    int actual_ret_screen = cplat_pinned_prompt_readline_with_initial(NULL, output, sizeof(output), NULL,
+                                                                      "a"); // [手順] - ハンドルに NULL を指定する。
+    int actual_ret_buf = cplat_pinned_prompt_readline_with_initial(screen, NULL, sizeof(output), NULL,
+                                                                   "a"); // [手順] - 出力先に NULL を指定する。
+    int actual_ret_size =
+        cplat_pinned_prompt_readline_with_initial(screen, output, 0U, NULL, "a"); // [手順] - バイト数に 0 を指定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_control); // [確認_異常系] - 制御文字を含む初期値が拒否されること。
+    EXPECT_STREQ("", output);                                  // [確認_異常系] - 出力先が空文字列であること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_screen);  // [確認_異常系] - ハンドル NULL が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_buf);     // [確認_異常系] - 出力先 NULL が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_size);    // [確認_異常系] - バイト数 0 が拒否されること。
 
     // Cleanup
     cplat_pinned_prompt_dispose(screen);
@@ -1196,6 +1263,198 @@ TEST(pinnedPromptTest, status_apis_reject_invalid_position_and_alignment)
               invalid_bottom_align); // [確認_異常系] - 下部の不正配置が INVALID_ARGUMENT になること。
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               invalid_set_position); // [確認_異常系] - 不正位置の status_set が INVALID_ARGUMENT になること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+/**
+ *  @brief          TTY の readline へ、指定したバイト列を 1 バイトずつ入力するモックを設定します。
+ *
+ *  端末設定、SIGWINCH、端末サイズの取得は成功として扱います。
+ */
+static void expect_tty_input(Mock_ioctl &mock_ioctl, Mock_signal &mock_signal, Mock_termios &mock_termios,
+                             Mock_unistd &mock_unistd, const std::string &bytes)
+{
+    struct termios original = {};
+    struct winsize size = {};
+    auto position = std::make_shared<size_t>(0U);
+
+    size.ws_col = 80;
+    size.ws_row = 24;
+    EXPECT_CALL(mock_termios, tcgetattr(_, _, _, STDIN_FILENO, _))
+        .WillOnce(DoAll(SetArgPointee<4>(original), Return(0)));
+    EXPECT_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigemptyset(_, _, _, _)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_signal, sigaction(_, _, _, SIGWINCH, _, _)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_ioctl, ioctl(_, _, _, STDOUT_FILENO, TIOCGWINSZ, _))
+        .WillRepeatedly(DoAll(Invoke([size](const char *, const int, const char *, const int, const unsigned long,
+                                            void *arg) { *static_cast<struct winsize *>(arg) = size; }),
+                              Return(0)));
+    EXPECT_CALL(mock_unistd, read(_, _, _, STDIN_FILENO, _, _))
+        .WillRepeatedly(Invoke(
+            [bytes, position](const char *, const int, const char *, const int, void *arg, const size_t) -> ssize_t
+            {
+                if (*position >= bytes.size())
+                {
+                    return 0; /* 入力の終端 */
+                }
+                *static_cast<unsigned char *>(arg) = static_cast<unsigned char>(bytes[*position]);
+                (*position)++;
+                return 1;
+            }));
+}
+
+// TTY の初期値付き readline で、初期値のまま Enter を押すと初期値が返ることの確認
+TEST(pinnedPromptTest, tty_readline_with_initial_returns_initial_text_on_enter)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    char output[32] = {};
+
+    // Pre-Assert
+    expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "\n");
+    // [Pre-Assert手順] - 端末操作を成功させ、入力として改行だけを返却する。
+
+    // Act
+    int result = cplat_pinned_prompt_readline_with_initial(screen, output, sizeof(output), "prompt> ",
+                                                           "edit 1 abc"); // [手順] - 初期値を指定して Enter を入力する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result);        // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("edit 1 abc", output); // [確認_正常系] - 初期値がそのまま確定すること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// TTY の初期値付き readline で、末尾のカーソルから初期値を編集できることの確認
+TEST(pinnedPromptTest, tty_readline_with_initial_allows_editing_from_end)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    char output[32] = {};
+
+    // Pre-Assert
+    expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "\x7F-3\n");
+    // [Pre-Assert手順] - 端末操作を成功させ、Backspace、"-3"、改行を返却する。
+
+    // Act
+    int result = cplat_pinned_prompt_readline_with_initial(screen, output, sizeof(output), "prompt> ",
+                                                           "arg.priority < 0"); // [手順] - 初期値を編集して確定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result);               // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("arg.priority < -3", output); // [確認_正常系] - 末尾の 0 が削除され、-3 が追加されること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// TTY の初期値付き readline で、履歴をさかのぼって戻ると初期値へ戻ることの確認
+TEST(pinnedPromptTest, tty_readline_with_initial_restores_initial_text_after_history)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    char first_output[32] = {};
+    char output[32] = {};
+
+    {
+        NiceMock<Mock_ioctl> mock_ioctl;
+        NiceMock<Mock_signal> mock_signal;
+        NiceMock<Mock_termios> mock_termios;
+        NiceMock<Mock_unistd> mock_unistd;
+
+        expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "first\n");
+        ASSERT_EQ(CPLAT_OK, cplat_pinned_prompt_readline_at(screen, first_output, sizeof(first_output), "",
+                                                            "history.c", 1)); // [状態] - "first" を履歴へ登録する。
+                                                                             // [状態確認] - readline の戻り値が CPLAT_OK であること。
+    }
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_sys_select> mock_select;
+
+    // Pre-Assert
+    expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "\x1B[A\x1B[B\n");
+    // [Pre-Assert手順] - 端末操作を成功させ、上矢印、下矢印、改行を返却する。
+    EXPECT_CALL(mock_select, select(_, _, _, _, _, _, _, _)).WillRepeatedly(Return(1));
+    // [Pre-Assert確認_正常系] - select がエスケープシーケンスの後続判定で呼び出されること。
+    // [Pre-Assert手順] - select から入力可 (1) を返却し、ESC の後続を同じキー入力として読ませる。
+
+    // Act
+    int result = cplat_pinned_prompt_readline_with_initial_at(screen, output, sizeof(output), "", "initial",
+                                                              "history.c", 1); // [手順] - 同じ呼び出し元の履歴で初期値付きの入力を読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result);     // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("initial", output); // [確認_正常系] - 退避した初期値へ戻ること。
+
+    // Cleanup
+    cplat_pinned_prompt_dispose(screen);
+}
+
+// TTY の初期値付き readline で、初期値のための編集バッファーの拡張に失敗した場合にメモリ不足を返すことの確認
+TEST(pinnedPromptTest, tty_readline_with_initial_reports_out_of_memory_when_edit_buffer_expansion_fails)
+{
+    // Arrange
+    cplat_pinned_prompt *screen = cplat_pinned_prompt_create(NULL); // [状態] - ハンドルを用意する。
+    ASSERT_NE(nullptr, screen);                                     // [状態確認] - ハンドルが非 NULL であること。
+    test_pinned_prompt_set_tty(screen, 1);
+    test_pinned_prompt_reset_platform_state();
+    char first_output[32] = {};
+    char output[32] = "stale";
+    std::string long_initial(300U, 'i'); // [状態] - 編集バッファーの初期容量を超える長さの初期値を用意する。
+
+    {
+        NiceMock<Mock_ioctl> mock_ioctl;
+        NiceMock<Mock_signal> mock_signal;
+        NiceMock<Mock_termios> mock_termios;
+        NiceMock<Mock_unistd> mock_unistd;
+
+        expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "x\n");
+        ASSERT_EQ(CPLAT_OK, cplat_pinned_prompt_readline_at(screen, first_output, sizeof(first_output), "",
+                                                            "alloc.c", 1)); // [状態] - 同じ呼び出し位置で履歴のコンテキストを確保する。
+                                                                           // [状態確認] - readline の戻り値が CPLAT_OK であること。
+    }
+    NiceMock<Mock_ioctl> mock_ioctl;
+    NiceMock<Mock_signal> mock_signal;
+    NiceMock<Mock_termios> mock_termios;
+    NiceMock<Mock_unistd> mock_unistd;
+    NiceMock<Mock_cplat> mock_cplat;
+
+    // Pre-Assert
+    expect_tty_input(mock_ioctl, mock_signal, mock_termios, mock_unistd, "\n");
+    // [Pre-Assert手順] - 端末操作を成功させる。
+    EXPECT_CALL(mock_cplat, cplat_realloc(_, _, _)).WillOnce(Return(nullptr));
+    // [Pre-Assert確認_異常系] - cplat_realloc が編集バッファーの拡張のために 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_realloc から NULL を返却する。
+
+    // Act
+    int result = cplat_pinned_prompt_readline_with_initial_at(screen, output, sizeof(output), "", long_initial.c_str(),
+                                                              "alloc.c", 1); // [手順] - 長い初期値で 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY, result); // [確認_異常系] - CPLAT_ERR_OUT_OF_MEMORY が返ること。
+    EXPECT_STREQ("", output);                   // [確認_異常系] - 出力先が空文字列であること。
 
     // Cleanup
     cplat_pinned_prompt_dispose(screen);

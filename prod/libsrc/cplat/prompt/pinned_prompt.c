@@ -1397,17 +1397,23 @@ void cplat_pinned_prompt_dispose(cplat_pinned_prompt *screen)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf, const size_t buf_size,
-                                     const char *prompt_str, const char *file, int line)
+/**
+ *  @brief          入力欄の初期値を指定して 1 行のコマンド入力を受け取ります。
+ *  @param[in]      initial_text    入力欄の初期値です。検証済みであること。NULL は空文字列として扱います。
+ *  @param[in]      initial_length  @p initial_text のバイト数 (NUL を除く) です。
+ *
+ *  cplat_pinned_prompt_readline_at() と cplat_pinned_prompt_readline_with_initial_at() が共有する本体です。\n
+ *  TTY でない場合は初期値を使用しません。入力側が行全体を与えるためです。\n
+ *  履歴をさかのぼる最初の操作で編集中の行を退避するため、初期値 (編集途中ならその内容) へ ↓ で戻れます。
+ */
+static int pinned_prompt_readline_core(cplat_pinned_prompt *screen, char *buf, const size_t buf_size,
+                                       const char *prompt_str, const char *initial_text,
+                                       const size_t initial_length, const char *file, int line)
 {
     int done;
     int result;
     pinned_prompt_history_ctx *history_ctx;
 
-    if (screen == NULL || buf == NULL || buf_size == 0U)
-    {
-        return CPLAT_ERR_INVALID_ARGUMENT;
-    }
     buf[0] = '\0';
 
     if (!screen->is_tty)
@@ -1440,6 +1446,19 @@ int cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf, cons
     screen->cursor = 0U;
     screen->view_start = 0U;
     history_ctx->browse_idx = -1;
+    if (initial_length > 0U)
+    {
+        /* 検証済みの長さは上限以内のため、確保に失敗するのはメモリ不足のときだけ */
+        if (cplat_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
+                                                 initial_length + 1U) != 0)
+        {
+            pinned_prompt_unlock(screen);
+            pinned_prompt_platform_leave_raw(screen);
+            return CPLAT_ERR_OUT_OF_MEMORY;
+        }
+        /* カーソルは末尾に置く。表示範囲は描画時にカーソルが見える位置へ調整される */
+        pinned_prompt_set_edit_line(screen, initial_text);
+    }
     screen->prompt_visible = 1;
     pinned_prompt_render_locked(screen);
     pinned_prompt_unlock(screen);
@@ -1548,6 +1567,42 @@ int cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf, cons
 
     pinned_prompt_platform_leave_raw(screen);
     return result;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf, const size_t buf_size,
+                                     const char *prompt_str, const char *file, int line)
+{
+    if (screen == NULL || buf == NULL || buf_size == 0U)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    return pinned_prompt_readline_core(screen, buf, buf_size, prompt_str, NULL, 0U, file, line);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_pinned_prompt_readline_with_initial_at(cplat_pinned_prompt *screen, char *buf, const size_t buf_size,
+                                                  const char *prompt_str, const char *initial_text,
+                                                  const char *file, int line)
+{
+    size_t initial_length;
+    int ret;
+
+    if (screen == NULL || buf == NULL || buf_size == 0U)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    buf[0] = '\0';
+
+    /* TTY かどうかによらず同じ規則で検証し、契約を経路に依存させない */
+    ret = cplat_prompt_edit_validate_initial_text(initial_text, screen->input_max_bytes, &initial_length);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    return pinned_prompt_readline_core(screen, buf, buf_size, prompt_str, initial_text, initial_length, file, line);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

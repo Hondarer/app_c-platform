@@ -5,6 +5,8 @@
 
 #include <cplat/prompt/prompt_edit.h>
 
+#include <cplat/base/result.h>
+
 #include <cplat/prompt/prompt.h>
 #include <cplat/crt/stdlib.h>
 
@@ -150,4 +152,41 @@ void cplat_prompt_edit_resolve_options(size_t requested_history_max, size_t requ
     {
         *max_bytes = resolved_max_bytes;
     }
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_prompt_edit_validate_initial_text(const char *initial_text, size_t max_bytes, size_t *length_out)
+{
+    size_t length = 0U;
+
+    if (length_out == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    *length_out = 0U;
+
+    if (initial_text == NULL)
+    {
+        return CPLAT_OK;
+    }
+
+    while (initial_text[length] != '\0')
+    {
+        const unsigned char byte = (unsigned char)initial_text[length];
+
+        if ((byte < 0x20U) || (byte == 0x7FU))
+        {
+            return CPLAT_ERR_INVALID_ARGUMENT;
+        }
+        length++;
+    }
+
+    if ((max_bytes == 0U) || (length > (max_bytes - 1U)))
+    {
+        return CPLAT_ERR_BUFFER_TOO_SMALL;
+    }
+
+    *length_out = length;
+    return CPLAT_OK;
 }

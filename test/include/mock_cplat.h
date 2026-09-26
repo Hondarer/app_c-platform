@@ -343,6 +343,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_socket_shutdown_receive)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_create)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_dispose)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_readline_at)
+MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_readline_with_initial_at)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_readline_fmt_at)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_write)
 MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_printf)
@@ -353,6 +354,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_pinned_prompt_status_set)
 MOCK_CPLAT_LINK_IMPL(cplat_prompt_create)
 MOCK_CPLAT_LINK_IMPL(cplat_prompt_dispose)
 MOCK_CPLAT_LINK_IMPL(cplat_prompt_readline_at)
+MOCK_CPLAT_LINK_IMPL(cplat_prompt_readline_with_initial_at)
 MOCK_CPLAT_LINK_IMPL(cplat_prompt_readline_fmt_at)
 
 // cplat/runtime/elevated_process.h
@@ -933,6 +935,7 @@ extern int delegate_real_cplat_socket_shutdown_receive(cplat_socket * sock_inout
 extern cplat_pinned_prompt * delegate_real_cplat_pinned_prompt_create(const cplat_pinned_prompt_options *options);
 extern void delegate_real_cplat_pinned_prompt_dispose(cplat_pinned_prompt * screen);
 extern int delegate_real_cplat_pinned_prompt_readline_at(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *prompt_str, const char *file, int line);
+extern int delegate_real_cplat_pinned_prompt_readline_with_initial_at(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *prompt_str, const char *initial_text, const char *file, int line);
 extern int delegate_real_cplat_pinned_prompt_readline_fmt_at(cplat_pinned_prompt * screen, char *buf, size_t buf_size, const char *file, int line, const char *fmt, va_list args);
 extern int delegate_real_cplat_pinned_prompt_write(cplat_pinned_prompt * screen, cplat_pinned_prompt_channel channel, const void *data, size_t size, size_t *written_out);
 extern int delegate_real_cplat_pinned_prompt_printf(cplat_pinned_prompt * screen, cplat_pinned_prompt_channel channel, const char *fmt, ...);
@@ -943,6 +946,7 @@ extern int delegate_real_cplat_pinned_prompt_status_set(cplat_pinned_prompt * sc
 extern cplat_prompt * delegate_real_cplat_prompt_create(const cplat_prompt_options *options);
 extern void delegate_real_cplat_prompt_dispose(cplat_prompt * prompt);
 extern int delegate_real_cplat_prompt_readline_at(cplat_prompt * prompt, char *buf, size_t buf_size, const char *prompt_str, const char *file, int line);
+extern int delegate_real_cplat_prompt_readline_with_initial_at(cplat_prompt * prompt, char *buf, size_t buf_size, const char *prompt_str, const char *initial_text, const char *file, int line);
 extern int delegate_real_cplat_prompt_readline_fmt_at(cplat_prompt * p, char *buf, size_t buf_size, const char *file, int line, const char *fmt, va_list args);
 
 // cplat/runtime/elevated_process.h
@@ -1551,6 +1555,8 @@ class Mock_cplat
     MOCK_METHOD(void, cplat_pinned_prompt_dispose, (cplat_pinned_prompt *));
     MOCK_METHOD(int, cplat_pinned_prompt_readline_at,
                 (cplat_pinned_prompt *, char *, size_t, const char *, const char *, int));
+    MOCK_METHOD(int, cplat_pinned_prompt_readline_with_initial_at,
+                (cplat_pinned_prompt *, char *, size_t, const char *, const char *, const char *, int));
     MOCK_METHOD(int, cplat_pinned_prompt_readline_fmt_at,
                 (cplat_pinned_prompt *, char *, size_t, const char *, int, const char *, va_list));
     MOCK_METHOD(int, cplat_pinned_prompt_write,
@@ -1567,6 +1573,8 @@ class Mock_cplat
     MOCK_METHOD(void, cplat_prompt_dispose, (cplat_prompt *));
     MOCK_METHOD(int, cplat_prompt_readline_at,
                 (cplat_prompt *, char *, size_t, const char *, const char *, int));
+    MOCK_METHOD(int, cplat_prompt_readline_with_initial_at,
+                (cplat_prompt *, char *, size_t, const char *, const char *, const char *, int));
     MOCK_METHOD(int, cplat_prompt_readline_fmt_at,
                 (cplat_prompt *, char *, size_t, const char *, int, const char *, va_list));
 

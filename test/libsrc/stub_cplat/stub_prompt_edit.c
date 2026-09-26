@@ -3,11 +3,13 @@
  *  @brief          プロンプト編集バッファーの内部 API を、呼び出し元の単体テスト向けに提供します。
  *
  *  prompt_edit.c のカバレッジは promptEditTest が担う。
- *  本スタブは UTF-8 文字境界、容量拡張、オプション解決の契約だけを満たす。
+ *  本スタブは UTF-8 文字境界、容量拡張、オプション解決、初期値の検証の契約だけを満たす。
  */
 
 #include <cplat/prompt/prompt_edit.h>
 
+#include <cplat/base/result.h>
+#include <cplat/crt/stdlib.h>
 #include <cplat/prompt/prompt.h>
 
 #include <stdlib.h>
@@ -87,7 +89,8 @@ int cplat_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes,
         new_cap = next_cap;
     }
 
-    new_buf = (char *)realloc(*buf, new_cap);
+    /* 本番の prompt_edit.c と同じく cplat_realloc を使い、呼び出し元のテストが確保失敗を注入できるようにする */
+    new_buf = (char *)cplat_realloc(*buf, new_cap, 1U);
     if (new_buf == NULL)
     {
         return -1;
@@ -142,4 +145,39 @@ void cplat_prompt_edit_resolve_options(size_t requested_history_max, size_t requ
     {
         *max_bytes = resolved_max_bytes;
     }
+}
+
+int cplat_prompt_edit_validate_initial_text(const char *initial_text, size_t max_bytes, size_t *length_out)
+{
+    size_t length = 0U;
+
+    if (length_out == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    *length_out = 0U;
+
+    if (initial_text == NULL)
+    {
+        return CPLAT_OK;
+    }
+
+    while (initial_text[length] != '\0')
+    {
+        const unsigned char byte = (unsigned char)initial_text[length];
+
+        if ((byte < 0x20U) || (byte == 0x7FU))
+        {
+            return CPLAT_ERR_INVALID_ARGUMENT;
+        }
+        length++;
+    }
+
+    if ((max_bytes == 0U) || (length > (max_bytes - 1U)))
+    {
+        return CPLAT_ERR_BUFFER_TOO_SMALL;
+    }
+
+    *length_out = length;
+    return CPLAT_OK;
 }

@@ -150,6 +150,24 @@ extern "C"
 #define cplat_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
     cplat_pinned_prompt_readline_fmt_at((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 
+/**
+ *  @brief          入力欄に初期値を入れた状態で 1 行入力を受け取ります。
+ *  @param[in]      screen        固定プロンプト ハンドルです。
+ *  @param[out]     buf           入力結果を格納するバッファーです。終端の改行は格納しません。
+ *  @param[in]      buf_size      @p buf のバイト数です。
+ *  @param[in]      prompt_str    表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+ *  @param[in]      initial_text  入力欄の初期値です。NULL と空文字列は、初期値なしとして扱います。
+ *  @return         cplat_pinned_prompt_readline() と同じ結果コードに加え、
+ *                  初期値が不正な場合は @ref CPLAT_ERR_INVALID_ARGUMENT 、
+ *                  初期値が入力欄の上限を超える場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+ *                  初期値のためのメモリを確保できない場合は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
+ *
+ *  詳細は cplat_pinned_prompt_readline_with_initial_at() を参照してください。
+ */
+#define cplat_pinned_prompt_readline_with_initial(screen, buf, buf_size, prompt_str, initial_text)                        \
+    cplat_pinned_prompt_readline_with_initial_at((screen), (buf), (buf_size), (prompt_str), (initial_text), __FILE__, \
+                                       __LINE__)
+
     /**
      *  @brief          呼び出し元の位置を明示して 1 行のコマンド入力を受け取ります。
      *
@@ -175,6 +193,45 @@ extern "C"
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf,
                                                                       size_t buf_size, const char *prompt_str,
                                                                       const char *file, int line);
+
+    /**
+     *  @brief          呼び出し元を明示し、入力欄に初期値を入れた状態で 1 行入力を受け取ります。
+     *
+     *  通常は cplat_pinned_prompt_readline_with_initial() を使用してください。
+     *
+     *  @param[in]      screen        固定プロンプト ハンドルです。
+     *  @param[out]     buf           入力結果を格納するバッファーです。
+     *  @param[in]      buf_size      @p buf のバイト数です。
+     *  @param[in]      prompt_str    表示するプロンプト文字列です。NULL の場合は空文字列として扱います。
+     *  @param[in]      initial_text  入力欄の初期値です。NULL と空文字列は、初期値なしとして扱います。
+     *  @param[in]      file          履歴を識別する呼び出し元ファイル名です。
+     *  @param[in]      line          履歴を識別する呼び出し元行番号です。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_EOF 、@ref CPLAT_ERR_CANCELED 、
+     *                  @ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、
+     *                  @ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  入力欄に @p initial_text を入れ、カーソルを末尾に置いてから入力を受け付けます。\n
+     *  利用者は初期値を編集して確定するか、そのまま確定できます。\n
+     *  履歴をさかのぼったあとに最新の側へ戻ると、初期値 (編集した場合はその内容) へ戻ります。
+     *
+     *  初期値は、端末かどうかによらず次の規則で検証し、受け入れられない場合は入力を受け付けずに戻ります。
+     *  - 改行などの制御文字 (0x00 から 0x1F、および 0x7F) を含む場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
+     *    入力欄は 1 行のためです。
+     *  - NUL 終端を含めて入力欄の上限 (@ref cplat_prompt_options::input_max_bytes) を超える場合は
+     *    @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
+     *    途中で切り詰めると、UTF-8 の文字の途中で切れた値を編集させることになるためです。
+     *
+     *  標準入力が端末でない場合は、cplat_pinned_prompt_readline_at() と同じく @ref cplat_fgets へフォールバックし、初期値を使用しません。\n
+     *  入力側が行全体を与えるためです。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_readline_with_initial_at(cplat_pinned_prompt *screen, char *buf,
+                                                                            size_t buf_size, const char *prompt_str,
+                                                                            const char *initial_text, const char *file,
+                                                                            int line);
 
     /**
      *  @brief          呼び出し元の位置とプロンプト書式を明示してコマンド入力を受け取ります。

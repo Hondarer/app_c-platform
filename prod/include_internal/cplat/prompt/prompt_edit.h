@@ -75,6 +75,21 @@ extern "C"
                                               size_t requested_max_bytes, size_t initial_capacity_default,
                                               size_t *history_max, size_t *initial_capacity, size_t *max_bytes);
 
+    /**
+     *  @brief          入力欄の初期値が、1 行の編集内容として受け入れられるかを確認します。
+     *  @param[in]      initial_text 初期値です。NULL は空文字列として扱います。
+     *  @param[in]      max_bytes    NUL 終端を含む入力編集バッファーの最大バイト数です。
+     *  @param[out]     length_out   初期値のバイト数 (NUL を除く) の格納先です。NULL を渡してはなりません。
+     *  @return         受け入れられる場合は @ref CPLAT_OK を返します。
+     *  @return         改行などの制御文字 (0x00 から 0x1F、および 0x7F) を含む場合は
+     *                  @ref CPLAT_ERR_INVALID_ARGUMENT を返します。入力欄は 1 行のためです。
+     *  @return         NUL 終端を含めて @p max_bytes を超える場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
+     *
+     *  prompt と pinned_prompt が、初期値付きの入力で同じ規則を使うための関数です。\n
+     *  途中で切り詰めると UTF-8 の文字の途中で切れた値を編集させることになるため、切り詰めずに拒否します。
+     */
+    int cplat_prompt_edit_validate_initial_text(const char *initial_text, size_t max_bytes, size_t *length_out);
+
 #ifdef __cplusplus
 }
 #endif

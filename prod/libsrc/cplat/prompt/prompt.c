@@ -456,17 +456,19 @@ static int prompt_readline_fallback(char *buf, const size_t buf_size, const char
     return cplat_fgets(buf, buf_size, stdin, NULL);
 }
 
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int cplat_prompt_readline_at(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
-                                const char *file, int line)
+/**
+ *  @brief          入力欄の初期値を指定して 1 行を読み取ります。
+ *  @param[in]      initial_text    入力欄の初期値です。検証済みであること。NULL は空文字列として扱います。
+ *  @param[in]      initial_length  @p initial_text のバイト数 (NUL を除く) です。
+ *
+ *  cplat_prompt_readline_at() と cplat_prompt_readline_with_initial_at() が共有する本体です。\n
+ *  TTY でない場合は初期値を使用しません。入力側が行全体を与えるためです。
+ */
+static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
+                                const char *initial_text, const size_t initial_length, const char *file, int line)
 {
     cplat_prompt_ctx *ctx;
 
-    if (p == NULL || buf == NULL || buf_size == 0)
-    {
-        return CPLAT_ERR_INVALID_ARGUMENT;
-    }
     buf[0] = '\0';
 
     /* TTY でなければ cplat_fgets へフォールバックする */
@@ -486,11 +488,25 @@ int cplat_prompt_readline_at(cplat_prompt *p, char *buf, const size_t buf_size, 
     /* raw モードに移行 */
     prompt_platform_enter_raw(p);
 
-    /* 編集バッファー初期化 */
+    /* 編集バッファー初期化。初期値があれば入力欄へ入れ、カーソルを末尾に置く */
     p->edit_len = 0;
     p->edit_buf[0] = '\0';
     p->cursor = 0;
     ctx->browse_idx = -1;
+    if (initial_length > 0U)
+    {
+        /* 検証済みの長さは上限以内のため、確保に失敗するのはメモリ不足のときだけ */
+        if (cplat_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, initial_length + 1U) !=
+            0)
+        {
+            prompt_platform_leave_raw(p);
+            return CPLAT_ERR_OUT_OF_MEMORY;
+        }
+        memcpy(p->edit_buf, initial_text, initial_length);
+        p->edit_buf[initial_length] = '\0';
+        p->edit_len = initial_length;
+        p->cursor = initial_length;
+    }
 
     redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
 
@@ -629,6 +645,41 @@ int cplat_prompt_readline_at(cplat_prompt *p, char *buf, const size_t buf_size, 
             break;
         }
     }
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_prompt_readline_at(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
+                                const char *file, int line)
+{
+    if (p == NULL || buf == NULL || buf_size == 0)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    return prompt_readline_core(p, buf, buf_size, prompt_str, NULL, 0U, file, line);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_prompt_readline_with_initial_at(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
+                                             const char *initial_text, const char *file, int line)
+{
+    size_t initial_length;
+    int ret;
+
+    if (p == NULL || buf == NULL || buf_size == 0)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    buf[0] = '\0';
+
+    /* TTY かどうかによらず同じ規則で検証し、契約を経路に依存させない */
+    ret = cplat_prompt_edit_validate_initial_text(initial_text, p->input_max_bytes, &initial_length);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    return prompt_readline_core(p, buf, buf_size, prompt_str, initial_text, initial_length, file, line);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

@@ -672,3 +672,206 @@ TEST_F(promptTest, readline_fallback_reports_buffer_too_small)
               actual_ret); // [確認_異常系] - 切り詰め時の cplat_prompt_readline_at が CPLAT_ERR_BUFFER_TOO_SMALL を返すこと。
     EXPECT_STREQ("", buf); // [確認_異常系] - 切り詰め時に出力先が空文字列であること。
 }
+
+/*
+ * cplat_prompt_readline_with_initial_at
+ */
+
+// 初期値のまま Enter を押すと初期値が返ることの確認
+TEST_F(promptTest, readline_with_initial_returns_initial_text_on_enter)
+{
+    // Arrange
+    char buf[32];
+
+    promptFakeSetInput("\r"); // [状態] - Enter だけを入力する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", "edit 1 abc",
+                                                           "promptTest.cc", 1); // [手順] - 初期値を指定して 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret);   // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("edit 1 abc", buf); // [確認_正常系] - 初期値がそのまま返ること。
+}
+
+// 初期値の末尾にカーソルがあり、後退削除と入力で編集できることの確認
+TEST_F(promptTest, readline_with_initial_places_cursor_at_end)
+{
+    // Arrange
+    char buf[32];
+
+    promptFakeSetInput("\x7FX\r"); // [状態] - Backspace、X、Enter を入力する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", "abc", "promptTest.cc",
+                                                           1); // [手順] - 初期値 "abc" を指定して 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("abX", buf);        // [確認_正常系] - 末尾の c が削除され、X が追加されること。
+}
+
+// 初期値の先頭へ移動して挿入できることの確認
+TEST_F(promptTest, readline_with_initial_allows_insert_at_head)
+{
+    // Arrange
+    char buf[32];
+
+    promptFakeSetInput("\x1B[Ha\r"); // [状態] - Home、a、Enter を入力する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", "bc", "promptTest.cc",
+                                                           1); // [手順] - 初期値 "bc" を指定して 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("abc", buf);        // [確認_正常系] - 先頭に a が挿入されること。
+}
+
+// 履歴をさかのぼってから最新の側へ戻ると、初期値へ戻ることの確認
+TEST_F(promptTest, readline_with_initial_restores_initial_text_after_history)
+{
+    // Arrange
+    char buf[32];
+
+    ASSERT_EQ(CPLAT_OK, readline("first\r", buf, sizeof(buf))); // [状態] - "first" を履歴へ登録しておく。
+                                                                   // [状態確認] - readline の戻り値が CPLAT_OK であること。
+    promptFakeSetInput("\x1B[A\x1B[B\r"); // [状態] - 上矢印、下矢印、Enter を入力する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", "initial",
+                                                           "promptTest.cc", 1); // [手順] - 同じ呼び出し元の履歴で初期値付きの入力を読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("initial", buf);    // [確認_正常系] - 退避した初期値へ戻ること。
+}
+
+// NULL の初期値は、初期値なしの readline と同じであることの確認
+TEST_F(promptTest, readline_with_initial_accepts_null_initial_text)
+{
+    // Arrange
+    char buf[32];
+
+    promptFakeSetInput("xyz\r"); // [状態] - xyz と Enter を入力する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", NULL, "promptTest.cc",
+                                                           1); // [手順] - 初期値に NULL を指定して 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("xyz", buf);        // [確認_正常系] - 入力した内容だけが返ること。
+}
+
+// 制御文字を含む初期値を拒否し、入力を読み取らないことの確認
+TEST_F(promptTest, readline_with_initial_rejects_control_character_without_reading)
+{
+    // Arrange
+    char buf[32] = "stale";
+
+    promptFakeSetInput("abc\r"); // [状態] - 後続の読み取りのための入力を用意する。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), ">> ", "a\nb", "promptTest.cc",
+                                                           1); // [手順] - 改行を含む初期値を指定する。
+    int actual_enter_raw_count = promptFakeEnterRawCount();
+    int actual_ret_next = cplat_prompt_readline_at(prompt_, buf, sizeof(buf), ">> ", "promptTest.cc",
+                                                   1); // [手順] - 続けて初期値なしで 1 行読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT が返ること。
+    EXPECT_EQ(0, actual_enter_raw_count);              // [確認_異常系] - raw モードへ移行しないこと。
+    EXPECT_EQ(CPLAT_OK, actual_ret_next);              // [確認_異常系] - 後続の読み取りが成功すること。
+    EXPECT_STREQ("abc", buf);                          // [確認_異常系] - 入力が消費されずに残っていること。
+}
+
+// 入力欄の上限を超える初期値を拒否することの確認
+TEST_F(promptTest, readline_with_initial_rejects_text_over_input_limit)
+{
+    // Arrange
+    cplat_prompt_options options = {};
+    char buf[32] = "stale";
+
+    options.input_initial_capacity = 4u;
+    options.input_max_bytes = 8u; // [状態] - 入力上限 8 バイトのハンドルを用意する。
+    cplat_prompt *handle = cplat_prompt_create(&options);
+    ASSERT_NE((cplat_prompt *)NULL, handle); // [状態確認] - ハンドルを生成できること。
+    handle->is_tty = 1;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_fit = cplat_prompt_readline_with_initial_at(handle, buf, sizeof(buf), ">> ", "1234567",
+                                                               "promptTest.cc", 1); // [手順] - NUL を含めて 8 バイトの初期値で読み取る (入力は EOF)。
+    int actual_ret_over = cplat_prompt_readline_with_initial_at(handle, buf, sizeof(buf), ">> ", "12345678",
+                                                                "promptTest.cc", 1); // [手順] - NUL を含めて 9 バイトの初期値を指定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_EOF, actual_ret_fit);                 // [確認_正常系] - 上限ちょうどの初期値は受け入れられ、入力の EOF が返ること。
+    EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL, actual_ret_over); // [確認_異常系] - 上限を超える初期値が拒否されること。
+    EXPECT_STREQ("", buf);                                  // [確認_異常系] - 出力先が空文字列であること。
+
+    // Cleanup
+    cplat_prompt_dispose(handle);
+}
+
+// TTY でない場合は初期値を使わず、読み取った行を返すことの確認
+TEST_F(promptTest, readline_with_initial_ignores_initial_text_when_not_tty)
+{
+    // Arrange
+    NiceMock<Mock_cplat> mock_cplat;
+    char piped[] = "piped";
+    char buf[32];
+
+    prompt_->is_tty = 0; // [状態] - TTY でない状態にする。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_fgets(_, _, _, _))
+        .WillOnce(DoAll(SetArrayArgument<0>(piped, piped + sizeof(piped)), Return(CPLAT_OK)));
+    // [Pre-Assert確認_正常系] - cplat_fgets が 1 回呼び出されること。
+    // [Pre-Assert手順] - cplat_fgets から "piped" を返却する。
+
+    // Act
+    int actual_ret = cplat_prompt_readline_with_initial_at(prompt_, buf, sizeof(buf), NULL, "initial",
+                                                           "promptTest.cc", 1); // [手順] - 初期値を指定して非 TTY で読み取る。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret);         // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_STREQ("piped", buf);              // [確認_正常系] - 初期値ではなく読み取った行が返ること。
+    EXPECT_EQ(0, promptFakeEnterRawCount()); // [確認_正常系] - raw モードへ移行しないこと。
+}
+
+// 不正な引数を拒否することの確認
+TEST_F(promptTest, readline_with_initial_rejects_invalid_arguments)
+{
+    // Arrange
+    char buf[32];
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_handle = cplat_prompt_readline_with_initial_at(NULL, buf, sizeof(buf), ">> ", "a", "promptTest.cc",
+                                                                  1); // [手順] - ハンドルに NULL を指定する。
+    int actual_ret_buf = cplat_prompt_readline_with_initial_at(prompt_, NULL, sizeof(buf), ">> ", "a", "promptTest.cc",
+                                                               1); // [手順] - 出力先に NULL を指定する。
+    int actual_ret_size = cplat_prompt_readline_with_initial_at(prompt_, buf, 0u, ">> ", "a", "promptTest.cc",
+                                                                1); // [手順] - 出力先のバイト数に 0 を指定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_handle); // [確認_異常系] - ハンドル NULL が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_buf);    // [確認_異常系] - 出力先 NULL が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_size);   // [確認_異常系] - バイト数 0 が拒否されること。
+}

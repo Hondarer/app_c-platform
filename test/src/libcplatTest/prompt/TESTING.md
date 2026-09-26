@@ -6,14 +6,14 @@
 
 カバレッジは条件網羅 (C2) を基準とし、Linux の gcov 結果を計測値として扱います。
 
-テスト対象ソースとテスト数、2026-08-11 の計測結果は次のとおりです。
+テスト対象ソースとテスト数、2026-09-26 の計測結果は次のとおりです。
 
 | 対象ソース | テスト ディレクトリ | テスト数 | 行カバレッジ | C2 カバレッジ |
 |---|---|---:|---:|---:|
-| `prompt_edit.c` | `promptEditTest` | 19 | 100% (64/64) | 100% (54/54) |
-| `prompt_linux.c` | `promptLinuxTest` | 12 | 100% (48/48) | 100% (22/22) |
-| `prompt.c` | `promptTest` | 37 | 91% (310/340) | 94% (170/181) |
-| `pinned_prompt.c` | `pinnedPromptTest` | 13 | 55% (446/806) | 58% (274/473) |
+| `prompt_edit.c` | `promptEditTest` | 28 | 100% (80/80) | 100% (68/68) |
+| `prompt_linux.c` | `promptLinuxTest` | 14 | 100% (48/48) | 92% (24/26) |
+| `prompt.c` | `promptTest` | 57 | 100% (345/345) | 100% (171/171) |
+| `pinned_prompt.c` | `pinnedPromptTest` | 54 | 100% (807/807) | 100% (471/471) |
 | `prompt_windows.c` | `promptWindowsTest` | 13 | Linux では計測対象外 | Linux では計測対象外 |
 
 ## テスト構成
@@ -22,7 +22,8 @@
 
 `prompt_edit.c` の文字境界、バッファー容量、オプション解決をテストします。
 
-`realloc` の失敗、NULL 引数、容量上限、UTF-8 の継続バイトを含む境界条件を扱います。
+`realloc` の失敗、NULL 引数、容量上限、UTF-8 の継続バイトを含む境界条件を扱います。  
+入力欄の初期値の検証 (制御文字の拒否、上限ちょうどと超過、上限 0) も扱います。
 
 ### promptTest
 
@@ -38,7 +39,8 @@ ADD_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/cplat/prompt/prompt_edit.c
 ```
 
-`promptFakeSetInput()` に入力バイト列を渡し、`cplat_prompt_readline_at()` で行編集、履歴、UTF-8、エスケープ シーケンス、EOF を確認します。
+`promptFakeSetInput()` に入力バイト列を渡し、`cplat_prompt_readline_at()` で行編集、履歴、UTF-8、エスケープ シーケンス、EOF を確認します。  
+`cplat_prompt_readline_with_initial_at()` では、初期値の確定と編集、履歴から初期値へ戻る操作、初期値の拒否で入力を消費しないこと、非 TTY で初期値を使わないことを確認します。
 
 ```cpp
 promptFakeSetInput("abc\r");              // "abc" と Enter
@@ -52,7 +54,9 @@ prompt_ = cplat_prompt_create(NULL);
 prompt_->is_tty = 0;
 ```
 
-`promptAllocFailureTest` では、ハンドル、編集バッファー、履歴、コンテキスト、書式付き入力におけるメモリ確保失敗を `Mock_stdlib` で注入します。
+`promptAllocFailureTest` では、ハンドル、編集バッファー、履歴、コンテキスト、書式付き入力、初期値付き入力におけるメモリ確保失敗を注入します。  
+行編集の内部 API は `stub_cplat` が提供し、編集バッファーの拡張は本番の `prompt_edit.c` と同じく `cplat_realloc` を使います。  
+そのため、編集バッファーの拡張の失敗は `Mock_cplat` の `cplat_realloc` で注入できます。
 
 ### promptLinuxTest
 
@@ -84,6 +88,7 @@ ADD_SRCS := \
 - raw モードの移行と復帰、SIGWINCH ハンドラーの登録
 - 入力の EINTR、リサイズ通知、通常読み取り、EOF
 - `select` のタイムアウトと入力可能状態
+- 初期値付き readline の確定、編集、履歴から初期値へ戻る操作、初期値の拒否、非 TTY の fallback、編集バッファー拡張の失敗
 
 Linux では `Mock_ioctl`、`Mock_signal`、`Mock_termios`、`Mock_unistd`、`Mock_sys_select` を使用します。
 

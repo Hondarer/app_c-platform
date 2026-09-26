@@ -627,6 +627,7 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | 用途 | cplat API |
 |---|---|
 | 1 行の対話的入力を読み取る | `cplat_prompt_create` / `cplat_prompt_readline` / `cplat_prompt_readline_at` / `cplat_prompt_readline_fmt` / `cplat_prompt_readline_fmt_at` / `cplat_prompt_dispose` |
+| 入力欄に初期値を入れた状態で 1 行の対話的入力を読み取る (既存の値を編集させる) | `cplat_prompt_readline_with_initial` / `cplat_prompt_readline_with_initial_at` / `cplat_pinned_prompt_readline_with_initial` / `cplat_pinned_prompt_readline_with_initial_at` |
 | 画面下部に固定したプロンプトへ入力しつつ、その上にログを流す | `cplat_pinned_prompt_create` / `cplat_pinned_prompt_readline` / `cplat_pinned_prompt_readline_fmt` / `cplat_pinned_prompt_write` / `cplat_pinned_prompt_printf` / `cplat_pinned_prompt_status_enable` / `cplat_pinned_prompt_status_set` / `cplat_pinned_prompt_dispose` |
 
 ### トレース

@@ -429,3 +429,109 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
     EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ((max_size / 2u) + 1u, cap); // [確認_異常系] - 再確保失敗後も容量が変化しないこと。
 }
+
+/*
+ * cplat_prompt_edit_validate_initial_text
+ */
+
+// NULL の初期値を、長さ 0 として受け入れることの確認
+TEST_F(promptEditTest, validate_initial_text_accepts_null_as_empty)
+{
+    // Arrange
+    size_t length = 99u; // [状態] - 長さの格納先に 0 以外を入れておく。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_edit_validate_initial_text(NULL, 16u, &length); // [手順] - NULL の初期値を検証する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - CPLAT_OK が返ること。
+    EXPECT_EQ(0u, length);           // [確認_正常系] - 長さ 0 が格納されること。
+}
+
+// ASCII と UTF-8 の多バイト文字を含む初期値を受け入れることの確認
+TEST_F(promptEditTest, validate_initial_text_accepts_ascii_and_utf8)
+{
+    // Arrange
+    const char text[] = "edit 1 \xE3\x81\x82"; // [状態] - ASCII 7 バイトと 3 バイトの日本語 1 文字を用意する。
+    size_t length = 0u;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_edit_validate_initial_text(text, 16u, &length); // [手順] - 初期値を検証する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 多バイト文字を制御文字と誤判定せず CPLAT_OK が返ること。
+    EXPECT_EQ(10u, length);          // [確認_正常系] - NUL を除くバイト数 10 が格納されること。
+}
+
+// 改行、タブ、DEL を含む初期値を拒否することの確認
+TEST_F(promptEditTest, validate_initial_text_rejects_control_characters)
+{
+    // Arrange
+    size_t length = 0u;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_newline = cplat_prompt_edit_validate_initial_text("a\nb", 16u, &length); // [手順] - 改行を含む初期値を検証する。
+    int actual_ret_tab = cplat_prompt_edit_validate_initial_text("a\tb", 16u, &length);     // [手順] - タブを含む初期値を検証する。
+    int actual_ret_delete = cplat_prompt_edit_validate_initial_text("a\x7F", 16u, &length); // [手順] - DEL を含む初期値を検証する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_newline); // [確認_異常系] - 改行を含む初期値が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_tab);     // [確認_異常系] - タブを含む初期値が拒否されること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_delete);  // [確認_異常系] - DEL を含む初期値が拒否されること。
+    EXPECT_EQ(0u, length);                                     // [確認_異常系] - 長さ 0 が格納されること。
+}
+
+// 上限ちょうどの初期値を受け入れ、1 バイト超える初期値を拒否することの確認
+TEST_F(promptEditTest, validate_initial_text_checks_max_bytes_boundary)
+{
+    // Arrange
+    size_t length_fit = 0u;
+    size_t length_over = 99u;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_fit = cplat_prompt_edit_validate_initial_text("abc", 4u, &length_fit); // [手順] - NUL を含めて 4 バイトの初期値を上限 4 で検証する。
+    int actual_ret_over = cplat_prompt_edit_validate_initial_text("abcd", 4u, &length_over); // [手順] - NUL を含めて 5 バイトの初期値を上限 4 で検証する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret_fit);                    // [確認_正常系] - 上限ちょうどの初期値が受け入れられること。
+    EXPECT_EQ(3u, length_fit);                              // [確認_正常系] - 長さ 3 が格納されること。
+    EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL, actual_ret_over); // [確認_異常系] - 上限を超える初期値が拒否されること。
+    EXPECT_EQ(0u, length_over);                             // [確認_異常系] - 長さ 0 が格納されること。
+}
+
+// 上限 0 では空文字列も受け入れないことの確認
+TEST_F(promptEditTest, validate_initial_text_rejects_zero_max_bytes)
+{
+    // Arrange
+    size_t length = 0u;
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_edit_validate_initial_text("", 0u, &length); // [手順] - 上限 0 で空文字列を検証する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL, actual_ret); // [確認_異常系] - NUL 終端も格納できないため拒否されること。
+}
+
+// 長さの格納先が NULL の場合を拒否することの確認
+TEST_F(promptEditTest, validate_initial_text_rejects_null_length_out)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_prompt_edit_validate_initial_text("abc", 16u, NULL); // [手順] - 長さの格納先に NULL を渡す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT が返ること。
+}
