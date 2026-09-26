@@ -458,8 +458,14 @@ static int prompt_readline_fallback(char *buf, const size_t buf_size, const char
 
 /**
  *  @brief          入力欄の初期値を指定して 1 行を読み取ります。
- *  @param[in]      initial_text    入力欄の初期値です。検証済みであること。NULL は空文字列として扱います。
+ *  @param[in,out]  p               プロンプト操作の状態。
+ *  @param[out]     buf             入力結果の格納先。
+ *  @param[in]      buf_size        @p buf のバイト数。
+ *  @param[in]      prompt_str      プロンプト。NULL の場合は表示しません。
+ *  @param[in]      initial_text    入力欄の初期値。検証済みであること。NULL は空文字列として扱います。
  *  @param[in]      initial_length  @p initial_text のバイト数 (NUL を除く) です。
+ *  @param[in]      file            呼び出し元のファイル名。
+ *  @param[in]      line            呼び出し元の行番号。
  *
  *  cplat_prompt_readline_at() と cplat_prompt_readline_with_initial_at() が共有する本体です。\n
  *  TTY でない場合は初期値を使用しません。入力側が行全体を与えるためです。
