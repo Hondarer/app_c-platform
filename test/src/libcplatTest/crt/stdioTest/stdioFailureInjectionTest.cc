@@ -315,26 +315,22 @@ TEST(stdioFailureInjectionTest, fread_and_fwrite_classify_arguments_and_counts)
         .WillByDefault(Return(0)); // [状態] - ferror が呼び出された際に 0 を返すようにモックを設定する。
 
     // Pre-Assert
-    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, 1u, stream))
-        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread がサイズ 0 で 1 回呼び出されること。
-                               // [Pre-Assert手順] - サイズ 0 の fread から 0 件を返却する。
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 0u, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - fread がサイズ 0 で呼び出されないこと。
     EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 1u, stream))
         .WillOnce(Return(1u))
         .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread がサイズ 1 で 2 回呼び出されること。
                                // [Pre-Assert手順] - 全量 1 件ののち短い読み込み 0 件を返却する。
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, 1u, stream))
-        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fwrite がサイズ 0 で 1 回呼び出されること。
-                               // [Pre-Assert手順] - サイズ 0 の fwrite から 0 件を返却する。
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 0u, _, _))
+        .Times(0); // [Pre-Assert確認_正常系] - fwrite がサイズ 0 で呼び出されないこと。
     EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 1u, stream))
         .WillOnce(Return(1u))
         .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fwrite がサイズ 1 で 2 回呼び出されること。
                                // [Pre-Assert手順] - 全量 1 件ののち短い書き込み 0 件を返却する。
-    EXPECT_CALL(mock_stdio, fread(_, _, _, _, 1u, 0u, stream))
-        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fread が要素数 0 で 1 回呼び出されること。
-                               // [Pre-Assert手順] - fread から読み込み件数 0 を返却する。
-    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, 1u, 0u, stream))
-        .WillOnce(Return(0u)); // [Pre-Assert確認_正常系] - fwrite が要素数 0 で 1 回呼び出されること。
-                               // [Pre-Assert手順] - fwrite から書き込み件数 0 を返却する。
+    EXPECT_CALL(mock_stdio, fread(_, _, _, _, _, 0u, _))
+        .Times(0); // [Pre-Assert確認_正常系] - fread が要素数 0 で呼び出されないこと。
+    EXPECT_CALL(mock_stdio, fwrite(_, _, _, _, _, 0u, _))
+        .Times(0); // [Pre-Assert確認_正常系] - fwrite が要素数 0 で呼び出されないこと。
 
     // Act
     size_t read_null_buffer =

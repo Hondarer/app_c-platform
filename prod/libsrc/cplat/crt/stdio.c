@@ -249,6 +249,16 @@ size_t cplat_fread(void *buffer, const size_t size, const size_t count, FILE *st
         return 0u;
     }
 
+    if (size == 0u || count == 0u)
+    {
+        /* NOTE: C 標準では、size または count が 0 の fread は 0 を返し、ストリームの状態を変えない。
+         * 一方で、ライブラリ関数へ渡すポインタは長さ 0 でも有効である必要があるため、
+         * NULL の buffer を fread へ渡さないよう、fread を呼ばずに同じ結果を返す。
+         * see: https://en.cppreference.com/w/c/io/fread */
+        (void)cplat_error_report_success(detail_out);
+        return 0u;
+    }
+
     errno = 0;
     read_count = fread(buffer, size, count, stream);
     if (read_count < count && ferror(stream) != 0)
@@ -285,6 +295,16 @@ size_t cplat_fwrite(const void *buffer, const size_t size, const size_t count, F
     if ((buffer == NULL && size > 0u && count > 0u) || stream == NULL)
     {
         (void)cplat_error_report_errno(detail_out, EINVAL);
+        return 0u;
+    }
+
+    if (size == 0u || count == 0u)
+    {
+        /* NOTE: C 標準では、size または count が 0 の fwrite は 0 を返し、ストリームの状態を変えない。
+         * 一方で、ライブラリ関数へ渡すポインタは長さ 0 でも有効である必要があるため、
+         * NULL の buffer を fwrite へ渡さないよう、fwrite を呼ばずに同じ結果を返す。
+         * see: https://en.cppreference.com/w/c/io/fwrite */
+        (void)cplat_error_report_success(detail_out);
         return 0u;
     }
 
