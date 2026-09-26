@@ -10,7 +10,6 @@
 
 #include <cplat/crt/string.h>
 
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -44,6 +43,53 @@ static int cmp_sign(const int diff)
 }
 
 /**
+ *  @brief          1 バイトを ASCII 大小無視で比較し、比較を終えるかどうかを判定します。
+ *  @param[in]      lhs_char  1 つ目の文字列のバイト。
+ *  @param[in]      rhs_char  2 つ目の文字列のバイト。
+ *  @param[out]     result    比較を終える場合の結果。@p lhs_char 側が小さいとき -1、一致するとき 0、大きいとき 1 です。
+ *  @return         差分があるか終端に達したため比較を終える場合は 1、次のバイトへ進む場合は 0 です。
+ */
+static int ascii_casecmp_byte(const char lhs_char, const char rhs_char, int *result)
+{
+    const unsigned char left = (unsigned char)lhs_char;
+    const unsigned char right = (unsigned char)rhs_char;
+    const int diff = ascii_tolower(left) - ascii_tolower(right);
+
+    if (diff != 0)
+    {
+        *result = cmp_sign(diff);
+        return 1;
+    }
+    if (left == '\0')
+    {
+        *result = 0;
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  @brief          非 NULL の 2 文字列を、終端まで ASCII 大小無視で比較します。
+ *  @param[in]      lhs  比較する 1 つ目の文字列。
+ *  @param[in]      rhs  比較する 2 つ目の文字列。
+ *  @return         @p lhs が小さいとき -1、一致するとき 0、@p lhs が大きいとき 1 です。
+ */
+static int ascii_casecmp(const char *lhs, const char *rhs)
+{
+    size_t i;
+    int result = 0;
+
+    i = 0;
+    while (ascii_casecmp_byte(lhs[i], rhs[i], &result) == 0)
+    {
+        i++;
+    }
+
+    return result;
+}
+
+/**
  *  @brief          非 NULL の 2 文字列を、最大 count バイトまで ASCII 大小無視で比較します。
  *  @param[in]      lhs    比較する 1 つ目の文字列。
  *  @param[in]      rhs    比較する 2 つ目の文字列。
@@ -53,26 +99,14 @@ static int cmp_sign(const int diff)
 static int ascii_casecmp_bounded(const char *lhs, const char *rhs, const size_t count)
 {
     size_t i;
+    int result = 0;
 
-    i = 0;
-    while (i < count)
+    for (i = 0; i < count; i++)
     {
-        unsigned char left;
-        unsigned char right;
-        int diff;
-
-        left = (unsigned char)lhs[i];
-        right = (unsigned char)rhs[i];
-        diff = ascii_tolower(left) - ascii_tolower(right);
-        if (diff != 0)
+        if (ascii_casecmp_byte(lhs[i], rhs[i], &result) != 0)
         {
-            return cmp_sign(diff);
+            return result;
         }
-        if (left == '\0')
-        {
-            return 0;
-        }
-        i++;
     }
 
     return 0;
@@ -294,7 +328,7 @@ int cplat_strcasecmp(const char *lhs, const char *rhs)
         return 1;
     }
 
-    return ascii_casecmp_bounded(lhs, rhs, SIZE_MAX);
+    return ascii_casecmp(lhs, rhs);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

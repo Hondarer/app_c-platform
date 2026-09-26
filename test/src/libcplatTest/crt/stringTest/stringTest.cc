@@ -574,6 +574,22 @@ TEST_F(stringTest, strcasecmp_orders_unequal_strings)
     EXPECT_EQ(1, actual_ret_greater); // [確認_正常系] - 大きい側の比較結果が 1 であること。
 }
 
+// 一方が他方の先頭部分である文字列を、短い側が小さいと判定することの確認
+TEST_F(stringTest, strcasecmp_orders_prefix_strings)
+{
+    // Arrange
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret_shorter = cplat_strcasecmp("abc", "ABCD"); // [手順] - 短い側を左辺にして比較する。
+    int actual_ret_longer = cplat_strcasecmp("ABCD", "abc");  // [手順] - 長い側を左辺にして比較する。
+
+    // Assert
+    EXPECT_EQ(-1, actual_ret_shorter); // [確認_正常系] - 短い側を左辺にした比較結果が -1 であること。
+    EXPECT_EQ(1, actual_ret_longer);   // [確認_正常系] - 長い側を左辺にした比較結果が 1 であること。
+}
+
 // 空文字列どうしを一致と判定することの確認
 TEST_F(stringTest, strcasecmp_empty_strings_are_equal)
 {
