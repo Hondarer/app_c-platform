@@ -101,8 +101,7 @@ extern "C"
      *                  NULL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_pinned_prompt *CPLAT_API
     cplat_pinned_prompt_create(const cplat_pinned_prompt_options *options);
@@ -129,6 +128,10 @@ extern "C"
  *
  *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
  *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_pinned_prompt_readline(screen, buf, buf_size, prompt_str) \
     cplat_pinned_prompt_readline_at((screen), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
@@ -146,6 +149,10 @@ extern "C"
  *
  *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
  *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_pinned_prompt_readline_fmt(screen, buf, buf_size, fmt, ...) \
     cplat_pinned_prompt_readline_fmt_at((screen), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
@@ -163,6 +170,10 @@ extern "C"
  *                  初期値のためのメモリを確保できない場合は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
  *
  *  詳細は cplat_pinned_prompt_readline_with_initial_at() を参照してください。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_pinned_prompt_readline_with_initial(screen, buf, buf_size, prompt_str, initial_text)                        \
     cplat_pinned_prompt_readline_with_initial_at((screen), (buf), (buf_size), (prompt_str), (initial_text), __FILE__, \
@@ -188,7 +199,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_readline_at(cplat_pinned_prompt *screen, char *buf,
                                                                       size_t buf_size, const char *prompt_str,
@@ -226,7 +237,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  同一 @p screen への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_readline_with_initial_at(cplat_pinned_prompt *screen, char *buf,
                                                                             size_t buf_size, const char *prompt_str,
@@ -251,6 +262,10 @@ extern "C"
      *
      *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
      *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_readline_fmt_at(cplat_pinned_prompt *screen, char *buf,
                                                                           size_t buf_size, const char *file, int line,
@@ -274,8 +289,7 @@ extern "C"
      *  ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_write(cplat_pinned_prompt *screen,
                                                                   cplat_pinned_prompt_channel channel,
@@ -290,6 +304,9 @@ extern "C"
      *  @return         成功時は対象ストリームへ書き込んだバイト数を返します。引数不正、書式処理失敗、
      *                  またはメモリ確保失敗の場合は -1 を返します。
      *  @note           ANSI CSI SGR エスケープ シーケンスは、色指定としてそのまま出力します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_printf(cplat_pinned_prompt *screen,
                                                                    cplat_pinned_prompt_channel channel,
@@ -308,8 +325,7 @@ extern "C"
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  @p screen が NULL、または @p position が不正です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_status_enable(
         cplat_pinned_prompt *screen, cplat_pinned_prompt_status_position position, int enable);
@@ -327,8 +343,7 @@ extern "C"
      *                  0 として配置を計算します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部のミューテックスで保護されており、同一 @p screen に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_pinned_prompt_status_set(cplat_pinned_prompt *screen,
                                                                        cplat_pinned_prompt_status_position position,

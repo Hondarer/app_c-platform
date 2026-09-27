@@ -129,8 +129,7 @@ extern "C"
      *  @return         成功時は生成したハンドルを返します。メモリを確保できない場合は NULL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_prompt *CPLAT_API cplat_prompt_create(const cplat_prompt_options *options);
 
@@ -158,6 +157,10 @@ extern "C"
  *
  *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
  *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_prompt_readline(p, buf, buf_size, prompt_str) \
     cplat_prompt_readline_at((p), (buf), (buf_size), (prompt_str), __FILE__, __LINE__)
@@ -177,6 +180,10 @@ extern "C"
  *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
  *
  *  プロンプト文字列バッファーはハンドル内に保持し、必要に応じて自動拡張します。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_prompt_readline_fmt(p, buf, buf_size, fmt, ...) \
     cplat_prompt_readline_fmt_at((p), (buf), (buf_size), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
@@ -194,6 +201,10 @@ extern "C"
  *                  初期値のためのメモリを確保できない場合は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
  *
  *  詳細は cplat_prompt_readline_with_initial_at() を参照してください。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフではありません。\n
+ *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
  */
 #define cplat_prompt_readline_with_initial(p, buf, buf_size, prompt_str, initial_text)                        \
     cplat_prompt_readline_with_initial_at((p), (buf), (buf_size), (prompt_str), (initial_text), __FILE__, \
@@ -219,7 +230,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  同一 @p prompt への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_prompt_readline_at(cplat_prompt *prompt, char *buf, size_t buf_size,
                                                                  const char *prompt_str, const char *file, int line);
@@ -256,7 +267,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  同一 @p prompt への並行呼び出しは未定義動作です。入力は 1 スレッドから行ってください。
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_prompt_readline_with_initial_at(cplat_prompt *prompt, char *buf,
                                                                      size_t buf_size, const char *prompt_str,
@@ -281,6 +292,10 @@ extern "C"
      *
      *  フォールバック時に入力行が @p buf に収まらない場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、
      *  @p buf は空文字列になります。行の残りは次の呼び出しで取得できます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同一プロンプト ハンドルに対する呼び出しを、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_prompt_readline_fmt_at(cplat_prompt *p, char *buf, size_t buf_size,
                                                                      const char *file, int line, const char *fmt, ...)

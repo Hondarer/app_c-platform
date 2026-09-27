@@ -44,8 +44,7 @@ extern "C"
  *  文字コードと修飾子を除いた部分が @ref CPLAT_UI_LANGUAGE_TAG_MAX に収まらない指定も、解釈できないものとして扱います。
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。
+ *  本関数はスレッド セーフです。
  */
 int cplat_internal_ui_language_normalize(const char *value, char *tag_out, size_t tag_size);
 

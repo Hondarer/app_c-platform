@@ -61,8 +61,7 @@ extern "C"
      *                  エラーを伝播してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持たず、OS の乱数源を直接使用します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_random_bytes(void *buf, size_t size);
 

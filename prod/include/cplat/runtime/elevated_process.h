@@ -44,8 +44,7 @@ extern "C"
      *  Linux では実効ユーザー ID が root (0) かどうかを確認します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_elevated_process_is_elevated(int *elevated);
 
@@ -68,11 +67,11 @@ extern "C"
      *                  この場合 @p arguments の末尾に内部フラグを付与して再起動するため、昇格
      *                  プロセスは起動直後に cplat_console_attach_parent() を呼び出す必要が
      *                  あります。呼び出さない場合、昇格プロセスの出力は表示されません。\n
-     *                  呼び出し元にコンソールが無い場合は、昇格プロセスを通常表示で起動します。
+     *                  呼び出し元にコンソールが無い場合は、昇格プロセスを通常表示で起動します。\n
+     *                  Windows で UAC を表示するため、通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
      *
      *  @par            スレッド セーフ
-     *  本関数は内部に共有状態を持ちません。ただし、Windows で UAC を表示するため、
-     *  通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_elevated_process_run_if_needed(const char *arguments, int *exit_code,
                                                                              int *handled);
@@ -101,9 +100,10 @@ extern "C"
      *  Linux では cplat_elevated_process_run_if_needed() と同じ判定を行い、
      *  @p result_message は変更しません (別プロセスを起動しないため報告の余地がない)。
      *
+     *  @note           Windows で UAC を表示するため、通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
+     *
      *  @par            スレッド セーフ
-     *  本関数は内部に共有状態を持ちません。ただし、Windows で UAC を表示するため、
-     *  通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_elevated_process_run_with_result(const char *arguments, int *exit_code,
                                                                                int *handled, char *result_message,

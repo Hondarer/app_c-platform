@@ -451,8 +451,7 @@ extern "C"
         @endcode
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  複数スレッドから独立したハンドルを取得するために並行して呼び出すことができます。
+     *  本関数はスレッド セーフです。
      *
      *  @attention      CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED を指定した場合、同一ハンドルへの
      *                  API 呼び出しを利用者が直列化する必要があります。
@@ -486,14 +485,16 @@ extern "C"
      *  プロセス内で同一ファイルへの書き込みが調停されるため、占有モードでも併用できます
      *  (詳細は cplat_trace_file_sink_create を参照)。
      *
-     *  @param[in]      handle   cplat_tracer_create の戻り値。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @param[in]      handle   cplat_tracer_create の戻り値。NULL を渡してはなりません。
+     *  @return         成功時は @ref CPLAT_OK を返します。
+     *  @return         @p handle が NULL の場合、または開始処理に失敗した場合は @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で排他制御を行います。
      *
-     *  @warning        handle が NULL の場合は @ref CPLAT_ERR_UNKNOWN を返します。
      *  @warning        別プロセスとの間では占有モードの排他が働くため、同一実行ファイルを複数プロセス
      *                  起動するとデフォルト パスのオープンが 2 プロセス目以降で失敗する場合があります
      *                  (Windows)。cplat_tracer_set_file_name のファイル識別、または
@@ -515,14 +516,15 @@ extern "C"
      *  ファイル トレースの設定は保持され、次回の cplat_tracer_start で改めてファイルを開きます。\n
      *  すでに stopped 状態の場合は何もせず @ref CPLAT_OK を返します (べき等)。
      *
-     *  @param[in]      handle   cplat_tracer_create の戻り値。
-     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *  @param[in]      handle   cplat_tracer_create の戻り値。NULL を渡してはなりません。
+     *  @return         成功時は @ref CPLAT_OK を返します。
+     *  @return         @p handle が NULL の場合は @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で排他制御を行います。
-     *
-     *  @warning        handle が NULL の場合は @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @see            cplat_tracer_start
      */
@@ -540,7 +542,9 @@ extern "C"
      *  @return         現在の状態 (cplat_tracer_state)。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  返される状態は取得時点のスナップショットです。呼び出し直後に状態が変化する場合があります。
      */
     CPLAT_EXPORT cplat_tracer_state CPLAT_API cplat_tracer_get_state(cplat_tracer *handle);
@@ -557,7 +561,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_write_at(cplat_tracer *handle, cplat_trace_level level,
@@ -576,7 +582,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_writef_at(cplat_tracer *handle, cplat_trace_level level,
@@ -594,7 +602,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_vwritef_at(cplat_tracer *handle, cplat_trace_level level,
@@ -615,7 +625,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_write_hex_at(cplat_tracer *handle, cplat_trace_level level,
@@ -637,7 +649,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_write_hexf_at(cplat_tracer *handle, cplat_trace_level level,
@@ -657,7 +671,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  内部で共有ロックを取得して設定を参照し、複数スレッドから同時に呼び出せます。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_vwrite_hexf_at(cplat_tracer *handle, cplat_trace_level level,
@@ -681,7 +697,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped 状態でのみ有効です。started 状態では @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @see            cplat_tracer_get_name
@@ -705,7 +723,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            cplat_tracer_set_name
@@ -719,7 +739,9 @@ extern "C"
      *  @return         現在のインスタンス識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            cplat_tracer_set_name
@@ -744,7 +766,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped 状態でのみ有効です。started 状態では @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @see            cplat_tracer_get_file_name
@@ -769,7 +793,9 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            cplat_tracer_set_file_name
@@ -784,7 +810,9 @@ extern "C"
      *  @return         現在のファイル識別番号 (0 以上)。handle が NULL または利用不可の場合 -1。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも使用できます。
      *
      *  @see            cplat_tracer_set_file_name
@@ -800,7 +828,9 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は CPLAT_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     CPLAT_EXPORT cplat_trace_level CPLAT_API cplat_tracer_get_os_level(cplat_tracer *handle);
@@ -818,7 +848,9 @@ extern "C"
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -835,7 +867,9 @@ extern "C"
      *                  CPLAT_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     CPLAT_EXPORT cplat_trace_level CPLAT_API cplat_tracer_get_etw_level(cplat_tracer *handle);
@@ -855,7 +889,9 @@ extern "C"
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -868,7 +904,9 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は CPLAT_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     CPLAT_EXPORT cplat_trace_level CPLAT_API cplat_tracer_get_file_level(cplat_tracer *handle);
@@ -920,7 +958,9 @@ extern "C"
      *  パスとパラメーターが現状と一致し、しきい値レベルのみを変更する場合はファイルを開き直しません。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -935,7 +975,9 @@ extern "C"
      *  @return         現在のスレッショルド レベル。handle が NULL 時は CPLAT_TRACE_LEVEL_NONE。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  返される値は取得時点のスナップショットです。
      */
     CPLAT_EXPORT cplat_trace_level CPLAT_API cplat_tracer_get_stderr_level(cplat_tracer *handle);
@@ -951,7 +993,9 @@ extern "C"
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  level が通常のトレース レベルの範囲外です。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  stopped / started のどちらの状態でも有効です。変更は排他制御下で原子的に反映され、
      *  旧閾値と新閾値の両方で出力対象となるトレースを取りこぼしません。
      */
@@ -964,8 +1008,9 @@ extern "C"
      *  @param[in,out]  handle   cplat_tracer_create の戻り値を保持するポインター。NULL または *handle が NULL の場合は何もしません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_tracer_dispose(cplat_tracer **handle);
 
@@ -999,7 +1044,9 @@ extern "C"
         @endcode
      *
      *  @par            スレッド セーフ
-     *  本関数は stopped 状態でスレッド セーフです。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  stopped 状態のときは同時に実行できます。\n
+     *  started 状態のときは呼び出せません。
      */
     CPLAT_EXPORT cplat_tracer_hook_entry *CPLAT_API cplat_tracer_set_hook(cplat_tracer *handle,
                                                                                       cplat_tracer_hook_fn fn,
@@ -1015,7 +1062,9 @@ extern "C"
      *  @param[in]      hook_entry  cplat_tracer_set_hook の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
-     *  本関数は stopped 状態でスレッド セーフです。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  stopped 状態のときは同時に実行できます。\n
+     *  started 状態のときは呼び出せません。
      */
     CPLAT_EXPORT void CPLAT_API cplat_tracer_remove_hook(cplat_tracer *handle,
                                                                   cplat_tracer_hook_entry *hook_entry);
@@ -1033,7 +1082,9 @@ extern "C"
      *  @param[in]      message    解決済みメッセージ文字列。
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。\n
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。\n
      *  フック コールバック内から複数スレッドで同時に呼び出せます。
      */
     CPLAT_EXPORT void CPLAT_API cplat_tracer_call_next_hook(cplat_tracer_hook_entry *prev,
@@ -1066,7 +1117,9 @@ extern "C"
      *  @internal
      *
      *  @par            スレッド セーフ
-     *  CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは本関数はスレッド セーフです。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、同一ハンドルへの並行呼び出しを呼び出し側で防止してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED で生成したハンドルでは同時に実行できます。CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED では、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_tracer_write_with_source(cplat_tracer *handle,
                                                                        cplat_trace_level level,

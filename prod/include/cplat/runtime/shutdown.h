@@ -107,8 +107,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_shutdown_register(cplat_shutdown_fn callback, void *context);
 
@@ -126,8 +125,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_shutdown_request_register(cplat_shutdown_fn callback, void *context);
 
@@ -218,8 +216,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_shutdown_invoke_for_test(const cplat_shutdown_event *event,
                                                                         int *invoked_out);
@@ -235,8 +232,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_shutdown_request_invoke_for_test(const cplat_shutdown_event *event,
                                                                                 int *invoked_out);
@@ -248,8 +244,7 @@ extern "C"
      *  既存モジュール側の `call_once` 状態までは巻き戻しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の shutdown_lock で保護されており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_shutdown_reset_for_test(void);
 

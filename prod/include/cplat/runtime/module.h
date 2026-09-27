@@ -48,8 +48,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_module_get_path(char *path_out, size_t path_size,
                                                               const void *func_addr);
@@ -62,8 +61,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_module_get_basename(char *basename_out, size_t basename_size,
                                                                   const void *func_addr);

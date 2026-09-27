@@ -54,8 +54,7 @@ extern "C"
      *  書式文字列としてではなく、`%s` の引数として使用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持たず、静的文字列を返すだけです。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const char *CPLAT_API cplat_result_to_string(int result);
 
@@ -74,8 +73,7 @@ extern "C"
      *  Linux で Win32 ドメインを指定した場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側のバッファーへ書き込み、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_error_message(char *buf, size_t buf_size, const cplat_error *error);
 

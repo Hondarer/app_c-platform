@@ -66,8 +66,7 @@ extern "C"
      *  cplat_eventlog_register_source() で登録してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_eventlog_sink *CPLAT_API cplat_eventlog_sink_create(const char *source_name);
 
@@ -92,8 +91,7 @@ extern "C"
      *  実行ファイル絶対パスはプロセス内で初回だけ解決され、以後はキャッシュを使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ReportEventW は複数スレッドからの同時呼び出しをサポートしています。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_eventlog_sink_write(cplat_eventlog_sink *handle, int level,
                                                                   int64_t file_identifier, const char *instance_name,
@@ -105,8 +103,9 @@ extern "C"
      *  @param[in]      handle   cplat_eventlog_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する破棄操作および他の操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_eventlog_sink_dispose(cplat_eventlog_sink *handle);
 
@@ -130,8 +129,7 @@ extern "C"
      *  CPLAT_ERR_PERMISSION_DENIED を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_eventlog_register_source(const char *source_name,
                                                                        const char *message_file_path);
@@ -150,8 +148,7 @@ extern "C"
      *  HKLM への書き込みには管理者権限が必要です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_eventlog_unregister_source(const char *source_name);
 

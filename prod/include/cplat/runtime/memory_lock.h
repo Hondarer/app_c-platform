@@ -68,8 +68,7 @@ extern "C"
      *  Windows では committed page だけをロックできます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同じページに対する複数スレッドからの lock / unlock の対応関係は呼び出し側で管理してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_memory_lock_range(const void *address, size_t size);
 
@@ -81,6 +80,9 @@ extern "C"
      *
      *  実際に解除される範囲は OS のページ単位に丸められます。\n
      *  Windows では部分的に未ロックのページを含むと失敗することがあります。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_memory_unlock_range(const void *address, size_t size);
 
@@ -100,8 +102,7 @@ extern "C"
      *                  スワップへの書き出しも防ぐ場合は cplat_memory_lock_range() と併用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一範囲を複数スレッドから同時に操作しないことは呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_secure_zero(void *buf, size_t size);
 
@@ -152,9 +153,7 @@ extern "C"
     @enduml
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  複数スレッドから同時に呼び出して、呼び出しごとに独立した @p scope を取得できます。\n
-     *  @p options の stack_prefault_bytes は呼び出しスレッドだけに作用します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_memory_lock_self(const cplat_memory_lock_self_options *options,
                                                                cplat_memory_lock_scope **scope);
@@ -205,9 +204,9 @@ extern "C"
     @enduml
      *
      *  @par            スレッド セーフ
-     *  本関数は異なる @p scope に対してスレッド セーフです。\n
-     *  同一 @p scope を複数スレッドから同時に渡してはなりません。\n
-     *  同一 @p scope は 1 回だけ解放してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p scope に対する操作は同時に実行できます。\n
+     *  同一 @p scope に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_memory_lock_scope_release(cplat_memory_lock_scope *scope);
 

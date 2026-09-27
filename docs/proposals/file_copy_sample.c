@@ -96,8 +96,9 @@
  *                  @ref SAMPLE_SKIPPED になります。
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。同一のパスに対する並行呼び出しは呼び出し側で同期してください。
+ *  本関数は条件付きスレッド セーフです。\n
+ *  異なるパスに対する呼び出しは同時に実行できます。\n
+ *  同一パスに対する操作は、呼び出し側で同期してください。
  */
 int sample_file_copy_if_newer(const char *from_path, const char *to_path, cplat_error *detail_out);
 

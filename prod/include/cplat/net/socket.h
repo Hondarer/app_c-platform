@@ -96,8 +96,7 @@ extern "C"
      *  失敗した場合、@p sock_out へ @ref CPLAT_INVALID_SOCKET を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_open(cplat_socket_kind kind, cplat_socket *sock_out,
                                                           cplat_error *detail_out);
@@ -110,8 +109,9 @@ extern "C"
      *  解放経路で呼び出しても、呼び出し前に記録された診断情報が失われません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットを複数のスレッドから同時に閉じないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock を複数スレッドで同時に閉じる操作は二重クローズとなるため、同一 @p sock に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_socket_close(cplat_socket sock);
 
@@ -123,8 +123,7 @@ extern "C"
      *  失敗しても通知しません。停止できない場合でも呼び出し側に取るべき手段がないためです。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_socket_shutdown(cplat_socket sock);
 
@@ -137,8 +136,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_bind(cplat_socket sock,
                                                           const cplat_ipv4_endpoint *endpoint,
@@ -154,8 +152,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_listen(cplat_socket sock, int backlog,
                                                             cplat_error *detail_out);
@@ -174,8 +171,7 @@ extern "C"
      *  @ref CPLAT_CAUSE_WOULD_BLOCK になります。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_accept(cplat_socket sock, cplat_ipv4_endpoint *peer_out,
                                                             cplat_socket *sock_out, cplat_error *detail_out);
@@ -199,8 +195,7 @@ extern "C"
      *  結果を確定します。呼び出し側が中断を意識する必要はありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_connect(cplat_socket sock,
                                                              const cplat_ipv4_endpoint *endpoint,
@@ -216,8 +211,7 @@ extern "C"
      *  非ブロッキングの接続が完了したかどうかの判定に使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_get_pending_error(cplat_socket sock,
                                                                        cplat_error *detail_out);
@@ -231,8 +225,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_set_nonblocking(cplat_socket sock, int enable,
                                                                      cplat_error *detail_out);
@@ -246,8 +239,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_set_reuse_address(cplat_socket sock, int enable,
                                                                        cplat_error *detail_out);
@@ -261,8 +253,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_set_broadcast(cplat_socket sock, int enable,
                                                                    cplat_error *detail_out);
@@ -277,8 +268,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_set_multicast_interface(cplat_socket sock,
                                                                              uint32_t interface_address,
@@ -297,8 +287,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_join_multicast_group(cplat_socket sock, uint32_t group_address,
                                                                           uint32_t interface_address,
@@ -320,8 +309,7 @@ extern "C"
      *  明示的な離脱を通知する場合に使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_leave_multicast_group(cplat_socket sock,
                                                                            uint32_t group_address,
@@ -344,8 +332,9 @@ extern "C"
      *  送信エラーは @ref CPLAT_ERR_UNKNOWN で通知し、@p detail_out へ詳細を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットへ複数のスレッドから同時に送信しないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_send(cplat_socket sock, const void *buf, size_t len,
                                                           size_t *sent_out, cplat_error *detail_out);
@@ -361,8 +350,9 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットから複数のスレッドで同時に受信しないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_recv(cplat_socket sock, void *buf, size_t len,
                                                           size_t *received_out, cplat_error *detail_out);
@@ -379,8 +369,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_sendto(cplat_socket sock, const void *buf, size_t len,
                                                             const cplat_ipv4_endpoint *endpoint, size_t *sent_out,
@@ -398,8 +387,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_recvfrom(cplat_socket sock, void *buf, size_t len,
                                                               cplat_ipv4_endpoint *peer_out, size_t *received_out,
@@ -421,8 +409,9 @@ extern "C"
      *  送信エラーの詳細は @p detail_out へ格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットへ複数のスレッドから同時に送信しないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_send_all(cplat_socket sock, const void *buf, size_t len,
                                                               cplat_error *detail_out);
@@ -440,8 +429,9 @@ extern "C"
      *  受信し終える前に相手が送信を終了した場合は @ref CPLAT_ERR_EOF を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットから複数のスレッドで同時に受信しないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_recv_all(cplat_socket sock, void *buf, size_t len,
                                                               cplat_error *detail_out);
@@ -462,8 +452,7 @@ extern "C"
      *  判定が変化することはありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_wait_readable(cplat_socket sock, int timeout_ms, int *ready_out,
                                                                    cplat_error *detail_out);
@@ -484,8 +473,7 @@ extern "C"
      *  判定が変化することはありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_wait_writable(cplat_socket sock, int timeout_ms, int *ready_out,
                                                                    cplat_error *detail_out);
@@ -509,8 +497,7 @@ extern "C"
      *  待機がシグナルで中断された場合は、残り時間を再計算して待機を継続します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_wait_readable_multi(const cplat_socket *socks, size_t count,
                                                                          int timeout_ms, unsigned char *ready_out,
@@ -534,8 +521,9 @@ extern "C"
      *                  でなくなっているかどうかで以後の利用可否を判断してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のソケットに対して複数のスレッドから同時に呼び出さないことは呼び出し側の責務です。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるソケットに対する呼び出しは同時に実行できます。\n
+     *  同一 @p sock_inout に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_socket_shutdown_receive(cplat_socket *sock_inout,
                                                                       cplat_error *detail_out);

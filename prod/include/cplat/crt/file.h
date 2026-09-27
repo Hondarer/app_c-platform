@@ -92,8 +92,9 @@ extern "C"
      *  @param[out]     file  初期化対象の構造体。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_file_init(cplat_file *file);
 
@@ -124,8 +125,9 @@ extern "C"
      *  `cplat_interprocess_lock` または `cplat_interprocess_rwlock` (`sync.h`) を使用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_open(cplat_file *file, const char *path, int flags,
                                                         cplat_error *detail_out);
@@ -145,8 +147,9 @@ extern "C"
      *                  行わずに @ref CPLAT_ERR_PERMISSION_DENIED を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file への並行書き込みは呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file への並行書き込みは、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_write(cplat_file *file, const void *buf, size_t len,
                                                          cplat_error *detail_out);
@@ -169,8 +172,9 @@ extern "C"
      *  必要なバイト数が揃うまで呼び出し側で繰り返してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file への並行読み取りは呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file への並行読み取りは、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_read(cplat_file *file, void *buf, size_t len, size_t *read_out,
                                                         cplat_error *detail_out);
@@ -185,8 +189,9 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対するクローズや書き込みと並行して呼び出さないでください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_get_size(const cplat_file *file, size_t *size_out,
                                                             cplat_error *detail_out);
@@ -202,8 +207,9 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file への並行操作は呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file への並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_set_size(cplat_file *file, size_t size,
                                                             cplat_error *detail_out);
@@ -220,8 +226,9 @@ extern "C"
      *  Linux では fstat、Windows では GetFileInformationByHandle で取得します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対するクローズ操作と並行して呼び出さないでください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_get_id(const cplat_file *file, cplat_file_id *id_out,
                                                           cplat_error *detail_out);
@@ -241,8 +248,7 @@ extern "C"
      *  他プロセスの共有モードによらず取得できます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_get_path_id(const char *path, cplat_file_id *id_out,
                                                                cplat_error *detail_out);
@@ -264,12 +270,13 @@ extern "C"
      *                  Windows の NTFS は 100 ナノ秒、FAT は 2 秒です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対するクローズ操作と並行して呼び出さないでください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_get_modified_timestamp(const cplat_file *file,
-                                                                          cplat_timespec *timestamp_out,
-                                                                          cplat_error *detail_out);
+                                                                           cplat_timespec *timestamp_out,
+                                                                           cplat_error *detail_out);
 
     /**
      *  @brief          開いているファイルの最終更新日時を設定します。
@@ -297,12 +304,13 @@ extern "C"
      *                  Windows では 100 ナノ秒単位へ切り捨てられます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file への並行操作は呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file への並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_set_modified_timestamp(cplat_file *file,
-                                                                          const cplat_timespec *timestamp,
-                                                                          cplat_error *detail_out);
+                                                                           const cplat_timespec *timestamp,
+                                                                           cplat_error *detail_out);
 
     /**
      *  @brief          UTF-8 パスが指すファイルの最終更新日時を取得します。
@@ -319,8 +327,7 @@ extern "C"
      *  他プロセスの共有モードによらず取得できます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_get_path_modified_timestamp(const char *path,
                                                                                cplat_timespec *timestamp_out,
@@ -343,8 +350,9 @@ extern "C"
      *  ファイルの書き込み権限が必要です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一パスへの並行操作は呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるパスに対する呼び出しは同時に実行できます。\n
+     *  同一パスに対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_set_path_modified_timestamp(const char *path,
                                                                                const cplat_timespec *timestamp,
@@ -359,6 +367,11 @@ extern "C"
      *  @return         成功時は @ref CPLAT_OK 、失敗時は共通結果コードを返します。
      *
      *  Linux では `fsync`、Windows では `FlushFileBuffers` を使用します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_flush(cplat_file *file, cplat_error *detail_out);
 
@@ -372,8 +385,9 @@ extern "C"
      *  @return         成功時は @ref CPLAT_OK 、失敗時は共通結果コードを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p file を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p file に対する呼び出しは同時に実行できます。\n
+     *  同一 @p file に対する並行操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_close(cplat_file *file, cplat_error *detail_out);
 

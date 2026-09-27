@@ -79,8 +79,7 @@ extern "C"
      *  名前解決は行いません。ホスト名を解決する場合は @ref cplat_ipv4_resolve を使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_ipv4_parse(const char *text, uint32_t *address_out);
 
@@ -97,8 +96,7 @@ extern "C"
      *  エラー コードを格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_ipv4_resolve(const char *text, uint32_t *address_out,
                                                            cplat_error *detail_out);
@@ -113,8 +111,7 @@ extern "C"
      *                  @ref CPLAT_ERR_BUFFER_TOO_SMALL 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_ipv4_to_string(uint32_t address, char *buffer, size_t buffer_size,
                                                              cplat_error *detail_out);

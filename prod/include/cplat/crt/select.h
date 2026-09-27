@@ -58,6 +58,10 @@
      *                   @p fd が 0 未満または `FD_SETSIZE` 以上の場合、Windows では
      *                   @p fd が `INVALID_SOCKET` の場合と、集合がすでに
      *                   `FD_SETSIZE` 個の SOCKET を保持している場合です。
+     *
+     *  @par            スレッド セーフ
+     *  本マクロはスレッド セーフではありません。\n
+     *  同一の @p set を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
      */
     #define CPLAT_FD_SET(fd, set) \
         do \

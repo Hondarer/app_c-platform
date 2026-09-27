@@ -41,8 +41,7 @@ extern "C"
      *  @return         ネットワーク バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint16_t CPLAT_API cplat_hton16(uint16_t value);
 
@@ -52,8 +51,7 @@ extern "C"
      *  @return         ホスト バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint16_t CPLAT_API cplat_ntoh16(uint16_t value);
 
@@ -63,8 +61,7 @@ extern "C"
      *  @return         ネットワーク バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_hton32(uint32_t value);
 
@@ -74,8 +71,7 @@ extern "C"
      *  @return         ホスト バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_ntoh32(uint32_t value);
 
@@ -85,8 +81,7 @@ extern "C"
      *  @return         ネットワーク バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint64_t CPLAT_API cplat_hton64(uint64_t value);
 
@@ -96,8 +91,7 @@ extern "C"
      *  @return         ホスト バイト オーダーの値を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint64_t CPLAT_API cplat_ntoh64(uint64_t value);
 

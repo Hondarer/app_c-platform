@@ -500,9 +500,7 @@ extern "C"
      *  @param[out]     error 初期化する値。NULL 可。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側が指定した値だけを書き換え、共有状態を持ちません。\n
-     *  同一の @p error を複数のスレッドから同時に書き換えないことは呼び出し側の責務です。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_clear(cplat_error *error);
 
@@ -517,8 +515,7 @@ extern "C"
      *                  Win32 の値には cplat_error_capture_windows_error() を使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_capture_errno(cplat_error *error, int errno_value);
 
@@ -530,8 +527,7 @@ extern "C"
      *  errno を変更する可能性がある処理を行いません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_capture_current_errno(cplat_error *error);
 
@@ -545,8 +541,7 @@ extern "C"
      *                  errno には cplat_error_capture_errno() を使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_capture_windows_error(cplat_error *error,
                                                                            unsigned long error_code);
@@ -559,8 +554,7 @@ extern "C"
      *  Win32 エラー コードを変更する可能性がある処理を行いません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し側が指定した値だけを書き換え、スレッドの直前値は更新しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_capture_current_windows_error(cplat_error *error);
 #endif
@@ -574,8 +568,7 @@ extern "C"
      *  直前値が記録されていないスレッドでは、空の値 (@ref CPLAT_ERROR_DOMAIN_NONE) を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  直前値はスレッド ローカルであり、他スレッドの記録と干渉しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_get_last(cplat_error *error_out);
 
@@ -587,8 +580,7 @@ extern "C"
      *  指定した値は現在のスレッドの記憶域へコピーされ、呼び出し元の値は変更しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  更新する対象は呼び出したスレッドの直前値だけです。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_set_last(const cplat_error *error);
 
@@ -599,8 +591,7 @@ extern "C"
      *  対応 API 以外の処理を挟む前に、古い値が残らないようにする場合に使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  クリアする対象は呼び出したスレッドの直前値だけです。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_error_clear_last(void);
 
@@ -610,8 +601,7 @@ extern "C"
      *  @return         設定されている場合は 1、それ以外は 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_error_is_set(const cplat_error *error);
 
@@ -621,8 +611,7 @@ extern "C"
      *  @return         ドメインを返します。NULL または不正な値の場合は CPLAT_ERROR_DOMAIN_NONE を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_error_domain CPLAT_API cplat_error_get_domain(const cplat_error *error);
 
@@ -635,8 +624,7 @@ extern "C"
      *  ドメインが一致しない場合に 0 を返すことで、体系の取り違えを防ぎます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_error_get_errno(const cplat_error *error);
 
@@ -650,8 +638,7 @@ extern "C"
      *  ドメインが一致しない場合に ERROR_SUCCESS を返すことで、体系の取り違えを防ぎます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT unsigned long CPLAT_API cplat_error_get_windows_error(const cplat_error *error);
 #endif
@@ -663,8 +650,7 @@ extern "C"
      *                  NULL または不正なドメインの場合は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_error_to_result(const cplat_error *error);
 
@@ -678,8 +664,7 @@ extern "C"
      *  分岐が複数に及ぶ場合は、本関数の戻り値に対する `switch` で記述できます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_error_cause CPLAT_API cplat_error_get_cause(const cplat_error *error);
 
@@ -698,8 +683,7 @@ extern "C"
      *                  範囲外の @p cause を指定した場合も 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_error_is(const cplat_error *error, cplat_error_cause cause);
 

@@ -131,8 +131,7 @@ extern "C"
      *  Linux 環境では対象の fd へ直接書き込みます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_console_write(cplat_stream stream, const char *text);
 

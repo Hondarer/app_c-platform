@@ -109,8 +109,7 @@ extern "C"
      *  @return         成功時 void * (関数ポインター)、失敗時 NULL。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ロック フリーの fast path と per-entry mutex による double-checked locking で排他制御しており、複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_sym_loader_resolve(cplat_sym_loader_entry *fobj);
 
@@ -119,6 +118,10 @@ extern "C"
  *
  *  @param[in]      fobj cplat_sym_loader_entry へのポインター。
  *  @param[in]      type CPLAT_SYM_LOADER_ENTRY_INIT で指定したものと同じ関数ポインター型。
+ *  @return         成功時指定された型の関数ポインター、失敗時 NULL。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフです。
  */
 #define cplat_sym_loader_resolve_as(fobj, type) ((type)cplat_sym_loader_resolve(fobj))
 
@@ -129,8 +132,7 @@ extern "C"
      *  @return         明示的デフォルトの場合は 1、それ以外は 0。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部で cplat_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_sym_loader_is_default(cplat_sym_loader_entry *fobj);
 
@@ -171,8 +173,7 @@ extern "C"
      *  @retval         CPLAT_ERR_INVALID_ARGUMENT  配列または配列要素が NULL です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部で cplat_sym_loader_resolve を呼び出しており、排他制御はそちらに委譲します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_sym_loader_info(cplat_sym_loader_entry *const *fobj_array,
                                                               const size_t fobj_length);

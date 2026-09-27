@@ -115,6 +115,9 @@
  *
  *  断片は自動補正せず、そのまま連結されます。\n
  *  パス区切り文字が必要な場合は @ref PLATFORM_PATH_SEP を明示的に指定してください。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフです。
  */
 #define cplat_path_concat(path_out, path_size, detail_out, ...) \
     cplat_path_concat_n((path_out), (path_size), (detail_out), CPLAT_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
@@ -131,6 +134,9 @@
  *
  *  cplat_path_concat() と異なり、断片間に @ref PLATFORM_PATH_SEP を自動的に補完します。\n
  *  詳細は cplat_path_join_n() を参照してください。
+ *
+ *  @par            スレッド セーフ
+ *  本マクロはスレッド セーフです。
  */
 #define cplat_path_join(path_out, path_size, detail_out, ...) \
     cplat_path_join_n((path_out), (path_size), (detail_out), CPLAT_PATH_CONCAT_COUNT(__VA_ARGS__), __VA_ARGS__)
@@ -151,8 +157,7 @@ extern "C"
      *  正規化済みのため、本関数を呼び出す必要はありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p path を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT char *CPLAT_API cplat_normalize_path_sep(char *path);
 
@@ -175,8 +180,7 @@ extern "C"
      *  @ref PLATFORM_PATH_SEP (`"/"`) 区切りへ正規化されます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると解決結果が不定になります。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_path_get_full(char *path_out, size_t path_size,
                                                             cplat_error *detail_out, const char *path);
@@ -198,8 +202,7 @@ extern "C"
      *  Windows ではファイル システムの慣習に合わせて大小文字を区別せず比較します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。相対パスを渡した場合、他スレッドがカレント ディレクトリを変更すると比較結果が不定になります。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out,
                                                           cplat_error *detail_out);
@@ -221,8 +224,7 @@ extern "C"
      *  ファイル パスを構築する際は @ref PLATFORM_PATH_SEP を挟んでください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_get_temp_dir(char *path_out, size_t path_size,
                                                            cplat_error *detail_out);
@@ -243,8 +245,7 @@ extern "C"
      *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_path_concat_n(char *path_out, size_t path_size,
                                                             cplat_error *detail_out, size_t part_count, ...);
@@ -261,8 +262,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vpath_concat_n(char *path_out, size_t path_size,
                                                              cplat_error *detail_out, size_t part_count,
@@ -283,8 +283,7 @@ extern "C"
      *  「basename / dirname / extension 系の例外」を参照してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const char *CPLAT_API cplat_path_basename(const char *path);
 
@@ -309,8 +308,7 @@ extern "C"
      *  ENAMETOOLONG を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_path_dirname(char *path_out, size_t path_size, cplat_error *detail_out,
                                                            const char *path);
@@ -330,8 +328,7 @@ extern "C"
      *  「basename / dirname / extension 系の例外」を参照してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const char *CPLAT_API cplat_path_extension(const char *path);
 
@@ -354,8 +351,7 @@ extern "C"
      *  ENAMETOOLONG を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_path_strip_extension(char *path_out, size_t path_size,
                                                                    cplat_error *detail_out, const char *path);
@@ -382,8 +378,7 @@ extern "C"
      *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_path_join_n(char *path_out, size_t path_size, cplat_error *detail_out,
                                                           size_t part_count, ...);
@@ -400,8 +395,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_BUFFER_TOO_SMALL のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vpath_join_n(char *path_out, size_t path_size, cplat_error *detail_out,
                                                            size_t part_count, va_list args);

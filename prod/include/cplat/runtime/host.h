@@ -56,8 +56,7 @@ extern "C"
      *  Windows では Winsock の `gethostname` を使わず、UTF-16 から UTF-8 へ変換します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_host_get_name(char *name_out, size_t name_size);
 

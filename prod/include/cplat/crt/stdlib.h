@@ -59,8 +59,9 @@ extern "C"
      *  @return         値の格納先が不足している場合は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  環境変数の読み取りのみを行います。他スレッドが同時に環境変数を変更する場合は、呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  他スレッドが環境変数を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが同時に環境変数を変更する場合は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_getenv(const char *name, char *buf, size_t buf_size, int *exists_out,
                                                      cplat_error *detail_out);
@@ -83,7 +84,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  環境変数の変更は、他スレッドによる読み取りと競合します。
+     *  環境変数の変更は、他スレッドによる読み取りと競合します。\n
      *  マルチスレッド化の前に設定を完了させるか、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_setenv(const char *name, const char *value, int overwrite,
@@ -105,7 +106,8 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  環境変数の変更は、他スレッドによる読み取りと競合します。
+     *  環境変数の変更は、他スレッドによる読み取りと競合します。\n
+     *  マルチスレッド化の前に設定を完了させるか、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_unsetenv(const char *name, cplat_error *detail_out);
 
@@ -128,8 +130,7 @@ extern "C"
      *  @return         `int64_t` で表現できない値の場合は @ref CPLAT_ERR_OUT_OF_RANGE を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_parse_int64(int64_t *value_out, const char *text, int base);
 
@@ -152,8 +153,7 @@ extern "C"
      *                  @ref CPLAT_ERR_OUT_OF_RANGE を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_parse_uint64(uint64_t *value_out, const char *text, int base);
 
@@ -174,8 +174,7 @@ extern "C"
      *  @return         `int` で表現できない値の場合は @ref CPLAT_ERR_OUT_OF_RANGE を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_parse_int(int *value_out, const char *text, int base);
 
@@ -196,8 +195,7 @@ extern "C"
      *  @return         `double` で表現できない値の場合は @ref CPLAT_ERR_OUT_OF_RANGE を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_parse_double(double *value_out, const char *text);
 
@@ -216,8 +214,7 @@ extern "C"
      *                  確保した領域へのポインターを返し、失敗を NULL で表します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_malloc(size_t size);
 
@@ -236,8 +233,7 @@ extern "C"
      *                  確保した領域へのポインターを返し、失敗を NULL で表します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_malloc_zerofill(size_t size);
 
@@ -258,8 +254,7 @@ extern "C"
      *                  確保した領域へのポインターを返し、失敗を NULL で表します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_calloc(size_t count, size_t size);
 
@@ -286,8 +281,9 @@ extern "C"
      *                  標準の `realloc` とは異なる扱いです。@ref cplat_free で明示的に解放してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p ptr を複数スレッドから同時に渡す場合は、呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるメモリ領域に対する操作は同時に実行できます。\n
+     *  同一 @p ptr に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_realloc(void *ptr, size_t count, size_t size);
 
@@ -313,8 +309,9 @@ extern "C"
      *                  標準の `realloc` とは異なる扱いです。@ref cplat_free で明示的に解放してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p ptr を複数スレッドから同時に渡す場合は、呼び出し側で同期してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるメモリ領域に対する操作は同時に実行できます。\n
+     *  同一 @p ptr に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_realloc_zerofill(void *ptr, size_t old_count, size_t count,
                                                                  size_t size);
@@ -333,8 +330,9 @@ extern "C"
      *                  戻り値を持ちません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるメモリ領域に対する操作は同時に実行できます。\n
+     *  同一 @p ptr に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_free(void *ptr);
 

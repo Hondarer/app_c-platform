@@ -44,8 +44,7 @@ extern "C"
      *                  バッファー不足時は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strcpy(char *dest, size_t dest_size, const char *src);
 
@@ -58,8 +57,7 @@ extern "C"
      *  @return         成功時は @ref CPLAT_OK 、引数不正時は @ref CPLAT_ERR_INVALID_ARGUMENT を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strncpy(char *dest, size_t dest_size, const char *src, size_t count);
 
@@ -72,8 +70,7 @@ extern "C"
      *                  バッファー不足時は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strcat(char *dest, size_t dest_size, const char *src);
 
@@ -90,8 +87,7 @@ extern "C"
      *  連結結果が @p dest に収まらない場合は @p dest を変更しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strncat(char *dest, size_t dest_size, const char *src, size_t count);
 
@@ -111,8 +107,7 @@ extern "C"
      *                  トークンへのポインターを返し、終了を NULL で表します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  解析状態は @p saveptr に保持され、ライブラリ内に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT char *CPLAT_API cplat_strtok_r(char *str, const char *delim, char **saveptr);
 
@@ -130,8 +125,7 @@ extern "C"
      *                  複製した領域へのポインターを返し、失敗を NULL で表します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT char *CPLAT_API cplat_strdup(const char *src);
 
@@ -150,8 +144,7 @@ extern "C"
      *                  比較結果そのものを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strcasecmp(const char *lhs, const char *rhs);
 
@@ -170,8 +163,7 @@ extern "C"
      *                  比較結果そのものを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_strncasecmp(const char *lhs, const char *rhs, size_t count);
 
@@ -184,8 +176,7 @@ extern "C"
      *                  バッファー不足時は @ref CPLAT_ERR_BUFFER_TOO_SMALL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_wcscpy(wchar_t *dest, size_t dest_size, const wchar_t *src);
 
@@ -198,6 +189,9 @@ extern "C"
      *
      *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
      *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_sscanf(const char *buffer, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -213,6 +207,9 @@ extern "C"
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
      *
      *  文字列とスキャン セットの変換には @ref cplat_sscanf と同じ幅指定規約が適用されます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vsscanf(const char *buffer, const char *format, va_list args)
 #if defined(COMPILER_GCC)

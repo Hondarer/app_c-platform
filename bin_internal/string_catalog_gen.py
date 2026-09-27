@@ -1235,7 +1235,7 @@ ACCESSOR_DECLARATIONS = """\
      *  構築済みのカタログ オブジェクトを取得する場合は @c @MODULE@_catalog を使用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT_FULL@const @LIBRARY@_entry *@API_FULL@@MODULE@_entries(void);
 
@@ -1244,7 +1244,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @return         文字列の登録件数です。1 以上を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT@int @API@@MODULE@_entry_count(void);
 
@@ -1259,7 +1259,7 @@ ACCESSOR_DECLARATIONS = """\
      *  返されるポインターは静的領域を指しているため、呼び出し側で解放してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT_FULL@const int *@API_FULL@@MODULE@_key_index(void);
 
@@ -1268,7 +1268,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @return         インデックス テーブルの要素数です。最大の文字列キーに 1 を加えた値となります。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT_FULL@int @API_FULL@@MODULE@_key_index_count(void);
 
@@ -1283,7 +1283,7 @@ ACCESSOR_DECLARATIONS = """\
      *  他のカタログ定義と組み合わせる場合は、対象に応じたカタログ オブジェクトを使い分けます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT_FULL@const @LIBRARY@ *@API_FULL@@MODULE@_catalog(void);
 
@@ -1298,7 +1298,7 @@ ACCESSOR_DECLARATIONS = """\
      *  @c id、@c details、@c remarks は、定義で省略されている場合に NULL です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。読み取り専用の静的データだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     @EXPORT_FULL@const @LIBRARY@_entry *@API_FULL@@MODULE@_entry(int string_key);
 
@@ -1314,7 +1314,9 @@ ACCESSOR_DECLARATIONS = """\
      *  内部で @c @MODULE@_catalog を補って @c @LIBRARY@_format を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @c @LIBRARY@_format と同じです。
+     *  本関数は条件付きスレッド セーフです。\\n
+     *  言語設定を同時に変更しない場合は、同時に実行できます。\\n
+     *  他スレッドが言語設定を変更する場合は、呼び出し側で同期してください。
      */
     @EXPORT@int @API@@MODULE@_format(char *dest, size_t dest_size, int string_key, ...);
 
@@ -1330,7 +1332,9 @@ ACCESSOR_DECLARATIONS = """\
      *  内部で @c @MODULE@_catalog を補って @c @LIBRARY@_vformat を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @c @LIBRARY@_vformat と同じです。
+     *  本関数は条件付きスレッド セーフです。\\n
+     *  言語設定を同時に変更しない場合は、同時に実行できます。\\n
+     *  他スレッドが言語設定を変更する場合は、呼び出し側で同期してください。
      */
     @EXPORT@int @API@@MODULE@_vformat(char *dest, size_t dest_size, int string_key, va_list args);
 
@@ -1412,8 +1416,7 @@ TRACE_WRITE_DECLARATION = """\
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\\n
-     *  出力を行うスレッドと並行して呼び出さないでください。\\n
-     *  出力を開始する前に設定し、以降は変更しない使い方を想定しています。
+     *  プロセス全体で本関数の呼び出しを直列化してください。
      */
     @EXPORT@void @API@@MODULE@_set_tracer(cplat_tracer *tracer);
 
@@ -1424,7 +1427,9 @@ TRACE_WRITE_DECLARATION = """\
      *  設定を一時的に差し替える場合に、元のハンドルを保存するために使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。@c @MODULE@_set_tracer と並行して呼び出さないでください。
+     *  本関数は条件付きスレッド セーフです。\\n
+     *  他スレッドが出力先の設定を同時に変更しない場合は、同時に実行できます。\\n
+     *  他スレッドが出力先の設定を同時に変更する場合は、呼び出し側で同期してください。
      */
     @EXPORT@cplat_tracer *@API@@MODULE@_get_tracer(void);
 
@@ -1447,8 +1452,9 @@ TRACE_WRITE_DECLARATION = """\
      *  呼び出し位置は引数として受け取るため、トレース側で重ねて付与しません。
      *
      *  @par            スレッド セーフ
-     *  スレッド セーフ性は @c cplat_tracer_write_at と同じです。\\n
-     *  ただし、出力先の設定を変更している間は並行して呼び出せません。
+     *  本関数は条件付きスレッド セーフです。\\n
+     *  出力先の設定および言語設定を同時に変更しない場合は、同時に実行できます。\\n
+     *  他スレッドがそれらを同時に変更する場合は、呼び出し側で同期してください。
      */
     @EXPORT@int @API@@MODULE@_write(int string_key, ...);
 """

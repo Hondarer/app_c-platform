@@ -47,7 +47,7 @@ extern "C"
      *  書式や引数スキーマの妥当性は確認しません。@ref cplat_string_catalog_verify が担います。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     bool cplat_internal_string_catalog_is_usable(const cplat_string_catalog *catalog);
 
@@ -60,7 +60,7 @@ extern "C"
      *  @ref cplat_internal_string_catalog_entry_at で走査するときの上限として使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     int cplat_internal_string_catalog_entry_count(const cplat_string_catalog *catalog);
 
@@ -73,7 +73,7 @@ extern "C"
      *  返すポインターは利用者が用意した領域を指します。ライブラリでは解放しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     const cplat_string_catalog_entry *cplat_internal_string_catalog_entry_at(const cplat_string_catalog *catalog,
                                                                              int index);
@@ -87,7 +87,7 @@ extern "C"
      *  返すポインターは利用者が用意した領域を指します。ライブラリでは解放しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     const cplat_string_catalog_entry *cplat_internal_string_catalog_find_entry(const cplat_string_catalog *catalog,
                                                                                int string_key);

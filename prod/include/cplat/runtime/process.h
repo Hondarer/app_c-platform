@@ -50,8 +50,7 @@ extern "C"
      *  返されるパスは UTF-8 文字列で、パス セパレーターは '/' に統一されます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_get_executable_path(char *path_out, size_t path_size);
 
@@ -64,8 +63,7 @@ extern "C"
      *  返すハンドル (@ref cplat_process) を使用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_process_get_pid(void);
 
@@ -80,8 +78,7 @@ extern "C"
      *  終了したスレッドの識別子は、OS が後続のスレッドへ再び割り当てる場合があります。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT uint32_t CPLAT_API cplat_process_get_tid(void);
 
@@ -131,8 +128,7 @@ extern "C"
      *  @return         結果コードを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立したプロセス ハンドルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_start(const cplat_process_options *options,
                                                             cplat_process **process);
@@ -143,6 +139,11 @@ extern "C"
      *  @param[in]      timeout_ms  タイムアウト (ms)。@ref CPLAT_PROCESS_WAIT_FOREVER または
      *                              @ref CPLAT_PROCESS_NO_WAIT も指定可能です。
      *  @return         結果コードを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p process に対する操作は同時に実行できます。\n
+     *  同一 @p process に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_wait(cplat_process *process, int timeout_ms);
 
@@ -151,6 +152,11 @@ extern "C"
      *  @param[in]      process    対象のプロセス ハンドル。NULL を渡してはなりません。
      *  @param[out]     exit_code  終了コードの格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p process に対する操作は同時に実行できます。\n
+     *  同一 @p process に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_get_exit_code(cplat_process *process, int *exit_code);
 
@@ -158,6 +164,11 @@ extern "C"
      *  @brief          子プロセスを強制終了します。
      *  @param[in]      process  対象のプロセス ハンドル。NULL を渡してはなりません。
      *  @return         結果コードを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p process に対する操作は同時に実行できます。\n
+     *  同一 @p process に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_terminate(cplat_process *process);
 
@@ -167,6 +178,11 @@ extern "C"
      *
      *  実行中のプロセスは終了しません。\n
      *  実行中プロセスを終了する場合は、先に cplat_process_terminate() を呼び出してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p process に対する操作は同時に実行できます。\n
+     *  同一 @p process に対する破棄操作および他の操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_process_dispose(cplat_process *process);
 
@@ -176,6 +192,9 @@ extern "C"
      *  @param[in]      timeout_ms  タイムアウト (ms)。
      *  @param[out]     exit_code   終了コードの格納先。NULL を渡してはなりません。
      *  @return         結果コードを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_process_run_sync(const cplat_process_options *options, int timeout_ms,
                                                                int *exit_code);

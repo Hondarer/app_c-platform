@@ -90,7 +90,7 @@ extern "C"
      *  `char` と 8 bit、16 bit の整数の種別は `int` として取り出し、種別が表す幅へ変換して格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     int string_catalog_collect_arguments(const cplat_string_catalog_entry *entry, va_list args,
                                          string_catalog_argument_value *values);
@@ -116,7 +116,7 @@ extern "C"
      *  構文が不正な場合でも @p dest は NUL 終端します。内容は保証しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     int string_catalog_render_text(char *dest, size_t dest_size, const char *text,
                                    const string_catalog_argument_value *values, int value_count);
@@ -136,7 +136,7 @@ extern "C"
      *  @ref string_catalog_render_text が値の種別から検出します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     int string_catalog_validate_text(const char *text, const cplat_string_catalog_argument *arguments,
                                      int value_count);

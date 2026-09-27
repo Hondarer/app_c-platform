@@ -35,9 +35,12 @@
  *  @param[out]     wbuf        変換結果の書き込み先バッファー。NULL を渡してはなりません。
  *  @param[in]      wbuf_count  @p wbuf の要素数。0 および `INT_MAX` を超える値を渡してはなりません。
  *  @param[in]      utf8_text   変換元の UTF-8 文字列。NULL を渡してはなりません。
- *  @return         変換後の文字数 (null 終端含む)。失敗時は -1。
+ *  @return         変換後の文字数 (null 終端含む)。失敗時は -1 を返します。
  *
  *  パスの区切り文字は正規化しません。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wstr(wchar_t *wbuf, size_t wbuf_count, const char *utf8_text);
 
@@ -46,9 +49,12 @@ CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wstr(wchar_t *wbuf, size_t wbuf_count, 
  *  @param[out]     dest       変換結果の書き込み先バッファー。NULL を渡してはなりません。
  *  @param[in]      dest_size  @p dest のバイト数。0 および `INT_MAX` を超える値を渡してはなりません。
  *  @param[in]      wtext      変換元のワイド文字列。NULL を渡してはなりません。
- *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1。
+ *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1 を返します。
  *
  *  パスの区切り文字は正規化しません。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT int CPLAT_API cplat_wstr_to_utf8(char *dest, size_t dest_size, const wchar_t *wtext);
 
@@ -57,7 +63,10 @@ CPLAT_EXPORT int CPLAT_API cplat_wstr_to_utf8(char *dest, size_t dest_size, cons
  *  @param[out]     wbuf        変換結果の書き込み先バッファー。NULL を渡してはなりません。
  *  @param[in]      wbuf_count  @p wbuf の要素数。0 および `INT_MAX` を超える値を渡してはなりません。
  *  @param[in]      utf8_path   変換元の UTF-8 パス文字列。NULL を渡してはなりません。
- *  @return         変換後の文字数 (null 終端含む)。失敗時は -1。
+ *  @return         変換後の文字数 (null 終端含む)。失敗時は -1 を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count, const char *utf8_path);
 
@@ -68,7 +77,10 @@ CPLAT_EXPORT int CPLAT_API cplat_utf8_to_wpath(wchar_t *wbuf, size_t wbuf_count,
  *  @param[out]     dest        変換結果の書き込み先バッファー。NULL を渡してはなりません。
  *  @param[in]      dest_size   @p dest のバイト数。0 および `INT_MAX` を超える値を渡してはなりません。
  *  @param[in]      wpath       変換元のワイド文字列パス。NULL を渡してはなりません。
- *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1。
+ *  @return         変換後のバイト数 (null 終端含む)。失敗時は -1 を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT int CPLAT_API cplat_wpath_to_utf8(char *dest, size_t dest_size, const wchar_t *wpath);
 
@@ -77,8 +89,11 @@ CPLAT_EXPORT int CPLAT_API cplat_wpath_to_utf8(char *dest, size_t dest_size, con
  *
  *  返却した領域は @ref cplat_free で解放してください。
  *
- *  @param[in]      utf8_text   変換元の UTF-8 文字列。
- *  @return         変換したワイド文字列へのポインター。失敗時は NULL。
+ *  @param[in]      utf8_text   変換元の UTF-8 文字列。NULL を渡してはなりません。
+ *  @return         変換したワイド文字列へのポインター。失敗時は NULL を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT wchar_t *CPLAT_API cplat_utf8_to_wstr_alloc(const char *utf8_text);
 
@@ -87,8 +102,11 @@ CPLAT_EXPORT wchar_t *CPLAT_API cplat_utf8_to_wstr_alloc(const char *utf8_text);
  *
  *  返却した領域は @ref cplat_free で解放してください。
  *
- *  @param[in]      wtext       変換元のワイド文字列。
- *  @return         変換した UTF-8 文字列へのポインター。失敗時は NULL。
+ *  @param[in]      wtext       変換元のワイド文字列。NULL を渡してはなりません。
+ *  @return         変換した UTF-8 文字列へのポインター。失敗時は NULL を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT char *CPLAT_API cplat_wstr_to_utf8_alloc(const wchar_t *wtext);
 

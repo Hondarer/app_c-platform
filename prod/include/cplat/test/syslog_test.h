@@ -45,6 +45,9 @@
  *  @param[in]      nbytes  送信バイト数。
  *  @return         テスト FD に書き込み、/dev/log への送信を省略する場合は 1 を返します。\n
  *                  環境変数が未設定で、通常の /dev/log 送信を続行する場合は 0 を返します。
+ *
+ *  @par            スレッド セーフ
+ *  本関数はスレッド セーフです。
  */
 static int syslog_test_fd_write__(const char *buf, size_t nbytes)
 {

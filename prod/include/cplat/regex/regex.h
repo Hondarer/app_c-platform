@@ -138,8 +138,7 @@ extern "C"
      *                  照合要素 `[[.x.]]` と等価クラス `[[=x=]]` はサポートしません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立したハンドルを生成し、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_create(const char *pattern, unsigned int flags,
                                                            cplat_regex **regex_out, cplat_error *detail_out);
@@ -149,8 +148,9 @@ extern "C"
      *  @param[in]      regex  破棄するハンドル。NULL を渡した場合は何もしません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のハンドルを複数のスレッドから同時に破棄してはなりません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるハンドルに対する呼び出しは同時に実行できます。\n
+     *  同一 @p regex に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_regex_dispose(cplat_regex *regex);
 
@@ -164,8 +164,7 @@ extern "C"
      *  @ref CPLAT_REGEX_NOSUB を指定してコンパイルした場合は 1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ハンドルを変更しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT size_t CPLAT_API cplat_regex_get_group_count(const cplat_regex *regex);
 
@@ -196,8 +195,7 @@ extern "C"
      *  `^` と `\\b` を評価します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ハンドルを変更せず、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_search(const cplat_regex *regex, const char *text,
                                                            size_t text_len, size_t start_offset,
@@ -226,8 +224,7 @@ extern "C"
      *  一致する場合のみ `matched_out` に 1 を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ハンドルを変更せず、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_matches(const cplat_regex *regex, const char *text,
                                                             size_t text_len, unsigned int match_flags,
@@ -266,8 +263,7 @@ extern "C"
      *                  sed の書式を使用する場合は @ref CPLAT_REGEX_REPLACE_SED を指定してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ハンドルを変更せず、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_replace(const cplat_regex *regex, const char *text,
                                                             size_t text_len, const char *replacement,
@@ -297,8 +293,7 @@ extern "C"
      *  生成したハンドルは @ref cplat_regex_iter_dispose() で破棄してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立したハンドルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_iter_create(const cplat_regex *regex, const char *text,
                                                                 size_t text_len, unsigned int match_flags,
@@ -324,8 +319,9 @@ extern "C"
      *  空文字列への一致が発生した場合は、次の照合位置を 1 文字進めます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  同一のイテレーターを複数のスレッドから同時に操作してはなりません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるハンドルに対する呼び出しは同時に実行できます。\n
+     *  同一 @p iter に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_iter_next(cplat_regex_iter *iter,
                                                               cplat_regex_match *matches_out,
@@ -337,8 +333,9 @@ extern "C"
      *  @param[in]      iter  破棄するイテレーター。NULL を渡した場合は何もしません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一のイテレーターを複数のスレッドから同時に破棄してはなりません。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるハンドルに対する呼び出しは同時に実行できます。\n
+     *  同一 @p iter に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_regex_iter_dispose(cplat_regex_iter *iter);
 
@@ -370,8 +367,7 @@ extern "C"
      *  @ref CPLAT_OK を返し、`part_count_out` にのみ件数を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  ハンドルを変更せず、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_regex_split(const cplat_regex *regex, const char *text,
                                                           size_t text_len, size_t max_parts, unsigned int match_flags,

@@ -112,8 +112,7 @@ extern "C"
      *  @return         成功時はハンドル、失敗時は NULL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_etw_provider *CPLAT_API
     cplat_etw_provider_create(cplat_etw_provider_ref_t provider_ref);
@@ -128,8 +127,7 @@ extern "C"
      *  @return         常に @ref CPLAT_OK を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  TraceLoggingWrite は複数スレッドからの同時呼び出しをサポートしています。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_etw_provider_write(cplat_etw_provider *handle, int level,
                                                                  const char *service, const char *message);
@@ -158,8 +156,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_etw_session_check_access(void);
 
@@ -176,8 +173,7 @@ extern "C"
      *                  @ref CPLAT_ERR_PERMISSION_DENIED 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。各呼び出しは独立したセッションを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_etw_session_start(const char *session_name, const char *provider_guid_str,
                                                                 cplat_etw_event_fn callback, void *context,

@@ -83,8 +83,7 @@ extern "C"
      *                  プロセス間の一貫性は保証されません (本ファイル冒頭の @warning を参照)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立したハンドルを生成し、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_mmap_attach(const char *path, cplat_mmap_access access,
                                                           size_t create_size, cplat_mmap **map,
@@ -96,8 +95,7 @@ extern "C"
      *  @return         マップ済みアドレス。@p map が NULL の場合は NULL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void *CPLAT_API cplat_mmap_get_address(const cplat_mmap *map);
 
@@ -107,8 +105,7 @@ extern "C"
      *  @return         マップ サイズ (バイト)。@p map が NULL の場合は 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT size_t CPLAT_API cplat_mmap_get_size(const cplat_mmap *map);
 
@@ -126,8 +123,7 @@ extern "C"
      *  `FlushFileBuffers` を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p map に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_mmap_flush(cplat_mmap *map, void *address, size_t length,
                                                          cplat_error *detail_out);
@@ -141,8 +137,9 @@ extern "C"
      *  @return         成功時は @ref CPLAT_OK 、失敗時は共通結果コードを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p map を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるマップ ハンドルに対する呼び出しは同時に実行できます。\n
+     *  同一マップ ハンドルに対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_mmap_detach(cplat_mmap *map, cplat_error *detail_out);
 

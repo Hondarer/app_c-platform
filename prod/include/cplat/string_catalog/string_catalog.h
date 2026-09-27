@@ -85,8 +85,9 @@ extern "C"
      *  @ref CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数は、言語設定を変更しない限りスレッド セーフです。\n
-     *  実行環境からの決定が複数のスレッドで重複して実行された場合も、決定する言語は同じです。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  言語設定を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが言語設定を変更する場合は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT cplat_string_catalog_language CPLAT_API cplat_string_catalog_get_language(void);
 
@@ -104,8 +105,7 @@ extern "C"
      *  @ref cplat_ui_language_get_tag が返す言語タグを、出力言語の設定へ渡す用途を想定しています。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_language_from_tag(const char *tag,
                                                                      cplat_string_catalog_language *language_out);
@@ -148,8 +148,9 @@ extern "C"
         @endcode
      *
      *  @par            スレッド セーフ
-     *  本関数は、言語設定を変更しない限りスレッド セーフです。\n
-     *  呼び出し側のバッファーへ書き込み、読み取り専用のカタログだけを参照します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  言語設定を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが言語設定を変更する場合は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_format(const cplat_string_catalog *catalog, char *dest,
                                                            size_t dest_size, int string_key, ...);
@@ -170,8 +171,9 @@ extern "C"
      *  呼び出し側は @c va_end を実行してください。
      *
      *  @par            スレッド セーフ
-     *  本関数は、言語設定を変更しない限りスレッド セーフです。\n
-     *  呼び出し側のバッファーへ書き込み、読み取り専用のカタログだけを参照します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  言語設定を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが言語設定を変更する場合は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_vformat(const cplat_string_catalog *catalog, char *dest,
                                                             size_t dest_size, int string_key, va_list args);
@@ -205,8 +207,7 @@ extern "C"
      *  文字列を組み立てるたびに実行する必要はありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  読み取り専用のカタログだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_verify(const cplat_string_catalog *catalog, int *string_key_out,
                                                            cplat_string_catalog_language *language_out);
@@ -226,8 +227,7 @@ extern "C"
      *  @ref cplat_string_catalog_entry::id は処理では意味を持たない補足の文字列です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  読み取り専用のカタログだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const cplat_string_catalog_entry *CPLAT_API
     cplat_string_catalog_get_entry(const cplat_string_catalog *catalog, int string_key);
@@ -251,8 +251,7 @@ extern "C"
      *  分類値は言語に依存せず、文字列キーごとに固定です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  読み取り専用のカタログだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_get_category(const cplat_string_catalog *catalog, int string_key);
 
@@ -269,8 +268,7 @@ extern "C"
      *  呼び出し側で解放してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  読み取り専用のカタログだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const char *CPLAT_API cplat_string_catalog_get_id(const cplat_string_catalog *catalog, int string_key);
 
@@ -287,8 +285,7 @@ extern "C"
      *  呼び出し側で解放してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  読み取り専用のカタログだけを参照します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT const char *CPLAT_API cplat_string_catalog_get_note(const cplat_string_catalog *catalog,
                                                                      int string_key);

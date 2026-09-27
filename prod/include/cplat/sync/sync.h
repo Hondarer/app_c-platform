@@ -73,8 +73,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立したミューテックスを生成し、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_lock_create(cplat_local_lock **mtx);
 
@@ -89,8 +88,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_lock_lock(cplat_local_lock *mtx, int timeout_ms);
 
@@ -100,8 +98,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_lock_try_lock(cplat_local_lock *mtx);
 
@@ -111,8 +108,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p mtx に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_lock_unlock(cplat_local_lock *mtx);
 
@@ -121,8 +117,9 @@ extern "C"
      *  @param[in]      mtx  破棄するミューテックス。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p mtx を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p mtx に対する操作は同時に実行できます。\n
+     *  同一 @p mtx に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_local_lock_dispose(cplat_local_lock *mtx);
 
@@ -132,8 +129,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立した条件変数を生成し、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_condvar_create(cplat_condvar **cv);
 
@@ -149,8 +145,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p cv を複数スレッドで待機できます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_condvar_wait(cplat_condvar *cv, cplat_local_lock *mtx,
                                                            int timeout_ms);
@@ -161,8 +156,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p cv に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_condvar_signal(cplat_condvar *cv);
 
@@ -172,8 +166,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p cv に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_condvar_broadcast(cplat_condvar *cv);
 
@@ -182,8 +175,9 @@ extern "C"
      *  @param[in]      cv  破棄する条件変数。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p cv を他スレッドが待機または通知に使用していないことを保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p cv に対する操作は同時に実行できます。\n
+     *  同一 @p cv に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_condvar_dispose(cplat_condvar *cv);
 
@@ -193,8 +187,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出しごとに独立した読み書きロックを生成し、内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_create(cplat_local_rwlock **rwlock);
 
@@ -209,8 +202,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_lock_shared(cplat_local_rwlock *rwlock, int timeout_ms);
 
@@ -220,8 +212,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_try_lock_shared(cplat_local_rwlock *rwlock);
 
@@ -236,8 +227,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_lock_exclusive(cplat_local_rwlock *rwlock,
                                                                           int timeout_ms);
@@ -248,8 +238,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_try_lock_exclusive(cplat_local_rwlock *rwlock);
 
@@ -259,8 +248,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_unlock_shared(cplat_local_rwlock *rwlock);
 
@@ -270,8 +258,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p rwlock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_local_rwlock_unlock_exclusive(cplat_local_rwlock *rwlock);
 
@@ -280,8 +267,9 @@ extern "C"
      *  @param[in]      rwlock  破棄する読み書きロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p rwlock を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p rwlock に対する操作は同時に実行できます。\n
+     *  同一 @p rwlock に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_local_rwlock_dispose(cplat_local_rwlock *rwlock);
 
@@ -293,8 +281,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  複数スレッドから同時に呼び出して独立したスレッドを生成できます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_thread_create(cplat_thread **thread, cplat_thread_fn func,
                                                             void *arg);
@@ -310,8 +297,9 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  同一 @p thread に対する並行呼び出しはスレッド セーフではありません。\n
-     *  join 対象ごとに 1 スレッドだけが待機するように呼び出し側で制御してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p thread に対する操作は同時に実行できます。\n
+     *  同一 @p thread に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_thread_join(cplat_thread *thread, int timeout_ms);
 
@@ -320,8 +308,9 @@ extern "C"
      *  @param[in]      thread  切り離すスレッド ハンドル。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  同一 @p thread に対する並行呼び出しはスレッド セーフではありません。\n
-     *  detach は対象ハンドルごとに 1 回だけ実行してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p thread に対する操作は同時に実行できます。\n
+     *  同一 @p thread に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_thread_detach(cplat_thread *thread);
 
@@ -332,8 +321,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p identity を複数スレッドから同時に指定しても OS の同期プリミティブを安全に取得できます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_open(const char *identity,
                                                                      cplat_interprocess_lock **lock);
@@ -347,8 +335,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  複数スレッドから独立したハンドルを同時にインポートできます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_import_descriptor(const void *descriptor,
                                                                                   size_t descriptor_size,
@@ -363,8 +350,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  共有状態を変更せずにディスクリプタを出力するため、同一 @p lock に対して並行呼び出しできます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_export_descriptor(
         const cplat_interprocess_lock *lock, void *descriptor, size_t *descriptor_size);
@@ -380,8 +366,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_lock(cplat_interprocess_lock *lock, int timeout_ms);
 
@@ -391,8 +376,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_try_lock(cplat_interprocess_lock *lock);
 
@@ -402,8 +386,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_lock_unlock(cplat_interprocess_lock *lock);
 
@@ -412,8 +395,9 @@ extern "C"
      *  @param[in]      lock  破棄するロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p lock に対する操作は同時に実行できます。\n
+     *  同一 @p lock に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_interprocess_lock_dispose(cplat_interprocess_lock *lock);
 
@@ -424,8 +408,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p identity を複数スレッドから同時に指定しても OS の同期プリミティブを安全に取得できます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_open(const char *identity,
                                                                        cplat_interprocess_rwlock **lock);
@@ -439,8 +422,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  複数スレッドから独立したハンドルを同時にインポートできます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_import_descriptor(
         const void *descriptor, size_t descriptor_size, cplat_interprocess_rwlock **lock);
@@ -454,8 +436,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  共有状態を変更せずにディスクリプタを出力するため、同一 @p lock に対して並行呼び出しできます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_export_descriptor(
         const cplat_interprocess_rwlock *lock, void *descriptor, size_t *descriptor_size);
@@ -471,8 +452,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_lock_shared(cplat_interprocess_rwlock *lock,
                                                                               int timeout_ms);
@@ -483,8 +463,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_try_lock_shared(cplat_interprocess_rwlock *lock);
 
@@ -499,8 +478,7 @@ extern "C"
      *                  @ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_lock_exclusive(cplat_interprocess_rwlock *lock,
                                                                                  int timeout_ms);
@@ -511,8 +489,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_BUSY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API
     cplat_interprocess_rwlock_try_lock_exclusive(cplat_interprocess_rwlock *lock);
@@ -523,8 +500,7 @@ extern "C"
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p lock に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_interprocess_rwlock_unlock(cplat_interprocess_rwlock *lock);
 
@@ -533,8 +509,9 @@ extern "C"
      *  @param[in]      lock  破棄するロック。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  破棄対象の @p lock を他スレッドや他プロセスが使用していないことを確認してから呼び出してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p lock に対する操作は同時に実行できます。\n
+     *  同一 @p lock に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_interprocess_rwlock_dispose(cplat_interprocess_rwlock *lock);
 
@@ -545,8 +522,7 @@ extern "C"
      *  @param[in]      func  1 回だけ実行する関数。NULL を渡してはなりません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一 @p flag を複数スレッドから同時に指定しても @p func は 1 回だけ実行されます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_call_once(cplat_once_flag *flag, cplat_once_fn func);
 
@@ -558,8 +534,7 @@ extern "C"
      *                  残り時間を再計算して待機を継続するため、規定時間が経過するまで待機します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  呼び出し元スレッドだけを待機させ、ライブラリ内部の共有状態を変更しません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_sleep_ms(int ms);
 

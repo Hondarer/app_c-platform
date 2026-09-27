@@ -51,8 +51,7 @@ extern "C"
      *  @ref cplat_interprocess_lock または @ref cplat_interprocess_rwlock を使用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_open(const char *path, int flags, int mode, cplat_error *detail_out);
 
@@ -66,6 +65,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_open_fmt(int flags, int mode, cplat_error *detail_out,
                                                        const char *format, ...)
@@ -84,6 +86,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時はファイル記述子、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vopen_fmt(int flags, int mode, cplat_error *detail_out,
                                                         const char *format, va_list args)

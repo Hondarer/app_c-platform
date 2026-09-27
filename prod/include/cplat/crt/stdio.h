@@ -50,6 +50,10 @@ extern "C"
      *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
      *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
      *  非信頼な標準入力は `fgets` で 1 行を読み取ってから @ref cplat_sscanf で解析することを推奨します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  標準入力に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_scanf(const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -64,6 +68,10 @@ extern "C"
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
      *
      *  文字列とスキャン セットの変換には @ref cplat_scanf と同じ幅指定規約が適用されます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  標準入力に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vscanf(const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -81,6 +89,11 @@ extern "C"
      *  `%s`、`%S`、`%[` で文字列を格納するときは、必ず宛先バッファー容量より小さい幅を指定してください。
      *  `%c`、`%C` は終端文字を追加しないため、指定幅以上の要素数を持つ宛先を渡してください。
      *  非信頼なストリーム入力は `fgets` で 1 行を読み取ってから @ref cplat_sscanf で解析することを推奨します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fscanf(FILE *stream, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -96,6 +109,11 @@ extern "C"
      *  @return         成功時は変換した項目数、失敗または EOF 時は EOF を返します。
      *
      *  文字列とスキャン セットの変換には @ref cplat_fscanf と同じ幅指定規約が適用されます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vfscanf(FILE *stream, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -121,8 +139,7 @@ extern "C"
      *  書き込んだ文字数が必要な場合は、成功後に @p dest へ `strlen` を適用してください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_snprintf(char *dest, size_t dest_size, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -143,8 +160,7 @@ extern "C"
      *  切り詰め時の振る舞いは @ref cplat_snprintf と同じです。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一の @p dest を複数スレッドから同時に書き換えないことを呼び出し側で保証してください。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vsnprintf(char *dest, size_t dest_size, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -172,8 +188,9 @@ extern "C"
      *  @return         ストリーム エラーの場合は @ref CPLAT_ERR_UNKNOWN を返し、@p detail_out へ詳細を格納します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  同一の @p stream を複数スレッドから同時に読み取らないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fgets(char *dest, size_t dest_size, FILE *stream,
                                                     cplat_error *detail_out);
@@ -193,8 +210,7 @@ extern "C"
      *  読み書きを許可します ([cplat_open](@ref cplat_open) と同じ既定です)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT FILE *CPLAT_API cplat_fopen(const char *path, const char *modes, cplat_error *detail_out);
 
@@ -216,8 +232,9 @@ extern "C"
      *  再オープン時に異なるモードを指定する用途には推奨しません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p stream を複数スレッドから同時に操作しないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT FILE *CPLAT_API cplat_freopen(const char *path, const char *modes, FILE *stream,
                                                         cplat_error *detail_out);
@@ -229,6 +246,11 @@ extern "C"
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は EOF を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream を複数スレッドで同時に閉じる操作は二重クローズとなるため、同一 @p stream に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fclose(FILE *stream, cplat_error *detail_out);
 
@@ -239,6 +261,11 @@ extern "C"
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         成功時は 0、失敗時は EOF を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fflush(FILE *stream, cplat_error *detail_out);
 
@@ -252,6 +279,11 @@ extern "C"
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時およびファイル終端時は空の値を格納します。
      *  @return         読み取った要素数を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT size_t CPLAT_API cplat_fread(void *buffer, size_t size, size_t count, FILE *stream,
                                                        cplat_error *detail_out);
@@ -266,6 +298,11 @@ extern "C"
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
      *  @return         書き込んだ要素数を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT size_t CPLAT_API cplat_fwrite(const void *buffer, size_t size, size_t count, FILE *stream,
                                                         cplat_error *detail_out);
@@ -279,8 +316,7 @@ extern "C"
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_remove(const char *path, cplat_error *detail_out);
 
@@ -294,8 +330,7 @@ extern "C"
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_rename(const char *oldpath, const char *newpath,
                                                      cplat_error *detail_out);
@@ -306,6 +341,11 @@ extern "C"
      *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      ...     書式引数。
      *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fprintf(FILE *stream, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -319,6 +359,11 @@ extern "C"
      *  @param[in]      format  printf 形式の書式文字列。NULL を渡してはなりません。
      *  @param[in]      args    書式引数リスト。
      *  @return         書き込んだ文字数を返します。失敗時は負値を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vfprintf(FILE *stream, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -334,8 +379,9 @@ extern "C"
      *  @return         成功時は 0、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p stream を複数スレッドで共有する場合の整合性は CRT および呼び出し側の同期に依存します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_fseek(FILE *stream, int64_t offset, int whence);
 
@@ -345,8 +391,9 @@ extern "C"
      *  @return         成功時は現在位置 (バイト)、失敗時は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p stream を複数スレッドで共有する場合の整合性は CRT および呼び出し側の同期に依存します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるストリームに対する呼び出しは同時に実行できます。\n
+     *  同一 @p stream に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int64_t CPLAT_API cplat_ftell(FILE *stream);
 
@@ -359,6 +406,9 @@ extern "C"
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...        書式引数。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT FILE *CPLAT_API cplat_fopen_fmt(const char *modes, cplat_error *detail_out,
                                                           const char *format, ...)
@@ -376,6 +426,9 @@ extern "C"
      *  @param[in]      format     パスを構築する printf 形式の書式文字列。
      *  @param[in]      args       書式引数リスト。
      *  @return         成功時は FILE*、失敗時は NULL を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT FILE *CPLAT_API cplat_vfopen_fmt(const char *modes, cplat_error *detail_out,
                                                            const char *format, va_list args)
@@ -392,6 +445,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_remove_fmt(cplat_error *detail_out, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -407,6 +463,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         成功時は 0、失敗時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vremove_fmt(cplat_error *detail_out, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -447,8 +506,7 @@ extern "C"
      *  読み書きを許可します ([cplat_fopen](@ref cplat_fopen) と同じ既定です)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。呼び出しごとに独立した一時ファイルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT FILE *CPLAT_API cplat_fopen_temp(const char *prefix, const char *modes, char *path_out,
                                                            size_t path_size, cplat_error *detail_out);

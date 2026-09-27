@@ -64,8 +64,7 @@ extern "C"
      *  zlib の初期化または処理中のメモリ不足は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_compress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 
@@ -81,8 +80,7 @@ extern "C"
      *  zlib の初期化または処理中のメモリ不足は @ref CPLAT_ERR_OUT_OF_MEMORY を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_decompress(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len);
 

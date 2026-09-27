@@ -36,8 +36,7 @@ extern "C"
      *  ソケットを扱う公開 API は、OS API を呼び出す前に本関数を呼び出します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  初期化の実行は cplat_call_once() で 1 回に限定されます。
+     *  本関数はスレッド セーフです。
      */
     int cplat_internal_socket_startup(cplat_error *detail_out);
 
@@ -48,7 +47,7 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフではありません。\n
-     *  共有ライブラリのアンロード経路からのみ呼び出します。
+     *  プロセス全体で本関数の呼び出しを直列化してください。
      */
     void cplat_internal_socket_cleanup(void);
 

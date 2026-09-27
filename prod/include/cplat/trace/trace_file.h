@@ -127,8 +127,7 @@ extern "C"
      *                  共有モードでも行が混入する場合があります。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  プロセス内レジストリへのアクセスと新規生成は内部ロックで直列化されます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_trace_file_sink *CPLAT_API cplat_trace_file_sink_create(const char *path,
                                                                                            size_t max_bytes,
@@ -146,8 +145,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の mutex で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_trace_file_sink_write(cplat_trace_file_sink *handle, int level,
                                                                     const cplat_timespec *timestamp,
@@ -162,8 +160,9 @@ extern "C"
      *  @param[in]      handle   cplat_trace_file_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  解放対象の @p handle を本呼び出し以降に使用しないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_trace_file_sink_dispose(cplat_trace_file_sink *handle);
 

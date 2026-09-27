@@ -70,8 +70,7 @@ extern "C"
      *  `GetFileAttributesExW` に失敗した場合は `_wstat64` の時刻欄をそのまま返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_stat(cplat_file_stat_t *buf, cplat_error *detail_out,
                                                    const char *path);
@@ -85,8 +84,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_mkdir(const char *path, cplat_error *detail_out);
 
@@ -104,8 +102,7 @@ extern "C"
      *  他プロセスによる競合生成は成功として扱います。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_makedirs(const char *path, cplat_error *detail_out);
 
@@ -121,8 +118,7 @@ extern "C"
      *  cplat_makedirs() のように中間ディレクトリを再帰的に削除することはありません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_rmdir(const char *path, cplat_error *detail_out);
 
@@ -135,6 +131,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_stat_fmt(cplat_file_stat_t *buf, cplat_error *detail_out,
                                                        const char *format, ...)
@@ -152,6 +151,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vstat_fmt(cplat_file_stat_t *buf, cplat_error *detail_out,
                                                         const char *format, va_list args)
@@ -168,6 +170,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_mkdir_fmt(cplat_error *detail_out, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -183,6 +188,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         @ref CPLAT_OK または @ref CPLAT_ERR_UNKNOWN を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vmkdir_fmt(cplat_error *detail_out, const char *format, va_list args)
 #if defined(COMPILER_GCC)
@@ -208,8 +216,7 @@ extern "C"
      *                  引数の妥当性を確認する用途には使用できません。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  引数の値だけを参照し、共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_file_stat_is_regular(const cplat_file_stat_t *file_stat);
 

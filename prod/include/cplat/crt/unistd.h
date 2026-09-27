@@ -83,8 +83,7 @@ extern "C"
      *  ストリーム enum (@ref cplat_stream) です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_isatty(cplat_stream stream);
 
@@ -96,15 +95,12 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時はファイル先頭からの新しい読み書き位置、失敗時は -1 を返します。
+     *  @return         成功時はファイル先頭からの新しい読み書き位置、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
-     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
-     *
-     *  @warning        @p fd が負の場合、または @p whence が上記以外の場合は、
-     *                  OS の API を呼び出さずに -1 を返します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるファイル記述子に対する呼び出しは同時に実行できます。\n
+     *  同一 @p fd の読み書き位置はスレッド間で共有されるため、同一 @p fd に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int64_t CPLAT_API cplat_lseek(int fd, int64_t offset, int whence, cplat_error *detail_out);
 
@@ -114,14 +110,12 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         成功時は 0、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p fd を複数スレッドで同時に閉じる操作は
-     *  二重クローズとなるため、呼び出し側で調停してください。
-     *
-     *  @warning        @p fd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるファイル記述子に対する呼び出しは同時に実行できます。\n
+     *  同一 @p fd を複数スレッドで同時に閉じる操作は二重クローズとなるため、同一 @p fd に対する操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_close(int fd, cplat_error *detail_out);
 
@@ -131,16 +125,13 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は新しいファイル記述子、失敗時は -1 を返します。
+     *  @return         成功時は新しいファイル記述子、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  複製されたファイル記述子は複製元と読み書き位置を共有します。\n
      *  不要になったら cplat_close() で閉じてください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
-     *
-     *  @warning        @p fd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_dup(int fd, cplat_error *detail_out);
 
@@ -151,16 +142,13 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は 0、失敗時は -1 を返します。
+     *  @return         成功時は 0、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  POSIX の `dup2` は成功時に @p newfd を返しますが、
      *  本関数は Windows の `_dup2` と挙動を揃えるため、成功時は常に 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
-     *
-     *  @warning        @p oldfd または @p newfd が負の場合は、OS の API を呼び出さずに -1 を返します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_dup2(int oldfd, int newfd, cplat_error *detail_out);
 
@@ -172,7 +160,7 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は読み取ったバイト数 (ファイル終端では 0)、失敗時は -1 を返します。
+     *  @return         成功時は読み取ったバイト数 (ファイル終端では 0)、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
      *  Windows 環境では 1 回の呼び出しで読み取れる上限が `INT_MAX` バイトであり、
@@ -180,12 +168,9 @@ extern "C"
      *  必要なバイト数に達するまで読み取る場合は、呼び出し側でループしてください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
-     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
-     *
-     *  @warning        @p fd が負の場合、または @p buf が NULL の場合は、
-     *                  OS の API を呼び出さずに -1 を返します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるファイル記述子に対する呼び出しは同時に実行できます。\n
+     *  同一 @p fd の読み書き位置はスレッド間で共有されるため、同一 @p fd に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int64_t CPLAT_API cplat_read(int fd, void *buf, size_t count, cplat_error *detail_out);
 
@@ -197,7 +182,7 @@ extern "C"
      *  @param[out]     detail_out  エラー詳細の格納先。NULL を指定した場合、本引数へは
      *                  エラー詳細を設定せず、返却しません。
      *                  NULL 以外を指定した場合、成功時は空の値を格納します。
-     *  @return         成功時は書き込んだバイト数、失敗時は -1 を返します。
+     *  @return         成功時は書き込んだバイト数、失敗時 (引数不正または OS エラー時) は -1 を返します。
      *
      *  要求した @p count より少ないバイト数で戻る場合があります。\n
      *  Windows 環境では 1 回の呼び出しで書き込める上限が `INT_MAX` バイトであり、
@@ -205,12 +190,9 @@ extern "C"
      *  必要なバイト数を書き終えるまで、呼び出し側でループしてください。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。同一 @p fd の読み書き位置は
-     *  スレッド間で共有されるため、並行操作時は呼び出し側で調停してください。
-     *
-     *  @warning        @p fd が負の場合、または @p buf が NULL の場合は、
-     *                  OS の API を呼び出さずに -1 を返します。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なるファイル記述子に対する呼び出しは同時に実行できます。\n
+     *  同一 @p fd の読み書き位置はスレッド間で共有されるため、同一 @p fd に対する並行操作は、呼び出し側で同期してください。
      */
     CPLAT_EXPORT int64_t CPLAT_API cplat_write(int fd, const void *buf, size_t count,
                                                         cplat_error *detail_out);
@@ -225,8 +207,7 @@ extern "C"
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_access(const char *path, int mode, cplat_error *detail_out);
 
@@ -239,6 +220,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      ...     書式引数。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_access_fmt(int mode, cplat_error *detail_out, const char *format, ...)
 #if defined(COMPILER_GCC)
@@ -255,6 +239,9 @@ extern "C"
      *  @param[in]      format  パスを構築する printf 形式の書式文字列。
      *  @param[in]      args    書式引数リスト。
      *  @return         アクセス可能時は 0、不可時は -1 を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_vaccess_fmt(int mode, cplat_error *detail_out, const char *format,
                                                           va_list args)

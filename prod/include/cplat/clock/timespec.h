@@ -81,8 +81,7 @@ extern "C"
      *  `tv_nsec` が負の場合も正の値へ正規化します (例: {1, -1} は {0, 999999999} になります)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_normalize(cplat_timespec *ts);
 
@@ -96,8 +95,7 @@ extern "C"
      *  結果は正規化済み (`tv_nsec` が 0 以上 999,999,999 以下) です。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_add(const cplat_timespec *a, const cplat_timespec *b,
                                                             cplat_timespec *result);
@@ -113,8 +111,7 @@ extern "C"
      *  (`tv_nsec` は常に 0 以上 999,999,999 以下です)。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_sub(const cplat_timespec *a, const cplat_timespec *b,
                                                             cplat_timespec *result);
@@ -130,8 +127,7 @@ extern "C"
      *  @p a または @p b が NULL の場合は 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_timespec_cmp(const cplat_timespec *a, const cplat_timespec *b);
 
@@ -144,8 +140,7 @@ extern "C"
      *  タイムアウトの absolute deadline を生成する用途などに使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_add_ms(const cplat_timespec *ts, uint64_t timeout_ms,
                                                                cplat_timespec *result);
@@ -161,8 +156,7 @@ extern "C"
      *  @p end または @p start が NULL の場合は 0 を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int64_t CPLAT_API cplat_timespec_diff_ms(const cplat_timespec *end,
                                                                    const cplat_timespec *start);
@@ -177,8 +171,7 @@ extern "C"
      *  正規化済みの `tv_nsec` (0 以上 999,999,999 以下) は表現範囲内であり値は保たれます。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_to_native(const cplat_timespec *ts, struct timespec *native);
 
@@ -190,8 +183,7 @@ extern "C"
      *  OS API から受け取った `struct timespec` を標準時刻型へ取り込む境界で使用します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT void CPLAT_API cplat_timespec_from_native(const struct timespec *native,
                                                                     cplat_timespec *ts);

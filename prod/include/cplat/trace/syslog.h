@@ -48,8 +48,7 @@ extern "C"
      *  @return         成功時はハンドル、失敗時は NULL を返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部に共有状態を持ちません。各呼び出しは独立したハンドルを生成します。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT cplat_syslog_sink *CPLAT_API cplat_syslog_sink_create(const char *ident, int facility);
 
@@ -65,8 +64,7 @@ extern "C"
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の reconnect_lock で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_syslog_sink_write(cplat_syslog_sink *handle, int level,
                                                                 const cplat_timespec *timestamp,
@@ -83,8 +81,7 @@ extern "C"
      *  @return         上記以外の失敗時は、内部ロック API の共通結果コードを返します。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフです。\n
-     *  内部の reconnect_lock で保護されており、同一 @p handle に対して複数スレッドから同時に呼び出せます。
+     *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_syslog_sink_rename(cplat_syslog_sink *handle, const char *new_ident);
 
@@ -94,8 +91,9 @@ extern "C"
      *  @param[in]      handle   cplat_syslog_sink_create の戻り値。NULL は無視。
      *
      *  @par            スレッド セーフ
-     *  本関数はスレッド セーフではありません。\n
-     *  解放対象の @p handle を他スレッドが使用していないことを呼び出し側で保証してください。
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p handle に対する操作は同時に実行できます。\n
+     *  同一 @p handle に対する操作は、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_syslog_sink_dispose(cplat_syslog_sink *handle);
 

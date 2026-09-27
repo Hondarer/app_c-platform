@@ -71,8 +71,7 @@ typedef struct cplat_service_entry_u
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-createfilew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT HANDLE CPLAT_API CreateFileU(const char *utf8_path, DWORD desired_access, DWORD share_mode,
                                                 LPSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition,
@@ -98,8 +97,7 @@ CPLAT_EXPORT HANDLE CPLAT_API CreateFileU(const char *utf8_path, DWORD desired_a
  *                  https://learn.microsoft.com/windows/win32/api/namedpipeapi/nf-namedpipeapi-createnamedpipew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT HANDLE CPLAT_API CreateNamedPipeU(const char *utf8_name, DWORD open_mode, DWORD pipe_mode,
                                                      DWORD max_instances, DWORD out_buffer_size, DWORD in_buffer_size,
@@ -122,8 +120,7 @@ CPLAT_EXPORT HANDLE CPLAT_API CreateNamedPipeU(const char *utf8_name, DWORD open
  *                  https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT DWORD CPLAT_API GetModuleFileNameU(HMODULE module, char *utf8_buf, DWORD size);
 
@@ -151,8 +148,7 @@ CPLAT_EXPORT DWORD CPLAT_API GetModuleFileNameU(HMODULE module, char *utf8_buf, 
  *                  https://learn.microsoft.com/windows/console/writeconsole
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API WriteConsoleU(HANDLE console, const char *utf8_text, DWORD utf8_length,
                                                 DWORD *written_length, void *reserved);
@@ -173,8 +169,7 @@ CPLAT_EXPORT BOOL CPLAT_API WriteConsoleU(HANDLE console, const char *utf8_text,
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API GetVolumePathNameU(const char *utf8_path, char *utf8_volume_root, DWORD size);
 
@@ -199,8 +194,7 @@ CPLAT_EXPORT BOOL CPLAT_API GetVolumePathNameU(const char *utf8_path, char *utf8
  *                  https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API GetVolumeInformationU(const char *utf8_root_path, char *utf8_volume_name,
                                                         DWORD volume_name_size, DWORD *serial_number,
@@ -219,8 +213,7 @@ CPLAT_EXPORT BOOL CPLAT_API GetVolumeInformationU(const char *utf8_root_path, ch
  *                  https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT HMODULE CPLAT_API LoadLibraryU(const char *utf8_file_name);
 
@@ -255,8 +248,7 @@ CPLAT_EXPORT HMODULE CPLAT_API LoadLibraryU(const char *utf8_file_name);
  *                  https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API CreateProcessU(const char *utf8_application_name, const char *utf8_command_line,
                                                  LPSECURITY_ATTRIBUTES process_attributes,
@@ -284,8 +276,7 @@ CPLAT_EXPORT BOOL CPLAT_API CreateProcessU(const char *utf8_application_name, co
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-openscmanagerw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT SC_HANDLE CPLAT_API OpenSCManagerU(const char *utf8_machine_name, const char *utf8_database_name,
                                                       DWORD desired_access);
@@ -317,8 +308,7 @@ CPLAT_EXPORT SC_HANDLE CPLAT_API OpenSCManagerU(const char *utf8_machine_name, c
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-createservicew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT SC_HANDLE CPLAT_API CreateServiceU(SC_HANDLE scm, const char *utf8_service_name,
                                                       const char *utf8_display_name, DWORD desired_access,
@@ -342,8 +332,7 @@ CPLAT_EXPORT SC_HANDLE CPLAT_API CreateServiceU(SC_HANDLE scm, const char *utf8_
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-openservicew
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT SC_HANDLE CPLAT_API OpenServiceU(SC_HANDLE scm, const char *utf8_service_name, DWORD desired_access);
 
@@ -364,8 +353,7 @@ CPLAT_EXPORT SC_HANDLE CPLAT_API OpenServiceU(SC_HANDLE scm, const char *utf8_se
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-changeserviceconfig2w
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API ChangeServiceConfig2U(SC_HANDLE service, DWORD info_level, const char *utf8_text);
 
@@ -384,8 +372,7 @@ CPLAT_EXPORT BOOL CPLAT_API ChangeServiceConfig2U(SC_HANDLE service, DWORD info_
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-registerservicectrlhandlerexw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT SERVICE_STATUS_HANDLE CPLAT_API RegisterServiceCtrlHandlerExU(const char *utf8_service_name,
                                                                                  LPHANDLER_FUNCTION_EX handler_proc,
@@ -405,8 +392,7 @@ CPLAT_EXPORT SERVICE_STATUS_HANDLE CPLAT_API RegisterServiceCtrlHandlerExU(const
  *                  https://learn.microsoft.com/windows/win32/api/winsvc/nf-winsvc-startservicectrldispatcherw
  *
  *  @par            スレッド セーフ
- *  本関数はスレッド セーフです。\n
- *  内部に共有状態を持ちません。Win32 が返すハンドルの利用は呼び出し側の同期に従います。
+ *  本関数はスレッド セーフです。
  */
 CPLAT_EXPORT BOOL CPLAT_API StartServiceCtrlDispatcherU(const cplat_service_entry_u *service_table);
 
