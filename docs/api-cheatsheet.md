@@ -641,8 +641,8 @@ Table: 文字列カタログ操作における用途別 cplat API
 決定は 1 回だけ行い、`cplat_string_catalog_set_language` による設定はこの決定より優先します。  
 言語タグを利用側で明示的に指定する場合は `cplat_string_catalog_language_from_tag` を使用します。対応する言語が存在しない場合はニュートラル言語を格納し、`CPLAT_ERR_NOT_FOUND` を返します。
 
-書式は位置指定 (`{0}` から `{31}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
-引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (32) です。
+書式は位置指定 (`{0}` から `{49}`) とエスケープだけです。インデックスは 10 進数 2 桁までで、先行ゼロを認めません。  
+引数の個数の上限は `CPLAT_STRING_CATALOG_ARGUMENT_MAX` (50) です。
 
 文字列キー (`cplat_string_catalog_entry::key`) は、処理から項目を参照する識別子です。  
 ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry::category`) はライブラリが解釈しません。ID は処理では意味を持たない補足の文字列です。分類値の意味と有効な範囲は利用側が決めます。
