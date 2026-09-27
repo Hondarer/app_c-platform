@@ -14,7 +14,6 @@ cplat 固有の規則、制限、遵守事項は、今後もすべて本書に�
 
 - [`api-cheatsheet.md`](api-cheatsheet.md) - cplat API チート シート (公開 API 全体の一覧、入り口)
 - [`platform-abstraction-guideline.md`](platform-abstraction-guideline.md) - `platform.h` / `compiler.h` の共通マクロ利用規則
-- [`error-detail-migration.md`](error-detail-migration.md) - 生の OS エラー値から `cplat_error` への移行手順
 
 ## エラー処理と戻り値規約
 
@@ -888,8 +887,7 @@ cplat の公開 API 名およびライブラリ内共有 API 名に適用する�
 上位規範の「命名規則」がライブラリ接頭辞と記法までを定めるのに対し、本章はカテゴリ名詞と動詞の並び順など cplat 固有の構成規則を定めます。
 
 既存 API の名前は原則として ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
-ただし、次の 2 点に限り、この凍結を破棄します。  
-凍結を破棄して改名した範囲は [`api-consistency-migration.md`](api-consistency-migration.md) に記録します。
+ただし、次の 2 点に限り、この凍結を破棄します。
 
 - 上位規範の「予約識別子の回避」に反する形式 (`_t` サフィックス、アンダースコア前置き) の是正
 - ハンドルを生成・破棄する API の破棄動詞を `*_dispose` へ統一するためのリネーム (後述「生成と破棄の動詞対」節)
@@ -1004,8 +1002,7 @@ struct、enum、union、関数ポインターのいずれにも `_t` サフィ�
 `_t` を維持する例外は、OS / SDK が定義する型の alias に限ります。
 
 > [!NOTE]
-> 以前は enum と関数ポインターの `_t` を現状追認として許容していましたが、この扱いは撤回しました。  
-> 撤回に伴って改名した公開型の一覧は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+> 以前は enum と関数ポインターの `_t` を現状追認として許容していましたが、この扱いは撤回しました。
 
 | 型 | 定義 | 例外とする理由 |
 |---|---|---|
@@ -1071,8 +1068,7 @@ cplat_vopen_fmt(flags, mode, detail_out, format, args);
 
 ## 解消済みの逸脱
 
-本規約および上位規範に対する既存公開 API の逸脱として整理していた項目は、すべて解消済みです。  
-旧シグネチャからの移行手順は [`api-consistency-migration.md`](api-consistency-migration.md) を参照してください。
+本規約および上位規範に対する既存公開 API の逸脱として整理していた項目は、すべて解消済みです。
 
 | API | 逸脱内容 | 解消結果 |
 |---|---|---|
