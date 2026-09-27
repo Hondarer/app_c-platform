@@ -357,7 +357,6 @@ TEST_F(stringCatalogRenderTest, exact_fit)
 TEST_F(stringCatalogRenderTest, invalid_format)
 {
     // Arrange
-    int actual_ret;
     set_int32(0, 1);
 
     // Pre-Assert
