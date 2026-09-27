@@ -59,7 +59,7 @@ TEST_F(promptWindowsTest, enter_raw_does_nothing_when_stdin_handle_invalid)
               handle_.raw_active); // [確認_異常系] - GetStdHandle が INVALID_HANDLE_VALUE を返すため raw モードにならないこと。
 }
 
-// 端末に対して raw モードへ移行できることと、渡されるモード値の確認
+// 端末に対して raw モードへ移行できることと渡されるモード値が正しいことの確認
 TEST_F(promptWindowsTest, enter_raw_succeeds_and_changes_mode)
 {
     // Arrange

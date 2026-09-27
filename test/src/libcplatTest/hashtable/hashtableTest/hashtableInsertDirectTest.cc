@@ -73,6 +73,7 @@ class hashtableInsertDirectTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// 指定したレコード番号へ直接レコードを挿入でき、検索や状態取得、衝突キー配置が正しく動作することの確認
 TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
 {
     // Arrange
@@ -110,6 +111,7 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
         ht, "a", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 先頭空きへ通常追加する。
     int actual_ret_counts = cplat_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
     int actual_ret_validate = cplat_hashtable_validate(ht); // [手順] - 整合性を検証する。
+
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create);              // [確認_正常系] - create が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_direct);              // [確認_正常系] - insert_direct が成功すること。
@@ -128,9 +130,10 @@ TEST_F(hashtableInsertDirectTest, places_in_use_at_requested_record)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate);            // [確認_正常系] - validate が成功すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 指定レコード番号へ寿命内の削除済み状態として直接配置でき、検索対象外かつキー再配置が拒否されることの確認
 TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
 {
     // Arrange
@@ -176,9 +179,10 @@ TEST_F(hashtableInsertDirectTest, places_deleted_without_resurrecting_key)
               actual_ret_validate); // [確認_正常系] - 削除済みをチェインへ載せたあと validate が成功すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 寿命設定上成立し得ない無効なステータス値の直接挿入がスキップされテーブルが変更されないことの確認
 TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
 {
     // Arrange
@@ -206,15 +210,19 @@ TEST_F(hashtableInsertDirectTest, skips_status_that_cannot_exist)
         ht, 1, "a", 2, value.data(), &k_insert_timestamp, 1); // [手順] - lifetime 2 では成立しない status 2 を置く。
     (void)cplat_hashtable_get_status(ht, 1, &status);
     (void)cplat_hashtable_empty_count(ht, &empty);
+
     // Assert
     EXPECT_EQ(CPLAT_SKIPPED, actual_ret_eq);    // [確認_正常系] - status == lifetime が SKIPPED であること。
     EXPECT_EQ(CPLAT_SKIPPED, actual_ret_over);  // [確認_正常系] - lifetime 超過が SKIPPED であること。
     EXPECT_EQ(CPLAT_SKIPPED, actual_ret_life2); // [確認_正常系] - lifetime 2 の status 2 が SKIPPED であること。
     EXPECT_EQ(0, status);                          // [確認_正常系] - SKIPPED 後もスロットが空のままであること。
     EXPECT_EQ(2u, empty);                          // [確認_正常系] - テーブルを変更していないこと。
-    // status < 2 かつ status >= lifetime は lifetime >= 2 のため到達できない。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 直接挿入関数にNULLポインタ、無効なステータス、範囲外レコード番号、重複キー等を渡した場合にエラーとなることの確認
 TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
 {
     // Arrange
@@ -241,24 +249,23 @@ TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
     int actual_ret_status0 = cplat_hashtable_insert_direct(ht, 1, "a", 0, value.data(), &k_insert_timestamp,
                                                               1); // [手順] - status 0 を渡す。
     int actual_ret_status256 = cplat_hashtable_insert_direct(ht, 1, "a", 256, value.data(), &k_insert_timestamp,
-                                                                1); // [手順] - status 256 を渡す。
+                                                                 1); // [手順] - status 256 を渡す。
     int actual_ret_rec0 = cplat_hashtable_insert_direct(ht, 0, "a", 5, value.data(), &k_insert_timestamp,
-                                                           1); // [手順] - レコード番号 0 を渡す。
+                                                            1); // [手順] - レコード番号 0 を渡す。
     int actual_ret_rec_hi = cplat_hashtable_insert_direct(
         ht, 5, "a", 5, value.data(), &k_insert_timestamp, 5); // [手順] - capacity 超のレコード番号を渡す。
     int actual_ret_long = cplat_hashtable_insert_direct(ht, 1, too_long, 1, value.data(), &k_insert_timestamp,
-                                                           1); // [手順] - 長すぎるキーを渡す。
+                                                            1); // [手順] - 長すぎるキーを渡す。
     int actual_ret_ok = cplat_hashtable_insert_direct(ht, 1, "a", 1, value.data(), &k_insert_timestamp,
-                                                         1); // [手順] - レコード 1 へ実装中で置く。
+                                                          1); // [手順] - レコード 1 へ実装中で置く。
     int actual_ret_occupied = cplat_hashtable_insert_direct(
         ht, 1, "b", 1, value.data(), &k_insert_timestamp, 1); // [手順] - 使用中のレコードへ別キーを置く。
     int actual_ret_dup_key =
         cplat_hashtable_insert_direct(ht, 2, "a", 1, value.data(), &k_insert_timestamp,
-                                         2); // [手順] - 既存キーを別レコードへ置く。
+                                          2); // [手順] - 既存キーを別レコードへ置く。
     (void)cplat_hashtable_delete(ht, "a");
     int actual_ret_deleted_slot = cplat_hashtable_insert_direct(
         ht, 1, "b", 1, value.data(), &k_insert_timestamp, 1); // [手順] - 削除済みスロットへ別キーを置く。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -285,8 +292,12 @@ TEST_F(hashtableInsertDirectTest, rejects_invalid_arguments_and_collisions)
               actual_ret_dup_key); // [確認_異常系] - 既存キーが DUPLICATE_KEY であること。
     EXPECT_EQ(CPLAT_ERR_DUPLICATE_DEFINITION,
               actual_ret_deleted_slot); // [確認_異常系] - 削除済みスロットが DUPLICATE_DEFINITION であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 占有済みスロットへの挿入時でも成立しない寿命値のスキップ判定がスロット占有エラーより優先されることの確認
 TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
 {
     // Arrange
@@ -315,5 +326,5 @@ TEST_F(hashtableInsertDirectTest, skip_checked_before_occupancy)
     EXPECT_STREQ("keep", static_cast<const char *>(found)); // [確認_正常系] - 既存値が変わらないこと。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }

@@ -297,8 +297,9 @@ TEST_F(uiLanguageTest, ReturnsWindowsUiLanguageWhenEnvironmentIsUnset)
     if (tag[0] != '\0')
     {
         // OS の表示言語は実行環境によって異なるため、値ではなく表記が規則に従うことを確認する
-        EXPECT_EQ(CPLAT_OK, cplat_internal_ui_language_normalize(
-                                tag, normalized, sizeof(normalized))); // [確認_正常系] - 取得した言語タグを解釈できること。
+        int normalize_ret = cplat_internal_ui_language_normalize(
+            tag, normalized, sizeof(normalized));
+        EXPECT_EQ(CPLAT_OK, normalize_ret); // [確認_正常系] - 取得した言語タグを解釈できること。
         EXPECT_STREQ(tag, normalized); // [確認_正常系] - 取得した言語タグが正規化済みの表記であること。
     }
 }

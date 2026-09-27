@@ -32,6 +32,7 @@ class hashtableIntegrationTest : public Test
 {
 };
 
+// 文字列キーモードにおける追加・検索・削除・再利用・境界値の一連の操作が正常に動作することの確認
 TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
 {
     // Arrange
@@ -107,6 +108,7 @@ TEST_F(hashtableIntegrationTest, string_mode_demo_scenarios)
     EXPECT_EQ(CPLAT_OK, actual_ret_empty_key);               // [確認_正常系] - 空文字列キーが追加できること。
 }
 
+// バイナリキーモードにおける領域永続化と別ハンドル再接続によるデータ復元が正常に動作することの確認
 TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
 {
     // Arrange
@@ -177,6 +179,7 @@ TEST_F(hashtableIntegrationTest, binary_and_persist_demo_scenarios)
     EXPECT_STREQ("いちじく", static_cast<const char *>(found)); // [確認_正常系] - 再接続後の値が一致すること。
 }
 
+// レコード直接挿入による異なるライフタイムのテーブル間レコード移行が正常に動作することの確認
 TEST_F(hashtableIntegrationTest, migrate_records_by_number)
 {
     // Arrange
@@ -307,6 +310,7 @@ TEST_F(hashtableIntegrationTest, migrate_records_by_number)
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_ret_skip_find); // [確認_正常系] - SKIPPED した banana が移行先に無いこと。
 }
 
+// mmap でファイルにマップしたデータ領域を用いた構築・永続化・再接続が正常に動作することの確認
 TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
 {
     // Arrange
@@ -373,6 +377,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     EXPECT_EQ("mapped-value", found_text);          // [確認_正常系] - mmap 経由の値が一致すること。
 }
 
+// 内部バッファーをファイルへダンプし別領域へ復元して再接続できることの確認
 TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
 {
     // Arrange

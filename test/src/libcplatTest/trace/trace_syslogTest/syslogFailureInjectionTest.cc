@@ -439,7 +439,7 @@ TEST_F(syslogFailureInjectionTest, write_uses_plain_line_when_test_timestamp_for
     }
 }
 
-// 識別子複製用メモリの確保に失敗した場合の戻り値を確認する
+// 識別子複製用メモリの確保に失敗した場合に OUT_OF_MEMORY が返ることの確認
 TEST_F(syslogFailureInjectionTest, rename_reports_out_of_memory_when_duplication_fails)
 {
     // Arrange

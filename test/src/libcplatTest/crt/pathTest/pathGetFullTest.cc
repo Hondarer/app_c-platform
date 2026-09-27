@@ -181,8 +181,8 @@ TEST_F(pathGetFullTest, normalizes_dotdot_and_backslash_segments)
     EXPECT_STREQ(expected, actual); // [確認_正常系] - セパレータと dot segment が正規化されること。
 }
 
-// 連続したセパレーターを含む絶対パスが正規化されることの確認
 #if defined(PLATFORM_LINUX)
+// 連続したセパレーターを含む絶対パスが正規化されることの確認
 TEST_F(pathGetFullTest, normalizes_repeated_separators)
 {
     // Arrange

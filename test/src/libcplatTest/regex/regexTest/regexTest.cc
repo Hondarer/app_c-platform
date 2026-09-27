@@ -735,13 +735,13 @@ TEST_F(regexTest, reports_error_detail)
     // Act_2
     ASSERT_EQ(CPLAT_ERR_INVALID_PATTERN,
               cplat_regex_create("(", CPLAT_REGEX_DEFAULT, &invalid_regex,
-                                    &detail)); // [手順_2] - 不正なパターン "(" をコンパイルする。
+                                    &detail)); // [手順] - 不正なパターン "(" をコンパイルする。
 
     // Assert_2
     EXPECT_EQ(0, cplat_error_is_set(
-                     &detail)); // [確認_2_正常系] - OS 由来ではない失敗のため detail_out がクリアされること。
+                     &detail)); // [確認_正常系] - OS 由来ではない失敗のため detail_out がクリアされること。
     cplat_error_get_last(&last);
-    EXPECT_EQ(0, cplat_error_is_set(&last)); // [確認_2_正常系] - 直前値もクリアされること。
+    EXPECT_EQ(0, cplat_error_is_set(&last)); // [確認_正常系] - 直前値もクリアされること。
 #else
     (void)invalid_regex;
     (void)last;
@@ -879,13 +879,13 @@ TEST_F(regexTest, replace_reports_required_size)
     // Act_2
     result = cplat_regex_replace(regex, text.data(), text.size(), "xy", CPLAT_REGEX_MATCH_DEFAULT, buffer, 6,
                                     &required_size,
-                                    NULL); // [手順_2] - 必要サイズより 1 バイト小さい 6 を指定して置換する。
+                                    NULL); // [手順] - 必要サイズより 1 バイト小さい 6 を指定して置換する。
 
     // Assert_2
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              result);                   // [確認_2_異常系] - バッファー不足時の cplat_regex_replace の戻り値が
+              result);                   // [確認_異常系] - バッファー不足時の cplat_regex_replace の戻り値が
                                          // CPLAT_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_EQ((size_t)7, required_size); // [確認_2_異常系] - required_size_out に必要な 7 が格納されること。
+    EXPECT_EQ((size_t)7, required_size); // [確認_異常系] - required_size_out に必要な 7 が格納されること。
 
     // Arrange_3
     required_size = 0;
@@ -895,13 +895,13 @@ TEST_F(regexTest, replace_reports_required_size)
     // Act_3
     result = cplat_regex_replace(regex, text.data(), text.size(), "xy", CPLAT_REGEX_MATCH_DEFAULT, buffer, 7,
                                     &required_size,
-                                    NULL); // [手順_3] - ちょうどの 7 を指定して置換する。
+                                    NULL); // [手順] - ちょうどの 7 を指定して置換する。
 
     // Assert_3
     EXPECT_EQ(CPLAT_OK,
-              result); // [確認_3_正常系] - ちょうどのサイズでの cplat_regex_replace の戻り値が CPLAT_OK
+              result); // [確認_正常系] - ちょうどのサイズでの cplat_regex_replace の戻り値が CPLAT_OK
                        // であること。
-    EXPECT_EQ(std::string("xyxyxy"), std::string(buffer)); // [確認_3_正常系] - 置換結果が "xyxyxy" であること。
+    EXPECT_EQ(std::string("xyxyxy"), std::string(buffer)); // [確認_正常系] - 置換結果が "xyxyxy" であること。
 
     // Cleanup
     cplat_regex_dispose(regex);
@@ -1182,14 +1182,14 @@ TEST_F(regexTest, split_reports_required_count)
     // Act_2
     result =
         cplat_regex_split(regex, text.data(), text.size(), 0, CPLAT_REGEX_MATCH_DEFAULT, parts, 2, &part_count,
-                             NULL); // [手順_2] - 必要件数より少ない要素数 2 の配列を渡して分割する。
+                             NULL); // [手順] - 必要件数より少ない要素数 2 の配列を渡して分割する。
 
     // Assert_2
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
-              result);                // [確認_2_異常系] - 件数不足時の cplat_regex_split の戻り値が
+              result);                // [確認_異常系] - 件数不足時の cplat_regex_split の戻り値が
                                       // CPLAT_ERR_BUFFER_TOO_SMALL であること。
-    EXPECT_EQ((size_t)3, part_count); // [確認_2_異常系] - part_count_out に必要な件数 3 が格納されること。
-    EXPECT_EQ(std::string("a"), slice(text, parts[0])); // [確認_2_異常系] - 格納できる範囲まで書き込まれていること。
+    EXPECT_EQ((size_t)3, part_count); // [確認_異常系] - part_count_out に必要な件数 3 が格納されること。
+    EXPECT_EQ(std::string("a"), slice(text, parts[0])); // [確認_異常系] - 格納できる範囲まで書き込まれていること。
 
     // Cleanup
     cplat_regex_dispose(regex);

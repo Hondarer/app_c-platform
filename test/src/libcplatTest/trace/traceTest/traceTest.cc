@@ -2120,9 +2120,7 @@ TEST_F(traceTest, force_level_passes_threshold)
     EXPECT_EQ(std::string::npos,
               captured.find("normal debug")); // [確認_正常系] - 通常の DEBUG はしきい値で出力されないこと。
     EXPECT_NE(std::string::npos,
-              captured.find("2026-04-26T03:04:05.678+09:00 D forced debug")); // [確認_正常系] -
-                                                                             // 強制出力の DEBUG がしきい値を越えて、
-                                                                             // 通常と同じレベル表記で出力されること。
+              captured.find("2026-04-26T03:04:05.678+09:00 D forced debug")); // [確認_正常系] - 強制出力の DEBUG がしきい値を越えて、通常と同じレベル表記で出力されること。
 
     // Cleanup
     cplat_tracer_dispose(&handle);

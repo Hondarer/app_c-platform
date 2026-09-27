@@ -32,6 +32,7 @@ class hashtableAttachTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// 未整列の管理領域バッファを指定してアタッチを試みた場合に CPLAT_ERR_INVALID_ARGUMENT で拒否されることの確認
 TEST_F(hashtableAttachTest, rejects_misaligned_buffer)
 {
     // Arrange
@@ -53,14 +54,17 @@ TEST_F(hashtableAttachTest, rejects_misaligned_buffer)
     // Act
     int actual_ret = cplat_hashtable_attach(buf_mgmt.data() + 1, mgmt_needed, buf_data.data(), buf_data.size(),
                                                &attached); // [手順] - 1 バイトずれた管理領域へ再接続する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret);        // [確認_異常系] - 未整列の領域が INVALID_ARGUMENT であること。
     EXPECT_EQ(nullptr, attached); // [確認_異常系] - 失敗後の ht_out が NULL であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 出力先ポインタ ht_out に NULL を指定してアタッチを試みた場合に CPLAT_ERR_INVALID_ARGUMENT で拒否されることの確認
 TEST_F(hashtableAttachTest, rejects_null_ht_out)
 {
     // Arrange
@@ -81,13 +85,16 @@ TEST_F(hashtableAttachTest, rejects_null_ht_out)
     // Act
     int actual_ret = cplat_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                                NULL); // [手順] - ht_out に NULL を渡す。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret); // [確認_異常系] - NULL ht_out が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// バイナリキー種別で作成されたハッシュテーブルへ正しく再接続でき、再接続後もキー検索が行えることの確認
 TEST_F(hashtableAttachTest, accepts_binary_key_type)
 {
     // Arrange
@@ -115,15 +122,18 @@ TEST_F(hashtableAttachTest, accepts_binary_key_type)
     int actual_ret_attach =
         cplat_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                   &attached); // [手順] - バイナリ キーのテーブルへ再接続する。
-    int actual_ret_find = cplat_hashtable_find_value_ref(attached, key, &found);
-    cplat_hashtable_dispose(ht);
-    cplat_hashtable_dispose(attached);
+    int actual_ret_find = cplat_hashtable_find_value_ref(attached, key, &found); // [手順] - 再接続先から値を検索する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_attach); // [確認_正常系] - バイナリ キー種別の再接続が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_find);   // [確認_正常系] - 再接続後も検索できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);       // [破棄] - 元のテーブルを破棄する。
+    cplat_hashtable_dispose(attached); // [破棄] - 再接続したテーブルを破棄する。
 }
 
+// 管理領域内のヘッダ情報（キー種別、サイズ、世代、件数等）が破損または矛盾している場合にエラーとして拒否されることの確認
 TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
 {
     // Arrange
@@ -217,8 +227,6 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
         cplat_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), small_data.data(), small_data.size(),
                                   &attached); // [手順] - データ領域の buf_data_size 不足で再接続する。
 
-    cplat_hashtable_dispose(ht);
-
     // Assert
     EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR,
               actual_ret_key_type); // [確認_異常系] - 不正な保存 key_type が破損として拒否されること。
@@ -246,4 +254,7 @@ TEST_F(hashtableAttachTest, rejects_corrupted_config_fields)
               actual_ret_mgmt_too_small); // [確認_異常系] - 管理領域不足が BUFFER_TOO_SMALL であること。
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
               actual_ret_data_too_small); // [確認_異常系] - データ領域不足が BUFFER_TOO_SMALL であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }

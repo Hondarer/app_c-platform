@@ -266,9 +266,9 @@ TEST_F(fgetsTest, clears_detail_on_success)
     cplat_error detail = {CPLAT_ERROR_DOMAIN_ERRNO, CPLAT_ERR_NOT_FOUND,
                              ENOENT}; // [状態] - 詳細エラーへあらかじめ ENOENT を設定する。
     char buf[16];
+    ASSERT_NE(0, cplat_error_is_set(&detail)); // [状態確認] - 呼び出し前の詳細エラーが設定済みであること。
 
     // Pre-Assert
-    ASSERT_NE(0, cplat_error_is_set(&detail)); // [状態確認] - 呼び出し前の詳細エラーが設定済みであること。
     EXPECT_CALL(mock_stdio, fgets(_, _, _, buf, static_cast<int>(sizeof(buf)), kStream))
         .WillOnce(
             [](const char *, int, const char *, char *dest, int n, FILE *)

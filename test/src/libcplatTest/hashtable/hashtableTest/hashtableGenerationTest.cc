@@ -79,6 +79,7 @@ class hashtableGenerationTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// レコード粒度のハッシュテーブルで add/update/delete 操作により世代番号が進むことの確認
 TEST_F(hashtableGenerationTest, add_update_delete_advance_generation)
 {
     // Arrange
@@ -103,7 +104,7 @@ TEST_F(hashtableGenerationTest, add_update_delete_advance_generation)
     int actual_ret_created =
         cplat_hashtable_get_table_generation(ht, &created); // [手順] - 構築直後のテーブル世代を読む。
     int actual_ret_add = cplat_hashtable_add(ht, "a", value.data(),
-                                                CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - キーを追加する。
+                                                 CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - キーを追加する。
     int actual_ret_added_table =
         cplat_hashtable_get_table_generation(ht, &added_table); // [手順] - 追加後のテーブル世代を読む。
     int actual_ret_added_record =
@@ -120,7 +121,6 @@ TEST_F(hashtableGenerationTest, add_update_delete_advance_generation)
         cplat_hashtable_get_generation(ht, 1, &deleted_record); // [手順] - 削除済みレコードの世代を読む。
     int actual_ret_after_delete_found =
         cplat_hashtable_find_generation(ht, "a", &after_delete_found); // [手順] - 削除済みキーで検索する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_created);      // [確認_正常系] - 構築直後にテーブル世代を読めること。
@@ -145,8 +145,12 @@ TEST_F(hashtableGenerationTest, add_update_delete_advance_generation)
     EXPECT_EQ(
         CPLAT_ERR_NOT_FOUND,
         actual_ret_after_delete_found); // [確認_異常系] - 削除済みキーの find_generation が NOT_FOUND であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 実時刻が逆行する場合でも世代番号が単調増加し続けることの確認
 TEST_F(hashtableGenerationTest, generation_advances_while_realtime_goes_backward)
 {
     // Arrange
@@ -180,7 +184,6 @@ TEST_F(hashtableGenerationTest, generation_advances_while_realtime_goes_backward
     (void)cplat_hashtable_update(ht, "a", value.data()); // [手順] - 時計が戻った状態で値を更新する。
     int actual_ret_second_time = cplat_hashtable_get_timestamp_val(ht, 1, &second_time);
     int actual_ret_second_generation = cplat_hashtable_get_generation(ht, 1, &second_generation);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_first_time);        // [確認_正常系] - 追加後の時刻を読めること。
@@ -189,8 +192,12 @@ TEST_F(hashtableGenerationTest, generation_advances_while_realtime_goes_backward
     EXPECT_EQ(CPLAT_OK, actual_ret_second_generation); // [確認_正常系] - 更新後の世代を読めること。
     EXPECT_LT(second_time.tv_sec, first_time.tv_sec);     // [確認_正常系] - 実時刻は時計の巻き戻しにより逆行すること。
     EXPECT_GT(second_generation, first_generation); // [確認_正常系] - 世代カウンターは時計が戻っても増え続けること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 削除済みレコード再利用時に実時刻ではなく世代番号が最小のレコードが選択されることの確認
 TEST_F(hashtableGenerationTest, reuse_deleted_selects_smallest_generation)
 {
     // Arrange
@@ -218,7 +225,6 @@ TEST_F(hashtableGenerationTest, reuse_deleted_selects_smallest_generation)
         ht, "z", value.data(),
         CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが無い状態で新しいキーを追加する。
     int actual_ret_recno = cplat_hashtable_find_recno(ht, "z", &reused_record);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_first);  // [確認_正常系] - レコード 1 への直接書き込みが成功すること。
@@ -226,8 +232,12 @@ TEST_F(hashtableGenerationTest, reuse_deleted_selects_smallest_generation)
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - 削除済みを追い出して追加できること。
     EXPECT_EQ(CPLAT_OK, actual_ret_recno);  // [確認_正常系] - 追加したキーのレコード番号を引けること。
     EXPECT_EQ(2u, reused_record); // [確認_正常系] - 実時刻ではなく世代が最小のレコード 2 が再利用されること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_insert_direct で渡された世代番号に応じてテーブル世代が正しく更新および維持されることの確認
 TEST_F(hashtableGenerationTest, insert_direct_keeps_largest_generation)
 {
     // Arrange
@@ -251,7 +261,6 @@ TEST_F(hashtableGenerationTest, insert_direct_keeps_largest_generation)
                                                             7); // [手順] - 小さい世代でレコードを置く。
     int actual_ret_after_small = cplat_hashtable_get_table_generation(ht, &after_small);
     int actual_ret_record_small = cplat_hashtable_get_generation(ht, 2, &record_small);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_large);        // [確認_正常系] - 大きい世代での直接書き込みが成功すること。
@@ -262,8 +271,12 @@ TEST_F(hashtableGenerationTest, insert_direct_keeps_largest_generation)
     EXPECT_EQ(40u, after_small);                     // [確認_正常系] - 小さい世代を渡してもテーブル世代が戻らないこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_record_small); // [確認_正常系] - レコード世代を読めること。
     EXPECT_EQ(7u, record_small);                     // [確認_正常系] - レコードには渡した値がそのまま書かれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// テーブル粒度設定時にレコード世代関連 API が UNSUPPORTED または INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableGenerationTest, scope_table_has_no_record_generation)
 {
     // Arrange
@@ -290,7 +303,6 @@ TEST_F(hashtableGenerationTest, scope_table_has_no_record_generation)
         ht, 2, "b", 1, value.data(), &timestamp, 0); // [手順] - テーブル粒度で NULL 以外の時刻を渡す。
     int actual_ret_direct_ok =
         cplat_hashtable_insert_direct(ht, 2, "b", 1, value.data(), NULL, 0); // [手順] - どちらも省いて置く。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_table); // [確認_正常系] - テーブル粒度でもテーブル世代を読めること。
@@ -306,8 +318,12 @@ TEST_F(hashtableGenerationTest, scope_table_has_no_record_generation)
         CPLAT_ERR_INVALID_ARGUMENT,
         actual_ret_direct_timestamp); // [確認_異常系] - テーブル粒度で NULL 以外の時刻は INVALID_ARGUMENT であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_direct_ok); // [確認_正常系] - どちらも省けば直接書き込みが成功すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_find_generation が衝突チェインを走査して正しくレコード世代を取得できることの確認
 TEST_F(hashtableGenerationTest, find_generation_walks_chain)
 {
     // Arrange
@@ -337,7 +353,6 @@ TEST_F(hashtableGenerationTest, find_generation_walks_chain)
         cplat_hashtable_find_generation(ht, "a", &walked_generation); // [手順] - チェインを辿って世代を読む。
     int actual_ret_missing =
         cplat_hashtable_find_generation(ht, "zz", &missing_generation); // [手順] - 未登録のキーで検索する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_first);       // [確認_正常系] - チェイン先頭のキーで世代を読めること。
@@ -345,8 +360,12 @@ TEST_F(hashtableGenerationTest, find_generation_walks_chain)
     EXPECT_EQ(first_generation, walked_generation); // [確認_正常系] - 辿っても同じ世代が得られること。
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND,
               actual_ret_missing); // [確認_異常系] - 未登録のキーの find_generation が NOT_FOUND であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_purge_deleted および clear 実行時の世代番号の挙動の確認
 TEST_F(hashtableGenerationTest, clear_and_purge_handle_generation)
 {
     // Arrange
@@ -375,7 +394,6 @@ TEST_F(hashtableGenerationTest, clear_and_purge_handle_generation)
     (void)cplat_hashtable_add(ht, "a", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret_clear = cplat_hashtable_clear(ht); // [手順] - テーブルを空にする。
     int actual_ret_after_clear = cplat_hashtable_get_table_generation(ht, &after_clear);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_before);      // [確認_正常系] - 削除後にテーブル世代を読めること。
@@ -390,8 +408,12 @@ TEST_F(hashtableGenerationTest, clear_and_purge_handle_generation)
     EXPECT_EQ(CPLAT_OK, actual_ret_after_clear); // [確認_正常系] - clear 後にテーブル世代を読めること。
     EXPECT_GT(after_clear, after_purge);            // [確認_正常系] - clear がテーブル世代を進めること。
     EXPECT_EQ(4u, after_clear); // [確認_正常系] - 追加と clear でテーブル世代がさらに 2 増えること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 世代関連 API に不正な引数や範囲外キーを渡した場合のエラー返却の確認
 TEST_F(hashtableGenerationTest, generation_guards_reject_invalid_arguments)
 {
     // Arrange
@@ -419,7 +441,6 @@ TEST_F(hashtableGenerationTest, generation_guards_reject_invalid_arguments)
     int actual_ret_find_null_out = cplat_hashtable_find_generation(ht, "a", NULL);
     int actual_ret_find_long_key = cplat_hashtable_find_generation(
         ht, "0123456789", &generation); // [手順] - key_size に収まらないキーで検索する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_table_null_ht); // [確認_異常系] - ht が NULL なら失敗すること。
@@ -442,4 +463,7 @@ TEST_F(hashtableGenerationTest, generation_guards_reject_invalid_arguments)
               actual_ret_find_null_out); // [確認_異常系] - 格納先が NULL なら失敗すること。
     EXPECT_EQ(CPLAT_ERR_OUT_OF_RANGE,
               actual_ret_find_long_key); // [確認_異常系] - key_size に収まらないキーは OUT_OF_RANGE であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }

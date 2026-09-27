@@ -60,6 +60,7 @@ class hashtableResizeTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// ハッシュテーブル拡大時にレコード番号、世代番号、タイムスタンプが保持されることの確認
 TEST_F(hashtableResizeTest, grow_preserves_record_numbers_and_stamps)
 {
     // Arrange
@@ -95,7 +96,6 @@ TEST_F(hashtableResizeTest, grow_preserves_record_numbers_and_stamps)
     int actual_ret_counts = cplat_hashtable_count_status(ht, &in_use, NULL, &empty);
     int actual_ret_validate = cplat_hashtable_validate(ht);
     int actual_ret_add_more = cplat_hashtable_add(ht, "z", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 拡大が成功すること。
@@ -110,8 +110,12 @@ TEST_F(hashtableResizeTest, grow_preserves_record_numbers_and_stamps)
     EXPECT_EQ(14u, empty);                       // [確認_正常系] - 増やしたぶんが空きとして使えること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 拡大後も内部整合性が保たれること。
     EXPECT_EQ(CPLAT_OK, actual_ret_add_more); // [確認_正常系] - 拡大後に追加できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// ハッシュテーブル縮小時に範囲外となったレコード番号が詰め直され値と世代が保持されることの確認
 TEST_F(hashtableResizeTest, shrink_renumbers_records_and_keeps_values)
 {
     // Arrange
@@ -143,7 +147,6 @@ TEST_F(hashtableResizeTest, shrink_renumbers_records_and_keeps_values)
     int actual_ret_generation = cplat_hashtable_find_generation(ht, "a", &generation_after);
     int actual_ret_counts = cplat_hashtable_count(ht, &in_use);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(7u, rec_before);                 // [確認_正常系] - 縮小前は指定した番号にあること。
@@ -157,8 +160,12 @@ TEST_F(hashtableResizeTest, shrink_renumbers_records_and_keeps_values)
     EXPECT_EQ(CPLAT_OK, actual_ret_counts);
     EXPECT_EQ(1u, in_use);                       // [確認_正常系] - 使用中件数が保たれること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 縮小後も内部整合性が保たれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 使用中レコード数が縮小後の容量に収まらない場合に LIMIT_EXCEEDED が返り状態が維持されることの確認
 TEST_F(hashtableResizeTest, shrink_rejects_when_in_use_records_do_not_fit)
 {
     // Arrange
@@ -183,7 +190,6 @@ TEST_F(hashtableResizeTest, shrink_rejects_when_in_use_records_do_not_fit)
     int actual_ret_counts = cplat_hashtable_count(ht, &in_use);
     int actual_ret_find = cplat_hashtable_find_recno(ht, "a", &rec_a);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_LIMIT_EXCEEDED,
@@ -192,8 +198,12 @@ TEST_F(hashtableResizeTest, shrink_rejects_when_in_use_records_do_not_fit)
     EXPECT_EQ(3u, in_use);                       // [確認_正常系] - 失敗してもテーブルが変わらないこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_find);     // [確認_正常系] - 失敗後もキーを引けること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 失敗後も内部整合性が保たれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// reuse_deleted が無効な場合に削除済みレコードを破棄できず縮小が LIMIT_EXCEEDED となることの確認
 TEST_F(hashtableResizeTest, shrink_rejects_deleted_records_when_reuse_is_disabled)
 {
     // Arrange
@@ -218,15 +228,18 @@ TEST_F(hashtableResizeTest, shrink_rejects_deleted_records_when_reuse_is_disable
     shrunk.capacity = 2; // [状態] - 使用中 1 件と削除済み 2 件が収まらないレコード数にする。
     int actual_ret_resize = cplat_hashtable_resize(ht, &shrunk);
     int actual_ret_counts = cplat_hashtable_deleted_count(ht, &deleted);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_LIMIT_EXCEEDED,
               actual_ret_resize); // [確認_異常系] - 削除済みを捨てずに失敗すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_counts);
     EXPECT_EQ(2u, deleted); // [確認_正常系] - 削除済みが 1 件も捨てられていないこと。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// reuse_deleted が有効な場合に最も古い世代の削除済みレコードを破棄して縮小できることの確認
 TEST_F(hashtableResizeTest, shrink_drops_oldest_deleted_records_when_reuse_is_enabled)
 {
     // Arrange
@@ -262,7 +275,6 @@ TEST_F(hashtableResizeTest, shrink_drops_oldest_deleted_records_when_reuse_is_en
     int actual_ret_key =
         cplat_hashtable_get_key_copy(ht, deleted_record, kept_key.data(), kept_key.size(), &required);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを除外して縮小できること。
@@ -273,8 +285,12 @@ TEST_F(hashtableResizeTest, shrink_drops_oldest_deleted_records_when_reuse_is_en
     EXPECT_EQ(CPLAT_OK, actual_ret_key);
     EXPECT_STREQ("b", kept_key.data());          // [確認_正常系] - 世代が新しい削除済みが残り、古い方が破棄されること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 縮小後も内部整合性が保たれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 可変長ストレージのリサイズおよび収まらない容量への縮小拒否の確認
 TEST_F(hashtableResizeTest, resizes_variable_storage_and_rejects_when_it_does_not_fit)
 {
     // Arrange
@@ -302,7 +318,6 @@ TEST_F(hashtableResizeTest, resizes_variable_storage_and_rejects_when_it_does_no
     too_small.value_storage_size = 4; // [状態] - 保持している値が収まらない容量にする。
     int actual_ret_shrink = cplat_hashtable_resize(ht, &too_small);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_grow); // [確認_正常系] - 可変長ストレージを増やせること。
@@ -312,8 +327,12 @@ TEST_F(hashtableResizeTest, resizes_variable_storage_and_rejects_when_it_does_no
     EXPECT_EQ(CPLAT_ERR_STORAGE_FULL,
               actual_ret_shrink);                // [確認_異常系] - 収まらない縮小が STORAGE_FULL であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 失敗後も内部整合性が保たれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_resize に不正な引数や変更不可項目を指定した場合のエラー返却の確認
 TEST_F(hashtableResizeTest, resize_guards_reject_invalid_arguments)
 {
     // Arrange
@@ -346,8 +365,6 @@ TEST_F(hashtableResizeTest, resize_guards_reject_invalid_arguments)
     changed.capacity = 8;
     int actual_ret_external =
         cplat_hashtable_resize(external, &changed); // [手順] - 外部領域のテーブルを縮めようとする。
-    cplat_hashtable_dispose(external);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_null_ht);     // [確認_異常系] - ht が NULL なら失敗すること。
@@ -358,8 +375,13 @@ TEST_F(hashtableResizeTest, resize_guards_reject_invalid_arguments)
               actual_ret_invalid_config); // [確認_異常系] - 設定として不正な値が失敗すること。
     EXPECT_EQ(CPLAT_ERR_UNSUPPORTED,
               actual_ret_external); // [確認_異常系] - 外部領域のテーブルは UNSUPPORTED であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(external);
+    cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_rebuild_into で呼び出し元指定領域へテーブルを再構築・移行できることの確認
 TEST_F(hashtableResizeTest, rebuild_into_moves_table_to_caller_supplied_region)
 {
     // Arrange
@@ -396,8 +418,6 @@ TEST_F(hashtableResizeTest, rebuild_into_moves_table_to_caller_supplied_region)
     int actual_ret_validate = cplat_hashtable_validate(dst);
     uint64_t rec_src_after = 0;
     int actual_ret_src_intact = cplat_hashtable_find_recno(src, "a", &rec_src_after);
-    cplat_hashtable_dispose(dst);
-    cplat_hashtable_dispose(src);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_rebuild);  // [確認_正常系] - 外部領域への移行が成功すること。
@@ -408,8 +428,13 @@ TEST_F(hashtableResizeTest, rebuild_into_moves_table_to_caller_supplied_region)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate);   // [確認_正常系] - 移行先の内部整合性が保たれること。
     EXPECT_EQ(CPLAT_OK, actual_ret_src_intact); // [確認_正常系] - 移行元が変更されずに残ること。
     EXPECT_EQ(rec_before, rec_src_after);          // [確認_正常系] - 移行元のレコード番号が変わらないこと。
+
+    // Cleanup
+    cplat_hashtable_dispose(dst);
+    cplat_hashtable_dispose(src);
 }
 
+// cplat_hashtable_rebuild_into に不正な引数や容量不足を指定した場合のエラー返却の確認
 TEST_F(hashtableResizeTest, rebuild_into_guards_reject_invalid_arguments)
 {
     // Arrange
@@ -444,7 +469,6 @@ TEST_F(hashtableResizeTest, rebuild_into_guards_reject_invalid_arguments)
     /* 使用中 2 件がレコード数 1 へ収まらないため、領域へ触れずに失敗する。 */
     int actual_ret_limit =
         cplat_hashtable_rebuild_into(src, &shrunk, mgmt_buf.data(), mgmt_size, data_buf.data(), data_size, &dst);
-    cplat_hashtable_dispose(src);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_null_src); // [確認_異常系] - 移行元が NULL なら失敗すること。
@@ -456,6 +480,9 @@ TEST_F(hashtableResizeTest, rebuild_into_guards_reject_invalid_arguments)
               actual_ret_limit); // [確認_異常系] - 収まらない移行が LIMIT_EXCEEDED であること。
     EXPECT_EQ(nullptr, dst);     // [確認_異常系] - 失敗時に出力先が NULL になること。
     EXPECT_EQ(0u, mgmt_buf[0]);  // [確認_異常系] - 失敗時に渡された領域へ触れていないこと。
+
+    // Cleanup
+    cplat_hashtable_dispose(src);
 }
 
 /*
@@ -470,6 +497,7 @@ TEST_F(hashtableResizeTest, rebuild_into_guards_reject_invalid_arguments)
  *   移行先は構築直後で断片化がなく、移行元のキーは一意である。
  */
 
+// リサイズ時に変更不可な設定項目を変更しようとした場合にすべて INVALID_ARGUMENT が返ることの確認
 TEST_F(hashtableResizeTest, resize_rejects_every_immutable_config_field)
 {
     // Arrange
@@ -525,7 +553,6 @@ TEST_F(hashtableResizeTest, resize_rejects_every_immutable_config_field)
         changed.reuse_deleted = 1;
         results.push_back(cplat_hashtable_resize(ht, &changed)); // [手順] - 削除済みの再利用可否を変えて呼ぶ。
     }
-    cplat_hashtable_dispose(ht);
 
     // Assert
     ASSERT_EQ(7u, results.size()); // [確認_正常系] - 7 通りすべてを試したこと。
@@ -534,8 +561,12 @@ TEST_F(hashtableResizeTest, resize_rejects_every_immutable_config_field)
         EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, results[i])
             << "index " << i; // [確認_異常系] - 変えてはならない項目の変更がすべて INVALID_ARGUMENT であること。
     }
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 縮小時に複数の削除済みレコードが世代の古い順に破棄されることの確認
 TEST_F(hashtableResizeTest, shrink_drops_multiple_deleted_records_in_generation_order)
 {
     // Arrange
@@ -569,7 +600,6 @@ TEST_F(hashtableResizeTest, shrink_drops_multiple_deleted_records_in_generation_
     int actual_ret_key =
         cplat_hashtable_get_key_copy(ht, deleted_record, kept_key.data(), kept_key.size(), &required);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_resize); // [確認_正常系] - 削除済みを 2 件除外して縮小できること。
@@ -580,8 +610,12 @@ TEST_F(hashtableResizeTest, shrink_drops_multiple_deleted_records_in_generation_
     EXPECT_EQ(CPLAT_OK, actual_ret_key);
     EXPECT_STREQ("a", kept_key.data());          // [確認_正常系] - 世代が最も新しい削除済みだけが残ること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 縮小後も内部整合性が保たれること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// リサイズ時の calloc 失敗により OUT_OF_MEMORY が返り状態が維持されることの確認
 TEST_F(hashtableResizeTest, resize_reports_out_of_memory_when_calloc_fails)
 {
     // Arrange
@@ -617,6 +651,7 @@ TEST_F(hashtableResizeTest, resize_reports_out_of_memory_when_calloc_fails)
     cplat_hashtable_dispose(ht);
 }
 
+// cplat_hashtable_rebuild_into に不正な設定や互換性のない設定を渡した場合のエラー返却の確認
 TEST_F(hashtableResizeTest, rebuild_into_rejects_invalid_and_incompatible_config)
 {
     // Arrange
@@ -645,7 +680,6 @@ TEST_F(hashtableResizeTest, rebuild_into_rejects_invalid_and_incompatible_config
                                                                   data_buf.data(), data_size, &dst);
     int actual_ret_too_small = cplat_hashtable_rebuild_into(src, &config, mgmt_buf.data(), 1, data_buf.data(),
                                                                data_size, &dst); // [手順] - 管理領域を小さく渡す。
-    cplat_hashtable_dispose(src);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -655,8 +689,12 @@ TEST_F(hashtableResizeTest, rebuild_into_rejects_invalid_and_incompatible_config
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
               actual_ret_too_small); // [確認_異常系] - 領域が足りないと BUFFER_TOO_SMALL であること。
     EXPECT_EQ(nullptr, dst);         // [確認_異常系] - 失敗時に出力先が NULL になること。
+
+    // Cleanup
+    cplat_hashtable_dispose(src);
 }
 
+// 移行先領域のメモリ確保失敗時に OUT_OF_MEMORY が返り状態が維持されることの確認
 TEST_F(hashtableResizeTest, resize_reports_out_of_memory_when_new_region_allocation_fails)
 {
     // Arrange

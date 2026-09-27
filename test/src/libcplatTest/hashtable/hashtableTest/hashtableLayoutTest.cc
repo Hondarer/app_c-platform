@@ -41,6 +41,7 @@ class hashtableLayoutTest : public Test
  *   の和であり、常に 8 の倍数になるため pad が 0 に固定され、加算は失敗しない。
  */
 
+// cplat_hashtable_required_size がキーストライド計算のオーバーフロー時に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_entry_stride_overflow)
 {
     // Arrange
@@ -62,6 +63,7 @@ TEST_F(hashtableLayoutTest, rejects_entry_stride_overflow)
               actual_ret); // [確認_異常系] - キー ストライド計算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_required_size がバケット領域オフセット計算のオーバーフロー時に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_bucket_region_offset_overflow)
 {
     // Arrange
@@ -83,6 +85,7 @@ TEST_F(hashtableLayoutTest, rejects_bucket_region_offset_overflow)
               actual_ret); // [確認_異常系] - バケット領域オフセット加算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_required_size がエントリ領域サイズ乗算のオーバーフロー時に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_entries_region_multiplication_overflow)
 {
     // Arrange
@@ -104,6 +107,7 @@ TEST_F(hashtableLayoutTest, rejects_entries_region_multiplication_overflow)
               actual_ret); // [確認_異常系] - エントリ領域サイズ計算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_required_size がエントリ領域オフセット加算のオーバーフロー時に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_entries_region_offset_overflow)
 {
     // Arrange
@@ -125,6 +129,7 @@ TEST_F(hashtableLayoutTest, rejects_entries_region_offset_overflow)
               actual_ret); // [確認_異常系] - エントリ領域オフセット加算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_required_size がデータ領域サイズ乗算のオーバーフロー時に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_data_region_multiplication_overflow)
 {
     // Arrange
@@ -145,6 +150,7 @@ TEST_F(hashtableLayoutTest, rejects_data_region_multiplication_overflow)
               actual_ret); // [確認_異常系] - データ領域サイズ計算のオーバーフローが INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_required_size が capacity に 0 を指定した場合に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, required_size_rejects_zero_capacity)
 {
     // Arrange
@@ -165,6 +171,7 @@ TEST_F(hashtableLayoutTest, required_size_rejects_zero_capacity)
               actual_ret); // [確認_異常系] - capacity 0 が create と同じ基準で INVALID_ARGUMENT であること。
 }
 
+// cplat_hashtable_create が未整列の外部管理バッファーを指定した場合に INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, create_rejects_misaligned_external_buffer)
 {
     // Arrange
@@ -191,6 +198,7 @@ TEST_F(hashtableLayoutTest, create_rejects_misaligned_external_buffer)
     EXPECT_EQ(nullptr, ht); // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
 
+// cplat_hashtable_create が内部確保時の管理領域とデータ領域の合計サイズオーバーフローで INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, create_internal_alloc_rejects_combined_size_overflow)
 {
     // Arrange
@@ -217,6 +225,7 @@ TEST_F(hashtableLayoutTest, create_internal_alloc_rejects_combined_size_overflow
     EXPECT_EQ(nullptr, ht); // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
 
+// SCOPE_TABLE 指定時の必要管理領域サイズが SCOPE_RECORD 指定時よりも小さくなることの確認
 TEST_F(hashtableLayoutTest, required_size_table_scope_is_smaller_than_record_scope)
 {
     // Arrange
@@ -245,6 +254,7 @@ TEST_F(hashtableLayoutTest, required_size_table_scope_is_smaller_than_record_sco
     EXPECT_EQ(table_data, record_data);        // [確認_正常系] - データ領域サイズは粒度で変わらないこと。
 }
 
+// 不正な value_align (非2冪、上限超過、可変長値指定) に対して INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, rejects_invalid_value_align)
 {
     // Arrange
@@ -279,6 +289,7 @@ TEST_F(hashtableLayoutTest, rejects_invalid_value_align)
               actual_ret_variable_value); // [確認_異常系] - 可変長値に境界を指定すると INVALID_ARGUMENT であること。
 }
 
+// value_align 指定時にデータ領域が必要幅へ切り上げられ値参照が境界に整列することの確認
 TEST_F(hashtableLayoutTest, value_align_rounds_up_data_region_and_aligns_references)
 {
     // Arrange
@@ -307,7 +318,6 @@ TEST_F(hashtableLayoutTest, value_align_rounds_up_data_region_and_aligns_referen
     int actual_ret_second = cplat_hashtable_get_value_ref(ht, 2, &second_ref);
     uintptr_t first_addr = reinterpret_cast<uintptr_t>(first_ref);
     uintptr_t second_addr = reinterpret_cast<uintptr_t>(second_ref);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_packed_size);  // [確認_正常系] - 詰めて並べる設定で必要サイズを求められること。
@@ -321,8 +331,12 @@ TEST_F(hashtableLayoutTest, value_align_rounds_up_data_region_and_aligns_referen
     EXPECT_EQ(CPLAT_OK, actual_ret_second); // [確認_正常系] - 2 件目の値参照を取れること。
     EXPECT_EQ(0u, first_addr % 8u);            // [確認_正常系] - 1 件目の値参照が指定した境界に整列していること。
     EXPECT_EQ(0u, second_addr % 8u);           // [確認_正常系] - 2 件目の値参照が指定した境界に整列していること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
+// cplat_hashtable_create が value_align の境界を満たさない外部データバッファーで INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableLayoutTest, create_rejects_external_data_buffer_misaligned_for_value_align)
 {
     // Arrange
@@ -353,6 +367,7 @@ TEST_F(hashtableLayoutTest, create_rejects_external_data_buffer_misaligned_for_v
     EXPECT_EQ(nullptr, ht); // [確認_異常系] - 失敗時にハンドルが NULL のままであること。
 }
 
+// SCOPE_TABLE において可変長キーの記述子が uint64_t 境界に整列することの確認
 TEST_F(hashtableLayoutTest, variable_key_descriptor_is_aligned_in_table_scope)
 {
     // Arrange
@@ -375,7 +390,6 @@ TEST_F(hashtableLayoutTest, variable_key_descriptor_is_aligned_in_table_scope)
     (void)cplat_hashtable_add(ht, "alpha", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE);
     first_addr = reinterpret_cast<uintptr_t>(test_hashtable_key_ref_at(ht, 0));
     second_addr = reinterpret_cast<uintptr_t>(test_hashtable_key_ref_at(ht, 1));
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - 可変長キーとテーブル粒度で構築できること。
@@ -383,8 +397,12 @@ TEST_F(hashtableLayoutTest, variable_key_descriptor_is_aligned_in_table_scope)
               first_addr % alignof(uint64_t)); // [確認_正常系] - 1 件目のキー descriptor が uint64_t 境界にあること。
     EXPECT_EQ(0u,
               second_addr % alignof(uint64_t)); // [確認_正常系] - 2 件目のキー descriptor が uint64_t 境界にあること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
+// 8の倍数でないキーストレージ容量指定時でも内部データ領域および値記述子が uint64_t 境界に整列することの確認
 TEST_F(hashtableLayoutTest, internal_data_region_is_aligned_after_odd_key_storage)
 {
     // Arrange
@@ -409,11 +427,13 @@ TEST_F(hashtableLayoutTest, internal_data_region_is_aligned_after_odd_key_storag
     (void)cplat_hashtable_add(ht, "alpha", "v1", CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE);
     data_addr = reinterpret_cast<uintptr_t>(data_ref);
     ref_addr = reinterpret_cast<uintptr_t>(test_hashtable_value_ref_at(ht, 0));
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create);    // [確認_正常系] - 8 の倍数でないキー ストレージ容量で構築できること。
     EXPECT_EQ(CPLAT_OK, actual_ret_buffer);    // [確認_正常系] - データ領域の先頭を取れること。
     EXPECT_EQ(0u, data_addr % alignof(uint64_t)); // [確認_正常系] - データ領域の先頭が uint64_t 境界にあること。
     EXPECT_EQ(0u, ref_addr % alignof(uint64_t));  // [確認_正常系] - 値 descriptor が uint64_t 境界にあること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }

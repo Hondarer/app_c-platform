@@ -99,9 +99,8 @@ TEST(pathFormatTest, reports_vsnprintf_failure)
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_vsnprintf(path, sizeof(path), StrEq("value-7")))
         .WillOnce(Return(
-            CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value-7" で 1 回
-                                    // 呼び出されること。
-                                    // [Pre-Assert手順] - cplat_vsnprintf から CPLAT_ERR_UNKNOWN を返却する。
+            CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value-7" で 1 回呼び出されること。
+                                 // [Pre-Assert手順] - cplat_vsnprintf から CPLAT_ERR_UNKNOWN を返却する。
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), &error_out, "value-%d",
@@ -122,9 +121,8 @@ TEST(pathFormatTest, allows_null_error_out_for_vsnprintf_failure)
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_vsnprintf(path, sizeof(path), StrEq("value")))
         .WillOnce(Return(
-            CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value" で 1 回
-                                    // 呼び出されること。
-                                    // [Pre-Assert手順] - cplat_vsnprintf から CPLAT_ERR_UNKNOWN を返却する。
+            CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value" で 1 回呼び出されること。
+                                 // [Pre-Assert手順] - cplat_vsnprintf から CPLAT_ERR_UNKNOWN を返却する。
 
     // Act
     int actual_ret = call_vformat_path(
@@ -146,10 +144,8 @@ TEST(pathFormatTest, reports_buffer_too_small_from_wrapper)
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_vsnprintf(path, sizeof(path), StrEq("value")))
         .WillOnce(Return(
-            CPLAT_ERR_BUFFER_TOO_SMALL)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value" で
-                                             // 1 回呼び出されること。
-                                             // [Pre-Assert手順] - cplat_vsnprintf から
-                                             // CPLAT_ERR_BUFFER_TOO_SMALL を返却する。
+            CPLAT_ERR_BUFFER_TOO_SMALL)); // [Pre-Assert確認_異常系] - cplat_vsnprintf が展開済み文字列 "value" で 1 回呼び出されること。
+                                          // [Pre-Assert手順] - cplat_vsnprintf から CPLAT_ERR_BUFFER_TOO_SMALL を返却する。
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), &error_out, "%s",

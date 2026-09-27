@@ -33,6 +33,7 @@ class hashtableLifetimeInfiniteTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// lifetime に 255（無限）を指定してハッシュテーブルを作成でき、設定に反映されることの確認
 TEST_F(hashtableLifetimeInfiniteTest, create_accepts_infinite_lifetime)
 {
     // Arrange
@@ -48,6 +49,7 @@ TEST_F(hashtableLifetimeInfiniteTest, create_accepts_infinite_lifetime)
     // Act
     int actual_ret_create = cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - 寿命無限で構築する。
     int actual_ret_config = cplat_hashtable_get_config_ref(ht, &got);               // [手順] - 設定を読む。
+
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - lifetime 255 で構築できること。
     EXPECT_EQ(CPLAT_OK, actual_ret_config); // [確認_正常系] - 設定参照が成功すること。
@@ -55,9 +57,10 @@ TEST_F(hashtableLifetimeInfiniteTest, create_accepts_infinite_lifetime)
     EXPECT_EQ(CPLAT_HASHTABLE_LIFETIME_INFINITE, got->lifetime); // [確認_正常系] - lifetime が 255 であること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 寿命無限のテーブルで push_deleted を繰り返した際に終端ステータス 255 で加齢が停止し削除状態が維持されることの確認
 TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
 {
     // Arrange
@@ -95,6 +98,7 @@ TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
     (void)cplat_hashtable_deleted_count(ht, &deleted);
     int actual_ret_find = cplat_hashtable_find_value_ref(ht, "keep", &found);
     int actual_ret_validate = cplat_hashtable_validate(ht);
+
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_delete);      // [確認_正常系] - delete が成功すること。
     EXPECT_EQ(254, status_after_age);               // [確認_正常系] - 252 回の push 後に status が 254 であること。
@@ -108,8 +112,12 @@ TEST_F(hashtableLifetimeInfiniteTest, push_stops_at_terminal_status)
     EXPECT_EQ(1u, deleted);                             // [確認_正常系] - 削除済みが 1 件残ること。
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_ret_find); // [確認_正常系] - 終端の削除済みは検索対象にならないこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate);        // [確認_正常系] - 終端の削除済みでも validate が成功すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 寿命無限のテーブルに対して終端ステータス 255 を直接挿入でき、削除済みとして扱われることの確認
 TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
 {
     // Arrange
@@ -145,9 +153,10 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_accepts_terminal_status)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate);              // [確認_正常系] - validate が成功すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 有限寿命（254）のテーブルに対して設定寿命以上のステータスを直接挿入した場合はスキップされることの確認
 TEST_F(hashtableLifetimeInfiniteTest, insert_direct_skips_beyond_finite_max)
 {
     // Arrange
@@ -168,15 +177,18 @@ TEST_F(hashtableLifetimeInfiniteTest, insert_direct_skips_beyond_finite_max)
         cplat_hashtable_insert_direct(ht, 1, "a", CPLAT_HASHTABLE_LIFETIME_INFINITE, value.data(),
                                          &k_insert_timestamp, 1); // [手順] - status 255 を lifetime 254 へ置く。
     (void)cplat_hashtable_get_status(ht, 1, &status);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_SKIPPED, actual_ret_eq); // [確認_正常系] - lifetime 254 では status 254 が SKIPPED であること。
     EXPECT_EQ(CPLAT_SKIPPED,
               actual_ret_over); // [確認_正常系] - lifetime 254 では status 255 が SKIPPED であること。
     EXPECT_EQ(0, status);       // [確認_正常系] - SKIPPED 後もスロットが空であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 終端ステータス 255 の削除済みスロットが通常追加で再利用でき、パージ処理で回収されることの確認
 TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_status)
 {
     // Arrange
@@ -211,7 +223,6 @@ TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_stat
     int actual_ret_purge = cplat_hashtable_purge_deleted(ht); // [手順] - 終端を含む削除済みを回収する。
     (void)cplat_hashtable_get_status(ht, 2, &status_after_purge);
     (void)cplat_hashtable_empty_count(ht, &empty);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_add);   // [確認_正常系] - 終端の削除済みキーを add で再利用できること。
@@ -221,4 +232,7 @@ TEST_F(hashtableLifetimeInfiniteTest, add_reuses_and_purge_expires_terminal_stat
     EXPECT_EQ(CPLAT_OK, actual_ret_purge); // [確認_正常系] - purge が成功すること。
     EXPECT_EQ(0, status_after_purge);         // [確認_正常系] - purge が status 255 も空へ戻すこと。
     EXPECT_GE(empty, 1u);                     // [確認_正常系] - 回収後に空スロットがあること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }

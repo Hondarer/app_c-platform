@@ -141,13 +141,13 @@ TEST_F(stringCatalogRenderTest, argument_kind_text)
     static const char sample_object[] = "x";
     int actual_ret;
 
-    // Pre-Assert
-
-    // Act / Assert
+    // Act
     values[0].kind = CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING;
     values[0].value.string_value = NULL;
     actual_ret =
         string_catalog_render_text(dest, sizeof(dest), "{0}", values, 1); // [手順] - NULL の文字列引数を展開する。
+
+    // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
     EXPECT_STREQ("(null)", dest);    // [確認_正常系] - NULL が (null) と表現されること。
 
@@ -362,35 +362,33 @@ TEST_F(stringCatalogRenderTest, invalid_format)
 
     // Pre-Assert
 
-    // Act / Assert
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "a}b", values,
+    // Act
+    int ret_closing_brace = string_catalog_render_text(dest, sizeof(dest), "a}b", values,
                                             1); // [手順] - 対を成さない } を含む書式を展開する。
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "a{", values, 1); // [手順] - { で終わる書式を展開する。
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "{abc}", values,
+    int ret_open_brace =
+        string_catalog_render_text(dest, sizeof(dest), "a{", values, 1); // [手順] - { で終わる書式を展開する。
+    int ret_non_numeric = string_catalog_render_text(dest, sizeof(dest), "{abc}", values,
                                             1); // [手順] - 数値以外のインデックスを含む書式を展開する。
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "{~}", values,
+    int ret_symbol = string_catalog_render_text(dest, sizeof(dest), "{~}", values,
                                             1); // [手順] - 数字以外の文字をインデックスに指定した書式を展開する。
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "{01}", values,
+    int ret_leading_zero = string_catalog_render_text(dest, sizeof(dest), "{01}", values,
                                             1); // [手順] - 先行ゼロを含む 2 桁のインデックスを持つ書式を展開する。
-    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
-
-    actual_ret = string_catalog_render_text(dest, sizeof(dest), "{1}", values,
+    int ret_out_of_bounds = string_catalog_render_text(dest, sizeof(dest), "{1}", values,
                                             1); // [手順] - 引数個数を超えるインデックスを持つ書式を展開する。
+
+    // Assert
     EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
-              actual_ret); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+              ret_closing_brace); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              ret_open_brace); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              ret_non_numeric); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              ret_symbol); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              ret_leading_zero); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION,
+              ret_out_of_bounds); // [確認_異常系] - 戻り値が CPLAT_ERR_MALFORMED_DEFINITION であること。
 }
 
 // 2 桁のインデックスを展開できることの確認
@@ -478,7 +476,7 @@ TEST_F(stringCatalogRenderTest, integer_conversion_matches_standard_library)
 
     // Pre-Assert
 
-    // Act / Assert
+    // Act
     for (index = 0; index < (sizeof(signed_values) / sizeof(signed_values[0])); index++)
     {
         values[0].kind = CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT64;
@@ -486,6 +484,8 @@ TEST_F(stringCatalogRenderTest, integer_conversion_matches_standard_library)
         (void)string_catalog_render_text(dest, sizeof(dest), "{0}", values,
                                          1); // [手順] - 符号付き 64 bit 整数を展開する。
         snprintf(expected, sizeof(expected), "%" PRId64, signed_values[index]);
+
+        // Assert
         EXPECT_STREQ(expected, dest); // [確認_正常系] - 標準ライブラリの 10 進表現と一致すること。
     }
 

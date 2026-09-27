@@ -557,7 +557,7 @@ TEST_F(argparserTest, register_error_getters_default_when_absent_or_out_of_range
     cplat_argparser_handle_dispose(parser);
 }
 
-// register エラーの 1 行メッセージ組み立てと不正引数の確認
+// register エラーの 1 行メッセージ組み立てと不正引数の拒否が正しく行われることの確認
 TEST_F(argparserTest, register_error_message_formatting)
 {
     // Arrange
@@ -838,7 +838,7 @@ TEST_F(argparserTest, flag_with_short_value_is_unexpected_value)
     cplat_argparser_handle_dispose(parser);
 }
 
-// int オプションの各構文 (-c 5 / -c=5 / --count 5 / --count=5 / 負数) の確認
+// int オプションの各構文 (-c 5 / -c=5 / --count 5 / --count=5 / 負数) が受け付けられることの確認
 TEST_F(argparserTest, option_int_accepts_all_syntaxes)
 {
     // Arrange
@@ -916,7 +916,7 @@ TEST_F(argparserTest, option_int_accepts_all_syntaxes)
     cplat_argparser_handle_dispose(parser);
 }
 
-// int オプションの境界値と変換エラーの確認
+// int オプションの境界値と変換エラーが正しく処理されることの確認
 TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
 {
     // Arrange
@@ -994,7 +994,7 @@ TEST_F(argparserTest, option_int_boundary_and_conversion_errors)
     cplat_argparser_handle_dispose(parser);
 }
 
-// 負の位置整数と短いオプションの判別を確認
+// 負の位置整数と未知の短いオプションが正しく判別されることの確認
 TEST_F(argparserTest, positional_int_accepts_negative_value_without_hiding_unknown_options)
 {
     // Arrange
@@ -1242,7 +1242,7 @@ TEST_F(argparserTest, option_string_stores_argv_verbatim)
     cplat_argparser_handle_dispose(parser);
 }
 
-// 位置引数の登録順割り当てと超過エラーの確認
+// 位置引数の登録順割り当てと超過エラーの検出が正しく行われることの確認
 TEST_F(argparserTest, positional_assignment_and_overflow)
 {
     // Arrange
@@ -1319,7 +1319,7 @@ TEST_F(argparserTest, positional_assignment_and_overflow)
     cplat_argparser_handle_dispose(parser);
 }
 
-// 可変長文字列位置引数の割り当て、容量超過、再解析の確認
+// 可変長文字列位置引数の割り当て、容量超過、再解析が正しく動作することの確認
 TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
 {
     // Arrange
@@ -1392,7 +1392,7 @@ TEST_F(argparserTest, positional_string_array_assignment_and_reparse)
     cplat_argparser_handle_dispose(parser);
 }
 
-// 可変長 int 位置引数の変換、負数、必須条件の確認
+// 可変長 int 位置引数の変換、負数、必須条件が正しく処理されることの確認
 TEST_F(argparserTest, positional_int_array_conversion_and_required)
 {
     // Arrange
@@ -1593,7 +1593,7 @@ TEST_F(argparserTest, duplicate_option_occurrence)
     cplat_argparser_handle_dispose(parser);
 }
 
-// 配列オプションの複数出現・出現順・容量超過の確認
+// 配列オプションの複数出現・出現順・容量超過が正しく処理されることの確認
 TEST_F(argparserTest, array_option_multiple_occurrences)
 {
     // Arrange
@@ -1652,7 +1652,7 @@ TEST_F(argparserTest, array_option_multiple_occurrences)
     cplat_argparser_handle_dispose(parser);
 }
 
-// int 配列オプションの値変換と REQUIRED の確認
+// int 配列オプションの値変換と REQUIRED 制約が正しく機能することの確認
 TEST_F(argparserTest, array_option_int_and_required)
 {
     // Arrange
@@ -1823,7 +1823,7 @@ TEST_F(argparserTest, multiple_handles_are_independent)
     cplat_argparser_handle_dispose(parser2);
 }
 
-// エラー メッセージの組み立てとバッファー不足の確認
+// エラー メッセージの組み立てとバッファー不足時の切り詰めが正しく行われることの確認
 TEST_F(argparserTest, error_message_formatting)
 {
     // Arrange
@@ -1883,7 +1883,7 @@ TEST_F(argparserTest, error_message_formatting)
     cplat_argparser_handle_dispose(parser);
 }
 
-// usage の組み立て内容の確認
+// usage の組み立て内容が正しく生成されることの確認
 TEST_F(argparserTest, usage_formatting)
 {
     // Arrange
@@ -2707,7 +2707,7 @@ TEST_F(argparserTest, parse_handles_positional_search_and_array_conversion_failu
     cplat_argparser_handle_dispose(parser);
 }
 
-// argv[0] が NULL の場合と解決済みプログラム名が usage に反映されない場合の確認
+// argv[0] が NULL の場合でも正常に解析できることの確認
 TEST_F(argparserTest, parse_accepts_null_program_name)
 {
     // Arrange
@@ -3240,6 +3240,7 @@ TEST_F(argparserTest, parse_skips_short_name_when_length_differs)
     cplat_argparser_handle_dispose(parser);
 }
 
+// デフォルト パーサーの再初期化で以前の登録情報とエラー件数がリセットされることの確認
 TEST_F(argparserTest, default_init_resets_previous_registrations)
 {
     // Arrange
@@ -3264,7 +3265,8 @@ TEST_F(argparserTest, default_init_resets_previous_registrations)
     int second_register =
         cplat_argparser_register_flag("-f", "--first", NULL,
                                                   &second_flag); // [手順] - 同じ名前を登録し直す。
-    int usage_result = cplat_argparser_get_usage(second_usage, sizeof(second_usage), NULL);
+    int usage_result =
+        cplat_argparser_get_usage(second_usage, sizeof(second_usage), NULL); // [手順] - 再初期化後の usage を取得する。
     int parse_result = cplat_argparser_parse(); // [手順] - 再登録したフラグを解析する。
 
     // Assert

@@ -56,7 +56,7 @@ TEST_F(errorTest, capture_errno_preserves_domain_result_and_code)
 
     // Pre-Assert
     EXPECT_EQ(CPLAT_ERROR_DOMAIN_NONE,
-              error.domain); // [確認_事前条件] - 初期化後の domain が CPLAT_ERROR_DOMAIN_NONE であること。
+              error.domain); // [状態確認] - 初期化後の domain が CPLAT_ERROR_DOMAIN_NONE であること。
 
     // Act
     cplat_error_capture_errno(&error, ENOENT); // [手順] - ENOENT を詳細エラーへ取り込む。

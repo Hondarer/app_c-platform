@@ -185,7 +185,7 @@ TEST_F(makedirsTest, overlong_path_returns_name_too_long)
 }
 
 #if defined(PLATFORM_LINUX)
-// 単一階層ディレクトリの新規作成とべき等性の確認
+// 単一階層ディレクトリの新規作成とべき等性が保たれることの確認
 TEST_F(makedirsTest, single_level_creates_directory)
 {
     // Arrange
@@ -215,7 +215,7 @@ TEST_F(makedirsTest, single_level_creates_directory)
               ret2); // [確認_正常系] - 2 回目の cplat_makedirs の戻り値が CPLAT_OK であり、べき等であること。
 }
 
-// 複数階層ディレクトリの再帰作成の確認
+// 複数階層ディレクトリが再帰的に作成されることの確認
 TEST_F(makedirsTest, nested_levels_creates_all_directories)
 {
     // Arrange

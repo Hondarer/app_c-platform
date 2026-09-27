@@ -39,6 +39,7 @@ class hashtableTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// cplat_hashtable_required_size の不正な引数 (NULL config, 両方 NULL の出力先) の拒否確認
 TEST_F(hashtableTest, required_size_rejects_null_arguments)
 {
     // Arrange
@@ -55,20 +56,40 @@ TEST_F(hashtableTest, required_size_rejects_null_arguments)
         cplat_hashtable_required_size(NULL, &mgmt_size, &data_size); // [手順] - config に NULL を渡す。
     int actual_ret_null_both =
         cplat_hashtable_required_size(&config, NULL, NULL); // [手順] - 両方の出力先に NULL を渡す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              actual_ret_null_config); // [確認_異常系] - config が NULL のとき INVALID_ARGUMENT であること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              actual_ret_null_both);   // [確認_異常系] - 両方の出力先が NULL のとき INVALID_ARGUMENT であること。
+}
+
+// cplat_hashtable_required_size で片側の出力先のみ NULL を指定した場合に正常取得できることの確認
+TEST_F(hashtableTest, required_size_allows_partial_query)
+{
+    // Arrange
+    cplat_hashtable_config config = {};
+    size_t mgmt_size = 0;
+    size_t data_size = 0;
+
+    fill_config(&config, 4, 8, 8, 5, CPLAT_HASHTABLE_KEY_STRING); // [状態] - 妥当な設定を用意する。
+
+    // Pre-Assert
+
+    // Act
     int actual_ret_only_mgmt =
         cplat_hashtable_required_size(&config, &mgmt_size, NULL); // [手順] - データ側だけ NULL を渡す。
     int actual_ret_only_data =
         cplat_hashtable_required_size(&config, NULL, &data_size); // [手順] - 管理側だけ NULL を渡す。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
-              actual_ret_null_config); // [確認_異常系] - config が NULL のとき INVALID_ARGUMENT であること。
-    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
-              actual_ret_null_both);              // [確認_異常系] - 両方 NULL のとき INVALID_ARGUMENT であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_only_mgmt); // [確認_正常系] - 管理側だけの問い合わせが成功すること。
+    EXPECT_GT(mgmt_size, 0u);                  // [確認_正常系] - 管理領域サイズが取得できていること。
     EXPECT_EQ(CPLAT_OK, actual_ret_only_data); // [確認_正常系] - データ側だけの問い合わせが成功すること。
+    EXPECT_GT(data_size, 0u);                  // [確認_正常系] - データ領域サイズが取得できていること。
 }
 
+// ハッシュテーブルの生成から追加・検索・ステータス取得までのラウンドトリップ確認
 TEST_F(hashtableTest, create_and_add_find_round_trip)
 {
     // Arrange
@@ -97,6 +118,7 @@ TEST_F(hashtableTest, create_and_add_find_round_trip)
     int actual_ret_rec = cplat_hashtable_find_recno(ht, "apple", &rec); // [手順] - apple のレコード番号を取得する。
     int actual_ret_status = cplat_hashtable_get_status(ht, rec, &status); // [手順] - レコード状態を取得する。
     int actual_ret_counts = cplat_hashtable_count_status(ht, &in_use, &deleted, &empty); // [手順] - 件数を取得する。
+
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - create が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - add が成功すること。
@@ -113,9 +135,10 @@ TEST_F(hashtableTest, create_and_add_find_round_trip)
     EXPECT_EQ(3u, empty);                           // [確認_正常系] - 空が 3 件であること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht); // [後処理] - 検証後にテーブルを破棄する。
+    cplat_hashtable_dispose(ht); // [破棄] - 検証後にテーブルを破棄する。
 }
 
+// cplat_hashtable_create の不正な config パラメータ (capacity, key_size, value_size, lifetime 等) の拒否確認
 TEST_F(hashtableTest, create_rejects_invalid_config)
 {
     // Arrange
@@ -184,6 +207,7 @@ TEST_F(hashtableTest, create_rejects_invalid_config)
     EXPECT_EQ(nullptr, ht);          // [確認_異常系] - 失敗後の ht_out が NULL であること。
 }
 
+// cplat_hashtable_required_size の不正な config パラメータの拒否確認
 TEST_F(hashtableTest, required_size_rejects_invalid_config)
 {
     // Arrange
@@ -233,6 +257,7 @@ TEST_F(hashtableTest, required_size_rejects_invalid_config)
               actual_ret_scope); // [確認_異常系] - 不正な timestamp_scope が拒否されること。
 }
 
+// cplat_hashtable_add が重複キーや長すぎるキーを拒否し空文字列キーを受け付けることの確認
 TEST_F(hashtableTest, add_rejects_duplicate_and_too_long_key)
 {
     // Arrange
@@ -256,7 +281,6 @@ TEST_F(hashtableTest, add_rejects_duplicate_and_too_long_key)
         ht, too_long, value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 長すぎるキーを追加する。
     int actual_ret_empty = cplat_hashtable_add(
         ht, "", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空文字列キーを追加する。
-    cplat_hashtable_dispose(ht);                                      // [手順] - テーブルを破棄する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - create が成功すること。
@@ -265,8 +289,12 @@ TEST_F(hashtableTest, add_rejects_duplicate_and_too_long_key)
               actual_ret_dup);                             // [確認_異常系] - 重複キーが DUPLICATE_KEY であること。
     EXPECT_EQ(CPLAT_ERR_OUT_OF_RANGE, actual_ret_long); // [確認_異常系] - 長すぎるキーが OUT_OF_RANGE であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_empty);              // [確認_正常系] - 空文字列キーが追加できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// cplat_hashtable_add が不正な deleted_policy を拒否することの確認
 TEST_F(hashtableTest, add_rejects_invalid_deleted_policy)
 {
     // Arrange
@@ -288,14 +316,17 @@ TEST_F(hashtableTest, add_rejects_invalid_deleted_policy)
     int actual_ret_create = cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     int actual_ret_add =
         cplat_hashtable_add(ht, "a", value.data(), invalid_policy); // [手順] - 不正な deleted_policy で追加する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - create が成功すること。
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_ret_add); // [確認_異常系] - 不正な deleted_policy が INVALID_ARGUMENT であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// cplat_hashtable_delete 後に加齢を経てレコードが再利用可能になることの確認
 TEST_F(hashtableTest, delete_ages_until_reuse)
 {
     // Arrange
@@ -330,7 +361,6 @@ TEST_F(hashtableTest, delete_ages_until_reuse)
     add_after_purge = cplat_hashtable_add(
         ht, "c", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空きが生じたあと別キーを追加する。
     (void)cplat_hashtable_empty_count(ht, &empty);                     // [手順] - 空件数を取得する。
-    cplat_hashtable_dispose(ht);                                       // [手順] - テーブルを破棄する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create);        // [確認_正常系] - create が成功すること。
@@ -340,8 +370,12 @@ TEST_F(hashtableTest, delete_ages_until_reuse)
     EXPECT_EQ(0, status_after_push);                  // [確認_正常系] - 寿命到達後に空へ戻ること。
     EXPECT_EQ(CPLAT_OK, add_after_purge);          // [確認_正常系] - 空き後の追加が成功すること。
     EXPECT_EQ(0u, empty);                             // [確認_正常系] - 再利用後は空が 0 であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// 外部バッファーを用いたハッシュテーブルの作成・アタッチ・検証・検索の確認
 TEST_F(hashtableTest, external_buffer_attach_and_validate)
 {
     // Arrange
@@ -383,8 +417,6 @@ TEST_F(hashtableTest, external_buffer_attach_and_validate)
                                   &reattached); // [手順] - 複製した管理領域とデータ領域へ再接続する。
     int actual_ret_validate = cplat_hashtable_validate(reattached);                  // [手順] - 整合性を検証する。
     int actual_ret_find = cplat_hashtable_find_value_ref(reattached, "fig", &found); // [手順] - 再接続後に検索する。
-    cplat_hashtable_dispose(ht); // [手順] - 外部バッファーの destroy を呼ぶ。
-    cplat_hashtable_dispose(reattached);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_size); // [確認_正常系] - required_size が成功すること。
@@ -397,8 +429,13 @@ TEST_F(hashtableTest, external_buffer_attach_and_validate)
     EXPECT_EQ(CPLAT_OK, actual_ret_attach);   // [確認_正常系] - attach が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - validate が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_find);     // [確認_正常系] - 再接続後も検索できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - 外部バッファーの destroy を呼ぶ。
+    cplat_hashtable_dispose(reattached);
 }
 
+// 同一外部バッファーへの複数ハンドルアタッチにおいて一方の破棄が他方に影響しないことの確認
 TEST_F(hashtableTest, attach_shares_buffer_without_corrupting_other_handle)
 {
     // Arrange
@@ -430,7 +467,6 @@ TEST_F(hashtableTest, attach_shares_buffer_without_corrupting_other_handle)
     cplat_hashtable_dispose(ht2); // [手順] - 一方を破棄する(owns_buffer が 0 のため共有バッファーは解放されない)。
     int actual_ret_find_via_ht1_after_dispose = cplat_hashtable_find_value_ref(
         ht1, "shared", &found); // [手順] - もう一方のハンドルが破棄後も正常に動作することを確認する。
-    cplat_hashtable_dispose(ht1);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create); // [確認_正常系] - 外部バッファーでの create が成功すること。
@@ -442,8 +478,12 @@ TEST_F(hashtableTest, attach_shares_buffer_without_corrupting_other_handle)
               actual_ret_find_via_ht2); // [確認_正常系] - 追加内容がもう一方のハンドルから見えること。
     EXPECT_EQ(CPLAT_OK,
               actual_ret_find_via_ht1_after_dispose); // [確認_正常系] - 一方の dispose 後も他方が動作を続けること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht1); // [破棄] - 残ったハンドルを破棄する。
 }
 
+// バイナリモードにおける全ゼロキー登録とキー・値のコピーAPIの確認
 TEST_F(hashtableTest, binary_zero_key_and_copy_apis)
 {
     // Arrange
@@ -484,7 +524,6 @@ TEST_F(hashtableTest, binary_zero_key_and_copy_apis)
                                                               &key_required_size); // [手順] - キーを複製する。
     int actual_ret_value_copy = cplat_hashtable_get_value_copy(ht, rec, value_copy.data(), value_copy.size(),
                                                                   &value_required_size); // [手順] - 値を複製する。
-    cplat_hashtable_dispose(ht); // [手順] - テーブルを破棄する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_create);           // [確認_正常系] - create が成功すること。
@@ -498,8 +537,12 @@ TEST_F(hashtableTest, binary_zero_key_and_copy_apis)
     EXPECT_EQ(CPLAT_OK, actual_ret_value_copy);       // [確認_正常系] - get_value_copy が成功すること。
     EXPECT_EQ(8u, value_required_size);                  // [確認_正常系] - バイナリ値の必要量が固定幅であること。
     EXPECT_STREQ("bin", reinterpret_cast<char *>(value_copy.data())); // [確認_正常系] - 複製値が一致すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// cplat_hashtable_update および cplat_hashtable_clear による値更新と全消去の確認
 TEST_F(hashtableTest, update_and_clear)
 {
     // Arrange
@@ -529,7 +572,6 @@ TEST_F(hashtableTest, update_and_clear)
     std::string found_text = (found == nullptr) ? "" : static_cast<const char *>(found);
     int actual_ret_clear = cplat_hashtable_clear(ht); // [手順] - テーブルを空にする。
     (void)cplat_hashtable_count(ht, &in_use);
-    cplat_hashtable_dispose(ht); // [手順] - テーブルを破棄する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_update);     // [確認_正常系] - update が成功すること。
@@ -538,8 +580,12 @@ TEST_F(hashtableTest, update_and_clear)
     EXPECT_EQ("three", found_text);                // [確認_正常系] - 最終値が three であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_clear);      // [確認_正常系] - clear が成功すること。
     EXPECT_EQ(0u, in_use);                         // [確認_正常系] - clear 後の実装中が 0 であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - テーブルを破棄する。
 }
 
+// cplat_hashtable_create でメモリ確保失敗時に OUT_OF_MEMORY を返すことの確認
 TEST_F(hashtableTest, create_returns_out_of_memory_when_calloc_fails)
 {
     // Arrange
@@ -561,6 +607,7 @@ TEST_F(hashtableTest, create_returns_out_of_memory_when_calloc_fails)
     EXPECT_EQ(nullptr, ht);                            // [確認_異常系] - ht_out が NULL であること。
 }
 
+// cplat_hashtable_create で内部管理データ確保失敗時に確保済み領域が解放されることの確認
 TEST_F(hashtableTest, create_frees_buffer_when_handle_calloc_fails)
 {
     // Arrange
@@ -585,6 +632,7 @@ TEST_F(hashtableTest, create_frees_buffer_when_handle_calloc_fails)
     EXPECT_EQ(nullptr, ht); // [確認_異常系] - ht_out が NULL であること。
 }
 
+// cplat_hashtable_attach で内部管理データ確保失敗時に OUT_OF_MEMORY を返すことの確認
 TEST_F(hashtableTest, attach_returns_out_of_memory_when_calloc_fails)
 {
     // Arrange
@@ -599,23 +647,27 @@ TEST_F(hashtableTest, attach_returns_out_of_memory_when_calloc_fails)
     std::vector<unsigned char> buf_mgmt(mgmt_needed, 0);
     std::vector<unsigned char> buf_data(data_needed, 0);
 
-    // Pre-Assert
-
-    // Act
     (void)cplat_hashtable_create(&config, buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
-                                    &ht); // [手順] - 外部バッファーへ構築する。
+                                    &ht); // [状態] - 外部バッファーへ構築しておく。
+
+    // Pre-Assert
     EXPECT_CALL(mock_cplat_, cplat_calloc(_, _))
         .WillOnce(Return(nullptr)); // [Pre-Assert確認_異常系] - 内部管理データの calloc から NULL を返却する。
+
+    // Act
     int actual_ret = cplat_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                                &attached); // [手順] - 同じ外部バッファーへ再接続する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY,
               actual_ret);        // [確認_異常系] - 内部管理データの確保失敗が OUT_OF_MEMORY であること。
     EXPECT_EQ(nullptr, attached); // [確認_異常系] - ht_out が NULL であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
+// cplat_hashtable_dispose に NULL を渡しても安全に無視されることの確認
 TEST_F(hashtableTest, destroy_null_is_safe)
 {
     // Arrange
@@ -628,5 +680,5 @@ TEST_F(hashtableTest, destroy_null_is_safe)
     cplat_hashtable_dispose(NULL); // [手順] - NULL で destroy を呼ぶ。
 
     // Assert
-    // [確認_正常系] - NULL の destroy がクラッシュしないこと。
+    SUCCEED(); // [確認_正常系] - NULL の destroy がクラッシュしないこと。
 }

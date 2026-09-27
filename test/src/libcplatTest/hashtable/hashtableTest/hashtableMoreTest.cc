@@ -63,6 +63,7 @@ class hashtableMoreTest : public Test
     NiceMock<Mock_cplat> mock_cplat_;
 };
 
+// cplat_hashtable_attach に不正なバッファーや破損データを渡した場合のエラー返却の確認
 TEST_F(hashtableMoreTest, attach_rejects_invalid_buffers)
 {
     // Arrange
@@ -103,8 +104,6 @@ TEST_F(hashtableMoreTest, attach_rejects_invalid_buffers)
                                   &attached); // [手順] - 短すぎる buf_data_size を渡す。
     int actual_ret_ok = cplat_hashtable_attach(buf_mgmt.data(), buf_mgmt.size(), buf_data.data(), buf_data.size(),
                                                   &attached); // [手順] - 正常な複製で再接続する。
-    cplat_hashtable_dispose(ht);
-    cplat_hashtable_dispose(attached);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -118,8 +117,13 @@ TEST_F(hashtableMoreTest, attach_rejects_invalid_buffers)
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL,
               actual_ret_small_data);      // [確認_異常系] - 短すぎるデータ領域が BUFFER_TOO_SMALL であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_ok); // [確認_正常系] - 正常な attach が成功すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(attached);
 }
 
+// レコード番号指定削除と cplat_hashtable_purge_deleted による即時回収の挙動の確認
 TEST_F(hashtableMoreTest, delete_rec_and_purge)
 {
     // Arrange
@@ -150,7 +154,6 @@ TEST_F(hashtableMoreTest, delete_rec_and_purge)
     const void *key_out = nullptr;
     int actual_ret_bad_rec = cplat_hashtable_get_key_ref(ht, 0, &key_out); // [手順] - レコード番号 0 を読む。
     int actual_ret_delete_missing = cplat_hashtable_delete(ht, "drop");    // [手順] - 回収後のキーを削除する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_delete); // [確認_正常系] - delete_rec が成功すること。
@@ -163,8 +166,12 @@ TEST_F(hashtableMoreTest, delete_rec_and_purge)
               actual_ret_bad_rec); // [確認_異常系] - レコード番号 0 が INVALID_ARGUMENT であること。
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND,
               actual_ret_delete_missing); // [確認_異常系] - 回収後の削除が NOT_FOUND であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// lifetime 2 の設定で削除を実行した際にレコードが直ちに空状態へ戻ることの確認
 TEST_F(hashtableMoreTest, delete_with_lifetime_two_expires_immediately)
 {
     // Arrange
@@ -186,15 +193,18 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_expires_immediately)
     (void)cplat_hashtable_empty_count(ht, &empty);
     int actual_ret_add = cplat_hashtable_add(
         ht, "b", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 別キーを直ちに追加する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_delete); // [確認_正常系] - delete が成功すること。
     EXPECT_EQ(0, status);                      // [確認_正常系] - 削除直後に空へ戻ること。
     EXPECT_GE(empty, 1u);                      // [確認_正常系] - 空スロットがあること。
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - 別キーを直ちに追加できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 満杯状態のテーブルで lifetime 2 の削除を行った際に next_empty が正しく設定され即時再追加できることの確認
 TEST_F(hashtableMoreTest, delete_with_lifetime_two_sets_next_empty_when_table_full)
 {
     // Arrange
@@ -218,15 +228,18 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_sets_next_empty_when_table_fu
     int actual_ret_delete = cplat_hashtable_delete(ht, "a"); // [手順] - 満杯の状態で lifetime 2 の削除をする。
     int actual_ret_add = cplat_hashtable_add(
         ht, "c", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 空いた直後にすぐ追加する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(0u, empty_before);               // [確認_正常系] - 削除前は満杯であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_delete); // [確認_正常系] - 満杯からの delete が成功すること。
     EXPECT_EQ(CPLAT_OK,
               actual_ret_add); // [確認_正常系] - next_empty==0 の分岐で更新された空きへ追加できること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// lifetime 2 の削除でより大きな番号のレコードが解放されても若い空き番号ヒントが保持されることの確認
 TEST_F(hashtableMoreTest, delete_with_lifetime_two_keeps_earlier_next_empty_hint)
 {
     // Arrange
@@ -251,15 +264,18 @@ TEST_F(hashtableMoreTest, delete_with_lifetime_two_keeps_earlier_next_empty_hint
     int actual_ret_add = cplat_hashtable_add(
         ht, "d", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 別キーを追加する。
     (void)cplat_hashtable_find_recno(ht, "d", &next_empty_rec);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_delete); // [確認_正常系] - delete が成功すること。
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - 追加が成功すること。
     EXPECT_EQ(2u,
               next_empty_rec); // [確認_正常系] - next_empty がレコード 3 で上書きされず、レコード 2 のままだったこと。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// サイズ乗算がオーバーフローする設定において cplat_hashtable_required_size および create が INVALID_ARGUMENT を返すことの確認
 TEST_F(hashtableMoreTest, required_size_rejects_overflowing_layout)
 {
     // Arrange
@@ -286,6 +302,7 @@ TEST_F(hashtableMoreTest, required_size_rejects_overflowing_layout)
     EXPECT_EQ(1u, data_size); // [確認_異常系] - 失敗時に data_size を書き換えないこと。
 }
 
+// cplat_hashtable_validate 内部でのメモリ確保失敗時に OUT_OF_MEMORY が返ることの確認
 TEST_F(hashtableMoreTest, validate_returns_out_of_memory_when_calloc_fails)
 {
     // Arrange
@@ -306,13 +323,16 @@ TEST_F(hashtableMoreTest, validate_returns_out_of_memory_when_calloc_fails)
     (void)cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
     (void)cplat_hashtable_add(ht, "a", value.data(), CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE);
     int actual_ret = cplat_hashtable_validate(ht); // [手順] - validate を呼び出す。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_OUT_OF_MEMORY,
               actual_ret); // [確認_異常系] - validate の確保失敗が OUT_OF_MEMORY であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 空きスロットが無い場合に最も高い status（より古い削除状態）のレコードが再利用されることの確認
 TEST_F(hashtableMoreTest, add_reuses_deleted_record_with_highest_status_when_no_empty_slot)
 {
     // Arrange
@@ -345,7 +365,6 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_with_highest_status_when_no_
     int actual_ret_find_new = cplat_hashtable_find_recno(ht, "new", &rec_fresh); // [手順] - 追い出したキーを探す。
     (void)cplat_hashtable_count_status(ht, &in_use, &deleted, &empty);
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_add);        // [確認_正常系] - status が高いレコードを再利用して成功すること。
@@ -356,8 +375,12 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_with_highest_status_when_no_
     EXPECT_EQ(1u, deleted);                      // [確認_正常系] - deleted_count が正しいこと(status 2 は残る)。
     EXPECT_EQ(0u, empty);                        // [確認_正常系] - empty_count が正しいこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - validate が成功すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// レコード粒度において削除ステータスが同点の場合に世代カウンターが最も古いレコードが再利用されることの確認
 TEST_F(hashtableMoreTest, add_reuses_oldest_generation_when_status_ties_with_record_scope)
 {
     // Arrange
@@ -388,7 +411,6 @@ TEST_F(hashtableMoreTest, add_reuses_oldest_generation_when_status_ties_with_rec
     int actual_ret_find_c = cplat_hashtable_find_recno(ht, "c", &rec_c);
     int actual_ret_get_status_b =
         cplat_hashtable_get_status(ht, 2, &status_b); // [手順] - b(レコード2)の状態を読む。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - 追加が成功すること。
@@ -396,8 +418,12 @@ TEST_F(hashtableMoreTest, add_reuses_oldest_generation_when_status_ties_with_rec
     EXPECT_EQ(1u, rec_c); // [確認_正常系] - 時刻ではなく世代が古い a(レコード1)が再利用されたこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_get_status_b);
     EXPECT_EQ(3, status_b); // [確認_正常系] - b(レコード2)は変更されず削除中のままであること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// テーブル粒度において削除ステータスが同点の場合に最小のレコード番号が再利用されることの確認
 TEST_F(hashtableMoreTest, add_reuses_lowest_record_number_when_status_ties_with_table_scope)
 {
     // Arrange
@@ -426,7 +452,6 @@ TEST_F(hashtableMoreTest, add_reuses_lowest_record_number_when_status_ties_with_
     int actual_ret_find_c = cplat_hashtable_find_recno(ht, "c", &rec_c);
     int actual_ret_get_status_b =
         cplat_hashtable_get_status(ht, 2, &status_b); // [手順] - b(レコード2)の状態を読む。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_add);    // [確認_正常系] - 追加が成功すること。
@@ -434,8 +459,12 @@ TEST_F(hashtableMoreTest, add_reuses_lowest_record_number_when_status_ties_with_
     EXPECT_EQ(1u, rec_c);                      // [確認_正常系] - レコード番号が最小の a(レコード1)が再利用されたこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_get_status_b);
     EXPECT_EQ(3, status_b); // [確認_正常系] - b(レコード2)は変更されず削除中のままであること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// reuse_deleted 有効時でも再利用可能な削除レコードが存在しない場合は LIMIT_EXCEEDED となることの確認
 TEST_F(hashtableMoreTest, add_with_reuse_deleted_still_fails_when_no_deleted_record_exists)
 {
     // Arrange
@@ -456,13 +485,16 @@ TEST_F(hashtableMoreTest, add_with_reuse_deleted_still_fails_when_no_deleted_rec
     int actual_ret_add = cplat_hashtable_add(
         ht, "b", value.data(),
         CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 削除中レコードが無い状態で新規キーを追加する。
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_LIMIT_EXCEEDED,
               actual_ret_add); // [確認_異常系] - 再利用可能な削除中レコードが無ければ LIMIT_EXCEEDED であること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }
 
+// 衝突チェインの先頭ではない位置にある削除中レコードを再利用して新規キーが正常に追加できることの確認
 TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
 {
     // Arrange
@@ -481,7 +513,7 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
     peer_key = find_colliding_key(base_key, config.capacity); // [状態] - base_key と同じバケットに割り当てられるキーを探す。
 
     // Pre-Assert
-    ASSERT_NE(nullptr, peer_key); // [Pre-Assert確認] - 衝突するキーが見つかること。
+    ASSERT_NE(nullptr, peer_key); // [Pre-Assert確認_正常系] - 衝突するキーが見つかること。
 
     // Act
     (void)cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht); // [手順] - テーブルを構築する。
@@ -498,7 +530,6 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
     int actual_ret_get_status_head =
         cplat_hashtable_get_status(ht, 2, &status_head); // [手順] - チェーン先頭(レコード2)の状態を読む。
     int actual_ret_validate = cplat_hashtable_validate(ht);
-    cplat_hashtable_dispose(ht);
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_add_head); // [確認_正常系] - 衝突キーの追加が成功すること。
@@ -508,4 +539,7 @@ TEST_F(hashtableMoreTest, add_reuses_deleted_record_that_is_not_at_chain_head)
     EXPECT_EQ(CPLAT_OK, actual_ret_get_status_head);
     EXPECT_EQ(1, status_head);                   // [確認_正常系] - チェーン先頭のキー(実装中)は影響を受けないこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - validate が成功すること。
+
+    // Cleanup
+    cplat_hashtable_dispose(ht);
 }

@@ -89,25 +89,35 @@ TEST_F(stringCatalogCatalogTest, unusable_catalog_is_empty)
 
     // Pre-Assert
 
-    // Act / Assert
-    EXPECT_FALSE(cplat_internal_string_catalog_is_usable(NULL)); // [確認_異常系] - NULL は参照できないこと。
-    EXPECT_FALSE(
-        cplat_internal_string_catalog_is_usable(&null_entries)); // [確認_異常系] - 配列が NULL なら参照できないこと。
-    EXPECT_FALSE(
-        cplat_internal_string_catalog_is_usable(&negative_count)); // [確認_異常系] - 件数が負なら参照できないこと。
-    EXPECT_FALSE(cplat_internal_string_catalog_is_usable(
-        &negative_index_count)); // [確認_異常系] - インデックス表の要素数が負なら参照できないこと。
-    EXPECT_TRUE(cplat_internal_string_catalog_is_usable(
-        &s_catalog_with_index)); // [確認_正常系] - 妥当な構造のカタログは参照できること。
+    // Act
+    bool usable_null = cplat_internal_string_catalog_is_usable(NULL); // [手順] - NULL のカタログの使用可否を判定する。
+    bool usable_null_entries =
+        cplat_internal_string_catalog_is_usable(&null_entries); // [手順] - 配列が NULL のカタログの使用可否を判定する。
+    bool usable_negative_count =
+        cplat_internal_string_catalog_is_usable(&negative_count); // [手順] - 件数が負のカタログの使用可否を判定する。
+    bool usable_negative_index = cplat_internal_string_catalog_is_usable(
+        &negative_index_count); // [手順] - インデックス表の要素数が負のカタログの使用可否を判定する。
+    bool usable_valid =
+        cplat_internal_string_catalog_is_usable(&s_catalog_with_index); // [手順] - 妥当な構造のカタログの使用可否を判定する。
 
-    EXPECT_EQ(0, cplat_internal_string_catalog_entry_count(NULL)); // [確認_異常系] - NULL では件数が 0 であること。
-    EXPECT_EQ(nullptr,
-              cplat_internal_string_catalog_find_entry(NULL, 1)); // [確認_異常系] - NULL では検索が NULL を返すこと。
-    EXPECT_EQ(nullptr, cplat_internal_string_catalog_entry_at(
-                           NULL, 0)); // [確認_異常系] - NULL ではインデックス指定取得が NULL を返すこと。
-    EXPECT_EQ(0,
-              cplat_internal_string_catalog_entry_count(
-                  &null_entries)); // [確認_異常系] - 配列が NULL では件数が 0 であること。
+    int count_null = cplat_internal_string_catalog_entry_count(NULL); // [手順] - NULL の件数を取得する。
+    const cplat_string_catalog_entry *find_null =
+        cplat_internal_string_catalog_find_entry(NULL, 1); // [手順] - NULL からエントリを検索する。
+    const cplat_string_catalog_entry *at_null =
+        cplat_internal_string_catalog_entry_at(NULL, 0); // [手順] - NULL からインデックス指定で取得する。
+    int count_null_entries =
+        cplat_internal_string_catalog_entry_count(&null_entries); // [手順] - 配列が NULL の件数を取得する。
+
+    // Assert
+    EXPECT_FALSE(usable_null);           // [確認_異常系] - NULL は参照できないこと。
+    EXPECT_FALSE(usable_null_entries);   // [確認_異常系] - 配列が NULL なら参照できないこと。
+    EXPECT_FALSE(usable_negative_count); // [確認_異常系] - 件数が負なら参照できないこと。
+    EXPECT_FALSE(usable_negative_index); // [確認_異常系] - インデックス表の要素数が負なら参照できないこと。
+    EXPECT_TRUE(usable_valid);           // [確認_正常系] - 妥当な構造のカタログは参照できること。
+    EXPECT_EQ(0, count_null);            // [確認_異常系] - NULL では件数が 0 であること。
+    EXPECT_EQ(nullptr, find_null);       // [確認_異常系] - NULL では検索が NULL を返すこと。
+    EXPECT_EQ(nullptr, at_null);         // [確認_異常系] - NULL ではインデックス指定取得が NULL を返すこと。
+    EXPECT_EQ(0, count_null_entries);    // [確認_異常系] - 配列が NULL では件数が 0 であること。
 }
 
 // インデックス表を持たないカタログを線形探索で参照できることの確認

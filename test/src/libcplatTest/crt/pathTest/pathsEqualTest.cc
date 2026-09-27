@@ -67,9 +67,11 @@ TEST_F(pathsEqualTest, returns_error_when_rhs_path_cannot_be_resolved)
     cplat_error err;
     int equal = 1;
 
-    // Pre-Assert
     ASSERT_EQ(CPLAT_OK, cplat_path_get_full(lhs, sizeof(lhs), NULL,
-                                                  ".")); // [Pre-Assert確認_正常系] - 左辺に有効なパスを用意する。
+                                                  ".")); // [状態] - カレントディレクトリから左辺パスを取得する。
+                                                         // [状態確認] - 左辺パスの取得が成功すること。
+
+    // Pre-Assert
 
     // Act
     int result = cplat_paths_equal(lhs, NULL, &equal,

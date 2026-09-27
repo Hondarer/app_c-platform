@@ -889,7 +889,7 @@ class exportTest : public Test
     }
 };
 
-// libcplat のエクスポート シンボル名一致テスト
+// libcplat のエクスポート シンボル名が期待値テーブルと完全一致することの確認
 TEST_F(exportTest, symbol_names_match)
 {
     // Arrange

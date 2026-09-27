@@ -897,6 +897,9 @@ TEST(pinnedPromptCoverageTest, remaining_five_branches)
     test_pinned_prompt_set_input_limits(screen, 4U, 4096U);
     test_pinned_prompt_history_add_after_null_last(screen); // [手順] - 直前要素が NULL の履歴へ追加する。
 
+    // Assert
+    SUCCEED(); // [確認_正常系] - 描画と直前要素 NULL の履歴追加が完了すること。
+
     // Arrange_2
     {
         NiceMock<Mock_cplat> mock_cplat;
@@ -912,8 +915,8 @@ TEST(pinnedPromptCoverageTest, remaining_five_branches)
         test_pinned_prompt_history_add_after_null_last(screen); // [手順] - malloc 失敗状態で履歴へ追加する。
     }
 
-    // Assert
-    SUCCEED(); // [確認_正常系] - 残分岐用の描画と履歴操作が完了すること。
+    // Assert_2
+    SUCCEED(); // [確認_異常系] - malloc 失敗時の履歴追加が安全に完了すること。
 
     // Cleanup
     test_pinned_prompt_history_release_entries(screen);

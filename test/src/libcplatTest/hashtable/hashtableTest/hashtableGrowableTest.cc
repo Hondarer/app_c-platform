@@ -38,7 +38,7 @@ class hashtableGrowableTest : public Test
     NiceMock<Mock_cplat> mock_cplat;
 };
 
-// レコード領域が満杯になると倍増し、既存レコード番号を保存して追加を完了することを確認します。
+// レコード領域満杯時に capacity が倍増し既存レコード番号を維持して追加完了することの確認
 TEST_F(hashtableGrowableTest, add_grows_capacity_and_preserves_existing_record)
 {
     // Arrange
@@ -75,10 +75,10 @@ TEST_F(hashtableGrowableTest, add_grows_capacity_and_preserves_existing_record)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 自動拡張後の内部状態が整合すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 断片化だけで連続領域が不足した場合は、ストレージを増やさず再構築することを確認します。
+// 断片化による連続領域不足時にストレージを増やさず同容量で再構築することの確認
 TEST_F(hashtableGrowableTest, add_rebuilds_same_size_for_fragmentation)
 {
     // Arrange
@@ -111,10 +111,10 @@ TEST_F(hashtableGrowableTest, add_rebuilds_same_size_for_fragmentation)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 同容量再構築後の内部状態が整合すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 更新値が現在のストレージへ収まらない場合は値ストレージだけを拡張することを確認します。
+// 更新値が現在容量に収まらない場合に値ストレージのみを拡張して更新成功することの確認
 TEST_F(hashtableGrowableTest, update_rec_grows_value_storage)
 {
     // Arrange
@@ -145,10 +145,10 @@ TEST_F(hashtableGrowableTest, update_rec_grows_value_storage)
     EXPECT_EQ(2u, current.capacity); // [確認_正常系] - 更新では capacity が変わらないこと。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// upsert の追加経路とキー指定更新でも、必要な領域を自動拡張することを確認します。
+// upsert の追加およびキー指定更新において必要な領域が自動拡張されることの確認
 TEST_F(hashtableGrowableTest, upsert_and_update_grow_required_regions)
 {
     // Arrange
@@ -180,10 +180,10 @@ TEST_F(hashtableGrowableTest, upsert_and_update_grow_required_regions)
     EXPECT_GE(current.value_storage_size, 15u); // [確認_正常系] - 新旧値が共存できる値ストレージ容量であること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 自動再構築用の一時領域を確保できない場合は、元の領域と内容を維持することを確認します。
+// 自動再構築用の一時領域確保失敗時に元の領域と内容が維持されることの確認
 TEST_F(hashtableGrowableTest, allocation_failure_preserves_original_buffers)
 {
     // Arrange
@@ -219,10 +219,10 @@ TEST_F(hashtableGrowableTest, allocation_failure_preserves_original_buffers)
     EXPECT_EQ(1u, count); // [確認_正常系] - 失敗した追加によって件数が変わらないこと。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 自動拡張上限へ達した場合は従来の結果コードを返し、元のテーブルを保つことを確認します。
+// 自動拡張上限到達時に LIMIT_EXCEEDED を返し元のテーブルが維持されることの確認
 TEST_F(hashtableGrowableTest, limits_preserve_original_table)
 {
     // Arrange
@@ -250,10 +250,10 @@ TEST_F(hashtableGrowableTest, limits_preserve_original_table)
     EXPECT_EQ(CPLAT_OK, actual_ret_validate); // [確認_正常系] - 失敗後も内部状態が整合すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 通常の create で構築したテーブルは、満杯でも自動拡張しないことを確認します。
+// 通常の create で構築したテーブルが満杯時に自動拡張せず LIMIT_EXCEEDED を返すことの確認
 TEST_F(hashtableGrowableTest, ordinary_create_remains_fixed_capacity)
 {
     // Arrange
@@ -268,13 +268,13 @@ TEST_F(hashtableGrowableTest, ordinary_create_remains_fixed_capacity)
     int actual_ret_add = cplat_hashtable_add(ht, "b", "two", CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE); // [手順] - 通常の満杯テーブルへ追加する。
 
     // Assert
-    EXPECT_EQ(CPLAT_ERR_LIMIT_EXCEEDED, actual_ret_add); // [確認_正常系] - 通常の create では固定長の結果コードを維持すること。
+    EXPECT_EQ(CPLAT_ERR_LIMIT_EXCEEDED, actual_ret_add); // [確認_異常系] - 通常の create では固定長の結果コードを維持すること。
 
     // Cleanup
-    cplat_hashtable_dispose(ht);
+    cplat_hashtable_dispose(ht); // [破棄] - ハッシュテーブルを破棄する。
 }
 
-// 初期設定と矛盾する自動拡張上限を拒否することを確認します。
+// 初期設定と矛盾する自動拡張上限の指定が INVALID_ARGUMENT で拒否されることの確認
 TEST_F(hashtableGrowableTest, create_rejects_invalid_growth_config)
 {
     // Arrange

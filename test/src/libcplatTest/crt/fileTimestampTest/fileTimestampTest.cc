@@ -86,8 +86,8 @@ TEST_F(fileTimestampTest, path_set_then_path_get_round_trips)
     EXPECT_EQ(CPLAT_OK, actual_ret_set);    // [確認_正常系] - 設定が CPLAT_OK であること。
     EXPECT_EQ(CPLAT_OK, actual_ret_get);    // [確認_正常系] - 取得が CPLAT_OK であること。
     EXPECT_EQ(expected.tv_sec, actual.tv_sec); // [確認_正常系] - 秒部が一致すること。
-    // [確認_正常系] - ナノ秒部が一致すること。サブ秒を保持するファイル システムが前提。
-    EXPECT_EQ(expected.tv_nsec, actual.tv_nsec);
+    EXPECT_EQ(expected.tv_nsec,
+              actual.tv_nsec); // [確認_正常系] - ナノ秒部が一致すること (サブ秒を保持するファイル システムが前提)。
 }
 
 // ハンドル版で設定した最終更新日時が、ハンドル版で取得し直すと一致することの確認
