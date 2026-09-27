@@ -73,7 +73,7 @@
      *  @warning        Windows では変換後のワイド文字列が 1024 文字を超える場合、
      *                  1019 文字で切り捨てて末尾に `" ..."` を付与して出力します。
      */
-    #define DLLMAIN_CPLAT_INFO_MSG(msg)
+    #define CPLAT_DLLMAIN_INFO_MSG(msg)
 #else /* !DOXYGEN */
     #if defined(PLATFORM_LINUX)
 /**
@@ -83,7 +83,7 @@
  *  syslog() API は使用しません。毎回ソケットを開いて即時送信し、
  *  失敗時は破棄します。priority = LOG_USER(8) | LOG_INFO(6) = 14。
  */
-static void dllmain_syslog_send__(const char *msg)
+static void dllmain_syslog_send(const char *msg)
 {
     char buf[512];
     struct sockaddr_un sa;
@@ -109,7 +109,7 @@ static void dllmain_syslog_send__(const char *msg)
 
     /* SYSLOG_TEST_FD が設定されていればテスト用 FD に送信し、/dev/log へは送信しない */
     buf[n] = '\n';
-    if (syslog_test_fd_write__(buf, (size_t)(n + 1)))
+    if (syslog_test_fd_write(buf, (size_t)(n + 1)))
     {
         return;
     }
@@ -131,9 +131,9 @@ static void dllmain_syslog_send__(const char *msg)
     (void)sendto(fd, buf, (size_t)n, MSG_DONTWAIT, (struct sockaddr *)&sa, (socklen_t)sizeof(sa));
     close(fd);
 }
-        #define DLLMAIN_CPLAT_INFO_MSG(msg) dllmain_syslog_send__(msg)
+        #define CPLAT_DLLMAIN_INFO_MSG(msg) dllmain_syslog_send(msg)
     #elif defined(PLATFORM_WINDOWS)
-static void dllmain_output_debug_msg__(const char *msg)
+static void dllmain_output_debug_msg(const char *msg)
 {
     wchar_t buf[1024];
     int len;
@@ -204,7 +204,7 @@ static void dllmain_output_debug_msg__(const char *msg)
     }
     OutputDebugStringW(buf);
 }
-        #define DLLMAIN_CPLAT_INFO_MSG(msg) dllmain_output_debug_msg__(msg)
+        #define CPLAT_DLLMAIN_INFO_MSG(msg) dllmain_output_debug_msg(msg)
     #endif /* PLATFORM_ */
 #endif     /* DOXYGEN */
 
@@ -241,11 +241,11 @@ static void onUnload(int process_terminating);
  *  本関数はスレッド セーフではありません。\n
  *  constructor コンテキストの単一スレッドから呼び出されます。
  */
-__attribute__((constructor)) static void dllmain_on_load__(void)
+__attribute__((constructor)) static void dllmain_on_load(void)
 {
-    DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onLoad enter");
+    CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onLoad enter");
     onLoad();
-    DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onLoad leave");
+    CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onLoad leave");
 }
 
 /**
@@ -255,11 +255,11 @@ __attribute__((constructor)) static void dllmain_on_load__(void)
  *  本関数はスレッド セーフではありません。\n
  *  destructor コンテキストの単一スレッドから呼び出されます。
  */
-__attribute__((destructor)) static void dllmain_on_unload__(void)
+__attribute__((destructor)) static void dllmain_on_unload(void)
 {
-    DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onUnload enter");
+    CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onUnload enter");
     onUnload(0);
-    DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onUnload leave");
+    CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onUnload leave");
 }
 
 #elif defined(PLATFORM_WINDOWS)
@@ -281,12 +281,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     switch (fdwReason)
     {
     case DLL_PROCESS_ATTACH:
-        DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onLoad enter");
+        CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onLoad enter");
         onLoad();
-        DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onLoad leave");
+        CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onLoad leave");
         break;
     case DLL_PROCESS_DETACH:
-        DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onUnload enter");
+        CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onUnload enter");
         {
             int process_terminating;
             if (lpvReserved != NULL)
@@ -299,7 +299,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
             }
             onUnload(process_terminating);
         }
-        DLLMAIN_CPLAT_INFO_MSG("shared_lib_lifecycle: onUnload leave");
+        CPLAT_DLLMAIN_INFO_MSG("shared_lib_lifecycle: onUnload leave");
         break;
     default:
         break;

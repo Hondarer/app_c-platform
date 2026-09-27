@@ -7,7 +7,7 @@
 
 void (*g_test_syslog_shutdown_hook)(void) = NULL;
 
-void cplat_syslog_sink_dispose_on_shutdown(cplat_syslog_sink *handle)
+void cplat_internal_syslog_sink_dispose_on_shutdown(cplat_syslog_sink *handle)
 {
     (void)handle;
     if (g_test_syslog_shutdown_hook != NULL)

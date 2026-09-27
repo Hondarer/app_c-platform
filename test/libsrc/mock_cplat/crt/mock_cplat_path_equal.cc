@@ -1,25 +1,25 @@
 #include <testfw.h>
 #include <mock_cplat.h>
 
-int delegate_real_cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
+int delegate_real_cplat_path_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
 {
-    static auto real_fn = reinterpret_cast<decltype(&cplat_paths_equal)>(
-        resolveSharedSymbolOrExit(kLibCplatName, "cplat_paths_equal"));
+    static auto real_fn = reinterpret_cast<decltype(&cplat_path_equal)>(
+        resolveSharedSymbolOrExit(kLibCplatName, "cplat_path_equal"));
 
     return real_fn(lhs, rhs, equal_out, detail_out);
 }
 
-MOCK_WEAK_IMPL(int, cplat_paths_equal, const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
+MOCK_WEAK_IMPL(int, cplat_path_equal, const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
 {
     int mock_ret = CPLAT_ERR_UNKNOWN;
 
     if (_mock_cplat != nullptr)
     {
-        mock_ret = _mock_cplat->cplat_paths_equal(lhs, rhs, equal_out, detail_out);
+        mock_ret = _mock_cplat->cplat_path_equal(lhs, rhs, equal_out, detail_out);
     }
     else
     {
-        mock_ret = delegate_real_cplat_paths_equal(lhs, rhs, equal_out, detail_out);
+        mock_ret = delegate_real_cplat_path_equal(lhs, rhs, equal_out, detail_out);
     }
 
     if (getTraceLevel() > TRACE_NONE)

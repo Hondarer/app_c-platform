@@ -426,7 +426,7 @@ extern "C"
      *  - @ref CPLAT_HASHTABLE_ADD_DELETED_OVERWRITE : @p value で上書きして復活させます。\n
      *  - @ref CPLAT_HASHTABLE_ADD_DELETED_REVIVE : @p value を無視し、削除前の値のまま
      *    復活させます。\n
-     *  いずれの場合も成功時は、テーブルの変更時刻を @ref cplat_get_realtime で刻み、
+     *  いずれの場合も成功時は、テーブルの変更時刻を @ref cplat_clock_get_realtime で刻み、
      *  テーブルの世代カウンターを 1 増やします。\n
      *  @ref CPLAT_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
      *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。\n
@@ -524,7 +524,7 @@ extern "C"
      *                  @ref CPLAT_ERR_OUT_OF_RANGE 、@ref CPLAT_ERR_NOT_FOUND 、
      *                  @ref CPLAT_ERR_STORAGE_FULL 。
      *
-     *  成功時は、テーブルの変更時刻を @ref cplat_get_realtime で刻み、テーブルの
+     *  成功時は、テーブルの変更時刻を @ref cplat_clock_get_realtime で刻み、テーブルの
      *  世代カウンターを 1 増やします。\n
      *  @ref CPLAT_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
      *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。
@@ -547,7 +547,7 @@ extern "C"
      *                  @ref CPLAT_ERR_OUT_OF_RANGE 、@ref CPLAT_ERR_NOT_FOUND 、
      *                  @ref CPLAT_ERR_STORAGE_FULL 。
      *
-     *  成功時は、テーブルの変更時刻を @ref cplat_get_realtime で刻み、テーブルの
+     *  成功時は、テーブルの変更時刻を @ref cplat_clock_get_realtime で刻み、テーブルの
      *  世代カウンターを 1 増やします。\n
      *  @ref CPLAT_HASHTABLE_TIMESTAMP_SCOPE_RECORD のときは、レコードにも変更時刻を刻み、
      *  増やしたあとのテーブルの世代カウンターをレコードの世代カウンターにします。
@@ -1157,7 +1157,7 @@ extern "C"
      *
      *  設定と所有権は変えません。\n
      *  空にしたスロットは 0 埋めします。\n
-     *  テーブルの変更時刻を @ref cplat_get_realtime で刻み、テーブルの世代カウンターを
+     *  テーブルの変更時刻を @ref cplat_clock_get_realtime で刻み、テーブルの世代カウンターを
      *  1 増やします。空にしたスロットの変更時刻と世代カウンターは 0 です。
      *
      *  @par            スレッド セーフ

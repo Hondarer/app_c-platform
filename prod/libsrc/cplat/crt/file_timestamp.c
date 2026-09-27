@@ -93,7 +93,7 @@ static HANDLE open_for_attributes(const char *path, DWORD desired_access, cplat_
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
     {
-        *failed_out = cplat_error_report_windows_error(detail_out, GetLastError());
+        *failed_out = cplat_internal_error_report_windows_error(detail_out, GetLastError());
     }
 
     return handle;
@@ -108,7 +108,7 @@ int cplat_file_get_modified_timestamp(const cplat_file *file, cplat_timespec *ti
 {
     if (!file_is_open(file) || timestamp_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -117,11 +117,11 @@ int cplat_file_get_modified_timestamp(const cplat_file *file, cplat_timespec *ti
 
         if (fstat(file->handle, &st) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         stat_to_timestamp(&st, timestamp_out);
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -129,11 +129,11 @@ int cplat_file_get_modified_timestamp(const cplat_file *file, cplat_timespec *ti
 
         if (!GetFileTime(file->handle, NULL, NULL, &write_time))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         cplat_internal_filetime_to_timespec(&write_time, timestamp_out);
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -145,7 +145,7 @@ int cplat_file_set_modified_timestamp(cplat_file *file, const cplat_timespec *ti
 {
     if (!file_is_open(file) || timestamp == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     /*
@@ -155,7 +155,7 @@ int cplat_file_set_modified_timestamp(cplat_file *file, const cplat_timespec *ti
      */
     if (file->writable == 0)
     {
-        return cplat_error_report_errno_as(detail_out, EACCES, CPLAT_ERR_PERMISSION_DENIED);
+        return cplat_internal_error_report_errno_as(detail_out, EACCES, CPLAT_ERR_PERMISSION_DENIED);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -166,10 +166,10 @@ int cplat_file_set_modified_timestamp(cplat_file *file, const cplat_timespec *ti
 
         if (futimens(file->handle, times) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -179,10 +179,10 @@ int cplat_file_set_modified_timestamp(cplat_file *file, const cplat_timespec *ti
 
         if (!SetFileTime(file->handle, NULL, NULL, &write_time))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -194,7 +194,7 @@ int cplat_file_get_path_modified_timestamp(const char *path, cplat_timespec *tim
 {
     if (path == NULL || timestamp_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -203,11 +203,11 @@ int cplat_file_get_path_modified_timestamp(const char *path, cplat_timespec *tim
 
         if (stat(path, &st) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         stat_to_timestamp(&st, timestamp_out);
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -228,15 +228,15 @@ int cplat_file_get_path_modified_timestamp(const char *path, cplat_timespec *tim
             const DWORD error_code = GetLastError();
 
             (void)CloseHandle(handle);
-            return cplat_error_report_windows_error(detail_out, error_code);
+            return cplat_internal_error_report_windows_error(detail_out, error_code);
         }
         if (!CloseHandle(handle))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         cplat_internal_filetime_to_timespec(&write_time, timestamp_out);
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -248,7 +248,7 @@ int cplat_file_set_path_modified_timestamp(const char *path, const cplat_timespe
 {
     if (path == NULL || timestamp == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -259,10 +259,10 @@ int cplat_file_set_path_modified_timestamp(const char *path, const cplat_timespe
 
         if (utimensat(AT_FDCWD, path, times, 0) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -285,14 +285,14 @@ int cplat_file_set_path_modified_timestamp(const char *path, const cplat_timespe
             const DWORD error_code = GetLastError();
 
             (void)CloseHandle(handle);
-            return cplat_error_report_windows_error(detail_out, error_code);
+            return cplat_internal_error_report_windows_error(detail_out, error_code);
         }
         if (!CloseHandle(handle))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }

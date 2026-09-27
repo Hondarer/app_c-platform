@@ -78,13 +78,13 @@ class hashtableTimestampTest : public Test
 
     void SetUp() override
     {
-        ON_CALL(mock_cplat_, cplat_get_realtime(_))
+        ON_CALL(mock_cplat_, cplat_clock_get_realtime(_))
             .WillByDefault(
                 [this](cplat_timespec *ts)
                 {
                     set_timestamp(ts, next_sec_, 0);
                     next_sec_ += 10;
-                }); // [状態] - cplat_get_realtime が呼び出された際に 10 秒ずつ進む時刻を返すようにモックを設定する。
+                }); // [状態] - cplat_clock_get_realtime が呼び出された際に 10 秒ずつ進む時刻を返すようにモックを設定する。
     }
 };
 

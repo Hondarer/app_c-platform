@@ -73,10 +73,10 @@ class trace_fileTest : public Test
 
     void SetUp() override
     {
-        ON_CALL(mock_cplat, cplat_get_realtime_deadline_ms(_, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_cplat, cplat_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
-        ON_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, size_t buf_size, const cplat_timespec *)
                 {
@@ -334,7 +334,7 @@ TEST_F(trace_fileTest, test_write_uses_explicit_timestamp_without_internal_clock
     ASSERT_NE((cplat_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻を取得しないこと。
     EXPECT_CALL(mock_cplat, cplat_file_write(_, _, _, _))
         .WillOnce(
@@ -392,7 +392,7 @@ TEST_F(trace_fileTest, test_write_falls_back_from_invalid_explicit_timestamp)
     ASSERT_NE((cplat_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     EXPECT_CALL(mock_cplat, cplat_file_write(_, _, _, _))
         .WillOnce(

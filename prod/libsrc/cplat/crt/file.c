@@ -63,13 +63,13 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
 {
     if (file == NULL || path == NULL || flags < 0)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
     if ((flags & CPLAT_FILE_OPEN_CREATE_NEW) != 0 && (flags & CPLAT_FILE_OPEN_CREATE) == 0)
     {
         /* CREATE_NEW は CREATE との併用が必須。単独指定は Linux では O_EXCL が黙って無視され、
            Windows では OPEN_EXISTING 相当の動作となるため、意図と乖離しないよう明示的に失敗させます。 */
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     {
@@ -134,11 +134,11 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
         if (file_is_open(file))
         {
             file->writable = has_write;
-            return cplat_error_report_success(detail_out);
+            return cplat_internal_error_report_success(detail_out);
         }
         else
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -225,7 +225,7 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
         file->handle = CreateFileU(path, desired_access, share_mode, NULL, creation_disposition, file_flags, NULL);
         if (!file_is_open(file))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
         file->writable = has_write;
 
@@ -239,11 +239,11 @@ int cplat_file_open(cplat_file *file, const char *path, int flags, cplat_error *
                 const DWORD error_code = GetLastError();
 
                 (void)cplat_file_close(file, NULL);
-                return cplat_error_report_windows_error(detail_out, error_code);
+                return cplat_internal_error_report_windows_error(detail_out, error_code);
             }
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -254,16 +254,16 @@ int cplat_file_write(cplat_file *file, const void *buf, size_t len, cplat_error 
 {
     if (!file_is_open(file) || (buf == NULL && len > 0u))
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
     if (!file->writable)
     {
-        return cplat_error_report_errno(detail_out, EACCES);
+        return cplat_internal_error_report_errno(detail_out, EACCES);
     }
 
     if (len == 0u)
     {
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -284,14 +284,14 @@ int cplat_file_write(cplat_file *file, const void *buf, size_t len, cplat_error 
 
             if (written <= 0)
             {
-                return cplat_error_report_errno(detail_out, errno);
+                return cplat_internal_error_report_errno(detail_out, errno);
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -314,18 +314,18 @@ int cplat_file_write(cplat_file *file, const void *buf, size_t len, cplat_error 
 
             if (!WriteFile(file->handle, cursor, chunk, &written, NULL))
             {
-                return cplat_error_report_windows_error(detail_out, GetLastError());
+                return cplat_internal_error_report_windows_error(detail_out, GetLastError());
             }
             if (written == 0u)
             {
-                return cplat_error_report_errno(detail_out, EIO);
+                return cplat_internal_error_report_errno(detail_out, EIO);
             }
 
             cursor += (size_t)written;
             remaining -= (size_t)written;
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -336,17 +336,17 @@ int cplat_file_set_size(cplat_file *file, size_t size, cplat_error *detail_out)
 {
     if (!file_is_open(file))
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
     {
         if (ftruncate(file->handle, (off_t)size) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -355,14 +355,14 @@ int cplat_file_set_size(cplat_file *file, size_t size, cplat_error *detail_out)
         pos.QuadPart = (LONGLONG)size;
         if (!SetFilePointerEx(file->handle, pos, NULL, FILE_BEGIN))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
         if (!SetEndOfFile(file->handle))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -373,14 +373,14 @@ int cplat_file_read(cplat_file *file, void *buf, const size_t len, size_t *read_
 {
     if (!file_is_open(file) || buf == NULL || read_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     *read_out = 0u;
 
     if (len == 0u)
     {
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -395,11 +395,11 @@ int cplat_file_read(cplat_file *file, void *buf, const size_t len, size_t *read_
 
         if (bytes < 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         *read_out = (size_t)bytes;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -418,11 +418,11 @@ int cplat_file_read(cplat_file *file, void *buf, const size_t len, size_t *read_
 
         if (!ReadFile(file->handle, buf, chunk, &bytes, NULL))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         *read_out = (size_t)bytes;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -433,7 +433,7 @@ int cplat_file_get_size(const cplat_file *file, size_t *size_out, cplat_error *d
 {
     if (!file_is_open(file) || size_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -442,11 +442,11 @@ int cplat_file_get_size(const cplat_file *file, size_t *size_out, cplat_error *d
 
         if (fstat(file->handle, &st) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         *size_out = (size_t)st.st_size;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -454,11 +454,11 @@ int cplat_file_get_size(const cplat_file *file, size_t *size_out, cplat_error *d
 
         if (!GetFileSizeEx(file->handle, &size))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         *size_out = (size_t)size.QuadPart;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -469,7 +469,7 @@ int cplat_file_get_id(const cplat_file *file, cplat_file_id *id_out, cplat_error
 {
     if (!file_is_open(file) || id_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -478,12 +478,12 @@ int cplat_file_get_id(const cplat_file *file, cplat_file_id *id_out, cplat_error
 
         if (fstat(file->handle, &st) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -491,12 +491,12 @@ int cplat_file_get_id(const cplat_file *file, cplat_file_id *id_out, cplat_error
 
         if (!GetFileInformationByHandle(file->handle, &info))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -507,7 +507,7 @@ int cplat_file_get_path_id(const char *path, cplat_file_id *id_out, cplat_error 
 {
     if (path == NULL || id_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -516,12 +516,12 @@ int cplat_file_get_path_id(const char *path, cplat_file_id *id_out, cplat_error 
 
         if (stat(path, &st) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
 
         id_out->volume = (uint64_t)st.st_dev;
         id_out->index = (uint64_t)st.st_ino;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -541,7 +541,7 @@ int cplat_file_get_path_id(const char *path, cplat_file_id *id_out, cplat_error 
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (handle == INVALID_HANDLE_VALUE)
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         got_info = GetFileInformationByHandle(handle, &info);
@@ -550,16 +550,16 @@ int cplat_file_get_path_id(const char *path, cplat_file_id *id_out, cplat_error 
             const DWORD error_code = GetLastError();
 
             (void)CloseHandle(handle);
-            return cplat_error_report_windows_error(detail_out, error_code);
+            return cplat_internal_error_report_windows_error(detail_out, error_code);
         }
         if (!CloseHandle(handle))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
 
         id_out->volume = (uint64_t)info.dwVolumeSerialNumber;
         id_out->index = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -570,7 +570,7 @@ int cplat_file_flush(cplat_file *file, cplat_error *detail_out)
 {
     if (!file_is_open(file))
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -578,18 +578,18 @@ int cplat_file_flush(cplat_file *file, cplat_error *detail_out)
     {
         const int errno_value = errno;
 
-        return cplat_error_report_errno(detail_out, errno_value);
+        return cplat_internal_error_report_errno(detail_out, errno_value);
     }
 #elif defined(PLATFORM_WINDOWS)
     if (!FlushFileBuffers(file->handle))
     {
         const DWORD error_code = GetLastError();
 
-        return cplat_error_report_windows_error(detail_out, error_code);
+        return cplat_internal_error_report_windows_error(detail_out, error_code);
     }
 #endif /* PLATFORM_ */
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -598,7 +598,7 @@ int cplat_file_close(cplat_file *file, cplat_error *detail_out)
 {
     if (file == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -609,7 +609,7 @@ int cplat_file_close(cplat_file *file, cplat_error *detail_out)
         file->handle = -1;
         if (close(handle) != 0)
         {
-            return cplat_error_report_errno(detail_out, errno);
+            return cplat_internal_error_report_errno(detail_out, errno);
         }
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -620,10 +620,10 @@ int cplat_file_close(cplat_file *file, cplat_error *detail_out)
         file->handle = INVALID_HANDLE_VALUE;
         if (!CloseHandle(handle))
         {
-            return cplat_error_report_windows_error(detail_out, GetLastError());
+            return cplat_internal_error_report_windows_error(detail_out, GetLastError());
         }
     }
 #endif /* PLATFORM_ */
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }

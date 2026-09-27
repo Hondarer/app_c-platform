@@ -1620,7 +1620,7 @@ TEST_F(socketTest, wait_single_retries_without_deadline_after_interrupt)
 
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 無期限待機では単調時刻が取得されないこと。
-    EXPECT_CALL(mock_cplat_, cplat_get_monotonic_ms()).Times(0);
+    EXPECT_CALL(mock_cplat_, cplat_clock_get_monotonic_ms()).Times(0);
     // [Pre-Assert確認_正常系] - 下位の待機 API が無期限のタイムアウトを指定して 2 回呼び出されること。
     // [Pre-Assert手順] - 下位の待機 API から、シグナルによる中断ののち条件成立を返却する。
     EXPECT_CALL(mock_poll_, poll(_, _, _, _, 1, CPLAT_SOCKET_WAIT_FOREVER))
@@ -1653,7 +1653,7 @@ TEST_F(socketTest, wait_single_recomputes_remaining_after_interrupt)
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 単調時刻が待機の開始時と中断時の 2 回取得されること。
     // [Pre-Assert手順] - 単調時刻から、開始時に 1000 ms、中断時に 1040 ms を返却する。
-    EXPECT_CALL(mock_cplat_, cplat_get_monotonic_ms())
+    EXPECT_CALL(mock_cplat_, cplat_clock_get_monotonic_ms())
         .WillOnce(Return((uint64_t)1000U))
         .WillOnce(Return((uint64_t)1040U));
     // [Pre-Assert確認_正常系] - 下位の待機 API が 1 回目に要求どおりの 100 ms を指定して呼び出されること。
@@ -1690,7 +1690,7 @@ TEST_F(socketTest, wait_single_reports_not_ready_when_deadline_expires_after_int
     // Pre-Assert
     // [Pre-Assert確認_正常系] - 単調時刻が待機の開始時と中断時の 2 回取得されること。
     // [Pre-Assert手順] - 単調時刻から、開始時に 1000 ms、中断時に期限を過ぎた 1100 ms を返却する。
-    EXPECT_CALL(mock_cplat_, cplat_get_monotonic_ms())
+    EXPECT_CALL(mock_cplat_, cplat_clock_get_monotonic_ms())
         .WillOnce(Return((uint64_t)1000U))
         .WillOnce(Return((uint64_t)1100U));
     // [Pre-Assert確認_正常系] - 下位の待機 API が 50 ms を指定して 1 回だけ呼び出されること。

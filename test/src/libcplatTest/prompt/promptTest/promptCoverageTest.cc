@@ -150,7 +150,7 @@ TEST_F(promptCoverageTest, contexts_distinguish_file_and_line_and_expand_twice)
     // Arrange
     static const char first_file[] = "first.c";
     static const char second_file[] = "second.c";
-    cplat_prompt_ctx *contexts[6] = {}; // [状態] - 異なるファイル名と行番号で 6 個のコンテキストを作成する。
+    cplat_internal_prompt_ctx *contexts[6] = {}; // [状態] - 異なるファイル名と行番号で 6 個のコンテキストを作成する。
 
     // Pre-Assert
 
@@ -166,7 +166,7 @@ TEST_F(promptCoverageTest, contexts_distinguish_file_and_line_and_expand_twice)
     // Assert
     for (size_t i = 0u; i < 5u; i++)
     {
-        ASSERT_NE((cplat_prompt_ctx *)NULL,
+        ASSERT_NE((cplat_internal_prompt_ctx *)NULL,
                   contexts[i]); // [確認_正常系] - 5 個の新規コンテキストが取得できること。
     }
     EXPECT_EQ(&prompt_->contexts[0], contexts[5]); // [確認_正常系] - 同じファイルと行番号から既存コンテキストが返ること。
@@ -178,13 +178,13 @@ TEST_F(promptCoverageTest, contexts_distinguish_file_and_line_and_expand_twice)
 TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
 {
     // Arrange
-    cplat_prompt_ctx *context =
+    cplat_internal_prompt_ctx *context =
         test_prompt_find_or_create_context(prompt_, "history.c", 1); // [状態] - 空の履歴コンテキストを用意する。
-    cplat_prompt_ctx *null_entry_context =
+    cplat_internal_prompt_ctx *null_entry_context =
         test_prompt_find_or_create_context(prompt_, "null-entry.c", 1); // [状態] - NULL エントリ試験用の履歴コンテキストを用意する。
     char *first_entry = NULL;
-    ASSERT_NE((cplat_prompt_ctx *)NULL, context);             // [状態確認] - コンテキストが非 NULL であること。
-    ASSERT_NE((cplat_prompt_ctx *)NULL, null_entry_context); // [状態確認] - NULL エントリ試験用コンテキストが非 NULL であること。
+    ASSERT_NE((cplat_internal_prompt_ctx *)NULL, context);             // [状態確認] - コンテキストが非 NULL であること。
+    ASSERT_NE((cplat_internal_prompt_ctx *)NULL, null_entry_context); // [状態確認] - NULL エントリ試験用コンテキストが非 NULL であること。
 
     // Pre-Assert
 
@@ -222,9 +222,9 @@ TEST_F(promptCoverageTest, history_helpers_cover_remaining_boundaries)
 TEST_F(promptCoverageTest, history_add_ignores_zero_history_max)
 {
     // Arrange
-    cplat_prompt_ctx *context =
+    cplat_internal_prompt_ctx *context =
         test_prompt_find_or_create_context(prompt_, "zero-history.c", 1); // [状態] - 空の履歴コンテキストを用意する。
-    ASSERT_NE((cplat_prompt_ctx *)NULL, context);                         // [状態確認] - コンテキストが非 NULL であること。
+    ASSERT_NE((cplat_internal_prompt_ctx *)NULL, context);                         // [状態確認] - コンテキストが非 NULL であること。
     size_t saved_history_max = prompt_->history_max;
     prompt_->history_max = 0u; // [状態] - 履歴上限を 0 にする。
 
@@ -252,11 +252,11 @@ TEST_F(promptCoverageTest, context_creation_fails_when_entries_allocation_fails)
     // [Pre-Assert手順] - cplat_calloc から NULL を返却する。
 
     // Act
-    cplat_prompt_ctx *context = test_prompt_find_or_create_context(prompt_, "failure.c",
+    cplat_internal_prompt_ctx *context = test_prompt_find_or_create_context(prompt_, "failure.c",
                                                                       1); // [手順] - 履歴コンテキストを作成する。
 
     // Assert
-    EXPECT_EQ((cplat_prompt_ctx *)NULL,
+    EXPECT_EQ((cplat_internal_prompt_ctx *)NULL,
               context); // [確認_異常系] - test_prompt_find_or_create_context の戻り値が NULL であること。
     EXPECT_EQ(0u, prompt_->ctx_count); // [確認_異常系] - 失敗したコンテキストが件数へ加算されないこと。
 }

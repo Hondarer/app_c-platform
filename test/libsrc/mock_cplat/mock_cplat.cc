@@ -195,18 +195,18 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_hashtable_dispose));
 
     // cplat/clock/clock.h
-    ON_CALL(*this, cplat_get_monotonic_ms())
-        .WillByDefault(Invoke(delegate_real_cplat_get_monotonic_ms));
-    ON_CALL(*this, cplat_get_monotonic(_)).WillByDefault(Invoke(delegate_real_cplat_get_monotonic));
-    ON_CALL(*this, cplat_get_realtime(_)).WillByDefault(Invoke(delegate_real_cplat_get_realtime));
-    ON_CALL(*this, cplat_format_realtime_iso8601_local(_, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_format_realtime_iso8601_local));
-    ON_CALL(*this, cplat_format_realtime_iso8601_utc(_, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_format_realtime_iso8601_utc));
-    ON_CALL(*this, cplat_get_realtime_utc(_, _))
-        .WillByDefault(Invoke(delegate_real_cplat_get_realtime_utc));
-    ON_CALL(*this, cplat_get_realtime_deadline_ms(_, _))
-        .WillByDefault(Invoke(delegate_real_cplat_get_realtime_deadline_ms));
+    ON_CALL(*this, cplat_clock_get_monotonic_ms())
+        .WillByDefault(Invoke(delegate_real_cplat_clock_get_monotonic_ms));
+    ON_CALL(*this, cplat_clock_get_monotonic(_)).WillByDefault(Invoke(delegate_real_cplat_clock_get_monotonic));
+    ON_CALL(*this, cplat_clock_get_realtime(_)).WillByDefault(Invoke(delegate_real_cplat_clock_get_realtime));
+    ON_CALL(*this, cplat_clock_format_realtime_iso8601_local(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_clock_format_realtime_iso8601_local));
+    ON_CALL(*this, cplat_clock_format_realtime_iso8601_utc(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_clock_format_realtime_iso8601_utc));
+    ON_CALL(*this, cplat_clock_get_realtime_utc(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_clock_get_realtime_utc));
+    ON_CALL(*this, cplat_clock_get_realtime_deadline_ms(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_clock_get_realtime_deadline_ms));
 
     // cplat/clock/timespec.h
     ON_CALL(*this, cplat_timespec_normalize(_))
@@ -241,7 +241,7 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_console_write));
 
     // cplat/console/console.h (internal)
-    ON_CALL(*this, cplat_console_dispose_on_shutdown(_, _))
+    ON_CALL(*this, cplat_internal_console_dispose_on_shutdown(_, _))
         .WillByDefault(Invoke(delegate_real_cplat_console_dispose_on_shutdown));
 
     // cplat/crt/fcntl.h
@@ -278,14 +278,14 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_file_close(_, _)).WillByDefault(Invoke(delegate_real_cplat_file_close));
 
     // cplat/crt/path.h
-    ON_CALL(*this, cplat_normalize_path_sep(_))
-        .WillByDefault(Invoke(delegate_real_cplat_normalize_path_sep));
+    ON_CALL(*this, cplat_path_normalize_sep(_))
+        .WillByDefault(Invoke(delegate_real_cplat_path_normalize_sep));
     ON_CALL(*this, cplat_path_get_full(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_path_get_full));
-    ON_CALL(*this, cplat_paths_equal(_, _, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_paths_equal));
-    ON_CALL(*this, cplat_get_temp_dir(_, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_get_temp_dir));
+    ON_CALL(*this, cplat_path_equal(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_path_equal));
+    ON_CALL(*this, cplat_path_get_temp_dir(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_path_get_temp_dir));
     ON_CALL(*this, cplat_path_concat_n(_, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_vpath_concat_n));
     ON_CALL(*this, cplat_vpath_concat_n(_, _, _, _, _))
@@ -394,10 +394,10 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_access_fmt));
 
     // cplat/crypto/crypto.h
-    ON_CALL(*this, cplat_encrypt(_, _, _, _, _, _, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_encrypt));
-    ON_CALL(*this, cplat_decrypt(_, _, _, _, _, _, _, _))
-        .WillByDefault(Invoke(delegate_real_cplat_decrypt));
+    ON_CALL(*this, cplat_crypto_encrypt(_, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_crypto_encrypt));
+    ON_CALL(*this, cplat_crypto_decrypt(_, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_crypto_decrypt));
     ON_CALL(*this, cplat_passphrase_to_key(_, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_passphrase_to_key));
 

@@ -31,7 +31,7 @@ class promptLinuxTest : public Test
 };
 
 /*
- * prompt_platform_enter_raw / prompt_platform_leave_raw
+ * cplat_internal_prompt_platform_enter_raw / cplat_internal_prompt_platform_leave_raw
  */
 
 // 端末でない標準入力では raw モードへ移行しないことの確認
@@ -46,7 +46,7 @@ TEST_F(promptLinuxTest, enter_raw_does_nothing_for_non_terminal)
                                // [Pre-Assert手順] - tcgetattr から -1 を返却する。
 
     // Act
-    prompt_platform_enter_raw(&handle_); // [手順] - prompt_platform_enter_raw を呼び出す。
+    cplat_internal_prompt_platform_enter_raw(&handle_); // [手順] - cplat_internal_prompt_platform_enter_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(0, handle_.raw_active); // [確認_異常系] - tcgetattr が失敗するため raw モードにならないこと。
@@ -69,10 +69,10 @@ TEST_F(promptLinuxTest, enter_and_leave_raw_on_terminal)
     // [Pre-Assert手順] - tcsetattr から 0 を返却する。
 
     // Act
-    prompt_platform_enter_raw(&handle_); // [手順] - prompt_platform_enter_raw を呼び出す。
+    cplat_internal_prompt_platform_enter_raw(&handle_); // [手順] - cplat_internal_prompt_platform_enter_raw を呼び出す。
     int raw_after_enter = handle_.raw_active;
     int sigwinch_after_enter = test_prompt_sigwinch_installed();
-    prompt_platform_leave_raw(&handle_); // [手順] - prompt_platform_leave_raw を呼び出す。
+    cplat_internal_prompt_platform_leave_raw(&handle_); // [手順] - cplat_internal_prompt_platform_leave_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(1, raw_after_enter);                  // [確認_正常系] - raw モードが有効になること。
@@ -98,7 +98,7 @@ TEST_F(promptLinuxTest, enter_raw_does_nothing_when_tcsetattr_fails)
                                // [Pre-Assert手順] - tcsetattr から -1 を返却する。
 
     // Act
-    prompt_platform_enter_raw(&handle_); // [手順] - prompt_platform_enter_raw を呼び出す。
+    cplat_internal_prompt_platform_enter_raw(&handle_); // [手順] - cplat_internal_prompt_platform_enter_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(0, handle_.raw_active); // [確認_異常系] - 端末設定を適用できないため raw モードにならないこと。
@@ -114,7 +114,7 @@ TEST_F(promptLinuxTest, enter_raw_is_ignored_while_already_raw)
     // Pre-Assert
 
     // Act
-    prompt_platform_enter_raw(&handle_); // [手順] - raw モード中に prompt_platform_enter_raw を呼び出す。
+    cplat_internal_prompt_platform_enter_raw(&handle_); // [手順] - raw モード中に cplat_internal_prompt_platform_enter_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(1, handle_.raw_active); // [確認_正常系] - raw モードの状態が変化しないこと。
@@ -142,7 +142,7 @@ TEST_F(promptLinuxTest, enter_raw_does_not_reinstall_sigwinch_handler)
     // [Pre-Assert手順] - tcsetattr が 0 を返却する。
 
     // Act
-    prompt_platform_enter_raw(&handle_); // [手順] - 登録済み状態で prompt_platform_enter_raw を呼び出す。
+    cplat_internal_prompt_platform_enter_raw(&handle_); // [手順] - 登録済み状態で cplat_internal_prompt_platform_enter_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(1, handle_.raw_active); // [確認_正常系] - raw モードが有効になること。
@@ -163,7 +163,7 @@ TEST_F(promptLinuxTest, leave_raw_is_ignored_when_not_raw)
     // Pre-Assert
 
     // Act
-    prompt_platform_leave_raw(&handle_); // [手順] - prompt_platform_leave_raw を呼び出す。
+    cplat_internal_prompt_platform_leave_raw(&handle_); // [手順] - cplat_internal_prompt_platform_leave_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(0, handle_.raw_active); // [確認_正常系] - raw モードの状態が変化しないこと。
@@ -184,7 +184,7 @@ TEST_F(promptLinuxTest, leave_raw_handles_uninstalled_sigwinch_handler)
     // [Pre-Assert手順] - tcsetattr が 0 を返却する。
 
     // Act
-    prompt_platform_leave_raw(&handle_); // [手順] - 未登録状態で prompt_platform_leave_raw を呼び出す。
+    cplat_internal_prompt_platform_leave_raw(&handle_); // [手順] - 未登録状態で cplat_internal_prompt_platform_leave_raw を呼び出す。
 
     // Assert
     EXPECT_EQ(0, handle_.raw_active);               // [確認_正常系] - raw モードが無効になること。
@@ -203,7 +203,7 @@ TEST_F(promptLinuxTest, sigwinch_handler_records_pending_resize)
             DoAll(SetArgPointee<4>(original), Return(0))); // [状態] - tcgetattr が元の端末設定を返すようにする。
     ON_CALL(mock_termios, tcsetattr(_, _, _, STDIN_FILENO, _, _))
         .WillByDefault(Return(0)); // [状態] - tcsetattr が成功するようにする。
-    prompt_platform_enter_raw(&handle_);
+    cplat_internal_prompt_platform_enter_raw(&handle_);
     ASSERT_EQ(1, test_prompt_sigwinch_installed()); // [状態確認] - SIGWINCH ハンドラーが登録済みであること。
 
     // Pre-Assert
@@ -216,11 +216,11 @@ TEST_F(promptLinuxTest, sigwinch_handler_records_pending_resize)
 
     // Cleanup
     test_prompt_set_resize_pending(0);
-    prompt_platform_leave_raw(&handle_);
+    cplat_internal_prompt_platform_leave_raw(&handle_);
 }
 
 /*
- * prompt_platform_read_char
+ * cplat_internal_prompt_platform_read_char
  */
 
 // 標準入力から 1 バイトが読み取れることの確認
@@ -240,7 +240,7 @@ TEST_F(promptLinuxTest, read_char_returns_next_byte)
                 // [Pre-Assert手順] - 'A' を書き込み、1 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char(&handle_); // [手順] - cplat_internal_prompt_platform_read_char を呼び出す。
 
     // Assert
     EXPECT_EQ('A', actual_ret); // [確認_正常系] - 読み取ったバイト値 'A' が返ること。
@@ -259,7 +259,7 @@ TEST_F(promptLinuxTest, read_char_returns_minus1_at_eof)
                         // [Pre-Assert手順] - EOF を示す 0 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char(&handle_); // [手順] - cplat_internal_prompt_platform_read_char を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, actual_ret); // [確認_異常系] - EOF を示す -1 が返ること。
@@ -281,7 +281,7 @@ TEST_F(promptLinuxTest, read_char_reports_resize_on_interrupted_read)
                           // [Pre-Assert手順] - errno に EINTR を設定し、read から -1 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char(&handle_); // [手順] - cplat_internal_prompt_platform_read_char を呼び出す。
 
     // Assert
     EXPECT_EQ(-2, actual_ret);                             // [確認_正常系] - リサイズ通知を示す -2 が返ること。
@@ -304,14 +304,14 @@ TEST_F(promptLinuxTest, read_char_retries_after_interrupt_without_resize)
     // [Pre-Assert手順] - 1 回目は errno に EINTR、2 回目は errno に EIO を設定して -1 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char(&handle_); // [手順] - prompt_platform_read_char を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char(&handle_); // [手順] - cplat_internal_prompt_platform_read_char を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 再試行の結果として -1 が返ること。
 }
 
 /*
- * prompt_platform_read_char_nb
+ * cplat_internal_prompt_platform_read_char_nb
  */
 
 // 入力がある場合に 1 バイトが読み取れることの確認
@@ -335,7 +335,7 @@ TEST_F(promptLinuxTest, read_char_nb_returns_next_byte_when_available)
                 // [Pre-Assert手順] - 'B' を書き込み、1 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char_nb(&handle_); // [手順] - cplat_internal_prompt_platform_read_char_nb を呼び出す。
 
     // Assert
     EXPECT_EQ('B', actual_ret); // [確認_正常系] - 読み取ったバイト値 'B' が返ること。
@@ -353,7 +353,7 @@ TEST_F(promptLinuxTest, read_char_nb_returns_minus1_on_timeout)
                               // [Pre-Assert手順] - タイムアウトを示す 0 を返却する。
 
     // Act
-    int actual_ret = prompt_platform_read_char_nb(&handle_); // [手順] - prompt_platform_read_char_nb を呼び出す。
+    int actual_ret = cplat_internal_prompt_platform_read_char_nb(&handle_); // [手順] - cplat_internal_prompt_platform_read_char_nb を呼び出す。
 
     // Assert
     EXPECT_EQ(-1, actual_ret); // [確認_異常系] - 入力がないため -1 が返ること。

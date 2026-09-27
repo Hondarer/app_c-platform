@@ -15,7 +15,7 @@
 // MSVC がオブジェクトをリンクへ取り込まず、cplat_* が未解決になることがある。
 // MOCK_CPLAT_LINK_IMPL(func) は /INCLUDE:_mock_impl_<func> をリンカーへ渡し、
 // 実体を明示的に含める。列挙順は公開 API 表 (exportTest.cc の CPLAT_EXPORT_TABLE)
-// に合わせる。cplat_console_dispose_on_shutdown は内部関数のため、console 公開 API
+// に合わせる。cplat_internal_console_dispose_on_shutdown は内部関数のため、console 公開 API
 // の直後に置く。cplat_syslog_sink_* は Linux 専用のため、この Windows 専用ブロック
 // には含めない。
 
@@ -116,13 +116,13 @@ MOCK_CPLAT_LINK_IMPL(cplat_hashtable_clear)
 MOCK_CPLAT_LINK_IMPL(cplat_hashtable_dispose)
 
 // cplat/clock/clock.h
-MOCK_CPLAT_LINK_IMPL(cplat_get_monotonic_ms)
-MOCK_CPLAT_LINK_IMPL(cplat_get_monotonic)
-MOCK_CPLAT_LINK_IMPL(cplat_get_realtime)
-MOCK_CPLAT_LINK_IMPL(cplat_format_realtime_iso8601_local)
-MOCK_CPLAT_LINK_IMPL(cplat_format_realtime_iso8601_utc)
-MOCK_CPLAT_LINK_IMPL(cplat_get_realtime_utc)
-MOCK_CPLAT_LINK_IMPL(cplat_get_realtime_deadline_ms)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_get_monotonic_ms)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_get_monotonic)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_get_realtime)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_format_realtime_iso8601_local)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_format_realtime_iso8601_utc)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_get_realtime_utc)
+MOCK_CPLAT_LINK_IMPL(cplat_clock_get_realtime_deadline_ms)
 
 // cplat/clock/timespec.h
 MOCK_CPLAT_LINK_IMPL(cplat_timespec_normalize)
@@ -145,7 +145,7 @@ MOCK_CPLAT_LINK_IMPL(cplat_console_attach_parent)
 MOCK_CPLAT_LINK_IMPL(cplat_console_write)
 
 // cplat/console/console.h (internal)
-MOCK_CPLAT_LINK_IMPL(cplat_console_dispose_on_shutdown)
+MOCK_CPLAT_LINK_IMPL(cplat_internal_console_dispose_on_shutdown)
 
 // cplat/crt/fcntl.h
 MOCK_CPLAT_LINK_IMPL(cplat_open)
@@ -169,10 +169,10 @@ MOCK_CPLAT_LINK_IMPL(cplat_file_flush)
 MOCK_CPLAT_LINK_IMPL(cplat_file_close)
 
 // cplat/crt/path.h
-MOCK_CPLAT_LINK_IMPL(cplat_normalize_path_sep)
+MOCK_CPLAT_LINK_IMPL(cplat_path_normalize_sep)
 MOCK_CPLAT_LINK_IMPL(cplat_path_get_full)
-MOCK_CPLAT_LINK_IMPL(cplat_paths_equal)
-MOCK_CPLAT_LINK_IMPL(cplat_get_temp_dir)
+MOCK_CPLAT_LINK_IMPL(cplat_path_equal)
+MOCK_CPLAT_LINK_IMPL(cplat_path_get_temp_dir)
 MOCK_CPLAT_LINK_IMPL(cplat_path_concat_n)
 MOCK_CPLAT_LINK_IMPL(cplat_vpath_concat_n)
 MOCK_CPLAT_LINK_IMPL(cplat_path_basename)
@@ -265,8 +265,8 @@ MOCK_CPLAT_LINK_IMPL(cplat_access_fmt)
 MOCK_CPLAT_LINK_IMPL(cplat_vaccess_fmt)
 
 // cplat/crypto/crypto.h
-MOCK_CPLAT_LINK_IMPL(cplat_encrypt)
-MOCK_CPLAT_LINK_IMPL(cplat_decrypt)
+MOCK_CPLAT_LINK_IMPL(cplat_crypto_encrypt)
+MOCK_CPLAT_LINK_IMPL(cplat_crypto_decrypt)
 MOCK_CPLAT_LINK_IMPL(cplat_passphrase_to_key)
 
 // cplat/base/error.h
@@ -708,13 +708,13 @@ extern int delegate_real_cplat_hashtable_clear(cplat_hashtable * ht);
 extern void delegate_real_cplat_hashtable_dispose(cplat_hashtable * ht);
 
 // cplat/clock/clock.h
-extern uint64_t delegate_real_cplat_get_monotonic_ms(void);
-extern void delegate_real_cplat_get_monotonic(cplat_timespec * ts);
-extern void delegate_real_cplat_get_realtime(cplat_timespec * ts);
-extern int delegate_real_cplat_format_realtime_iso8601_local(char *buf, size_t buf_size, const cplat_timespec *timestamp);
-extern int delegate_real_cplat_format_realtime_iso8601_utc(char *buf, size_t buf_size, const cplat_timespec *timestamp);
-extern void delegate_real_cplat_get_realtime_utc(struct tm * utc_tm, int32_t *tv_nsec);
-extern void delegate_real_cplat_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout);
+extern uint64_t delegate_real_cplat_clock_get_monotonic_ms(void);
+extern void delegate_real_cplat_clock_get_monotonic(cplat_timespec * ts);
+extern void delegate_real_cplat_clock_get_realtime(cplat_timespec * ts);
+extern int delegate_real_cplat_clock_format_realtime_iso8601_local(char *buf, size_t buf_size, const cplat_timespec *timestamp);
+extern int delegate_real_cplat_clock_format_realtime_iso8601_utc(char *buf, size_t buf_size, const cplat_timespec *timestamp);
+extern void delegate_real_cplat_clock_get_realtime_utc(struct tm * utc_tm, int32_t *tv_nsec);
+extern void delegate_real_cplat_clock_get_realtime_deadline_ms(uint64_t timeout_ms, struct timespec *abs_timeout);
 
 // cplat/clock/timespec.h
 extern void delegate_real_cplat_timespec_normalize(cplat_timespec * ts);
@@ -761,10 +761,10 @@ extern int delegate_real_cplat_file_flush(cplat_file * file, cplat_error * detai
 extern int delegate_real_cplat_file_close(cplat_file * file, cplat_error * detail_out);
 
 // cplat/crt/path.h
-extern char * delegate_real_cplat_normalize_path_sep(char *path);
+extern char * delegate_real_cplat_path_normalize_sep(char *path);
 extern int delegate_real_cplat_path_get_full(char *path_out, size_t path_size, cplat_error *detail_out, const char *path);
-extern int delegate_real_cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out);
-extern int delegate_real_cplat_get_temp_dir(char *path_out, size_t path_size, cplat_error *detail_out);
+extern int delegate_real_cplat_path_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out);
+extern int delegate_real_cplat_path_get_temp_dir(char *path_out, size_t path_size, cplat_error *detail_out);
 extern int delegate_real_cplat_path_concat_n(char *path_out, size_t path_size, cplat_error *detail_out, size_t part_count, ...);
 extern int delegate_real_cplat_vpath_concat_n(char *path_out, size_t path_size, cplat_error *detail_out, size_t part_count, va_list args);
 extern const char * delegate_real_cplat_path_basename(const char *path);
@@ -857,8 +857,8 @@ extern int delegate_real_cplat_access_fmt(int mode, cplat_error *detail_out, con
 extern int delegate_real_cplat_vaccess_fmt(int mode, cplat_error *detail_out, const char *format, va_list args);
 
 // cplat/crypto/crypto.h
-extern int delegate_real_cplat_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
-extern int delegate_real_cplat_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
+extern int delegate_real_cplat_crypto_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
+extern int delegate_real_cplat_crypto_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len);
 extern int delegate_real_cplat_passphrase_to_key(uint8_t *key, const uint8_t *passphrase, size_t passphrase_len);
 
 // cplat/base/error.h
@@ -1308,13 +1308,13 @@ class Mock_cplat
     MOCK_METHOD(void, cplat_hashtable_dispose, (cplat_hashtable *));
 
     // cplat/clock/clock.h
-    MOCK_METHOD(uint64_t, cplat_get_monotonic_ms, ());
-    MOCK_METHOD(void, cplat_get_monotonic, (cplat_timespec *));
-    MOCK_METHOD(void, cplat_get_realtime, (cplat_timespec *));
-    MOCK_METHOD(int, cplat_format_realtime_iso8601_local, (char *, size_t, const cplat_timespec *));
-    MOCK_METHOD(int, cplat_format_realtime_iso8601_utc, (char *, size_t, const cplat_timespec *));
-    MOCK_METHOD(void, cplat_get_realtime_utc, (struct tm *, int32_t *));
-    MOCK_METHOD(void, cplat_get_realtime_deadline_ms, (uint64_t, struct timespec *));
+    MOCK_METHOD(uint64_t, cplat_clock_get_monotonic_ms, ());
+    MOCK_METHOD(void, cplat_clock_get_monotonic, (cplat_timespec *));
+    MOCK_METHOD(void, cplat_clock_get_realtime, (cplat_timespec *));
+    MOCK_METHOD(int, cplat_clock_format_realtime_iso8601_local, (char *, size_t, const cplat_timespec *));
+    MOCK_METHOD(int, cplat_clock_format_realtime_iso8601_utc, (char *, size_t, const cplat_timespec *));
+    MOCK_METHOD(void, cplat_clock_get_realtime_utc, (struct tm *, int32_t *));
+    MOCK_METHOD(void, cplat_clock_get_realtime_deadline_ms, (uint64_t, struct timespec *));
 
     // cplat/clock/timespec.h
     MOCK_METHOD(void, cplat_timespec_normalize, (cplat_timespec *));
@@ -1339,7 +1339,7 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_console_write, (cplat_stream, const char *));
 
     // cplat/console/console.h (internal)
-    MOCK_METHOD(void, cplat_console_dispose_on_shutdown, (const cplat_shutdown_event *, void *));
+    MOCK_METHOD(void, cplat_internal_console_dispose_on_shutdown, (const cplat_shutdown_event *, void *));
 
     // cplat/crt/fcntl.h
     MOCK_METHOD(int, cplat_open, (const char *, int, int, cplat_error *));
@@ -1367,10 +1367,10 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_file_close, (cplat_file *, cplat_error *));
 
     // cplat/crt/path.h
-    MOCK_METHOD(char *, cplat_normalize_path_sep, (char *));
+    MOCK_METHOD(char *, cplat_path_normalize_sep, (char *));
     MOCK_METHOD(int, cplat_path_get_full, (char *, size_t, cplat_error *, const char *));
-    MOCK_METHOD(int, cplat_paths_equal, (const char *, const char *, int *, cplat_error *));
-    MOCK_METHOD(int, cplat_get_temp_dir, (char *, size_t, cplat_error *));
+    MOCK_METHOD(int, cplat_path_equal, (const char *, const char *, int *, cplat_error *));
+    MOCK_METHOD(int, cplat_path_get_temp_dir, (char *, size_t, cplat_error *));
     MOCK_METHOD(int, cplat_path_concat_n, (char *, size_t, cplat_error *, size_t, va_list));
     MOCK_METHOD(int, cplat_vpath_concat_n, (char *, size_t, cplat_error *, size_t, va_list));
     MOCK_METHOD(const char *, cplat_path_basename, (const char *));
@@ -1464,9 +1464,9 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_vaccess_fmt, (int, cplat_error *, const char *));
 
     // cplat/crypto/crypto.h
-    MOCK_METHOD(int, cplat_encrypt,
+    MOCK_METHOD(int, cplat_crypto_encrypt,
                 (uint8_t *, size_t *, const uint8_t *, size_t, const uint8_t *, const uint8_t *, const uint8_t *, size_t));
-    MOCK_METHOD(int, cplat_decrypt,
+    MOCK_METHOD(int, cplat_crypto_decrypt,
                 (uint8_t *, size_t *, const uint8_t *, size_t, const uint8_t *, const uint8_t *, const uint8_t *, size_t));
     MOCK_METHOD(int, cplat_passphrase_to_key, (uint8_t *, const uint8_t *, size_t));
 

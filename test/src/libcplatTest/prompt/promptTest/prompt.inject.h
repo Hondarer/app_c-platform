@@ -13,14 +13,14 @@ extern "C"
 #endif /* __cplusplus */
 
     /* prompt.c の履歴操作へ直接アクセスする。 */
-    extern void test_prompt_history_add(cplat_prompt *prompt, cplat_prompt_ctx *context, const char *line);
-    extern void test_prompt_history_prev(cplat_prompt *prompt, cplat_prompt_ctx *context,
+    extern void test_prompt_history_add(cplat_prompt *prompt, cplat_internal_prompt_ctx *context, const char *line);
+    extern void test_prompt_history_prev(cplat_prompt *prompt, cplat_internal_prompt_ctx *context,
                                          const char *prompt_string);
-    extern void test_prompt_history_next(cplat_prompt *prompt, cplat_prompt_ctx *context,
+    extern void test_prompt_history_next(cplat_prompt *prompt, cplat_internal_prompt_ctx *context,
                                          const char *prompt_string);
 
     /* prompt.c の呼び出し位置別コンテキスト検索へ直接アクセスする。 */
-    extern cplat_prompt_ctx *test_prompt_find_or_create_context(cplat_prompt *prompt, const char *file, int line);
+    extern cplat_internal_prompt_ctx *test_prompt_find_or_create_context(cplat_prompt *prompt, const char *file, int line);
 
 #ifdef __cplusplus
 }

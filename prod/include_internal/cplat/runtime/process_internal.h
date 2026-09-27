@@ -42,7 +42,7 @@ extern "C"
      *  本関数はプロセス起動ユーティリティ内部の拡張であり、昇格などの上位コンポーネント
      *  から共通の待機・終了コード取得・破棄を再利用するために用います。
      */
-    cplat_process *cplat_process_adopt_native(intptr_t native_handle);
+    cplat_process *cplat_internal_process_adopt_native(intptr_t native_handle);
 
 #ifdef __cplusplus
 }

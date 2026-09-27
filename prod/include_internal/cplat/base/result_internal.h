@@ -33,7 +33,7 @@ extern "C"
      *                  @ref CPLAT_ERR_BUFFER_TOO_SMALL を返し、対応がない値は
      *                  @ref CPLAT_ERR_UNKNOWN を返します。
      */
-    int cplat_result_from_errno(int errno_value);
+    int cplat_internal_result_from_errno(int errno_value);
 
 #if defined(PLATFORM_WINDOWS)
     /**
@@ -41,7 +41,7 @@ extern "C"
      *  @param[in]      error_code GetLastError() で取得したエラー コード。
      *  @return         対応する共通結果コード。対応がない値は @ref CPLAT_ERR_UNKNOWN を返します。
      */
-    int cplat_result_from_windows_error(unsigned long error_code);
+    int cplat_internal_result_from_windows_error(unsigned long error_code);
 
     /**
      *  @brief          Winsock エラーを共通結果コードへ変換します。
@@ -49,9 +49,9 @@ extern "C"
      *  @return         対応する共通結果コードを返します。
      *
      *  Winsock のエラー番号空間は Win32 の GetLastError() と異なるため、
-     *  cplat_result_from_windows_error() では分類できません。
+     *  cplat_internal_result_from_windows_error() では分類できません。
      */
-    int cplat_result_from_winsock_error(unsigned long error_code);
+    int cplat_internal_result_from_winsock_error(unsigned long error_code);
 
     /**
      *  @brief          GetLastError() の値を errno 相当の値へ変換します。
@@ -63,7 +63,7 @@ extern "C"
      *  errno 互換値を必要とする内部処理に限って使用し、cplat_error には
      *  Win32 ドメインの値を変換せずに記録してください。
      */
-    int cplat_errno_from_windows_error(unsigned long error_code);
+    int cplat_internal_errno_from_windows_error(unsigned long error_code);
 #endif
 
 #ifdef __cplusplus

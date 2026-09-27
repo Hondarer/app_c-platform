@@ -87,7 +87,7 @@ extern "C"
      *  通常終了ではストリームを元に戻してスレッド終了を待機します。\n
      *  シグナルや強制終了に近いイベントでは待機を避け、安全側で短絡します。
      */
-    void cplat_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context);
+    void cplat_internal_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context);
 
 #ifdef __cplusplus
 }

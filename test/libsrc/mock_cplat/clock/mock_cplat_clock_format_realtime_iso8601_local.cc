@@ -2,26 +2,26 @@
 #include <mock_cplat.h>
 #include <inttypes.h>
 
-int delegate_real_cplat_format_realtime_iso8601_utc(char *buf, size_t buf_size, const cplat_timespec *timestamp)
+int delegate_real_cplat_clock_format_realtime_iso8601_local(char *buf, size_t buf_size, const cplat_timespec *timestamp)
 {
-    static auto real_fn = reinterpret_cast<decltype(&cplat_format_realtime_iso8601_utc)>(
-        resolveSharedSymbolOrExit(kLibCplatName, "cplat_format_realtime_iso8601_utc"));
+    static auto real_fn = reinterpret_cast<decltype(&cplat_clock_format_realtime_iso8601_local)>(
+        resolveSharedSymbolOrExit(kLibCplatName, "cplat_clock_format_realtime_iso8601_local"));
 
     return real_fn(buf, buf_size, timestamp);
 }
 
-MOCK_WEAK_IMPL(int, cplat_format_realtime_iso8601_utc, char *buf, size_t buf_size,
+MOCK_WEAK_IMPL(int, cplat_clock_format_realtime_iso8601_local, char *buf, size_t buf_size,
                const cplat_timespec *timestamp)
 {
     int mock_ret = CPLAT_ERR_UNKNOWN;
 
     if (_mock_cplat != nullptr)
     {
-        mock_ret = _mock_cplat->cplat_format_realtime_iso8601_utc(buf, buf_size, timestamp);
+        mock_ret = _mock_cplat->cplat_clock_format_realtime_iso8601_local(buf, buf_size, timestamp);
     }
     else
     {
-        mock_ret = delegate_real_cplat_format_realtime_iso8601_utc(buf, buf_size, timestamp);
+        mock_ret = delegate_real_cplat_clock_format_realtime_iso8601_local(buf, buf_size, timestamp);
     }
 
     if (getTraceLevel() > TRACE_NONE)

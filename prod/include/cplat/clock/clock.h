@@ -13,7 +13,7 @@
  *
  *  | 項目                  | 単調増加クロック               | 実時刻クロック                        |
  *  | --------------------- | ------------------------------ | ------------------------------------- |
- *  | 対応関数              | cplat_get_monotonic_ms()\n cplat_get_monotonic() | cplat_get_realtime() |
+ *  | 対応関数              | cplat_clock_get_monotonic_ms()\n cplat_clock_get_monotonic() | cplat_clock_get_realtime() |
  *  | 基準点                | 起動時 (不定)                  | Unix epoch (1970-01-01T00:00:00Z)     |
  *  | NTP 補正の影響        | 受けない                       | 受ける (時刻が前後する可能性あり)     |
  *  | 値の単調増加          | 保証される                     | 保証されない                          |
@@ -25,13 +25,13 @@
  *
  *  @section        clock_usage 使い分けの指針
  *
- *  - **経過時間を測る・タイムアウトを判定する** → cplat_get_monotonic_ms() または cplat_get_monotonic() を使用する。\n
+ *  - **経過時間を測る・タイムアウトを判定する** → cplat_clock_get_monotonic_ms() または cplat_clock_get_monotonic() を使用する。\n
  *    実時刻クロックは NTP 補正でジャンプするため、差分計算が正しく行えない場合がある。
- *  - **実時刻を記録・外部と共有する** → cplat_get_realtime() を使用する。\n
+ *  - **実時刻を記録・外部と共有する** → cplat_clock_get_realtime() を使用する。\n
  *    セッション開始時刻、ログのタイムスタンプなど、カレンダー時刻として意味を持つ場合に限定します。
- *  - **現在の UTC を分解済みで扱う** → cplat_get_realtime_utc() を使用する。\n
+ *  - **現在の UTC を分解済みで扱う** → cplat_clock_get_realtime_utc() を使用する。\n
  *    ログのタイムスタンプ書式化など、年月日時分秒に分解して扱う用途に使用します。
- *  - **実時刻 deadline を作る** → cplat_get_realtime_deadline_ms() を使用する。\n
+ *  - **実時刻 deadline を作る** → cplat_clock_get_realtime_deadline_ms() を使用する。\n
  *    sync 実装や OS 変換層で absolute deadline を要求する API へ渡す値を生成します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
@@ -71,7 +71,7 @@ extern "C"
      *
      *  OS の単調増加クロック (CLOCK_MONOTONIC 相当) を読み取り、ミリ秒に変換して返します。\n
      *  タイムアウト判定・差分計算など ms 精度で十分な用途に使用します。\n
-     *  より高い精度が必要な場合は cplat_get_monotonic() を使用してください。
+     *  より高い精度が必要な場合は cplat_clock_get_monotonic() を使用してください。
      *
      *  返す値の特性:
      *
@@ -82,7 +82,7 @@ extern "C"
      *  | 精度                  | ナノ秒 (ms に切り捨て)           | ～15 ms (ハードウェア依存)       |
      *  | オーバーフロー        | 実質なし (uint64_t)              | 実質なし (uint64_t, ～5.8 億年)  |
      *
-     *  Table: cplat_get_monotonic_ms の返す値の特性
+     *  Table: cplat_clock_get_monotonic_ms の返す値の特性
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -91,18 +91,18 @@ extern "C"
      *
      *  @remark         Windows では GetTickCount64() の分解能がハードウェアに依存し、
      *                  通常 15 ms 程度です。1 ms 未満の精度が必要な場合は
-     *                  cplat_get_monotonic() を使用してください。
+     *                  cplat_clock_get_monotonic() を使用してください。
      *
      *  使用例:
         @code{.c}
-        uint64_t deadline = cplat_get_monotonic_ms() + 500; // 500 ms タイムアウト
-        while (cplat_get_monotonic_ms() < deadline)
+        uint64_t deadline = cplat_clock_get_monotonic_ms() + 500; // 500 ms タイムアウト
+        while (cplat_clock_get_monotonic_ms() < deadline)
         {
             // 処理
         }
         @endcode
      */
-    CPLAT_EXPORT uint64_t CPLAT_API cplat_get_monotonic_ms(void);
+    CPLAT_EXPORT uint64_t CPLAT_API cplat_clock_get_monotonic_ms(void);
 
     /**
      *  @brief          単調増加クロックの現在値を cplat_timespec で返します。
@@ -120,7 +120,7 @@ extern "C"
      *  | tv_sec の精度         | ナノ秒                           | ミリ秒 (tv_nsec は ms 単位で格納) |
      *  | tv_nsec の範囲        | 0 ～ 999,999,999                 | 0 ～ 999,000,000 (1 ms 刻み)      |
      *
-     *  Table: cplat_get_monotonic の返す値の特性
+     *  Table: cplat_clock_get_monotonic の返す値の特性
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -131,7 +131,7 @@ extern "C"
      *                  tv_nsec の有効桁は ms 単位 (1,000,000 ns 刻み) になります。
      *                  ms 以上の精度が必要な場合は QueryPerformanceCounter() の利用を検討してください。
      *
-     *  @remark         ms 精度で十分な場合は cplat_get_monotonic_ms() の使用を推奨します。
+     *  @remark         ms 精度で十分な場合は cplat_clock_get_monotonic_ms() の使用を推奨します。
      *
      *  使用例 (経過ミリ秒を算出):
         @code{.c}
@@ -139,14 +139,14 @@ extern "C"
         cplat_timespec end;
         int64_t elapsed_ms;
 
-        cplat_get_monotonic(&start);
+        cplat_clock_get_monotonic(&start);
         // ... 計測対象の処理 ...
-        cplat_get_monotonic(&end);
+        cplat_clock_get_monotonic(&end);
 
         elapsed_ms = cplat_timespec_diff_ms(&end, &start);
         @endcode
      */
-    CPLAT_EXPORT void CPLAT_API cplat_get_monotonic(cplat_timespec *ts);
+    CPLAT_EXPORT void CPLAT_API cplat_clock_get_monotonic(cplat_timespec *ts);
 
     /**
      *  @brief          現在時刻を cplat_timespec で返します。
@@ -165,7 +165,7 @@ extern "C"
      *  | 精度                  | ナノ秒                          | 100 ナノ秒 (tv_nsec は 100 ns 刻み)   |
      *  | NTP 補正の影響        | 受ける                          | 受ける                                |
      *
-     *  Table: cplat_get_realtime の返す値の特性
+     *  Table: cplat_clock_get_realtime の返す値の特性
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
@@ -173,7 +173,7 @@ extern "C"
      *  @warning        **経過時間の測定やタイムアウト判定には使用しないでください。**\n
      *                  NTP 補正や管理者による手動設定で時刻が前後する場合があり、
      *                  差分が負値になるなど正しい結果が得られないことがあります。\n
-     *                  経過時間の測定には cplat_get_monotonic_ms() または cplat_get_monotonic() を使用してください。
+     *                  経過時間の測定には cplat_clock_get_monotonic_ms() または cplat_clock_get_monotonic() を使用してください。
      *
      *  @note           Windows では FILETIME (100 ns 単位、1601-01-01 起算) を内部で使用し、
      *                  Unix epoch へ変換しています。変換オフセットは 11,644,473,600 秒
@@ -185,14 +185,14 @@ extern "C"
         @code{.c}
         cplat_timespec session_ts;
 
-        cplat_get_realtime(&session_ts);
+        cplat_clock_get_realtime(&session_ts);
         // session_ts を構造体に保存して識別子として使用する
         @endcode
      */
-    CPLAT_EXPORT void CPLAT_API cplat_get_realtime(cplat_timespec *ts);
+    CPLAT_EXPORT void CPLAT_API cplat_clock_get_realtime(cplat_timespec *ts);
 
     /**
-     *  @brief          cplat_format_realtime_iso8601_local() が返す時刻文字列の長さです。
+     *  @brief          cplat_clock_format_realtime_iso8601_local() が返す時刻文字列の長さです。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sss+09:00` です。\n
      *  値は null 終端を含まない文字数です。
@@ -200,7 +200,7 @@ extern "C"
 #define CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN 29
 
     /**
-     *  @brief          cplat_format_realtime_iso8601_utc() が返す時刻文字列の長さです。
+     *  @brief          cplat_clock_format_realtime_iso8601_utc() が返す時刻文字列の長さです。
      *
      *  書式は `YYYY-MM-DDTHH:MM:SS.sssZ` です。\n
      *  値は null 終端を含まない文字数です。
@@ -214,7 +214,7 @@ extern "C"
      *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
-     *  cplat_get_realtime() が返す UTC 基準の時刻値を、
+     *  cplat_clock_get_realtime() が返す UTC 基準の時刻値を、
      *  ローカル時刻の `YYYY-MM-DDTHH:MM:SS.sss+09:00` 形式へ変換します。\n
      *  バッファーが十分な場合の必要サイズは
      *  CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1 です。
@@ -224,7 +224,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_format_realtime_iso8601_local(char *buf, size_t buf_size,
+    CPLAT_EXPORT int CPLAT_API cplat_clock_format_realtime_iso8601_local(char *buf, size_t buf_size,
                                                                             const cplat_timespec *timestamp);
 
     /**
@@ -234,7 +234,7 @@ extern "C"
      *  @param[in]      timestamp Unix epoch 基準の実時刻 (`tv_nsec` は 0 以上 999,999,999 以下)。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
      *
-     *  cplat_get_realtime() が返す UTC 基準の時刻値を、
+     *  cplat_clock_get_realtime() が返す UTC 基準の時刻値を、
      *  UTC の `YYYY-MM-DDTHH:MM:SS.sssZ` 形式へ変換します。\n
      *  バッファーが十分な場合の必要サイズは
      *  CPLAT_CLOCK_ISO8601_UTC_MSEC_LEN + 1 です。
@@ -244,7 +244,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_format_realtime_iso8601_utc(char *buf, size_t buf_size,
+    CPLAT_EXPORT int CPLAT_API cplat_clock_format_realtime_iso8601_utc(char *buf, size_t buf_size,
                                                                           const cplat_timespec *timestamp);
 
     /**
@@ -265,11 +265,11 @@ extern "C"
         struct tm utc_tm;
         int32_t   nsec;
 
-        cplat_get_realtime_utc(&utc_tm, &nsec);
+        cplat_clock_get_realtime_utc(&utc_tm, &nsec);
         // utc_tm と nsec を使って "YYYY-MM-DD HH:MM:SS.mmm" を組み立てる
         @endcode
      */
-    CPLAT_EXPORT void CPLAT_API cplat_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec);
+    CPLAT_EXPORT void CPLAT_API cplat_clock_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec);
 
     /**
      *  @brief          現在時刻から指定ミリ秒後の absolute deadline を返します。
@@ -291,11 +291,11 @@ extern "C"
         @code{.c}
      *  struct timespec deadline;
      *
-     *  cplat_get_realtime_deadline_ms(100, &deadline);
+     *  cplat_clock_get_realtime_deadline_ms(100, &deadline);
      *  // absolute deadline を要求する同期 API へ渡す
         @endcode
      */
-    CPLAT_EXPORT void CPLAT_API cplat_get_realtime_deadline_ms(uint64_t timeout_ms,
+    CPLAT_EXPORT void CPLAT_API cplat_clock_get_realtime_deadline_ms(uint64_t timeout_ms,
                                                                         struct timespec *abs_timeout);
 
 #ifdef __cplusplus

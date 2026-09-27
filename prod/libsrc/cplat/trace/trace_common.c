@@ -22,7 +22,7 @@ static int trace_timestamp_is_valid(const cplat_timespec *timestamp)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used)
+int cplat_internal_trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used)
 {
     if (resolved == NULL)
     {
@@ -46,7 +46,7 @@ int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *res
         }
     }
 
-    cplat_get_realtime(resolved);
+    cplat_clock_get_realtime(resolved);
     if (trace_timestamp_is_valid(resolved))
     {
         return 0;
@@ -56,18 +56,18 @@ int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *res
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int trace_format_local_timestamp(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
+int cplat_internal_trace_format_local_timestamp(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
 {
     if (!trace_timestamp_is_valid(timestamp))
     {
         return -1;
     }
-    return cplat_format_realtime_iso8601_local(buf, buf_size, timestamp);
+    return cplat_clock_format_realtime_iso8601_local(buf, buf_size, timestamp);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-char trace_level_char(const cplat_trace_level level)
+char cplat_internal_trace_level_char(const cplat_trace_level level)
 {
     switch (level)
     {

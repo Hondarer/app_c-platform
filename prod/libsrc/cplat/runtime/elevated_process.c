@@ -336,7 +336,7 @@ int cplat_elevated_process_run_if_needed(const char *arguments, int *exit_code, 
         cplat_free(wide_arguments);
         cplat_free(wide_exe_path);
 
-        child_process = cplat_process_adopt_native((intptr_t)exec_info.hProcess);
+        child_process = cplat_internal_process_adopt_native((intptr_t)exec_info.hProcess);
         if (child_process == NULL)
         {
             CloseHandle(exec_info.hProcess);
@@ -524,7 +524,7 @@ int cplat_elevated_process_run_with_result(const char *arguments, int *exit_code
         cplat_free(wide_arguments);
         cplat_free(wide_exe_path);
 
-        child_process = cplat_process_adopt_native((intptr_t)exec_info.hProcess);
+        child_process = cplat_internal_process_adopt_native((intptr_t)exec_info.hProcess);
         if (child_process == NULL)
         {
             CloseHandle(exec_info.hProcess);

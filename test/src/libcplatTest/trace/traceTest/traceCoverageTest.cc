@@ -496,9 +496,9 @@ TEST_F(traceCoverageTest, hook_alloc_failure_and_shutdown_repeat)
     cplat_tracer_hook_entry *created =
         cplat_tracer_set_hook(handle, coverage_hook, NULL); // [手順] - malloc 失敗状態で hook を登録する。
     test_trace_registry_append_null();
-    trace_registry_dispose_all_on_shutdown(&event); // [手順] - NULL エントリを含むレジストリをシャットダウンする。
-    trace_registry_dispose_all_on_shutdown(&event); // [手順] - シャットダウン済みレジストリを再シャットダウンする。
-    trace_registry_dispose_all_on_shutdown(NULL);   // [手順] - NULL event でシャットダウンする。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&event); // [手順] - NULL エントリを含むレジストリをシャットダウンする。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&event); // [手順] - シャットダウン済みレジストリを再シャットダウンする。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(NULL);   // [手順] - NULL event でシャットダウンする。
     cplat_tracer_remove_hook(handle, hook);      // [手順] - シャットダウン後のハンドルから hook を外す。
 
     // Assert
@@ -528,7 +528,7 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
     // [状態確認] - cplat_tracer_set_stderr_level の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .WillOnce(
             [](cplat_timespec *resolved)
             {
@@ -536,7 +536,7 @@ TEST_F(traceCoverageTest, write_fails_when_timestamp_resolution_fails)
                 resolved->tv_nsec = -1;
             })
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 1 回目の現在時刻取得が不正な時刻を返すこと。
-    EXPECT_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+    EXPECT_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
         .WillOnce(Return(CPLAT_ERR_UNKNOWN))
         .WillRepeatedly(DoDefault()); // [Pre-Assert確認_異常系] - 2 回目の時刻整形が失敗すること。
 
@@ -729,7 +729,7 @@ TEST_F(traceCoverageTest, register_during_shutdown_and_stale_file_handle)
     test_tracer_set_lifecycle_state(handle, 0);
     test_tracer_set_file_handle(handle, file_handle_);
     test_trace_registry_append_null();
-    trace_registry_dispose_all_on_shutdown(&event); // [手順] - 開いている file ハンドルをシャットダウン解放する。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&event); // [手順] - 開いている file ハンドルをシャットダウン解放する。
 
     // Assert
 #if defined(PLATFORM_LINUX)
@@ -1023,7 +1023,7 @@ TEST_F(traceCoverageTest, remaining_gcov_branches)
     (void)cplat_tracer_get_name(handle, name_buf, sizeof(name_buf)); // [手順] - 共有ロック失敗で名前を取得する。
     test_tracer_unregister(handle);
     test_tracer_set_lifecycle_state(disposed, kLifecycleDisposed);
-    trace_registry_dispose_all_on_shutdown(&event); // [手順] - DISPOSED ハンドルを含むレジストリをシャットダウンする。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&event); // [手順] - DISPOSED ハンドルを含むレジストリをシャットダウンする。
 
     // Assert
     EXPECT_EQ(
@@ -1110,7 +1110,7 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
                                       // [Pre-Assert手順] - 1 回目から 3 回目は UNKNOWN、以降は既定動作を返却する。
 
     // Act
-    capacity_on_lock_fail = trace_registry_capacity(); // [手順] - lock 失敗状態で容量を取得する。
+    capacity_on_lock_fail = cplat_internal_trace_registry_capacity(); // [手順] - lock 失敗状態で容量を取得する。
     test_tracer_unregister(managed);                   // [手順] - lock 失敗状態で登録解除する。
     register_fail = cplat_tracer_create(
         CPLAT_TRACER_CONCURRENCY_TRACER_MANAGED); // [手順] - lock 失敗状態で tracer-managed を生成する。
@@ -1143,10 +1143,10 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
     }
     (void)cplat_tracer_stop(caller);
     (void)cplat_tracer_set_hook(caller, coverage_hook, NULL); // [手順] - shutdown 解放用に hook を登録する。
-    trace_registry_dispose_all_on_shutdown(&first_event); // [手順] - hook 付き caller-managed を shutdown 解放する。
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&first_event); // [手順] - hook 付き caller-managed を shutdown 解放する。
     test_trace_registry_reinit_lock();
-    (void)trace_registry_capacity();
-    trace_registry_dispose_all_on_shutdown(&event); // [手順] - 既に shutdown 済みのレジストリを再解放する。
+    (void)cplat_internal_trace_registry_capacity();
+    cplat_internal_trace_registry_dispose_all_on_shutdown(&event); // [手順] - 既に shutdown 済みのレジストリを再解放する。
     test_trace_registry_reset_shutdown_state();
     cplat_tracer_dispose(&empty); // [手順] - NULL ハンドル変数を dispose する。
 
@@ -1178,13 +1178,13 @@ TEST_F(traceCoverageTest, remaining_lock_overflow_and_caller_managed_paths)
     ASSERT_NE((cplat_tracer *)NULL, lock_clear);
     test_tracer_set_file_handle(lock_clear, file_handle_);
     g_test_file_shutdown_hook = test_trace_registry_null_lock;
-    trace_registry_dispose_all_on_shutdown(
+    cplat_internal_trace_registry_dispose_all_on_shutdown(
         &lock_clear_event); // [手順] - file sink 解放中にレジストリ lock を NULL にする。
     g_test_file_shutdown_hook = NULL;
     lock_clear = NULL;
 
     // Assert
-    EXPECT_EQ(0U, capacity_on_lock_fail); // [確認_異常系] - lock 失敗時の trace_registry_capacity が 0 であること。
+    EXPECT_EQ(0U, capacity_on_lock_fail); // [確認_異常系] - lock 失敗時の cplat_internal_trace_registry_capacity が 0 であること。
     EXPECT_EQ((cplat_tracer *)NULL,
               register_fail); // [確認_異常系] - lock 失敗時の create が NULL であること。
     EXPECT_EQ((cplat_tracer *)NULL,

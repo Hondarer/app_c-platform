@@ -112,10 +112,10 @@ class traceHookTest : public Test
         reset_hook_records();
 
         ON_CALL(mock_cplat, cplat_shutdown_register(_, _)).WillByDefault(Return(CPLAT_OK));
-        ON_CALL(mock_cplat, cplat_get_realtime_deadline_ms(_, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_cplat, cplat_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
-        ON_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, size_t buf_size, const cplat_timespec *)
                 {
@@ -460,7 +460,7 @@ TEST_F(traceHookTest, test_hook_receives_resolved_timestamp)
     cplat_tracer_start(tracer); // [状態] - tracer を started 状態とする。
 
     // Pre-Assert
-    // [Pre-Assert手順] - cplat_get_realtime は SetUp のモックで固定値 {1714100645, 678000000} を返却する。
+    // [Pre-Assert手順] - cplat_clock_get_realtime は SetUp のモックで固定値 {1714100645, 678000000} を返却する。
 
     // Act
     cplat_tracer_write_at(

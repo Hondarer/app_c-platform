@@ -41,19 +41,19 @@ extern "C"
      *  呼び出しを完了している必要があります。
      *  並行してトレース API が呼び出された場合は未定義動作になります。
      */
-    void trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event);
+    void cplat_internal_trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event);
 
     /**
      *  @brief          現在アクティブなトレース ハンドルの数を返します。
      *  @return         アクティブなハンドルの数を返します。
      */
-    size_t trace_registry_count(void);
+    size_t cplat_internal_trace_registry_count(void);
 
     /**
      *  @brief          トレース ハンドル レジストリの現在の容量を返します。
      *  @return         確保済みのスロット数を返します。
      */
-    size_t trace_registry_capacity(void);
+    size_t cplat_internal_trace_registry_capacity(void);
 
 #ifdef __cplusplus
 }

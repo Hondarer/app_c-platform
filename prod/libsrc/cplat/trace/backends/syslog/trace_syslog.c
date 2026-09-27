@@ -135,7 +135,7 @@ static void close_and_backoff_locked(cplat_syslog_sink *h)
 
     close(h->fd);
     h->fd = -1;
-    cplat_get_realtime(&now);
+    cplat_clock_get_realtime(&now);
     h->next_connect = now.tv_sec + h->backoff_sec;
     advance_backoff(h);
 }
@@ -149,7 +149,7 @@ static void try_open_socket_locked(cplat_syslog_sink *h)
     cplat_timespec now;
     int fd;
 
-    cplat_get_realtime(&now);
+    cplat_clock_get_realtime(&now);
     if (now.tv_sec < h->next_connect)
     {
         return; /* バックオフ期間中 */
@@ -245,7 +245,7 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
     /* timestamp が NULL の場合はタイムスタンプなしで送信するため、解決は行わない */
     if (timestamp != NULL)
     {
-        if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+        if (cplat_internal_trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
         {
             return CPLAT_ERR_UNKNOWN;
         }
@@ -272,7 +272,7 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
     if (handle->test_fd_exists != 0)
     {
         if (effective_timestamp != NULL &&
-            cplat_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
+            cplat_clock_format_realtime_iso8601_local(timestamp_text, sizeof(timestamp_text), effective_timestamp) ==
                 CPLAT_OK)
         {
             debug_len = snprintf(debug_buf, sizeof(debug_buf), "%s %.*s\n", timestamp_text, n, buf); /* 置換対象外: 意図的な切り詰め */
@@ -286,12 +286,12 @@ int cplat_syslog_sink_write(cplat_syslog_sink *handle, const int level, const cp
                 debug_buf[sizeof(debug_buf) - 1] = '\0';
                 debug_len = (int)(sizeof(debug_buf) - 1);
             }
-            (void)syslog_test_fd_write__(debug_buf, (size_t)debug_len);
+            (void)syslog_test_fd_write(debug_buf, (size_t)debug_len);
         }
         else
         {
             buf[n] = '\n';
-            (void)syslog_test_fd_write__(buf, (size_t)(n + 1));
+            (void)syslog_test_fd_write(buf, (size_t)(n + 1));
         }
         if (fallback_used)
         {
@@ -425,7 +425,7 @@ int cplat_syslog_sink_rename(cplat_syslog_sink *handle, const char *new_ident)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_syslog_sink_dispose_on_shutdown(cplat_syslog_sink *handle)
+void cplat_internal_syslog_sink_dispose_on_shutdown(cplat_syslog_sink *handle)
 {
     if (handle == NULL)
     {

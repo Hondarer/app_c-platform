@@ -155,7 +155,7 @@ static int clock_format_iso8601_local_from_tm(char *buf, const size_t buf_size, 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-uint64_t cplat_get_monotonic_ms(void)
+uint64_t cplat_clock_get_monotonic_ms(void)
 {
 #if defined(PLATFORM_LINUX)
     struct timespec ts;
@@ -168,7 +168,7 @@ uint64_t cplat_get_monotonic_ms(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_get_monotonic(cplat_timespec *ts)
+void cplat_clock_get_monotonic(cplat_timespec *ts)
 {
 #if defined(PLATFORM_LINUX)
     struct timespec native;
@@ -183,7 +183,7 @@ void cplat_get_monotonic(cplat_timespec *ts)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_get_realtime(cplat_timespec *ts)
+void cplat_clock_get_realtime(cplat_timespec *ts)
 {
 #if defined(PLATFORM_LINUX)
     struct timespec native;
@@ -198,11 +198,11 @@ void cplat_get_realtime(cplat_timespec *ts)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
+void cplat_clock_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 {
     cplat_timespec realtime_ts;
 
-    cplat_get_realtime(&realtime_ts);
+    cplat_clock_get_realtime(&realtime_ts);
     /* 正規化済みの tv_nsec (0 以上 999,999,999 以下) は int32_t の表現範囲内に収まる */
     *tv_nsec = (int32_t)realtime_ts.tv_nsec;
 
@@ -214,7 +214,7 @@ void cplat_get_realtime_utc(struct tm *utc_tm, int32_t *tv_nsec)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_format_realtime_iso8601_local(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
+int cplat_clock_format_realtime_iso8601_local(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
 {
     struct tm local_tm;
     struct tm utc_tm;
@@ -243,7 +243,7 @@ int cplat_format_realtime_iso8601_local(char *buf, const size_t buf_size, const 
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
+int cplat_clock_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
 {
     struct tm utc_tm;
 
@@ -265,12 +265,12 @@ int cplat_format_realtime_iso8601_utc(char *buf, const size_t buf_size, const cp
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_get_realtime_deadline_ms(const uint64_t timeout_ms, struct timespec *abs_timeout)
+void cplat_clock_get_realtime_deadline_ms(const uint64_t timeout_ms, struct timespec *abs_timeout)
 {
     cplat_timespec now;
     cplat_timespec deadline;
 
-    cplat_get_realtime(&now);
+    cplat_clock_get_realtime(&now);
     cplat_timespec_add_ms(&now, timeout_ms, &deadline);
     cplat_timespec_to_native(&deadline, abs_timeout);
 }

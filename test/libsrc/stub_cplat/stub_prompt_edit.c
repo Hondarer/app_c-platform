@@ -19,7 +19,7 @@ static int utf8_is_continuation(unsigned char c)
     return (c & 0xC0U) == 0x80U;
 }
 
-size_t cplat_prompt_edit_utf8_prev_boundary(const char *buf, size_t pos)
+size_t cplat_internal_prompt_edit_utf8_prev_boundary(const char *buf, size_t pos)
 {
     if (pos == 0U)
     {
@@ -33,7 +33,7 @@ size_t cplat_prompt_edit_utf8_prev_boundary(const char *buf, size_t pos)
     return pos;
 }
 
-size_t cplat_prompt_edit_utf8_next_boundary(const char *buf, size_t len, size_t pos)
+size_t cplat_internal_prompt_edit_utf8_next_boundary(const char *buf, size_t len, size_t pos)
 {
     if (pos >= len)
     {
@@ -47,7 +47,7 @@ size_t cplat_prompt_edit_utf8_next_boundary(const char *buf, size_t len, size_t 
     return pos;
 }
 
-size_t cplat_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, size_t pos)
+size_t cplat_internal_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, size_t pos)
 {
     if (pos > len)
     {
@@ -60,7 +60,7 @@ size_t cplat_prompt_edit_utf8_sanitize_boundary(const char *buf, size_t len, siz
     return pos;
 }
 
-int cplat_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes, size_t required)
+int cplat_internal_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes, size_t required)
 {
     size_t new_cap;
     char *new_buf;
@@ -100,7 +100,7 @@ int cplat_prompt_edit_ensure_capacity(char **buf, size_t *cap, size_t max_bytes,
     return 0;
 }
 
-void cplat_prompt_edit_resolve_options(size_t requested_history_max, size_t requested_initial_capacity,
+void cplat_internal_prompt_edit_resolve_options(size_t requested_history_max, size_t requested_initial_capacity,
                                           size_t requested_max_bytes, size_t initial_capacity_default,
                                           size_t *history_max, size_t *initial_capacity, size_t *max_bytes)
 {
@@ -147,7 +147,7 @@ void cplat_prompt_edit_resolve_options(size_t requested_history_max, size_t requ
     }
 }
 
-int cplat_prompt_edit_validate_initial_text(const char *initial_text, size_t max_bytes, size_t *length_out)
+int cplat_internal_prompt_edit_validate_initial_text(const char *initial_text, size_t max_bytes, size_t *length_out)
 {
     size_t length = 0U;
 

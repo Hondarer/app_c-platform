@@ -79,7 +79,7 @@ bool is_inside_pair(const std::wstring &units, std::size_t index)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-bool utf8_decode(const char *text, std::size_t text_len, std::wstring &units_out, std::vector<std::size_t> &offsets_out)
+bool cplat_internal_regex_utf8_decode(const char *text, std::size_t text_len, std::wstring &units_out, std::vector<std::size_t> &offsets_out)
 {
     units_out.clear();
     offsets_out.clear();
@@ -182,7 +182,7 @@ bool utf8_decode(const char *text, std::size_t text_len, std::wstring &units_out
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-bool utf8_encode(const std::wstring &units, std::string &text_out)
+bool cplat_internal_regex_utf8_encode(const std::wstring &units, std::string &text_out)
 {
     text_out.clear();
 
@@ -244,7 +244,7 @@ bool utf8_encode(const std::wstring &units, std::string &text_out)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-std::size_t offset_of_begin(const std::wstring &units, const std::vector<std::size_t> &offsets, std::size_t index)
+std::size_t cplat_internal_regex_offset_of_begin(const std::wstring &units, const std::vector<std::size_t> &offsets, std::size_t index)
 {
     if (offsets.empty())
     {
@@ -261,7 +261,7 @@ std::size_t offset_of_begin(const std::wstring &units, const std::vector<std::si
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-std::size_t offset_of_end(const std::wstring &units, const std::vector<std::size_t> &offsets, std::size_t index)
+std::size_t cplat_internal_regex_offset_of_end(const std::wstring &units, const std::vector<std::size_t> &offsets, std::size_t index)
 {
     if (offsets.empty())
     {
@@ -281,7 +281,7 @@ std::size_t offset_of_end(const std::wstring &units, const std::vector<std::size
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-bool index_of_offset(const std::vector<std::size_t> &offsets, std::size_t offset, std::size_t &index_out)
+bool cplat_internal_regex_index_of_offset(const std::vector<std::size_t> &offsets, std::size_t offset, std::size_t &index_out)
 {
     index_out = 0;
 

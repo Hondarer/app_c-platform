@@ -58,7 +58,7 @@ extern "C"
 
         if (needed <= 0 || needed > PLATFORM_PATH_MAX)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
         return CPLAT_OK;
     }

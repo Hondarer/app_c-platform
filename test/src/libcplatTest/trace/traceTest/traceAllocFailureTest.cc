@@ -58,7 +58,7 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_handle_allocation_fails)
     // Assert
     EXPECT_EQ((cplat_tracer *)NULL,
               handle);                            // [確認_異常系] - cplat_tracer_create の戻り値が NULL であること。
-    EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
+    EXPECT_EQ((size_t)0, cplat_internal_trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
 }
 
 #if defined(PLATFORM_LINUX)
@@ -82,7 +82,7 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_name_duplication_fails)
     // Assert
     EXPECT_EQ((cplat_tracer *)NULL,
               handle);                            // [確認_異常系] - cplat_tracer_create の戻り値が NULL であること。
-    EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
+    EXPECT_EQ((size_t)0, cplat_internal_trace_registry_count()); // [確認_異常系] - registry へ登録されないこと。
 }
 
 #endif /* PLATFORM_LINUX */
@@ -104,7 +104,7 @@ TEST_F(traceAllocFailureTest, create_returns_null_when_registry_expansion_fails)
     // Assert
     EXPECT_EQ((cplat_tracer *)NULL,
               handle);                            // [確認_異常系] - cplat_tracer_create の戻り値が NULL であること。
-    EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_異常系] - registry が空のままであること。
+    EXPECT_EQ((size_t)0, cplat_internal_trace_registry_count()); // [確認_異常系] - registry が空のままであること。
 }
 
 // インスタンス識別付きの名前組み立てで確保に失敗した場合に設定が失敗することの確認

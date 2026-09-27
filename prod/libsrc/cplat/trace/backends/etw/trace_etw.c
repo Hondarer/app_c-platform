@@ -164,7 +164,7 @@ void cplat_etw_provider_dispose(cplat_etw_provider *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_etw_provider_dispose_on_shutdown(cplat_etw_provider *handle, const cplat_shutdown_event *event)
+void cplat_internal_etw_provider_dispose_on_shutdown(cplat_etw_provider *handle, const cplat_shutdown_event *event)
 {
     if (handle == NULL)
     {

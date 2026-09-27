@@ -22,7 +22,7 @@ static void prompt_sigwinch_handler(int sig)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void prompt_platform_enter_raw(cplat_prompt *p)
+void cplat_internal_prompt_platform_enter_raw(cplat_prompt *p)
 {
     struct termios raw;
     struct sigaction sa;
@@ -65,7 +65,7 @@ void prompt_platform_enter_raw(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void prompt_platform_leave_raw(cplat_prompt *p)
+void cplat_internal_prompt_platform_leave_raw(cplat_prompt *p)
 {
     if (!p->raw_active)
     {
@@ -83,7 +83,7 @@ void prompt_platform_leave_raw(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int prompt_platform_read_char(cplat_prompt *p)
+int cplat_internal_prompt_platform_read_char(cplat_prompt *p)
 {
     unsigned char c;
     ssize_t n;
@@ -111,7 +111,7 @@ int prompt_platform_read_char(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int prompt_platform_read_char_nb(cplat_prompt *p)
+int cplat_internal_prompt_platform_read_char_nb(cplat_prompt *p)
 {
     fd_set fds;
     struct timeval tv;
@@ -126,7 +126,7 @@ int prompt_platform_read_char_nb(cplat_prompt *p)
     {
         return -1;
     }
-    return prompt_platform_read_char(p);
+    return cplat_internal_prompt_platform_read_char(p);
 }
 
 #endif /* PLATFORM_LINUX */

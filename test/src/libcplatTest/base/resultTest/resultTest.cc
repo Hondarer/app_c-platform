@@ -133,8 +133,8 @@ TEST_F(resultTest, length_errors_map_to_buffer_too_small)
 
     // Act
     const int name_too_long_result =
-        cplat_result_from_errno(ENAMETOOLONG);                // [手順] - ENAMETOOLONG を共通結果コードへ変換する。
-    const int range_result = cplat_result_from_errno(ERANGE); // [手順] - ERANGE を共通結果コードへ変換する。
+        cplat_internal_result_from_errno(ENAMETOOLONG);                // [手順] - ENAMETOOLONG を共通結果コードへ変換する。
+    const int range_result = cplat_internal_result_from_errno(ERANGE); // [手順] - ERANGE を共通結果コードへ変換する。
 
     // Assert
     EXPECT_EQ(
@@ -167,7 +167,7 @@ TEST_F(resultTest, errno_values_map_to_expected_results)
     // Act
     for (const std::pair<int, int> &item : cases)
     {
-        actual.push_back(cplat_result_from_errno(item.first)); // [手順] - 対応表の errno を順番に変換する。
+        actual.push_back(cplat_internal_result_from_errno(item.first)); // [手順] - 対応表の errno を順番に変換する。
     }
 
     // Assert

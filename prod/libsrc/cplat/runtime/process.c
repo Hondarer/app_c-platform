@@ -961,7 +961,7 @@ int cplat_process_get_executable_path(char *path_out, const size_t path_size)
         if (len < 0)
         {
             path_out[0] = '\0';
-            return cplat_result_from_errno(errno);
+            return cplat_internal_result_from_errno(errno);
         }
         if ((size_t)len >= path_size)
         {
@@ -983,7 +983,7 @@ int cplat_process_get_executable_path(char *path_out, const size_t path_size)
         if (n == 0)
         {
             path_out[0] = '\0';
-            return cplat_result_from_windows_error(GetLastError());
+            return cplat_internal_result_from_windows_error(GetLastError());
         }
         if (n >= (DWORD)(sizeof(wbuf) / sizeof(wbuf[0])))
         {
@@ -993,7 +993,7 @@ int cplat_process_get_executable_path(char *path_out, const size_t path_size)
         wbuf[n] = L'\0';
         if (cplat_wpath_to_utf8(path_out, path_size, wbuf) < 0)
         {
-            result = cplat_result_from_windows_error(GetLastError());
+            result = cplat_internal_result_from_windows_error(GetLastError());
             path_out[0] = '\0';
             return result;
         }
@@ -1367,7 +1367,7 @@ void cplat_process_dispose(cplat_process *process)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-cplat_process *cplat_process_adopt_native(const intptr_t native_handle)
+cplat_process *cplat_internal_process_adopt_native(const intptr_t native_handle)
 {
     cplat_process *new_process;
 

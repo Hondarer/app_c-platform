@@ -41,7 +41,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
 {
     if (modes == NULL || path_out == NULL || path_size == 0u)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return NULL;
     }
 
@@ -76,7 +76,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
            一時ファイルを作成するため、失敗として扱う */
         if (cplat_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL, NULL) == CPLAT_ERR_BUFFER_TOO_SMALL)
         {
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
         if (tmpdir_buf[0] == '\0')
@@ -90,7 +90,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
 
         if (cplat_snprintf(path_out, path_size, "%s" PLATFORM_PATH_SEP "%sXXXXXX", tmpdir, pfx) != CPLAT_OK)
         {
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -100,7 +100,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
         {
             const int errno_value = errno;
 
-            (void)cplat_error_report_errno(detail_out, errno_value);
+            (void)cplat_internal_error_report_errno(detail_out, errno_value);
             return NULL;
         }
 
@@ -110,10 +110,10 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
             int saved = errno;
             close(fd);
             unlink(path_out);
-            (void)cplat_error_report_errno(detail_out, saved);
+            (void)cplat_internal_error_report_errno(detail_out, saved);
             return NULL;
         }
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
         return fp;
     }
 #elif defined(PLATFORM_WINDOWS)
@@ -135,12 +135,12 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
         {
             const DWORD error_code = GetLastError();
 
-            (void)cplat_error_report_windows_error(detail_out, error_code);
+            (void)cplat_internal_error_report_windows_error(detail_out, error_code);
             return NULL;
         }
         if (dwret > (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
         {
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -158,7 +158,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
             /* STRUNCATE: 4 文字以上の prefix が CPLAT_TEMP_PREFIX_MAX に切り詰められた場合。正常扱い。 */
             if (err != 0 && err != STRUNCATE)
             {
-                (void)cplat_error_report_errno(detail_out, EINVAL);
+                (void)cplat_internal_error_report_errno(detail_out, EINVAL);
                 return NULL;
             }
         }
@@ -168,14 +168,14 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
         {
             const DWORD error_code = GetLastError();
 
-            (void)cplat_error_report_windows_error(detail_out, error_code);
+            (void)cplat_internal_error_report_windows_error(detail_out, error_code);
             return NULL;
         }
 
         if (cplat_wpath_to_utf8(path_out, path_size, wfile) < 0)
         {
             DeleteFileW(wfile);
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return NULL;
         }
 
@@ -183,7 +183,7 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
         if (err != 0)
         {
             DeleteFileW(wfile);
-            (void)cplat_error_report_errno(detail_out, EINVAL);
+            (void)cplat_internal_error_report_errno(detail_out, EINVAL);
             return NULL;
         }
 
@@ -195,10 +195,10 @@ FILE *cplat_fopen_temp(const char *prefix, const char *modes, char *path_out, co
         {
             int saved = errno;
             DeleteFileW(wfile);
-            (void)cplat_error_report_errno(detail_out, saved);
+            (void)cplat_internal_error_report_errno(detail_out, saved);
             return NULL;
         }
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
         return fp;
     }
 #endif /* PLATFORM_ */

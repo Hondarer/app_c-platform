@@ -17,7 +17,7 @@
  *    呼び出し元に返します。常に `'/'` 区切りのパスを受け取れます。
  *  - **パス構築**: ライブラリ内部でセパレータが必要な場合は @ref PLATFORM_PATH_SEP を使用します。
  *  - **外部由来パス**: 環境変数や設定ファイルから取得したパスは
- *    cplat_normalize_path_sep() で正規化できます。
+ *    cplat_path_normalize_sep() で正規化できます。
  *
  *  **basename / dirname / extension 系の例外**\n
  *  cplat_path_basename() / cplat_path_dirname() / cplat_path_extension() /
@@ -159,7 +159,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    CPLAT_EXPORT char *CPLAT_API cplat_normalize_path_sep(char *path);
+    CPLAT_EXPORT char *CPLAT_API cplat_path_normalize_sep(char *path);
 
     /**
      *  @brief          パスを絶対化し、区切り文字を '/' に正規化して返します。
@@ -204,7 +204,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out,
+    CPLAT_EXPORT int CPLAT_API cplat_path_equal(const char *lhs, const char *rhs, int *equal_out,
                                                           cplat_error *detail_out);
 
     /**
@@ -226,7 +226,7 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_get_temp_dir(char *path_out, size_t path_size,
+    CPLAT_EXPORT int CPLAT_API cplat_path_get_temp_dir(char *path_out, size_t path_size,
                                                            cplat_error *detail_out);
 
     /**
@@ -373,7 +373,7 @@ extern "C"
      *  空文字列の断片は結合対象から除外されます。\n
      *  先頭断片が `'/'` から始まる場合、その絶対パスとしての性質は保持されます。\n
      *  断片の途中にある連続セパレータや `'\\'` は正規化しません。必要な場合は
-     *  事前に cplat_normalize_path_sep() を適用してください。\n
+     *  事前に cplat_path_normalize_sep() を適用してください。\n
      *  いずれかの断片が NULL、または @p part_count が 0 の場合は EINVAL を返します。\n
      *  結果が @p path_out に収まらない場合は ENAMETOOLONG を返します。
      *

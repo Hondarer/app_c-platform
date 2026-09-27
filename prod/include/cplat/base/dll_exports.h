@@ -53,21 +53,21 @@
  */
 
 #ifndef DOXYGEN
-    #ifndef CPLAT_DLL_PP_CAT_IMPL__
-        #define CPLAT_DLL_PP_CAT_IMPL__(a, b) a##b
-    #endif /* CPLAT_DLL_PP_CAT_IMPL__ */
-    #ifndef CPLAT_DLL_PP_CAT__
-        #define CPLAT_DLL_PP_CAT__(a, b) CPLAT_DLL_PP_CAT_IMPL__(a, b)
-    #endif /* CPLAT_DLL_PP_CAT__ */
+    #ifndef CPLAT_DLL_PP_CAT_IMPL
+        #define CPLAT_DLL_PP_CAT_IMPL(a, b) a##b
+    #endif /* CPLAT_DLL_PP_CAT_IMPL */
+    #ifndef CPLAT_DLL_PP_CAT
+        #define CPLAT_DLL_PP_CAT(a, b) CPLAT_DLL_PP_CAT_IMPL(a, b)
+    #endif /* CPLAT_DLL_PP_CAT */
     #ifndef CPLAT_DLL_IF_0
         #define CPLAT_DLL_IF_0(true_branch, false_branch) false_branch
     #endif /* CPLAT_DLL_IF_0 */
     #ifndef CPLAT_DLL_IF_1
         #define CPLAT_DLL_IF_1(true_branch, false_branch) true_branch
     #endif /* CPLAT_DLL_IF_1 */
-    #ifndef CPLAT_DLL_IF__
-        #define CPLAT_DLL_IF__(cond) CPLAT_DLL_PP_CAT__(CPLAT_DLL_IF_, cond)
-    #endif /* CPLAT_DLL_IF__ */
+    #ifndef CPLAT_DLL_IF
+        #define CPLAT_DLL_IF(cond) CPLAT_DLL_PP_CAT(CPLAT_DLL_IF_, cond)
+    #endif /* CPLAT_DLL_IF */
 #endif     /* !DOXYGEN */
 
 #ifdef DOXYGEN
@@ -112,13 +112,13 @@
          * 利用側でも default 可視性の宣言で問題ないため EXPORTS は見ない。
          */
         #define CPLAT_DLL_EXPORT(prefix) \
-            CPLAT_DLL_IF__(CPLAT_DLL_PP_CAT__(prefix, _STATIC))(, __attribute__((visibility("default"))))
+            CPLAT_DLL_IF(CPLAT_DLL_PP_CAT(prefix, _STATIC))(, __attribute__((visibility("default"))))
         #define CPLAT_DLL_API(prefix)
     #elif defined(PLATFORM_WINDOWS)
         #ifndef __INTELLISENSE__
             #define CPLAT_DLL_EXPORT(prefix) \
-                CPLAT_DLL_IF__(CPLAT_DLL_PP_CAT__(prefix, _STATIC)) \
-                (, CPLAT_DLL_IF__(CPLAT_DLL_PP_CAT__(prefix, _EXPORTS))(__declspec(dllexport), \
+                CPLAT_DLL_IF(CPLAT_DLL_PP_CAT(prefix, _STATIC)) \
+                (, CPLAT_DLL_IF(CPLAT_DLL_PP_CAT(prefix, _EXPORTS))(__declspec(dllexport), \
                                                                               __declspec(dllimport)))
         #else /* __INTELLISENSE__ */
             #define CPLAT_DLL_EXPORT(prefix)

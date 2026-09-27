@@ -98,7 +98,7 @@ int64_t cplat_lseek(const int fd, const int64_t offset, const int whence, cplat_
 
     if (fd < 0)
     {
-        (void)cplat_error_report_errno(detail_out, EBADF);
+        (void)cplat_internal_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -107,7 +107,7 @@ int64_t cplat_lseek(const int fd, const int64_t offset, const int whence, cplat_
     /* see: https://learn.microsoft.com/cpp/c-runtime-library/reference/lseek-lseeki64 */
     if (whence != SEEK_SET && whence != SEEK_CUR && whence != SEEK_END)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
@@ -120,11 +120,11 @@ int64_t cplat_lseek(const int fd, const int64_t offset, const int whence, cplat_
 
     if (result < 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }
@@ -137,7 +137,7 @@ int cplat_close(const int fd, cplat_error *detail_out)
 
     if (fd < 0)
     {
-        (void)cplat_error_report_errno(detail_out, EBADF);
+        (void)cplat_internal_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -153,11 +153,11 @@ int cplat_close(const int fd, cplat_error *detail_out)
 
     if (result != 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }
@@ -170,7 +170,7 @@ int cplat_dup(const int fd, cplat_error *detail_out)
 
     if (fd < 0)
     {
-        (void)cplat_error_report_errno(detail_out, EBADF);
+        (void)cplat_internal_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -183,11 +183,11 @@ int cplat_dup(const int fd, cplat_error *detail_out)
 
     if (result < 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }
@@ -198,7 +198,7 @@ int cplat_dup2(const int oldfd, const int newfd, cplat_error *detail_out)
 {
     if (oldfd < 0 || newfd < 0)
     {
-        (void)cplat_error_report_errno(detail_out, EBADF);
+        (void)cplat_internal_error_report_errno(detail_out, EBADF);
         return -1;
     }
 
@@ -207,17 +207,17 @@ int cplat_dup2(const int oldfd, const int newfd, cplat_error *detail_out)
 #if defined(PLATFORM_LINUX)
     if (dup2(oldfd, newfd) == -1)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
         return -1;
     }
 #elif defined(PLATFORM_WINDOWS)
     if (_dup2(oldfd, newfd) != 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
         return -1;
     }
 #endif /* PLATFORM_ */
-    (void)cplat_error_report_success(detail_out);
+    (void)cplat_internal_error_report_success(detail_out);
     return 0;
 }
 
@@ -229,7 +229,7 @@ int64_t cplat_read(const int fd, void *buf, const size_t count, cplat_error *det
 
     if (fd < 0 || buf == NULL)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
@@ -260,11 +260,11 @@ int64_t cplat_read(const int fd, void *buf, const size_t count, cplat_error *det
 
     if (result < 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }
@@ -277,7 +277,7 @@ int64_t cplat_write(const int fd, const void *buf, const size_t count, cplat_err
 
     if (fd < 0 || buf == NULL)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
@@ -308,11 +308,11 @@ int64_t cplat_write(const int fd, const void *buf, const size_t count, cplat_err
 
     if (result < 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }
@@ -325,7 +325,7 @@ int cplat_access(const char *path, const int mode, cplat_error *detail_out)
 
     if (path == NULL)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
@@ -338,7 +338,7 @@ int cplat_access(const char *path, const int mode, cplat_error *detail_out)
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
@@ -348,11 +348,11 @@ int cplat_access(const char *path, const int mode, cplat_error *detail_out)
 
     if (result != 0)
     {
-        (void)cplat_error_report_errno(detail_out, errno);
+        (void)cplat_internal_error_report_errno(detail_out, errno);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
     return result;
 }

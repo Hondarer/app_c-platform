@@ -34,7 +34,7 @@ static int emulate_cplat_strncpy(char *dest, size_t dest_size, const char *src, 
     return 0;
 }
 
-static int emulate_cplat_format_realtime_iso8601_local(char *dest, size_t dest_size,
+static int emulate_cplat_clock_format_realtime_iso8601_local(char *dest, size_t dest_size,
                                                           const cplat_timespec *timestamp)
 {
     const char *text;
@@ -66,8 +66,8 @@ class etw_viewerTest : public Test
     void SetUp() override
     {
         ON_CALL(mock_cplat_, cplat_strncpy(_, _, _, _)).WillByDefault(emulate_cplat_strncpy);
-        ON_CALL(mock_cplat_, cplat_format_realtime_iso8601_local(_, _, _))
-            .WillByDefault(emulate_cplat_format_realtime_iso8601_local);
+        ON_CALL(mock_cplat_, cplat_clock_format_realtime_iso8601_local(_, _, _))
+            .WillByDefault(emulate_cplat_clock_format_realtime_iso8601_local);
     }
 };
 

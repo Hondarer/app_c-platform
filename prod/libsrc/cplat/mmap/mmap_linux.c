@@ -46,7 +46,7 @@ static int open_backing_file(const char *path, cplat_mmap_access access, size_t 
             (void)cplat_file_close(file, NULL);
             return open_result;
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 
     /* 新規作成のみ許可するオープンをまず試みる。成功すれば新規作成と判定できる。 */
@@ -60,7 +60,7 @@ static int open_backing_file(const char *path, cplat_mmap_access access, size_t 
         {
             (void)cplat_file_close(file, NULL);
             (void)cplat_remove(path, NULL);
-            return cplat_error_report_errno(detail_out, EINVAL);
+            return cplat_internal_error_report_errno(detail_out, EINVAL);
         }
         open_result = cplat_file_set_size(file, create_size, detail_out);
         if (open_result != CPLAT_OK)
@@ -70,7 +70,7 @@ static int open_backing_file(const char *path, cplat_mmap_access access, size_t 
             return open_result;
         }
         *size_out = create_size;
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 
     /* 新規作成に失敗した場合は既存ファイルとみなし、CREATE_NEW を外して再オープンする。 */
@@ -85,7 +85,7 @@ static int open_backing_file(const char *path, cplat_mmap_access access, size_t 
         (void)cplat_file_close(file, NULL);
         return open_result;
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -102,13 +102,13 @@ int cplat_mmap_attach(const char *path, cplat_mmap_access access, size_t create_
     if (path == NULL || path[0] == '\0' || map == NULL ||
         (access != CPLAT_MMAP_ACCESS_READ_ONLY && access != CPLAT_MMAP_ACCESS_READ_WRITE))
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     new_map = (cplat_mmap *)cplat_calloc(1, sizeof(*new_map));
     if (new_map == NULL)
     {
-        return cplat_error_report_errno(detail_out, ENOMEM);
+        return cplat_internal_error_report_errno(detail_out, ENOMEM);
     }
 
     result = open_backing_file(path, access, create_size, &new_map->file, &size, detail_out);
@@ -122,7 +122,7 @@ int cplat_mmap_attach(const char *path, cplat_mmap_access access, size_t create_
     {
         (void)cplat_file_close(&new_map->file, NULL);
         cplat_free(new_map);
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     if (access == CPLAT_MMAP_ACCESS_READ_WRITE)
@@ -140,13 +140,13 @@ int cplat_mmap_attach(const char *path, cplat_mmap_access access, size_t create_
 
         (void)cplat_file_close(&new_map->file, NULL);
         cplat_free(new_map);
-        return cplat_error_report_errno(detail_out, errno_value);
+        return cplat_internal_error_report_errno(detail_out, errno_value);
     }
 
     new_map->address = address;
     new_map->size = size;
     *map = new_map;
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -180,7 +180,7 @@ int cplat_mmap_flush(cplat_mmap *map, void *address, size_t length, cplat_error 
 
     if (map == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     if (address == NULL)
@@ -196,9 +196,9 @@ int cplat_mmap_flush(cplat_mmap *map, void *address, size_t length, cplat_error 
 
     if (msync(target, target_len, MS_SYNC) != 0)
     {
-        return cplat_error_report_errno(detail_out, errno);
+        return cplat_internal_error_report_errno(detail_out, errno);
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -211,7 +211,7 @@ int cplat_mmap_detach(cplat_mmap *map, cplat_error *detail_out)
 
     if (map == NULL)
     {
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
     unmap_result = munmap(map->address, map->size);
     if (unmap_result != 0)
@@ -222,13 +222,13 @@ int cplat_mmap_detach(cplat_mmap *map, cplat_error *detail_out)
     cplat_free(map);
     if (unmap_result != 0)
     {
-        return cplat_error_report_errno(detail_out, unmap_errno);
+        return cplat_internal_error_report_errno(detail_out, unmap_errno);
     }
     if (close_result != CPLAT_OK)
     {
         return close_result;
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)

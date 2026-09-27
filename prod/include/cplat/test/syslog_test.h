@@ -49,7 +49,7 @@
  *  @par            スレッド セーフ
  *  本関数はスレッド セーフです。
  */
-static int syslog_test_fd_write__(const char *buf, size_t nbytes)
+static int syslog_test_fd_write(const char *buf, size_t nbytes)
 {
     const char *fd_str = getenv("SYSLOG_TEST_FD");
     int test_fd;

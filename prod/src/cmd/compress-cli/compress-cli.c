@@ -197,7 +197,7 @@ static int compress_cli_resolve_paths(const compress_cli_options *options, char 
     char message[COMPRESS_CLI_ERROR_MESSAGE_SIZE];
     int path_equal = 0;
 
-    if (cplat_paths_equal(options->input_path, options->output_path, &path_equal, &error) != CPLAT_OK)
+    if (cplat_path_equal(options->input_path, options->output_path, &path_equal, &error) != CPLAT_OK)
     {
         fprintf(stderr, "入力パスと出力パスの比較に失敗しました (%s)\n",
                 compress_cli_error_text(&error, message, sizeof(message)));

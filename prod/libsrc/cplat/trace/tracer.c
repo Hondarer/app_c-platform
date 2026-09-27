@@ -155,7 +155,7 @@ static void register_trace_shutdown_callback(void)
 static void trace_shutdown_callback(const cplat_shutdown_event *event, void *context)
 {
     (void)context;
-    trace_registry_dispose_all_on_shutdown(event);
+    cplat_internal_trace_registry_dispose_all_on_shutdown(event);
 }
 
 /**
@@ -333,7 +333,7 @@ static int registry_unregister_handle(cplat_tracer *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-size_t trace_registry_count(void)
+size_t cplat_internal_trace_registry_count(void)
 {
     size_t count;
 
@@ -348,7 +348,7 @@ size_t trace_registry_count(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-size_t trace_registry_capacity(void)
+size_t cplat_internal_trace_registry_capacity(void)
 {
     size_t capacity;
 
@@ -966,7 +966,7 @@ static void trace_handle_release_on_shutdown(cplat_tracer *handle)
 
     if (handle->file_handle != NULL)
     {
-        cplat_trace_file_sink_dispose_on_shutdown(handle->file_handle);
+        cplat_internal_trace_file_sink_dispose_on_shutdown(handle->file_handle);
         handle->file_handle = NULL;
     }
 
@@ -983,7 +983,7 @@ static void trace_handle_release_on_shutdown(cplat_tracer *handle)
     handle->hook_head = NULL;
 
 #if defined(PLATFORM_LINUX)
-    cplat_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
+    cplat_internal_syslog_sink_dispose_on_shutdown(handle->syslog_handle);
     cplat_free(handle->effective_name);
 #elif defined(PLATFORM_WINDOWS)
     cplat_free(handle->eventlog_instance_name);
@@ -1344,7 +1344,7 @@ static int is_valid_threshold(const cplat_trace_level level)
  */
 static void write_stderr_entry(const cplat_trace_level level, const char *timestamp_text, const char *msg)
 {
-    fprintf(stderr, "%s %c %s\n", timestamp_text, trace_level_char(level), msg);
+    fprintf(stderr, "%s %c %s\n", timestamp_text, cplat_internal_trace_level_char(level), msg);
 }
 
 /**
@@ -1375,13 +1375,13 @@ static int write_dual(cplat_tracer *handle, const cplat_trace_level level, const
 
     if (needs_text_timestamp)
     {
-        if (trace_resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
+        if (cplat_internal_trace_resolve_timestamp(timestamp, &resolved, &timestamp_fallback_used) != 0)
         {
             return CPLAT_ERR_UNKNOWN;
         }
         effective_timestamp = &resolved;
 
-        if (trace_format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
+        if (cplat_internal_trace_format_local_timestamp(ts, sizeof(ts), effective_timestamp) != 0)
         {
             return CPLAT_ERR_UNKNOWN;
         }
@@ -2161,7 +2161,7 @@ void cplat_tracer_dispose(cplat_tracer **handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event)
+void cplat_internal_trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event)
 {
     cplat_tracer **items;
     size_t count;
@@ -2204,12 +2204,12 @@ void trace_registry_dispose_all_on_shutdown(const cplat_shutdown_event *event)
 #if defined(PLATFORM_WINDOWS)
     if (s_etw_handle != NULL)
     {
-        cplat_etw_provider_dispose_on_shutdown(s_etw_handle, event);
+        cplat_internal_etw_provider_dispose_on_shutdown(s_etw_handle, event);
         s_etw_handle = NULL;
     }
     if (s_eventlog_handle != NULL)
     {
-        cplat_eventlog_sink_dispose_on_shutdown(s_eventlog_handle, event);
+        cplat_internal_eventlog_sink_dispose_on_shutdown(s_eventlog_handle, event);
         s_eventlog_handle = NULL;
     }
     s_trace_ref = 0;

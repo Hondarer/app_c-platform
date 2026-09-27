@@ -5,7 +5,7 @@
 
     #include <cplat/trace/backends/eventlog/eventlog_internal.h>
 
-void cplat_eventlog_sink_dispose_on_shutdown(cplat_eventlog_sink *handle, const cplat_shutdown_event *event)
+void cplat_internal_eventlog_sink_dispose_on_shutdown(cplat_eventlog_sink *handle, const cplat_shutdown_event *event)
 {
     (void)handle;
     (void)event;

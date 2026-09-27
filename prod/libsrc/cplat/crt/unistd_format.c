@@ -21,9 +21,9 @@ int cplat_vaccess_fmt(const int mode, cplat_error *detail_out, const char *forma
     char filename[PLATFORM_PATH_MAX] = {0};
     int format_error;
 
-    if (cplat_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
+    if (cplat_internal_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
-        (void)cplat_error_report_errno(detail_out, format_error);
+        (void)cplat_internal_error_report_errno(detail_out, format_error);
         return -1;
     }
 

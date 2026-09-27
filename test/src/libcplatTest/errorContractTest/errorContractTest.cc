@@ -135,8 +135,8 @@ TEST_F(errorContractTest, all_detail_out_apis_accept_null)
         {"cplat_file_flush", []() { (void)cplat_file_flush(NULL, NULL); }, 1, 0U},
         {"cplat_file_close", []() { (void)cplat_file_close(NULL, NULL); }, 1, 0U},
         {"cplat_path_get_full", []() { (void)cplat_path_get_full(NULL, 0U, NULL, NULL); }, 1, 0U},
-        {"cplat_paths_equal", []() { (void)cplat_paths_equal(NULL, NULL, NULL, NULL); }, 1, 0U},
-        {"cplat_get_temp_dir", []() { (void)cplat_get_temp_dir(NULL, 0U, NULL); }, 1, 0U},
+        {"cplat_path_equal", []() { (void)cplat_path_equal(NULL, NULL, NULL, NULL); }, 1, 0U},
+        {"cplat_path_get_temp_dir", []() { (void)cplat_path_get_temp_dir(NULL, 0U, NULL); }, 1, 0U},
         {"cplat_path_concat_n", []() { (void)cplat_path_concat_n(NULL, 0U, NULL, 1U, "x"); }, 1, 0U},
         {"cplat_path_concat", []() { (void)cplat_path_concat(NULL, 0U, NULL, "x"); }, 1, 0U},
         {"cplat_path_dirname", []() { (void)cplat_path_dirname(NULL, 0U, NULL, NULL); }, 1, 0U},
@@ -255,12 +255,12 @@ TEST_F(errorContractTest, nested_paths_equal_success_clears_previous_failure)
 
     // Act
     const int result =
-        cplat_paths_equal(".", ".", &equal, NULL); // [手順] - 内部で 2 回絶対パス化する比較を成功させる。
+        cplat_path_equal(".", ".", &equal, NULL); // [手順] - 内部で 2 回絶対パス化する比較を成功させる。
     cplat_error_get_last(&last_error);             // [手順] - 比較成功直後の TLS 詳細エラーを取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK,
-              result);   // [確認_正常系] - cplat_paths_equal の戻り値が CPLAT_OK であること。
+              result);   // [確認_正常系] - cplat_path_equal の戻り値が CPLAT_OK であること。
     EXPECT_EQ(1, equal); // [確認_正常系] - 同じパスの比較結果が一致であること。
     EXPECT_EQ(0,
               cplat_error_is_set(&last_error)); // [確認_正常系] - ネストした成功後の TLS 詳細エラーが空であること。

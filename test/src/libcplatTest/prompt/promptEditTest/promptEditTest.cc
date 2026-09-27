@@ -12,7 +12,7 @@ class promptEditTest : public Test
 };
 
 /*
- * cplat_prompt_edit_utf8_prev_boundary
+ * cplat_internal_prompt_edit_utf8_prev_boundary
  */
 
 // 位置 0 からは移動しないことの確認
@@ -24,10 +24,10 @@ TEST_F(promptEditTest, prev_boundary_stays_at_zero)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_prev_boundary(text, 0u); // [手順] - 位置 0 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_prev_boundary(text, 0u); // [手順] - 位置 0 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0u, pos); // [確認_正常系] - cplat_prompt_edit_utf8_prev_boundary の戻り値が 0 であること。
+    EXPECT_EQ(0u, pos); // [確認_正常系] - cplat_internal_prompt_edit_utf8_prev_boundary の戻り値が 0 であること。
 }
 
 // ASCII 文字を 1 つ戻ることの確認
@@ -39,7 +39,7 @@ TEST_F(promptEditTest, prev_boundary_moves_one_byte_for_ascii)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_prev_boundary(text, 3u); // [手順] - 終端の位置 3 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_prev_boundary(text, 3u); // [手順] - 終端の位置 3 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(2u, pos); // [確認_正常系] - 1 バイト戻った位置 2 が返ること。
@@ -54,7 +54,7 @@ TEST_F(promptEditTest, prev_boundary_skips_continuation_bytes)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_prev_boundary(text, 4u); // [手順] - 終端の位置 4 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_prev_boundary(text, 4u); // [手順] - 終端の位置 4 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(1u, pos); // [確認_正常系] - 継続バイトを読み飛ばして日本語文字の先頭である位置 1 が返ること。
@@ -69,14 +69,14 @@ TEST_F(promptEditTest, prev_boundary_stops_after_moving_to_zero)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_prev_boundary(text, 1u); // [手順] - 位置 1 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_prev_boundary(text, 1u); // [手順] - 位置 1 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(0u, pos); // [確認_正常系] - 文字列の先頭である位置 0 が返ること。
 }
 
 /*
- * cplat_prompt_edit_utf8_next_boundary
+ * cplat_internal_prompt_edit_utf8_next_boundary
  */
 
 // 終端以降では長さを返すことの確認
@@ -88,7 +88,7 @@ TEST_F(promptEditTest, next_boundary_returns_len_at_end)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_next_boundary(text, 3u, 3u); // [手順] - 終端の位置 3 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_next_boundary(text, 3u, 3u); // [手順] - 終端の位置 3 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(3u, pos); // [確認_正常系] - 長さと同じ 3 が返ること。
@@ -103,7 +103,7 @@ TEST_F(promptEditTest, next_boundary_moves_one_byte_for_ascii)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_next_boundary(text, 3u, 0u); // [手順] - 先頭の位置 0 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_next_boundary(text, 3u, 0u); // [手順] - 先頭の位置 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(1u, pos); // [確認_正常系] - 1 バイト進んだ位置 1 が返ること。
@@ -118,7 +118,7 @@ TEST_F(promptEditTest, next_boundary_skips_continuation_bytes)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_next_boundary(text, 4u, 0u); // [手順] - 先頭の位置 0 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_next_boundary(text, 4u, 0u); // [手順] - 先頭の位置 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(3u, pos); // [確認_正常系] - 継続バイトを読み飛ばして次の文字の先頭である位置 3 が返ること。
@@ -133,14 +133,14 @@ TEST_F(promptEditTest, next_boundary_stops_after_moving_to_end)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_next_boundary(text, 1u, 0u); // [手順] - 位置 0 を指定して呼び出す。
+    size_t pos = cplat_internal_prompt_edit_utf8_next_boundary(text, 1u, 0u); // [手順] - 位置 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(1u, pos); // [確認_正常系] - 文字列の末尾である位置 1 が返ること。
 }
 
 /*
- * cplat_prompt_edit_utf8_sanitize_boundary
+ * cplat_internal_prompt_edit_utf8_sanitize_boundary
  */
 
 // 長さを超える位置が長さへ丸められることの確認
@@ -152,7 +152,7 @@ TEST_F(promptEditTest, sanitize_boundary_clamps_to_len)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_sanitize_boundary(text, 3u, 10u); // [手順] - 長さを超える位置 10 を指定する。
+    size_t pos = cplat_internal_prompt_edit_utf8_sanitize_boundary(text, 3u, 10u); // [手順] - 長さを超える位置 10 を指定する。
 
     // Assert
     EXPECT_EQ(3u, pos); // [確認_正常系] - 長さと同じ 3 へ丸められること。
@@ -167,7 +167,7 @@ TEST_F(promptEditTest, sanitize_boundary_moves_back_to_character_head)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_sanitize_boundary(text, 4u,
+    size_t pos = cplat_internal_prompt_edit_utf8_sanitize_boundary(text, 4u,
                                                              2u); // [手順] - 日本語文字の途中を指す位置 2 を指定する。
 
     // Assert
@@ -183,14 +183,14 @@ TEST_F(promptEditTest, sanitize_boundary_keeps_valid_position)
     // Pre-Assert
 
     // Act
-    size_t pos = cplat_prompt_edit_utf8_sanitize_boundary(text, 4u, 3u); // [手順] - 境界上の位置 3 を指定する。
+    size_t pos = cplat_internal_prompt_edit_utf8_sanitize_boundary(text, 4u, 3u); // [手順] - 境界上の位置 3 を指定する。
 
     // Assert
     EXPECT_EQ(3u, pos); // [確認_正常系] - 位置 3 のまま変化しないこと。
 }
 
 /*
- * cplat_prompt_edit_ensure_capacity
+ * cplat_internal_prompt_edit_ensure_capacity
  */
 
 // 既存容量で足りる場合に再確保しないことの確認
@@ -205,10 +205,10 @@ TEST_F(promptEditTest, ensure_capacity_keeps_buffer_when_enough)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, 64u, 8u); // [手順] - 必要量 8 を指定して呼び出す。
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, 64u, 8u); // [手順] - 必要量 8 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(16u, cap); // [確認_正常系] - 容量が 16 のまま変化しないこと。
 
     // Cleanup
@@ -227,10 +227,10 @@ TEST_F(promptEditTest, ensure_capacity_grows_by_doubling)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(32u, cap); // [確認_正常系] - 4 から 2 倍ずつ拡張されて 32 になること。
 
     // Cleanup
@@ -249,11 +249,11 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_bytes)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, 20u,
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, 20u,
                                                    20u); // [手順] - 上限 20、必要量 20 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_prompt_edit_ensure_capacity の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);   // [確認_正常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が 0 であること。
     EXPECT_EQ(20u, cap); // [確認_正常系] - 2 倍では上限を超えるため上限の 20 で頭打ちになること。
 
     // Cleanup
@@ -272,11 +272,11 @@ TEST_F(promptEditTest, ensure_capacity_rejects_required_over_max)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, 16u,
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, 16u,
                                                    17u); // [手順] - 上限 16 を超える必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ(4u, cap); // [確認_異常系] - 容量が変化しないこと。
 
     // Cleanup
@@ -293,8 +293,8 @@ TEST_F(promptEditTest, ensure_capacity_rejects_null_arguments)
     // Pre-Assert
 
     // Act
-    int actual_ret_null_buf = cplat_prompt_edit_ensure_capacity(NULL, &cap, 16u, 8u); // [手順] - buf に NULL を指定する。
-    int actual_ret_null_cap = cplat_prompt_edit_ensure_capacity(&buf, NULL, 16u, 8u); // [手順] - cap に NULL を指定する。
+    int actual_ret_null_buf = cplat_internal_prompt_edit_ensure_capacity(NULL, &cap, 16u, 8u); // [手順] - buf に NULL を指定する。
+    int actual_ret_null_cap = cplat_internal_prompt_edit_ensure_capacity(&buf, NULL, 16u, 8u); // [手順] - cap に NULL を指定する。
 
     // Assert
     EXPECT_EQ(-1, actual_ret_null_buf); // [確認_異常系] - buf が NULL のとき戻り値が -1 であること。
@@ -302,7 +302,7 @@ TEST_F(promptEditTest, ensure_capacity_rejects_null_arguments)
 }
 
 /*
- * cplat_prompt_edit_resolve_options
+ * cplat_internal_prompt_edit_resolve_options
  */
 
 // 0 を指定した項目に既定値が入ることの確認
@@ -316,7 +316,7 @@ TEST_F(promptEditTest, resolve_options_applies_defaults_for_zero)
     // Pre-Assert
 
     // Act
-    cplat_prompt_edit_resolve_options(0u, 0u, 0u, 128u, &history_max, &initial_capacity,
+    cplat_internal_prompt_edit_resolve_options(0u, 0u, 0u, 128u, &history_max, &initial_capacity,
                                          &max_bytes); // [手順] - 要求値をすべて 0、既定初期容量を 128 として呼び出す。
 
     // Assert
@@ -336,7 +336,7 @@ TEST_F(promptEditTest, resolve_options_raises_values_below_minimum)
     // Pre-Assert
 
     // Act
-    cplat_prompt_edit_resolve_options(4u, 1u, 1u, 128u, &history_max, &initial_capacity,
+    cplat_internal_prompt_edit_resolve_options(4u, 1u, 1u, 128u, &history_max, &initial_capacity,
                                          &max_bytes); // [手順] - 初期容量と入力上限に 1 を指定して呼び出す。
 
     // Assert
@@ -356,7 +356,7 @@ TEST_F(promptEditTest, resolve_options_clamps_initial_capacity_to_max_bytes)
     // Pre-Assert
 
     // Act
-    cplat_prompt_edit_resolve_options(4u, 64u, 16u, 128u, &history_max, &initial_capacity,
+    cplat_internal_prompt_edit_resolve_options(4u, 64u, 16u, 128u, &history_max, &initial_capacity,
                                          &max_bytes); // [手順] - 初期容量 64、入力上限 16 を指定して呼び出す。
 
     // Assert
@@ -372,7 +372,7 @@ TEST_F(promptEditTest, resolve_options_accepts_null_outputs)
     // Pre-Assert
 
     // Act
-    cplat_prompt_edit_resolve_options(4u, 8u, 16u, 128u, NULL, NULL,
+    cplat_internal_prompt_edit_resolve_options(4u, 8u, 16u, 128u, NULL, NULL,
                                          NULL); // [手順] - 出力先をすべて NULL にして呼び出す。
 
     // Assert
@@ -396,10 +396,10 @@ TEST_F(promptEditTest, ensure_capacity_returns_minus1_when_realloc_fails)
                               // [Pre-Assert手順] - cplat_realloc から NULL を返却する。
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, 64u, 17u); // [手順] - 必要量 17 を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ(4u, cap); // [確認_異常系] - 容量が変化しないこと。
 
     // Cleanup
@@ -422,16 +422,16 @@ TEST_F(promptEditTest, ensure_capacity_caps_at_max_after_overflow)
                                    // [Pre-Assert手順] - cplat_realloc から NULL を返却する。
 
     // Act
-    int actual_ret = cplat_prompt_edit_ensure_capacity(&buf, &cap, max_size,
+    int actual_ret = cplat_internal_prompt_edit_ensure_capacity(&buf, &cap, max_size,
                                                    cap + 1u); // [手順] - 現在容量より 1 byte 大きい必要量を指定する。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_prompt_edit_ensure_capacity の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_prompt_edit_ensure_capacity の戻り値が -1 であること。
     EXPECT_EQ((max_size / 2u) + 1u, cap); // [確認_異常系] - 再確保失敗後も容量が変化しないこと。
 }
 
 /*
- * cplat_prompt_edit_validate_initial_text
+ * cplat_internal_prompt_edit_validate_initial_text
  */
 
 // NULL の初期値を、長さ 0 として受け入れることの確認
@@ -443,7 +443,7 @@ TEST_F(promptEditTest, validate_initial_text_accepts_null_as_empty)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_validate_initial_text(NULL, 16u, &length); // [手順] - NULL の初期値を検証する。
+    int actual_ret = cplat_internal_prompt_edit_validate_initial_text(NULL, 16u, &length); // [手順] - NULL の初期値を検証する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - CPLAT_OK が返ること。
@@ -460,7 +460,7 @@ TEST_F(promptEditTest, validate_initial_text_accepts_ascii_and_utf8)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_validate_initial_text(text, 16u, &length); // [手順] - 初期値を検証する。
+    int actual_ret = cplat_internal_prompt_edit_validate_initial_text(text, 16u, &length); // [手順] - 初期値を検証する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 多バイト文字を制御文字と誤判定せず CPLAT_OK が返ること。
@@ -476,9 +476,9 @@ TEST_F(promptEditTest, validate_initial_text_rejects_control_characters)
     // Pre-Assert
 
     // Act
-    int actual_ret_newline = cplat_prompt_edit_validate_initial_text("a\nb", 16u, &length); // [手順] - 改行を含む初期値を検証する。
-    int actual_ret_tab = cplat_prompt_edit_validate_initial_text("a\tb", 16u, &length);     // [手順] - タブを含む初期値を検証する。
-    int actual_ret_delete = cplat_prompt_edit_validate_initial_text("a\x7F", 16u, &length); // [手順] - DEL を含む初期値を検証する。
+    int actual_ret_newline = cplat_internal_prompt_edit_validate_initial_text("a\nb", 16u, &length); // [手順] - 改行を含む初期値を検証する。
+    int actual_ret_tab = cplat_internal_prompt_edit_validate_initial_text("a\tb", 16u, &length);     // [手順] - タブを含む初期値を検証する。
+    int actual_ret_delete = cplat_internal_prompt_edit_validate_initial_text("a\x7F", 16u, &length); // [手順] - DEL を含む初期値を検証する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret_newline); // [確認_異常系] - 改行を含む初期値が拒否されること。
@@ -497,8 +497,8 @@ TEST_F(promptEditTest, validate_initial_text_checks_max_bytes_boundary)
     // Pre-Assert
 
     // Act
-    int actual_ret_fit = cplat_prompt_edit_validate_initial_text("abc", 4u, &length_fit); // [手順] - NUL を含めて 4 バイトの初期値を上限 4 で検証する。
-    int actual_ret_over = cplat_prompt_edit_validate_initial_text("abcd", 4u, &length_over); // [手順] - NUL を含めて 5 バイトの初期値を上限 4 で検証する。
+    int actual_ret_fit = cplat_internal_prompt_edit_validate_initial_text("abc", 4u, &length_fit); // [手順] - NUL を含めて 4 バイトの初期値を上限 4 で検証する。
+    int actual_ret_over = cplat_internal_prompt_edit_validate_initial_text("abcd", 4u, &length_over); // [手順] - NUL を含めて 5 バイトの初期値を上限 4 で検証する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_fit);                    // [確認_正常系] - 上限ちょうどの初期値が受け入れられること。
@@ -516,7 +516,7 @@ TEST_F(promptEditTest, validate_initial_text_rejects_zero_max_bytes)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_validate_initial_text("", 0u, &length); // [手順] - 上限 0 で空文字列を検証する。
+    int actual_ret = cplat_internal_prompt_edit_validate_initial_text("", 0u, &length); // [手順] - 上限 0 で空文字列を検証する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_BUFFER_TOO_SMALL, actual_ret); // [確認_異常系] - NUL 終端も格納できないため拒否されること。
@@ -530,7 +530,7 @@ TEST_F(promptEditTest, validate_initial_text_rejects_null_length_out)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_prompt_edit_validate_initial_text("abc", 16u, NULL); // [手順] - 長さの格納先に NULL を渡す。
+    int actual_ret = cplat_internal_prompt_edit_validate_initial_text("abc", 16u, NULL); // [手順] - 長さの格納先に NULL を渡す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT が返ること。

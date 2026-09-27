@@ -147,7 +147,7 @@ static NO_INLINE void prefault_stack_recursive(size_t remaining)
  *
  *  mlock() 系の ENOMEM はロック可能量の上限超過を意味するため、共通の
  *  errno マッピングとは別に @ref CPLAT_ERR_LIMIT_EXCEEDED として扱います。\n
- *  それ以外の errno は cplat_result_from_errno() の分類に委譲します。
+ *  それ以外の errno は cplat_internal_result_from_errno() の分類に委譲します。
  */
 static int map_errno_to_memory_lock_result(int error_no)
 {
@@ -159,7 +159,7 @@ static int map_errno_to_memory_lock_result(int error_no)
     }
     else
     {
-        result = cplat_result_from_errno(error_no);
+        result = cplat_internal_result_from_errno(error_no);
     }
 
     return result;
@@ -273,7 +273,7 @@ static int prefault_stack(size_t stack_prefault_bytes)
  *
  *  ワーキング セットやコミット上限に関するエラーはロック可能量の上限超過を意味するため、
  *  共通の Windows エラー マッピングとは別に @ref CPLAT_ERR_LIMIT_EXCEEDED として扱います。\n
- *  それ以外のエラーは cplat_result_from_windows_error() の分類に委譲します。
+ *  それ以外のエラーは cplat_internal_result_from_windows_error() の分類に委譲します。
  */
 static int map_windows_error_to_memory_lock_result(unsigned long error_code)
 {
@@ -286,7 +286,7 @@ static int map_windows_error_to_memory_lock_result(unsigned long error_code)
     }
     else
     {
-        result = cplat_result_from_windows_error(error_code);
+        result = cplat_internal_result_from_windows_error(error_code);
     }
 
     return result;

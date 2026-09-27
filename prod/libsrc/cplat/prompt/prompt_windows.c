@@ -9,7 +9,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void prompt_platform_enter_raw(cplat_prompt *p)
+void cplat_internal_prompt_platform_enter_raw(cplat_prompt *p)
 {
     DWORD new_mode;
     if (p->raw_active)
@@ -39,7 +39,7 @@ void prompt_platform_enter_raw(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void prompt_platform_leave_raw(cplat_prompt *p)
+void cplat_internal_prompt_platform_leave_raw(cplat_prompt *p)
 {
     if (!p->raw_active)
     {
@@ -51,7 +51,7 @@ void prompt_platform_leave_raw(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int prompt_platform_read_char(cplat_prompt *p)
+int cplat_internal_prompt_platform_read_char(cplat_prompt *p)
 {
     DWORD result;
     DWORD n_read;
@@ -75,14 +75,14 @@ int prompt_platform_read_char(cplat_prompt *p)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int prompt_platform_read_char_nb(cplat_prompt *p)
+int cplat_internal_prompt_platform_read_char_nb(cplat_prompt *p)
 {
     DWORD result = WaitForSingleObject(p->stdin_handle, 50); /* 50ms */
     if (result != WAIT_OBJECT_0)
     {
         return -1;
     }
-    return prompt_platform_read_char(p);
+    return cplat_internal_prompt_platform_read_char(p);
 }
 
 #endif /* PLATFORM_WINDOWS */

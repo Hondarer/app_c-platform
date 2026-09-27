@@ -78,7 +78,7 @@ class endpointTest : public Test
     {
         s_mock_socket_internal = &mock_socket_internal_;
         ON_CALL(mock_socket_internal_, startup(_))
-            .WillByDefault([](cplat_error *detail_out) { return cplat_error_report_success(detail_out); });
+            .WillByDefault([](cplat_error *detail_out) { return cplat_internal_error_report_success(detail_out); });
         ON_CALL(mock_winsock_, WSAGetLastError).WillByDefault(Return(0));
     }
 
@@ -189,7 +189,7 @@ TEST_F(endpointTest, parse_returns_invalid_when_startup_fails)
     // [Pre-Assert手順] - cplat_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
     EXPECT_CALL(mock_socket_internal_, startup(_))
         .WillOnce([](cplat_error *detail_out)
-                  { return cplat_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
+                  { return cplat_internal_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int actual_ret = cplat_ipv4_parse("127.0.0.1", &address); // [手順] - 初期化失敗を注入して IPv4 を解析する。
@@ -526,7 +526,7 @@ TEST_F(endpointTest, resolve_propagates_startup_failure)
     // [Pre-Assert手順] - cplat_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
     EXPECT_CALL(mock_socket_internal_, startup(_))
         .WillOnce([](cplat_error *detail_out)
-                  { return cplat_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
+                  { return cplat_internal_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int actual_ret = cplat_ipv4_resolve("localhost", &address, &detail); // [手順] - 初期化失敗を注入して名前解決する。
@@ -675,7 +675,7 @@ TEST_F(endpointTest, to_string_propagates_startup_failure)
     // [Pre-Assert手順] - cplat_internal_socket_startup が WSASYSNOTREADY を Winsock エラーとして返却する。
     EXPECT_CALL(mock_socket_internal_, startup(_))
         .WillOnce([](cplat_error *detail_out)
-                  { return cplat_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
+                  { return cplat_internal_error_report_winsock_error(detail_out, WSASYSNOTREADY); });
 
     // Act
     int actual_ret = cplat_ipv4_to_string(CPLAT_IPV4_ADDR_LOOPBACK, buffer, sizeof(buffer),

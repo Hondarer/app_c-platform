@@ -53,11 +53,11 @@
 namespace
 {
 
-using cplat::regex_detail::index_of_offset;
-using cplat::regex_detail::offset_of_begin;
-using cplat::regex_detail::offset_of_end;
-using cplat::regex_detail::utf8_decode;
-using cplat::regex_detail::utf8_encode;
+using cplat::regex_detail::cplat_internal_regex_index_of_offset;
+using cplat::regex_detail::cplat_internal_regex_offset_of_begin;
+using cplat::regex_detail::cplat_internal_regex_offset_of_end;
+using cplat::regex_detail::cplat_internal_regex_utf8_decode;
+using cplat::regex_detail::cplat_internal_regex_utf8_encode;
 
 /** 文字クラスを表すビット値。ASCII 範囲の定義のみを扱う。 */
 enum char_class_bit : unsigned int
@@ -395,12 +395,12 @@ int report_plain(cplat_error *detail_out, int result) noexcept
 /* C の報告 API を noexcept で包み、呼び出し行へ EH 弧を付けない。 */
 int report_success(cplat_error *detail_out) noexcept
 {
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 int report_errno_as(cplat_error *detail_out, int errno_value, int result) noexcept
 {
-    return cplat_error_report_errno_as(detail_out, errno_value, result);
+    return cplat_internal_error_report_errno_as(detail_out, errno_value, result);
 }
 
 /*
@@ -544,8 +544,8 @@ void store_matches(const match_type &result, const std::wstring &units, const st
         const std::size_t begin_index = static_cast<std::size_t>(std::distance(units.cbegin(), result[group].first));
         const std::size_t end_index = static_cast<std::size_t>(std::distance(units.cbegin(), result[group].second));
 
-        matches_out[group].begin = offset_of_begin(units, offsets, begin_index);
-        matches_out[group].end = offset_of_end(units, offsets, end_index);
+        matches_out[group].begin = cplat_internal_regex_offset_of_begin(units, offsets, begin_index);
+        matches_out[group].end = cplat_internal_regex_offset_of_end(units, offsets, end_index);
     }
 }
 
@@ -599,7 +599,7 @@ int cplat_regex_create(const char *pattern, const unsigned int flags, cplat_rege
 
         std::wstring units;
         std::vector<std::size_t> offsets;
-        const bool decoded = utf8_decode(pattern, pattern_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        const bool decoded = cplat_internal_regex_utf8_decode(pattern, pattern_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
@@ -686,14 +686,14 @@ int execute(const cplat_regex *regex, const char *text, std::size_t text_len, st
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        const bool decoded = cplat_internal_regex_utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
         }
 
         std::size_t start_index = 0;
-        const bool indexed = index_of_offset(offsets, start_offset, start_index); /* TESTFW_EXCL_EH_ARCS */
+        const bool indexed = cplat_internal_regex_index_of_offset(offsets, start_offset, start_index); /* TESTFW_EXCL_EH_ARCS */
         if (!indexed)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ARGUMENT);
@@ -803,7 +803,7 @@ int cplat_regex_replace(const cplat_regex *regex, const char *text, const size_t
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
         std::wstring text_units;
         std::vector<std::size_t> text_offsets;
-        const bool text_decoded = utf8_decode(text, text_len, text_units, text_offsets); /* TESTFW_EXCL_EH_ARCS */
+        const bool text_decoded = cplat_internal_regex_utf8_decode(text, text_len, text_units, text_offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!text_decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
@@ -818,7 +818,7 @@ int cplat_regex_replace(const cplat_regex *regex, const char *text, const size_t
         std::wstring replacement_units;
         std::vector<std::size_t> replacement_offsets;
         const bool replacement_decoded =
-            utf8_decode(replacement, replacement_len, replacement_units, replacement_offsets); /* TESTFW_EXCL_EH_ARCS */
+            cplat_internal_regex_utf8_decode(replacement, replacement_len, replacement_units, replacement_offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!replacement_decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
@@ -842,7 +842,7 @@ int cplat_regex_replace(const cplat_regex *regex, const char *text, const size_t
             std::regex_replace(text_units, regex->engine, replacement_units, flag); /* TESTFW_EXCL_EH_ARCS */
 
         std::string encoded;
-        const bool encoded_ok = utf8_encode(replaced, encoded); /* TESTFW_EXCL_EH_ARCS */
+        const bool encoded_ok = cplat_internal_regex_utf8_encode(replaced, encoded); /* TESTFW_EXCL_EH_ARCS */
         if (!encoded_ok)
         {
             return report_plain(detail_out, CPLAT_ERR_UNKNOWN);
@@ -970,7 +970,7 @@ int cplat_regex_iter_create(const cplat_regex *regex, const char *text, const si
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        const bool decoded = cplat_internal_regex_utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
@@ -1107,7 +1107,7 @@ int cplat_regex_split(const cplat_regex *regex, const char *text, const size_t t
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
         std::wstring units;
         std::vector<std::size_t> offsets;
-        const bool decoded = utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
+        const bool decoded = cplat_internal_regex_utf8_decode(text, text_len, units, offsets); /* TESTFW_EXCL_EH_ARCS */
         if (!decoded)
         {
             return report_plain(detail_out, CPLAT_ERR_INVALID_ENCODING);
@@ -1152,8 +1152,8 @@ int cplat_regex_split(const cplat_regex *regex, const char *text, const size_t t
             }
 
             cplat_regex_match part;
-            part.begin = offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
-            part.end = offset_of_end(units, offsets, begin_index);    /* TESTFW_EXCL_EH_ARCS */
+            part.begin = cplat_internal_regex_offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
+            part.end = cplat_internal_regex_offset_of_end(units, offsets, begin_index);    /* TESTFW_EXCL_EH_ARCS */
             parts.push_back(part);                                    /* TESTFW_EXCL_EH_ARCS */
 
             part_begin = end_index;
@@ -1161,8 +1161,8 @@ int cplat_regex_split(const cplat_regex *regex, const char *text, const size_t t
         }
 
         cplat_regex_match last_part;
-        last_part.begin = offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
-        last_part.end = offset_of_end(units, offsets, units.size());   /* TESTFW_EXCL_EH_ARCS */
+        last_part.begin = cplat_internal_regex_offset_of_begin(units, offsets, part_begin); /* TESTFW_EXCL_EH_ARCS */
+        last_part.end = cplat_internal_regex_offset_of_end(units, offsets, units.size());   /* TESTFW_EXCL_EH_ARCS */
         parts.push_back(last_part);                                    /* TESTFW_EXCL_EH_ARCS */
 
         *part_count_out = parts.size();

@@ -249,15 +249,15 @@
     EXPORT_ENTRY(cplat_hashtable_clear, int(CPLAT_API *)(cplat_hashtable * ht)) \
     EXPORT_ENTRY(cplat_hashtable_dispose, void(CPLAT_API *)(cplat_hashtable * ht)) \
     /* cplat/clock/clock.h */ \
-    EXPORT_ENTRY(cplat_get_monotonic_ms, uint64_t(CPLAT_API *)(void)) \
-    EXPORT_ENTRY(cplat_get_monotonic, void(CPLAT_API *)(cplat_timespec * ts)) \
-    EXPORT_ENTRY(cplat_get_realtime, void(CPLAT_API *)(cplat_timespec * ts)) \
-    EXPORT_ENTRY(cplat_format_realtime_iso8601_local, \
+    EXPORT_ENTRY(cplat_clock_get_monotonic_ms, uint64_t(CPLAT_API *)(void)) \
+    EXPORT_ENTRY(cplat_clock_get_monotonic, void(CPLAT_API *)(cplat_timespec * ts)) \
+    EXPORT_ENTRY(cplat_clock_get_realtime, void(CPLAT_API *)(cplat_timespec * ts)) \
+    EXPORT_ENTRY(cplat_clock_format_realtime_iso8601_local, \
                  int(CPLAT_API *)(char *buf, size_t buf_size, const cplat_timespec *timestamp)) \
-    EXPORT_ENTRY(cplat_format_realtime_iso8601_utc, \
+    EXPORT_ENTRY(cplat_clock_format_realtime_iso8601_utc, \
                  int(CPLAT_API *)(char *buf, size_t buf_size, const cplat_timespec *timestamp)) \
-    EXPORT_ENTRY(cplat_get_realtime_utc, void(CPLAT_API *)(struct tm * utc_tm, int32_t *tv_nsec)) \
-    EXPORT_ENTRY(cplat_get_realtime_deadline_ms, void(CPLAT_API *)(uint64_t timeout_ms, struct timespec *abs_timeout)) \
+    EXPORT_ENTRY(cplat_clock_get_realtime_utc, void(CPLAT_API *)(struct tm * utc_tm, int32_t *tv_nsec)) \
+    EXPORT_ENTRY(cplat_clock_get_realtime_deadline_ms, void(CPLAT_API *)(uint64_t timeout_ms, struct timespec *abs_timeout)) \
     /* cplat/clock/timespec.h */ \
     EXPORT_ENTRY(cplat_timespec_normalize, void(CPLAT_API *)(cplat_timespec * ts)) \
     EXPORT_ENTRY(cplat_timespec_add, \
@@ -311,12 +311,12 @@
     EXPORT_ENTRY(cplat_file_flush, int(CPLAT_API *)(cplat_file * file, cplat_error * detail_out)) \
     EXPORT_ENTRY(cplat_file_close, int(CPLAT_API *)(cplat_file * file, cplat_error * detail_out)) \
     /* cplat/crt/path.h */ \
-    EXPORT_ENTRY(cplat_normalize_path_sep, char *(CPLAT_API *)(char *path)) \
+    EXPORT_ENTRY(cplat_path_normalize_sep, char *(CPLAT_API *)(char *path)) \
     EXPORT_ENTRY(cplat_path_get_full, \
                  int(CPLAT_API *)(char *path_out, size_t path_size, cplat_error *detail_out, const char *path)) \
-    EXPORT_ENTRY(cplat_paths_equal, \
+    EXPORT_ENTRY(cplat_path_equal, \
                  int(CPLAT_API *)(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)) \
-    EXPORT_ENTRY(cplat_get_temp_dir, int(CPLAT_API *)(char *path_out, size_t path_size, cplat_error *detail_out)) \
+    EXPORT_ENTRY(cplat_path_get_temp_dir, int(CPLAT_API *)(char *path_out, size_t path_size, cplat_error *detail_out)) \
     EXPORT_ENTRY(cplat_path_concat_n, \
                  int(CPLAT_API *)(char *path_out, size_t path_size, cplat_error *detail_out, size_t part_count, ...)) \
     EXPORT_ENTRY(cplat_vpath_concat_n, int(CPLAT_API *)(char *path_out, size_t path_size, cplat_error *detail_out, \
@@ -419,10 +419,10 @@
     EXPORT_ENTRY(cplat_vaccess_fmt, \
                  int(CPLAT_API *)(int mode, cplat_error *detail_out, const char *format, va_list args)) \
     /* cplat/crypto/crypto.h */ \
-    EXPORT_ENTRY(cplat_encrypt, \
+    EXPORT_ENTRY(cplat_crypto_encrypt, \
                  int(CPLAT_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, \
                                   const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
-    EXPORT_ENTRY(cplat_decrypt, \
+    EXPORT_ENTRY(cplat_crypto_decrypt, \
                  int(CPLAT_API *)(uint8_t *dst, size_t *dst_len, const uint8_t *src, size_t src_len, \
                                   const uint8_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len)) \
     EXPORT_ENTRY(cplat_passphrase_to_key, \

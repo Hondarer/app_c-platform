@@ -65,25 +65,25 @@ void promptFakeReset(void)
 extern "C"
 {
 
-    void prompt_platform_enter_raw(cplat_prompt *p)
+    void cplat_internal_prompt_platform_enter_raw(cplat_prompt *p)
     {
         (void)p;
         g_enter_raw++;
     }
 
-    void prompt_platform_leave_raw(cplat_prompt *p)
+    void cplat_internal_prompt_platform_leave_raw(cplat_prompt *p)
     {
         (void)p;
         g_leave_raw++;
     }
 
-    int prompt_platform_read_char(cplat_prompt *p)
+    int cplat_internal_prompt_platform_read_char(cplat_prompt *p)
     {
         (void)p;
         return next_byte();
     }
 
-    int prompt_platform_read_char_nb(cplat_prompt *p)
+    int cplat_internal_prompt_platform_read_char_nb(cplat_prompt *p)
     {
         (void)p;
         return next_byte();

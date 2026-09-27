@@ -29,7 +29,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
+int cplat_crypto_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
                      const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
 {
     EVP_CIPHER_CTX *ctx;
@@ -114,7 +114,7 @@ int cplat_encrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
+int cplat_crypto_decrypt(uint8_t *dst, size_t *dst_len, const uint8_t *src, const size_t src_len, const uint8_t *key,
                      const uint8_t *nonce, const uint8_t *aad, const size_t aad_len)
 {
     EVP_CIPHER_CTX *ctx;

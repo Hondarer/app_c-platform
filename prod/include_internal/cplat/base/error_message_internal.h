@@ -26,7 +26,7 @@ extern "C"
      *  @param[in]      errno_value errno の値。
      *  @return         CPLAT_OK、CPLAT_ERR_INVALID_ARGUMENT、CPLAT_ERR_UNKNOWN のいずれかを返します。
      */
-    int cplat_errno_message(char *buf, size_t buf_size, int errno_value);
+    int cplat_internal_errno_message(char *buf, size_t buf_size, int errno_value);
 
 #if defined(PLATFORM_WINDOWS)
     /**
@@ -36,7 +36,7 @@ extern "C"
      *  @param[in]      error_code GetLastError() が返した値。
      *  @return         CPLAT_OK、CPLAT_ERR_INVALID_ARGUMENT、CPLAT_ERR_UNKNOWN のいずれかを返します。
      */
-    int cplat_win32_error_message(char *buf, size_t buf_size, unsigned long error_code);
+    int cplat_internal_win32_error_message(char *buf, size_t buf_size, unsigned long error_code);
 #endif
 
 #ifdef __cplusplus

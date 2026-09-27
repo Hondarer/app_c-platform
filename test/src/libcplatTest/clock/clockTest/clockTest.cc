@@ -76,7 +76,7 @@ TEST_F(clockTest, monotonic_ms_converts_platform_value)
 #endif
 
     // Act
-    uint64_t actual_ms = cplat_get_monotonic_ms(); // [手順] - cplat_get_monotonic_ms() を呼び出す。
+    uint64_t actual_ms = cplat_clock_get_monotonic_ms(); // [手順] - cplat_clock_get_monotonic_ms() を呼び出す。
 
     // Assert
     EXPECT_EQ(12345U, actual_ms); // [確認_正常系] - 単調増加クロックのミリ秒値が 12345 であること。
@@ -110,7 +110,7 @@ TEST_F(clockTest, monotonic_returns_split_platform_value)
 #endif
 
     // Act
-    cplat_get_monotonic(&actual_ts); // [手順] - cplat_get_monotonic(&actual_ts) を呼び出す。
+    cplat_clock_get_monotonic(&actual_ts); // [手順] - cplat_clock_get_monotonic(&actual_ts) を呼び出す。
 
     // Assert
     EXPECT_EQ(12, actual_ts.tv_sec); // [確認_正常系] - 秒部が 12 であること。
@@ -156,7 +156,7 @@ TEST_F(clockTest, realtime_returns_split_platform_value)
 #endif
 
     // Act
-    cplat_get_realtime(&actual_ts); // [手順] - cplat_get_realtime(&actual_ts) を呼び出す。
+    cplat_clock_get_realtime(&actual_ts); // [手順] - cplat_clock_get_realtime(&actual_ts) を呼び出す。
 
     // Assert
     EXPECT_EQ(expected_sec, actual_ts.tv_sec); // [確認_正常系] - 秒部が期待値と一致すること。
@@ -215,8 +215,8 @@ TEST_F(clockTest, realtime_utc_uses_platform_conversion_result)
     // [Pre-Assert手順] - cplat_gmtime() にて UTC 分解結果として 2024-04-05 06:07:08 相当を設定し、成功を返す。
 
     // Act
-    cplat_get_realtime_utc(
-        &actual_tm, &actual_nsec); // [手順] - cplat_get_realtime_utc(&actual_tm, &actual_nsec) を呼び出す。
+    cplat_clock_get_realtime_utc(
+        &actual_tm, &actual_nsec); // [手順] - cplat_clock_get_realtime_utc(&actual_tm, &actual_nsec) を呼び出す。
 
     // Assert
     expect_tm_equal(&actual_tm,
@@ -276,8 +276,8 @@ TEST_F(clockTest, realtime_utc_zeroes_tm_when_cplat_gmtime_fails)
                 // [Pre-Assert手順] - cplat_gmtime() にて失敗を返し、clock.c 側の 0 初期化処理へ進ませる。
 
     // Act
-    cplat_get_realtime_utc(
-        &actual_tm, &actual_nsec); // [手順] - cplat_get_realtime_utc(&actual_tm, &actual_nsec) を呼び出す。
+    cplat_clock_get_realtime_utc(
+        &actual_tm, &actual_nsec); // [手順] - cplat_clock_get_realtime_utc(&actual_tm, &actual_nsec) を呼び出す。
 
     // Assert
     expect_tm_equal(&actual_tm, &expected_tm); // [確認_異常系] - UTC 分解結果がすべて 0 に初期化されること。
@@ -319,13 +319,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_outputs_offset_and_milliseconds)
                 // [Pre-Assert手順] - cplat_gmtime から UTC の分解値を返却する。
 
     // Act
-    int actual_ret_format_realtime_iso8601_local = cplat_format_realtime_iso8601_local(
-        actual, sizeof(actual), &timestamp); // [手順] - cplat_format_realtime_iso8601_local を呼び出す。
+    int actual_ret_format_realtime_iso8601_local = cplat_clock_format_realtime_iso8601_local(
+        actual, sizeof(actual), &timestamp); // [手順] - cplat_clock_format_realtime_iso8601_local を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_OK,
-        actual_ret_format_realtime_iso8601_local); // [確認_正常系] - cplat_format_realtime_iso8601_local の戻り値が CPLAT_OK であること。
+        actual_ret_format_realtime_iso8601_local); // [確認_正常系] - cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("2024-04-05T15:07:08.246+09:00",
                  actual); // [確認_正常系] - オフセット +09:00 とミリ秒 246 を含む文字列になること。
 }
@@ -363,13 +363,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_negative_offset)
                 // [Pre-Assert手順] - cplat_gmtime から UTC の分解値を返却する。
 
     // Act
-    int actual_ret_format_realtime_iso8601_local = cplat_format_realtime_iso8601_local(
-        actual, sizeof(actual), &timestamp); // [手順] - cplat_format_realtime_iso8601_local を呼び出す。
+    int actual_ret_format_realtime_iso8601_local = cplat_clock_format_realtime_iso8601_local(
+        actual, sizeof(actual), &timestamp); // [手順] - cplat_clock_format_realtime_iso8601_local を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_OK,
-        actual_ret_format_realtime_iso8601_local); // [確認_正常系] - cplat_format_realtime_iso8601_local の戻り値が CPLAT_OK であること。
+        actual_ret_format_realtime_iso8601_local); // [確認_正常系] - cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("2024-04-05T00:37:08.135-05:30",
                  actual); // [確認_正常系] - 負のオフセット -05:30 を含む文字列になること。
 }
@@ -398,13 +398,13 @@ TEST_F(clockTest, format_realtime_iso8601_utc_outputs_z_suffix)
                 // [Pre-Assert手順] - cplat_gmtime から UTC の分解値を返却する。
 
     // Act
-    int actual_ret_format_realtime_iso8601_utc = cplat_format_realtime_iso8601_utc(
-        actual, sizeof(actual), &timestamp); // [手順] - cplat_format_realtime_iso8601_utc を呼び出す。
+    int actual_ret_format_realtime_iso8601_utc = cplat_clock_format_realtime_iso8601_utc(
+        actual, sizeof(actual), &timestamp); // [手順] - cplat_clock_format_realtime_iso8601_utc を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_OK,
-        actual_ret_format_realtime_iso8601_utc); // [確認_正常系] - cplat_format_realtime_iso8601_utc の戻り値が CPLAT_OK であること。
+        actual_ret_format_realtime_iso8601_utc); // [確認_正常系] - cplat_clock_format_realtime_iso8601_utc の戻り値が CPLAT_OK であること。
     EXPECT_STREQ("2024-04-05T06:07:08.987Z", actual); // [確認_正常系] - "Z" サフィックス付きの UTC 文字列になること。
 }
 
@@ -419,14 +419,14 @@ TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_nsec_is_invalid)
     // Pre-Assert
 
     // Act
-    int actual_ret_format_realtime_iso8601_local = cplat_format_realtime_iso8601_local(
+    int actual_ret_format_realtime_iso8601_local = cplat_clock_format_realtime_iso8601_local(
         actual, sizeof(actual),
-        &invalid_timestamp); // [手順] - 不正なタイムスタンプで cplat_format_realtime_iso8601_local を呼び出す。
+        &invalid_timestamp); // [手順] - 不正なタイムスタンプで cplat_clock_format_realtime_iso8601_local を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_format_realtime_iso8601_local); // [確認_異常系] - cplat_format_realtime_iso8601_local の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_format_realtime_iso8601_local); // [確認_異常系] - cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
@@ -439,7 +439,7 @@ TEST_F(clockTest, format_realtime_iso8601_local_rejects_invalid_arguments)
     // Pre-Assert
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         NULL, 0U, &invalid_timestamp); // [手順] - NULL バッファーと不正な nsec で local formatter を呼び出す。
 
     // Assert
@@ -456,13 +456,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_rejects_null_timestamp)
     // Pre-Assert
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         &actual, 0u, NULL); // [手順] - NULL タイムスタンプとサイズ 0 のバッファーで local formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        result); // [確認_異常系] - NULL タイムスタンプを渡した cplat_format_realtime_iso8601_local の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        result); // [確認_異常系] - NULL タイムスタンプを渡した cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ('x', actual); // [確認_異常系] - サイズ 0 の出力先が変更されないこと。
 }
 
@@ -476,7 +476,7 @@ TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_nsec_is_invalid)
     // Pre-Assert
 
     // Act
-    int result = cplat_format_realtime_iso8601_utc(
+    int result = cplat_clock_format_realtime_iso8601_utc(
         actual, sizeof(actual), &invalid_timestamp); // [手順] - 不正な nsec で UTC formatter を呼び出す。
 
     // Assert
@@ -497,21 +497,21 @@ TEST_F(clockTest, format_realtime_iso8601_utc_rejects_invalid_timestamp_fields)
     // Pre-Assert
 
     // Act
-    int null_result = cplat_format_realtime_iso8601_utc(
+    int null_result = cplat_clock_format_realtime_iso8601_utc(
         null_actual, sizeof(null_actual), NULL); // [手順] - NULL タイムスタンプで UTC formatter を呼び出す。
-    int negative_result = cplat_format_realtime_iso8601_utc(
+    int negative_result = cplat_clock_format_realtime_iso8601_utc(
         negative_actual, sizeof(negative_actual),
         &negative_nsec); // [手順] - 負のナノ秒を指定して UTC formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        null_result); // [確認_異常系] - NULL タイムスタンプを渡した cplat_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        null_result); // [確認_異常系] - NULL タイムスタンプを渡した cplat_clock_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000Z",
                  null_actual); // [確認_異常系] - NULL タイムスタンプに対して UTC のフォールバック文字列が返ること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        negative_result); // [確認_異常系] - 負のナノ秒を渡した cplat_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        negative_result); // [確認_異常系] - 負のナノ秒を渡した cplat_clock_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000Z",
                  negative_actual); // [確認_異常系] - 負のナノ秒に対して UTC のフォールバック文字列が返ること。
 }
@@ -530,13 +530,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_localtime_fails)
                                // [Pre-Assert手順] - cplat_localtime から -1 を返却する。
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         actual, sizeof(actual), &timestamp); // [手順] - localtime が失敗する状態で local formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        result); // [確認_異常系] - localtime 失敗時の cplat_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
+        result); // [確認_異常系] - localtime 失敗時の cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00",
                  actual); // [確認_異常系] - localtime 失敗時に local のフォールバック文字列が返ること。
 }
@@ -566,13 +566,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_falls_back_when_gmtime_fails)
                                // [Pre-Assert手順] - cplat_gmtime から -1 を返却する。
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         actual, sizeof(actual), &timestamp); // [手順] - gmtime が失敗する状態で local formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        result); // [確認_異常系] - gmtime 失敗時の cplat_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
+        result); // [確認_異常系] - gmtime 失敗時の cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000+00:00",
                  actual); // [確認_異常系] - gmtime 失敗時に local のフォールバック文字列が返ること。
 }
@@ -598,13 +598,13 @@ TEST_F(clockTest, format_realtime_iso8601_utc_falls_back_when_gmtime_fails)
                 // [Pre-Assert手順] - cplat_gmtime から -1 を返却する。
 
     // Act
-    int actual_ret_format_realtime_iso8601_utc = cplat_format_realtime_iso8601_utc(
-        actual, sizeof(actual), &timestamp); // [手順] - cplat_format_realtime_iso8601_utc を呼び出す。
+    int actual_ret_format_realtime_iso8601_utc = cplat_clock_format_realtime_iso8601_utc(
+        actual, sizeof(actual), &timestamp); // [手順] - cplat_clock_format_realtime_iso8601_utc を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        actual_ret_format_realtime_iso8601_utc); // [確認_異常系] - cplat_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_UNKNOWN であること。
+        actual_ret_format_realtime_iso8601_utc); // [確認_異常系] - cplat_clock_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_UNKNOWN であること。
     EXPECT_STREQ("0000-00-00T00:00:00.000Z", actual); // [確認_異常系] - ゼロ埋めのフォールバック文字列になること。
 }
 
@@ -639,7 +639,7 @@ TEST_F(clockTest, format_realtime_iso8601_local_rejects_small_buffer)
                 // [Pre-Assert手順] - cplat_gmtime から用意した分解時刻を返却する。
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         actual, sizeof(actual), &timestamp); // [手順] - 小さいバッファーで local formatter を呼び出す。
 
     // Assert
@@ -669,7 +669,7 @@ TEST_F(clockTest, format_realtime_iso8601_utc_rejects_small_buffer)
                 // [Pre-Assert手順] - cplat_gmtime から用意した分解時刻を返却する。
 
     // Act
-    int result = cplat_format_realtime_iso8601_utc(
+    int result = cplat_clock_format_realtime_iso8601_utc(
         actual, sizeof(actual), &timestamp); // [手順] - 小さいバッファーで UTC formatter を呼び出す。
 
     // Assert
@@ -710,13 +710,13 @@ TEST_F(clockTest, format_realtime_iso8601_local_rejects_null_buffer)
 
     // Act
     int result =
-        cplat_format_realtime_iso8601_local(NULL, CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1u,
+        cplat_clock_format_realtime_iso8601_local(NULL, CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1u,
                                                &timestamp); // [手順] - NULL バッファーで local formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        result); // [確認_異常系] - NULL バッファーを渡した cplat_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
+        result); // [確認_異常系] - NULL バッファーを渡した cplat_clock_format_realtime_iso8601_local の戻り値が CPLAT_ERR_UNKNOWN であること。
 }
 
 // 有効なタイムスタンプでも NULL バッファーを UTC formatter が拒否することの確認
@@ -741,13 +741,13 @@ TEST_F(clockTest, format_realtime_iso8601_utc_rejects_null_buffer)
 
     // Act
     int result =
-        cplat_format_realtime_iso8601_utc(NULL, CPLAT_CLOCK_ISO8601_UTC_MSEC_LEN + 1u,
+        cplat_clock_format_realtime_iso8601_utc(NULL, CPLAT_CLOCK_ISO8601_UTC_MSEC_LEN + 1u,
                                              &timestamp); // [手順] - NULL バッファーで UTC formatter を呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        result); // [確認_異常系] - NULL バッファーを渡した cplat_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_UNKNOWN であること。
+        result); // [確認_異常系] - NULL バッファーを渡した cplat_clock_format_realtime_iso8601_utc の戻り値が CPLAT_ERR_UNKNOWN であること。
 }
 
 // 年初および紀元前相当の時刻を local formatter が処理できることの確認
@@ -781,7 +781,7 @@ TEST_F(clockTest, format_realtime_iso8601_local_supports_early_date)
                 // [Pre-Assert手順] - cplat_gmtime から用意した分解時刻を返却する。
 
     // Act
-    int result = cplat_format_realtime_iso8601_local(
+    int result = cplat_clock_format_realtime_iso8601_local(
         actual, sizeof(actual), &timestamp); // [手順] - 年初の早い日付で local formatter を呼び出す。
 
     // Assert
@@ -822,8 +822,8 @@ TEST_F(clockTest, realtime_deadline_ms_adds_timeout_without_nsec_carry)
 #endif
 
     // Act
-    cplat_get_realtime_deadline_ms(
-        timeout_ms, &abs_timeout); // [手順] - cplat_get_realtime_deadline_ms(timeout_ms, &abs_timeout) を呼び出す。
+    cplat_clock_get_realtime_deadline_ms(
+        timeout_ms, &abs_timeout); // [手順] - cplat_clock_get_realtime_deadline_ms(timeout_ms, &abs_timeout) を呼び出す。
 
     // Assert
     EXPECT_EQ(expected_sec, abs_timeout.tv_sec);   // [確認_正常系] - 秒繰り上がりなしで秒部が 100 のままであること。
@@ -863,8 +863,8 @@ TEST_F(clockTest, realtime_deadline_ms_carries_nsec_overflow)
 #endif
 
     // Act
-    cplat_get_realtime_deadline_ms(
-        timeout_ms, &abs_timeout); // [手順] - cplat_get_realtime_deadline_ms(timeout_ms, &abs_timeout) を呼び出す。
+    cplat_clock_get_realtime_deadline_ms(
+        timeout_ms, &abs_timeout); // [手順] - cplat_clock_get_realtime_deadline_ms(timeout_ms, &abs_timeout) を呼び出す。
 
     // Assert
     EXPECT_EQ(expected_sec, abs_timeout.tv_sec); // [確認_正常系] - ナノ秒 overflow により秒部が 101 に繰り上がること。

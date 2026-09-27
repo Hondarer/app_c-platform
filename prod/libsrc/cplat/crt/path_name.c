@@ -28,18 +28,18 @@ static int copy_path_name_text(char *path_out, const size_t path_size, cplat_err
 
     if (path_out == NULL || path_size == 0u || text == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     len = strlen(text);
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     memcpy(path_out, text, len + 1u);
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -81,7 +81,7 @@ int cplat_path_dirname(char *path_out, const size_t path_size, cplat_error *deta
 
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     /* 末尾のセパレータ群を除去する (ルートのみの場合は残す) */
@@ -115,7 +115,7 @@ int cplat_path_dirname(char *path_out, const size_t path_size, cplat_error *deta
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     for (p = path; p < last_sep; ++p)
@@ -131,7 +131,7 @@ int cplat_path_dirname(char *path_out, const size_t path_size, cplat_error *deta
     }
     path_out[len] = '\0';
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -174,7 +174,7 @@ int cplat_path_strip_extension(char *path_out, const size_t path_size, cplat_err
 
     if (path_out == NULL || path_size == 0u || path == NULL || path[0] == '\0')
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     ext = cplat_path_extension(path);
@@ -183,13 +183,13 @@ int cplat_path_strip_extension(char *path_out, const size_t path_size, cplat_err
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     memcpy(path_out, path, len);
     path_out[len] = '\0';
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -205,7 +205,7 @@ int cplat_vpath_join_n(char *path_out, const size_t path_size, cplat_error *deta
 
     if (path_out == NULL || path_size == 0u || part_count == 0u)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     path_out[0] = '\0';
@@ -226,7 +226,7 @@ int cplat_vpath_join_n(char *path_out, const size_t path_size, cplat_error *deta
             if (part == NULL)
             {
                 va_end(args_copy);
-                return cplat_error_report_errno(detail_out, EINVAL);
+                return cplat_internal_error_report_errno(detail_out, EINVAL);
             }
 
             part_len = strlen(part);
@@ -252,7 +252,7 @@ int cplat_vpath_join_n(char *path_out, const size_t path_size, cplat_error *deta
                     if (required_size >= path_size)
                     {
                         va_end(args_copy);
-                        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+                        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
                     }
                     required_size += 1u;
                 }
@@ -261,7 +261,7 @@ int cplat_vpath_join_n(char *path_out, const size_t path_size, cplat_error *deta
             if (part_len - skip_leading > path_size - required_size)
             {
                 va_end(args_copy);
-                return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+                return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             }
             required_size += part_len - skip_leading;
 
@@ -311,7 +311,7 @@ int cplat_vpath_join_n(char *path_out, const size_t path_size, cplat_error *deta
 
     path_out[offset] = '\0';
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

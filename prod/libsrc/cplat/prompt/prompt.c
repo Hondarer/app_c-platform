@@ -46,7 +46,7 @@ typedef enum prompt_key
 /* インデックス計算: oldest=0, newest=count-1 */
 #define HIST_IDX(p, ctx, i) (((ctx)->head + (i)) % (p)->history_max)
 
-static void history_add(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *line)
+static void history_add(cplat_prompt *p, cplat_internal_prompt_ctx *ctx, const char *line)
 {
     size_t line_size;
     size_t slot;
@@ -117,7 +117,7 @@ static void redisplay(const char *prompt_str, const char *buf, size_t len, size_
 
 static prompt_key read_key(cplat_prompt *p, int *ch_out)
 {
-    int c = prompt_platform_read_char(p);
+    int c = cplat_internal_prompt_platform_read_char(p);
     if (c == -1)
     {
         return KEY_EOF;
@@ -141,7 +141,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
     if (c == 0x1B)
     {
         /* ESC シーケンス */
-        int c2 = prompt_platform_read_char_nb(p);
+        int c2 = cplat_internal_prompt_platform_read_char_nb(p);
         /* 単独の ESC (次の文字が来なければ) は行消去とする */
         if (c2 == -1)
         {
@@ -149,7 +149,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
         }
         if (c2 == '[')
         {
-            int c3 = prompt_platform_read_char_nb(p);
+            int c3 = cplat_internal_prompt_platform_read_char_nb(p);
             switch (c3)
             {
             case 'A':
@@ -166,7 +166,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
                 return KEY_END;
             case '1':
             {
-                int c4 = prompt_platform_read_char_nb(p);
+                int c4 = cplat_internal_prompt_platform_read_char_nb(p);
                 if (c4 == '~')
                 {
                     return KEY_HOME;
@@ -178,7 +178,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
             }
             case '3':
             {
-                int c4 = prompt_platform_read_char_nb(p);
+                int c4 = cplat_internal_prompt_platform_read_char_nb(p);
                 if (c4 == '~')
                 {
                     return KEY_DELETE;
@@ -190,7 +190,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
             }
             case '4':
             {
-                int c4 = prompt_platform_read_char_nb(p);
+                int c4 = cplat_internal_prompt_platform_read_char_nb(p);
                 if (c4 == '~')
                 {
                     return KEY_END;
@@ -219,7 +219,7 @@ static prompt_key read_key(cplat_prompt *p, int *ch_out)
  * 履歴ブラウズ
  * ================================================================ */
 
-static void history_browse_prev(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *prompt_str)
+static void history_browse_prev(cplat_prompt *p, cplat_internal_prompt_ctx *ctx, const char *prompt_str)
 {
     const char *entry;
     size_t len;
@@ -247,7 +247,7 @@ static void history_browse_prev(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
         return;
     }
     len = strlen(entry);
-    if (cplat_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, len + 1U) != 0)
+    if (cplat_internal_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, len + 1U) != 0)
     {
         len = p->edit_cap - 1U;
     }
@@ -258,7 +258,7 @@ static void history_browse_prev(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
     redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
 }
 
-static void history_browse_next(cplat_prompt *p, cplat_prompt_ctx *ctx, const char *prompt_str)
+static void history_browse_next(cplat_prompt *p, cplat_internal_prompt_ctx *ctx, const char *prompt_str)
 {
     if (ctx->browse_idx == -1)
     {
@@ -284,7 +284,7 @@ static void history_browse_next(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
     {
         /* 保存した現在行に戻る */
         size_t len = strlen(ctx->saved_line);
-        if (cplat_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, len + 1U) != 0)
+        if (cplat_internal_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, len + 1U) != 0)
         {
             len = p->edit_cap - 1U;
         }
@@ -301,10 +301,10 @@ static void history_browse_next(cplat_prompt *p, cplat_prompt_ctx *ctx, const ch
  * コンテキスト管理
  * ================================================================ */
 
-static cplat_prompt_ctx *find_or_create_ctx(cplat_prompt *p, const char *file, int line)
+static cplat_internal_prompt_ctx *find_or_create_ctx(cplat_prompt *p, const char *file, int line)
 {
     size_t i;
-    cplat_prompt_ctx *ctx;
+    cplat_internal_prompt_ctx *ctx;
 
     /* 既存コンテキストを検索 */
     for (i = 0; i < p->ctx_count; i++)
@@ -319,7 +319,7 @@ static cplat_prompt_ctx *find_or_create_ctx(cplat_prompt *p, const char *file, i
     if (p->ctx_count == p->ctx_cap)
     {
         size_t new_cap;
-        cplat_prompt_ctx *new_contexts;
+        cplat_internal_prompt_ctx *new_contexts;
         if (p->ctx_cap)
         {
             new_cap = p->ctx_cap * 2;
@@ -328,7 +328,7 @@ static cplat_prompt_ctx *find_or_create_ctx(cplat_prompt *p, const char *file, i
         {
             new_cap = 4;
         }
-        new_contexts = (cplat_prompt_ctx *)cplat_realloc(p->contexts, new_cap, sizeof(cplat_prompt_ctx));
+        new_contexts = (cplat_internal_prompt_ctx *)cplat_realloc(p->contexts, new_cap, sizeof(cplat_internal_prompt_ctx));
         if (new_contexts == NULL)
         {
             return NULL;
@@ -391,7 +391,7 @@ cplat_prompt *cplat_prompt_create(const cplat_prompt_options *options)
         opt_input_initial_capacity = 0U;
         opt_input_max_bytes = 0U;
     }
-    cplat_prompt_edit_resolve_options(opt_history_max, opt_input_initial_capacity, opt_input_max_bytes,
+    cplat_internal_prompt_edit_resolve_options(opt_history_max, opt_input_initial_capacity, opt_input_max_bytes,
                                          PROMPT_INPUT_INITIAL_DEFAULT, &history_max, &input_initial_capacity,
                                          &input_max_bytes);
 
@@ -419,13 +419,13 @@ void cplat_prompt_dispose(cplat_prompt *prompt)
         return;
     }
     /* raw モード中なら復元 */
-    prompt_platform_leave_raw(prompt);
+    cplat_internal_prompt_platform_leave_raw(prompt);
 
     /* 全コンテキストのリソースを解放 */
     for (i = 0; i < prompt->ctx_count; i++)
     {
         size_t j;
-        cplat_prompt_ctx *ctx = &prompt->contexts[i];
+        cplat_internal_prompt_ctx *ctx = &prompt->contexts[i];
         for (j = 0; j < prompt->history_max; j++)
         {
             cplat_free(ctx->entries[j]);
@@ -473,7 +473,7 @@ static int prompt_readline_fallback(char *buf, const size_t buf_size, const char
 static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_size, const char *prompt_str,
                                 const char *initial_text, const size_t initial_length, const char *file, int line)
 {
-    cplat_prompt_ctx *ctx;
+    cplat_internal_prompt_ctx *ctx;
 
     buf[0] = '\0';
 
@@ -492,7 +492,7 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
     }
 
     /* raw モードに移行 */
-    prompt_platform_enter_raw(p);
+    cplat_internal_prompt_platform_enter_raw(p);
 
     /* 編集バッファー初期化。初期値があれば入力欄へ入れ、カーソルを末尾に置く */
     p->edit_len = 0;
@@ -502,10 +502,10 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
     if (initial_length > 0U)
     {
         /* 検証済みの長さは上限以内のため、確保に失敗するのはメモリ不足のときだけ */
-        if (cplat_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, initial_length + 1U) !=
+        if (cplat_internal_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes, initial_length + 1U) !=
             0)
         {
-            prompt_platform_leave_raw(p);
+            cplat_internal_prompt_platform_leave_raw(p);
             return CPLAT_ERR_OUT_OF_MEMORY;
         }
         memcpy(p->edit_buf, initial_text, initial_length);
@@ -543,27 +543,27 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
             {
                 history_add(p, ctx, p->edit_buf);
             }
-            prompt_platform_leave_raw(p);
+            cplat_internal_prompt_platform_leave_raw(p);
             return CPLAT_OK;
 
         case KEY_EOF:
             putchar('\n');
             fflush(stdout);
             buf[0] = '\0';
-            prompt_platform_leave_raw(p);
+            cplat_internal_prompt_platform_leave_raw(p);
             return CPLAT_ERR_EOF;
 
         case KEY_CTRL_C:
             putchar('\n');
             fflush(stdout);
             buf[0] = '\0';
-            prompt_platform_leave_raw(p);
+            cplat_internal_prompt_platform_leave_raw(p);
             return CPLAT_ERR_CANCELED;
 
         case KEY_BACKSPACE:
             if (p->cursor > 0)
             {
-                size_t prev = cplat_prompt_edit_utf8_prev_boundary(p->edit_buf, p->cursor);
+                size_t prev = cplat_internal_prompt_edit_utf8_prev_boundary(p->edit_buf, p->cursor);
                 memmove(p->edit_buf + prev, p->edit_buf + p->cursor, p->edit_len - p->cursor + 1);
                 p->edit_len -= p->cursor - prev;
                 p->cursor = prev;
@@ -574,7 +574,7 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
         case KEY_DELETE:
             if (p->cursor < p->edit_len)
             {
-                size_t next = cplat_prompt_edit_utf8_next_boundary(p->edit_buf, p->edit_len, p->cursor);
+                size_t next = cplat_internal_prompt_edit_utf8_next_boundary(p->edit_buf, p->edit_len, p->cursor);
                 memmove(p->edit_buf + p->cursor, p->edit_buf + next, p->edit_len - next + 1);
                 p->edit_len -= next - p->cursor;
                 p->edit_buf[p->edit_len] = '\0';
@@ -585,7 +585,7 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
         case KEY_LEFT:
             if (p->cursor > 0)
             {
-                p->cursor = cplat_prompt_edit_utf8_prev_boundary(p->edit_buf, p->cursor);
+                p->cursor = cplat_internal_prompt_edit_utf8_prev_boundary(p->edit_buf, p->cursor);
                 redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
             }
             break;
@@ -593,7 +593,7 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
         case KEY_RIGHT:
             if (p->cursor < p->edit_len)
             {
-                p->cursor = cplat_prompt_edit_utf8_next_boundary(p->edit_buf, p->edit_len, p->cursor);
+                p->cursor = cplat_internal_prompt_edit_utf8_next_boundary(p->edit_buf, p->edit_len, p->cursor);
                 redisplay(prompt_str, p->edit_buf, p->edit_len, p->cursor);
             }
             break;
@@ -631,7 +631,7 @@ static int prompt_readline_core(cplat_prompt *p, char *buf, const size_t buf_siz
             break;
 
         case KEY_CHAR:
-            if (cplat_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes,
+            if (cplat_internal_prompt_edit_ensure_capacity(&p->edit_buf, &p->edit_cap, p->input_max_bytes,
                                                      p->edit_len + 2U) == 0)
             {
                 memmove(p->edit_buf + p->cursor + 1, p->edit_buf + p->cursor, p->edit_len - p->cursor + 1);
@@ -680,7 +680,7 @@ int cplat_prompt_readline_with_initial_at(cplat_prompt *p, char *buf, const size
     buf[0] = '\0';
 
     /* TTY かどうかによらず同じ規則で検証し、契約を経路に依存させない */
-    ret = cplat_prompt_edit_validate_initial_text(initial_text, p->input_max_bytes, &initial_length);
+    ret = cplat_internal_prompt_edit_validate_initial_text(initial_text, p->input_max_bytes, &initial_length);
     if (ret != CPLAT_OK)
     {
         return ret;

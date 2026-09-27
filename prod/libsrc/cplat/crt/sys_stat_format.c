@@ -26,12 +26,12 @@ int cplat_vstat_fmt(cplat_file_stat_t *buf, cplat_error *detail_out, const char 
 
     if (buf == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
-    if (cplat_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
+    if (cplat_internal_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
-        return cplat_error_report_errno(detail_out, format_error);
+        return cplat_internal_error_report_errno(detail_out, format_error);
     }
 
     return cplat_stat(buf, detail_out, filename);
@@ -58,9 +58,9 @@ int cplat_vmkdir_fmt(cplat_error *detail_out, const char *format, va_list args)
     char filename[PLATFORM_PATH_MAX] = {0};
     int format_error;
 
-    if (cplat_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
+    if (cplat_internal_vformat_path(filename, sizeof(filename), format, args, &format_error) != 0)
     {
-        return cplat_error_report_errno(detail_out, format_error);
+        return cplat_internal_error_report_errno(detail_out, format_error);
     }
 
     return cplat_mkdir(filename, detail_out);

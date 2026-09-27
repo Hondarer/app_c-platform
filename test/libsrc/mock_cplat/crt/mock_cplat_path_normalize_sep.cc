@@ -1,25 +1,25 @@
 #include <testfw.h>
 #include <mock_cplat.h>
 
-char *delegate_real_cplat_normalize_path_sep(char *path)
+char *delegate_real_cplat_path_normalize_sep(char *path)
 {
-    static auto real_fn = reinterpret_cast<decltype(&cplat_normalize_path_sep)>(
-        resolveSharedSymbolOrExit(kLibCplatName, "cplat_normalize_path_sep"));
+    static auto real_fn = reinterpret_cast<decltype(&cplat_path_normalize_sep)>(
+        resolveSharedSymbolOrExit(kLibCplatName, "cplat_path_normalize_sep"));
 
     return real_fn(path);
 }
 
-MOCK_WEAK_IMPL(char *, cplat_normalize_path_sep, char *path)
+MOCK_WEAK_IMPL(char *, cplat_path_normalize_sep, char *path)
 {
     char *mock_ret = nullptr;
 
     if (_mock_cplat != nullptr)
     {
-        mock_ret = _mock_cplat->cplat_normalize_path_sep(path);
+        mock_ret = _mock_cplat->cplat_path_normalize_sep(path);
     }
     else
     {
-        mock_ret = delegate_real_cplat_normalize_path_sep(path);
+        mock_ret = delegate_real_cplat_path_normalize_sep(path);
     }
 
     if (getTraceLevel() > TRACE_NONE)

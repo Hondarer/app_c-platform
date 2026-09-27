@@ -45,7 +45,7 @@ TEST_F(consoleTest, dispose_on_shutdown_after_init)
     // Pre-Assert
 
     // Act
-    cplat_console_dispose_on_shutdown(&event,
+    cplat_internal_console_dispose_on_shutdown(&event,
                                          NULL); // [手順] - 正常終了イベントで dispose_on_shutdown() を呼び出す。
 
     // Assert
@@ -62,7 +62,7 @@ TEST_F(consoleTest, dispose_on_shutdown_without_init)
     // Pre-Assert
 
     // Act
-    cplat_console_dispose_on_shutdown(&event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼び出す。
+    cplat_internal_console_dispose_on_shutdown(&event, NULL); // [手順] - init を呼ばずに dispose_on_shutdown() を呼び出す。
 
     // Assert
     SUCCEED(); // [確認_正常系] - 安全に何もせず、クラッシュしないこと。
@@ -79,8 +79,8 @@ TEST_F(consoleTest, double_dispose_on_shutdown)
     // Pre-Assert
 
     // Act
-    cplat_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown() を呼び出す。
-    cplat_console_dispose_on_shutdown(&event, NULL); // [手順] - 続けて 2 回目の dispose_on_shutdown() を呼び出す。
+    cplat_internal_console_dispose_on_shutdown(&event, NULL); // [手順] - 1 回目の dispose_on_shutdown() を呼び出す。
+    cplat_internal_console_dispose_on_shutdown(&event, NULL); // [手順] - 続けて 2 回目の dispose_on_shutdown() を呼び出す。
 
     // Assert
     SUCCEED(); // [確認_正常系] - 2 回目は安全に何もせず、クラッシュしないこと。
@@ -99,7 +99,7 @@ TEST_F(consoleTest, dispose_on_shutdown_process_terminating)
     // Pre-Assert
 
     // Act
-    cplat_console_dispose_on_shutdown(&terminating_event,
+    cplat_internal_console_dispose_on_shutdown(&terminating_event,
                                          NULL); // [手順] - 終了中イベントで dispose_on_shutdown() を呼び出す。
 
     // Assert
@@ -107,7 +107,7 @@ TEST_F(consoleTest, dispose_on_shutdown_process_terminating)
 
     // Cleanup
     // init 状態を通常終了イベントで解放する。
-    cplat_console_dispose_on_shutdown(&normal_event, NULL);
+    cplat_internal_console_dispose_on_shutdown(&normal_event, NULL);
 }
 
 // init 後に printf / fprintf を呼んでもクラッシュしないことの確認

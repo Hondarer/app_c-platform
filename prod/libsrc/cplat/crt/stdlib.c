@@ -31,7 +31,7 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
     }
     if (name == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -43,7 +43,7 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
             {
                 buf[0] = '\0';
             }
-            return cplat_error_report_success(detail_out);
+            return cplat_internal_error_report_success(detail_out);
         }
         if (exists_out != NULL)
         {
@@ -54,11 +54,11 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
             size_t len = strlen(val);
             if (len + 1 > buf_size)
             {
-                return cplat_error_report_errno(detail_out, ERANGE);
+                return cplat_internal_error_report_errno(detail_out, ERANGE);
             }
             memcpy(buf, val, len + 1);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -69,7 +69,7 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
         if (err != 0)
         {
             free(val);
-            return cplat_error_report_errno(detail_out, (int)err);
+            return cplat_internal_error_report_errno(detail_out, (int)err);
         }
         if (val == NULL)
         {
@@ -77,7 +77,7 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
             {
                 buf[0] = '\0';
             }
-            return cplat_error_report_success(detail_out);
+            return cplat_internal_error_report_success(detail_out);
         }
         if (exists_out != NULL)
         {
@@ -88,12 +88,12 @@ int cplat_getenv(const char *name, char *buf, const size_t buf_size, int *exists
             if (val_len > buf_size)
             {
                 free(val);
-                return cplat_error_report_errno(detail_out, ERANGE);
+                return cplat_internal_error_report_errno(detail_out, ERANGE);
             }
             memcpy(buf, val, val_len);
         }
         free(val);
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -119,7 +119,7 @@ int cplat_setenv(const char *name, const char *value, const int overwrite, cplat
 {
     if (!env_name_is_valid(name) || value == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -128,9 +128,9 @@ int cplat_setenv(const char *name, const char *value, const int overwrite, cplat
         {
             const int errno_value = errno;
 
-            return cplat_error_report_errno(detail_out, errno_value);
+            return cplat_internal_error_report_errno(detail_out, errno_value);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -141,7 +141,7 @@ int cplat_setenv(const char *name, const char *value, const int overwrite, cplat
 
             if (cplat_getenv(name, NULL, 0u, &exists, NULL) == CPLAT_OK && exists != 0)
             {
-                return cplat_error_report_success(detail_out);
+                return cplat_internal_error_report_success(detail_out);
             }
         }
 
@@ -154,9 +154,9 @@ int cplat_setenv(const char *name, const char *value, const int overwrite, cplat
                 errno_value = EIO;
             }
 
-            return cplat_error_report_errno(detail_out, errno_value);
+            return cplat_internal_error_report_errno(detail_out, errno_value);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }
@@ -167,7 +167,7 @@ int cplat_unsetenv(const char *name, cplat_error *detail_out)
 {
     if (!env_name_is_valid(name))
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -176,9 +176,9 @@ int cplat_unsetenv(const char *name, cplat_error *detail_out)
         {
             const int errno_value = errno;
 
-            return cplat_error_report_errno(detail_out, errno_value);
+            return cplat_internal_error_report_errno(detail_out, errno_value);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -193,9 +193,9 @@ int cplat_unsetenv(const char *name, cplat_error *detail_out)
                 errno_value = EIO;
             }
 
-            return cplat_error_report_errno(detail_out, errno_value);
+            return cplat_internal_error_report_errno(detail_out, errno_value);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }

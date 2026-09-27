@@ -46,7 +46,7 @@ static void console_diag_logf(const char *fmt, ...);
 
 static void register_console_shutdown_callback(void)
 {
-    (void)cplat_shutdown_register(cplat_console_dispose_on_shutdown, NULL);
+    (void)cplat_shutdown_register(cplat_internal_console_dispose_on_shutdown, NULL);
 }
 
 /**
@@ -640,7 +640,7 @@ int cplat_console_attach_parent(int *argc, char **argv, int *attached_out)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context)
+void cplat_internal_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context)
 {
     (void)context;
     if (event == NULL || event->reason != CPLAT_SHUTDOWN_REASON_NORMAL_EXIT)
@@ -749,7 +749,7 @@ int cplat_console_attach_parent(int *argc, char **argv, int *attached_out)
 }
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context)
+void cplat_internal_console_dispose_on_shutdown(const cplat_shutdown_event *event, void *context)
 {
     (void)event;
     (void)context;

@@ -23,7 +23,7 @@
  *  @section        timespec_usage 使い分けの指針
  *
  *  - **時刻の保持・受け渡し** → cplat_timespec を使用する。\n
- *    絶対時刻 (cplat_get_realtime()) にも単調クロック値 (cplat_get_monotonic()) にも使用します。
+ *    絶対時刻 (cplat_clock_get_realtime()) にも単調クロック値 (cplat_clock_get_monotonic()) にも使用します。
  *  - **加減算・比較** → cplat_timespec_add() / cplat_timespec_sub() / cplat_timespec_cmp() を使用する。\n
  *    手動での秒・ナノ秒演算は正規化漏れの原因となるため行いません。
  *  - **ミリ秒ベースの deadline / 経過時間** → cplat_timespec_add_ms() / cplat_timespec_diff_ms() を使用する。

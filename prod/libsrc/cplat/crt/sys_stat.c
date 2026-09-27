@@ -155,7 +155,7 @@ int cplat_rmdir(const char *path, cplat_error *detail_out)
 
     if (path == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     errno = 0;
@@ -167,7 +167,7 @@ int cplat_rmdir(const char *path, cplat_error *detail_out)
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         result = _wrmdir(wpath);
@@ -176,9 +176,9 @@ int cplat_rmdir(const char *path, cplat_error *detail_out)
 
     if (result != 0)
     {
-        return cplat_error_report_errno(detail_out, errno);
+        return cplat_internal_error_report_errno(detail_out, errno);
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -192,20 +192,20 @@ int cplat_makedirs(const char *path, cplat_error *detail_out)
 
     if (path == NULL || path[0] == '\0')
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     path_len = strlen(path);
     if (path_len >= (size_t)PLATFORM_PATH_MAX)
     {
-        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     /* パスをローカル バッファーに複製する */
     memcpy(buf, path, path_len + 1);
 
 #if defined(PLATFORM_WINDOWS)
-    cplat_normalize_path_sep(buf);
+    cplat_path_normalize_sep(buf);
 #endif /* PLATFORM_WINDOWS */
 
     root_len = path_root_prefix_len(buf);
@@ -239,7 +239,7 @@ int cplat_stat(cplat_file_stat_t *buf, cplat_error *detail_out, const char *path
 
     if (buf == NULL || path == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     errno = 0;
@@ -251,7 +251,7 @@ int cplat_stat(cplat_file_stat_t *buf, cplat_error *detail_out, const char *path
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         result = _wstat64(wpath, buf);
@@ -264,9 +264,9 @@ int cplat_stat(cplat_file_stat_t *buf, cplat_error *detail_out, const char *path
 
     if (result != 0)
     {
-        return cplat_error_report_errno(detail_out, errno);
+        return cplat_internal_error_report_errno(detail_out, errno);
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -277,7 +277,7 @@ int cplat_mkdir(const char *path, cplat_error *detail_out)
 
     if (path == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     errno = 0;
@@ -289,7 +289,7 @@ int cplat_mkdir(const char *path, cplat_error *detail_out)
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         result = _wmkdir(wpath);
@@ -298,9 +298,9 @@ int cplat_mkdir(const char *path, cplat_error *detail_out)
 
     if (result != 0)
     {
-        return cplat_error_report_errno(detail_out, errno);
+        return cplat_internal_error_report_errno(detail_out, errno);
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

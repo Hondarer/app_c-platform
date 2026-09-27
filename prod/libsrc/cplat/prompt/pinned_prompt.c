@@ -253,7 +253,7 @@ static size_t pinned_prompt_visible_bytes_from(const char *buf, size_t len, size
         if (cols + char_width > max_cols)
             break;
         cols += char_width;
-        pos = cplat_prompt_edit_utf8_next_boundary(buf, len, pos);
+        pos = cplat_internal_prompt_edit_utf8_next_boundary(buf, len, pos);
     }
     return pos - start;
 }
@@ -278,7 +278,7 @@ static size_t pinned_prompt_display_width_between(const char *buf, size_t len, s
             continue;
         }
         width += utf8_char_display_width(buf, len, pos);
-        pos = cplat_prompt_edit_utf8_next_boundary(buf, len, pos);
+        pos = cplat_internal_prompt_edit_utf8_next_boundary(buf, len, pos);
     }
     return width;
 }
@@ -613,7 +613,7 @@ static void pinned_prompt_adjust_view(cplat_pinned_prompt *screen)
     }
 
     screen->view_start =
-        cplat_prompt_edit_utf8_sanitize_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
+        cplat_internal_prompt_edit_utf8_sanitize_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
     if (screen->cursor < screen->view_start)
     {
         screen->view_start = screen->cursor;
@@ -623,7 +623,7 @@ static void pinned_prompt_adjust_view(cplat_pinned_prompt *screen)
     while (cursor_cols > input_cols)
     {
         screen->view_start =
-            cplat_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
+            cplat_internal_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->view_start);
         cursor_cols =
             pinned_prompt_display_width_between(screen->edit_buf, screen->edit_len, screen->view_start, screen->cursor);
     }
@@ -1086,7 +1086,7 @@ static void pinned_prompt_set_edit_line(cplat_pinned_prompt *screen, const char 
     size_t len;
 
     len = cstr_len(line);
-    if (cplat_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, len + 1U) !=
+    if (cplat_internal_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes, len + 1U) !=
         0)
     {
         len = screen->edit_cap - 1U;
@@ -1171,7 +1171,7 @@ static void pinned_prompt_history_next(cplat_pinned_prompt *screen, pinned_promp
 
 static void pinned_prompt_insert_byte(cplat_pinned_prompt *screen, int ch)
 {
-    if (cplat_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
+    if (cplat_internal_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
                                              screen->edit_len + 2U) != 0)
     {
         return;
@@ -1191,7 +1191,7 @@ static void pinned_prompt_backspace(cplat_pinned_prompt *screen)
     {
         return;
     }
-    prev = cplat_prompt_edit_utf8_prev_boundary(screen->edit_buf, screen->cursor);
+    prev = cplat_internal_prompt_edit_utf8_prev_boundary(screen->edit_buf, screen->cursor);
     memmove(screen->edit_buf + prev, screen->edit_buf + screen->cursor, screen->edit_len - screen->cursor + 1U);
     screen->edit_len -= screen->cursor - prev;
     screen->cursor = prev;
@@ -1205,7 +1205,7 @@ static void pinned_prompt_delete(cplat_pinned_prompt *screen)
     {
         return;
     }
-    next = cplat_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
+    next = cplat_internal_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
     memmove(screen->edit_buf + screen->cursor, screen->edit_buf + next, screen->edit_len - next + 1U);
     screen->edit_len -= next - screen->cursor;
 }
@@ -1295,13 +1295,13 @@ cplat_pinned_prompt *cplat_pinned_prompt_create(const cplat_pinned_prompt_option
 
     if (options != NULL)
     {
-        cplat_prompt_edit_resolve_options(options->input.history_max, options->input.input_initial_capacity,
+        cplat_internal_prompt_edit_resolve_options(options->input.history_max, options->input.input_initial_capacity,
                                              options->input.input_max_bytes, PINNED_PROMPT_INPUT_INITIAL_DEFAULT,
                                              &history_max, &input_initial_capacity, &input_max_bytes);
     }
     else
     {
-        cplat_prompt_edit_resolve_options(0U, 0U, 0U, PINNED_PROMPT_INPUT_INITIAL_DEFAULT, &history_max,
+        cplat_internal_prompt_edit_resolve_options(0U, 0U, 0U, PINNED_PROMPT_INPUT_INITIAL_DEFAULT, &history_max,
                                              &input_initial_capacity, &input_max_bytes);
     }
     screen->history_max = history_max;
@@ -1452,7 +1452,7 @@ static int pinned_prompt_readline_core(cplat_pinned_prompt *screen, char *buf, c
     if (initial_length > 0U)
     {
         /* 検証済みの長さは上限以内のため、確保に失敗するのはメモリ不足のときだけ */
-        if (cplat_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
+        if (cplat_internal_prompt_edit_ensure_capacity(&screen->edit_buf, &screen->edit_cap, screen->input_max_bytes,
                                                  initial_length + 1U) != 0)
         {
             pinned_prompt_unlock(screen);
@@ -1527,12 +1527,12 @@ static int pinned_prompt_readline_core(cplat_pinned_prompt *screen, char *buf, c
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_LEFT:
-            screen->cursor = cplat_prompt_edit_utf8_prev_boundary(screen->edit_buf, screen->cursor);
+            screen->cursor = cplat_internal_prompt_edit_utf8_prev_boundary(screen->edit_buf, screen->cursor);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_RIGHT:
             screen->cursor =
-                cplat_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
+                cplat_internal_prompt_edit_utf8_next_boundary(screen->edit_buf, screen->edit_len, screen->cursor);
             pinned_prompt_render_locked(screen);
             break;
         case PINNED_PROMPT_KEY_HOME:
@@ -1600,7 +1600,7 @@ int cplat_pinned_prompt_readline_with_initial_at(cplat_pinned_prompt *screen, ch
     buf[0] = '\0';
 
     /* TTY かどうかによらず同じ規則で検証し、契約を経路に依存させない */
-    ret = cplat_prompt_edit_validate_initial_text(initial_text, screen->input_max_bytes, &initial_length);
+    ret = cplat_internal_prompt_edit_validate_initial_text(initial_text, screen->input_max_bytes, &initial_length);
     if (ret != CPLAT_OK)
     {
         return ret;

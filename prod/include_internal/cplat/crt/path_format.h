@@ -34,7 +34,7 @@ extern "C"
      *  @return         成功時は 0 を返します。引数不正、書式処理失敗、またはバッファー不足の場合は
      *                  -1 を返します。失敗時の @p path の内容は使用できません。
      */
-    int cplat_vformat_path(char *path, size_t path_size, const char *format, va_list args, int *error_out);
+    int cplat_internal_vformat_path(char *path, size_t path_size, const char *format, va_list args, int *error_out);
 
 #ifdef __cplusplus
 }

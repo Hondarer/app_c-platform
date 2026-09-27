@@ -64,15 +64,15 @@ static int set_int_option(cplat_socket sock, int level, int optname, int value, 
 {
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     if (setsockopt((int)sock, level, optname, &value, (socklen_t)sizeof(value)) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /**
@@ -93,7 +93,7 @@ static int poll_with_deadline(struct pollfd *fds, nfds_t count, int timeout_ms)
 
     if (timeout_ms > 0)
     {
-        deadline = cplat_get_monotonic_ms() + (uint64_t)timeout_ms;
+        deadline = cplat_clock_get_monotonic_ms() + (uint64_t)timeout_ms;
     }
 
     for (;;)
@@ -111,7 +111,7 @@ static int poll_with_deadline(struct pollfd *fds, nfds_t count, int timeout_ms)
 
         if (timeout_ms > 0)
         {
-            const uint64_t now = cplat_get_monotonic_ms();
+            const uint64_t now = cplat_clock_get_monotonic_ms();
 
             if (now >= deadline)
             {
@@ -140,7 +140,7 @@ static int wait_single(cplat_socket sock, short events, int timeout_ms, int *rea
 
     if ((sock == CPLAT_INVALID_SOCKET) || (ready_out == NULL))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *ready_out = 0;
@@ -152,7 +152,7 @@ static int wait_single(cplat_socket sock, short events, int timeout_ms, int *rea
     poll_result = poll_with_deadline(&poll_fd, (nfds_t)1, timeout_ms);
     if (poll_result < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     if ((poll_result > 0) && ((poll_fd.revents & events) != 0))
@@ -160,7 +160,7 @@ static int wait_single(cplat_socket sock, short events, int timeout_ms, int *rea
         *ready_out = 1;
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /**
@@ -274,7 +274,7 @@ int cplat_socket_open(const cplat_socket_kind kind, cplat_socket *sock_out, cpla
 
     if (sock_out == NULL)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *sock_out = CPLAT_INVALID_SOCKET;
@@ -289,18 +289,18 @@ int cplat_socket_open(const cplat_socket_kind kind, cplat_socket *sock_out, cpla
     }
     else
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     native_socket = socket(AF_INET, native_type, 0);
     if (native_socket < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     *sock_out = (cplat_socket)native_socket;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -346,17 +346,17 @@ int cplat_socket_bind(const cplat_socket sock, const cplat_ipv4_endpoint *endpoi
 
     if ((sock == CPLAT_INVALID_SOCKET) || (endpoint == NULL))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     endpoint_to_native(endpoint, &native);
 
     if (bind((int)sock, (const struct sockaddr *)&native, (socklen_t)sizeof(native)) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -367,7 +367,7 @@ int cplat_socket_listen(const cplat_socket sock, const int backlog, cplat_error 
 
     if ((sock == CPLAT_INVALID_SOCKET) || (backlog < 0))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     if (backlog == CPLAT_SOCKET_BACKLOG_DEFAULT)
@@ -377,10 +377,10 @@ int cplat_socket_listen(const cplat_socket sock, const int backlog, cplat_error 
 
     if (listen((int)sock, native_backlog) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -394,7 +394,7 @@ int cplat_socket_accept(const cplat_socket sock, cplat_ipv4_endpoint *peer_out, 
 
     if ((sock == CPLAT_INVALID_SOCKET) || (sock_out == NULL))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *sock_out = CPLAT_INVALID_SOCKET;
@@ -402,7 +402,7 @@ int cplat_socket_accept(const cplat_socket sock, cplat_ipv4_endpoint *peer_out, 
     accepted = retry_accept((int)sock, (struct sockaddr *)&native, &native_len);
     if (accepted < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     if (peer_out != NULL)
@@ -412,7 +412,7 @@ int cplat_socket_accept(const cplat_socket sock, cplat_ipv4_endpoint *peer_out, 
 
     *sock_out = (cplat_socket)accepted;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -434,7 +434,7 @@ static int wait_connect_completion(cplat_socket sock, cplat_error *detail_out)
     }
     if (ready == 0)
     {
-        return cplat_error_report_errno_as(detail_out, ETIMEDOUT, CPLAT_ERR_TIMEOUT);
+        return cplat_internal_error_report_errno_as(detail_out, ETIMEDOUT, CPLAT_ERR_TIMEOUT);
     }
 
     return cplat_socket_get_pending_error(sock, detail_out);
@@ -449,7 +449,7 @@ int cplat_socket_connect(const cplat_socket sock, const cplat_ipv4_endpoint *end
 
     if ((sock == CPLAT_INVALID_SOCKET) || (endpoint == NULL))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     endpoint_to_native(endpoint, &native);
@@ -458,11 +458,11 @@ int cplat_socket_connect(const cplat_socket sock, const cplat_ipv4_endpoint *end
     {
         if (errno == EINPROGRESS)
         {
-            return cplat_error_report_socket_errno_as(detail_out, errno, CPLAT_ERR_IN_PROGRESS);
+            return cplat_internal_error_report_socket_errno_as(detail_out, errno, CPLAT_ERR_IN_PROGRESS);
         }
         if (errno != EINTR)
         {
-            return cplat_error_report_socket_errno(detail_out, errno);
+            return cplat_internal_error_report_socket_errno(detail_out, errno);
         }
 
         /* シグナルで中断された接続確立は非同期に継続する。connect を呼び直すと
@@ -472,7 +472,7 @@ int cplat_socket_connect(const cplat_socket sock, const cplat_ipv4_endpoint *end
         return wait_connect_completion(sock, detail_out);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -484,20 +484,20 @@ int cplat_socket_get_pending_error(const cplat_socket sock, cplat_error *detail_
 
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     if (getsockopt((int)sock, SOL_SOCKET, SO_ERROR, &pending, &pending_len) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     if (pending != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, pending);
+        return cplat_internal_error_report_socket_errno(detail_out, pending);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -509,13 +509,13 @@ int cplat_socket_set_nonblocking(const cplat_socket sock, const int enable, cpla
 
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     flags = fcntl((int)sock, F_GETFL, 0);
     if (flags < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     if (enable != 0)
@@ -529,10 +529,10 @@ int cplat_socket_set_nonblocking(const cplat_socket sock, const int enable, cpla
 
     if (fcntl((int)sock, F_SETFL, updated) < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -572,17 +572,17 @@ int cplat_socket_set_multicast_interface(const cplat_socket sock, const uint32_t
 
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     memcpy(&value.s_addr, &interface_address, sizeof(value.s_addr));
 
     if (setsockopt((int)sock, IPPROTO_IP, IP_MULTICAST_IF, &value, (socklen_t)sizeof(value)) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -594,7 +594,7 @@ int cplat_socket_join_multicast_group(const cplat_socket sock, const uint32_t gr
 
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     memcpy(&request.imr_multiaddr.s_addr, &group_address, sizeof(request.imr_multiaddr.s_addr));
@@ -602,10 +602,10 @@ int cplat_socket_join_multicast_group(const cplat_socket sock, const uint32_t gr
 
     if (setsockopt((int)sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &request, (socklen_t)sizeof(request)) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -617,7 +617,7 @@ int cplat_socket_leave_multicast_group(const cplat_socket sock, const uint32_t g
 
     if (sock == CPLAT_INVALID_SOCKET)
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     memcpy(&request.imr_multiaddr.s_addr, &group_address, sizeof(request.imr_multiaddr.s_addr));
@@ -625,10 +625,10 @@ int cplat_socket_leave_multicast_group(const cplat_socket sock, const uint32_t g
 
     if (setsockopt((int)sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &request, (socklen_t)sizeof(request)) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -641,7 +641,7 @@ int cplat_socket_send(const cplat_socket sock, const void *buf, const size_t len
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (sent_out == NULL) ||
         (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *sent_out = 0U;
@@ -649,18 +649,18 @@ int cplat_socket_send(const cplat_socket sock, const void *buf, const size_t len
     transferred = retry_send((int)sock, buf, len);
     if (transferred < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
     if ((size_t)transferred > len)
     {
-        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+        return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
     }
 
     *sent_out = (size_t)transferred;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -673,7 +673,7 @@ int cplat_socket_recv(const cplat_socket sock, void *buf, const size_t len, size
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (received_out == NULL) ||
         (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *received_out = 0U;
@@ -681,18 +681,18 @@ int cplat_socket_recv(const cplat_socket sock, void *buf, const size_t len, size
     transferred = retry_recv((int)sock, buf, len);
     if (transferred < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
     if ((size_t)transferred > len)
     {
-        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+        return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
     }
 
     *received_out = (size_t)transferred;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -706,7 +706,7 @@ int cplat_socket_sendto(const cplat_socket sock, const void *buf, const size_t l
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (endpoint == NULL) || (sent_out == NULL) ||
         (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *sent_out = 0U;
@@ -715,18 +715,18 @@ int cplat_socket_sendto(const cplat_socket sock, const void *buf, const size_t l
     transferred = retry_sendto((int)sock, buf, len, (const struct sockaddr *)&native, (socklen_t)sizeof(native));
     if (transferred < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
     if ((size_t)transferred > len)
     {
-        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+        return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
     }
 
     *sent_out = (size_t)transferred;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -741,7 +741,7 @@ int cplat_socket_recvfrom(const cplat_socket sock, void *buf, const size_t len,
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (received_out == NULL) ||
         (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     *received_out = 0U;
@@ -749,13 +749,13 @@ int cplat_socket_recvfrom(const cplat_socket sock, void *buf, const size_t len,
     transferred = retry_recvfrom((int)sock, buf, len, (struct sockaddr *)&native, &native_len);
     if (transferred < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     /* OS が要求量を超える転送量を返すことはないが、出力値を守るため異常として扱う。 */
     if ((size_t)transferred > len)
     {
-        return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+        return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
     }
 
     if (peer_out != NULL)
@@ -765,7 +765,7 @@ int cplat_socket_recvfrom(const cplat_socket sock, void *buf, const size_t len,
 
     *received_out = (size_t)transferred;
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -778,7 +778,7 @@ int cplat_socket_send_all(const cplat_socket sock, const void *buf, const size_t
 
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     while (sent < len)
@@ -788,22 +788,22 @@ int cplat_socket_send_all(const cplat_socket sock, const void *buf, const size_t
 
         if (transferred < 0)
         {
-            return cplat_error_report_socket_errno(detail_out, errno);
+            return cplat_internal_error_report_socket_errno(detail_out, errno);
         }
         if (transferred == 0)
         {
-            return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+            return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
         }
         /* OS が要求量を超える転送量を返すことはないが、残量の計算を守るため異常として扱う。 */
         if ((size_t)transferred > remaining)
         {
-            return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+            return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
         }
 
         sent += (size_t)transferred;
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -815,7 +815,7 @@ int cplat_socket_recv_all(const cplat_socket sock, void *buf, const size_t len, 
 
     if ((sock == CPLAT_INVALID_SOCKET) || (buf == NULL) || (len > CPLAT_SOCKET_MAX_TRANSFER))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     while (received < len)
@@ -825,22 +825,22 @@ int cplat_socket_recv_all(const cplat_socket sock, void *buf, const size_t len, 
 
         if (transferred < 0)
         {
-            return cplat_error_report_socket_errno(detail_out, errno);
+            return cplat_internal_error_report_socket_errno(detail_out, errno);
         }
         if (transferred == 0)
         {
-            return cplat_error_report_errno_as(detail_out, 0, CPLAT_ERR_EOF);
+            return cplat_internal_error_report_errno_as(detail_out, 0, CPLAT_ERR_EOF);
         }
         /* OS が要求量を超える転送量を返すことはないが、残量の計算を守るため異常として扱う。 */
         if ((size_t)transferred > remaining)
         {
-            return cplat_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
+            return cplat_internal_error_report_errno_as(detail_out, EIO, CPLAT_ERR_UNKNOWN);
         }
 
         received += (size_t)transferred;
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -871,7 +871,7 @@ int cplat_socket_wait_readable_multi(const cplat_socket *socks, const size_t cou
 
     if ((socks == NULL) || (ready_out == NULL) || (count == 0U) || (count > CPLAT_SOCKET_WAIT_MAX))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     for (index = 0U; index < count; ++index)
@@ -894,13 +894,13 @@ int cplat_socket_wait_readable_multi(const cplat_socket *socks, const size_t cou
         {
             cplat_sleep_ms(timeout_ms);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 
     poll_result = poll_with_deadline(poll_fds, (nfds_t)valid_count, timeout_ms);
     if (poll_result < 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
     valid_count = 0U;
@@ -918,7 +918,7 @@ int cplat_socket_wait_readable_multi(const cplat_socket *socks, const size_t cou
         }
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -927,16 +927,16 @@ int cplat_socket_shutdown_receive(cplat_socket *sock_inout, cplat_error *detail_
 {
     if ((sock_inout == NULL) || (*sock_inout == CPLAT_INVALID_SOCKET))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     /* Linux は受信方向の停止で待機が解除されるため、ハンドルを保持したままにする。 */
     if (shutdown((int)*sock_inout, SHUT_RD) != 0)
     {
-        return cplat_error_report_socket_errno(detail_out, errno);
+        return cplat_internal_error_report_socket_errno(detail_out, errno);
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 #elif defined(PLATFORM_WINDOWS) && defined(COMPILER_MSVC)

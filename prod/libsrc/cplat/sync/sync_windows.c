@@ -678,7 +678,7 @@ int cplat_interprocess_lock_export_descriptor(const cplat_interprocess_lock *loc
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_LOCK,
+    return cplat_internal_interprocess_sync_descriptor_export(lock->identity, CPLAT_INTERPROCESS_SYNC_KIND_LOCK,
                                                (uint8_t)CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
                                                descriptor_size);
 }
@@ -695,7 +695,7 @@ int cplat_interprocess_lock_import_descriptor(const void *descriptor, size_t des
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_LOCK,
+    result = cplat_internal_interprocess_sync_descriptor_import(descriptor, descriptor_size, CPLAT_INTERPROCESS_SYNC_KIND_LOCK,
                                                  (uint8_t)CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
     if (result != CPLAT_OK)
     {
@@ -774,7 +774,7 @@ int cplat_interprocess_rwlock_export_descriptor(const cplat_interprocess_rwlock 
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    return interprocess_sync_descriptor_export(lock->identity, INTERPROCESS_SYNC_KIND_RWLOCK,
+    return cplat_internal_interprocess_sync_descriptor_export(lock->identity, CPLAT_INTERPROCESS_SYNC_KIND_RWLOCK,
                                                (uint8_t)CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, descriptor,
                                                descriptor_size);
 }
@@ -791,7 +791,7 @@ int cplat_interprocess_rwlock_import_descriptor(const void *descriptor, size_t d
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    result = interprocess_sync_descriptor_import(descriptor, descriptor_size, INTERPROCESS_SYNC_KIND_RWLOCK,
+    result = cplat_internal_interprocess_sync_descriptor_import(descriptor, descriptor_size, CPLAT_INTERPROCESS_SYNC_KIND_RWLOCK,
                                                  (uint8_t)CPLAT_INTERPROCESS_SYNC_BACKEND_LOCK_FILE, &identity);
     if (result != CPLAT_OK)
     {

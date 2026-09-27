@@ -32,7 +32,7 @@ extern "C"
      *  resolved へ格納します。不正な値からの代替時のみ fallback_used に 1 を
      *  設定します (NULL は代替と見なさない)。
      */
-    int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used);
+    int cplat_internal_trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used);
 
     /**
      *  @brief          実時刻を ISO 8601 ローカル時刻文字列としてバッファーへ書き込みます。
@@ -40,16 +40,16 @@ extern "C"
      *  @param[in]      buf_size   バッファーのバイト数 (CPLAT_CLOCK_ISO8601_LOCAL_MSEC_LEN + 1 以上を推奨)。
      *  @param[in]      timestamp  使用する実時刻。
      *  @return         タイムスタンプ不正時は -1 を返します。それ以外の場合は
-     *                  cplat_format_realtime_iso8601_local() の戻り値を返します。
+     *                  cplat_clock_format_realtime_iso8601_local() の戻り値を返します。
      */
-    int trace_format_local_timestamp(char *buf, size_t buf_size, const cplat_timespec *timestamp);
+    int cplat_internal_trace_format_local_timestamp(char *buf, size_t buf_size, const cplat_timespec *timestamp);
 
     /**
      *  @brief          トレース レベルをレベル文字に変換します。
      *  @param[in]      level  変換元のトレース レベル。
      *  @return         対応するレベル文字 ('C'/'E'/'W'/'I'/'V'/'D')。範囲外は 'D'。
      */
-    char trace_level_char(cplat_trace_level level);
+    char cplat_internal_trace_level_char(cplat_trace_level level);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@
 
 #include <errno.h>
 
-int cplat_vformat_path(char *path, const size_t path_size, const char *format, va_list args, int *error_out)
+int cplat_internal_vformat_path(char *path, const size_t path_size, const char *format, va_list args, int *error_out)
 {
     int ret;
 

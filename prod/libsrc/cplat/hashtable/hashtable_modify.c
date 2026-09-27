@@ -62,7 +62,7 @@ static void stamp_record(cplat_hashtable *ht, size_t rec)
 {
     cplat_timespec now;
 
-    cplat_get_realtime(&now);
+    cplat_clock_get_realtime(&now);
     /* 実時刻は時計の巻き戻しで逆行しうるため、順序判定は世代カウンターで行う。 */
     ht->hdr->table_generation++;
     if (hashtable_has_record_timestamp(ht) != 0)
@@ -77,7 +77,7 @@ static void stamp_record(cplat_hashtable *ht, size_t rec)
 
 void hashtable_stamp_table(cplat_hashtable *ht)
 {
-    cplat_get_realtime(&ht->hdr->table_timestamp);
+    cplat_clock_get_realtime(&ht->hdr->table_timestamp);
     ht->hdr->table_generation++;
 }
 

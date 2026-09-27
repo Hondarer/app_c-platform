@@ -32,11 +32,11 @@ static int copy_path_text(char *path_out, const size_t path_size, cplat_error *d
     if (len + 1u > path_size)
     {
         path_out[0] = '\0';
-        return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+        return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
     }
 
     memcpy(path_out, text, len + 1u);
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 static int compare_normalized_paths(const char *lhs, const char *rhs)
@@ -154,16 +154,16 @@ static int build_absolute_posix_path(char *path_out, const size_t path_size, cpl
             const int errno_value = errno;
 
             path_out[0] = '\0';
-            return cplat_error_report_errno(detail_out, errno_value);
+            return cplat_internal_error_report_errno(detail_out, errno_value);
         }
 
         if (cplat_snprintf(path_out, path_size, "%s/%s", cwd, path) != CPLAT_OK)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 #endif /* PLATFORM_LINUX */
 
@@ -179,7 +179,7 @@ int cplat_vpath_concat_n(char *path_out, const size_t path_size, cplat_error *de
 
     if (path_out == NULL || path_size == 0u || part_count == 0u)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     path_out[0] = '\0';
@@ -192,14 +192,14 @@ int cplat_vpath_concat_n(char *path_out, const size_t path_size, cplat_error *de
         if (part == NULL)
         {
             va_end(args_copy);
-            return cplat_error_report_errno(detail_out, EINVAL);
+            return cplat_internal_error_report_errno(detail_out, EINVAL);
         }
 
         part_len = strlen(part);
         if (part_len > path_size - required_size)
         {
             va_end(args_copy);
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
         required_size += part_len;
     }
@@ -214,12 +214,12 @@ int cplat_vpath_concat_n(char *path_out, const size_t path_size, cplat_error *de
     }
     path_out[offset] = '\0';
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-char *cplat_normalize_path_sep(char *path)
+char *cplat_path_normalize_sep(char *path)
 {
     char *p;
     for (p = path; *p != '\0'; ++p)
@@ -242,7 +242,7 @@ int cplat_path_get_full(char *path_out, const size_t path_size, cplat_error *det
         {
             path_out[0] = '\0';
         }
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -257,13 +257,13 @@ int cplat_path_get_full(char *path_out, const size_t path_size, cplat_error *det
             return build_result;
         }
 
-        cplat_normalize_path_sep(candidate);
+        cplat_path_normalize_sep(candidate);
         {
             int normalize_result = normalize_absolute_posix_path(candidate);
             if (normalize_result != CPLAT_OK)
             {
                 path_out[0] = '\0';
-                return cplat_error_report_errno(detail_out, ENOMEM);
+                return cplat_internal_error_report_errno(detail_out, ENOMEM);
             }
         }
 
@@ -287,12 +287,12 @@ int cplat_path_get_full(char *path_out, const size_t path_size, cplat_error *det
             path_out[0] = '\0';
             return copy_result;
         }
-        cplat_normalize_path_sep(normalized_input);
+        cplat_path_normalize_sep(normalized_input);
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), normalized_input) < 0)
         {
             path_out[0] = '\0';
-            return cplat_error_report_errno(detail_out, EINVAL);
+            return cplat_internal_error_report_errno(detail_out, EINVAL);
         }
 
         needed = GetFullPathNameW(wpath, (DWORD)(sizeof(wfull) / sizeof(wfull[0])), wfull, NULL);
@@ -301,27 +301,27 @@ int cplat_path_get_full(char *path_out, const size_t path_size, cplat_error *det
             const DWORD error_code = GetLastError();
 
             path_out[0] = '\0';
-            return cplat_error_report_windows_error(detail_out, error_code);
+            return cplat_internal_error_report_windows_error(detail_out, error_code);
         }
         if (needed >= (DWORD)(sizeof(wfull) / sizeof(wfull[0])))
         {
             path_out[0] = '\0';
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         if (cplat_wpath_to_utf8(path_out, path_size, wfull) < 0)
         {
             path_out[0] = '\0';
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
     }
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 #endif /* PLATFORM_ */
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
+int cplat_path_equal(const char *lhs, const char *rhs, int *equal_out, cplat_error *detail_out)
 {
     char lhs_full[PLATFORM_PATH_MAX];
     char rhs_full[PLATFORM_PATH_MAX];
@@ -329,7 +329,7 @@ int cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out, cplat_er
 
     if (equal_out == NULL)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
     ret = cplat_path_get_full(lhs_full, sizeof(lhs_full), detail_out, lhs);
@@ -345,16 +345,16 @@ int cplat_paths_equal(const char *lhs, const char *rhs, int *equal_out, cplat_er
     }
 
     *equal_out = compare_normalized_paths(lhs_full, rhs_full);
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_get_temp_dir(char *path_out, const size_t path_size, cplat_error *detail_out)
+int cplat_path_get_temp_dir(char *path_out, const size_t path_size, cplat_error *detail_out)
 {
     if (path_out == NULL || path_size == 0u)
     {
-        return cplat_error_report_errno(detail_out, EINVAL);
+        return cplat_internal_error_report_errno(detail_out, EINVAL);
     }
 
 #if defined(PLATFORM_LINUX)
@@ -368,7 +368,7 @@ int cplat_get_temp_dir(char *path_out, const size_t path_size, cplat_error *deta
         if (cplat_getenv("TMPDIR", tmpdir_buf, sizeof(tmpdir_buf), NULL, NULL) == CPLAT_ERR_BUFFER_TOO_SMALL)
         {
             path_out[0] = '\0';
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
         if (tmpdir_buf[0] == '\0')
         {
@@ -387,9 +387,9 @@ int cplat_get_temp_dir(char *path_out, const size_t path_size, cplat_error *deta
 
         if (cplat_snprintf(path_out, path_size, "%.*s", (int)len, tmpdir) != CPLAT_OK)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #elif defined(PLATFORM_WINDOWS)
     {
@@ -404,16 +404,16 @@ int cplat_get_temp_dir(char *path_out, const size_t path_size, cplat_error *deta
         {
             const DWORD error_code = GetLastError();
 
-            return cplat_error_report_windows_error(detail_out, error_code);
+            return cplat_internal_error_report_windows_error(detail_out, error_code);
         }
         if (dwret >= (DWORD)(sizeof(wdir) / sizeof(wdir[0])))
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         if (cplat_wpath_to_utf8(path_out, path_size, wdir) < 0)
         {
-            return cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            return cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
         }
 
         /* GetTempPathW は末尾 '\' を付けて返す。変換後は '/' になるので除去する */
@@ -422,7 +422,7 @@ int cplat_get_temp_dir(char *path_out, const size_t path_size, cplat_error *deta
         {
             path_out[--len] = '\0';
         }
-        return cplat_error_report_success(detail_out);
+        return cplat_internal_error_report_success(detail_out);
     }
 #endif /* PLATFORM_ */
 }

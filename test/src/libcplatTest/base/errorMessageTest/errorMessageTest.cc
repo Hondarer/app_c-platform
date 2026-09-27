@@ -99,10 +99,10 @@ TEST_F(errorMessageTest, errno_is_converted_to_message)
     // Pre-Assert
 
     // Act
-    int actual_ret = cplat_errno_message(buf, sizeof(buf), ENOENT); // [手順] - ENOENT を指定して呼び出す。
+    int actual_ret = cplat_internal_errno_message(buf, sizeof(buf), ENOENT); // [手順] - ENOENT を指定して呼び出す。
 
     // Assert
-    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_errno_message の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - cplat_internal_errno_message の戻り値が CPLAT_OK であること。
     EXPECT_LT(0U, strlen(buf));         // [確認_正常系] - 空でないメッセージが格納されること。
 }
 
@@ -116,16 +116,16 @@ TEST_F(errorMessageTest, invalid_arguments_are_rejected)
 
     // Act
     int actual_ret_null_buf =
-        cplat_errno_message(NULL, sizeof(buf), ENOENT);              // [手順] - 格納先に NULL を指定して呼び出す。
-    int actual_ret_zero_size = cplat_errno_message(buf, 0U, ENOENT); // [手順] - サイズに 0 を指定して呼び出す。
+        cplat_internal_errno_message(NULL, sizeof(buf), ENOENT);              // [手順] - 格納先に NULL を指定して呼び出す。
+    int actual_ret_zero_size = cplat_internal_errno_message(buf, 0U, ENOENT); // [手順] - サイズに 0 を指定して呼び出す。
 
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_null_buf); // [確認_異常系] - 格納先が NULL の場合に cplat_errno_message の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_null_buf); // [確認_異常系] - 格納先が NULL の場合に cplat_internal_errno_message の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
     EXPECT_EQ(
         CPLAT_ERR_INVALID_ARGUMENT,
-        actual_ret_zero_size); // [確認_異常系] - サイズが 0 の場合に cplat_errno_message の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
+        actual_ret_zero_size); // [確認_異常系] - サイズが 0 の場合に cplat_internal_errno_message の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
 // error_message がドメインごとに文字列化することの確認
@@ -273,7 +273,7 @@ TEST_F(errorMessageTest, unknown_error_domain_is_rejected)
 #if defined(PLATFORM_LINUX)
 
 // errno 文字列の取得に失敗した場合に拒否されることの確認
-// Windows の cplat_errno_message は strerror_s を使うため、この失敗経路は Linux のみに存在する
+// Windows の cplat_internal_errno_message は strerror_s を使うため、この失敗経路は Linux のみに存在する
 TEST_F(errorMessageTest, errno_message_returns_unknown_when_strerror_r_fails)
 {
     // Arrange
@@ -289,16 +289,16 @@ TEST_F(errorMessageTest, errno_message_returns_unknown_when_strerror_r_fails)
                       // [Pre-Assert手順] - strerror_r から EINVAL を返却する。
 
     // Act
-    int actual_ret = cplat_errno_message(buf, sizeof(buf), EACCES); // [手順] - cplat_errno_message を呼び出す。
+    int actual_ret = cplat_internal_errno_message(buf, sizeof(buf), EACCES); // [手順] - cplat_internal_errno_message を呼び出す。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_UNKNOWN,
-              actual_ret); // [確認_異常系] - cplat_errno_message の戻り値が CPLAT_ERR_UNKNOWN であること。
+              actual_ret); // [確認_異常系] - cplat_internal_errno_message の戻り値が CPLAT_ERR_UNKNOWN であること。
     EXPECT_STREQ("", buf); // [確認_異常系] - 出力バッファーが空文字列に初期化されること。
 }
 
 // 切り詰めを表す ERANGE が成功として扱われることの確認
-// Windows の cplat_errno_message は strerror_s を使うため、この分岐は Linux のみに存在する
+// Windows の cplat_internal_errno_message は strerror_s を使うため、この分岐は Linux のみに存在する
 TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
 {
     // Arrange
@@ -314,7 +314,7 @@ TEST_F(errorMessageTest, errno_message_treats_erange_as_success)
     // [Pre-Assert手順] - バッファーへ切り詰め済みの文字列を書き込み、strerror_r から ERANGE を返却する。
 
     // Act
-    int actual_ret = cplat_errno_message(buf, sizeof(buf), EACCES); // [手順] - cplat_errno_message を呼び出す。
+    int actual_ret = cplat_internal_errno_message(buf, sizeof(buf), EACCES); // [手順] - cplat_internal_errno_message を呼び出す。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 切り詰めは成功として扱われ CPLAT_OK が返ること。

@@ -59,7 +59,7 @@ static int run_block(bench_iteration_fn fn, void *arg, uint64_t iterations, uint
     cplat_timespec end;
     uint64_t index;
 
-    cplat_get_monotonic(&start);
+    cplat_clock_get_monotonic(&start);
     for (index = 0U; index < iterations; index++)
     {
         if (fn(arg) != 0)
@@ -67,7 +67,7 @@ static int run_block(bench_iteration_fn fn, void *arg, uint64_t iterations, uint
             return -1;
         }
     }
-    cplat_get_monotonic(&end);
+    cplat_clock_get_monotonic(&end);
 
     *total_ns = elapsed_ns(&start, &end);
     return 0;

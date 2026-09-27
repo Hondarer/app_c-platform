@@ -13,7 +13,7 @@ static int timestamp_is_valid(const cplat_timespec *timestamp)
     return timestamp != NULL && timestamp->tv_nsec >= 0 && timestamp->tv_nsec < 1000000000;
 }
 
-int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used)
+int cplat_internal_trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *resolved, int *fallback_used)
 {
     if (resolved == NULL)
     {
@@ -37,7 +37,7 @@ int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *res
         }
     }
 
-    cplat_get_realtime(resolved);
+    cplat_clock_get_realtime(resolved);
     if (timestamp_is_valid(resolved))
     {
         return 0;
@@ -45,16 +45,16 @@ int trace_resolve_timestamp(const cplat_timespec *timestamp, cplat_timespec *res
     return -1;
 }
 
-int trace_format_local_timestamp(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
+int cplat_internal_trace_format_local_timestamp(char *buf, const size_t buf_size, const cplat_timespec *timestamp)
 {
     if (!timestamp_is_valid(timestamp))
     {
         return -1;
     }
-    return cplat_format_realtime_iso8601_local(buf, buf_size, timestamp);
+    return cplat_clock_format_realtime_iso8601_local(buf, buf_size, timestamp);
 }
 
-char trace_level_char(const cplat_trace_level level)
+char cplat_internal_trace_level_char(const cplat_trace_level level)
 {
     switch (level)
     {

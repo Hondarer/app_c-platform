@@ -68,10 +68,10 @@ class traceTest : public Test
     {
         set_trace_sync_mock_defaults(mock_cplat);
         ON_CALL(mock_cplat, cplat_shutdown_register(_, _)).WillByDefault(Return(CPLAT_OK));
-        ON_CALL(mock_cplat, cplat_get_realtime_deadline_ms(_, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime_deadline_ms(_, _))
             .WillByDefault([](uint64_t, struct timespec *abs_timeout) { set_valid_deadline(abs_timeout); });
-        ON_CALL(mock_cplat, cplat_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
-        ON_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime(_)).WillByDefault([](cplat_timespec *ts) { set_fixed_realtime(ts); });
+        ON_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, size_t buf_size, const cplat_timespec *)
                 {
@@ -122,9 +122,9 @@ TEST_F(traceTest, init_and_dispose)
 
     // Act
     cplat_tracer *handle = create_logger(); // [手順] - トレース ハンドルを初期化する。
-    size_t registry_count_after_create = trace_registry_count();
+    size_t registry_count_after_create = cplat_internal_trace_registry_count();
     cplat_tracer_dispose(&handle); // [手順] - トレース ハンドルを破棄する。
-    size_t registry_count_after_dispose = trace_registry_count();
+    size_t registry_count_after_dispose = cplat_internal_trace_registry_count();
 
     // Assert
     EXPECT_EQ((size_t)1, registry_count_after_create);  // [確認_正常系] - create 後に registry へ 1 件登録されること。
@@ -231,15 +231,15 @@ TEST_F(traceTest, registry_tracks_and_expands)
     }
 
     // Assert
-    EXPECT_EQ(create_count, trace_registry_count());    // [確認_正常系] - registry 件数が 12 であること。
-    EXPECT_GE(trace_registry_capacity(), create_count); // [確認_正常系] - registry 容量が 12 以上へ拡張されること。
+    EXPECT_EQ(create_count, cplat_internal_trace_registry_count());    // [確認_正常系] - registry 件数が 12 であること。
+    EXPECT_GE(cplat_internal_trace_registry_capacity(), create_count); // [確認_正常系] - registry 容量が 12 以上へ拡張されること。
 
     // Cleanup
     for (cplat_tracer *handle : handles)
     {
         cplat_tracer_dispose(&handle);
     }
-    EXPECT_EQ((size_t)0, trace_registry_count()); // [確認_正常系] - すべて破棄後に registry が空になること。
+    EXPECT_EQ((size_t)0, cplat_internal_trace_registry_count()); // [確認_正常系] - すべて破棄後に registry が空になること。
 }
 
 // started 状態で INFO 出力が OS backend へ送られることの確認
@@ -1256,7 +1256,7 @@ TEST_F(traceTest, explicit_timestamp_is_shared_by_file_and_stderr)
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .Times(0); // [Pre-Assert確認_正常系] - 明示タイムスタンプ指定時は現在時刻取得を行わないこと。
     EXPECT_CALL(
         mock_cplat, cplat_trace_file_sink_write(file_handle_, CPLAT_TRACE_LEVEL_INFO, NotNull(), StrEq("explicit ts")))
@@ -1443,7 +1443,7 @@ TEST_F(traceTest, invalid_explicit_timestamp_falls_back_and_returns_minus_one)
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     // [Pre-Assert確認_異常系] - OS backend へ代替時刻で渡ること。
     // [Pre-Assert手順] - OS backend へ代替時刻を渡して 0 を返却する。
@@ -1502,7 +1502,7 @@ TEST_F(traceTest, write_hex_invalid_explicit_timestamp_falls_back_and_returns_mi
                                                            // [状態確認] - cplat_tracer_start の戻り値が CPLAT_OK であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .Times(1); // [Pre-Assert確認_異常系] - 不正時刻では現在時刻へ代替すること。
     EXPECT_CALL(
         mock_cplat, cplat_trace_file_sink_write(file_handle_, CPLAT_TRACE_LEVEL_INFO, NotNull(), StrEq("Data: 48 69")))

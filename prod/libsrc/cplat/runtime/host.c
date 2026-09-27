@@ -43,7 +43,7 @@ int cplat_host_get_name(char *name_out, const size_t name_size)
         if (gethostname(tmp, sizeof(tmp)) != 0)
         {
             name_out[0] = '\0';
-            return cplat_result_from_errno(errno);
+            return cplat_internal_result_from_errno(errno);
         }
         tmp[sizeof(tmp) - 1] = '\0';
         return cplat_strcpy(name_out, name_size, tmp);
@@ -66,7 +66,7 @@ int cplat_host_get_name(char *name_out, const size_t name_size)
             {
                 return CPLAT_ERR_BUFFER_TOO_SMALL;
             }
-            return cplat_result_from_windows_error(error_code);
+            return cplat_internal_result_from_windows_error(error_code);
         }
 
         {
@@ -74,7 +74,7 @@ int cplat_host_get_name(char *name_out, const size_t name_size)
 
             if (converted <= 0)
             {
-                const int ret = cplat_result_from_windows_error(GetLastError());
+                const int ret = cplat_internal_result_from_windows_error(GetLastError());
 
                 name_out[0] = '\0';
                 return ret;

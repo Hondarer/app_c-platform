@@ -165,14 +165,14 @@ TEST_F(hashtableGenerationTest, generation_advances_while_realtime_goes_backward
 
     fill_config(&config, 4, 5, CPLAT_HASHTABLE_TIMESTAMP_SCOPE_RECORD);
     fill_value(&value, "v1");
-    ON_CALL(mock_cplat_, cplat_get_realtime(_))
+    ON_CALL(mock_cplat_, cplat_clock_get_realtime(_))
         .WillByDefault(
             [&next_sec](cplat_timespec *ts)
             {
                 ts->tv_sec = next_sec;
                 ts->tv_nsec = 0;
                 next_sec -= 10;
-            }); // [状態] - cplat_get_realtime が呼び出されるたびに 10 秒ずつ戻る時刻を返すようにモックを設定する。
+            }); // [状態] - cplat_clock_get_realtime が呼び出されるたびに 10 秒ずつ戻る時刻を返すようにモックを設定する。
 
     // Act
     (void)cplat_hashtable_create(&config, NULL, 0, NULL, 0, &ht);

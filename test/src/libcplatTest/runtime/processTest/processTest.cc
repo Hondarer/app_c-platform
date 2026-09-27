@@ -54,13 +54,13 @@ TEST(processTest, MapsErrnoToCommonResults)
     // Pre-Assert
 
     // Act
-    int invalid_result = cplat_result_from_errno(EINVAL);    // [手順] - EINVAL を共通結果コードへ変換する。
-    int permission_result = cplat_result_from_errno(EACCES); // [手順] - EACCES を共通結果コードへ変換する。
-    int timeout_result = cplat_result_from_errno(ETIMEDOUT); // [手順] - ETIMEDOUT を共通結果コードへ変換する。
-    int busy_result = cplat_result_from_errno(EBUSY);        // [手順] - EBUSY を共通結果コードへ変換する。
-    int memory_result = cplat_result_from_errno(ENOMEM);     // [手順] - ENOMEM を共通結果コードへ変換する。
-    int not_found_result = cplat_result_from_errno(ENOENT);  // [手順] - ENOENT を共通結果コードへ変換する。
-    int other_result = cplat_result_from_errno(EDOM);        // [手順] - EDOM を共通結果コードへ変換する。
+    int invalid_result = cplat_internal_result_from_errno(EINVAL);    // [手順] - EINVAL を共通結果コードへ変換する。
+    int permission_result = cplat_internal_result_from_errno(EACCES); // [手順] - EACCES を共通結果コードへ変換する。
+    int timeout_result = cplat_internal_result_from_errno(ETIMEDOUT); // [手順] - ETIMEDOUT を共通結果コードへ変換する。
+    int busy_result = cplat_internal_result_from_errno(EBUSY);        // [手順] - EBUSY を共通結果コードへ変換する。
+    int memory_result = cplat_internal_result_from_errno(ENOMEM);     // [手順] - ENOMEM を共通結果コードへ変換する。
+    int not_found_result = cplat_internal_result_from_errno(ENOENT);  // [手順] - ENOENT を共通結果コードへ変換する。
+    int other_result = cplat_internal_result_from_errno(EDOM);        // [手順] - EDOM を共通結果コードへ変換する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
@@ -88,7 +88,7 @@ TEST(processTest, MapsWindowsInsufficientBuffer)
     // Pre-Assert
 
     // Act
-    int result = cplat_result_from_windows_error(
+    int result = cplat_internal_result_from_windows_error(
         ERROR_INSUFFICIENT_BUFFER); // [手順] - ERROR_INSUFFICIENT_BUFFER を共通結果コードへ変換する。
 
     // Assert
@@ -230,10 +230,10 @@ TEST(processTest, WaitReturnsChildExitCode)
     // Arrange
     NiceMock<Mock_windows> mock_windows;
     HANDLE fake_process = reinterpret_cast<HANDLE>(0x70);
-    cplat_process *process = cplat_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
+    cplat_process *process = cplat_internal_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
     int exit_code = 0;
 
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, fake_process, INFINITE))
@@ -267,10 +267,10 @@ TEST(processTest, WaitNoWaitReportsTimeoutForAdoptedProcess)
     // Arrange
     NiceMock<Mock_windows> mock_windows;
     HANDLE fake_process = reinterpret_cast<HANDLE>(0x71);
-    cplat_process *process = cplat_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
+    cplat_process *process = cplat_internal_process_adopt_native(reinterpret_cast<intptr_t>(fake_process));
     int exit_code = 0;
 
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_windows, WaitForSingleObject(_, _, _, fake_process, 0U))
@@ -1109,15 +1109,15 @@ TEST(processTest, WaitMapsExitStatesAndRetriesEintr)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    cplat_process *normal_process = cplat_process_adopt_native(123);   // [状態] - pid 123 の process を用意する。
-    cplat_process *signaled_process = cplat_process_adopt_native(124); // [状態] - pid 124 の process を用意する。
+    cplat_process *normal_process = cplat_internal_process_adopt_native(123);   // [状態] - pid 123 の process を用意する。
+    cplat_process *signaled_process = cplat_internal_process_adopt_native(124); // [状態] - pid 124 の process を用意する。
     int normal_status = 7 << 8;
     int signaled_status = SIGTERM;
     int normal_exit_code = 0;
     int signaled_exit_code = 0;
-    ASSERT_NE(nullptr, normal_process); // [状態確認] - pid 123 の cplat_process_adopt_native が非 NULL を返すこと。
+    ASSERT_NE(nullptr, normal_process); // [状態確認] - pid 123 の cplat_internal_process_adopt_native が非 NULL を返すこと。
     ASSERT_NE(nullptr,
-              signaled_process); // [状態確認] - pid 124 の cplat_process_adopt_native が非 NULL を返すこと。
+              signaled_process); // [状態確認] - pid 124 の cplat_internal_process_adopt_native が非 NULL を返すこと。
     errno = EINTR;               // [状態] - 1 回目の waitpid が EINTR を返す状態とする。
 
     // Pre-Assert
@@ -1167,8 +1167,8 @@ TEST(processTest, WaitReportsWaitpidFailure)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    cplat_process *process = cplat_process_adopt_native(125); // [状態] - pid 125 の process を用意する。
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    cplat_process *process = cplat_internal_process_adopt_native(125); // [状態] - pid 125 の process を用意する。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
     errno = ECHILD;              // [状態] - waitpid が子プロセスなしで失敗する状態とする。
 
     // Pre-Assert
@@ -1194,8 +1194,8 @@ TEST(processTest, TerminateReportsKillFailure)
 {
     // Arrange
     NiceMock<Mock_unistd> mock_unistd;
-    cplat_process *process = cplat_process_adopt_native(126); // [状態] - pid 126 の process を用意する。
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    cplat_process *process = cplat_internal_process_adopt_native(126); // [状態] - pid 126 の process を用意する。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
     errno = ESRCH;               // [状態] - terminate 対象が存在せず kill が失敗する状態とする。
 
     // Pre-Assert
@@ -1218,9 +1218,9 @@ TEST(processTest, TerminateReportsKillFailure)
 TEST(processTest, RejectsInvalidWaitAndExitArguments)
 {
     // Arrange
-    cplat_process *process = cplat_process_adopt_native(127); // [状態] - pid 127 の process を用意する。
+    cplat_process *process = cplat_internal_process_adopt_native(127); // [状態] - pid 127 の process を用意する。
     int exit_code = 0;
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
 
@@ -1447,11 +1447,11 @@ TEST(processTest, wait_reports_timeout_at_finite_deadline)
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_time> mock_time;
     NiceMock<Mock_unistd> mock_unistd;
-    cplat_process *process = cplat_process_adopt_native(128); // [状態] - pid 128 の process を用意する。
+    cplat_process *process = cplat_internal_process_adopt_native(128); // [状態] - pid 128 の process を用意する。
     struct timespec first = {};
     struct timespec second = {};
     int clock_count = 0;
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
     first.tv_sec = 1;
     second.tv_sec = 2;
 
@@ -1487,11 +1487,11 @@ TEST(processTest, wait_sleeps_before_finite_deadline_and_detects_exit)
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_time> mock_time;
     NiceMock<Mock_unistd> mock_unistd;
-    cplat_process *process = cplat_process_adopt_native(131); // [状態] - pid 131 の process を用意する。
+    cplat_process *process = cplat_internal_process_adopt_native(131); // [状態] - pid 131 の process を用意する。
     struct timespec now = {};
     int status = 4 << 8;
     int exit_code = 0;
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
     now.tv_sec = 1;
 
     // Pre-Assert
@@ -1568,9 +1568,9 @@ TEST(processTest, completed_process_wait_and_terminate_are_idempotent)
 {
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
-    cplat_process *process = cplat_process_adopt_native(129); // [状態] - pid 129 の process を用意する。
+    cplat_process *process = cplat_internal_process_adopt_native(129); // [状態] - pid 129 の process を用意する。
     int status = 3 << 8;
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 129, _, _))
@@ -1608,7 +1608,7 @@ TEST(processTest, adopt_native_reports_allocation_failure)
                                     // [Pre-Assert手順] - cplat_calloc から NULL を返却する。
 
     // Act
-    cplat_process *process = cplat_process_adopt_native(130); // [手順] - プロセス構造体の確保失敗を注入する。
+    cplat_process *process = cplat_internal_process_adopt_native(130); // [手順] - プロセス構造体の確保失敗を注入する。
 
     // Assert
     EXPECT_EQ(nullptr, process); // [確認_異常系] - 確保失敗時に NULL が返ること。
@@ -1775,9 +1775,9 @@ TEST(processTest, wait_forever_retries_unexpected_nonblocking_result)
     // Arrange
     NiceMock<Mock_sys_wait> mock_sys_wait;
     NiceMock<Mock_unistd> mock_unistd;
-    cplat_process *process = cplat_process_adopt_native(132); // [状態] - pid 132 の process を用意する。
+    cplat_process *process = cplat_internal_process_adopt_native(132); // [状態] - pid 132 の process を用意する。
     int status = 0;
-    ASSERT_NE(nullptr, process); // [状態確認] - cplat_process_adopt_native の戻り値が非 NULL であること。
+    ASSERT_NE(nullptr, process); // [状態確認] - cplat_internal_process_adopt_native の戻り値が非 NULL であること。
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_wait, waitpid(_, _, _, 132, _, 0))

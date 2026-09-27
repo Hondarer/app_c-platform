@@ -28,16 +28,16 @@
 #include <cplat/sync/sync.h>
 
 /** ディスクリプターのフォーマット バージョン。 */
-#define INTERPROCESS_SYNC_DESCRIPTOR_VERSION 1U
+#define CPLAT_INTERPROCESS_SYNC_DESCRIPTOR_VERSION 1U
 
 /** ディスクリプターのヘッダー バイト数。 */
-#define INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
+#define CPLAT_INTERPROCESS_SYNC_DESCRIPTOR_HEADER_SIZE 20U
 
 /** 種別: プロセス間ロック。 */
-#define INTERPROCESS_SYNC_KIND_LOCK 1U
+#define CPLAT_INTERPROCESS_SYNC_KIND_LOCK 1U
 
 /** 種別: プロセス間リーダー ライター ロック。 */
-#define INTERPROCESS_SYNC_KIND_RWLOCK 2U
+#define CPLAT_INTERPROCESS_SYNC_KIND_RWLOCK 2U
 
 #ifdef __cplusplus
 extern "C"
@@ -56,7 +56,7 @@ extern "C"
      *                  バッファー不足時は CPLAT_ERR_BUFFER_TOO_SMALL を返し、
      *                  descriptor_size に必要バイト数を格納します。
      */
-    int interprocess_sync_descriptor_export(const char *identity, uint8_t kind, uint8_t backend, void *descriptor,
+    int cplat_internal_interprocess_sync_descriptor_export(const char *identity, uint8_t kind, uint8_t backend, void *descriptor,
                                             size_t *descriptor_size);
 
     /**
@@ -72,7 +72,7 @@ extern "C"
      *                  フォーマット不一致時 CPLAT_ERR_CORRUPT_DESCRIPTOR。
      *                  メモリ確保失敗時 CPLAT_ERR_UNKNOWN。
      */
-    int interprocess_sync_descriptor_import(const void *descriptor, size_t descriptor_size, uint8_t kind,
+    int cplat_internal_interprocess_sync_descriptor_import(const void *descriptor, size_t descriptor_size, uint8_t kind,
                                             uint8_t backend, char **identity_out);
 
 #ifdef __cplusplus

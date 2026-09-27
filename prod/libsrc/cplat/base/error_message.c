@@ -159,7 +159,7 @@ int cplat_error_message(char *buf, const size_t buf_size, const cplat_error *err
     }
     else if ((error->domain == CPLAT_ERROR_DOMAIN_ERRNO) || (error->domain == CPLAT_ERROR_DOMAIN_SOCKET_ERRNO))
     {
-        result = cplat_errno_message(buf, buf_size, (int)error->code);
+        result = cplat_internal_errno_message(buf, buf_size, (int)error->code);
     }
     else if (error->domain == CPLAT_ERROR_DOMAIN_GAI)
     {
@@ -171,7 +171,7 @@ int cplat_error_message(char *buf, const size_t buf_size, const cplat_error *err
         /* Windows の EAI_* は Winsock エラー コードと同一値のため FormatMessage で
            文字列化できる。gai_strerrorA() は静的バッファーを使用しスレッド セーフでない。
            see: https://learn.microsoft.com/en-us/windows/win32/api/ws2tcpip/nf-ws2tcpip-gai_strerrora */
-        result = cplat_win32_error_message(buf, buf_size, error->code);
+        result = cplat_internal_win32_error_message(buf, buf_size, error->code);
 #else
         buf[0] = '\0';
         result = CPLAT_ERR_INVALID_ARGUMENT;
@@ -182,7 +182,7 @@ int cplat_error_message(char *buf, const size_t buf_size, const cplat_error *err
         /* Winsock エラーも Win32 と同じく FormatMessage が文字列化できる。
            see: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2 */
 #if defined(PLATFORM_WINDOWS)
-        result = cplat_win32_error_message(buf, buf_size, error->code);
+        result = cplat_internal_win32_error_message(buf, buf_size, error->code);
 #else
         buf[0] = '\0';
         result = CPLAT_ERR_INVALID_ARGUMENT;
@@ -199,7 +199,7 @@ int cplat_error_message(char *buf, const size_t buf_size, const cplat_error *err
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_errno_message(char *buf, const size_t buf_size, const int errno_value)
+int cplat_internal_errno_message(char *buf, const size_t buf_size, const int errno_value)
 {
     if (buf == NULL || buf_size == 0U)
     {
@@ -262,7 +262,7 @@ int cplat_errno_message(char *buf, const size_t buf_size, const int errno_value)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_win32_error_message(char *buf, const size_t buf_size, const unsigned long error_code)
+int cplat_internal_win32_error_message(char *buf, const size_t buf_size, const unsigned long error_code)
 {
     wchar_t *wmessage = NULL;
     DWORD wlen;

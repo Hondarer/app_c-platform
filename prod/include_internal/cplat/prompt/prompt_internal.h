@@ -36,7 +36,7 @@ extern "C"
 #endif /* __cplusplus */
 
     /* ---- 1 つの呼び出し元に対応する履歴コンテキスト ---- */
-    typedef struct cplat_prompt_ctx
+    typedef struct cplat_internal_prompt_ctx
     {
         /* ポインター類を先に並べてパディングを排除 */
         const char *file; /* __FILE__ の文字列ポインター (コピー不要) */
@@ -46,7 +46,7 @@ extern "C"
         size_t head;      /* リング先頭インデックス (最古) */
         int line;         /* __LINE__ */
         int browse_idx;   /* ブラウズ中インデックス (-1 = 現在行) */
-    } cplat_prompt_ctx;
+    } cplat_internal_prompt_ctx;
 
     /* ---- メイン ハンドル (不透明型の実体) ---- */
     struct cplat_prompt
@@ -59,7 +59,7 @@ extern "C"
         size_t cursor;          /* カーソル位置 (バイト オフセット、0〜edit_len) */
 
         /* 履歴コンテキスト管理 */
-        cplat_prompt_ctx *contexts; /* コンテキスト配列 (動的拡張) */
+        cplat_internal_prompt_ctx *contexts; /* コンテキスト配列 (動的拡張) */
         size_t ctx_count;              /* 現在のコンテキスト数 */
         size_t ctx_cap;                /* contexts 配列の容量 */
         size_t history_max;            /* 各コンテキストの履歴最大数 */
@@ -95,20 +95,20 @@ extern "C"
  *
  *  移行に成功した場合は @p p の raw モード状態を有効にし、復元用の端末設定を保存します。
  */
-void prompt_platform_enter_raw(cplat_prompt *p);
+void cplat_internal_prompt_platform_enter_raw(cplat_prompt *p);
 
 /**
  *  @brief          raw モードを解除して保存済みの端末設定を復元します。
  *  @param[in]      p  プロンプト ハンドルです。
  */
-void prompt_platform_leave_raw(cplat_prompt *p);
+void cplat_internal_prompt_platform_leave_raw(cplat_prompt *p);
 
 /**
  *  @brief          標準入力から 1 バイトを待機して読み取ります。
  *  @param[in]      p  プロンプト ハンドルです。
  *  @return         読み取った 0 以上のバイト値を返します。EOF または読み取り失敗の場合は -1 を返します。
  */
-int prompt_platform_read_char(cplat_prompt *p);
+int cplat_internal_prompt_platform_read_char(cplat_prompt *p);
 
 /**
  *  @brief          標準入力から 1 バイトを最大 50 ミリ秒待って読み取ります。
@@ -116,7 +116,7 @@ int prompt_platform_read_char(cplat_prompt *p);
  *  @return         読み取った 0 以上のバイト値を返します。タイムアウト、EOF、または読み取り失敗の場合は
  *                  -1 を返します。
  */
-int prompt_platform_read_char_nb(cplat_prompt *p);
+int cplat_internal_prompt_platform_read_char_nb(cplat_prompt *p);
 
 #ifdef __cplusplus
 }

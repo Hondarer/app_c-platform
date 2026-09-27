@@ -61,7 +61,7 @@ Windows は実行ファイルと同じディレクトリの DLL を標準の探�
 
 Linux では `-fvisibility=hidden` でビルドし、`CPLAT_EXPORT` を付けた関数と変数だけが visibility default になります。`prod/libsrc/cplat/exports.map` の `global: cplat_*` は、コンパイル時に hidden となった記号を再公開しません。Windows も同様に、`CPLAT_EXPORT` を付けた記号だけが `libcplat.lib` に現れます。
 
-したがって `prod/include_internal/` で宣言する内部 API (`cplat_result_from_errno`、`cplat_error_report_errno` など) は、ライブラリの利用者からリンクできません。
+したがって `prod/include_internal/` で宣言する内部 API (`cplat_internal_result_from_errno`、`cplat_internal_error_report_errno` など) は、ライブラリの利用者からリンクできません。
 
 テストが内部 API に依存する場合は、定義元の `.c` を `makepart.mk` の `ADD_SRCS` へ追加します。テスト対象のソースが間接的に呼び出す場合も同様です。
 

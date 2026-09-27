@@ -60,7 +60,7 @@ int cplat_ipv4_resolve(const char *text, uint32_t *address_out, cplat_error *det
 
     if ((text == NULL) || (address_out == NULL))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     startup_result = cplat_internal_socket_startup(detail_out);
@@ -79,12 +79,12 @@ int cplat_ipv4_resolve(const char *text, uint32_t *address_out, cplat_error *det
         {
             freeaddrinfo(resolved);
         }
-        return cplat_error_report_gai_error(detail_out, gai_result);
+        return cplat_internal_error_report_gai_error(detail_out, gai_result);
     }
 
     if (resolved == NULL)
     {
-        return cplat_error_report_gai_error(detail_out, WSAHOST_NOT_FOUND);
+        return cplat_internal_error_report_gai_error(detail_out, WSAHOST_NOT_FOUND);
     }
 
     /* 複数アドレスが返された場合は先頭を採用する */
@@ -93,7 +93,7 @@ int cplat_ipv4_resolve(const char *text, uint32_t *address_out, cplat_error *det
 
     freeaddrinfo(resolved);
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -106,12 +106,12 @@ int cplat_ipv4_to_string(const uint32_t address, char *buffer, const size_t buff
 
     if ((buffer == NULL) || (buffer_size == 0U))
     {
-        return cplat_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
+        return cplat_internal_error_report_errno_as(detail_out, EINVAL, CPLAT_ERR_INVALID_ARGUMENT);
     }
 
     if (buffer_size < (size_t)CPLAT_IPV4_ADDR_STRLEN)
     {
-        return cplat_error_report_errno_as(detail_out, ERANGE, CPLAT_ERR_BUFFER_TOO_SMALL);
+        return cplat_internal_error_report_errno_as(detail_out, ERANGE, CPLAT_ERR_BUFFER_TOO_SMALL);
     }
 
     startup_result = cplat_internal_socket_startup(detail_out);
@@ -124,10 +124,10 @@ int cplat_ipv4_to_string(const uint32_t address, char *buffer, const size_t buff
 
     if (inet_ntop(AF_INET, &value, buffer, buffer_size) == NULL)
     {
-        return cplat_error_report_winsock_error(detail_out, (unsigned long)WSAGetLastError());
+        return cplat_internal_error_report_winsock_error(detail_out, (unsigned long)WSAGetLastError());
     }
 
-    return cplat_error_report_success(detail_out);
+    return cplat_internal_error_report_success(detail_out);
 }
 
 #endif /* PLATFORM_WINDOWS */

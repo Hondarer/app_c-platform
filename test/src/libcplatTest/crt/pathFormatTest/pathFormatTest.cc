@@ -13,7 +13,7 @@ static int call_vformat_path(char *path, size_t path_size, int *error_out, const
     va_list args;
 
     va_start(args, format);
-    int actual_ret = cplat_vformat_path(path, path_size, format, args, error_out);
+    int actual_ret = cplat_internal_vformat_path(path, path_size, format, args, error_out);
     va_end(args);
 
     return actual_ret;
@@ -29,10 +29,10 @@ TEST(pathFormatTest, rejects_null_path)
 
     // Act
     int actual_ret = call_vformat_path(NULL, 8, &error_out, "%s",
-                                "value"); // [手順] - path に NULL を指定して cplat_vformat_path を呼び出す。
+                                "value"); // [手順] - path に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, error_out); // [確認_異常系] - error_out に EINVAL が格納されること。
 }
 
@@ -47,10 +47,10 @@ TEST(pathFormatTest, rejects_zero_path_size)
 
     // Act
     int actual_ret = call_vformat_path(path, 0, &error_out, "%s",
-                                "value"); // [手順] - path_size に 0 を指定して cplat_vformat_path を呼び出す。
+                                "value"); // [手順] - path_size に 0 を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, error_out); // [確認_異常系] - error_out に EINVAL が格納されること。
 }
 
@@ -65,10 +65,10 @@ TEST(pathFormatTest, rejects_null_format)
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), &error_out,
-                                NULL); // [手順] - format に NULL を指定して cplat_vformat_path を呼び出す。
+                                NULL); // [手順] - format に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, error_out); // [確認_異常系] - error_out に EINVAL が格納されること。
 }
 
@@ -82,10 +82,10 @@ TEST(pathFormatTest, allows_null_error_out_for_invalid_argument)
     // Act
     int actual_ret =
         call_vformat_path(NULL, 8, NULL, "%s",
-                          "value"); // [手順] - path と error_out に NULL を指定して cplat_vformat_path を呼び出す。
+                          "value"); // [手順] - path と error_out に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
 }
 
 // 書式化の失敗時に EINVAL を報告することの確認
@@ -104,10 +104,10 @@ TEST(pathFormatTest, reports_vsnprintf_failure)
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), &error_out, "value-%d",
-                                7); // [手順] - 書式化が失敗する条件で cplat_vformat_path を呼び出す。
+                                7); // [手順] - 書式化が失敗する条件で cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);           // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(EINVAL, error_out); // [確認_異常系] - error_out に EINVAL が格納されること。
 }
 
@@ -127,10 +127,10 @@ TEST(pathFormatTest, allows_null_error_out_for_vsnprintf_failure)
     // Act
     int actual_ret = call_vformat_path(
         path, sizeof(path), NULL, "%s",
-        "value"); // [手順] - 書式化が失敗する条件で error_out に NULL を指定して cplat_vformat_path を呼び出す。
+        "value"); // [手順] - 書式化が失敗する条件で error_out に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
 }
 
 // バッファー不足時に ENAMETOOLONG を報告することの確認
@@ -152,7 +152,7 @@ TEST(pathFormatTest, reports_buffer_too_small_from_wrapper)
                                 "value"); // [手順] - 書式化がバッファー不足を返す条件で呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);                 // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);                 // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(ENAMETOOLONG, error_out); // [確認_異常系] - error_out に ENAMETOOLONG が格納されること。
 }
 
@@ -168,10 +168,10 @@ TEST(pathFormatTest, reports_truncation)
     // Act
     int actual_ret =
         call_vformat_path(path, sizeof(path), &error_out, "%s",
-                          "abcd"); // [手順] - 出力長が path_size 以上になる条件で cplat_vformat_path を呼び出す。
+                          "abcd"); // [手順] - 出力長が path_size 以上になる条件で cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret);                 // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret);                 // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
     EXPECT_EQ(ENAMETOOLONG, error_out); // [確認_異常系] - error_out に ENAMETOOLONG が格納されること。
 }
 
@@ -186,10 +186,10 @@ TEST(pathFormatTest, allows_null_error_out_for_truncation)
     // Act
     int actual_ret = call_vformat_path(
         path, sizeof(path), NULL, "%s",
-        "abcd"); // [手順] - 出力が切り詰められる条件で error_out に NULL を指定して cplat_vformat_path を呼び出す。
+        "abcd"); // [手順] - 出力が切り詰められる条件で error_out に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_vformat_path の戻り値が -1 であること。
+    EXPECT_EQ(-1, actual_ret); // [確認_異常系] - cplat_internal_vformat_path の戻り値が -1 であること。
 }
 
 // 書式展開に成功し error_out を変更しないことの確認
@@ -203,10 +203,10 @@ TEST(pathFormatTest, formats_path_and_preserves_error_out)
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), &error_out, "%s-%d", "value",
-                                7); // [手順] - 出力が収まる条件で cplat_vformat_path を呼び出す。
+                                7); // [手順] - 出力が収まる条件で cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);             // [確認_正常系] - cplat_vformat_path の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);             // [確認_正常系] - cplat_internal_vformat_path の戻り値が 0 であること。
     EXPECT_STREQ("value-7", path); // [確認_正常系] - path に書式展開後の文字列が格納されること。
     EXPECT_EQ(12345, error_out);   // [確認_正常系] - 成功時に error_out が変更されないこと。
 }
@@ -221,9 +221,9 @@ TEST(pathFormatTest, allows_null_error_out_on_success)
 
     // Act
     int actual_ret = call_vformat_path(path, sizeof(path), NULL, "%s",
-                                "value"); // [手順] - error_out に NULL を指定して cplat_vformat_path を呼び出す。
+                                "value"); // [手順] - error_out に NULL を指定して cplat_internal_vformat_path を呼び出す。
 
     // Assert
-    EXPECT_EQ(0, actual_ret);           // [確認_正常系] - cplat_vformat_path の戻り値が 0 であること。
+    EXPECT_EQ(0, actual_ret);           // [確認_正常系] - cplat_internal_vformat_path の戻り値が 0 であること。
     EXPECT_STREQ("value", path); // [確認_正常系] - path に書式展開後の文字列が格納されること。
 }

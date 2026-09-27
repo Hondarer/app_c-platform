@@ -12,7 +12,7 @@ using testing::Return;
     #include <cplat/runtime/process_internal.h>
 
 // このテストではネイティブ プロセスの取り込み経路を実行しないため、リンク用の fake を定義する。
-extern "C" cplat_process *cplat_process_adopt_native(intptr_t native_handle)
+extern "C" cplat_process *cplat_internal_process_adopt_native(intptr_t native_handle)
 {
     (void)native_handle;
     return NULL;

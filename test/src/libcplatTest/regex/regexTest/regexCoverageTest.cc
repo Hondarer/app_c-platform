@@ -93,7 +93,7 @@ class regexCoverageTest : public Test
 };
 
 #if !defined(CPLAT_REGEX_NO_EXCEPTIONS)
-// 公開 API の catch が utf8_decode の例外を結果コードへ変換することの確認
+// 公開 API の catch が cplat_internal_regex_utf8_decode の例外を結果コードへ変換することの確認
 TEST_F(regexCoverageTest, public_apis_translate_decode_exceptions)
 {
     // Arrange
@@ -113,23 +113,23 @@ TEST_F(regexCoverageTest, public_apis_translate_decode_exceptions)
     // Act
     test_regex_utf8_set_decode_mode(REGEX_UTF8_FAKE_THROW_BAD_ALLOC);
     int search_result = cplat_regex_search(regex, "a", 1U, 0U, CPLAT_REGEX_DEFAULT, NULL, 0U, &matched,
-                                              NULL); // [手順] - utf8_decode が bad_alloc を送出する状態で検索する。
+                                              NULL); // [手順] - cplat_internal_regex_utf8_decode が bad_alloc を送出する状態で検索する。
     int replace_alloc_result =
         cplat_regex_replace(regex, "a", 1U, "x", CPLAT_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
-                               NULL); // [手順] - utf8_decode が bad_alloc を送出する状態で置換する。
+                               NULL); // [手順] - cplat_internal_regex_utf8_decode が bad_alloc を送出する状態で置換する。
     int iter_create_result =
         cplat_regex_iter_create(regex, "a", 1U, CPLAT_REGEX_DEFAULT, &iter,
-                                   NULL); // [手順] - utf8_decode が bad_alloc を送出する状態で列挙を生成する。
+                                   NULL); // [手順] - cplat_internal_regex_utf8_decode が bad_alloc を送出する状態で列挙を生成する。
     int split_result = cplat_regex_split(regex, "a", 1U, 0U, CPLAT_REGEX_DEFAULT, parts, 1U, &part_count,
-                                            NULL); // [手順] - utf8_decode が bad_alloc を送出する状態で分割する。
+                                            NULL); // [手順] - cplat_internal_regex_utf8_decode が bad_alloc を送出する状態で分割する。
     test_regex_utf8_set_decode_mode(REGEX_UTF8_FAKE_THROW_REGEX_ERROR);
     int search_regex_result =
         cplat_regex_search(regex, "a", 1U, 0U, CPLAT_REGEX_DEFAULT, &match, 1U, &matched,
-                              NULL); // [手順] - utf8_decode が regex_error を送出する状態で検索する。
+                              NULL); // [手順] - cplat_internal_regex_utf8_decode が regex_error を送出する状態で検索する。
     test_regex_utf8_set_decode_mode(REGEX_UTF8_FAKE_THROW_INT);
     int search_unknown_result =
         cplat_regex_search(regex, "a", 1U, 0U, CPLAT_REGEX_DEFAULT, NULL, 0U, &matched,
-                              NULL); // [手順] - utf8_decode が未知例外を送出する状態で検索する。
+                              NULL); // [手順] - cplat_internal_regex_utf8_decode が未知例外を送出する状態で検索する。
 
     // Assert
     EXPECT_EQ(
@@ -156,7 +156,7 @@ TEST_F(regexCoverageTest, public_apis_translate_decode_exceptions)
 }
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
 
-// 置換後の utf8_encode 失敗と列挙位置超過を処理することの確認
+// 置換後の cplat_internal_regex_utf8_encode 失敗と列挙位置超過を処理することの確認
 TEST_F(regexCoverageTest, replace_encode_failure_and_iter_position_past_end)
 {
     // Arrange
@@ -176,12 +176,12 @@ TEST_F(regexCoverageTest, replace_encode_failure_and_iter_position_past_end)
     // Act
     test_regex_utf8_set_encode_mode(REGEX_UTF8_FAKE_RETURN_FALSE);
     int encode_result = cplat_regex_replace(regex, "a", 1U, "x", CPLAT_REGEX_DEFAULT, buffer, sizeof(buffer),
-                                               NULL, NULL); // [手順] - utf8_encode が false を返す状態で置換する。
+                                               NULL, NULL); // [手順] - cplat_internal_regex_utf8_encode が false を返す状態で置換する。
 #if !defined(CPLAT_REGEX_NO_EXCEPTIONS)
     test_regex_utf8_set_encode_mode(REGEX_UTF8_FAKE_THROW_BAD_ALLOC);
     int encode_throw_result =
         cplat_regex_replace(regex, "a", 1U, "x", CPLAT_REGEX_DEFAULT, buffer, sizeof(buffer), NULL,
-                               NULL); // [手順] - utf8_encode が bad_alloc を送出する状態で置換する。
+                               NULL); // [手順] - cplat_internal_regex_utf8_encode が bad_alloc を送出する状態で置換する。
 #endif                                /* !CPLAT_REGEX_NO_EXCEPTIONS */
     test_regex_utf8_set_encode_mode(REGEX_UTF8_FAKE_REAL);
     test_regex_iter_set_position(iter, 99U); // [状態] - 列挙位置を入力長より後ろへ進める。
@@ -193,11 +193,11 @@ TEST_F(regexCoverageTest, replace_encode_failure_and_iter_position_past_end)
     // Assert
     EXPECT_EQ(
         CPLAT_ERR_UNKNOWN,
-        encode_result); // [確認_異常系] - utf8_encode 失敗時の cplat_regex_replace の戻り値が CPLAT_ERR_UNKNOWN であること。
+        encode_result); // [確認_異常系] - cplat_internal_regex_utf8_encode 失敗時の cplat_regex_replace の戻り値が CPLAT_ERR_UNKNOWN であること。
 #if !defined(CPLAT_REGEX_NO_EXCEPTIONS)
     EXPECT_EQ(
         CPLAT_ERR_OUT_OF_MEMORY,
-        encode_throw_result); // [確認_異常系] - utf8_encode の例外時の cplat_regex_replace の戻り値が CPLAT_ERR_OUT_OF_MEMORY であること。
+        encode_throw_result); // [確認_異常系] - cplat_internal_regex_utf8_encode の例外時の cplat_regex_replace の戻り値が CPLAT_ERR_OUT_OF_MEMORY であること。
 #endif /* !CPLAT_REGEX_NO_EXCEPTIONS */
     EXPECT_EQ(
         CPLAT_OK,

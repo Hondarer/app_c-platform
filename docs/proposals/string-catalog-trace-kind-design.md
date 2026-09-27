@@ -410,7 +410,7 @@ syslog、EventLog、ETW への変換では、強制出力のレベル帯を個�
 ### 第 3.5 段階: 強制出力のレベル帯
 
 - `cplat_trace_level` への強制出力のレベル帯の追加
-- `to_syslog_level()`、`to_etw_level()`、`trace_level_char()` での扱いの決定
+- `to_syslog_level()`、`to_etw_level()`、`cplat_internal_trace_level_char()` での扱いの決定
 - しきい値を設定する API における、強制出力のレベル帯の拒否
 - 単体テストの追加と、`trace` の機能仕様への要件の追加
 

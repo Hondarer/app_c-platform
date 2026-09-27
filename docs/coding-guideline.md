@@ -886,19 +886,8 @@ rg -n '__atomic_|__sync_|\bInterlocked[A-Za-z0-9]*\(' app --glob '*.{c,h,cc}' --
 cplat の公開 API 名およびライブラリ内共有 API 名に適用する規則を示します。  
 上位規範の「命名規則」がライブラリ接頭辞と記法までを定めるのに対し、本章はカテゴリ名詞と動詞の並び順など cplat 固有の構成規則を定めます。
 
-既存 API の名前は原則として ABI として凍結し、本規約への適合を目的としたリネームは行いません。  
-ただし、次の 2 点に限り、この凍結を破棄します。
-
-- 上位規範の「予約識別子の回避」に反する形式 (`_t` サフィックス、アンダースコア前置き) の是正
-- ハンドルを生成・破棄する API の破棄動詞を `*_dispose` へ統一するためのリネーム (後述「生成と破棄の動詞対」節)
-
-> [!NOTE]
-> 予約識別子の是正を凍結の例外とするのは、規格が処理系用に予約している名前空間の侵犯であり、将来の libc や処理系の拡張とシンボルが衝突しうるためです。  
-> 生成・破棄動詞対の統一を凍結の例外とするのは、`*_create`/`*_dispose` という単一の対にそろえることで API 全体の一貫性と予測可能性を保つためです。ただし `*_detach`/`*_close`/`*_stop`/`*_release` は「ハンドルを完全に破棄し二度と使えなくする」という `*_destroy`/`*_dispose` とは異なる意味 (実体は別途終了する、POSIX/CRT の open/close 慣用を模す、再開可能な状態停止、ロック スコープの解除) を持つため、統一の対象外です。  
-> 単なる規約への不適合は、上記 2 点以外は ABI 互換を優先して凍結したままとします。
-
-上記の例外を除き、本規約は新設 API と、移行を伴う変更の際の改名先に適用します。  
-上位規範が定めるライブラリ内共有の接頭辞 (`cplat_internal_` の関数・型、`g_cplat_internal_` の外部リンケージ変数) への適合も、全面一括改名は求めず、変更対象ファイルに触れる機会に合わせて進めます。
+本規約は既存 API と新設 API の両方に適用します。  
+公開関数・型とライブラリ内共有の関数・型・外部リンケージ変数を改名する場合は、宣言、実装、利用側、テスト、文書を同時に更新し、旧名を残しません。
 
 ### 基本形
 
@@ -928,20 +917,10 @@ extern int g_cplat_internal_sink_count;
 カテゴリ名詞を持たない横断的な API (`cplat_sleep_ms`、`cplat_parse_int64` など) に限り、動詞先行を許容します。  
 元 API 名を保存する CRT ラッパー (`cplat_strcpy`、`cplat_snprintf` など) も、カテゴリ名詞と動詞の並びの対象外です。
 
-> [!IMPORTANT]
-> 次の公開 API は本規約に先行するため凍結対象です。新設 API 名の前例として引用しないでください。
->
-> - `cplat_get_temp_dir`
-> - `cplat_get_monotonic` / `cplat_get_monotonic_ms`
-> - `cplat_get_realtime` / `cplat_get_realtime_utc` / `cplat_get_realtime_deadline_ms`
-> - `cplat_format_realtime_iso8601_local` / `cplat_format_realtime_iso8601_utc`
-> - `cplat_normalize_path_sep` / `cplat_paths_equal`
-> - `cplat_encrypt` / `cplat_decrypt`
-
 ### 生成と破棄の動詞対
 
 ハンドルを生成・破棄する API は、`*_create` / `*_dispose` の対を正とします。  
-既存 API のうち「ハンドルを完全に破棄し二度と使えなくする」という同一の意味を持つ破棄動詞 (`*_destroy`) は、上記「API 命名規約」の例外規定により `*_dispose` へ改名します (例: sync カテゴリの破棄関数は `*_dispose` に統一済み)。  
+「ハンドルを完全に破棄し二度と使えなくする」という意味の破棄動詞は `*_dispose` に統一します (例: sync カテゴリの破棄関数)。  
 `*_detach`・`*_close`・`*_stop`・`*_release` は `*_destroy`/`*_dispose` と意味が異なる (実体は別途終了する、POSIX/CRT の open/close 慣用を模す、再開可能な状態停止、ロック スコープの解除) ため、統一の対象外とし現状の動詞を維持します。
 
 プロセス ライフサイクルで常に有効な既定インスタンスを明示的に初期化する API は `*_init` とし、破棄 API を対にしません。  
@@ -1044,7 +1023,7 @@ cplat_stat(buf, detail_out, path);
 
 ```c
 cplat_file_get_size(file, size_out, detail_out);
-cplat_paths_equal(lhs, rhs, equal_out, detail_out);
+cplat_path_equal(lhs, rhs, equal_out, detail_out);
 cplat_elevated_process_run_with_result(arguments, exit_code, handled, result_message, result_message_size);
 ```
 
@@ -1078,8 +1057,8 @@ cplat_vopen_fmt(flags, mode, detail_out, format, args);
 | `cplat_etw_session_start` | ハンドル戻りと `int *out_status` を併用し、他の生成系 (NULL 返却のみ) と失敗通知方式が異なります。 | 結果コード戻り + `cplat_etw_session **session_out` へ変更 |
 | `cplat_process_options_t` | typedef struct への `_t` 別名で、上位規範の `_t` 禁止に抵触 | `cplat_process_options` へ統一。同種の `cplat_process_stdio_t` も `cplat_process_stdio` へ統一 |
 | enum と関数ポインターの `_t` サフィックス (公開 18 型) | POSIX が予約する名前空間の侵犯。struct とも規則が食い違う | `_t` を除去。関数ポインターはサフィックスを `_fn` へ統一。OS / SDK 由来の alias 2 型のみ例外として維持 |
-| `_cplat_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を正名へ、テスト フックを前置きなしへ変更 |
-| 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `cplat_` がなく、リンク時に利用側と衝突しうる | `cplat_` を付与 (当時の上位規範)。以降の新設・改名では上位規範の `cplat_internal_` に従う |
+| `_cplat_` 前置きの公開シンボル (34 件) | C 標準がファイル スコープで予約する識別子形式 | マクロの実体を `_at` サフィックスへ、明示ハンドル版を `_handle_` 付きへ、テスト フックを前置きなしへ変更 |
+| 内部共有関数のライブラリ接頭辞漏れ (12 件) | `include_internal/` の宣言に `cplat_` がなく、リンク時に利用側と衝突しうる | 一度 `cplat_` を付与し、その後の全面改名で `cplat_internal_` に統一 |
 | `static` 関数へのライブラリ接頭辞 (11 件) | 外部リンケージを持つかのように読め、公開シンボルの点検で偽陽性を生む | 接頭辞を除去 |
 
 Table: 過去の規約逸脱 API とその解消内容一覧
@@ -1087,21 +1066,17 @@ Table: 過去の規約逸脱 API とその解消内容一覧
 > [!NOTE]
 > `cplat_argparser_init` は、既定インスタンスを初期化する `*_init` として本規約に適合するため、逸脱には該当しません。
 
-### 凍結対象として残す逸脱
+### 汎用ヘルパー マクロの名前
 
-次のマクロは公開ヘッダーにありながらライブラリ接頭辞を持ちませんが、利用側の改修規模が大きいため凍結対象とし、改名しません。
-
-> [!IMPORTANT]
-> これらは凍結対象であり、新設するマクロの前例になりません。  
-> 新しいマクロには [API 命名規約](#api-命名規約) に従って `CPLAT_` を前置きします。
+処理環境を表す次の公開マクロは、上位規範の汎用ヘルパーの例外に従い、現行名を維持します。  
+新設する同種のマクロにも用途を表す接頭辞を使用し、cplat 固有の機能を表すマクロには `CPLAT_` を前置きします。
 
 | ヘッダー | マクロ |
 |---|---|
-| `include/cplat/base/platform.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR` |
+| `include/cplat/base/platform.h` と `include/cplat/crt/path.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR`、`PLATFORM_NULL_DEVICE_PATH` |
 | `include/cplat/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
-| `include/cplat/base/shared_lib_lifecycle.h` | `DLLMAIN_CPLAT_INFO_MSG` |
 
-Table: 凍結対象として残す既存マクロ
+Table: 接頭辞 CPLAT_ を付けない汎用ヘルパー マクロ
 
 ## 整数演算の安全性
 

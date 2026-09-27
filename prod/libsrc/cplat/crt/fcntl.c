@@ -30,7 +30,7 @@ int cplat_open(const char *path, const int flags, const int mode, cplat_error *d
 
     if (path == NULL)
     {
-        (void)cplat_error_report_errno(detail_out, EINVAL);
+        (void)cplat_internal_error_report_errno(detail_out, EINVAL);
         return -1;
     }
 
@@ -50,14 +50,14 @@ int cplat_open(const char *path, const int flags, const int mode, cplat_error *d
 
         if (cplat_utf8_to_wpath(wpath, sizeof(wpath) / sizeof(wpath[0]), path) < 0)
         {
-            (void)cplat_error_report_errno(detail_out, ENAMETOOLONG);
+            (void)cplat_internal_error_report_errno(detail_out, ENAMETOOLONG);
             return -1;
         }
 
         err = _wsopen_s(&fd, wpath, flags, _SH_DENYNO, mode);
         if (err != 0)
         {
-            (void)cplat_error_report_errno(detail_out, (int)err);
+            (void)cplat_internal_error_report_errno(detail_out, (int)err);
             return -1;
         }
     }
@@ -67,11 +67,11 @@ int cplat_open(const char *path, const int flags, const int mode, cplat_error *d
     {
         const int errno_value = errno;
 
-        (void)cplat_error_report_errno(detail_out, errno_value);
+        (void)cplat_internal_error_report_errno(detail_out, errno_value);
     }
     else
     {
-        (void)cplat_error_report_success(detail_out);
+        (void)cplat_internal_error_report_success(detail_out);
     }
 
     return fd;

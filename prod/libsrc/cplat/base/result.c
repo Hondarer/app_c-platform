@@ -21,7 +21,7 @@
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_result_from_errno(const int errno_value)
+int cplat_internal_result_from_errno(const int errno_value)
 {
     int result;
 
@@ -64,7 +64,7 @@ int cplat_result_from_errno(const int errno_value)
 #if defined(PLATFORM_WINDOWS)
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_result_from_winsock_error(const unsigned long error_code)
+int cplat_internal_result_from_winsock_error(const unsigned long error_code)
 {
     int result;
 
@@ -111,7 +111,7 @@ int cplat_result_from_winsock_error(const unsigned long error_code)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_result_from_windows_error(const unsigned long error_code)
+int cplat_internal_result_from_windows_error(const unsigned long error_code)
 {
     int result;
 
@@ -153,7 +153,7 @@ int cplat_result_from_windows_error(const unsigned long error_code)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_errno_from_windows_error(const unsigned long error_code)
+int cplat_internal_errno_from_windows_error(const unsigned long error_code)
 {
     int errno_value;
 

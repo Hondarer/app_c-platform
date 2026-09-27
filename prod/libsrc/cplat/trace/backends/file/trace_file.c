@@ -790,7 +790,7 @@ int cplat_internal_trace_file_sink_write_text(cplat_trace_file_sink *handle, con
 
     /* 1 行全体をスタック バッファーへフォーマットする (syscall 回数を最小化) */
     len = snprintf(buf, sizeof(buf), "%s %c %s\n", timestamp_text,
-                   trace_level_char((cplat_trace_level)level), message); /* 置換対象外: 意図的な切り詰め */
+                   cplat_internal_trace_level_char((cplat_trace_level)level), message); /* 置換対象外: 意図的な切り詰め */
     if (len <= 0)
     {
         return CPLAT_ERR_UNKNOWN;
@@ -875,11 +875,11 @@ int cplat_trace_file_sink_write(cplat_trace_file_sink *handle, const int level,
         return CPLAT_OK;
     }
 
-    if (trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
+    if (cplat_internal_trace_resolve_timestamp(timestamp, &resolved, &fallback_used) != 0)
     {
         return CPLAT_ERR_UNKNOWN;
     }
-    if (trace_format_local_timestamp(timestamp_text, sizeof(timestamp_text), &resolved) != 0)
+    if (cplat_internal_trace_format_local_timestamp(timestamp_text, sizeof(timestamp_text), &resolved) != 0)
     {
         return CPLAT_ERR_UNKNOWN;
     }
@@ -931,7 +931,7 @@ void cplat_trace_file_sink_dispose(cplat_trace_file_sink *handle)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-void cplat_trace_file_sink_dispose_on_shutdown(cplat_trace_file_sink *handle)
+void cplat_internal_trace_file_sink_dispose_on_shutdown(cplat_trace_file_sink *handle)
 {
     struct sink_registry_entry *entry;
 

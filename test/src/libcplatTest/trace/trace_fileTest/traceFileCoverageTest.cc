@@ -40,14 +40,14 @@ class traceFileCoverageTest : public Test
 
     void SetUp() override
     {
-        ON_CALL(mock_cplat, cplat_get_realtime(_))
+        ON_CALL(mock_cplat, cplat_clock_get_realtime(_))
             .WillByDefault(
                 [](cplat_timespec *timestamp)
                 {
                     timestamp->tv_sec = 1714100645LL;
                     timestamp->tv_nsec = 678000000;
                 });
-        ON_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+        ON_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
             .WillByDefault(
                 [](char *buf, const size_t buf_size, const cplat_timespec *)
                 {
@@ -378,7 +378,7 @@ TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_fai
     ASSERT_NE((cplat_trace_file_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat, cplat_get_realtime(_))
+    EXPECT_CALL(mock_cplat, cplat_clock_get_realtime(_))
         .WillOnce(
             [](cplat_timespec *timestamp)
             {
@@ -392,7 +392,7 @@ TEST_F(traceFileCoverageTest, write_handles_invalid_arguments_and_dependency_fai
                 timestamp->tv_nsec = 0;
             }); // [Pre-Assert確認_異常系] - 時刻解決を不正値と正常値の順で呼び出すこと。
                 // [Pre-Assert手順] - 初回は不正なナノ秒、2 回目は正常な時刻を返却する。
-    EXPECT_CALL(mock_cplat, cplat_format_realtime_iso8601_local(_, _, _))
+    EXPECT_CALL(mock_cplat, cplat_clock_format_realtime_iso8601_local(_, _, _))
         .WillOnce(Return(CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 正常な時刻の書式化を 1 回呼び出すこと。
                                                  // [Pre-Assert手順] - 書式化から CPLAT_ERR_UNKNOWN を返却する。
 
@@ -506,14 +506,14 @@ TEST_F(traceFileCoverageTest, dispose_handles_registered_and_unregistered_sinks)
     // Pre-Assert
 
     // Act
-    cplat_trace_file_sink_dispose_on_shutdown(NULL); // [手順] - NULL sink を shutdown 経路で破棄する。
-    cplat_trace_file_sink_dispose_on_shutdown(first); // [手順] - 2 参照の sink を 1 回 shutdown 経路で破棄する。
+    cplat_internal_trace_file_sink_dispose_on_shutdown(NULL); // [手順] - NULL sink を shutdown 経路で破棄する。
+    cplat_internal_trace_file_sink_dispose_on_shutdown(first); // [手順] - 2 参照の sink を 1 回 shutdown 経路で破棄する。
     int write_result = cplat_trace_file_sink_write(
         second, CPLAT_TRACE_LEVEL_INFO, NULL,
         "still alive"); // [手順] - 残る 1 参照で書き込む。
-    cplat_trace_file_sink_dispose_on_shutdown(second); // [手順] - 最後の参照を shutdown 経路で破棄する。
+    cplat_internal_trace_file_sink_dispose_on_shutdown(second); // [手順] - 最後の参照を shutdown 経路で破棄する。
     cplat_trace_file_sink_dispose(normal_unregistered); // [手順] - 未登録 sink を通常経路で破棄する。
-    cplat_trace_file_sink_dispose_on_shutdown(
+    cplat_internal_trace_file_sink_dispose_on_shutdown(
         shutdown_unregistered); // [手順] - 未登録 sink を shutdown 経路で破棄する。
 
     // Assert

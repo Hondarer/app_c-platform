@@ -102,7 +102,7 @@ TEST_F(syslogFailureInjectionTest, write_reconnects_after_backoff_elapsed)
     // Arrange
     int realtime_call = 0;
     NiceMock<Mock_sys_socket> mock_sys_socket;
-    ON_CALL(mock_cplat_, cplat_get_realtime(_))
+    ON_CALL(mock_cplat_, cplat_clock_get_realtime(_))
         .WillByDefault(Invoke(
             [&realtime_call](cplat_timespec *timestamp)
             {
@@ -116,7 +116,7 @@ TEST_F(syslogFailureInjectionTest, write_reconnects_after_backoff_elapsed)
                 }
                 timestamp->tv_nsec = 0;
                 ++realtime_call;
-            })); // [状態] - cplat_get_realtime が呼び出された際に初回は 0 秒、以降は 10 秒を返すようにモックを設定する。
+            })); // [状態] - cplat_clock_get_realtime が呼び出された際に初回は 0 秒、以降は 10 秒を返すようにモックを設定する。
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))
@@ -230,13 +230,13 @@ TEST_F(syslogFailureInjectionTest, write_returns_unknown_when_fallback_timestamp
     cplat_syslog_sink *handle =
         cplat_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [状態] - syslog sink を生成する。
     ASSERT_NE((cplat_syslog_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
-    ON_CALL(mock_cplat_, cplat_get_realtime(_))
+    ON_CALL(mock_cplat_, cplat_clock_get_realtime(_))
         .WillByDefault(Invoke(
             [](cplat_timespec *timestamp)
             {
                 timestamp->tv_sec = 1;
                 timestamp->tv_nsec = 1000000000L;
-            })); // [状態] - cplat_get_realtime が呼び出された際に不正なナノ秒値 1000000000 を返すようにモックを設定する。
+            })); // [状態] - cplat_clock_get_realtime が呼び出された際に不正なナノ秒値 1000000000 を返すようにモックを設定する。
 
     // Pre-Assert
 
@@ -410,9 +410,9 @@ TEST_F(syslogFailureInjectionTest, write_uses_plain_line_when_test_timestamp_for
     ASSERT_NE((cplat_syslog_sink *)NULL, handle); // [状態確認] - ハンドルが非 NULL であること。
 
     // Pre-Assert
-    EXPECT_CALL(mock_cplat_, cplat_format_realtime_iso8601_local(_, _, _))
+    EXPECT_CALL(mock_cplat_, cplat_clock_format_realtime_iso8601_local(_, _, _))
         .WillOnce(Return(CPLAT_ERR_UNKNOWN)); // [Pre-Assert確認_異常系] - 時刻整形を失敗させること。
-    // [Pre-Assert手順] - cplat_format_realtime_iso8601_local から CPLAT_ERR_UNKNOWN を返却する。
+    // [Pre-Assert手順] - cplat_clock_format_realtime_iso8601_local から CPLAT_ERR_UNKNOWN を返却する。
 
     // Act
     int result = cplat_syslog_sink_write(handle, CPLAT_TRACE_LEVEL_INFO, &timestamp,
@@ -497,8 +497,8 @@ TEST_F(syslogFailureInjectionTest, dispose_on_shutdown_handles_null_and_active_s
     // Pre-Assert
 
     // Act
-    cplat_syslog_sink_dispose_on_shutdown(NULL);   // [手順] - NULL ハンドルを shutdown 破棄する。
-    cplat_syslog_sink_dispose_on_shutdown(handle); // [手順] - 有効なハンドルを shutdown 破棄する。
+    cplat_internal_syslog_sink_dispose_on_shutdown(NULL);   // [手順] - NULL ハンドルを shutdown 破棄する。
+    cplat_internal_syslog_sink_dispose_on_shutdown(handle); // [手順] - 有効なハンドルを shutdown 破棄する。
 
     // Assert
     SUCCEED(); // [確認_正常系] - NULL と有効なハンドルの shutdown 破棄が完了すること。
@@ -518,7 +518,7 @@ TEST_F(syslogFailureInjectionTest, dispose_on_shutdown_handles_disconnected_sink
     // Act
     cplat_syslog_sink *handle =
         cplat_syslog_sink_create("syslogFailureInjectionTest", LOG_USER); // [手順] - ソケット未接続の sink を生成する。
-    cplat_syslog_sink_dispose_on_shutdown(
+    cplat_internal_syslog_sink_dispose_on_shutdown(
         handle); // [手順] - ソケット未接続の sink を shutdown 経路で破棄する。
 
     // Assert
@@ -745,7 +745,7 @@ TEST_F(syslogFailureInjectionTest, socket_failure_caps_backoff_interval)
     // Arrange
     int realtime_call = 0;
     NiceMock<Mock_sys_socket> mock_sys_socket;
-    ON_CALL(mock_cplat_, cplat_get_realtime(_))
+    ON_CALL(mock_cplat_, cplat_clock_get_realtime(_))
         .WillByDefault(Invoke(
             [&realtime_call](cplat_timespec *timestamp)
             {
@@ -767,7 +767,7 @@ TEST_F(syslogFailureInjectionTest, socket_failure_caps_backoff_interval)
                 }
                 timestamp->tv_nsec = 0;
                 ++realtime_call;
-            })); // [状態] - cplat_get_realtime が呼び出された際に 0 秒、10 秒、20 秒、40 秒を順に返すようにモックを設定する。
+            })); // [状態] - cplat_clock_get_realtime が呼び出された際に 0 秒、10 秒、20 秒、40 秒を順に返すようにモックを設定する。
 
     // Pre-Assert
     EXPECT_CALL(mock_sys_socket, socket(_, _, _, _, _, _))

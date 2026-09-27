@@ -36,7 +36,7 @@ static uint64_t monotonic_ns(void)
 {
     cplat_timespec value;
 
-    cplat_get_monotonic(&value);
+    cplat_clock_get_monotonic(&value);
     return ((uint64_t)value.tv_sec * 1000000000U) + (uint64_t)value.tv_nsec;
 }
 

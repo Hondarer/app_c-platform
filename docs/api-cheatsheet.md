@@ -239,8 +239,8 @@ Table: Win32 生 API と cplat UTF-8 ラッパー API の対応
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `clock_gettime(CLOCK_MONOTONIC, ...)` (Linux) / `GetTickCount64()` (Windows) | `cplat_get_monotonic_ms()` / `cplat_get_monotonic()` | 単調クロックをミリ秒/ナノ秒精度で返す。Windows の分解能差 (既定 ~15ms 刻み) を吸収 |
-| `clock_gettime(CLOCK_REALTIME, ...)` (Linux) / `GetSystemTimeAsFileTime()` (Windows) | `cplat_get_realtime()` | Windows の 1601 年基準 (FILETIME) から Unix epoch 基準への変換を吸収 |
+| `clock_gettime(CLOCK_MONOTONIC, ...)` (Linux) / `GetTickCount64()` (Windows) | `cplat_clock_get_monotonic_ms()` / `cplat_clock_get_monotonic()` | 単調クロックをミリ秒/ナノ秒精度で返す。Windows の分解能差 (既定 ~15ms 刻み) を吸収 |
+| `clock_gettime(CLOCK_REALTIME, ...)` (Linux) / `GetSystemTimeAsFileTime()` (Windows) | `cplat_clock_get_realtime()` | Windows の 1601 年基準 (FILETIME) から Unix epoch 基準への変換を吸収 |
 
 Table: クロック取得 API と cplat 代替ラッパーの差異
 
@@ -399,8 +399,8 @@ Table: 暗号論的乱数生成 API と cplat 代替ラッパーの差異
 
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
-| `EVP_EncryptInit_ex` +`EVP_EncryptUpdate` +`EVP_EncryptFinal_ex` (OpenSSL) / `BCryptEncrypt` (CNG) | `cplat_encrypt(...)` | AES-256-GCM 固定のワンショット API に集約し、暗号文+タグ連結フォーマットを標準化 |
-| `EVP_DecryptInit_ex` +`EVP_DecryptUpdate` +`EVP_DecryptFinal_ex` (OpenSSL) / `BCryptDecrypt` (CNG) | `cplat_decrypt(...)` | 同上。タグ検証を内包 |
+| `EVP_EncryptInit_ex` +`EVP_EncryptUpdate` +`EVP_EncryptFinal_ex` (OpenSSL) / `BCryptEncrypt` (CNG) | `cplat_crypto_encrypt(...)` | AES-256-GCM 固定のワンショット API に集約し、暗号文+タグ連結フォーマットを標準化 |
+| `EVP_DecryptInit_ex` +`EVP_DecryptUpdate` +`EVP_DecryptFinal_ex` (OpenSSL) / `BCryptDecrypt` (CNG) | `cplat_crypto_decrypt(...)` | 同上。タグ検証を内包 |
 
 Table: 暗号化・復号 API と cplat 代替ラッパーの差異
 
@@ -789,9 +789,9 @@ Table: 動的シンボル解決における用途別 cplat API
 シグネチャを確認する場合は、関数名に対応する [`prod/include/`](../prod/include/) 配下のヘッダーを参照してください。
 
 - 引数解析: `cplat_argparser_register_option_int`、`cplat_argparser_register_option_string`、`cplat_argparser_register_option_int_array`、`cplat_argparser_register_option_string_array`、`cplat_argparser_register_positional_int`、`cplat_argparser_register_positional_int_array`、`cplat_argparser_register_positional_string_array`、`cplat_argparser_get_error_target`、`cplat_argparser_get_error_index`、`cplat_argparser_get_error_message`、`cplat_argparser_print_error_messages`、`cplat_argparser_get_register_error_count`、`cplat_argparser_get_register_error_target`、`cplat_argparser_get_register_error_message`、`cplat_argparser_print_register_error_messages`
-- 時刻: `cplat_format_realtime_iso8601_local`、`cplat_format_realtime_iso8601_utc`、`cplat_get_realtime_utc`、`cplat_get_realtime_deadline_ms`、`cplat_timespec_normalize`、`cplat_timespec_add`、`cplat_timespec_sub`、`cplat_timespec_cmp`、`cplat_timespec_add_ms`、`cplat_timespec_diff_ms`、`cplat_timespec_to_native`、`cplat_timespec_from_native`
+- 時刻: `cplat_clock_format_realtime_iso8601_local`、`cplat_clock_format_realtime_iso8601_utc`、`cplat_clock_get_realtime_utc`、`cplat_clock_get_realtime_deadline_ms`、`cplat_timespec_normalize`、`cplat_timespec_add`、`cplat_timespec_sub`、`cplat_timespec_cmp`、`cplat_timespec_add_ms`、`cplat_timespec_diff_ms`、`cplat_timespec_to_native`、`cplat_timespec_from_native`
 - ファイル: `cplat_file_init`、`cplat_file_open`、`cplat_file_write`、`cplat_file_read`、`cplat_file_get_size`、`cplat_file_set_size`、`cplat_file_get_id`、`cplat_file_get_path_id`、`cplat_file_get_modified_timestamp`、`cplat_file_set_modified_timestamp`、`cplat_file_get_path_modified_timestamp`、`cplat_file_set_path_modified_timestamp`、`cplat_file_flush`、`cplat_file_close`
-- パス: `cplat_normalize_path_sep`、`cplat_path_get_full`、`cplat_paths_equal`、`cplat_get_temp_dir`、`cplat_path_concat_n`、`cplat_vpath_concat_n`、`cplat_path_basename`、`cplat_path_dirname`、`cplat_path_extension`、`cplat_path_strip_extension`、`cplat_path_join_n`、`cplat_vpath_join_n`
+- パス: `cplat_path_normalize_sep`、`cplat_path_get_full`、`cplat_path_equal`、`cplat_path_get_temp_dir`、`cplat_path_concat_n`、`cplat_vpath_concat_n`、`cplat_path_basename`、`cplat_path_dirname`、`cplat_path_extension`、`cplat_path_strip_extension`、`cplat_path_join_n`、`cplat_vpath_join_n`
 - 文字列: `cplat_strcasecmp`、`cplat_strncasecmp`
 - 文字列カタログ: `cplat_string_catalog_set_language`、`cplat_string_catalog_get_language`、`cplat_string_catalog_language_from_tag`、`cplat_string_catalog_format`、`cplat_string_catalog_vformat`、`cplat_string_catalog_verify`、`cplat_string_catalog_get_entry`、`cplat_string_catalog_get_category`、`cplat_string_catalog_get_key`、`cplat_string_catalog_get_note`
 - 書式入力: `cplat_vscanf`、`cplat_vfscanf`、`cplat_vsscanf`

@@ -157,7 +157,7 @@ int etw_viewer_format_timestamp_utc(int64_t timestamp_100ns, char *buffer, size_
     unix_100ns = timestamp_100ns - filetime_unix_epoch_100ns;
     ts.tv_sec = (time_t)(unix_100ns / 10000000LL);
     ts.tv_nsec = (unix_100ns % 10000000LL) * 100LL;
-    return cplat_format_realtime_iso8601_local(buffer, buffer_size, &ts);
+    return cplat_clock_format_realtime_iso8601_local(buffer, buffer_size, &ts);
 }
 
 void etw_viewer_handle_event(const cplat_etw_event *event, void *context)
