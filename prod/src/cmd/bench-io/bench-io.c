@@ -8,7 +8,7 @@
  *
  *  ファイル サイズ、アクセス パターン、API 形態を組み合わせた測定条件を列挙し、
  *  条件ごとに 1 レコードあたりの所要時間とスループットを求めます。\n
- *  測定方法の詳細は `app/c-platform/prod/src/cmd/bench-io/benchmark-method.md` を参照してください。
+ *  測定方法の詳細は `app/cplat/prod/src/cmd/bench-io/benchmark-method.md` を参照してください。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *

@@ -75,7 +75,7 @@ int cplat_prompt_read_text_at(cplat_prompt *prompt,
 
 初期実装では mock と自動テストを後段に回し、Prod ビルドと手動確認で仕様を評価します。
 
-1. `cd app/c-platform && make` で Prod 側がビルドできること。
+1. `cd app/cplat && make` で Prod 側がビルドできること。
 2. 固定プロンプトが画面最下段に表示されること。
 3. 入力中に専用出力 API で `stdout` / `stderr` へ出力しても、出力がプロンプト上部に表示され、入力中の内容が再描画されること。
 4. 上下キーで pinned prompt 単位の履歴を移動できること。

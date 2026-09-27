@@ -9,8 +9,8 @@
  *  Windows のアプリケーション イベント ログに cplat 共通イベント ソースを
  *  登録/削除します。HKLM への書き込みには管理者権限が必要なため、未昇格時は
  *  UAC 昇格を行います。\n
- *  登録先は `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\c-platform.tracer`
- *  キーです。ソース名 `c-platform.tracer` は `CPLAT_TRACER_DEFAULT_PROVIDER_NAME` の値で、
+ *  登録先は `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\cplat.tracer`
+ *  キーです。ソース名 `cplat.tracer` は `CPLAT_TRACER_DEFAULT_PROVIDER_NAME` の値で、
  *  登録状態の確認はこのキーの有無で判断できます。\n
  *  Linux ではイベント ログを使用しないため、案内を表示して終了します。
  *

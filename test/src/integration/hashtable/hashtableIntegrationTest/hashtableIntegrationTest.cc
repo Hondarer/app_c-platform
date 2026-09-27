@@ -325,7 +325,7 @@ TEST_F(hashtableIntegrationTest, mmap_backed_data_region_round_trip)
     const void *found = nullptr;
     std::string ws = findWorkspaceRoot();
     std::string path =
-        ws + "/app/c-platform/test/src/integration/hashtable/hashtableIntegrationTest/results/hashtable_data.map";
+        ws + "/app/cplat/test/src/integration/hashtable/hashtableIntegrationTest/results/hashtable_data.map";
 
     remove(path.c_str());
 
@@ -392,7 +392,7 @@ TEST_F(hashtableIntegrationTest, internal_buffers_round_trip_through_file)
     const void *found = nullptr;
     std::string ws = findWorkspaceRoot();
     std::string path =
-        ws + "/app/c-platform/test/src/integration/hashtable/hashtableIntegrationTest/results/hashtable_dump.bin";
+        ws + "/app/cplat/test/src/integration/hashtable/hashtableIntegrationTest/results/hashtable_dump.bin";
 
     remove(path.c_str());
 

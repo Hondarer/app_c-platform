@@ -73,7 +73,7 @@ TEST_F(traceFileIntegrationTest, test_enable_file_trace_writes_messages)
 {
     // Arrange
     std::string ws = findWorkspaceRoot();
-    std::string path = ws + "/app/c-platform/test/src/integration/trace/traceFileIntegrationTest/results/trace_test.log";
+    std::string path = ws + "/app/cplat/test/src/integration/trace/traceFileIntegrationTest/results/trace_test.log";
     remove(path.c_str());
 
     cplat_tracer *handle = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
@@ -117,7 +117,7 @@ TEST_F(traceFileIntegrationTest, test_file_level_filters_messages)
     // Arrange
     std::string ws = findWorkspaceRoot();
     std::string path =
-        ws + "/app/c-platform/test/src/integration/trace/traceFileIntegrationTest/results/trace_filter.log";
+        ws + "/app/cplat/test/src/integration/trace/traceFileIntegrationTest/results/trace_filter.log";
     remove(path.c_str());
 
     cplat_tracer *handle = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
@@ -160,7 +160,7 @@ TEST_F(traceFileIntegrationTest, test_debug_level_outputs_verbose_and_debug_mark
 {
     // Arrange
     std::string ws = findWorkspaceRoot();
-    std::string path = ws + "/app/c-platform/test/src/integration/trace/traceFileIntegrationTest/results/trace_debug.log";
+    std::string path = ws + "/app/cplat/test/src/integration/trace/traceFileIntegrationTest/results/trace_debug.log";
     remove(path.c_str());
 
     cplat_tracer *handle = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。
@@ -204,7 +204,7 @@ TEST_F(traceFileIntegrationTest, test_level_none_disables_file_trace)
     // Arrange
     std::string ws = findWorkspaceRoot();
     std::string path =
-        ws + "/app/c-platform/test/src/integration/trace/traceFileIntegrationTest/results/trace_disable.log";
+        ws + "/app/cplat/test/src/integration/trace/traceFileIntegrationTest/results/trace_disable.log";
     remove(path.c_str());
 
     cplat_tracer *handle = cplat_tracer_create(CPLAT_TRACER_CONCURRENCY_CALLER_MANAGED); // [状態] - 生成済みのトレース ハンドルを用意する。

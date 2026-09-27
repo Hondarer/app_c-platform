@@ -58,7 +58,7 @@
      *  `DllMain` および constructor / destructor コンテキストでは
      *  使用できる API が制限されるため、このマクロは制約下でも比較的
      *  安全な最小限の出力経路を提供します。\n
-     *  環境変数 `ENABLE_DLLMAIN_C_PLATFORM_INFO_MSG` が設定されている
+     *  環境変数 `ENABLE_DLLMAIN_CPLAT_INFO_MSG` が設定されている
      *  場合にのみ出力します。未設定時は何も出力しません。\n
      *  Linux では、環境変数 `SYSLOG_TEST_FD` が設定されていれば
      *  その FD に RFC 3164 形式のメッセージを書き込みます。
@@ -91,7 +91,7 @@ static void dllmain_syslog_send__(const char *msg)
     int n;
     int enabled = 0;
 
-    if (cplat_getenv("ENABLE_DLLMAIN_C_PLATFORM_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
+    if (cplat_getenv("ENABLE_DLLMAIN_CPLAT_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
     {
         return;
     }
@@ -139,7 +139,7 @@ static void dllmain_output_debug_msg__(const char *msg)
     int len;
     int enabled = 0;
 
-    if (cplat_getenv("ENABLE_DLLMAIN_C_PLATFORM_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
+    if (cplat_getenv("ENABLE_DLLMAIN_CPLAT_INFO_MSG", NULL, 0, &enabled, NULL) != 0 || enabled == 0)
     {
         return;
     }

@@ -87,9 +87,9 @@ CodeBlock: 昇格時のコンソール引き継ぎ
 
 `AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (一度失敗すると再試行しても同一のエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `cplat_console_write()` (Win32 API を直接呼び出す) でも同様に発生します。
 
-UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_with_result()` (`app/c-platform/prod/libsrc/cplat/runtime/README.md` 参照) を使用してください。こちらは昇格プロセスのコンソールに一切アクセスせず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
+UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_with_result()` (`app/cplat/prod/libsrc/cplat/runtime/README.md` 参照) を使用してください。こちらは昇格プロセスのコンソールに一切アクセスせず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
 
-再現調査時は、環境変数 `C_PLATFORM_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/c-platform_console_attach.log` へ再接続の診断ログを追記できます。  
+再現調査時は、環境変数 `CPLAT_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/cplat_console_attach.log` へ再接続の診断ログを追記できます。  
 このログには `FreeConsole` / `AttachConsole` / `GetConsoleWindow` / `CONOUT$` オープン / `reopen` / 終了時ドレインの成否と `GetLastError()` を記録します。
 
 ### cplat_console_write

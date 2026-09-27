@@ -47,7 +47,7 @@
  *  `{FLAG}={一時ファイルの UTF-8 パス}` の形式で付与し、
  *  cplat_elevated_process_extract_result_target() がこれを検出して報告先を保持します。
  */
-    #define CPLAT_PROCESS_RESULT_TARGET_FLAG "--c-platform-result-file"
+    #define CPLAT_PROCESS_RESULT_TARGET_FLAG "--cplat-result-file"
 
 static char s_result_target_path[PLATFORM_PATH_MAX] = {0};
 

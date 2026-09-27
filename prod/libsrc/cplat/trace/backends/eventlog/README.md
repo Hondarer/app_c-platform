@@ -81,7 +81,7 @@ Event Viewer の「全般」では、実行体ファイル パス、インスタ
 `CategoryMessageFile` にカテゴリ メッセージを登録しているため、PowerShell の `Get-EventLog` では `CategoryNumber=4`、`Category=INFO` のようにカテゴリ名を解決できます。
 
 ```powershell
-Get-EventLog -LogName Application -Source 'c-platform.tracer' -Newest 1 |
+Get-EventLog -LogName Application -Source 'cplat.tracer' -Newest 1 |
     Select-Object CategoryNumber, Category, Message |
     Format-List
 ```
@@ -92,7 +92,7 @@ Get-EventLog -LogName Application -Source 'c-platform.tracer' -Newest 1 |
 ```powershell
 Get-WinEvent -FilterHashtable @{
     LogName = 'Application'
-    ProviderName = 'c-platform.tracer'
+    ProviderName = 'cplat.tracer'
 } -MaxEvents 1 |
     Select-Object Task, TaskDisplayName, Id, Message |
     Format-List

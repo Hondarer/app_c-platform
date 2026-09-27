@@ -580,7 +580,7 @@ def validate(document: dict) -> list[dict]:
 
 GENERATED_NOTE =""" *  本ヘッダーと `{source}` は、カタログ定義 `{definition}` から自動生成されたファイルです。\\n
  *  列挙型とテーブルは 1 組の生成単位のため、常に同時に生成してください。\\n
- *  手作業で直接編集せず、生成元の定義を変更してから `app/c-platform/bin_internal/string_catalog_gen.py` を実行してください。"""
+ *  手作業で直接編集せず、生成元の定義を変更してから `app/cplat/bin_internal/string_catalog_gen.py` を実行してください。"""
 
 
 def c_string(text: str) -> str:
@@ -1627,7 +1627,7 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
         " *",
         f" *  本ファイルは、カタログ定義 `{definition_name}` から自動生成されたファイルです。\\n",
         f" *  同じ生成元から作成される `{header_name}` と合わせて 1 組の生成単位です。\\n",
-        " *  手作業で直接編集せず、生成元の定義を変更してから `app/c-platform/bin_internal/string_catalog_gen.py` を実行してください。",
+        " *  手作業で直接編集せず、生成元の定義を変更してから `app/cplat/bin_internal/string_catalog_gen.py` を実行してください。",
         " *",
         " *  このテーブルは利用側で用意する定義情報であり、ライブラリ側では保持しません。\\n",
         " *  配列とインデックス テーブルを @ref s_catalog へまとめ、組み立て API の呼び出しごとに渡します。\\n",

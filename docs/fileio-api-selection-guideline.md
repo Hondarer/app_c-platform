@@ -4,7 +4,7 @@
 
 cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を参照してください。
 
-測定方法は [ベンチマークの測定方法](https://github.com/Hondarer/app_c-platform/blob/main/prod/src/cmd/bench-io/benchmark-method.md) を参照してください。  
+測定方法は [ベンチマークの測定方法](https://github.com/Hondarer/app_cplat/blob/main/prod/src/cmd/bench-io/benchmark-method.md) を参照してください。  
 本書の表は `bench-io` の出力から転記したものです。CSV そのものは実行環境ごとに値が変わるため、リポジトリでは管理していません。
 
 ## 測定条件

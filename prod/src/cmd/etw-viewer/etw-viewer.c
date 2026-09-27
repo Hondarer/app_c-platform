@@ -7,7 +7,7 @@
  *  @version        1.0.0
  *
  *  Windows 上で cplat の ETW provider を購読し、受信イベントを stdout に表示します。
- *  既定では c-platform tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
+ *  既定では cplat.tracer の標準 provider GUID を購読し、Ctrl+C で終了します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 
     etw_viewer_options_init(&options);
 
-    cplat_argparser_init(argc, argv, "ETW の c-platform トレースを表示します。");
+    cplat_argparser_init(argc, argv, "ETW の cplat.tracer を表示します。");
     cplat_argparser_register_flag("-h", "--help", "ヘルプを表示します。", &options.need_help);
     cplat_argparser_register_option_string(NULL, "--pid", "process-id", "表示するプロセス ID。", 0, &pid_value);
 

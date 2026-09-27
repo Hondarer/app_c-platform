@@ -41,7 +41,7 @@ app へ移す際は、項目 1 と項目 3 を `prod/include/<lib>/` の公開�
 
 ## API 仕様
 
-関数名は [共通コーディング規範](../app/general/docs/coding-guideline.md) の命名規則に従い、`<lib>_<カテゴリ名詞>_<動詞>` の順で並べます。  
+関数名は [共通コーディング規範](../../../general/docs/coding-guideline.md) の命名規則に従い、`<lib>_<カテゴリ名詞>_<動詞>` の順で並べます。  
 配置先の app が未確定のため、規範の記述例と同じ `sample_` をプレースホルダーとして使います。
 
 `int sample_file_copy_if_newer(const char *from_path, const char *to_path, cplat_error *detail_out);`
@@ -138,7 +138,7 @@ cplat はファイル実体の同一性を `cplat_file_id` の `volume` と `ind
 
 ### mmap を使わない理由
 
-[ファイル入出力 API の選定基準](../app/c-platform/docs/fileio-api-selection-guideline.md) の判断手順のうち、「1 回開いて全体を 1 度だけ通す逐次処理」が本関数に該当します。  
+[ファイル入出力 API の選定基準](../fileio-api-selection-guideline.md) の判断手順のうち、「1 回開いて全体を 1 度だけ通す逐次処理」が本関数に該当します。  
 この形態ではブロック単位の読み書きが最良であり、mmap にしても同等以上にはならず実装だけが複雑になります。
 
 転送バッファーは 64 KB とします。  
@@ -200,7 +200,7 @@ Coverity にソース内の `#pragma` で欠陥を抑制する機構はなく、
 
 ## プラットフォーム差異
 
-[C/C++ プラットフォーム抽象化ガイドライン](../app/c-platform/docs/platform-abstraction-guideline.md) に従い、  
+[C/C++ プラットフォーム抽象化ガイドライン](../platform-abstraction-guideline.md) に従い、  
 `_WIN32` や `_MSC_VER` を直接使わず `PLATFORM_LINUX` と `PLATFORM_WINDOWS` で分岐します。  
 分岐の順は Linux、Windows の順です。
 
@@ -265,7 +265,7 @@ cplat の「限界値は厳しい側に合わせる」共通契約に従う判�
 
 ## テスト観点
 
-テストの構成は [テスト方法](../framework/testfw/docs/how-to-test.md) と、  
+テストの構成は [テスト方法](../../../../framework/testfw/docs/how-to-test.md) と、  
 cplat の `test/src/libcplatTest/crt/fileTest/` に倣います。
 
 実ファイルを使う観点は次のとおりです。

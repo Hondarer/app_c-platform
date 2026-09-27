@@ -4,8 +4,8 @@
 
 C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッダーに集約しています。
 
-- `app/c-platform/prod/include/cplat/base/platform.h`
-- `app/c-platform/prod/include/cplat/base/compiler.h`
+- `app/cplat/prod/include/cplat/base/platform.h`
+- `app/cplat/prod/include/cplat/base/compiler.h`
 
 利用側のコードは、処理系依存マクロを直接判定するのではなく、`PLATFORM_*` / `ARCH_*` / `COMPILER_*` / `FORCE_INLINE` / `NO_INLINE` を使って分岐してください。
 
@@ -269,7 +269,7 @@ makefile から渡す場合は `CFLAGS += /DMYLIB_EXPORTS` のように値なし
 MYLIB_EXPORT extern int g_mylib_feature_flag;
 ```
 
-`cplat` では、`app/c-platform/test/src/libcplatTest/exportTest/exportTest.cc` の `CPLAT_EXPORT_VARIABLE_TABLE(EXPORT_ENTRY)` に `EXPORT_ENTRY(変数名, 型 *)` の形で登録してください。関数と同じ `CPLAT_EXPORT_TABLE` の仕組み (シグネチャの static_assert、実バイナリのエクスポート一覧との突き合わせ) がそのまま変数にも適用され、export マクロの付け忘れとテーブル登録漏れの両方を検出できます。
+`cplat` では、`app/cplat/test/src/libcplatTest/exportTest/exportTest.cc` の `CPLAT_EXPORT_VARIABLE_TABLE(EXPORT_ENTRY)` に `EXPORT_ENTRY(変数名, 型 *)` の形で登録してください。関数と同じ `CPLAT_EXPORT_TABLE` の仕組み (シグネチャの static_assert、実バイナリのエクスポート一覧との突き合わせ) がそのまま変数にも適用され、export マクロの付け忘れとテーブル登録漏れの両方を検出できます。
 
 さらに、`exportTest.cc` の `public_header_variables_declare_export_macro` テストが `prod/include/` 配下を直接走査し、export マクロを伴わない `extern` 変数宣言がないかを機械的に確認します。テーブルへの登録を忘れた場合でも、この走査によって export マクロの付け忘れが検出されます。
 

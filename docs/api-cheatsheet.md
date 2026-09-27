@@ -231,7 +231,7 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 
 Table: Win32 生 API と cplat UTF-8 ラッパー API の対応
 
-適用範囲は `CreateFileU` などのファイル ハンドル系に限らず、`app/c-platform/docs/coding-guideline.md` の該当節を参照してください。
+適用範囲は `CreateFileU` などのファイル ハンドル系に限らず、`app/cplat/docs/coding-guideline.md` の該当節を参照してください。
 
 ### クロック
 

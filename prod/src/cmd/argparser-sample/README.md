@@ -26,17 +26,17 @@ Table: argparser-sample のコマンド ライン引数一覧
 
 ## ビルドと実行
 
-`make -C app/c-platform` でビルドすると `app/c-platform/prod/cbin/argparser-sample` が生成されます。
+`make -C app/cplat` でビルドすると `app/cplat/prod/cbin/argparser-sample` が生成されます。
 
 ```bash
 # usage の表示
-app/c-platform/prod/cbin/argparser-sample --help
+app/cplat/prod/cbin/argparser-sample --help
 
 # 全種別の指定例
-app/c-platform/prod/cbin/argparser-sample -v -v -c 3 --name=alice -i dir1 -i dir2 in.txt out.txt
+app/cplat/prod/cbin/argparser-sample -v -v -c 3 --name=alice -i dir1 -i dir2 in.txt out.txt
 
 # 解析エラーの例 (必須の位置引数 input を省略)
-app/c-platform/prod/cbin/argparser-sample -v
+app/cplat/prod/cbin/argparser-sample -v
 ```
 
 ## コードの構成

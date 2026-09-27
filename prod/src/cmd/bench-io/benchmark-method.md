@@ -1,7 +1,7 @@
 # ベンチマークの測定方法
 
 `bench-io` コマンドが何をどう測っているかと、Linux および Windows での実行手順をまとめます。  
-測定結果から導いた API の選び分けは [API 選定基準](https://github.com/Hondarer/app_c-platform/blob/main/docs/fileio-api-selection-guideline.md) を参照してください。
+測定結果から導いた API の選び分けは [API 選定基準](https://github.com/Hondarer/app_cplat/blob/main/docs/fileio-api-selection-guideline.md) を参照してください。
 
 ## 測定対象
 
@@ -95,8 +95,8 @@ cold の測定はネイティブ Linux 環境で実施してください。
 
 ```bash
 make sync-app-env
-make -C app/c-platform
-app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/c-platform/prod/src/cmd/bench-io/measurements/linux.csv
+make -C app/cplat
+app/cplat/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/cplat/prod/src/cmd/bench-io/measurements/linux.csv
 ```
 
 `--dir` には測定用ファイルを置くディレクトリを指定します。  
@@ -106,7 +106,7 @@ app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --csv app/c-platform/p
 ページ キャッシュを破棄した測定を行う場合は次のようにします。
 
 ```bash
-sudo app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5 --csv app/c-platform/prod/src/cmd/bench-io/measurements/linux-cold.csv
+sudo app/cplat/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5 --csv app/cplat/prod/src/cmd/bench-io/measurements/linux-cold.csv
 ```
 
 ### Windows
@@ -114,8 +114,8 @@ sudo app/c-platform/prod/cbin/bench-io --dir /var/tmp/bench-io --cold --trials 5
 `Start-VSCode-With-Env.cmd` で GNU Make と MSVC の環境を整えたうえで実行します。
 
 ```
-make -C app/c-platform
-app\c-platform\prod\cbin\bench-io.exe --dir C:\Temp\bench-io --csv app\c-platform\prod\src\cmd\bench-io\measurements\windows.csv
+make -C app/cplat
+app\cplat\prod\cbin\bench-io.exe --dir C:\Temp\bench-io --csv app\cplat\prod\src\cmd\bench-io\measurements\windows.csv
 ```
 
 ## 出力

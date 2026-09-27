@@ -1,6 +1,6 @@
 # prompt 系テスト
 
-`app/c-platform/prod/libsrc/cplat/prompt/` の Linux および Windows 実装を対象とするテスト構成と、Linux の gcov によるカバレッジ結果を記載します。
+`app/cplat/prod/libsrc/cplat/prompt/` の Linux および Windows 実装を対象とするテスト構成と、Linux の gcov によるカバレッジ結果を記載します。
 
 ## カバレッジ基準
 
@@ -105,7 +105,7 @@ Windows 専用実装のため、Linux で実行した場合はテスト数とカ
 prompt 系テストをまとめて実行する場合は、次のコマンドを使用します。
 
 ```bash
-cd app/c-platform/test/src/libcplatTest/prompt
+cd app/cplat/test/src/libcplatTest/prompt
 make test
 ```
 

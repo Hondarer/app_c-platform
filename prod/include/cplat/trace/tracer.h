@@ -99,7 +99,7 @@
      *  EventLog の共通イベント ソース名 (@ref eventlog.h) を兼ねます。\n
      *  ETW と EventLog で同一の識別子を共用します。
      */
-    #define CPLAT_TRACER_DEFAULT_PROVIDER_NAME "c-platform.tracer"
+    #define CPLAT_TRACER_DEFAULT_PROVIDER_NAME "cplat.tracer"
 
     /**
      *  @brief          デフォルト ETW プロバイダーの GUID (TraceLogging タプル形式) です。

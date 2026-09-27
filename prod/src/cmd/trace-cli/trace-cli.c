@@ -826,7 +826,7 @@ void trace_cli_print_help(void)
 {
     size_t i;
 
-    printf("trace-cli: c-platform tracer interactive CLI\n");
+    printf("trace-cli: cplat.tracer interactive CLI\n");
     printf("使用可能な level: CRITICAL ERROR WARNING INFO VERBOSE DEBUG NONE\n");
     printf("コマンド:\n");
     for (i = 0U; i < sizeof(g_commands) / sizeof(g_commands[0]); i++)

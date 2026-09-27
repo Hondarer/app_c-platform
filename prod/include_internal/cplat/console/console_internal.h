@@ -34,19 +34,19 @@
  *  一致するまで待つことで、一時コンソールではなく親コンソールへ確実に繋がったことを
  *  確認します。旧形式 (`{FLAG}={親プロセス ID}`) も後方互換で受理します。
  */
-#define CPLAT_CONSOLE_HANDOVER_FLAG "--c-platform-attach-console"
+#define CPLAT_CONSOLE_HANDOVER_FLAG "--cplat-attach-console"
 
 /**
  *  @brief          コンソール再接続診断ログの有効化環境変数名です。
  *
  *  値が空文字または "0" 以外のとき、`%TEMP%` 配下へ診断ログを追記します。
  */
-#define CPLAT_CONSOLE_ATTACH_DIAG_ENV "C_PLATFORM_CONSOLE_ATTACH_DIAG"
+#define CPLAT_CONSOLE_ATTACH_DIAG_ENV "CPLAT_CONSOLE_ATTACH_DIAG"
 
 /**
  *  @brief          コンソール再接続診断ログのファイル名です。
  */
-#define CPLAT_CONSOLE_ATTACH_DIAG_FILE "c-platform_console_attach.log"
+#define CPLAT_CONSOLE_ATTACH_DIAG_FILE "cplat_console_attach.log"
 
 /**
  *  @brief          昇格子プロセスへ診断ログ有効化を引き継ぐ内部フラグです。
@@ -55,7 +55,7 @@
  *  このフラグを追加します。cplat_console_attach_parent() が argv から除去して
  *  環境変数へ反映します。
  */
-#define CPLAT_CONSOLE_ATTACH_DIAG_FLAG "--c-platform-attach-console-diag"
+#define CPLAT_CONSOLE_ATTACH_DIAG_FLAG "--cplat-attach-console-diag"
 
 /**
  *  @brief          昇格時の AttachConsole リトライ回数の上限です。

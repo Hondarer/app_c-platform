@@ -59,15 +59,15 @@ Table: ハッシュ テーブル ベンチマークの測定操作一覧
 ## 実行
 
 ```bash
-make -C app/c-platform
-app/c-platform/prod/cbin/bench-hashtable
+make -C app/cplat
+app/cplat/prod/cbin/bench-hashtable
 ```
 
 capacity の上限を変える場合と、CSV を残す場合は次のとおりです。
 
 ```bash
-app/c-platform/prod/cbin/bench-hashtable --max-capacity 65536 \
-    --csv app/c-platform/prod/src/cmd/bench-hashtable/measurements/linux.csv
+app/cplat/prod/cbin/bench-hashtable --max-capacity 65536 \
+    --csv app/cplat/prod/src/cmd/bench-hashtable/measurements/linux.csv
 ```
 
 ## CSV の列

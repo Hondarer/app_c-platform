@@ -2,7 +2,7 @@
 
 ## 対象
 
-この文書は、`app/c-platform/test/` の `mock_cplat` を実装または変更するときの規則を示します。  
+この文書は、`app/cplat/test/` の `mock_cplat` を実装または変更するときの規則を示します。  
 app 向け mock の一般的な配置と仕組みは [テスト チュートリアル](../../general/docs/testing-tutorial.md) と [testfw の mock](../../../framework/testfw/docs/how-to-mock.md) を参照してください。
 
 ## 既定動作
@@ -45,4 +45,4 @@ pragma を個別の `.cc` へ重複して記載しません。
 - 公開 API の追加または削除に合わせ、宣言、`MOCK_METHOD`、`ON_CALL`、関数ラッパーを確認します。
 - real delegate と mock ラッパーのシグネチャが公開ヘッダーと一致することを確認します。
 - 必要な `MOCK_CPLAT_LINK_IMPL` がヘッダーにあることを確認します。
-- `app/c-platform` の局所テストを実行します。
+- `app/cplat` の局所テストを実行します。

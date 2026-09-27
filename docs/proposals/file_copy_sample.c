@@ -50,7 +50,7 @@
  *  転送バッファーのサイズです。
  *  1 回開いて全体を 1 度だけ通す逐次処理では、ブロック単位の読み書きが最良であり、
  *  64 KB 程度をまとめる指針に従います。
- *  see: app/c-platform/docs/fileio-api-selection-guideline.md の「判断手順」
+ *  see: app/cplat/docs/fileio-api-selection-guideline.md の「判断手順」
  */
 #define SAMPLE_COPY_BUFFER_SIZE ((size_t)64 * 1024)
 

@@ -241,7 +241,7 @@ Table: 共通戻り値規約の適用対象外 API 群と適用除外理由
 grep -nE '(==|!=)[[:space:]]*-1\b' prod/libsrc/cplat/**/*.c
 
 # 局所テスト
-make -C app/c-platform test
+make -C app/cplat test
 ```
 
 ## ラッパーの設計方針
@@ -414,10 +414,10 @@ cplat がシグナルによる中断を理由にこの要因を返すことは�
 
 ```bash
 # EINTR を参照している箇所が、本節の分類に沿っているかを確認する
-grep -rn "EINTR" app/c-platform/prod/libsrc/ --include=*.c
+grep -rn "EINTR" app/cplat/prod/libsrc/ --include=*.c
 
 # アラータブル待機を使用していないことを確認する
-grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/c-platform/prod/libsrc/
+grep -rn "WaitForSingleObjectEx\|SleepEx\|WAIT_IO_COMPLETION" app/cplat/prod/libsrc/
 ```
 
 #### 参照 (シグナル割り込み)
@@ -872,11 +872,11 @@ ARM 向けの MSVC では、コンパイル時にエラーとします。
 ```bash
 # 同期目的の volatile の残存確認 (volatile sig_atomic_t と、cplat の実装を除く)
 rg -n '\bvolatile\b' app --glob '*.{c,h,cc}' --glob '!**/results/**' \
-  | grep -v 'sig_atomic_t' | grep -v 'app/c-platform/prod/include/cplat/sync/atomic.h'
+  | grep -v 'sig_atomic_t' | grep -v 'app/cplat/prod/include/cplat/sync/atomic.h'
 
 # 組み込み関数の直接使用の確認 (cplat/sync/atomic.h を除く)
 rg -n '__atomic_|__sync_|\bInterlocked[A-Za-z0-9]*\(' app --glob '*.{c,h,cc}' --glob '!**/results/**' \
-  | grep -v 'app/c-platform/prod/include/cplat/sync/atomic.h'
+  | grep -v 'app/cplat/prod/include/cplat/sync/atomic.h'
 ```
 
 残存した `volatile` は、上位規範の許容用途の表に照らして分類します。  

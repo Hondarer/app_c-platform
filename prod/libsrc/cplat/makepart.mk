@@ -24,7 +24,7 @@ endif
 # 共有ライブラリのリンクは $(CC) -shared (gcc) で行われ、g++ ドライバーを経由しない
 # ため、libstdc++ は自動ではリンクされない。
 # see: framework/makefw/makefiles/makelibsrc_c_cpp.mk
-# see: app/c-platform/docs/link-policy.md
+# see: app/cplat/docs/link-policy.md
 LIBS += cjson zlib
 ifdef PLATFORM_LINUX
     LIBS += crypto dl stdc++

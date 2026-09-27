@@ -2,7 +2,7 @@
 
 本書は、`cplat` の hashtable が可変長キーと可変長値のストレージをどのように管理しているかを説明します。
 
-公開 API の一覧は [API チート シート](https://github.com/Hondarer/app_c-platform/blob/main/docs/api-cheatsheet.md)、契約の正本は公開ヘッダー `prod/include/cplat/hashtable/hashtable.h` です。  
+公開 API の一覧は [API チート シート](https://github.com/Hondarer/app_cplat/blob/main/docs/api-cheatsheet.md)、契約の正本は公開ヘッダー `prod/include/cplat/hashtable/hashtable.h` です。  
 実装は `prod/libsrc/cplat/hashtable/` に責務別のファイルとして置きます。  
 本書が扱う空きリストと可変長ストレージの操作は `hashtable_arena.c` です。  
 領域の配置そのものと、実装ファイル間で共有する型・内部関数は、モジュール私有ヘッダー `hashtable.h` が正本です。

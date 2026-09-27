@@ -126,7 +126,7 @@ static int console_diag_enabled(void)
 
 static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
 {
-    static const wchar_t file_name[] = L"c-platform_console_attach.log";
+    static const wchar_t file_name[] = L"cplat_console_attach.log";
     wchar_t temp_path[PLATFORM_PATH_MAX];
     DWORD temp_len;
     errno_t err;
@@ -155,7 +155,7 @@ static int build_console_diag_log_path(wchar_t *path_out, size_t path_len)
  *  @brief          `%TEMP%` 配下の診断ログへ 1 行追記します。
  *  @param[in]      fmt `printf` 互換の書式文字列です。
  *
- *  `C_PLATFORM_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
+ *  `CPLAT_CONSOLE_ATTACH_DIAG` が未設定、空文字、または `"0"` の場合は何もしません。
  */
 static void console_diag_logf(const char *fmt, ...)
 {

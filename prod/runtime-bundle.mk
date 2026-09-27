@@ -1,4 +1,4 @@
-# c-platform の実行時ライブラリを実行ファイルと同じディレクトリへ配置する。
+# cplat の実行時ライブラリを実行ファイルと同じディレクトリへ配置する。
 CPLAT_RUNTIME_OUTPUT_DIR := $(MYAPP_DIR)/prod/cbin
 
 ifdef PLATFORM_LINUX
@@ -12,16 +12,16 @@ else ifdef PLATFORM_WINDOWS
     CPLAT_EVENTLOG_MESSAGES_RUNTIME_LIBRARY := libcplat_eventlog_messages.dll
 endif
 
-CPLAT_RUNTIME_SOURCE := $(APP_DIR)/c-platform/prod/lib/$(CPLAT_RUNTIME_LIBRARY)
+CPLAT_RUNTIME_SOURCE := $(APP_DIR)/cplat/prod/lib/$(CPLAT_RUNTIME_LIBRARY)
 CJSON_RUNTIME_SOURCE := $(APP_DIR)/cjson/prod/lib/$(CJSON_RUNTIME_LIBRARY)
 ZLIB_RUNTIME_SOURCE := $(APP_DIR)/zlib/prod/lib/$(ZLIB_RUNTIME_LIBRARY)
 ifdef PLATFORM_WINDOWS
-    CPLAT_EVENTLOG_MESSAGES_RUNTIME_SOURCE := $(APP_DIR)/c-platform/prod/lib/$(CPLAT_EVENTLOG_MESSAGES_RUNTIME_LIBRARY)
+    CPLAT_EVENTLOG_MESSAGES_RUNTIME_SOURCE := $(APP_DIR)/cplat/prod/lib/$(CPLAT_EVENTLOG_MESSAGES_RUNTIME_LIBRARY)
 endif
 
-.PHONY: c-platform-runtime-bundle c-platform-runtime-clean
+.PHONY: cplat-runtime-bundle cplat-runtime-clean
 
-c-platform-runtime-bundle:
+cplat-runtime-bundle:
 	mkdir -p "$(CPLAT_RUNTIME_OUTPUT_DIR)"
 	cp -f "$(CPLAT_RUNTIME_SOURCE)" "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(CPLAT_RUNTIME_LIBRARY)"
 	cp -f "$(CJSON_RUNTIME_SOURCE)" "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(CJSON_RUNTIME_LIBRARY)"
@@ -30,7 +30,7 @@ ifdef PLATFORM_WINDOWS
 	cp -f "$(CPLAT_EVENTLOG_MESSAGES_RUNTIME_SOURCE)" "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(CPLAT_EVENTLOG_MESSAGES_RUNTIME_LIBRARY)"
 endif
 
-c-platform-runtime-clean:
+cplat-runtime-clean:
 	rm -f "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(CPLAT_RUNTIME_LIBRARY)"
 	rm -f "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(CJSON_RUNTIME_LIBRARY)"
 	rm -f "$(CPLAT_RUNTIME_OUTPUT_DIR)/$(ZLIB_RUNTIME_LIBRARY)"

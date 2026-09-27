@@ -21,6 +21,6 @@ capacity を増やしても 1 件あたりの所要時間がほぼ一定であ�
 ## 実行
 
 ```bash
-make -C app/c-platform
-app/c-platform/prod/cbin/bench-hashtable --csv app/c-platform/prod/src/cmd/bench-hashtable/measurements/linux.csv
+make -C app/cplat
+app/cplat/prod/cbin/bench-hashtable --csv app/cplat/prod/src/cmd/bench-hashtable/measurements/linux.csv
 ```

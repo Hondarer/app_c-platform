@@ -17,13 +17,13 @@
 Linux では次のように実行します。
 
 ```sh
-app/c-platform/prod/cbin/bench-tracer /var/tmp/bench-tracer.log 16 1000
+app/cplat/prod/cbin/bench-tracer /var/tmp/bench-tracer.log 16 1000
 ```
 
 Windows では次のように実行します。
 
 ```powershell
-app\c-platform\prod\cbin\bench-tracer.exe C:\Temp\bench-tracer.log 16 1000
+app\cplat\prod\cbin\bench-tracer.exe C:\Temp\bench-tracer.log 16 1000
 ```
 
 プロセス数を 1、4、16、64 と変え、各条件を複数回測定してください。  

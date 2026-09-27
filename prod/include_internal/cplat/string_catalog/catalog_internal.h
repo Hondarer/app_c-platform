@@ -11,7 +11,7 @@
  *  書式を展開する実装はこの抽象化境界を通してのみカタログを参照します。\n
  *  境界を設けることで、検索方式を変更しても展開処理側は影響を受けません。\n
  *  ライブラリはカタログを保持しません。呼び出し元が @ref cplat_string_catalog を渡します。\n
- *  see: app/c-platform/docs/functional-spec/string_catalog.md
+ *  see: app/cplat/docs/functional-spec/string_catalog.md
  *
  *  カタログ 1 件分の型は公開ヘッダー `<cplat/string_catalog/catalog.h>` を正とします。\n
  *  利用者が配列を組み立てるため、内部型にはできません。

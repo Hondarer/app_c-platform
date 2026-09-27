@@ -4,7 +4,7 @@ tracer の破棄経路と、複数プロセスが同じファイルをローテ�
 既定では、出力先のない tracer、書き込みごとに永続化を要求するファイル、OS バッファーを使うファイルを比較します。
 
 ```sh
-app/c-platform/prod/cbin/bench-tracer /var/tmp/bench-tracer.log 16 1000
+app/cplat/prod/cbin/bench-tracer /var/tmp/bench-tracer.log 16 1000
 ```
 
 引数は順に、ログ ファイル、プロセス数、プロセスごとの行数です。  

@@ -8,7 +8,7 @@ short-title: "locale"
 表示言語は、画面やメッセージの表示に使用する言語であり、日付や数値の書式に使用する地域設定とは別に扱います。
 
 宣言は `cplat/locale/ui_language.h` にあります。API の詳細は同ヘッダーの Doxygen コメントを参照してください。  
-要件と外部から観測できる振る舞いは [ロケールの機能仕様](https://github.com/Hondarer/app_c-platform/blob/main/docs/functional-spec/locale.md) が正本です。
+要件と外部から観測できる振る舞いは [ロケールの機能仕様](https://github.com/Hondarer/app_cplat/blob/main/docs/functional-spec/locale.md) が正本です。
 
 ## 構成
 

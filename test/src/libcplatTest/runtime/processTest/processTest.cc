@@ -143,14 +143,14 @@ TEST(processTest, EnvironmentOverridesAreAcceptedByRunSync)
     cplat_process_options options = {};
     char arg0[] = "/bin/true";
     char *argv[] = {arg0, NULL};
-    char env_value[] = "C_PLATFORM_PROCESS_TEST_VALUE=override-value";
+    char env_value[] = "CPLAT_PROCESS_TEST_VALUE=override-value";
     char *env_overrides[] = {env_value, NULL};
     int exit_code = 0;
     int status = 0;
 
     options.argv = argv;
     options.env_overrides =
-        env_overrides; // [状態] - 環境変数 C_PLATFORM_PROCESS_TEST_VALUE を "override-value" に上書きする。
+        env_overrides; // [状態] - 環境変数 CPLAT_PROCESS_TEST_VALUE を "override-value" に上書きする。
 
     // Pre-Assert
     EXPECT_CALL(mock_unistd, fork(_, _, _))
@@ -1266,7 +1266,7 @@ TEST(processTest, environment_helpers_handle_keys_and_capacity)
     char add_entry[] = "OTHER=value";
     char overflow_entry[] = "THIRD=value";
     char override_one[] = "PATH=/custom/bin";
-    char override_two[] = "C_PLATFORM_PROCESS_TEST_HELPER=helper";
+    char override_two[] = "CPLAT_PROCESS_TEST_HELPER=helper";
     char *overrides[] = {override_one, override_two, NULL};
     char invalid_override[] = "INVALID_HELPER_ENTRY";
     char *invalid_overrides[] = {invalid_override, NULL};
@@ -1303,7 +1303,7 @@ TEST(processTest, environment_helpers_handle_keys_and_capacity)
                  test_process_find_env_value(built_env, "PATH")); // [確認_正常系] - PATH が上書きされること。
     EXPECT_STREQ("helper",
                  test_process_find_env_value(
-                     built_env, "C_PLATFORM_PROCESS_TEST_HELPER")); // [確認_正常系] - 追加変数が検索できること。
+                     built_env, "CPLAT_PROCESS_TEST_HELPER")); // [確認_正常系] - 追加変数が検索できること。
     EXPECT_EQ(static_cast<char **>(NULL), invalid_env);           // [確認_異常系] - 不正な上書きで NULL が返ること。
 
     // Cleanup

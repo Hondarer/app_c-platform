@@ -885,7 +885,7 @@ class exportTest : public Test
     {
         workspace_root = findWorkspaceRoot();
         ASSERT_FALSE(workspace_root.empty()) << "ワークスペースルートが見つかりません";
-        dll_path = workspace_root + "/app/c-platform/prod/lib/libcplat" TESTFW_SHARED_LIBRARY_EXTENSION;
+        dll_path = workspace_root + "/app/cplat/prod/lib/libcplat" TESTFW_SHARED_LIBRARY_EXTENSION;
     }
 };
 
@@ -922,7 +922,7 @@ TEST_F(exportTest, public_header_variables_declare_export_macro)
     // Arrange
     std::string include_dir =
         workspace_root +
-        "/app/c-platform/prod/include"; // [状態] - 公開ヘッダーのディレクトリを "/app/c-platform/prod/include" に設定する。
+        "/app/cplat/prod/include"; // [状態] - 公開ヘッダーのディレクトリを "/app/cplat/prod/include" に設定する。
 
     // Pre-Assert
 

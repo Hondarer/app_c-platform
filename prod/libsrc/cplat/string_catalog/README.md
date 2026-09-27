@@ -8,7 +8,7 @@ short-title: "string_catalog"
 言語別のリソースには語順だけを持たせ、値の表現は引数の種別が決めます。翻訳で語順が変わっても、ログへ出る値の表現は変わりません。
 
 宣言は `cplat/string_catalog/string_catalog.h` にあります。API の詳細は同ヘッダーの Doxygen コメントを参照してください。  
-要件と外部から観測できる振る舞いは [文字列カタログの機能仕様](https://github.com/Hondarer/app_c-platform/blob/main/docs/functional-spec/string_catalog.md) が正本です。
+要件と外部から観測できる振る舞いは [文字列カタログの機能仕様](https://github.com/Hondarer/app_cplat/blob/main/docs/functional-spec/string_catalog.md) が正本です。
 
 ## 責務の境界
 

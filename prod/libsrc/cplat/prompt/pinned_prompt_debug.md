@@ -6,7 +6,7 @@
 局所ビルドでもライブラリは生成されます。
 
 ```bash
-cd /home/user/c-modernization-kit/app/c-platform/prod/libsrc/cplat/prompt
+cd /home/user/c-modernization-kit/app/cplat/prod/libsrc/cplat/prompt
 make
 ```
 
@@ -15,7 +15,7 @@ make
 CLI 単体の再リンクは以下で行います。
 
 ```bash
-cd /home/user/c-modernization-kit/app/c-platform/prod/src/cmd/pinned-prompt
+cd /home/user/c-modernization-kit/app/cplat/prod/src/cmd/pinned-prompt
 make
 ```
 
@@ -24,7 +24,7 @@ make
 差分の空白確認は以下で行います。
 
 ```bash
-git -C /home/user/c-modernization-kit/app/c-platform diff --check --
+git -C /home/user/c-modernization-kit/app/cplat diff --check --
 ```
 
 ## PTY での手動確認
@@ -35,7 +35,7 @@ git -C /home/user/c-modernization-kit/app/c-platform diff --check --
 
 ```bash
 cd /home/user/c-modernization-kit
-app/c-platform/prod/cbin/pinned-prompt
+app/cplat/prod/cbin/pinned-prompt
 ```
 
 Codex では `exec_command` の `tty: true` で起動し、返された `session_id` に `write_stdin` で入力を送ります。

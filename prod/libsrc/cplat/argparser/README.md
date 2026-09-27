@@ -322,7 +322,7 @@ cplat_argparser_parse();
 
 全種別 (フラグ、必須/任意オプション、複数回指定オプション、位置引数) を組み合わせた実例は、サンプル コマンド `argparser-sample` にあります。
 
-- `app/c-platform/prod/src/cmd/argparser-sample/argparser-sample.c`
+- `app/cplat/prod/src/cmd/argparser-sample/argparser-sample.c`
 - コマンドの概要は同ディレクトリの [README.md](../../../src/cmd/argparser-sample/README.md) を参照してください
 
 サンプルでは、解析結果の格納先を `argparser_sample_options` 構造体に集約し、登録処理を `register_argparser()` という別関数に分離しています。  
