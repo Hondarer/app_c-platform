@@ -23,6 +23,8 @@
 | `mmap-once` | アタッチを測定ループの外で 1 回だけ行い、各反復ではマップ済み領域へのアクセスのみを行う |
 | `mmap-each` | 反復ごとにアタッチ、アクセス、デタッチを行う |
 
+Table: I/O ベンチマークの API 形態一覧
+
 `+sync` が付く形態は、書き込み後にディスクへの反映を要求した条件です。  
 `stdio` 側は `cplat_fflush` による CRT バッファーの掃き出しまで、mmap 側は `cplat_mmap_flush` による `msync(MS_SYNC)` (Windows は `FlushViewOfFile` + `FlushFileBuffers`) までを行います。  
 両者は耐久性の水準が異なるため、`+sync` 同士の直接比較はできません。この非対称性は結果の解釈で考慮してください。
@@ -37,6 +39,8 @@
 | `rand-update` | 同じ順にレコードを read-modify-write する | 最大 65536 |
 | `point-lookup` | ファイルを開いて 1 レコードだけ読み、閉じる | 1 |
 | `open-close` | ファイルを開いて閉じる | 1 |
+
+Table: I/O ベンチマークのアクセス パターン一覧
 
 `open-close` は、オープンに伴う固定コストを他のパターンから分離するためのマイクロ測定です。  
 `stdio-rec` との組み合わせが `fopen` から `fclose` まで、`mmap-each` との組み合わせがアタッチからデタッチまでのコストに対応します。
@@ -140,6 +144,8 @@ CSV の列は次のとおりです。
 | `ns_per_record` | 1 レコードあたりの所要時間 |
 | `mib_per_sec` | スループット |
 
+Table: I/O ベンチマーク CSV の列仕様
+
 `point-lookup` と `open-close` は `records_touched` が 1 のため、`mib_per_sec` は意味を持ちません。  
 これらの条件では `trial_median_ns` を直接比較してください。
 
@@ -157,6 +163,8 @@ CSV の列は次のとおりです。
 | `--huge` | 無効 | 1 GB のケースを追加する |
 | `--cold` | 無効 | ページ キャッシュを破棄して測定する |
 | `--keep` | 無効 | 測定用ファイルを削除せずに残す |
+
+Table: bench-io の主なコマンド ライン オプション
 
 `--apis` と `--patterns` には `+sync` を付けない基本名を指定します。  
 たとえば `--apis mmap-once,mmap-each` を指定すると、`mmap-once+sync` と `mmap-each+sync` も測定対象に含まれます。

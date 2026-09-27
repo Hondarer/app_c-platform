@@ -16,6 +16,8 @@
 | 参照コメント タグ | `cplat-req` |
 | 機能要件表の見出し | `cplat の要件` |
 
+Table: cplat 要件 ID の構成要素
+
 要件 ID は `CPLAT-<CATEGORY>-<TYPE>-NNN` の形式になります。  
 例を次に示します。
 
@@ -48,6 +50,8 @@ CPLAT-HASHTABLE-QUAL-001
 | `SYNC` | cplat の同期機能 |
 | `TRACE` | cplat のトレース機能 |
 | `WIN32` | cplat の Win32 UTF-8 ラッパー機能 |
+
+Table: 機能仕様カテゴリごとの要件文の主語
 
 カテゴリは、`docs/functional-spec/` に配置する機能仕様のファイル名と一対一で対応します。  
 機能カテゴリを追加または削除する場合は、この表も同じ変更で更新してください。

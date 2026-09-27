@@ -65,6 +65,8 @@ extern "C"
      *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_DOUBLE     | `double`        | `12.5`                 |
      *  | @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE | `int`           | `2 (0x00000002)`       |
      *
+     *  Table: 文字列カタログ引数の種別と渡す型
+     *
      *  16 進表現は、桁数を種別で固定し、英小文字で出力します。\n
      *  @ref CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR は、ASCII の印字可能な範囲 (`0x20` から `0x7e`) を
      *  単引用符で囲んだ 1 文字として出力し、それ以外は値を 10 進数と 16 進数で併記します。

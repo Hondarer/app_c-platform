@@ -13,6 +13,8 @@
  *  | Linux   | OpenSSL (libcrypto) EVP_aes_256_gcm() / EVP_sha256()     | AES-256-GCM / SHA-256 |
  *  | Windows | CNG (BCrypt) BCRYPT_AES_ALGORITHM / BCRYPT_SHA256_ALGORITHM | AES-256-GCM / SHA-256 |
  *
+ *  Table: プラットフォーム別の暗号ライブラリとアルゴリズム
+ *
  *  暗号化ペイロードのフォーマット:
     @code
     [暗号文: src_len バイト] [GCM 認証タグ: CPLAT_CRYPTO_TAG_SIZE バイト]

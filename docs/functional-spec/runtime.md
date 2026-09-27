@@ -29,6 +29,8 @@
 | `CPLAT-RUNTIME-FUNC-011` <!-- cplat-req: uuid=7f2bb4ce-766b-4fde-8577-ab1c9aecdb3c --> | cplat の実行時支援機能は、現在のスレッドを診断で識別するための数値を取得します。 |
 | `CPLAT-RUNTIME-QUAL-001` <!-- cplat-req: uuid=930b8282-ef97-40d8-a465-3c250acfd820 --> | cplat の実行時支援機能は、指定された自プロセスのメモリ範囲を、OS が許可する範囲でページ アウトの対象外にします。 |
 
+Table: 実行時支援機能の機能要件一覧
+
 ## ホストとモジュールの情報
 
 ホスト名は、OS が保持する DNS ホスト名を UTF-8 で返します。  

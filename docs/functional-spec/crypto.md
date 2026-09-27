@@ -25,6 +25,8 @@
 | `CPLAT-CRYPTO-QUAL-001` <!-- cplat-req: uuid=c60d6ba2-c8ff-4970-8002-15ca4e5ab8e2 --> | cplat の暗号機能は、暗号用途に使用できる予測困難な乱数を OS の暗号論的乱数源から取得します。 |
 | `CPLAT-CRYPTO-QUAL-002` <!-- cplat-req: uuid=547b171d-8cec-4d9a-bf32-efa6ee95dd90 --> | cplat の暗号機能は、認証タグが一致しない暗号文を平文として受け入れません。 |
 
+Table: 暗号機能の機能要件一覧
+
 ## 暗号化の形式
 
 暗号化の結果は、次の形式です。

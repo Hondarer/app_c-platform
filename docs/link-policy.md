@@ -9,6 +9,8 @@
 | Linux | `libcplat.so` |
 | Windows | `libcplat.dll` / `libcplat.lib` (import library) |
 
+Table: プラットフォームごとの cplat 動的ライブラリ成果物
+
 静的ライブラリ `libcplat_static.a` / `libcplat_static.lib` は生成しません。
 
 `cplat` はプロセス グローバルな状態を持つため、すべての利用者を同じ動的ライブラリへ接続します。
@@ -40,6 +42,8 @@ Windows の利用側で `CPLAT_STATIC` を定義しないでください。
 |---|---|
 | Linux | `libcplat.so` / `libcjson.so` / `libzlib.so` |
 | Windows | `libcplat.dll` / `libcjson.dll` / `libzlib.dll` |
+
+Table: 実行ファイル同梱対象の共有ライブラリ一覧
 
 Linux の対象実行ファイルと `libcplat.so` は、`$ORIGIN` の実行時探索パス (RPATH または RUNPATH) で同じディレクトリを探索します。
 

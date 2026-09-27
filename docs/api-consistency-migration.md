@@ -22,6 +22,8 @@ cplat は、[`coding-guideline.md`](coding-guideline.md) の「API 命名規約�
 | `cplat_etw_session_start` | `(session_name, guid, callback, context, int *out_status)`。戻り値はハンドル (失敗時 NULL + `out_status`) | `(session_name, guid, callback, context, cplat_etw_session **session_out)`。戻り値は結果コード、ハンドルは `session_out` (成功時のみ有効) |
 | `cplat_process_options_t` / `cplat_process_stdio_t` | typedef struct への `_t` 別名 | `_t` なしのタグ名 `cplat_process_options` / `cplat_process_stdio` へ統一 (別名は廃止) |
 
+Table: シグネチャ変更に伴う旧新 API 定義の対応
+
 ### 型名変更 (enum / 関数ポインター、コンパイル エラーで検出可能)
 
 POSIX が予約する `_t` サフィックスを、公開 enum と関数ポインター typedef から除去しました。  
@@ -46,6 +48,8 @@ POSIX が予約する `_t` サフィックスを、公開 enum と関数ポイ�
 | `cplat_process_stdio_mode_t` | `cplat_process_stdio_mode` |
 | `cplat_interprocess_sync_backend_t` | `cplat_interprocess_sync_backend` |
 
+Table: enum 型名変更における旧新対応一覧
+
 #### 関数ポインター (5 型)
 
 | 旧名 | 新名 |
@@ -56,6 +60,8 @@ POSIX が予約する `_t` サフィックスを、公開 enum と関数ポイ�
 | `cplat_etw_event_callback_t` | `cplat_etw_event_fn` |
 | `cplat_tracer_hook_fn_t` | `cplat_tracer_hook_fn` |
 
+Table: 関数ポインター型名変更における旧新対応一覧
+
 #### _t を維持する例外 (2 型)
 
 OS / SDK が定義する型の alias に限り、`_t` を維持します。  
@@ -65,6 +71,8 @@ OS / SDK が定義する型の alias に限り、`_t` を維持します。
 |---|---|
 | `cplat_file_stat_t` | POSIX `struct stat` / MSVC `struct _stat64` の alias |
 | `cplat_etw_provider_ref_t` | Windows TraceLogging SDK 内部型への参照の alias |
+
+Table: _t サフィックスを維持する例外型とその由来
 
 ## 詳細コードの共通結果コードへの統合
 
@@ -86,6 +94,8 @@ argparser の詳細コード `CPLAT_ARGPARSER_ERROR_*` を廃止し、共通結�
 | `CPLAT_ARGPARSER_ERROR_TOO_MANY_POSITIONALS` (7) | `CPLAT_ERR_TOO_MANY_ARGUMENTS` (-27) |
 | `CPLAT_ARGPARSER_ERROR_TOO_MANY_OCCURRENCES` (8) | `CPLAT_ERR_TOO_MANY_OCCURRENCES` (-28) |
 
+Table: 廃止された詳細コードと新共通結果コードの対応
+
 `CPLAT_ERR_PARSE` は削除しました。解析エラーは上表の具体コードで表します。
 
 ### 値が変わった既存コード
@@ -102,6 +112,8 @@ argparser の詳細コード `CPLAT_ARGPARSER_ERROR_*` を廃止し、共通結�
 | `CPLAT_ERR_DUPLICATE_DEFINITION` | -11 | -5 |
 | `CPLAT_ERR_EOF` | -13 | -40 |
 | `CPLAT_ERR_CANCELED` | -14 | -41 |
+
+Table: 値が変更された既存結果コードの旧値と新値の対応
 
 `CPLAT_OK` (0)、`CPLAT_ERR_UNKNOWN` (-1)、`CPLAT_ERR_INVALID_ARGUMENT` (-2)、`CPLAT_ERR_UNSUPPORTED` (-3) は変わりません。
 
@@ -152,6 +164,8 @@ argparser の詳細コード `CPLAT_ARGPARSER_ERROR_*` を廃止し、共通結�
 | `cplat_interprocess_lock_destroy` | `cplat_interprocess_lock_dispose` |
 | `cplat_interprocess_rwlock_destroy` | `cplat_interprocess_rwlock_dispose` |
 
+Table: 生成・破棄動詞の統一に伴う API 旧新名称の対応
+
 ## シグネチャ変更 (2026-08 実施分: argc / argv の受け取り位置)
 
 コマンド ライン引数はパーサーが解析する入力そのものであり、解析の実行時ではなく初期化時に確定します。  
@@ -164,6 +178,8 @@ argparser の詳細コード `CPLAT_ARGPARSER_ERROR_*` を廃止し、共通結�
 | `cplat_argparser_parse` | `(int argc, char *const *argv)` | `(void)` |
 | `cplat_argparser_handle_create` | `(const cplat_argparser_options *options)` | `(int argc, char *const *argv, const cplat_argparser_options *options)` |
 | `cplat_argparser_handle_parse` | `(cplat_argparser *parser, int argc, char *const *argv)` | `(cplat_argparser *parser)` |
+
+Table: argc/argv 受け取り位置変更に伴う API シグネチャの旧新対応
 
 呼び出し側の書き換えは次のとおりです。
 

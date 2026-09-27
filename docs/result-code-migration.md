@@ -28,6 +28,8 @@ cplat は戻り値規約を、共通結果コード (`CPLAT_OK` + 負値エラ�
 | `runtime/process.h` | (内部 enum、5 値) | 個別 | `int` + `CPLAT_OK` / `CPLAT_ERR_*` |
 | `sync/sync.h` | (内部 enum、8 値) | 個別 | `int` + `CPLAT_OK` / `CPLAT_ERR_*` |
 
+Table: 旧 enum 型から新規約 int 型への移行対応
+
 いずれも `enum` 型は完全に廃止したクリーン ブレークです (移行エイリアスなし)。旧 `enum` 型名やメンバー名を参照しているコードはコンパイル エラーとして検出されます。
 
 ### define 定数群 (符号・値の変更)
@@ -36,6 +38,8 @@ cplat は戻り値規約を、共通結果コード (`CPLAT_OK` + 負値エラ�
 |---|---|---|
 | `argparser` (`CPLAT_ARGPARSER_OK` 等) | 正値の列挙 (0..5) | `CPLAT_OK` (0)、詳細は `CPLAT_ERR_INVALID_ARGUMENT` (-2)/`CPLAT_ERR_OUT_OF_MEMORY` (-4)/`CPLAT_ERR_DUPLICATE_DEFINITION` (-11)/`CPLAT_ERR_PARSE` (-12)/`CPLAT_ERR_BUFFER_TOO_SMALL` (-8) へ符号反転。`CPLAT_ARGPARSER_ERROR_*` (詳細コード層) は当時据え置いたが、その後 [`api-consistency-migration.md`](api-consistency-migration.md) の「詳細コードの共通結果コードへの統合」で廃止した |
 | `etw` / `eventlog` (`ERR_PARAM`/`ERR_ACCESS`/`ERR_SYSTEM`) | 独自の負値 | `CPLAT_ERR_INVALID_ARGUMENT` (-2) / `CPLAT_ERR_PERMISSION_DENIED` (-5) / `CPLAT_ERR_UNKNOWN` (-1) |
+
+Table: 結果コード define 定数の新旧対照
 
 ### 素の 0/-1 群 (最大勢力、値は互換)
 
@@ -54,6 +58,8 @@ cplat は戻り値規約を、共通結果コード (`CPLAT_OK` + 負値エラ�
 | `cplat_shutdown_invoke_for_test` / `cplat_shutdown_request_invoke_for_test` (テスト専用) | `(event)`。戻り値 0=実行/1=実行済み/-1=引数不正 | `(event, int *invoked_out)`。戻り値は結果コード、実行有無は `invoked_out` |
 | `cplat_elevated_process_extract_result_target` | `(argc, argv)`。戻り値 1=検出/0=未検出 | `(argc, argv, int *detected_out)`。戻り値は常に `CPLAT_OK`、検出有無は `detected_out` |
 
+Table: 三値・逆向き API のシグネチャ移行対応
+
 **`cplat_prompt_readline` 系は特に注意してください。** シグネチャが変わらないため、旧来の `if (readline(...))` や `== 0`/`!= 0` の真偽値判定は **コンパイルが成功したまま意味が反転** します。呼び出し元をすべて洗い出し、`== CPLAT_OK` / `!= CPLAT_OK` の明示比較へ書き換えてください。
 
 ## CPLAT_ERR_NOT_FOUND の新設 (追加の破壊的変更)
@@ -70,6 +76,8 @@ OS エラー値を共通結果コードへ写像する `cplat_result_from_errno(
 | Linux | `ENOENT` | `CPLAT_ERR_UNKNOWN` (-1) | `CPLAT_ERR_NOT_FOUND` (-6) |
 | Windows | `ERROR_FILE_NOT_FOUND` | `CPLAT_ERR_UNKNOWN` (-1) | `CPLAT_ERR_NOT_FOUND` (-6) |
 | Windows | `ERROR_PATH_NOT_FOUND` | `CPLAT_ERR_UNKNOWN` (-1) | `CPLAT_ERR_NOT_FOUND` (-6) |
+
+Table: OS エラー値から CPLAT_ERR_NOT_FOUND への写像変更
 
 上記の写像は `cplat_error_report_errno()` と `cplat_error_report_windows_error()` を経由して戻り値へ反映されます。  
 したがって、これらを内部で使用する API が「存在しない対象」に対して返す値が `CPLAT_ERR_UNKNOWN` から `CPLAT_ERR_NOT_FOUND` へ変わります。  

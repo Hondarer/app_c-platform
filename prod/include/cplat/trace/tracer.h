@@ -161,6 +161,8 @@
  *  | CPLAT_TRACE_LEVEL_VERBOSE  | Verbose (5)       | LOG_DEBUG (7)   |
  *  | CPLAT_TRACE_LEVEL_DEBUG    | Verbose (5)       | LOG_DEBUG (7)   |
  *
+ *  Table: 通常トレース レベルの ETW・syslog との対応
+ *
  *  CPLAT_TRACE_LEVEL_INFO 以上は、常時記録の対象となる想定でレベルを設計しています。\n
  *  運用中のシステムで何が起きたかを、設定を変更せずに後から追えるようにするためです。
  *
@@ -193,6 +195,8 @@
  *  | CPLAT_TRACE_LEVEL_FORCE_INFO     | Informational (4) | LOG_INFO (6)    |
  *  | CPLAT_TRACE_LEVEL_FORCE_VERBOSE  | Informational (4) | LOG_INFO (6)    |
  *  | CPLAT_TRACE_LEVEL_FORCE_DEBUG    | Informational (4) | LOG_INFO (6)    |
+ *
+ *  Table: 強制出力トレース レベルの ETW・syslog との対応
  *
  *  強制出力のレベルは、スレッショルド レベルとして指定できません。\n
  *  指定するとスレッショルド レベルを設定する関数が引数の誤りを返します。

@@ -22,6 +22,8 @@ cplat の OS エラー詳細は、生の `errno` を格納する `int *errno_out
 | `result` | 生の OS エラー値に対応する `CPLAT_ERR_*` |
 | `code` | ドメイン固有の生のエラー値 |
 
+Table: cplat_error 構造体のメンバー構成
+
 `detail_out` を持つ cplat API は、失敗時に出力引数と現在のスレッドの直前値へ同じ詳細を記録します。  
 成功時は出力引数と直前値をクリアします。  
 `detail_out` に `NULL` を指定した場合、本引数へはエラー詳細を設定せず、返却しませんが、直前値は更新されます。  
@@ -47,6 +49,8 @@ cplat の OS エラー詳細は、生の `errno` を格納する `int *errno_out
 | `cplat_fopen_fmt` | `int *errno_out` | `cplat_error *detail_out` |
 | `cplat_vfopen_fmt` | `int *errno_out` | `cplat_error *detail_out` |
 | `cplat_fopen_temp` | `int *errno_out` | `cplat_error *detail_out` |
+
+Table: エラー詳細引数が変更された API の新旧対照
 
 今回の追加調査では、次の API に `cplat_error *detail_out` を追加しました。
 

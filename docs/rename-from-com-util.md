@@ -22,6 +22,8 @@
 | tracer 名 | `com_util.tracer` | `c-platform.tracer` |
 | 製品用環境変数接頭辞 | `COM_UTIL_` | `C_PLATFORM_` |
 
+Table: com_util から c-platform への名称変更対応表
+
 ## 利用側の更新手順
 
 1. app 依存名と参照パスを `c-platform` へ変更します。  

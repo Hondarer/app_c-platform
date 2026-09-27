@@ -16,6 +16,8 @@
 | `pinned_prompt.c` | `pinnedPromptTest` | 54 | 100% (807/807) | 100% (471/471) |
 | `prompt_windows.c` | `promptWindowsTest` | 13 | Linux では計測対象外 | Linux では計測対象外 |
 
+Table: prompt 系テストのカバレッジ計測結果
+
 ## テスト構成
 
 ### promptEditTest

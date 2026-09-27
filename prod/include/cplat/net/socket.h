@@ -13,6 +13,8 @@
  *  | Linux   | BSD ソケット (libc)               | `poll`     | `fcntl` (`O_NONBLOCK`)   |
  *  | Windows | Winsock2 (`ws2_32.lib`)           | `WSAPoll`  | `ioctlsocket` (`FIONBIO`)|
  *
+ *  Table: プラットフォーム別のソケット API
+ *
  *  Winsock の初期化と終了は本モジュールの内部で行うため、利用側は初期化順序を
  *  意識せずに任意のタイミングで API を呼び出せます。
  *

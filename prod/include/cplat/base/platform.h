@@ -17,6 +17,8 @@
  *  | Linux            | PLATFORM_LINUX       | "Linux"             |
  *  | その他           | PLATFORM_UNKNOWN     | "Unknown"           |
  *
+ *  Table: プラットフォームの識別マクロと名称
+ *
  *  @section        arch_detection アーキテクチャー検出マクロ
  *
  *  検出されたアーキテクチャーに応じて、以下のマクロを定義します。
@@ -26,6 +28,8 @@
  *  | x86_64         | ARCH_X64     | "x64"     |
  *  | x86 (32bit)    | ARCH_X86     | "x86"     |
  *  | その他         | ARCH_UNKNOWN | "Unknown" |
+ *
+ *  Table: アーキテクチャーの識別マクロと名称
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2025-2026. All rights reserved.
  *

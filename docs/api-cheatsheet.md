@@ -40,6 +40,8 @@
 | `strtok_r` / `strtok_s` | Linux と Windows で名前が異なり、直接呼び出すと呼び出し側にプラットフォームごとの分岐が必要になります。 | `cplat_strtok_r(str, delim, saveptr)` |
 | `gets` | 宛先の容量を指定できません。C11 で標準から削除された | `cplat_fgets(dest, dest_size, stream, detail_out)` |
 
+Table: 危険な標準文字列操作 API と cplat 代替関数
+
 ### 書式化・行入力
 
 | 生 API | 問題 | cplat 代替 |
@@ -49,12 +51,16 @@
 | `snprintf` / `vsnprintf` | 境界は検査するが、切り詰めの検出を呼び出し側の戻り値検査に委ねている | `cplat_snprintf` / `cplat_vsnprintf` (戻り値は文字数ではなく共通結果コード) |
 | `scanf` / `fscanf` / `sscanf` と各 `v*` 版 | 幅を指定しない `%s` が境界外書き込みを起こす | `cplat_scanf` / `cplat_fscanf` / `cplat_sscanf` と各 `v*` 版 |
 
+Table: 標準の書式化・行入力 API と cplat 代替関数
+
 ### 数値変換
 
 | 生 API | 問題 | cplat 代替 |
 |---|---|---|
 | `atoi` / `atol` / `atoll` / `atof` | 変換の失敗を通知せず、範囲外の入力が未定義動作になります。 | `cplat_parse_int` / `cplat_parse_int64` / `cplat_parse_double` |
 | `strtol` / `strtoll` / `strtoul` / `strtoull` / `strtod` | 完全消費と `errno` の検査を呼び出し側に委ねており、検査を省略しても失敗が表面化しません。 | `cplat_parse_int` / `cplat_parse_int64` / `cplat_parse_uint64` / `cplat_parse_double` |
+
+Table: 標準数値変換 API と cplat 代替関数
 
 `cplat_parse_uint64` は先頭の符号 `'-'` を範囲外エラーとして拒否します。  
 `strtoull` が負値を符号なしの折り返し値として受け付ける挙動とは異なります。  
@@ -66,6 +72,8 @@
 |---|---|---|
 | `strerror` | 戻り値の生存期間が処理系依存で、スレッド セーフとは限らない。再入可能版は `strerror_r` と `strerror_s` で名前と引数が異なります。 | `cplat_error_message(buf, buf_size, &error)` |
 
+Table: 標準エラー文字列化 API と cplat 代替関数
+
 ### メモリ確保
 
 | 生 API | 問題 | cplat 代替 |
@@ -74,6 +82,8 @@
 | `calloc` | `malloc(count * size)` は乗算の回り込みを検出しません。 | `cplat_calloc(count, size)` (乗算オーバーフローを検査し、ゼロ初期化する) |
 | `realloc` | 失敗時の受け方と長さ 0 の扱いを呼び出し側に委ねている | `cplat_realloc(ptr, count, size)` / `cplat_realloc_zerofill(ptr, old_count, count, size)` |
 | `free` | 共有ライブラリの境界をまたぐと、確保側と解放側で C ランタイムのヒープが一致しない場合がある | `cplat_free(ptr)` |
+
+Table: 標準メモリ確保 API と cplat 代替関数
 
 > [!IMPORTANT]
 > `cplat_realloc` / `cplat_realloc_zerofill` は要素数とサイズを分けて受け取る 3 引数 (`_zerofill` 版は 4 引数) であり、`realloc(ptr, size)` を機械的に置換すると引数の位置に不整合が生じます。
@@ -84,6 +94,8 @@
 | 生 API | 問題 | cplat 代替 |
 |---|---|---|
 | `FD_SET` | 追加する FD が集合の容量に収まるかを検査せず、Linux では集合の領域外へ書き込む。Windows では満杯の集合への追加を通知せず破棄する | `CPLAT_FD_SET(fd, &set)` (追加できない場合は `abort()`) |
+
+Table: ファイル記述子集合操作マクロと cplat 代替マクロ
 
 `CPLAT_FD_SET()` が検査する上限はプラットフォームで異なります。  
 Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows は集合が保持する SOCKET の数が `FD_SETSIZE` 未満であることを検査します。
@@ -111,6 +123,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 | `fseek` | `cplat_fseek(stream, offset, whence)` | `offset` が 64bit (`int64_t`) 対応 |
 | `ftell` | `cplat_ftell(stream)` | 戻り値が 64bit (`int64_t`) 対応 |
 
+Table: 標準 I/O・ファイル操作 API と cplat 代替ラッパーの差異
+
 書式指定パスでファイルを開く/削除する用途には `cplat_fopen_fmt` / `cplat_vfopen_fmt` / `cplat_remove_fmt` / `cplat_vremove_fmt` を使用します。  
 一意な一時ファイルの作成には `cplat_fopen_temp(prefix, modes, path_out, path_size, detail_out)` を使用します。  
 `stdio` ラッパーとメモリ マップド ファイル (後述) のどちらを使うべきかの選定基準は [fileio-api-selection-guideline.md](fileio-api-selection-guideline.md) を参照してください。
@@ -131,6 +145,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 | `access` / `_waccess` | `cplat_access(path, mode, detail_out)` | パスは UTF-8 |
 | `isatty` | `cplat_isatty(stream)` | 引数がファイル記述子ではなく `cplat_stream` 列挙型。Windows は `GetFileType`/`GetConsoleMode` の組み合わせで判定 |
 
+Table: 低レベル ファイル記述子操作 API と cplat 代替ラッパーの差異
+
 書式指定パスで開く/アクセス確認する用途には `cplat_open_fmt` / `cplat_vopen_fmt` / `cplat_access_fmt` / `cplat_vaccess_fmt` を使用します。
 
 ### ファイル システム
@@ -144,6 +160,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 | (`mkdir -p` 相当) | `cplat_makedirs(path, detail_out)` | 中間ディレクトリを再帰的に作成。既存ディレクトリはべき等に成功扱い |
 | `rmdir` / `_wrmdir` | `cplat_rmdir(path, detail_out)` | パスは UTF-8。中間ディレクトリの再帰削除はしません。 |
 | `S_ISREG(st.st_mode)` / `(st.st_mode & _S_IFMT) == _S_IFREG` | `cplat_file_stat_is_regular(file_stat)` | 通常ファイルなら 1、それ以外と NULL は 0。値だけを参照するため共通結果コードの適用対象外 |
+
+Table: ファイル システム操作 API と cplat 代替ラッパーの差異
 
 最終更新日時の取得と設定は `cplat/crt/file.h` の `cplat_file_get_modified_timestamp` / `cplat_file_set_modified_timestamp` (ハンドル版) と `cplat_file_get_path_modified_timestamp` / `cplat_file_set_path_modified_timestamp` (パス版) を使用します。  
 `cplat_stat` の `st_mtime` が秒精度であるのに対し、これらは `cplat_timespec` でサブ秒も扱います。秒部は同じ Unix epoch UTC です。
@@ -160,6 +178,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 | `setenv` | `cplat_setenv(name, value, overwrite, detail_out)` | Linux は `setenv`、Windows は `_putenv_s` を使用。設定は呼び出し元プロセスにのみ反映 |
 | `unsetenv` | `cplat_unsetenv(name, detail_out)` | Linux は `unsetenv`、Windows は値に空文字列を指定した `_putenv_s` を使用 |
 
+Table: 環境変数操作 API と cplat 代替ラッパーの差異
+
 ### 大文字小文字を無視する比較
 
 対象ヘッダー: `cplat/crt/string.h`
@@ -168,6 +188,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 |---|---|---|
 | `strcasecmp` / `_stricmp` | `cplat_strcasecmp(lhs, rhs)` | 名前とヘッダーが異なります。cplat は ASCII の `A`〜`Z` だけを畳み、`setlocale` に依存しません。戻り値は -1 / 0 / 1 |
 | `strncasecmp` / `_strnicmp` | `cplat_strncasecmp(lhs, rhs, count)` | 同上。先頭 `count` バイトまで比較します。 |
+
+Table: 大文字小文字を無視する文字列比較 API と cplat 代替ラッパーの差異
 
 `strcmp` / `strncmp` / `memcmp` にはラッパーを作りません。
 
@@ -180,6 +202,8 @@ Linux は FD の値が `0` 以上 `FD_SETSIZE` 未満であること、Windows �
 | `gmtime` (非再入版) | `cplat_gmtime(utc_tm, timep)` | Linux は `gmtime_r`、Windows は `gmtime_s` を使用しスレッド セーフにします。 |
 | `localtime` (非再入版) | `cplat_localtime(local_tm, timep)` | Linux は `localtime_r`、Windows は `localtime_s` を使用 |
 | `ctime` (非再入版) | `cplat_ctime(buf, buf_size, timep)` | Linux は `ctime_r`、Windows は `ctime_s` を使用。`buf_size` は 26 以上が必要 |
+
+Table: 時刻変換 API と cplat 代替ラッパーの差異
 
 ### Win32 UTF-8 ラッパー (Windows 専用)
 
@@ -205,6 +229,8 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `RegisterServiceCtrlHandlerExA` / `RegisterServiceCtrlHandlerExW` | `RegisterServiceCtrlHandlerExU` |
 | `StartServiceCtrlDispatcherA` / `StartServiceCtrlDispatcherW` | `StartServiceCtrlDispatcherU` (サービス エントリは `cplat_service_entry_u` を使用) |
 
+Table: Win32 生 API と cplat UTF-8 ラッパー API の対応
+
 適用範囲は `CreateFileU` などのファイル ハンドル系に限らず、`app/c-platform/docs/coding-guideline.md` の該当節を参照してください。
 
 ### クロック
@@ -216,6 +242,8 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `clock_gettime(CLOCK_MONOTONIC, ...)` (Linux) / `GetTickCount64()` (Windows) | `cplat_get_monotonic_ms()` / `cplat_get_monotonic()` | 単調クロックをミリ秒/ナノ秒精度で返す。Windows の分解能差 (既定 ~15ms 刻み) を吸収 |
 | `clock_gettime(CLOCK_REALTIME, ...)` (Linux) / `GetSystemTimeAsFileTime()` (Windows) | `cplat_get_realtime()` | Windows の 1601 年基準 (FILETIME) から Unix epoch 基準への変換を吸収 |
 
+Table: クロック取得 API と cplat 代替ラッパーの差異
+
 ### メモリ マップド ファイル
 
 対象ヘッダー: `cplat/mmap/mmap.h`
@@ -225,6 +253,8 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `mmap()` (POSIX) / `CreateFileMapping` +`MapViewOfFile` (Win32) | `cplat_mmap_attach(...)` | ファイル オープンとマッピングを一括し、新規作成時のサイズ指定と所有ハンドル化を行います。 |
 | `munmap()` (POSIX) / `UnmapViewOfFile` +`CloseHandle` (Win32) | `cplat_mmap_detach(...)` | マップと所有ハンドルをまとめて解放します。 |
 | `msync(MS_SYNC)` (POSIX) / `FlushViewOfFile` +`FlushFileBuffers` (Win32) | `cplat_mmap_flush(...)` | - |
+
+Table: メモリ マップド ファイル API と cplat 代替ラッパーの差異
 
 `stdio` ラッパーとの使い分けは [fileio-api-selection-guideline.md](fileio-api-selection-guideline.md) を参照してください。
 
@@ -243,6 +273,8 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `htobe64` (glibc) | `cplat_hton64` |
 | `be64toh` (glibc) | `cplat_ntoh64` |
 
+Table: ネットワーク バイト オーダー変換 API と cplat 代替関数
+
 `cplat_hton16`/`hton32`/`hton64` 系はシフト演算とバイト列再構成のみで実装され、ソケット ヘッダーへの依存を持ちません。
 
 ### IPv4 アドレス
@@ -254,6 +286,8 @@ Win32 API はネイティブでは ANSI (現在のコード ページ) または
 | `inet_pton(AF_INET, ...)` | `cplat_ipv4_parse(...)` |
 | `getaddrinfo()` | `cplat_ipv4_resolve(...)` |
 | `inet_ntop(AF_INET, ...)` | `cplat_ipv4_to_string(...)` |
+
+Table: IPv4 アドレス操作 API と cplat 代替関数
 
 `struct sockaddr_in` は公開面に出さず、独自型 `cplat_ipv4_endpoint` (ネットワーク バイト オーダーの address/port) で置換します。
 
@@ -284,6 +318,8 @@ IPv4 ソケットの生成、接続、送受信、待機は cplat のソケッ�
 | `recvfrom()` | `cplat_socket_recvfrom(...)` |
 | `poll()` (Linux) / `WSAPoll()` (Winsock) | `cplat_socket_wait_readable(...)` / `cplat_socket_wait_writable(...)` / `cplat_socket_wait_readable_multi(...)` |
 
+Table: ソケット操作 API と cplat 代替関数
+
 `cplat_socket_send_all`/`cplat_socket_recv_all` は複数回の `send`/`recv` をループさせる合成 API です。  
 Linux の `cplat_socket_send`/`cplat_socket_send_all` は、切断済みの接続への送信による SIGPIPE を送信単位で抑制し、送信エラーは結果コードと `cplat_error` で通知します。  
 `cplat_socket_shutdown_receive` は Linux (`shutdown(SHUT_RD)`) と Windows (実質 close 相当) で意味論が異なる差異を吸収した複合 API です。
@@ -300,6 +336,8 @@ Linux の `cplat_socket_send`/`cplat_socket_send_all` は、切断済みの接�
 | `mlockall()` (Linux) | `cplat_memory_lock_self(...)` | Windows には相当 API が無いため、`VirtualQuery` で列挙し各領域へ `VirtualLock` を適用する合成実装 (参照カウント管理付き) |
 | `munlockall()` (Linux) | `cplat_memory_lock_scope_release(...)` | Windows では各範囲へ `VirtualUnlock` を参照カウント管理で適用 |
 
+Table: プロセス内メモリ ロック API と cplat 代替ラッパーの差異
+
 scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.md) を参照してください。
 
 ### ホスト情報
@@ -310,6 +348,8 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 |---|---|---|
 | `gethostname()` (POSIX) / `GetComputerNameExW(ComputerNameDnsHostname)` (Win32) | `cplat_host_get_name(name_out, name_size)` | 返る値は UTF-8 です。Windows は Winsock を使わず DNS ホスト名を取得します。FQDN であることは保証しません。推奨配列サイズは `CPLAT_HOST_NAME_MAX` |
 
+Table: ホスト情報取得 API と cplat 代替ラッパーの差異
+
 ### 表示言語
 
 対象ヘッダー: `cplat/locale/ui_language.h`
@@ -317,6 +357,8 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 | 生 API | cplat 代替 | 差異の要点 |
 |---|---|---|
 | `getenv("LC_ALL" / "LC_MESSAGES" / "LANG")` (POSIX) / `GetUserPreferredUILanguages(MUI_LANGUAGE_NAME)` (Win32) | `cplat_ui_language_get_tag(tag_out, tag_size)` | 環境変数を両プラットフォームで優先し、Windows では環境変数で決定できない場合に OS の表示言語を使用します。`C` と `POSIX` の指定と、決定できない場合はニュートラル (空文字列) です。推奨配列サイズは `CPLAT_UI_LANGUAGE_TAG_MAX` |
+
+Table: 表示言語取得 API と cplat 代替ラッパーの差異
 
 返る言語タグは、言語を小文字、表記体系を先頭だけ大文字、地域を大文字にした `ja`、`ja-JP`、`zh-Hans-CN` の表記です。  
 書式に使用する地域設定 (`GetUserDefaultLocaleName`) ではなく表示言語を対象とし、プロセスのロケール設定 (`setlocale`) は変更しません。  
@@ -337,6 +379,8 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 | `WEXITSTATUS(status)` (POSIX) / `GetExitCodeProcess()` (Win32) | `cplat_process_get_exit_code(...)` | - |
 | `kill(SIGKILL)` (POSIX) / `TerminateProcess()` (Win32) | `cplat_process_terminate(...)` | - |
 
+Table: モジュール・プロセス情報取得 API と cplat 代替ラッパーの差異
+
 `cplat_process_dispose`/`cplat_process_run_sync` はハンドル破棄、`start` +`wait` +`get_exit_code` の合成 API です。
 
 ### 暗号論的乱数
@@ -347,6 +391,8 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 |---|---|---|
 | `RAND_bytes()` (OpenSSL, Linux) / `BCryptGenRandom()` (CNG, Windows) | `cplat_random_bytes(...)` | 全バイト充足を保証 (部分成功なし)。`rand()` のような予測可能な擬似乱数の使用は明示的に禁止 |
 
+Table: 暗号論的乱数生成 API と cplat 代替ラッパーの差異
+
 ### 暗号化・復号
 
 対象ヘッダー: `cplat/crypto/crypto.h`
@@ -355,6 +401,8 @@ scope API の設計や結果コードの詳細は [memory-lock.md](memory-lock.m
 |---|---|---|
 | `EVP_EncryptInit_ex` +`EVP_EncryptUpdate` +`EVP_EncryptFinal_ex` (OpenSSL) / `BCryptEncrypt` (CNG) | `cplat_encrypt(...)` | AES-256-GCM 固定のワンショット API に集約し、暗号文+タグ連結フォーマットを標準化 |
 | `EVP_DecryptInit_ex` +`EVP_DecryptUpdate` +`EVP_DecryptFinal_ex` (OpenSSL) / `BCryptDecrypt` (CNG) | `cplat_decrypt(...)` | 同上。タグ検証を内包 |
+
+Table: 暗号化・復号 API と cplat 代替ラッパーの差異
 
 ### 正規表現
 
@@ -367,6 +415,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `regcomp()` | `cplat_regex_create(...)` |
 | `regexec()` | `cplat_regex_search(...)` (部分一致) / `cplat_regex_matches(...)` (全体一致) |
 | `regfree()` | `cplat_regex_dispose(...)` |
+
+Table: 正規表現操作 API と cplat 代替関数
 
 置換 (`cplat_regex_replace`)、イテレーター (`cplat_regex_iter_*`)、分割 (`cplat_regex_split`) は POSIX regex にない機能で、対応する単一の生 API はありません。  
 フラグの対応関係、文字モデル、制限事項の詳細は [正規表現 (regex) 機能仕様](functional-spec/regex.md) を参照してください。
@@ -381,6 +431,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `AttachConsole()` (Win32) | `cplat_console_attach_parent(...)` | UAC 昇格後の親コンソール再接続に特化 |
 | `WriteConsoleA` (Win32) / `write(fd, ...)` (POSIX) | `cplat_console_write(...)` | CRT ストリーム経由の `printf`/`fprintf` が失敗する既知の問題を回避するための直接書き込み |
 
+Table: Windows コンソール制御 API と cplat 代替ラッパーの差異
+
 `cplat_console_dispose()` は `cplat_console_init` が変更したコード ページ/モードを元に戻す後始末です。
 
 ### 圧縮・展開
@@ -392,6 +444,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `deflateInit2` +`deflate` +`deflateEnd` (両 OS 共通の app/zlib) | `cplat_compress(...)` | ワンショット API に集約。先頭 8 バイトへ元サイズ (ネットワーク バイト オーダー) を付加する独自フォーマットで統一 |
 | `inflateInit2` +`inflate` +`inflateEnd` (両 OS 共通の app/zlib) | `cplat_decompress(...)` | 同上 |
 
+Table: 圧縮・展開 API と cplat 代替ラッパーの差異
+
 ### DLL エクスポート マクロ (Windows 専用)
 
 対象ヘッダー: `cplat/base/dll_exports.h`
@@ -402,6 +456,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 |---|---|
 | `__declspec(dllexport)` / `__declspec(dllimport)` (Win32)、`__attribute__((visibility("default")))` (Linux/GCC) | `CPLAT_DLL_EXPORT(prefix)` |
 | `__stdcall` (Win32) | `CPLAT_DLL_API(prefix)` (Linux では空) |
+
+Table: DLL エクスポート・インポート構文と cplat マクロの対応
 
 リンク方式や動的ライブラリの成果物構成は [link-policy.md](link-policy.md) を参照してください。
 
@@ -420,6 +476,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `#if defined(__i386__) \|\| defined(_M_IX86)` | `#ifdef ARCH_X86` |
 | アーキテクチャー名を文字列で得たい | `ARCH_NAME` ("x64"/"x86"/"Unknown") |
 
+Table: プラットフォームおよびアーキテクチャー検出マクロの対応
+
 ### コンパイラの検出とインライン制御
 
 対象ヘッダー: `cplat/base/compiler.h`
@@ -433,6 +491,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | `__attribute__((noinline))` (GCC) / `__declspec(noinline)` (MSVC) | `NO_INLINE` |
 | `_Thread_local` (C, GCC) / `thread_local` (C++, GCC) / `__declspec(thread)` (MSVC) | `THREAD_LOCAL` |
 
+Table: コンパイラ検出およびインライン制御マクロの対応
+
 ### Windows SDK の取り込み順序 (Windows 専用)
 
 対象ヘッダー: `cplat/base/windows_sdk.h`
@@ -440,6 +500,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 生の構文 | cplat 代替 | 差異の要点 |
 |---|---|---|
 | `#include <windows.h>` を先に取り込む | `#include <cplat/base/windows_sdk.h>` | `winsock2.h`/`ws2tcpip.h` を `windows.h` より先に取り込む正しい順序を保証し、レガシ `winsock.h` との衝突を防ぐ |
+
+Table: Windows SDK ヘッダー取り込み構文と cplat ヘッダーの差異
 
 ## 独自機能 API (単一の生 API と 1 対 1 対応しない)
 
@@ -530,6 +592,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 寿命無限 | `CPLAT_HASHTABLE_LIFETIME_INFINITE` |
 | 整合性検査 | `cplat_hashtable_validate` |
 
+Table: ハッシュ テーブル操作における用途別 cplat API
+
 `cplat_hashtable_add` と `cplat_hashtable_insert_direct` は、既存キーとの衝突を `CPLAT_ERR_DUPLICATE_KEY` で通知します。  
 `cplat_hashtable_insert_direct` の指定スロットが空でない場合は、`CPLAT_ERR_DUPLICATE_DEFINITION` です。
 
@@ -565,6 +629,8 @@ POSIX の照合 3 関数は、UTF-8 文字列を扱う cplat の正規表現 API
 | 分類値の取得 | `cplat_string_catalog_get_category` |
 | ID の取得 | `cplat_string_catalog_get_id` |
 | 備考の取得 | `cplat_string_catalog_get_note` |
+
+Table: 文字列カタログ操作における用途別 cplat API
 
 `cplat_string_catalog_get_entry` は、文字列キーごとの省略可能な `id`、引数の種別・名前・説明、分類値、必須の `brief`、省略可能な `details` と `remarks`、書式、備考をまとめて参照するために使用します。未設定の `id`、`details`、`remarks` は NULL です。返されるポインターはカタログ配列の要素を指し、呼び出し側で解放してはなりません。
 
@@ -603,6 +669,8 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | `sleep`/`usleep`/`nanosleep` (POSIX) / `Sleep` (Win32) | `cplat_sleep_ms(ms)` | Linux はシグナル割り込み時に残り時間を再計算し継続待機します。 |
 | `_Atomic` / `<stdatomic.h>` (C11、GCC) ・`<intrin.h>` の Interlocked 系 (MSVC) | `cplat_atomic_load_<型>` / `_store_<型>` / `_exchange_<型>` / `_compare_exchange_<型>` / `_fetch_add_<型>` / `_fetch_sub_<型>` / `cplat_atomic_thread_fence` (対象ヘッダー: `cplat/sync/atomic.h`) | ロックを取らない共有状態の読み書き (統計カウンター、フラグ、世代番号など) に使用。型は `u8`/`i32`/`u32`/`i64`/`u64`/`ptr` (`u8` と `ptr` に `_fetch_add`/`_fetch_sub` はなし)。初期化は `CPLAT_ATOMIC_INIT()` または `{0}`。MSVC の C17 モードは `_Atomic`/`<stdatomic.h>` を持たないため代替します。`volatile` は同期を保証しないため、同期には使わず本 API を使用してください。 |
 
+Table: スレッドおよび同期プリミティブと cplat API の対応
+
 ### コマンド ライン引数の解析
 
 対象ヘッダー: `cplat/argparser/argparser.h`
@@ -618,6 +686,8 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | 解析エラーを確認します。 | `cplat_argparser_get_error` / `_get_error_index` / `_get_error_target` / `_get_error_message` / `_print_error_messages` |
 | 使用方法を表示します。 | `cplat_argparser_get_usage` / `cplat_argparser_print_usage` |
 
+Table: コマンド ライン引数解析における用途別 cplat API
+
 ### 対話的プロンプト
 
 対象ヘッダー: `cplat/prompt/prompt.h`、`cplat/prompt/pinned_prompt.h`
@@ -630,6 +700,8 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | 1 行の対話的入力を読み取る | `cplat_prompt_create` / `cplat_prompt_readline` / `cplat_prompt_readline_at` / `cplat_prompt_readline_fmt` / `cplat_prompt_readline_fmt_at` / `cplat_prompt_dispose` |
 | 入力欄に初期値を入れた状態で 1 行の対話的入力を読み取る (既存の値を編集させる) | `cplat_prompt_readline_with_initial` / `cplat_prompt_readline_with_initial_at` / `cplat_pinned_prompt_readline_with_initial` / `cplat_pinned_prompt_readline_with_initial_at` |
 | 画面下部に固定したプロンプトへ入力しつつ、その上にログを流す | `cplat_pinned_prompt_create` / `cplat_pinned_prompt_readline` / `cplat_pinned_prompt_readline_fmt` / `cplat_pinned_prompt_write` / `cplat_pinned_prompt_printf` / `cplat_pinned_prompt_status_enable` / `cplat_pinned_prompt_status_set` / `cplat_pinned_prompt_dispose` |
+
+Table: 対話的プロンプト入力における用途別 cplat API
 
 ### トレース
 
@@ -655,6 +727,8 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | ETW (TraceLogging) の書き込みシンクを扱います。 | `cplat_etw_provider_create` / `cplat_etw_provider_write` / `cplat_etw_provider_dispose` / `cplat_etw_session_start` / `cplat_etw_session_stop` / `cplat_etw_session_check_access` |
 | ローテーション付きファイルへ同期書き込みするシンクを扱います。OS バッファーへ委ねる場合は `CPLAT_TRACE_FILE_SINK_OS_BUFFERED` を指定します。 | `cplat_trace_file_sink_create` / `cplat_trace_file_sink_write` / `cplat_trace_file_sink_dispose` |
 
+Table: トレース機能における用途別 cplat API
+
 ### 管理者権限の確認と昇格
 
 対象ヘッダー: `cplat/runtime/elevated_process.h`
@@ -668,6 +742,8 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | 必要な場合のみ管理者権限で自己を再起動します。 | `cplat_elevated_process_run_if_needed` / `cplat_elevated_process_run_with_result` |
 | 昇格プロセスの実行結果を受け渡しします。 | `cplat_elevated_process_extract_result_target` / `cplat_elevated_process_report_result` |
 
+Table: 管理者権限の確認と昇格における用途別 cplat API
+
 ### プロセス終了時の共通フック
 
 対象ヘッダー: `cplat/runtime/shutdown.h`
@@ -679,6 +755,8 @@ Linux syslog、Windows イベント ログ、ETW を個別に呼び出す代わ�
 | 終了コードを保ったままプロセスを終了します。 | `cplat_exit(code)` |
 | 終了時に呼び出されるコールバックを LIFO で登録します。 | `cplat_shutdown_register` |
 | Ctrl+C 等の終了要求を受け取るコールバックを登録します。 | `cplat_shutdown_request_register` |
+
+Table: プロセス終了時共通フックにおける用途別 cplat API
 
 `cplat_shutdown_invoke_for_test` / `cplat_shutdown_request_invoke_for_test` / `cplat_shutdown_reset_for_test` はテスト専用で、本番コードからは呼び出しません。
 
@@ -695,6 +773,8 @@ JSON 設定ファイルからのライブラリ名解決、関数ポインター
 | ローダーを初期化/破棄します。 | `cplat_sym_loader_init` / `cplat_sym_loader_dispose` |
 | 既定ローダーかどうか確認します。 | `cplat_sym_loader_is_default` |
 | 解決状況の情報を取得します。 | `cplat_sym_loader_info` |
+
+Table: 動的シンボル解決における用途別 cplat API
 
 ### 共有ライブラリのロード/アンロード フック
 

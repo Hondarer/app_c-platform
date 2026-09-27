@@ -22,6 +22,8 @@ short-title: "argparser-sample"
 | `input` | 位置引数 (必須) | 入力ファイル |
 | `output` | 位置引数 (任意) | 出力ファイル |
 
+Table: argparser-sample のコマンド ライン引数一覧
+
 ## ビルドと実行
 
 `make -C app/c-platform` でビルドすると `app/c-platform/prod/cbin/argparser-sample` が生成されます。

@@ -84,6 +84,8 @@
      *  | Windows / DLL ビルド (`PREFIX_EXPORTS` 定義あり)  | `__declspec(dllexport)`                     |
      *  | Windows / DLL 利用側                              | `__declspec(dllimport)`                     |
      *
+     *  Table: 共有ライブラリのエクスポート・インポート修飾子
+     *
      *  Linux の共有ライブラリはビルド時に `-fvisibility=hidden` を併用し、
      *  本マクロを付けた公開 API だけを動的シンボル表へ載せます。
      */
@@ -98,6 +100,8 @@
      *  | ------- | ------------- |
      *  | Linux   | (空)          |
      *  | Windows | `__stdcall`   |
+     *
+     *  Table: プラットフォーム別の呼び出し規約修飾子
      */
     #define CPLAT_DLL_API(prefix)
 #else /* !DOXYGEN */

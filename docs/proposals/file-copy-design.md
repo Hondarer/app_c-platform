@@ -52,6 +52,8 @@ app へ移す際は、項目 1 と項目 3 を `prod/include/<lib>/` の公開�
 | `to_path` | `[in]` | コピー先のパス (UTF-8)。NULL を渡してはなりません |
 | `detail_out` | `[out]` | エラー詳細の格納先。NULL を許容します |
 
+Table: sample_file_copy_if_newer 関数の引数仕様
+
 `detail_out` の扱いは cplat の既存 API と同じです。  
 NULL を指定した場合は詳細を返さず、NULL 以外を指定した場合は成功時に空の値を格納します。
 
@@ -69,6 +71,8 @@ NULL を指定した場合は詳細を返さず、NULL 以外を指定した場�
 | `SAMPLE_ERR_NOT_FOUND` | -3 | いずれかが通常ファイルとして存在しません |
 | `SAMPLE_ERR_SIZE_MISMATCH` | -4 | ファイル サイズが一致しません |
 | `SAMPLE_ERR_OUT_OF_MEMORY` | -5 | 転送バッファーを確保できません |
+
+Table: sample_file_copy_if_newer 関数の結果コード一覧
 
 `SAMPLE_SKIPPED` は失敗ではありません。  
 呼び出し側は判定を `!= SAMPLE_OK` ではなく、目的に応じてコード名との比較で行ってください。
@@ -134,7 +138,7 @@ cplat はファイル実体の同一性を `cplat_file_id` の `volume` と `ind
 
 ### mmap を使わない理由
 
-[ファイル入出力 API の選定基準](../app/c-platform/docs/fileio-api-selection-guideline.md) の判断手順のうち、「1 回開いて全体を 1 度だけ通す逐次処理」が本関数に該当します。
+[ファイル入出力 API の選定基準](../app/c-platform/docs/fileio-api-selection-guideline.md) の判断手順のうち、「1 回開いて全体を 1 度だけ通す逐次処理」が本関数に該当します。  
 この形態ではブロック単位の読み書きが最良であり、mmap にしても同等以上にはならず実装だけが複雑になります。
 
 転送バッファーは 64 KB とします。  
@@ -205,6 +209,8 @@ Coverity にソース内の `#pragma` で欠陥を抑制する機構はなく、
 | `cplat_file_stat_t` の実体 | `struct stat` | `struct _stat64` |
 | `st_size` の型 | `off_t` | `__int64` |
 
+Table: ファイル状態取得におけるプラットフォーム差異
+
 `st_size` は型が異なるため、`int64_t` へそろえて比較します。  
 `long` は LP64 と LLP64 で幅が変わるため使いません。
 
@@ -224,6 +230,8 @@ Coverity にソース内の `#pragma` で欠陥を抑制する機構はなく、
 | `cplat/crt/file.h` | `cplat_file_set_modified_timestamp` | 開いているファイルの最終更新日時を設定します |
 | `cplat/crt/file.h` | `cplat_file_get_path_modified_timestamp` | パスが指すファイルの最終更新日時をサブ秒で取得します |
 | `cplat/crt/file.h` | `cplat_file_set_path_modified_timestamp` | パスが指すファイルの最終更新日時を設定します |
+
+Table: ファイル コピー処理で OS 差異を吸収する cplat API
 
 ### 通常ファイルの判定
 

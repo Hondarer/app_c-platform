@@ -23,6 +23,8 @@ raw DEFLATE は展開後の長さを含まないため、利用側が元の長�
 | `CPLAT-COMPRESS-FUNC-003` <!-- cplat-req: uuid=a6d4c8e1-3b27-4f9a-8e05-1c7b9d2f4a60 --> | cplat の圧縮機能は、展開後の長さが 4 GiB 以上の場合、出力先へ書き込まずに上限超過を通知します。 |
 | `CPLAT-COMPRESS-FUNC-004` <!-- cplat-req: uuid=2f99d099-46dc-4cbb-982f-ef1c282f6c21 --> | cplat の圧縮機能は、圧縮または展開に必要なメモリを確保できない場合、両プラットフォームでメモリ不足を通知します。 |
 
+Table: 圧縮機能の機能要件一覧
+
 ## 圧縮データの形式
 
 圧縮データは、次の形式です。
