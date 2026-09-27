@@ -83,20 +83,20 @@ Linux では `gethostname`、Windows では `GetComputerNameExW(ComputerNameDnsH
 
 - Linux では `dladdr()` と `realpath()` を使用します。
 - Windows では `GetModuleHandleEx()` と `GetModuleFileNameW()` を使用します。
-- basename 取得時は拡張子を取り除く
+- basename 取得時は拡張子を取り除きます。
 
-そのため、設定ファイル名を `<basename>_extdef.json` のように組み立てる用途と相性が良い構成です。
+そのため、設定ファイル名を `<basename>_extdef.jsonc` のように組み立てる用途と相性が良い構成です。
 
 ### sym_loader
 
 `sym_loader` は、`func_key` ごとの解決情報を `cplat_sym_loader_entry` に保持します。  
 初回解決時にライブラリ ロードとシンボル探索を行い、その結果をキャッシュします。
 
-- Linux では `dlopen` / `dlsym`
-- Windows では `LoadLibrary` / `GetProcAddress`
-- 解決処理は内部ロックで保護される
-- 1 度解決した結果はエントリ内へ保持される
-- 設定ファイルの JSON 解析には cJSON を利用する (共有 `cplat` に静的リンクされる)
+- Linux では `dlopen` / `dlsym` を使用します。
+- Windows では `LoadLibrary` / `GetProcAddress` を使用します。
+- 解決処理は内部ロックで保護されます。
+- 1 度解決した結果はエントリ内へ保持されます。
+- 設定ファイルの JSONC 解析には cjson の拡張 API を利用します。
 
 ## sym_loader の利用手順
 
@@ -138,25 +138,26 @@ cplat_sym_loader_dispose(fobj_array, fobj_length);
 
 ## 設定ファイル形式
 
-`cplat_sym_loader_init` が読む設定ファイルは、`func_key` をキーにした JSON object です。  
-`//` 行コメントと C 形式のブロック コメントを書けます (解析前に `cJSON_Minify` で除去します)。
+`cplat_sym_loader_init` が読む設定ファイルは、`func_key` をキーにした JSONC object です。  
+`//` 行コメント、C 形式のブロック コメント、末尾カンマを利用できます。
 
-```json
+```jsonc
 // sample_func を外部実装へ委譲する例
 {
   "sample_func": {
     "lib": "sample_override",
-    "func": "sample_func_impl"
-  }
+    "func": "sample_func_impl",
+  },
 }
 ```
 
-- ルートは JSON object であること
+- ルートは JSONC object です。
 - 各プロパティ名が `func_key` に対応します。
 - 値は object で、文字列フィールド `lib` と `func` を持ちます。
 - `//` 行コメントおよび C 形式のブロック コメントを利用できます。
+- オブジェクトと配列の末尾カンマを利用できます。
 - 必須フィールド欠落、型不正、未知の `func_key`、名称長超過のエントリは無視します。
-- ファイル未存在、読取失敗、JSON 解析失敗は黙って無視する (エントリは未設定のまま)
+- ファイル未存在、読取失敗、JSONC 解析失敗は無視します (エントリは未設定のまま)。
 
 `lib` と `func` の両方に `default` を指定した場合は、明示的にデフォルト実装を使う設定として扱われます。
 

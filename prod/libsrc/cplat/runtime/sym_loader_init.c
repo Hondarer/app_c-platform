@@ -1,33 +1,32 @@
 /**
  *******************************************************************************
  *  @file           sym_loader_init.c
- *  @brief          JSON 設定ファイルから cplat_sym_loader_entry エントリを読み込みます。
+ *  @brief          JSONC 設定ファイルから cplat_sym_loader_entry エントリを読み込みます。
  *  @author         c-modenization-kit sample team
  *  @date           2026/02/23
  *  @version        1.0.0
  *
- *  JSON ファイルから func_key / lib / func を読み込み、fobj_array 配列の
+ *  JSONC ファイルから func_key / lib / func を読み込み、fobj_array 配列の
  *  対応エントリに設定します。\n
  *
  *  ファイル フォーマット:\n
     @code
-    // 行コメントと C 形式のブロック コメントを利用できる
+    // 行コメント、C 形式のブロック コメント、末尾カンマを利用できる
     {
       "func_key": {
         "lib": "lib_name",
-        "func": "func_name"
-      }
+        "func": "func_name",
+      },
     }
     @endcode
  *
- *  - ルートは JSON object であること。\n
- *  - 各プロパティ名が func_key に対応する。\n
- *  - 値は object で、文字列フィールド "lib" と "func" を持つ。\n
- *  - 行コメント (//) および C 形式のブロック コメントは
- *    cJSON_Minify により解析前に除去する。\n
+ *  - ルートは JSONC object であること。\n
+ *  - 各プロパティ名が func_key に対応します。\n
+ *  - 値は object で、文字列フィールド "lib" と "func" を持ちます。\n
+ *  - 行コメント (//)、C 形式のブロック コメント、末尾カンマを解析します。\n
  *  - func_key が一致するキャッシュ エントリの lib_name / func_name 配列に
  *    cplat_strncpy で書き込みます。\n
- *  - ファイル未存在、読取失敗、JSON 解析失敗、必須フィールド欠落は黙って無視する。
+ *  - ファイル未存在、読取失敗、JSONC 解析失敗、必須フィールド欠落は無視します。
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *
@@ -38,7 +37,7 @@
 #include <cplat/crt/stdlib.h>
 #include <cplat/crt/string.h>
 #include <cplat/runtime/sym_loader.h>
-#include <cJSON.h>
+#include <cJSON_JSONC.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -107,10 +106,7 @@ void cplat_sym_loader_init(cplat_sym_loader_entry *const *fobj_array, const size
     }
     buffer[file_size] = '\0';
 
-    /* 行コメントと C 形式ブロック コメントを除去する (JSONC 相当)。バッファーを破壊的に短縮する。 */
-    cJSON_Minify(buffer);
-
-    root = cJSON_Parse(buffer);
+    root = cJSON_ParseJSONCWithLength(buffer, file_size);
     if ((root == NULL) || (cJSON_IsObject(root) == 0))
     {
         goto out_free_json;

@@ -765,7 +765,7 @@ Table: プロセス終了時共通フックにおける用途別 cplat API
 対象ヘッダー: `cplat/runtime/sym_loader.h`
 
 `dlopen` +`dlsym` (POSIX) / `LoadLibrary` +`GetProcAddress` (Win32) を直接呼ぶ代わりに使用します。  
-JSON 設定ファイルからのライブラリ名解決、関数ポインターのキャッシュ、スレッド セーフな初期化を内包します。
+JSONC 設定ファイルからのライブラリ名解決、関数ポインターのキャッシュ、スレッド セーフな初期化を内包します。
 
 | 用途 | cplat API |
 |---|---|

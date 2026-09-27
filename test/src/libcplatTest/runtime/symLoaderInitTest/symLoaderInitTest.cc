@@ -47,7 +47,7 @@ class symLoaderInitTest : public Test
     }
 };
 
-// // および /* */ コメント付き JSON が解析されることの確認
+// コメントと末尾カンマを含む JSONC が解析されることの確認
 TEST_F(symLoaderInitTest, applies_json_with_comments)
 {
     // Arrange
@@ -56,19 +56,19 @@ TEST_F(symLoaderInitTest, applies_json_with_comments)
                        "  /* block comment */\n"
                        "  \"sample_func\": { // trailing line comment\n"
                        "    \"lib\": \"liboverride\",\n"
-                       "    \"func\": \"override_func\"\n"
-                       "  }\n"
+                       "    \"func\": \"override_func\",\n"
+                       "  },\n"
                        "}\n";
     cplat_sym_loader_entry entry = CPLAT_SYM_LOADER_ENTRY_INIT("sample_func", void (*)(void));
-    cplat_sym_loader_entry *entries[] = {&entry}; // [状態] - コメント付き JSON と sample_func エントリを用意する。
+    cplat_sym_loader_entry *entries[] = {&entry}; // [状態] - コメントと末尾カンマを含む JSONC と sample_func エントリを用意する。
 
     // Pre-Assert
     expect_config_read("with_comments.json",
-                       json); // [Pre-Assert確認_正常系] - コメント付き JSON の読取が呼び出されること。
-                              // [Pre-Assert手順] - コメント付き JSON 本文を返却する。
+                       json); // [Pre-Assert確認_正常系] - コメントと末尾カンマを含む JSONC の読取が呼び出されること。
+                              // [Pre-Assert手順] - コメントと末尾カンマを含む JSONC 本文を返却する。
 
     // Act
-    cplat_sym_loader_init(entries, 1u, "with_comments.json"); // [手順] - コメント付き JSON 設定を読み込む。
+    cplat_sym_loader_init(entries, 1u, "with_comments.json"); // [手順] - コメントと末尾カンマを含む JSONC 設定を読み込む。
 
     // Assert
     EXPECT_STREQ("liboverride", entry.lib_name);    // [確認_正常系] - lib_name が liboverride であること。
@@ -264,7 +264,7 @@ TEST_F(symLoaderInitTest, applies_multiple_entries)
     EXPECT_STREQ("fb", entry_b.func_name);  // [確認_正常系] - other_func の func_name が fb であること。
 }
 
-// cJSON_Parse の失敗を注入した場合に設定を反映しないことの確認
+// JSONC 解析の失敗を注入した場合に設定を反映しないことの確認
 TEST_F(symLoaderInitTest, ignores_document_when_cjson_parse_fails)
 {
     // Arrange
@@ -277,10 +277,10 @@ TEST_F(symLoaderInitTest, ignores_document_when_cjson_parse_fails)
     expect_config_read("injected_parse_failure.json",
                        json); // [Pre-Assert確認_異常系] - 正常な JSON の読取が呼び出されること。
                               // [Pre-Assert手順] - 正常な JSON 本文を返却する。
-    EXPECT_CALL(mock_cjson, cJSON_Parse(StrEq(json)))
+    EXPECT_CALL(mock_cjson, cJSON_ParseJSONCWithLength(StrEq(json), std::strlen(json)))
         .WillOnce(Return(
-            nullptr)); // [Pre-Assert確認_異常系] - cJSON_Parse が正常な JSON 文字列を指定して 1 回呼び出されること。
-                       // [Pre-Assert手順] - cJSON_Parse から NULL を返却する。
+            nullptr)); // [Pre-Assert確認_異常系] - JSONC 解析が入力本文とバイト数を指定して 1 回呼び出されること。
+                       // [Pre-Assert手順] - JSONC 解析から NULL を返却する。
     EXPECT_CALL(
         mock_cjson,
         cJSON_Delete(nullptr)); // [Pre-Assert確認_異常系] - cJSON_Delete が NULL を指定して 1 回呼び出されること。
@@ -288,7 +288,7 @@ TEST_F(symLoaderInitTest, ignores_document_when_cjson_parse_fails)
     // Act
     cplat_sym_loader_init(
         entries, 1u,
-        "injected_parse_failure.json"); // [手順] - cJSON_Parse の失敗を注入して JSON 設定を読み込む。
+        "injected_parse_failure.json"); // [手順] - JSONC 解析の失敗を注入して設定を読み込む。
 
     // Assert
     EXPECT_STREQ("", entry.lib_name);  // [確認_異常系] - lib_name が空のままであること。
