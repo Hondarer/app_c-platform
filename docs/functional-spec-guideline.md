@@ -60,5 +60,5 @@ CPLAT-HASHTABLE-QUAL-001
 検査は、機能仕様が配置されているすべての app を対象とします。
 
 ```shell
-python3 bin/check_functional_spec.py
+python3 app/general/bin/check_functional_spec.py
 ```

@@ -205,7 +205,7 @@ glibc がラッパー関数 `gettid()` を提供するのは 2.30 以降であ�
 
 ### 生成器の構成
 
-生成器は `bin/string_catalog_gen.py` の 1 つのスクリプトとして維持します。  
+生成器は `bin_internal/string_catalog_gen.py` の 1 つのスクリプトとして維持します。  
 JSONC の解析、引数種別の検査、位置指定の検査、インデックス テーブルの生成、Doxygen コメントの出力、および `clang-format` の適用は、種別によらず共通であるためです。
 
 生成器の内部を、種別によらない処理と、種別ごとのラッパー出力処理へ分離します。  
@@ -448,7 +448,7 @@ Windows の `GetCurrentThreadId()` の mock も testfw に存在せず、両プ�
 
 ### 第 2 段階で設計へ追加した事項
 
-`CPLAT_STRING_CATALOG_ARGUMENT_MAX` の変更にあわせて、生成器 `bin/string_catalog_gen.py` の同名の定数も 50 へ揃えました。  
+`CPLAT_STRING_CATALOG_ARGUMENT_MAX` の変更にあわせて、生成器 `bin_internal/string_catalog_gen.py` の同名の定数も 50 へ揃えました。  
 生成器の定数を C 側と一致させる旨が、生成器のコメントで規定されているためです。
 
 書式が未使用のインデックスを参照していないことの確認は、値を伴う展開と、値を持たない点検の 2 つの経路で行います。  

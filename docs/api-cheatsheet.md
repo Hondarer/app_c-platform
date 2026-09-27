@@ -584,7 +584,7 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 `cplat_string_catalog_verify` は、すべての定義が一意な文字列キー、書式、引数の個数、引数の種別とメタデータ、インデックス表からの到達、ニュートラル言語の資源の条件を満たすことを確認します。  
 条件を満たさない定義を検出した場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返し、最初の 1 件の文字列キーと言語を出力引数へ書き出します。
 
-カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin/string_catalog_gen.py` に置いています。  
+カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin_internal/string_catalog_gen.py` に置いています。  
 設計の詳細は [string_catalog モジュール](../prod/libsrc/cplat/string_catalog/README.md) を参照してください。
 
 ### スレッドと同期プリミティブ
