@@ -739,8 +739,9 @@ Table: トレース機能における用途別 cplat API
 | 用途 | cplat API |
 |---|---|
 | 現在のプロセスが管理者権限で実行されているか確認します。 | `cplat_elevated_process_is_elevated` |
-| 必要な場合のみ管理者権限で自己を再起動します。 | `cplat_elevated_process_run_if_needed` / `cplat_elevated_process_run_with_result` |
+| 必要な場合のみ管理者権限で自己を再起動します。 | `cplat_elevated_process_run_if_needed` / `cplat_elevated_process_run_with_result` / `cplat_elevated_process_run_piped` |
 | 昇格プロセスの実行結果を受け渡しします。 | `cplat_elevated_process_extract_result_target` / `cplat_elevated_process_report_result` |
+| 昇格プロセスの標準出力と標準エラー出力を、呼び出し元へ逐次受け渡します。 | `cplat_elevated_process_run_piped` / `cplat_elevated_process_attach_output_pipes` |
 
 Table: 管理者権限の確認と昇格における用途別 cplat API
 

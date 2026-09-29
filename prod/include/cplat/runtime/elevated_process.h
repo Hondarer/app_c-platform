@@ -36,6 +36,33 @@ extern "C"
 #endif /* __cplusplus */
 
     /**
+     *  @brief          昇格プロセスの出力元ストリームです。
+     */
+    typedef enum cplat_elevated_process_stream
+    {
+        CPLAT_ELEVATED_PROCESS_STREAM_STDOUT = 1, /**< 昇格プロセスの標準出力。 */
+        CPLAT_ELEVATED_PROCESS_STREAM_STDERR = 2  /**< 昇格プロセスの標準エラー出力。 */
+    } cplat_elevated_process_stream;
+
+    /**
+     *  @brief          昇格プロセスの出力を受け取るコールバック関数型です。
+     *
+     *  @param[in]      stream   出力元ストリーム。
+     *  @param[in]      data     昇格プロセスが書き込んだバイト列。NUL 終端しません。
+     *  @param[in]      size     @p data のバイト数。1 以上です。
+     *  @param[in]      context  登録時に渡した任意のコンテキスト。
+     *
+     *  @p data は昇格プロセスが書き込んだバイト列を変換せずに渡します。\n
+     *  1 回の呼び出しで渡す範囲は、昇格プロセスの書き込み単位と一致しません。
+     *  UTF-8 の複数バイト文字や行の途中で分割される場合があります。
+     *
+     *  @par            スレッド セーフ
+     *  コールバックは cplat_elevated_process_run_piped() を呼び出したスレッドから呼び出されます。
+     */
+    typedef void (*cplat_elevated_process_output_fn)(cplat_elevated_process_stream stream, const char *data,
+                                                     size_t size, void *context);
+
+    /**
      *  @brief          現在のプロセスが管理者/root 権限で動作しているかを確認します。
      *  @param[out]     elevated  昇格済みなら 1、そうでなければ 0 の格納先。NULL を渡してはなりません。
      *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_UNSUPPORTED 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
@@ -148,6 +175,65 @@ extern "C"
      *  内部状態は cplat_elevated_process_extract_result_target() が設定したものを参照します。
      */
     CPLAT_EXPORT int CPLAT_API cplat_elevated_process_report_result(const char *message);
+
+    /**
+     *  @brief          管理者/root 権限が必要な処理のため、必要に応じて昇格実行し、
+     *                  昇格プロセスの標準出力と標準エラー出力を呼び出し元で受け取ります。
+     *  @param[in]      arguments  昇格実行時に現在の実行ファイルへ渡す引数文字列。NULL 可。
+     *  @param[in]      output_fn  昇格プロセスの出力を受け取るコールバック。NULL 可。
+     *                             NULL の場合は、呼び出し元の標準出力と標準エラー出力へそのまま書き込みます。
+     *  @param[in]      context    @p output_fn へ渡す任意のコンテキスト。NULL 可。
+     *  @param[out]     exit_code  昇格プロセスの終了コード、または 0 の格納先。
+     *  @param[out]     handled    昇格プロセスで処理した場合は 0 以外、現プロセスで継続する場合は 0 の格納先。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_INVALID_ARGUMENT 、@ref CPLAT_ERR_OUT_OF_MEMORY 、@ref CPLAT_ERR_UNSUPPORTED 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  Windows では、未昇格の場合に標準出力用と標準エラー出力用の無名パイプを作成し、
+     *  UAC を要求して現在の実行ファイルを @p arguments 付きで再起動します。
+     *  子プロセスの終了まで待機し、その間にパイプから読み取った出力を @p output_fn へ渡します。\n
+     *  すでに昇格済みの場合は何もしません。\n
+     *  昇格プロセスは親のコンソールへ接続し直さないため、cplat_elevated_process_run_if_needed() で
+     *  発生する間欠的な書き込み不能 (`ERROR_INVALID_HANDLE`) の影響を受けません。
+     *  また、呼び出し元の標準出力がリダイレクトされている場合も、昇格プロセスの出力はそのリダイレクト先へ届きます。\n
+     *  昇格プロセス側は起動直後に cplat_elevated_process_attach_output_pipes() を呼び出してください。
+     *  呼び出さない場合、昇格プロセスの出力は呼び出し元へ届きません。\n
+     *  未昇格かつセッション 0 (非対話セッション) の場合は、昇格を試みず失敗を返します。\n
+     *  Linux では cplat_elevated_process_run_if_needed() と同じ判定を行い、@p output_fn は呼び出しません。
+     *
+     *  @note           標準出力と標準エラー出力は別のパイプで受け取るため、両者の間の出力順序は保証しません。\n
+     *                  昇格プロセスへ標準入力は渡しません。未昇格のプロセスから昇格プロセスを操作できないようにするためです。\n
+     *                  Windows で UAC を表示するため、通常はメイン スレッドまたはユーザー操作に応答するスレッドから呼び出してください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。\n
+     *  @p output_fn は本関数を呼び出したスレッドから呼び出されます。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_elevated_process_run_piped(const char *arguments,
+                                                                cplat_elevated_process_output_fn output_fn,
+                                                                void *context, int *exit_code, int *handled);
+
+    /**
+     *  @brief          昇格プロセスの標準出力と標準エラー出力を、呼び出し元プロセスのパイプへ接続します。
+     *  @param[in,out]  argc          引数の数へのポインター。NULL 可。
+     *  @param[in,out]  argv          引数配列。NULL 可。
+     *  @param[out]     attached_out  パイプへ接続した場合は 1、そうでない場合は 0 の格納先。NULL 可。
+     *  @return         @ref CPLAT_OK 、@ref CPLAT_ERR_UNKNOWN のいずれかを返します。
+     *
+     *  cplat_elevated_process_run_piped() が付与した内部フラグを検出し、@p argv から取り除いて
+     *  @p argc を 1 減らします。フラグがない場合は何もせず @ref CPLAT_OK を返します。\n
+     *  フラグを検出した場合は、呼び出し元プロセスが作成したパイプを本プロセスへ複製し、
+     *  Win32 の標準ハンドルと CRT の stdout / stderr をそのパイプへ付け替えます。
+     *  stdout はバッファーなしに設定し、改行コードを変換しないバイナリ モードで開きます。
+     *  標準入力は `NUL` デバイスへ付け替え、読み取りは直ちにファイル終端となります。\n
+     *  フラグの値が不正な場合、またはパイプの複製と付け替えに失敗した場合は
+     *  @ref CPLAT_ERR_UNKNOWN を返します。この場合も、フラグは @p argv から取り除きます。\n
+     *  プログラム開始直後、引数解析および cplat_console_init() より前に 1 度だけ呼び出してください。\n
+     *  Linux では何もせず @p attached_out に 0 を設定します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  プロセス起動直後のシングル スレッド フェーズで呼び出してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_elevated_process_attach_output_pipes(int *argc, char **argv, int *attached_out);
 
 #ifdef __cplusplus
 }

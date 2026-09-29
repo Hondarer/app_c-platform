@@ -87,7 +87,7 @@ CodeBlock: 昇格時のコンソール引き継ぎ
 
 `AttachConsole` の成功と親 HWND の一致を確認した後でも、実機調査では `stdout` / `stderr` への書き込みが `ERROR_INVALID_HANDLE` で間欠的に失敗する事象を確認しています。原因は conhost 側にあると推測されますが特定できておらず、また書き込みの再試行でも解消しません (一度失敗すると再試行しても同一のエラーで失敗します)。`printf` / `fprintf` (FILE\* 経由) だけでなく `cplat_console_write()` (Win32 API を直接呼び出す) でも同様に発生します。
 
-UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_with_result()` (`app/cplat/prod/libsrc/cplat/runtime/README.md` 参照) を使用してください。こちらは昇格プロセスのコンソールに一切アクセスせず、結果メッセージを一時ファイル経由で呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
+UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` によるコンソール再接続ではなく、`cplat_elevated_process_run_piped()` または `cplat_elevated_process_run_with_result()` (`app/cplat/prod/libsrc/cplat/runtime/README.md` 参照) を使用してください。どちらも昇格プロセスのコンソールに一切アクセスしません。前者は昇格プロセスの標準出力と標準エラー出力を無名パイプで、後者は結果メッセージを一時ファイル経由で、呼び出し元プロセス (常に未昇格で、自分自身の正常なコンソールを保持している) へ渡すため、この問題の影響を受けません。
 
 再現調査時は、環境変数 `CPLAT_CONSOLE_ATTACH_DIAG=1` を設定すると `%TEMP%/cplat_console_attach.log` へ再接続の診断ログを追記できます。  
 このログには `FreeConsole` / `AttachConsole` / `GetConsoleWindow` / `CONOUT$` オープン / `reopen` / 終了時ドレインの成否と `GetLastError()` を記録します。
@@ -146,7 +146,7 @@ int main(void)
 - Windows では `activeCodePage=UTF-8` マニフェストを併用してください。
 - `cplat_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `cplat_console_attach_parent` を使用してください)。
 - `cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `cplat_console_write()` を使用してください。
-- UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` ではなく `cplat_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)。
+- UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` ではなく `cplat_elevated_process_run_piped()` または `cplat_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)。
 - Windows 10 1903 未満はサポート対象外です。
 
 ## 参考リンク

@@ -9,7 +9,9 @@ using testing::NiceMock;
 using testing::Return;
 
 #if defined(PLATFORM_WINDOWS)
+    #include <cplat/base/windows_sdk.h>
     #include <cplat/runtime/process_internal.h>
+    #include <string>
 
 // このテストではネイティブ プロセスの取り込み経路を実行しないため、リンク用の fake を定義する。
 extern "C" cplat_process *cplat_internal_process_adopt_native(intptr_t native_handle)
@@ -124,6 +126,145 @@ TEST(elevatedProcessTest, elevated_apis_reject_null_outputs)
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               report_null_result); // [確認_異常系] - report_result の戻り値が INVALID_ARGUMENT であること。
 }
+
+// run_piped が NULL 出力を拒否することの確認
+TEST(elevatedProcessTest, run_piped_rejects_null_outputs)
+{
+    // Arrange
+    int exit_code = -1;
+    int handled = -1;
+
+    // Pre-Assert
+
+    // Act
+    int null_exit_result = cplat_elevated_process_run_piped(
+        NULL, NULL, NULL, NULL, &handled); // [手順] - run_piped の exit_code に NULL を渡す。
+    int null_handled_result = cplat_elevated_process_run_piped(
+        NULL, NULL, NULL, &exit_code, NULL); // [手順] - run_piped の handled に NULL を渡す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              null_exit_result); // [確認_異常系] - exit_code が NULL の run_piped が INVALID_ARGUMENT であること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              null_handled_result); // [確認_異常系] - handled が NULL の run_piped が INVALID_ARGUMENT であること。
+}
+
+// 出力パイプ フラグがない場合に attach_output_pipes が何もしないことの確認
+TEST(elevatedProcessTest, attach_output_pipes_without_flag_keeps_arguments)
+{
+    // Arrange
+    char program[] = "pipeTest";
+    char command[] = "install";
+    char *argv[] = {program, command, NULL};
+    int argc = 2;
+    int attached = -1;
+
+    // Pre-Assert
+
+    // Act
+    int result = cplat_elevated_process_attach_output_pipes(
+        &argc, argv, &attached); // [手順] - 出力パイプ フラグのない引数で接続を試行する。
+    int null_result =
+        cplat_elevated_process_attach_output_pipes(NULL, NULL, NULL); // [手順] - すべての引数に NULL を渡す。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, result);      // [確認_正常系] - フラグがない場合の戻り値が CPLAT_OK であること。
+    EXPECT_EQ(0, attached);           // [確認_正常系] - attached_out が 0 であること。
+    EXPECT_EQ(2, argc);               // [確認_正常系] - argc が変更されないこと。
+    EXPECT_STREQ("install", argv[1]); // [確認_正常系] - argv が変更されないこと。
+    EXPECT_EQ(CPLAT_OK, null_result); // [確認_正常系] - NULL 引数の戻り値が CPLAT_OK であること。
+}
+
+#if defined(PLATFORM_WINDOWS)
+// 出力パイプ フラグの値が不正な場合にフラグを取り除いて失敗することの確認
+TEST(elevatedProcessTest, attach_output_pipes_removes_malformed_flag_and_fails)
+{
+    // Arrange
+    char program[] = "pipeTest";
+    char flag[] = "--cplat-output-pipes=123:abc";
+    char command[] = "install";
+    char *argv[] = {program, flag, command, NULL};
+    int argc = 3;
+    int attached = -1;
+
+    // Pre-Assert
+
+    // Act
+    int result = cplat_elevated_process_attach_output_pipes(
+        &argc, argv, &attached); // [手順] - ハンドル値が数値でないフラグで接続を試行する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, result); // [確認_異常系] - 不正なフラグの戻り値が CPLAT_ERR_UNKNOWN であること。
+    EXPECT_EQ(0, attached);               // [確認_異常系] - attached_out が 0 であること。
+    EXPECT_EQ(2, argc);                   // [確認_異常系] - フラグを取り除いて argc が 1 減ること。
+    EXPECT_STREQ("install", argv[1]);     // [確認_異常系] - 後続の引数が前へ詰められること。
+    EXPECT_EQ(nullptr, argv[2]);          // [確認_異常系] - 末尾が NULL になること。
+}
+
+// 出力パイプ フラグのハンドルがパイプ以外を指す場合に付け替えないことの確認
+TEST(elevatedProcessTest, attach_output_pipes_rejects_non_pipe_handles)
+{
+    // Arrange
+    HANDLE event_handle = CreateEventW(NULL, TRUE, FALSE, NULL); // [手順] - パイプではないハンドルを作成する。
+    std::string flag_text = "--cplat-output-pipes=" + std::to_string(GetCurrentProcessId()) + ":" +
+                            std::to_string(reinterpret_cast<uintptr_t>(event_handle)) + ":" +
+                            std::to_string(reinterpret_cast<uintptr_t>(event_handle));
+    char program[] = "pipeTest";
+    char *argv[] = {program, &flag_text[0], NULL};
+    int argc = 2;
+    int attached = -1;
+    HANDLE stdout_before = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    // Pre-Assert
+    ASSERT_NE(nullptr, event_handle); // [Pre-Assert確認_正常系] - イベント ハンドルを作成できること。
+
+    // Act
+    int result = cplat_elevated_process_attach_output_pipes(
+        &argc, argv, &attached); // [手順] - 自プロセスのイベント ハンドルを指すフラグで接続を試行する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, result); // [確認_異常系] - パイプ以外のハンドルで CPLAT_ERR_UNKNOWN を返すこと。
+    EXPECT_EQ(0, attached);               // [確認_異常系] - attached_out が 0 であること。
+    EXPECT_EQ(1, argc);                   // [確認_異常系] - フラグを取り除いて argc が 1 減ること。
+    EXPECT_EQ(stdout_before,
+              GetStdHandle(STD_OUTPUT_HANDLE)); // [確認_異常系] - 標準出力ハンドルが変更されないこと。
+
+    CloseHandle(event_handle);
+}
+#endif /* PLATFORM_WINDOWS */
+
+#if defined(PLATFORM_LINUX)
+// Linux では root の場合だけ run_piped が完了扱いにすることの確認
+TEST(elevatedProcessTest, run_piped_reports_linux_elevation_state)
+{
+    // Arrange
+    NiceMock<Mock_unistd> mock_unistd;
+    int root_exit_code = -1;
+    int root_handled = -1;
+    int user_exit_code = 0;
+    int user_handled = -1;
+
+    // Pre-Assert
+    EXPECT_CALL(mock_unistd, geteuid(_, _, _))
+        .WillOnce(Return(static_cast<uid_t>(0)))
+        .WillOnce(Return(static_cast<uid_t>(1000))); // [Pre-Assert確認_正常系] - geteuid が 2 回呼び出されること。
+                                                     // [Pre-Assert手順] - geteuid から 0、1000 の順に返却する。
+
+    // Act
+    int root_result = cplat_elevated_process_run_piped(
+        "--test", NULL, NULL, &root_exit_code, &root_handled); // [手順] - root 状態で run_piped を実行する。
+    int user_result = cplat_elevated_process_run_piped(
+        "--test", NULL, NULL, &user_exit_code, &user_handled); // [手順] - 非 root 状態で run_piped を実行する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, root_result);        // [確認_正常系] - root 状態の run_piped が CPLAT_OK を返すこと。
+    EXPECT_EQ(0, root_exit_code);            // [確認_正常系] - root 状態の exit_code が 0 であること。
+    EXPECT_EQ(0, root_handled);              // [確認_正常系] - Linux の run_piped が handled を 0 にすること。
+    EXPECT_EQ(CPLAT_ERR_UNKNOWN, user_result); // [確認_異常系] - 非 root の run_piped が UNKNOWN を返すこと。
+    EXPECT_EQ(EXIT_FAILURE, user_exit_code);   // [確認_異常系] - 非 root の run_piped が失敗コードを返すこと。
+    EXPECT_EQ(0, user_handled);                // [確認_異常系] - 非 root の run_piped が handled を 0 にすること。
+}
+#endif /* PLATFORM_LINUX */
 
 // Linux 固有 API が省略可能な出力と結果報告を処理することの確認
 TEST(elevatedProcessTest, linux_helpers_accept_optional_output_and_report_unavailable_target)

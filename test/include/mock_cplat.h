@@ -363,6 +363,8 @@ MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_run_if_needed)
 MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_run_with_result)
 MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_extract_result_target)
 MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_report_result)
+MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_run_piped)
+MOCK_CPLAT_LINK_IMPL(cplat_elevated_process_attach_output_pipes)
 
 // cplat/regex/regex.h
 MOCK_CPLAT_LINK_IMPL(cplat_regex_create)
@@ -955,6 +957,8 @@ extern int delegate_real_cplat_elevated_process_run_if_needed(const char *argume
 extern int delegate_real_cplat_elevated_process_run_with_result(const char *arguments, int *exit_code, int *handled, char *result_message, size_t result_message_size);
 extern int delegate_real_cplat_elevated_process_extract_result_target(int *argc, char **argv, int *detected_out);
 extern int delegate_real_cplat_elevated_process_report_result(const char *message);
+extern int delegate_real_cplat_elevated_process_run_piped(const char *arguments, cplat_elevated_process_output_fn output_fn, void *context, int *exit_code, int *handled);
+extern int delegate_real_cplat_elevated_process_attach_output_pipes(int *argc, char **argv, int *attached_out);
 
 // cplat/regex/regex.h
 extern int delegate_real_cplat_regex_create(const char *pattern, unsigned int flags, cplat_regex **regex_out, cplat_error *detail_out);
@@ -1585,6 +1589,9 @@ class Mock_cplat
                 (const char *, int *, int *, char *, size_t));
     MOCK_METHOD(int, cplat_elevated_process_extract_result_target, (int *, char **, int *));
     MOCK_METHOD(int, cplat_elevated_process_report_result, (const char *));
+    MOCK_METHOD(int, cplat_elevated_process_run_piped,
+                (const char *, cplat_elevated_process_output_fn, void *, int *, int *));
+    MOCK_METHOD(int, cplat_elevated_process_attach_output_pipes, (int *, char **, int *));
 
     // cplat/regex/regex.h
     MOCK_METHOD(int, cplat_regex_create,

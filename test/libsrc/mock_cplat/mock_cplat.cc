@@ -554,6 +554,10 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_elevated_process_extract_result_target));
     ON_CALL(*this, cplat_elevated_process_report_result(_))
         .WillByDefault(Invoke(delegate_real_cplat_elevated_process_report_result));
+    ON_CALL(*this, cplat_elevated_process_run_piped(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_elevated_process_run_piped));
+    ON_CALL(*this, cplat_elevated_process_attach_output_pipes(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_elevated_process_attach_output_pipes));
 
     // cplat/regex/regex.h
     ON_CALL(*this, cplat_regex_create(_, _, _, _))

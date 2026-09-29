@@ -24,7 +24,6 @@
 #include <cplat/argparser/argparser.h>
 #include <cplat/base/platform.h>
 #include <cplat/console/console.h>
-#include <cplat/crt/stdio.h>
 #include <cplat/runtime/elevated_process.h>
 #include <cplat/runtime/process.h>
 #include <cplat/trace/tracer.h>
@@ -41,26 +40,16 @@
     #include <cplat/trace/eventlog.h>
 
 /**
- *  @brief          本プロセスが昇格ワーカー (UAC 昇格で再起動された側) かどうかです。
- *
- *  main() で cplat_elevated_process_extract_result_target() の戻り値を設定します。\n
- *  0 以外の場合、report_status() は標準出力/エラーへ直接出力せず、
- *  cplat_elevated_process_report_result() で呼び出し元プロセスへ報告します。
- */
-static int s_is_elevated_worker = 0;
-
-/**
  *  @brief          管理者権限を保証します。必要なら UAC 昇格して再実行します。
  *  @param[in]      command  昇格再実行するサブコマンド ("install" / "uninstall")。
  *  @param[out]     handled  昇格プロセスで処理済みの場合は 0 以外を格納します。
  *  @return         継続可能な場合は 0、異常時は 0 以外を返します。
  *
- *  昇格プロセスのコンソールは一切引き継ぎません。昇格プロセス側が報告した結果メッセージは
- *  本関数が受け取り、終了コードに応じて自分自身の標準出力/エラーへそのまま表示します。
+ *  昇格プロセスの標準出力と標準エラー出力は無名パイプで受け取り、本プロセスの
+ *  標準出力と標準エラー出力へそのまま書き込みます。
  */
 static int ensure_elevated(const char *command, int *handled)
 {
-    char result_message[CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE];
     int exit_code;
     int ret;
 
@@ -70,32 +59,16 @@ static int ensure_elevated(const char *command, int *handled)
     }
 
     exit_code = 1;
-    ret =
-        cplat_elevated_process_run_with_result(command, &exit_code, handled, result_message, sizeof(result_message));
+    ret = cplat_elevated_process_run_piped(command, NULL, NULL, &exit_code, handled);
     if (ret != 0)
     {
         fprintf(stderr, "管理者権限への昇格に失敗しました。\n");
         return -1;
     }
 
-    if (*handled != 0)
+    if (*handled != 0 && exit_code != 0)
     {
-        if (result_message[0] != '\0')
-        {
-            if (exit_code == 0)
-            {
-                printf("%s", result_message);
-            }
-            else
-            {
-                fprintf(stderr, "%s", result_message);
-            }
-        }
-        if (exit_code != 0)
-        {
-            return -1;
-        }
-        return 0;
+        return -1;
     }
     return 0;
 }
@@ -106,63 +79,38 @@ static int ensure_elevated(const char *command, int *handled)
  *  @param[in]      action  操作名 ("登録" / "削除")。
  *  @return         正常終了時は 0、異常終了時は 0 以外を返します。
  *
- *  本プロセスが昇格ワーカーの場合は標準出力/エラーへ出力せず、呼び出し元プロセスへ
- *  cplat_elevated_process_report_result() で報告します (ensure_elevated() がそちらで表示します)。
+ *  本プロセスが昇格ワーカーの場合、標準出力と標準エラー出力は呼び出し元プロセスのパイプへ
+ *  接続済みのため、呼び出し元のコンソールに表示されます。
  */
 static int report_status(const int ret, const char *action, const char *message_file_path)
 {
-    char message[CPLAT_ELEVATED_PROCESS_RESULT_MESSAGE_SIZE];
-
     if (ret == CPLAT_OK)
     {
+        printf("イベント ソース '%s' を%sしました。\n", CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action);
         if (message_file_path != NULL)
         {
-            (void)cplat_snprintf(message, sizeof(message),
-                                 "イベント ソース '%s' を%sしました。\nメッセージ DLL: %s\n"
-                                 "注: メッセージ DLL は、イベント ソースの登録が有効な期間を通じて必要です。\n",
-                                 CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action, message_file_path);
-        }
-        else
-        {
-            (void)cplat_snprintf(message, sizeof(message), "イベント ソース '%s' を%sしました。\n",
-                                 CPLAT_TRACER_DEFAULT_PROVIDER_NAME, action);
-        }
-        if (s_is_elevated_worker != 0)
-        {
-            (void)cplat_elevated_process_report_result(message);
-        }
-        else
-        {
-            printf("%s", message);
+            printf("メッセージ DLL: %s\n"
+                   "注: メッセージ DLL は、イベント ソースの登録が有効な期間を通じて必要です。\n",
+                   message_file_path);
         }
         return 0;
     }
     if (ret == CPLAT_ERR_PERMISSION_DENIED)
     {
-        (void)cplat_snprintf(message, sizeof(message), "アクセスが拒否されました。管理者として実行してください。\n");
+        fprintf(stderr, "アクセスが拒否されました。管理者として実行してください。\n");
     }
     else if (ret == CPLAT_ERR_NOT_FOUND || ret == CPLAT_ERR_CORRUPT_DESCRIPTOR)
     {
-        (void)cplat_snprintf(message, sizeof(message),
-                             "メッセージ リソース DLL を確認できません。libcplat.dll と同じディレクトリに "
-                             "libcplat_eventlog_messages.dll を配置してください。\n");
+        fprintf(stderr, "メッセージ リソース DLL を確認できません。libcplat.dll と同じディレクトリに "
+                        "libcplat_eventlog_messages.dll を配置してください。\n");
     }
     else if (ret == CPLAT_ERR_INVALID_ARGUMENT)
     {
-        (void)cplat_snprintf(message, sizeof(message), "パラメーターが不正です。\n");
+        fprintf(stderr, "パラメーターが不正です。\n");
     }
     else
     {
-        (void)cplat_snprintf(message, sizeof(message), "システム エラーにより%sに失敗しました。\n", action);
-    }
-
-    if (s_is_elevated_worker != 0)
-    {
-        (void)cplat_elevated_process_report_result(message);
-    }
-    else
-    {
-        fprintf(stderr, "%s", message);
+        fprintf(stderr, "システム エラーにより%sに失敗しました。\n", action);
     }
     return -1;
 }
@@ -298,17 +246,13 @@ int eventlog_register_run(const char *command)
 int main(int argc, char *argv[])
 {
     int run_result;
-    int detected;
 
-    /* 昇格ワーカーとして再起動された場合、結果報告先フラグを argv から取り除く。
-       引数解析より前に呼び出す。昇格ワーカーのコンソールは一切引き継がない
-       (ensure_elevated() / report_status() がファイル経由で結果を受け渡す)。 */
-    (void)cplat_elevated_process_extract_result_target(&argc, argv, &detected);
-#if defined(PLATFORM_WINDOWS)
-    s_is_elevated_worker = detected;
-#else
-    (void)detected;
-#endif
+    /* 昇格ワーカーとして再起動された場合、出力パイプ フラグを argv から取り除き、
+       stdout / stderr を呼び出し元プロセスのパイプへ接続する。引数解析より前に呼び出す。 */
+    if (cplat_elevated_process_attach_output_pipes(&argc, argv, NULL) != CPLAT_OK)
+    {
+        return EXIT_FAILURE;
+    }
 
     cplat_console_init();
 

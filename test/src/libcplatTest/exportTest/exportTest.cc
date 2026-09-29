@@ -561,6 +561,11 @@
     EXPORT_ENTRY(cplat_elevated_process_extract_result_target, \
                  int(CPLAT_API *)(int *argc, char **argv, int *detected_out)) \
     EXPORT_ENTRY(cplat_elevated_process_report_result, int(CPLAT_API *)(const char *message)) \
+    EXPORT_ENTRY(cplat_elevated_process_run_piped, \
+                 int(CPLAT_API *)(const char *arguments, cplat_elevated_process_output_fn output_fn, \
+                                  void *context, int *exit_code, int *handled)) \
+    EXPORT_ENTRY(cplat_elevated_process_attach_output_pipes, \
+                 int(CPLAT_API *)(int *argc, char **argv, int *attached_out)) \
     /* cplat/regex/regex.h */ \
     EXPORT_ENTRY(cplat_regex_create, int(CPLAT_API *)(const char *pattern, unsigned int flags, \
                                                       cplat_regex **regex_out, cplat_error *detail_out)) \
