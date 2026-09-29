@@ -1165,6 +1165,7 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
                                             const size_t line_width, cplat_string_catalog_filter_slot **slot_out)
 {
     cplat_string_catalog_filter_slot *slot;
+    int ret;
 
     if ((catalog == NULL) || (slot_out == NULL) || (catalog->entry_count < 0) ||
         ((catalog->entry_count > 0) && (catalog->entries == NULL)) || ((key_names == NULL) && (key_name_count > 0U)) ||
@@ -1191,12 +1192,22 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
     slot->record_size = (uint32_t)CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(line_width);
     slot->image_size = CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(line_capacity, line_width);
 
-    if (!allocate_plane(slot, &slot->planes[0]) || !allocate_plane(slot, &slot->planes[1]) ||
-        (cplat_local_rwlock_create(&slot->plane_lock) != CPLAT_OK) ||
-        (cplat_local_lock_create(&slot->apply_lock) != CPLAT_OK))
+    if (!allocate_plane(slot, &slot->planes[0]) || !allocate_plane(slot, &slot->planes[1]))
     {
         cplat_string_catalog_filter_slot_dispose(&slot);
         return CPLAT_ERR_OUT_OF_MEMORY;
+    }
+
+    /* ロックの作成に失敗した場合は、作成関数の結果コードをそのまま返す */
+    ret = cplat_local_rwlock_create(&slot->plane_lock);
+    if (ret == CPLAT_OK)
+    {
+        ret = cplat_local_lock_create(&slot->apply_lock);
+    }
+    if (ret != CPLAT_OK)
+    {
+        cplat_string_catalog_filter_slot_dispose(&slot);
+        return ret;
     }
 
     /* 行を持たないフィルター オブジェクトを適用した状態から始める。全項目が「常に不一致」となる */
@@ -1526,6 +1537,7 @@ int cplat_string_catalog_filter_slot_vformat(cplat_string_catalog_filter_slot *s
                                              int *matched_out, const int string_key, va_list args)
 {
     size_t entry_index;
+    int ret;
 
     if ((slot == NULL) || (matched_out == NULL))
     {
@@ -1533,9 +1545,18 @@ int cplat_string_catalog_filter_slot_vformat(cplat_string_catalog_filter_slot *s
     }
     *matched_out = 0;
 
-    if (find_entry_index(slot, string_key, &entry_index) &&
-        (cplat_local_rwlock_lock_shared(slot->plane_lock, CPLAT_SYNC_WAIT_FOREVER) == CPLAT_OK))
+    if (find_entry_index(slot, string_key, &entry_index))
     {
+        /* 判定できない場合は不一致と区別するため、文字列を組み立てずに結果コードを返す */
+        ret = cplat_local_rwlock_lock_shared(slot->plane_lock, CPLAT_SYNC_WAIT_FOREVER);
+        if (ret != CPLAT_OK)
+        {
+            if ((dest != NULL) && (dest_size > 0U))
+            {
+                dest[0] = '\0';
+            }
+            return ret;
+        }
         *matched_out = is_matched(slot, &slot->planes[slot->active_plane], entry_index, args);
         (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
     }

@@ -1,0 +1,9 @@
+/filter_compile.c
+/filter_describe.c
+/filter_image.c
+/filter_slot.c
+/string_catalog_argument.c
+/string_catalog_catalog.c
+/string_catalog_format.c
+/string_catalog_language.c
+/string_catalog_render.c

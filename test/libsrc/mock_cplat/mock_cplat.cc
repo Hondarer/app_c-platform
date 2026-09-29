@@ -668,6 +668,40 @@ Mock_cplat::Mock_cplat()
     ON_CALL(*this, cplat_string_catalog_get_note(_, _))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_get_note));
 
+    // cplat/string_catalog/filter.h
+    ON_CALL(*this, cplat_string_catalog_filter_compile(_, _, _, _, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_compile));
+    ON_CALL(*this, cplat_string_catalog_filter_compile_line(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_compile_line));
+    ON_CALL(*this, cplat_string_catalog_filter_insert_line(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_insert_line));
+    ON_CALL(*this, cplat_string_catalog_filter_remove_line(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_remove_line));
+    ON_CALL(*this, cplat_string_catalog_filter_validate(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_validate));
+    ON_CALL(*this, cplat_string_catalog_filter_get_info(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_get_info));
+    ON_CALL(*this, cplat_string_catalog_filter_decompile_line(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_decompile_line));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_create(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_create));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_dispose(_))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_dispose));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_apply(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_apply));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_snapshot(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_snapshot));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_set_category_names(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_set_category_names));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_describe_line(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_describe_line));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_test(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_test));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_vformat(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_vformat));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_format(_, _, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_vformat));
+
     // cplat/sync/sync.h
     ON_CALL(*this, cplat_local_lock_create(_))
         .WillByDefault(Invoke(delegate_real_cplat_local_lock_create));
