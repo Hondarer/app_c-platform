@@ -138,7 +138,7 @@ Table: 文字列カタログの実装階層と責務
 Table: 条件式フィルターの実装と責務
 
 現在は string-catalog-sample の試作から移動と改名だけを行った段階です。  
-引数の収集はまだ `string_catalog_argument.c` と共有していません。公開入口の契約の補強と合わせて、[移行設計](../../../../../string-catalog-sample/prod/src/cmd/string-catalog-filter-sample/string-catalog-filter-migration-design.md) の順序で進めます。
+引数の収集はまだ `string_catalog_argument.c` と共有していません。公開入口の契約の補強と合わせて、[移行設計](https://github.com/Hondarer/c-modernization-kit/blob/main/app/string-catalog-sample/prod/src/cmd/string-catalog-filter-sample/string-catalog-filter-migration-design.md) の順序で進めます。
 
 ## 値の文字列化
 
