@@ -653,6 +653,30 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 カタログ定義 (JSONC) から列挙、カタログの表、型付きラッパーを書き出す生成器を `bin_internal/string_catalog_gen.py` に置いています。  
 設計の詳細は [string_catalog モジュール](../prod/libsrc/cplat/string_catalog/README.md) を参照してください。
 
+### 文字列カタログの条件式フィルター
+
+対象ヘッダー: `cplat/string_catalog/filter.h`
+
+条件式リストをポインターを含まないフィルター オブジェクトへコンパイルし、カタログへ関連付けたスロットで、文字列キーと引数値が条件に一致するかを判定します。  
+一致の有無にかかわらず文字列を組み立て、一致結果を出力引数で返します。一致したトレースをどう扱うかは利用側が決めます。
+
+| 用途 | cplat の API |
+|---|---|
+| 条件式リストのコンパイル | `cplat_string_catalog_filter_compile` |
+| 行の置換、挿入、削除 | `cplat_string_catalog_filter_compile_line` / `cplat_string_catalog_filter_insert_line` / `cplat_string_catalog_filter_remove_line` |
+| フィルター オブジェクトの検証と情報取得 | `cplat_string_catalog_filter_validate` / `cplat_string_catalog_filter_get_info` |
+| 行のデコンパイル | `cplat_string_catalog_filter_decompile_line` |
+| スロットの作成と破棄 | `cplat_string_catalog_filter_slot_create` / `cplat_string_catalog_filter_slot_dispose` |
+| フィルター オブジェクトの適用と取得 | `cplat_string_catalog_filter_slot_apply` / `cplat_string_catalog_filter_slot_snapshot` |
+| 分類値の名前の設定と、行の自然文での表現 | `cplat_string_catalog_filter_slot_set_category_names` / `cplat_string_catalog_filter_slot_describe_line` |
+| 引数値によらない判定 | `cplat_string_catalog_filter_slot_test` |
+| 判定と文字列の組み立て | `cplat_string_catalog_filter_slot_format` / `cplat_string_catalog_filter_slot_vformat` |
+
+Table: 文字列カタログの条件式フィルターにおける用途別 cplat API
+
+フィルター オブジェクトのバイト数は `CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE` で行数の上限と行幅から求めます。  
+試作から移した段階であり、公開入口の入力検査と結果コードは補強前です。設計の詳細は [文字列カタログの条件式フィルターの設計](proposals/string-catalog-filter-design.md) を参照してください。
+
 ### スレッドと同期プリミティブ
 
 対象ヘッダー: `cplat/sync/sync.h`

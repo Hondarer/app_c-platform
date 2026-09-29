@@ -1,0 +1,525 @@
+/**
+ *******************************************************************************
+ *  @file           filter.h
+ *  @brief          文字列カタログの条件式フィルター API を宣言します。
+ *  @author         Tetsuo Honda
+ *  @date           2026/09/26
+ *  @version        0.1.0
+ *
+ *  設計の正本は `app/cplat/docs/proposals/string-catalog-filter-design.md` です。\n
+ *  string-catalog-sample の試作から移した段階であり、公開入口の契約は補強前です。
+ *
+ *  API は 2 つの層に分かれます。
+ *
+ *  - コンパイルの層は、条件式リストとフィルター オブジェクトだけを扱い、カタログ定義を参照しません。
+ *  - フィルター スロットの層は、フィルター オブジェクトをカタログ定義へ関連付け、判定と書式展開を行います。
+ *
+ *  フィルター オブジェクトは、ポインターを含まない固定長の領域です。\n
+ *  大きさは @ref CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE で行数の上限と行幅から求めます。\n
+ *  領域のアラインメントは問いません。
+ *
+ *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
+ *******************************************************************************
+ */
+
+#ifndef CPLAT_STRING_CATALOG_FILTER_H
+#define CPLAT_STRING_CATALOG_FILTER_H
+
+#include <cplat/cplat_export.h>
+#include <cplat/string_catalog/string_catalog.h>
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+
+/**
+ *  @ingroup        CPLAT_STRING_CATALOG
+ *  @{
+ */
+
+/** フィルター オブジェクトが格納できる行数の上限です。項目ごとの行の集合を 64 ビットで表すためです。 */
+#define CPLAT_STRING_CATALOG_FILTER_LINE_MAX 64U
+
+/** 行幅の下限です。最も短い判定要素 `key<1` と NUL 終端を格納できる幅です。 */
+#define CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MIN 8U
+
+/** 行幅の上限です。定数のオフセットを 16 ビットで表すためです。 */
+#define CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX 1024U
+
+/** 1 行に記述できる判定要素の上限です。 */
+#define CPLAT_STRING_CATALOG_FILTER_PREDICATE_MAX 32U
+
+/** 1 行に記述できる括弧と `!` のネストの上限です。構文解析の再帰の深さを抑えます。 */
+#define CPLAT_STRING_CATALOG_FILTER_NESTING_MAX 16U
+
+/** 1 行が名前で参照できる引数の種類の上限です。 */
+#define CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX 8U
+
+/** 1 行に記述できる、文字列キーの名前 (識別子の定数) の上限です。 */
+#define CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX 16U
+
+/** フィルター オブジェクトのヘッダーのバイト数です。 */
+#define CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE 64U
+
+/** 行レコードの見出しのバイト数です。 */
+#define CPLAT_STRING_CATALOG_FILTER_RECORD_HEADER_SIZE 16U
+
+/**
+ *  @brief          行幅から行レコードのバイト数を求めます。
+ *  @param[in]      width 行幅。
+ *
+ *  命令領域と定数領域は、いずれも行幅 1 文字あたり 8 バイトです。
+ */
+#define CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(width) \
+    (CPLAT_STRING_CATALOG_FILTER_RECORD_HEADER_SIZE + (16U * (size_t)(width)))
+
+/**
+ *  @brief          行数の上限と行幅から、フィルター オブジェクトのバイト数を求めます。
+ *  @param[in]      lines 行数の上限。
+ *  @param[in]      width 行幅。
+ */
+#define CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(lines, width) \
+    (CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE + ((size_t)(lines) * CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(width)))
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
+    /**
+     *  @brief          無効にした行の原因です。
+     */
+    typedef enum cplat_string_catalog_filter_error
+    {
+        CPLAT_STRING_CATALOG_FILTER_ERROR_NONE = 0,           /**< 原因なし。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL = 1,        /**< 字句の誤り。閉じていない引用符や範囲外の数値など。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX = 2,         /**< 構文の誤り。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_TYPE_MISMATCH = 3,  /**< フィールド、演算子、定数の型の組み合わせの誤り。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED = 4, /**< 判定要素数、ネスト、参照数、行幅の上限の超過。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_LINE_CAPACITY = 5,  /**< フィルター オブジェクトの行数の上限の超過。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_KEY_NAME = 6,      /**< 名前解決テーブルにない文字列キーの名前。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_ARGUMENT_NAME = 7, /**< カタログのどの項目にもない引数名。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME =
+            8, /**< 分類値の名前にない識別子を、分類値と比較した。 */
+        CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE =
+            9 /**< 分類値と比較する定数が、分類値の名前の範囲外。 */
+    } cplat_string_catalog_filter_error;
+
+    /**
+     *  @brief          無効にした行の診断情報です。
+     *
+     *  コンパイルでは、@ref cplat_string_catalog_filter_diagnostic::line_index は入力した条件式リストの行 (0 起点) です。\n
+     *  適用では、フィルター オブジェクトが格納している行 (0 起点) です。
+     */
+    typedef struct cplat_string_catalog_filter_diagnostic
+    {
+        uint32_t line_index;                     /**< 行の位置 (0 起点)。 */
+        uint32_t column;                         /**< 行内のバイト位置 (0 起点)。適用で検出した場合は 0。 */
+        cplat_string_catalog_filter_error error; /**< 原因。 */
+    } cplat_string_catalog_filter_diagnostic;
+
+    /**
+     *  @brief          フィルター オブジェクトのヘッダーから読み取った情報です。
+     */
+    typedef struct cplat_string_catalog_filter_info
+    {
+        uint64_t image_size;     /**< 全体のバイト数。 */
+        uint64_t content_hash;   /**< 有効な行の内容から算出したハッシュ値。 */
+        uint32_t line_capacity;  /**< 行数の上限。 */
+        uint32_t line_width;     /**< 行幅。 */
+        uint32_t line_count;     /**< 格納している条件式の数。 */
+        uint32_t format_version; /**< 形式版。 */
+    } cplat_string_catalog_filter_info;
+
+    /**
+     *  @brief          文字列キーの名前と値の対応です。
+     *
+     *  条件式に記述した列挙定数名を、適用の時点で整数へ解決するために使用します。
+     */
+    typedef struct cplat_string_catalog_filter_key_name
+    {
+        const char *name; /**< 列挙定数名。NULL にできません。 */
+        int key;          /**< 文字列キー。 */
+        unsigned int pad; /**< 明示的アラインメントです。0 を指定します。 */
+    } cplat_string_catalog_filter_key_name;
+
+    /**
+     *  @brief          項目ごとの事前計算の状態です。
+     *
+     *  値 0 を「常に不一致」とし、条件式リストが空の状態と一致させています。
+     */
+    typedef enum cplat_string_catalog_filter_state
+    {
+        CPLAT_STRING_CATALOG_FILTER_STATE_NEVER_MATCH = 0,       /**< 引数の値によらず、どの行にも一致しない。 */
+        CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH = 1,      /**< 引数の値によらず、いずれかの行に一致する。 */
+        CPLAT_STRING_CATALOG_FILTER_STATE_ARGUMENT_DEPENDENT = 2 /**< 引数の値を評価するまで一致が確定しない。 */
+    } cplat_string_catalog_filter_state;
+
+    /**
+     *  @brief          分類値の名前です。自然文での表現で、分類値を名前で表すために使用します。
+     *
+     *  フィルターは分類値の意味を解釈しません。意味を決める利用側 (例: 分類値をトレース レベルとして扱う app) が設定します。\n
+     *  分類値 i の名前は @ref cplat_string_catalog_filter_category_names::names の i 番目です。
+     */
+    typedef struct cplat_string_catalog_filter_category_names
+    {
+        const char *const *names; /**< 分類値をインデックスとする名前の配列。NULL にできません。 */
+        size_t count;             /**< @ref cplat_string_catalog_filter_category_names::names の要素数。1 以上です。 */
+        const char *subject_japanese; /**< 日本語の文型で主語にする名前 (例: "レベル")。NULL にできません。 */
+        const char
+            *subject_neutral; /**< ニュートラル言語の文型で主語にする名前 (例: "the level")。NULL にできません。 */
+    } cplat_string_catalog_filter_category_names;
+
+    /** フィルター スロット (不透明型)。 */
+    typedef struct cplat_string_catalog_filter_slot cplat_string_catalog_filter_slot;
+
+    /* ===== コンパイルの層 (カタログ定義を参照しない) ===== */
+
+    /**
+     *  @brief          条件式リストをコンパイルし、フィルター オブジェクトを生成します。
+     *  @param[in]      lines               条件式リストの先頭。`char lines[N][M]` の `&lines[0][0]`。
+     *                                      @p line_count が 0 の場合は NULL を指定できます。
+     *  @param[in]      line_count          条件式リストの行数 `N`。
+     *  @param[in]      line_width          条件式リストの行幅 `M`。フィルター オブジェクトの行幅になります。
+     *  @param[in]      line_capacity       フィルター オブジェクトの行数の上限。
+     *  @param[out]     image               フィルター オブジェクトの格納先。
+     *  @param[in]      image_size          @p image のバイト数。
+     *  @param[out]     diagnostics         無効にした行の診断情報の格納先。NULL を指定できます。
+     *  @param[in]      diagnostic_capacity @p diagnostics の要素数。
+     *  @param[out]     invalid_count_out   無効にした行の総数の格納先。NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。無効にした行があっても成功です。
+     *  @return         引数が不正な場合、または行幅と行数の上限が範囲外の場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image_size が @ref CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE に満たない場合は
+     *                  `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
+     *
+     *  空行、空白だけの行、先頭が `#` の行は格納しません。\n
+     *  診断情報は @p diagnostic_capacity 個までを格納し、総数は @p invalid_count_out へ格納します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p image に対する呼び出しは同時に実行できます。\n
+     *  同一 @p image に対する並行操作は、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_compile(
+        const char *lines, size_t line_count, size_t line_width, size_t line_capacity, void *image, size_t image_size,
+        cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, size_t *invalid_count_out);
+
+    /**
+     *  @brief          指定した行の条件式を置き換えます。
+     *  @param[in,out]  image          フィルター オブジェクト。
+     *  @param[in]      image_size     @p image のバイト数。
+     *  @param[in]      line_index     置き換える行 (0 起点)。格納している条件式の数より小さい値です。
+     *  @param[in]      text           NUL 終端の条件式。
+     *  @param[out]     diagnostic_out コンパイルに失敗した場合の診断情報の格納先。NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *  @return         条件式が不正な場合、および空行やコメントの場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返します。
+     *
+     *  失敗した場合、@p image は変更しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p image に対する呼び出しは同時に実行できます。\n
+     *  同一 @p image に対する並行操作は、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API
+    cplat_string_catalog_filter_compile_line(void *image, size_t image_size, size_t line_index, const char *text,
+                                             cplat_string_catalog_filter_diagnostic *diagnostic_out);
+
+    /**
+     *  @brief          指定した位置へ条件式を挿入します。
+     *  @param[in,out]  image          フィルター オブジェクト。
+     *  @param[in]      image_size     @p image のバイト数。
+     *  @param[in]      line_index     挿入する位置 (0 起点)。格納している条件式の数と等しい場合は末尾へ追加します。
+     *  @param[in]      text           NUL 終端の条件式。
+     *  @param[out]     diagnostic_out コンパイルに失敗した場合の診断情報の格納先。NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *  @return         行数の上限に達している場合は `CPLAT_ERR_STORAGE_FULL` を返します。
+     *  @return         条件式が不正な場合、および空行やコメントの場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返します。
+     *
+     *  失敗した場合、@p image は変更しません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p image に対する呼び出しは同時に実行できます。\n
+     *  同一 @p image に対する並行操作は、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API
+    cplat_string_catalog_filter_insert_line(void *image, size_t image_size, size_t line_index, const char *text,
+                                            cplat_string_catalog_filter_diagnostic *diagnostic_out);
+
+    /**
+     *  @brief          指定した行の条件式を削除します。
+     *  @param[in,out]  image      フィルター オブジェクト。
+     *  @param[in]      image_size @p image のバイト数。
+     *  @param[in]      line_index 削除する行 (0 起点)。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *
+     *  後続の行は 1 つ前へ移動します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p image に対する呼び出しは同時に実行できます。\n
+     *  同一 @p image に対する並行操作は、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_remove_line(void *image, size_t image_size,
+                                                                       size_t line_index);
+
+    /**
+     *  @brief          フィルター オブジェクトの形式と内容の整合を確認します。
+     *  @param[in]      image      フィルター オブジェクト。
+     *  @param[in]      image_size @p image のバイト数。
+     *  @return         整合している場合は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         不整合を検出した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *
+     *  署名、形式版、バイト順序の目印、行数と行幅、全体のバイト数、内容のハッシュ値、
+     *  および各行の命令と定数の参照先が領域内に収まることを確認します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  他スレッドが @p image を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが同時に @p image を変更する場合は、呼び出し側で同期してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_validate(const void *image, size_t image_size);
+
+    /**
+     *  @brief          フィルター オブジェクトのヘッダーの情報を取得します。
+     *  @param[in]      image      フィルター オブジェクト。
+     *  @param[in]      image_size @p image のバイト数。
+     *  @param[out]     info_out   情報の格納先。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  他スレッドが @p image を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが同時に @p image を変更する場合は、呼び出し側で同期してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_get_info(const void *image, size_t image_size,
+                                                                    cplat_string_catalog_filter_info *info_out);
+
+    /**
+     *  @brief          指定した行の条件式を復元します。
+     *  @param[in]      image      フィルター オブジェクト。
+     *  @param[in]      image_size @p image のバイト数。
+     *  @param[in]      line_index 復元する行 (0 起点)。
+     *  @param[out]     dest       復元した条件式の格納先。常に NUL 終端します。
+     *  @param[in]      dest_size  @p dest のバイト数。1 以上です。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *  @return         @p dest に収まらない場合は、切り詰めたうえで `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
+     *
+     *  括弧は演算子の優先順位から必要な位置にだけ付与します。\n
+     *  復元した条件式を再びコンパイルすると、同じ命令列になります。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  他スレッドが @p image を同時に変更しない場合は、同時に実行できます。\n
+     *  他スレッドが同時に @p image を変更する場合は、呼び出し側で同期してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_decompile_line(const void *image, size_t image_size,
+                                                                          size_t line_index, char *dest,
+                                                                          size_t dest_size);
+
+    /* ===== フィルター スロットの層 (カタログ定義と結び付く) ===== */
+
+    /**
+     *  @brief          フィルター スロットを作成します。
+     *  @param[in]      catalog        判定の対象とするカタログ。スロットを破棄するまで有効である必要があります。
+     *  @param[in]      key_names      文字列キーの名前解決テーブル。NULL を指定できます。
+     *                                 スロットを破棄するまで有効である必要があります。
+     *  @param[in]      key_name_count @p key_names の要素数。
+     *  @param[in]      line_capacity  適用するフィルター オブジェクトの行数の上限。
+     *  @param[in]      line_width     適用するフィルター オブジェクトの行幅。
+     *  @param[out]     slot_out       作成したスロットの格納先。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         メモリまたは同期オブジェクトを確保できない場合は `CPLAT_ERR_OUT_OF_MEMORY` を返します。
+     *
+     *  作成直後のスロットは、行を持たないフィルター オブジェクトを適用した状態です。\n
+     *  事前計算の結果を格納する 2 面のバッファーは、この時点で確保します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_create(
+        const cplat_string_catalog *catalog, const cplat_string_catalog_filter_key_name *key_names,
+        size_t key_name_count, size_t line_capacity, size_t line_width, cplat_string_catalog_filter_slot **slot_out);
+
+    /**
+     *  @brief          フィルター スロットを破棄します。
+     *  @param[in,out]  slot 破棄するスロットを保持する変数のアドレス。破棄後は NULL を設定します。
+     *                       NULL または *slot が NULL の場合は何もしません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同じスロットへの他の呼び出しが完了していることを、呼び出し側で保証してください。
+     */
+    CPLAT_EXPORT void CPLAT_API cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot **slot);
+
+    /**
+     *  @brief          フィルター オブジェクトをスロットへ適用します。
+     *  @param[in,out]  slot                フィルター スロット。
+     *  @param[in]      image               フィルター オブジェクトの先頭。
+     *  @param[in]      image_size          @p image のバイト数。
+     *  @param[out]     diagnostics         無効にした行の診断情報の格納先。NULL を指定できます。
+     *  @param[in]      diagnostic_capacity @p diagnostics の要素数。
+     *  @param[out]     invalid_count_out   無効にした行の総数の格納先。NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。無効にした行があっても成功です。
+     *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が検証に失敗した場合、または行数の上限と行幅がスロットと一致しない場合は
+     *                  `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。現在の内容を維持します。
+     *
+     *  内容はスロットの内部へ複製します。\n
+     *  本関数が戻った時点で @p image は参照されず、呼び出し側は直ちに再利用または解放できます。
+     *
+     *  名前の解決と事前計算は、判定が使用していない面へ行い、最後に参照する面を切り替えます。\n
+     *  内容が同一の行は、現在の面の事前計算の結果を再利用します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_apply(
+        cplat_string_catalog_filter_slot *slot, const void *image, size_t image_size,
+        cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, size_t *invalid_count_out);
+
+    /**
+     *  @brief          適用中のフィルター オブジェクトを複製して取り出します。
+     *  @param[in]      slot              フィルター スロット。
+     *  @param[out]     image_out         複製の格納先。
+     *  @param[in]      image_size        @p image_out のバイト数。
+     *  @param[out]     enabled_lines_out 適用で有効になった行の集合 (ビット i が行 i)。NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image_size がスロットのフィルター オブジェクトの大きさに満たない場合は
+     *                  `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
+     *
+     *  名前を解決できずに無効とした行も、フィルター オブジェクトには残ります。\n
+     *  有効かどうかは @p enabled_lines_out で判別します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_snapshot(cplat_string_catalog_filter_slot *slot,
+                                                                         void *image_out, size_t image_size,
+                                                                         uint64_t *enabled_lines_out);
+
+    /**
+     *  @brief          自然文での表現に使用する、分類値の名前を設定します。
+     *  @param[in,out]  slot           フィルター スロット。
+     *  @param[in]      category_names 分類値の名前。NULL の場合は設定を解除し、分類値を数値で表します。
+     *                                 スロットを破棄するか設定を解除するまで有効である必要があります。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         @p slot が NULL の場合、または @p category_names の内容が不正な場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *
+     *  設定した場合、次の 2 点が変わります。
+     *  - 条件式で分類値と比較する識別子 (例: `category <= WARNING`) を、文字列キーの名前ではなく
+     *    分類値の名前で解決します。名前にない識別子は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME として行を無効にします。
+     *  - 分類値と比較する定数は、0 以上 @ref cplat_string_catalog_filter_category_names::count 未満の整数に限ります。
+     *    範囲外の値や整数でない値は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE として行を無効にします。
+     *
+     *  自然文での表現では、条件を満たす分類値の名前を列挙して表します。
+     *
+     *  名前の解決と範囲の確認は、適用の時点で行います。
+     *  内容が同一の行は前回の適用の結果を再利用するため、設定は最初の適用より前に行ってください。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  異なる @p slot に対する操作は同時に実行できます。\n
+     *  同一 @p slot に対する操作は、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_set_category_names(
+        cplat_string_catalog_filter_slot *slot, const cplat_string_catalog_filter_category_names *category_names);
+
+    /**
+     *  @brief          適用中の条件式の 1 行を、カタログのメタ情報を用いた自然文で表現します。
+     *  @param[in]      slot       フィルター スロット。
+     *  @param[in]      line_index 適用中のフィルター オブジェクトの行 (0 起点)。
+     *  @param[out]     dest       自然文の格納先。常に NUL 終端します。
+     *  @param[in]      dest_size  @p dest のバイト数。1 以上です。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が不正な場合、または行が範囲外の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         適用で無効とした行の場合は `CPLAT_ERR_MALFORMED_DEFINITION` を返します。
+     *  @return         @p dest に収まらない場合は、切り詰めたうえで `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
+     *
+     *  文字列キーの比較は項目の `brief` と `id`、引数の比較は引数の名前と説明で表します。\n
+     *  分類値は値そのもので表し、意味を解釈しません。
+     *  @ref cplat_string_catalog_filter_slot_set_category_names で名前を設定した場合は、条件を満たす分類値の名前を列挙して表します。\n
+     *  行が 1 つの項目に限定される場合は、その項目の引数の説明を使います。\n
+     *  複数の項目が対象の場合は、引数を持つすべての項目で説明が一致するときに限り、その説明を使います。
+     *
+     *  文型は、`cplat_string_catalog_get_language` が日本語を返す場合は日本語、それ以外はニュートラル言語です。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_describe_line(cplat_string_catalog_filter_slot *slot,
+                                                                              size_t line_index, char *dest,
+                                                                              size_t dest_size);
+
+    /**
+     *  @brief          文字列キーに対する事前計算の状態を取得します。
+     *  @param[in]      slot       フィルター スロット。
+     *  @param[in]      string_key 文字列キー。
+     *  @param[out]     state_out  状態の格納先。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         カタログに存在しない文字列キーの場合は `CPLAT_ERR_NOT_FOUND` を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_test(cplat_string_catalog_filter_slot *slot,
+                                                                     int string_key,
+                                                                     cplat_string_catalog_filter_state *state_out);
+
+    /**
+     *  @brief          条件式で判定したうえで、文字列を組み立てます (va_list 版)。
+     *  @param[in]      slot        フィルター スロット。
+     *  @param[out]     dest        組み立てた文字列の格納先。
+     *  @param[in]      dest_size   @p dest のバイト数。
+     *  @param[out]     matched_out いずれかの行に一致した場合は 0 以外、一致しない場合は 0 の格納先。
+     *  @param[in]      string_key  文字列キー。
+     *  @param[in]      args        文字列キーの引数スキーマに従う可変長引数。
+     *  @return         `cplat_string_catalog_vformat` の戻り値を返します。
+     *  @return         @p slot または @p matched_out が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *
+     *  一致の有無にかかわらず、文字列を組み立てます。一致した文字列の扱いは呼び出し側が決めます。\n
+     *  事前計算の状態が「引数値に依存」の場合に限り、可変長引数を収集して評価します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_vformat(cplat_string_catalog_filter_slot *slot,
+                                                                        char *dest, size_t dest_size, int *matched_out,
+                                                                        int string_key, va_list args);
+
+    /**
+     *  @brief          条件式で判定したうえで、文字列を組み立てます。
+     *
+     *  引数と戻り値は @ref cplat_string_catalog_filter_slot_vformat と同じです。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_format(cplat_string_catalog_filter_slot *slot,
+                                                                       char *dest, size_t dest_size, int *matched_out,
+                                                                       int string_key, ...);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+/** @} */
+
+#endif /* CPLAT_STRING_CATALOG_FILTER_H */

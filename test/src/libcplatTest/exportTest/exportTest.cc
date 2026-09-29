@@ -46,6 +46,7 @@
 #include <cplat/runtime/process.h>
 #include <cplat/runtime/shutdown.h>
 #include <cplat/runtime/sym_loader.h>
+#include <cplat/string_catalog/filter.h>
 #include <cplat/string_catalog/string_catalog.h>
 #include <cplat/sync/sync.h>
 #include <cplat/trace/trace_file.h>
@@ -656,6 +657,54 @@
                  const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
     EXPORT_ENTRY(cplat_string_catalog_get_note, \
                  const char *(CPLAT_API *)(const cplat_string_catalog *catalog, int string_key)) \
+    /* cplat/string_catalog/filter.h */ \
+    EXPORT_ENTRY(cplat_string_catalog_filter_compile, \
+                 int(CPLAT_API *)(const char *lines, size_t line_count, size_t line_width, size_t line_capacity, \
+                                  void *image, size_t image_size, cplat_string_catalog_filter_diagnostic *diagnostics, \
+                                  size_t diagnostic_capacity, size_t *invalid_count_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_compile_line, \
+                 int(CPLAT_API *)(void *image, size_t image_size, size_t line_index, const char *text, \
+                                  cplat_string_catalog_filter_diagnostic *diagnostic_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_insert_line, \
+                 int(CPLAT_API *)(void *image, size_t image_size, size_t line_index, const char *text, \
+                                  cplat_string_catalog_filter_diagnostic *diagnostic_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_remove_line, \
+                 int(CPLAT_API *)(void *image, size_t image_size, size_t line_index)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_validate, int(CPLAT_API *)(const void *image, size_t image_size)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_get_info, \
+                 int(CPLAT_API *)(const void *image, size_t image_size, cplat_string_catalog_filter_info *info_out)) \
+    EXPORT_ENTRY( \
+        cplat_string_catalog_filter_decompile_line, \
+        int(CPLAT_API *)(const void *image, size_t image_size, size_t line_index, char *dest, size_t dest_size)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_create, \
+                 int(CPLAT_API *)(const cplat_string_catalog *catalog, \
+                                  const cplat_string_catalog_filter_key_name *key_names, size_t key_name_count, \
+                                  size_t line_capacity, size_t line_width, \
+                                  cplat_string_catalog_filter_slot **slot_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_dispose, \
+                 void(CPLAT_API *)(cplat_string_catalog_filter_slot * *slot)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_apply, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, const void *image, size_t image_size, \
+                                  cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, \
+                                  size_t *invalid_count_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_snapshot, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, void *image_out, size_t image_size, \
+                                  uint64_t *enabled_lines_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_set_category_names, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, \
+                                  const cplat_string_catalog_filter_category_names *category_names)) \
+    EXPORT_ENTRY( \
+        cplat_string_catalog_filter_slot_describe_line, \
+        int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, size_t line_index, char *dest, size_t dest_size)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_test, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, int string_key, \
+                                  cplat_string_catalog_filter_state *state_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_vformat, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, char *dest, size_t dest_size, \
+                                  int *matched_out, int string_key, va_list args)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_format, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, char *dest, size_t dest_size, \
+                                  int *matched_out, int string_key, ...)) \
     /* cplat/sync/sync.h */ \
     EXPORT_ENTRY(cplat_local_lock_create, int(CPLAT_API *)(cplat_local_lock * *mtx)) \
     EXPORT_ENTRY(cplat_local_lock_lock, int(CPLAT_API *)(cplat_local_lock * mtx, int timeout_ms)) \
