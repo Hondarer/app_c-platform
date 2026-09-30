@@ -8,6 +8,7 @@
 #include "filter_test_catalog.h"
 
 #include <cplat/base/result.h>
+#include <cplat/crt/string.h>
 #include <cplat/string_catalog/filter.h>
 #include <cplat/string_catalog/string_catalog.h>
 #include <stdarg.h>
@@ -123,7 +124,7 @@ TEST_F(stringCatalogFilterSlotTest, vformat_returns_lock_result_without_formatti
     int actual_matched = 1;
     ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_create(filter_test_catalog(), NULL, 0U, kLineCapacity,
                                                                 kLineWidth, &slot)); // [状態] - スロットを作成する。
-    strcpy(dest, "previous"); // [状態] - 格納先へ以前の内容を書き込む。
+    ASSERT_EQ(CPLAT_OK, cplat_strcpy(dest, sizeof(dest), "previous")); // [状態] - 格納先へ以前の内容を書き込む。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat, cplat_local_rwlock_lock_shared(_, _))
