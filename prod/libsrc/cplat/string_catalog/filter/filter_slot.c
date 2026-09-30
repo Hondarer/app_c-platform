@@ -813,6 +813,36 @@ static bool allocate_plane(const cplat_string_catalog_filter_slot *slot, filter_
     return true;
 }
 
+/**
+ *  @brief          名前解決テーブルがカタログと整合することを確認します。
+ *  @param[in]      catalog        カタログ。
+ *  @param[in]      key_names      名前解決テーブル。@p key_name_count が 0 の場合は NULL を指定できます。
+ *  @param[in]      key_name_count @p key_names の要素数。
+ *  @return         すべての名前が NULL でなく、名前が重複せず、文字列キーがカタログに存在する場合は true を返します。
+ *
+ *  同じ名前が複数あると、どちらの値へ解決するかが決まらないため拒否します。\n
+ *  異なる名前が同じ文字列キーを指すことは許可します。
+ */
+static bool is_key_name_table_valid(const cplat_string_catalog *catalog,
+                                    const cplat_string_catalog_filter_key_name *key_names, size_t key_name_count)
+{
+    for (size_t index = 0; index < key_name_count; index++)
+    {
+        if ((key_names[index].name == NULL) || (cplat_string_catalog_get_entry(catalog, key_names[index].key) == NULL))
+        {
+            return false;
+        }
+        for (size_t other = 0; other < index; other++)
+        {
+            if (strcmp(key_names[index].name, key_names[other].name) == 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static const cplat_string_catalog_filter_key_name *find_key_name(const cplat_string_catalog_filter_slot *slot,
                                                                  const char *name)
 {
@@ -1167,15 +1197,35 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
     cplat_string_catalog_filter_slot *slot;
     int ret;
 
-    if ((catalog == NULL) || (slot_out == NULL) || (catalog->entry_count < 0) ||
-        ((catalog->entry_count > 0) && (catalog->entries == NULL)) || ((key_names == NULL) && (key_name_count > 0U)) ||
-        (line_capacity == 0U) || (line_capacity > CPLAT_STRING_CATALOG_FILTER_LINE_MAX) ||
+    if (slot_out == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    *slot_out = NULL;
+
+    if ((catalog == NULL) || (catalog->entry_count < 0) || ((catalog->entry_count > 0) && (catalog->entries == NULL)) ||
+        ((key_names == NULL) && (key_name_count > 0U)) || (line_capacity == 0U) ||
+        (line_capacity > CPLAT_STRING_CATALOG_FILTER_LINE_MAX) ||
         (line_width < CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MIN) ||
         (line_width > CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX))
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    *slot_out = NULL;
+
+    /* 判定と説明文はカタログの引数定義を直接参照するため、作成時に定義全体を検査する。
+     * 項目数が 0 のカタログは、どの文字列キーにも一致しない何もしないカタログとして検査せずに受け付ける */
+    if (catalog->entry_count > 0)
+    {
+        ret = cplat_string_catalog_verify(catalog, NULL, NULL);
+        if (ret != CPLAT_OK)
+        {
+            return ret;
+        }
+    }
+    if (!is_key_name_table_valid(catalog, key_names, key_name_count))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
 
     slot = (cplat_string_catalog_filter_slot *)calloc(1U, sizeof(*slot));
     if (slot == NULL)

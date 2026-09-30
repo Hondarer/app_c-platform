@@ -37,9 +37,33 @@ static const cplat_string_catalog_entry s_entries[1] = {{FILTER_TEST_CATALOG_KEY
 /** カタログ識別オブジェクトです。インデックス表を持たず、線形探索の経路を使います。 */
 static const cplat_string_catalog s_catalog = {s_entries, NULL, 1, 0};
 
+/** 短い説明が未定義の定義です。 */
+static const cplat_string_catalog_entry s_malformed_entries[1] = {
+    {FILTER_TEST_CATALOG_KEY_NUMBER,
+     0,
+     1,
+     0,
+     s_number_arguments,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     {[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = "number {0}"},
+     {[CPLAT_STRING_CATALOG_LANGUAGE_NEUTRAL] = ""}}};
+
+/** 確認を通らないカタログのカタログ識別オブジェクトです。 */
+static const cplat_string_catalog s_malformed_catalog = {s_malformed_entries, NULL, 1, 0};
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 const cplat_string_catalog *filter_test_catalog(void)
 {
     return &s_catalog;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+const cplat_string_catalog *filter_test_malformed_catalog(void)
+{
+    return &s_malformed_catalog;
 }

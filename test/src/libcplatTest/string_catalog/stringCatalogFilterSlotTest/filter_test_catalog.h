@@ -33,6 +33,12 @@ extern "C"
      */
     const cplat_string_catalog *filter_test_catalog(void);
 
+    /**
+     *  @brief          短い説明が未定義で、`cplat_string_catalog_verify` の確認を通らないカタログを返します。
+     *  @return         カタログ識別オブジェクト。
+     */
+    const cplat_string_catalog *filter_test_malformed_catalog(void);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

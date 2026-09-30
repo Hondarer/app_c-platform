@@ -335,7 +335,7 @@ extern "C"
     /**
      *  @brief          フィルター スロットを作成します。
      *  @param[in]      catalog        判定の対象とするカタログ。スロットを破棄するまで有効である必要があります。
-     *  @param[in]      key_names      文字列キーの名前解決テーブル。NULL を指定できます。
+     *  @param[in]      key_names      文字列キーの名前解決テーブル。@p key_name_count が 0 の場合は NULL を指定できます。
      *                                 スロットを破棄するまで有効である必要があります。
      *  @param[in]      key_name_count @p key_names の要素数。
      *  @param[in]      line_capacity  適用するフィルター オブジェクトの行数の上限。
@@ -343,10 +343,16 @@ extern "C"
      *  @param[out]     slot_out       作成したスロットの格納先。
      *  @return         成功時は `CPLAT_OK` を返します。
      *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         項目を持つ @p catalog が `cplat_string_catalog_verify` の確認を通らない場合は、その結果コードを返します。
+     *  @return         @p key_names に NULL の名前、重複する名前、カタログに存在しない文字列キーがある場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         メモリを確保できない場合は `CPLAT_ERR_OUT_OF_MEMORY` を返します。
      *  @return         同期オブジェクトを作成できない場合は、作成関数の結果コードを返します。
      *
-     *  メモリまたは同期オブジェクトの確保に失敗した場合、@p slot_out へは NULL を格納します。\n
+     *  @p slot_out が NULL でない場合、失敗時は @p slot_out へ NULL を格納します。\n
+     *  判定と説明文はカタログの引数定義を直接参照するため、作成時にカタログ全体を `cplat_string_catalog_verify` で確認します。\n
+     *  項目数が 0 のカタログは、@ref cplat_string_catalog::entries が NULL でも確認せずに受け付けます。どの文字列キーにも一致しない、何もしないスロットになります。\n
+     *  異なる名前が同じ文字列キーを指すことは許可します。\n
      *  作成直後のスロットは、行を持たないフィルター オブジェクトを適用した状態です。\n
      *  事前計算の結果を格納する 2 面のバッファーは、この時点で確保します。
      *

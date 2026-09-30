@@ -184,3 +184,122 @@ TEST_F(stringCatalogFilterSlotTest, vformat_skips_lock_for_missing_key)
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_ret); // [確認_異常系] - 書式展開の結果コードを返すこと。
     EXPECT_EQ(0, actual_matched);               // [確認_異常系] - 一致結果へ 0 を格納すること。
 }
+
+// 確認を通らないカタログでは、確認の結果コードを返し、スロットを返さないことの確認
+TEST_F(stringCatalogFilterSlotTest, create_rejects_malformed_catalog)
+{
+    // Arrange
+    int actual_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_filter_slot_create(filter_test_malformed_catalog(), NULL, 0U, kLineCapacity, kLineWidth,
+                                                &slot); // [手順] - 短い説明が未定義のカタログでスロットを作成する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_MALFORMED_DEFINITION, actual_ret); // [確認_異常系] - カタログの確認の結果コードを返すこと。
+    EXPECT_EQ(nullptr, slot);                              // [確認_異常系] - 格納先へ NULL を格納すること。
+}
+
+// 名前解決テーブルに NULL の名前がある場合は拒否することの確認
+TEST_F(stringCatalogFilterSlotTest, create_rejects_null_key_name)
+{
+    // Arrange
+    const cplat_string_catalog_filter_key_name key_names[] = {{NULL, FILTER_TEST_CATALOG_KEY_NUMBER, 0U}};
+    int actual_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_filter_slot_create(filter_test_catalog(), key_names, 1U, kLineCapacity, kLineWidth,
+                                                &slot); // [手順] - NULL の名前を持つテーブルでスロットを作成する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(nullptr, slot);                          // [確認_異常系] - 格納先へ NULL を格納すること。
+}
+
+// 名前解決テーブルにカタログに存在しない文字列キーがある場合は拒否することの確認
+TEST_F(stringCatalogFilterSlotTest, create_rejects_missing_key_in_key_names)
+{
+    // Arrange
+    const cplat_string_catalog_filter_key_name key_names[] = {{"KEY_MISSING", FILTER_TEST_CATALOG_KEY_MISSING, 0U}};
+    int actual_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_ret = cplat_string_catalog_filter_slot_create(
+        filter_test_catalog(), key_names, 1U, kLineCapacity, kLineWidth,
+        &slot); // [手順] - カタログに存在しない文字列キーを持つテーブルでスロットを作成する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(nullptr, slot);                          // [確認_異常系] - 格納先へ NULL を格納すること。
+}
+
+// 名前解決テーブルに重複する名前がある場合は拒否することの確認
+TEST_F(stringCatalogFilterSlotTest, create_rejects_duplicate_key_name)
+{
+    // Arrange
+    const cplat_string_catalog_filter_key_name key_names[] = {{"KEY_NUMBER", FILTER_TEST_CATALOG_KEY_NUMBER, 0U},
+                                                              {"KEY_NUMBER", FILTER_TEST_CATALOG_KEY_NUMBER, 0U}};
+    int actual_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_filter_slot_create(filter_test_catalog(), key_names, 2U, kLineCapacity, kLineWidth,
+                                                &slot); // [手順] - 同じ名前が 2 つあるテーブルでスロットを作成する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(nullptr, slot);                          // [確認_異常系] - 格納先へ NULL を格納すること。
+}
+
+// 異なる名前が同じ文字列キーを指す名前解決テーブルは受け付けることの確認
+TEST_F(stringCatalogFilterSlotTest, create_accepts_aliases_for_same_key)
+{
+    // Arrange
+    const cplat_string_catalog_filter_key_name key_names[] = {{"KEY_NUMBER", FILTER_TEST_CATALOG_KEY_NUMBER, 0U},
+                                                              {"KEY_NUMBER_ALIAS", FILTER_TEST_CATALOG_KEY_NUMBER, 0U}};
+    int actual_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_ret =
+        cplat_string_catalog_filter_slot_create(filter_test_catalog(), key_names, 2U, kLineCapacity, kLineWidth,
+                                                &slot); // [手順] - 別名を持つテーブルでスロットを作成する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 戻り値が CPLAT_OK であること。
+    EXPECT_NE(nullptr, slot);        // [確認_正常系] - スロットを格納すること。
+}
+
+// 項目数が 0 で配列が NULL のカタログは、何もしないカタログとして受け付けることの確認
+TEST_F(stringCatalogFilterSlotTest, create_accepts_empty_catalog)
+{
+    // Arrange
+    const cplat_string_catalog empty_catalog = {NULL, NULL, 0, 0};
+    cplat_string_catalog_filter_state actual_state = CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH;
+    int actual_create_ret;
+    int actual_test_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_create_ret = cplat_string_catalog_filter_slot_create(&empty_catalog, NULL, 0U, kLineCapacity, kLineWidth,
+                                                                &slot); // [手順] - 空のカタログでスロットを作成する。
+    actual_test_ret = cplat_string_catalog_filter_slot_test(slot, FILTER_TEST_CATALOG_KEY_NUMBER,
+                                                            &actual_state); // [手順] - 文字列キーを判定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_create_ret);          // [確認_正常系] - スロットを作成できること。
+    EXPECT_NE(nullptr, slot);                        // [確認_正常系] - スロットを格納すること。
+    EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_test_ret); // [確認_正常系] - どの文字列キーも判定の対象にならないこと。
+}
