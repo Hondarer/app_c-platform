@@ -679,6 +679,7 @@
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_create, \
                  int(CPLAT_API *)(const cplat_string_catalog *catalog, \
                                   const cplat_string_catalog_filter_key_name *key_names, size_t key_name_count, \
+                                  const cplat_string_catalog_filter_category_names *category_names, \
                                   size_t line_capacity, size_t line_width, \
                                   cplat_string_catalog_filter_slot **slot_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_dispose, \
@@ -690,9 +691,6 @@
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_snapshot, \
                  int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, void *image_out, size_t image_size, \
                                   uint64_t *enabled_lines_out)) \
-    EXPORT_ENTRY(cplat_string_catalog_filter_slot_set_category_names, \
-                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, \
-                                  const cplat_string_catalog_filter_category_names *category_names)) \
     EXPORT_ENTRY( \
         cplat_string_catalog_filter_slot_describe_line, \
         int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, size_t line_index, char *dest, size_t dest_size)) \

@@ -861,6 +861,32 @@ static bool is_key_name_table_valid(const cplat_string_catalog *catalog,
     return true;
 }
 
+/**
+ *  @brief          分類値の名前の設定が正しいことを確認します。
+ *  @param[in]      category_names 分類値の名前。NULL を指定できます。
+ *  @return         NULL、またはすべての項目が設定されている場合は true を返します。
+ */
+static bool is_category_names_valid(const cplat_string_catalog_filter_category_names *category_names)
+{
+    if (category_names == NULL)
+    {
+        return true;
+    }
+    if ((category_names->names == NULL) || (category_names->count == 0U) ||
+        (category_names->subject_japanese == NULL) || (category_names->subject_neutral == NULL))
+    {
+        return false;
+    }
+    for (size_t index = 0; index < category_names->count; index++)
+    {
+        if (category_names->names[index] == NULL)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 static const cplat_string_catalog_filter_key_name *find_key_name(const cplat_string_catalog_filter_slot *slot,
                                                                  const char *name)
 {
@@ -1209,8 +1235,10 @@ static bool find_entry_index(const cplat_string_catalog_filter_slot *slot, const
 
 int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
                                             const cplat_string_catalog_filter_key_name *key_names,
-                                            const size_t key_name_count, const size_t line_capacity,
-                                            const size_t line_width, cplat_string_catalog_filter_slot **slot_out)
+                                            const size_t key_name_count,
+                                            const cplat_string_catalog_filter_category_names *category_names,
+                                            const size_t line_capacity, const size_t line_width,
+                                            cplat_string_catalog_filter_slot **slot_out)
 {
     cplat_string_catalog_filter_slot *slot;
     int ret;
@@ -1240,7 +1268,7 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
             return ret;
         }
     }
-    if (!is_key_name_table_valid(catalog, key_names, key_name_count))
+    if (!is_key_name_table_valid(catalog, key_names, key_name_count) || !is_category_names_valid(category_names))
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
@@ -1254,6 +1282,7 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
     slot->catalog = catalog;
     slot->key_names = key_names;
     slot->key_name_count = key_name_count;
+    slot->category_names = category_names;
     slot->entry_count = (size_t)catalog->entry_count;
     slot->line_capacity = (uint32_t)line_capacity;
     slot->line_width = (uint32_t)line_width;
@@ -1436,36 +1465,6 @@ int cplat_string_catalog_filter_slot_test(cplat_string_catalog_filter_slot *slot
     }
     *state_out = (cplat_string_catalog_filter_state)slot->planes[slot->active_plane].entry_states[entry_index];
     (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
-    return CPLAT_OK;
-}
-
-/* Doxygen コメントは、ヘッダーに記載 */
-
-int cplat_string_catalog_filter_slot_set_category_names(
-    cplat_string_catalog_filter_slot *slot, const cplat_string_catalog_filter_category_names *category_names)
-{
-    if (slot == NULL)
-    {
-        return CPLAT_ERR_INVALID_ARGUMENT;
-    }
-
-    if (category_names != NULL)
-    {
-        if ((category_names->names == NULL) || (category_names->count == 0U) ||
-            (category_names->subject_japanese == NULL) || (category_names->subject_neutral == NULL))
-        {
-            return CPLAT_ERR_INVALID_ARGUMENT;
-        }
-        for (size_t index = 0; index < category_names->count; index++)
-        {
-            if (category_names->names[index] == NULL)
-            {
-                return CPLAT_ERR_INVALID_ARGUMENT;
-            }
-        }
-    }
-
-    slot->category_names = category_names;
     return CPLAT_OK;
 }
 

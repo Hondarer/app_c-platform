@@ -442,7 +442,6 @@ MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_create)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_dispose)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_apply)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_snapshot)
-MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_set_category_names)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_describe_line)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_test)
 MOCK_CPLAT_LINK_IMPL(cplat_string_catalog_filter_slot_vformat)
@@ -1062,11 +1061,10 @@ extern int delegate_real_cplat_string_catalog_filter_get_info(const void *image,
                                                               cplat_string_catalog_filter_info *info_out);
 extern int delegate_real_cplat_string_catalog_filter_decompile_line(const void *image, size_t image_size,
                                                                     size_t line_index, char *dest, size_t dest_size);
-extern int delegate_real_cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
-                                                                 const cplat_string_catalog_filter_key_name *key_names,
-                                                                 size_t key_name_count, size_t line_capacity,
-                                                                 size_t line_width,
-                                                                 cplat_string_catalog_filter_slot **slot_out);
+extern int delegate_real_cplat_string_catalog_filter_slot_create(
+    const cplat_string_catalog *catalog, const cplat_string_catalog_filter_key_name *key_names, size_t key_name_count,
+    const cplat_string_catalog_filter_category_names *category_names, size_t line_capacity, size_t line_width,
+    cplat_string_catalog_filter_slot **slot_out);
 extern void delegate_real_cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot **slot);
 extern int delegate_real_cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slot,
                                                                 const void *image, size_t image_size,
@@ -1075,8 +1073,6 @@ extern int delegate_real_cplat_string_catalog_filter_slot_apply(cplat_string_cat
 extern int delegate_real_cplat_string_catalog_filter_slot_snapshot(cplat_string_catalog_filter_slot *slot,
                                                                    void *image_out, size_t image_size,
                                                                    uint64_t *enabled_lines_out);
-extern int delegate_real_cplat_string_catalog_filter_slot_set_category_names(
-    cplat_string_catalog_filter_slot *slot, const cplat_string_catalog_filter_category_names *category_names);
 extern int delegate_real_cplat_string_catalog_filter_slot_describe_line(cplat_string_catalog_filter_slot *slot,
                                                                         size_t line_index, char *dest,
                                                                         size_t dest_size);
@@ -1746,7 +1742,8 @@ class Mock_cplat
     MOCK_METHOD(int, cplat_string_catalog_filter_get_info, (const void *, size_t, cplat_string_catalog_filter_info *));
     MOCK_METHOD(int, cplat_string_catalog_filter_decompile_line, (const void *, size_t, size_t, char *, size_t));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_create,
-                (const cplat_string_catalog *, const cplat_string_catalog_filter_key_name *, size_t, size_t, size_t,
+                (const cplat_string_catalog *, const cplat_string_catalog_filter_key_name *, size_t,
+                 const cplat_string_catalog_filter_category_names *, size_t, size_t,
                  cplat_string_catalog_filter_slot **));
     MOCK_METHOD(void, cplat_string_catalog_filter_slot_dispose, (cplat_string_catalog_filter_slot **));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_apply,
@@ -1754,8 +1751,6 @@ class Mock_cplat
                  size_t, size_t *));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_snapshot,
                 (cplat_string_catalog_filter_slot *, void *, size_t, uint64_t *));
-    MOCK_METHOD(int, cplat_string_catalog_filter_slot_set_category_names,
-                (cplat_string_catalog_filter_slot *, const cplat_string_catalog_filter_category_names *));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_describe_line,
                 (cplat_string_catalog_filter_slot *, size_t, char *, size_t));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_test,

@@ -160,7 +160,7 @@ extern "C"
     /**
      *  @brief          分類値の名前です。自然文での表現で、分類値を名前で表すために使用します。
      *
-     *  フィルターは分類値の意味を解釈しません。意味を決める利用側 (例: 分類値をトレース レベルとして扱う app) が設定します。\n
+     *  フィルターは分類値の意味を解釈しません。意味を決める利用側 (例: 分類値をトレース レベルとして扱う app) が、スロットの作成時に指定します。\n
      *  分類値 i の名前は @ref cplat_string_catalog_filter_category_names::names の i 番目です。
      */
     typedef struct cplat_string_catalog_filter_category_names
@@ -345,6 +345,8 @@ extern "C"
      *  @param[in]      key_names      文字列キーの名前解決テーブル。@p key_name_count が 0 の場合は NULL を指定できます。
      *                                 スロットを破棄するまで有効である必要があります。
      *  @param[in]      key_name_count @p key_names の要素数。
+     *  @param[in]      category_names 分類値の名前。分類値を数値だけで扱う場合は NULL を指定します。
+     *                                 スロットを破棄するまで有効である必要があります。
      *  @param[in]      line_capacity  適用するフィルター オブジェクトの行数の上限。
      *  @param[in]      line_width     適用するフィルター オブジェクトの行幅。
      *  @param[out]     slot_out       作成したスロットの格納先。
@@ -352,6 +354,8 @@ extern "C"
      *  @return         引数が不正な場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         項目を持つ @p catalog が `cplat_string_catalog_verify` の確認を通らない場合は、その結果コードを返します。
      *  @return         @p key_names に NULL の名前、重複する名前、カタログに存在しない文字列キーがある場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p category_names の名前の配列、要素、主語のいずれかが NULL の場合、または要素数が 0 の場合は
      *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         メモリを確保できない場合は `CPLAT_ERR_OUT_OF_MEMORY` を返します。
      *  @return         同期オブジェクトを作成できない場合は、作成関数の結果コードを返します。
@@ -363,12 +367,22 @@ extern "C"
      *  作成直後のスロットは、行を持たないフィルター オブジェクトを適用した状態です。\n
      *  事前計算の結果を格納する 2 面のバッファーは、この時点で確保します。
      *
+     *  @p category_names を指定した場合、次の 3 点が変わります。
+     *  - 条件式で分類値と比較する識別子 (例: `category <= WARNING`) を、文字列キーの名前ではなく
+     *    分類値の名前で解決します。名前にない識別子は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME として行を無効にします。
+     *  - 分類値と比較する定数は、0 以上 @ref cplat_string_catalog_filter_category_names::count 未満の整数に限ります。
+     *    範囲外の値や整数でない値は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE として行を無効にします。
+     *  - 自然文での表現では、条件を満たす分類値の名前を列挙して表します。
+     *
+     *  分類値の名前は作成時に固定し、変更できません。名前の解決と範囲の確認は、適用の時点で行います。
+     *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_create(
         const cplat_string_catalog *catalog, const cplat_string_catalog_filter_key_name *key_names,
-        size_t key_name_count, size_t line_capacity, size_t line_width, cplat_string_catalog_filter_slot **slot_out);
+        size_t key_name_count, const cplat_string_catalog_filter_category_names *category_names, size_t line_capacity,
+        size_t line_width, cplat_string_catalog_filter_slot **slot_out);
 
     /**
      *  @brief          フィルター スロットを破棄します。
@@ -429,34 +443,6 @@ extern "C"
                                                                          uint64_t *enabled_lines_out);
 
     /**
-     *  @brief          自然文での表現に使用する、分類値の名前を設定します。
-     *  @param[in,out]  slot           フィルター スロット。
-     *  @param[in]      category_names 分類値の名前。NULL の場合は設定を解除し、分類値を数値で表します。
-     *                                 スロットを破棄するか設定を解除するまで有効である必要があります。
-     *  @return         成功時は `CPLAT_OK` を返します。
-     *  @return         @p slot が NULL の場合、または @p category_names の内容が不正な場合は
-     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
-     *
-     *  設定した場合、次の 2 点が変わります。
-     *  - 条件式で分類値と比較する識別子 (例: `category <= WARNING`) を、文字列キーの名前ではなく
-     *    分類値の名前で解決します。名前にない識別子は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME として行を無効にします。
-     *  - 分類値と比較する定数は、0 以上 @ref cplat_string_catalog_filter_category_names::count 未満の整数に限ります。
-     *    範囲外の値や整数でない値は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE として行を無効にします。
-     *
-     *  自然文での表現では、条件を満たす分類値の名前を列挙して表します。
-     *
-     *  名前の解決と範囲の確認は、適用の時点で行います。
-     *  内容が同一の行は前回の適用の結果を再利用するため、設定は最初の適用より前に行ってください。
-     *
-     *  @par            スレッド セーフ
-     *  本関数は条件付きスレッド セーフです。\n
-     *  異なる @p slot に対する操作は同時に実行できます。\n
-     *  同一 @p slot に対する操作は、呼び出し側で直列化してください。
-     */
-    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_set_category_names(
-        cplat_string_catalog_filter_slot *slot, const cplat_string_catalog_filter_category_names *category_names);
-
-    /**
      *  @brief          適用中の条件式の 1 行を、カタログのメタ情報を用いた自然文で表現します。
      *  @param[in]      slot       フィルター スロット。
      *  @param[in]      line_index 適用中のフィルター オブジェクトの行 (0 起点)。
@@ -469,7 +455,7 @@ extern "C"
      *
      *  文字列キーの比較は項目の `brief` と `id`、引数の比較は引数の名前と説明で表します。\n
      *  分類値は値そのもので表し、意味を解釈しません。
-     *  @ref cplat_string_catalog_filter_slot_set_category_names で名前を設定した場合は、条件を満たす分類値の名前を列挙して表します。\n
+     *  作成時に分類値の名前を指定した場合は、条件を満たす分類値の名前を列挙して表します。\n
      *  行が 1 つの項目に限定される場合は、その項目の引数の説明を使います。\n
      *  複数の項目が対象の場合は、引数を持つすべての項目で説明が一致するときに限り、その説明を使います。
      *
