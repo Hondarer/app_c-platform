@@ -6,8 +6,7 @@
  *  @date           2026/09/26
  *  @version        0.1.0
  *
- *  設計の正本は `app/cplat/docs/proposals/string-catalog-filter-design.md` です。\n
- *  string-catalog-sample の試作から移した段階であり、公開入口の契約は補強前です。
+ *  設計の正本は `app/cplat/docs/proposals/string-catalog-filter-design.md` です。
  *
  *  API は 2 つの層に分かれます。
  *

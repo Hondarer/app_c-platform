@@ -675,7 +675,7 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 Table: 文字列カタログの条件式フィルターにおける用途別 cplat API
 
 フィルター オブジェクトのバイト数は `CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE` で行数の上限と行幅から求めます。  
-試作から移した段階であり、公開入口の入力検査と結果コードは補強前です。設計の詳細は [文字列カタログの条件式フィルターの設計](proposals/string-catalog-filter-design.md) を参照してください。
+設計の詳細は [文字列カタログの条件式フィルターの設計](proposals/string-catalog-filter-design.md) を参照してください。
 
 ### スレッドと同期プリミティブ
 
