@@ -58,7 +58,7 @@ API、実装、テストなどの下流成果物は、必要な場合に機能�
 - `mock_cplat` を変更する場合は、この app の `create-mock-cplat-mock` スキルを使用してください。
 - `mock_cplat` をリンクするテストは、Windows で実装オブジェクトを取り込むため、テスト翻訳単位で `mock_cplat.h` をインクルードしてください。
 - 文字列カタログの責務境界と変更時の制約は、[string_catalog モジュール](prod/libsrc/cplat/string_catalog/README.md) を参照してください。
-- カタログ生成器 `bin_internal/string_catalog_gen.py` を変更した場合は、`cd bin_internal && python3 -m unittest test_string_catalog_gen` を実行してください。
+- カタログ生成器 `bin_internal/string_catalog_gen.py` を変更した場合は、`cd bin_test && python3 -m unittest test_string_catalog_gen` を実行してください。
 - 公開関数を追加する場合は、`mock_cplat` にも同じ変更で mock を追加してください。可変長引数の関数は `va_list` 版へ委譲します。
 - テスト構成は、[testfw のテスト作成手順](../../framework/testfw/docs/how-to-test.md) に従ってください。
 - `bench-io` の測定軸を変更する場合は、`prod/src/cmd/bench-io/benchmark-method.md` と `docs/fileio-api-selection-guideline.md` を同じ変更で確認してください。

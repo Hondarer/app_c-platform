@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import sys
 import unittest
 from pathlib import Path
 from unittest import mock
 
-import string_catalog_gen as gen
+# 検査対象は bin_internal に置かれているため、探索先へ追加する。
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin_internal"))
+
+import string_catalog_gen as gen  # noqa: E402  (sys.path 設定後に import する)
 
 
 class StripJsoncTest(unittest.TestCase):

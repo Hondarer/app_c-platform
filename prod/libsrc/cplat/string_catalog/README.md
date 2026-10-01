@@ -353,5 +353,5 @@ Table: カタログの公開範囲と公開関数一覧
 生成器を変更した場合は、その単体テストを実行してください。
 
 ```bash
-cd bin && python3 -m unittest test_string_catalog_gen
+cd bin_test && python3 -m unittest test_string_catalog_gen
 ```
