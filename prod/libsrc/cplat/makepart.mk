@@ -14,7 +14,7 @@ ifdef PLATFORM_LINUX
     LDFLAGS += -Wl,-z,origin -Wl,-rpath,'$$ORIGIN'
     # regex (C++) が実体化する libstdc++ シンボルを動的シンボル テーブルへ出力しない。
     # 公開 C API (cplat_* / _cplat_*) のみをエクスポートする。
-    LDFLAGS += -Wl,--version-script=$(CURDIR)/exports.map
+    LDFLAGS += -Wl,--version-script="$(CURDIR)/exports.map"
 endif
 
 # ライブラリの指定

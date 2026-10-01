@@ -2,4 +2,4 @@
 ADD_SRCS := \
 	$(MYAPP_DIR)/prod/src/cmd/bench-io/bench_timer.c
 
-CPPFLAGS += -I$(MYAPP_DIR)/prod/src/cmd/bench-io
+INCDIR += $(MYAPP_DIR)/prod/src/cmd/bench-io
