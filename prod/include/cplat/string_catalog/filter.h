@@ -507,16 +507,21 @@ extern "C"
      *  @param[out]     matched_out いずれかの行に一致した場合は 0 以外、一致しない場合は 0 の格納先。
      *  @param[in]      string_key  文字列キー。
      *  @param[in]      args        文字列キーの引数スキーマに従う可変長引数。
-     *  @return         判定できた場合は `cplat_string_catalog_vformat` の戻り値を返します。
-     *  @return         @p slot または @p matched_out が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         @p slot、@p matched_out、@p dest のいずれかが NULL の場合、または @p dest_size が 0 の場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         文字列キーの項目の検索、引数の取り出し、文字列の組み立てに失敗した場合は、
+     *                  `cplat_string_catalog_vformat` と同じ結果コードを返します。
      *  @return         判定のための同期に失敗した場合は、同期関数の結果コードを返します。
      *
+     *  可変長引数は 1 回だけ取り出し、判定と文字列の組み立てで同じ値を使用します。\n
      *  判定できた場合は、一致の有無にかかわらず文字列を組み立てます。一致した文字列の扱いは呼び出し側が決めます。\n
-     *  事前計算の状態が「引数値に依存」の場合に限り、可変長引数を収集して評価します。\n
-     *  カタログに存在しない文字列キーは判定せず、不一致として文字列の組み立てへ進みます。
+     *  カタログに存在しない文字列キーは判定せず、`CPLAT_ERR_NOT_FOUND` を返します。
      *
      *  判定のための同期に失敗した場合は、不一致と区別するため文字列を組み立てません。\n
-     *  このとき @p matched_out へは 0 を格納し、@p dest が NULL でなく @p dest_size が 1 以上であれば空文字列を格納します。
+     *  @p matched_out が NULL でなければ、失敗時は 0 を格納します。\n
+     *  @p dest が NULL でなく @p dest_size が 1 以上であれば、組み立てより前に失敗した場合は空文字列を格納します。\n
+     *  組み立てで失敗した場合の @p dest の内容は、`cplat_string_catalog_vformat` と同じです。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。

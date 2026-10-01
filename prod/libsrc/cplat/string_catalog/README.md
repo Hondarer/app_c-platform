@@ -138,7 +138,7 @@ Table: 文字列カタログの実装階層と責務
 Table: 条件式フィルターの実装と責務
 
 string-catalog-sample の試作から移し、公開入口の結果コードと入力検査を補強しました。  
-引数の収集は、`include_internal/cplat/string_catalog/format_internal.h` で共有する準備までを終えています。フィルターの判定はまだ独自に収集しています。  
+引数の収集は `include_internal/cplat/string_catalog/format_internal.h` で共有し、判定と書式展開で同じ値を使用します。  
 残りの作業は、[移行設計](https://github.com/Hondarer/c-modernization-kit/blob/main/app/string-catalog-sample/prod/src/cmd/string-catalog-filter-sample/string-catalog-filter-migration-design.md) の順序で進めます。
 
 ## 値の文字列化

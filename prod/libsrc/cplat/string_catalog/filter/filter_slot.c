@@ -20,6 +20,7 @@
 #include "filter.h"
 
 #include <cplat/base/result.h>
+#include <cplat/string_catalog/format_internal.h>
 #include <cplat/sync/sync.h>
 
 #include <limits.h>
@@ -170,18 +171,21 @@ static argument_class class_of_argument(const cplat_string_catalog_argument_kind
 }
 
 /**
- *  @brief          引数スキーマに従って、可変長引数を値の配列へ取り出します。
+ *  @brief          文字列カタログが取り出した値を、比較の区分ごとに正規化します。
+ *  @param[in]      entry  カタログの 1 件。
+ *  @param[in]      shared 文字列カタログが取り出した値の配列。
+ *  @param[out]     values 正規化した値の格納先。
+ *  @return         すべての値を正規化できた場合は true、未知の種別があった場合は false。
  *
- *  cplat の cplat_internal_string_catalog_collect_arguments() と同じ取り出し型を使用します。\n
- *  既定引数拡張と一致しない va_arg は未定義動作となるため、8 ビットと 16 ビットの種別は int として取り出します。
- *
- *  @return         すべての引数を取り出せた場合は true、未知の種別があった場合は false。
+ *  可変長引数の取り出しは cplat_internal_string_catalog_prepare_format() が行い、判定と書式展開で同じ値を使用します。
  */
-static bool collect_arguments(const cplat_string_catalog_entry *entry, va_list args, argument_value *values)
+static bool normalize_arguments(const cplat_string_catalog_entry *entry,
+                                const cplat_internal_string_catalog_argument_value *shared, argument_value *values)
 {
     for (int index = 0; index < entry->argument_count; index++)
     {
         const cplat_string_catalog_argument_kind kind = entry->arguments[index].kind;
+        const union cplat_internal_string_catalog_argument_storage *source = &shared[index].value;
         argument_value *value = &values[index];
 
         value->kind = kind;
@@ -193,51 +197,51 @@ static bool collect_arguments(const cplat_string_catalog_entry *entry, va_list a
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UNUSED:
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_STRING:
-            value->value.string_value = va_arg(args, const char *);
+            value->value.string_value = source->string_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_CHAR:
-            value->value.signed_value = (char)va_arg(args, int);
+            value->value.signed_value = source->char_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT8:
-            value->value.signed_value = (int8_t)va_arg(args, int);
+            value->value.signed_value = source->int8_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT8:
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX8:
-            value->value.unsigned_value = (uint8_t)va_arg(args, int);
+            value->value.unsigned_value = source->uint8_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT16:
-            value->value.signed_value = (int16_t)va_arg(args, int);
+            value->value.signed_value = source->int16_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT16:
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX16:
-            value->value.unsigned_value = (uint16_t)va_arg(args, int);
+            value->value.unsigned_value = source->uint16_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT32:
-            value->value.signed_value = va_arg(args, int32_t);
+            value->value.signed_value = source->int32_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT32:
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX32:
-            value->value.unsigned_value = va_arg(args, uint32_t);
+            value->value.unsigned_value = source->uint32_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_INT64:
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_SSIZE:
-            value->value.signed_value = va_arg(args, int64_t);
+            value->value.signed_value = source->int64_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_UINT64:
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_HEX64:
-            value->value.unsigned_value = va_arg(args, uint64_t);
+            value->value.unsigned_value = source->uint64_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_SIZE:
-            value->value.unsigned_value = va_arg(args, size_t);
+            value->value.unsigned_value = source->size_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_POINTER:
-            value->value.unsigned_value = (uint64_t)(uintptr_t)va_arg(args, const void *);
+            value->value.unsigned_value = (uint64_t)(uintptr_t)source->pointer_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_DOUBLE:
-            value->value.real_value = va_arg(args, double);
+            value->value.real_value = source->double_value;
             break;
         case CPLAT_STRING_CATALOG_ARGUMENT_KIND_ERROR_CODE:
-            value->value.signed_value = va_arg(args, int);
+            value->value.signed_value = source->error_code_value;
             break;
         default:
             return false;
@@ -1533,13 +1537,11 @@ int cplat_string_catalog_filter_slot_describe_line(cplat_string_catalog_filter_s
 
 /** 参照中の面で、1 項目の一致を判定します。共有モードのロックの下で呼び出します。 */
 static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plane *plane, const size_t entry_index,
-                       va_list args)
+                       const cplat_internal_string_catalog_argument_value *shared)
 {
     const cplat_string_catalog_entry *entry = &slot->catalog->entries[entry_index];
     argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX];
     uint64_t lines;
-    va_list copied_args;
-    bool is_collected;
 
     switch (plane->entry_states[entry_index])
     {
@@ -1551,11 +1553,7 @@ static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plan
         return false;
     }
 
-    /* 書式展開でも元の引数リストを使用するため、判定には複製を使用する */
-    va_copy(copied_args, args);
-    is_collected = collect_arguments(entry, copied_args, values);
-    va_end(copied_args);
-    if (!is_collected)
+    if (!normalize_arguments(entry, shared, values))
     {
         return false;
     }
@@ -1600,33 +1598,41 @@ static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plan
 int cplat_string_catalog_filter_slot_vformat(cplat_string_catalog_filter_slot *slot, char *dest, const size_t dest_size,
                                              int *matched_out, const int string_key, va_list args)
 {
-    size_t entry_index;
+    const cplat_string_catalog_entry *entry = NULL;
+    const char *text = NULL;
+    cplat_internal_string_catalog_argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX] = {0};
     int ret;
 
-    if ((slot == NULL) || (matched_out == NULL))
+    if ((slot == NULL) || (matched_out == NULL) || (dest == NULL) || (dest_size == 0U))
     {
+        if (matched_out != NULL)
+        {
+            *matched_out = 0;
+        }
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
     *matched_out = 0;
+    dest[0] = '\0';
 
-    if (find_entry_index(slot, string_key, &entry_index))
+    /* 可変長引数は 1 回だけ取り出し、判定と書式展開で同じ値を使用する */
+    ret = cplat_internal_string_catalog_prepare_format(slot->catalog, string_key, args, &entry, &text, values);
+    if (ret != CPLAT_OK)
     {
-        /* 判定できない場合は不一致と区別するため、文字列を組み立てずに結果コードを返す */
-        ret = cplat_local_rwlock_lock_shared(slot->plane_lock, CPLAT_SYNC_WAIT_FOREVER);
-        if (ret != CPLAT_OK)
-        {
-            if ((dest != NULL) && (dest_size > 0U))
-            {
-                dest[0] = '\0';
-            }
-            return ret;
-        }
-        *matched_out = is_matched(slot, &slot->planes[slot->active_plane], entry_index, args);
-        (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
+        return ret;
     }
 
+    /* 判定できない場合は不一致と区別するため、文字列を組み立てずに結果コードを返す */
+    ret = cplat_local_rwlock_lock_shared(slot->plane_lock, CPLAT_SYNC_WAIT_FOREVER);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    *matched_out =
+        is_matched(slot, &slot->planes[slot->active_plane], (size_t)(entry - slot->catalog->entries), values);
+    (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
+
     /* 書式展開はロックの外で行う。判定の結果によらず文字列を組み立てる */
-    return cplat_string_catalog_vformat(slot->catalog, dest, dest_size, string_key, args);
+    return cplat_internal_string_catalog_render_text(dest, dest_size, text, values, entry->argument_count);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

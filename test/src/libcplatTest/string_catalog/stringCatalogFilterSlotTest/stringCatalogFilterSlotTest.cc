@@ -304,3 +304,25 @@ TEST_F(stringCatalogFilterSlotTest, create_accepts_empty_catalog)
     EXPECT_NE(nullptr, slot);                        // [確認_正常系] - スロットを格納すること。
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_test_ret); // [確認_正常系] - どの文字列キーも判定の対象にならないこと。
 }
+
+// 格納先が NULL の場合は、判定せずに CPLAT_ERR_INVALID_ARGUMENT を返すことの確認
+TEST_F(stringCatalogFilterSlotTest, vformat_rejects_null_dest)
+{
+    // Arrange
+    int actual_ret;
+    int actual_matched = 1;
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_create(filter_test_catalog(), NULL, 0U, kLineCapacity,
+                                                                kLineWidth, &slot)); // [状態] - スロットを作成する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_local_rwlock_lock_shared(_, _))
+        .Times(0); // [Pre-Assert確認_異常系] - 共有ロックを取得しないこと。
+
+    // Act
+    actual_ret = call_slot_vformat(slot, NULL, sizeof(dest), &actual_matched, FILTER_TEST_CATALOG_KEY_NUMBER,
+                                   (int32_t)7); // [手順] - 格納先に NULL を渡して判定と書式展開を行う。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - CPLAT_ERR_INVALID_ARGUMENT を返すこと。
+    EXPECT_EQ(0, actual_matched);                      // [確認_異常系] - 一致結果へ 0 を格納すること。
+}
