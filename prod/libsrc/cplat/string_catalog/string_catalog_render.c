@@ -186,7 +186,8 @@ static void render_buffer_append_string(render_buffer *buffer, const char *text)
  *  @return         引数種別が未知の場合、または引数を割り当てないインデックスを指す場合は
  *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
  */
-static int render_buffer_append_argument(render_buffer *buffer, const string_catalog_argument_value *value)
+static int render_buffer_append_argument(render_buffer *buffer,
+                                         const cplat_internal_string_catalog_argument_value *value)
 {
     /* 各種別の出力は VALUE_TEXT_MAX に収まるため、切り詰めは発生しない */
     char value_text[VALUE_TEXT_MAX];
@@ -333,7 +334,8 @@ static int render_buffer_append_argument(render_buffer *buffer, const string_cat
  *                  または引数を割り当てないインデックスを指す場合は
  *                  @ref CPLAT_ERR_MALFORMED_DEFINITION を返します。
  */
-static int render_scan_text(render_buffer *buffer, const char *text, const string_catalog_argument_value *values,
+static int render_scan_text(render_buffer *buffer, const char *text,
+                            const cplat_internal_string_catalog_argument_value *values,
                             const cplat_string_catalog_argument *arguments, const int value_count)
 {
     size_t position = 0U;
@@ -423,8 +425,9 @@ static int render_scan_text(render_buffer *buffer, const char *text, const strin
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int string_catalog_render_text(char *dest, const size_t dest_size, const char *text,
-                               const string_catalog_argument_value *values, const int value_count)
+int cplat_internal_string_catalog_render_text(char *dest, const size_t dest_size, const char *text,
+                                              const cplat_internal_string_catalog_argument_value *values,
+                                              const int value_count)
 {
     render_buffer buffer = {0};
     int ret;

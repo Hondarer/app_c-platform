@@ -56,21 +56,14 @@ static const char *select_localized(const char *const *localized, const cplat_st
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char *dest, const size_t dest_size,
-                                 const int string_key, va_list args)
+int cplat_internal_string_catalog_prepare_format(const cplat_string_catalog *const catalog, const int string_key,
+                                                 va_list args, const cplat_string_catalog_entry **entry_out,
+                                                 const char **text_out,
+                                                 cplat_internal_string_catalog_argument_value *values)
 {
     const cplat_string_catalog_entry *entry;
-    const cplat_string_catalog_language language = cplat_string_catalog_get_language();
     const char *text;
-    string_catalog_argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX] = {0};
     int ret;
-
-    if ((dest == NULL) || (dest_size == 0U))
-    {
-        return CPLAT_ERR_INVALID_ARGUMENT;
-    }
-
-    dest[0] = '\0';
 
     if (!cplat_internal_string_catalog_is_usable(catalog))
     {
@@ -89,19 +82,47 @@ int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char
         return CPLAT_ERR_MALFORMED_DEFINITION;
     }
 
-    text = select_localized(entry->texts, language);
+    text = select_localized(entry->texts, cplat_string_catalog_get_language());
     if (text == NULL)
     {
         return CPLAT_ERR_MALFORMED_DEFINITION;
     }
 
-    ret = string_catalog_collect_arguments(entry, args, values);
+    ret = cplat_internal_string_catalog_collect_arguments(entry, args, values);
     if (ret != CPLAT_OK)
     {
         return ret;
     }
 
-    return string_catalog_render_text(dest, dest_size, text, values, entry->argument_count);
+    *entry_out = entry;
+    *text_out = text;
+    return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_vformat(const cplat_string_catalog *const catalog, char *dest, const size_t dest_size,
+                                 const int string_key, va_list args)
+{
+    const cplat_string_catalog_entry *entry = NULL;
+    const char *text = NULL;
+    cplat_internal_string_catalog_argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX] = {0};
+    int ret;
+
+    if ((dest == NULL) || (dest_size == 0U))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    dest[0] = '\0';
+
+    ret = cplat_internal_string_catalog_prepare_format(catalog, string_key, args, &entry, &text, values);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+
+    return cplat_internal_string_catalog_render_text(dest, dest_size, text, values, entry->argument_count);
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */

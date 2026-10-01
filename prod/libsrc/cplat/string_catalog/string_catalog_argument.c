@@ -35,8 +35,8 @@ static_assert(INT_MAX >= UINT16_MAX, "int must represent every uint16_t value fo
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int string_catalog_collect_arguments(const cplat_string_catalog_entry *entry, va_list args,
-                                     string_catalog_argument_value *values)
+int cplat_internal_string_catalog_collect_arguments(const cplat_string_catalog_entry *entry, va_list args,
+                                                    cplat_internal_string_catalog_argument_value *values)
 {
     int index;
 

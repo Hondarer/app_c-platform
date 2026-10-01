@@ -13,13 +13,14 @@
  *
  *  `va_start` の直前の名前付き引数を持たせるため、メンバー関数ではなく通常の関数とします。
  */
-static int collect_arguments(const cplat_string_catalog_entry *entry, string_catalog_argument_value *values, ...)
+static int collect_arguments(const cplat_string_catalog_entry *entry,
+                             cplat_internal_string_catalog_argument_value *values, ...)
 {
     va_list args;
     int ret;
 
     va_start(args, values);
-    ret = string_catalog_collect_arguments(entry, args, values);
+    ret = cplat_internal_string_catalog_collect_arguments(entry, args, values);
     va_end(args);
 
     return ret;
@@ -29,7 +30,7 @@ class stringCatalogArgumentTest : public Test
 {
   protected:
     /** 取り出した値の格納先です。 */
-    string_catalog_argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX];
+    cplat_internal_string_catalog_argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX];
 
     /** カタログの 1 件です。テストごとに組み立てます。 */
     cplat_string_catalog_entry entry;

@@ -59,7 +59,7 @@
 フックの段階では、文字列キーや引数の値を型情報とともに取得できません。  
 また、フックの段階ではトレース レベルが確定しており、判定結果によって強制出力へ引き上げられません。
 
-`string_catalog` の内部処理では、`string_catalog_collect_arguments()` が可変長引数を型付き構造体の配列 `string_catalog_argument_value` へ抽出した後に書式を展開します。  
+`string_catalog` の内部処理では、`cplat_internal_string_catalog_collect_arguments()` が可変長引数を型付き構造体の配列 `cplat_internal_string_catalog_argument_value` へ抽出した後に書式を展開します。  
 条件式の判定はこの配列を入力として実行するため、引数のデータ型に応じた比較を行えます。
 
 C 言語の可変長引数 (`va_list`) は 1 回しか走査できません。  

@@ -172,7 +172,7 @@ static argument_class class_of_argument(const cplat_string_catalog_argument_kind
 /**
  *  @brief          引数スキーマに従って、可変長引数を値の配列へ取り出します。
  *
- *  cplat の string_catalog_collect_arguments() と同じ取り出し型を使用します。\n
+ *  cplat の cplat_internal_string_catalog_collect_arguments() と同じ取り出し型を使用します。\n
  *  既定引数拡張と一致しない va_arg は未定義動作となるため、8 ビットと 16 ビットの種別は int として取り出します。
  *
  *  @return         すべての引数を取り出せた場合は true、未知の種別があった場合は false。

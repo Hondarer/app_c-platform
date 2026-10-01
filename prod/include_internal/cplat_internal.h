@@ -39,6 +39,7 @@
 #include <cplat/prompt/prompt_internal.h>
 
 #include <cplat/string_catalog/catalog_internal.h>
+#include <cplat/string_catalog/format_internal.h>
 
 #include <cplat/trace/tracer_internal.h>
 #include <cplat/trace/backends/etw/etw_internal.h>
