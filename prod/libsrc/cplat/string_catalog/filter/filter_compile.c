@@ -98,7 +98,7 @@ typedef struct compiler
     uint16_t argument_name_offsets[CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX];
     uint32_t identifier_count;
 
-    cplat_string_catalog_filter_error error;
+    cplat_string_catalog_filter_line_error error;
     uint32_t error_column;
     uint32_t pad; /**< 明示的アラインメントです。 */
 
@@ -148,9 +148,9 @@ static int hex_value(const char character)
 }
 
 /** 最初の誤りだけを記録します。 */
-static bool fail(compiler *state, const cplat_string_catalog_filter_error error, const size_t column)
+static bool fail(compiler *state, const cplat_string_catalog_filter_line_error error, const size_t column)
 {
-    if (state->error == CPLAT_STRING_CATALOG_FILTER_ERROR_NONE)
+    if (state->error == CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
     {
         state->error = error;
         state->error_column = (uint32_t)column;
@@ -222,7 +222,7 @@ static bool lex_string(compiler *state, token *result)
 
         if (state->position >= state->text_length)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, result->column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, result->column);
         }
         if (state->text[state->position] == '"')
         {
@@ -232,7 +232,7 @@ static bool lex_string(compiler *state, token *result)
         byte = read_quoted_byte(state);
         if (byte < 0)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, state->position);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, state->position);
         }
         state->string_buffer[length++] = (char)byte;
     }
@@ -251,13 +251,13 @@ static bool lex_character(compiler *state, token *result)
     state->position++; /* 開きの引用符 */
     if ((state->position >= state->text_length) || (state->text[state->position] == '\''))
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, result->column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, result->column);
     }
 
     byte = read_quoted_byte(state);
     if ((byte < 0) || (peek_at(state, state->position) != '\''))
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, result->column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, result->column);
     }
     state->position++;
 
@@ -296,14 +296,14 @@ static bool lex_number(compiler *state, token *result)
         /* 16 進数は符号を持たない */
         if (is_negative)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
         }
         position += 2U;
         while (hex_value(peek_at(state, position)) >= 0)
         {
             if (magnitude > (UINT64_MAX >> 4))
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
             }
             magnitude = (magnitude << 4) | (uint64_t)hex_value(peek_at(state, position));
             position++;
@@ -311,7 +311,7 @@ static bool lex_number(compiler *state, token *result)
         }
         if (digits == 0U)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
         }
         result->kind = TOKEN_KIND_INTEGER;
         result->flags = STRING_CATALOG_FILTER_CONSTANT_FLAG_HEXADECIMAL;
@@ -350,7 +350,7 @@ static bool lex_number(compiler *state, token *result)
             }
             if (exponent_digits == 0U)
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
             }
         }
 
@@ -364,7 +364,7 @@ static bool lex_number(compiler *state, token *result)
             result->real = strtod(state->string_buffer, &end);
             if ((end != (state->string_buffer + length)) || !isfinite(result->real))
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
             }
             result->kind = TOKEN_KIND_FLOAT;
         }
@@ -382,14 +382,14 @@ static bool lex_number(compiler *state, token *result)
 
                 if (magnitude > ((UINT64_MAX - digit) / 10U))
                 {
-                    return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+                    return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
                 }
                 magnitude = (magnitude * 10U) + digit;
             }
             /* 負の値は int64_t の範囲に収める。-0 は 0 として扱う */
             if (is_negative && (magnitude > ((uint64_t)INT64_MAX + 1U)))
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
             }
             result->kind = TOKEN_KIND_INTEGER;
             if (is_negative && (magnitude != 0U))
@@ -402,7 +402,7 @@ static bool lex_number(compiler *state, token *result)
     /* 数値の直後に識別子の文字が続く表記 (12abc など) は誤り */
     if (is_identifier_part(peek_at(state, position)) || (peek_at(state, position) == '.'))
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, start);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, start);
     }
 
     result->magnitude = magnitude;
@@ -531,7 +531,7 @@ static bool advance(compiler *state)
     }
     else
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL, result->column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL, result->column);
     }
 
     state->position++;
@@ -551,7 +551,7 @@ static bool expect(compiler *state, const token_kind kind)
 {
     if (state->current.kind != kind)
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
     }
     return advance(state);
 }
@@ -562,7 +562,7 @@ static bool emit_instruction(compiler *state, const string_catalog_filter_instru
 {
     if (state->instruction_count >= state->instruction_capacity)
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
     }
 
     string_catalog_filter_write_instruction(state->record, state->instruction_count, instruction);
@@ -630,7 +630,7 @@ static bool emit_constant(compiler *state, const string_catalog_filter_constant_
 
     if ((state->constant_capacity - state->constant_size) < (STRING_CATALOG_FILTER_CONSTANT_HEADER_SIZE + stored_size))
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
     }
 
     /* 領域は 0 で埋めてあるため、NUL と切り上げの余りは書き込まない */
@@ -697,7 +697,7 @@ static bool parse_literal(compiler *state, uint8_t *kind_out)
         /* 文字列キーの名前。整数への解決は適用の時点で行う */
         if (state->identifier_count >= CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, current->column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, current->column);
         }
         header.kind = (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_IDENTIFIER;
         header.slot = (uint16_t)state->identifier_count;
@@ -726,7 +726,7 @@ static bool parse_literal(compiler *state, uint8_t *kind_out)
     case TOKEN_KIND_OR:
     case TOKEN_KIND_NOT:
     default:
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, current->column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, current->column);
     }
 
     if (!is_emitted)
@@ -743,7 +743,7 @@ static bool parse_argument_reference(compiler *state, string_catalog_filter_inst
 {
     if (!is_word(state, "arg"))
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
     }
     if (!advance(state))
     {
@@ -765,7 +765,7 @@ static bool parse_argument_reference(compiler *state, string_catalog_filter_inst
         }
         if (state->current.kind != TOKEN_KIND_IDENTIFIER)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
         }
 
         name = state->text + state->current.column;
@@ -789,7 +789,7 @@ static bool parse_argument_reference(compiler *state, string_catalog_filter_inst
         {
             if (state->argument_reference_count >= CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX)
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
             }
         }
 
@@ -821,11 +821,11 @@ static bool parse_argument_reference(compiler *state, string_catalog_filter_inst
         }
         if ((state->current.kind != TOKEN_KIND_INTEGER) || (state->current.flags != 0U))
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
         }
         if (state->current.magnitude >= CPLAT_STRING_CATALOG_ARGUMENT_MAX)
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
         }
         instruction->field = (uint8_t)STRING_CATALOG_FILTER_FIELD_ARGUMENT_INDEX;
         instruction->argument = (uint8_t)state->current.magnitude;
@@ -836,7 +836,7 @@ static bool parse_argument_reference(compiler *state, string_catalog_filter_inst
         return expect(state, TOKEN_KIND_RIGHT_BRACKET);
     }
 
-    return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+    return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
 }
 
 /** 判定演算子を読みます。 */
@@ -888,7 +888,7 @@ static bool parse_operator(compiler *state, string_catalog_filter_instruction *i
         }
     }
 
-    return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+    return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
 }
 
 /** 比較対象を 1 個読み、フィールドと判定演算子との組み合わせを確認します。 */
@@ -903,7 +903,7 @@ static bool parse_checked_literal(compiler *state, const string_catalog_filter_i
     }
     if (string_catalog_filter_is_constant_allowed(instruction->field, instruction->operator_kind, *kind_out) == 0)
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_TYPE_MISMATCH, column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_TYPE_MISMATCH, column);
     }
     return true;
 }
@@ -929,7 +929,7 @@ static bool parse_predicate(compiler *state)
     state->predicate_count++;
     if (state->predicate_count > CPLAT_STRING_CATALOG_FILTER_PREDICATE_MAX)
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
     }
 
     if (is_word(state, "has"))
@@ -1001,7 +1001,7 @@ static bool parse_predicate(compiler *state)
             }
             else if (!is_same_class(first_kind, kind))
             {
-                return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_TYPE_MISMATCH, column);
+                return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_TYPE_MISMATCH, column);
             }
             instruction.operand_count++;
 
@@ -1027,7 +1027,7 @@ static bool parse_predicate(compiler *state)
         }
         if (!is_word(state, "and"))
         {
-            return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+            return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
         }
         if (!advance(state) || !parse_checked_literal(state, &instruction, &kind))
         {
@@ -1060,7 +1060,7 @@ static bool enter_nesting(compiler *state)
     state->nesting++;
     if (state->nesting > CPLAT_STRING_CATALOG_FILTER_NESTING_MAX)
     {
-        return fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, state->current.column);
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, state->current.column);
     }
     return true;
 }
@@ -1145,7 +1145,7 @@ static bool parse_or(compiler *state)
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int string_catalog_filter_compile_record(const char *text, const size_t text_length, const uint32_t line_width,
-                                         unsigned char *record, cplat_string_catalog_filter_error *error_out,
+                                         unsigned char *record, cplat_string_catalog_filter_line_error *error_out,
                                          uint32_t *column_out)
 {
     string_catalog_filter_record_header header;
@@ -1165,19 +1165,19 @@ int string_catalog_filter_compile_record(const char *text, const size_t text_len
 
     if (text_length > line_width)
     {
-        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED, line_width);
+        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, line_width);
     }
     else if (advance(state) && parse_or(state) && (state->current.kind != TOKEN_KIND_END))
     {
-        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, state->current.column);
+        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, state->current.column);
     }
 
-    if ((state->error == CPLAT_STRING_CATALOG_FILTER_ERROR_NONE) && (state->instruction_count == 0U))
+    if ((state->error == CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE) && (state->instruction_count == 0U))
     {
-        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX, 0U);
+        (void)fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX, 0U);
     }
 
-    if (state->error != CPLAT_STRING_CATALOG_FILTER_ERROR_NONE)
+    if (state->error != CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
     {
         memset(record, 0, CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(line_width));
         *error_out = state->error;
@@ -1196,7 +1196,7 @@ int string_catalog_filter_compile_record(const char *text, const size_t text_len
     header.line_hash = string_catalog_filter_compute_line_hash(record, line_width);
     string_catalog_filter_write_record_header(record, &header);
 
-    *error_out = CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+    *error_out = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
     *column_out = 0U;
     return CPLAT_OK;
 }
@@ -1233,7 +1233,7 @@ static bool trim_line(const char *row, const size_t width, size_t *start_out, si
 
 static void record_diagnostic(cplat_string_catalog_filter_diagnostic *diagnostics, const size_t diagnostic_capacity,
                               const size_t invalid_count, const size_t line_index, const size_t column,
-                              const cplat_string_catalog_filter_error error)
+                              const cplat_string_catalog_filter_line_error error)
 {
     if ((diagnostics != NULL) && (invalid_count < diagnostic_capacity))
     {
@@ -1246,14 +1246,14 @@ static void record_diagnostic(cplat_string_catalog_filter_diagnostic *diagnostic
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_filter_compile(const char *lines, const size_t line_count, const size_t line_width,
-                                        const size_t line_capacity, void *image, const size_t image_size,
+                                        const size_t line_capacity, void *image_out, const size_t image_size,
                                         cplat_string_catalog_filter_diagnostic *diagnostics,
                                         const size_t diagnostic_capacity, size_t *invalid_count_out)
 {
     string_catalog_filter_image_header header;
     size_t invalid_count = 0U;
 
-    if ((image == NULL) || ((lines == NULL) && (line_count > 0U)) ||
+    if ((image_out == NULL) || ((lines == NULL) && (line_count > 0U)) ||
         (line_width < CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MIN) ||
         (line_width > CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX) || (line_capacity == 0U) ||
         (line_capacity > CPLAT_STRING_CATALOG_FILTER_LINE_MAX))
@@ -1265,7 +1265,7 @@ int cplat_string_catalog_filter_compile(const char *lines, const size_t line_cou
         return CPLAT_ERR_BUFFER_TOO_SMALL;
     }
 
-    memset(image, 0, CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(line_capacity, line_width));
+    memset(image_out, 0, CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(line_capacity, line_width));
     memset(&header, 0, sizeof(header));
     header.signature = STRING_CATALOG_FILTER_SIGNATURE;
     header.format_version = STRING_CATALOG_FILTER_FORMAT_VERSION;
@@ -1278,7 +1278,7 @@ int cplat_string_catalog_filter_compile(const char *lines, const size_t line_cou
     for (size_t index = 0; index < line_count; index++)
     {
         const char *row = lines + (index * line_width);
-        cplat_string_catalog_filter_error error;
+        cplat_string_catalog_filter_line_error error;
         uint32_t column;
         size_t start;
         size_t length;
@@ -1291,14 +1291,14 @@ int cplat_string_catalog_filter_compile(const char *lines, const size_t line_cou
         if (header.line_count >= header.line_capacity)
         {
             record_diagnostic(diagnostics, diagnostic_capacity, invalid_count, index, start,
-                              CPLAT_STRING_CATALOG_FILTER_ERROR_LINE_CAPACITY);
+                              CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LINE_CAPACITY);
             invalid_count++;
             continue;
         }
 
         if (string_catalog_filter_compile_record(
                 row + start, length, header.line_width,
-                string_catalog_filter_record_address(image, header.record_size, header.line_count), &error,
+                string_catalog_filter_record_address(image_out, header.record_size, header.line_count), &error,
                 &column) != CPLAT_OK)
         {
             record_diagnostic(diagnostics, diagnostic_capacity, invalid_count, index, start + column, error);
@@ -1309,7 +1309,7 @@ int cplat_string_catalog_filter_compile(const char *lines, const size_t line_cou
         header.line_count++;
     }
 
-    string_catalog_filter_update_content_hash(image, &header);
+    string_catalog_filter_update_content_hash(image_out, &header);
 
     if (invalid_count_out != NULL)
     {
@@ -1327,7 +1327,7 @@ static int compile_text(const char *text, const uint32_t line_width, unsigned ch
                         cplat_string_catalog_filter_diagnostic *diagnostic_out)
 {
     const size_t text_length = strlen(text);
-    cplat_string_catalog_filter_error error = CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX;
+    cplat_string_catalog_filter_line_error error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX;
     uint32_t column = 0U;
     size_t start;
     size_t length;
@@ -1335,7 +1335,7 @@ static int compile_text(const char *text, const uint32_t line_width, unsigned ch
 
     if (text_length > line_width)
     {
-        error = CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED;
+        error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED;
         column = line_width;
     }
     else if (trim_line(text, text_length, &start, &length))
@@ -1352,7 +1352,7 @@ static int compile_text(const char *text, const uint32_t line_width, unsigned ch
         if (ret == CPLAT_OK)
         {
             diagnostic_out->column = 0U;
-            diagnostic_out->error = CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+            diagnostic_out->error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
         }
     }
     return ret;

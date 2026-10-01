@@ -258,7 +258,8 @@
     EXPORT_ENTRY(cplat_clock_format_realtime_iso8601_utc, \
                  int(CPLAT_API *)(char *buf, size_t buf_size, const cplat_timespec *timestamp)) \
     EXPORT_ENTRY(cplat_clock_get_realtime_utc, void(CPLAT_API *)(struct tm * utc_tm, int32_t *tv_nsec)) \
-    EXPORT_ENTRY(cplat_clock_get_realtime_deadline_ms, void(CPLAT_API *)(uint64_t timeout_ms, struct timespec *abs_timeout)) \
+    EXPORT_ENTRY(cplat_clock_get_realtime_deadline_ms, \
+                 void(CPLAT_API *)(uint64_t timeout_ms, struct timespec *abs_timeout)) \
     /* cplat/clock/timespec.h */ \
     EXPORT_ENTRY(cplat_timespec_normalize, void(CPLAT_API *)(cplat_timespec * ts)) \
     EXPORT_ENTRY(cplat_timespec_add, \
@@ -563,8 +564,8 @@
                  int(CPLAT_API *)(int *argc, char **argv, int *detected_out)) \
     EXPORT_ENTRY(cplat_elevated_process_report_result, int(CPLAT_API *)(const char *message)) \
     EXPORT_ENTRY(cplat_elevated_process_run_piped, \
-                 int(CPLAT_API *)(const char *arguments, cplat_elevated_process_output_fn output_fn, \
-                                  void *context, int *exit_code, int *handled)) \
+                 int(CPLAT_API *)(const char *arguments, cplat_elevated_process_output_fn output_fn, void *context, \
+                                  int *exit_code, int *handled)) \
     EXPORT_ENTRY(cplat_elevated_process_attach_output_pipes, \
                  int(CPLAT_API *)(int *argc, char **argv, int *attached_out)) \
     /* cplat/regex/regex.h */ \
@@ -660,8 +661,9 @@
     /* cplat/string_catalog/filter.h */ \
     EXPORT_ENTRY(cplat_string_catalog_filter_compile, \
                  int(CPLAT_API *)(const char *lines, size_t line_count, size_t line_width, size_t line_capacity, \
-                                  void *image, size_t image_size, cplat_string_catalog_filter_diagnostic *diagnostics, \
-                                  size_t diagnostic_capacity, size_t *invalid_count_out)) \
+                                  void *image_out, size_t image_size, \
+                                  cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, \
+                                  size_t *invalid_count_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_compile_line, \
                  int(CPLAT_API *)(void *image, size_t image_size, size_t line_index, const char *text, \
                                   cplat_string_catalog_filter_diagnostic *diagnostic_out)) \
@@ -676,12 +678,11 @@
     EXPORT_ENTRY( \
         cplat_string_catalog_filter_decompile_line, \
         int(CPLAT_API *)(const void *image, size_t image_size, size_t line_index, char *dest, size_t dest_size)) \
-    EXPORT_ENTRY(cplat_string_catalog_filter_slot_create, \
-                 int(CPLAT_API *)(const cplat_string_catalog *catalog, \
-                                  const cplat_string_catalog_filter_key_name *key_names, size_t key_name_count, \
-                                  const cplat_string_catalog_filter_category_names *category_names, \
-                                  size_t line_capacity, size_t line_width, \
-                                  cplat_string_catalog_filter_slot **slot_out)) \
+    EXPORT_ENTRY( \
+        cplat_string_catalog_filter_slot_create, \
+        int(CPLAT_API *)(const cplat_string_catalog *catalog, const cplat_string_catalog_filter_key_name *key_names, \
+                         size_t key_name_count, const cplat_string_catalog_filter_category_names *category_names, \
+                         size_t line_capacity, size_t line_width, cplat_string_catalog_filter_slot **slot_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_dispose, \
                  void(CPLAT_API *)(cplat_string_catalog_filter_slot * *slot)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_apply, \

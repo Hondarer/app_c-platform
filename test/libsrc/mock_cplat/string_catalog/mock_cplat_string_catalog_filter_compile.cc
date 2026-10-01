@@ -2,19 +2,19 @@
 #include <mock_cplat.h>
 
 int delegate_real_cplat_string_catalog_filter_compile(const char *lines, size_t line_count, size_t line_width,
-                                                      size_t line_capacity, void *image, size_t image_size,
+                                                      size_t line_capacity, void *image_out, size_t image_size,
                                                       cplat_string_catalog_filter_diagnostic *diagnostics,
                                                       size_t diagnostic_capacity, size_t *invalid_count_out)
 {
     static auto real_fn = reinterpret_cast<decltype(&cplat_string_catalog_filter_compile)>(
         resolveSharedSymbolOrExit(kLibCplatName, "cplat_string_catalog_filter_compile"));
 
-    return real_fn(lines, line_count, line_width, line_capacity, image, image_size, diagnostics, diagnostic_capacity,
-                   invalid_count_out);
+    return real_fn(lines, line_count, line_width, line_capacity, image_out, image_size, diagnostics,
+                   diagnostic_capacity, invalid_count_out);
 }
 
 MOCK_WEAK_IMPL(int, cplat_string_catalog_filter_compile, const char *lines, size_t line_count, size_t line_width,
-               size_t line_capacity, void *image, size_t image_size,
+               size_t line_capacity, void *image_out, size_t image_size,
                cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity,
                size_t *invalid_count_out)
 {
@@ -22,14 +22,14 @@ MOCK_WEAK_IMPL(int, cplat_string_catalog_filter_compile, const char *lines, size
 
     if (_mock_cplat != nullptr)
     {
-        mock_ret = _mock_cplat->cplat_string_catalog_filter_compile(lines, line_count, line_width, line_capacity, image,
-                                                                    image_size, diagnostics, diagnostic_capacity,
-                                                                    invalid_count_out);
+        mock_ret = _mock_cplat->cplat_string_catalog_filter_compile(lines, line_count, line_width, line_capacity,
+                                                                    image_out, image_size, diagnostics,
+                                                                    diagnostic_capacity, invalid_count_out);
     }
     else
     {
         mock_ret = delegate_real_cplat_string_catalog_filter_compile(lines, line_count, line_width, line_capacity,
-                                                                     image, image_size, diagnostics,
+                                                                     image_out, image_size, diagnostics,
                                                                      diagnostic_capacity, invalid_count_out);
     }
 

@@ -331,7 +331,7 @@ extern "C"
      *  @return         成功時は `CPLAT_OK`、条件式が不正な場合は `CPLAT_ERR_MALFORMED_DEFINITION`。
      */
     int string_catalog_filter_compile_record(const char *text, size_t text_length, uint32_t line_width,
-                                             unsigned char *record, cplat_string_catalog_filter_error *error_out,
+                                             unsigned char *record, cplat_string_catalog_filter_line_error *error_out,
                                              uint32_t *column_out);
 
 #ifdef __cplusplus

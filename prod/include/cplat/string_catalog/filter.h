@@ -90,22 +90,27 @@ extern "C"
 
     /**
      *  @brief          無効にした行の原因です。
+     *
+     *  関数の結果コード (`CPLAT_OK` や `CPLAT_ERR_*`) とは別の値です。\n
+     *  関数が成功した場合も、行ごとの原因を @ref cplat_string_catalog_filter_diagnostic で通知します。
      */
-    typedef enum cplat_string_catalog_filter_error
+    typedef enum cplat_string_catalog_filter_line_error
     {
-        CPLAT_STRING_CATALOG_FILTER_ERROR_NONE = 0,           /**< 原因なし。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_LEXICAL = 1,        /**< 字句の誤り。閉じていない引用符や範囲外の数値など。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_SYNTAX = 2,         /**< 構文の誤り。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_TYPE_MISMATCH = 3,  /**< フィールド、演算子、定数の型の組み合わせの誤り。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_LIMIT_EXCEEDED = 4, /**< 判定要素数、ネスト、参照数、行幅の上限の超過。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_LINE_CAPACITY = 5,  /**< フィルター オブジェクトの行数の上限の超過。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_KEY_NAME = 6,      /**< 名前解決テーブルにない文字列キーの名前。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_ARGUMENT_NAME = 7, /**< カタログのどの項目にもない引数名。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME =
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE = 0,    /**< 原因なし。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LEXICAL = 1, /**< 字句の誤り。閉じていない引用符や範囲外の数値など。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX = 2,  /**< 構文の誤り。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_TYPE_MISMATCH =
+            3, /**< フィールド、演算子、定数の型の組み合わせの誤り。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED =
+            4,                                                    /**< 判定要素数、ネスト、参照数、行幅の上限の超過。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LINE_CAPACITY = 5, /**< フィルター オブジェクトの行数の上限の超過。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_KEY_NAME = 6, /**< 名前解決テーブルにない文字列キーの名前。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_ARGUMENT_NAME = 7, /**< カタログのどの項目にもない引数名。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_CATEGORY_NAME =
             8, /**< 分類値の名前にない識別子を、分類値と比較した。 */
-        CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE =
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE =
             9 /**< 分類値と比較する定数が、分類値の名前の範囲外。 */
-    } cplat_string_catalog_filter_error;
+    } cplat_string_catalog_filter_line_error;
 
     /**
      *  @brief          無効にした行の診断情報です。
@@ -117,7 +122,7 @@ extern "C"
     {
         uint32_t line_index;                     /**< 行の位置 (0 起点)。 */
         uint32_t column;                         /**< 行内のバイト位置 (0 起点)。適用で検出した場合は 0。 */
-        cplat_string_catalog_filter_error error; /**< 原因。 */
+        cplat_string_catalog_filter_line_error error; /**< 原因。 */
     } cplat_string_catalog_filter_diagnostic;
 
     /**
@@ -184,8 +189,8 @@ extern "C"
      *  @param[in]      line_count          条件式リストの行数 `N`。
      *  @param[in]      line_width          条件式リストの行幅 `M`。フィルター オブジェクトの行幅になります。
      *  @param[in]      line_capacity       フィルター オブジェクトの行数の上限。
-     *  @param[out]     image               フィルター オブジェクトの格納先。
-     *  @param[in]      image_size          @p image のバイト数。
+     *  @param[out]     image_out           フィルター オブジェクトの格納先。
+     *  @param[in]      image_size          @p image_out のバイト数。
      *  @param[out]     diagnostics         無効にした行の診断情報の格納先。NULL を指定できます。
      *  @param[in]      diagnostic_capacity @p diagnostics の要素数。
      *  @param[out]     invalid_count_out   無効にした行の総数の格納先。NULL を指定できます。
@@ -200,12 +205,15 @@ extern "C"
      *
      *  @par            スレッド セーフ
      *  本関数は条件付きスレッド セーフです。\n
-     *  異なる @p image に対する呼び出しは同時に実行できます。\n
-     *  同一 @p image に対する並行操作は、呼び出し側で直列化してください。
+     *  異なる @p image_out に対する呼び出しは同時に実行できます。\n
+     *  同一 @p image_out に対する並行操作は、呼び出し側で直列化してください。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_compile(
-        const char *lines, size_t line_count, size_t line_width, size_t line_capacity, void *image, size_t image_size,
-        cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, size_t *invalid_count_out);
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_compile(const char *lines, size_t line_count,
+                                                                   size_t line_width, size_t line_capacity,
+                                                                   void *image_out, size_t image_size,
+                                                                   cplat_string_catalog_filter_diagnostic *diagnostics,
+                                                                   size_t diagnostic_capacity,
+                                                                   size_t *invalid_count_out);
 
     /**
      *  @brief          指定した行の条件式を置き換えます。
@@ -369,9 +377,9 @@ extern "C"
      *
      *  @p category_names を指定した場合、次の 3 点が変わります。
      *  - 条件式で分類値と比較する識別子 (例: `category <= WARNING`) を、文字列キーの名前ではなく
-     *    分類値の名前で解決します。名前にない識別子は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME として行を無効にします。
+     *    分類値の名前で解決します。名前にない識別子は @ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_CATEGORY_NAME として行を無効にします。
      *  - 分類値と比較する定数は、0 以上 @ref cplat_string_catalog_filter_category_names::count 未満の整数に限ります。
-     *    範囲外の値や整数でない値は @ref CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE として行を無効にします。
+     *    範囲外の値や整数でない値は @ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE として行を無効にします。
      *  - 自然文での表現では、条件を満たす分類値の名前を列挙して表します。
      *
      *  分類値の名前は作成時に固定し、変更できません。名前の解決と範囲の確認は、適用の時点で行います。

@@ -1044,7 +1044,7 @@ extern const char *delegate_real_cplat_string_catalog_get_note(const cplat_strin
 
 // cplat/string_catalog/filter.h
 extern int delegate_real_cplat_string_catalog_filter_compile(const char *lines, size_t line_count, size_t line_width,
-                                                             size_t line_capacity, void *image, size_t image_size,
+                                                             size_t line_capacity, void *image_out, size_t image_size,
                                                              cplat_string_catalog_filter_diagnostic *diagnostics,
                                                              size_t diagnostic_capacity, size_t *invalid_count_out);
 extern int

@@ -62,7 +62,7 @@ typedef struct filter_plane
     uint8_t *line_states;                           /**< [行][項目] の truth_value。 */
     int8_t *argument_maps;                          /**< [行][項目][引数参照] の引数インデックス。未定義は -1。 */
     int64_t *identifier_values;                     /**< [行][識別子] の文字列キー。 */
-    cplat_string_catalog_filter_error *line_errors; /**< [行] の無効にした原因。 */
+    cplat_string_catalog_filter_line_error *line_errors; /**< [行] の無効にした原因。 */
     uint64_t enabled_lines;                         /**< 適用で有効になった行の集合。 */
     uint32_t line_count;                            /**< 格納している条件式の数。 */
     uint32_t pad;                                   /**< 明示的アラインメントです。 */
@@ -819,7 +819,8 @@ static bool allocate_plane(const cplat_string_catalog_filter_slot *slot, filter_
     plane->identifier_values =
         (int64_t *)calloc(((size_t)slot->line_capacity * CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX),
                           sizeof(*plane->identifier_values));
-    plane->line_errors = (cplat_string_catalog_filter_error *)calloc(slot->line_capacity, sizeof(*plane->line_errors));
+    plane->line_errors =
+        (cplat_string_catalog_filter_line_error *)calloc(slot->line_capacity, sizeof(*plane->line_errors));
 
     if ((plane->image == NULL) || (plane->entry_states == NULL) || (plane->entry_dependent_lines == NULL) ||
         (plane->line_states == NULL) || (plane->argument_maps == NULL) || (plane->identifier_values == NULL) ||
@@ -902,9 +903,9 @@ static const cplat_string_catalog_filter_key_name *find_key_name(const cplat_str
 
 /**
  *  @brief          分類値と比較する定数 1 個を、分類値の名前の範囲で確かめ、識別子なら名前で解決します。
- *  @return         受け入れられる場合は CPLAT_STRING_CATALOG_FILTER_ERROR_NONE、それ以外は無効にする原因。
+ *  @return         受け入れられる場合は CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE、それ以外は無効にする原因。
  */
-static cplat_string_catalog_filter_error
+static cplat_string_catalog_filter_line_error
 resolve_category_constant(const cplat_string_catalog_filter_category_names *names,
                           const string_catalog_filter_constant *constant, int64_t *identifiers,
                           bool *is_category_identifier)
@@ -918,32 +919,32 @@ resolve_category_constant(const cplat_string_catalog_filter_category_names *name
             {
                 identifiers[constant->header.slot] = (int64_t)index;
                 is_category_identifier[constant->header.slot] = true;
-                return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+                return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
             }
         }
-        return CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_CATEGORY_NAME;
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_CATEGORY_NAME;
 
     case STRING_CATALOG_FILTER_CONSTANT_KIND_INTEGER:
     case STRING_CATALOG_FILTER_CONSTANT_KIND_CHARACTER:
         if (((constant->header.flags & STRING_CATALOG_FILTER_CONSTANT_FLAG_NEGATIVE) != 0U) ||
             (constant->magnitude >= (uint64_t)names->count))
         {
-            return CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE;
+            return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE;
         }
-        return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 
     case STRING_CATALOG_FILTER_CONSTANT_KIND_FLOAT:
         /* 分類値は整数のため、整数でない値は範囲外として扱う */
         if ((constant->real < 0.0) || (constant->real >= (double)names->count) ||
             (constant->real != floor(constant->real)))
         {
-            return CPLAT_STRING_CATALOG_FILTER_ERROR_CATEGORY_OUT_OF_RANGE;
+            return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE;
         }
-        return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 
     default:
         /* 文字列と null は、コンパイルの時点で分類値との比較から除かれている */
-        return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
     }
 }
 
@@ -952,18 +953,17 @@ resolve_category_constant(const cplat_string_catalog_filter_category_names *name
  *
  *  分類値の意味と範囲を決めるのは利用側です。名前が設定されていなければ、分類値の定数を確かめません。
  */
-static cplat_string_catalog_filter_error resolve_category_predicates(const cplat_string_catalog_filter_slot *slot,
-                                                                     const unsigned char *record,
-                                                                     const unsigned char *constants,
-                                                                     const string_catalog_filter_record_header *header,
-                                                                     int64_t *identifiers, bool *is_category_identifier)
+static cplat_string_catalog_filter_line_error
+resolve_category_predicates(const cplat_string_catalog_filter_slot *slot, const unsigned char *record,
+                            const unsigned char *constants, const string_catalog_filter_record_header *header,
+                            int64_t *identifiers, bool *is_category_identifier)
 {
     string_catalog_filter_instruction instruction;
     string_catalog_filter_constant constant;
 
     if (slot->category_names == NULL)
     {
-        return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
     }
 
     for (uint32_t index = 0; index < header->instruction_count; index++)
@@ -980,27 +980,27 @@ static cplat_string_catalog_filter_error resolve_category_predicates(const cplat
         offset = instruction.operand;
         for (uint16_t operand = 0; operand < instruction.operand_count; operand++)
         {
-            cplat_string_catalog_filter_error error;
+            cplat_string_catalog_filter_line_error error;
 
             (void)string_catalog_filter_read_constant(constants, header->constant_size, offset, &constant);
             offset = constant.next_offset;
 
             error = resolve_category_constant(slot->category_names, &constant, identifiers, is_category_identifier);
-            if (error != CPLAT_STRING_CATALOG_FILTER_ERROR_NONE)
+            if (error != CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
             {
                 return error;
             }
         }
     }
-    return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+    return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 }
 
 /**
  *  @brief          1 行の名前を解決し、項目ごとの判定結果を事前計算します。
- *  @return         解決できた場合は CPLAT_STRING_CATALOG_FILTER_ERROR_NONE、それ以外は無効にする原因。
+ *  @return         解決できた場合は CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE、それ以外は無効にする原因。
  */
-static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog_filter_slot *slot, filter_plane *plane,
-                                                      const uint32_t line_index)
+static cplat_string_catalog_filter_line_error resolve_line(const cplat_string_catalog_filter_slot *slot,
+                                                           filter_plane *plane, const uint32_t line_index)
 {
     const unsigned char *record =
         string_catalog_filter_record_address_const(plane->image, slot->record_size, line_index);
@@ -1011,7 +1011,7 @@ static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog
     int8_t *maps = argument_maps_of(slot, plane, line_index);
     int64_t *identifiers = identifier_values_of(plane, line_index);
     bool is_category_identifier[CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX] = {false};
-    cplat_string_catalog_filter_error error;
+    cplat_string_catalog_filter_line_error error;
     uint32_t offset = 0U;
 
     string_catalog_filter_read_record_header(record, &header);
@@ -1021,7 +1021,7 @@ static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog
 
     /* 分類値の比較を先に確かめる。分類値と比較する識別子は分類値の名前で解決し、文字列キーの名前では解決しない */
     error = resolve_category_predicates(slot, record, constants, &header, identifiers, is_category_identifier);
-    if (error != CPLAT_STRING_CATALOG_FILTER_ERROR_NONE)
+    if (error != CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
     {
         return error;
     }
@@ -1043,7 +1043,7 @@ static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog
 
             if (key_name == NULL)
             {
-                return CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_KEY_NAME;
+                return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_KEY_NAME;
             }
             identifiers[constant.header.slot] = key_name->key;
         }
@@ -1070,7 +1070,7 @@ static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog
             }
             if (!is_found)
             {
-                return CPLAT_STRING_CATALOG_FILTER_ERROR_UNRESOLVED_ARGUMENT_NAME;
+                return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_ARGUMENT_NAME;
             }
         }
         else
@@ -1094,7 +1094,7 @@ static cplat_string_catalog_filter_error resolve_line(const cplat_string_catalog
         states[entry_index] = (uint8_t)evaluate_line(&context, false);
     }
 
-    return CPLAT_STRING_CATALOG_FILTER_ERROR_NONE;
+    return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 }
 
 /** 参照中の面から、内容が同一の行を探します。 */
@@ -1155,7 +1155,7 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
             target->line_errors[line_index] = resolve_line(slot, target, line_index);
         }
 
-        if (target->line_errors[line_index] == CPLAT_STRING_CATALOG_FILTER_ERROR_NONE)
+        if (target->line_errors[line_index] == CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
         {
             target->enabled_lines |= (uint64_t)1U << line_index;
         }
