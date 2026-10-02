@@ -1,0 +1,23 @@
+// 条件式フィルターのテスト用カタログの設定です。
+// filter_test_trace.jsonc が settings から参照します。
+//
+// context は、この app が定義するコンテキスト引数です。トレース種別のカタログにのみ適用されます。
+// 位置指定は記述順に {46} から詰めて割り当てられ、{49} までの 4 個を指定できます。
+// 取得式は出力要求ごとに評価されるため、軽量かつ失敗せず、スレッド セーフである必要があります。
+//
+// cplat はこの引数の意味を知りません。
+// 条件式フィルターは引数名で解決するため、arg.sequence_number として cplat の文脈引数と同じように照合できます。
+// テスト用のカタログは外部へ公開しないため、export は指定しません。
+{
+    "context": {
+        "headers": ["filter_test_context.h"],
+        "arguments": [
+            {
+                "name": "sequence_number",
+                "kind": "INT32",
+                "description": "出力ごとに 1 から順に増加し、上限に達すると 1 へ戻るラウンド トリップ ID。",
+                "inline_value": "filter_test_next_sequence_number()"
+            }
+        ]
+    }
+}

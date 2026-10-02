@@ -1,0 +1,222 @@
+// 文字列カタログの定義です。
+// このファイルから gen/ 配下の生成物が出力されます。生成物を直接編集しないでください。
+// 生成器は app/cplat/bin_internal/string_catalog_gen.py です。このテストの makepart.mk の構文解析時に実行されます。
+//
+// 条件式フィルターのテストで判定と説明文の対象にする、トレース種別のカタログです。
+// string-catalog-sample の試作で使ったワーカーのトレース定義を、そのまま引き継いでいます。
+// 条件式の比較規則を確かめるため、引数には符号付き整数、符号なし整数、浮動小数点数、文字列、
+// ポインター、文字、エラー コードを混在させています。
+{
+    "kind": "trace",
+    "settings": "catalog_settings.jsonc",
+    "author": "Tetsuo Honda",
+    "date": "2026/09/26",
+    "version": "0.1.0",
+
+    // app が定義するコンテキスト引数のラウンド トリップ ID を、全文字列の先頭に付けます。
+    "text_prefix": {
+        "neutral": "#{46} "
+    },
+
+    "strings": [
+        {
+            "key": "FILTER_TEST_TRACE_KEY_WORKER_STARTED",
+            "id": "FILTER_TEST_TRACE_ID_0001",
+            "level": "INFO",
+            "brief": "ワーカーの開始。",
+            "details": "運用上の節目となる出来事のため、常時記録の対象となる INFO に設定します。",
+            "arguments": [
+                {
+                    "kind": "UINT32",
+                    "name": "worker_index",
+                    "description": "ワーカーの番号。"
+                }
+            ],
+            "texts": {
+                "neutral": "Worker {0} has started. tid={45}",
+                "japanese": "ワーカー {0} を開始しました。スレッド={45}"
+            },
+            "notes": {
+                "neutral": "Compare with arg.worker_index to raise the level of a specific worker.",
+                "japanese": "特定のワーカーだけを引き上げる場合は arg.worker_index と比較します。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_JOB_RECEIVED",
+            "id": "FILTER_TEST_TRACE_ID_0002",
+            "level": "DEBUG",
+            "brief": "ジョブの受け付け。",
+            "details": "ジョブごとに発生するため、調査時のみ有効化する DEBUG に設定します。",
+            "arguments": [
+                {
+                    "kind": "UINT32",
+                    "name": "worker_index",
+                    "description": "ワーカーの番号。"
+                },
+                {
+                    "kind": "UINT64",
+                    "name": "job_id",
+                    "description": "ジョブの番号。"
+                },
+                {
+                    "kind": "STRING",
+                    "name": "job_name",
+                    "description": "ジョブの名前。"
+                },
+                {
+                    "kind": "INT32",
+                    "name": "priority",
+                    "description": "ジョブの優先度。負の値は低い優先度を表します。"
+                }
+            ],
+            "texts": {
+                "neutral": "Worker {0} received job {1} ({2}, priority={3}).",
+                "japanese": "ワーカー {0} がジョブ {1} ({2}、優先度={3}) を受け付けました。"
+            },
+            "notes": {
+                "neutral": "arg.job_name and arg.priority are typical targets of the filter.",
+                "japanese": "arg.job_name と arg.priority が条件式の典型的な対象です。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_JOB_PROGRESS",
+            "id": "FILTER_TEST_TRACE_ID_0003",
+            "level": "VERBOSE",
+            "brief": "ジョブの進捗。",
+            "details": "ジョブの途中で繰り返し発生するため、VERBOSE に設定します。",
+            "arguments": [
+                {
+                    "kind": "UINT64",
+                    "name": "job_id",
+                    "description": "ジョブの番号。"
+                },
+                {
+                    "kind": "DOUBLE",
+                    "name": "ratio",
+                    "description": "進捗の割合。0 から 1 までの値です。"
+                }
+            ],
+            "texts": {
+                "neutral": "Job {0} progress={1}",
+                "japanese": "ジョブ {0} の進捗={1}"
+            },
+            "notes": {
+                "neutral": "arg.ratio is compared as a double. NaN only satisfies !=.",
+                "japanese": "arg.ratio は倍精度浮動小数点数として比較します。NaN は != だけが成立します。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_BUFFER_ALLOCATED",
+            "id": "FILTER_TEST_TRACE_ID_0004",
+            "level": "DEBUG",
+            "brief": "バッファーの確保。",
+            "details": "内部の状態を細かく残す記録のため DEBUG に設定します。",
+            "arguments": [
+                {
+                    "kind": "POINTER",
+                    "name": "buffer",
+                    "description": "確保したバッファーのアドレス。確保に失敗した場合は NULL です。"
+                },
+                {
+                    "kind": "SIZE",
+                    "name": "byte_count",
+                    "description": "要求したバイト数。"
+                }
+            ],
+            "texts": {
+                "neutral": "Allocated buffer {0} ({1} bytes). [{41}:{42} {43}]",
+                "japanese": "バッファー {0} を確保しました ({1} バイト)。[{41}:{42} {43}]"
+            },
+            "notes": {
+                "neutral": "Use arg.buffer == null to catch allocation failures.",
+                "japanese": "確保の失敗は arg.buffer == null で捕捉できます。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_JOB_FAILED",
+            "id": "FILTER_TEST_TRACE_ID_0005",
+            "level": "WARNING",
+            "brief": "ジョブの失敗。",
+            "details": "再試行で回復できる事象のため WARNING に設定します。",
+            "arguments": [
+                {
+                    "kind": "UINT64",
+                    "name": "job_id",
+                    "description": "ジョブの番号。"
+                },
+                {
+                    "kind": "ERROR_CODE",
+                    "name": "error_code",
+                    "description": "errno または Win32 のエラー コード。"
+                }
+            ],
+            "texts": {
+                "neutral": "Job {0} failed. Error code={1}",
+                "japanese": "ジョブ {0} が失敗しました。エラー コード={1}"
+            },
+            "notes": {
+                "neutral": "arg.error_code is a signed integer.",
+                "japanese": "arg.error_code は符号付き整数です。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_COMMAND_RECEIVED",
+            "id": "FILTER_TEST_TRACE_ID_0006",
+            "level": "DEBUG",
+            "brief": "制御コマンドの受信。",
+            "details": "内部の状態を細かく残す記録のため DEBUG に設定します。",
+            "arguments": [
+                {
+                    "kind": "CHAR",
+                    "name": "command",
+                    "description": "コマンドの文字。"
+                },
+                {
+                    "kind": "HEX8",
+                    "name": "status",
+                    "description": "受信時の状態フラグ。"
+                },
+                {
+                    "kind": "INT64",
+                    "name": "delta",
+                    "description": "前回の受信からの差分。負の値を取り得ます。"
+                }
+            ],
+            "texts": {
+                "neutral": "Received command {0}. status={1} delta={2}",
+                "japanese": "コマンド {0} を受信しました。状態={1} 差分={2}"
+            },
+            "notes": {
+                "neutral": "arg.command is compared with a character literal such as 's'.",
+                "japanese": "arg.command は 's' のような文字の定数と比較します。"
+            }
+        },
+        {
+            "key": "FILTER_TEST_TRACE_KEY_WORKER_STOPPED",
+            "id": "FILTER_TEST_TRACE_ID_0007",
+            "level": "INFO",
+            "brief": "ワーカーの停止。",
+            "details": "運用上の節目となる出来事のため、常時記録の対象となる INFO に設定します。",
+            "arguments": [
+                {
+                    "kind": "UINT32",
+                    "name": "worker_index",
+                    "description": "ワーカーの番号。"
+                },
+                {
+                    "kind": "UINT64",
+                    "name": "processed_count",
+                    "description": "処理したジョブの件数。"
+                }
+            ],
+            "texts": {
+                "neutral": "Worker {0} has stopped after {1} jobs.",
+                "japanese": "ワーカー {0} が {1} 件のジョブを処理して停止しました。"
+            },
+            "notes": {
+                "neutral": "arg.processed_count is an unsigned 64-bit integer.",
+                "japanese": "arg.processed_count は符号なし 64 ビット整数です。"
+            }
+        }
+    ]
+}
