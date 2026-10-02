@@ -5,6 +5,9 @@
 #include "gen/filter_test_trace.h"
 #include "filter_test_trace_key_names.h"
 
+/* 命令形式を書き換えるため、モジュール私有ヘッダーを取り込む */
+#include "filter.h"
+
 #include <cplat/base/result.h>
 
 #include <cstdint>
@@ -257,6 +260,50 @@ TEST_F(stringCatalogFilterApplyTest, apply_with_corrupt_image_keeps_previous_sta
     // Assert
     EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR,
               actual_corrupt_apply_ret); // [確認_異常系] - 破損したイメージの適用は失敗すること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH,
+              actual_state_after); // [確認_異常系] - 以前の判定状態 (常に一致) が維持されること。
+}
+
+// ハッシュ値は正しく、構造の検査で拒否されるイメージの適用が、以前の判定状態を維持することの確認
+TEST_F(stringCatalogFilterApplyTest, apply_with_structurally_broken_image_keeps_previous_state)
+{
+    // Arrange
+    static unsigned char valid_image[kImageSize];
+    static unsigned char broken_image[kImageSize];
+    unsigned char *record;
+    string_catalog_filter_instruction instruction;
+    string_catalog_filter_record_header record_header;
+    string_catalog_filter_image_header image_header;
+    cplat_string_catalog_filter_state actual_state_after;
+    int actual_broken_apply_ret;
+
+    ASSERT_EQ(CPLAT_OK,
+              compile_single_line("key == 2",
+                                  valid_image)); // [状態] - JOB_RECEIVED (key=2) に一致する条件式をコンパイルする。
+    ASSERT_EQ(CPLAT_OK, compile_single_line("key == 1", broken_image)); // [状態] - 別の内容をコンパイルする。
+    record = filter_test_record_address(broken_image, kLineWidth, 0U);
+    string_catalog_filter_read_instruction(record, 0U, &instruction);
+    instruction.opcode = 0x7FU;
+    string_catalog_filter_write_instruction(record, 0U, &instruction); // [状態] - 命令の種類を存在しない値にする。
+    string_catalog_filter_read_record_header(record, &record_header);
+    record_header.line_hash = string_catalog_filter_compute_line_hash(record, (uint32_t)kLineWidth);
+    string_catalog_filter_write_record_header(record, &record_header);
+    string_catalog_filter_read_image_header(broken_image, &image_header);
+    string_catalog_filter_update_content_hash(broken_image, &image_header); // [状態] - ハッシュ値を計算し直す。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_apply(slot_, valid_image, kImageSize, nullptr, 0U,
+                                                               nullptr)); // [状態] - 正常なイメージを適用する。
+
+    // Pre-Assert
+
+    // Act
+    actual_broken_apply_ret = cplat_string_catalog_filter_slot_apply(
+        slot_, broken_image, kImageSize, nullptr, 0U, nullptr); // [手順] - 構造が壊れたイメージを適用しようとする。
+    (void)cplat_string_catalog_filter_slot_test(slot_, FILTER_TEST_TRACE_KEY_JOB_RECEIVED,
+                                                &actual_state_after); // [手順] - 適用の試行後の状態を取得する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR,
+              actual_broken_apply_ret); // [確認_異常系] - 構造が壊れたイメージの適用は失敗すること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH,
               actual_state_after); // [確認_異常系] - 以前の判定状態 (常に一致) が維持されること。
 }
