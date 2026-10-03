@@ -35,6 +35,15 @@ class stringCatalogFilterTraceOutputTest : public Test
 
     cplat_string_catalog_filter_slot *slot_ = nullptr;
 
+    /** テスト用カタログの識別値です。公開で指定します。 */
+    static uint64_t trace_catalog_id()
+    {
+        uint64_t catalog_id = 0U;
+
+        (void)cplat_string_catalog_filter_get_catalog_id(filter_test_trace_catalog(), &catalog_id);
+        return catalog_id;
+    }
+
     cplat_tracer *tracer()
     {
         return reinterpret_cast<cplat_tracer *>(&tracer_storage_);
@@ -205,9 +214,9 @@ TEST_F(stringCatalogFilterTraceOutputTest, attached_source_is_taken_on_write)
                                                                        nullptr)); // [状態] - ソース領域を結び付ける。
     ASSERT_EQ(CPLAT_OK, filter_test_trace_set_filter(slot_));                     // [状態] - 出力へ接続する。
     ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_));
-    ASSERT_EQ(CPLAT_OK,
-              cplat_string_catalog_filter_source_publish(source, sizeof(source), image_, sizeof(image_), nullptr,
-                                                         nullptr)); // [状態] - WARNING 以上に一致する条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_source_publish(
+                            source, sizeof(source), image_, sizeof(image_), trace_catalog_id(), nullptr,
+                            nullptr)); // [状態] - WARNING 以上に一致する条件を公開する。
 
     // Pre-Assert
     EXPECT_CALL(mock_cplat,

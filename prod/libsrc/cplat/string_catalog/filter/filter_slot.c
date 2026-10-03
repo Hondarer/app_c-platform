@@ -65,6 +65,7 @@ struct cplat_string_catalog_filter_slot
     size_t key_name_count;
     size_t entry_count;
     size_t line_word_count; /**< 行の集合を表す 64 ビットの語の数。行数の上限から求めます。 */
+    uint64_t catalog_id;    /**< カタログの識別値。ソース領域の公開内容がこのカタログ向けかを確かめます。 */
     size_t image_size;
     uint32_t line_capacity;
     uint32_t line_width;
@@ -1425,6 +1426,7 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
     slot->record_size = (uint32_t)CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(line_width);
     slot->image_size = CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(line_capacity, line_width);
     slot->line_word_count = (line_capacity + LINE_WORD_BITS - 1U) / LINE_WORD_BITS;
+    (void)cplat_string_catalog_filter_get_catalog_id(catalog, &slot->catalog_id);
 
     if (!allocate_plane(slot, &slot->planes[0]) || !allocate_plane(slot, &slot->planes[1]))
     {
@@ -1672,8 +1674,18 @@ static void refresh_from_source(cplat_string_catalog_filter_slot *slot)
 
     /* ヘッダーも公開時刻の読み直しで一貫性を確かめる。一貫しない場合は次の判定で改めて取り込む */
     memcpy(&header, slot->source, sizeof(header));
+    ret = CPLAT_OK;
     if (!string_catalog_filter_source_is_header_valid(&header) || (header.line_capacity != slot->line_capacity) ||
         (header.line_width != slot->line_width) || (header.image_size != (uint64_t)slot->image_size))
+    {
+        ret = CPLAT_ERR_CORRUPT_DESCRIPTOR;
+    }
+    else if (header.catalog_id != slot->catalog_id)
+    {
+        /* 別のカタログ (別の版の定義を含む) 向けの公開内容は、名前が解決できても意味が異なり得るため取り込まない */
+        ret = CPLAT_ERR_UNSUPPORTED;
+    }
+    if (ret != CPLAT_OK)
     {
         if (writer_lock != NULL)
         {
@@ -1681,7 +1693,7 @@ static void refresh_from_source(cplat_string_catalog_filter_slot *slot)
         }
         if (string_catalog_filter_source_end_read(slot->source, timestamp))
         {
-            slot->source_last_result = CPLAT_ERR_CORRUPT_DESCRIPTOR;
+            slot->source_last_result = ret;
             slot->source_last_invalid_count = 0U;
             cplat_atomic_store_u64(&slot->taken_timestamp, timestamp, CPLAT_MEMORY_ORDER_RELAXED);
         }

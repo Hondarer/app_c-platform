@@ -674,6 +674,7 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | 行の自然文での表現 | `cplat_string_catalog_filter_slot_describe_line` |
 | 引数値によらない判定 | `cplat_string_catalog_filter_slot_test` |
 | 判定と文字列の組み立て | `cplat_string_catalog_filter_slot_format` / `cplat_string_catalog_filter_slot_vformat` |
+| カタログの識別値の計算 | `cplat_string_catalog_filter_get_catalog_id` |
 | ソース領域への公開と情報取得 | `cplat_string_catalog_filter_source_publish` / `cplat_string_catalog_filter_source_get_info` |
 | スロットへのソース領域と書き込み側の排他の結び付け、取り込み状態の取得 | `cplat_string_catalog_filter_slot_attach_source` / `cplat_string_catalog_filter_slot_get_source_status` |
 

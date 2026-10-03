@@ -365,7 +365,8 @@ extern "C"
         int64_t published_realtime_seconds;     /**< 公開した実時刻の秒部。 */
         int64_t published_realtime_nanoseconds; /**< 公開した実時刻のナノ秒部。 */
         uint32_t publisher_process_id;          /**< 公開したプロセスの ID。 */
-        uint32_t reserved[3];                   /**< 予約。0 を格納します。 */
+        uint32_t reserved;                      /**< 予約。0 を格納します。 */
+        uint64_t catalog_id; /**< 公開したフィルター オブジェクトを判定に使うカタログの識別値。 */
     } string_catalog_filter_source_header;
 
     /**

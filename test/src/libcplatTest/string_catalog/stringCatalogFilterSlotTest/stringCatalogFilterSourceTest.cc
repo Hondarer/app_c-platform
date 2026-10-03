@@ -3,6 +3,7 @@
 
 #include "filterTestSupport.h"
 
+#include "filter_test_catalog.h"
 #include "gen/filter_test_trace.h"
 
 /* 公開時刻と署名を書き換えるため、モジュール私有ヘッダーを取り込む */
@@ -42,10 +43,14 @@ class stringCatalogFilterSourceTest : public Test
 
     cplat_string_catalog_filter_slot *slot_ = nullptr;
 
+    /** テスト用カタログの識別値です。公開で指定します。 */
+    uint64_t catalog_id_ = 0U;
+
     void SetUp() override
     {
         memset(source_, 0, sizeof(source_));
         memset(image_, 0, sizeof(image_));
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_get_catalog_id(filter_test_trace_catalog(), &catalog_id_));
         ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_create(
                                 filter_test_trace_catalog(), filter_test_trace_key_names(),
                                 filter_test_trace_key_name_count(), nullptr, kLineCapacity, kLineWidth, &slot_));
@@ -69,8 +74,8 @@ class stringCatalogFilterSourceTest : public Test
         {
             return ret;
         }
-        return cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), nullptr,
-                                                          timestamp_out);
+        return cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), catalog_id_,
+                                                          nullptr, timestamp_out);
     }
 
     /** WARNING の JOB_FAILED を判定付きで組み立て、一致結果を返します。 */
@@ -326,19 +331,20 @@ TEST_F(stringCatalogFilterSourceTest, publish_rejects_invalid_input_without_chan
     // Pre-Assert
 
     // Act
-    actual_null_ret =
-        cplat_string_catalog_filter_source_publish(nullptr, sizeof(source_), image_, sizeof(image_), nullptr,
-                                                   nullptr); // [手順] - 領域に NULL を指定する。
-    actual_small_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_) - 1U, image_, sizeof(image_), nullptr,
-                                                   nullptr); // [手順] - 小さい領域を指定する。
+    actual_null_ret = cplat_string_catalog_filter_source_publish(nullptr, sizeof(source_), image_, sizeof(image_),
+                                                                 catalog_id_, nullptr,
+                                                                 nullptr); // [手順] - 領域に NULL を指定する。
+    actual_small_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_) - 1U, image_, sizeof(image_),
+                                                                  catalog_id_, nullptr,
+                                                                  nullptr); // [手順] - 小さい領域を指定する。
     image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
-    actual_corrupt_image_ret = cplat_string_catalog_filter_source_publish(
-        source_, sizeof(source_), image_, sizeof(image_), nullptr, nullptr); // [手順] - 壊れたイメージを公開する。
+    actual_corrupt_image_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), catalog_id_,
+                                                   nullptr, nullptr); // [手順] - 壊れたイメージを公開する。
     image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
-    actual_foreign_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), nullptr,
-                                                   nullptr); // [手順] - 異なる形式の領域へ公開する。
+    actual_foreign_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                    catalog_id_, nullptr,
+                                                                    nullptr); // [手順] - 異なる形式の領域へ公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_null_ret);            // [確認_異常系] - NULL を拒否すること。
@@ -684,9 +690,9 @@ TEST_F(stringCatalogFilterLockedSourceTest, publish_takes_lock_once_while_writin
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
-                                                   &actual_timestamp); // [手順] - 排他とともに公開する。
+    int actual_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                catalog_id_, &lock_,
+                                                                &actual_timestamp); // [手順] - 排他とともに公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret);     // [確認_正常系] - 公開に成功すること。
@@ -707,9 +713,9 @@ TEST_F(stringCatalogFilterLockedSourceTest, publish_lock_failure_keeps_region)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
-                                                   nullptr); // [手順] - 排他とともに公開する。
+    int actual_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                catalog_id_, &lock_,
+                                                                nullptr); // [手順] - 排他とともに公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_TIMEOUT, actual_ret); // [確認_異常系] - 排他の取得の結果コードを返すこと。
@@ -727,9 +733,9 @@ TEST_F(stringCatalogFilterLockedSourceTest, publish_rejecting_foreign_region_rel
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
-                                                   nullptr); // [手順] - 排他とともに公開する。
+    int actual_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                catalog_id_, &lock_,
+                                                                nullptr); // [手順] - 排他とともに公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, actual_ret); // [確認_異常系] - 異なる形式の領域を拒否すること。
@@ -747,11 +753,108 @@ TEST_F(stringCatalogFilterLockedSourceTest, publish_rejects_incomplete_lock)
     // Pre-Assert
 
     // Act
-    int actual_ret =
-        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &without_unlock,
-                                                   nullptr); // [手順] - 解放の関数がない排他で公開する。
+    int actual_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                catalog_id_, &without_unlock,
+                                                                nullptr); // [手順] - 解放の関数がない排他で公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - 関数が欠けた排他を拒否すること。
     EXPECT_EQ(0, counter_.lock_count);                 // [確認_異常系] - 排他を取得しないこと。
+}
+
+// カタログの識別値は同じ定義で同じ値になり、異なるカタログでは異なる値になることの確認
+TEST_F(stringCatalogFilterSourceTest, catalog_id_is_stable_and_distinguishes_catalogs)
+{
+    // Arrange
+    uint64_t actual_again = 0U;
+    uint64_t actual_other = 0U;
+
+    // Pre-Assert
+
+    // Act
+    int actual_again_ret = cplat_string_catalog_filter_get_catalog_id(
+        filter_test_trace_catalog(), &actual_again); // [手順] - 同じカタログで求め直す。
+    int actual_other_ret = cplat_string_catalog_filter_get_catalog_id(filter_test_catalog(),
+                                                                      &actual_other); // [手順] - 別のカタログで求める。
+    int actual_null_ret =
+        cplat_string_catalog_filter_get_catalog_id(nullptr, &actual_other); // [手順] - NULL を指定する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_again_ret);                  // [確認_正常系] - 求められること。
+    EXPECT_EQ(CPLAT_OK, actual_other_ret);                  // [確認_正常系] - 求められること。
+    EXPECT_NE(0U, catalog_id_);                             // [確認_正常系] - 0 にならないこと。
+    EXPECT_EQ(catalog_id_, actual_again);                   // [確認_正常系] - 同じ定義で同じ値になること。
+    EXPECT_NE(catalog_id_, actual_other);                   // [確認_正常系] - 異なるカタログで異なる値になること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_null_ret); // [確認_異常系] - NULL を拒否すること。
+}
+
+// 公開でカタログの識別値に 0 を指定した場合は拒否し、指定した識別値をヘッダーへ記録することの確認
+TEST_F(stringCatalogFilterSourceTest, publish_records_catalog_id_and_rejects_zero)
+{
+    // Arrange
+    cplat_string_catalog_filter_source_info actual_info;
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+
+    // Pre-Assert
+
+    // Act
+    int actual_zero_ret = cplat_string_catalog_filter_source_publish(
+        source_, sizeof(source_), image_, sizeof(image_), 0U, nullptr, nullptr); // [手順] - 識別値 0 で公開する。
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2"));                          // [手順] - 識別値を指定して公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_source_get_info(source_, sizeof(source_),
+                                                                    &actual_info)); // [手順] - 公開の情報を読む。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_zero_ret); // [確認_異常系] - 識別値 0 を拒否すること。
+    EXPECT_EQ(catalog_id_, actual_info.catalog_id);         // [確認_正常系] - 指定した識別値を記録すること。
+}
+
+// 別のカタログ向けの公開内容と、識別値を持たない以前の版の領域は取り込まず、記録して再試行しないことの確認
+TEST_F(stringCatalogFilterSourceTest, publication_for_another_catalog_is_not_taken)
+{
+    struct publication
+    {
+        const char *label;
+        bool is_legacy;
+        unsigned char pad[7]; /**< 明示的アラインメントです。 */
+    };
+    const publication publications[] = {{"another catalog", false, {0}}, {"legacy region", true, {0}}};
+
+    for (const publication &case_item : publications)
+    {
+        SCOPED_TRACE(case_item.label);
+
+        // Arrange
+        uint64_t other_catalog_id = 0U;
+        uint64_t timestamp = 0U;
+        int actual_matched = 1;
+        memset(source_, 0, sizeof(source_));
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_get_catalog_id(filter_test_catalog(), &other_catalog_id));
+        ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+        ASSERT_EQ(CPLAT_OK,
+                  cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                             case_item.is_legacy ? catalog_id_ : other_catalog_id,
+                                                             nullptr, &timestamp)); // [状態] - 公開する。
+        if (case_item.is_legacy)
+        {
+            header()->catalog_id = 0U; // [状態] - 識別値を持たない以前の版の領域にする。
+        }
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                           nullptr)); // [状態] - 結び付ける。
+
+        // Pre-Assert
+
+        // Act
+        (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+        cplat_string_catalog_filter_source_status status = source_status();
+        EXPECT_CALL(mock_cplat, cplat_local_lock_try_lock(_))
+            .Times(0);                            // [確認_異常系] - 同じ公開内容の取り込みを試みないこと。
+        (void)format_job_failed(&actual_matched); // [手順] - もう一度組み立てる。
+        testing::Mock::VerifyAndClearExpectations(&mock_cplat);
+
+        // Assert
+        EXPECT_EQ(0, actual_matched);                         // [確認_異常系] - 取り込まず、以前の条件で判定すること。
+        EXPECT_EQ(timestamp, status.taken_timestamp);         // [確認_異常系] - 公開時刻を記録すること。
+        EXPECT_EQ(CPLAT_ERR_UNSUPPORTED, status.last_result); // [確認_異常系] - カタログの不一致を記録すること。
+    }
 }
