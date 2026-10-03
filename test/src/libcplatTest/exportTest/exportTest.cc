@@ -700,8 +700,10 @@
                                   cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, \
                                   size_t *invalid_count_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_snapshot, \
-                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, void *image_out, size_t image_size, \
-                                  uint64_t *enabled_lines_out)) \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, void *image_out, size_t image_size)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_get_line_error, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, size_t line_index, \
+                                  cplat_string_catalog_filter_line_error *error_out)) \
     EXPORT_ENTRY( \
         cplat_string_catalog_filter_slot_describe_line, \
         int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, size_t line_index, char *dest, size_t dest_size)) \

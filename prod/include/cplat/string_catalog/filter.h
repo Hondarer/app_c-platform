@@ -50,8 +50,14 @@
  *  @{
  */
 
-/** フィルター オブジェクトが格納できる行数の上限です。項目ごとの行の集合を 64 ビットで表すためです。 */
-#define CPLAT_STRING_CATALOG_FILTER_LINE_MAX 64U
+/**
+ *  @brief          フィルター オブジェクトが格納できる行数の上限です。
+ *
+ *  行幅の上限とそろえています。\n
+ *  スロットは、作成時に指定した行数の上限に合わせて固定長の領域を確保します。
+ *  事前計算の領域は行数と項目数の積に比例するため、行数の上限は必要な分だけ指定してください。
+ */
+#define CPLAT_STRING_CATALOG_FILTER_LINE_MAX 1024U
 
 /** 行幅の下限です。最も短い判定要素 `key<1` と NUL 終端を格納できる幅です。 */
 #define CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MIN 8U
@@ -666,24 +672,40 @@ extern "C"
 
     /**
      *  @brief          適用中のフィルター オブジェクトを複製して取り出します。
-     *  @param[in]      slot              フィルター スロット。
-     *  @param[out]     image_out         複製の格納先。
-     *  @param[in]      image_size        @p image_out のバイト数。
-     *  @param[out]     enabled_lines_out 適用で有効になった行の集合 (ビット i が行 i)。NULL を指定できます。
+     *  @param[in]      slot       フィルター スロット。
+     *  @param[out]     image_out  複製の格納先。
+     *  @param[in]      image_size @p image_out のバイト数。
      *  @return         成功時は `CPLAT_OK` を返します。
      *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         @p image_size がスロットのフィルター オブジェクトの大きさに満たない場合は
      *                  `CPLAT_ERR_BUFFER_TOO_SMALL` を返します。
      *
      *  名前を解決できずに無効とした行も、フィルター オブジェクトには残ります。\n
-     *  有効かどうかは @p enabled_lines_out で判別します。
+     *  有効かどうかは @ref cplat_string_catalog_filter_slot_get_line_error で判別します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_snapshot(cplat_string_catalog_filter_slot *slot,
-                                                                         void *image_out, size_t image_size,
-                                                                         uint64_t *enabled_lines_out);
+                                                                         void *image_out, size_t image_size);
+
+    /**
+     *  @brief          適用中の条件式の 1 行について、有効かどうかと無効にした原因を取得します。
+     *  @param[in]      slot       フィルター スロット。
+     *  @param[in]      line_index 行の位置 (0 起点)。
+     *  @param[out]     error_out  原因の格納先。有効な行では @ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE を格納します。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合、または @p line_index が適用中のフィルター オブジェクトの行数以上の場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         同期に失敗した場合は、同期関数の結果コードを返します。
+     *
+     *  適用の時点で名前を解決できなかった行や、正規表現をコンパイルできなかった行は、無効として原因を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_get_line_error(
+        cplat_string_catalog_filter_slot *slot, size_t line_index, cplat_string_catalog_filter_line_error *error_out);
 
     /**
      *  @brief          適用中の条件式の 1 行を、カタログのメタ情報を用いた自然文で表現します。

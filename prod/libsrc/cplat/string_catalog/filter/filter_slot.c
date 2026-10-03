@@ -50,6 +50,9 @@ typedef enum truth_value
     TRUTH_VALUE_UNKNOWN = 2
 } truth_value;
 
+/** 行の集合を表す 1 語のビット数です。 */
+#define LINE_WORD_BITS 64U
+
 /** 数値の比較結果のうち、NaN を含むため順序が定まらないことを表す値です。 */
 #define ORDER_UNORDERED 2
 
@@ -58,13 +61,12 @@ typedef struct filter_plane
 {
     unsigned char *image;                           /**< フィルター オブジェクトの複製。 */
     uint8_t *entry_states;                          /**< [項目] の cplat_string_catalog_filter_state。 */
-    uint64_t *entry_dependent_lines;                /**< [項目] の、引数値に依存する行の集合。 */
+    uint64_t *entry_dependent_lines;                /**< [項目][語] の、引数値に依存する行の集合 (ビット i が行 i)。 */
     uint8_t *line_states;                           /**< [行][項目] の truth_value。 */
     int8_t *argument_maps;                          /**< [行][項目][引数参照] の引数インデックス。未定義は -1。 */
     int64_t *identifier_values;                     /**< [行][識別子] の文字列キー。 */
     cplat_string_catalog_filter_line_error *line_errors; /**< [行] の無効にした原因。 */
     cplat_regex **patterns; /**< [行][パターン] のコンパイルした正規表現。面の構築のたびに作り直します。 */
-    uint64_t enabled_lines;                         /**< 適用で有効になった行の集合。 */
     uint32_t line_count;                            /**< 格納している条件式の数。 */
     uint32_t pad;                                   /**< 明示的アラインメントです。 */
 } filter_plane;
@@ -75,6 +77,7 @@ struct cplat_string_catalog_filter_slot
     const cplat_string_catalog_filter_key_name *key_names;
     size_t key_name_count;
     size_t entry_count;
+    size_t line_word_count; /**< 行の集合を表す 64 ビットの語の数。行数の上限から求めます。 */
     size_t image_size;
     uint32_t line_capacity;
     uint32_t line_width;
@@ -833,6 +836,17 @@ static int64_t *identifier_values_of(filter_plane *plane, const uint32_t line_in
     return plane->identifier_values + ((size_t)line_index * CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX);
 }
 
+static uint64_t *dependent_lines_of(const cplat_string_catalog_filter_slot *slot, const filter_plane *plane,
+                                    const size_t entry_index)
+{
+    return plane->entry_dependent_lines + (entry_index * slot->line_word_count);
+}
+
+static bool is_line_enabled(const filter_plane *plane, const uint32_t line_index)
+{
+    return plane->line_errors[line_index] == CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
+}
+
 static cplat_regex **patterns_of(filter_plane *plane, const uint32_t line_index)
 {
     return plane->patterns + ((size_t)line_index * CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX);
@@ -879,7 +893,8 @@ static bool allocate_plane(const cplat_string_catalog_filter_slot *slot, filter_
     plane->image = (unsigned char *)malloc(slot->image_size);
     /* 項目数が 0 のカタログでも確保に失敗と区別できるよう、要素数は 1 以上とする */
     plane->entry_states = (uint8_t *)calloc(slot->entry_count + 1U, sizeof(*plane->entry_states));
-    plane->entry_dependent_lines = (uint64_t *)calloc(slot->entry_count + 1U, sizeof(*plane->entry_dependent_lines));
+    plane->entry_dependent_lines =
+        (uint64_t *)calloc((slot->entry_count + 1U) * slot->line_word_count, sizeof(*plane->entry_dependent_lines));
     plane->line_states = (uint8_t *)calloc(line_entries + 1U, sizeof(*plane->line_states));
     plane->argument_maps = (int8_t *)calloc((line_entries * CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX) + 1U,
                                             sizeof(*plane->argument_maps));
@@ -1249,7 +1264,6 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
 
     string_catalog_filter_read_image_header(target->image, &header);
     target->line_count = header.line_count;
-    target->enabled_lines = 0U;
 
     /* 未使用の面が前回の構築で保持した正規表現を破棄する。判定はこの面を参照していない */
     dispose_patterns(slot, target);
@@ -1282,11 +1296,7 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
             target->line_errors[line_index] = resolve_line(slot, target, line_index);
         }
 
-        if (target->line_errors[line_index] == CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
-        {
-            target->enabled_lines |= (uint64_t)1U << line_index;
-        }
-        else
+        if (target->line_errors[line_index] != CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
         {
             if ((diagnostics != NULL) && (*invalid_count < diagnostic_capacity))
             {
@@ -1301,14 +1311,16 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
     /* 行ごとの結果を、論理和の規則で項目ごとに集約する */
     for (size_t entry_index = 0; entry_index < slot->entry_count; entry_index++)
     {
-        uint64_t dependent_lines = 0U;
+        uint64_t *dependent_lines = dependent_lines_of(slot, target, entry_index);
+        bool has_dependent = false;
         bool is_always = false;
 
+        memset(dependent_lines, 0, slot->line_word_count * sizeof(*dependent_lines));
         for (uint32_t line_index = 0; line_index < target->line_count; line_index++)
         {
             uint8_t state;
 
-            if ((target->enabled_lines & ((uint64_t)1U << line_index)) == 0U)
+            if (!is_line_enabled(target, line_index))
             {
                 continue;
             }
@@ -1320,24 +1332,23 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
             }
             if (state == (uint8_t)TRUTH_VALUE_UNKNOWN)
             {
-                dependent_lines |= (uint64_t)1U << line_index;
+                dependent_lines[line_index / LINE_WORD_BITS] |= (uint64_t)1U << (line_index % LINE_WORD_BITS);
+                has_dependent = true;
             }
         }
 
         if (is_always)
         {
             target->entry_states[entry_index] = (uint8_t)CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH;
-            target->entry_dependent_lines[entry_index] = 0U;
+            memset(dependent_lines, 0, slot->line_word_count * sizeof(*dependent_lines));
         }
-        else if (dependent_lines != 0U)
+        else if (has_dependent)
         {
             target->entry_states[entry_index] = (uint8_t)CPLAT_STRING_CATALOG_FILTER_STATE_ARGUMENT_DEPENDENT;
-            target->entry_dependent_lines[entry_index] = dependent_lines;
         }
         else
         {
             target->entry_states[entry_index] = (uint8_t)CPLAT_STRING_CATALOG_FILTER_STATE_NEVER_MATCH;
-            target->entry_dependent_lines[entry_index] = 0U;
         }
     }
 }
@@ -1415,6 +1426,7 @@ int cplat_string_catalog_filter_slot_create(const cplat_string_catalog *catalog,
     slot->line_width = (uint32_t)line_width;
     slot->record_size = (uint32_t)CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(line_width);
     slot->image_size = CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(line_capacity, line_width);
+    slot->line_word_count = (line_capacity + LINE_WORD_BITS - 1U) / LINE_WORD_BITS;
 
     if (!allocate_plane(slot, &slot->planes[0]) || !allocate_plane(slot, &slot->planes[1]))
     {
@@ -1747,7 +1759,7 @@ int cplat_string_catalog_filter_slot_get_source_status(cplat_string_catalog_filt
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_filter_slot_snapshot(cplat_string_catalog_filter_slot *slot, void *image_out,
-                                              const size_t image_size, uint64_t *enabled_lines_out)
+                                              const size_t image_size)
 {
     const filter_plane *plane;
     int ret;
@@ -1769,13 +1781,42 @@ int cplat_string_catalog_filter_slot_snapshot(cplat_string_catalog_filter_slot *
 
     plane = &slot->planes[slot->active_plane];
     memcpy(image_out, plane->image, slot->image_size);
-    if (enabled_lines_out != NULL)
-    {
-        *enabled_lines_out = plane->enabled_lines;
-    }
 
     (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
     return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_filter_slot_get_line_error(cplat_string_catalog_filter_slot *slot, const size_t line_index,
+                                                    cplat_string_catalog_filter_line_error *error_out)
+{
+    const filter_plane *plane;
+    int ret;
+
+    if ((slot == NULL) || (error_out == NULL))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    ret = cplat_local_rwlock_lock_shared(slot->plane_lock, CPLAT_SYNC_WAIT_FOREVER);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+
+    plane = &slot->planes[slot->active_plane];
+    if (line_index >= plane->line_count)
+    {
+        ret = CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    else
+    {
+        *error_out = plane->line_errors[line_index];
+    }
+
+    (void)cplat_local_rwlock_unlock_shared(slot->plane_lock);
+    return ret;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1833,7 +1874,7 @@ int cplat_string_catalog_filter_slot_describe_line(cplat_string_catalog_filter_s
     {
         ret = CPLAT_ERR_INVALID_ARGUMENT;
     }
-    else if ((plane->enabled_lines & ((uint64_t)1U << line_index)) == 0U)
+    else if (!is_line_enabled(plane, (uint32_t)line_index))
     {
         /* 名前を解決できずに無効とした行は、メタ情報と結び付けられない */
         ret = CPLAT_ERR_MALFORMED_DEFINITION;
@@ -1872,12 +1913,34 @@ int cplat_string_catalog_filter_slot_describe_line(cplat_string_catalog_filter_s
 }
 
 /** 参照中の面で、1 項目の一致を判定します。共有モードのロックの下で呼び出します。 */
+/** 引数の値に依存する 1 行を、引数の値で評価します。 */
+static bool is_line_matched(const cplat_string_catalog_filter_slot *slot, filter_plane *plane,
+                            const size_t entry_index, const uint32_t line_index, const argument_value *values)
+{
+    const unsigned char *record = string_catalog_filter_record_address_const(plane->image, slot->record_size, line_index);
+    string_catalog_filter_record_header header;
+    evaluation_context context;
+
+    string_catalog_filter_read_record_header(record, &header);
+    memset(&context, 0, sizeof(context));
+    context.entry = &slot->catalog->entries[entry_index];
+    context.record = record;
+    context.constants = string_catalog_filter_record_constants(record, slot->line_width);
+    context.constant_size = header.constant_size;
+    context.argument_map =
+        argument_maps_of(slot, plane, line_index) + (entry_index * CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX);
+    context.identifier_values = identifier_values_of(plane, line_index);
+    context.patterns = patterns_of(plane, line_index);
+    context.values = values;
+    return evaluate_line(&context, true) == TRUTH_VALUE_TRUE;
+}
+
 static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plane *plane, const size_t entry_index,
                        const cplat_internal_string_catalog_argument_value *shared)
 {
     const cplat_string_catalog_entry *entry = &slot->catalog->entries[entry_index];
+    const uint64_t *dependent_lines = dependent_lines_of(slot, plane, entry_index);
     argument_value values[CPLAT_STRING_CATALOG_ARGUMENT_MAX];
-    uint64_t lines;
 
     switch (plane->entry_states[entry_index])
     {
@@ -1894,37 +1957,18 @@ static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plan
         return false;
     }
 
-    lines = plane->entry_dependent_lines[entry_index];
-    for (uint32_t line_index = 0; lines != 0U; line_index++, lines >>= 1)
+    /* 引数の値に依存する行だけを、語ごとに立っているビットをたどって評価する */
+    for (size_t word_index = 0; word_index < slot->line_word_count; word_index++)
     {
-        const unsigned char *record;
-        evaluation_context context;
+        uint64_t lines = dependent_lines[word_index];
 
-        if ((lines & 1U) == 0U)
+        for (uint32_t bit = 0; lines != 0U; bit++, lines >>= 1)
         {
-            continue;
-        }
-
-        record = string_catalog_filter_record_address_const(plane->image, slot->record_size, line_index);
-        memset(&context, 0, sizeof(context));
-        context.entry = entry;
-        context.record = record;
-        context.constants = string_catalog_filter_record_constants(record, slot->line_width);
-        {
-            string_catalog_filter_record_header header;
-
-            string_catalog_filter_read_record_header(record, &header);
-            context.constant_size = header.constant_size;
-        }
-        context.argument_map = argument_maps_of(slot, plane, line_index) +
-                               (entry_index * CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX);
-        context.identifier_values = identifier_values_of(plane, line_index);
-        context.patterns = patterns_of(plane, line_index);
-        context.values = values;
-
-        if (evaluate_line(&context, true) == TRUTH_VALUE_TRUE)
-        {
-            return true;
+            if (((lines & 1U) != 0U) &&
+                is_line_matched(slot, plane, entry_index, (uint32_t)(word_index * LINE_WORD_BITS) + bit, values))
+            {
+                return true;
+            }
         }
     }
     return false;

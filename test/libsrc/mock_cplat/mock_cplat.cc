@@ -699,8 +699,10 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_get_source_status));
     ON_CALL(*this, cplat_string_catalog_filter_slot_apply(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_apply));
-    ON_CALL(*this, cplat_string_catalog_filter_slot_snapshot(_, _, _, _))
+    ON_CALL(*this, cplat_string_catalog_filter_slot_snapshot(_, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_snapshot));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_get_line_error(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_get_line_error));
     ON_CALL(*this, cplat_string_catalog_filter_slot_describe_line(_, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_describe_line));
     ON_CALL(*this, cplat_string_catalog_filter_slot_test(_, _, _))

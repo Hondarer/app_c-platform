@@ -128,7 +128,7 @@ cplat の文字列カタログ機能は、条件式を判定条件の表現へ�
 | `CPLAT-STRING_CATALOG-CONS-008` <!-- cplat-req: uuid=4a527b64-2e5f-426b-a196-0acea485e566 --> | cplat の文字列カタログ機能は、1 つの文字列が取る引数の個数を 50 個以下とします。 |
 | `CPLAT-STRING_CATALOG-CONS-009` <!-- cplat-req: uuid=6781aead-aa20-46d3-94c8-227d96ddb356 --> | cplat の文字列カタログ機能は、値を受け取る型を、可変長引数の既定の型変換のあとの型と一致させます。 |
 | `CPLAT-STRING_CATALOG-CONS-010` <!-- cplat-req: uuid=b0f4a1c7-6d52-4e88-9a31-7c5e2f0d4b96 --> | cplat の文字列カタログ機能は、値を受け取る型を、対応するプラットフォームで同じ幅を持つ型だけで構成します。 |
-| `CPLAT-STRING_CATALOG-CONS-011` <!-- cplat-req: uuid=6b39cb7b-6cc8-48a7-8b9e-bc3a716e3267 --> | cplat の文字列カタログ機能は、判定条件の行数を 64 以下、行幅を 8 バイト以上 1024 バイト以下とします。 |
+| `CPLAT-STRING_CATALOG-CONS-011` <!-- cplat-req: uuid=6b39cb7b-6cc8-48a7-8b9e-bc3a716e3267 --> | cplat の文字列カタログ機能は、判定条件の行数を 1024 以下、行幅を 8 バイト以上 1024 バイト以下とします。 |
 | `CPLAT-STRING_CATALOG-CONS-012` <!-- cplat-req: uuid=b87fd13e-2db1-48cc-848a-fe829e0c860f --> | cplat の文字列カタログ機能は、1 行の条件式の判定要素を 32 個以下、括弧と否定の入れ子を 16 段以下とします。 |
 | `CPLAT-STRING_CATALOG-CONS-013` <!-- cplat-req: uuid=2fe3484e-a447-4bac-900f-609d719b6ed0 --> | cplat の文字列カタログ機能は、条件式で大文字と小文字を区別しない比較を ASCII の範囲に限り、実行時のロケールに依存させません。 |
 | `CPLAT-STRING_CATALOG-CONS-014` <!-- cplat-req: uuid=1cbb3597-f0d9-4860-baba-29ee0d734b40 --> | cplat の文字列カタログ機能は、分類値の名前を判定条件の関連付けの時点で受け取り、関連付けを解除するまで変更を受け付けません。 |

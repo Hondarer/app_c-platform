@@ -10,6 +10,7 @@
 #include <cplat/base/result.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 
 using namespace filter_test;
@@ -168,8 +169,8 @@ TEST_F(stringCatalogFilterApplyTest, unresolved_key_name_disables_line_and_is_di
     static unsigned char image[kImageSize];
     const char *lines[] = {"key == UNKNOWN_KEY_NAME", "key == 2"};
     cplat_string_catalog_filter_diagnostic diagnostics[4];
-    static unsigned char snapshot_image[kImageSize];
-    std::uint64_t actual_enabled_lines = 0U;
+    cplat_string_catalog_filter_line_error actual_line0_error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
+    cplat_string_catalog_filter_line_error actual_line1_error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX;
     std::size_t actual_invalid_count = 0U;
     int actual_apply_ret;
 
@@ -181,18 +182,23 @@ TEST_F(stringCatalogFilterApplyTest, unresolved_key_name_disables_line_and_is_di
     // Act
     actual_apply_ret = cplat_string_catalog_filter_slot_apply(slot_, image, kImageSize, diagnostics, 4U,
                                                               &actual_invalid_count); // [手順] - スロットへ適用する。
-    (void)cplat_string_catalog_filter_slot_snapshot(
-        slot_, snapshot_image, kImageSize,
-        &actual_enabled_lines); // [手順] - 適用中のイメージと有効行の集合を取得する。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_string_catalog_filter_slot_get_line_error(slot_, 0U,
+                                                              &actual_line0_error)); // [手順] - 行 0 の原因を取得する。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_string_catalog_filter_slot_get_line_error(slot_, 1U,
+                                                              &actual_line1_error)); // [手順] - 行 1 の原因を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_apply_ret); // [確認_正常系] - 名前解決できない行があっても適用は成功すること。
     EXPECT_EQ(1U, actual_invalid_count);   // [確認_正常系] - 無効にした行が 1 件であること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_KEY_NAME,
-              diagnostics[0].error);                   // [確認_正常系] - 原因が名前解決できない文字列キーであること。
-    EXPECT_EQ(0U, diagnostics[0].line_index);          // [確認_正常系] - イメージ内の行 0 が対象であること。
-    EXPECT_EQ(0U, actual_enabled_lines & (1ULL << 0)); // [確認_正常系] - 行 0 のビットが立っていないこと。
-    EXPECT_NE(0U, actual_enabled_lines & (1ULL << 1)); // [確認_正常系] - 行 1 のビットは立っていること。
+              diagnostics[0].error);          // [確認_正常系] - 原因が名前解決できない文字列キーであること。
+    EXPECT_EQ(0U, diagnostics[0].line_index); // [確認_正常系] - イメージ内の行 0 が対象であること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_KEY_NAME,
+              actual_line0_error); // [確認_正常系] - 行 0 が無効で、原因を問い合わせられること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE,
+              actual_line1_error); // [確認_正常系] - 行 1 が有効であること。
 }
 
 // 名前解決できない引数名の行が、適用時に無効となり診断されることの確認
@@ -201,8 +207,7 @@ TEST_F(stringCatalogFilterApplyTest, unresolved_argument_name_disables_line_and_
     // Arrange
     static unsigned char image[kImageSize];
     cplat_string_catalog_filter_diagnostic diagnostics[4];
-    static unsigned char snapshot_image[kImageSize];
-    std::uint64_t actual_enabled_lines = 0xFFFFFFFFFFFFFFFFULL;
+    cplat_string_catalog_filter_line_error actual_line0_error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
     std::size_t actual_invalid_count = 0U;
     int actual_apply_ret;
 
@@ -214,16 +219,18 @@ TEST_F(stringCatalogFilterApplyTest, unresolved_argument_name_disables_line_and_
     // Act
     actual_apply_ret = cplat_string_catalog_filter_slot_apply(slot_, image, kImageSize, diagnostics, 4U,
                                                               &actual_invalid_count); // [手順] - スロットへ適用する。
-    (void)cplat_string_catalog_filter_slot_snapshot(slot_, snapshot_image, kImageSize,
-                                                    &actual_enabled_lines); // [手順] - 適用中の有効行の集合を取得する。
+    ASSERT_EQ(CPLAT_OK,
+              cplat_string_catalog_filter_slot_get_line_error(slot_, 0U,
+                                                              &actual_line0_error)); // [手順] - 行 0 の原因を取得する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_apply_ret); // [確認_正常系] - 名前解決できない行があっても適用は成功すること。
     EXPECT_EQ(1U, actual_invalid_count);   // [確認_正常系] - 無効にした行が 1 件であること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_ARGUMENT_NAME,
-              diagnostics[0].error);                   // [確認_正常系] - 原因が名前解決できない引数名であること。
-    EXPECT_EQ(0U, diagnostics[0].line_index);          // [確認_正常系] - イメージ内の行 0 が対象であること。
-    EXPECT_EQ(0U, actual_enabled_lines & (1ULL << 0)); // [確認_正常系] - 行 0 のビットが立っていないこと。
+              diagnostics[0].error);          // [確認_正常系] - 原因が名前解決できない引数名であること。
+    EXPECT_EQ(0U, diagnostics[0].line_index); // [確認_正常系] - イメージ内の行 0 が対象であること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_ARGUMENT_NAME,
+              actual_line0_error); // [確認_正常系] - 行 0 が無効で、原因を問い合わせられること。
 }
 
 // 検証に失敗するイメージの適用が、以前の判定状態を維持することの確認
@@ -373,4 +380,59 @@ TEST_F(stringCatalogFilterApplyTest, apply_copies_image_so_caller_buffer_can_be_
     EXPECT_EQ(
         CPLAT_STRING_CATALOG_FILTER_STATE_ALWAYS_MATCH,
         actual_state); // [確認_正常系] - 呼び出し側の領域を破壊しても、スロット内部の複製により判定結果が変わらないこと。
+}
+
+// 64 行を超える行数の上限でも、65 行目以降の行が引数の値に依存する判定で一致することの確認
+TEST_F(stringCatalogFilterApplyTest, lines_beyond_64_are_evaluated)
+{
+    // Arrange
+    constexpr std::size_t kWideCapacity = 130U;
+    constexpr std::size_t kWideImageSize = CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(kWideCapacity, kLineWidth);
+    static unsigned char image[kWideImageSize];
+    static char rows[kWideCapacity][kLineWidth];
+    cplat_string_catalog_filter_slot *wide_slot = nullptr;
+    cplat_string_catalog_filter_line_error actual_last_error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_SYNTAX;
+    char dest[CPLAT_STRING_CATALOG_TEXT_MAX];
+    std::size_t invalid_count = 0U;
+    int actual_matched_last = 0;
+    int actual_matched_other = 1;
+
+    std::memset(rows, 0, sizeof(rows));
+    for (std::size_t index = 0; index < kWideCapacity; index++)
+    {
+        (void)std::snprintf(rows[index], kLineWidth, "arg.worker_index == %zu", 1000U + index);
+    }
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_compile(
+                            &rows[0][0], kWideCapacity, kLineWidth, kWideCapacity, image, sizeof(image), nullptr, 0U,
+                            &invalid_count)); // [状態] - 130 行の条件式をコンパイルする。
+    ASSERT_EQ(CPLAT_OK, filter_test_trace_create_filter(nullptr, kWideCapacity, kLineWidth,
+                                                        &wide_slot)); // [状態] - 行数の上限 130 のスロットを作成する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_apply(wide_slot, image, sizeof(image), nullptr, 0U,
+                                                               nullptr)); // [状態] - 130 行を適用する。
+
+    // Pre-Assert
+
+    // Act
+    (void)cplat_string_catalog_filter_slot_format(
+        wide_slot, dest, sizeof(dest), &actual_matched_last, FILTER_TEST_TRACE_KEY_WORKER_STARTED,
+        (uint32_t)(1000U + 129U),
+        FILTER_TEST_CONTEXT_ARGS(7)); // [手順] - 最後の行 (行 129) に一致する値で判定する。
+    (void)cplat_string_catalog_filter_slot_format(
+        wide_slot, dest, sizeof(dest), &actual_matched_other, FILTER_TEST_TRACE_KEY_WORKER_STARTED, (uint32_t)999U,
+        FILTER_TEST_CONTEXT_ARGS(7)); // [手順] - どの行にも一致しない値で判定する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_get_line_error(
+                            wide_slot, 129U,
+                            &actual_last_error)); // [手順] - 最後の行の状態を取得する。
+    const int actual_out_of_range_ret = cplat_string_catalog_filter_slot_get_line_error(
+        wide_slot, 130U, &actual_last_error); // [手順] - 行数を超える位置を問い合わせる。
+
+    // Assert
+    EXPECT_EQ(0U, invalid_count);       // [確認_正常系] - すべての行が有効にコンパイルされること。
+    EXPECT_NE(0, actual_matched_last);  // [確認_正常系] - 65 行目以降の行で一致すること。
+    EXPECT_EQ(0, actual_matched_other); // [確認_正常系] - どの行にも一致しない値は一致しないこと。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE,
+              actual_last_error);                                   // [確認_正常系] - 最後の行が有効であること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_out_of_range_ret); // [確認_異常系] - 行数を超える位置を拒否すること。
+
+    cplat_string_catalog_filter_slot_dispose(&wide_slot);
 }
