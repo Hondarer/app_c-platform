@@ -308,6 +308,39 @@ TEST_F(stringCatalogFilterSlotTest, create_accepts_empty_catalog)
     EXPECT_EQ(CPLAT_ERR_NOT_FOUND, actual_test_ret); // [確認_正常系] - どの文字列キーも判定の対象にならないこと。
 }
 
+// スロットの作成に使用したカタログを返すことの確認
+TEST_F(stringCatalogFilterSlotTest, get_catalog_returns_creation_catalog)
+{
+    // Arrange
+    const cplat_string_catalog *actual_catalog;
+
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_create(filter_test_catalog(), NULL, 0U, NULL, kLineCapacity,
+                                                                kLineWidth, &slot)); // [状態] - スロットを作成する。
+
+    // Pre-Assert
+
+    // Act
+    actual_catalog = cplat_string_catalog_filter_slot_get_catalog(slot); // [手順] - カタログを取得する。
+
+    // Assert
+    EXPECT_EQ(filter_test_catalog(), actual_catalog); // [確認_正常系] - 作成時に指定したカタログを返すこと。
+}
+
+// スロットが NULL の場合は NULL を返すことの確認
+TEST_F(stringCatalogFilterSlotTest, get_catalog_returns_null_for_null_slot)
+{
+    // Arrange
+    const cplat_string_catalog *actual_catalog;
+
+    // Pre-Assert
+
+    // Act
+    actual_catalog = cplat_string_catalog_filter_slot_get_catalog(NULL); // [手順] - NULL を指定してカタログを取得する。
+
+    // Assert
+    EXPECT_EQ(nullptr, actual_catalog); // [確認_異常系] - NULL を返すこと。
+}
+
 // 格納先が NULL の場合は、判定せずに CPLAT_ERR_INVALID_ARGUMENT を返すことの確認
 TEST_F(stringCatalogFilterSlotTest, vformat_rejects_null_dest)
 {

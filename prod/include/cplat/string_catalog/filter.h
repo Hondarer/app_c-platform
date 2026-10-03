@@ -20,6 +20,13 @@
  *  フィルター オブジェクトは形式版とバイト順序の目印を持ちます。\n
  *  検証を行うすべての関数は、本ライブラリと形式版またはバイト順序が異なるフィルター オブジェクトを拒否し、変換しません。
  *
+ *  フィルター オブジェクトを別のスレッドやプロセスから受け取る場合は、ソース領域を使用できます。\n
+ *  ソース領域は、ヘッダーとフィルター オブジェクトを並べた領域です。共有メモリやプロセス内の静的領域など、
+ *  先頭アドレスとバイト数で示せる領域であれば種類を問いません。\n
+ *  書き込み側は @ref cplat_string_catalog_filter_source_publish で公開し、
+ *  読み取り側は @ref cplat_string_catalog_filter_slot_attach_source でスロットへ結び付けます。\n
+ *  スロットは判定付きの組み立てのたびにヘッダーの公開時刻を 1 回だけ読み、変化した場合に取り込みます。
+ *
  *  @copyright      Copyright (C) Tetsuo Honda. 2026. All rights reserved.
  *******************************************************************************
  */
@@ -27,6 +34,7 @@
 #ifndef CPLAT_STRING_CATALOG_FILTER_H
 #define CPLAT_STRING_CATALOG_FILTER_H
 
+#include <cplat/clock/timespec.h>
 #include <cplat/cplat_export.h>
 #include <cplat/string_catalog/string_catalog.h>
 
@@ -83,6 +91,20 @@
 #define CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(lines, width) \
     (CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE + ((size_t)(lines) * CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(width)))
 
+/** ソース領域のヘッダーのバイト数です。フィルター オブジェクトはこの位置から始まります。 */
+#define CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE 64U
+
+/** ソース領域の先頭アドレスに求めるアラインメントです。公開時刻をアトミックに読み書きするためです。 */
+#define CPLAT_STRING_CATALOG_FILTER_SOURCE_ALIGNMENT 8U
+
+/**
+ *  @brief          行数の上限と行幅から、ソース領域のバイト数を求めます。
+ *  @param[in]      lines 行数の上限。
+ *  @param[in]      width 行幅。
+ */
+#define CPLAT_STRING_CATALOG_FILTER_SOURCE_SIZE(lines, width) \
+    (CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE + CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE(lines, width))
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -137,6 +159,57 @@ extern "C"
         uint32_t line_count;     /**< 格納している条件式の数。 */
         uint32_t format_version; /**< 形式版。 */
     } cplat_string_catalog_filter_info;
+
+    /**
+     *  @brief          ソース領域のヘッダーから読み取った公開の情報です。
+     */
+    typedef struct cplat_string_catalog_filter_source_info
+    {
+        uint64_t published_timestamp; /**< 公開時刻。単調増加クロックのナノ秒値で、0 は未公開です。 */
+        cplat_timespec published_realtime; /**< 公開した実時刻。未公開の場合は 0 です。 */
+        uint32_t publisher_process_id;     /**< 公開したプロセスの ID。未公開の場合は 0 です。 */
+        uint32_t line_capacity;            /**< 公開したフィルター オブジェクトの行数の上限。未公開の場合は 0 です。 */
+        uint32_t line_width;               /**< 公開したフィルター オブジェクトの行幅。未公開の場合は 0 です。 */
+        uint32_t pad;                      /**< 明示的アラインメントです。 */
+    } cplat_string_catalog_filter_source_info;
+
+    /**
+     *  @brief          ソース領域の書き込み側の排他を取得する関数です。
+     *  @param[in]      context @ref cplat_string_catalog_filter_source_lock::context に指定した値。
+     *  @return         取得できた場合は `CPLAT_OK`、取得できない場合はその結果コードを返します。
+     */
+    typedef int (*cplat_string_catalog_filter_source_lock_fn)(void *context);
+
+    /**
+     *  @brief          ソース領域の書き込み側の排他を解放する関数です。
+     *  @param[in]      context @ref cplat_string_catalog_filter_source_lock::context に指定した値。
+     */
+    typedef void (*cplat_string_catalog_filter_source_unlock_fn)(void *context);
+
+    /**
+     *  @brief          ソース領域の書き込み側の排他を、読み取り側でも取得するための関数の組です。
+     *
+     *  書き込み側どうしを直列化している排他と同じものを指定します。\n
+     *  指定すると、スロットは公開時刻の変化を検知した場合だけこの排他を取り、公開時刻を読み直してから複製します。
+     *  複製の間に書き込みが重ならないため、書き込み中の領域を読みません。
+     */
+    typedef struct cplat_string_catalog_filter_source_lock
+    {
+        cplat_string_catalog_filter_source_lock_fn lock;     /**< 排他を取得する関数。NULL にできません。 */
+        cplat_string_catalog_filter_source_unlock_fn unlock; /**< 排他を解放する関数。NULL にできません。 */
+        void *context;                                       /**< 2 つの関数へ渡す値。 */
+    } cplat_string_catalog_filter_source_lock;
+
+    /**
+     *  @brief          スロットがソース領域から取り込んだ状態です。
+     */
+    typedef struct cplat_string_catalog_filter_source_status
+    {
+        uint64_t taken_timestamp;   /**< 取り込みを試みた公開時刻。未取り込みの場合は 0 です。 */
+        size_t last_invalid_count;  /**< 直近の取り込みで無効にした行の数。 */
+        int last_result;            /**< 直近の取り込みで適用した結果コード。未取り込みの場合は `CPLAT_OK` です。 */
+        unsigned int pad;           /**< 明示的アラインメントです。 */
+    } cplat_string_catalog_filter_source_status;
 
     /**
      *  @brief          文字列キーの名前と値の対応です。
@@ -345,6 +418,64 @@ extern "C"
                                                                           size_t line_index, char *dest,
                                                                           size_t dest_size);
 
+    /**
+     *  @brief          ソース領域へフィルター オブジェクトを公開します。
+     *  @param[in,out]  source        ソース領域の先頭アドレス。
+     *                                @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_ALIGNMENT の倍数のアドレスである必要があります。
+     *  @param[in]      source_size   @p source のバイト数。
+     *  @param[in]      image         公開するフィルター オブジェクト。
+     *  @param[in]      image_size    @p image のバイト数。
+     *  @param[out]     timestamp_out 公開時刻の格納先。不要な場合は NULL を指定できます。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         @p source または @p image が NULL の場合、@p source のアラインメントが合わない場合、
+     *                  または @p source_size がヘッダーとフィルター オブジェクトを格納できない場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         @p image が `cplat_string_catalog_filter_validate` の確認を通らない場合は、その結果コードを返します。
+     *  @return         @p source が 0 で埋まっておらず、ソース領域の署名または形式版が異なる場合は
+     *                  `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *
+     *  失敗した場合は、ソース領域を変更しません。
+     *
+     *  公開時刻は、前回の公開時刻に 2 を加えた値と、単調増加クロックのナノ秒値のうち大きいほうです。\n
+     *  単調増加クロックは、Linux と Windows のどちらでもプロセス間で共通の時間軸です。\n
+     *  ファイルをマップした領域は OS の再起動を越えて残り、前回の公開時刻が現在の単調増加クロックより大きい場合があります。
+     *  この場合も前回の値から増やすため、公開時刻は重複しません。\n
+     *  前回の値に 2 を加えると 64 ビットを超える場合は、2 と単調増加クロックの値のうち大きいほうへ戻します。
+     *  読み取り側は大小ではなく不一致で変化を判定するため、戻った公開時刻も取り込みます。\n
+     *  書き込みの間は公開時刻を奇数にし、書き終えてから新しい偶数の値を書き込みます。\n
+     *  読み取り側は、奇数の公開時刻と、読み取りの前後で変わった公開時刻の内容を取り込みません。\n
+     *  書き込みの途中で処理が中断した場合は公開時刻が奇数のまま残り、読み取り側は適用済みの条件を使い続けます。\n
+     *  次の公開で、この状態から回復します。
+     *
+     *  0 で埋まった領域は、未公開のソース領域として扱います。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\n
+     *  読み取り側とは同時に実行できます。\n
+     *  同じソース領域への公開は、プロセスをまたぐ場合も含め、呼び出し側で直列化してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_source_publish(void *source, size_t source_size,
+                                                                         const void *image, size_t image_size,
+                                                                         uint64_t *timestamp_out);
+
+    /**
+     *  @brief          ソース領域のヘッダーから公開の情報を読み取ります。
+     *  @param[in]      source      ソース領域の先頭アドレス。
+     *                              @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_ALIGNMENT の倍数のアドレスである必要があります。
+     *  @param[in]      source_size @p source のバイト数。
+     *  @param[out]     info_out    情報の格納先。
+     *  @return         成功時は `CPLAT_OK` を返します。未公開の場合も `CPLAT_OK` を返し、各メンバーへ 0 を格納します。
+     *  @return         引数が NULL の場合、@p source のアラインメントが合わない場合、
+     *                  または @p source_size がヘッダーに満たない場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         ソース領域の署名または形式版が異なる場合は `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *  @return         書き込み中のため一貫した内容を読み取れない場合は `CPLAT_ERR_BUSY` を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。書き込み側と同時に実行できます。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_source_get_info(
+        const void *source, size_t source_size, cplat_string_catalog_filter_source_info *info_out);
+
     /* ===== フィルター スロットの層 (カタログ定義と結び付く) ===== */
 
     /**
@@ -402,6 +533,80 @@ extern "C"
      *  同じスロットへの他の呼び出しが完了していることを、呼び出し側で保証してください。
      */
     CPLAT_EXPORT void CPLAT_API cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot **slot);
+
+    /**
+     *  @brief          フィルター スロットの作成に使用したカタログを取得します。
+     *  @param[in]      slot フィルター スロット。
+     *  @return         作成時に指定したカタログを返します。
+     *  @return         @p slot が NULL の場合は NULL を返します。
+     *
+     *  スロットを特定のカタログ用の出力へ接続する際に、別のカタログで作成したスロットを拒否するために使用します。\n
+     *  カタログは作成時に固定され、スロットを破棄するまで変わりません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT const cplat_string_catalog *CPLAT_API
+    cplat_string_catalog_filter_slot_get_catalog(const cplat_string_catalog_filter_slot *slot);
+
+    /**
+     *  @brief          フィルター スロットへソース領域を結び付けます。
+     *  @param[in]      slot        フィルター スロット。
+     *  @param[in]      source      ソース領域の先頭アドレス。NULL を指定すると結び付けを解除します。
+     *                              @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_ALIGNMENT の倍数のアドレスである必要があります。
+     *                              結び付けを解除するまで有効である必要があります。
+     *  @param[in]      source_size @p source のバイト数。@p source が NULL の場合は無視します。
+     *  @param[in]      lock        書き込み側の排他を読み取り側でも取得するための関数の組。
+     *                              ロックを取らずに読み取る場合は NULL を指定します。
+     *                              内容は複製して保持します。@ref cplat_string_catalog_filter_source_lock::context は
+     *                              結び付けを解除するまで有効である必要があります。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         @p slot が NULL の場合、@p source のアラインメントが合わない場合、
+     *                  @p source_size がスロットの行数の上限と行幅に対する
+     *                  @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_SIZE に満たない場合、
+     *                  または @p lock の関数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *
+     *  結び付けた時点では取り込みません。次の判定付きの組み立てで公開時刻を確認し、公開済みであれば取り込みます。\n
+     *  結び付けと解除のたびに、取り込みの状態を未取り込みへ戻します。適用済みの条件は変わりません。\n
+     *  そのため、ファイルをマップした領域のように以前の公開内容が残っている場合は、最初の判定付きの組み立てで取り込みます。
+     *
+     *  ヘッダーの署名、形式版、行数の上限、行幅がスロットと一致しない公開内容は取り込まず、
+     *  `CPLAT_ERR_CORRUPT_DESCRIPTOR` として @ref cplat_string_catalog_filter_slot_get_source_status へ記録します。
+     *
+     *  公開時刻の確認は、@p lock の有無にかかわらず、ロックを取らない 1 回のアトミックな読み取りです。\n
+     *  変化を検知した場合の取り込みは、@p lock の有無で次のように変わります。
+     *  - @p lock を指定した場合は、二重確認で取り込みます。書き込み側の排他を取り、公開時刻を読み直して、
+     *    取り込み済みでなければ複製します。複製を終えた時点で排他を解放し、検証と適用は排他の外で行います。
+     *    排他を取得できない場合は取り込まず、結果コードを記録して次の判定で改めて試みます。
+     *  - @p lock が NULL の場合は、ロックを取らずに複製し、複製の後に公開時刻を読み直します。
+     *    書き込みと重なった複製は捨てます。この場合、書き込み中の領域を読むことがあります。
+     *
+     *  どちらの場合も、公開時刻が奇数の間 (書き込み中、または書き込みの途中で書き込み側が停止した状態) は取り込みません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\n
+     *  同じスロットで判定付きの組み立てを行っていないときに呼び出してください。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_attach_source(
+        cplat_string_catalog_filter_slot *slot, const void *source, size_t source_size,
+        const cplat_string_catalog_filter_source_lock *lock);
+
+    /**
+     *  @brief          フィルター スロットがソース領域から取り込んだ状態を取得します。
+     *  @param[in]      slot       フィルター スロット。
+     *  @param[out]     status_out 状態の格納先。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *  @return         同期に失敗した場合は、同期関数の結果コードを返します。
+     *
+     *  適用に失敗した公開内容も取り込み済みとして記録し、同じ公開時刻の取り込みを繰り返しません。\n
+     *  失敗の原因は @ref cplat_string_catalog_filter_source_status::last_result で確認します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_slot_get_source_status(
+        cplat_string_catalog_filter_slot *slot, cplat_string_catalog_filter_source_status *status_out);
 
     /**
      *  @brief          フィルター オブジェクトをスロットへ適用します。
@@ -515,6 +720,12 @@ extern "C"
      *  @p matched_out が NULL でなければ、失敗時は 0 を格納します。\n
      *  @p dest が NULL でなく @p dest_size が 1 以上であれば、組み立てより前に失敗した場合は空文字列を格納します。\n
      *  組み立てで失敗した場合の @p dest の内容は、`cplat_string_catalog_vformat` と同じです。
+     *
+     *  ソース領域を結び付けている場合は、判定の前に公開時刻を 1 回だけ読みます。\n
+     *  公開時刻が変わっていれば、フィルター オブジェクトを取り込んでから判定します。\n
+     *  ほかのスレッドが取り込み中または適用中の場合は待たずに、適用済みの条件で判定します。\n
+     *  書き込み側の排他を結び付けている場合は、変化を検知したときに限り、その排他を待ちます。\n
+     *  取り込みの結果は本関数の戻り値に含めず、@ref cplat_string_catalog_filter_slot_get_source_status で確認します。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。

@@ -84,6 +84,13 @@ struct cplat_string_catalog_filter_slot
     cplat_local_rwlock *plane_lock;
     cplat_local_lock *apply_lock;
     filter_plane planes[2];
+    const void *source;      /**< 結び付けたソース領域。未設定は NULL。 */
+    size_t source_size;      /**< @ref cplat_string_catalog_filter_slot::source のバイト数。 */
+    cplat_string_catalog_filter_source_lock source_lock; /**< 書き込み側の排他。未設定は lock が NULL。 */
+    cplat_atomic_u64 taken_timestamp; /**< 取り込みを試みた公開時刻。判定のたびにロックなしで読みます。 */
+    size_t source_last_invalid_count; /**< 直近の取り込みで無効にした行の数。apply_lock の下で読み書きします。 */
+    int source_last_result;           /**< 直近の取り込みの結果コード。apply_lock の下で読み書きします。 */
+    unsigned int pad;                 /**< 明示的アラインメントです。 */
 };
 
 /** 判定に使用する引数の値です。比較の区分ごとに正規化して保持します。 */
@@ -1341,9 +1348,29 @@ void cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot *
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
-int cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slot, const void *image,
-                                           const size_t image_size, cplat_string_catalog_filter_diagnostic *diagnostics,
-                                           const size_t diagnostic_capacity, size_t *invalid_count_out)
+const cplat_string_catalog *cplat_string_catalog_filter_slot_get_catalog(const cplat_string_catalog_filter_slot *slot)
+{
+    if (slot == NULL)
+    {
+        return NULL;
+    }
+    return slot->catalog;
+}
+
+/**
+ *  @brief          apply_lock を保持した状態で、フィルター オブジェクトを未使用の面へ構築して切り替えます。
+ *  @param[in]      source    読み取り元のソース領域。@p image がソース領域内にない場合は NULL。
+ *  @param[in]      timestamp @p source の読み取りを始めたときの公開時刻。
+ *  @param[in]      writer_lock 取得済みの書き込み側の排他。複製を終えた時点で解放します。保持していない場合は NULL。
+ *  @param[out]     torn_out  複製の間にソース領域が書き換えられた場合は true の格納先。
+ *
+ *  そのほかの引数と戻り値は @ref cplat_string_catalog_filter_slot_apply と同じです。\n
+ *  @p torn_out へ true を格納した場合は、面を切り替えずに `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+ */
+static int apply_image_locked(cplat_string_catalog_filter_slot *slot, const void *image, const size_t image_size,
+                              cplat_string_catalog_filter_diagnostic *diagnostics, const size_t diagnostic_capacity,
+                              size_t *invalid_count_out, const void *source, const uint64_t timestamp,
+                              const cplat_string_catalog_filter_source_lock *writer_lock, bool *torn_out)
 {
     string_catalog_filter_image_header header;
     filter_plane *target;
@@ -1352,16 +1379,7 @@ int cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slo
     int target_plane;
     int ret;
 
-    if ((slot == NULL) || (image == NULL))
-    {
-        return CPLAT_ERR_INVALID_ARGUMENT;
-    }
-
-    ret = cplat_local_lock_lock(slot->apply_lock, CPLAT_SYNC_WAIT_FOREVER);
-    if (ret != CPLAT_OK)
-    {
-        return ret;
-    }
+    *torn_out = false;
 
     /* 面を書き換えるのは適用だけであり、適用は apply_lock で直列化している。
      * そのため active_plane と参照中の面は、ここではロックなしで読める。 */
@@ -1375,6 +1393,24 @@ int cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slo
     if (image_size >= slot->image_size)
     {
         memcpy(target->image, image, slot->image_size);
+
+        /* ソース領域からの複製では、複製の間に公開が重なっていないことを確かめる。
+         * 重なった場合は未使用の面へ複製しただけなので、捨てても参照中の条件に影響しない */
+        *torn_out = (source != NULL) && !string_catalog_filter_source_end_read(source, timestamp);
+    }
+
+    /* 書き込み側の排他は複製と確認の間だけ保持する。検証と適用は排他の外で行い、書き込み側を待たせない */
+    if (writer_lock != NULL)
+    {
+        writer_lock->unlock(writer_lock->context);
+    }
+    if (*torn_out)
+    {
+        return CPLAT_ERR_CORRUPT_DESCRIPTOR;
+    }
+
+    if (image_size >= slot->image_size)
+    {
         if (cplat_string_catalog_filter_validate(target->image, slot->image_size) == CPLAT_OK)
         {
             string_catalog_filter_read_image_header(target->image, &header);
@@ -1398,13 +1434,194 @@ int cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slo
         }
     }
 
-    (void)cplat_local_lock_unlock(slot->apply_lock);
-
     if ((ret == CPLAT_OK) && (invalid_count_out != NULL))
     {
         *invalid_count_out = invalid_count;
     }
     return ret;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_filter_slot_apply(cplat_string_catalog_filter_slot *slot, const void *image,
+                                           const size_t image_size, cplat_string_catalog_filter_diagnostic *diagnostics,
+                                           const size_t diagnostic_capacity, size_t *invalid_count_out)
+{
+    bool torn;
+    int ret;
+
+    if ((slot == NULL) || (image == NULL))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    ret = cplat_local_lock_lock(slot->apply_lock, CPLAT_SYNC_WAIT_FOREVER);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    ret = apply_image_locked(slot, image, image_size, diagnostics, diagnostic_capacity, invalid_count_out, NULL, 0U,
+                             NULL, &torn);
+    (void)cplat_local_lock_unlock(slot->apply_lock);
+    return ret;
+}
+
+/**
+ *  @brief          ソース領域の公開時刻が変わっていれば、フィルター オブジェクトを取り込みます。
+ *
+ *  公開時刻の読み取りは 1 回のアトミックな読み取りで、変化がなければロックを取らずに戻ります (緩いチェック)。\n
+ *  ほかのスレッドが取り込み中または適用中の場合は待たずに戻り、適用済みの条件で判定を続けます。
+ *
+ *  書き込み側の排他を結び付けている場合は、その排他を取ってから公開時刻を読み直し (最終チェック)、
+ *  取り込み済みでなければ複製します。排他は複製を終えた時点で解放します。\n
+ *  結び付けていない場合は、ロックを取らずに複製し、複製の後に公開時刻を読み直します。
+ *  複製の間に公開が重なった場合は記録せず、次の判定で改めて取り込みます。
+ *
+ *  ファイルをマップした領域は、異なる版のライブラリや異なる行数の上限と行幅で書かれた内容を残している場合があります。
+ *  ヘッダーの形式と大きさがスロットと一致しない公開内容は、フィルター オブジェクトを読まずに
+ *  `CPLAT_ERR_CORRUPT_DESCRIPTOR` として記録します。
+ */
+static void refresh_from_source(cplat_string_catalog_filter_slot *slot)
+{
+    const cplat_string_catalog_filter_source_lock *writer_lock = NULL;
+    string_catalog_filter_source_header header;
+    size_t invalid_count = 0U;
+    uint64_t timestamp;
+    bool torn;
+    int ret;
+
+    if (slot->source == NULL)
+    {
+        return;
+    }
+    timestamp = string_catalog_filter_source_begin_read(slot->source);
+    if ((timestamp == 0U) || ((timestamp & 1U) != 0U) ||
+        (timestamp == cplat_atomic_load_u64(&slot->taken_timestamp, CPLAT_MEMORY_ORDER_RELAXED)))
+    {
+        return;
+    }
+    if (cplat_local_lock_try_lock(slot->apply_lock) != CPLAT_OK)
+    {
+        return;
+    }
+
+    if (slot->source_lock.lock != NULL)
+    {
+        writer_lock = &slot->source_lock;
+        ret = writer_lock->lock(writer_lock->context);
+        if (ret != CPLAT_OK)
+        {
+            /* 取り込みを試みていないため取り込み済みとはせず、次の判定で改めて試みる */
+            slot->source_last_result = ret;
+            (void)cplat_local_lock_unlock(slot->apply_lock);
+            return;
+        }
+
+        /* 排他の下で公開時刻を読み直す。待つ間に公開が進んでいれば、新しい公開時刻を取り込む */
+        timestamp = string_catalog_filter_source_begin_read(slot->source);
+    }
+
+    /* ロックを待つ間に、ほかのスレッドが同じ公開時刻を取り込んでいる場合がある。
+     * 排他の下で奇数が見えるのは、書き込みの途中で書き込み側が停止した場合だけで、次の公開まで取り込まない */
+    if ((timestamp == 0U) || ((timestamp & 1U) != 0U) ||
+        (timestamp == cplat_atomic_load_u64(&slot->taken_timestamp, CPLAT_MEMORY_ORDER_RELAXED)))
+    {
+        if (writer_lock != NULL)
+        {
+            writer_lock->unlock(writer_lock->context);
+        }
+        (void)cplat_local_lock_unlock(slot->apply_lock);
+        return;
+    }
+
+    /* ヘッダーも公開時刻の読み直しで一貫性を確かめる。一貫しない場合は次の判定で改めて取り込む */
+    memcpy(&header, slot->source, sizeof(header));
+    if (!string_catalog_filter_source_is_header_valid(&header) || (header.line_capacity != slot->line_capacity) ||
+        (header.line_width != slot->line_width) || (header.image_size != (uint64_t)slot->image_size))
+    {
+        if (writer_lock != NULL)
+        {
+            writer_lock->unlock(writer_lock->context);
+        }
+        if (string_catalog_filter_source_end_read(slot->source, timestamp))
+        {
+            slot->source_last_result = CPLAT_ERR_CORRUPT_DESCRIPTOR;
+            slot->source_last_invalid_count = 0U;
+            cplat_atomic_store_u64(&slot->taken_timestamp, timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+        }
+        (void)cplat_local_lock_unlock(slot->apply_lock);
+        return;
+    }
+
+    ret = apply_image_locked(slot, (const unsigned char *)slot->source + CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE,
+                             slot->source_size - CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE, NULL, 0U,
+                             &invalid_count, slot->source, timestamp, writer_lock, &torn);
+    if (!torn)
+    {
+        /* 適用に失敗した公開内容も記録し、同じ内容の取り込みを繰り返さない */
+        slot->source_last_result = ret;
+        slot->source_last_invalid_count = (ret == CPLAT_OK) ? invalid_count : 0U;
+        cplat_atomic_store_u64(&slot->taken_timestamp, timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+    }
+    (void)cplat_local_lock_unlock(slot->apply_lock);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_filter_slot_attach_source(cplat_string_catalog_filter_slot *slot, const void *source,
+                                                   const size_t source_size,
+                                                   const cplat_string_catalog_filter_source_lock *lock)
+{
+    if (slot == NULL)
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    if ((source != NULL) && !string_catalog_filter_source_is_region_valid(source, source_size, slot->image_size))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    if ((lock != NULL) && ((lock->lock == NULL) || (lock->unlock == NULL)))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    slot->source = source;
+    slot->source_size = (source != NULL) ? source_size : 0U;
+    memset(&slot->source_lock, 0, sizeof(slot->source_lock));
+    if ((source != NULL) && (lock != NULL))
+    {
+        slot->source_lock = *lock;
+    }
+    slot->source_last_result = CPLAT_OK;
+    slot->source_last_invalid_count = 0U;
+    cplat_atomic_store_u64(&slot->taken_timestamp, 0U, CPLAT_MEMORY_ORDER_RELAXED);
+    return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_filter_slot_get_source_status(cplat_string_catalog_filter_slot *slot,
+                                                       cplat_string_catalog_filter_source_status *status_out)
+{
+    int ret;
+
+    if ((slot == NULL) || (status_out == NULL))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    /* 結果コードと無効にした行の数は、同じ取り込みの値をそろえて返す */
+    ret = cplat_local_lock_lock(slot->apply_lock, CPLAT_SYNC_WAIT_FOREVER);
+    if (ret != CPLAT_OK)
+    {
+        return ret;
+    }
+    memset(status_out, 0, sizeof(*status_out));
+    status_out->taken_timestamp = cplat_atomic_load_u64(&slot->taken_timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+    status_out->last_result = slot->source_last_result;
+    status_out->last_invalid_count = slot->source_last_invalid_count;
+    (void)cplat_local_lock_unlock(slot->apply_lock);
+    return CPLAT_OK;
 }
 
 /* Doxygen コメントは、ヘッダーに記載 */
@@ -1612,6 +1829,9 @@ int cplat_string_catalog_filter_slot_vformat(cplat_string_catalog_filter_slot *s
     }
     *matched_out = 0;
     dest[0] = '\0';
+
+    /* 判定の前に、ソース領域の公開内容が変わっていれば取り込む。通常は公開時刻の比較 1 回で戻る */
+    refresh_from_source(slot);
 
     /* 可変長引数は 1 回だけ取り出し、判定と書式展開で同じ値を使用する */
     ret = cplat_internal_string_catalog_prepare_format(slot->catalog, string_key, args, &entry, &text, values);

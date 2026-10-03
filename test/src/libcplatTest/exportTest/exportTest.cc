@@ -685,6 +685,14 @@
                          size_t line_capacity, size_t line_width, cplat_string_catalog_filter_slot **slot_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_dispose, \
                  void(CPLAT_API *)(cplat_string_catalog_filter_slot * *slot)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_get_catalog, \
+                 const cplat_string_catalog *(CPLAT_API *)(const cplat_string_catalog_filter_slot *slot)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_source_publish, int(CPLAT_API *)(void *source, size_t source_size, const void *image, size_t image_size, uint64_t *timestamp_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_source_get_info, int(CPLAT_API *)(const void *source, size_t source_size, cplat_string_catalog_filter_source_info *info_out)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_attach_source, \
+                 int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, const void *source, size_t source_size, \
+                                  const cplat_string_catalog_filter_source_lock *lock)) \
+    EXPORT_ENTRY(cplat_string_catalog_filter_slot_get_source_status, int(CPLAT_API *)(cplat_string_catalog_filter_slot *slot, cplat_string_catalog_filter_source_status *status_out)) \
     EXPORT_ENTRY(cplat_string_catalog_filter_slot_apply, \
                  int(CPLAT_API *)(cplat_string_catalog_filter_slot * slot, const void *image, size_t image_size, \
                                   cplat_string_catalog_filter_diagnostic *diagnostics, size_t diagnostic_capacity, \

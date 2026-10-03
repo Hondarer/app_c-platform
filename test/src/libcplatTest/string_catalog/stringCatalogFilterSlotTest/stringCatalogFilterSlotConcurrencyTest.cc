@@ -3,7 +3,6 @@
 #include "filterTestSupport.h"
 
 #include "gen/filter_test_trace.h"
-#include "filter_test_trace_key_names.h"
 
 #include <cplat/base/result.h>
 #include <cplat/sync/sync.h>

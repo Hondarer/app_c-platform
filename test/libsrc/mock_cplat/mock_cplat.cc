@@ -687,6 +687,16 @@ Mock_cplat::Mock_cplat()
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_create));
     ON_CALL(*this, cplat_string_catalog_filter_slot_dispose(_))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_dispose));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_get_catalog(_))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_get_catalog));
+    ON_CALL(*this, cplat_string_catalog_filter_source_publish(_, _, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_source_publish));
+    ON_CALL(*this, cplat_string_catalog_filter_source_get_info(_, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_source_get_info));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_attach_source(_, _, _, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_attach_source));
+    ON_CALL(*this, cplat_string_catalog_filter_slot_get_source_status(_, _))
+        .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_get_source_status));
     ON_CALL(*this, cplat_string_catalog_filter_slot_apply(_, _, _, _, _, _))
         .WillByDefault(Invoke(delegate_real_cplat_string_catalog_filter_slot_apply));
     ON_CALL(*this, cplat_string_catalog_filter_slot_snapshot(_, _, _, _))

@@ -667,14 +667,18 @@ ID (`cplat_string_catalog_entry::id`) と分類値 (`cplat_string_catalog_entry:
 | フィルター オブジェクトの検証と情報取得 | `cplat_string_catalog_filter_validate` / `cplat_string_catalog_filter_get_info` |
 | 行のデコンパイル | `cplat_string_catalog_filter_decompile_line` |
 | スロットの作成と破棄 | `cplat_string_catalog_filter_slot_create` / `cplat_string_catalog_filter_slot_dispose` |
+| スロットを作成したカタログの取得 | `cplat_string_catalog_filter_slot_get_catalog` |
 | フィルター オブジェクトの適用と取得 | `cplat_string_catalog_filter_slot_apply` / `cplat_string_catalog_filter_slot_snapshot` |
 | 行の自然文での表現 | `cplat_string_catalog_filter_slot_describe_line` |
 | 引数値によらない判定 | `cplat_string_catalog_filter_slot_test` |
 | 判定と文字列の組み立て | `cplat_string_catalog_filter_slot_format` / `cplat_string_catalog_filter_slot_vformat` |
+| ソース領域への公開と情報取得 | `cplat_string_catalog_filter_source_publish` / `cplat_string_catalog_filter_source_get_info` |
+| スロットへのソース領域と書き込み側の排他の結び付け、取り込み状態の取得 | `cplat_string_catalog_filter_slot_attach_source` / `cplat_string_catalog_filter_slot_get_source_status` |
 
 Table: 文字列カタログの条件式フィルターにおける用途別 cplat API
 
 フィルター オブジェクトのバイト数は `CPLAT_STRING_CATALOG_FILTER_IMAGE_SIZE` で行数の上限と行幅から求めます。  
+ソース領域のバイト数は `CPLAT_STRING_CATALOG_FILTER_SOURCE_SIZE` で求めます。スロットは判定付きの組み立てのたびに公開時刻を比べ、変化した場合に取り込みます。  
 分類値の名前 (`cplat_string_catalog_filter_category_names`) は、スロットの作成時に `cplat_string_catalog_filter_slot_create` へ渡します。作成後は変更できません。  
 設計の詳細は [文字列カタログの条件式フィルターの設計](proposals/string-catalog-filter-design.md) を参照してください。
 

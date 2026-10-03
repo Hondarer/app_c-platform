@@ -31,7 +31,9 @@
 #define FILTER_PRIVATE_H
 
 #include <cplat/string_catalog/filter.h>
+#include <cplat/sync/atomic.h>
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -58,6 +60,12 @@
 
 /** 定数の flags: 16 進数で記述された整数です。 */
 #define STRING_CATALOG_FILTER_CONSTANT_FLAG_HEXADECIMAL 0x02U
+
+/** ソース領域の署名です。メモリ上では "SCFS" の順に並びます (リトル エンディアン)。 */
+#define STRING_CATALOG_FILTER_SOURCE_SIGNATURE 0x53464353U
+
+/** ソース領域の形式版です。 */
+#define STRING_CATALOG_FILTER_SOURCE_FORMAT_VERSION 1U
 
 #ifdef __cplusplus
 extern "C"
@@ -333,6 +341,64 @@ extern "C"
     int string_catalog_filter_compile_record(const char *text, size_t text_length, uint32_t line_width,
                                              unsigned char *record, cplat_string_catalog_filter_line_error *error_out,
                                              uint32_t *column_out);
+
+    /**
+     *  @brief          ソース領域のヘッダーです。
+     *
+     *  複数のプロセスが同じレイアウトで読み書きするため、固定幅の整数型だけで構成します。\n
+     *  @ref string_catalog_filter_source_header::published_timestamp はアトミックに読み書きします。
+     *  それ以外のメンバーとフィルター オブジェクトは、公開時刻を奇数にした間に書き込みます。
+     */
+    typedef struct string_catalog_filter_source_header
+    {
+        uint32_t signature;                     /**< @ref STRING_CATALOG_FILTER_SOURCE_SIGNATURE 。未公開の間は 0。 */
+        uint16_t format_version;                /**< @ref STRING_CATALOG_FILTER_SOURCE_FORMAT_VERSION */
+        uint16_t header_size;                   /**< @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE */
+        uint32_t line_capacity;                 /**< フィルター オブジェクトの行数の上限。 */
+        uint32_t line_width;                    /**< フィルター オブジェクトの行幅。 */
+        uint64_t image_size;                    /**< フィルター オブジェクトのバイト数。 */
+        cplat_atomic_u64 published_timestamp;   /**< 公開時刻。0 は未公開、奇数は書き込み中。 */
+        int64_t published_realtime_seconds;     /**< 公開した実時刻の秒部。 */
+        int64_t published_realtime_nanoseconds; /**< 公開した実時刻のナノ秒部。 */
+        uint32_t publisher_process_id;          /**< 公開したプロセスの ID。 */
+        uint32_t reserved[3];                   /**< 予約。0 を格納します。 */
+    } string_catalog_filter_source_header;
+
+    /**
+     *  @brief          ソース領域の先頭アドレスと大きさを確認します。
+     *  @param[in]      source       ソース領域の先頭アドレス。
+     *  @param[in]      source_size  @p source のバイト数。
+     *  @param[in]      image_size   ヘッダーに続けて格納するフィルター オブジェクトのバイト数。
+     *  @return         NULL でなく、アラインメントが合い、大きさが足りる場合は true。
+     */
+    bool string_catalog_filter_source_is_region_valid(const void *source, size_t source_size, size_t image_size);
+
+    /**
+     *  @brief          ソース領域のヘッダーが、本ライブラリの形式で公開されたものかを返します。
+     *  @param[in]      header 確かめるヘッダー。書き込みと重ならないよう、複製したヘッダーを渡します。
+     *  @return         署名、形式版、ヘッダー長が本ライブラリと一致する場合は true。
+     *
+     *  ファイルをマップした領域は、異なる版のライブラリが書いた内容を残している場合があります。
+     *  形式の異なる領域を、本ライブラリの配置で読まないために確かめます。
+     */
+    bool string_catalog_filter_source_is_header_valid(const string_catalog_filter_source_header *header);
+
+    /**
+     *  @brief          ソース領域の読み取りを始め、公開時刻を返します。
+     *  @param[in]      source ソース領域の先頭アドレス。
+     *  @return         公開時刻。0 は未公開、奇数は書き込み中です。
+     *
+     *  公開時刻が偶数の場合、この後に読んだ内容は @ref string_catalog_filter_source_end_read で確定します。
+     */
+    uint64_t string_catalog_filter_source_begin_read(const void *source);
+
+    /**
+     *  @brief          ソース領域の読み取りを終え、読んだ内容が一貫しているかを返します。
+     *  @param[in]      source    ソース領域の先頭アドレス。
+     *  @param[in]      timestamp @ref string_catalog_filter_source_begin_read が返した公開時刻。
+     *  @return         読み取りの間に公開時刻が変わっていない場合は true。
+     */
+    bool string_catalog_filter_source_end_read(const void *source, uint64_t timestamp);
 
 #ifdef __cplusplus
 }

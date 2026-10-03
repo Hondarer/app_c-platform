@@ -226,6 +226,7 @@ class TraceOutputTest(unittest.TestCase):
                 "#include <cplat/trace/tracer.h>",
                 "#include <cplat/crt/path.h>",
                 "#include <cplat/runtime/process.h>",
+                "#include <cplat/string_catalog/filter.h>",
                 "#include <stdarg.h>",
                 "#include <stddef.h>",
                 "#include <stdint.h>",
@@ -279,7 +280,68 @@ class TraceOutputTest(unittest.TestCase):
     def test_source_emits_write_function(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
         self.assertIn("int sample_trace_write(const int string_key, ...)", source)
-        self.assertIn("cplat_tracer_write_at(s_tracer, (cplat_trace_level)sample_trace_category(string_key)", source)
+        self.assertIn("    level = (cplat_trace_level)sample_trace_category(string_key);", source)
+        self.assertIn("cplat_tracer_write_at(s_tracer, level, NULL, text)", source)
+
+    def test_write_judges_with_filter_only_when_connected(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        # 未接続時は従来どおりカタログで組み立て、接続時だけ判定付きで組み立てる
+        self.assertIn(
+            "    if (s_filter != NULL)\n    {\n"
+            "        ret = cplat_string_catalog_filter_slot_vformat(s_filter, text, sizeof(text), &is_matched, "
+            "string_key, args);\n    }\n    else\n    {\n"
+            "        ret = cplat_string_catalog_vformat(&s_catalog, text, sizeof(text), string_key, args);",
+            source,
+        )
+        self.assertIn(
+            "    if (is_matched != 0)\n    {\n        level = CPLAT_TRACE_LEVEL_TO_FORCE(level);", source
+        )
+
+    def test_source_emits_key_name_table_in_definition_order(self):
+        document = trace_document(module_dir="prod/src/cmd/example")
+        second = dict(document["strings"][0], key="SAMPLE_TRACE_KEY_B", id="ID_0002")
+        document["strings"].append(second)
+        source = gen.emit_source(document, gen.validate(document), "example.jsonc")
+        self.assertIn(
+            "static const cplat_string_catalog_filter_key_name s_key_names[] = {\n"
+            '    {"SAMPLE_TRACE_KEY_A", SAMPLE_TRACE_KEY_A, 0U},\n'
+            '    {"SAMPLE_TRACE_KEY_B", SAMPLE_TRACE_KEY_B, 0U},\n'
+            "};",
+            source,
+        )
+
+    def test_header_declares_filter_connection(self):
+        header = gen.emit_header(self.document, self.strings, "example.jsonc")
+        self.assertIn("const cplat_string_catalog_filter_key_name *sample_trace_key_names(void);", header)
+        self.assertIn("size_t sample_trace_key_name_count(void);", header)
+        self.assertIn("int sample_trace_create_filter(const cplat_string_catalog_filter_category_names *", header)
+        self.assertIn("int sample_trace_set_filter(cplat_string_catalog_filter_slot *slot);", header)
+        self.assertIn("cplat_string_catalog_filter_slot *sample_trace_get_filter(void);", header)
+
+    def test_set_filter_rejects_slot_of_another_catalog(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            "    if ((slot != NULL) && (cplat_string_catalog_filter_slot_get_catalog(slot) != &s_catalog))\n"
+            "    {\n        return CPLAT_ERR_INVALID_ARGUMENT;",
+            source,
+        )
+
+    def test_create_filter_uses_own_catalog_and_key_names(self):
+        source = gen.emit_source(self.document, self.strings, "example.jsonc")
+        self.assertIn(
+            "cplat_string_catalog_filter_slot_create(&s_catalog, s_key_names, sample_trace_key_name_count(), "
+            "category_names,",
+            source,
+        )
+
+    def test_rejects_key_colliding_with_trace_function(self):
+        # トレース種別だけが定義する関数名とも、型付きラッパーの名前が衝突しうる。
+        for suffix in gen.TRACE_FUNCTION_SUFFIXES:
+            with self.subTest(suffix=suffix):
+                document = trace_document()
+                document["strings"][0]["key"] = f"SAMPLE_TRACE_{suffix.upper()}"
+                with self.assertRaises(gen.DefinitionError):
+                    gen.validate(document)
 
     def test_source_holds_tracer_and_rejects_unset(self):
         source = gen.emit_source(self.document, self.strings, "example.jsonc")
@@ -301,6 +363,15 @@ class TraceOutputTest(unittest.TestCase):
         strings = gen.validate(document)
         self.assertNotIn("sample_messages_write", gen.emit_source(document, strings, "example.jsonc"))
         self.assertNotIn("sample_messages_write", gen.emit_header(document, strings, "example.jsonc"))
+
+    def test_message_kind_does_not_emit_filter_connection(self):
+        document = minimal_document()
+        strings = gen.validate(document)
+        source = gen.emit_source(document, strings, "example.jsonc")
+        header = gen.emit_header(document, strings, "example.jsonc")
+        for text in (source, header):
+            self.assertNotIn("_filter", text)
+            self.assertNotIn("key_names", text)
 
 
 class ValidateTest(unittest.TestCase):
@@ -852,6 +923,24 @@ class ExportOutputTest(unittest.TestCase):
             "EXAMPLE_EXPORT void EXAMPLE_API sample_trace_set_tracer(", header
         )
         self.assertIn("EXAMPLE_EXPORT int EXAMPLE_API sample_trace_write(", header)
+
+    def test_api_scope_exports_filter_connection_but_not_key_names(self):
+        # 名前解決表は cplat の構造体を返すため、公開範囲 api では公開しない。
+        document = export_document("api", **trace_document(module_dir="prod/libsrc/example"))
+        header = gen.emit_header(document, gen.validate(document), "example.jsonc")
+        self.assertIn("EXAMPLE_EXPORT int EXAMPLE_API sample_trace_create_filter(", header)
+        self.assertIn("EXAMPLE_EXPORT int EXAMPLE_API sample_trace_set_filter(", header)
+        self.assertIn("EXAMPLE_EXPORT cplat_string_catalog_filter_slot *EXAMPLE_API sample_trace_get_filter(", header)
+        self.assertIn("    const cplat_string_catalog_filter_key_name *sample_trace_key_names(void);", header)
+        self.assertIn("    size_t sample_trace_key_name_count(void);", header)
+
+    def test_full_scope_exports_key_names(self):
+        document = export_document("full", **trace_document(module_dir="prod/libsrc/example"))
+        header = gen.emit_header(document, gen.validate(document), "example.jsonc")
+        self.assertIn(
+            "EXAMPLE_EXPORT const cplat_string_catalog_filter_key_name *EXAMPLE_API sample_trace_key_names(", header
+        )
+        self.assertIn("EXAMPLE_EXPORT size_t EXAMPLE_API sample_trace_key_name_count(", header)
 
 class HeaderIncludePathTest(unittest.TestCase):
     """公開ヘッダーの include パスの導出を確認する。"""

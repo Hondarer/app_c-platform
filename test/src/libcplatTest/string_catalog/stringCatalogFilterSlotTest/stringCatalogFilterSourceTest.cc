@@ -1,0 +1,672 @@
+#include <testfw.h>
+#include <mock_cplat.h>
+
+#include "filterTestSupport.h"
+
+#include "gen/filter_test_trace.h"
+
+/* 公開時刻と署名を書き換えるため、モジュール私有ヘッダーを取り込む */
+#include "filter.h"
+
+#include <cplat/base/result.h>
+#include <cplat/sync/atomic.h>
+
+#include <cstdint>
+#include <cstring>
+
+using namespace filter_test;
+using testing::_;
+using testing::Invoke;
+using testing::NiceMock;
+using testing::Return;
+
+namespace
+{
+/** テストで使用するソース領域のバイト数です。 */
+constexpr std::size_t kSourceSize = CPLAT_STRING_CATALOG_FILTER_SOURCE_SIZE(kLineCapacity, kLineWidth);
+} // namespace
+
+class stringCatalogFilterSourceTest : public Test
+{
+  protected:
+    NiceMock<Mock_cplat> mock_cplat;
+
+    /** ソース領域です。公開時刻をアトミックに読み書きするため、8 バイト境界に置きます。 */
+    alignas(8) unsigned char source_[kSourceSize];
+
+    /** 公開するフィルター オブジェクトです。 */
+    unsigned char image_[kImageSize];
+
+    /** 組み立てた文字列の格納先です。 */
+    char dest_[256];
+
+    cplat_string_catalog_filter_slot *slot_ = nullptr;
+
+    void SetUp() override
+    {
+        memset(source_, 0, sizeof(source_));
+        memset(image_, 0, sizeof(image_));
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_create(
+                                filter_test_trace_catalog(), filter_test_trace_key_names(),
+                                filter_test_trace_key_name_count(), nullptr, kLineCapacity, kLineWidth, &slot_));
+    }
+
+    void TearDown() override
+    {
+        cplat_string_catalog_filter_slot_dispose(&slot_);
+    }
+
+    string_catalog_filter_source_header *header()
+    {
+        return reinterpret_cast<string_catalog_filter_source_header *>(source_);
+    }
+
+    /** 条件式 1 行をコンパイルして、ソース領域へ公開します。 */
+    int publish_line(const char *text, uint64_t *timestamp_out = nullptr)
+    {
+        int ret = compile_single_line(text, image_);
+        if (ret != CPLAT_OK)
+        {
+            return ret;
+        }
+        return cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                          timestamp_out);
+    }
+
+    /** WARNING の JOB_FAILED を判定付きで組み立て、一致結果を返します。 */
+    int format_job_failed(int *matched_out)
+    {
+        return cplat_string_catalog_filter_slot_format(slot_, dest_, sizeof(dest_), matched_out,
+                                                       FILTER_TEST_TRACE_KEY_JOB_FAILED, (uint64_t)5U, 2,
+                                                       FILTER_TEST_CONTEXT_ARGS(7));
+    }
+
+    cplat_string_catalog_filter_source_status source_status()
+    {
+        cplat_string_catalog_filter_source_status status;
+        memset(&status, 0xFF, sizeof(status));
+        EXPECT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_get_source_status(slot_, &status));
+        return status;
+    }
+};
+
+// 公開した条件を、次の判定付きの組み立てで取り込むことの確認
+TEST_F(stringCatalogFilterSourceTest, format_takes_published_conditions)
+{
+    // Arrange
+    uint64_t published_timestamp = 0U;
+    int actual_ret;
+    int actual_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published_timestamp)); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+
+    // Pre-Assert
+
+    // Act
+    actual_ret = format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    cplat_string_catalog_filter_source_status status = source_status();
+    EXPECT_EQ(CPLAT_OK, actual_ret);                        // [確認_正常系] - 組み立てに成功すること。
+    EXPECT_NE(0, actual_matched);                           // [確認_正常系] - 公開した条件で一致すること。
+    EXPECT_EQ(published_timestamp, status.taken_timestamp); // [確認_正常系] - 公開時刻を取り込み済みとすること。
+    EXPECT_EQ(CPLAT_OK, status.last_result);                // [確認_正常系] - 取り込みの結果が成功であること。
+    EXPECT_EQ(0U, status.last_invalid_count);               // [確認_正常系] - 無効にした行がないこと。
+}
+
+// 公開時刻が変わらない場合は、ロックを取らずに判定することの確認
+TEST_F(stringCatalogFilterSourceTest, unchanged_timestamp_skips_lock)
+{
+    // Arrange
+    int actual_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+    ASSERT_EQ(CPLAT_OK, format_job_failed(&actual_matched)); // [状態] - 1 回目の組み立てで取り込む。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_local_lock_try_lock(_))
+        .Times(0); // [Pre-Assert確認_正常系] - 取り込みのロックを試みないこと。
+
+    // Act
+    actual_matched = 0;
+    (void)format_job_failed(&actual_matched); // [手順] - 2 回目の組み立てを行う。
+
+    // Assert
+    EXPECT_NE(0, actual_matched); // [確認_正常系] - 取り込み済みの条件で一致すること。
+}
+
+// 公開し直した条件を取り込み、公開時刻が増加することの確認
+TEST_F(stringCatalogFilterSourceTest, republished_conditions_replace_previous)
+{
+    // Arrange
+    uint64_t first_timestamp = 0U;
+    uint64_t second_timestamp = 0U;
+    int actual_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &first_timestamp)); // [状態] - 1 回目の条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+    ASSERT_EQ(CPLAT_OK, format_job_failed(&actual_matched));                      // [状態] - 1 回目の条件を取り込む。
+    ASSERT_EQ(CPLAT_OK, publish_line("category >= 3", &second_timestamp));        // [状態] - 2 回目の条件を公開する。
+
+    // Pre-Assert
+
+    // Act
+    actual_matched = 1;
+    (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    EXPECT_GT(second_timestamp, first_timestamp); // [確認_正常系] - 公開時刻が増加すること。
+    EXPECT_EQ(0U, second_timestamp % 2U);         // [確認_正常系] - 公開時刻が偶数であること。
+    EXPECT_EQ(0, actual_matched);                 // [確認_正常系] - 2 回目の条件で判定すること。
+    EXPECT_EQ(second_timestamp,
+              source_status().taken_timestamp); // [確認_正常系] - 2 回目の公開時刻を取り込み済みとすること。
+}
+
+// 公開時刻が奇数 (書き込み中) の間は取り込まず、次の公開で回復することの確認
+TEST_F(stringCatalogFilterSourceTest, writing_source_is_not_taken_until_next_publish)
+{
+    // Arrange
+    uint64_t published_timestamp = 0U;
+    uint64_t recovered_timestamp = 0U;
+    int actual_matched_while_writing = 1;
+    int actual_matched_after_recovery = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published_timestamp)); // [状態] - 条件を公開する。
+    cplat_atomic_store_u64(&header()->published_timestamp, published_timestamp | 1U,
+                           CPLAT_MEMORY_ORDER_RELAXED); // [状態] - 書き込みの途中で中断した状態にする。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+
+    // Pre-Assert
+
+    // Act
+    (void)format_job_failed(&actual_matched_while_writing); // [手順] - 書き込み中に組み立てる。
+    uint64_t taken_while_writing = source_status().taken_timestamp;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &recovered_timestamp)); // [手順] - 公開し直す。
+    (void)format_job_failed(&actual_matched_after_recovery);                  // [手順] - 公開後に組み立てる。
+
+    // Assert
+    EXPECT_EQ(0, actual_matched_while_writing); // [確認_異常系] - 書き込み中は取り込まず、以前の条件で判定すること。
+    EXPECT_EQ(0U, taken_while_writing);         // [確認_異常系] - 書き込み中は取り込み済みとしないこと。
+    EXPECT_GT(recovered_timestamp, published_timestamp); // [確認_正常系] - 中断後の公開時刻が中断前より大きいこと。
+    EXPECT_NE(0, actual_matched_after_recovery);         // [確認_正常系] - 公開し直した条件を取り込むこと。
+}
+
+// 複製の間に公開が重なった場合は取り込まず、次の判定で取り込むことの確認
+TEST_F(stringCatalogFilterSourceTest, torn_copy_is_discarded_and_retried)
+{
+    // Arrange
+    int actual_matched_torn = 1;
+    int actual_matched_retry = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_local_lock_try_lock(_))
+        .WillOnce(Invoke(
+            [this](cplat_local_lock *mtx)
+            {
+                uint64_t timestamp = cplat_atomic_load_u64(&header()->published_timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+                cplat_atomic_store_u64(&header()->published_timestamp, timestamp + 2U, CPLAT_MEMORY_ORDER_RELAXED);
+                return delegate_real_cplat_local_lock_try_lock(mtx);
+            })) // [Pre-Assert手順] - 1 回目は公開時刻を読んだ後に、公開が重なった状態を作る。
+        .WillRepeatedly(
+            Invoke(delegate_real_cplat_local_lock_try_lock)); // [Pre-Assert手順] - 2 回目以降は実関数を呼ぶ。
+
+    // Act
+    (void)format_job_failed(&actual_matched_torn); // [手順] - 公開が重なった状態で組み立てる。
+    uint64_t taken_after_torn = source_status().taken_timestamp;
+    (void)format_job_failed(&actual_matched_retry); // [手順] - もう一度組み立てる。
+
+    // Assert
+    EXPECT_EQ(0, actual_matched_torn);  // [確認_異常系] - 重なった複製を適用せず、以前の条件で判定すること。
+    EXPECT_EQ(0U, taken_after_torn);    // [確認_異常系] - 重なった公開時刻を取り込み済みとしないこと。
+    EXPECT_NE(0, actual_matched_retry); // [確認_正常系] - 次の判定で取り込むこと。
+}
+
+// ほかのスレッドが取り込み中の場合は待たずに、適用済みの条件で判定することの確認
+TEST_F(stringCatalogFilterSourceTest, busy_lock_skips_take_without_waiting)
+{
+    // Arrange
+    int actual_ret;
+    int actual_matched = 1;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+
+    // Pre-Assert
+    EXPECT_CALL(mock_cplat, cplat_local_lock_try_lock(_))
+        .WillOnce(Return(CPLAT_ERR_BUSY)); // [Pre-Assert手順] - 取り込みのロックで CPLAT_ERR_BUSY を返却する。
+    EXPECT_CALL(mock_cplat, cplat_local_lock_lock(_, _)).Times(0); // [Pre-Assert確認_正常系] - ロックを待たないこと。
+
+    // Act
+    actual_ret = format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret); // [確認_正常系] - 組み立てに成功すること。
+    EXPECT_EQ(0, actual_matched);    // [確認_正常系] - 適用済みの条件で判定すること。
+}
+
+// 検証に失敗する公開内容は、結果を記録して繰り返し取り込まないことの確認
+TEST_F(stringCatalogFilterSourceTest, corrupt_publication_is_recorded_and_not_retried)
+{
+    // Arrange
+    uint64_t published_timestamp = 0U;
+    int actual_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published_timestamp)); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+    ASSERT_EQ(CPLAT_OK, format_job_failed(&actual_matched));                      // [状態] - 正しい条件を取り込む。
+    source_[CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE + CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE +
+            CPLAT_STRING_CATALOG_FILTER_RECORD_HEADER_SIZE] ^= 0xFFU; // [状態] - 行レコードを壊す。
+    cplat_atomic_store_u64(&header()->published_timestamp, published_timestamp + 2U,
+                           CPLAT_MEMORY_ORDER_RELEASE); // [状態] - 壊れた内容を公開済みにする。
+
+    // Pre-Assert
+
+    // Act
+    actual_matched = 0;
+    (void)format_job_failed(&actual_matched); // [手順] - 壊れた公開内容で組み立てる。
+    cplat_string_catalog_filter_source_status status = source_status();
+    EXPECT_CALL(mock_cplat, cplat_local_lock_try_lock(_))
+        .Times(0);                            // [確認_異常系] - 同じ公開内容の取り込みを試みないこと。
+    (void)format_job_failed(&actual_matched); // [手順] - もう一度組み立てる。
+
+    // Assert
+    EXPECT_NE(0, actual_matched);                                // [確認_異常系] - 以前の条件を維持すること。
+    EXPECT_EQ(published_timestamp + 2U, status.taken_timestamp); // [確認_異常系] - 試みた公開時刻を記録すること。
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, status.last_result); // [確認_異常系] - 検証の失敗を記録すること。
+}
+
+// 結び付けで、アラインメントと大きさを確認し、NULL で解除できることの確認
+TEST_F(stringCatalogFilterSourceTest, attach_validates_region_and_detaches_with_null)
+{
+    // Arrange
+    int actual_misaligned_ret;
+    int actual_small_ret;
+    int actual_detach_ret;
+    int actual_matched = 1;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+
+    // Pre-Assert
+
+    // Act
+    actual_misaligned_ret = cplat_string_catalog_filter_slot_attach_source(
+        slot_, source_ + 4, sizeof(source_) - 8U, nullptr); // [手順] - 境界に合わない領域を結び付ける。
+    actual_small_ret = cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_) - 1U,
+                                                                      nullptr); // [手順] - 小さい領域を結び付ける。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [手順] - 正しい領域を結び付ける。
+    actual_detach_ret =
+        cplat_string_catalog_filter_slot_attach_source(slot_, nullptr, 0U, nullptr); // [手順] - 解除する。
+    (void)format_job_failed(&actual_matched);                                        // [手順] - 解除後に組み立てる。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_misaligned_ret); // [確認_異常系] - 境界に合わない領域を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_small_ret);      // [確認_異常系] - 小さい領域を拒否すること。
+    EXPECT_EQ(CPLAT_OK, actual_detach_ret);                       // [確認_正常系] - 解除できること。
+    EXPECT_EQ(0, actual_matched);                                 // [確認_正常系] - 解除後は取り込まないこと。
+}
+
+// 公開で、不正な入力と異なる形式の領域を拒否し、領域を変更しないことの確認
+TEST_F(stringCatalogFilterSourceTest, publish_rejects_invalid_input_without_change)
+{
+    // Arrange
+    unsigned char expected_source[kSourceSize];
+    int actual_null_ret;
+    int actual_small_ret;
+    int actual_corrupt_image_ret;
+    int actual_foreign_ret;
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+    header()->signature = 0x12345678U;                                 // [状態] - 異なる形式の署名を置く。
+    memcpy(expected_source, source_, sizeof(source_));
+
+    // Pre-Assert
+
+    // Act
+    actual_null_ret = cplat_string_catalog_filter_source_publish(nullptr, sizeof(source_), image_, sizeof(image_),
+                                                                 nullptr); // [手順] - 領域に NULL を指定する。
+    actual_small_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_) - 1U, image_, sizeof(image_),
+                                                                  nullptr); // [手順] - 小さい領域を指定する。
+    image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
+    actual_corrupt_image_ret = cplat_string_catalog_filter_source_publish(
+        source_, sizeof(source_), image_, sizeof(image_), nullptr); // [手順] - 壊れたイメージを公開する。
+    image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
+    actual_foreign_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+                                                                    nullptr); // [手順] - 異なる形式の領域へ公開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_null_ret);            // [確認_異常系] - NULL を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_small_ret);           // [確認_異常系] - 小さい領域を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, actual_corrupt_image_ret); // [確認_異常系] - 壊れたイメージを拒否すること。
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, actual_foreign_ret);     // [確認_異常系] - 異なる形式の領域を拒否すること。
+    EXPECT_EQ(0, memcmp(expected_source, source_, sizeof(source_))); // [確認_異常系] - 領域を変更しないこと。
+}
+
+// 公開の情報を、未公開、公開済み、書き込み中、異なる形式の各状態で返すことの確認
+TEST_F(stringCatalogFilterSourceTest, get_info_reports_each_state)
+{
+    // Arrange
+    cplat_string_catalog_filter_source_info actual_unpublished;
+    cplat_string_catalog_filter_source_info actual_published;
+    cplat_string_catalog_filter_source_info actual_writing;
+    cplat_string_catalog_filter_source_info actual_foreign;
+    uint64_t published_timestamp = 0U;
+    int actual_unpublished_ret;
+    int actual_published_ret;
+    int actual_writing_ret;
+    int actual_foreign_ret;
+
+    // Pre-Assert
+
+    // Act
+    actual_unpublished_ret =
+        cplat_string_catalog_filter_source_get_info(source_, sizeof(source_),
+                                                    &actual_unpublished);     // [手順] - 未公開の情報を読む。
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published_timestamp)); // [手順] - 条件を公開する。
+    actual_published_ret =
+        cplat_string_catalog_filter_source_get_info(source_, sizeof(source_),
+                                                    &actual_published); // [手順] - 公開済みの情報を読む。
+    cplat_atomic_store_u64(&header()->published_timestamp, published_timestamp | 1U, CPLAT_MEMORY_ORDER_RELAXED);
+    actual_writing_ret =
+        cplat_string_catalog_filter_source_get_info(source_, sizeof(source_),
+                                                    &actual_writing); // [手順] - 書き込み中の情報を読む。
+    cplat_atomic_store_u64(&header()->published_timestamp, published_timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+    header()->signature = 0x12345678U;
+    actual_foreign_ret =
+        cplat_string_catalog_filter_source_get_info(source_, sizeof(source_),
+                                                    &actual_foreign); // [手順] - 異なる形式の情報を読む。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_unpublished_ret);           // [確認_正常系] - 未公開でも成功すること。
+    EXPECT_EQ(0U, actual_unpublished.published_timestamp); // [確認_正常系] - 未公開の公開時刻が 0 であること。
+    EXPECT_EQ(CPLAT_OK, actual_published_ret);             // [確認_正常系] - 公開済みの情報を読めること。
+    EXPECT_EQ(published_timestamp, actual_published.published_timestamp); // [確認_正常系] - 公開時刻を返すこと。
+    EXPECT_EQ((uint32_t)kLineCapacity, actual_published.line_capacity);   // [確認_正常系] - 行数の上限を返すこと。
+    EXPECT_EQ((uint32_t)kLineWidth, actual_published.line_width);         // [確認_正常系] - 行幅を返すこと。
+    EXPECT_NE(0U, actual_published.publisher_process_id);                 // [確認_正常系] - プロセス ID を返すこと。
+    EXPECT_NE(0, (long long)actual_published.published_realtime.tv_sec);  // [確認_正常系] - 実時刻を返すこと。
+    EXPECT_EQ(CPLAT_ERR_BUSY, actual_writing_ret); // [確認_異常系] - 書き込み中は CPLAT_ERR_BUSY を返すこと。
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, actual_foreign_ret); // [確認_異常系] - 異なる形式を拒否すること。
+}
+
+// 前回の公開時刻が単調増加クロックより大きい領域 (再起動を越えて残ったファイルのマップ) でも、公開時刻が増え続けることの確認
+TEST_F(stringCatalogFilterSourceTest, publish_continues_from_carried_over_timestamp)
+{
+    // Arrange
+    const uint64_t carried_over = UINT64_C(0x4000000000000000);
+    uint64_t actual_timestamp = 0U;
+    int actual_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category >= 3")); // [状態] - 以前の条件を公開する。
+    cplat_atomic_store_u64(
+        &header()->published_timestamp, carried_over,
+        CPLAT_MEMORY_ORDER_RELAXED); // [状態] - 前回の公開時刻を、現在の単調増加クロックより大きくする。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                       nullptr)); // [状態] - 結び付ける。
+
+    // Pre-Assert
+
+    // Act
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &actual_timestamp)); // [手順] - 新しい条件を公開する。
+    (void)format_job_failed(&actual_matched);                              // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    EXPECT_EQ(carried_over + 2U, actual_timestamp); // [確認_正常系] - 前回の値に 2 を加えた値になること。
+    EXPECT_NE(0, actual_matched);                   // [確認_正常系] - 新しい条件を取り込むこと。
+    EXPECT_EQ(actual_timestamp,
+              source_status().taken_timestamp); // [確認_正常系] - 新しい公開時刻を取り込み済みとすること。
+}
+
+// 公開時刻が上限に達した領域では、0 でない小さな偶数へ戻り、読み取り側が取り込むことの確認
+TEST_F(stringCatalogFilterSourceTest, publish_wraps_around_at_upper_limit)
+{
+    const uint64_t limits[] = {UINT64_MAX - 1U, UINT64_MAX};
+
+    for (const uint64_t limit : limits)
+    {
+        SCOPED_TRACE(limit);
+
+        // Arrange
+        uint64_t actual_timestamp = 0U;
+        int actual_matched = 0;
+        memset(source_, 0, sizeof(source_));
+        ASSERT_EQ(CPLAT_OK, publish_line("category >= 3")); // [状態] - 以前の条件を公開する。
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                           nullptr)); // [状態] - 結び付ける。
+        ASSERT_EQ(CPLAT_OK, format_job_failed(&actual_matched));                      // [状態] - 以前の条件を取り込む。
+        cplat_atomic_store_u64(
+            &header()->published_timestamp, limit,
+            CPLAT_MEMORY_ORDER_RELAXED); // [状態] - 公開時刻を上限 (偶数) または上限で書き込み中 (奇数) にする。
+
+        // Pre-Assert
+
+        // Act
+        ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &actual_timestamp)); // [手順] - 新しい条件を公開する。
+        actual_matched = 0;
+        (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+        // Assert
+        EXPECT_NE(0U, actual_timestamp);              // [確認_正常系] - 未公開を表す 0 にならないこと。
+        EXPECT_EQ(0U, actual_timestamp % 2U);         // [確認_正常系] - 偶数であること。
+        EXPECT_LT(actual_timestamp, UINT64_MAX - 1U); // [確認_正常系] - 上限から小さな値へ戻ること。
+        EXPECT_NE(0, actual_matched);                 // [確認_正常系] - 戻った公開時刻の条件を取り込むこと。
+        EXPECT_EQ(actual_timestamp,
+                  source_status().taken_timestamp); // [確認_正常系] - 戻った公開時刻を取り込み済みとすること。
+    }
+}
+
+// 形式版や大きさが異なるヘッダーの公開内容は、フィルター オブジェクトを読まずに記録することの確認
+TEST_F(stringCatalogFilterSourceTest, foreign_header_is_recorded_without_taking)
+{
+    struct header_change
+    {
+        const char *label;
+        void (*apply)(string_catalog_filter_source_header *);
+    };
+    const header_change changes[] = {
+        {"format_version", [](string_catalog_filter_source_header *h) { h->format_version = 2U; }},
+        {"line_width", [](string_catalog_filter_source_header *h) { h->line_width = h->line_width + 8U; }},
+    };
+
+    for (const header_change &change : changes)
+    {
+        SCOPED_TRACE(change.label);
+
+        // Arrange
+        uint64_t published_timestamp = 0U;
+        int actual_matched = 1;
+        memset(source_, 0, sizeof(source_));
+        ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published_timestamp)); // [状態] - 条件を公開する。
+        change.apply(header()); // [状態] - ヘッダーを異なる版や大きさに書き換える。
+        ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                                           nullptr)); // [状態] - 結び付ける。
+
+        // Pre-Assert
+
+        // Act
+        (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+        // Assert
+        cplat_string_catalog_filter_source_status status = source_status();
+        EXPECT_EQ(0, actual_matched); // [確認_異常系] - 取り込まず、以前の条件で判定すること。
+        EXPECT_EQ(published_timestamp,
+                  status.taken_timestamp); // [確認_異常系] - 公開時刻を記録し、繰り返し試みないこと。
+        EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, status.last_result); // [確認_異常系] - 形式の不一致を記録すること。
+    }
+}
+
+namespace
+{
+/** 書き込み側の排他の代わりに、取得と解放の回数を数え、取得の時点で任意の処理を行います。 */
+struct counting_lock
+{
+    int lock_count;
+    int unlock_count;
+    int lock_result;
+    int pad; /**< 明示的アラインメントです。 */
+    void (*on_lock)(void *);
+    void *on_lock_context;
+};
+
+int counting_lock_acquire(void *context)
+{
+    counting_lock *lock = static_cast<counting_lock *>(context);
+
+    lock->lock_count++;
+    if ((lock->lock_result == CPLAT_OK) && (lock->on_lock != nullptr))
+    {
+        lock->on_lock(lock->on_lock_context);
+    }
+    return lock->lock_result;
+}
+
+void counting_lock_release(void *context)
+{
+    static_cast<counting_lock *>(context)->unlock_count++;
+}
+} // namespace
+
+class stringCatalogFilterLockedSourceTest : public stringCatalogFilterSourceTest
+{
+  protected:
+    counting_lock counter_ = {0, 0, CPLAT_OK, 0, nullptr, nullptr};
+    cplat_string_catalog_filter_source_lock lock_ = {counting_lock_acquire, counting_lock_release, &counter_};
+
+    int attach_with_lock()
+    {
+        return cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_), &lock_);
+    }
+
+    /** 排他を取った時点で呼び出し、待つ間に終わった公開として別の条件を公開します。 */
+    static void publish_while_waiting(void *context)
+    {
+        (void)static_cast<stringCatalogFilterLockedSourceTest *>(context)->publish_line("category >= 3");
+    }
+};
+
+// 書き込み側の排他を結び付けた場合、変化を検知したときだけ排他を取って取り込むことの確認
+TEST_F(stringCatalogFilterLockedSourceTest, takes_under_writer_lock_only_when_changed)
+{
+    // Arrange
+    int actual_first_matched = 0;
+    int actual_second_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, attach_with_lock());            // [状態] - 書き込み側の排他とともに結び付ける。
+
+    // Pre-Assert
+
+    // Act
+    (void)format_job_failed(&actual_first_matched);  // [手順] - 1 回目の組み立てを行う。
+    (void)format_job_failed(&actual_second_matched); // [手順] - 公開時刻が変わらないまま 2 回目の組み立てを行う。
+
+    // Assert
+    EXPECT_NE(0, actual_first_matched);  // [確認_正常系] - 公開した条件を取り込むこと。
+    EXPECT_NE(0, actual_second_matched); // [確認_正常系] - 取り込み済みの条件で判定すること。
+    EXPECT_EQ(1, counter_.lock_count);   // [確認_正常系] - 変化を検知した 1 回目だけ排他を取ること。
+    EXPECT_EQ(1, counter_.unlock_count); // [確認_正常系] - 取った排他を解放すること。
+}
+
+// 排他を待つ間に公開が進んだ場合、排他の下で読み直した新しい公開時刻を取り込むことの確認
+TEST_F(stringCatalogFilterLockedSourceTest, rechecks_timestamp_under_writer_lock)
+{
+    // Arrange
+    uint64_t first_timestamp = 0U;
+    int actual_matched = 1;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &first_timestamp)); // [状態] - 1 回目の条件を公開する。
+    ASSERT_EQ(CPLAT_OK, attach_with_lock()); // [状態] - 書き込み側の排他とともに結び付ける。
+    counter_.on_lock =
+        publish_while_waiting; // [状態] - 排他を取った時点で、待つ間に終わった公開として 2 回目の条件を公開する。
+    counter_.on_lock_context = this;
+
+    // Pre-Assert
+
+    // Act
+    (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    cplat_string_catalog_filter_source_status status = source_status();
+    EXPECT_EQ(0, actual_matched);                       // [確認_正常系] - 2 回目の条件で判定すること。
+    EXPECT_GT(status.taken_timestamp, first_timestamp); // [確認_正常系] - 読み直した新しい公開時刻を取り込むこと。
+    cplat_string_catalog_filter_source_info info;
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_source_get_info(source_, sizeof(source_), &info));
+    EXPECT_EQ(info.published_timestamp, status.taken_timestamp); // [確認_正常系] - 最新の公開時刻と一致すること。
+}
+
+// 排他の下で書き込み中 (書き込み側が途中で停止した状態) が見えた場合は取り込まず、排他を解放することの確認
+TEST_F(stringCatalogFilterLockedSourceTest, interrupted_write_seen_under_lock_is_not_taken)
+{
+    // Arrange
+    int actual_matched = 1;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2")); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, attach_with_lock());            // [状態] - 書き込み側の排他とともに結び付ける。
+    counter_.on_lock = [](void *context)
+    {
+        string_catalog_filter_source_header *h = static_cast<string_catalog_filter_source_header *>(context);
+        uint64_t timestamp = cplat_atomic_load_u64(&h->published_timestamp, CPLAT_MEMORY_ORDER_RELAXED);
+        cplat_atomic_store_u64(&h->published_timestamp, timestamp | 1U, CPLAT_MEMORY_ORDER_RELAXED);
+    }; // [状態] - 排他を取った時点で、書き込みの途中で停止した状態にする。
+    counter_.on_lock_context = header();
+
+    // Pre-Assert
+
+    // Act
+    (void)format_job_failed(&actual_matched); // [手順] - JOB_FAILED を組み立てる。
+
+    // Assert
+    EXPECT_EQ(0, actual_matched);                          // [確認_異常系] - 取り込まず、以前の条件で判定すること。
+    EXPECT_EQ(0U, source_status().taken_timestamp);        // [確認_異常系] - 取り込み済みとしないこと。
+    EXPECT_EQ(counter_.lock_count, counter_.unlock_count); // [確認_異常系] - 取った排他を解放すること。
+}
+
+// 書き込み側の排他を取得できない場合は取り込まず、結果を記録して次の判定で改めて試みることの確認
+TEST_F(stringCatalogFilterLockedSourceTest, lock_failure_is_recorded_and_retried)
+{
+    // Arrange
+    uint64_t published = 0U;
+    int actual_failed_matched = 1;
+    int actual_retry_matched = 0;
+    ASSERT_EQ(CPLAT_OK, publish_line("category <= 2", &published)); // [状態] - 条件を公開する。
+    ASSERT_EQ(CPLAT_OK, attach_with_lock());                        // [状態] - 書き込み側の排他とともに結び付ける。
+    counter_.lock_result = CPLAT_ERR_TIMEOUT;                       // [状態] - 排他の取得が失敗するようにする。
+
+    // Pre-Assert
+
+    // Act
+    (void)format_job_failed(&actual_failed_matched); // [手順] - 排他を取得できない状態で組み立てる。
+    cplat_string_catalog_filter_source_status failed_status = source_status();
+    counter_.lock_result = CPLAT_OK;                // [手順] - 排他を取得できる状態に戻す。
+    (void)format_job_failed(&actual_retry_matched); // [手順] - もう一度組み立てる。
+
+    // Assert
+    EXPECT_EQ(0, actual_failed_matched);                     // [確認_異常系] - 取り込まず、以前の条件で判定すること。
+    EXPECT_EQ(0U, failed_status.taken_timestamp);            // [確認_異常系] - 取り込み済みとしないこと。
+    EXPECT_EQ(CPLAT_ERR_TIMEOUT, failed_status.last_result); // [確認_異常系] - 排他の取得の結果コードを記録すること。
+    EXPECT_EQ(1, counter_.unlock_count);                     // [確認_異常系] - 取得できなかった排他は解放しないこと。
+    EXPECT_NE(0, actual_retry_matched);                      // [確認_正常系] - 次の判定で取り込むこと。
+    EXPECT_EQ(published, source_status().taken_timestamp);   // [確認_正常系] - 公開時刻を取り込み済みとすること。
+}
+
+// 関数が NULL の排他を結び付けられないことの確認
+TEST_F(stringCatalogFilterLockedSourceTest, attach_rejects_incomplete_lock)
+{
+    // Arrange
+    cplat_string_catalog_filter_source_lock without_unlock = {counting_lock_acquire, nullptr, &counter_};
+    cplat_string_catalog_filter_source_lock without_lock = {nullptr, counting_lock_release, &counter_};
+
+    // Pre-Assert
+
+    // Act
+    int actual_without_unlock =
+        cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                       &without_unlock); // [手順] - 解放の関数がない排他を結び付ける。
+    int actual_without_lock =
+        cplat_string_catalog_filter_slot_attach_source(slot_, source_, sizeof(source_),
+                                                       &without_lock); // [手順] - 取得の関数がない排他を結び付ける。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
+              actual_without_unlock);                           // [確認_異常系] - 解放の関数がない排他を拒否すること。
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_without_lock); // [確認_異常系] - 取得の関数がない排他を拒否すること。
+}

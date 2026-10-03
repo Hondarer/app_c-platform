@@ -14,10 +14,11 @@ ifndef MAKEFW_SYNC_EVAL
 endif
 
 # テスト対象のソース ファイル
-# 判定と差し替えを担うスロットと、条件の説明文を対象とする
+# 判定と差し替えを担うスロット、条件の説明文、ソース領域の公開と読み取りを対象とする
 TEST_SRCS := \
 	$(MYAPP_DIR)/prod/libsrc/cplat/string_catalog/filter/filter_slot.c \
-	$(MYAPP_DIR)/prod/libsrc/cplat/string_catalog/filter/filter_describe.c
+	$(MYAPP_DIR)/prod/libsrc/cplat/string_catalog/filter/filter_describe.c \
+	$(MYAPP_DIR)/prod/libsrc/cplat/string_catalog/filter/filter_source.c
 
 # テスト対象がリンクのために必要とする依存実装
 # スロットはコンパイル、検証と、文字列カタログの書式展開を呼び出す。

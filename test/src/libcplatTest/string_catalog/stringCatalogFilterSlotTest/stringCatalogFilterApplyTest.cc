@@ -3,7 +3,6 @@
 #include "filterTestSupport.h"
 
 #include "gen/filter_test_trace.h"
-#include "filter_test_trace_key_names.h"
 
 /* 命令形式を書き換えるため、モジュール私有ヘッダーを取り込む */
 #include "filter.h"

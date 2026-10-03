@@ -147,7 +147,12 @@ TEXT_SUFFIX_SECTION = "text_suffix"
 TEXT_AFFIX_SECTIONS = (TEXT_PREFIX_SECTION, TEXT_SUFFIX_SECTION)
 
 # トレース種別の生成物が追加で参照する公開ヘッダー。
-TRACE_HEADERS = ("cplat/trace/tracer.h", "cplat/crt/path.h", "cplat/runtime/process.h")
+TRACE_HEADERS = (
+    "cplat/trace/tracer.h",
+    "cplat/crt/path.h",
+    "cplat/runtime/process.h",
+    "cplat/string_catalog/filter.h",
+)
 
 
 class DefinitionError(Exception):
@@ -472,7 +477,7 @@ def validate(document: dict) -> list[dict]:
     trace = is_trace(document)
     context_names = {argument["name"] for argument in context_arguments(document)}
     seen_keys: set[str] = set()
-    suffixes = MODULE_FUNCTION_SUFFIXES + (("write", "set_tracer", "get_tracer") if trace else ())
+    suffixes = MODULE_FUNCTION_SUFFIXES + (TRACE_FUNCTION_SUFFIXES if trace else ())
     reserved_names = {f"{document['module_prefix']}_{suffix}" for suffix in suffixes}
 
     for entry in strings:
@@ -695,6 +700,18 @@ MODULE_FUNCTION_SUFFIXES = (
     "category",
     "id",
     "note",
+)
+
+# トレース種別の生成物だけが追加で定義する関数の接尾辞。
+TRACE_FUNCTION_SUFFIXES = (
+    "write",
+    "set_tracer",
+    "get_tracer",
+    "key_names",
+    "key_name_count",
+    "create_filter",
+    "set_filter",
+    "get_filter",
 )
 
 
@@ -1434,11 +1451,89 @@ TRACE_WRITE_DECLARATION = """\
     @EXPORT@cplat_tracer *@API@@MODULE@_get_tracer(void);
 
     /**
+     *  @brief          文字列キーの名前解決表の先頭を取得します。
+     *  @return         名前解決表の先頭ポインターです。NULL は返しません。
+     *
+     *  列挙定数名と文字列キーの組を、カタログ定義の並び順で保持します。\\n
+     *  条件式フィルターが、条件式に書いた列挙定数名を文字列キーへ解決するために使用します。\\n
+     *  通常は @c @MODULE@_create_filter がこの表を使用するため、直接参照する必要はありません。
+     *
+     *  返されるポインターは静的領域を指しているため、呼び出し側で解放してはなりません。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    @EXPORT_FULL@const @LIBRARY@_filter_key_name *@API_FULL@@MODULE@_key_names(void);
+
+    /**
+     *  @brief          文字列キーの名前解決表の要素数を取得します。
+     *  @return         名前解決表の要素数です。カタログの登録件数と同じ値を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    @EXPORT_FULL@size_t @API_FULL@@MODULE@_key_name_count(void);
+
+    /**
+     *  @brief          本カタログ定義と名前解決表で、条件式フィルターのスロットを作成します。
+     *  @param[in]      category_names 分類値の名前。分類値を数値だけで扱う場合は NULL を指定します。
+     *                                 スロットを破棄するまで有効である必要があります。
+     *  @param[in]      line_capacity  適用するフィルター オブジェクトの行数の上限。
+     *  @param[in]      line_width     適用するフィルター オブジェクトの行幅。
+     *  @param[out]     slot_out       作成したスロットの格納先。
+     *  @return         戻り値は @c @LIBRARY@_filter_slot_create と同じです。
+     *
+     *  カタログ構造体と名前解決表を指定せずにスロットを作成するための簡易関数です。\\n
+     *  作成したスロットは @c @MODULE@_set_filter で出力へ接続し、不要になったら
+     *  @c @LIBRARY@_filter_slot_dispose で破棄します。
+     *
+     *  分類値はトレース レベルです。名前を付ける場合は、トレース レベルの値をインデックスとする名前を指定します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    @EXPORT@int @API@@MODULE@_create_filter(const @LIBRARY@_filter_category_names *category_names,
+                                            size_t line_capacity, size_t line_width,
+                                            @LIBRARY@_filter_slot **slot_out);
+
+    /**
+     *  @brief          本カタログの出力に使用する条件式フィルターのスロットを設定します。
+     *  @param[in]      slot 本カタログで作成したスロット。NULL を指定すると接続を解除します。
+     *  @return         成功時は @c CPLAT_OK を返します。
+     *  @return         @p slot が本カタログ以外のカタログで作成されている場合は、設定を変えずに
+     *                  @c CPLAT_ERR_INVALID_ARGUMENT を返します。
+     *
+     *  接続すると、出力のたびに条件式で判定し、いずれかの行に一致したトレースを強制出力のレベルで出力します。\\n
+     *  一致しないトレースは、定義のレベルのまま出力先のしきい値で選別されます。\\n
+     *  スロットにソース領域を結び付けている場合は、出力のたびに公開内容の変化を確認して取り込みます。
+     *
+     *  スロットの所有権は移りません。スロットを破棄する前に、NULL を設定して接続を解除してください。\\n
+     *  条件の差し替えは、接続したまま @c @LIBRARY@_filter_slot_apply などで行えます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフではありません。\\n
+     *  @c @MODULE@_set_tracer と同じく、プロセス全体で呼び出しを直列化し、出力を開始する前に設定してください。
+     */
+    @EXPORT@int @API@@MODULE@_set_filter(@LIBRARY@_filter_slot *slot);
+
+    /**
+     *  @brief          本カタログの出力に設定されている条件式フィルターのスロットを取得します。
+     *  @return         設定されているスロットです。未設定の場合は NULL を返します。
+     *
+     *  @par            スレッド セーフ
+     *  本関数は条件付きスレッド セーフです。\\n
+     *  他スレッドが接続を同時に変更しない場合は、同時に実行できます。
+     */
+    @EXPORT@@LIBRARY@_filter_slot *@API@@MODULE@_get_filter(void);
+
+    /**
      *  @brief          本カタログ定義を使用して、組み立てた文字列をトレースへ出力します。
      *  @param[in]      string_key 出力する文字列のキー。
      *  @param[in]      ...        引数スキーマが定める順序と型の引数リスト。
      *  @return         トレーサーが未設定の場合は @c CPLAT_ERR_INVALID_ARGUMENT を返します。
      *  @return         組み立てに失敗した場合は @c @LIBRARY@_format と同じ値を返します。
+     *  @return         条件式フィルターを接続している場合、判定と組み立てに失敗すると
+     *                  @c @LIBRARY@_filter_slot_vformat と同じ値を返し、出力しません。
      *  @return         組み立てに成功した場合は @c cplat_tracer_write_at と同じ値を返します。
      *
      *  文字列キーごとの型付きラッパーが呼び出す関数です。\\n
@@ -1449,6 +1544,7 @@ TRACE_WRITE_DECLARATION = """\
      *  設定の漏れが成功として隠れないようにするためです。
      *
      *  トレース レベルは、カタログ定義の level から変換した分類値を使用します。\\n
+     *  @c @MODULE@_set_filter で接続した条件式に一致した場合は、@c CPLAT_TRACE_LEVEL_TO_FORCE で強制出力のレベルへ変更します。\\n
      *  呼び出し位置は引数として受け取るため、トレース側で重ねて付与しません。
      *
      *  @par            スレッド セーフ
@@ -1463,6 +1559,9 @@ TRACE_WRITE_DECLARATION = """\
 TRACE_SOURCE_TAIL = """\
 /** 本カタログの出力先です。@ref @MODULE@_set_tracer で設定します。 */
 static cplat_tracer *s_tracer = NULL;
+
+/** 本カタログの出力に使用する条件式フィルターです。@ref @MODULE@_set_filter で設定します。 */
+static @LIBRARY@_filter_slot *s_filter = NULL;
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
@@ -1480,10 +1579,55 @@ cplat_tracer *@MODULE@_get_tracer(void)
 
 /* Doxygen コメントは、ヘッダーに記載 */
 
+const @LIBRARY@_filter_key_name *@MODULE@_key_names(void)
+{
+    return s_key_names;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+size_t @MODULE@_key_name_count(void)
+{
+    return sizeof(s_key_names) / sizeof(s_key_names[0]);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int @MODULE@_create_filter(const @LIBRARY@_filter_category_names *category_names, const size_t line_capacity,
+                           const size_t line_width, @LIBRARY@_filter_slot **slot_out)
+{
+    return @LIBRARY@_filter_slot_create(&s_catalog, s_key_names, @MODULE@_key_name_count(), category_names,
+                                        line_capacity, line_width, slot_out);
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int @MODULE@_set_filter(@LIBRARY@_filter_slot *slot)
+{
+    /* 別のカタログで作成したスロットは、文字列キーと引数定義が一致しないため接続しません。 */
+    if ((slot != NULL) && (@LIBRARY@_filter_slot_get_catalog(slot) != &s_catalog))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+    s_filter = slot;
+    return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+@LIBRARY@_filter_slot *@MODULE@_get_filter(void)
+{
+    return s_filter;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
 int @MODULE@_write(const int string_key, ...)
 {
     char text[CPLAT_STRING_CATALOG_TEXT_MAX];
+    cplat_trace_level level;
     va_list args;
+    int is_matched = 0;
     int ret;
 
     /* 出力先が未設定の場合は、組み立てを行わずに失敗を返します。設定の漏れを成功として隠蔽しないためです。 */
@@ -1493,7 +1637,14 @@ int @MODULE@_write(const int string_key, ...)
     }
 
     va_start(args, string_key);
-    ret = @LIBRARY@_vformat(&s_catalog, text, sizeof(text), string_key, args);
+    if (s_filter != NULL)
+    {
+        ret = @LIBRARY@_filter_slot_vformat(s_filter, text, sizeof(text), &is_matched, string_key, args);
+    }
+    else
+    {
+        ret = @LIBRARY@_vformat(&s_catalog, text, sizeof(text), string_key, args);
+    }
     va_end(args);
 
     if (ret != CPLAT_OK)
@@ -1501,8 +1652,15 @@ int @MODULE@_write(const int string_key, ...)
         return ret;
     }
 
+    /* 条件式に一致したトレースは、出力先のしきい値によらず出力します。 */
+    level = (cplat_trace_level)@MODULE@_category(string_key);
+    if (is_matched != 0)
+    {
+        level = CPLAT_TRACE_LEVEL_TO_FORCE(level);
+    }
+
     /* 呼び出し位置は引数として渡しているため、呼び出し位置を付与しない API を使用します。 */
-    return cplat_tracer_write_at(s_tracer, (cplat_trace_level)@MODULE@_category(string_key), NULL, text);
+    return cplat_tracer_write_at(s_tracer, level, NULL, text);
 }
 """
 
@@ -1826,6 +1984,15 @@ def emit_source(document: dict, strings: list[dict], definition_name: str, out_r
     )
 
     if trace:
+        out.extend(
+            [
+                "",
+                "/** 文字列キーの名前解決表です。列挙定数名と文字列キーを、定義の並び順で保持します。 */",
+                f"static const {library}_filter_key_name s_key_names[] = {{",
+            ]
+        )
+        out.extend(f"    {{{c_string(entry['key'])}, {entry['key']}, 0U}}," for entry in strings)
+        out.append("};")
         out.extend(["", expand(TRACE_SOURCE_TAIL, module, library).rstrip("\n"), ""])
 
     return "\n".join(out)
