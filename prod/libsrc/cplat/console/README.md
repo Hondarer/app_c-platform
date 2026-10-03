@@ -19,11 +19,12 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 
 ## 設計の要点
 
-このモジュールは、CRT の `printf` / `fprintf` を置き換えません。stdout がコンソール (TTY) である場合にのみ、接続先コンソールの状態を確認し、必要な設定を行います。
+このモジュールは、CRT の `printf` / `fprintf` を置き換えません。stdout または stderr がコンソール (TTY) である場合にのみ、接続先コンソールの状態を確認し、必要な設定を行います。
 
 - すでに UTF-8 のコード ページは変更しません。
 - 変更前のコード ページとコンソール モードは保存し、通常終了時に復元します。
-- パイプやファイルへのリダイレクトでは初期化処理を行いません。
+- stdout と stderr の両方をパイプやファイルへリダイレクトした場合は、初期化処理を行いません。
+- stdout だけをリダイレクトした場合は、コンソールのままの stderr のためにコード ページを変更し、stderr の VT 処理を有効化します。
 - `cplat_console_init` は stdin / stdout / stderr のハンドルを変更しません (昇格時の再接続は `cplat_console_attach_parent` が担当します)。
 
 `activeCodePage=UTF-8` マニフェストはプロセス ACP を UTF-8 にする設定です。コンソールの入力コード ページ / 出力コード ページは別の状態であるため、このモジュールでは `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` を引き続き使用します。
@@ -37,7 +38,7 @@ Windows 10 1903 以降では、`activeCodePage=UTF-8` マニフェストによ�
 - Windows ではコンソール入出力コード ページと VT 処理を設定します。
 - Linux では何もしません。
 - 二重呼び出し時は追加の初期化を行いません。
-- stdout がコンソールでない場合は何もしません。
+- stdout と stderr のいずれもコンソールでない場合は何もしません。
 
 ### cplat_console_dispose
 
@@ -131,9 +132,9 @@ int main(void)
 
 ### Windows
 
-- stdout がコンソールである場合にのみ初期化します。
+- stdout または stderr がコンソールである場合にのみ初期化します。
 - `SetConsoleCP(CP_UTF8)` / `SetConsoleOutputCP(CP_UTF8)` でコンソール入出力コード ページを UTF-8 にします。
-- stdout / stderr の `ENABLE_VIRTUAL_TERMINAL_PROCESSING` を有効化します。
+- stdout / stderr のうちコンソールであるものの `ENABLE_VIRTUAL_TERMINAL_PROCESSING` を有効化します。
 - 変更前の状態を通常終了時に復元します。
 
 ### Linux / 非 Windows
@@ -144,6 +145,7 @@ int main(void)
 ## 注意点
 
 - Windows では `activeCodePage=UTF-8` マニフェストを併用してください。
+- コード ページは接続先コンソール全体で共有する設定です。stdout だけをリダイレクトして実行した場合 (`cmd > out.txt` など) もコード ページを UTF-8 へ変更するため、同じコンソールを共有する子プロセスの出力も UTF-8 のコード ページに従います。これは cplat を利用するモジュールの制約です。
 - `cplat_console_init` は stdout / stderr のハンドルを変更しません (昇格時の再接続は `cplat_console_attach_parent` を使用してください)。
 - `cplat_console_attach_parent()` が `attached_out` に 1 を格納した場合、その後の `stdout` / `stderr` への出力は `printf` / `fprintf` ではなく `cplat_console_write()` を使用してください。
 - UAC 昇格後に確実に結果を表示したい場合は、`cplat_console_attach_parent()` ではなく `cplat_elevated_process_run_piped()` または `cplat_elevated_process_run_with_result()` の使用を検討してください (前述の既知の制限)。

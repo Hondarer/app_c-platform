@@ -1,4 +1,6 @@
 #include <testfw.h>
+/* テスト対象が呼び出す cplat_regex_* の mock。Windows で実装オブジェクトを取り込むため、ヘッダーを取り込む */
+#include <mock_cplat.h>
 
 #include "filterTestSupport.h"
 
