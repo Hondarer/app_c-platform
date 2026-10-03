@@ -169,6 +169,7 @@ int string_catalog_filter_read_constant(const unsigned char *constants, const ui
     case STRING_CATALOG_FILTER_CONSTANT_KIND_STRING:
     case STRING_CATALOG_FILTER_CONSTANT_KIND_IDENTIFIER:
     case STRING_CATALOG_FILTER_CONSTANT_KIND_ARGUMENT_NAME:
+    case STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN:
         if ((header.flags != 0U) || (header.length >= constant_size))
         {
             return CPLAT_ERR_CORRUPT_DESCRIPTOR;
@@ -177,7 +178,9 @@ int string_catalog_filter_read_constant(const unsigned char *constants, const ui
         {
             return CPLAT_ERR_CORRUPT_DESCRIPTOR;
         }
-        if ((header.kind != (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_STRING) && (header.length == 0U))
+        /* 空の文字列と空のパターンは許可する。空のパターンはすべての文字列に一致する */
+        if ((header.kind != (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_STRING) &&
+            (header.kind != (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN) && (header.length == 0U))
         {
             return CPLAT_ERR_CORRUPT_DESCRIPTOR;
         }
@@ -234,6 +237,7 @@ int string_catalog_filter_read_constant(const unsigned char *constants, const ui
     case STRING_CATALOG_FILTER_CONSTANT_KIND_STRING:
     case STRING_CATALOG_FILTER_CONSTANT_KIND_IDENTIFIER:
     case STRING_CATALOG_FILTER_CONSTANT_KIND_ARGUMENT_NAME:
+    case STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN:
         constant_out->text = (const char *)(constants + payload_offset);
         /* 終端の NUL があり、途中に NUL を含まないこと */
         if ((constant_out->text[header.length] != '\0') || (memchr(constant_out->text, '\0', header.length) != NULL))
@@ -355,7 +359,8 @@ typedef enum constant_class
     CONSTANT_CLASS_INVALID = 0,
     CONSTANT_CLASS_NUMERIC = 1,
     CONSTANT_CLASS_STRING = 2,
-    CONSTANT_CLASS_NULL = 3
+    CONSTANT_CLASS_NULL = 3,
+    CONSTANT_CLASS_PATTERN = 4
 } constant_class;
 
 static constant_class class_of_constant(const uint8_t kind)
@@ -371,6 +376,8 @@ static constant_class class_of_constant(const uint8_t kind)
         return CONSTANT_CLASS_STRING;
     case STRING_CATALOG_FILTER_CONSTANT_KIND_NULL:
         return CONSTANT_CLASS_NULL;
+    case STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN:
+        return CONSTANT_CLASS_PATTERN;
     default:
         return CONSTANT_CLASS_INVALID;
     }
@@ -380,6 +387,12 @@ static bool is_argument_field(const uint8_t field)
 {
     return (field == (uint8_t)STRING_CATALOG_FILTER_FIELD_ARGUMENT_NAME) ||
            (field == (uint8_t)STRING_CATALOG_FILTER_FIELD_ARGUMENT_INDEX);
+}
+
+static bool is_pattern_operator(const uint8_t operator_kind)
+{
+    return (operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES) ||
+           (operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I);
 }
 
 static bool is_string_operator(const uint8_t operator_kind)
@@ -411,6 +424,11 @@ static bool is_constant_allowed(const uint8_t field, const uint8_t operator_kind
         }
         return is_equality || (operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_IN) ||
                is_string_operator(operator_kind);
+
+    case CONSTANT_CLASS_PATTERN:
+        /* 正規表現のパターンは matches と matches_i だけが受け取り、それらはパターンだけを受け取る */
+        return is_pattern_operator(operator_kind) &&
+               ((field == (uint8_t)STRING_CATALOG_FILTER_FIELD_ID) || is_argument_field(field));
 
     case CONSTANT_CLASS_NUMERIC:
         if (field == (uint8_t)STRING_CATALOG_FILTER_FIELD_ID)
@@ -461,7 +479,7 @@ static int check_predicate(const string_catalog_filter_instruction *instruction,
     if ((instruction->field < (uint8_t)STRING_CATALOG_FILTER_FIELD_KEY) ||
         (instruction->field > (uint8_t)STRING_CATALOG_FILTER_FIELD_ARGUMENT_INDEX) ||
         (instruction->operator_kind < (uint8_t)STRING_CATALOG_FILTER_OPERATOR_EQUAL) ||
-        (instruction->operator_kind > (uint8_t)STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I) ||
+        (instruction->operator_kind > (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I) ||
         !is_operand_count_valid(instruction->operator_kind, instruction->operand_count))
     {
         return CPLAT_ERR_CORRUPT_DESCRIPTOR;
@@ -539,6 +557,11 @@ static int check_predicate(const string_catalog_filter_instruction *instruction,
         {
             return CPLAT_ERR_CORRUPT_DESCRIPTOR;
         }
+        if ((constant.header.kind == (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN) &&
+            (constant.header.slot >= header->pattern_count))
+        {
+            return CPLAT_ERR_CORRUPT_DESCRIPTOR;
+        }
 
         offset = constant.next_offset;
     }
@@ -563,7 +586,8 @@ int string_catalog_filter_check_record(const unsigned char *record, const uint32
     if ((header.instruction_count == 0U) ||
         (header.instruction_count > string_catalog_filter_instruction_capacity(line_width)) ||
         (header.constant_size > string_catalog_filter_constant_capacity(line_width)) ||
-        ((header.constant_size % STRING_CATALOG_FILTER_CONSTANT_ALIGNMENT) != 0U) || (header.reserved != 0U) ||
+        ((header.constant_size % STRING_CATALOG_FILTER_CONSTANT_ALIGNMENT) != 0U) ||
+        (header.pattern_count > CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX) ||
         (header.argument_reference_count > CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX) ||
         (header.identifier_count > CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX) || (header.stack_depth == 0U))
     {
@@ -584,6 +608,11 @@ int string_catalog_filter_check_record(const unsigned char *record, const uint32
         }
         if ((constant.header.kind == (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_IDENTIFIER) &&
             (constant.header.slot >= header.identifier_count))
+        {
+            return CPLAT_ERR_CORRUPT_DESCRIPTOR;
+        }
+        if ((constant.header.kind == (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN) &&
+            (constant.header.slot >= header.pattern_count))
         {
             return CPLAT_ERR_CORRUPT_DESCRIPTOR;
         }
@@ -901,6 +930,7 @@ static void write_constant(text_writer *writer, const string_catalog_filter_cons
     }
 
     case STRING_CATALOG_FILTER_CONSTANT_KIND_STRING:
+    case STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN:
         writer_append(writer, "\"", 1U);
         for (uint32_t index = 0; index < constant->header.length; index++)
         {
@@ -942,6 +972,8 @@ static const char *operator_text(const uint8_t operator_kind)
         "starts_with_i",
         "ends_with_i",
         "contains_i",
+        "matches",
+        "matches_i",
     };
 
     if (operator_kind >= (sizeof(texts) / sizeof(texts[0])))

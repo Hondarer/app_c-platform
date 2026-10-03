@@ -134,8 +134,14 @@ Table: 文字列カタログの実装階層と責務
 | `filter/filter_image.c` | フィルター オブジェクトの検証、行削除、情報取得、デコンパイル |
 | `filter/filter_slot.c` | 名前解決、事前計算、判定、実行中の差し替え |
 | `filter/filter_describe.c` | カタログのメタ情報を使った条件の自然文での表現 |
+| `filter/filter_source.c` | ソース領域の公開と、読み取りの一貫性の確認 |
 
 Table: 条件式フィルターの実装と責務
+
+正規表現による一致判定 (`matches`、`matches_i`) は、regex モジュールの `cplat_regex` を使います。  
+依存の方向は string_catalog から regex への一方向です。  
+フィルター オブジェクトにはパターンの文字列だけを置き、コンパイルした正規表現はスロットの面ごとに保持してください。  
+`cplat_regex` は照合のたびにメモリを確保するため、メモリを確保しない判定の要件は、正規表現を含む行を例外とします。
 
 string-catalog-sample の試作から移し、公開入口の結果コードと入力検査を補強しました。  
 引数の収集は `include_internal/cplat/string_catalog/format_internal.h` で共有し、判定と書式展開で同じ値を使用します。  

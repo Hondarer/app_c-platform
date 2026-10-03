@@ -34,7 +34,7 @@
 #define PRECEDENCE_PREDICATE 4
 
 /** 判定演算子の数 (インデックス 0 は未使用) です。 */
-#define OPERATOR_TABLE_SIZE ((size_t)STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I + 1U)
+#define OPERATOR_TABLE_SIZE ((size_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I + 1U)
 
 /** 定数 1 個の表記の最大バイト数です。文字列の定数は行幅を超えません。 */
 #define CONSTANT_TEXT_MAX (CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX * 4U + 16U)
@@ -133,6 +133,8 @@ static const language_phrases s_japanese = {
         {"が ", " で始まる"},
         {"が ", " で終わる"},
         {"が ", " を含む"},
+        {"が 正規表現 ", " に一致する部分を含む"},
+        {"が 正規表現 ", " に一致する部分を含む"},
     },
 };
 
@@ -186,6 +188,8 @@ static const language_phrases s_neutral = {
         {" starts with ", ""},
         {" ends with ", ""},
         {" contains ", ""},
+        {" contains a match for the regular expression ", ""},
+        {" contains a match for the regular expression ", ""},
     },
 };
 
@@ -768,7 +772,10 @@ static void append_predicate(describe_context *context, const string_catalog_fil
     append_constants(context, instruction, offset, false);
     append_text(&context->writer, phrases->operators[instruction->operator_kind].after);
 
-    if (instruction->operator_kind >= (uint8_t)STRING_CATALOG_FILTER_OPERATOR_STARTS_WITH_I)
+    if ((instruction->operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_STARTS_WITH_I) ||
+        (instruction->operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_ENDS_WITH_I) ||
+        (instruction->operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I) ||
+        (instruction->operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I))
     {
         append_text(&context->writer, phrases->case_insensitive);
     }

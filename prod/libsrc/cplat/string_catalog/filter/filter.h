@@ -30,6 +30,7 @@
 #ifndef FILTER_PRIVATE_H
 #define FILTER_PRIVATE_H
 
+#include <cplat/regex/regex.h>
 #include <cplat/string_catalog/filter.h>
 #include <cplat/sync/atomic.h>
 
@@ -110,7 +111,9 @@ extern "C"
         STRING_CATALOG_FILTER_OPERATOR_CONTAINS = 12,      /**< `contains` */
         STRING_CATALOG_FILTER_OPERATOR_STARTS_WITH_I = 13, /**< `starts_with_i` */
         STRING_CATALOG_FILTER_OPERATOR_ENDS_WITH_I = 14,   /**< `ends_with_i` */
-        STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I = 15     /**< `contains_i` */
+        STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I = 15,    /**< `contains_i` */
+        STRING_CATALOG_FILTER_OPERATOR_MATCHES = 16,       /**< `matches` (正規表現の部分一致) */
+        STRING_CATALOG_FILTER_OPERATOR_MATCHES_I = 17      /**< `matches_i` (ASCII の大文字と小文字を区別しない) */
     } string_catalog_filter_operator;
 
     /** 定数の種類です。 */
@@ -122,7 +125,8 @@ extern "C"
         STRING_CATALOG_FILTER_CONSTANT_KIND_CHARACTER = 4,    /**< 文字。値は整数と同じ形式。 */
         STRING_CATALOG_FILTER_CONSTANT_KIND_NULL = 5,         /**< `null`。値を持たない。 */
         STRING_CATALOG_FILTER_CONSTANT_KIND_IDENTIFIER = 6,   /**< 文字列キーの名前。slot は行内の識別子の番号。 */
-        STRING_CATALOG_FILTER_CONSTANT_KIND_ARGUMENT_NAME = 7 /**< 引数名。slot は行内の引数参照の番号。 */
+        STRING_CATALOG_FILTER_CONSTANT_KIND_ARGUMENT_NAME = 7, /**< 引数名。slot は行内の引数参照の番号。 */
+        STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN = 8 /**< 正規表現のパターン。length バイトと NUL。slot は行内のパターンの番号。 */
     } string_catalog_filter_constant_kind;
 
     /**
@@ -153,7 +157,7 @@ extern "C"
         uint8_t stack_depth;              /**< 評価に必要なスタックの深さ。 */
         uint8_t argument_reference_count; /**< 名前で参照する引数の種類の数。 */
         uint8_t identifier_count;         /**< 識別子の定数の数。 */
-        uint8_t reserved;                 /**< 予約。0 を格納します。 */
+        uint8_t pattern_count;            /**< 正規表現のパターンの定数の数。以前の形式では予約の 0 です。 */
     } string_catalog_filter_record_header;
 
     /**
@@ -363,6 +367,19 @@ extern "C"
         uint32_t publisher_process_id;          /**< 公開したプロセスの ID。 */
         uint32_t reserved[3];                   /**< 予約。0 を格納します。 */
     } string_catalog_filter_source_header;
+
+    /**
+     *  @brief          `matches` または `matches_i` のパターンをコンパイルします。
+     *  @param[in]      pattern       NUL 終端のパターン。
+     *  @param[in]      operator_kind @ref STRING_CATALOG_FILTER_OPERATOR_MATCHES または
+     *                                @ref STRING_CATALOG_FILTER_OPERATOR_MATCHES_I 。
+     *  @param[out]     regex_out     コンパイルしたハンドルの格納先。`cplat_regex_dispose` で破棄します。
+     *  @return         `cplat_regex_create` と同じ結果コードを返します。
+     *
+     *  方言は ECMAScript で、捕捉グループを記録しません。`matches_i` は ASCII の大文字と小文字を区別しません。\n
+     *  コンパイル (構文の確認) と適用の双方が使用し、同じ規則でパターンを解釈します。
+     */
+    int string_catalog_filter_create_pattern(const char *pattern, uint8_t operator_kind, cplat_regex **regex_out);
 
     /**
      *  @brief          ソース領域の先頭アドレスと大きさを確認します。

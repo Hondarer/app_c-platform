@@ -68,6 +68,18 @@
 /** 1 行に記述できる、文字列キーの名前 (識別子の定数) の上限です。 */
 #define CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX 16U
 
+/** 1 行に記述できる正規表現のパターン (`matches` と `matches_i`) の上限です。 */
+#define CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX 4U
+
+/**
+ *  @brief          正規表現で照合する文字列のバイト数の上限です。
+ *
+ *  照合はバックトラッキングで行うため、長い文字列と複雑なパターンの組み合わせで時間やスタックを消費します。\n
+ *  これを超える文字列は照合せず、`matches` と `matches_i` を偽とします。
+ *  トレースの組み立て結果の上限 (`CPLAT_STRING_CATALOG_TEXT_MAX`) と同じ値です。
+ */
+#define CPLAT_STRING_CATALOG_FILTER_PATTERN_SUBJECT_MAX 512U
+
 /** フィルター オブジェクトのヘッダーのバイト数です。 */
 #define CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE 64U
 
@@ -131,7 +143,9 @@ extern "C"
         CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_UNRESOLVED_CATEGORY_NAME =
             8, /**< 分類値の名前にない識別子を、分類値と比較した。 */
         CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE =
-            9 /**< 分類値と比較する定数が、分類値の名前の範囲外。 */
+            9, /**< 分類値と比較する定数が、分類値の名前の範囲外。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_INVALID_PATTERN =
+            10 /**< 正規表現のパターンをコンパイルできない。構文の誤りや、照合器の制限の超過など。 */
     } cplat_string_catalog_filter_line_error;
 
     /**

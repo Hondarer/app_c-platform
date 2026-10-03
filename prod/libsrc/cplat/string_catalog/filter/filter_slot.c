@@ -63,6 +63,7 @@ typedef struct filter_plane
     int8_t *argument_maps;                          /**< [行][項目][引数参照] の引数インデックス。未定義は -1。 */
     int64_t *identifier_values;                     /**< [行][識別子] の文字列キー。 */
     cplat_string_catalog_filter_line_error *line_errors; /**< [行] の無効にした原因。 */
+    cplat_regex **patterns; /**< [行][パターン] のコンパイルした正規表現。面の構築のたびに作り直します。 */
     uint64_t enabled_lines;                         /**< 適用で有効になった行の集合。 */
     uint32_t line_count;                            /**< 格納している条件式の数。 */
     uint32_t pad;                                   /**< 明示的アラインメントです。 */
@@ -138,6 +139,7 @@ typedef struct evaluation_context
     uint32_t pad;
     const int8_t *argument_map;       /**< [引数参照] */
     const int64_t *identifier_values; /**< [識別子] */
+    cplat_regex *const *patterns;     /**< [パターン] */
     const argument_value *values;     /**< 引数の値。事前計算では NULL。 */
 } evaluation_context;
 
@@ -459,6 +461,30 @@ static bool match_string(const uint8_t operator_kind, const char *subject, const
     }
 }
 
+/**
+ *  @brief          文字列の一部が正規表現に一致するかを照合します。
+ *
+ *  @ref CPLAT_STRING_CATALOG_FILTER_PATTERN_SUBJECT_MAX を超える文字列は照合せず、不一致とします。
+ *  バックトラッキングの照合が、長い文字列で時間やスタックを消費しないようにするためです。\n
+ *  照合に失敗した場合 (不正な UTF-8、メモリ不足など) も不一致とします。判定の失敗でトレースの出力を止めないためです。
+ */
+static bool match_pattern(const cplat_regex *regex, const char *subject)
+{
+    const size_t subject_length = strlen(subject);
+    int is_found = 0;
+
+    if ((regex == NULL) || (subject_length > CPLAT_STRING_CATALOG_FILTER_PATTERN_SUBJECT_MAX))
+    {
+        return false;
+    }
+    if (cplat_regex_search(regex, subject, subject_length, 0U, CPLAT_REGEX_MATCH_DEFAULT, NULL, 0U, &is_found, NULL) !=
+        CPLAT_OK)
+    {
+        return false;
+    }
+    return is_found != 0;
+}
+
 /* ===== 判定要素と命令列の評価 ===== */
 
 /** 文字列を対象とする判定要素を評価します。対象は NULL の場合があります。 */
@@ -493,7 +519,14 @@ static truth_value evaluate_string(const evaluation_context *context,
             return TRUTH_VALUE_FALSE;
         }
 
-        if (match_string(instruction->operator_kind, subject, constant.text, constant.header.length))
+        if (constant.header.kind == (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN)
+        {
+            if (match_pattern(context->patterns[constant.header.slot], subject))
+            {
+                return TRUTH_VALUE_TRUE;
+            }
+        }
+        else if (match_string(instruction->operator_kind, subject, constant.text, constant.header.length))
         {
             return TRUTH_VALUE_TRUE;
         }
@@ -556,6 +589,7 @@ static bool is_argument_comparable(const argument_class kind_class, const uint8_
     switch (constant_kind)
     {
     case STRING_CATALOG_FILTER_CONSTANT_KIND_STRING:
+    case STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN:
         return kind_class == ARGUMENT_CLASS_STRING;
     case STRING_CATALOG_FILTER_CONSTANT_KIND_NULL:
         return (kind_class == ARGUMENT_CLASS_STRING) || (kind_class == ARGUMENT_CLASS_POINTER);
@@ -799,8 +833,34 @@ static int64_t *identifier_values_of(filter_plane *plane, const uint32_t line_in
     return plane->identifier_values + ((size_t)line_index * CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX);
 }
 
-static void free_plane(filter_plane *plane)
+static cplat_regex **patterns_of(filter_plane *plane, const uint32_t line_index)
 {
+    return plane->patterns + ((size_t)line_index * CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX);
+}
+
+/** 面が保持する正規表現をすべて破棄します。 */
+static void dispose_patterns(const cplat_string_catalog_filter_slot *slot, filter_plane *plane)
+{
+    const size_t count = (size_t)slot->line_capacity * CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX;
+
+    if (plane->patterns == NULL)
+    {
+        return;
+    }
+    for (size_t index = 0; index < count; index++)
+    {
+        if (plane->patterns[index] != NULL)
+        {
+            cplat_regex_dispose(plane->patterns[index]);
+            plane->patterns[index] = NULL;
+        }
+    }
+}
+
+static void free_plane(const cplat_string_catalog_filter_slot *slot, filter_plane *plane)
+{
+    dispose_patterns(slot, plane);
+    free(plane->patterns);
     free(plane->image);
     free(plane->entry_states);
     free(plane->entry_dependent_lines);
@@ -828,12 +888,14 @@ static bool allocate_plane(const cplat_string_catalog_filter_slot *slot, filter_
                           sizeof(*plane->identifier_values));
     plane->line_errors =
         (cplat_string_catalog_filter_line_error *)calloc(slot->line_capacity, sizeof(*plane->line_errors));
+    plane->patterns = (cplat_regex **)calloc((size_t)slot->line_capacity * CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX,
+                                             sizeof(*plane->patterns));
 
     if ((plane->image == NULL) || (plane->entry_states == NULL) || (plane->entry_dependent_lines == NULL) ||
         (plane->line_states == NULL) || (plane->argument_maps == NULL) || (plane->identifier_values == NULL) ||
-        (plane->line_errors == NULL))
+        (plane->line_errors == NULL) || (plane->patterns == NULL))
     {
-        free_plane(plane);
+        free_plane(slot, plane);
         return false;
     }
     return true;
@@ -1006,6 +1068,54 @@ resolve_category_predicates(const cplat_string_catalog_filter_slot *slot, const 
  *  @brief          1 行の名前を解決し、項目ごとの判定結果を事前計算します。
  *  @return         解決できた場合は CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE、それ以外は無効にする原因。
  */
+/**
+ *  @brief          行の正規表現のパターンをコンパイルし、面へ保持します。
+ *  @return         すべてコンパイルできた場合は @ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE 。
+ *                  できないパターンがある場合は @ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_INVALID_PATTERN 。
+ *
+ *  フィルター オブジェクトはポインターを含まないため、コンパイルした正規表現は面ごとに保持します。\n
+ *  別の版のライブラリでコンパイルした条件式は、構文の確認を通っていても、この版で解釈できない場合があります。
+ */
+static cplat_string_catalog_filter_line_error compile_line_patterns(const cplat_string_catalog_filter_slot *slot,
+                                                                    filter_plane *plane, const uint32_t line_index)
+{
+    const unsigned char *record =
+        string_catalog_filter_record_address_const(plane->image, slot->record_size, line_index);
+    const unsigned char *constants = string_catalog_filter_record_constants(record, slot->line_width);
+    cplat_regex **patterns = patterns_of(plane, line_index);
+    string_catalog_filter_record_header header;
+    string_catalog_filter_instruction instruction;
+    string_catalog_filter_constant constant;
+
+    string_catalog_filter_read_record_header(record, &header);
+    for (uint32_t index = 0; index < header.instruction_count; index++)
+    {
+        uint32_t offset;
+
+        string_catalog_filter_read_instruction(record, index, &instruction);
+        if ((instruction.opcode != (uint8_t)STRING_CATALOG_FILTER_OPCODE_PREDICATE) ||
+            ((instruction.operator_kind != (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES) &&
+             (instruction.operator_kind != (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I)))
+        {
+            continue;
+        }
+
+        /* 名前で指定した引数では、引数名の定数の直後にパターンが並ぶ */
+        offset = instruction.operand;
+        (void)string_catalog_filter_read_constant(constants, header.constant_size, offset, &constant);
+        if (instruction.field == (uint8_t)STRING_CATALOG_FILTER_FIELD_ARGUMENT_NAME)
+        {
+            (void)string_catalog_filter_read_constant(constants, header.constant_size, constant.next_offset, &constant);
+        }
+        if (string_catalog_filter_create_pattern(constant.text, instruction.operator_kind,
+                                                 &patterns[constant.header.slot]) != CPLAT_OK)
+        {
+            return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_INVALID_PATTERN;
+        }
+    }
+    return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
+}
+
 static cplat_string_catalog_filter_line_error resolve_line(const cplat_string_catalog_filter_slot *slot,
                                                            filter_plane *plane, const uint32_t line_index)
 {
@@ -1097,6 +1207,7 @@ static cplat_string_catalog_filter_line_error resolve_line(const cplat_string_ca
         context.constant_size = header.constant_size;
         context.argument_map = maps + (entry_index * CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX);
         context.identifier_values = identifiers;
+        context.patterns = patterns_of(plane, line_index);
         context.values = NULL;
         states[entry_index] = (uint8_t)evaluate_line(&context, false);
     }
@@ -1140,13 +1251,22 @@ static void build_plane(const cplat_string_catalog_filter_slot *slot, filter_pla
     target->line_count = header.line_count;
     target->enabled_lines = 0U;
 
+    /* 未使用の面が前回の構築で保持した正規表現を破棄する。判定はこの面を参照していない */
+    dispose_patterns(slot, target);
+
     for (uint32_t line_index = 0; line_index < header.line_count; line_index++)
     {
         const unsigned char *record =
             string_catalog_filter_record_address_const(target->image, slot->record_size, line_index);
         uint32_t reusable_index;
 
-        if (find_reusable_line(slot, current, record, &reusable_index))
+        /* 正規表現は面ごとに保持するため、内容が同一の行を再利用する場合もコンパイルする */
+        target->line_errors[line_index] = compile_line_patterns(slot, target, line_index);
+        if (target->line_errors[line_index] != CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE)
+        {
+            /* 無効な行として扱う。事前計算は行わない */
+        }
+        else if (find_reusable_line(slot, current, record, &reusable_index))
         {
             memcpy(line_states_of(slot, target, line_index), line_states_of(slot, current, reusable_index),
                    slot->entry_count * sizeof(*target->line_states));
@@ -1340,8 +1460,8 @@ void cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot *
     {
         cplat_local_lock_dispose((*slot)->apply_lock);
     }
-    free_plane(&(*slot)->planes[0]);
-    free_plane(&(*slot)->planes[1]);
+    free_plane(*slot, &(*slot)->planes[0]);
+    free_plane(*slot, &(*slot)->planes[1]);
     free(*slot);
     *slot = NULL;
 }
@@ -1799,6 +1919,7 @@ static bool is_matched(const cplat_string_catalog_filter_slot *slot, filter_plan
         context.argument_map = argument_maps_of(slot, plane, line_index) +
                                (entry_index * CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX);
         context.identifier_values = identifier_values_of(plane, line_index);
+        context.patterns = patterns_of(plane, line_index);
         context.values = values;
 
         if (evaluate_line(&context, true) == TRUTH_VALUE_TRUE)

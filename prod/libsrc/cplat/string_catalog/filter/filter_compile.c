@@ -100,7 +100,7 @@ typedef struct compiler
 
     cplat_string_catalog_filter_line_error error;
     uint32_t error_column;
-    uint32_t pad; /**< 明示的アラインメントです。 */
+    uint32_t pattern_count; /**< 正規表現のパターンの定数の数。 */
 
     /** 文字列の字句の復号結果。NUL の 1 バイトを含め、8 バイト単位に切り上げた大きさです。 */
     char string_buffer[CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX + 8U];
@@ -868,6 +868,8 @@ static bool parse_operator(compiler *state, string_catalog_filter_instruction *i
         {"starts_with_i", STRING_CATALOG_FILTER_OPERATOR_STARTS_WITH_I, 0U},
         {"ends_with_i", STRING_CATALOG_FILTER_OPERATOR_ENDS_WITH_I, 0U},
         {"contains_i", STRING_CATALOG_FILTER_OPERATOR_CONTAINS_I, 0U},
+        {"matches", STRING_CATALOG_FILTER_OPERATOR_MATCHES, 0U},
+        {"matches_i", STRING_CATALOG_FILTER_OPERATOR_MATCHES_I, 0U},
     };
 
     for (size_t index = 0; index < (sizeof(symbols) / sizeof(symbols[0])); index++)
@@ -905,6 +907,55 @@ static bool parse_checked_literal(compiler *state, const string_catalog_filter_i
     {
         return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_TYPE_MISMATCH, column);
     }
+    return true;
+}
+
+/**
+ *  @brief          正規表現のパターンを 1 個読み、構文を確かめて、行内のパターンの番号を割り当てます。
+ *
+ *  パターンは文字列の字句で書きます。定数はパターンの種類として格納し、番号を見出しの slot へ記録します。\n
+ *  構文は、ここで一度コンパイルして確かめます。コンパイルしたハンドルは保持せず、適用の時点でコンパイルし直します。
+ *  フィルター オブジェクトはポインターを含まない領域であるためです。
+ */
+static bool parse_pattern(compiler *state, const string_catalog_filter_instruction *instruction)
+{
+    string_catalog_filter_constant_header header;
+    unsigned char *constants = state->record + CPLAT_STRING_CATALOG_FILTER_RECORD_HEADER_SIZE +
+                               ((size_t)state->instruction_capacity * sizeof(string_catalog_filter_instruction));
+    const uint32_t column = state->current.column;
+    const uint32_t offset = state->constant_size;
+    cplat_regex *regex = NULL;
+    uint8_t kind = 0U;
+
+    if ((state->current.kind != TOKEN_KIND_STRING) ||
+        (string_catalog_filter_is_constant_allowed(instruction->field, instruction->operator_kind,
+                                                   (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN) == 0))
+    {
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_TYPE_MISMATCH, column);
+    }
+    if (state->pattern_count >= CPLAT_STRING_CATALOG_FILTER_PATTERN_REFERENCE_MAX)
+    {
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_LIMIT_EXCEEDED, column);
+    }
+
+    /* 字句の復号結果は次の字句で上書きされるため、格納した定数からパターンを読む */
+    if (!parse_literal(state, &kind))
+    {
+        return false;
+    }
+    memcpy(&header, constants + offset, sizeof(header));
+    header.kind = (uint8_t)STRING_CATALOG_FILTER_CONSTANT_KIND_PATTERN;
+    header.slot = (uint16_t)state->pattern_count;
+    memcpy(constants + offset, &header, sizeof(header));
+
+    if (string_catalog_filter_create_pattern((const char *)(constants + offset + STRING_CATALOG_FILTER_CONSTANT_HEADER_SIZE),
+                                             instruction->operator_kind, &regex) != CPLAT_OK)
+    {
+        return fail(state, CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_INVALID_PATTERN, column);
+    }
+    cplat_regex_dispose(regex);
+
+    state->pattern_count++;
     return true;
 }
 
@@ -1018,6 +1069,15 @@ static bool parse_predicate(compiler *state)
         {
             return false;
         }
+        break;
+
+    case STRING_CATALOG_FILTER_OPERATOR_MATCHES:
+    case STRING_CATALOG_FILTER_OPERATOR_MATCHES_I:
+        if (!parse_pattern(state, &instruction))
+        {
+            return false;
+        }
+        instruction.operand_count = 1U;
         break;
 
     case STRING_CATALOG_FILTER_OPERATOR_BETWEEN:
@@ -1191,6 +1251,7 @@ int string_catalog_filter_compile_record(const char *text, const size_t text_len
     header.stack_depth = (uint8_t)state->max_depth;
     header.argument_reference_count = (uint8_t)state->argument_reference_count;
     header.identifier_count = (uint8_t)state->identifier_count;
+    header.pattern_count = (uint8_t)state->pattern_count;
     string_catalog_filter_write_record_header(record, &header);
 
     header.line_hash = string_catalog_filter_compute_line_hash(record, line_width);
@@ -1449,4 +1510,17 @@ int cplat_string_catalog_filter_insert_line(void *image, const size_t image_size
     header.line_count++;
     string_catalog_filter_update_content_hash(image, &header);
     return CPLAT_OK;
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int string_catalog_filter_create_pattern(const char *pattern, const uint8_t operator_kind, cplat_regex **regex_out)
+{
+    unsigned int flags = CPLAT_REGEX_DEFAULT | CPLAT_REGEX_NOSUB;
+
+    if (operator_kind == (uint8_t)STRING_CATALOG_FILTER_OPERATOR_MATCHES_I)
+    {
+        flags |= CPLAT_REGEX_ICASE;
+    }
+    return cplat_regex_create(pattern, flags, regex_out, NULL);
 }
