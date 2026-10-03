@@ -34,7 +34,7 @@
 
 /* 行レコードのバイト数はヘッダーへ 32 ビットで格納するため、行幅の上限で収まることを固定する */
 _Static_assert(CPLAT_STRING_CATALOG_FILTER_RECORD_SIZE(CPLAT_STRING_CATALOG_FILTER_LINE_WIDTH_MAX) <= UINT32_MAX,
-               "filter record size must fit in uint32_t");
+               "cplat: filter record size must fit in uint32_t");
 
 /** 字句の種類です。 */
 typedef enum token_kind

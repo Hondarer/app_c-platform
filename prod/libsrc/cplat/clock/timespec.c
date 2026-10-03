@@ -20,19 +20,17 @@
 #define NSEC_PER_SEC  (1000000000LL) /* ナノ秒 / 秒 */
 #define NSEC_PER_MSEC (1000000LL)    /* ナノ秒 / ミリ秒 */
 
-/* 対象プラットフォーム (Linux x86-64 / MSVC x64) では time_t は 64 ビットである前提 */
-_Static_assert(sizeof(time_t) == 8, "cplat_timespec requires 64-bit time_t");
-_Static_assert(sizeof(cplat_timespec) == 16, "cplat_timespec must be 16 bytes");
+_Static_assert(sizeof(cplat_timespec) == 16, "cplat: cplat_timespec must be 16 bytes");
 
-#if defined(PLATFORM_LINUX) && defined(ARCH_X64)
-/* Linux x86-64 ではネイティブ struct timespec とのバイナリ レイアウト互換を担保する */
+#if defined(PLATFORM_LINUX)
+/* Linux ではネイティブ struct timespec とのバイナリ レイアウト互換を担保する */
 _Static_assert(sizeof(cplat_timespec) == sizeof(struct timespec),
-               "cplat_timespec must have the same size as struct timespec");
+               "cplat: cplat_timespec must have the same size as struct timespec");
 _Static_assert(offsetof(cplat_timespec, tv_sec) == offsetof(struct timespec, tv_sec),
-               "cplat_timespec::tv_sec must be at the same offset as struct timespec::tv_sec");
+               "cplat: cplat_timespec::tv_sec must be at the same offset as struct timespec::tv_sec");
 _Static_assert(offsetof(cplat_timespec, tv_nsec) == offsetof(struct timespec, tv_nsec),
-               "cplat_timespec::tv_nsec must be at the same offset as struct timespec::tv_nsec");
-#endif /* PLATFORM_LINUX && ARCH_X64 */
+               "cplat: cplat_timespec::tv_nsec must be at the same offset as struct timespec::tv_nsec");
+#endif /* PLATFORM_LINUX */
 
 /* Doxygen コメントは、ヘッダーに記載 */
 

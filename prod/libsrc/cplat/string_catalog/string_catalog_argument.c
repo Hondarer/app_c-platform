@@ -20,18 +20,8 @@
 
 #include <cplat/base/result.h>
 
-#include <assert.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
-
-/*
- *  `char` と 8 bit、16 bit の整数は、既定引数拡張によって `int` へ昇格します。
- *  この昇格は `int` がすべての値を表現できることが条件であり、成立しない処理系では
- *  符号なしの実引数が `unsigned int` へ昇格し、`va_arg(args, int)` が未定義動作になります。
- *  対象プラットフォームでは成立するため、この前提を静的アサーションで確認します。
- */
-static_assert(INT_MAX >= UINT16_MAX, "int must represent every uint16_t value for default argument promotion");
 
 /* Doxygen コメントは、ヘッダーに記載 */
 

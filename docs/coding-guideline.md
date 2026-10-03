@@ -1,5 +1,10 @@
 # cplat コーディング規範 (特化事項)
 
+## 対応環境
+
+cplat は 64 ビット環境専用です。  
+32 ビット環境向けの条件分岐、互換処理、回避策は一切追加しません。
+
 ## 概要
 
 本書は、上位の [共通コーディング規範](../../general/docs/coding-guideline.md) の一般則に対して、cplat を利用するコードおよび cplat 自身に適用する特化事項をまとめます。  
@@ -812,7 +817,7 @@ Table: cplat アトミック専用型と対応する整数型および可能操�
 
 > [!WARNING]
 > 専用型のメンバーを直接読み書きすると、データ競合となり動作は未定義です。  
-> x86 では多くの場合に偶然動作するため、テストで検出できません。
+> x64 では多くの場合に偶然動作するため、テストで検出できません。
 
 ### メモリ順序の選択
 
@@ -837,7 +842,7 @@ Table: 用途別のアトミック操作メモリ順序の指定基準
 
 > [!NOTE]
 > `RELAXED` は、値そのものの不可分性 (分割アクセスされないこと) と、最適化で読み書きが省略されないことだけを保証します。  
-> x86 と x64 では、`RELAXED`、`ACQUIRE`、`RELEASE` の読み書きは通常の読み書き命令になり、違いはコンパイラの並べ替えの制限だけです。  
+> x64 では、`RELAXED`、`ACQUIRE`、`RELEASE` の読み書きは通常の読み書き命令になり、違いはコンパイラの並べ替えの制限だけです。  
 > `SEQ_CST` の書き込みと、交換、比較交換、加算は、ロック付きの命令になります。
 
 ### 公開ヘッダーの static inline の例外
@@ -856,15 +861,11 @@ Table: 用途別のアトミック操作メモリ順序の指定基準
 ### 対応プラットフォーム
 
 GCC は `__atomic` 組み込み関数で実装します。  
-MSVC は `<intrin.h>` の intrinsic で実装し、対象を x86 と x64 に限定します。  
-ARM 向けの MSVC では、コンパイル時にエラーとします。
+MSVC は `<intrin.h>` の intrinsic で実装し、対象を x64 に限定します。  
+MSVC の対象アーキテクチャーは `platform.h` で検査し、x64 以外ではコンパイル時にエラーとします。
 
 専用型は、どの型もロック不要 (lock-free) の命令で実装します。  
 専用型の大きさと配置は格納する整数型と同じであり、共有メモリ上に置いて複数のプロセスから操作できます。
-
-> [!IMPORTANT]
-> x86 (32 ビット) の MSVC では、64 ビットの型の読み書きを比較交換の繰り返しで実装します。  
-> 読み取りも書き込みを伴う命令になるため、読み取り専用で対応付けた共有メモリ上の 64 ビットの型は読めません。
 
 ### 検証 (アトミック操作)
 
@@ -1073,8 +1074,8 @@ Table: 過去の規約逸脱 API とその解消内容一覧
 
 | ヘッダー | マクロ |
 |---|---|
-| `include/cplat/base/platform.h` と `include/cplat/crt/path.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR`、`PLATFORM_NULL_DEVICE_PATH` |
-| `include/cplat/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`ARCH_X64`、`ARCH_X86`、`ARCH_UNKNOWN`、`ARCH_NAME`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
+| `include/cplat/base/platform.h` と `include/cplat/crt/path.h` | `PLATFORM_WINDOWS`、`PLATFORM_LINUX`、`PLATFORM_UNKNOWN`、`PLATFORM_NAME`、`ARCH_NAME`、`PLATFORM_PATH_MAX`、`PLATFORM_PATH_SEP`、`PLATFORM_PATH_SEP_CHR`、`PLATFORM_NULL_DEVICE_PATH` |
+| `include/cplat/base/compiler.h` | `COMPILER_GCC`、`COMPILER_MSVC`、`COMPILER_UNKNOWN`、`COMPILER_NAME`、`COMPILER_VERSION`、`FORCE_INLINE`、`NO_INLINE`、`THREAD_LOCAL` |
 
 Table: 接頭辞 CPLAT_ を付けない汎用ヘルパー マクロ
 

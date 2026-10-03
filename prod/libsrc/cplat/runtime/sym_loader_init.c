@@ -47,7 +47,7 @@
 
 #define SYMBOL_LOADER_NAME_WIDTH 255
 _Static_assert(SYMBOL_LOADER_NAME_WIDTH == CPLAT_SYM_LOADER_NAME_MAX - 1,
-               "SYMBOL_LOADER_NAME_WIDTH must be CPLAT_SYM_LOADER_NAME_MAX - 1");
+               "cplat: SYMBOL_LOADER_NAME_WIDTH must be CPLAT_SYM_LOADER_NAME_MAX - 1");
 
 /* Doxygen コメントは、ヘッダーに記載 */
 

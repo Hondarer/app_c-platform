@@ -27,10 +27,19 @@
 #include <string.h>
 
 _Static_assert(sizeof(string_catalog_filter_source_header) == CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE,
-               "source header size");
+               "cplat: source header size");
 
 /** 1 秒あたりのナノ秒数です。 */
 #define NANOSECONDS_PER_SECOND 1000000000ULL
+
+/** FNV-1a 64 ビットの初期値です。カタログの識別値の計算に使います。 */
+#define CATALOG_ID_OFFSET_BASIS 14695981039346656037ULL
+
+/** FNV-1a 64 ビットの乗数です。 */
+#define CATALOG_ID_PRIME 1099511628211ULL
+
+/** NULL の文字列を表す長さです。空の文字列と区別するために使います。 */
+#define CATALOG_ID_NULL_LENGTH 0xFFFFFFFFU
 
 /** 公開時刻のうち、書き込み中を表すビットです。 */
 #define TIMESTAMP_WRITING_BIT 1ULL
@@ -107,6 +116,71 @@ bool string_catalog_filter_source_is_header_valid(const string_catalog_filter_so
            (header->header_size == CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE);
 }
 
+/** バイト列を識別値のハッシュへ加えます。 */
+static uint64_t hash_bytes(uint64_t hash, const unsigned char *bytes, const size_t length)
+{
+    for (size_t index = 0; index < length; index++)
+    {
+        hash ^= bytes[index];
+        hash *= CATALOG_ID_PRIME;
+    }
+    return hash;
+}
+
+/** 32 ビットの値を、実行環境のバイト順序によらずリトル エンディアンの 4 バイトとしてハッシュへ加えます。 */
+static uint64_t hash_u32(const uint64_t hash, const uint32_t value)
+{
+    const unsigned char bytes[4] = {(unsigned char)(value & 0xFFU), (unsigned char)((value >> 8) & 0xFFU),
+                                    (unsigned char)((value >> 16) & 0xFFU), (unsigned char)((value >> 24) & 0xFFU)};
+
+    return hash_bytes(hash, bytes, sizeof(bytes));
+}
+
+/** 文字列を、長さと本体としてハッシュへ加えます。NULL は空の文字列と区別します。 */
+static uint64_t hash_text(const uint64_t hash, const char *text)
+{
+    if (text == NULL)
+    {
+        return hash_u32(hash, CATALOG_ID_NULL_LENGTH);
+    }
+    return hash_bytes(hash_u32(hash, (uint32_t)strlen(text)), (const unsigned char *)text, strlen(text));
+}
+
+/* Doxygen コメントは、ヘッダーに記載 */
+
+int cplat_string_catalog_filter_get_catalog_id(const cplat_string_catalog *catalog, uint64_t *catalog_id_out)
+{
+    uint64_t hash = CATALOG_ID_OFFSET_BASIS;
+
+    if ((catalog == NULL) || (catalog_id_out == NULL) || (catalog->entry_count < 0) ||
+        ((catalog->entry_count > 0) && (catalog->entries == NULL)))
+    {
+        return CPLAT_ERR_INVALID_ARGUMENT;
+    }
+
+    /* 判定に関わる定義だけを使う。書式や説明文を変えても、条件式の解釈は変わらないため */
+    hash = hash_u32(hash, (uint32_t)catalog->entry_count);
+    for (int entry_index = 0; entry_index < catalog->entry_count; entry_index++)
+    {
+        const cplat_string_catalog_entry *entry = &catalog->entries[entry_index];
+        const int argument_count = ((entry->argument_count > 0) && (entry->arguments != NULL)) ? entry->argument_count : 0;
+
+        hash = hash_u32(hash, (uint32_t)entry->key);
+        hash = hash_u32(hash, (uint32_t)entry->category);
+        hash = hash_text(hash, entry->id);
+        hash = hash_u32(hash, (uint32_t)argument_count);
+        for (int argument = 0; argument < argument_count; argument++)
+        {
+            hash = hash_u32(hash, (uint32_t)entry->arguments[argument].kind);
+            hash = hash_text(hash, entry->arguments[argument].name);
+        }
+    }
+
+    /* 0 は識別値を持たない以前の版の領域を表すため、使わない */
+    *catalog_id_out = (hash == 0U) ? 1U : hash;
+    return CPLAT_OK;
+}
+
 /* Doxygen コメントは、ヘッダーに記載 */
 
 bool string_catalog_filter_source_is_region_valid(const void *source, const size_t source_size, const size_t image_size)
@@ -142,7 +216,7 @@ bool string_catalog_filter_source_end_read(const void *source, const uint64_t ti
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_filter_source_publish(void *source, const size_t source_size, const void *image,
-                                               const size_t image_size,
+                                               const size_t image_size, const uint64_t catalog_id,
                                                const cplat_string_catalog_filter_source_lock *lock,
                                                uint64_t *timestamp_out)
 {
@@ -154,7 +228,7 @@ int cplat_string_catalog_filter_source_publish(void *source, const size_t source
     int ret;
 
     if ((source == NULL) || (image == NULL) || !string_catalog_filter_source_is_region_valid(source, source_size, 0U) ||
-        ((lock != NULL) && ((lock->lock == NULL) || (lock->unlock == NULL))))
+        (catalog_id == 0U) || ((lock != NULL) && ((lock->lock == NULL) || (lock->unlock == NULL))))
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
@@ -203,7 +277,8 @@ int cplat_string_catalog_filter_source_publish(void *source, const size_t source
     header->published_realtime_seconds = (int64_t)realtime.tv_sec;
     header->published_realtime_nanoseconds = realtime.tv_nsec;
     header->publisher_process_id = cplat_process_get_pid();
-    memset(header->reserved, 0, sizeof(header->reserved));
+    header->reserved = 0U;
+    header->catalog_id = catalog_id;
     memcpy((unsigned char *)source + CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE, image, (size_t)info.image_size);
 
     /* Windows の単調増加クロックはミリ秒単位のため、同じ値が続き得る。前回と異なる偶数にする */
@@ -261,5 +336,6 @@ int cplat_string_catalog_filter_source_get_info(const void *source, const size_t
     info_out->publisher_process_id = copy.publisher_process_id;
     info_out->line_capacity = copy.line_capacity;
     info_out->line_width = copy.line_width;
+    info_out->catalog_id = copy.catalog_id;
     return CPLAT_OK;
 }

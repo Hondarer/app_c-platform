@@ -15,32 +15,32 @@
 #include <vector>
 
 /* 値はライブラリの ABI の一部であり、既存の値を変更してはならない */
-static_assert(std::is_trivially_copyable<cplat_error>::value, "cplat_error must be trivially copyable");
-static_assert(CPLAT_ERROR_DOMAIN_NONE == 0, "domain values are part of the ABI");
-static_assert(CPLAT_ERROR_DOMAIN_ERRNO == 1, "domain values are part of the ABI");
-static_assert(CPLAT_ERROR_DOMAIN_WINDOWS == 2, "domain values are part of the ABI");
-static_assert(CPLAT_CAUSE_NONE == 0, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_OTHER == 1, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_NOT_FOUND == 2, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_ALREADY_EXISTS == 3, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_ACCESS_DENIED == 4, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_SHARING_VIOLATION == 5, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_NOT_A_DIRECTORY == 6, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_IS_A_DIRECTORY == 7, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_DIRECTORY_NOT_EMPTY == 8, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_NAME_TOO_LONG == 9, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_INVALID_ARGUMENT == 10, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_OUT_OF_MEMORY == 11, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_DISK_FULL == 12, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_BUSY == 13, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_TIMEOUT == 14, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_INTERRUPTED == 15, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_BROKEN_PIPE == 16, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_TOO_MANY_OPEN_FILES == 17, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_READ_ONLY == 18, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_BUFFER_TOO_SMALL == 19, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_UNSUPPORTED == 20, "cause values are part of the ABI");
-static_assert(CPLAT_CAUSE_IO_ERROR == 21, "new cause values must be appended");
+static_assert(std::is_trivially_copyable<cplat_error>::value, "cplat: cplat_error must be trivially copyable");
+static_assert(CPLAT_ERROR_DOMAIN_NONE == 0, "cplat: domain values are part of the ABI");
+static_assert(CPLAT_ERROR_DOMAIN_ERRNO == 1, "cplat: domain values are part of the ABI");
+static_assert(CPLAT_ERROR_DOMAIN_WINDOWS == 2, "cplat: domain values are part of the ABI");
+static_assert(CPLAT_CAUSE_NONE == 0, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_OTHER == 1, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_NOT_FOUND == 2, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_ALREADY_EXISTS == 3, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_ACCESS_DENIED == 4, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_SHARING_VIOLATION == 5, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_NOT_A_DIRECTORY == 6, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_IS_A_DIRECTORY == 7, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_DIRECTORY_NOT_EMPTY == 8, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_NAME_TOO_LONG == 9, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_INVALID_ARGUMENT == 10, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_OUT_OF_MEMORY == 11, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_DISK_FULL == 12, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_BUSY == 13, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_TIMEOUT == 14, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_INTERRUPTED == 15, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_BROKEN_PIPE == 16, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_TOO_MANY_OPEN_FILES == 17, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_READ_ONLY == 18, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_BUFFER_TOO_SMALL == 19, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_UNSUPPORTED == 20, "cplat: cause values are part of the ABI");
+static_assert(CPLAT_CAUSE_IO_ERROR == 21, "cplat: new cause values must be appended");
 
 class errorTest : public Test
 {

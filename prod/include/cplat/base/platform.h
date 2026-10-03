@@ -5,7 +5,9 @@
  *  @author         Tetsuo Honda
  *  @date           2025/11/22
  *
- *  ビルド対象の OS とプロセッサ アーキテクチャーを検出し、統一的なマクロを定義します。
+ *  ビルド対象の OS とプロセッサ アーキテクチャーを検出し、統一的なマクロを定義します。\n
+ *  cplat は 64 ビット環境専用です。32 ビット環境ではコンパイル時にエラーとします。\n
+ *  MSVC の対応対象は x64 に限定します。
  *
  *  @section        platform_detection プラットフォーム検出マクロ
  *
@@ -23,13 +25,12 @@
  *
  *  検出されたアーキテクチャーに応じて、以下のマクロを定義します。
  *
- *  | アーキテクチャ | 識別マクロ   | ARCH_NAME |
- *  | -------------- | ------------ | --------- |
- *  | x86_64         | ARCH_X64     | "x64"     |
- *  | x86 (32bit)    | ARCH_X86     | "x86"     |
- *  | その他         | ARCH_UNKNOWN | "Unknown" |
+ *  | アーキテクチャ | ARCH_NAME |
+ *  | -------------- | --------- |
+ *  | x86_64         | "x64"     |
+ *  | その他         | "Unknown" |
  *
- *  Table: アーキテクチャーの識別マクロと名称
+ *  Table: アーキテクチャーの名称
  *
  *  @copyright      Copyright (C) Tetsuo Honda. 2025-2026. All rights reserved.
  *
@@ -46,6 +47,16 @@
 
 #include "compiler.h"
 
+#if defined(__cplusplus)
+static_assert(sizeof(void *) == 8, "cplat: requires a 64-bit environment");
+#else
+_Static_assert(sizeof(void *) == 8, "cplat: requires a 64-bit environment");
+#endif /* __cplusplus */
+
+#if defined(COMPILER_MSVC) && !defined(_M_X64)
+    #error "cplat: MSVC requires the x64 target"
+#endif /* COMPILER_MSVC && !_M_X64 */
+
 /**
  *  @ingroup        CPLAT_BASE
  *  @{
@@ -57,7 +68,7 @@
     #define PLATFORM_UNKNOWN        /**< 未知のプラットフォームの場合に定義されます。 */
     #define PLATFORM_NAME    "name" /**< プラットフォーム名の文字列 ("Windows", "Linux", "Unknown")。 */
 #else                               /* !DOXYGEN */
-    #if defined(_WIN32) || defined(_WIN64)
+    #if defined(_WIN32)
         #define PLATFORM_WINDOWS
         #define PLATFORM_NAME "Windows"
     #elif defined(__linux__)
@@ -70,19 +81,11 @@
 #endif /* DOXYGEN */
 
 #ifdef DOXYGEN
-    #define ARCH_X64            /**< x86_64 アーキテクチャーの場合に定義されます。 */
-    #define ARCH_X86            /**< x86 (32bit) アーキテクチャーの場合に定義されます。 */
-    #define ARCH_UNKNOWN        /**< 未知のアーキテクチャーの場合に定義されます。 */
-    #define ARCH_NAME    "name" /**< アーキテクチャー名の文字列 ("x64", "x86", "Unknown")。 */
+    #define ARCH_NAME    "name" /**< アーキテクチャー名の文字列 ("x64", "Unknown")。 */
 #else                           /* !DOXYGEN */
     #if defined(__x86_64__) || defined(_M_X64)
-        #define ARCH_X64
         #define ARCH_NAME "x64"
-    #elif defined(__i386__) || defined(_M_IX86)
-        #define ARCH_X86
-        #define ARCH_NAME "x86"
     #else
-        #define ARCH_UNKNOWN
         #define ARCH_NAME "Unknown"
     #endif
 #endif /* DOXYGEN */

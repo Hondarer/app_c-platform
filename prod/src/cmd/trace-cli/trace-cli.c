@@ -287,12 +287,6 @@ static int parse_size_value(const char *token, size_t *value)
     {
         return 0;
     }
-#if UINT64_MAX > SIZE_MAX
-    if (parsed > (uint64_t)SIZE_MAX)
-    {
-        return 0;
-    }
-#endif
     *value = (size_t)parsed;
     return 1;
 }

@@ -196,6 +196,7 @@ extern "C"
         uint32_t line_capacity;            /**< 公開したフィルター オブジェクトの行数の上限。未公開の場合は 0 です。 */
         uint32_t line_width;               /**< 公開したフィルター オブジェクトの行幅。未公開の場合は 0 です。 */
         uint32_t pad;                      /**< 明示的アラインメントです。 */
+        uint64_t catalog_id; /**< 公開時に指定したカタログの識別値。未公開の場合は 0 です。 */
     } cplat_string_catalog_filter_source_info;
 
     /**
@@ -452,19 +453,43 @@ extern "C"
                                                                           size_t dest_size);
 
     /**
+     *  @brief          カタログの定義から、カタログの識別値を求めます。
+     *  @param[in]      catalog        カタログ。
+     *  @param[out]     catalog_id_out 識別値の格納先。0 にはなりません。
+     *  @return         成功時は `CPLAT_OK` を返します。
+     *  @return         引数が NULL の場合、または @p catalog の項目数が負、または項目を持つのに配列が NULL の場合は
+     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *
+     *  識別値は、判定に関わる定義から求めるハッシュ値です。
+     *  項目数と、項目ごとの文字列キー、分類値、ID、引数の種別と名前を、定義の並び順に使います。\n
+     *  書式、説明文、備考は判定に関わらないため含めません。
+     *  これらだけを変えたカタログは、同じ識別値になります。
+     *
+     *  ソース領域へ公開するときに指定し、取り込む側のスロットのカタログと一致することを確かめるために使います。\n
+     *  同じ定義からは、プロセスや実行環境によらず同じ値を求めます。
+     *
+     *  @par            スレッド セーフ
+     *  本関数はスレッド セーフです。
+     */
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_get_catalog_id(const cplat_string_catalog *catalog,
+                                                                         uint64_t *catalog_id_out);
+
+    /**
      *  @brief          ソース領域へフィルター オブジェクトを公開します。
      *  @param[in,out]  source        ソース領域の先頭アドレス。
      *                                @ref CPLAT_STRING_CATALOG_FILTER_SOURCE_ALIGNMENT の倍数のアドレスである必要があります。
      *  @param[in]      source_size   @p source のバイト数。
      *  @param[in]      image         公開するフィルター オブジェクト。
      *  @param[in]      image_size    @p image のバイト数。
+     *  @param[in]      catalog_id    @p image を判定に使うカタログの識別値 (@ref cplat_string_catalog_filter_get_catalog_id)。
+     *                                取り込む側は、自分のカタログの識別値と一致する公開内容だけを取り込みます。
      *  @param[in]      lock          ソース領域の排他を取得、解放する関数の組。書き込みの間だけ取得します。
      *                                書き込み側が 1 つしかないなど、呼び出し側で直列化する場合は NULL を指定できます。
      *  @param[out]     timestamp_out 公開時刻の格納先。不要な場合は NULL を指定できます。
      *  @return         成功時は `CPLAT_OK` を返します。
      *  @return         @p source または @p image が NULL の場合、@p source のアラインメントが合わない場合、
      *                  @p source_size がヘッダーとフィルター オブジェクトを格納できない場合、
-     *                  または @p lock の関数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *                  @p catalog_id が 0 の場合、または @p lock の関数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         @p image が `cplat_string_catalog_filter_validate` の確認を通らない場合は、その結果コードを返します。
      *  @return         @p source が 0 で埋まっておらず、ソース領域の署名または形式版が異なる場合は
      *                  `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
@@ -493,7 +518,7 @@ extern "C"
      *  NULL の場合は、プロセスをまたぐ場合も含め、呼び出し側で直列化してください。
      */
     CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_source_publish(
-        void *source, size_t source_size, const void *image, size_t image_size,
+        void *source, size_t source_size, const void *image, size_t image_size, uint64_t catalog_id,
         const cplat_string_catalog_filter_source_lock *lock, uint64_t *timestamp_out);
 
     /**
@@ -609,7 +634,10 @@ extern "C"
      *  そのため、ファイルをマップした領域のように以前の公開内容が残っている場合は、最初の判定付きの組み立てで取り込みます。
      *
      *  ヘッダーの署名、形式版、行数の上限、行幅がスロットと一致しない公開内容は取り込まず、
-     *  `CPLAT_ERR_CORRUPT_DESCRIPTOR` として @ref cplat_string_catalog_filter_slot_get_source_status へ記録します。
+     *  `CPLAT_ERR_CORRUPT_DESCRIPTOR` として @ref cplat_string_catalog_filter_slot_get_source_status へ記録します。\n
+     *  公開時に指定したカタログの識別値が、スロットのカタログの識別値 (@ref cplat_string_catalog_filter_get_catalog_id)
+     *  と一致しない公開内容も取り込まず、`CPLAT_ERR_UNSUPPORTED` として記録します。
+     *  以前の版のライブラリが公開した領域は識別値を持たないため、新しい版で公開し直すまで取り込みません。
      *
      *  公開時刻の確認は、@p lock の有無にかかわらず、ロックを取らない 1 回のアトミックな読み取りです。\n
      *  変化を検知した場合の取り込みは、@p lock の有無で次のように変わります。

@@ -201,10 +201,10 @@ enum
 };
 
 _Static_assert(((sizeof(uint64_t) + sizeof(unsigned char) + 7u) % _Alignof(cplat_timespec)) == 0,
-               "entry time offset must satisfy alignof(cplat_timespec)");
+               "cplat: entry time offset must satisfy alignof(cplat_timespec)");
 
 _Static_assert(((sizeof(uint64_t) + sizeof(unsigned char) + 7u + sizeof(cplat_timespec)) % _Alignof(uint64_t)) == 0,
-               "entry generation offset must satisfy alignof(uint64_t)");
+               "cplat: entry generation offset must satisfy alignof(uint64_t)");
 
 #define CPLAT_HASHTABLE_MAGIC   0x48544142u /**< 管理領域先頭の識別子です。 */
 #define CPLAT_HASHTABLE_VERSION 4u          /**< 配置の版番号です。 */
@@ -254,7 +254,7 @@ struct hashtable_persist_header
 
 /* ヘッダー サイズは hashtable_mgmt_layout の整列前提(uint64_t 境界)を満たす。 */
 _Static_assert(sizeof(struct hashtable_persist_header) % _Alignof(uint64_t) == 0,
-               "hashtable_persist_header size must be a multiple of _Alignof(uint64_t)");
+               "cplat: hashtable_persist_header size must be a multiple of _Alignof(uint64_t)");
 
 /**
  *  @brief          ハッシュ テーブルの内部管理データです。

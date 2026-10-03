@@ -89,10 +89,8 @@ struct cplat_trace_file_sink
     int mutex_initialized;
     /** self_id が有効かどうかのフラグ。 */
     int self_id_valid;
-#if defined(ARCH_X64)
     /** 64 bit アーキテクチャーで構造体末尾の暗黙パディングを防ぐ。 */
     int pad;
-#endif /* ARCH_X64 */
 };
 
 /* ===== プロセス内 sink レジストリ ===== */
@@ -108,10 +106,8 @@ struct sink_registry_entry
     cplat_trace_file_sink *sink;
     /** 参照カウント。0 になったら解放する。 */
     int refcount;
-#if defined(ARCH_X64)
     /** 明示的アラインメント。 */
     unsigned int pad;
-#endif /* ARCH_X64 */
 };
 
 struct sink_registry
@@ -266,9 +262,7 @@ static int sink_registry_register_locked(char *key, cplat_trace_file_sink *sink)
     s_sink_registry.items[s_sink_registry.count].key = key;
     s_sink_registry.items[s_sink_registry.count].sink = sink;
     s_sink_registry.items[s_sink_registry.count].refcount = 1;
-#if defined(ARCH_X64)
     s_sink_registry.items[s_sink_registry.count].pad = 0;
-#endif /* ARCH_X64 */
     s_sink_registry.count++;
     return 0;
 }
@@ -284,9 +278,7 @@ static void sink_registry_remove_locked(struct sink_registry_entry *entry)
     s_sink_registry.items[s_sink_registry.count].key = NULL;
     s_sink_registry.items[s_sink_registry.count].sink = NULL;
     s_sink_registry.items[s_sink_registry.count].refcount = 0;
-#if defined(ARCH_X64)
     s_sink_registry.items[s_sink_registry.count].pad = 0;
-#endif /* ARCH_X64 */
 }
 
 /* ===== 内部ヘルパー関数 ===== */

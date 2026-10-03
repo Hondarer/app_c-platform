@@ -7,9 +7,15 @@ C/C++ コードでは、OS・CPU・コンパイラ差異の判定を次のヘッ
 - `app/cplat/prod/include/cplat/base/platform.h`
 - `app/cplat/prod/include/cplat/base/compiler.h`
 
-利用側のコードは、処理系依存マクロを直接判定するのではなく、`PLATFORM_*` / `ARCH_*` / `COMPILER_*` / `FORCE_INLINE` / `NO_INLINE` を使って分岐してください。
+利用側のコードは、処理系依存マクロを直接判定するのではなく、`PLATFORM_*` / `COMPILER_*` / `FORCE_INLINE` / `NO_INLINE` を使って分岐してください。
 
 cplat が公開する API 全体の一覧は [cplat API チート シート](api-cheatsheet.md) を参照してください。
+
+## 対応環境
+
+cplat は 64 ビット環境専用です。  
+`platform.h` はポインターの幅を `static_assert` で検査し、32 ビット環境ではコンパイル時にエラーとします。  
+32 ビット環境向けの条件分岐、互換処理、回避策は一切追加しません。
 
 ## 基本ルール
 
@@ -48,13 +54,11 @@ Windows 専用バックエンドや Windows 専用 API 実装では、次のよ�
 #endif /* PLATFORM_WINDOWS */
 ```
 
-### CPU 判定は ARCH_* を使う
+### CPU 名は ARCH_NAME を使う
 
-- x64 判定: `ARCH_X64`
-- x86 判定: `ARCH_X86`
-- 未知の環境: `ARCH_UNKNOWN`
-
-アーキテクチャー差異が必要な場合も、`__x86_64__` や `_M_X64` は利用側で直接判定しません。
+診断情報に CPU アーキテクチャー名を出力するときは `ARCH_NAME` を使います。  
+64 ビット幅は `platform.h` が保証するため、利用側でアーキテクチャーを判定しません。  
+MSVC の対応対象は x64 に限定し、対象の検査も `platform.h` に集約します。
 
 ### コンパイラ判定は COMPILER_* を使う
 

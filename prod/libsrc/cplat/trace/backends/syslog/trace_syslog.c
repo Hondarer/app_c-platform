@@ -97,10 +97,8 @@ struct cplat_syslog_sink
     /** SYSLOG_TEST_FD が生成時に設定されていた場合 1。 */
     int test_fd_exists;
 
-#if defined(ARCH_X64)
     /** 送信先アドレスの開始位置を調整する明示パディング。 */
     int pad;
-#endif /* ARCH_X64 */
 
     /** /dev/log の送信先アドレス。 */
     struct sockaddr_un address;
@@ -205,9 +203,7 @@ cplat_syslog_sink *cplat_syslog_sink_create(const char *ident, const int facilit
     handle->address.sun_family = AF_UNIX;
     (void)cplat_strncpy(handle->address.sun_path, sizeof(handle->address.sun_path), DEVLOG_PATH,
                         sizeof(handle->address.sun_path) - 1u);
-#if defined(ARCH_X64)
     handle->pad = 0;
-#endif /* ARCH_X64 */
     if (cplat_local_lock_create(&handle->reconnect_lock) != CPLAT_OK)
     {
         cplat_free(handle->ident);

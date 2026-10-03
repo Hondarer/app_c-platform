@@ -20,12 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-_Static_assert(sizeof(string_catalog_filter_image_header) == CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE, "header size");
+_Static_assert(sizeof(string_catalog_filter_image_header) == CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE, "cplat: header size");
 _Static_assert(sizeof(string_catalog_filter_record_header) == CPLAT_STRING_CATALOG_FILTER_RECORD_HEADER_SIZE,
-               "record header size");
-_Static_assert(sizeof(string_catalog_filter_instruction) == 8U, "instruction size");
+               "cplat: record header size");
+_Static_assert(sizeof(string_catalog_filter_instruction) == 8U, "cplat: instruction size");
 _Static_assert(sizeof(string_catalog_filter_constant_header) == STRING_CATALOG_FILTER_CONSTANT_HEADER_SIZE,
-               "constant header size");
+               "cplat: constant header size");
 
 /** FNV-1a 64 ビットの初期値です。 */
 #define FNV_OFFSET_BASIS 14695981039346656037ULL
