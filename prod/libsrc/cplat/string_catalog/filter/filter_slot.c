@@ -1143,6 +1143,7 @@ static cplat_string_catalog_filter_line_error resolve_line(const cplat_string_ca
     int8_t *maps = argument_maps_of(slot, plane, line_index);
     int64_t *identifiers = identifier_values_of(plane, line_index);
     bool is_category_identifier[CPLAT_STRING_CATALOG_FILTER_IDENTIFIER_REFERENCE_MAX] = {false};
+    bool is_satisfiable = false;
     cplat_string_catalog_filter_line_error error;
     uint32_t offset = 0U;
 
@@ -1225,8 +1226,18 @@ static cplat_string_catalog_filter_line_error resolve_line(const cplat_string_ca
         context.patterns = patterns_of(plane, line_index);
         context.values = NULL;
         states[entry_index] = (uint8_t)evaluate_line(&context, false);
+        if (states[entry_index] != (uint8_t)TRUTH_VALUE_FALSE)
+        {
+            is_satisfiable = true;
+        }
     }
 
+    /* どの項目でも常に不一致となる行は、型の合わない比較や矛盾する条件の書き誤りと考えられるため通知する。
+     * 決して一致しない行のため、無効にしても判定の結果は変わらない */
+    if (!is_satisfiable)
+    {
+        return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE;
+    }
     return CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 }
 

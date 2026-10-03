@@ -436,3 +436,43 @@ TEST_F(stringCatalogFilterApplyTest, lines_beyond_64_are_evaluated)
 
     cplat_string_catalog_filter_slot_dispose(&wide_slot);
 }
+
+// どの項目に対しても成立し得ない行を、適用の時点で無効にして診断し、成立し得る行は残すことの確認
+TEST_F(stringCatalogFilterApplyTest, never_satisfiable_lines_are_diagnosed_at_apply)
+{
+    // Arrange
+    static unsigned char image[kImageSize];
+    const char *lines[] = {
+        "arg.job_name == \"x\" && key == FILTER_TEST_TRACE_KEY_WORKER_STARTED",
+        "key == FILTER_TEST_TRACE_KEY_JOB_FAILED && key == FILTER_TEST_TRACE_KEY_WORKER_STARTED",
+        "arg.job_name == \"import\"",
+        "category < 0",
+    };
+    cplat_string_catalog_filter_diagnostic diagnostics[4];
+    cplat_string_catalog_filter_state actual_state = CPLAT_STRING_CATALOG_FILTER_STATE_NEVER_MATCH;
+    std::size_t actual_invalid_count = 0U;
+
+    ASSERT_EQ(CPLAT_OK, compile_lines(lines, 4U, image)); // [状態] - 成立し得ない行を含む 4 行をコンパイルする。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret = cplat_string_catalog_filter_slot_apply(slot_, image, kImageSize, diagnostics, 4U,
+                                                            &actual_invalid_count); // [手順] - スロットへ適用する。
+    (void)cplat_string_catalog_filter_slot_test(slot_, FILTER_TEST_TRACE_KEY_JOB_RECEIVED,
+                                                &actual_state); // [手順] - 成立し得る行の対象の状態を取得する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret);          // [確認_正常系] - 成立し得ない行があっても適用は成功すること。
+    EXPECT_EQ(3U, actual_invalid_count);      // [確認_異常系] - 成立し得ない 3 行を無効にすること。
+    EXPECT_EQ(0U, diagnostics[0].line_index); // [確認_異常系] - 引数を持たない項目に限定した行を通知すること。
+    EXPECT_EQ(1U, diagnostics[1].line_index); // [確認_異常系] - 矛盾する文字列キーの行を通知すること。
+    EXPECT_EQ(3U, diagnostics[2].line_index); // [確認_異常系] - どの分類値にも該当しない行を通知すること。
+    for (int index = 0; index < 3; index++)
+    {
+        EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE,
+                  diagnostics[index].error); // [確認_異常系] - 原因が成立し得ない条件であること。
+    }
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_STATE_ARGUMENT_DEPENDENT,
+              actual_state); // [確認_正常系] - 成立し得る行は有効なままであること。
+}

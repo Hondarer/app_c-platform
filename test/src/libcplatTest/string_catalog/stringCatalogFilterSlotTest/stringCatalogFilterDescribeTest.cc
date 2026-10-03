@@ -285,8 +285,9 @@ TEST_F(stringCatalogFilterDescribeTest, category_names_describe_single_any_and_n
     actual_ret_any = describe(
         "category >= 0", CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE); // [手順] - すべての名前が該当する条件を説明する。
     std::memcpy(actual_any, description_, std::strlen(description_) + 1U);
-    actual_ret_none = describe("category < 0",
-                               CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE); // [手順] - どの名前も該当しない条件を説明する。
+    actual_ret_none =
+        describe("category < 0 || key == FILTER_TEST_TRACE_KEY_JOB_FAILED",
+                 CPLAT_STRING_CATALOG_LANGUAGE_JAPANESE); // [手順] - どの名前も該当しない判定要素を含む条件を説明する。
 
     // Assert
     EXPECT_EQ(CPLAT_OK, actual_ret_single);           // [確認_正常系] - 説明文を得られること。
@@ -294,7 +295,8 @@ TEST_F(stringCatalogFilterDescribeTest, category_names_describe_single_any_and_n
     EXPECT_EQ(CPLAT_OK, actual_ret_any);              // [確認_正常系] - 説明文を得られること。
     EXPECT_STREQ("レベルを問わない", actual_any);     // [確認_正常系] - すべての名前が該当することを表すこと。
     EXPECT_EQ(CPLAT_OK, actual_ret_none);             // [確認_正常系] - 説明文を得られること。
-    EXPECT_STREQ("レベルがいずれにも該当しない", description_); // [確認_正常系] - 該当なしを表すこと。
+    EXPECT_NE(nullptr, std::strstr(description_, "レベルがいずれにも該当しない"))
+        << description_; // [確認_正常系] - 該当なしを表すこと。
 }
 
 // 分類値の名前を指定せずに作成すると数値で表し、不正な名前の設定では作成できないことの確認

@@ -181,21 +181,26 @@ TEST_F(stringCatalogFilterPatternTest, reapplied_line_keeps_pattern)
     EXPECT_NE(0, actual_third);  // [確認_正常系] - 1 面目へ戻ってもパターンで判定すること。
 }
 
-// 文字列でない引数へのパターンは、その項目で偽になることの確認
-TEST_F(stringCatalogFilterPatternTest, pattern_on_non_string_argument_is_false)
+// 文字列でない引数へのパターンは、どの項目でも成立しないため、成立し得ない行として無効にすることの確認
+TEST_F(stringCatalogFilterPatternTest, pattern_on_non_string_argument_is_never_satisfiable)
 {
     // Arrange
+    cplat_string_catalog_filter_line_error actual_error = CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NONE;
 
     // Pre-Assert
 
     // Act
     const std::size_t actual_invalid =
         apply_line("arg.priority matches \"3\""); // [手順] - 整数の引数へパターンを書く。
+    ASSERT_EQ(CPLAT_OK, cplat_string_catalog_filter_slot_get_line_error(
+                            slot_, 0U, &actual_error)); // [手順] - 行の状態を取得する。
 
     // Assert
-    EXPECT_EQ(0U, actual_invalid); // [確認_正常系] - 名前は解決でき、行は有効であること。
+    EXPECT_EQ(1U, actual_invalid); // [確認_異常系] - 行を無効にすること。
+    EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE,
+              actual_error); // [確認_異常系] - 原因が成立し得ない条件であること。
     EXPECT_EQ(CPLAT_STRING_CATALOG_FILTER_STATE_NEVER_MATCH,
-              state_of(FILTER_TEST_TRACE_KEY_JOB_RECEIVED)); // [確認_正常系] - 型が一致しない項目では偽になること。
+              state_of(FILTER_TEST_TRACE_KEY_JOB_RECEIVED)); // [確認_異常系] - どの項目にも一致しないこと。
 }
 
 // パターンの条件を、日本語とニュートラル言語の文で説明することの確認

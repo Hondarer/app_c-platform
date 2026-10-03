@@ -154,7 +154,9 @@ extern "C"
         CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_CATEGORY_OUT_OF_RANGE =
             9, /**< 分類値と比較する定数が、分類値の名前の範囲外。 */
         CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_INVALID_PATTERN =
-            10 /**< 正規表現のパターンをコンパイルできない。構文の誤りや、照合器の制限の超過など。 */
+            10, /**< 正規表現のパターンをコンパイルできない。構文の誤りや、照合器の制限の超過など。 */
+        CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE =
+            11 /**< カタログのどの項目に対しても成立し得ない条件式。型の合わない比較や、互いに矛盾する条件など。 */
     } cplat_string_catalog_filter_line_error;
 
     /**
@@ -662,6 +664,13 @@ extern "C"
      *
      *  名前の解決と事前計算は、判定が使用していない面へ行い、最後に参照する面を切り替えます。\n
      *  内容が同一の行は、現在の面の事前計算の結果を再利用します。
+     *
+     *  次の行は、その行だけを無効にして @p diagnostics へ原因を返します。
+     *  - 名前を解決できない文字列キー、引数、分類値を含む行
+     *  - 正規表現のパターンをコンパイルできない行
+     *  - カタログのどの項目に対しても成立し得ない行 (@ref CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE)。
+     *    文字列の引数を数値と比べるような型の合わない比較や、`key == A && key == B` のような矛盾する条件が該当します。
+     *    決して一致しない行のため、無効にしても判定の結果は変わりません。
      *
      *  @par            スレッド セーフ
      *  本関数はスレッド セーフです。

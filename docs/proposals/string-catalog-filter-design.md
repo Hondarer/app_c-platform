@@ -277,7 +277,7 @@ key == SAMPLE_MESSAGES_KEY_FILE_OPEN_FAILED && arg.file_path starts_with "/etc/"
 | 段階 | 検出する内容 |
 |---|---|
 | コンパイル | 構文エラー、字句のエラー、判定要素数と括弧のネスト深度の超過 |
-| 適用 | 解決できない文字列キーの名前、解決できない引数名、および型の不一致 |
+| 適用 | 解決できない文字列キーの名前、解決できない引数名、コンパイルできない正規表現、およびカタログのどの項目に対しても成立し得ない条件 (型の不一致や矛盾する条件) |
 
 Table: フィルター条件式の不正な行を検出する段階と内容
 
@@ -737,21 +737,21 @@ if (cplat_string_catalog_filter_slot_format(slot, text, sizeof(text), &matched, 
 
 - カタログ定義生成器 (`string_catalog_gen.py`) による文字列キー名前解決テーブルの自動出力
 - 行単位の編集 (`filter_compile_line`、`filter_insert_line`、`filter_remove_line`) の追加
-- デコンパイル (`filter_decompile_line`、`filter_decompile`) と、復元した条件式の再コンパイルによる一致の確認
+- デコンパイル (`filter_decompile_line`) と、復元した条件式の再コンパイルによる一致の確認。全体の復元は行ごとの復元を繰り返せば足りるため、`filter_decompile` は設けません
 - 正規表現による一致判定 `matches` の追加 (内部実装として `cplat_regex` を使用)。第 3 段階の配布より先に導入しました
-- どの項目に対しても成立し得ない判定式に対する診断通知の実装
+- どの項目に対しても成立し得ない判定式に対する診断通知の実装。事前計算がすべての項目で「常に不一致」となる行を、`CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE` で無効にします
 
 ### 第 3 段階: 自然文での表現と利用例の整備
 
 - 自然文の文型 (ニュートラル言語と日本語) と `filter_slot_describe_line` の実装
 - `string_catalog` モジュールの責務境界の記述の更新
-- `string-catalog-sample` における、外部ファイルの条件式リストを用いたトレースの出力詳細度の変更例と、条件の一覧表示の追加
+- `string-catalog-sample` における、外部ファイルの条件式リストを用いたトレースの出力詳細度の変更例と、条件の一覧表示の追加。`string-catalog-filter-sample` の `load` と `save` で実装しました
 
 ## 検討事項
 
-- **同名引数で型が異なる場合の扱い**:  
-  カタログ内の項目間で同一の引数名が異なるデータ型を持つ場合の評価規則を確定する必要があります。  
-  現在の設計案では、型が一致しない項目に対する比較演算は偽として評価し、関連付けの時点で診断情報として通知する方針としています。
+- **同名引数で型が異なる場合の扱い** (決定済み):  
+  型が一致しない項目に対する比較演算は偽として評価します。  
+  その結果、どの項目に対しても成立し得ない行は、適用の時点で `CPLAT_STRING_CATALOG_FILTER_LINE_ERROR_NEVER_SATISFIABLE` として通知します。
 - **名前解決テーブルの公開インターフェイス形式** (決定済み):  
   トレース種別の生成物ごとの関数 `<module>_key_names()` として提供します。  
   公開範囲 `api` では公開せず、利用側は名前解決テーブルを指定せずにスロットを作る `<module>_create_filter()` を使います。
