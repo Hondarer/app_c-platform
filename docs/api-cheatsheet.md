@@ -467,14 +467,15 @@ Table: DLL エクスポート・インポート構文と cplat マクロの対�
 
 対象ヘッダー: `cplat/base/platform.h`
 
+cplat は 64 ビット環境専用です。  
+`platform.h` はポインターの幅を `static_assert` で検査し、32 ビット環境ではコンパイル時にエラーとします。
+
 | 生の構文 | cplat 代替 |
 |---|---|
 | `#if defined(__linux__)` | `#ifdef PLATFORM_LINUX` |
 | `#if defined(_WIN32) \|\| defined(_WIN64)` | `#ifdef PLATFORM_WINDOWS` |
 | プラットフォーム名を文字列で得たい (`#if` で分岐して個別にリテラルを書く) | `PLATFORM_NAME` ("Windows"/"Linux"/"Unknown") |
-| `#if defined(__x86_64__) \|\| defined(_M_X64)` | `#ifdef ARCH_X64` |
-| `#if defined(__i386__) \|\| defined(_M_IX86)` | `#ifdef ARCH_X86` |
-| アーキテクチャー名を文字列で得たい | `ARCH_NAME` ("x64"/"x86"/"Unknown") |
+| アーキテクチャー名を文字列で得たい | `ARCH_NAME` ("x64"/"Unknown") |
 
 Table: プラットフォームおよびアーキテクチャー検出マクロの対応
 

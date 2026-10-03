@@ -102,9 +102,7 @@ extern "C"
     typedef struct cplat_process_stdio
     {
         cplat_process_stdio_mode mode; /**< 標準入出力の扱い。 */
-#if defined(ARCH_X64)
         unsigned int pad; /**< x64 で native_handle のアラインメントを明示するパディング。 */
-#endif
         intptr_t native_handle; /**< OS ネイティブ ハンドル。 */
     } cplat_process_stdio;
 

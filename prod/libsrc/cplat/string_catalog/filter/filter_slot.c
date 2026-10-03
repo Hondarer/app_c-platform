@@ -23,24 +23,11 @@
 #include <cplat/string_catalog/format_internal.h>
 #include <cplat/sync/sync.h>
 
-#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-/**
- *  事前計算の領域の要素数の最大値です。[行][項目][引数参照] の要素数で確保します。
- *
- *  項目数は int の最大値まで受け付けるため、行数と引数参照の上限との積になります。
- */
-#define PLANE_ELEMENT_COUNT_MAX \
-    ((uint64_t)CPLAT_STRING_CATALOG_FILTER_LINE_MAX * (uint64_t)INT_MAX * \
-     (uint64_t)CPLAT_STRING_CATALOG_FILTER_ARGUMENT_REFERENCE_MAX)
-
-/* 32 ビットの size_t では成り立たないため、本実装は 64 ビットの size_t を前提とする */
-_Static_assert(PLANE_ELEMENT_COUNT_MAX < (uint64_t)SIZE_MAX, "filter plane element count must fit in size_t");
 
 /** 3 値の論理値です。事前計算では、引数の値に依存する判定要素を不定とします。 */
 typedef enum truth_value

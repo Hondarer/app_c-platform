@@ -87,8 +87,6 @@ TEST_F(compressTest, compress_rejects_invalid_arguments)
         actual_ret_zero_src_len); // [確認_異常系] - src_len が 0 のとき cplat_compress の戻り値が CPLAT_ERR_INVALID_ARGUMENT であること。
 }
 
-#if SIZE_MAX > UINT32_MAX
-
 // 圧縮前サイズが 4 GiB 以上の場合に上限超過を通知することの確認
 // cplat-req: id=CPLAT-COMPRESS-FUNC-003; uuid=a6d4c8e1-3b27-4f9a-8e05-1c7b9d2f4a60
 TEST_F(compressTest, compress_returns_limit_exceeded_when_src_len_exceeds_max)
@@ -112,8 +110,6 @@ TEST_F(compressTest, compress_returns_limit_exceeded_when_src_len_exceeds_max)
         CPLAT_ERR_LIMIT_EXCEEDED,
         actual_ret); // [確認_異常系] - src_len が処理上限を超えるとき cplat_compress の戻り値が CPLAT_ERR_LIMIT_EXCEEDED であること。
 }
-
-#endif /* SIZE_MAX > UINT32_MAX */
 
 // cplat_compress は zlib の avail_out が uInt を超えるとき deflate を繰り返す。
 // その継続条件は 4 GiB 超の出力バッファーが必要なため、単体テストでは到達できない。

@@ -52,9 +52,7 @@ extern "C"
     typedef struct cplat_memory_lock_self_options
     {
         int flags; /**< ロック対象を示す flag。0 または未知の bit を指定してはなりません。 */
-#if defined(ARCH_X64)
         unsigned int pad; /**< x64 で stack_prefault_bytes のアラインメントを明示するパディング。 */
-#endif
         size_t stack_prefault_bytes; /**< ロック前に呼び出しスレッドで追加消費するスタック サイズ。0 可。 */
     } cplat_memory_lock_self_options;
 

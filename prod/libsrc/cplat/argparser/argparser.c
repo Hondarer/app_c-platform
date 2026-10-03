@@ -72,9 +72,7 @@ typedef struct argparser_spec
 typedef struct argparser_register_error
 {
     int result; /* 発生した結果コード (OK 以外) */
-#if defined(ARCH_X64)
     unsigned int pad; /* 明示的アラインメント */
-#endif
     char *target; /* 対象名 (複製)。対象がない場合は NULL */
 } argparser_register_error;
 

@@ -27,7 +27,7 @@
 #include <string.h>
 
 _Static_assert(sizeof(string_catalog_filter_source_header) == CPLAT_STRING_CATALOG_FILTER_SOURCE_HEADER_SIZE,
-               "source header size");
+               "cplat: source header size");
 
 /** 1 秒あたりのナノ秒数です。 */
 #define NANOSECONDS_PER_SECOND 1000000000ULL

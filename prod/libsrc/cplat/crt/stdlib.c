@@ -248,14 +248,6 @@ int cplat_parse_int64(int64_t *value_out, const char *text, const int base)
         return CPLAT_ERR_OUT_OF_RANGE;
     }
 
-#if LLONG_MAX > INT64_MAX
-    /* long long が 64 bit を超える処理系では、int64_t の範囲を別途検査する。 */
-    if ((parsed < (long long)INT64_MIN) || (parsed > (long long)INT64_MAX))
-    {
-        return CPLAT_ERR_OUT_OF_RANGE;
-    }
-#endif /* LLONG_MAX > INT64_MAX */
-
     *value_out = (int64_t)parsed;
 
     return CPLAT_OK;
@@ -298,14 +290,6 @@ int cplat_parse_uint64(uint64_t *value_out, const char *text, const int base)
     {
         return CPLAT_ERR_OUT_OF_RANGE;
     }
-
-#if ULLONG_MAX > UINT64_MAX
-    /* unsigned long long が 64 bit を超える処理系では、uint64_t の範囲を別途検査する。 */
-    if (parsed > (unsigned long long)UINT64_MAX)
-    {
-        return CPLAT_ERR_OUT_OF_RANGE;
-    }
-#endif /* ULLONG_MAX > UINT64_MAX */
 
     *value_out = (uint64_t)parsed;
 

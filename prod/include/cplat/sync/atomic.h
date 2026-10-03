@@ -239,14 +239,11 @@ extern "C"
 
     /* ===== MSVC: <intrin.h> の intrinsic =====
      * MSVC の標準ライブラリ <atomic> と同じ方式とする。
-     * x86 と x64 のメモリ モデル (TSO) では、通常の読み取りは acquire、通常の書き込みは release の性質を持つ。
+     * x64 のメモリ モデル (TSO) では、通常の読み取りは acquire、通常の書き込みは release の性質を持つ。
      * そのため読み取りと release の書き込みはコンパイラの並べ替えだけを止め、
      * seq_cst の書き込みと読み書きを伴う操作は Interlocked (完全なメモリ バリアを伴う) で行う。
      * see: https://learn.microsoft.com/cpp/intrinsics/iso-volatile-load-store
      * see: https://learn.microsoft.com/cpp/intrinsics/interlockedexchange-intrinsic-functions */
-    #if !defined(ARCH_X64) && !defined(ARCH_X86)
-        #error "cplat/sync/atomic.h: MSVC では x86 と x64 だけに対応しています。"
-    #endif /* !ARCH_X64 && !ARCH_X86 */
 
 #else
     #error "cplat/sync/atomic.h: 対応していないコンパイラです。"
@@ -606,30 +603,6 @@ extern "C"
 
     /* ===== 64 ビット ===== */
 
-#if defined(COMPILER_MSVC) && defined(ARCH_X86)
-    /**
-     *  @brief          x86 (32 ビット) の MSVC で、64 ビット値を比較交換で不可分に読み書きします。
-     *  @internal
-     *
-     *  x86 の通常の読み書きは 64 ビットを 2 回に分けるため、比較交換 (cmpxchg8b) で不可分性を得ます。
-     */
-    static inline int64_t cplat_atomic_x86_exchange_64(volatile int64_t *target, const int64_t desired)
-    {
-        int64_t previous = *target;
-        int64_t observed;
-
-        for (;;)
-        {
-            observed = _InterlockedCompareExchange64((volatile __int64 *)target, desired, previous);
-            if (observed == previous)
-            {
-                return previous;
-            }
-            previous = observed;
-        }
-    }
-#endif /* COMPILER_MSVC && ARCH_X86 */
-
     /**
      *  @brief          符号付き 64 ビット整数をアトミックに読みます。
      *
@@ -642,7 +615,7 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_LOAD(int64_t, &atomic->value, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         const int64_t loaded = (int64_t)__iso_volatile_load64((const volatile __int64 *)&atomic->value);
 
         if (order != CPLAT_MEMORY_ORDER_RELAXED)
@@ -650,10 +623,6 @@ extern "C"
             CPLAT_ATOMIC_COMPILER_BARRIER();
         }
         return loaded;
-#else
-        /* 同じ値を比較交換すると、値を変えずに不可分に読める。完全なメモリ バリアを伴う */
-        (void)order;
-        return (int64_t)_InterlockedCompareExchange64((volatile __int64 *)(void *)&atomic->value, 0, 0);
 #endif /* COMPILER_ */
     }
 
@@ -670,7 +639,7 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         CPLAT_ATOMIC_GCC_STORE(&atomic->value, desired, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         switch (order)
         {
         case CPLAT_MEMORY_ORDER_RELAXED:
@@ -687,9 +656,6 @@ extern "C"
             (void)_InterlockedExchange64((volatile __int64 *)&atomic->value, desired);
             break;
         }
-#else
-        (void)order;
-        (void)cplat_atomic_x86_exchange_64((volatile int64_t *)&atomic->value, desired);
 #endif /* COMPILER_ */
     }
 
@@ -706,12 +672,9 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_RMW(int64_t, __atomic_exchange_n, &atomic->value, desired, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         (void)order;
         return (int64_t)_InterlockedExchange64((volatile __int64 *)&atomic->value, desired);
-#else
-        (void)order;
-        return cplat_atomic_x86_exchange_64((volatile int64_t *)&atomic->value, desired);
 #endif /* COMPILER_ */
     }
 
@@ -755,20 +718,9 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_RMW(int64_t, __atomic_fetch_add, &atomic->value, operand, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         (void)order;
         return (int64_t)_InterlockedExchangeAdd64((volatile __int64 *)&atomic->value, operand);
-#else
-        int64_t previous = cplat_atomic_load_i64(atomic, CPLAT_MEMORY_ORDER_RELAXED);
-
-        (void)order;
-        /* 加算は符号なしで行い、桁あふれを未定義動作にしない */
-        while (cplat_atomic_compare_exchange_i64(atomic, &previous,
-                                                 (int64_t)((uint64_t)previous + (uint64_t)operand),
-                                                 CPLAT_MEMORY_ORDER_SEQ_CST) == 0)
-        {
-        }
-        return previous;
 #endif /* COMPILER_ */
     }
 
@@ -887,10 +839,8 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_LOAD(void *, &atomic->value, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         return (void *)cplat_atomic_load_i64((const cplat_atomic_i64 *)(const void *)atomic, order);
-#else
-        return (void *)(intptr_t)cplat_atomic_load_i32((const cplat_atomic_i32 *)(const void *)atomic, order);
 #endif /* COMPILER_ */
     }
 
@@ -906,10 +856,8 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         CPLAT_ATOMIC_GCC_STORE(&atomic->value, desired, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         cplat_atomic_store_i64((cplat_atomic_i64 *)(void *)atomic, (int64_t)(intptr_t)desired, order);
-#else
-        cplat_atomic_store_i32((cplat_atomic_i32 *)(void *)atomic, (int32_t)(intptr_t)desired, order);
 #endif /* COMPILER_ */
     }
 
@@ -924,12 +872,9 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_RMW(void *, __atomic_exchange_n, &atomic->value, desired, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         (void)order;
         return _InterlockedExchangePointer((void *volatile *)&atomic->value, desired);
-#else
-        return (void *)(intptr_t)cplat_atomic_exchange_i32((cplat_atomic_i32 *)(void *)atomic,
-                                                           (int32_t)(intptr_t)desired, order);
 #endif /* COMPILER_ */
     }
 
@@ -946,7 +891,7 @@ extern "C"
     {
 #if defined(COMPILER_GCC)
         return CPLAT_ATOMIC_GCC_CAS(&atomic->value, expected, desired, order);
-#elif defined(ARCH_X64)
+#elif defined(COMPILER_MSVC)
         void *const previous = _InterlockedCompareExchangePointer((void *volatile *)&atomic->value, desired, *expected);
 
         (void)order;
@@ -956,13 +901,6 @@ extern "C"
         }
         *expected = previous;
         return 0;
-#else
-        int32_t expected_value = (int32_t)(intptr_t)*expected;
-        const int is_exchanged = cplat_atomic_compare_exchange_i32(
-            (cplat_atomic_i32 *)(void *)atomic, &expected_value, (int32_t)(intptr_t)desired, order);
-
-        *expected = (void *)(intptr_t)expected_value;
-        return is_exchanged;
 #endif /* COMPILER_ */
     }
 
@@ -1006,7 +944,7 @@ extern "C"
         case CPLAT_MEMORY_ORDER_ACQUIRE:
         case CPLAT_MEMORY_ORDER_RELEASE:
         case CPLAT_MEMORY_ORDER_ACQ_REL:
-            /* x86 と x64 では、acquire と release の順序はハードウェアが保証する。コンパイラの並べ替えだけを止める */
+            /* x64 では、acquire と release の順序はハードウェアが保証する。コンパイラの並べ替えだけを止める */
             CPLAT_ATOMIC_COMPILER_BARRIER();
             break;
         case CPLAT_MEMORY_ORDER_SEQ_CST:
