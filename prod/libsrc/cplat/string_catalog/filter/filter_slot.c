@@ -1502,12 +1502,18 @@ const cplat_string_catalog *cplat_string_catalog_filter_slot_get_catalog(const c
 
 /**
  *  @brief          apply_lock を保持した状態で、フィルター オブジェクトを未使用の面へ構築して切り替えます。
+ *  @param[in,out]  slot                フィルター スロット。
+ *  @param[in]      image               適用するフィルター オブジェクト。
+ *  @param[in]      image_size          @p image のバイト数。
+ *  @param[out]     diagnostics         無効にした行の診断の格納先。不要な場合は NULL。
+ *  @param[in]      diagnostic_capacity @p diagnostics の要素数。
+ *  @param[out]     invalid_count_out   無効にした行数の格納先。不要な場合は NULL。
  *  @param[in]      source    読み取り元のソース領域。@p image がソース領域内にない場合は NULL。
  *  @param[in]      timestamp @p source の読み取りを始めたときの公開時刻。
  *  @param[in]      writer_lock 取得済みの書き込み側の排他。複製を終えた時点で解放します。保持していない場合は NULL。
  *  @param[out]     torn_out  複製の間にソース領域が書き換えられた場合は true の格納先。
  *
- *  そのほかの引数と戻り値は @ref cplat_string_catalog_filter_slot_apply と同じです。\n
+ *  戻り値は @ref cplat_string_catalog_filter_slot_apply と同じです。\n
  *  @p torn_out へ true を格納した場合は、面を切り替えずに `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
  */
 static int apply_image_locked(cplat_string_catalog_filter_slot *slot, const void *image, const size_t image_size,
