@@ -53,13 +53,18 @@ extern "C"
     /**
      *  @brief          コンソール ヘルパーを初期化します。
      *
-     *  Windows 環境では stdout がコンソール (TTY) の場合に、
+     *  Windows 環境では stdout または stderr がコンソール (TTY) の場合に、
      *  コンソール入出力コード ページを UTF-8 に設定し、
-     *  stdout / stderr の Virtual Terminal Processing を有効化します。\n
+     *  stdout / stderr のうちコンソールであるものの Virtual Terminal Processing を有効化します。\n
      *  Linux 環境では何もしません。\n
      *  本関数はプログラム開始時に一度だけ呼び出すことを想定しています。\n
-     *  stdout がコンソールでない場合、またはコンソール情報を取得できない場合は
-     *  何もせずに返ります。
+     *  stdout と stderr のいずれもコンソールでない場合は何もせずに返ります。
+     *
+     *  @attention      コード ページは接続先コンソール全体で共有する設定です。\n
+     *                  stdout だけをリダイレクトした場合も、stderr がコンソールであれば
+     *                  コード ページを UTF-8 へ変更します。\n
+     *                  このため、同じコンソールを共有する子プロセスの出力も
+     *                  UTF-8 のコード ページに従います。
      *
      *  @note           shutdown コールバックが自動登録されるため、一般的な利用では
      *                  `cplat_console_dispose` を呼び出す必要はありません。\n

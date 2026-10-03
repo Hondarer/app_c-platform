@@ -239,8 +239,10 @@ void cplat_console_init(void)
             return;
     }
 
-    /* stdout がコンソール (TTY) でなければ何もしない */
-    if (!cplat_isatty(CPLAT_STREAM_STDOUT))
+    /* stdout / stderr のいずれもコンソール (TTY) でなければ何もしない。
+       stdout だけをリダイレクトした場合も stderr のコンソール出力に設定が要るため、
+       コンソール全体で共有するコード ページを UTF-8 へ変更する (利用側の制約とする) */
+    if (!cplat_isatty(CPLAT_STREAM_STDOUT) && !cplat_isatty(CPLAT_STREAM_STDERR))
     {
         console_diag_logf("console_init isatty=0 skip");
         cplat_atomic_store_i32(&s_initialized, 0, CPLAT_MEMORY_ORDER_SEQ_CST);
