@@ -206,7 +206,7 @@ TEST_F(stringCatalogFilterTraceOutputTest, attached_source_is_taken_on_write)
     ASSERT_EQ(CPLAT_OK, filter_test_trace_set_filter(slot_));                     // [状態] - 出力へ接続する。
     ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_));
     ASSERT_EQ(CPLAT_OK,
-              cplat_string_catalog_filter_source_publish(source, sizeof(source), image_, sizeof(image_),
+              cplat_string_catalog_filter_source_publish(source, sizeof(source), image_, sizeof(image_), nullptr,
                                                          nullptr)); // [状態] - WARNING 以上に一致する条件を公開する。
 
     // Pre-Assert

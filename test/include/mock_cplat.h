@@ -1073,7 +1073,7 @@ extern int delegate_real_cplat_string_catalog_filter_slot_create(
 extern void delegate_real_cplat_string_catalog_filter_slot_dispose(cplat_string_catalog_filter_slot **slot);
 extern const cplat_string_catalog *delegate_real_cplat_string_catalog_filter_slot_get_catalog(
     const cplat_string_catalog_filter_slot *slot);
-extern int delegate_real_cplat_string_catalog_filter_source_publish(void *source, size_t source_size, const void *image, size_t image_size, uint64_t *timestamp_out);
+extern int delegate_real_cplat_string_catalog_filter_source_publish(void *source, size_t source_size, const void *image, size_t image_size, const cplat_string_catalog_filter_source_lock *lock, uint64_t *timestamp_out);
 extern int delegate_real_cplat_string_catalog_filter_source_get_info(const void *source, size_t source_size, cplat_string_catalog_filter_source_info *info_out);
 extern int delegate_real_cplat_string_catalog_filter_slot_attach_source(cplat_string_catalog_filter_slot *slot, const void *source, size_t source_size, const cplat_string_catalog_filter_source_lock *lock);
 extern int delegate_real_cplat_string_catalog_filter_slot_get_source_status(cplat_string_catalog_filter_slot *slot, cplat_string_catalog_filter_source_status *status_out);
@@ -1759,7 +1759,8 @@ class Mock_cplat
     MOCK_METHOD(void, cplat_string_catalog_filter_slot_dispose, (cplat_string_catalog_filter_slot **));
     MOCK_METHOD(const cplat_string_catalog *, cplat_string_catalog_filter_slot_get_catalog,
                 (const cplat_string_catalog_filter_slot *));
-    MOCK_METHOD(int, cplat_string_catalog_filter_source_publish, (void *, size_t, const void *, size_t, uint64_t *));
+    MOCK_METHOD(int, cplat_string_catalog_filter_source_publish,
+                (void *, size_t, const void *, size_t, const cplat_string_catalog_filter_source_lock *, uint64_t *));
     MOCK_METHOD(int, cplat_string_catalog_filter_source_get_info, (const void *, size_t, cplat_string_catalog_filter_source_info *));
     MOCK_METHOD(int, cplat_string_catalog_filter_slot_attach_source,
                 (cplat_string_catalog_filter_slot *, const void *, size_t, const cplat_string_catalog_filter_source_lock *));

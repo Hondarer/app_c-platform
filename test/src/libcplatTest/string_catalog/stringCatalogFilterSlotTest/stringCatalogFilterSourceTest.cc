@@ -69,7 +69,7 @@ class stringCatalogFilterSourceTest : public Test
         {
             return ret;
         }
-        return cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
+        return cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), nullptr,
                                                           timestamp_out);
     }
 
@@ -326,16 +326,19 @@ TEST_F(stringCatalogFilterSourceTest, publish_rejects_invalid_input_without_chan
     // Pre-Assert
 
     // Act
-    actual_null_ret = cplat_string_catalog_filter_source_publish(nullptr, sizeof(source_), image_, sizeof(image_),
-                                                                 nullptr); // [手順] - 領域に NULL を指定する。
-    actual_small_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_) - 1U, image_, sizeof(image_),
-                                                                  nullptr); // [手順] - 小さい領域を指定する。
+    actual_null_ret =
+        cplat_string_catalog_filter_source_publish(nullptr, sizeof(source_), image_, sizeof(image_), nullptr,
+                                                   nullptr); // [手順] - 領域に NULL を指定する。
+    actual_small_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_) - 1U, image_, sizeof(image_), nullptr,
+                                                   nullptr); // [手順] - 小さい領域を指定する。
     image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
     actual_corrupt_image_ret = cplat_string_catalog_filter_source_publish(
-        source_, sizeof(source_), image_, sizeof(image_), nullptr); // [手順] - 壊れたイメージを公開する。
+        source_, sizeof(source_), image_, sizeof(image_), nullptr, nullptr); // [手順] - 壊れたイメージを公開する。
     image_[CPLAT_STRING_CATALOG_FILTER_HEADER_SIZE] ^= 0xFFU;
-    actual_foreign_ret = cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_),
-                                                                    nullptr); // [手順] - 異なる形式の領域へ公開する。
+    actual_foreign_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), nullptr,
+                                                   nullptr); // [手順] - 異なる形式の領域へ公開する。
 
     // Assert
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_null_ret);            // [確認_異常系] - NULL を拒否すること。
@@ -669,4 +672,86 @@ TEST_F(stringCatalogFilterLockedSourceTest, attach_rejects_incomplete_lock)
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT,
               actual_without_unlock);                           // [確認_異常系] - 解放の関数がない排他を拒否すること。
     EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_without_lock); // [確認_異常系] - 取得の関数がない排他を拒否すること。
+}
+
+// 公開に排他を渡した場合、書き込みの間だけ 1 回取得して解放することの確認
+TEST_F(stringCatalogFilterLockedSourceTest, publish_takes_lock_once_while_writing)
+{
+    // Arrange
+    uint64_t actual_timestamp = 0U;
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
+                                                   &actual_timestamp); // [手順] - 排他とともに公開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_OK, actual_ret);     // [確認_正常系] - 公開に成功すること。
+    EXPECT_NE(0U, actual_timestamp);     // [確認_正常系] - 公開時刻を格納すること。
+    EXPECT_EQ(1, counter_.lock_count);   // [確認_正常系] - 排他を 1 回取得すること。
+    EXPECT_EQ(1, counter_.unlock_count); // [確認_正常系] - 取得した排他を解放すること。
+}
+
+// 公開で排他を取得できない場合は、その結果コードを返し、領域を変更しないことの確認
+TEST_F(stringCatalogFilterLockedSourceTest, publish_lock_failure_keeps_region)
+{
+    // Arrange
+    unsigned char expected_source[sizeof(source_)];
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+    counter_.lock_result = CPLAT_ERR_TIMEOUT;                          // [状態] - 排他の取得が失敗するようにする。
+    memcpy(expected_source, source_, sizeof(source_));
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
+                                                   nullptr); // [手順] - 排他とともに公開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_TIMEOUT, actual_ret); // [確認_異常系] - 排他の取得の結果コードを返すこと。
+    EXPECT_EQ(0, counter_.unlock_count);      // [確認_異常系] - 取得できなかった排他は解放しないこと。
+    EXPECT_EQ(0, memcmp(expected_source, source_, sizeof(source_))); // [確認_異常系] - 領域を変更しないこと。
+}
+
+// 公開で異なる形式の領域を拒否した場合も、取得した排他を解放することの確認
+TEST_F(stringCatalogFilterLockedSourceTest, publish_rejecting_foreign_region_releases_lock)
+{
+    // Arrange
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+    header()->signature = 0x12345678U;                                 // [状態] - 異なる形式の署名を置く。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &lock_,
+                                                   nullptr); // [手順] - 排他とともに公開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_CORRUPT_DESCRIPTOR, actual_ret); // [確認_異常系] - 異なる形式の領域を拒否すること。
+    EXPECT_EQ(1, counter_.lock_count);                   // [確認_異常系] - ヘッダーの確認のために排他を取得すること。
+    EXPECT_EQ(1, counter_.unlock_count);                 // [確認_異常系] - 取得した排他を解放すること。
+}
+
+// 公開で関数が NULL の排他を拒否することの確認
+TEST_F(stringCatalogFilterLockedSourceTest, publish_rejects_incomplete_lock)
+{
+    // Arrange
+    cplat_string_catalog_filter_source_lock without_unlock = {counting_lock_acquire, nullptr, &counter_};
+    ASSERT_EQ(CPLAT_OK, compile_single_line("category <= 2", image_)); // [状態] - 条件をコンパイルする。
+
+    // Pre-Assert
+
+    // Act
+    int actual_ret =
+        cplat_string_catalog_filter_source_publish(source_, sizeof(source_), image_, sizeof(image_), &without_unlock,
+                                                   nullptr); // [手順] - 解放の関数がない排他で公開する。
+
+    // Assert
+    EXPECT_EQ(CPLAT_ERR_INVALID_ARGUMENT, actual_ret); // [確認_異常系] - 関数が欠けた排他を拒否すること。
+    EXPECT_EQ(0, counter_.lock_count);                 // [確認_異常系] - 排他を取得しないこと。
 }

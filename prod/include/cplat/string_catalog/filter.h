@@ -21,6 +21,9 @@
  *  検証を行うすべての関数は、本ライブラリと形式版またはバイト順序が異なるフィルター オブジェクトを拒否し、変換しません。
  *
  *  フィルター オブジェクトを別のスレッドやプロセスから受け取る場合は、ソース領域を使用できます。\n
+ *  ソース領域のメモリと、その排他の実装は利用側が受け持ちます。
+ *  本ライブラリは、先頭アドレスとバイト数、および排他を取得、解放する関数 (@ref cplat_string_catalog_filter_source_lock)
+ *  を受け取るだけで、領域の確保や共有、排他の方式を知りません。\n
  *  ソース領域は、ヘッダーとフィルター オブジェクトを並べた領域です。共有メモリやプロセス内の静的領域など、
  *  先頭アドレスとバイト数で示せる領域であれば種類を問いません。\n
  *  書き込み側は @ref cplat_string_catalog_filter_source_publish で公開し、
@@ -188,24 +191,32 @@ extern "C"
     } cplat_string_catalog_filter_source_info;
 
     /**
-     *  @brief          ソース領域の書き込み側の排他を取得する関数です。
+     *  @brief          ソース領域の排他を取得する関数です。
      *  @param[in]      context @ref cplat_string_catalog_filter_source_lock::context に指定した値。
      *  @return         取得できた場合は `CPLAT_OK`、取得できない場合はその結果コードを返します。
      */
     typedef int (*cplat_string_catalog_filter_source_lock_fn)(void *context);
 
     /**
-     *  @brief          ソース領域の書き込み側の排他を解放する関数です。
+     *  @brief          ソース領域の排他を解放する関数です。
      *  @param[in]      context @ref cplat_string_catalog_filter_source_lock::context に指定した値。
      */
     typedef void (*cplat_string_catalog_filter_source_unlock_fn)(void *context);
 
     /**
-     *  @brief          ソース領域の書き込み側の排他を、読み取り側でも取得するための関数の組です。
+     *  @brief          ソース領域の排他を取得、解放する関数の組です。
      *
-     *  書き込み側どうしを直列化している排他と同じものを指定します。\n
-     *  指定すると、スロットは公開時刻の変化を検知した場合だけこの排他を取り、公開時刻を読み直してから複製します。
-     *  複製の間に書き込みが重ならないため、書き込み中の領域を読みません。
+     *  排他の実装は利用側が受け持ちます。本ライブラリは、公開と取り込みの間だけ関数を呼び出します。\n
+     *  同じソース領域を使う書き込み側と読み取り側には、同じ排他を指定します。
+     *
+     *  - 公開 (@ref cplat_string_catalog_filter_source_publish) は、書き込みの間だけ排他を取ります。
+     *  - スロット (@ref cplat_string_catalog_filter_slot_attach_source) は、公開時刻の変化を検知した場合だけ排他を取り、
+     *    公開時刻を読み直してから複製し、複製を終えた時点で解放します。
+     *
+     *  排他の実装は、次の条件を満たす必要があります。
+     *  - 同じプロセスのスレッドの間と、ソース領域を共有するプロセスの間の両方で排他になること。
+     *  - 排他を保持したプロセスが異常終了した場合も、ほかのプロセスが取得できるようになること。
+     *  - 本ライブラリは排他を再入して取得しません。再入に対応する必要はありません。
      */
     typedef struct cplat_string_catalog_filter_source_lock
     {
@@ -439,16 +450,20 @@ extern "C"
      *  @param[in]      source_size   @p source のバイト数。
      *  @param[in]      image         公開するフィルター オブジェクト。
      *  @param[in]      image_size    @p image のバイト数。
+     *  @param[in]      lock          ソース領域の排他を取得、解放する関数の組。書き込みの間だけ取得します。
+     *                                書き込み側が 1 つしかないなど、呼び出し側で直列化する場合は NULL を指定できます。
      *  @param[out]     timestamp_out 公開時刻の格納先。不要な場合は NULL を指定できます。
      *  @return         成功時は `CPLAT_OK` を返します。
      *  @return         @p source または @p image が NULL の場合、@p source のアラインメントが合わない場合、
-     *                  または @p source_size がヘッダーとフィルター オブジェクトを格納できない場合は
-     *                  `CPLAT_ERR_INVALID_ARGUMENT` を返します。
+     *                  @p source_size がヘッダーとフィルター オブジェクトを格納できない場合、
+     *                  または @p lock の関数が NULL の場合は `CPLAT_ERR_INVALID_ARGUMENT` を返します。
      *  @return         @p image が `cplat_string_catalog_filter_validate` の確認を通らない場合は、その結果コードを返します。
      *  @return         @p source が 0 で埋まっておらず、ソース領域の署名または形式版が異なる場合は
      *                  `CPLAT_ERR_CORRUPT_DESCRIPTOR` を返します。
+     *  @return         @p lock の排他を取得できない場合は、取得する関数の結果コードを返します。
      *
-     *  失敗した場合は、ソース領域を変更しません。
+     *  失敗した場合は、ソース領域を変更しません。\n
+     *  引数と @p image の検証は、排他を取得する前に行います。ソース領域のヘッダーの確認と書き込みは、排他の下で行います。
      *
      *  公開時刻は、前回の公開時刻に 2 を加えた値と、単調増加クロックのナノ秒値のうち大きいほうです。\n
      *  単調増加クロックは、Linux と Windows のどちらでもプロセス間で共通の時間軸です。\n
@@ -466,11 +481,12 @@ extern "C"
      *  @par            スレッド セーフ
      *  本関数は条件付きスレッド セーフです。\n
      *  読み取り側とは同時に実行できます。\n
-     *  同じソース領域への公開は、プロセスをまたぐ場合も含め、呼び出し側で直列化してください。
+     *  @p lock を指定した場合、同じソース領域への公開はその排他で直列化します。
+     *  NULL の場合は、プロセスをまたぐ場合も含め、呼び出し側で直列化してください。
      */
-    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_source_publish(void *source, size_t source_size,
-                                                                         const void *image, size_t image_size,
-                                                                         uint64_t *timestamp_out);
+    CPLAT_EXPORT int CPLAT_API cplat_string_catalog_filter_source_publish(
+        void *source, size_t source_size, const void *image, size_t image_size,
+        const cplat_string_catalog_filter_source_lock *lock, uint64_t *timestamp_out);
 
     /**
      *  @brief          ソース領域のヘッダーから公開の情報を読み取ります。

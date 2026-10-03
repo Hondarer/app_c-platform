@@ -142,7 +142,9 @@ bool string_catalog_filter_source_end_read(const void *source, const uint64_t ti
 /* Doxygen コメントは、ヘッダーに記載 */
 
 int cplat_string_catalog_filter_source_publish(void *source, const size_t source_size, const void *image,
-                                               const size_t image_size, uint64_t *timestamp_out)
+                                               const size_t image_size,
+                                               const cplat_string_catalog_filter_source_lock *lock,
+                                               uint64_t *timestamp_out)
 {
     string_catalog_filter_source_header *header = (string_catalog_filter_source_header *)source;
     cplat_string_catalog_filter_info info;
@@ -151,7 +153,8 @@ int cplat_string_catalog_filter_source_publish(void *source, const size_t source
     uint64_t next;
     int ret;
 
-    if ((source == NULL) || (image == NULL) || !string_catalog_filter_source_is_region_valid(source, source_size, 0U))
+    if ((source == NULL) || (image == NULL) || !string_catalog_filter_source_is_region_valid(source, source_size, 0U) ||
+        ((lock != NULL) && ((lock->lock == NULL) || (lock->unlock == NULL))))
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
@@ -165,9 +168,21 @@ int cplat_string_catalog_filter_source_publish(void *source, const size_t source
     {
         return CPLAT_ERR_INVALID_ARGUMENT;
     }
-    /* 公開は呼び出し側が直列化するため、ほかの書き込み側と競合せずにヘッダーを読める */
+    /* ヘッダーの確認と書き込みは排他の下で行う。ほかの書き込み側と競合せずにヘッダーを読めるようにするため */
+    if (lock != NULL)
+    {
+        ret = lock->lock(lock->context);
+        if (ret != CPLAT_OK)
+        {
+            return ret;
+        }
+    }
     if (!is_known_header(header))
     {
+        if (lock != NULL)
+        {
+            lock->unlock(lock->context);
+        }
         return CPLAT_ERR_CORRUPT_DESCRIPTOR;
     }
 
@@ -194,6 +209,10 @@ int cplat_string_catalog_filter_source_publish(void *source, const size_t source
     /* Windows の単調増加クロックはミリ秒単位のため、同じ値が続き得る。前回と異なる偶数にする */
     next = next_timestamp(base, monotonic_nanoseconds() & ~TIMESTAMP_WRITING_BIT);
     cplat_atomic_store_u64(&header->published_timestamp, next, CPLAT_MEMORY_ORDER_RELEASE);
+    if (lock != NULL)
+    {
+        lock->unlock(lock->context);
+    }
 
     if (timestamp_out != NULL)
     {
