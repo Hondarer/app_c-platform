@@ -19,6 +19,7 @@
 
 #include <cplat/argparser/argparser.h>
 #include <cplat/base/result.h>
+#include <cplat/console/console.h>
 #include <cplat/crt/stdio.h>
 #include <cplat/hashtable/hashtable.h>
 
@@ -377,6 +378,8 @@ int main(int argc, char **argv)
     size_t capacity;
     int failures = 0;
     int ret;
+
+    cplat_console_init();
 
     cplat_argparser_init(argc, argv, "Measure hash table variable-length storage operations.");
     if (register_options(&options) != 0)

@@ -12,6 +12,7 @@
  */
 
 #include <cplat/base/result.h>
+#include <cplat/console/console.h>
 #include <cplat/clock/clock.h>
 #include <cplat/runtime/process.h>
 #include <cplat/trace/trace_file.h>
@@ -182,6 +183,8 @@ int main(int argc, char **argv)
     char *path = "bench-tracer.log";
     int processes = DEFAULT_PROCESSES;
     int messages = DEFAULT_MESSAGES;
+
+    cplat_console_init();
 
     if (argc == 5 && strcmp(argv[1], "--worker") == 0)
     {

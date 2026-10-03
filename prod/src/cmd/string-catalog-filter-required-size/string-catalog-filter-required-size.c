@@ -18,6 +18,7 @@
 
 #include <cplat/argparser/argparser.h>
 #include <cplat/base/result.h>
+#include <cplat/console/console.h>
 #include <cplat/string_catalog/filter.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +49,8 @@ int main(int argc, char **argv)
 {
     filter_required_size_options options = {0};
     int ret;
+
+    cplat_console_init();
 
     cplat_argparser_init(argc, argv,
                          "Print the source-region and filter-image sizes in bytes required for a string catalog "

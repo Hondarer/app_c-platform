@@ -20,6 +20,7 @@
 
 #include <cplat/argparser/argparser.h>
 #include <cplat/base/result.h>
+#include <cplat/console/console.h>
 #include <cplat/hashtable/hashtable.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,6 +76,8 @@ int main(int argc, char **argv)
     size_t mgmt_size = 0;
     size_t data_size = 0;
     int ret;
+
+    cplat_console_init();
 
     cplat_argparser_init(argc, argv,
                             "Print the management-region and data-region buffer sizes required to construct a hash "
